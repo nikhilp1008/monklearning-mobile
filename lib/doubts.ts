@@ -155,7 +155,21 @@ export function getDoubt(doubtId: string): Promise<DoubtDetail> {
   return apiFetch(`/doubts/${doubtId}`);
 }
 
-/** Uploads one photo and waits for all its questions to be solved (~25s). */
+/**
+ * Uploads one photo and waits for all its questions to be solved.
+ *
+ * Timing scales with question count, not a flat ~25s: the web client measured
+ * a five-question page at ~75s. Since MAX_QUESTIONS allows three, the default
+ * 60s ceiling would abort a healthy solve mid-flight and show the student a
+ * "try again" for work the backend was still doing. 150s covers the worst
+ * realistic case with headroom.
+ *
+ * The web client uses `POST /doubts/stream` (SSE) instead, which streams each
+ * step as it lands and shows real progress rather than one long spinner —
+ * the better end state, and a follow-up worth doing.
+ */
+const SNAP_TIMEOUT_MS = 150000;
+
 export async function snapDoubt(photo: DoubtPhoto): Promise<SnapResponse> {
   const body = new FormData();
   // React Native's FormData accepts this {uri, name, type} shape directly —
@@ -165,7 +179,7 @@ export async function snapDoubt(photo: DoubtPhoto): Promise<SnapResponse> {
     name: photo.fileName || 'doubt.jpg',
     type: photo.mimeType || 'image/jpeg',
   } as unknown as Blob);
-  return apiFetch('/doubts', { method: 'POST', body });
+  return apiFetch('/doubts', { method: 'POST', body, timeoutMs: SNAP_TIMEOUT_MS });
 }
 
 export function reportDoubt(doubtId: string, comment?: string): Promise<{ reported: boolean }> {

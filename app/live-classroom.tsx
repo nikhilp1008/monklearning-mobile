@@ -87,7 +87,17 @@ export default function LiveClassroomScreen() {
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
+  const [checkOptions, setCheckOptions] = useState<string[]>([]);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
+  const [isThinking, setIsThinking] = useState(false);
+
   const clientRef = useRef<DronaVoiceClient | null>(null);
+  const answerVerdictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Lets the socket's session-ended callback reach the latest endClass
+   *  without making the connect effect depend on it (which would tear the
+   *  socket down and rebuild it on every render). */
+  const endClassRef = useRef<(() => Promise<void>) | null>(null);
   const recorder = useAudioRecorder();
 
   useEffect(() => {
@@ -97,35 +107,59 @@ export default function LiveClassroomScreen() {
     }
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      const token = data.session?.access_token;
-      const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
-      if (!token || !apiBaseUrl) {
-        setConnectError('Not signed in to reach the classroom.');
-        return;
-      }
+    const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (!apiBaseUrl) {
+      setConnectError('Not signed in to reach the classroom.');
+      return;
+    }
 
-      const client = new DronaVoiceClient(sessionId, token, apiBaseUrl, {
-        onConnectionChange: setConnectionStatus,
-        onState: (state: DronaState) => {
-          setSessionPhase(state.phase);
-        },
-        onBoardReveal: (event) => setBoard((prev) => [...prev, event]),
-        onBoardReplay: (events) => setBoard(events),
-        onCaptionReveal: setCaption,
-        onTurnComplete: () => {},
-        onTurnError: () => setCaption('Drona hit a snag — one moment…'),
-        onError: () => setCaption('Connection hiccup — reconnecting…'),
-      });
-      clientRef.current = client;
-      client.connect();
-      // Kicks off the first teaching turn. The server also auto-fires one on
-      // WS connect if the session is already in "teaching" phase, but both
-      // are safely single-flighted server-side (see PROGRESS.md notes on the
-      // live_session_ws.py turn queue) — sending this is not a double-trigger risk.
-      setTimeout(() => client.sendUtterance('Begin lesson segment'), 300);
+    // A provider rather than a captured token: a class can run longer than a
+    // token's lifetime, and every reconnect needs a currently-valid one.
+    const getAccessToken = async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session?.access_token ?? null;
+    };
+
+    const client = new DronaVoiceClient(sessionId, getAccessToken, apiBaseUrl, {
+      onConnectionChange: setConnectionStatus,
+      onState: (state: DronaState) => {
+        setSessionPhase(state.phase);
+        // Checkpoint questions: the client holds these until the turn's audio
+        // finishes, so by the time this arrives Drona has actually asked it.
+        setCheckOptions(state.check_options ?? []);
+        if (state.question_text) setCaption(state.question_text);
+      },
+      onBoardReveal: (event) => setBoard((prev) => [...prev, event]),
+      onBoardReplay: (events) => setBoard(events),
+      onCaptionReveal: setCaption,
+      onTranscriptPartial: (text) => setLiveTranscript(text),
+      onTranscriptFinal: (text) => {
+        setLiveTranscript('');
+        // Speaking an answer counts the same as tapping a chip.
+        if (text.trim()) setCheckOptions([]);
+      },
+      onSttTooShort: () => setCaption("Didn't catch that — hold the button a little longer."),
+      onAnswerResult: (result) => {
+        setAnswerVerdict(result.verdict);
+        if (answerVerdictTimerRef.current) clearTimeout(answerVerdictTimerRef.current);
+        answerVerdictTimerRef.current = setTimeout(() => setAnswerVerdict(null), 5000);
+      },
+      onTurnComplete: () => setIsThinking(false),
+      onTurnError: () => setCaption('Drona hit a snag — one moment…'),
+      // The lesson itself finished — go to the summary rather than leaving the
+      // student on a silent board wondering whether it broke.
+      onSessionEnded: () => {
+        if (!cancelled) void endClassRef.current?.();
+      },
+      onError: (message) => setCaption(message),
     });
+    clientRef.current = client;
+    client.connect();
+    // Kicks off the first teaching turn. The server also auto-fires one on
+    // WS connect if the session is already in "teaching" phase, but both
+    // are safely single-flighted server-side (see PROGRESS.md notes on the
+    // live_session_ws.py turn queue) — sending this is not a double-trigger risk.
+    setTimeout(() => client.sendUtterance('Begin lesson segment'), 300);
 
     return () => {
       cancelled = true;
@@ -321,6 +355,11 @@ export default function LiveClassroomScreen() {
     }
   };
 
+  // Keeps the socket's onSessionEnded callback pointed at the current
+  // endClass. Assigning on every render (rather than closing over it in the
+  // connect effect) is what avoids rebuilding the WebSocket each render.
+  endClassRef.current = endClass;
+
   const showJumpChip = !following && !handRaised;
 
   if (connectError) {
@@ -420,16 +459,32 @@ export default function LiveClassroomScreen() {
                 connectionStatus !== 'open' && styles.topLiveDotWarn,
               ]}
             />
+            {/* Priority ladder mirroring web's SessionView status badge, so
+                the student always knows who the room is waiting on. */}
             <Text style={styles.topLiveText}>
               {connectionStatus !== 'open'
                 ? connectionStatus === 'reconnecting'
                   ? 'Reconnecting'
                   : 'Connecting'
-                : sessionPhase === 'wrapup'
-                  ? 'Wrapping up'
-                  : sessionPhase === 'awaiting_answer'
-                    ? 'Your turn'
-                    : 'Live'}
+                : handRaised
+                  ? liveTranscript
+                    ? 'Transcribing'
+                    : 'Listening'
+                  : answerVerdict
+                    ? answerVerdict === 'correct'
+                      ? 'Correct'
+                      : answerVerdict === 'partial'
+                        ? 'Almost'
+                        : 'Not quite'
+                    : isThinking
+                      ? 'Drona is thinking'
+                      : paused
+                        ? 'Paused'
+                        : sessionPhase === 'wrapup'
+                          ? 'Wrapping up'
+                          : checkOptions.length > 0 || sessionPhase === 'awaiting_answer'
+                            ? 'Your turn'
+                            : 'Live'}
             </Text>
           </View>
           <View style={styles.topSpacer} />
@@ -477,6 +532,28 @@ export default function LiveClassroomScreen() {
           <View style={styles.dockChevron}>
             <ChevronRightIcon size={scale(13)} />
           </View>
+        </Animated.View>
+      )}
+
+      {/* Answer chips for Drona's checkpoint questions. Previously the state
+          frame's check_options were parsed and then discarded, so a student
+          was told "Your turn" with nothing on screen to answer with — the
+          class simply stalled. Mirrors web's AskSheet. */}
+      {checkOptions.length > 0 && !handRaised && (
+        <Animated.View entering={FadeIn.duration(200)} style={styles.askSheet}>
+          {checkOptions.map((option) => (
+            <Pressable
+              key={option}
+              style={styles.askChip}
+              onPress={() => {
+                clientRef.current?.sendAnswer(option);
+                setCheckOptions([]);
+                setIsThinking(true);
+                armHide();
+              }}>
+              <Text style={styles.askChipText}>{option}</Text>
+            </Pressable>
+          ))}
         </Animated.View>
       )}
 
@@ -1109,6 +1186,34 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(28,26,22,.88)',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    askSheet: {
+      position: 'absolute',
+      left: scale(24),
+      right: scale(96),
+      bottom: verticalScale(18),
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: scale(9),
+    },
+    askChip: {
+      backgroundColor: '#fff',
+      borderWidth: scale(1.5),
+      borderColor: colors.ink,
+      borderRadius: scale(99),
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(18),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(3) },
+      shadowOpacity: 0.18,
+      shadowRadius: scale(6),
+      elevation: 4,
+    },
+    askChipText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(13),
+      color: colors.ink,
     },
     toast: {
       position: 'absolute',

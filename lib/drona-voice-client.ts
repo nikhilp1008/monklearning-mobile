@@ -14,8 +14,16 @@ export interface DronaState {
   current_segment?: number;
   is_muted?: boolean;
   message?: string;
+  /** Option chips for a checkpoint question. Applied on `turn_complete`, not
+   *  on arrival — see the buffering note in handleMessage. */
   check_options?: string[];
   question_text?: string;
+}
+
+/** Verdict for a checkpoint answer, painted on the chosen chip. */
+export interface DronaAnswerResult {
+  verdict: 'correct' | 'partial' | 'incorrect' | string;
+  message?: string;
 }
 
 export interface DronaMeta {
@@ -40,6 +48,9 @@ export interface DronaVoiceHandlers {
   onTurnComplete?: () => void;
   onTurnError?: (message: string) => void;
   onSttTooShort?: (message: string) => void;
+  onAnswerResult?: (result: DronaAnswerResult) => void;
+  /** Server signalled the lesson itself is finished (not a disconnect). */
+  onSessionEnded?: () => void;
   onError?: (message: string) => void;
 }
 
@@ -51,8 +62,8 @@ const TTS_SAMPLE_RATE = 24000;
 
 /**
  * WebSocket client for a live Drona tutoring session. Mirrors
- * monk-learning-webpage's voice.ts protocol (see PROGRESS.md for the full
- * spec this was built against), adapted for React Native:
+ * monk-learning-webpage's src/lib/drona/voice.ts protocol, adapted for React
+ * Native:
  * - Playback uses a sequential file-based queue (AudioPlaybackQueue)
  *   instead of Web Audio's sample-accurate scheduling, since every
  *   audio_chunk is already a complete per-sentence clip, not a low-latency
@@ -69,7 +80,13 @@ const TTS_SAMPLE_RATE = 24000;
 export class DronaVoiceClient {
   private ws: WebSocket | null = null;
   private readonly sessionId: string;
-  private readonly accessToken: string;
+  /** A provider, not a captured string: a live class can outlast a Supabase
+   *  access token, and the backend now authenticates the WebSocket at
+   *  handshake. Reusing the token captured at construction meant every
+   *  reconnect after expiry was rejected — six times, then silence. Web hit
+   *  this first and refetches per open (voice.ts's "a reconnect can happen
+   *  well over an hour into a session"). */
+  private readonly getAccessToken: () => Promise<string | null>;
   private readonly wsBaseUrl: string;
   private readonly handlers: DronaVoiceHandlers;
   private readonly playback = new AudioPlaybackQueue();
@@ -77,14 +94,26 @@ export class DronaVoiceClient {
   private manualDisconnect = false;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** onerror and onclose can both fire for one failure; without this the
+   *  backoff would advance twice per drop and burn its budget early. */
+  private reconnectScheduled = false;
 
-  /** sentence_id -> {speech, board_event} for chunks currently queued/playing,
+  /** Playback id -> {speech, board_event} for chunks currently queued/playing,
    *  so the playback queue's onItemStart can look up what to reveal. */
   private chunkMeta = new Map<string, { speech?: string; boardEvent?: BoardEvent | null }>();
+  /** Monotonic suffix so continuation parts sharing one sentence_id get
+   *  distinct playback ids — they otherwise collide on the queue's
+   *  `drona-tts-${id}.wav` cache path and overwrite each other mid-sentence. */
+  private chunkSeq = 0;
 
-  constructor(sessionId: string, accessToken: string, apiBaseUrl: string, handlers: DronaVoiceHandlers) {
+  constructor(
+    sessionId: string,
+    getAccessToken: () => Promise<string | null>,
+    apiBaseUrl: string,
+    handlers: DronaVoiceHandlers
+  ) {
     this.sessionId = sessionId;
-    this.accessToken = accessToken;
+    this.getAccessToken = getAccessToken;
     this.wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws').replace(/\/$/, '');
     this.handlers = handlers;
 
@@ -98,7 +127,7 @@ export class DronaVoiceClient {
 
   connect() {
     this.manualDisconnect = false;
-    this.openSocket();
+    void this.openSocket();
   }
 
   disconnect() {
@@ -109,20 +138,37 @@ export class DronaVoiceClient {
     this.ws = null;
   }
 
-  private openSocket() {
+  private async openSocket() {
     this.handlers.onConnectionChange?.(this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
-    const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(this.accessToken)}`;
+
+    let token: string | null = null;
+    try {
+      token = await this.getAccessToken();
+    } catch {
+      token = null;
+    }
+    if (this.manualDisconnect) return;
+    if (!token) {
+      this.handlers.onError?.('Lost your sign-in — go back and start the class again.');
+      return;
+    }
+
+    const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
 
     ws.onopen = () => {
       this.reconnectAttempt = 0;
+      this.reconnectScheduled = false;
       this.handlers.onConnectionChange?.('open');
     };
     ws.onmessage = (event) => this.handleMessage(event.data);
+    // Web schedules from onerror too: a failed handshake does not reliably
+    // deliver a close event on every platform, and without this the socket
+    // would sit dead with the UI still saying "Connecting".
     ws.onerror = () => {
-      // onclose fires right after in RN's WebSocket implementation — reconnect is handled there.
+      if (!this.manualDisconnect) this.scheduleReconnect();
     };
     ws.onclose = () => {
       this.handlers.onConnectionChange?.('closed');
@@ -131,11 +177,19 @@ export class DronaVoiceClient {
   }
 
   private scheduleReconnect() {
-    if (this.reconnectAttempt >= RECONNECT_DELAYS_MS.length) return;
+    if (this.reconnectScheduled) return;
+    if (this.reconnectAttempt >= RECONNECT_DELAYS_MS.length) {
+      // Previously a bare return: the UI kept showing "Reconnecting" forever
+      // with nothing left retrying behind it.
+      this.handlers.onError?.("Couldn't reconnect to the classroom — check your connection and rejoin.");
+      return;
+    }
+    this.reconnectScheduled = true;
     const delay = RECONNECT_DELAYS_MS[this.reconnectAttempt];
     this.reconnectAttempt += 1;
     this.reconnectTimer = setTimeout(() => {
-      if (!this.manualDisconnect) this.openSocket();
+      this.reconnectScheduled = false;
+      if (!this.manualDisconnect) void this.openSocket();
     }, delay);
   }
 
@@ -149,9 +203,20 @@ export class DronaVoiceClient {
     }
 
     switch (msg.type) {
-      case 'state':
-        this.handlers.onState?.(msg as unknown as DronaState);
+      case 'state': {
+        const state = msg as unknown as DronaState;
+        // A checkpoint question's chips arrive with the state frame, but its
+        // audio is still queued — showing them now would let the student
+        // answer a question Drona has not finished asking. Held until
+        // turn_complete, matching web.
+        if (state.check_options?.length) {
+          this.pendingState = state;
+        } else {
+          this.handlers.onState?.(state);
+        }
+        if (state.phase === 'complete') this.handlers.onSessionEnded?.();
         break;
+      }
       case 'board_events':
         this.bufferBoardEvents((msg.events as BoardEvent[]) ?? []);
         break;
@@ -167,11 +232,21 @@ export class DronaVoiceClient {
       case 'transcript_final':
         this.handlers.onTranscriptFinal?.(String(msg.transcript ?? ''), msg.confidence as number | undefined);
         break;
-      case 'meta':
-        this.handlers.onMeta?.(msg as unknown as DronaMeta);
+      case 'meta': {
+        const meta = msg as unknown as DronaMeta;
+        this.handlers.onMeta?.(meta);
+        if (meta.session_complete) this.handlers.onSessionEnded?.();
+        break;
+      }
+      case 'answer_result':
+        this.handlers.onAnswerResult?.(msg as unknown as DronaAnswerResult);
         break;
       case 'turn_complete':
         this.flushPendingBoardEvents();
+        if (this.pendingState) {
+          this.handlers.onState?.(this.pendingState);
+          this.pendingState = null;
+        }
         this.handlers.onTurnComplete?.();
         break;
       case 'turn_error':
@@ -191,6 +266,9 @@ export class DronaVoiceClient {
     }
   }
 
+  /** A state frame carrying check_options, held until its turn finishes. */
+  private pendingState: DronaState | null = null;
+
   /** Board items for the whole turn arrive ahead of their audio — held here,
    *  not shown yet, until each item's paired audio_chunk starts playing. */
   private pendingBoardEvents: BoardEvent[] = [];
@@ -207,16 +285,29 @@ export class DronaVoiceClient {
   private handleAudioChunk(msg: Record<string, unknown>) {
     const sentenceId = String(msg.sentence_id ?? '');
     const audioBase64 = String(msg.audio ?? '');
-    if (!sentenceId || !audioBase64) return;
-
     const boardEvent = (msg.board_event as BoardEvent | null) ?? null;
+    const speech = msg.speech as string | undefined;
+
     if (boardEvent) {
       this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => e.seq !== boardEvent.seq);
     }
-    this.chunkMeta.set(sentenceId, { speech: msg.speech as string | undefined, boardEvent });
+
+    // Checkpoint questions arrive as a silent chunk — caption and board line,
+    // no audio. Returning early here (the previous behaviour) dropped the
+    // question text and its board line entirely, so the class appeared to
+    // stall with nothing on screen to answer.
+    if (!audioBase64) {
+      if (speech) this.handlers.onCaptionReveal?.(speech);
+      if (boardEvent) this.handlers.onBoardReveal?.(boardEvent);
+      return;
+    }
+    if (!sentenceId) return;
+
+    const playbackId = `${sentenceId}-${this.chunkSeq++}`;
+    this.chunkMeta.set(playbackId, { speech, boardEvent });
 
     const pcm = base64ToBytes(audioBase64);
-    this.playback.enqueue({ id: sentenceId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
   }
 
   // --- Outbound ---
@@ -229,8 +320,23 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'utterance', text });
   }
 
+  /** The student's answer to a checkpoint question, from a chip tap. */
+  sendAnswer(text: string) {
+    this.sendJson({ type: 'utterance', text });
+  }
+
   sendPttStart() {
+    // Barge-in: stop Drona mid-sentence before the mic opens. Without this she
+    // keeps talking into a live mic and speech-to-text transcribes her own
+    // voice as the student's answer.
+    this.bargeIn();
     this.sendJson({ type: 'ptt_start' });
+  }
+
+  /** Drops everything queued/playing so the room goes quiet immediately. */
+  bargeIn() {
+    this.chunkMeta.clear();
+    this.playback.clear();
   }
 
   /** Raw 16kHz/16-bit/mono PCM, headerless — matches the format

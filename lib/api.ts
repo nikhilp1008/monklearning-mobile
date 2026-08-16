@@ -17,7 +17,20 @@ export class ApiError extends Error {
  * same base URL env pattern, same Bearer-token-from-Supabase-session
  * approach, same ApiError shape, so both clients hit the API the same way.
  */
-export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+/** Default ceiling for ordinary calls. Long ones pass their own — see
+ *  `timeoutMs` below. */
+const DEFAULT_TIMEOUT_MS = 60000;
+
+export async function apiFetch<T>(
+  endpoint: string,
+  options: RequestInit & {
+    /** Override the request ceiling. Doubt solving is the real case: the web
+     *  client measured a 5-question page at ~75s, so a blanket 60s aborts a
+     *  perfectly healthy multi-question solve and tells the student to try
+     *  again while the backend is still working. */
+    timeoutMs?: number;
+  } = {}
+): Promise<T> {
   const baseUrl = process.env.EXPO_PUBLIC_API_URL;
   if (!baseUrl) {
     throw new ApiError('The app isn’t configured to reach the server yet.', 0);
@@ -42,16 +55,15 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   const url = `${baseUrl.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   // A hard client-side ceiling so a stalled connection can't hang a spinner
-  // forever — 60s comfortably covers the slowest known real call (doubt
-  // solving, ~25s) with room to spare, well below anything a student would
-  // wait through anyway. Infra (Railway/Cloudflare) usually times out first
-  // with the HTML page handled above; this is the backstop for when it doesn't.
+  // forever. Infra (Railway/Cloudflare) usually times out first with the HTML
+  // page handled above; this is the backstop for when it doesn't.
+  const { timeoutMs, ...fetchOptions } = options;
   const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), 60000);
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
   let res: Response;
   try {
-    res = await fetch(url, { ...options, headers, signal: timeoutController.signal });
+    res = await fetch(url, { ...fetchOptions, headers, signal: timeoutController.signal });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new ApiError('This is taking longer than expected — check your connection and try again.', 0);
