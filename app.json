@@ -1,21 +1,24 @@
 {
   "expo": {
-    "name": "monk-learning-app",
+    "name": "MonkLearning",
     "slug": "monk-learning-app",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "monklearningapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.monklearning.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FCFAF4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -33,16 +36,35 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "MonkLearning uses your camera to snap a photo of your doubt so Drona can solve it.",
+          "photosPermission": "MonkLearning needs access to your photos so you can pick an image of your doubt."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "MonkLearning needs your microphone so Drona can hear you during a live class.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "@siteed/audio-studio"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "650785f4-c23c-4aa4-a390-7b97596e1a46"
+      }
     }
   }
 }

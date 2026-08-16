@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@400;500;600;700;800&family=Anek+Devanagari:wght@500;600&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:'Anek Latin',system-ui,sans-serif;color:#1C1A16;background:#EFE9DA;-webkit-font-smoothing:antialiased;overflow:hidden}
+::selection{background:rgba(238,163,31,.5)}
+@keyframes mlBlink{50%{opacity:.2}}
+@keyframes protoFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mlRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mlSlideInR{from{opacity:0;transform:translateX(46px)}to{opacity:1;transform:translateX(0)}}
+@keyframes mlSlideInL{from{opacity:0;transform:translateX(-46px)}to{opacity:1;transform:translateX(0)}}
+@keyframes mlSettle{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mlFade{from{opacity:0}to{opacity:1}}
+@keyframes mlSheetUp{from{transform:translateY(102%)}to{transform:translateY(0)}}
+@keyframes ptTick{0%{opacity:0}8%{opacity:.9}70%{opacity:.9}80%{opacity:0}100%{opacity:0}}
+@keyframes ptOuter{0%{transform:rotate(0deg);opacity:0}8%{opacity:1}32%{transform:rotate(-90deg)}90%{transform:rotate(-90deg);opacity:1}100%{transform:rotate(-90deg);opacity:0}}
+@keyframes ptInner{0%{transform:rotate(0deg);opacity:0}28%{transform:rotate(0deg);opacity:0}33%{opacity:1}48%{transform:rotate(-30deg)}90%{transform:rotate(-30deg);opacity:1}100%{transform:rotate(-30deg);opacity:0}}
+@keyframes ptArc1{0%{stroke-dashoffset:81.7;opacity:1}8%{stroke-dashoffset:81.7}32%{stroke-dashoffset:0}56%{opacity:1}66%{opacity:0}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes ptArc2{0%{stroke-dashoffset:14.7;opacity:1}28%{stroke-dashoffset:14.7}48%{stroke-dashoffset:0}60%{opacity:1}70%{opacity:0}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes ptLbl1{0%{opacity:0}30%{opacity:0}38%{opacity:1}56%{opacity:1}66%{opacity:0}100%{opacity:0}}
+@keyframes ptLbl2{0%{opacity:0}46%{opacity:0}54%{opacity:1}62%{opacity:1}72%{opacity:0}100%{opacity:0}}
+@keyframes ptDot{0%{transform:scale(0);opacity:0}50%{transform:scale(0);opacity:0}60%{transform:scale(1.45);opacity:1}68%{transform:scale(1)}90%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes mlWave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+@keyframes mlProg{from{width:56%}to{width:100%}}
+@keyframes mlToLand{from{transform:rotate(90deg) scale(.62);opacity:0}30%{opacity:1}to{transform:rotate(0deg) scale(1);opacity:1}}
+@keyframes mlToPort{from{transform:rotate(-90deg) scale(.62);opacity:0}30%{opacity:1}to{transform:rotate(0deg) scale(1);opacity:1}}
+[data-noscroll]{scrollbar-width:none}[data-noscroll]::-webkit-scrollbar{display:none}
+</style>
+<script src="./prototype-screens.js"></script>
+<script src="./landscape-screens.js?v=5"></script>
+<script src="./topic-screens.js"></script>
+</helmet>
+
+<section style="height:100vh;display:grid;place-items:center;overflow:hidden">
+  {{ screenEl }}
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showHotspots&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;autoAdvance&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype&quot;}}">
+class Component extends DCLogic {
+  state = { current: '01 Welcome', history: [], tick: 0, scale: 1, teacher: (() => { try { return localStorage.getItem('ml_teacher') === 'vedha' ? 'vedha' : 'drona'; } catch (e) { return 'drona'; } })(), voicePlaying: null };
+
+  teacherName() { return this.state.teacher === 'vedha' ? 'Vedha' : 'Drona'; }
+
+  setTeacher(t) {
+    try { localStorage.setItem('ml_teacher', t); } catch (e) {}
+    this.setState(s => ({ teacher: t, tick: s.tick + 1 }));
+  }
+
+  stopVoice() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
+
+  previewVoice(t) {
+    if (this.state.voicePlaying === t) { this.stopVoice(); this.setState({ voicePlaying: null }); return; }
+    this.stopVoice();
+    let synth = null;
+    try { synth = window.speechSynthesis; } catch (e) {}
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+    const line = t === 'vedha'
+      ? 'Namaste! I am Vedha, your teacher. Ready when you are — we will take it one clear step at a time.'
+      : 'Namaste! I am Drona, your teacher. Chalo, let us pick up where you left off and finish it properly.';
+    const u = new SpeechSynthesisUtterance(line);
+    const vs = synth.getVoices() || [];
+    const pool = vs.filter(v => /^(en[-_](IN|GB)|hi[-_]IN)/i.test(v.lang));
+    const base = pool.length ? pool : vs;
+    const female = /female|veena|heera|kalpana|neerja|swara|lekha|isha|zira|kate|sonia|susan|samantha/i;
+    u.voice = (t === 'vedha' ? base.find(v => female.test(v.name)) : base.find(v => !female.test(v.name))) || base[0] || null;
+    u.pitch = t === 'vedha' ? 1.18 : 0.82;
+    u.rate = 0.98;
+    u.onend = () => this.setState({ voicePlaying: null });
+    u.onerror = () => this.setState({ voicePlaying: null });
+    this.setState({ voicePlaying: t });
+    try { synth.speak(u); } catch (e) { this.setState({ voicePlaying: null }); }
+  }
+
+  GROUPS = [
+    ['Onboarding', [['01 Welcome','Welcome'],['02 Auth','Create account'],['02b Sign in','Sign in'],['02c Reset password','Reset password'],['03 OTP','Verify phone'],['04 Exam','Pick exam'],['05 Class','Pick class']]],
+    ['Home', [['1a Home calm','Home'],['07 Plan sheet','Today\u2019s plan'],['08 Learn sheet','Learn with Drona'],['08a Chapter selector','Pick a chapter'],['08b Topic sheet','Pick a topic']]],
+    ['Classroom', [['09 Entering classroom','Entering class'],['10L Live classroom','Live classroom · landscape'],['11 Session summary','Class summary']]],
+    ['Snap a doubt', [['12 Snap capture','Camera'],['13 Snap solved','Solved']]],
+    ['Practice & Mock', [['14 Practice unanswered','Practice question'],['14b Practice revealed','Answer revealed'],['14c Chapter focus','Chapter focus'],['15 Mock locked','Mock locked'],['15a Mock ready','Mock ready'],['15b Mock in-test','Mock in-test'],['15c Mock palette','Question palette'],['16 Mock paused','Mock paused']]],
+    ['Progress', [['17 Progress','Progress'],['26 Report sheet','Report a mistake']]],
+    ['Lessons', [['18 Lessons','Lessons'],['09L Entering lesson','Opening lesson'],['19L Lesson landscape','Lesson · landscape']]],
+    ['Library', [['20 Notes','Notes'],['20b Note detail','Note detail'],['21 Doubts','Doubts'],['21b Doubt detail','Doubt detail'],['22 Sessions','Session backups'],['22b Session board','Session board']]],
+    ['Profile', [['23 Profile','Profile'],['24 Account','Account'],['25 Subscription','Subscription']]]
+  ];
+
+  GLOBAL = [
+    {t:'Home', to:'1a Home calm'},
+    {t:'Lessons', to:'18 Lessons'},
+    {t:'Drona', to:'08a Chapter selector'},
+    {t:'Progress', to:'17 Progress'},
+    {t:'Library', to:'20 Notes'}
+  ];
+
+  NAV = {
+    '01 Welcome': [
+      {t:'Get started', m:'s', to:'02 Auth'},
+      {t:'I already have an account', m:'s', to:'02b Sign in'}
+    ],
+    '02 Auth': [
+      {t:'Create account · verify phone', to:'03 OTP'},
+      {t:'Sign in', to:'02b Sign in'},
+      {t:'Continue with Google', to:'04 Exam'},
+      {t:'Continue with Apple', to:'04 Exam'}
+    ],
+    '02b Sign in': [
+      {t:'Forgot?', to:'02c Reset password'},
+      {t:'Sign in', to:'1a Home calm'},
+      {t:'Create account', to:'02 Auth'},
+      {t:'Continue with Google', to:'1a Home calm'},
+      {t:'Continue with Apple', to:'1a Home calm'}
+    ],
+    '02c Reset password': [
+      {t:'Send reset link', to:'02b Sign in'},
+      {t:'Back to Sign in', to:'02b Sign in'}
+    ],
+    '03 OTP': [
+      {t:'Verify & continue', to:'04 Exam'},
+      {t:'Edit', to:'02 Auth'},
+      {t:'Resend code', m:'s', to:'03 OTP'}
+    ],
+    '04 Exam': [
+      {t:'Continue', to:'05 Class'},
+      {t:'JEE Main', m:'s', to:'05 Class'},
+      {t:'NEET', m:'s', to:'05 Class'},
+      {t:'Foundation', m:'s', to:'05 Class'}
+    ],
+    '05 Class': [
+      {t:'Start learning with Drona', to:'1a Home calm'},
+      {t:'Class 11', m:'s', to:'1a Home calm'},
+      {t:'Class 12', m:'s', to:'1a Home calm'},
+      {t:'Dropper', m:'s', to:'1a Home calm'}
+    ],
+    '1a Home calm': [
+      {t:'Learn this with Drona', to:'09 Entering classroom'},
+      {t:'Learn with Drona', m:'s', to:'08a Chapter selector'},
+      {t:'Choose a topic', to:'08a Chapter selector'},
+      {t:'Snap a doubt', m:'s', to:'12 Snap capture'},
+      {t:'Practice unlimited', m:'s', to:'14 Practice unanswered'},
+      {t:'Today\u2019s plan', m:'s', to:'07 Plan sheet'},
+      {t:"Today's plan", m:'s', to:'07 Plan sheet'},
+      {t:'+ Add', to:'07 Plan sheet'},
+      {t:'Add', to:'07 Plan sheet'},
+      {t:'View all \u2192', occ:0, to:'20 Notes'},
+      {t:'View all \u2192', occ:1, to:'22 Sessions'},
+      {t:'Ohm\u2019s law', m:'c', to:'20b Note detail'},
+      {t:"Ohm's law", m:'c', to:'20b Note detail'},
+      {t:'Balancing redox', m:'c', to:'20b Note detail'},
+      {t:'Integration by parts', m:'c', to:'20b Note detail'},
+      {t:'Rotational Motion · torque', m:'c', to:'22b Session board'},
+      {t:'Current Electricity · loop rule', m:'c', to:'22b Session board'},
+      {t:'A', to:'23 Profile'},
+      {t:'703monk score', to:'17 Progress'},
+      {t:'47doubts solved', to:'21 Doubts'},
+      {t:'320practised', to:'14 Practice unanswered'}
+    ],
+    '07 Plan sheet': [
+      {t:'Done', to:'1a Home calm'},
+      {t:'\u2715', occ:0, to:'1a Home calm'}
+    ],
+    '08 Learn sheet': [
+      {t:'Start learning', to:'09 Entering classroom'},
+      {t:'Resume', m:'s', to:'09 Entering classroom'},
+      {t:'Just start talking', m:'s', to:'09 Entering classroom'}
+    ],
+    '08a Chapter selector': [],
+    '08b Topic sheet': [],
+    '09 Entering classroom': [
+      {t:'*', to:'10L Live classroom'}
+    ],
+    '09L Entering lesson': [
+      {t:'*', to:'19L Lesson landscape'}
+    ],
+    '10L Live classroom': [],
+    '19L Lesson landscape': [],
+    '10 Live session': [
+      {t:'End', to:'11 Session summary'},
+      {t:'Report', to:'26 Report sheet'},
+      {t:'Raise hand', to:'10c Session listening'}
+    ],
+    '10b Drona asks': [
+      {t:'Near the hinge', to:'10 Live session'},
+      {t:'At the far end', to:'10 Live session'},
+      {t:'Doesn\u2019t matter', to:'10 Live session'},
+      {t:"Doesn't matter", to:'10 Live session'}
+    ],
+    '10c Session listening': [
+      {t:'Done \u2014 continue class', to:'10 Live session'},
+      {t:'End', to:'11 Session summary'}
+    ],
+    '10d Session paused': [
+      {t:'Resume class', to:'10 Live session'},
+      {t:'End', to:'11 Session summary'}
+    ],
+    '11 Session summary': [
+      {t:'Save board to notes', to:'20 Notes'},
+      {t:'Go to dashboard', to:'1a Home calm'}
+    ],
+    '12 Snap capture': [
+      {t:'\u2715', to:'1a Home calm'},
+      {t:'Gallery', to:'13 Snap solved'},
+      {t:'*', to:'13 Snap solved'}
+    ],
+    '13 Snap solved': [
+      {t:'Snap the next one', m:'s', to:'12 Snap capture'},
+      {t:'Ask a follow-up', m:'s', to:'09 Entering classroom'},
+      {t:'Report a mistake', to:'26 Report sheet'},
+      {t:'Retake', m:'c', to:'12 Snap capture'}
+    ],
+    '14 Practice unanswered': [
+      {t:'Reveal answer', to:'14b Practice revealed'},
+      {t:'AR / 2', to:'14b Practice revealed'},
+      {t:'B2R', to:'14b Practice revealed'},
+      {t:'C4R', to:'14b Practice revealed'},
+      {t:'DR / 4', to:'14b Practice revealed'},
+      {t:'Next \u2192', to:'14 Practice unanswered'},
+      {t:'Mock test', to:'15 Mock locked'},
+      {t:'Learn this \u2192', to:'09 Entering classroom'},
+      {t:'Current Electricity', to:'14c Chapter focus'}
+    ],
+    '14b Practice revealed': [
+      {t:'Next \u2192', to:'14 Practice unanswered'},
+      {t:'Go deeper with Drona \u2192', to:'09 Entering classroom'},
+      {t:'Mock test', to:'15 Mock locked'},
+      {t:'Current Electricity', to:'14c Chapter focus'}
+    ],
+    '14c Chapter focus': [
+      {t:'Apply focus', to:'14 Practice unanswered'},
+      {t:'All chapters, mixed', m:'s', to:'14 Practice unanswered'},
+      {t:'Weak areas first', m:'s', to:'14 Practice unanswered'}
+    ],
+    '15 Mock locked': [
+      {t:'Preview the mock (demo)', to:'15a Mock ready'},
+      {t:'Unlimited', to:'14 Practice unanswered'},
+      {t:'Learn', to:'09 Entering classroom'},
+      {t:'Practise', to:'14 Practice unanswered'}
+    ],
+    '15a Mock ready': [
+      {t:'Start mock test', to:'15b Mock in-test'},
+      {t:'Unlimited', to:'14 Practice unanswered'}
+    ],
+    '15b Mock in-test': [
+      {t:'Palette', to:'15c Mock palette'},
+      {t:'Submit test', to:'17 Progress'},
+      {t:'Save & exit', to:'16 Mock paused'},
+      {t:'Save & Next \u2192', to:'15b Mock in-test'}
+    ],
+    '15c Mock palette': [
+      {t:'*', to:'15b Mock in-test'}
+    ],
+    '16 Mock paused': [
+      {t:'Resume mock test', to:'15b Mock in-test'}
+    ],
+    '17 Progress': [
+      {t:'Practice this', to:'14 Practice unanswered'},
+      {t:'Revise with Drona', to:'09 Entering classroom'},
+      {t:'Start timed drill', to:'14 Practice unanswered'}
+    ],
+    '18 Lessons': [
+      {t:'Continue', to:'09L Entering lesson'},
+      {t:'Units & Measurement', m:'c', to:'09L Entering lesson'},
+      {t:'Kinematics', m:'c', to:'09L Entering lesson'},
+      {t:'Laws of Motion', m:'c', to:'09L Entering lesson'},
+      {t:'Work, Energy & Power', m:'c', to:'09L Entering lesson'},
+      {t:'Rotational Motion', m:'c', to:'09L Entering lesson'},
+      {t:'Gravitation', m:'c', to:'09L Entering lesson'}
+    ],
+    '19 Lesson player': [
+      {t:'In this chapter', m:'s', to:'19b Lesson sections'},
+      {t:'\u2191 Now: Relative velocity', m:'s', to:'19b Lesson sections'}
+    ],
+    '19b Lesson sections': [
+      {t:'*', to:'09L Entering lesson'}
+    ],
+    '20 Notes': [
+      {t:'Doubts', to:'21 Doubts'},
+      {t:'Sessions', to:'22 Sessions'},
+      {t:'Ohm\u2019s law', m:'c', to:'20b Note detail'},
+      {t:"Ohm's law", m:'c', to:'20b Note detail'},
+      {t:'Balancing redox', m:'c', to:'20b Note detail'},
+      {t:'Integration by parts', m:'c', to:'20b Note detail'},
+      {t:'Projectile motion essentials', m:'c', to:'20b Note detail'}
+    ],
+    '20b Note detail': [
+      {t:'Talk to Drona about this \u2192', to:'09 Entering classroom'}
+    ],
+    '21 Doubts': [
+      {t:'Notes', to:'20 Notes'},
+      {t:'Sessions', to:'22 Sessions'},
+      {t:'alc KOH', m:'c', to:'21b Doubt detail'},
+      {t:'alcoholic KOH', m:'c', to:'21b Doubt detail'},
+      {t:'incline', m:'c', to:'21b Doubt detail'},
+      {t:'Integrate x', m:'c', to:'21b Doubt detail'}
+    ],
+    '21b Doubt detail': [
+      {t:'Ask a follow-up', to:'09 Entering classroom'},
+      {t:'Report a mistake', to:'26 Report sheet'}
+    ],
+    '22 Sessions': [
+      {t:'Notes', to:'20 Notes'},
+      {t:'Doubts', to:'21 Doubts'},
+      {t:'Photoelectric', m:'c', to:'22b Session board'},
+      {t:'Rotational Motion · torque', m:'c', to:'22b Session board'},
+      {t:'loop rule', m:'c', to:'22b Session board'},
+      {t:'Hybridisation', m:'c', to:'22b Session board'}
+    ],
+    '22b Session board': [
+      {t:'Save to notes', to:'20 Notes'}
+    ],
+    '23 Profile': [
+      {t:'Account', to:'24 Account'}
+    ],
+    '24 Account': [
+      {t:'Manage \u2192', to:'25 Subscription'},
+      {t:'Sign out', to:'01 Welcome'}
+    ],
+    '25 Subscription': [],
+    '26 Report sheet': [
+      {t:'Send report', to:'BACK'},
+      {t:'\u2715', to:'BACK'}
+    ]
+  };
+
+  DEMO = {
+    '10 Live session': [['Drona asks you a check-in','10b Drona asks']],
+    '12 Snap capture': [['Press the shutter','13 Snap solved']],
+    '14 Practice unanswered': [['Pick an answer (option C)','14b Practice revealed']],
+    '15 Mock locked': [['Skip ahead: mock unlocked','15a Mock ready']]
+  };
+
+  componentDidMount() {
+    this.hotEls = [];
+    this.onResize = () => this.computeScale();
+    this.onKey = (e) => { if (e.key === 'Escape') this.back(); };
+    window.addEventListener('resize', this.onResize);
+    window.addEventListener('keydown', this.onKey);
+    this.computeScale();
+    const saved = localStorage.getItem('ml-app-current');
+    if (saved && window.ML_SCREENS && window.ML_SCREENS[saved]) this.setState({ current: saved });
+    this.armAuto(saved || this.state.current);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('keydown', this.onKey);
+    clearTimeout(this.autoT);
+    this.stopVoice();
+    this.killTimers();
+  }
+
+  computeScale() { this.forceUpdate(); }
+
+  norm(s) { return (s || '').replace(/\s+/g, ' ').trim().replace(/Vedha/g, 'Drona'); }
+
+  rulesFor(cur) { return (this.NAV[cur] || []).concat(this.GLOBAL); }
+
+  matchText(rule, text) {
+    if (rule.t === '*') return false;
+    if (rule.m === 's') return text.startsWith(rule.t) && text.length <= rule.t.length + 130;
+    if (rule.m === 'c') return text.includes(rule.t) && text.length <= 130;
+    return text === rule.t;
+  }
+
+  findRule(rules, text, el, root) {
+    const hits = rules.filter(r => this.matchText(r, text));
+    if (!hits.length) return null;
+    if (hits.some(r => r.occ != null) && el && root) {
+      let cands = Array.from(root.querySelectorAll('*')).filter(n => this.norm(n.textContent) === text);
+      cands = cands.filter(n => !Array.from(n.children).some(c => this.norm(c.textContent) === text));
+      const idx = cands.findIndex(c => c === el || el.contains(c) || c.contains(el));
+      const byOcc = hits.find(r => r.occ === idx);
+      if (byOcc) return byOcc;
+      return hits.find(r => r.occ == null) || null;
+    }
+    return hits[0];
+  }
+
+  armAuto(to) {
+    clearTimeout(this.autoT);
+    if (!(this.props.autoAdvance ?? true)) return;
+    if (to === '09 Entering classroom') {
+      this.autoT = setTimeout(() => {
+        if (this.state.current === '09 Entering classroom') this.go('10L Live classroom');
+      }, 6500);
+    }
+    if (to === '09L Entering lesson') {
+      this.autoT = setTimeout(() => {
+        if (this.state.current === '09L Entering lesson') this.go('19L Lesson landscape');
+      }, 3400);
+    }
+  }
+
+  go(to) {
+    if (to === 'BACK') { this.back(); return; }
+    if (!(window.ML_SCREENS && window.ML_SCREENS[to])) return;
+    if (to === this.state.current) { this.setState(s => ({ tick: s.tick + 1 })); return; }
+    this.navKind = this.kindFor(this.state.current, to);
+    localStorage.setItem('ml-app-current', to);
+    this.setState(s => ({ current: to, history: s.history.concat(s.current), tick: s.tick + 1 }));
+    this.armAuto(to);
+  }
+
+  back() {
+    clearTimeout(this.autoT);
+    this.navKind = 'back';
+    this.setState(s => {
+      if (!s.history.length) return { current: '1a Home calm', history: [], tick: s.tick + 1 };
+      const h = s.history.slice();
+      const prev = h.pop();
+      localStorage.setItem('ml-app-current', prev);
+      return { current: prev, history: h, tick: s.tick + 1 };
+    });
+  }
+
+  handleTap(e) {
+    const root = e.currentTarget;
+    const gEl = e.target.closest && e.target.closest('[data-go]');
+    if (gEl && root.contains(gEl)) { this.go(gEl.getAttribute('data-go')); return; }
+    const vEl = e.target.closest && e.target.closest('[data-voice]');
+    if (vEl && root.contains(vEl)) { this.previewVoice(vEl.getAttribute('data-voice')); return; }
+    const tEl = e.target.closest && e.target.closest('[data-teacher]');
+    if (tEl && root.contains(tEl)) { this.setTeacher(tEl.getAttribute('data-teacher')); return; }
+    const accEl = e.target.closest && e.target.closest('[data-acc]');
+    if (accEl && root.contains(accEl)) {
+      const panel = accEl.nextElementSibling;
+      if (panel && panel.getAttribute('data-acc-panel')) {
+        const isOpen = panel.style.display !== 'none';
+        panel.style.display = isOpen ? 'none' : '';
+        const chev = accEl.querySelector('svg');
+        if (chev) chev.style.transform = isOpen ? '' : 'rotate(90deg)';
+        const wrap = accEl.parentElement;
+        if (wrap) wrap.style.cssText = isOpen
+          ? 'border-bottom:1px dashed rgba(28,26,22,.08)'
+          : 'border:1.5px solid rgba(238,163,31,.55);background:#FCF4E0;border-radius:14px;margin:5px 0';
+        return;
+      }
+    }
+    const rules = this.rulesFor(this.state.current);
+    let el = e.target;
+    while (el && el !== root) {
+      const text = this.norm(el.textContent);
+      if (text && text.length <= 200) {
+        const r = this.findRule(rules, text, el, root);
+        if (r) { this.go(r.to); return; }
+      }
+      el = el.parentElement;
+    }
+    const wc = rules.find(r => r.t === '*');
+    if (wc) { this.go(wc.to); return; }
+    this.flashHotspots();
+  }
+
+  markHotspots(root) {
+    if (!root) return;
+    const rules = this.rulesFor(this.state.current);
+    const els = [];
+    Array.from(root.querySelectorAll('*')).forEach(n => {
+      const text = this.norm(n.textContent);
+      if (!text || text.length > 200) return;
+      if (rules.some(r => this.matchText(r, text))) {
+        n.style.cursor = 'pointer';
+        els.push(n);
+      }
+    });
+    Array.from(root.querySelectorAll('[data-go],[data-act],[data-tsel]')).forEach(n => { n.style.cursor = 'pointer'; els.push(n); });
+    // keep only innermost matched elements for the flash outline
+    this.hotEls = els.filter(n => !els.some(o => o !== n && n.contains(o)));
+    if (rules.some(r => r.t === '*')) root.style.cursor = 'pointer';
+    if (this.props.showHotspots) this.outline(true);
+  }
+
+  outline(on) {
+    (this.hotEls || []).forEach(n => {
+      n.style.outline = on ? '2px solid rgba(238,163,31,.95)' : '';
+      n.style.outlineOffset = on ? '3px' : '';
+      n.style.borderRadius = n.style.borderRadius || (on ? '6px' : '');
+    });
+  }
+
+  flashHotspots() {
+    this.outline(true);
+    clearTimeout(this.flashT);
+    this.flashT = setTimeout(() => { if (!this.props.showHotspots) this.outline(false); }, 750);
+  }
+
+  SHEET_SCREENS = { '07 Plan sheet':1, '08 Learn sheet':1, '08b Topic sheet':1, '14c Chapter focus':1, '15c Mock palette':1, '19b Lesson sections':1, '26 Report sheet':1 };
+
+  // landscape takeover screens — the phone itself rotates to enter/leave them
+  LAND = { '09 Entering classroom':1, '09L Entering lesson':1, '10L Live classroom':1, '19L Lesson landscape':1 };
+
+  // transition design language: screens sharing a tag are LATERAL siblings —
+  // switching between them is a near-instant swap, not a page entrance
+  NAV_TAGS = {
+    '02 Auth': ['auth'], '02b Sign in': ['auth'], '02c Reset password': ['auth'],
+    '1a Home calm': ['tabs','home'], '07 Plan sheet': ['home'], '08 Learn sheet': ['home'], '08a Chapter selector': ['home'], '08b Topic sheet': ['home'],
+    '14 Practice unanswered': ['prac'], '17 Progress': ['tabs'], '18 Lessons': ['tabs'],
+    '20 Notes': ['tabs','lib'], '21 Doubts': ['lib'], '22 Sessions': ['lib'],
+    '14b Practice revealed': ['prac'], '15 Mock locked': ['prac'], '15a Mock ready': ['prac'],
+    '09 Entering classroom': ['live'], '10L Live classroom': ['live'], '09L Entering lesson': ['lesson'], '19L Lesson landscape': ['lesson'], '10 Live session': ['live'], '10b Drona asks': ['live'],
+    '10c Session listening': ['live'], '10d Session paused': ['live'],
+    '15b Mock in-test': ['mock'], '16 Mock paused': ['mock'],
+    '19 Lesson player': ['lesson'], '19b Lesson sections': ['lesson']
+  };
+
+  // ordered lateral sets: moving between members slides the content in tab order.
+  // chrome = labels of the segmented header that must stay pinned during the slide
+  LATERAL = [
+    { order: ['02 Auth','02b Sign in','02c Reset password'], chrome: ['Create account','Sign in'] },
+    { order: ['20 Notes','21 Doubts','22 Sessions'], chrome: ['Notes','Doubts','Sessions'] },
+    { order: ['1a Home calm','18 Lessons','17 Progress','20 Notes'], chrome: [] },
+    { order: ['14 Practice unanswered','15 Mock locked'], chrome: ['Unlimited','Mock test'] }
+  ];
+
+  kindFor(from, to) {
+    this.slideDir = null; this.slideChrome = null;
+    if (this.LAND[to] && !this.LAND[from]) return 'toLand';
+    if (this.LAND[from] && !this.LAND[to]) return 'toPort';
+    if (this.SHEET_SCREENS[to]) return 'sheet';
+    for (const g of this.LATERAL) {
+      const i = g.order.indexOf(from), j = g.order.indexOf(to);
+      if (i !== -1 && j !== -1 && i !== j) {
+        this.slideDir = j > i ? 'right' : 'left'; // side the new content enters from
+        this.slideChrome = g.chrome;
+        return 'slide';
+      }
+    }
+    const a = this.NAV_TAGS[from] || [], b = this.NAV_TAGS[to] || [];
+    if (a.some(t => b.includes(t))) return 'swap';
+    if (to === '09 Entering classroom' || to === '12 Snap capture') return 'takeover';
+    return 'drill';
+  }
+
+  killTimers() {
+    (this.timers || []).forEach(t => { clearInterval(t); clearTimeout(t); });
+    this.timers = [];
+  }
+
+  addTimer(t) { (this.timers = this.timers || []).push(t); return t; }
+
+  enliven(root) {
+    const cur = this.state.current;
+    // per-screen behaviors FIRST: stagger() re-serializes style attributes,
+    // which would break the string-matching finders below
+    if (cur === '09 Entering classroom' || cur === '09L Entering lesson') this.animateEntering(root);
+    if (cur === '08b Topic sheet') this.topicSheet(root);
+    if (cur === '10 Live session') this.liveSession(root);
+    if (cur === '10L Live classroom') this.landLive(root);
+    if (cur === '19L Lesson landscape') this.landLesson(root);
+    if (cur === '19 Lesson player') this.lessonPlayer(root);
+    if (cur === '15b Mock in-test' || cur === '15c Mock palette') this.tickClock(root);
+    this.stickyTabBar(root);
+    const kind = this.navKind || 'drill';
+    if (this.SHEET_SCREENS[cur]) this.animateSheet(root);
+    else if (cur === '09 Entering classroom') { /* protractor owns this screen */ }
+    else if (kind === 'slide') this.slideContent(root, this.slideDir, this.slideChrome);
+    else if (kind === 'drill') this.contentRise(root);
+    else if (kind === 'back') this.settleContent(root);
+  }
+
+  contentKids(root, chrome) {
+    const screen = root.firstElementChild || root;
+    const out = [];
+    // a real segmented-header row has short text; a page wrapper that merely
+    // CONTAINS the labels is much longer — recurse into it instead of skipping it
+    const chromeLen = chrome && chrome.length ? chrome.join('').length + 40 : 0;
+    const visit = (el, top) => {
+      Array.from(el.children).forEach((c, i) => {
+        if (top && i === 0) return; // status bar = static chrome
+        if (c.getAttribute('data-ml-bar')) return;
+        const st = c.getAttribute('style') || '';
+        if (st.includes('position:absolute')) return;
+        if (chrome && chrome.length) {
+          const t = this.norm(c.textContent);
+          const hits = chrome.filter(l => t.includes(l)).length;
+          if (hits >= Math.min(2, chrome.length)) {
+            if (t.length <= chromeLen) return; // IS the segmented header → pinned
+            visit(c, false); // contains it → look inside
+            return;
+          }
+        }
+        out.push(c);
+      });
+    };
+    visit(screen, true);
+    return out;
+  }
+
+  slideContent(root, dir, chrome) {
+    const anim = (dir === 'right' ? 'mlSlideInR' : 'mlSlideInL') + ' .28s cubic-bezier(.25,.75,.3,1) both';
+    this.contentKids(root, chrome).forEach(c => { c.style.animation = anim; });
+  }
+
+  settleContent(root) {
+    this.contentKids(root).forEach(c => { c.style.animation = 'mlSettle .24s ease-out both'; });
+  }
+
+  stickyTabBar(root) {
+    const screen = root.firstElementChild || root;
+    const bar = Array.from(screen.children).find(c => {
+      const t = this.norm(c.textContent);
+      return t.includes('Home') && t.includes('Drona') && t.includes('Library');
+    });
+    if (bar) {
+      // the mockup's screen root has overflow:hidden, which would trap the
+      // sticky bar inside it — the outer wrapper already clips corners
+      screen.style.overflow = 'visible';
+      bar.style.position = 'sticky';
+      bar.style.bottom = '0';
+      bar.style.zIndex = '40';
+      bar.style.background = 'rgba(252,250,244,.97)';
+      bar.style.backdropFilter = 'blur(10px)';
+      bar.setAttribute('data-ml-bar', '1');
+    }
+  }
+
+  contentRise(root) {
+    // drill-down entrance: soft rise with a barely-there cascade (max 3 beats)
+    this.contentKids(root).forEach((c, i) => {
+      c.style.animation = 'mlRise .32s cubic-bezier(.22,.75,.3,1) both';
+      c.style.animationDelay = (Math.min(i, 3) * 40) + 'ms';
+    });
+  }
+
+  animateSheet(root) {
+    Array.from(root.querySelectorAll('div')).forEach(d => {
+      const st = d.getAttribute('style') || '';
+      if (st.includes('backdrop-filter')) d.style.animation = 'mlFade .28s ease both';
+      if (st.includes('border-radius:24px 24px 0 0')) d.style.animation = 'mlSheetUp .38s cubic-bezier(.2,.8,.25,1) both';
+    });
+  }
+
+  animateEntering(root) {
+    // exact transplant of the brand's "06 · Protractor — Rotated to true" construction study
+    const svg = root.querySelector('svg');
+    if (!svg) return;
+    const ticks = [];
+    for (let a = 0; a < 360; a += 30) ticks.push('<line x1="60" y1="12" x2="60" y2="16"' + (a ? ' transform="rotate(' + a + ' 60 60)"' : '') + '></line>');
+    svg.setAttribute('viewBox', '0 0 120 120');
+    svg.style.overflow = 'visible';
+    svg.innerHTML =
+      '<g stroke="#55524A" stroke-width="1.2" style="animation:ptTick 6.5s linear infinite">' + ticks.join('') + '</g>' +
+      '<circle cx="60" cy="60" r="36" fill="none" stroke="#FCFAF4" stroke-width="11" stroke-linecap="round" stroke-dasharray="52 23.4" style="transform-origin:60px 60px;animation:ptOuter 6.5s cubic-bezier(.22,.8,.25,1) infinite"></circle>' +
+      '<circle cx="60" cy="60" r="19" fill="none" stroke="#FCFAF4" stroke-width="9" stroke-linecap="round" stroke-dasharray="21.8 18" style="transform-origin:60px 60px;animation:ptInner 6.5s cubic-bezier(.22,.8,.25,1) infinite"></circle>' +
+      '<path d="M112,60 A52,52 0 0 0 60,8" fill="none" stroke="#DD4433" stroke-width="1.4" stroke-dasharray="81.7" style="animation:ptArc1 6.5s linear infinite"></path>' +
+      '<path d="M88,60 A28,28 0 0 0 84.25,46" fill="none" stroke="#DD4433" stroke-width="1.4" stroke-dasharray="14.7" style="animation:ptArc2 6.5s linear infinite"></path>' +
+      '<text x="102" y="22" style="font-family:\'Kalam\';font-size:9px;fill:#EEA31F;animation:ptLbl1 6.5s linear infinite">\u221290\u00B0</text>' +
+      '<text x="94" y="48" style="font-family:\'Kalam\';font-size:9px;fill:#EEA31F;animation:ptLbl2 6.5s linear infinite">\u221230\u00B0</text>' +
+      '<circle cx="60" cy="60" r="6" fill="#EEA31F" style="transform-box:fill-box;transform-origin:center;animation:ptDot 6.5s cubic-bezier(.34,1.4,.5,1) infinite"></circle>';
+  }
+
+  collectText(el) {
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const out = []; let n;
+    while ((n = w.nextNode())) { if (n.textContent.trim()) { out.push([n, n.textContent]); n.textContent = ''; } }
+    return out;
+  }
+
+  boardEngine(root) {
+    const board = Array.from(root.querySelectorAll('div')).find(d => {
+      const st = d.getAttribute('style') || '';
+      return /repeating-linear-gradient/.test(st) && /1\.5px solid/.test(st);
+    });
+    if (!board) return null;
+    const steps = [];
+    Array.from(board.children).forEach(el => {
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'span') return;
+      const txt = this.norm(el.textContent);
+      if (tag === 'div' && (txt.includes('The board') || txt.includes('writing'))) return;
+      if (tag === 'svg') {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .6s ease';
+        steps.push({ svg: el, hold: 24 });
+      } else {
+        this.collectText(el).forEach(([node, full]) => steps.push({ node, full, i: 0 }));
+      }
+    });
+    if (!steps.length) return null;
+    const eng = { paused: true, si: 0 };
+    this.addTimer(setInterval(() => {
+      if (eng.paused || eng.si >= steps.length) return;
+      const st = steps[eng.si];
+      if (st.svg) {
+        st.svg.style.opacity = '1';
+        st.hold -= 1;
+        if (st.hold <= 0) eng.si += 1;
+        return;
+      }
+      st.i += (Math.random() < .25 ? 2 : 1);
+      st.node.textContent = st.full.slice(0, st.i);
+      if (st.i >= st.full.length) { eng.si += 1; }
+    }, 26));
+    return eng;
+  }
+
+  loopCaption(root) {
+    const cap = Array.from(root.querySelectorAll('div')).find(d => /#211C15|rgb\(33,\s*28,\s*21\)/.test(d.getAttribute('style') || ''));
+    if (!cap) return null;
+    const nodes = this.collectText(cap);
+    if (!nodes.length) return null;
+    const loop = { paused: false, i: 0, j: 0, wait: 8 };
+    this.addTimer(setInterval(() => {
+      if (loop.paused) return;
+      if (loop.wait > 0) {
+        loop.wait -= 1;
+        if (loop.wait === 0) { loop.i = 0; loop.j = 0; nodes.forEach(([n]) => { n.textContent = ''; }); }
+        return;
+      }
+      if (loop.i >= nodes.length) { loop.wait = 36; return; }
+      const pair = nodes[loop.i];
+      loop.j += 1;
+      pair[0].textContent = pair[1].slice(0, loop.j);
+      if (loop.j >= pair[1].length) { loop.i += 1; loop.j = 0; }
+    }, 48));
+    return loop;
+  }
+
+  // ── topic selector sheet: single-select cards, CTA arms with topic name, free-talk paths
+  topicSheet(root) {
+    const cards = Array.from(root.querySelectorAll('[data-tsel]'));
+    const cta = root.querySelector('[data-role=tcta]');
+    const label = root.querySelector('[data-ctalabel]');
+    const arrow = root.querySelector('[data-ctarrow]');
+    const ft = root.querySelector('[data-role=freetalk]');
+    const talks = root.querySelector('[data-role=talks]');
+    let sel = null;
+    const SEL = 'display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FCF4E0;border:1.6px solid #EEA31F;border-radius:13px;padding:12px 14px;font-weight:700;font-size:13px;line-height:1.35;min-height:58px;box-shadow:0 8px 18px -14px rgba(238,163,31,.8);cursor:pointer';
+    const UNSEL = 'display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid rgba(28,26,22,.12);border-radius:13px;padding:12px 14px;font-weight:600;font-size:13px;line-height:1.35;min-height:58px;cursor:pointer';
+    root.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = e.target.closest && e.target.closest('[data-tsel]');
+      if (card && root.contains(card)) {
+        sel = this.norm(card.childNodes[0] ? card.childNodes[0].textContent : card.textContent);
+        cards.forEach(c => {
+          const on = c === card;
+          c.style.cssText = on ? SEL : UNSEL + ';opacity:.6';
+          const chk = c.querySelector('[data-chk]');
+          if (chk) chk.style.display = on ? 'grid' : 'none';
+        });
+        if (cta) cta.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:9px;width:100%;font-weight:600;font-size:16px;height:52px;border-radius:99px;color:#FCFAF4;background:#1C1A16;box-shadow:0 12px 26px -12px rgba(28,26,22,.7);cursor:pointer';
+        if (label) label.textContent = 'Start with ' + sel;
+        if (arrow) arrow.style.display = 'block';
+        if (ft) ft.style.opacity = '.65';
+        if (talks) talks.style.opacity = '.65';
+        return;
+      }
+      const act = e.target.closest && e.target.closest('[data-act]');
+      const a = act && root.contains(act) ? act.getAttribute('data-act') : null;
+      if (a === 'talk') { this.go('09 Entering classroom'); return; }
+      if (a === 'close') { this.back(); return; }
+      if (a === 'tstart') { if (sel) this.go('09 Entering classroom'); else this.flashHotspots(); return; }
+      this.flashHotspots();
+    });
+  }
+
+  liveSession(root) {
+    const eng = this.boardEngine(root);
+    if (eng) eng.paused = false;
+    this.loopCaption(root);
+    const pauseBtn = Array.from(root.querySelectorAll('span')).find(sp => {
+      const st = sp.getAttribute('style') || '';
+      return /width:\s*48px/.test(st) && /border-radius:\s*50%/.test(st);
+    });
+    if (pauseBtn) {
+      pauseBtn.style.cursor = 'pointer';
+      pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); this.go('10d Session paused'); });
+    }
+  }
+
+  // ── landscape live classroom: writing engine + follow-scroll, chrome tuck, raise hand, CC
+  landLive(root) {
+    const $ = (q) => root.querySelector(q);
+    const board = $('[data-role=board]'), ind = $('[data-role=ind]'), chip = $('[data-role=livechip]'),
+      listen = $('[data-role=listen]'), cap = $('[data-role=capwrap]'), top = $('[data-role=top]'),
+      dock = $('[data-role=dock]'), handle = $('[data-role=handle]'),
+      rscrim = $('[data-role=rscrim]'), rdrawer = $('[data-role=rdrawer]'), rtoast = $('[data-role=rtoast]');
+    const eng = this.boardEngine(root); if (eng) eng.paused = false;
+    this.loopCaption(root);
+    let chrome = true, follow = true, cc = true, hand = false, reportOpen = false, hideT;
+    const setChrome = (on) => {
+      chrome = on;
+      if (top) { top.style.transform = on ? 'translateY(0)' : 'translateY(-72px)'; top.style.opacity = on ? '1' : '0'; }
+      if (dock) { dock.style.transform = on ? 'translate(0,-50%)' : 'translate(96px,-50%)'; dock.style.opacity = on ? '1' : '0'; }
+      if (handle) handle.style.opacity = on ? '0' : '1';
+    };
+    // class has begun → chrome fades on its own (same fade as a board tap)
+    const armHide = () => {
+      clearTimeout(hideT);
+      hideT = this.addTimer(setTimeout(() => { if (chrome && !hand && !reportOpen) setChrome(false); }, 4200));
+    };
+    const setReport = (on) => {
+      reportOpen = on;
+      if (rdrawer) rdrawer.style.transform = on ? 'translateX(0)' : 'translateX(105%)';
+      if (rscrim) { rscrim.style.opacity = on ? '1' : '0'; rscrim.style.pointerEvents = on ? 'auto' : 'none'; }
+      if (on) { clearTimeout(hideT); setChrome(true); } else armHide();
+    };
+    const setListen = (on) => {
+      hand = on;
+      if (listen) { listen.style.opacity = on ? '1' : '0'; listen.style.pointerEvents = on ? 'auto' : 'none'; }
+      if (on && chip) { chip.style.opacity = '0'; chip.style.pointerEvents = 'none'; }
+    };
+    if (board) {
+      this.addTimer(setInterval(() => { if (follow) board.scrollTop = board.scrollHeight; }, 350));
+      board.addEventListener('scroll', () => {
+        if (ind) {
+          ind.style.height = Math.max(28, board.clientHeight * board.clientHeight / board.scrollHeight) + 'px';
+          ind.style.top = (board.scrollTop / board.scrollHeight * board.clientHeight) + 'px';
+          ind.style.opacity = '1';
+          clearTimeout(this.indT); this.indT = setTimeout(() => { ind.style.opacity = '0'; }, 900);
+        }
+        follow = board.scrollTop + board.clientHeight >= board.scrollHeight - 40;
+        if (chip && !hand) { chip.style.opacity = follow ? '0' : '1'; chip.style.pointerEvents = follow ? 'none' : 'auto'; }
+      });
+    }
+    root.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const goEl = e.target.closest && e.target.closest('[data-go]');
+      if (goEl && root.contains(goEl)) { this.go(goEl.getAttribute('data-go')); return; }
+      const act = e.target.closest && e.target.closest('[data-act]');
+      const a = act && root.contains(act) ? act.getAttribute('data-act') : null;
+      if (a === 'hand') { setListen(true); setChrome(true); clearTimeout(hideT); return; }
+      if (a === 'done') { setListen(false); armHide(); return; }
+      if (a === 'jump') { follow = true; if (board) board.scrollTo({ top: board.scrollHeight, behavior: 'smooth' }); return; }
+      if (a === 'pause') { if (eng) eng.paused = !eng.paused; return; }
+      if (a === 'ropen') { setReport(true); return; }
+      if (a === 'rclose') { setReport(false); return; }
+      if (a === 'rsend') {
+        setReport(false);
+        if (rtoast) {
+          rtoast.style.opacity = '1';
+          this.addTimer(setTimeout(() => { rtoast.style.opacity = '0'; }, 2200));
+        }
+        return;
+      }
+      const opt = e.target.closest && e.target.closest('[data-ropt]');
+      if (opt && root.contains(opt)) {
+        root.querySelectorAll('[data-ropt]').forEach(o => {
+          const on = o === opt;
+          o.style.background = on ? '#1C1A16' : '#fff';
+          o.style.color = on ? '#FCFAF4' : '#57534B';
+          o.style.border = on ? '1px solid #1C1A16' : '1px solid rgba(28,26,22,.14)';
+          o.style.fontWeight = on ? '700' : '600';
+        });
+        return;
+      }
+      if (e.target.closest && e.target.closest('[data-role=rdrawer]')) return;
+      setChrome(!chrome);
+      if (chrome) armHide();
+    });
+    armHide();
+  }
+
+  // ── landscape lesson: playback, chrome tuck, CC, IG-style segment progress, Topics drawer
+  landLesson(root) {
+    const $ = (q) => root.querySelector(q);
+    const board = $('[data-role=board]'), ind = $('[data-role=ind]'), chip = $('[data-role=backnow]'),
+      cap = $('[data-role=capwrap]'), top = $('[data-role=top]'), dock = $('[data-role=dock]'),
+      segbar = $('[data-role=segbar]'), drawer = $('[data-role=drawer]'), scrim = $('[data-role=scrim]');
+    const icPause = $('[data-ic=pause]'), icPlay = $('[data-ic=play]');
+    const rows = Array.from(root.querySelectorAll('[data-topic]'));
+    const fills = Array.from(root.querySelectorAll('[data-seg]'));
+    const capLoop = this.loopCaption(root);
+    let chrome = true, playing = true, cc = true;
+    if (board) requestAnimationFrame(() => { board.scrollTop = board.scrollHeight; });
+    const curFill = () => fills.find(f => (f.getAttribute('style') || f.style.cssText).includes('mlProg') || f.style.animationName === 'mlProg');
+    const setPlaying = (on) => {
+      playing = on;
+      if (capLoop) capLoop.paused = !on;
+      fills.forEach(f => { if (f.style.animation && f.style.animation.includes('mlProg')) f.style.animationPlayState = on ? 'running' : 'paused'; });
+      const cf = curFill(); if (cf) cf.style.animationPlayState = on ? 'running' : 'paused';
+      if (icPause) icPause.style.display = on ? 'block' : 'none';
+      if (icPlay) icPlay.style.display = on ? 'none' : 'block';
+    };
+    const setChrome = (on) => {
+      chrome = on;
+      if (top) { top.style.transform = on ? 'translateY(0)' : 'translateY(-72px)'; top.style.opacity = on ? '1' : '0'; }
+      if (dock) { dock.style.transform = on ? 'translate(-50%,0)' : 'translate(-50%,64px)'; dock.style.opacity = on ? '1' : '0'; }
+      if (segbar) segbar.style.opacity = on ? '1' : '.5';
+    };
+    const setDrawer = (on) => {
+      if (drawer) drawer.style.transform = on ? 'translateX(0)' : 'translateX(105%)';
+      if (scrim) { scrim.style.opacity = on ? '1' : '0'; scrim.style.pointerEvents = on ? 'auto' : 'none'; }
+    };
+    const setTopic = (idx) => {
+      rows.forEach((r, i) => {
+        const mark = r.querySelector('[data-mark]'), name = r.querySelector('[data-name]'), sub = r.querySelector('[data-sub]');
+        r.style.background = i === idx ? '#FCF4E0' : 'transparent';
+        r.style.border = i === idx ? '1.4px solid rgba(238,163,31,.55)' : '1.4px solid transparent';
+        if (mark) { mark.textContent = i < idx ? '\u2713' : i === idx ? '\u25CF' : '\u25CB'; mark.style.color = i < idx ? '#1C9B57' : i === idx ? '#EEA31F' : '#C0BBAD'; }
+        if (name) { name.style.fontWeight = i === idx ? '800' : '600'; name.style.color = i === idx ? '#1C1A16' : i < idx ? '#57534B' : '#9C988C'; }
+        if (sub) sub.textContent = i === idx ? 'Now playing' : '';
+      });
+      fills.forEach((f, i) => {
+        if (i < idx) { f.style.animation = 'none'; f.style.width = '100%'; f.style.background = 'rgba(28,26,22,.3)'; }
+        else if (i === idx) {
+          f.style.background = '#EEA31F'; f.style.animation = 'none'; f.style.width = '56%';
+          void f.offsetWidth;
+          f.style.animation = 'mlProg 80s linear forwards';
+          f.style.animationPlayState = playing ? 'running' : 'paused';
+        }
+        else { f.style.animation = 'none'; f.style.width = '0'; f.style.background = '#EEA31F'; }
+      });
+    };
+    if (board) {
+      board.addEventListener('scroll', () => {
+        if (ind) {
+          ind.style.height = Math.max(28, board.clientHeight * board.clientHeight / board.scrollHeight) + 'px';
+          ind.style.top = (board.scrollTop / board.scrollHeight * board.clientHeight) + 'px';
+          ind.style.opacity = '1';
+          clearTimeout(this.indT2); this.indT2 = setTimeout(() => { ind.style.opacity = '0'; }, 900);
+        }
+        const atB = board.scrollTop + board.clientHeight >= board.scrollHeight - 40;
+        if (chip) { chip.style.opacity = atB ? '0' : '1'; chip.style.pointerEvents = atB ? 'none' : 'auto'; }
+      });
+    }
+    root.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const goEl = e.target.closest && e.target.closest('[data-go]');
+      if (goEl && root.contains(goEl)) { this.go(goEl.getAttribute('data-go')); return; }
+      const row = e.target.closest && e.target.closest('[data-topic]');
+      if (row && root.contains(row)) { setTopic(parseInt(row.getAttribute('data-topic'), 10)); setDrawer(false); return; }
+      const act = e.target.closest && e.target.closest('[data-act]');
+      const a = act && root.contains(act) ? act.getAttribute('data-act') : null;
+      if (a === 'play') { setPlaying(!playing); return; }
+      if (a === 'topics') { setDrawer(true); return; }
+      if (a === 'closedrawer') { setDrawer(false); return; }
+      if (a === 'jump') { if (board) board.scrollTo({ top: board.scrollHeight, behavior: 'smooth' }); return; }
+      if (a === 'cc') {
+        cc = !cc;
+        if (cap) { cap.style.maxHeight = cc ? '60px' : '0'; cap.style.opacity = cc ? '1' : '0'; }
+        act.style.background = cc ? '#FCF4E0' : '#fff';
+        act.style.border = cc ? '1.4px solid rgba(238,163,31,.65)' : '1.4px solid rgba(28,26,22,.16)';
+        act.style.color = cc ? '#9A6A12' : '#9C988C';
+        return;
+      }
+      if (e.target.closest && e.target.closest('[data-role=drawer]')) return;
+      setChrome(!chrome);
+    });
+  }
+
+  lessonPlayer(root) {
+    const eng = this.boardEngine(root);
+    const cap = this.loopCaption(root);
+    if (cap) cap.paused = true;
+    const btn = Array.from(root.querySelectorAll('span')).find(sp => this.norm(sp.textContent) === 'Pause' && /#1C1A16|rgb\(28,\s*26,\s*22\)/.test(sp.getAttribute('style') || ''));
+    if (!btn) { if (eng) eng.paused = false; if (cap) cap.paused = false; return; }
+    const icon = btn.querySelector('svg');
+    const label = Array.from(btn.childNodes).find(n => n.nodeType === 3 && n.textContent.trim());
+    const setBtn = (playing) => {
+      if (icon) icon.innerHTML = playing ? '<path d="M9 5v14M15 5v14"></path>' : '<path d="M8 6.2l10.5 5.8L8 17.8z" fill="currentColor" stroke="none"></path>';
+      if (label) label.textContent = playing ? 'Pause' : 'Play';
+    };
+    setBtn(false);
+    btn.style.cursor = 'pointer';
+    let playing = false;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playing = !playing;
+      if (eng) eng.paused = !playing;
+      if (cap) cap.paused = !playing;
+      setBtn(playing);
+    });
+  }
+
+  tickClock(root) {
+    // find the raw text node holding hh:mm:ss (its parent span may contain an icon child)
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = null, n;
+    while ((n = w.nextNode())) {
+      if (/^\s*\d{2}:\d{2}:\d{2}\s*$/.test(n.textContent)) { node = n; break; }
+    }
+    if (!node) return;
+    let t = this.norm(node.textContent).split(':').reduce((a, v) => a * 60 + parseInt(v, 10), 0);
+    this.addTimer(setInterval(() => {
+      t = Math.max(0, t - 1);
+      const h = String(Math.floor(t / 3600)).padStart(2, '0');
+      const m = String(Math.floor((t % 3600) / 60)).padStart(2, '0');
+      const sec = String(t % 60).padStart(2, '0');
+      node.textContent = h + ':' + m + ':' + sec;
+    }, 1000));
+  }
+
+  renderVals() {
+    const cur = this.state.current;
+    const isLand = !!this.LAND[cur];
+    const W = isLand ? 844 : 390, H = isLand ? 390 : 844;
+    const availW = window.innerWidth - 24;
+    const availH = window.innerHeight - 24;
+    const s = Math.max(0.4, Math.min(1, availW / W, availH / H));
+    const T = this.teacherName();
+    const screens = window.ML_SCREENS || {};
+    const selS = 'border:1.6px solid #EEA31F;background:#FCF4E0';
+    const unselS = 'border:1.4px solid rgba(28,26,22,.12);background:#fff';
+    const html = (screens[cur] || '<div style="padding:60px 30px;font-family:sans-serif">Loading screens\u2026</div>')
+      .replace(/Drona/g, T)
+      .replace('__DSEL__', this.state.teacher !== 'vedha' ? selS : unselS)
+      .replace('__VSEL__', this.state.teacher === 'vedha' ? selS : unselS)
+      .replace('__DVOICE__', this.state.voicePlaying === 'drona' ? '◼ Stop' : '▶ Hear the voice')
+      .replace('__VVOICE__', this.state.voicePlaying === 'vedha' ? '◼ Stop' : '▶ Hear the voice');
+
+    let currentGroup = '';
+    let currentLabel = cur;
+    const groups = this.GROUPS.map(([name, items]) => ({
+      name,
+      items: items.map(([key, rawLabel]) => {
+        const label = rawLabel.replace(/Drona/g, T);
+        const active = key === cur;
+        if (active) { currentGroup = name; currentLabel = label; }
+        return {
+          label, key,
+          fw: active ? '800' : '600',
+          color: active ? '#1C1A16' : '#57534B',
+          bg: active ? 'rgba(238,163,31,.22)' : 'transparent',
+          dot: active ? '#EEA31F' : 'rgba(28,26,22,.18)',
+          go: () => this.go(key)
+        };
+      })
+    }));
+
+    const demoActions = (this.DEMO[cur] || []).map(([label, to]) => ({ label: label.replace(/Drona/g, T), go: () => this.go(to) }));
+
+    // the phone frame stays static — all motion happens INSIDE the screen
+    const kind = this.navKind || 'drill';
+    const anim = kind === 'toLand' ? 'mlToLand .85s cubic-bezier(.3,.72,.25,1) both'
+      : kind === 'toPort' ? 'mlToPort .7s cubic-bezier(.3,.72,.25,1) both'
+      : kind === 'takeover' ? 'mlFade .25s ease both'
+      : kind === 'swap' ? 'mlFade .12s ease both'
+      : kind === 'slide' ? 'mlFade .16s ease both'
+      : kind === 'back' ? 'mlFade .16s ease both'
+      : 'mlFade .18s ease both';
+    const screenEl = React.createElement('div',
+      { style: { width: (W * s) + 'px', height: (H * s) + 'px' } },
+      React.createElement('div', { style: { width: W + 'px', height: H + 'px', transform: 'scale(' + s + ')', transformOrigin: '0 0' } },
+        React.createElement('div', {
+          key: cur + ':' + this.state.tick,
+          ref: (el) => {
+            if (!el) return;
+            const k = cur + ':' + this.state.tick;
+            if (this._ek === k) return;
+            this._ek = k;
+            this.killTimers();
+            this.markHotspots(el);
+            this.enliven(el);
+          },
+          onClick: (e) => this.handleTap(e),
+          style: {
+            width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden',
+            borderRadius: '28px', animation: anim, scrollbarWidth: 'none',
+            boxShadow: '0 46px 90px -44px rgba(28,26,22,.6)'
+          },
+          dangerouslySetInnerHTML: { __html: html }
+        })
+      )
+    );
+
+    return {
+      groups, screenEl, demoActions,
+      hasDemo: demoActions.length > 0,
+      currentLabel, currentGroup,
+      back: () => this.back(),
+      restart: () => { clearTimeout(this.autoT); this.navKind = 'back'; localStorage.setItem('ml-app-current', '01 Welcome'); this.setState(s2 => ({ current: '01 Welcome', history: [], tick: s2.tick + 1 })); }
+    };
+  }
+}
+</script>
+</body>
+</html>

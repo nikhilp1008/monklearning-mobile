@@ -1,35 +1,22 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { StatusBar } from 'expo-status-bar';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TabBar } from '@/components/tab-bar';
 
+// The whole app is a light "paper" aesthetic, regardless of system light/dark
+// setting — override the root's theme-following `style="auto"`.
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
+    <>
+      <StatusBar style="dark" />
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        <Tabs.Screen name="lessons" options={{ title: 'Lessons' }} />
+        <Tabs.Screen name="drona" options={{ href: null }} />
+        <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
+        <Tabs.Screen name="library" options={{ title: 'Library' }} />
+        <Tabs.Screen name="practice" options={{ href: null }} />
+      </Tabs>
+    </>
   );
 }

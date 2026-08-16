@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Anek Latin',system-ui,sans-serif;color:#1C1A16;background:#E7E1D2;-webkit-font-smoothing:antialiased}
+a{color:#B97A0F;text-decoration:none}
+a:hover{color:#8F5E0B}
+.mlsc::-webkit-scrollbar{width:0;height:0}
+.mlsc{scrollbar-width:none}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes wipe{from{background-size:0% 100%}to{background-size:100% 100%}}
+@keyframes ringIn{0%{transform:scale(.86);opacity:0}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+@keyframes chipIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes haloPulse{0%{transform:scale(.7);opacity:.55}70%{opacity:.12}100%{transform:scale(1.35);opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bloom{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+@keyframes sealIn{0%{opacity:0;transform:rotate(-14deg) scale(.6)}60%{transform:rotate(-6deg) scale(1.08)}100%{opacity:1;transform:rotate(-6deg) scale(1)}}
+</style>
+</helmet>
+
+<section style="min-height:100vh;display:grid;place-items:center;padding:40px">
+<div data-screen-label="22C Profile" style="width:430px;height:932px;background:#FFFFFF;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(28,26,22,.13)">
+        <div style="flex:none;display:flex;justify-content:space-between;padding:20px 30px 0;font-size:15px;font-weight:700"><span>1:26</span><span style="display:flex;gap:6px;align-items:center;opacity:.85"><span style="width:17px;height:11px;border:1.5px solid #1C1A16;border-radius:3px"></span><span style="width:22px;height:11px;background:#1C1A16;border-radius:3px"></span></span></div>
+
+        <div class="mlsc" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-bottom:30px">
+          <div style="display:flex;align-items:center;gap:14px;padding:22px 26px 0">
+            <span style="width:40px;height:40px;flex:none;border-radius:50%;border:1px solid rgba(28,26,22,.16);display:grid;place-items:center;font-size:18px">‹</span>
+            <h1 style="font-size:26px;font-weight:700;letter-spacing:-.03em">Profile</h1>
+          </div>
+
+          <div style="padding:24px 26px 0">
+            <p style="font-size:34px;font-weight:700;letter-spacing:-.035em;line-height:1.05">Aarav Sharma</p>
+            <p style="margin-top:6px;font-size:16px;color:#5F5A50">Class 12 · with {{ teacherName }} since June</p>
+            <div style="margin-top:14px;display:flex;align-items:baseline;gap:8px;padding:11px 0;border-top:1px solid rgba(28,26,22,.14);border-bottom:1px solid rgba(28,26,22,.14);font-size:15px;color:#8C867A">Exam<span style="flex:1;border-bottom:1px dotted rgba(28,26,22,.26)"></span><span style="font-size:17px;font-weight:700;color:#1C1A16">JEE Main</span></div>
+          </div>
+
+          <div style="padding:28px 26px 0">
+            <p style="font-size:13px;font-weight:800;letter-spacing:.13em;color:#8C867A">YOUR TEACHER</p>
+            <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+              <sc-if value="{{ isDrona }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ pickDrona }}" style="position:relative;border-radius:22px;padding:2px;overflow:hidden;cursor:pointer;background:#FFFFFF">
+                  <span style="position:absolute;left:-28%;top:-160%;width:156%;height:420%;background:conic-gradient(from 0deg,rgba(238,163,31,0) 0deg,rgba(247,215,121,.35) 70deg,#EEA31F 130deg,rgba(247,215,121,.5) 180deg,rgba(238,163,31,0) 280deg);animation:spin 3.6s linear infinite"></span>
+                  <span style="position:relative;display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;background-color:#FFFFFF;background-image:radial-gradient(130% 180% at 0% 50%,rgba(238,163,31,.26) 0%,rgba(238,163,31,.06) 48%,rgba(255,255,255,0) 78%);animation:bloom .55s cubic-bezier(.2,.75,.2,1) both">
+                    <span style="flex:1"><p style="font-size:21px;font-weight:700;letter-spacing:-.02em">Drona</p><p style="font-size:15px;color:#5F5A50">steady, exacting</p></span>
+                    <span style="font-family:'Kalam',cursive;font-weight:700;font-size:17px;color:#8F5E0B;animation:chipIn .4s .18s ease both">your teacher</span>
+                  </span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ notDrona }}">
+                <div onClick="{{ pickDrona }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;cursor:pointer;border:1px solid rgba(28,26,22,.14);background:#FFFFFF">
+                  
+                  <span style="flex:1"><p style="font-size:21px;font-weight:700;letter-spacing:-.02em;color:#8C867A">Drona</p><p style="font-size:15px;color:#B4AC9B">steady, exacting</p></span>
+                  <span style="font-size:15px;font-weight:700;color:#B4AC9B">choose</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ isVedha }}">
+                <div onClick="{{ pickVedha }}" style="position:relative;border-radius:22px;padding:2px;overflow:hidden;cursor:pointer;background:#FFFFFF">
+                  <span style="position:absolute;left:-28%;top:-160%;width:156%;height:420%;background:conic-gradient(from 0deg,rgba(238,163,31,0) 0deg,rgba(247,215,121,.35) 70deg,#EEA31F 130deg,rgba(247,215,121,.5) 180deg,rgba(238,163,31,0) 280deg);animation:spin 3.6s linear infinite"></span>
+                  <span style="position:relative;display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;background-color:#FFFFFF;background-image:radial-gradient(130% 180% at 0% 50%,rgba(238,163,31,.26) 0%,rgba(238,163,31,.06) 48%,rgba(255,255,255,0) 78%);animation:bloom .55s cubic-bezier(.2,.75,.2,1) both">
+                    <span style="flex:1"><p style="font-size:21px;font-weight:700;letter-spacing:-.02em">Vedha</p><p style="font-size:15px;color:#5F5A50">warm, patient</p></span>
+                    <span style="font-family:'Kalam',cursive;font-weight:700;font-size:17px;color:#8F5E0B;animation:chipIn .4s .18s ease both">your teacher</span>
+                  </span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ notVedha }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ pickVedha }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;cursor:pointer;border:1px solid rgba(28,26,22,.14);background:#FFFFFF">
+                  
+                  <span style="flex:1"><p style="font-size:21px;font-weight:700;letter-spacing:-.02em;color:#8C867A">Vedha</p><p style="font-size:15px;color:#B4AC9B">warm, patient</p></span>
+                  <span style="font-size:15px;font-weight:700;color:#B4AC9B">choose</span>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="padding:28px 26px 0">
+            <p style="font-size:13px;font-weight:800;letter-spacing:.13em;color:#8C867A">TEACHING LANGUAGE</p>
+            <div style="margin-top:14px;display:flex;gap:10px">
+              <sc-if value="{{ isHinglish }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ pickHinglish }}" style="flex:1;position:relative;border-radius:16px;padding:2px;overflow:hidden;cursor:pointer;background:#FFFFFF">
+                  <span style="position:absolute;left:-30%;top:-260%;width:160%;height:640%;background:conic-gradient(from 0deg,rgba(238,163,31,0) 0deg,rgba(247,215,121,.35) 70deg,#EEA31F 130deg,rgba(247,215,121,.5) 180deg,rgba(238,163,31,0) 280deg);animation:spin 3.6s linear infinite"></span>
+                  <span style="position:relative;height:48px;border-radius:14px;display:grid;place-items:center;font-size:18px;font-weight:700;background-color:#FFFFFF;background-image:radial-gradient(120% 200% at 50% 120%,rgba(238,163,31,.28) 0%,rgba(238,163,31,.07) 55%,rgba(255,255,255,0) 82%);animation:bloom .5s cubic-bezier(.2,.75,.2,1) both">Hinglish</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ notHinglish }}">
+                <div onClick="{{ pickHinglish }}" style="flex:1;height:52px;border-radius:14px;display:grid;place-items:center;font-size:18px;font-weight:600;cursor:pointer;border:1px solid rgba(28,26,22,.14);background:#FFFFFF;color:#5F5A50">Hinglish</div>
+              </sc-if>
+              <sc-if value="{{ isEnglish }}">
+                <div onClick="{{ pickEnglish }}" style="flex:1;position:relative;border-radius:16px;padding:2px;overflow:hidden;cursor:pointer;background:#FFFFFF">
+                  <span style="position:absolute;left:-30%;top:-260%;width:160%;height:640%;background:conic-gradient(from 0deg,rgba(238,163,31,0) 0deg,rgba(247,215,121,.35) 70deg,#EEA31F 130deg,rgba(247,215,121,.5) 180deg,rgba(238,163,31,0) 280deg);animation:spin 3.6s linear infinite"></span>
+                  <span style="position:relative;height:48px;border-radius:14px;display:grid;place-items:center;font-size:18px;font-weight:700;background-color:#FFFFFF;background-image:radial-gradient(120% 200% at 50% 120%,rgba(238,163,31,.28) 0%,rgba(238,163,31,.07) 55%,rgba(255,255,255,0) 82%);animation:bloom .5s cubic-bezier(.2,.75,.2,1) both">English</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ notEnglish }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ pickEnglish }}" style="flex:1;height:52px;border-radius:14px;display:grid;place-items:center;font-size:18px;font-weight:600;cursor:pointer;border:1px solid rgba(28,26,22,.14);background:#FFFFFF;color:#5F5A50">English</div>
+              </sc-if>
+            </div>
+            <p style="margin-top:10px;font-size:15px;line-height:1.45;color:#8C867A">{{ teacherName }} speaks &amp; teaches in this language. Switch anytime — even mid-class.</p>
+          </div>
+
+          <div style="padding:28px 26px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <p style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;letter-spacing:.13em;color:#DD4433"><span style="width:18px;height:2px;background:#DD4433"></span>YOUR EXAM</p>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:700;border:1px solid rgba(28,26,22,.18);border-radius:99px;padding:6px 14px">Manage <span style="font-size:13px">›</span></span>
+            </div>
+            <p style="margin-top:14px;font-size:26px;font-weight:700;letter-spacing:-.03em">JEE Main</p>
+            <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:15px;font-weight:600;background:#F7F4EC;border-radius:99px;padding:7px 15px">Physics</span>
+              <span style="font-size:15px;font-weight:600;background:#F7F4EC;border-radius:99px;padding:7px 15px">Chemistry</span>
+              <span style="font-size:15px;font-weight:600;background:#F7F4EC;border-radius:99px;padding:7px 15px">Maths</span>
+            </div>
+          </div>
+
+          <div style="padding:28px 26px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid rgba(28,26,22,.12)"><span style="font-size:18px;font-weight:600">Personal information</span><span style="font-size:16px;color:#B4AC9B">›</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid rgba(28,26,22,.12)"><span style="font-size:18px;font-weight:600">Privacy policy</span><span style="font-size:16px;color:#B4AC9B">›</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid rgba(28,26,22,.12)"><span style="font-size:18px;font-weight:600">Terms &amp; conditions</span><span style="font-size:16px;color:#B4AC9B">›</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid rgba(28,26,22,.12);border-bottom:1px solid rgba(28,26,22,.12)"><span style="font-size:18px;font-weight:600">About us</span><span style="font-size:16px;color:#B4AC9B">›</span></div>
+          </div>
+
+          <div style="margin:30px 26px 0;border-radius:30px;background:radial-gradient(120% 90% at 50% 0%,#2A251C 0%,#1C1A16 62%);padding:30px 22px 24px;text-align:center;position:relative;overflow:hidden">
+            <span style="position:absolute;left:50%;top:-70px;transform:translateX(-50%);width:280px;height:200px;border-radius:50%;background:radial-gradient(closest-side,rgba(238,163,31,.4),rgba(238,163,31,0))"></span>
+            <p style="position:relative;font-size:13px;font-weight:800;letter-spacing:.14em;color:#C9A253">INDIA'S FIRST AI TEACHER APP</p>
+            <p style="position:relative;margin-top:10px;font-size:34px;font-weight:700;letter-spacing:-.038em;line-height:1.06;color:#FBF9F2">Give us a rating</p>
+            <p style="position:relative;margin-top:6px;font-size:17px;color:rgba(251,249,242,.62)">Enjoying MonkLearning so far?</p>
+            <div style="position:relative;margin-top:18px;display:flex;justify-content:center;gap:8px">
+              <svg width="40" height="40" viewBox="0 0 24 24" style="flex:none;filter:drop-shadow(0 3px 10px rgba(238,163,31,.5))"><defs><linearGradient id="b1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE49B"></stop><stop offset="1" stop-color="#EEA31F"></stop></linearGradient></defs><path d="M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z" fill="url(#b1)"></path></svg>
+              <svg width="40" height="40" viewBox="0 0 24 24" style="flex:none;filter:drop-shadow(0 3px 10px rgba(238,163,31,.5))"><path d="M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z" fill="url(#b1)"></path></svg>
+              <svg width="40" height="40" viewBox="0 0 24 24" style="flex:none;filter:drop-shadow(0 3px 10px rgba(238,163,31,.5))"><path d="M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z" fill="url(#b1)"></path></svg>
+              <svg width="40" height="40" viewBox="0 0 24 24" style="flex:none;filter:drop-shadow(0 3px 10px rgba(238,163,31,.5))"><path d="M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z" fill="url(#b1)"></path></svg>
+              <svg width="40" height="40" viewBox="0 0 24 24" style="flex:none;filter:drop-shadow(0 3px 10px rgba(238,163,31,.5))"><path d="M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z" fill="url(#b1)"></path></svg>
+            </div>
+            <button style="position:relative;margin-top:22px;width:100%;height:58px;border:none;border-radius:99px;background:linear-gradient(180deg,#F5CB60,#EEA31F);color:#1C1A16;font-family:inherit;font-size:19px;font-weight:700;cursor:pointer">Rate MonkLearning</button>
+          </div>
+
+          <div style="padding:20px 26px 0">
+            <button style="width:100%;height:54px;border:1px solid rgba(221,68,51,.4);border-radius:16px;background:#FFFFFF;color:#DD4433;font-family:inherit;font-size:18px;font-weight:600;cursor:pointer">Log out</button>
+          </div>
+        </div>
+      </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { teacher: 'Drona', lang: 'Hinglish' };
+  renderVals() {
+    const t = this.state.teacher, l = this.state.lang;
+    return {
+      teacherName: t, langName: l,
+      isDrona: t === 'Drona', notDrona: t !== 'Drona',
+      isVedha: t === 'Vedha', notVedha: t !== 'Vedha',
+      isHinglish: l === 'Hinglish', notHinglish: l !== 'Hinglish',
+      isEnglish: l === 'English', notEnglish: l !== 'English',
+      pickDrona: () => this.setState({ teacher: 'Drona' }),
+      pickVedha: () => this.setState({ teacher: 'Vedha' }),
+      pickHinglish: () => this.setState({ lang: 'Hinglish' }),
+      pickEnglish: () => this.setState({ lang: 'English' })
+    };
+  }
+}
+</script>
+</body>
+</html>
