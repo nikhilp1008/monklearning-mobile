@@ -154,7 +154,7 @@ export default function ChapterSelectorScreen() {
                 ))}
               </View>
               <LinearGradient
-                colors={['rgba(252,250,244,0)', 'rgba(252,250,244,1)']}
+                colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
                 style={styles.fadeMask}
                 pointerEvents="none"
               />
@@ -197,7 +197,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -344,10 +344,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(11),
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
+      borderColor: 'rgba(28,26,22,.2)',
       borderRadius: scale(12),
       paddingVertical: verticalScale(13),
       paddingHorizontal: scale(14),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     chapterNumber: {
       width: scale(20),

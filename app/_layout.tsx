@@ -1,7 +1,9 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import {
@@ -14,16 +16,36 @@ import {
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
 import { useEnsureAnonymousSession } from '@/lib/auth';
+import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+// Holds the native splash screen up until hideAsync() is called explicitly
+// below, instead of relying on its (undocumented, easy to get wrong) default
+// auto-hide timing. Must run at module scope, before the first render.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Absolute last resort, on top of every individual gate already having its
+// own bounded wait (useEnsureAnonymousSession's own 8s timeout, useFonts
+// resolving to either loaded or error): if some *future* gate gets added to
+// this file without the same care, this guarantees the app still renders
+// something within 15s instead of hanging on the splash screen forever again.
+const STARTUP_FAILSAFE_MS = 15000;
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  const [fontsLoaded] = useFonts({
+  // useFonts resolves to [loaded, error] — on a load failure, `error` is set
+  // but `loaded` never becomes true, so gating only on the first element
+  // would hang here forever exactly like the pre-fix auth bootstrap did.
+  // Proceed on either success or failure; a real device build already
+  // showed this codebase is not immune to "silent, unrecoverable startup
+  // hang" bugs, so every startup gate needs an escape hatch, not just the
+  // one that happened to get reported.
+  const [fontsLoaded, fontsError] = useFonts({
     AnekLatin_400Regular,
     AnekLatin_500Medium,
     AnekLatin_600SemiBold,
@@ -32,84 +54,103 @@ export default function RootLayout() {
     Kalam_400Regular,
     Kalam_700Bold,
   });
+  if (fontsError) {
+    console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
+  }
   const sessionReady = useEnsureAnonymousSession();
 
-  if (!fontsLoaded || !sessionReady) {
+  const [failsafeTripped, setFailsafeTripped] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setFailsafeTripped(true), STARTUP_FAILSAFE_MS);
+    return () => clearTimeout(id);
+  }, []);
+
+  const ready = ((fontsLoaded || fontsError) && sessionReady) || failsafeTripped;
+
+  useEffect(() => {
+    if (ready) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [ready]);
+
+  if (!ready) {
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="topic-sheet"
-          options={{
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="entering-classroom"
-          options={{ headerShown: false, animation: 'fade' }}
-        />
-        <Stack.Screen name="live-classroom" options={{ headerShown: false }} />
-        <Stack.Screen name="session-summary" options={{ headerShown: false }} />
-        <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="practice-focus"
-          options={{
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen name="mock-ready" options={{ headerShown: false }} />
-        <Stack.Screen name="mock-test" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="mock-palette"
-          options={{
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen name="mock-paused" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="report-sheet"
-          options={{
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="entering-lesson"
-          options={{ headerShown: false, animation: 'fade' }}
-        />
-        <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
-        <Stack.Screen name="note-detail" options={{ headerShown: false }} />
-        <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />
-        <Stack.Screen name="session-board" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="plan-sheet"
-          options={{
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="account" options={{ headerShown: false }} />
-        <Stack.Screen name="subscription" options={{ headerShown: false }} />
-        <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
-        <Stack.Screen name="terms" options={{ headerShown: false }} />
-        <Stack.Screen name="about-us" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
+      <PracticeFocusProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="topic-sheet"
+            options={{
+              headerShown: false,
+              presentation: 'transparentModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="entering-classroom"
+            options={{ headerShown: false, animation: 'fade' }}
+          />
+          <Stack.Screen name="live-classroom" options={{ headerShown: false }} />
+          <Stack.Screen name="session-summary" options={{ headerShown: false }} />
+          <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="practice-focus"
+            options={{
+              headerShown: false,
+              presentation: 'transparentModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen name="mock-ready" options={{ headerShown: false }} />
+          <Stack.Screen name="mock-test" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="mock-palette"
+            options={{
+              headerShown: false,
+              presentation: 'transparentModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen name="mock-paused" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="report-sheet"
+            options={{
+              headerShown: false,
+              presentation: 'transparentModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="entering-lesson"
+            options={{ headerShown: false, animation: 'fade' }}
+          />
+          <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
+          <Stack.Screen name="note-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="session-board" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="plan-sheet"
+            options={{
+              headerShown: false,
+              presentation: 'transparentModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="account" options={{ headerShown: false }} />
+          <Stack.Screen name="subscription" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+          <Stack.Screen name="terms" options={{ headerShown: false }} />
+          <Stack.Screen name="about-us" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+      </PracticeFocusProvider>
       <StatusBar style="auto" />
     </ThemeProvider>
   );

@@ -61,7 +61,11 @@ export default function EnteringClassroomScreen() {
         if (cancelled) return;
         setSessionId(res.session_id);
         setSpeech(res.speech);
-        setStage('scoping');
+        // A pre-selected subtopic auto-submits below — stay on the loading
+        // screen until that resolves, rather than flashing the scoping UI.
+        if (!params.initialUtterance) {
+          setStage('scoping');
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -85,6 +89,7 @@ export default function EnteringClassroomScreen() {
         setStatusNote(check.message);
         setInput('');
         setSubmitting(false);
+        setStage('scoping');
         return;
       }
 
@@ -105,22 +110,25 @@ export default function EnteringClassroomScreen() {
       }
 
       setOptions(result.options ?? []);
+      setStage('scoping');
     } catch (err) {
       setStatusNote(err instanceof Error ? err.message : 'Something went wrong — try again.');
+      setStage('scoping');
     } finally {
       setSubmitting(false);
     }
   }
 
   // If the student already picked/typed a topic on the previous screen,
-  // skip the manual text box and go straight to scoping with it.
+  // fire the same submit real users trigger by hand, but as soon as the
+  // session exists rather than waiting on the scoping UI to mount.
   useEffect(() => {
-    if (stage === 'scoping' && params.initialUtterance && !autoSubmittedRef.current) {
+    if (sessionId && params.initialUtterance && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
       submit(params.initialUtterance);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage]);
+  }, [sessionId]);
 
   if (stage === 'error') {
     return (

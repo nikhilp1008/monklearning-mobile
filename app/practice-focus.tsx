@@ -1,29 +1,63 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
+import { WashSelectRow } from '@/components/wash-select-row';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-
-type Selection = 'mixed' | 'weak' | 'current-electricity' | 'rotational-motion' | 'em-induction' | 'kinematics';
-
-const CHAPTERS: { id: Selection; title: string; tag?: 'weak' }[] = [
-  { id: 'current-electricity', title: 'Current Electricity' },
-  { id: 'rotational-motion', title: 'Rotational Motion', tag: 'weak' },
-  { id: 'em-induction', title: 'EM Induction', tag: 'weak' },
-  { id: 'kinematics', title: 'Kinematics' },
-];
+import { CatalogueChapter, getCatalogue } from '@/lib/drona';
+import { normalizePracticeSubject, usePracticeFocus } from '@/lib/practice-focus-context';
 
 export default function PracticeFocusScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [selected, setSelected] = useState<Selection>('current-electricity');
+  const { focus, setFocus } = usePracticeFocus();
+  const params = useLocalSearchParams<{ subject?: string; subjectLabel?: string }>();
+  const subjectQuery = params.subject ?? 'physics';
+  const subjectLabel = params.subjectLabel ?? 'Physics';
 
-  const pickModeAndApply = (mode: 'mixed' | 'weak') => {
-    setSelected(mode);
+  const [chapters, setChapters] = useState<CatalogueChapter[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const appliedChapterId = focus.mode === 'chapter' && focus.subject === subjectQuery ? focus.chapterId : null;
+  const [pendingChapterId, setPendingChapterId] = useState<string | null>(appliedChapterId);
+  const [playToken, setPlayToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    getCatalogue()
+      .then((data) => {
+        if (cancelled) return;
+        const wanted = normalizePracticeSubject(subjectQuery);
+        const subjectGroup = data.find((s) => normalizePracticeSubject(s.subject) === wanted);
+        setChapters(subjectGroup?.chapters ?? []);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Could not load chapters.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [subjectQuery]);
+
+  const pickMode = (mode: 'mixed' | 'weak') => {
+    setFocus({ mode, subject: null, chapterId: null, chapterName: null });
+    router.back();
+  };
+
+  const applyChapter = () => {
+    if (!pendingChapterId) return;
+    const chapter = chapters?.find((c) => c.id === pendingChapterId);
+    if (!chapter) return;
+    setFocus({ mode: 'chapter', subject: subjectQuery, chapterId: chapter.id, chapterName: chapter.name });
     router.back();
   };
 
@@ -35,69 +69,71 @@ export default function PracticeFocusScreen() {
         <SafeAreaView style={styles.flex} edges={['bottom']}>
           <View style={styles.handle} />
           <Text style={styles.title}>Practice focus</Text>
-          <Text style={styles.subtitle}>Physics · questions follow whatever you pick</Text>
+          <Text style={styles.subtitle}>{subjectLabel} · questions follow whatever you pick</Text>
 
-          <View style={styles.modeList}>
-            <Pressable style={styles.modeRow} onPress={() => pickModeAndApply('mixed')}>
-              <View style={styles.modeTextBlock}>
-                <Text style={styles.modeTitle}>All chapters, mixed</Text>
-                <Text style={styles.modeSubtitle}>The full syllabus, shuffled</Text>
+          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.modeList}>
+              <Pressable
+                style={[styles.modeRow, focus.mode === 'mixed' && styles.modeRowSelected]}
+                onPress={() => pickMode('mixed')}>
+                <View style={styles.modeTextBlock}>
+                  <Text style={styles.modeTitle}>All chapters, mixed</Text>
+                  <Text style={styles.modeSubtitle}>The full syllabus, shuffled</Text>
+                </View>
+                <View style={[styles.radio, focus.mode === 'mixed' && styles.radioSelected]} />
+              </Pressable>
+              <Pressable
+                style={[styles.modeRow, focus.mode === 'weak' && styles.modeRowSelected]}
+                onPress={() => pickMode('weak')}>
+                <View style={styles.modeTextBlock}>
+                  <Text style={styles.modeTitle}>Weak areas first</Text>
+                  <Text style={styles.modeSubtitle}>Drona weights your fix-first chapters</Text>
+                </View>
+                <View style={[styles.radio, focus.mode === 'weak' && styles.radioSelected]} />
+              </Pressable>
+            </View>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or focus on one chapter</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {loading ? (
+              <View style={styles.chapterLoadingBlock}>
+                <ActivityIndicator color={colors.ink} />
               </View>
-              <View style={styles.radio} />
-            </Pressable>
-            <Pressable style={styles.modeRow} onPress={() => pickModeAndApply('weak')}>
-              <View style={styles.modeTextBlock}>
-                <Text style={styles.modeTitle}>Weak areas first</Text>
-                <Text style={styles.modeSubtitle}>Drona weights your fix-first chapters</Text>
+            ) : loadError ? (
+              <Text style={styles.chapterErrorText}>{loadError}</Text>
+            ) : (
+              <View style={styles.chapterList}>
+                {chapters?.map((chapter) => {
+                  const isSelected = pendingChapterId === chapter.id;
+                  return (
+                    <WashSelectRow
+                      key={chapter.id}
+                      selected={isSelected}
+                      playToken={playToken}
+                      onPress={() => {
+                        setPendingChapterId(chapter.id);
+                        setPlayToken((n) => n + 1);
+                      }}
+                      style={styles.chapterRow}
+                      selectedStyle={styles.chapterRowSelected}>
+                      <Text style={[styles.chapterTitle, isSelected && styles.chapterTitleSelected]}>
+                        {chapter.name}
+                      </Text>
+                    </WashSelectRow>
+                  );
+                })}
               </View>
-              <View style={styles.radio} />
-            </Pressable>
-          </View>
+            )}
+          </ScrollView>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or focus on one chapter</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.chapterList}>
-            {CHAPTERS.map((chapter) => {
-              const isSelected = selected === chapter.id;
-              return (
-                <Pressable
-                  key={chapter.id}
-                  style={[styles.chapterRow, isSelected && styles.chapterRowSelected]}
-                  onPress={() => setSelected(chapter.id)}>
-                  <Text
-                    style={[
-                      styles.chapterTitle,
-                      isSelected && styles.chapterTitleSelected,
-                    ]}>
-                    {chapter.title}
-                  </Text>
-                  {isSelected ? (
-                    <View style={styles.chapterCheck}>
-                      <Svg viewBox="0 0 24 24" width={scale(11)} height={scale(11)} fill="none">
-                        <Path
-                          d="M5 13l4 4L19 7"
-                          stroke="#fff"
-                          strokeWidth={3.2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </Svg>
-                    </View>
-                  ) : chapter.tag === 'weak' ? (
-                    <View style={styles.weakTag}>
-                      <Text style={styles.weakTagText}>weak</Text>
-                    </View>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Pressable style={styles.applyButton} onPress={() => router.back()}>
+          <Pressable
+            style={[styles.applyButton, !pendingChapterId && styles.applyButtonDisabled]}
+            disabled={!pendingChapterId}
+            onPress={applyChapter}>
             <Text style={styles.applyButtonText}>Apply focus</Text>
           </Pressable>
         </SafeAreaView>
@@ -123,7 +159,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: colors.paper,
+      maxHeight: '82%',
+      backgroundColor: '#fff',
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
@@ -154,10 +191,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
       marginTop: verticalScale(2),
     },
+    scroll: {
+      marginTop: verticalScale(14),
+    },
     modeList: {
       flexDirection: 'column',
       gap: verticalScale(8),
-      marginTop: verticalScale(14),
     },
     modeRow: {
       flexDirection: 'row',
@@ -169,6 +208,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(13),
       paddingVertical: verticalScale(13),
       paddingHorizontal: scale(14),
+    },
+    modeRowSelected: {
+      backgroundColor: '#FCF4E0',
+      borderColor: colors.marigold,
     },
     modeTextBlock: {
       flex: 1,
@@ -193,6 +236,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: scale(1.6),
       borderColor: 'rgba(28,26,22,.18)',
     },
+    radioSelected: {
+      borderWidth: scale(6.5),
+      borderColor: colors.marigold,
+    },
     dividerRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -211,6 +258,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.red,
       transform: [{ rotate: '-1deg' }],
     },
+    chapterLoadingBlock: {
+      paddingVertical: verticalScale(24),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chapterErrorText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      color: colors.slate,
+      paddingVertical: verticalScale(16),
+      textAlign: 'center',
+    },
     chapterList: {
       flexDirection: 'column',
       gap: verticalScale(7),
@@ -227,14 +286,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(14),
     },
     chapterRowSelected: {
-      backgroundColor: '#FCF4E0',
       borderWidth: scale(1.6),
       borderColor: colors.marigold,
-      shadowColor: colors.marigold,
-      shadowOffset: { width: 0, height: verticalScale(3) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(5),
-      elevation: 2,
     },
     chapterTitle: {
       flex: 1,
@@ -245,29 +298,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     chapterTitleSelected: {
       fontFamily: 'AnekLatin_700Bold',
     },
-    chapterCheck: {
-      width: scale(22),
-      height: scale(22),
-      flexShrink: 0,
-      borderRadius: scale(11),
-      backgroundColor: colors.marigold,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    weakTag: {
-      flexShrink: 0,
-      backgroundColor: 'rgba(221,68,51,.08)',
-      borderWidth: 1,
-      borderColor: 'rgba(221,68,51,.3)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(2),
-      paddingHorizontal: scale(8),
-    },
-    weakTagText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      color: '#C53A2B',
-    },
     applyButton: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -276,11 +306,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
       backgroundColor: colors.ink,
       marginTop: verticalScale(16),
+      marginBottom: verticalScale(10),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(6) },
       shadowOpacity: 0.3,
       shadowRadius: scale(10),
       elevation: 6,
+    },
+    applyButtonDisabled: {
+      opacity: 0.5,
     },
     applyButtonText: {
       fontFamily: 'AnekLatin_600SemiBold',

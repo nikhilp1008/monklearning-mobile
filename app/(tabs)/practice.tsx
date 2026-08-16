@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
@@ -10,6 +11,7 @@ import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { AnswerResult, NextQuestion, formatSolution, getNextQuestion, submitAnswer } from '@/lib/practice';
+import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 
 const SUBJECTS = ['Physics', 'Chem', 'Maths'] as const;
 
@@ -42,6 +44,7 @@ export default function PracticeScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [activeSegment, setActiveSegment] = useState<'unlimited' | 'mock'>('unlimited');
   const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
+  const { focus, setFocus } = usePracticeFocus();
 
   const [question, setQuestion] = useState<NextQuestion | null>(null);
   const [poolMessage, setPoolMessage] = useState<string | null>(null);
@@ -56,11 +59,21 @@ export default function PracticeScreen() {
 
   const revealed = answerResult !== null;
 
+  // A chapter picked under one subject stops applying the moment the
+  // student switches subject pills — it can't describe questions from a
+  // different subject's tree. "Mixed"/"weak" stay in place across subjects.
+  useEffect(() => {
+    if (focus.mode === 'chapter' && focus.subject !== SUBJECT_QUERY[activeSubject]) {
+      setFocus(DEFAULT_PRACTICE_FOCUS);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSubject]);
+
   useEffect(() => {
     if (activeSegment !== 'unlimited') return;
     loadQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSegment, activeSubject]);
+  }, [activeSegment, activeSubject, focus.mode, focus.chapterId]);
 
   async function loadQuestion() {
     setLoading(true);
@@ -73,6 +86,12 @@ export default function PracticeScreen() {
     try {
       let next: NextQuestion | null = null;
       for (let attempt = 0; attempt < MAX_FETCH_ATTEMPTS; attempt += 1) {
+        // /practice/next's live PracticeNextRequest schema (confirmed via
+        // GET /openapi.json) only accepts exam/class_level/subject — no
+        // chapter/topic field exists server-side yet, so `focus` can't be
+        // sent along here. It still drives this effect's re-fetch and the
+        // chip label below; wiring the request itself is a follow-up once
+        // the backend adds chapter-scoping.
         const result = await getNextQuestion({ subject: SUBJECT_QUERY[activeSubject] });
         if ('exhausted' in result) {
           setPoolMessage(result.message);
@@ -128,6 +147,13 @@ export default function PracticeScreen() {
   }
 
   const optionEntries = question?.options ? Object.entries(question.options).sort(([a], [b]) => a.localeCompare(b)) : [];
+
+  const chapterChipLabel =
+    focus.mode === 'chapter' && focus.chapterName
+      ? focus.chapterName
+      : focus.mode === 'weak'
+        ? 'Weak areas first'
+        : 'All chapters';
 
   return (
     <View style={styles.screen}>
@@ -246,16 +272,21 @@ export default function PracticeScreen() {
                 </Pressable>
               ))}
             </View>
-            <Pressable style={styles.chapterChip} onPress={() => router.push('/practice-focus')}>
-              <Text style={styles.chapterChipText}>{question?.chapter_name ?? 'All chapters'}</Text>
+            <Pressable
+              style={styles.chapterChip}
+              onPress={() =>
+                router.push({
+                  pathname: '/practice-focus',
+                  params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
+                })
+              }>
+              <Text style={styles.chapterChipText}>{chapterChipLabel}</Text>
               <ChevronDownIcon size={scale(10)} />
             </Pressable>
           </View>
 
           {loading && !question ? (
-            <View style={styles.loadingBlock}>
-              <ActivityIndicator color={colors.ink} />
-            </View>
+            <QuestionSkeleton styles={styles} />
           ) : poolMessage ? (
             <View style={styles.questionCard}>
               <Text style={styles.questionOverline}>No questions left</Text>
@@ -474,6 +505,44 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
         strokeLinejoin="round"
       />
     </Svg>
+  );
+}
+
+// Mimics the loaded question-card + option-row layout so the ~5-10s real
+// backend latency reads as "content incoming" rather than a bare spinner.
+// Opacity-only pulse (no measured layout) per this codebase's past
+// Reanimated width/layout-animation bugs on real devices.
+function QuestionSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.4, { duration: 700, easing: Easing.ease }),
+        withTiming(1, { duration: 700, easing: Easing.ease }),
+      ),
+      -1,
+    );
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <View style={styles.questionCard}>
+        <View style={[styles.skeletonBar, styles.skeletonOverline]} />
+        <View style={[styles.skeletonBar, styles.skeletonBodyLine]} />
+        <View style={[styles.skeletonBar, styles.skeletonBodyLineShort]} />
+      </View>
+      <View style={styles.optionsList}>
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={styles.optionRow}>
+            <View style={[styles.optionBadge, styles.skeletonBadge]} />
+            <View style={[styles.skeletonBar, styles.skeletonOptionLine]} />
+          </View>
+        ))}
+      </View>
+    </Animated.View>
   );
 }
 
@@ -776,10 +845,31 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       textDecorationLine: 'underline',
       marginTop: verticalScale(14),
     },
-    loadingBlock: {
-      paddingVertical: verticalScale(40),
-      alignItems: 'center',
-      justifyContent: 'center',
+    skeletonBar: {
+      borderRadius: scale(6),
+      backgroundColor: 'rgba(28,26,22,.08)',
+    },
+    skeletonOverline: {
+      width: '40%',
+      height: verticalScale(9),
+    },
+    skeletonBodyLine: {
+      width: '92%',
+      height: verticalScale(14),
+      marginTop: verticalScale(10),
+    },
+    skeletonBodyLineShort: {
+      width: '68%',
+      height: verticalScale(14),
+      marginTop: verticalScale(8),
+    },
+    skeletonBadge: {
+      backgroundColor: 'rgba(28,26,22,.08)',
+      borderWidth: 0,
+    },
+    skeletonOptionLine: {
+      flex: 1,
+      height: verticalScale(14),
     },
     questionCard: {
       position: 'relative',
@@ -793,6 +883,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingLeft: scale(34),
       marginTop: verticalScale(14),
       overflow: 'hidden',
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     questionRule: {
       position: 'absolute',
@@ -966,10 +1061,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(16),
       marginTop: verticalScale(12),
       shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(3) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(5),
-      elevation: 2,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     stuckTextBlock: {
       flex: 1,
@@ -1065,6 +1160,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(14),
       paddingVertical: verticalScale(11),
       paddingHorizontal: scale(14),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     progressTopRow: {
       flexDirection: 'row',

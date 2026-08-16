@@ -3649,3 +3649,296 @@ pattern already proven working for Practice and Drona in this same preview
 environment — not re-screenshotted individually only because of a browser-
 automation coordinate-targeting quirk in the pager UI (pre-existing,
 unrelated to this round's changes), not an app issue.
+
+## TestFlight stuck-on-splash-screen incident — full post-mortem (2026-08-16)
+
+First real-device test (build #6, TestFlight) opened to a frozen splash
+screen with no further progress. Took several rounds and real forensic work
+(not just re-reading code) to find every contributing cause. Recording the
+full chain here since it cost multiple rebuild+submit+Apple-processing
+cycles and every one of these bugs was invisible in the web preview this
+entire project has been verified in until now.
+
+**Bug 1 — `lib/auth.ts`'s session bootstrap had no error handling.**
+`app/_layout.tsx` blocks all rendering (`return null`) until
+`useEnsureAnonymousSession()` resolves. The original implementation had no
+try/catch around its `await`s and no timeout — any network failure or hang
+on the very first launch would permanently block the entire app with no
+recovery. Never caught because Supabase's auth endpoint has always
+succeeded in every web-preview test. Fixed: wrapped in try/catch/finally
+plus an 8s timeout race, so `setReady(true)` always eventually fires.
+
+**Bug 2 (the real blocker) — a top-level import crashed the app at launch
+for every single user, on every screen, regardless of what they were
+navigating to.** `app/live-classroom.tsx` had `import { useAudioRecorder }
+from '@siteed/audio-studio'` at module scope. That package's own module
+calls `requireNativeModule('AudioStudio')` at ITS top level too (not inside
+a function) — so importing it at all throws immediately if the native side
+isn't linked. Expo Router has to `require()` every file in `app/` to build
+its route table at startup, regardless of which screen a user actually
+opens — so this crashed on literally every app launch, before any React
+component ever rendered, for every tester, not just the ones who'd ever
+open the live classroom. Confirmed live by extracting the actual shipped
+`.ipa`'s JS bundle (Hermes bytecode — `grep -a` needed, plain `grep`
+silently reports zero matches on it) and finding the crash string baked in.
+Fixed: wrapped the `require()` in try/catch, scoped to that one file, with
+a graceful no-op fallback so a missing native module now only disables that
+screen's mic feature instead of the whole app.
+
+**Bug 3 (why bug 2's native module was actually missing) — an iOS
+deployment-target mismatch silently excluded the pod, no error anywhere.**
+`AudioStudio.podspec` requires iOS 16.4 minimum; this project had no
+`expo-build-properties` config, so it defaulted to iOS 15.1. CocoaPods
+silently drops any pod whose platform requirement exceeds the project's
+target during dependency resolution — no warning, no error, it's just not
+there. `expo-modules-autolinking resolve` (the JS-side resolver) correctly
+*discovers* the package regardless, which is what made this so confusing:
+the tooling says it's found, but it never makes it into the actual
+installed pods. Confirmed by extracting the shipped binary directly
+(`strings`/`file` — it's Mach-O; the JS bundle only proves what code was
+*asked for*, not what actually linked) and finding zero trace of it, then
+reproducing and fixing it locally via a real `pod install` against
+`Podfile.lock` (the only fully authoritative signal here — not the
+generated `Podfile` text, which for Expo Modules doesn't literally contain
+per-package `pod` lines at all; `use_expo_modules!` links them
+programmatically, so grepping the Podfile source was a red herring earlier
+in this investigation). Fixed: `expo-build-properties` installed,
+`ios.deploymentTarget: "16.4"` set in `app.json`.
+
+**Bonus find while re-verifying, same bug class:** `expo-asset` *also*
+requires iOS 16.4 and was *also* being silently excluded before the fix —
+almost certainly masked entirely by bug 2 crashing before anything
+downstream (including whatever depends on expo-asset, e.g. font loading)
+ever got a chance to run. Confirmed fixed by cross-checking all 28 resolved
+Expo Module pods against `Podfile.lock` after the fix — all 28 present,
+zero missing.
+
+**Bug 4 (found during the explicit "check thoroughly before rebuilding
+again" pass, not yet triggered in practice) — `useFonts` has the exact same
+shape of bug as bug 1.** It resolves to `[loaded, error]`; on a load
+failure, `error` gets set but `loaded` never becomes `true`. `app/_layout.tsx`
+was only destructuring the first element, so a font-load failure — e.g.
+plausibly caused by bug 3's expo-asset exclusion, though this couldn't be
+confirmed after the fact — would hang the app exactly like bug 1, just from
+a different source. Fixed: read both elements, proceed on either success or
+failure, log the error for diagnostics instead of hanging on it silently.
+
+**Also added, since three separate "hang forever with the splash frozen"
+bugs in one file justified it:** explicit `SplashScreen.preventAutoHideAsync()`
+/`hideAsync()` control (previously implicit/default — a "flagged, not
+acted on" item from earlier in this project, upgraded to "fixed" given
+what just happened), plus a top-level 15s failsafe timer in
+`app/_layout.tsx` that forces the app to render *something* no matter what,
+even if some future gate gets added to this file without the same care
+these four bugs demanded.
+
+**Verification performed:** all four fixes are `tsc`/`eslint` clean, full
+project-wide lint clean, web preview boots with no console errors (though
+the web preview cannot exercise ANY of these four bugs — every single one
+is native-build-specific; this is stated plainly rather than implying
+false confidence). The deployment-target fix is confirmed via a real local
+`pod install` producing a correct `Podfile.lock`, the strongest evidence
+obtainable short of an actual device test. **Not yet confirmed on a real
+device** — that's the one thing only the next TestFlight build can prove.
+
+**Process lesson, worth remembering for future native-module work on this
+project:** static analysis of source/config isn't enough for anything
+touching native linking. What actually worked here was extracting the real
+shipped `.ipa` and grepping the compiled Hermes bundle and Mach-O binary
+directly, and running a real local `pod install` against the actual
+`Podfile.lock` rather than trusting the generated `Podfile`'s literal text
+or the JS-side autolinking resolver's "discovered" list. Both of those can
+say a package is "there" when it silently isn't.
+
+## Round: post-launch real-device feedback — Drona flow, Practice, Snap-a-doubt (2026-08-16)
+
+Build #6 (the one that fixed the splash-screen incident above) opened
+successfully on the user's real device — the first time this whole project
+has actually run on real hardware. Live testing of the three core features
+surfaced three distinct, concrete gaps, fixed in this round: one directly,
+three via parallel background agents on non-overlapping files (the user
+explicitly invited agent use here, and the four workstreams touched
+entirely disjoint file sets, unlike earlier rounds where fixes landed in
+the same 1-2 files and had to be sequential).
+
+**Fix 1 — wash-select-row hard-edge glitch, done directly, not delegated.**
+The topic-sheet/onboarding gradient-wipe selection animation was already
+"fixed" once earlier in this project (switched from an animated `"NN%"`
+width string to a measured-pixel-width animated number, to work around a
+known Reanimated width-interpolation gotcha) — the user's real-device
+screenshot after that fix showed the *identical* hard-edge seam, meaning
+the diagnosis was incomplete. Rather than attempt a third width-based
+patch blind (no way to test on-device from here), switched
+`components/wash-select-row.tsx` and `app/(onboarding)/exam.tsx`'s
+`SelectRow` to an **opacity-based reveal** instead of a width wipe: the
+gradient now renders at its full, final size at all times, and only its
+opacity animates 0→1 (`useDerivedValue` + `withTiming`, no `onLayout`, no
+measured pixel width, no per-frame width mutation for `LinearGradient` to
+race against). This eliminates the entire bug class the width-based
+approach was vulnerable to, at the cost of trading the literal
+left-to-right "wipe" motion for a wash that fades in — a deliberate
+reliability-over-motion-fidelity tradeoff given two prior width-based
+attempts both failed the same way on real hardware. **Not yet confirmed on
+a real device** — needs the next TestFlight build to verify.
+
+**Fix 2 — `app/topic-sheet.tsx` wired to real per-chapter subtopics.**
+Previously rendered a hardcoded 8-item `TOPICS` array regardless of which
+chapter was selected (confirmed bug: every chapter showed identical
+Current-Electricity-flavored topics). Now fetches `getCatalogue()` on
+mount, matches the chapter by the `chapterId` route param across all
+subjects, and renders that chapter's real `subtopics`. Handles loading,
+fetch-failure, and empty-subtopics states; the existing "just start
+talking" free-talk fallback stays available in all of them. The `TALKS`
+("From your talks") mock section was left untouched — separate, known
+placeholder, out of scope.
+
+**Fix 3 — `app/entering-classroom.tsx` no longer asks redundant questions
+when a subtopic was pre-selected.** Previously, tapping a specific
+subtopic on topic-sheet.tsx still flashed the visible scoping-chat UI
+(Drona's speech bubble, option chips, text input) before/while
+auto-submitting that subtopic as the opening utterance — and since
+topic-sheet's topics were fake before Fix 2, the auto-submit often came
+back ambiguous, surfacing follow-up questions. Restructured the stage
+machine: when `params.initialUtterance` is present, the screen now stays
+on the loading ("Entering your classroom") UI through session-start *and*
+the silent auto-submit, only revealing the chat UI as a fallback if that
+auto-submit doesn't resolve `plan_ready: true` (ambiguous match, wrong
+chapter, or error). When no subtopic was pre-selected (reached from
+Practice's "Learn this"/"Go deeper" or Mock's "Learn" actions, which pass
+only a chapter title), the chat UI still shows immediately as before, since
+there's nothing to auto-resolve. **Live-verified**, not just typed: fetched
+the real catalogue, round-tripped `start` → `scope` with the exact
+subtopic name for 6 real subtopics across all 4 subjects — all 6 resolved
+`plan_ready: true` on the first call (one took ~25s but succeeded),
+confirming the "exact real name → resolves in one round" assumption holds
+broadly. **New backend data-quality finding from this verification pass**
+(logged for the co-founder, see memory `backend_followups_pending.md` item
+1b): the catalogue mixes generic revision stubs ("Chapter Cheat Sheet",
+"Chapter Wrap-Up", etc., 37+ chapters) into real subtopic lists with no
+distinguishing field — a student can select one and get a live lesson
+about nothing in particular. Not fixed client-side; flagged upstream.
+
+**Fix 4 — Practice Unlimited: real skeleton loading + top-bar wiring, with
+an honest limit.** Replaced the bare `ActivityIndicator` (5-10s real
+backend latency) with a `QuestionSkeleton` shaped like the actual loaded
+question card + 4 option rows, opacity-pulsing via Reanimated
+(deliberately opacity-only, not layout-based, per Fix 1's lesson above).
+Added `lib/practice-focus-context.tsx` (a small React Context provided at
+the `app/_layout.tsx` root) so `practice.tsx` and `practice-focus.tsx` —
+sibling stack routes, not nested, so they can't share state via props —
+have a real shared home for the applied filter. `practice-focus.tsx` was
+rewritten to fetch the real chapter list per subject via `getCatalogue()`
+(previously a hardcoded 4-chapter list with fabricated "weak" tags — the
+tags were removed since no endpoint provides real per-student weakness
+signal), and the practice.tsx chapter chip now reflects the actually
+*applied* filter instead of just the current random question's chapter.
+**Honest limit, confirmed via `GET /openapi.json` (not a guess — the live
+`PracticeNextRequest` Pydantic schema was read directly, and 7 candidate
+param names were empirically tried and silently ignored):** `/practice/next`
+has no chapter/topic-scoping parameter server-side at all yet. Selecting a
+chapter or "weak areas" updates the chip and triggers a re-fetch, but the
+actual question returned is still unfiltered until the backend adds
+support — documented in a code comment at the call site rather than
+faked with a client-side retry-until-match hack. This is a new backend
+follow-up, not yet added to the co-founder punch list as of this writing.
+
+**Fix 5 — `app/snap-capture.tsx` auto-opens the camera on mount.**
+Previously required tapping the shutter button as an extra manual step
+after already navigating to this screen from the "Snap a doubt" entry
+point. Added a ref-guarded `useEffect` (same one-shot-on-mount pattern as
+`entering-classroom.tsx`'s `autoSubmittedRef`) that calls the existing,
+already-correct `openCamera()` once on mount. Manual shutter/gallery
+buttons remain for retakes or explicit gallery choice; permission-denied
+and cancel flows were already handled correctly and needed no changes.
+Confirmed all four entry points (`(tabs)/index.tsx`, `library.tsx`,
+`snap-solved.tsx`'s retake flows, `_layout.tsx`'s route registration) do a
+fresh `push`/`replace` mount each time, so the auto-open can't get stuck
+in a stale, already-fired state.
+
+**Verification across all five fixes:** `npx tsc --noEmit` clean project-wide
+after all changes landed. Fixes 2-5 also each independently type-checked
+clean before being merged into this combined state. None of this has been
+tested on a real device yet — Fix 1 in particular has already failed twice
+on-device despite passing every check available from here, so real-device
+confirmation on the next TestFlight build is the only thing that actually
+closes this round out.
+
+## Round: app-wide visual-polish audit + fixes (2026-08-16, same day)
+
+Once the three feature fixes above landed, the user asked for a full sweep
+of every screen that hadn't yet received the "Home treatment" (the
+background/shadow/spacing/selector conventions established on Home,
+Progress, Library, Lessons, and — earlier the same day — Drona's chapter
+selector and topic-sheet). Ran a dedicated audit agent first (read-only,
+no edits) to establish the actual reference pattern from those six files
+and compare every other screen against it, rather than guessing which
+screens needed work.
+
+**Audit correction worth recording:** the premise that background color was
+inconsistent was wrong. It's a deliberate two-tier system, not a bug — tab
+roots (+ Drona/topic-sheet) use pure `'#fff'`, every pushed screen uses
+`colors.paper`. The audit did *not* recommend touching this, only the
+specific sheet-modal screens below, which had drifted onto `colors.paper`
+when their own established sibling (topic-sheet.tsx) uses `'#fff'`.
+
+**What actually needed fixing, and what was done:**
+
+1. **Sheet background token** — `practice-focus.tsx`, `mock-palette.tsx`,
+   `report-sheet.tsx`, `plan-sheet.tsx` had their bottom-sheet container on
+   `colors.paper`; switched all four to `'#fff'` to match `topic-sheet.tsx`'s
+   own scrim+handle+rounded-sheet convention.
+
+2. **Card shadow convergence** — the app had accumulated three different
+   shadow "weights" for what's visually the same kind of card. Standardized
+   six screens (`account.tsx`, `session-summary.tsx`'s `statCard` +
+   `chapterCard`, `mock-ready.tsx`, `mock-paused.tsx`, `subscription.tsx`'s
+   `includedCard`, `doubt-detail.tsx`'s `photoCard`) plus
+   `(tabs)/practice.tsx`'s `questionCard`/`progressCard` (previously no
+   shadow at all) and `stuckCard` (previously heavier) onto one target value
+   — border `rgba(28,26,22,.2)`, `shadowOpacity: 0.05`, offset
+   `verticalScale(1.5)`, `shadowRadius: scale(2)`, `elevation: 1` — the same
+   spec already in use on the freshest-built reference screens (Drona,
+   topic-sheet). Left every *deliberately* heavier shadow alone (CTA
+   buttons, the `mock-ready`/`mock-paused` hero, `subscription.tsx`'s plan
+   card, the "board" card family shared by `note-detail`/`doubt-detail`/
+   `session-board`/`session-summary`) — those were confirmed by the audit as
+   intentional, not drift.
+
+3. **`practice-focus.tsx`'s chapter picker** replaced a flat `#FCF4E0` fill +
+   circular marigold checkmark badge with `WashSelectRow` — the same
+   component and pattern topic-sheet.tsx's subtopic grid already uses for
+   near-identical "pick one from a list" UI, dropping the checkmark since
+   the wash itself is the established selection signal app-wide.
+
+4. **`mock-test.tsx` spacing pass** — `topBar`, `subjectRow`, `content`, and
+   `bottomNav` all sat at `paddingHorizontal: scale(16)`, tighter than every
+   other screen's `scale(20)` floor; bumped all four together (not just the
+   three the audit flagged) so the exam UI's content column stays aligned
+   top-to-bottom rather than fixing three edges and leaving the fourth
+   mismatched.
+
+**Screens the audit confirmed already consistent, left untouched:**
+`note-detail.tsx`, `doubt-detail.tsx`'s board card, `session-board.tsx`,
+`snap-solved.tsx`, `profile.tsx`, `privacy-policy.tsx`, `terms.tsx`,
+`about-us.tsx`, and the dark/immersive screens (`entering-classroom.tsx`,
+`entering-lesson.tsx` — solid dark loaders; `live-classroom.tsx`,
+`lesson-player.tsx` — lit-whiteboard-on-paper aesthetic, not solid dark, but
+internally consistent with each other; `snap-capture.tsx` — real-camera-app
+aesthetic). Also noted but out of scope: `app/modal.tsx` is unreferenced
+leftover Expo-template boilerplate, no in-app link points to it anywhere.
+
+**Also noted, not acted on:** `profile.tsx`'s teacher/language picker uses
+a third, more elaborate selection idiom (`RingSweep`/`BloomFace` rotating
+gradient) distinct from both flat-fill filter chips and `WashSelectRow` —
+not a regression, just an unreconciled third pattern, flagged for
+awareness rather than changed since it wasn't asked for and isn't broken.
+
+**Cleanup:** the wash-animation fix from the round above (`useDerivedValue`
+depending on `playToken`) had a redundant `playToken;` bare-expression line
+left over from an earlier defensive-but-unnecessary attempt to force
+re-evaluation — the hook's own dependency array already does that. Removed
+it from both `wash-select-row.tsx` and `exam.tsx`'s `SelectRow`, along with
+two now-unused `eslint-disable` comments it required.
+
+**Verification:** `npx tsc --noEmit` and `npx expo lint` both fully clean
+(zero errors, zero warnings) across the entire project after this round.

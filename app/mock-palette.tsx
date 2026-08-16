@@ -135,7 +135,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),

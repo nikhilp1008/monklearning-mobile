@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAudioRecorder } from '@siteed/audio-studio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   NativeScrollEvent,
@@ -27,6 +26,42 @@ import { supabase } from '@/lib/supabase';
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 const CHROME_HIDE_MS = 4200;
 const FOLLOW_SCROLL_MS = 350;
+
+interface AudioRecorderLike {
+  startRecording(options: {
+    sampleRate: number;
+    channels: number;
+    encoding: string;
+    interval: number;
+    onAudioStream: (event: { data: unknown }) => void;
+  }): Promise<unknown>;
+  stopRecording(): Promise<unknown>;
+}
+
+/**
+ * `@siteed/audio-studio`'s own module calls `requireNativeModule('AudioStudio')`
+ * at ITS OWN top level (not inside a function) — so a plain `import` here
+ * throws the instant this file is required, which Expo Router does for
+ * EVERY file in app/ to build its route table, regardless of whether anyone
+ * ever opens this screen. That took down the entire app at launch on every
+ * screen, for every user, the moment the native module wasn't linked
+ * correctly in a build — confirmed live via TestFlight. Catching the require
+ * here contains a missing/broken native module to just this screen's mic
+ * feature instead of crashing on app open.
+ */
+let useAudioRecorder: () => AudioRecorderLike;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  useAudioRecorder = require('@siteed/audio-studio').useAudioRecorder;
+} catch (err) {
+  console.error('[live-classroom] @siteed/audio-studio failed to load:', err);
+  useAudioRecorder = function useUnavailableAudioRecorder(): AudioRecorderLike {
+    return {
+      startRecording: () => Promise.reject(new Error('Voice recording is unavailable on this build.')),
+      stopRecording: () => Promise.resolve(),
+    };
+  };
+}
 
 export default function LiveClassroomScreen() {
   useLandscapeLock();

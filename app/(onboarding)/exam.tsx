@@ -10,19 +10,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type DimensionValue,
-} from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
-  useSharedValue,
+  useDerivedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,9 +23,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LeaderRow, ObButton } from '@/components/onboarding-kit';
 import { EXAMS, examTotal, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
 
-// `wipe` — background-size 0% 100% -> 100% 100%, .55s cubic-bezier(.2,.75,.2,1).
-const WIPE_DURATION = 550;
-const WIPE_EASING = Easing.bezier(0.2, 0.75, 0.2, 1);
+// `wipe` — background-size 0% 100% -> 100% 100%, .55s cubic-bezier(.2,.75,.2,1)
+// in the original CSS handoff. Reworked as an opacity fade below — see the
+// comment on `progress` for why.
+const WIPE_DURATION = 260;
+const WIPE_EASING = Easing.out(Easing.quad);
 
 type SelectRowProps = {
   /** Row title — 22px/700/-.02em. */
@@ -61,29 +56,27 @@ export function SelectRow({ name, tag, selected, playToken, onPress }: SelectRow
   const { ds, tracking } = useDesignScale();
   const styles = useMemo(() => createRowStyles(ds, tracking), [ds, tracking]);
 
-  const progress = useSharedValue(0);
+  // A width-based wipe (measured pixel width, or a "NN%" string) depends on
+  // Reanimated's UI-thread width mutation propagating into LinearGradient's
+  // own layout every frame — on real devices this has shown up as a
+  // hard-edged jump partway through instead of a smooth sweep, twice, across
+  // two different fix attempts (see components/wash-select-row.tsx, this
+  // screen's main-app equivalent, for the same history). Opacity has no
+  // layout dependency at all: the gradient is always full-size, and only its
+  // visibility animates, so it cannot produce that class of artifact.
+  // The playToken dep (unused in the body) is what replays the fade on a
+  // re-tap of an already-selected row: it forces this derivation to
+  // re-evaluate even though `selected` alone wouldn't have changed.
+  const progress = useDerivedValue(() => {
+    return selected ? withTiming(1, { duration: WIPE_DURATION, easing: WIPE_EASING }) : withTiming(0, { duration: 150 });
+  }, [selected, playToken]);
 
-  useEffect(() => {
-    if (!selected) {
-      progress.value = 0;
-      return;
-    }
-    // Rewind first, then run — this is what replays the wipe on a re-tap.
-    progress.value = 0;
-    progress.value = withTiming(1, { duration: WIPE_DURATION, easing: WIPE_EASING });
-  }, [selected, playToken, progress]);
-
-  // CSS grows the *background image*, so the gradient is squeezed into the
-  // revealed width rather than being uncovered — animating the gradient
-  // container's own width reproduces that exactly.
   const washStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%` as DimensionValue,
+    opacity: progress.value,
   }));
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.row, selected ? styles.rowSelected : styles.rowIdle]}>
+    <Pressable onPress={onPress} style={[styles.row, selected ? styles.rowSelected : styles.rowIdle]}>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Animated.View style={[styles.washClip, washStyle]}>
           <LinearGradient

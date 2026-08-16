@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -17,6 +17,7 @@ export default function SnapCaptureScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoOpenedRef = useRef(false);
 
   async function handlePicked(result: ImagePicker.ImagePickerResult) {
     if (result.canceled || !result.assets?.[0]) return;
@@ -74,6 +75,16 @@ export default function SnapCaptureScreen() {
     });
     await handlePicked(result);
   }
+
+  // Guard against React's dev-mode double-invoke of effects (and any
+  // re-render before the async permission prompt resolves) — the camera
+  // should open exactly once per mount, not once per shutter tap.
+  useEffect(() => {
+    if (autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    openCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={styles.screen}>

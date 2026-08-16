@@ -200,7 +200,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       gap: scale(8),
       paddingTop: verticalScale(6),
-      paddingHorizontal: scale(16),
+      paddingHorizontal: scale(20),
     },
     exitButton: {
       paddingVertical: verticalScale(9),
@@ -249,7 +249,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
       flexDirection: 'row',
       paddingTop: verticalScale(8),
-      paddingHorizontal: scale(16),
+      paddingHorizontal: scale(20),
       paddingBottom: verticalScale(10),
     },
     subjectTrack: {
@@ -288,7 +288,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     content: {
       flex: 1,
       minHeight: 0,
-      paddingHorizontal: scale(16),
+      paddingHorizontal: scale(20),
     },
     metaRow: {
       flexDirection: 'row',
@@ -414,7 +414,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       gap: scale(10),
       paddingTop: verticalScale(12),
-      paddingHorizontal: scale(16),
+      paddingHorizontal: scale(20),
       paddingBottom: verticalScale(6),
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.08)',

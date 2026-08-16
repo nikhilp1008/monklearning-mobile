@@ -1,24 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { WashSelectRow } from '@/components/wash-select-row';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-
-const TOPICS = [
-  "Drift velocity & Ohm's law",
-  'Resistance & resistivity',
-  'Series & parallel circuits',
-  "Kirchhoff's laws",
-  'Wheatstone bridge',
-  'Meter bridge & potentiometer',
-  'EMF & internal resistance',
-  'Heating effects of current',
-];
+import { CatalogueSubject, getCatalogue } from '@/lib/drona';
 
 const TALKS = [
   { title: 'EMF vs terminal voltage', when: '2d ago' },
@@ -36,6 +27,12 @@ export default function TopicSheetScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [playToken, setPlayToken] = useState(0);
+
+  const select = useCallback((topic: string) => {
+    setSelected(topic);
+    setPlayToken((n) => n + 1);
+  }, []);
 
   const chapterId = params.chapterId;
   const chapterNumber = params.chapterNumber ?? '03';
@@ -43,9 +40,46 @@ export default function TopicSheetScreen() {
   const subject = params.subject ?? 'Physics';
   const classLabel = params.classLabel ?? 'Class 12';
 
-  // TOPICS below is still a placeholder list (not the real per-chapter
-  // subtopics from /drona/catalogue) — replacing it is a separate follow-up.
-  // Whatever the student taps/free-talks still reaches the real backend: it's
+  const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    getCatalogue()
+      .then((data) => {
+        if (!cancelled) setCatalogue(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : 'Could not load topics.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  // chapterId is matched across every subject's chapters, not just the one
+  // named by the subject param — the two aren't guaranteed to agree.
+  const chapter = useMemo(() => {
+    if (!catalogue) return null;
+    for (const subj of catalogue) {
+      const found = subj.chapters.find((c) => c.id === chapterId);
+      if (found) return found;
+    }
+    return null;
+  }, [catalogue, chapterId]);
+
+  const topics = useMemo(() => chapter?.subtopics.map((s) => s.name) ?? [], [chapter]);
+
+  // Whatever the student taps/free-talks reaches the real backend: it's
   // forwarded as the scoping conversation's opening line in entering-classroom.
   const goToClassroom = (initialUtterance?: string) =>
     router.push({
@@ -71,44 +105,44 @@ export default function TopicSheetScreen() {
           </View>
 
           <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
-            <View style={styles.grid}>
-              {TOPICS.map((topic) => {
-                const isSelected = selected === topic;
-                const dimmed = selected !== null && !isSelected;
-                return (
-                  <Pressable
-                    key={topic}
-                    onPress={() => setSelected(topic)}
-                    style={[
-                      styles.topicCard,
-                      isSelected && styles.topicCardSelected,
-                      dimmed && styles.topicCardDimmed,
-                    ]}>
-                    <Text
-                      style={[styles.topicCardText, isSelected && styles.topicCardTextSelected]}>
-                      {topic}
-                    </Text>
-                    {isSelected && (
-                      <View style={styles.topicCheck}>
-                        <Svg viewBox="0 0 24 24" width={scale(10)} height={scale(10)} fill="none">
-                          <Path
-                            d="M5 13l4 4L19 7"
-                            stroke="#241a08"
-                            strokeWidth={3.4}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </Svg>
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
+            {loading ? (
+              <View style={styles.stateBlock}>
+                <ActivityIndicator color={colors.ink} />
+              </View>
+            ) : loadError ? (
+              <View style={styles.stateBlock}>
+                <Text style={styles.stateText}>{loadError}</Text>
+                <Pressable onPress={() => setReloadToken((n) => n + 1)}>
+                  <Text style={styles.retryText}>Try again</Text>
+                </Pressable>
+              </View>
+            ) : topics.length > 0 ? (
+              <View style={styles.grid}>
+                {topics.map((topic) => {
+                  const isSelected = selected === topic;
+                  return (
+                    <WashSelectRow
+                      key={topic}
+                      selected={isSelected}
+                      playToken={playToken}
+                      onPress={() => select(topic)}
+                      style={styles.topicCard}
+                      selectedStyle={styles.topicCardSelected}>
+                      <Text
+                        style={[styles.topicCardText, isSelected && styles.topicCardTextSelected]}>
+                        {topic}
+                      </Text>
+                    </WashSelectRow>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.stateBlock}>
+                <Text style={styles.stateText}>No specific topics listed for this chapter yet.</Text>
+              </View>
+            )}
 
-            <Pressable
-              style={[styles.freetalkRow, selected && styles.dimmedSection]}
-              onPress={() => goToClassroom()}>
+            <Pressable style={styles.freetalkRow} onPress={() => goToClassroom()}>
               <MicIcon size={scale(15)} />
               <Text style={styles.freetalkText}>
                 Can&apos;t find your topic? <Text style={styles.freetalkBold}>Just start talking</Text>
@@ -116,7 +150,7 @@ export default function TopicSheetScreen() {
               <ArrowRightIcon color={colors.faint} size={scale(13)} />
             </Pressable>
 
-            <View style={[styles.talksSection, selected && styles.dimmedSection]}>
+            <View style={styles.talksSection}>
               <Text style={styles.talksOverline}>From your talks</Text>
               <View style={styles.talksList}>
                 {TALKS.map((talk) => (
@@ -205,7 +239,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       right: 0,
       bottom: 0,
       top: verticalScale(96),
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
@@ -259,6 +293,25 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(9),
       marginTop: verticalScale(16),
     },
+    stateBlock: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: verticalScale(8),
+      minHeight: verticalScale(120),
+      marginTop: verticalScale(16),
+    },
+    stateText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      color: colors.slate,
+      textAlign: 'center',
+      paddingHorizontal: scale(20),
+    },
+    retryText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(13),
+      color: colors.marigold,
+    },
     topicCard: {
       flexBasis: '48%',
       flexGrow: 1,
@@ -269,23 +322,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(8),
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.12)',
+      borderColor: 'rgba(28,26,22,.2)',
       borderRadius: scale(13),
       paddingVertical: verticalScale(12),
       paddingHorizontal: scale(14),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     topicCardSelected: {
-      backgroundColor: '#FCF4E0',
       borderWidth: scale(1.6),
       borderColor: colors.marigold,
-      shadowColor: colors.marigold,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.35,
-      shadowRadius: scale(6),
-      elevation: 3,
-    },
-    topicCardDimmed: {
-      opacity: 0.6,
     },
     topicCardText: {
       flex: 1,
@@ -296,18 +345,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     topicCardTextSelected: {
       fontFamily: 'AnekLatin_700Bold',
-    },
-    topicCheck: {
-      width: scale(17),
-      height: scale(17),
-      flexShrink: 0,
-      borderRadius: scale(8.5),
-      backgroundColor: colors.marigold,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dimmedSection: {
-      opacity: 0.65,
     },
     freetalkRow: {
       flexDirection: 'row',
@@ -377,7 +414,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
       paddingTop: verticalScale(12),
       paddingBottom: verticalScale(10),
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     cta: {
       flexDirection: 'row',

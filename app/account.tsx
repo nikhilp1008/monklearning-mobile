@@ -173,9 +173,9 @@ function BackArrowIcon({ size }: { size: number }) {
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   const cardShadow = {
     shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: verticalScale(0.5) },
-    shadowOpacity: 0.03,
-    shadowRadius: scale(1),
+    shadowOffset: { width: 0, height: verticalScale(1.5) },
+    shadowOpacity: 0.05,
+    shadowRadius: scale(2),
     elevation: 1,
   } as const;
 
