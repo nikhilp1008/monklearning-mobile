@@ -21,6 +21,7 @@ import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
+import { NoteSummary, listNotes } from '@/lib/notes';
 
 type Segment = 'notes' | 'doubts' | 'sessions';
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths';
@@ -33,49 +34,14 @@ const SEGMENT_LABELS: Record<Segment, string> = {
 };
 const SUBJECT_FILTERS: SubjectFilter[] = ['All', 'Physics', 'Chemistry', 'Maths'];
 
-type Note = {
-  subject: 'Physics' | 'Chemistry' | 'Maths';
-  dotColor: string;
-  labelColor: string;
-  time: string;
-  title: string;
-  body: string;
+// Subject -> accent color, since /notes doesn't return one — same three
+// brand accents used for the subject dot/label across the app.
+const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
+  physics: { dot: '#DD4433', label: '#C53A2B' },
+  chemistry: { dot: '#1C9B57', label: '#157A45' },
+  mathematics: { dot: '#EEA31F', label: '#9A6A12' },
+  biology: { dot: '#1C9B57', label: '#157A45' },
 };
-
-const NOTES: Note[] = [
-  {
-    subject: 'Physics',
-    dotColor: '#DD4433',
-    labelColor: '#C53A2B',
-    time: '2 days ago',
-    title: "Ohm's law & drift velocity",
-    body: 'I = nAve. Current is just charge marching together.',
-  },
-  {
-    subject: 'Chemistry',
-    dotColor: '#1C9B57',
-    labelColor: '#157A45',
-    time: 'last week',
-    title: 'Balancing redox in acid',
-    body: 'Half-reactions, balance O with H₂O, H with H⁺.',
-  },
-  {
-    subject: 'Maths',
-    dotColor: '#EEA31F',
-    labelColor: '#9A6A12',
-    time: 'last week',
-    title: 'Integration by parts',
-    body: 'ILATE order. Pick u so its derivative simplifies.',
-  },
-  {
-    subject: 'Physics',
-    dotColor: '#DD4433',
-    labelColor: '#C53A2B',
-    time: '2 weeks ago',
-    title: 'Projectile motion essentials',
-    body: 'Split into x and y. Time is the bridge.',
-  },
-];
 
 type Session = {
   title: string;
@@ -124,6 +90,10 @@ export default function LibraryScreen() {
   const [doubtsLoading, setDoubtsLoading] = useState(true);
   const [doubtsError, setDoubtsError] = useState<string | null>(null);
 
+  const [notes, setNotes] = useState<NoteSummary[]>([]);
+  const [notesLoading, setNotesLoading] = useState(true);
+  const [notesError, setNotesError] = useState<string | null>(null);
+
   // Fetched unfiltered — the API's subject vocabulary ("Mathematics") doesn't
   // match the app's compact filter labels ("Maths"), so filtering happens
   // client-side via subjectMatches() below instead of trusting a server-side
@@ -148,15 +118,46 @@ export default function LibraryScreen() {
     };
   }, []);
 
+  const fetchNotes = useCallback(() => {
+    let cancelled = false;
+    setNotesLoading(true);
+    setNotesError(null);
+    listNotes()
+      .then((res) => {
+        if (!cancelled) setNotes(res.notes);
+      })
+      .catch((err) => {
+        if (!cancelled) setNotesError(err instanceof Error ? err.message : 'Could not load your notes.');
+      })
+      .finally(() => {
+        if (!cancelled) setNotesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => fetchDoubts(), [fetchDoubts]);
+  useEffect(() => fetchNotes(), [fetchNotes]);
 
   // Library is a tab screen that stays mounted — without this, snapping a
-  // doubt and returning here wouldn't show it until something else forced a
-  // refetch, contradicting snap-solved's "find it in Library any time" promise.
+  // doubt (or saving a session as a note) and returning here wouldn't show it
+  // until something else forced a refetch, contradicting the "find it in
+  // Library any time" promise made on both snap-solved and session-board.
   useFocusEffect(
     useCallback(() => {
-      return fetchDoubts();
-    }, [fetchDoubts])
+      const cancelDoubts = fetchDoubts();
+      const cancelNotes = fetchNotes();
+      return () => {
+        cancelDoubts();
+        cancelNotes();
+      };
+    }, [fetchDoubts, fetchNotes])
+  );
+
+  const visibleNotes = useMemo(
+    () => notes.filter((n) => subjectMatches(n.subject, notesFilter)),
+    [notes, notesFilter]
   );
 
   const visibleDoubts = useMemo(
@@ -271,38 +272,66 @@ export default function LibraryScreen() {
                     </View>
                   </PressableScale>
                 ))}
-                <Text style={styles.filterCount}>9 notes</Text>
+                <Text style={styles.filterCount}>{visibleNotes.length} notes</Text>
               </View>
 
-              <View style={styles.notesList}>
-                {NOTES.map((note, index) => (
-                  <PressableScale
-                    key={index}
-                    style={styles.noteCard}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/note-detail',
-                        params: {
-                          title: note.title,
-                          subject: note.subject,
-                          time: `saved ${note.time}`,
-                        },
-                      })
-                    }>
-                    <View style={styles.noteTopRow}>
-                      <View style={styles.noteSubjectRow}>
-                        <View style={[styles.noteDot, { backgroundColor: note.dotColor }]} />
-                        <Text style={[styles.noteSubjectText, { color: note.labelColor }]}>
-                          {note.subject}
+              {notesLoading ? (
+                <View style={styles.stateBlock}>
+                  <ActivityIndicator color={colors.ink} />
+                </View>
+              ) : notesError ? (
+                <View style={styles.stateBlock}>
+                  <Text style={styles.stateText}>{notesError}</Text>
+                </View>
+              ) : visibleNotes.length === 0 ? (
+                <View style={styles.stateBlock}>
+                  <Text style={styles.stateText}>
+                    {notes.length === 0
+                      ? 'No saved notes yet — finish a class with Drona and save its board.'
+                      : `No ${notesFilter} notes yet.`}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.notesList}>
+                  {visibleNotes.map((note) => {
+                    const accent = SUBJECT_ACCENT[(note.subject ?? '').toLowerCase()] ?? {
+                      dot: colors.faint,
+                      label: colors.slate,
+                    };
+                    return (
+                      <PressableScale
+                        key={note.id}
+                        style={styles.noteCard}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/note-detail',
+                            params: {
+                              id: note.id,
+                              title: note.concept ?? note.chapter ?? 'Untitled note',
+                              subject: note.subject ?? '',
+                              chapter: note.chapter ?? '',
+                              time: `saved ${formatRelativeTime(note.created_at)}`,
+                            },
+                          })
+                        }>
+                        <View style={styles.noteTopRow}>
+                          <View style={styles.noteSubjectRow}>
+                            <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
+                            <Text style={[styles.noteSubjectText, { color: accent.label }]}>
+                              {note.subject ?? 'General'}
+                            </Text>
+                          </View>
+                          <Text style={styles.noteTime}>{formatRelativeTime(note.created_at)}</Text>
+                        </View>
+                        <Text style={styles.noteTitle} numberOfLines={2}>
+                          {note.concept ?? note.chapter ?? 'Untitled note'}
                         </Text>
-                      </View>
-                      <Text style={styles.noteTime}>{note.time}</Text>
-                    </View>
-                    <Text style={styles.noteTitle}>{note.title}</Text>
-                    <Text style={styles.noteBody}>{note.body}</Text>
-                  </PressableScale>
-                ))}
-              </View>
+                        <Text style={styles.noteBody}>{note.preview}</Text>
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              )}
             </ScrollView>
           </View>
 

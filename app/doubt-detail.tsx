@@ -8,6 +8,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { CheckIcon } from '@/components/check-icon';
 import { RuledPaper } from '@/components/ruled-paper';
+import { SolutionExplain } from '@/components/solution-explain';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtDetail, getDoubt } from '@/lib/doubts';
@@ -94,7 +95,7 @@ export default function DoubtDetailScreen() {
                 <Text style={styles.subjectPillText}>{subject}</Text>
               </View>
             )}
-            {!!chapter && (
+            {!!chapter && chapter !== title && (
               <View style={styles.chapterPill}>
                 <Text style={styles.chapterPillText}>{chapter}</Text>
               </View>
@@ -141,35 +142,15 @@ export default function DoubtDetailScreen() {
                     <Text style={styles.explainBadgeText}>DRONA&apos;S EXPLANATION</Text>
                   </View>
 
-                  {isMcq && (
-                    <View style={styles.optionsList}>
-                      {detail.option_labels!.map((label, i) => (
-                        <Text key={label} style={styles.optionRow}>
-                          <Text style={styles.optionLabel}>{label}. </Text>
-                          {detail.options?.[i] ?? ''}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-
-                  {steps
-                    ? steps.map((step) => (
-                        <Text key={step.n} style={styles.explainText}>
-                          {step.text}
-                        </Text>
-                      ))
-                    : detail.explanation && (
-                        <Text style={styles.explainText}>{detail.explanation}</Text>
-                      )}
-
-                  {detail.answer && (
-                    <Text style={styles.explainEquation}>
-                      {isMcq ? `Answer: ${detail.answer}` : detail.answer}
-                    </Text>
-                  )}
-                  {detail.key_idea && (
-                    <Text style={styles.explainMechanism}>{detail.key_idea}</Text>
-                  )}
+                  <SolutionExplain
+                    steps={steps}
+                    explanation={detail.explanation}
+                    answer={detail.answer}
+                    keyIdea={detail.key_idea}
+                    isMcq={isMcq}
+                    optionLabels={detail.option_labels}
+                    options={detail.options}
+                  />
                 </View>
               ) : detail ? (
                 <View style={styles.failureCard}>
@@ -200,20 +181,6 @@ export default function DoubtDetailScreen() {
             </>
           )}
         </ScrollView>
-
-        <View style={styles.footer}>
-          <Pressable
-            style={styles.ctaButton}
-            onPress={() =>
-              router.push({
-                pathname: '/entering-classroom',
-                params: { chapterTitle: chapter || subject || 'this topic' },
-              })
-            }>
-            <Text style={styles.ctaButtonText}>Ask a follow-up</Text>
-            <MicIcon size={scale(16)} />
-          </Pressable>
-        </View>
       </SafeAreaView>
     </View>
   );
@@ -264,27 +231,6 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-function MicIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"
-        stroke={colors.paper}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M5 11a7 7 0 0 0 14 0M12 18v3"
-        stroke={colors.paper}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
@@ -322,8 +268,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     title: {
       flex: 1,
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(16),
-      letterSpacing: scale(-0.16),
+      fontSize: scale(17),
+      letterSpacing: scale(-0.17),
       color: colors.ink,
     },
     tagsRow: {
@@ -495,37 +441,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       letterSpacing: scale(1.08),
       color: colors.ink,
     },
-    optionsList: {
-      marginBottom: verticalScale(10),
-    },
-    optionRow: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(20.5),
-      color: colors.slate,
-    },
-    optionLabel: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
-    },
-    explainText: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(22.4),
-      color: colors.slate,
-      marginBottom: verticalScale(8),
-    },
-    explainEquation: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(15),
-      color: colors.ink,
-      marginBottom: verticalScale(8),
-    },
-    explainMechanism: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14),
-      color: colors.red,
-    },
     failureCard: {
       backgroundColor: 'rgba(221,68,51,.05)',
       borderWidth: scale(1.4),
@@ -561,32 +476,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(12),
       color: colors.faint,
-    },
-    footer: {
-      flexShrink: 0,
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(12),
-      paddingHorizontal: scale(24),
-    },
-    ctaButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.28,
-      shadowRadius: scale(9),
-      elevation: 6,
-    },
-    ctaButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
     },
   });
 }

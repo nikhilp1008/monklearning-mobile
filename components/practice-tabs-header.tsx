@@ -9,14 +9,12 @@ type PracticeTabsHeaderProps = {
   activeSegment: 'unlimited' | 'mock';
   onPressUnlimited: () => void;
   onPressMock: () => void;
-  questionCounter?: string;
 };
 
 export function PracticeTabsHeader({
   activeSegment,
   onPressUnlimited,
   onPressMock,
-  questionCounter,
 }: PracticeTabsHeaderProps) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -25,7 +23,6 @@ export function PracticeTabsHeader({
     <>
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Practice</Text>
-        {questionCounter ? <Text style={styles.questionCounter}>{questionCounter}</Text> : null}
       </View>
 
       <View style={styles.segmentRow}>
@@ -76,11 +73,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(24),
       letterSpacing: scale(-0.6),
       color: colors.ink,
-    },
-    questionCounter: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(16),
-      color: colors.red,
     },
     segmentRow: {
       flexDirection: 'row',

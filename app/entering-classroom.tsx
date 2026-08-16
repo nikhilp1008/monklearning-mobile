@@ -24,6 +24,7 @@ import {
   scopeDronaSession,
   startDronaSession,
 } from '@/lib/drona-live';
+import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -31,6 +32,20 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedSvgText = Animated.createAnimatedComponent(SvgText);
 
 type Stage = 'connecting' | 'scoping' | 'error';
+
+// /drona/session/{id}/scope proxies to an upstream LLM provider and, when
+// that provider errors, the raw provider error string ends up verbatim in
+// the API's `detail` field (confirmed live: a 402 "Insufficient Balance"
+// came through as `Error code: 402 - {'error': {'message': ...}}`, a raw
+// Python dict repr). That's infra/billing detail no student should see.
+function friendlyScopeError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : '';
+  const looksLikeUpstreamDump = /error code:\s*\d/i.test(raw) || /^\{.*\}$/.test(raw.trim());
+  if (!raw || looksLikeUpstreamDump) {
+    return "Drona's having trouble reaching the lesson right now — try again in a bit.";
+  }
+  return raw;
+}
 
 export default function EnteringClassroomScreen() {
   useLandscapeLock();
@@ -56,7 +71,15 @@ export default function EnteringClassroomScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    startDronaSession({ chapter_id: params.chapterId || undefined })
+    Promise.all([getTeacherPreference(), getLanguagePreference()])
+      .then(([teacher, language]) => {
+        if (cancelled) return Promise.reject(new Error('cancelled'));
+        return startDronaSession({
+          chapter_id: params.chapterId || undefined,
+          voice: teacherToVoice(teacher),
+          language,
+        });
+      })
       .then((res) => {
         if (cancelled) return;
         setSessionId(res.session_id);
@@ -68,8 +91,8 @@ export default function EnteringClassroomScreen() {
         }
       })
       .catch((err) => {
-        if (cancelled) return;
-        setErrorMessage(err instanceof Error ? err.message : 'Could not reach Drona right now.');
+        if (cancelled || (err instanceof Error && err.message === 'cancelled')) return;
+        setErrorMessage(friendlyScopeError(err) || 'Could not reach Drona right now.');
         setStage('error');
       });
     return () => {
@@ -78,19 +101,34 @@ export default function EnteringClassroomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function submit(utterance: string) {
+  async function submit(
+    utterance: string,
+    opts: { skipCheck?: boolean; fromPreselected?: boolean } = {}
+  ) {
     const trimmed = utterance.trim();
     if (!trimmed || !sessionId || submitting) return;
     setSubmitting(true);
     setStatusNote(null);
     try {
-      const check = await checkDronaTopic({ utterance: trimmed, session_id: sessionId });
-      if (check.status === 'other_chapter') {
-        setStatusNote(check.message);
-        setInput('');
-        setSubmitting(false);
-        setStage('scoping');
-        return;
+      // /drona/topic/check is confirmed live (2026-08-16, reproduced for two
+      // different chapters) to always return "other_chapter" pointing at the
+      // session's OWN chapter, for every utterance — a 100% backend bug, not
+      // a client issue (see PROGRESS.md / the co-founder punch-list memory).
+      // It's skipped for utterances we already know are on-topic by
+      // construction — a subtopic tapped straight from this chapter's real
+      // catalogue list, or an option chip the backend itself suggested this
+      // same session. Genuine free-text input still goes through the check,
+      // since that's the one case it's actually meant to catch, and this
+      // stays easy to delete once the backend bug is fixed.
+      if (!opts.skipCheck) {
+        const check = await checkDronaTopic({ utterance: trimmed, session_id: sessionId });
+        if (check.status === 'other_chapter') {
+          setStatusNote(check.message);
+          setInput('');
+          setSubmitting(false);
+          setStage('scoping');
+          return;
+        }
       }
 
       const result = await scopeDronaSession(sessionId, { utterance: trimmed });
@@ -112,8 +150,20 @@ export default function EnteringClassroomScreen() {
       setOptions(result.options ?? []);
       setStage('scoping');
     } catch (err) {
-      setStatusNote(err instanceof Error ? err.message : 'Something went wrong — try again.');
-      setStage('scoping');
+      // A student who already chose a chapter AND a subtopic has answered every
+      // question this screen exists to ask. Dropping them into the scoping
+      // conversation on a backend failure showed them a landscape Q&A screen
+      // that, from their side, had no reason to exist and no useful answer to
+      // give — the failing call is the lesson-planning one, which no wording of
+      // the topic can fix. Show the plain error instead, so the only route in
+      // stays chapter -> subtopic -> class.
+      if (opts.fromPreselected) {
+        setErrorMessage(friendlyScopeError(err));
+        setStage('error');
+      } else {
+        setStatusNote(friendlyScopeError(err));
+        setStage('scoping');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +175,7 @@ export default function EnteringClassroomScreen() {
   useEffect(() => {
     if (sessionId && params.initialUtterance && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
-      submit(params.initialUtterance);
+      submit(params.initialUtterance, { skipCheck: true, fromPreselected: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -133,7 +183,7 @@ export default function EnteringClassroomScreen() {
   if (stage === 'error') {
     return (
       <View style={styles.screen}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.errorBlock}>
             <Text style={styles.errorTitle}>Couldn&apos;t enter the classroom</Text>
@@ -149,7 +199,7 @@ export default function EnteringClassroomScreen() {
 
   return (
     <Pressable style={styles.screen} onPress={() => {}}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <LinearGradient
         colors={['rgba(238,163,31,.12)', 'rgba(238,163,31,0)']}
         start={{ x: 0.5, y: 0.3 }}
@@ -190,7 +240,7 @@ export default function EnteringClassroomScreen() {
                     key={option}
                     style={styles.optionChip}
                     disabled={submitting}
-                    onPress={() => submit(option)}>
+                    onPress={() => submit(option, { skipCheck: true })}>
                     <Text style={styles.optionChipText}>{option}</Text>
                   </Pressable>
                 ))}
@@ -203,7 +253,7 @@ export default function EnteringClassroomScreen() {
                 value={input}
                 onChangeText={setInput}
                 placeholder="Type what you'd like to learn…"
-                placeholderTextColor="rgba(239,235,221,.4)"
+                placeholderTextColor={colors.faint}
                 editable={!submitting}
                 onSubmitEditing={() => submit(input)}
                 returnKeyType="send"
@@ -213,7 +263,7 @@ export default function EnteringClassroomScreen() {
                 disabled={!input.trim() || submitting}
                 onPress={() => submit(input)}>
                 {submitting ? (
-                  <ActivityIndicator color="#16130E" size="small" />
+                  <ActivityIndicator color={colors.ink} size="small" />
                 ) : (
                   <Text style={styles.sendButtonText}>Go</Text>
                 )}
@@ -338,7 +388,7 @@ function ProtractorLoader({ size }: { size: number }) {
         cy={60}
         r={36}
         fill="none"
-        stroke={colors.paper}
+        stroke={colors.ink}
         strokeWidth={11}
         strokeLinecap="round"
         strokeDasharray="52 23.4"
@@ -349,7 +399,7 @@ function ProtractorLoader({ size }: { size: number }) {
         cy={60}
         r={19}
         fill="none"
-        stroke={colors.paper}
+        stroke={colors.ink}
         strokeWidth={9}
         strokeLinecap="round"
         strokeDasharray="21.8 18"
@@ -412,7 +462,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: '#16130E',
+      backgroundColor: colors.paper,
     },
     safeArea: {
       flex: 1,
@@ -443,8 +493,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(8),
       alignSelf: 'flex-start',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,.16)',
-      backgroundColor: 'rgba(255,255,255,.05)',
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: 'rgba(28,26,22,.05)',
       borderRadius: scale(99),
       paddingVertical: verticalScale(8),
       paddingHorizontal: scale(16),
@@ -458,13 +508,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     chapterChipText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
-      color: '#fff',
+      color: colors.ink,
     },
     heading: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(27),
       letterSpacing: scale(-0.54),
-      color: '#fff',
+      color: colors.ink,
     },
     statusRow: {
       flexDirection: 'row',
@@ -474,20 +524,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     statusText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(14),
-      color: '#C7C1B3',
+      color: colors.slate,
     },
     speechText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(21),
       lineHeight: scale(30),
       letterSpacing: scale(-0.3),
-      color: '#fff',
+      color: colors.ink,
       maxWidth: scale(560),
     },
     statusNote: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(13),
-      color: colors.marigold,
+      color: colors.amberText,
       maxWidth: scale(520),
     },
     optionsRow: {
@@ -497,8 +547,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     optionChip: {
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,.18)',
-      backgroundColor: 'rgba(255,255,255,.06)',
+      borderColor: 'rgba(28,26,22,.18)',
+      backgroundColor: 'rgba(28,26,22,.06)',
       borderRadius: scale(99),
       paddingVertical: verticalScale(8),
       paddingHorizontal: scale(14),
@@ -506,7 +556,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     optionChipText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(12.5),
-      color: '#EFEBDD',
+      color: colors.ink,
     },
     inputRow: {
       flexDirection: 'row',
@@ -520,12 +570,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(46),
       borderRadius: scale(99),
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,.16)',
-      backgroundColor: 'rgba(255,255,255,.05)',
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: 'rgba(28,26,22,.05)',
       paddingHorizontal: scale(18),
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(14),
-      color: '#fff',
+      color: colors.ink,
     },
     sendButton: {
       width: scale(64),
@@ -541,7 +591,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     sendButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(14),
-      color: '#16130E',
+      color: colors.ink,
     },
     footer: {
       flexShrink: 0,
@@ -551,7 +601,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     footerHint: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(12),
-      color: '#938d80',
+      color: colors.faint,
     },
     errorBlock: {
       flex: 1,
@@ -563,12 +613,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     errorTitle: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(20),
-      color: '#fff',
+      color: colors.ink,
     },
     errorBody: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
-      color: '#C7C1B3',
+      color: colors.slate,
       textAlign: 'center',
     },
     errorButton: {
@@ -581,7 +631,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     errorButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
-      color: '#16130E',
+      color: colors.ink,
     },
   });
 }

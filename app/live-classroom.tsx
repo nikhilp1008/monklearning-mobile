@@ -15,6 +15,7 @@ import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ProtractorMark } from '@/components/protractor-mark';
+import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
@@ -33,6 +34,12 @@ interface AudioRecorderLike {
     channels: number;
     encoding: string;
     interval: number;
+    ios?: {
+      audioSession?: {
+        category?: string;
+        categoryOptions?: string[];
+      };
+    };
     onAudioStream: (event: { data: unknown }) => void;
   }): Promise<unknown>;
   stopRecording(): Promise<unknown>;
@@ -124,7 +131,12 @@ export default function LiveClassroomScreen() {
       cancelled = true;
       clientRef.current?.disconnect();
       clientRef.current = null;
+      // Covers navigating away mid-push-to-talk (swipe-back, hardware back)
+      // — endClass() already stops the recorder on its own path, but this is
+      // the only guard for leaving via any other route while the mic is live.
+      recorder.stopRecording().catch(() => {});
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   // --- Board follow-scroll / chrome auto-hide (unchanged from the original UI) ---
@@ -212,6 +224,18 @@ export default function LiveClassroomScreen() {
         channels: 1,
         encoding: 'pcm_16bit',
         interval: 250,
+        // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
+        // `.playAndRecord` category to the earpiece receiver — confirmed via
+        // the native module's own session setup, which only requests
+        // AllowBluetooth/MixWithOthers. Once the mic is used once, every
+        // later Drona TTS chunk would otherwise play near-inaudibly through
+        // the earpiece instead of the loudspeaker.
+        ios: {
+          audioSession: {
+            category: 'PlayAndRecord',
+            categoryOptions: ['AllowBluetooth', 'MixWithOthers', 'DefaultToSpeaker'],
+          },
+        },
         onAudioStream: async (event: { data: unknown }) => {
           if (typeof event.data === 'string') {
             clientRef.current?.sendPcmChunk(base64ToBytes(event.data));
@@ -284,9 +308,11 @@ export default function LiveClassroomScreen() {
       router.replace({
         pathname: '/session-summary',
         params: {
-          chapterTitle,
+          sessionId,
+          chapterTitle: summary?.chapter_name || chapterTitle,
           summaryPoints: JSON.stringify(summary?.summary_points ?? []),
           mistakesCount: String(summary?.mistakes_count ?? 0),
+          questionsAnswered: String(summary?.questions_answered ?? 0),
           durationMinutes: String(summary?.duration_minutes ?? 0),
         },
       });
@@ -316,6 +342,9 @@ export default function LiveClassroomScreen() {
     <Pressable style={styles.screen} onPress={toggleChrome}>
       <StatusBar style="dark" />
       <View style={styles.boardWrap}>
+        <View style={styles.boardBackground} pointerEvents="none">
+          <RuledPaper step={verticalScale(27)} color="rgba(28,26,22,.06)" count={30} />
+        </View>
         <ScrollView
           ref={scrollRef}
           style={styles.board}
@@ -442,9 +471,12 @@ export default function LiveClassroomScreen() {
           <View style={styles.dockCc}>
             <Text style={styles.dockCcText}>CC</Text>
           </View>
-          <Pressable style={styles.dockChevron}>
+          {/* Decorative — no wired behavior exists for this yet (nothing to
+              expand/reveal), so this stays a plain View rather than a dead
+              tap target. Flag to product if it was meant to do something. */}
+          <View style={styles.dockChevron}>
             <ChevronRightIcon size={scale(13)} />
-          </Pressable>
+          </View>
         </Animated.View>
       )}
 
@@ -705,9 +737,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       margin: scale(10),
       position: 'relative',
     },
-    board: {
+    boardBackground: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: '#fff',
+      borderRadius: scale(18),
+      overflow: 'hidden',
+    },
+    board: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'transparent',
       borderWidth: scale(1.5),
       borderColor: colors.ink,
       borderRadius: scale(18),

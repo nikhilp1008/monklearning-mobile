@@ -41,7 +41,25 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
   const url = `${baseUrl.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-  const res = await fetch(url, { ...options, headers });
+  // A hard client-side ceiling so a stalled connection can't hang a spinner
+  // forever — 60s comfortably covers the slowest known real call (doubt
+  // solving, ~25s) with room to spare, well below anything a student would
+  // wait through anyway. Infra (Railway/Cloudflare) usually times out first
+  // with the HTML page handled above; this is the backstop for when it doesn't.
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 60000);
+
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers, signal: timeoutController.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError('This is taking longer than expected — check your connection and try again.', 0);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const contentType = res.headers.get('content-type');
   const isJson = !!contentType && contentType.includes('application/json');

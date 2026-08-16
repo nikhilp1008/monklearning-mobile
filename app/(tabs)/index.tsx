@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -12,6 +12,7 @@ import { RuledPaper } from '@/components/ruled-paper';
 import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 
 // The redesign's hairline borders are all shades of this ink, not the app's
 // usual `colors.hairline` rgba triple — keep the two distinct so any future
@@ -76,6 +77,32 @@ export default function HomeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const greeting = `${getGreeting(new Date())}, Aarav`;
+
+  const [planItems, setPlanItems] = useState<PlanItem[]>([]);
+  const doneCount = planItems.filter((item) => item.done).length;
+
+  // Refetch on focus, not just mount — the plan is edited on a separate
+  // screen (plan-sheet.tsx) that this screen stays mounted underneath, so a
+  // plain mount-only fetch would never see what was just added there.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      getTodayPlan().then((items) => {
+        if (!cancelled) setPlanItems(items);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
+
+  const togglePlanItem = (id: string) => {
+    const next = planItems.map((item) =>
+      item.id === id ? { ...item, done: !item.done } : item
+    );
+    setPlanItems(next);
+    saveTodayPlan(next);
+  };
 
   return (
     <View style={styles.screen}>
@@ -163,32 +190,42 @@ export default function HomeScreen() {
             <View style={styles.planHeaderRow}>
               <Text style={styles.planOverline}>Today&apos;s plan</Text>
               <View style={styles.planHeaderRight}>
-                <View style={styles.planBadge}>
-                  <Text style={styles.planBadgeText}>2 of 3</Text>
-                </View>
+                {planItems.length > 0 && (
+                  <View style={styles.planBadge}>
+                    <Text style={styles.planBadgeText}>
+                      {doneCount} of {planItems.length}
+                    </Text>
+                  </View>
+                )}
                 <PressableScale style={styles.planAddPill} onPress={() => router.push('/plan-sheet')}>
                   <Text style={styles.planAddText}>+ Add</Text>
                 </PressableScale>
               </View>
             </View>
-            <View style={styles.planRow}>
-              <View style={styles.planCheckDone}>
-                <CheckIcon size={scale(12)} color="#fff" />
-              </View>
-              <Text style={styles.planRowTextDone}>Revise Kinematics notes</Text>
-            </View>
-            <View style={styles.planRow}>
-              <View style={styles.planCheckDone}>
-                <CheckIcon size={scale(12)} color="#fff" />
-              </View>
-              <Text style={styles.planRowTextDone}>10 PYQs on projectile motion</Text>
-            </View>
-            <View style={[styles.planRow, styles.planRowLast]}>
-              <View style={styles.planCheckOpen} />
-              <Text style={styles.planRowText}>
-                Mock test on your <Text style={styles.planRowAccent}>weak spot</Text>
+            {planItems.length === 0 ? (
+              <Text style={styles.planEmptyText}>
+                Nothing planned yet — tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
+                today&apos;s goals.
               </Text>
-            </View>
+            ) : (
+              planItems.map((item, index) => (
+                <PressableScale
+                  key={item.id}
+                  style={[styles.planRow, index === planItems.length - 1 && styles.planRowLast]}
+                  onPress={() => togglePlanItem(item.id)}>
+                  {item.done ? (
+                    <View style={styles.planCheckDone}>
+                      <CheckIcon size={scale(12)} color="#fff" />
+                    </View>
+                  ) : (
+                    <View style={styles.planCheckOpen} />
+                  )}
+                  <Text style={item.done ? styles.planRowTextDone : styles.planRowText}>
+                    {item.text}
+                  </Text>
+                </PressableScale>
+              ))
+            )}
           </View>
 
           <PressableScale
@@ -596,6 +633,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     planRowAccent: {
       fontFamily: 'Kalam_700Bold',
       color: colors.red,
+    },
+    planEmptyText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13.5),
+      lineHeight: scale(19.5),
+      color: colors.slate,
+      paddingVertical: verticalScale(11),
+    },
+    planEmptyAccent: {
+      fontFamily: 'AnekLatin_700Bold',
+      color: colors.ink,
     },
     doubtCard: {
       position: 'relative',

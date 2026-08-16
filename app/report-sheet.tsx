@@ -1,18 +1,19 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { reportDoubt } from '@/lib/doubts';
 
 const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 
 export default function ReportSheetScreen() {
-  const params = useLocalSearchParams<{ context?: string; quote?: string }>();
+  const params = useLocalSearchParams<{ context?: string; quote?: string; doubtId?: string }>();
   const context = params.context ?? 'Rotational Motion';
   const quote =
     params.quote ??
@@ -20,6 +21,29 @@ export default function ReportSheetScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [selectedReason, setSelectedReason] = useState('Wrong answer');
+  const [notes, setNotes] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  // This screen is reused from snap-solved.tsx and doubt-detail.tsx, both of
+  // which always pass a real doubtId — live-classroom.tsx has its own
+  // separate, in-file report drawer for session mistakes, not this screen.
+  const canSubmit = !!params.doubtId && !sending;
+
+  async function sendReport() {
+    if (!params.doubtId || sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const comment = [selectedReason, notes.trim()].filter(Boolean).join(' — ');
+      await reportDoubt(params.doubtId, comment || undefined);
+      router.back();
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Could not send that report — try again.');
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <View style={styles.root}>
@@ -63,24 +87,28 @@ export default function ReportSheetScreen() {
             })}
           </View>
 
-          <Pressable style={styles.screenshotBox}>
-            <ScreenshotIcon size={scale(14)} />
-            <Text style={styles.screenshotText}>
-              Attach a screenshot <Text style={styles.screenshotOptional}>optional</Text>
-            </Text>
-          </Pressable>
-
           <TextInput
             style={styles.notesInput}
+            value={notes}
+            onChangeText={setNotes}
             placeholder="Anything else Drona's team should know? (optional)"
             placeholderTextColor={colors.faint}
             multiline
           />
 
+          {sendError && <Text style={styles.sendErrorText}>{sendError}</Text>}
+
           <View style={styles.footerRow}>
             <Text style={styles.footerHint}>Reporting won&apos;t interrupt your class.</Text>
-            <Pressable style={styles.sendButton} onPress={() => router.back()}>
-              <Text style={styles.sendButtonText}>Send report</Text>
+            <Pressable
+              style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
+              disabled={!canSubmit}
+              onPress={sendReport}>
+              {sending ? (
+                <ActivityIndicator color={colors.paper} size="small" />
+              ) : (
+                <Text style={styles.sendButtonText}>Send report</Text>
+              )}
             </Pressable>
           </View>
 
@@ -98,28 +126,6 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
         d="M5 4c4.2-2 8.8 2 14 0v10c-5.2 2-9.8-2-14 0"
         stroke={color}
         strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function ScreenshotIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M3 4h18v16H3z"
-        stroke={colors.slate}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={9} cy={10} r={1.6} stroke={colors.slate} strokeWidth={1.8} />
-      <Path
-        d="m21 16-4.5-4.5L7 21"
-        stroke={colors.slate}
-        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -270,30 +276,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_700Bold',
       color: colors.paper,
     },
-    screenshotBox: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      paddingVertical: verticalScale(13),
-      borderRadius: scale(14),
-      borderWidth: scale(1.6),
-      borderColor: 'rgba(28,26,22,.22)',
-      borderStyle: 'dashed',
-      backgroundColor: '#fff',
-      marginTop: verticalScale(12),
-    },
-    screenshotText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(13),
-      color: colors.slate,
-    },
-    screenshotOptional: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
     notesInput: {
       backgroundColor: '#fff',
       borderWidth: scale(1.4),
@@ -301,12 +283,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(14),
       paddingVertical: verticalScale(12),
       paddingHorizontal: scale(14),
-      marginTop: verticalScale(10),
+      marginTop: verticalScale(14),
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
       color: colors.ink,
       minHeight: verticalScale(44),
       textAlignVertical: 'top',
+    },
+    sendErrorText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(12),
+      color: colors.red,
+      marginTop: verticalScale(8),
     },
     footerRow: {
       flexDirection: 'row',
@@ -334,6 +322,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowOpacity: 0.28,
       shadowRadius: scale(9),
       elevation: 4,
+    },
+    sendButtonDisabled: {
+      opacity: 0.5,
     },
     sendButtonText: {
       fontFamily: 'AnekLatin_700Bold',

@@ -38,6 +38,12 @@ import Svg, {
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import {
+  getLanguagePreference,
+  getTeacherPreference,
+  setLanguagePreference,
+  setTeacherPreference,
+} from '@/lib/preferences';
 
 // Handoff tokens with no equivalent in constants/brand.js. The near-identical
 // greys (#5F5A50 / #8C867A) deliberately use the app's own slate/faint instead
@@ -110,6 +116,28 @@ export default function ProfileScreen() {
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [language, setLanguage] = useState<LanguageId>('hinglish');
 
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getTeacherPreference(), getLanguagePreference()]).then(([t, l]) => {
+      if (cancelled) return;
+      setTeacher(t);
+      setLanguage(l);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const chooseTeacher = (id: TeacherId) => {
+    setTeacher(id);
+    setTeacherPreference(id);
+  };
+
+  const chooseLanguage = (id: LanguageId) => {
+    setLanguage(id);
+    setLanguagePreference(id);
+  };
+
   const teacherName = TEACHERS.find((t) => t.id === teacher)?.name ?? 'Drona';
 
   return (
@@ -149,7 +177,7 @@ export default function ProfileScreen() {
                     <Pressable
                       key={t.id}
                       style={styles.teacherRowIdle}
-                      onPress={() => setTeacher(t.id)}>
+                      onPress={() => chooseTeacher(t.id)}>
                       <View style={styles.flex1}>
                         <Text style={styles.teacherNameIdle}>{t.name}</Text>
                         <Text style={styles.teacherTraitIdle}>{t.trait}</Text>
@@ -161,7 +189,7 @@ export default function ProfileScreen() {
                 return (
                   // Remounting on change is what replays `bloom` and `chipIn`,
                   // exactly as the prototype does.
-                  <Pressable key={`${t.id}-selected`} onPress={() => setTeacher(t.id)}>
+                  <Pressable key={`${t.id}-selected`} onPress={() => chooseTeacher(t.id)}>
                     <View style={styles.ringOuter}>
                       <RingSweep radius={scale(20)} />
                       <BloomFace style={styles.teacherFace} direction="left">
@@ -191,7 +219,7 @@ export default function ProfileScreen() {
                     <Pressable
                       key={l.id}
                       style={styles.langPillIdle}
-                      onPress={() => setLanguage(l.id)}>
+                      onPress={() => chooseLanguage(l.id)}>
                       <Text style={styles.langLabelIdle}>{l.label}</Text>
                     </Pressable>
                   );
@@ -200,7 +228,7 @@ export default function ProfileScreen() {
                   <Pressable
                     key={`${l.id}-selected`}
                     style={styles.flex1}
-                    onPress={() => setLanguage(l.id)}>
+                    onPress={() => chooseLanguage(l.id)}>
                     <View style={styles.langRingOuter}>
                       <RingSweep radius={scale(14)} />
                       <BloomFace style={styles.langFace} direction="bottom">

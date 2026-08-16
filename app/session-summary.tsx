@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -10,16 +10,68 @@ import { ProtractorMark } from '@/components/protractor-mark';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { saveNote } from '@/lib/notes';
 
-const COVERED = [
-  'torque = r F sin θ, direction by right hand',
-  'far from hinge, perpendicular push wins',
-  'hinged rod: τ depends on where you push',
-];
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function SessionSummaryScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+
+  const params = useLocalSearchParams<{
+    sessionId?: string;
+    chapterTitle?: string;
+    summaryPoints?: string;
+    mistakesCount?: string;
+    questionsAnswered?: string;
+    durationMinutes?: string;
+  }>();
+
+  const chapterTitle = params.chapterTitle || 'this class';
+  const durationMinutes = Number(params.durationMinutes) || 0;
+  const questionsAnswered = Number(params.questionsAnswered) || 0;
+  const mistakesCount = Number(params.mistakesCount) || 0;
+  const correctCount = Math.max(0, questionsAnswered - mistakesCount);
+  const covered = useMemo(() => {
+    if (!params.summaryPoints) return [];
+    try {
+      const parsed = JSON.parse(params.summaryPoints);
+      return Array.isArray(parsed) ? parsed.filter((p): p is string => typeof p === 'string') : [];
+    } catch {
+      return [];
+    }
+  }, [params.summaryPoints]);
+
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const savedNoteId = useRef<string | null>(null);
+
+  const handleSave = async () => {
+    if (!params.sessionId || saveState === 'saving') return;
+    if (saveState === 'saved') {
+      if (savedNoteId.current) router.push({ pathname: '/note-detail', params: { id: savedNoteId.current } });
+      return;
+    }
+    setSaveState('saving');
+    setSaveError(null);
+    try {
+      const note = await saveNote(params.sessionId);
+      savedNoteId.current = note.id;
+      setSaveState('saved');
+    } catch (err) {
+      setSaveState('error');
+      setSaveError(err instanceof Error ? err.message : 'Could not save this class.');
+    }
+  };
+
+  const saveLabel =
+    saveState === 'saving'
+      ? 'Saving…'
+      : saveState === 'saved'
+        ? 'Saved — view in notes'
+        : saveState === 'error'
+          ? 'Couldn’t save — tap to retry'
+          : 'Save board to notes';
 
   return (
     <View style={styles.screen}>
@@ -42,7 +94,7 @@ export default function SessionSummaryScreen() {
             </View>
             <View style={styles.chapterTextBlock}>
               <Text style={styles.chapterOverline}>Chapter</Text>
-              <Text style={styles.chapterTitle}>Rotational Motion — torque</Text>
+              <Text style={styles.chapterTitle} numberOfLines={2}>{chapterTitle}</Text>
               <Text style={styles.chapterMeta}>taught by Drona, on the board</Text>
             </View>
           </View>
@@ -50,13 +102,17 @@ export default function SessionSummaryScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statOverline}>Time</Text>
-              <Text style={styles.statValue}>24 min</Text>
+              <Text style={styles.statValue}>{durationMinutes} min</Text>
               <Text style={styles.statCaption}>of live class</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statOverline}>Answered</Text>
-              <Text style={styles.statValue}>3 / 4</Text>
-              <Text style={styles.statCaptionGreen}>sharp today</Text>
+              <Text style={styles.statValue}>{questionsAnswered}</Text>
+              {questionsAnswered > 0 ? (
+                <Text style={styles.statCaptionGreen}>{correctCount} correct</Text>
+              ) : (
+                <Text style={styles.statCaption}>no questions this time</Text>
+              )}
             </View>
           </View>
 
@@ -69,14 +125,20 @@ export default function SessionSummaryScreen() {
               <Text style={styles.coveredBadgeText}>WHAT WE COVERED</Text>
             </View>
             <View style={styles.coveredList}>
-              {COVERED.map((line) => (
-                <View key={line} style={styles.coveredRow}>
-                  <View style={styles.coveredCheck}>
-                    <CheckIcon size={scale(10)} color="#157A45" />
+              {covered.length > 0 ? (
+                covered.map((line) => (
+                  <View key={line} style={styles.coveredRow}>
+                    <View style={styles.coveredCheck}>
+                      <CheckIcon size={scale(10)} color="#157A45" />
+                    </View>
+                    <Text style={styles.coveredText}>{line}</Text>
                   </View>
-                  <Text style={styles.coveredText}>{line}</Text>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={styles.coveredText}>
+                  Drona didn&apos;t leave a summary for this class.
+                </Text>
+              )}
             </View>
           </View>
 
@@ -84,12 +146,27 @@ export default function SessionSummaryScreen() {
             The full board is backed up in <Text style={styles.backupNoteBold}>Recent sessions</Text> for
             7 days — save it as a note to keep it forever.
           </Text>
+          {saveState === 'error' && saveError && (
+            <Text style={styles.saveErrorText}>{saveError}</Text>
+          )}
         </View>
 
         <View style={styles.footer}>
-          <Pressable style={styles.ctaButton}>
-            <BookmarkIcon size={scale(15)} />
-            <Text style={styles.ctaButtonText}>Save board to notes</Text>
+          <Pressable
+            style={[
+              styles.ctaButton,
+              (!params.sessionId || saveState === 'saving') && styles.ctaButtonDisabled,
+            ]}
+            disabled={!params.sessionId || saveState === 'saving'}
+            onPress={handleSave}>
+            {saveState === 'saved' ? (
+              <CheckIcon size={scale(15)} color={colors.paper} />
+            ) : (
+              <BookmarkIcon size={scale(15)} />
+            )}
+            <Text style={styles.ctaButtonText}>
+              {params.sessionId ? saveLabel : 'Nothing to save from this class'}
+            </Text>
           </Pressable>
           <Pressable onPress={() => router.dismissTo('/')}>
             <Text style={styles.dashboardLink}>Go to dashboard</Text>
@@ -344,6 +421,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     backupNoteBold: {
       fontFamily: 'AnekLatin_700Bold',
     },
+    saveErrorText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(12),
+      color: colors.red,
+      marginTop: verticalScale(8),
+    },
     footer: {
       flexShrink: 0,
       paddingHorizontal: scale(24),
@@ -364,6 +447,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowOpacity: 0.3,
       shadowRadius: scale(10),
       elevation: 6,
+    },
+    ctaButtonDisabled: {
+      opacity: 0.5,
     },
     ctaButtonText: {
       fontFamily: 'AnekLatin_600SemiBold',

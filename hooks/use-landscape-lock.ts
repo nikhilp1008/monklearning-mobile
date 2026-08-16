@@ -11,25 +11,46 @@ import { Platform } from 'react-native';
 // browser window and produces a broken layout instead of a helpful one.
 //
 // Landscape screens hand off to each other via router.replace() (entering
-// classroom -> live classroom, entering lesson -> lesson player), so two
-// landscape screens are briefly mounted at once during the transition. A
-// naive "unlock on unmount" here fires the outgoing screen's portrait-restore
-// right as the incoming screen locks landscape, and the two calls race —
-// visible on-device as the screen flipping between orientations 2-3 times
-// before settling. A module-level ref count fixes this: portrait is only
-// restored when the LAST landscape screen in the chain unmounts, not every
-// intermediate hop.
+// classroom -> live classroom, live classroom -> session summary is a hand-
+// off to a PORTRAIT screen, entering lesson -> lesson player), so the
+// outgoing screen's unmount and the incoming screen's mount happen right on
+// top of each other. A ref count alone isn't enough to fix this: it assumes
+// the incoming screen's mount effect always fires *before* the outgoing
+// screen's cleanup, but React doesn't guarantee that ordering across two
+// components swapped in the same navigation transition — when cleanup runs
+// first, the count genuinely hits 0 for a moment and the portrait restore
+// fires, immediately followed by the next screen's landscape lock. That's
+// the on-device symptom: landscape -> portrait -> landscape within about a
+// second, confirmed still happening even with the ref count in place.
+//
+// Debouncing the restore fixes it regardless of ordering: dropping to 0
+// schedules a portrait restore a beat later instead of firing immediately,
+// and the very next landscape screen's mount (whichever order it lands in)
+// cancels that pending restore before it ever runs. Only a *genuine* exit
+// from every landscape screen — nothing new mounting to cancel it — lets
+// the restore actually fire.
 let landscapeLockCount = 0;
+let pendingRestore: ReturnType<typeof setTimeout> | null = null;
+const RESTORE_GRACE_MS = 120;
 
 export function useLandscapeLock() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     landscapeLockCount += 1;
+    if (pendingRestore) {
+      clearTimeout(pendingRestore);
+      pendingRestore = null;
+    }
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
     return () => {
       landscapeLockCount -= 1;
       if (landscapeLockCount === 0) {
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+        pendingRestore = setTimeout(() => {
+          pendingRestore = null;
+          if (landscapeLockCount === 0) {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+          }
+        }, RESTORE_GRACE_MS);
       }
     };
   }, []);

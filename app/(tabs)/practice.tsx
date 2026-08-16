@@ -1,13 +1,23 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
+import { MathText } from '@/components/math-text';
 import { PracticeTabsHeader } from '@/components/practice-tabs-header';
 import { RuledPaper } from '@/components/ruled-paper';
+import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { AnswerResult, NextQuestion, formatSolution, getNextQuestion, submitAnswer } from '@/lib/practice';
@@ -34,11 +44,6 @@ const UNLOCK_ITEMS: UnlockItem[] = [
   { title: 'Thermodynamics', status: 'building', action: 'Practise' },
 ];
 
-// The pool can hand back a numerical-answer question; retry a few times for
-// one the current MCQ-first UI can render cleanly before falling back to
-// rendering the numerical question with a plain value input.
-const MAX_FETCH_ATTEMPTS = 5;
-
 export default function PracticeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -55,7 +60,6 @@ export default function PracticeScreen() {
   const [numericInput, setNumericInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
-  const [sessionStats, setSessionStats] = useState({ attempted: 0, correct: 0 });
 
   const revealed = answerResult !== null;
 
@@ -84,23 +88,22 @@ export default function PracticeScreen() {
     setAnswerResult(null);
 
     try {
-      let next: NextQuestion | null = null;
-      for (let attempt = 0; attempt < MAX_FETCH_ATTEMPTS; attempt += 1) {
-        // /practice/next's live PracticeNextRequest schema (confirmed via
-        // GET /openapi.json) only accepts exam/class_level/subject — no
-        // chapter/topic field exists server-side yet, so `focus` can't be
-        // sent along here. It still drives this effect's re-fetch and the
-        // chip label below; wiring the request itself is a follow-up once
-        // the backend adds chapter-scoping.
-        const result = await getNextQuestion({ subject: SUBJECT_QUERY[activeSubject] });
-        if ('exhausted' in result) {
-          setPoolMessage(result.message);
-          break;
-        }
-        next = result;
-        if (result.question_type !== 'numerical') break; // prefer an MCQ for this UI
+      // /practice/next's live PracticeNextRequest schema (confirmed via
+      // GET /openapi.json) only accepts exam/class_level/subject — no
+      // chapter/topic field exists server-side yet, so `focus` can't be
+      // sent along here. It still drives this effect's re-fetch and the
+      // chip label below; wiring the request itself is a follow-up once
+      // the backend adds chapter-scoping. A single fetch, not a
+      // retry-until-MCQ loop — the numerical UI below renders those
+      // questions natively, and chaining extra round-trips just to avoid
+      // them was adding real, needless latency to every question load.
+      const result = await getNextQuestion({ subject: SUBJECT_QUERY[activeSubject] });
+      if ('exhausted' in result) {
+        setPoolMessage(result.message);
+        setQuestion(null);
+      } else {
+        setQuestion(result);
       }
-      setQuestion(next);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
     } finally {
@@ -115,10 +118,6 @@ export default function PracticeScreen() {
     try {
       const result = await submitAnswer({ question_id: question.question_id, chosen_option: key });
       setAnswerResult(result);
-      setSessionStats((s) => ({
-        attempted: s.attempted + 1,
-        correct: s.correct + (result.is_correct ? 1 : 0),
-      }));
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
     } finally {
@@ -127,18 +126,15 @@ export default function PracticeScreen() {
   }
 
   async function submitNumeric() {
-    if (!question || submitting || !numericInput.trim()) return;
+    const value = parseFloat(numericInput);
+    if (!question || submitting || Number.isNaN(value)) return;
     setSubmitting(true);
     try {
       const result = await submitAnswer({
         question_id: question.question_id,
-        chosen_value: parseFloat(numericInput),
+        chosen_value: value,
       });
       setAnswerResult(result);
-      setSessionStats((s) => ({
-        attempted: s.attempted + 1,
-        correct: s.correct + (result.is_correct ? 1 : 0),
-      }));
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
     } finally {
@@ -166,7 +162,6 @@ export default function PracticeScreen() {
             activeSegment={activeSegment}
             onPressUnlimited={() => setActiveSegment('unlimited')}
             onPressMock={() => setActiveSegment('mock')}
-            questionCounter={activeSegment === 'unlimited' ? 'Unlimited' : undefined}
           />
 
           {activeSegment === 'mock' ? (
@@ -253,25 +248,16 @@ export default function PracticeScreen() {
           ) : (
             <>
           <View style={styles.filterRow}>
-            <View style={styles.subjectTrack}>
-              {SUBJECTS.map((subject) => (
-                <Pressable key={subject} onPress={() => setActiveSubject(subject)}>
-                  <View
-                    style={[
-                      styles.subjectPill,
-                      activeSubject === subject && styles.subjectPillActive,
-                    ]}>
-                    <Text
-                      style={[
-                        styles.subjectPillText,
-                        activeSubject === subject && styles.subjectPillTextActive,
-                      ]}>
-                      {subject}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
+            <SlidingToggle
+              options={SUBJECTS}
+              value={activeSubject}
+              onChange={setActiveSubject}
+              trackStyle={styles.subjectTrack}
+              thumbStyle={styles.subjectThumb}
+              pillStyle={styles.subjectPill}
+              textStyle={styles.subjectPillText}
+              textActiveStyle={styles.subjectPillTextActive}
+            />
             <Pressable
               style={styles.chapterChip}
               onPress={() =>
@@ -308,7 +294,13 @@ export default function PracticeScreen() {
             <Text style={styles.questionOverline}>
               {[question.concept, question.chapter_name].filter(Boolean).join(' · ') || 'Practice'}
             </Text>
-            <Text style={styles.questionBody}>{question.question_text}</Text>
+            <MathText
+              text={question.question_text ?? ''}
+              fontSize={scale(15)}
+              lineHeight={scale(22.5)}
+              color={colors.ink}
+              style={styles.questionBody}
+            />
           </View>
 
           {question.question_type === 'numerical' ? (
@@ -325,7 +317,7 @@ export default function PracticeScreen() {
               {!revealed && (
                 <Pressable
                   style={[styles.revealButton, !numericInput.trim() && styles.revealButtonDisabled]}
-                  disabled={!numericInput.trim() || submitting}
+                  disabled={!numericInput.trim() || submitting || loading}
                   onPress={submitNumeric}>
                   <Text style={styles.revealButtonText}>Submit</Text>
                 </Pressable>
@@ -340,7 +332,7 @@ export default function PracticeScreen() {
               return (
                 <Pressable
                   key={key}
-                  disabled={revealed || submitting}
+                  disabled={revealed || submitting || loading}
                   onPress={() => selectOption(key)}
                   style={[
                     styles.optionRow,
@@ -362,14 +354,14 @@ export default function PracticeScreen() {
                       {key.toUpperCase()}
                     </Text>
                   </View>
-                  <Text
-                    style={[
-                      styles.optionText,
-                      isYourWrongPick && styles.optionTextWrong,
-                      isCorrectReveal && styles.optionTextCorrect,
-                    ]}>
-                    {text}
-                  </Text>
+                  <MathText
+                    text={text}
+                    fontSize={scale(14)}
+                    lineHeight={scale(19.6)}
+                    color={colors.ink}
+                    fontWeight={isYourWrongPick || isCorrectReveal ? '700' : '400'}
+                    style={styles.optionText}
+                  />
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
                   {isCorrectReveal && <Text style={styles.optionTagCorrect}>CORRECT</Text>}
                 </Pressable>
@@ -412,13 +404,25 @@ export default function PracticeScreen() {
           ) : (
             <>
               <View style={styles.explainCard}>
-                <Text style={styles.explainOverline}>
-                  {answerResult?.is_correct ? 'Nice — correct' : 'Solution'}
-                </Text>
-                <Text style={styles.explainBody}>
-                  {(answerResult && formatSolution(answerResult.solution)) ??
-                    'No worked solution is available for this question yet.'}
-                </Text>
+                <View style={styles.explainRuledClip}>
+                  <RuledPaper step={verticalScale(27)} color="rgba(28,26,22,.055)" count={16} />
+                </View>
+                <View style={styles.explainRule} />
+                <View style={styles.explainBadge}>
+                  <Text style={styles.explainBadgeText}>
+                    {answerResult?.is_correct ? 'NICE — CORRECT' : 'SOLUTION'}
+                  </Text>
+                </View>
+                <MathText
+                  text={
+                    (answerResult && formatSolution(answerResult.solution)) ??
+                    'No worked solution is available for this question yet.'
+                  }
+                  fontSize={scale(13)}
+                  lineHeight={scale(20.15)}
+                  color={colors.slate}
+                  style={styles.explainBody}
+                />
                 <Pressable
                   style={styles.deeperButton}
                   onPress={() =>
@@ -431,33 +435,9 @@ export default function PracticeScreen() {
                 </Pressable>
               </View>
 
-              <View style={styles.progressRow}>
-                <View style={styles.progressCard}>
-                  <View style={styles.progressTopRow}>
-                    <Text style={styles.progressLabel}>This session</Text>
-                    <Text style={styles.progressStats}>
-                      <Text style={styles.progressStatsBold}>{sessionStats.attempted}</Text> attempted ·{' '}
-                      <Text style={styles.progressStatsCorrect}>{sessionStats.correct}</Text> correct
-                    </Text>
-                  </View>
-                  <View style={styles.progressTrack}>
-                    <LinearGradient
-                      colors={['#3FB877', '#1C9B57']}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 1, y: 0.5 }}
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${sessionStats.attempted ? Math.round((sessionStats.correct / sessionStats.attempted) * 100) : 0}%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                </View>
-                <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                  <Text style={styles.nextButtonText}>Next →</Text>
-                </Pressable>
-              </View>
+              <Pressable style={styles.nextButton} onPress={loadQuestion}>
+                <Text style={styles.nextButtonText}>Next →</Text>
+              </Pressable>
             </>
           )}
             </>
@@ -512,37 +492,49 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
 // backend latency reads as "content incoming" rather than a bare spinner.
 // Opacity-only pulse (no measured layout) per this codebase's past
 // Reanimated width/layout-animation bugs on real devices.
-function QuestionSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
+// Each bar pulses on its own delay, cascading top-to-bottom instead of
+// blinking in lockstep — reads as considerably more "alive" than one flat
+// synchronized pulse. Still opacity-only, no measured layout involved, per
+// this codebase's past width/layout-animation bugs on real devices.
+function SkeletonPulse({ delay, style }: { delay: number; style: StyleProp<ViewStyle> }) {
   const opacity = useSharedValue(1);
 
   useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.4, { duration: 700, easing: Easing.ease }),
-        withTiming(1, { duration: 700, easing: Easing.ease }),
-      ),
-      -1,
+    opacity.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(0.35, { duration: 650, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 650, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+      )
     );
-  }, [opacity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[style, animatedStyle]} />;
+}
 
+function QuestionSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
-    <Animated.View style={animatedStyle}>
+    <>
       <View style={styles.questionCard}>
-        <View style={[styles.skeletonBar, styles.skeletonOverline]} />
-        <View style={[styles.skeletonBar, styles.skeletonBodyLine]} />
-        <View style={[styles.skeletonBar, styles.skeletonBodyLineShort]} />
+        <SkeletonPulse delay={0} style={[styles.skeletonBar, styles.skeletonOverline]} />
+        <SkeletonPulse delay={60} style={[styles.skeletonBar, styles.skeletonBodyLine]} />
+        <SkeletonPulse delay={120} style={[styles.skeletonBar, styles.skeletonBodyLineFull]} />
+        <SkeletonPulse delay={180} style={[styles.skeletonBar, styles.skeletonBodyLineShort]} />
       </View>
       <View style={styles.optionsList}>
-        {[0, 1, 2, 3].map((i) => (
+        {[240, 300, 360, 420].map((delay, i) => (
           <View key={i} style={styles.optionRow}>
-            <View style={[styles.optionBadge, styles.skeletonBadge]} />
-            <View style={[styles.skeletonBar, styles.skeletonOptionLine]} />
+            <SkeletonPulse delay={delay} style={[styles.optionBadge, styles.skeletonBadge]} />
+            <SkeletonPulse delay={delay} style={[styles.skeletonBar, styles.skeletonOptionLine]} />
           </View>
         ))}
       </View>
-    </Animated.View>
+    </>
   );
 }
 
@@ -550,7 +542,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -563,51 +555,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(20),
       paddingBottom: verticalScale(130),
     },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    heading: {
-      fontFamily: 'AnekLatin_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      color: colors.ink,
-    },
-    questionCounter: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(16),
-      color: colors.red,
-    },
-    segmentRow: {
-      flexDirection: 'row',
-      gap: scale(20),
-      borderBottomWidth: 1,
-      borderBottomColor: colors.hairline,
-      paddingHorizontal: scale(2),
-      marginTop: verticalScale(12),
-    },
-    segmentActive: {
-      paddingVertical: verticalScale(8),
-      borderBottomWidth: scale(2),
-      borderBottomColor: colors.ink,
-    },
-    segmentActiveText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    segmentInactive: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      paddingVertical: verticalScale(8),
-    },
-    segmentInactiveText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(14),
-      color: colors.slate,
-    },
     filterRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -615,8 +562,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(14),
     },
     subjectTrack: {
-      flexDirection: 'row',
-      gap: scale(3),
       padding: scale(3),
       backgroundColor: 'rgba(28,26,22,.055)',
       borderRadius: scale(99),
@@ -626,8 +571,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(12),
       borderRadius: scale(99),
     },
-    subjectPillActive: {
+    subjectThumb: {
       backgroundColor: '#fff',
+      borderRadius: scale(99),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(2) },
       shadowOpacity: 0.12,
@@ -858,6 +804,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(14),
       marginTop: verticalScale(10),
     },
+    skeletonBodyLineFull: {
+      width: '85%',
+      height: verticalScale(14),
+      marginTop: verticalScale(8),
+    },
     skeletonBodyLineShort: {
       width: '68%',
       height: verticalScale(14),
@@ -905,10 +856,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: '#C53A2B',
     },
     questionBody: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
-      color: colors.ink,
       marginTop: verticalScale(5),
     },
     optionsList: {
@@ -986,15 +933,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     optionText: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    optionTextWrong: {
-      fontFamily: 'AnekLatin_600SemiBold',
-    },
-    optionTextCorrect: {
-      fontFamily: 'AnekLatin_700Bold',
     },
     optionTagWrong: {
       fontFamily: 'AnekLatin_800ExtraBold',
@@ -1096,40 +1034,56 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.paper,
     },
     explainCard: {
-      backgroundColor: '#16130E',
+      position: 'relative',
+      backgroundColor: '#fff',
+      borderWidth: scale(1.5),
+      borderColor: colors.ink,
       borderRadius: scale(16),
-      paddingVertical: verticalScale(16),
-      paddingHorizontal: scale(18),
-      marginTop: verticalScale(12),
-      shadowColor: '#16130E',
+      paddingTop: verticalScale(22),
+      paddingRight: scale(16),
+      paddingBottom: verticalScale(16),
+      paddingLeft: scale(18),
+      marginTop: verticalScale(16),
+      overflow: 'visible',
+      shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.35,
-      shadowRadius: scale(11),
-      elevation: 5,
+      shadowOpacity: 0.1,
+      shadowRadius: scale(10),
+      elevation: 3,
     },
-    explainOverline: {
+    explainRuledClip: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: scale(14.5),
+      overflow: 'hidden',
+    },
+    explainRule: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: scale(24),
+      width: scale(1.4),
+      backgroundColor: 'rgba(221,68,51,.35)',
+    },
+    explainBadge: {
+      position: 'absolute',
+      top: verticalScale(-10),
+      left: scale(14),
+      backgroundColor: colors.marigold,
+      borderWidth: scale(1.5),
+      borderColor: colors.ink,
+      borderRadius: scale(6),
+      paddingVertical: verticalScale(2),
+      paddingHorizontal: scale(8),
+    },
+    explainBadgeText: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
-      textTransform: 'uppercase',
-      color: '#F5CB60',
+      fontSize: scale(9),
+      letterSpacing: scale(1.08),
+      color: colors.ink,
     },
     explainBody: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(20.15),
-      color: '#C7C1B3',
-      marginTop: verticalScale(7),
-    },
-    explainBodyBold: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: '#fff',
-    },
-    explainTagline: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(13),
-      color: '#F5CB60',
-      marginTop: verticalScale(8),
+      marginTop: verticalScale(4),
+      marginLeft: scale(16),
     },
     deeperButton: {
       alignSelf: 'flex-start',
@@ -1140,74 +1094,22 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: verticalScale(12),
+      marginLeft: scale(16),
     },
     deeperButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(12),
       color: '#241a08',
     },
-    progressRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      marginTop: verticalScale(12),
-    },
-    progressCard: {
-      flex: 1,
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(14),
-      paddingVertical: verticalScale(11),
-      paddingHorizontal: scale(14),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    progressTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    progressLabel: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    progressStats: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
-    progressStatsBold: {
-      fontFamily: 'AnekLatin_700Bold',
-    },
-    progressStatsCorrect: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: '#157A45',
-    },
-    progressTrack: {
-      height: verticalScale(6),
-      borderRadius: scale(99),
-      backgroundColor: '#EEE6D4',
-      overflow: 'hidden',
-      marginTop: verticalScale(7),
-    },
-    progressFill: {
-      height: '100%',
-      borderRadius: scale(99),
-      backgroundColor: '#1C9B57',
-    },
     nextButton: {
-      flexShrink: 0,
+      alignSelf: 'flex-end',
       height: verticalScale(46),
       paddingHorizontal: scale(22),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
+      marginTop: verticalScale(14),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(6) },
       shadowOpacity: 0.28,

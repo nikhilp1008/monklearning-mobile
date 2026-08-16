@@ -2,6 +2,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WashSelectRow } from '@/components/wash-select-row';
@@ -9,6 +18,13 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueChapter, getCatalogue } from '@/lib/drona';
 import { normalizePracticeSubject, usePracticeFocus } from '@/lib/practice-focus-context';
+
+// A flick counts as a dismiss even if the sheet barely moved — matches the
+// "stuck" complaint, where a quick swipe should feel responsive rather than
+// requiring a full quarter-height drag every time.
+const DISMISS_VELOCITY = 900;
+const DISMISS_DISTANCE_RATIO = 0.25;
+const DISMISS_ANIMATION_DURATION = 220;
 
 export default function PracticeFocusScreen() {
   const { scale, verticalScale } = useScale();
@@ -25,6 +41,39 @@ export default function PracticeFocusScreen() {
   const appliedChapterId = focus.mode === 'chapter' && focus.subject === subjectQuery ? focus.chapterId : null;
   const [pendingChapterId, setPendingChapterId] = useState<string | null>(appliedChapterId);
   const [playToken, setPlayToken] = useState(0);
+
+  const translateY = useSharedValue(0);
+  // Populated from the sheet's own onLayout — content (chapter count, error
+  // vs. loaded state) changes its rendered height, so a fixed constant would
+  // make the dismiss threshold wrong for most states. Falls back to a
+  // reasonable guess for the brief window before the first layout pass.
+  const sheetHeight = useSharedValue(verticalScale(420));
+
+  const closeSheet = () => router.back();
+
+  const dragGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateY.value = Math.max(0, event.translationY);
+    })
+    .onEnd((event) => {
+      const pastDistance = translateY.value > sheetHeight.value * DISMISS_DISTANCE_RATIO;
+      const flicked = event.velocityY > DISMISS_VELOCITY;
+      if (pastDistance || flicked) {
+        translateY.value = withTiming(
+          sheetHeight.value,
+          { duration: DISMISS_ANIMATION_DURATION, easing: Easing.in(Easing.cubic) },
+          (finished) => {
+            if (finished) runOnJS(closeSheet)();
+          }
+        );
+      } else {
+        translateY.value = withSpring(0, { damping: 22, stiffness: 280 });
+      }
+    });
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   useEffect(() => {
     let cancelled = false;
@@ -65,11 +114,31 @@ export default function PracticeFocusScreen() {
     <View style={styles.root}>
       <StatusBar style="dark" />
       <Pressable style={styles.scrim} onPress={() => router.back()} />
-      <View style={styles.sheet}>
+      <Animated.View
+        style={[styles.sheet, sheetAnimatedStyle]}
+        onLayout={(event) => {
+          sheetHeight.value = event.nativeEvent.layout.height;
+        }}>
         <SafeAreaView style={styles.flex} edges={['bottom']}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Practice focus</Text>
-          <Text style={styles.subtitle}>{subjectLabel} · questions follow whatever you pick</Text>
+          {/* Scoped to the handle + header only, not the whole sheet: the
+              chapter list below is its own ScrollView, and a pan gesture
+              covering that area too would fight its native vertical scroll
+              instead of cleanly handing off between drag-to-dismiss and
+              scroll-the-list. */}
+          <GestureDetector gesture={dragGesture}>
+            <View style={styles.dragArea}>
+              <View style={styles.handle} />
+              <Text style={styles.title}>Practice focus</Text>
+              {/* Says "coming soon", not "questions follow whatever you pick":
+                  /practice/next accepts no chapter parameter yet (confirmed
+                  against the live OpenAPI schema), so a picked chapter cannot
+                  change which question is served. Claiming otherwise is what
+                  made this read as broken on a real device — the student picks
+                  Rotational Motion, gets an unrelated question, and concludes
+                  the feature is bust. Honest copy until the backend lands it. */}
+              <Text style={styles.subtitle}>{subjectLabel} · chapter focus is coming soon</Text>
+            </View>
+          </GestureDetector>
 
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.modeList}>
@@ -137,7 +206,7 @@ export default function PracticeFocusScreen() {
             <Text style={styles.applyButtonText}>Apply focus</Text>
           </Pressable>
         </SafeAreaView>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -169,6 +238,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowOpacity: 0.25,
       shadowRadius: scale(20),
       elevation: 12,
+    },
+    dragArea: {
+      flexDirection: 'column',
     },
     handle: {
       width: scale(40),

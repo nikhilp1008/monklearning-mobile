@@ -1,86 +1,104 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { NoteContent } from '@/components/note-content';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { NoteDetail, getNote } from '@/lib/notes';
 
 export default function NoteDetailScreen() {
-  const params = useLocalSearchParams<{ title?: string; subject?: string; time?: string }>();
-  const title = params.title ?? "Ohm's law & drift velocity";
-  const subject = params.subject ?? 'Physics';
-  const time = params.time ?? 'saved 2 days ago';
+  const params = useLocalSearchParams<{
+    id?: string;
+    title?: string;
+    subject?: string;
+    chapter?: string;
+    time?: string;
+  }>();
 
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+
+  const [note, setNote] = useState<NoteDetail | null>(null);
+  const [loading, setLoading] = useState(!!params.id);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!params.id) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    getNote(params.id)
+      .then((n) => {
+        if (!cancelled) setNote(n);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Could not load this note.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
+  // Instant paint from list params, replaced once the real fetch resolves.
+  const title = note?.concept ?? note?.chapter ?? params.title ?? 'This note';
+  const subject = note?.subject ?? params.subject ?? '';
+  const chapter = note?.chapter ?? params.chapter ?? '';
+  const time = params.time ?? '';
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentInner}
+          showsVerticalScrollIndicator={false}>
           <View style={styles.headerRow}>
             <Pressable style={styles.backButton} onPress={() => router.back()}>
               <BackArrowIcon size={scale(15)} />
             </Pressable>
-            <Text style={styles.headerTitle}>{title}</Text>
+            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+              {title}
+            </Text>
           </View>
 
-          <View style={styles.tagRow}>
-            <View style={styles.subjectPill}>
-              <Text style={styles.subjectPillText}>{subject}</Text>
-            </View>
-            <View style={styles.chapterPill}>
-              <Text style={styles.chapterPillText}>Current Electricity</Text>
-            </View>
-            <Text style={styles.savedText}>{time}</Text>
+          <View style={styles.tagsRow}>
+            {!!subject && (
+              <View style={styles.subjectPill}>
+                <Text style={styles.subjectPillText}>{subject}</Text>
+              </View>
+            )}
+            {!!chapter && chapter !== title && (
+              <View style={styles.chapterPill}>
+                <Text style={styles.chapterPillText}>{chapter}</Text>
+              </View>
+            )}
+            {!!time && <Text style={styles.timeText}>{time}</Text>}
           </View>
 
-          <View style={styles.boardCard}>
-            <View style={styles.boardRuledClip}>
-              <RuledPaper step={verticalScale(28)} color="rgba(28,26,22,.055)" count={30} />
+          {loading ? (
+            <View style={styles.loadingBlock}>
+              <ActivityIndicator color={colors.ink} />
             </View>
-            <View style={styles.boardRule} />
-            <View style={styles.boardBadge}>
-              <Text style={styles.boardBadgeText}>YOUR SAVED BOARD</Text>
+          ) : loadError ? (
+            <View style={styles.loadingBlock}>
+              <Text style={styles.errorText}>{loadError}</Text>
             </View>
-
-            <View style={styles.boardContent}>
-              <Text style={styles.boardHeading}>current = charge marching together</Text>
-              <Text style={styles.bodyText}>
-                Free electrons drift slowly —{' '}
-                <Text style={styles.bodyTextBold}>mm per second</Text>
-                {' '}— but the field moves at light speed.
-              </Text>
-              <Text style={styles.formulaText}>I = n A v e</Text>
-              <Text style={styles.bodyText}>
-                n = carriers per volume, A = cross-section, v = drift velocity, e = charge.
-              </Text>
-              <Text style={styles.bodyText}>
-                Ohm&apos;s law is a special case: V = IR holds while{' '}
-                <Text style={styles.bodyTextBold}>R stays constant</Text> with temperature.
-              </Text>
-              <Text style={styles.boardTagline}>thin wire, same current → faster drift ✓</Text>
+          ) : note ? (
+            <View style={styles.noteCard}>
+              <RuledPaper step={verticalScale(26)} color="rgba(28,26,22,.045)" count={40} />
+              <NoteContent content={note.content} />
             </View>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          <Pressable
-            style={styles.ctaButton}
-            onPress={() =>
-              router.push({
-                pathname: '/entering-classroom',
-                params: { chapterTitle: title },
-              })
-            }>
-            <Text style={styles.ctaButtonText}>Talk to Drona about this →</Text>
-          </Pressable>
-        </View>
+          ) : null}
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -112,11 +130,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     content: {
       flex: 1,
       minHeight: 0,
+    },
+    contentInner: {
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(28),
     },
     headerRow: {
-      flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
@@ -132,15 +152,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    headerTitle: {
+    title: {
       flex: 1,
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(17),
       letterSpacing: scale(-0.17),
       color: colors.ink,
     },
-    tagRow: {
-      flexShrink: 0,
+    tagsRow: {
       flexDirection: 'row',
       alignItems: 'center',
       flexWrap: 'wrap',
@@ -172,116 +191,37 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(10),
       color: colors.slate,
     },
-    savedText: {
+    timeText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
-    boardCard: {
-      flex: 1,
-      minHeight: 0,
-      position: 'relative',
-      backgroundColor: '#fff',
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(16),
-      paddingTop: verticalScale(24),
-      paddingRight: scale(16),
-      paddingBottom: verticalScale(16),
-      paddingLeft: scale(40),
-      marginTop: verticalScale(16),
-      overflow: 'visible',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(7.3) },
-      shadowOpacity: 0.18,
-      shadowRadius: scale(16),
-      elevation: 4,
-    },
-    boardRuledClip: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: scale(14.5),
-      overflow: 'hidden',
-    },
-    boardRule: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      left: scale(26),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.35)',
-    },
-    boardBadge: {
-      position: 'absolute',
-      top: verticalScale(-11),
-      left: scale(14),
-      backgroundColor: colors.marigold,
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(6),
-      paddingVertical: verticalScale(2),
-      paddingHorizontal: scale(8),
-    },
-    boardBadgeText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
-      color: colors.ink,
-    },
-    boardContent: {
-      height: '100%',
-      overflow: 'hidden',
-    },
-    boardHeading: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(16),
-      color: colors.red,
-      marginBottom: verticalScale(12),
-      transform: [{ rotate: '-0.4deg' }],
-    },
-    bodyText: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(23.1),
-      color: colors.slate,
-      marginBottom: verticalScale(9),
-    },
-    bodyTextBold: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
-    },
-    formulaText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(15),
-      color: colors.ink,
-      marginBottom: verticalScale(9),
-    },
-    boardTagline: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14),
-      color: colors.success,
-    },
-    footer: {
-      flexShrink: 0,
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(12),
-      paddingHorizontal: scale(24),
-    },
-    ctaButton: {
-      flexDirection: 'row',
+    loadingBlock: {
+      paddingTop: verticalScale(50),
       alignItems: 'center',
       justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      height: verticalScale(50),
-      borderRadius: scale(99),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
     },
-    ctaButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
+    errorText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      color: colors.slate,
+      textAlign: 'center',
+      paddingHorizontal: scale(20),
+    },
+    noteCard: {
+      position: 'relative',
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.08)',
+      borderRadius: scale(16),
+      padding: scale(18),
+      marginTop: verticalScale(16),
+      overflow: 'hidden',
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
   });
 }

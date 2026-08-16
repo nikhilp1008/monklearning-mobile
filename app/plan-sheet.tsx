@@ -1,14 +1,14 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-
-const MAX_PLANS = 3;
+import { MAX_PLAN_ITEMS, PlanItem, getTodayPlan, newPlanId, saveTodayPlan } from '@/lib/plan';
 
 const SUGGESTIONS = [
   '20 min practice',
@@ -17,30 +17,32 @@ const SUGGESTIONS = [
   'One lesson with Drona',
 ];
 
-type PlanItem = { id: number; text: string };
-
 export default function PlanSheetScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [items, setItems] = useState<PlanItem[]>([
-    { id: 1, text: 'Revise Kinematics notes' },
-    { id: 2, text: '10 PYQs on projectile motion' },
-  ]);
+  const [items, setItems] = useState<PlanItem[]>([]);
   const [draft, setDraft] = useState('');
-  const nextId = useRef(3);
 
-  const hasSlot = items.length < MAX_PLANS;
-  const slotsLeft = MAX_PLANS - items.length;
+  useEffect(() => {
+    getTodayPlan().then(setItems);
+  }, []);
+
+  const hasSlot = items.length < MAX_PLAN_ITEMS;
+  const slotsLeft = MAX_PLAN_ITEMS - items.length;
 
   const addPlan = (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || items.length >= MAX_PLANS) return;
-    setItems((prev) => [...prev, { id: nextId.current++, text: trimmed }]);
+    if (!trimmed || items.length >= MAX_PLAN_ITEMS) return;
+    const next = [...items, { id: newPlanId(), text: trimmed, done: false }];
+    setItems(next);
+    saveTodayPlan(next);
   };
 
-  const removePlan = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  const removePlan = (id: string) => {
+    const next = items.filter((item) => item.id !== id);
+    setItems(next);
+    saveTodayPlan(next);
   };
 
   const submitDraft = () => {
@@ -48,6 +50,11 @@ export default function PlanSheetScreen() {
     addPlan(draft);
     setDraft('');
   };
+
+  const takenSuggestions = new Set(items.map((item) => item.text.toLowerCase()));
+  const availableSuggestions = SUGGESTIONS.filter(
+    (s) => !takenSuggestions.has(s.toLowerCase())
+  );
 
   return (
     <View style={styles.root}>
@@ -59,32 +66,36 @@ export default function PlanSheetScreen() {
 
           <View style={styles.headerRow}>
             <Text style={styles.title}>Today&apos;s plan</Text>
-            <Pressable style={styles.closeButton} onPress={() => router.back()}>
+            <PressableScale style={styles.closeButton} onPress={() => router.back()}>
               <Text style={styles.closeGlyph}>✕</Text>
-            </Pressable>
+            </PressableScale>
           </View>
 
           <Text style={styles.subtitle}>
-            Set up to <Text style={styles.subtitleBold}>3 plans</Text> for today.{' '}
+            Set up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.{' '}
             <Text style={styles.subtitleAccent}>
               {slotsLeft} slot{slotsLeft === 1 ? '' : 's'} left.
             </Text>
           </Text>
 
-          <View style={styles.planList}>
-            {items.map((item) => (
-              <View key={item.id} style={styles.planRow}>
-                <View style={styles.planDot} />
-                <Text style={styles.planText}>{item.text}</Text>
-                <Pressable
-                  style={styles.planRemove}
-                  hitSlop={8}
-                  onPress={() => removePlan(item.id)}>
-                  <Text style={styles.planRemoveGlyph}>✕</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
+          {items.length > 0 ? (
+            <View style={styles.planList}>
+              {items.map((item) => (
+                <View key={item.id} style={styles.planRow}>
+                  <View style={styles.planDot} />
+                  <Text style={styles.planText}>{item.text}</Text>
+                  <PressableScale
+                    style={styles.planRemove}
+                    hitSlop={8}
+                    onPress={() => removePlan(item.id)}>
+                    <Text style={styles.planRemoveGlyph}>✕</Text>
+                  </PressableScale>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>Nothing planned yet — add one below.</Text>
+          )}
 
           <View style={[styles.inputRow, !hasSlot && styles.rowDisabled]}>
             <TextInput
@@ -97,30 +108,34 @@ export default function PlanSheetScreen() {
               returnKeyType="done"
               onSubmitEditing={submitDraft}
             />
-            <Pressable
+            <PressableScale
               style={styles.submitButton}
               disabled={!hasSlot || !draft.trim()}
               onPress={submitDraft}>
               <ArrowRightIcon color={colors.paper} size={scale(15)} />
-            </Pressable>
+            </PressableScale>
           </View>
 
-          <Text style={styles.suggestOverline}>Or pick a suggestion</Text>
-          <View style={[styles.chipsRow, !hasSlot && styles.rowDisabled]}>
-            {SUGGESTIONS.map((suggestion) => (
-              <Pressable
-                key={suggestion}
-                style={styles.chip}
-                disabled={!hasSlot}
-                onPress={() => addPlan(suggestion)}>
-                <Text style={styles.chipText}>+ {suggestion}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {availableSuggestions.length > 0 && (
+            <>
+              <Text style={styles.suggestOverline}>Or pick a suggestion</Text>
+              <View style={[styles.chipsRow, !hasSlot && styles.rowDisabled]}>
+                {availableSuggestions.map((suggestion) => (
+                  <PressableScale
+                    key={suggestion}
+                    style={styles.chip}
+                    disabled={!hasSlot}
+                    onPress={() => addPlan(suggestion)}>
+                    <Text style={styles.chipText}>+ {suggestion}</Text>
+                  </PressableScale>
+                ))}
+              </View>
+            </>
+          )}
 
-          <Pressable style={styles.doneButton} onPress={() => router.back()}>
+          <PressableScale style={styles.doneButton} onPress={() => router.back()}>
             <Text style={styles.doneButtonText}>Done</Text>
-          </Pressable>
+          </PressableScale>
         </SafeAreaView>
       </View>
     </View>
@@ -144,7 +159,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: '#fff',
+      // The original design spec's every bottom sheet (this one, Chapter
+      // focus, Report) uses a warm #FCFAF4, not flat white — reuse the
+      // app's existing paper token rather than add a new one-off hex this
+      // close to it (a few RGB points, never seen side by side).
+      backgroundColor: colors.paper,
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
@@ -209,6 +228,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'column',
       gap: verticalScale(7),
       marginTop: verticalScale(12),
+    },
+    emptyText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      color: colors.faint,
+      marginTop: verticalScale(14),
     },
     planRow: {
       flexDirection: 'row',

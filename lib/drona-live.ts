@@ -65,7 +65,10 @@ export interface DronaSessionEnd {
 
 export function startDronaSession(params: {
   chapter_id?: string;
-  language?: 'hinglish' | string;
+  language?: 'hinglish' | 'english' | string;
+  /** 'male' -> "Drona", 'female' -> "Veda" — see app/drona/persona.py in the
+   *  backend repo, the single source of truth for this mapping. */
+  voice?: 'male' | 'female' | string;
 } = {}): Promise<DronaSessionStart> {
   return apiFetch('/drona/session/start', { method: 'POST', body: JSON.stringify(params) });
 }

@@ -117,7 +117,14 @@ export interface DoubtPhoto {
 
 /** Mirrors the API's own caps, so bad input is rejected before upload. */
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-export const MAX_QUESTIONS = 2;
+// The product target is 3 questions per photo (snap-solved.tsx shows up to
+// Q1/Q2/Q3). Nothing in this file enforces it — question count isn't known
+// until the backend has parsed the photo, so there's no client-side upload
+// gate for it — this constant is display-only today. If the backend ever
+// detects more than 3 in one photo, snap-solved.tsx still renders all of
+// them rather than silently hiding the extras; enforcing the cap for real
+// needs a backend-side change.
+export const MAX_QUESTIONS = 3;
 export const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 
 /** Returns a student-facing reason, or null when the photo is acceptable. */

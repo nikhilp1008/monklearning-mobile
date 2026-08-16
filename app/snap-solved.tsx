@@ -1,15 +1,18 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { CheckIcon } from '@/components/check-icon';
+import { MathText } from '@/components/math-text';
 import { RuledPaper } from '@/components/ruled-paper';
+import { SlidingToggle } from '@/components/sliding-toggle';
+import { SolutionExplain } from '@/components/solution-explain';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { Remedy, SnappedQuestion, clearPendingSnapResult, peekPendingSnapResult } from '@/lib/doubts';
+import { Remedy, clearPendingSnapResult, peekPendingSnapResult } from '@/lib/doubts';
 
 const REMEDY_COPY: Record<Remedy, string> = {
   retake: 'Try snapping it again — steadier light or a closer frame usually fixes this.',
@@ -17,15 +20,11 @@ const REMEDY_COPY: Record<Remedy, string> = {
   our_side: 'This one was on our end, not your photo. Give it another try in a moment.',
 };
 
-function questionWorking(q: SnappedQuestion): { steps: SnappedQuestion['steps']; fallback: string | null } {
-  if (q.steps && q.steps.length > 0) return { steps: q.steps, fallback: null };
-  return { steps: null, fallback: q.explanation ?? null };
-}
-
 export default function SnapSolvedScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [index, setIndex] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
 
   // Read once via a lazy initializer (safe under StrictMode double-invoke —
   // see clearPendingSnapResult's comment), then clear it so back-navigating
@@ -59,8 +58,13 @@ export default function SnapSolvedScreen() {
     .join(' · ');
   const hasMultiple = response.questions.length > 1;
   const displayText = question.stem ?? question.question_text ?? 'Could not read this question.';
-  const { steps, fallback } = questionWorking(question);
   const isMcq = !!question.options?.length && !!question.option_labels?.length;
+  const qLabels = response.questions.map((_, i) => `Q${i + 1}`);
+
+  const selectQuestion = (label: string) => {
+    setIndex(qLabels.indexOf(label));
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
 
   return (
     <View style={styles.screen}>
@@ -70,7 +74,7 @@ export default function SnapSolvedScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <BackArrowIcon size={scale(15)} />
           </Pressable>
-          <Text style={styles.headerTitle}>{hasMultiple ? `Solved (${index + 1}/${response.questions.length})` : 'Solved'}</Text>
+          <Text style={styles.headerTitle}>Solved</Text>
           {isSolved ? (
             <View style={styles.readBadge}>
               <View style={styles.readBadgeDot} />
@@ -83,7 +87,26 @@ export default function SnapSolvedScreen() {
           )}
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
+        {hasMultiple && (
+          <View style={styles.qTabsRow}>
+            <SlidingToggle
+              options={qLabels}
+              value={qLabels[index]}
+              onChange={selectQuestion}
+              trackStyle={styles.qTabsTrack}
+              thumbStyle={styles.qTabThumb}
+              pillStyle={styles.qTabPill}
+              textStyle={styles.qTabText}
+              textActiveStyle={styles.qTabTextActive}
+            />
+          </View>
+        )}
+
+        <ScrollView
+          ref={scrollRef}
+          style={styles.content}
+          contentContainerStyle={styles.contentInner}
+          showsVerticalScrollIndicator={false}>
           {response.note && (
             <View style={styles.noteBanner}>
               <Text style={styles.noteBannerText}>{response.note}</Text>
@@ -102,7 +125,13 @@ export default function SnapSolvedScreen() {
                 <Text style={styles.recapRetake}>↺ Retake</Text>
               </Pressable>
             </View>
-            <Text style={styles.recapBody}>{displayText}</Text>
+            <MathText
+              text={displayText}
+              fontSize={scale(14)}
+              lineHeight={scale(21)}
+              color={colors.ink}
+              style={styles.recapBody}
+            />
           </View>
 
           {isSolved ? (
@@ -115,33 +144,15 @@ export default function SnapSolvedScreen() {
                 <Text style={styles.explainBadgeText}>DRONA EXPLAINS</Text>
               </View>
 
-              {isMcq && (
-                <View style={styles.optionsList}>
-                  {question.option_labels!.map((label, i) => (
-                    <Text key={label} style={styles.optionRow}>
-                      <Text style={styles.optionLabel}>{label}. </Text>
-                      {question.options?.[i] ?? ''}
-                    </Text>
-                  ))}
-                </View>
-              )}
-
-              {steps
-                ? steps.map((step) => (
-                    <Text key={step.n} style={styles.explainText}>
-                      {step.text}
-                    </Text>
-                  ))
-                : fallback && <Text style={styles.explainText}>{fallback}</Text>}
-
-              {question.answer && (
-                <Text style={styles.explainEquation}>
-                  {isMcq ? `Answer: ${question.answer}` : question.answer}
-                </Text>
-              )}
-              {question.key_idea && (
-                <Text style={styles.explainMechanism}>{question.key_idea}</Text>
-              )}
+              <SolutionExplain
+                steps={question.steps}
+                explanation={question.explanation}
+                answer={question.answer}
+                keyIdea={question.key_idea}
+                isMcq={isMcq}
+                optionLabels={question.option_labels}
+                options={question.options}
+              />
             </View>
           ) : (
             <View style={styles.failureCard}>
@@ -182,33 +193,11 @@ export default function SnapSolvedScreen() {
               <FlagIcon size={scale(12)} color={colors.faint} />
               <Text style={styles.reportText}>Report a mistake</Text>
             </Pressable>
-            {hasMultiple && index < response.questions.length - 1 ? (
-              <Pressable onPress={() => setIndex(index + 1)}>
-                <Text style={styles.nextText}>Next question ↺</Text>
-              </Pressable>
-            ) : (
-              <Pressable onPress={() => router.replace('/snap-capture')}>
-                <Text style={styles.nextText}>Snap the next one ↺</Text>
-              </Pressable>
-            )}
-          </View>
-        </ScrollView>
-
-        {isSolved && (
-          <View style={styles.footer}>
-            <Pressable
-              style={styles.ctaButton}
-              onPress={() =>
-                router.push({
-                  pathname: '/entering-classroom',
-                  params: { chapterTitle: topicLine || 'this topic' },
-                })
-              }>
-              <Text style={styles.ctaButtonText}>Ask a follow-up</Text>
-              <MicIcon size={scale(16)} />
+            <Pressable onPress={() => router.replace('/snap-capture')}>
+              <Text style={styles.nextText}>Snap another ↺</Text>
             </Pressable>
           </View>
-        )}
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -236,27 +225,6 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
         d="M5 4c4.2-2 8.8 2 14 0v10c-5.2 2-9.8-2-14 0"
         stroke={color}
         strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function MicIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"
-        stroke={colors.paper}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M5 11a7 7 0 0 0 14 0M12 18v3"
-        stroke={colors.paper}
-        strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -343,13 +311,48 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(11),
       color: colors.red,
     },
+    qTabsRow: {
+      flexShrink: 0,
+      paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(10),
+    },
+    qTabsTrack: {
+      alignSelf: 'flex-start',
+      padding: scale(3),
+      backgroundColor: 'rgba(28,26,22,.055)',
+      borderRadius: scale(99),
+    },
+    qTabThumb: {
+      backgroundColor: '#fff',
+      borderRadius: scale(99),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(2) },
+      shadowOpacity: 0.12,
+      shadowRadius: scale(6),
+      elevation: 2,
+    },
+    qTabPill: {
+      minWidth: scale(40),
+      alignItems: 'center',
+      paddingVertical: verticalScale(6),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(99),
+    },
+    qTabText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(12.5),
+      color: colors.slate,
+    },
+    qTabTextActive: {
+      color: colors.ink,
+    },
     content: {
       flex: 1,
       minHeight: 0,
       paddingHorizontal: scale(20),
     },
     contentInner: {
-      paddingBottom: verticalScale(20),
+      paddingBottom: verticalScale(28),
     },
     noteBanner: {
       backgroundColor: '#FCF4E0',
@@ -405,10 +408,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
     },
     recapBody: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
-      color: colors.ink,
       marginTop: verticalScale(5),
     },
     explainCard: {
@@ -420,14 +419,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(22),
       paddingRight: scale(16),
       paddingBottom: verticalScale(16),
-      paddingLeft: scale(38),
+      paddingLeft: scale(18),
       marginTop: verticalScale(16),
       overflow: 'visible',
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.18,
+      shadowOpacity: 0.1,
       shadowRadius: scale(10),
-      elevation: 4,
+      elevation: 3,
     },
     explainRuledClip: {
       ...StyleSheet.absoluteFillObject,
@@ -458,37 +457,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(9),
       letterSpacing: scale(1.08),
       color: colors.ink,
-    },
-    optionsList: {
-      marginBottom: verticalScale(10),
-    },
-    optionRow: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(20.5),
-      color: colors.slate,
-    },
-    optionLabel: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
-    },
-    explainText: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(22.4),
-      color: colors.slate,
-      marginBottom: verticalScale(8),
-    },
-    explainEquation: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(15),
-      color: colors.ink,
-      marginBottom: verticalScale(8),
-    },
-    explainMechanism: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14),
-      color: colors.red,
     },
     failureCard: {
       backgroundColor: 'rgba(221,68,51,.05)',
@@ -554,12 +522,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(12),
       color: colors.slate,
-    },
-    footer: {
-      flexShrink: 0,
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(12),
-      paddingHorizontal: scale(24),
     },
     ctaButton: {
       flexDirection: 'row',
