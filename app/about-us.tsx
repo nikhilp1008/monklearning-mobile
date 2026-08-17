@@ -1,12 +1,6 @@
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { Linking, Pressable, Text, View } from 'react-native';
 
-import { colors } from '@/constants/brand';
-import { useScale } from '@/constants/scale';
+import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 
 const SECTIONS = [
   {
@@ -40,59 +34,43 @@ const SECTIONS = [
 ];
 
 export default function AboutUsScreen() {
-  const { scale, verticalScale } = useScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const styles = useSettingsStyles();
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.headerRow}>
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <BackArrowIcon size={scale(15)} />
+    <SettingsPage title="About us">
+      {SECTIONS.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Text style={styles.sectionBody}>{section.body}</Text>
+        </View>
+      ))}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Get in touch</Text>
+        <Text style={styles.sectionBody}>
+          Questions about plans, payments or your account: write to{' '}
+          <Text
+            style={styles.link}
+            onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
+            support@monklearning.com
+          </Text>{' '}
+          — we reply within 24 hours. Stuck on a subject? Just ask your AI teacher inside the
+          classroom instead.
+        </Text>
+        <View style={styles.chipRow}>
+          {SOCIALS.map((social) => (
+            <Pressable
+              key={social.label}
+              style={styles.chip}
+              onPress={() => Linking.openURL(social.url)}>
+              <Text style={styles.chipText}>{social.label}</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>About us</Text>
-          </View>
-
-          {SECTIONS.map((section) => (
-            <View key={section.title} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <Text style={styles.sectionBody}>{section.body}</Text>
-            </View>
           ))}
+        </View>
+      </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Get in touch</Text>
-            <Text style={styles.sectionBody}>
-              Questions about plans, payments or your account: write to{' '}
-              <Text
-                style={styles.link}
-                onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
-                support@monklearning.com
-              </Text>{' '}
-              — we reply within 24 hours. Stuck on a subject? Just ask your AI teacher inside the
-              classroom instead.
-            </Text>
-            <View style={styles.socialRow}>
-              {SOCIALS.map((social) => (
-                <Pressable
-                  key={social.label}
-                  style={styles.socialPill}
-                  onPress={() => Linking.openURL(social.url)}>
-                  <Text style={styles.socialPillText}>{social.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <Text style={styles.footer}>MonkLearning · v2.0 · Made for students, not batches.</Text>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      <Text style={styles.footer}>MonkLearning · v2.0 · Made for students, not batches.</Text>
+    </SettingsPage>
   );
 }
 
@@ -103,106 +81,3 @@ const SOCIALS = [
   { label: 'Reddit', url: 'https://reddit.com/r/MonkLearning' },
   { label: 'Discord', url: 'https://discord.gg/8RZpBz5h2' },
 ];
-
-function BackArrowIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M15 6l-6 6 6 6"
-        stroke={colors.ink}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
-  return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(24),
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    backButton: {
-      width: scale(34),
-      height: scale(34),
-      flexShrink: 0,
-      borderRadius: scale(17),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(17),
-      color: colors.ink,
-    },
-    section: {
-      marginTop: verticalScale(24),
-    },
-    sectionTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(15),
-      letterSpacing: scale(-0.15),
-      color: colors.ink,
-    },
-    sectionBody: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(21),
-      color: colors.slate,
-      marginTop: verticalScale(6),
-    },
-    link: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
-      textDecorationLine: 'underline',
-      textDecorationColor: 'rgba(238,163,31,.6)',
-    },
-    socialRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(8),
-      marginTop: verticalScale(12),
-    },
-    socialPill: {
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(13),
-      backgroundColor: '#fff',
-    },
-    socialPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    footer: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(11),
-      color: colors.faint,
-      marginTop: verticalScale(32),
-      textAlign: 'center',
-    },
-  });
-}

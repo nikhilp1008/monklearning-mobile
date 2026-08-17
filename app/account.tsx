@@ -1,19 +1,7 @@
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 
@@ -34,72 +22,52 @@ export default function AccountScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
-            <View style={styles.headerRow}>
-              <Pressable style={styles.backButton} onPress={() => router.back()}>
-                <BackArrowIcon size={scale(15)} />
-              </Pressable>
-              <Text style={styles.headerTitle}>Personal information</Text>
-            </View>
+    <SettingsPage title="Personal information" keyboardAware>
+      <View style={styles.card}>
+        <SecurityRow styles={styles} label="Email" value="aarav@example.com" />
+        <SecurityRow styles={styles} label="Phone" value="+91 98••• ••432" />
 
-            <View style={[styles.card, styles.cardFirst]}>
-              <SecurityRow styles={styles} label="Email" value="aarav@example.com" />
-              <SecurityRow styles={styles} label="Phone" value="+91 98••• ••432" />
+        <View style={[styles.securityRow, styles.securityRowLast]}>
+          <View>
+            <Text style={styles.rowLabel}>Password</Text>
+            <Text style={styles.rowValue}>••••••••••</Text>
+          </View>
+          <Pressable style={styles.cancelButton} onPress={handleCancel}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </Pressable>
+        </View>
 
-              <View style={[styles.securityRow, styles.securityRowLast]}>
-                <View>
-                  <Text style={styles.rowLabel}>Password</Text>
-                  <Text style={styles.rowValue}>••••••••••</Text>
-                </View>
-                <Pressable style={styles.cancelButton} onPress={handleCancel}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.passwordForm}>
-                <FormField
-                  styles={styles}
-                  label="Current password"
-                  placeholder="••••••••"
-                  value={currentPassword}
-                  onChangeText={setCurrentPassword}
-                  marginBottom={verticalScale(11)}
-                />
-                <FormField
-                  styles={styles}
-                  label="New password"
-                  placeholder="At least 8 characters"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  marginBottom={verticalScale(11)}
-                />
-                <FormField
-                  styles={styles}
-                  label="Confirm new password"
-                  placeholder="Re-enter new password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  marginBottom={verticalScale(13)}
-                />
-                <Pressable style={styles.updateButton}>
-                  <Text style={styles.updateButtonText}>Update password</Text>
-                </Pressable>
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
+        <View style={styles.passwordForm}>
+          <FormField
+            styles={styles}
+            label="Current password"
+            placeholder="••••••••"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            marginBottom={verticalScale(11)}
+          />
+          <FormField
+            styles={styles}
+            label="New password"
+            placeholder="At least 8 characters"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            marginBottom={verticalScale(11)}
+          />
+          <FormField
+            styles={styles}
+            label="Confirm new password"
+            placeholder="Re-enter new password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            marginBottom={verticalScale(13)}
+          />
+          <Pressable style={styles.updateButton}>
+            <Text style={styles.updateButtonText}>Update password</Text>
+          </Pressable>
+        </View>
+      </View>
+    </SettingsPage>
   );
 }
 
@@ -156,79 +124,19 @@ function FormField({
   );
 }
 
-function BackArrowIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M15 6l-6 6 6 6"
-        stroke={colors.ink}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
-  const cardShadow = {
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: verticalScale(1.5) },
-    shadowOpacity: 0.05,
-    shadowRadius: scale(2),
-    elevation: 1,
-  } as const;
-
   return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    flex: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(24),
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    backButton: {
-      width: scale(34),
-      height: scale(34),
-      flexShrink: 0,
-      borderRadius: scale(17),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(17),
-      color: colors.ink,
-    },
-
+    // White on white, held by a hairline — the same card treatment Profile
+    // uses for its teacher rows, so the two screens read as one surface.
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(28,25,20,.13)',
+      borderColor: 'rgba(28,26,22,.14)',
       borderRadius: scale(18),
       paddingVertical: verticalScale(16),
       paddingHorizontal: scale(18),
-      marginTop: verticalScale(12),
-      ...cardShadow,
-    },
-    cardFirst: {
-      marginTop: verticalScale(20),
+      marginTop: verticalScale(16),
     },
 
     securityRow: {

@@ -16,9 +16,10 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -36,6 +37,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
+import { SettingsHeader } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
@@ -113,6 +115,11 @@ export default function ProfileScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [language, setLanguage] = useState<LanguageId>('hinglish');
 
@@ -144,19 +151,17 @@ export default function ProfileScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
-          {/* Header — the app's own sub-screen convention, not the handoff's 26px. */}
-          <View style={styles.headerRow}>
-            <PressableScale style={styles.backButton} onPress={() => router.back()}>
-              <BackArrowIcon size={scale(15)} />
-            </PressableScale>
-            <Text style={styles.headerTitle}>Profile</Text>
-          </View>
+        {/* Pinned, not scrolled — this page is long, and the way back out
+            shouldn't cost a scroll to the top to find. */}
+        <SettingsHeader title="Profile" scrollY={scrollY} />
 
+        <Animated.ScrollView
+          contentContainerStyle={styles.scrollContent}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}>
           {/* Identity */}
-          <View style={styles.section}>
+          <View style={[styles.section, styles.sectionFirst]}>
             <Text style={styles.name}>Aarav Sharma</Text>
             <Text style={styles.nameSub}>Class 12 · with {teacherName} since June</Text>
             <View style={styles.examLeaderRow}>
@@ -319,7 +324,7 @@ export default function ProfileScreen() {
               <Text style={styles.logOutText}>Log out</Text>
             </PressableScale>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -443,20 +448,6 @@ function CardGlow({ width, height }: { width: number; height: number }) {
   );
 }
 
-function BackArrowIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M15 6l-6 6 6 6"
-        stroke={colors.ink}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 /** The handoff's rounded five-point star, path verbatim from the prototype. */
 function StarIcon({ size }: { size: number }) {
   return (
@@ -490,7 +481,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     scrollContent: {
-      paddingTop: verticalScale(8),
       paddingBottom: verticalScale(28),
     },
     flex1: {
@@ -498,33 +488,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
 
-    // Header — matches account / terms / about-us / privacy-policy exactly.
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingHorizontal: scale(24),
-    },
-    backButton: {
-      width: scale(34),
-      height: scale(34),
-      flexShrink: 0,
-      borderRadius: scale(17),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(17),
-      color: colors.ink,
-    },
-
     section: {
       paddingHorizontal: scale(24),
       marginTop: verticalScale(24),
+    },
+    sectionFirst: {
+      marginTop: verticalScale(10),
     },
 
     // Identity — handoff 34px, eased to 27 per the user.

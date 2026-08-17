@@ -1,12 +1,6 @@
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { Text, View } from 'react-native';
 
-import { colors } from '@/constants/brand';
-import { useScale } from '@/constants/scale';
+import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 
 const SECTIONS = [
   {
@@ -60,113 +54,18 @@ const SECTIONS = [
 ];
 
 export default function TermsScreen() {
-  const { scale, verticalScale } = useScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const styles = useSettingsStyles();
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.headerRow}>
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <BackArrowIcon size={scale(15)} />
-            </Pressable>
-            <Text style={styles.headerTitle}>Terms &amp; conditions</Text>
-          </View>
+    <SettingsPage title="Terms & conditions">
+      <Text style={styles.eyebrow}>Effective · July 2026</Text>
 
-          <Text style={styles.updated}>Effective · July 2026</Text>
-
-          {SECTIONS.map((section) => (
-            <View key={section.title} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <Text style={styles.sectionBody}>{section.body}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+      {SECTIONS.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Text style={styles.sectionBody}>{section.body}</Text>
+        </View>
+      ))}
+    </SettingsPage>
   );
-}
-
-function BackArrowIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M15 6l-6 6 6 6"
-        stroke={colors.ink}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
-  return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(24),
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    backButton: {
-      width: scale(34),
-      height: scale(34),
-      flexShrink: 0,
-      borderRadius: scale(17),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(17),
-      color: colors.ink,
-    },
-    updated: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
-      textTransform: 'uppercase',
-      color: colors.faint,
-      marginTop: verticalScale(20),
-    },
-    section: {
-      marginTop: verticalScale(20),
-    },
-    sectionTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(15),
-      letterSpacing: scale(-0.15),
-      color: colors.ink,
-    },
-    sectionBody: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(21),
-      color: colors.slate,
-      marginTop: verticalScale(6),
-    },
-  });
 }
