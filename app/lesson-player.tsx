@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -38,6 +38,7 @@ import {
   RED,
   RHYTHM,
   RuledGround,
+  useChromeAutoHide,
   ScrollIndicator,
   settleToRhythm,
 } from '@/components/classroom-chrome';
@@ -224,8 +225,10 @@ export default function LessonPlayerScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // No auto-hide: the handoff's state model toggles chrome on a board tap and
-  // nothing else on this screen runs on a timer.
+  // Same auto-hide as the live class; the Topics drawer holds it open.
+  const hideChrome = useCallback(() => setChromeVisible(false), []);
+  useChromeAutoHide(chromeVisible, drawerOpen, hideChrome);
+
   useEffect(() => {
     return () => {
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);

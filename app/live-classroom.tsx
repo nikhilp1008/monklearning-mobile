@@ -45,6 +45,7 @@ import {
   RED,
   RHYTHM,
   RuledGround,
+  useChromeAutoHide,
   ScrollIndicator,
   TeacherWave,
   settleToRhythm,
@@ -228,10 +229,12 @@ export default function LiveClassroomScreen() {
   const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // No auto-hide. The handoff's state model has chrome toggled by a board tap
-  // and restored by the edge tab, and nothing on this screen animates on a
-  // timer except the writing indicator — a chrome that vanished on its own
-  // took the Interrupt button with it mid-thought.
+  // Chrome gets out of the way on its own after a few seconds, and comes back
+  // on a board tap or the edge tab. It never hides mid-hold or behind the
+  // report drawer.
+  const hideChrome = useCallback(() => setChromeVisible(false), []);
+  useChromeAutoHide(chromeVisible, handRaised || reportOpen, hideChrome);
+
   useEffect(() => {
     return () => {
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);

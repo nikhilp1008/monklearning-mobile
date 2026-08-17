@@ -63,6 +63,25 @@ export const BOARD_LEFT = 56;
 export const MARGIN_X = 44;
 export const CAPTION_HEIGHT = 54;
 
+/** How long chrome stays up before it tucks itself away. */
+export const CHROME_HIDE_MS = 4000;
+
+/**
+ * Chrome tucks itself away after a few idle seconds, and a tap brings it back.
+ *
+ * `blocked` is the guard that matters: while the student is holding Interrupt,
+ * or a drawer is open, the timer never runs — chrome vanishing mid-hold would
+ * take the Interrupt button out from under the thumb using it. Whenever
+ * `blocked` clears, the timer re-arms on its own, because the effect re-runs.
+ */
+export function useChromeAutoHide(visible: boolean, blocked: boolean, hide: () => void) {
+  useEffect(() => {
+    if (!visible || blocked) return;
+    const id = setTimeout(hide, CHROME_HIDE_MS);
+    return () => clearTimeout(id);
+  }, [visible, blocked, hide]);
+}
+
 /** Rounds a scroll offset onto the rule grid, so no line is left half-cut. */
 export function settleToRhythm(offset: number, max: number): number | null {
   const rem = offset % RHYTHM;
@@ -376,15 +395,16 @@ const capStyles = StyleSheet.create({
     letterSpacing: 0.14 * 9.5,
     color: DEEP_AMBER,
   },
-  // The spec asks for Anek Devanagari here. That family is not bundled and
-  // adding it is a package install, so this uses Anek Latin at the same size
-  // and weight for now — the captions are romanised Hinglish, which is Latin
-  // script, so it reads correctly; only the typographic character differs.
+  // Anek Devanagari, as the design specifies for the Hinglish caption line.
+  // The design's 1.2 line-height is a CSS line box, which never clips a glyph;
+  // RN's does, and this family's descenders sit lower than Anek Latin's — so
+  // the line box is opened up to 20 to keep them whole. The strip is 54 tall
+  // either way, so the rhythm is unchanged.
   text: {
     flexShrink: 1,
-    fontFamily: 'AnekLatin_500Medium',
+    fontFamily: 'AnekDevanagari_500Medium',
     fontSize: 14.5,
-    lineHeight: 14.5 * 1.2,
+    lineHeight: 20,
     color: INK,
   },
   caret: {

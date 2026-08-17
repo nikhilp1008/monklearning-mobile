@@ -14,6 +14,9 @@ import {
   AnekLatin_700Bold,
   AnekLatin_800ExtraBold,
 } from '@expo-google-fonts/anek-latin';
+// The classroom caption line only — the design gives the Hinglish captions
+// their own family, and it is the one place in the app that uses it.
+import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
 import { useEnsureAnonymousSession } from '@/lib/auth';
@@ -52,6 +55,7 @@ export default function RootLayout() {
     AnekLatin_600SemiBold,
     AnekLatin_700Bold,
     AnekLatin_800ExtraBold,
+    AnekDevanagari_500Medium,
     Kalam_400Regular,
     Kalam_700Bold,
   });
