@@ -19,6 +19,14 @@ type SlidingToggleProps<T extends string> = {
   pillStyle: StyleProp<ViewStyle>;
   textStyle: StyleProp<TextStyle>;
   textActiveStyle: StyleProp<TextStyle>;
+  /** Applied to the row that holds the pills — this is where gap belongs. */
+  rowStyle?: StyleProp<ViewStyle>;
+  /**
+   * 'fill' is the pill toggle: the thumb is a capsule behind the label.
+   * 'bottom' is the tab underline: the thumb hugs the baseline and takes its
+   * height from thumbStyle.
+   */
+  thumbAnchor?: 'fill' | 'bottom';
 };
 
 type PillLayout = { x: number; width: number };
@@ -41,6 +49,8 @@ export function SlidingToggle<T extends string>({
   pillStyle,
   textStyle,
   textActiveStyle,
+  rowStyle,
+  thumbAnchor = 'fill',
 }: SlidingToggleProps<T>) {
   const layouts = useRef(new Map<T, PillLayout>()).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -74,16 +84,16 @@ export function SlidingToggle<T extends string>({
 
   return (
     <View style={trackStyle}>
-      <View style={{ flexDirection: 'row', position: 'relative' }}>
+      <View style={[{ flexDirection: 'row', position: 'relative' }, rowStyle]}>
         {ready && (
           <Animated.View
             style={[
               thumbStyle,
               {
                 position: 'absolute',
-                top: 0,
-                bottom: 0,
                 left: 0,
+                bottom: 0,
+                ...(thumbAnchor === 'fill' ? { top: 0 } : null),
                 width: thumbWidth,
                 transform: [{ translateX }],
               },

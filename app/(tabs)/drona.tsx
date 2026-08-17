@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { SlidingToggle } from '@/components/sliding-toggle';
@@ -28,9 +28,12 @@ function normalizeSubject(name: string) {
 
 export default function ChapterSelectorScreen() {
   const { scale, verticalScale } = useScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 12');
   const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
+
+  const listRef = useRef<ScrollView>(null);
 
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +58,12 @@ export default function ChapterSelectorScreen() {
     };
   }, []);
 
+  // A shorter list can leave you stranded past its end, so every switch
+  // starts at chapter one.
+  useEffect(() => {
+    listRef.current?.scrollTo({ y: 0, animated: false });
+  }, [activeClass, activeSubject]);
+
   const chapters = useMemo(() => {
     if (!catalogue) return [];
     const wanted = normalizeSubject(activeSubject);
@@ -78,7 +87,6 @@ export default function ChapterSelectorScreen() {
             <BackArrowIcon size={scale(16)} />
           </Pressable>
           <View style={styles.headerTextBlock}>
-            <Text style={styles.headerOverline}>Learn with Drona</Text>
             <Text style={styles.headerTitle}>What are we learning?</Text>
           </View>
         </View>
@@ -94,19 +102,20 @@ export default function ChapterSelectorScreen() {
             textStyle={styles.classPillText}
             textActiveStyle={styles.classPillTextActive}
           />
-          <View style={styles.subjectTabs}>
-            {SUBJECTS.map((subject) => (
-              <Pressable key={subject} onPress={() => setActiveSubject(subject)}>
-                <Text
-                  style={[
-                    styles.subjectTab,
-                    activeSubject === subject && styles.subjectTabActive,
-                  ]}>
-                  {subject}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {/* Same slider as the class capsule, anchored to the baseline so the
+              marigold rule travels between subjects instead of jumping. */}
+          <SlidingToggle
+            options={SUBJECTS}
+            value={activeSubject}
+            onChange={setActiveSubject}
+            thumbAnchor="bottom"
+            trackStyle={styles.subjectTabs}
+            rowStyle={styles.subjectRow}
+            thumbStyle={styles.subjectUnderline}
+            pillStyle={styles.subjectPill}
+            textStyle={styles.subjectTab}
+            textActiveStyle={styles.subjectTabActive}
+          />
         </View>
 
         <View style={styles.searchBar}>
@@ -130,7 +139,11 @@ export default function ChapterSelectorScreen() {
             </View>
           ) : (
             <>
-              <View style={styles.list}>
+              <ScrollView
+                ref={listRef}
+                style={styles.list}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}>
                 {chapters.map((chapter) => (
                   <Pressable
                     key={chapter.chapterId}
@@ -152,7 +165,7 @@ export default function ChapterSelectorScreen() {
                     <Text style={styles.chapterMeta}>{chapter.topicCount} topics →</Text>
                   </Pressable>
                 ))}
-              </View>
+              </ScrollView>
               <LinearGradient
                 colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
                 style={styles.fadeMask}
@@ -162,7 +175,9 @@ export default function ChapterSelectorScreen() {
           )}
         </View>
 
-        <View style={styles.footer}>
+        {/* The tab bar floats over this screen, so the hint has to be lifted
+            clear of it by hand — it was sitting underneath and never seen. */}
+        <View style={[styles.footer, { paddingBottom: verticalScale(66) + insets.bottom }]}>
           <Text style={styles.footerHint}>Tap a chapter to pick a topic</Text>
         </View>
       </SafeAreaView>
@@ -224,13 +239,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
       minWidth: 0,
     },
-    headerOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.26),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
     headerTitle: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(19),
@@ -274,19 +282,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     subjectTabs: {
-      flexDirection: 'row',
+      flexShrink: 1,
+    },
+    subjectRow: {
       gap: scale(14),
+    },
+    subjectPill: {
+      paddingBottom: verticalScale(5),
+    },
+    subjectUnderline: {
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: colors.marigold,
     },
     subjectTab: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
       color: colors.faint,
-      paddingBottom: verticalScale(3),
     },
     subjectTabActive: {
       color: colors.ink,
-      borderBottomWidth: 2,
-      borderBottomColor: colors.marigold,
     },
     searchBar: {
       flexDirection: 'row',
@@ -335,8 +350,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     list: {
       flex: 1,
+    },
+    listContent: {
       flexDirection: 'column',
       gap: verticalScale(7),
+      // Clears the fade mask, so the last chapter can be read and tapped.
+      paddingBottom: scale(56),
     },
     chapterRow: {
       flexDirection: 'row',
@@ -381,7 +400,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     footer: {
       flexShrink: 0,
       paddingTop: verticalScale(8),
-      paddingBottom: verticalScale(10),
       paddingHorizontal: scale(20),
       alignItems: 'center',
     },
