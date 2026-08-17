@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -19,6 +20,8 @@ import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from 'expo-audio';
+
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
 import { BoardEvent, ConnectionStatus, DronaState, DronaVoiceClient } from '@/lib/drona-voice-client';
@@ -87,6 +90,7 @@ export default function LiveClassroomScreen() {
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
+  const [micDenied, setMicDenied] = useState(false);
   const [checkOptions, setCheckOptions] = useState<string[]>([]);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
@@ -248,6 +252,22 @@ export default function LiveClassroomScreen() {
 
   // --- Real push-to-talk, replacing the old fake hand-raise timers ---
   const raiseHand = useCallback(async () => {
+    // Ask before recording, the same way snap-capture asks before opening the
+    // camera. Previously this went straight to startRecording: iOS auto-prompts
+    // on the first attempt so it usually worked, but a student who ever tapped
+    // "Don't Allow" got a silent dead button with nothing explaining why and no
+    // route back. Checking first also means the denial state is a real,
+    // recoverable screen rather than a failed recording.
+    const existing = await getRecordingPermissionsAsync();
+    let granted = existing.granted;
+    if (!granted && existing.canAskAgain) {
+      granted = (await requestRecordingPermissionsAsync()).granted;
+    }
+    if (!granted) {
+      setMicDenied(true);
+      return;
+    }
+
     setHandRaised(true);
     setChromeVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -554,6 +574,31 @@ export default function LiveClassroomScreen() {
               <Text style={styles.askChipText}>{option}</Text>
             </Pressable>
           ))}
+        </Animated.View>
+      )}
+
+      {/* Mic denied: say so plainly and offer the one action that fixes it.
+          Drona keeps teaching behind this — only speaking is unavailable. */}
+      {micDenied && (
+        <Animated.View entering={FadeIn.duration(200)} style={styles.micDeniedCard}>
+          <Text style={styles.micDeniedTitle}>Microphone is off</Text>
+          <Text style={styles.micDeniedBody}>
+            Drona needs your mic to hear you. Turn it on in Settings — the class keeps going
+            either way.
+          </Text>
+          <View style={styles.micDeniedRow}>
+            <Pressable style={styles.micDeniedGhost} onPress={() => setMicDenied(false)}>
+              <Text style={styles.micDeniedGhostText}>Not now</Text>
+            </Pressable>
+            <Pressable
+              style={styles.micDeniedPrimary}
+              onPress={() => {
+                setMicDenied(false);
+                Linking.openSettings();
+              }}>
+              <Text style={styles.micDeniedPrimaryText}>Open Settings</Text>
+            </Pressable>
+          </View>
         </Animated.View>
       )}
 
@@ -1186,6 +1231,63 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(28,26,22,.88)',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    micDeniedCard: {
+      position: 'absolute',
+      left: '50%',
+      bottom: verticalScale(20),
+      transform: [{ translateX: -scale(150) }],
+      width: scale(300),
+      backgroundColor: '#fff',
+      borderWidth: scale(1.5),
+      borderColor: colors.ink,
+      borderRadius: scale(16),
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(6) },
+      shadowOpacity: 0.25,
+      shadowRadius: scale(10),
+      elevation: 6,
+    },
+    micDeniedTitle: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(14),
+      color: colors.ink,
+    },
+    micDeniedBody: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(12),
+      lineHeight: scale(17),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+    },
+    micDeniedRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: scale(10),
+      marginTop: verticalScale(12),
+    },
+    micDeniedGhost: {
+      paddingVertical: verticalScale(8),
+      paddingHorizontal: scale(12),
+    },
+    micDeniedGhostText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(12.5),
+      color: colors.slate,
+    },
+    micDeniedPrimary: {
+      backgroundColor: colors.ink,
+      borderRadius: scale(99),
+      paddingVertical: verticalScale(9),
+      paddingHorizontal: scale(16),
+    },
+    micDeniedPrimaryText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(12.5),
+      color: colors.paper,
     },
     askSheet: {
       position: 'absolute',

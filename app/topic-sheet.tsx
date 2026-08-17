@@ -174,7 +174,14 @@ export default function TopicSheetScreen() {
               style={[styles.cta, !selected && styles.ctaDisabled]}
               disabled={!selected}
               onPress={() => goToClassroom(selected ?? undefined)}>
-              <Text style={[styles.ctaText, !selected && styles.ctaTextDisabled]}>
+              {/* Single line, ellipsised: real subtopic names run long ("Electric
+                  Current, Ohm's Law & Drift Velocity") and, against the pill's
+                  fixed height, a second line spilled outside the button and
+                  pushed the arrow off-screen. */}
+              <Text
+                style={[styles.ctaText, !selected && styles.ctaTextDisabled]}
+                numberOfLines={1}
+                ellipsizeMode="tail">
                 {selected ? `Start with ${selected}` : 'Pick a topic to start'}
               </Text>
               {selected && <ArrowRightIcon color={colors.paper} size={scale(15)} />}
@@ -423,6 +430,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(9),
       width: '100%',
       height: verticalScale(52),
+      paddingHorizontal: scale(20),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
       shadowColor: colors.ink,
@@ -437,6 +445,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 0,
     },
     ctaText: {
+      // Shrinks rather than overflowing when the topic name is long; the
+      // arrow beside it keeps its space instead of being pushed out.
+      flexShrink: 1,
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(16),
       color: colors.paper,

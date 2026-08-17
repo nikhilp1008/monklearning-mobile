@@ -153,7 +153,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.actionTextBlock}>
                 <Text style={styles.actionTitle}>Snap a doubt</Text>
-                <Text style={styles.actionSubtitle}>Max 2 questions, solved aloud</Text>
+                <Text style={styles.actionSubtitle}>Up to 3 questions, solved step by step</Text>
               </View>
               <Text style={styles.actionArrow}>→</Text>
             </PressableScale>
