@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ParsedStep } from '@/lib/solution-steps';
@@ -99,6 +99,7 @@ export function SolutionScreen({
   onFollowUp,
   onReport,
 }: SolutionScreenProps) {
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(), []);
   const scrollRef = useRef<ScrollView>(null);
   const question = questions[index];
@@ -208,14 +209,19 @@ export function SolutionScreen({
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        <SafeAreaView edges={['bottom']} style={styles.actionsInner}>
+        {/* Deliberately not a SafeAreaView: its full bottom inset stacked on
+            top of the design's own 14px and pushed the actions well clear of
+            the home indicator, leaving them floating high. The design reserves
+            just a 14px strip for the indicator, so this clears it by a similar
+            margin and sits where the tab bar does elsewhere in the app. */}
+        <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
           <Pressable style={styles.primary} onPress={onFollowUp}>
             <Text style={styles.primaryText}>Ask a follow-up</Text>
           </Pressable>
           <Pressable style={styles.iconBtn} onPress={onReport} accessibilityLabel="Report a problem">
             <FlagIcon />
           </Pressable>
-        </SafeAreaView>
+        </View>
       </View>
     </View>
   );
@@ -453,7 +459,6 @@ function createStyles() {
       gap: 12,
       paddingHorizontal: GUTTER,
       paddingTop: 14,
-      paddingBottom: 14,
     },
     primary: {
       flex: 1,

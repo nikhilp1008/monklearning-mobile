@@ -9,6 +9,10 @@ export type ParsedStep = { title: string; lines: SolutionLine[] };
  *  numbers each step, so repeating it in the copy is noise. */
 const STEP_PREFIX = /^\s*(?:step\s*)?\d+\s*[:.)-]\s*/i;
 
+/** Roughly two lines of the 19px title at phone width. Past this a "heading"
+ *  stops looking like one. */
+const MAX_TITLE_CHARS = 64;
+
 function splitSentences(prose: string): string[] {
   return prose
     .split(/(?<=[.!?])\s+/)
@@ -57,14 +61,17 @@ export function parseSolutionStep(raw: string): ParsedStep {
     return { kind: 'text', text: latexToText(candidate) };
   });
 
-  // The first sentence of the opening prose becomes the title, so each step
-  // has the heading the design leads with. A step that opens on maths keeps
-  // its maths and simply has no title.
+  // A heading only when the opening sentence is genuinely short enough to read
+  // as one. The design pairs a brief bold title with the detail beneath it, but
+  // the solver writes one full sentence per step — promoting a long one gave
+  // four lines of bold above a single line of explanation, which inverts the
+  // hierarchy and reads worse than no heading at all. Long openers stay prose.
   let title = '';
   if (lines[0]?.kind === 'text') {
     const sentences = splitSentences(lines[0].text);
-    if (sentences.length > 0) {
-      title = sentences[0].replace(/[.:]$/, '');
+    const first = sentences[0]?.replace(/[.:]$/, '') ?? '';
+    if (first && first.length <= MAX_TITLE_CHARS) {
+      title = first;
       const remainder = sentences.slice(1).join(' ');
       if (remainder) lines[0] = { kind: 'text', text: remainder };
       else lines.shift();
