@@ -6,7 +6,6 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import Animated, {
   Easing,
   interpolate,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -14,7 +13,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Line, RadialGradient, Stop } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
@@ -25,11 +24,6 @@ import {
   startDronaSession,
 } from '@/lib/drona-live';
 import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
-
-const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-const AnimatedSvgText = Animated.createAnimatedComponent(SvgText);
 
 type Stage = 'connecting' | 'scoping' | 'error';
 
@@ -223,7 +217,9 @@ export default function EnteringClassroomScreen() {
                 <View style={styles.chapterDot} />
                 <Text style={styles.chapterChipText}>{chapterTitle}</Text>
               </View>
-              <Text style={styles.heading}>Entering your classroom</Text>
+              <Text style={styles.heading} numberOfLines={1}>
+                Entering your classroom
+              </Text>
               <View style={styles.statusRow}>
                 <BouncingDots />
                 <Text style={styles.statusText}>Drona is picking up the chalk…</Text>
@@ -314,140 +310,125 @@ function Dot({ progress, delay }: { progress: SharedValue<number>; delay: number
   return <Animated.View style={[dotStyles.dot, style]} />;
 }
 
+/**
+ * The loading mark. Two things were wrong with the version this replaces.
+ *
+ * The logo was incomplete for most of its cycle: the amber centre dot only
+ * existed between 50% and 90% of a 6.5s loop, so more than half the time the
+ * brand mark was two rings and a hole. It is now painted every frame, exactly
+ * as components/protractor-mark.tsx draws it — outer ring, inner ring, dot.
+ *
+ * And it felt heavy because it was a construction: ticks faded in, each ring
+ * swept into place, two red arcs drew themselves, two angle labels appeared
+ * and left, the dot popped at 1.45x — then the whole thing faded to nothing
+ * and started again from an empty frame. That restart is the stutter.
+ *
+ * Now nothing is built or erased. The mark is whole and simply turns: the
+ * outer ring one way, the inner ring slower and the other way, the dot still
+ * at the centre. Both rotations are continuous, so there is no seam to loop
+ * across, and a protractor turning is what the instrument does anyway.
+ */
 function ProtractorLoader({ size }: { size: number }) {
-  const progress = useSharedValue(0);
+  const outer = useSharedValue(0);
+  const inner = useSharedValue(0);
+  const breath = useSharedValue(0);
+
   useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6500, easing: Easing.linear }), -1);
-  }, [progress]);
+    // Linear and continuous: an eased spin would visibly hesitate once per
+    // turn, which is the heaviness this is meant to remove.
+    outer.value = withRepeat(withTiming(1, { duration: 9000, easing: Easing.linear }), -1);
+    inner.value = withRepeat(withTiming(1, { duration: 14000, easing: Easing.linear }), -1);
+    breath.value = withRepeat(
+      withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, [outer, inner, breath]);
 
-  const ticksProps = useAnimatedProps(() => {
-    'worklet';
-    return { opacity: interpolate(progress.value, [0, 0.08, 0.7, 0.8, 1], [0, 0.9, 0.9, 0, 0]) };
-  });
-
-  const outerProps = useAnimatedProps(() => {
-    'worklet';
-    const rotation = interpolate(progress.value, [0, 0.08, 0.32, 0.9, 1], [0, 0, -90, -90, -90]);
-    const opacity = interpolate(progress.value, [0, 0.08, 0.9, 1], [0, 1, 1, 0]);
-    return { opacity, transform: `rotate(${rotation} 60 60)` };
-  });
-
-  const innerProps = useAnimatedProps(() => {
-    'worklet';
-    const rotation = interpolate(progress.value, [0, 0.28, 0.48, 0.9, 1], [0, 0, -30, -30, -30]);
-    const opacity = interpolate(progress.value, [0, 0.28, 0.33, 0.9, 1], [0, 0, 1, 1, 0]);
-    return { opacity, transform: `rotate(${rotation} 60 60)` };
-  });
-
-  const arc1Props = useAnimatedProps(() => {
-    'worklet';
-    const dashoffset = interpolate(progress.value, [0, 0.08, 0.32], [81.7, 81.7, 0], 'clamp');
-    const opacity = interpolate(progress.value, [0, 0.56, 0.66, 1], [1, 1, 0, 0]);
-    return { strokeDashoffset: dashoffset, opacity };
-  });
-
-  const arc2Props = useAnimatedProps(() => {
-    'worklet';
-    const dashoffset = interpolate(progress.value, [0, 0.28, 0.48], [14.7, 14.7, 0], 'clamp');
-    const opacity = interpolate(progress.value, [0, 0.6, 0.7, 1], [1, 1, 0, 0]);
-    return { strokeDashoffset: dashoffset, opacity };
-  });
-
-  const lbl1Props = useAnimatedProps(() => {
-    'worklet';
-    return {
-      opacity: interpolate(progress.value, [0, 0.3, 0.38, 0.56, 0.66, 1], [0, 0, 1, 1, 0, 0]),
-    };
-  });
-
-  const lbl2Props = useAnimatedProps(() => {
-    'worklet';
-    return {
-      opacity: interpolate(progress.value, [0, 0.46, 0.54, 0.62, 0.72, 1], [0, 0, 1, 1, 0, 0]),
-    };
-  });
-
-  const dotProps = useAnimatedProps(() => {
-    'worklet';
-    const s = interpolate(progress.value, [0, 0.5, 0.6, 0.68, 1], [0, 0, 1.45, 1, 1]);
-    const opacity = interpolate(progress.value, [0, 0.5, 0.6, 0.9, 1], [0, 0, 1, 1, 0]);
-    return { opacity, transform: `scale(${s})` };
-  });
+  const outerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${-90 + outer.value * 360}deg` }],
+  }));
+  const innerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${-30 - inner.value * 360}deg` }],
+  }));
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: 0.35 + breath.value * 0.3,
+  }));
 
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30);
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 120 120" style={{ overflow: 'visible' }}>
-      <AnimatedG stroke="#55524A" strokeWidth={1.2} animatedProps={ticksProps}>
-        {ticks.map((angle) => (
-          <Line
-            key={angle}
-            x1={60}
-            y1={12}
-            x2={60}
-            y2={16}
-            transform={angle ? `rotate(${angle} 60 60)` : undefined}
+    <View style={{ width: size, height: size }}>
+      {/* A slow amber breath behind the mark — the only thing on this screen
+          that changes brightness, and it never restarts. */}
+      <Animated.View style={[StyleSheet.absoluteFill, glowStyle]} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 120 120">
+          <Defs>
+            <RadialGradient id="loaderGlow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={colors.marigold} stopOpacity={0.34} />
+              <Stop offset="1" stopColor={colors.marigold} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={60} cy={60} r={58} fill="url(#loaderGlow)" />
+        </Svg>
+      </Animated.View>
+
+      {/* The protractor's bezel, static. It reads as the instrument's scale;
+          animating it was noise. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 120 120">
+          <G stroke="#55524A" strokeWidth={1.2} opacity={0.5}>
+            {ticks.map((angle) => (
+              <Line
+                key={angle}
+                x1={60}
+                y1={12}
+                x2={60}
+                y2={16}
+                transform={angle ? `rotate(${angle} 60 60)` : undefined}
+              />
+            ))}
+          </G>
+        </Svg>
+      </View>
+
+      <Animated.View style={[StyleSheet.absoluteFill, outerStyle]} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 120 120">
+          <Circle
+            cx={60}
+            cy={60}
+            r={36}
+            fill="none"
+            stroke="#FCFAF4"
+            strokeWidth={11}
+            strokeLinecap="round"
+            strokeDasharray="52 23.4"
           />
-        ))}
-      </AnimatedG>
-      <AnimatedCircle
-        cx={60}
-        cy={60}
-        r={36}
-        fill="none"
-        stroke="#FCFAF4"
-        strokeWidth={11}
-        strokeLinecap="round"
-        strokeDasharray="52 23.4"
-        animatedProps={outerProps}
-      />
-      <AnimatedCircle
-        cx={60}
-        cy={60}
-        r={19}
-        fill="none"
-        stroke="#FCFAF4"
-        strokeWidth={9}
-        strokeLinecap="round"
-        strokeDasharray="21.8 18"
-        animatedProps={innerProps}
-      />
-      <AnimatedPath
-        d="M112,60 A52,52 0 0 0 60,8"
-        fill="none"
-        stroke={colors.red}
-        strokeWidth={1.4}
-        strokeDasharray="81.7"
-        animatedProps={arc1Props}
-      />
-      <AnimatedPath
-        d="M88,60 A28,28 0 0 0 84.25,46"
-        fill="none"
-        stroke={colors.red}
-        strokeWidth={1.4}
-        strokeDasharray="14.7"
-        animatedProps={arc2Props}
-      />
-      <AnimatedSvgText
-        x={102}
-        y={22}
-        fontFamily="Kalam_400Regular"
-        fontSize={9}
-        fill={colors.marigold}
-        animatedProps={lbl1Props}>
-        −90°
-      </AnimatedSvgText>
-      <AnimatedSvgText
-        x={94}
-        y={48}
-        fontFamily="Kalam_400Regular"
-        fontSize={9}
-        fill={colors.marigold}
-        animatedProps={lbl2Props}>
-        −30°
-      </AnimatedSvgText>
-      <AnimatedCircle cx={60} cy={60} r={6} fill={colors.marigold} animatedProps={dotProps} />
-    </Svg>
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={[StyleSheet.absoluteFill, innerStyle]} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 120 120">
+          <Circle
+            cx={60}
+            cy={60}
+            r={19}
+            fill="none"
+            stroke="#FCFAF4"
+            strokeWidth={9}
+            strokeLinecap="round"
+            strokeDasharray="21.8 18"
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* The dot the mark was missing. Always here, never animated. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 120 120">
+          <Circle cx={60} cy={60} r={6} fill={colors.marigold} />
+        </Svg>
+      </View>
+    </View>
   );
 }
 
@@ -480,12 +461,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
+    // The mark and the text are one centred pair. The text block is capped
+    // so a longer chapter name can't drag the pair off centre or push the
+    // mark towards the edge — the composition holds still whatever the
+    // chapter is called.
     content: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: scale(48),
+      gap: scale(40),
       paddingHorizontal: scale(56),
     },
     scopingContent: {
@@ -495,10 +480,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(16),
     },
     textBlock: {
+      flexShrink: 1,
       flexDirection: 'column',
       alignItems: 'flex-start',
-      gap: verticalScale(13),
+      gap: verticalScale(12),
       minWidth: 0,
+      maxWidth: scale(420),
     },
     chapterChip: {
       flexDirection: 'row',
