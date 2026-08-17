@@ -1,10 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SolutionQuestion, SolutionScreen } from '@/components/solution-screen';
+import {
+  SolutionQuestion,
+  SolutionScreen,
+  SolutionScreenSkeleton,
+} from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtDetail, getDoubt } from '@/lib/doubts';
@@ -70,17 +74,22 @@ export default function DoubtDetailScreen() {
     ];
   }, [detail, params.title]);
 
-  if (loading || loadError || questions.length === 0) {
+  if (loading) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <SolutionScreenSkeleton onBack={() => router.back()} />
+      </>
+    );
+  }
+
+  if (loadError || questions.length === 0) {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.stateBlock}>
-            {loading ? (
-              <ActivityIndicator color={colors.ink} />
-            ) : (
-              <Text style={styles.stateText}>{loadError ?? 'Could not load this doubt.'}</Text>
-            )}
+            <Text style={styles.stateText}>{loadError ?? 'Could not load this doubt.'}</Text>
           </View>
         </SafeAreaView>
       </View>

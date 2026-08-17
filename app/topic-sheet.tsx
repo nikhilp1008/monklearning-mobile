@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { Skeleton, stagger } from '@/components/skeleton';
 import { WashSelectRow } from '@/components/wash-select-row';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -111,8 +112,13 @@ export default function TopicSheetScreen() {
 
           <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
             {loading ? (
-              <View style={styles.stateBlock}>
-                <ActivityIndicator color={colors.ink} />
+              // Six cards in the same two-up grid the topics land in.
+              <View style={styles.grid}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <View key={i} style={styles.topicCard}>
+                    <Skeleton delay={stagger(i)} style={styles.skeletonTopic} />
+                  </View>
+                ))}
               </View>
             ) : loadError ? (
               <View style={styles.stateBlock}>
@@ -323,6 +329,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
       color: colors.marigold,
+    },
+    // One line of text, centred in the card the topic will fill.
+    skeletonTopic: {
+      width: '76%',
+      height: verticalScale(12),
     },
     topicCard: {
       flexBasis: '48%',

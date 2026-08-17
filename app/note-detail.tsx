@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BoardPage } from '@/components/board-page';
+import { BoardPage, BoardPageSkeleton } from '@/components/board-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { buildBoardContent } from '@/lib/board-sections';
@@ -65,17 +65,22 @@ export default function NoteDetailScreen() {
     [note, params.title, params.subject, isDemo]
   );
 
-  if (!isDemo && (loading || loadError)) {
+  if (!isDemo && loading) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <BoardPageSkeleton onBack={() => router.back()} />
+      </>
+    );
+  }
+
+  if (!isDemo && loadError) {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.stateBlock}>
-            {loading ? (
-              <ActivityIndicator color={colors.ink} />
-            ) : (
-              <Text style={styles.stateText}>{loadError}</Text>
-            )}
+            <Text style={styles.stateText}>{loadError}</Text>
           </View>
         </SafeAreaView>
       </View>

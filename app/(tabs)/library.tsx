@@ -1,7 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -17,6 +16,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
+import { Skeleton, stagger } from '@/components/skeleton';
 import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -262,9 +262,7 @@ export default function LibraryScreen() {
               </View>
 
               {notesLoading ? (
-                <View style={styles.stateBlock}>
-                  <ActivityIndicator color={colors.ink} />
-                </View>
+                <CardSkeletonList styles={styles} count={4} />
               ) : notesError ? (
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>{notesError}</Text>
@@ -390,9 +388,7 @@ export default function LibraryScreen() {
               </View>
 
               {doubtsLoading ? (
-                <View style={styles.stateBlock}>
-                  <ActivityIndicator color={colors.ink} />
-                </View>
+                <CardSkeletonList styles={styles} count={4} />
               ) : doubtsError ? (
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>{doubtsError}</Text>
@@ -510,6 +506,34 @@ function SearchIcon({ size }: { size: number }) {
 // Same ink triple + border treatment as the Home redesign — see
 // app/(tabs)/index.tsx.
 const hairline = (alpha: number) => `rgba(28,25,20,${alpha})`;
+
+/**
+ * Notes and Doubts are the same card at the same size, so one placeholder
+ * serves both: the subject line and timestamp on top, then the title and a
+ * line of body.
+ */
+function CardSkeletonList({
+  styles,
+  count,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  count: number;
+}) {
+  return (
+    <View style={styles.notesList}>
+      {Array.from({ length: count }, (_, i) => (
+        <View key={i} style={styles.noteCard}>
+          <View style={styles.noteTopRow}>
+            <Skeleton delay={stagger(i)} style={styles.skeletonSubject} />
+            <Skeleton delay={stagger(i)} style={styles.skeletonTime} />
+          </View>
+          <Skeleton delay={stagger(i) + 30} style={styles.skeletonCardTitle} />
+          <Skeleton delay={stagger(i) + 60} style={styles.skeletonCardBody} />
+        </View>
+      ))}
+    </View>
+  );
+}
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
@@ -647,6 +671,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'column',
       gap: verticalScale(12),
       marginTop: verticalScale(24),
+    },
+    skeletonSubject: {
+      width: scale(66),
+      height: verticalScale(9),
+    },
+    skeletonTime: {
+      width: scale(40),
+      height: verticalScale(9),
+    },
+    skeletonCardTitle: {
+      width: '82%',
+      height: verticalScale(14),
+      marginTop: verticalScale(9),
+    },
+    skeletonCardBody: {
+      width: '58%',
+      height: verticalScale(11),
+      marginTop: verticalScale(8),
     },
     noteCard: {
       backgroundColor: '#fff',

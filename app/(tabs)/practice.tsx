@@ -5,28 +5,18 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   View,
-  ViewStyle,
 } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { MathText } from '@/components/math-text';
 import { PracticeTabsHeader } from '@/components/practice-tabs-header';
 import { RuledPaper } from '@/components/ruled-paper';
+import { Skeleton, stagger } from '@/components/skeleton';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -319,7 +309,7 @@ export default function PracticeScreen() {
           </View>
 
           {loading && !question ? (
-            <QuestionSkeleton styles={styles} />
+            <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
           ) : poolMessage ? (
             <View style={styles.questionCard}>
               <Text style={styles.questionOverline}>No questions left</Text>
@@ -552,50 +542,55 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
 }
 
 // Mimics the loaded question-card + option-row layout so the ~5-10s real
-// backend latency reads as "content incoming" rather than a bare spinner.
-// Opacity-only pulse (no measured layout) per this codebase's past
-// Reanimated width/layout-animation bugs on real devices.
-// Each bar pulses on its own delay, cascading top-to-bottom instead of
-// blinking in lockstep — reads as considerably more "alive" than one flat
-// synchronized pulse. Still opacity-only, no measured layout involved, per
-// this codebase's past width/layout-animation bugs on real devices.
-function SkeletonPulse({ delay, style }: { delay: number; style: StyleProp<ViewStyle> }) {
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    opacity.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(0.35, { duration: 650, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 650, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-      )
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={[style, animatedStyle]} />;
-}
-
-function QuestionSkeleton({ styles }: { styles: ReturnType<typeof createStyles> }) {
+/**
+ * The whole page while a question is in flight — card, options, the action row
+ * and the "Stuck or curious?" block below it.
+ *
+ * It used to stop after the options, which is why the top of the screen looked
+ * like it was loading and the bottom looked broken. A placeholder has to reach
+ * as far down as the real content does.
+ *
+ * The card carries its own ruled paper and red margin rule, so the question
+ * lands into the card that was already there instead of replacing a flat box.
+ */
+function QuestionSkeleton({
+  styles,
+  verticalScale,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  verticalScale: (size: number) => number;
+}) {
   return (
     <>
       <View style={styles.questionCard}>
-        <SkeletonPulse delay={0} style={[styles.skeletonBar, styles.skeletonOverline]} />
-        <SkeletonPulse delay={60} style={[styles.skeletonBar, styles.skeletonBodyLine]} />
-        <SkeletonPulse delay={120} style={[styles.skeletonBar, styles.skeletonBodyLineFull]} />
-        <SkeletonPulse delay={180} style={[styles.skeletonBar, styles.skeletonBodyLineShort]} />
+        <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
+        <View style={styles.questionRule} />
+        <Skeleton delay={0} style={styles.skeletonOverline} />
+        <Skeleton delay={60} style={styles.skeletonBodyLine} />
+        <Skeleton delay={120} style={styles.skeletonBodyLineFull} />
+        <Skeleton delay={180} style={styles.skeletonBodyLineShort} />
       </View>
+
       <View style={styles.optionsList}>
-        {[240, 300, 360, 420].map((delay, i) => (
+        {[0, 1, 2, 3].map((i) => (
           <View key={i} style={styles.optionRow}>
-            <SkeletonPulse delay={delay} style={[styles.optionBadge, styles.skeletonBadge]} />
-            <SkeletonPulse delay={delay} style={[styles.skeletonBar, styles.skeletonOptionLine]} />
+            <Skeleton delay={stagger(i) + 240} style={[styles.optionBadge, styles.skeletonBadge]} />
+            <Skeleton delay={stagger(i) + 240} style={styles.skeletonOptionLine} />
           </View>
         ))}
+      </View>
+
+      <View style={styles.actionRow}>
+        <Skeleton delay={480} style={styles.skeletonSkip} />
+        <Skeleton delay={480} style={styles.skeletonReport} />
+      </View>
+
+      <View style={styles.stuckCard}>
+        <View style={styles.stuckTextBlock}>
+          <Skeleton delay={540} style={styles.skeletonStuckTitle} />
+          <Skeleton delay={600} style={styles.skeletonStuckSub} />
+        </View>
+        <Skeleton delay={600} style={styles.skeletonLearnButton} />
       </View>
     </>
   );
@@ -854,10 +849,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       textDecorationLine: 'underline',
       marginTop: verticalScale(14),
     },
-    skeletonBar: {
-      borderRadius: scale(6),
-      backgroundColor: 'rgba(28,26,22,.08)',
-    },
     skeletonOverline: {
       width: '40%',
       height: verticalScale(9),
@@ -878,12 +869,36 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(8),
     },
     skeletonBadge: {
-      backgroundColor: 'rgba(28,26,22,.08)',
       borderWidth: 0,
+      borderRadius: scale(8),
     },
     skeletonOptionLine: {
       flex: 1,
       height: verticalScale(14),
+    },
+    // The row below the options — "Skip →" on the left, "Report" on the right.
+    skeletonSkip: {
+      width: scale(46),
+      height: verticalScale(11),
+    },
+    skeletonReport: {
+      width: scale(54),
+      height: verticalScale(11),
+      marginLeft: 'auto',
+    },
+    skeletonStuckTitle: {
+      width: '58%',
+      height: verticalScale(13),
+    },
+    skeletonStuckSub: {
+      width: '88%',
+      height: verticalScale(10),
+      marginTop: verticalScale(7),
+    },
+    skeletonLearnButton: {
+      width: scale(94),
+      height: verticalScale(38),
+      borderRadius: scale(99),
     },
     questionCard: {
       position: 'relative',

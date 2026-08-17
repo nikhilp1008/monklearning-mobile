@@ -11,6 +11,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
 
+import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { BoardBlock, BoardContent } from '@/lib/board-sections';
 
 /**
@@ -662,3 +663,64 @@ function createStyles() {
 }
 
 export { GREEN_INK };
+
+/**
+ * A note while it's still being fetched. Same ruled ground, same title block,
+ * same chip rail, then a section label and a paragraph — so the page fills in
+ * rather than replacing itself.
+ */
+export function BoardPageSkeleton({ onBack }: { onBack: () => void }) {
+  const styles = useMemo(() => createStyles(), []);
+  const skeleton = useMemo(() => createBoardSkeletonStyles(), []);
+
+  return (
+    <View style={styles.screen}>
+      <RuledGround />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.bar}>
+          <Pressable style={styles.back} onPress={onBack} hitSlop={10}>
+            <BackChevron />
+          </Pressable>
+        </View>
+
+        <View style={styles.head}>
+          <Skeleton style={skeleton.topic} />
+          <Skeleton delay={60} style={skeleton.subject} />
+        </View>
+
+        <View style={styles.chipsWrap}>
+          <View style={[styles.chips, skeleton.chipRow]}>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} delay={stagger(i)} style={skeleton.chip} />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.scrollContent}>
+          {[0, 1].map((i) => (
+            <View key={i} style={styles.section}>
+              <Skeleton delay={stagger(i, 140)} style={skeleton.label} />
+              <SkeletonParagraph
+                lines={i === 0 ? 4 : 3}
+                lineHeight={14}
+                gap={12}
+                delay={stagger(i, 140) + 60}
+                widths={['100%', '97%', '92%', '58%']}
+              />
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function createBoardSkeletonStyles() {
+  return StyleSheet.create({
+    topic: { width: '78%', height: 26 },
+    subject: { width: 64, height: 11, marginTop: 10 },
+    chipRow: { flexDirection: 'row' },
+    chip: { width: 78, height: 34, borderRadius: 99 },
+    label: { width: 108, height: 10 },
+  });
+}

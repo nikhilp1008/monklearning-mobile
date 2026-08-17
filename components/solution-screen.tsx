@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } fr
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { ParsedStep } from '@/lib/solution-steps';
 
 /**
@@ -482,6 +483,79 @@ function createStyles() {
       backgroundColor: PAPER,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+  });
+}
+
+/**
+ * What a doubt looks like while it's being fetched: the same paper, the same
+ * bar, the question pinned under its rule, then two numbered steps on the rail.
+ * The layout doesn't move when the real solution lands — only the bars become
+ * words.
+ */
+export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
+  const styles = useMemo(() => createStyles(), []);
+  const skeleton = useMemo(() => createSkeletonStyles(), []);
+
+  return (
+    <View style={styles.screen}>
+      <GridPaper />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.bar}>
+          <Pressable style={styles.back} onPress={onBack} hitSlop={10}>
+            <BackChevron />
+          </Pressable>
+          <Text style={styles.title}>Solution</Text>
+        </View>
+
+        <View style={styles.scrollContent}>
+          <View style={styles.questionPin}>
+            <SkeletonParagraph lines={3} lineHeight={14} gap={10} widths={['100%', '96%', '54%']} />
+          </View>
+
+          <View style={styles.steps}>
+            <View style={styles.rail} />
+            {[0, 1].map((i) => (
+              <View key={i} style={styles.step}>
+                <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
+                <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />
+                <SkeletonParagraph
+                  lines={2}
+                  lineHeight={13}
+                  gap={9}
+                  delay={stagger(i, 120) + 60}
+                  widths={['100%', '72%']}
+                />
+                <Skeleton delay={stagger(i, 120) + 180} style={skeleton.math} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function createSkeletonStyles() {
+  const RAIL = 44;
+  return StyleSheet.create({
+    // Sits exactly where the numbered badge will.
+    num: {
+      position: 'absolute',
+      left: -RAIL,
+      top: 1,
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+    },
+    stepTitle: {
+      width: '62%',
+      height: 18,
+    },
+    math: {
+      width: '46%',
+      height: 34,
+      borderRadius: 8,
     },
   });
 }

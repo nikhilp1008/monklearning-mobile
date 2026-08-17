@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Skeleton, stagger } from '@/components/skeleton';
 import { WashSelectRow } from '@/components/wash-select-row';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -169,8 +170,12 @@ export default function PracticeFocusScreen() {
             </View>
 
             {loading ? (
-              <View style={styles.chapterLoadingBlock}>
-                <ActivityIndicator color={colors.ink} />
+              <View style={styles.chapterList}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <View key={i} style={styles.chapterRow}>
+                    <Skeleton delay={stagger(i)} style={styles.skeletonChapter} />
+                  </View>
+                ))}
               </View>
             ) : loadError ? (
               <Text style={styles.chapterErrorText}>{loadError}</Text>
@@ -330,11 +335,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.red,
       transform: [{ rotate: '-1deg' }],
     },
-    chapterLoadingBlock: {
-      paddingVertical: verticalScale(24),
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     chapterErrorText: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
@@ -345,6 +345,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     chapterList: {
       flexDirection: 'column',
       gap: verticalScale(7),
+    },
+    skeletonChapter: {
+      width: '70%',
+      height: verticalScale(12),
     },
     chapterRow: {
       flexDirection: 'row',

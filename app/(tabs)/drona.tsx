@@ -1,10 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { Skeleton, stagger } from '@/components/skeleton';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -126,8 +127,16 @@ export default function ChapterSelectorScreen() {
 
         <View style={styles.listWrap}>
           {loading ? (
-            <View style={styles.loadingBlock}>
-              <ActivityIndicator color={colors.ink} />
+            // Eight rows is what fits above the fold, so the list arrives into
+            // the shape it was already occupying.
+            <View style={styles.listContent}>
+              {Array.from({ length: 8 }, (_, i) => (
+                <View key={i} style={styles.chapterRow}>
+                  <Skeleton delay={stagger(i)} style={styles.skeletonNumber} />
+                  <Skeleton delay={stagger(i)} style={styles.skeletonTitle} />
+                  <Skeleton delay={stagger(i)} style={styles.skeletonMeta} />
+                </View>
+              ))}
             </View>
           ) : loadError ? (
             <View style={styles.loadingBlock}>
@@ -389,6 +398,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
+    },
+    // Sized to the row's real parts: the number, the title, the topic count.
+    skeletonNumber: {
+      width: scale(16),
+      height: verticalScale(10),
+    },
+    skeletonTitle: {
+      flex: 1,
+      height: verticalScale(12),
+    },
+    skeletonMeta: {
+      width: scale(52),
+      height: verticalScale(10),
     },
     fadeMask: {
       position: 'absolute',
