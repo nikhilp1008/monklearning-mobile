@@ -7,6 +7,7 @@ import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { SnapLoading } from '@/components/snap-loading';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
@@ -42,24 +43,39 @@ export default function SnapCaptureScreen() {
   /** Which permission was refused — the copy differs, and offering "choose from
    *  gallery" to someone who just denied gallery access is a dead end. */
   const [deniedTarget, setDeniedTarget] = useState<'camera' | 'gallery'>('camera');
+  /** Lets Cancel on the loading screen actually stop the request in flight,
+   *  rather than leaving it running against a screen nobody is watching. */
+  const uploadAbortRef = useRef<AbortController | null>(null);
 
   async function upload(toUpload: DoubtPhoto) {
     setPhase('uploading');
     setFailure(null);
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
     try {
-      const response = await snapDoubt(toUpload);
+      const response = await snapDoubt(toUpload, controller.signal);
       // Handed off via a module-level slot, not a router param — see
       // setPendingSnapResult's own comment for why JSON.stringify-through-
       // params is unsafe for this payload.
       setPendingSnapResult(response);
       router.push('/snap-solved');
     } catch (err) {
+      // A deliberate cancel already closed the screen — don't flash a failure
+      // at someone who asked to stop.
+      if (controller.signal.aborted) return;
       const result = readSnapFailure(err);
       setFailure(result);
       setCanRetryUpload(result.stage !== 'quota');
       setPhase('failed');
+    } finally {
+      uploadAbortRef.current = null;
     }
   }
+
+  const cancelUpload = () => {
+    uploadAbortRef.current?.abort();
+    close();
+  };
 
   async function handlePicked(result: ImagePicker.ImagePickerResult) {
     if (result.canceled || !result.assets?.[0]) {
@@ -145,6 +161,18 @@ export default function SnapCaptureScreen() {
   }, []);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  // The full-bleed loading design owns the whole screen while a solve is in
+  // flight — the student's own shot behind the scan, not a spinner over a
+  // thumbnail. See snap-loading-2c/ for the spec this implements.
+  if (phase === 'uploading' && photo) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <SnapLoading photoUri={photo.uri} onCancel={cancelUpload} onClose={cancelUpload} />
+      </>
+    );
+  }
 
   return (
     <View style={styles.screen}>

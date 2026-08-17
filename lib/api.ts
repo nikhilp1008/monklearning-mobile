@@ -57,20 +57,32 @@ export async function apiFetch<T>(
   // A hard client-side ceiling so a stalled connection can't hang a spinner
   // forever. Infra (Railway/Cloudflare) usually times out first with the HTML
   // page handled above; this is the backstop for when it doesn't.
-  const { timeoutMs, ...fetchOptions } = options;
+  const { timeoutMs, signal: callerSignal, ...fetchOptions } = options;
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs ?? DEFAULT_TIMEOUT_MS);
+
+  // A caller-supplied signal (Cancel on the snap loading screen) has to reach
+  // the same controller the timeout uses — fetch takes one signal, not two.
+  const abortFromCaller = () => timeoutController.abort();
+  if (callerSignal) {
+    if (callerSignal.aborted) timeoutController.abort();
+    else callerSignal.addEventListener('abort', abortFromCaller);
+  }
 
   let res: Response;
   try {
     res = await fetch(url, { ...fetchOptions, headers, signal: timeoutController.signal });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
+      // A caller cancelling deliberately isn't a failure to report back — the
+      // screen that cancelled is already leaving.
+      if (callerSignal?.aborted) throw new ApiError('cancelled', 0);
       throw new ApiError('This is taking longer than expected — check your connection and try again.', 0);
     }
     throw err;
   } finally {
     clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', abortFromCaller);
   }
 
   const contentType = res.headers.get('content-type');

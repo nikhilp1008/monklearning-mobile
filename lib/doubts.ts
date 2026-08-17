@@ -170,7 +170,7 @@ export function getDoubt(doubtId: string): Promise<DoubtDetail> {
  */
 const SNAP_TIMEOUT_MS = 150000;
 
-export async function snapDoubt(photo: DoubtPhoto): Promise<SnapResponse> {
+export async function snapDoubt(photo: DoubtPhoto, signal?: AbortSignal): Promise<SnapResponse> {
   const body = new FormData();
   // React Native's FormData accepts this {uri, name, type} shape directly —
   // there's no browser File object on-device to append instead.
@@ -179,7 +179,7 @@ export async function snapDoubt(photo: DoubtPhoto): Promise<SnapResponse> {
     name: photo.fileName || 'doubt.jpg',
     type: photo.mimeType || 'image/jpeg',
   } as unknown as Blob);
-  return apiFetch('/doubts', { method: 'POST', body, timeoutMs: SNAP_TIMEOUT_MS });
+  return apiFetch('/doubts', { method: 'POST', body, timeoutMs: SNAP_TIMEOUT_MS, signal });
 }
 
 export function reportDoubt(doubtId: string, comment?: string): Promise<{ reported: boolean }> {
