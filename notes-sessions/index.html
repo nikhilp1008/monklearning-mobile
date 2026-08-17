@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monk Learning — Notes &amp; Sessions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="board-page.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:#EFEAE0;color:#1C1A16;font-family:'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;padding:52px 24px 70px;display:flex;flex-direction:column;align-items:center;gap:30px}
+  a{color:#B97A0F;text-decoration:none}
+  a:hover{color:#8F5E0B}
+  .head{max-width:640px;text-align:center}
+  .head h1{font-size:29px;font-weight:700;letter-spacing:-.03em}
+  .head p{margin-top:8px;font-size:16px;line-height:1.5;color:#57534B;text-wrap:pretty}
+  .row{display:flex;gap:44px;flex-wrap:wrap;justify-content:center}
+  .col{display:flex;flex-direction:column;gap:12px;align-items:center}
+  .col h2{font-size:14px;font-weight:700;letter-spacing:.1em;color:#9C988C}
+  .frame{width:390px;height:844px;border-radius:32px;overflow:hidden;box-shadow:0 26px 56px -28px rgba(28,26,22,.5)}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>Notes &amp; Sessions</h1>
+  <p>The same board page in two states. A note is kept for good. A session is the class the student forgot to save — it holds for seven days, then deletes itself. Tap the section chips to jump, tap a paragraph to highlight it, and press Save to notes on the session to see it become a note.</p>
+</div>
+
+<div class="row">
+  <div class="col">
+    <h2>NOTE</h2>
+    <div class="frame"><div id="note"></div></div>
+  </div>
+  <div class="col">
+    <h2>SESSION</h2>
+    <div class="frame"><div id="session"></div></div>
+  </div>
+</div>
+
+<script src="board-page.js"></script>
+<script>
+  renderBoard(document.getElementById('note'), TORQUE_BOARD, { mode: 'note' });
+  renderBoard(document.getElementById('session'), TORQUE_BOARD, { mode: 'session', daysLeft: 7 });
+</script>
+</body>
+</html>
