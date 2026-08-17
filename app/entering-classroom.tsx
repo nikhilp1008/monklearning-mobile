@@ -49,6 +49,32 @@ export default function EnteringClassroomScreen() {
     initialUtterance?: string;
   }>();
   const chapterTitle = params.chapterTitle || 'this chapter';
+  const chapterId = params.chapterId ?? '';
+  const initialUtterance = params.initialUtterance ?? '';
+  /**
+   * Expo Router can render this screen once before its route params are
+   * attached. The session used to start on that first frame, from a `[]`-deps
+   * effect that captured the empty params — so it went out with no
+   * chapter_id, the API fell back to naming the chapter "this topic", and
+   * `!params.initialUtterance` was true, which dropped the student into the
+   * scoping conversation they had already answered by picking a subtopic.
+   * That is the intermittent landscape Q&A screen: it only appeared when the
+   * first frame lost the race.
+   *
+   * So the session waits for the params to exist. Every route into this
+   * screen passes at least a chapterTitle, and the timeout below is only a
+   * backstop so a bare deep link can never hang on the loader.
+   */
+  const hasParams = Boolean(params.chapterTitle || chapterId || initialUtterance);
+  const [paramsSettled, setParamsSettled] = useState(false);
+  useEffect(() => {
+    if (hasParams) {
+      setParamsSettled(true);
+      return;
+    }
+    const id = setTimeout(() => setParamsSettled(true), 400);
+    return () => clearTimeout(id);
+  }, [hasParams]);
   const { scale, verticalScale } = useLandscapeScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
@@ -62,14 +88,18 @@ export default function EnteringClassroomScreen() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const autoSubmittedRef = useRef(false);
+  /** The session is started exactly once, on the first render that has params. */
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    if (startedRef.current || !paramsSettled) return;
+    startedRef.current = true;
     let cancelled = false;
     Promise.all([getTeacherPreference(), getLanguagePreference()])
       .then(([teacher, language]) => {
         if (cancelled) return Promise.reject(new Error('cancelled'));
         return startDronaSession({
-          chapter_id: params.chapterId || undefined,
+          chapter_id: chapterId || undefined,
           voice: teacherToVoice(teacher),
           language,
         });
@@ -80,7 +110,7 @@ export default function EnteringClassroomScreen() {
         setSpeech(res.speech);
         // A pre-selected subtopic auto-submits below — stay on the loading
         // screen until that resolves, rather than flashing the scoping UI.
-        if (!params.initialUtterance) {
+        if (!initialUtterance) {
           setStage('scoping');
         }
       })
@@ -93,7 +123,7 @@ export default function EnteringClassroomScreen() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [paramsSettled]);
 
   async function submit(
     utterance: string,
@@ -167,12 +197,12 @@ export default function EnteringClassroomScreen() {
   // fire the same submit real users trigger by hand, but as soon as the
   // session exists rather than waiting on the scoping UI to mount.
   useEffect(() => {
-    if (sessionId && params.initialUtterance && !autoSubmittedRef.current) {
+    if (sessionId && initialUtterance && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
-      submit(params.initialUtterance, { skipCheck: true, fromPreselected: true });
+      submit(initialUtterance, { skipCheck: true, fromPreselected: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, initialUtterance]);
 
   // Hold on a plain paper-coloured field until the device has actually turned.
   // Painting the landscape layout into a still-portrait window is what made
