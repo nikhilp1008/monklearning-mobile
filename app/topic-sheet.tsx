@@ -81,8 +81,13 @@ export default function TopicSheetScreen() {
 
   // Whatever the student taps/free-talks reaches the real backend: it's
   // forwarded as the scoping conversation's opening line in entering-classroom.
+  // `replace`, not `push`: this screen is a transparentModal, so pushing left
+  // it sitting in the stack underneath the whole class. Nothing showed while
+  // the opaque classroom covered it, but the moment the class ended and the
+  // summary animated in, this sheet was what showed through behind it for
+  // about a second. Replacing takes the sheet out of the stack on the way in.
   const goToClassroom = (initialUtterance?: string) =>
-    router.push({
+    router.replace({
       pathname: '/entering-classroom',
       params: { chapterId: chapterId ?? '', chapterTitle, initialUtterance: initialUtterance ?? '' },
     });

@@ -1,20 +1,62 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
-
-import { CheckIcon } from '@/components/check-icon';
-import { ProtractorMark } from '@/components/protractor-mark';
-import { RuledPaper } from '@/components/ruled-paper';
-import { colors } from '@/constants/brand';
-import { useScale } from '@/constants/scale';
 import { saveNote } from '@/lib/notes';
 
+/**
+ * Class dismissed — what the student sees the moment a live class ends.
+ *
+ * Rebuilt in the same language as the note and solution pages: ruled paper,
+ * amber section label, plain rows instead of cards. The old version was from an
+ * earlier design era — a badge above the heading saying the same thing twice, a
+ * Hinglish line, and four bordered boxes stacked down the screen.
+ *
+ * Deliberately absent: the class duration. How long a class ran is not an
+ * achievement and not something a student acts on; what they answered and what
+ * was covered are.
+ */
+
+const INK = '#1C1A16';
+const INK_70 = '#4A463D';
+const INK_50 = '#8A8478';
+const PAPER = '#FFFFFF';
+const RULE = 'rgba(28,26,22,0.055)';
+const HAIR = 'rgba(28,26,22,0.12)';
+const AMBER = '#B08420';
+const GREEN = '#1C9B57';
+const RED = '#DD4433';
+
+const LINE_HEIGHT = 34;
+const GUTTER = 24;
+
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+function RuledGround() {
+  const { height } = useWindowDimensions();
+  const rows = Math.ceil(height / LINE_HEIGHT) + 1;
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: rows }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: (i + 1) * LINE_HEIGHT - 1,
+            height: 1,
+            backgroundColor: RULE,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
 
 export default function SessionSummaryScreen() {
   // This screen is reached straight from the landscape classroom, so it asks
@@ -22,8 +64,8 @@ export default function SessionSummaryScreen() {
   // the way out — that restore was timer-based, and losing the race is what
   // made this screen appear in landscape for a moment before snapping.
   const isPortrait = usePortraitLock();
-  const { scale, verticalScale } = useScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(), []);
 
   const params = useLocalSearchParams<{
     sessionId?: string;
@@ -31,11 +73,9 @@ export default function SessionSummaryScreen() {
     summaryPoints?: string;
     mistakesCount?: string;
     questionsAnswered?: string;
-    durationMinutes?: string;
   }>();
 
   const chapterTitle = params.chapterTitle || 'this class';
-  const durationMinutes = Number(params.durationMinutes) || 0;
   const questionsAnswered = Number(params.questionsAnswered) || 0;
   const mistakesCount = Number(params.mistakesCount) || 0;
   const correctCount = Math.max(0, questionsAnswered - mistakesCount);
@@ -56,7 +96,9 @@ export default function SessionSummaryScreen() {
   const handleSave = async () => {
     if (!params.sessionId || saveState === 'saving') return;
     if (saveState === 'saved') {
-      if (savedNoteId.current) router.push({ pathname: '/note-detail', params: { id: savedNoteId.current } });
+      if (savedNoteId.current) {
+        router.push({ pathname: '/note-detail', params: { id: savedNoteId.current } });
+      }
       return;
     }
     setSaveState('saving');
@@ -75,13 +117,11 @@ export default function SessionSummaryScreen() {
     saveState === 'saving'
       ? 'Saving…'
       : saveState === 'saved'
-        ? 'Saved — view in notes'
+        ? 'Saved — open your note'
         : saveState === 'error'
           ? 'Couldn’t save — tap to retry'
-          : 'Save board to notes';
+          : 'Save to notes';
 
-  // Hold until the device is back in portrait, so this never flashes as a
-  // portrait layout stretched across a landscape window.
   if (!isPortrait) {
     return <View style={styles.rotateHold} />;
   }
@@ -89,114 +129,91 @@ export default function SessionSummaryScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
-          <View style={styles.completeBadge}>
-            <CheckIcon size={scale(11)} color="#157A45" />
-            <Text style={styles.completeBadgeText}>Class complete</Text>
-          </View>
-
+      <RuledGround />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
           <Text style={styles.heading}>Class dismissed.</Text>
-          <Text style={styles.hinglishSub}>
-            achha padha aaj — here&apos;s what we covered.
-          </Text>
+          <Text style={styles.sub}>Good work today — here&apos;s what you covered.</Text>
 
-          <View style={styles.chapterCard}>
-            <View style={styles.chapterIconChip}>
-              <ProtractorMark size={scale(20)} simplified />
-            </View>
-            <View style={styles.chapterTextBlock}>
-              <Text style={styles.chapterOverline}>Chapter</Text>
-              <Text style={styles.chapterTitle} numberOfLines={2}>{chapterTitle}</Text>
-              <Text style={styles.chapterMeta}>taught by Drona, on the board</Text>
-            </View>
-          </View>
+          <Text style={styles.topic}>{chapterTitle}</Text>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statOverline}>Time</Text>
-              <Text style={styles.statValue}>{durationMinutes} min</Text>
-              <Text style={styles.statCaption}>of live class</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statOverline}>Answered</Text>
-              <Text style={styles.statValue}>{questionsAnswered}</Text>
-              {questionsAnswered > 0 ? (
-                <Text style={styles.statCaptionGreen}>{correctCount} correct</Text>
-              ) : (
-                <Text style={styles.statCaption}>no questions this time</Text>
+          {/* Plain rows on a hairline rather than bordered cards. Duration is
+              gone: it is not something a student can act on. */}
+          {(questionsAnswered > 0 || covered.length > 0) && (
+            <View style={styles.stats}>
+              {questionsAnswered > 0 && (
+                <View style={styles.statRow}>
+                  <Text style={styles.statValue}>
+                    {correctCount}
+                    <Text style={styles.statOf}> of {questionsAnswered}</Text>
+                  </Text>
+                  <Text style={styles.statLabel}>answered in class</Text>
+                </View>
+              )}
+              {covered.length > 0 && (
+                <View style={styles.statRow}>
+                  <Text style={styles.statValue}>{covered.length}</Text>
+                  <Text style={styles.statLabel}>
+                    topic{covered.length === 1 ? '' : 's'} covered
+                  </Text>
+                </View>
               )}
             </View>
-          </View>
-
-          <View style={styles.coveredCard}>
-            <View style={styles.coveredRuledClip}>
-              <RuledPaper step={verticalScale(27)} count={10} />
-            </View>
-            <View style={styles.coveredRule} />
-            <View style={styles.coveredBadge}>
-              <Text style={styles.coveredBadgeText}>WHAT WE COVERED</Text>
-            </View>
-            <View style={styles.coveredList}>
-              {covered.length > 0 ? (
-                covered.map((line) => (
-                  <View key={line} style={styles.coveredRow}>
-                    <View style={styles.coveredCheck}>
-                      <CheckIcon size={scale(10)} color="#157A45" />
-                    </View>
-                    <Text style={styles.coveredText}>{line}</Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.coveredText}>
-                  Drona didn&apos;t leave a summary for this class.
-                </Text>
-              )}
-            </View>
-          </View>
-
-          <Text style={styles.backupNote}>
-            The full board is backed up in <Text style={styles.backupNoteBold}>Recent sessions</Text> for
-            7 days — save it as a note to keep it forever.
-          </Text>
-          {saveState === 'error' && saveError && (
-            <Text style={styles.saveErrorText}>{saveError}</Text>
           )}
-        </View>
 
-        <View style={styles.footer}>
+          {covered.length > 0 && (
+            <View style={styles.coveredBlock}>
+              <Text style={styles.label}>WHAT WE COVERED</Text>
+              {covered.map((line, i) => (
+                <View key={i} style={styles.coveredRow}>
+                  <View style={styles.tick}>
+                    <TickIcon />
+                  </View>
+                  <Text style={styles.coveredText}>{line}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <Text style={styles.foot}>
+            {params.sessionId
+              ? 'Unsaved classes are kept for seven days, then they go. Saving keeps this board for good.'
+              : 'This class wasn’t recorded, so there’s nothing to save.'}
+          </Text>
+
+          {!!saveError && <Text style={styles.error}>{saveError}</Text>}
+        </ScrollView>
+      </SafeAreaView>
+
+      <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
+        {!!params.sessionId && (
           <Pressable
-            style={[
-              styles.ctaButton,
-              (!params.sessionId || saveState === 'saving') && styles.ctaButtonDisabled,
-            ]}
-            disabled={!params.sessionId || saveState === 'saving'}
-            onPress={handleSave}>
-            {saveState === 'saved' ? (
-              <CheckIcon size={scale(15)} color={colors.paper} />
-            ) : (
-              <BookmarkIcon size={scale(15)} />
-            )}
-            <Text style={styles.ctaButtonText}>
-              {params.sessionId ? saveLabel : 'Nothing to save from this class'}
+            style={[styles.primary, saveState === 'saved' && styles.primarySaved]}
+            onPress={handleSave}
+            disabled={saveState === 'saving'}>
+            <Text style={[styles.primaryText, saveState === 'saved' && styles.primaryTextSaved]}>
+              {saveLabel}
             </Text>
           </Pressable>
-          <Pressable onPress={() => router.dismissTo('/')}>
-            <Text style={styles.dashboardLink}>Go to dashboard</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+        )}
+        <Pressable onPress={() => router.dismissTo('/')} hitSlop={10}>
+          <Text style={styles.dashboardLink}>Go to dashboard</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
-function BookmarkIcon({ size }: { size: number }) {
+function TickIcon() {
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <Svg viewBox="0 0 24 24" width={11} height={11} fill="none">
       <Path
-        d="M6 4h12v16l-6-3-6 3z"
-        stroke={colors.paper}
-        strokeWidth={1.8}
+        d="M20 6 9 17l-5-5"
+        stroke={GREEN}
+        strokeWidth={3.2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -204,282 +221,137 @@ function BookmarkIcon({ size }: { size: number }) {
   );
 }
 
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
+function createStyles() {
   return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    rotateHold: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    content: {
-      flex: 1,
-      paddingTop: verticalScale(18),
-      paddingHorizontal: scale(20),
-      alignItems: 'center',
-    },
-    completeBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(7),
-      backgroundColor: 'rgba(28,155,87,.08)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.3)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(14),
-    },
-    completeBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      letterSpacing: scale(1.1),
-      textTransform: 'uppercase',
-      color: '#157A45',
-    },
+    screen: { flex: 1, backgroundColor: PAPER },
+    rotateHold: { flex: 1, backgroundColor: PAPER },
+    safeArea: { flex: 1 },
+    scroll: { flex: 1, minHeight: 0 },
+    scrollContent: { paddingHorizontal: GUTTER, paddingTop: 26, paddingBottom: 40 },
+
     heading: {
-      fontFamily: 'AnekLatin_500Medium',
-      fontSize: scale(30),
-      letterSpacing: scale(-0.75),
-      color: colors.ink,
-      marginTop: verticalScale(14),
-      textAlign: 'center',
-    },
-    hinglishSub: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(15),
-      color: colors.red,
-      marginTop: verticalScale(6),
-      transform: [{ rotate: '-0.4deg' }],
-      textAlign: 'center',
-    },
-    chapterCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'stretch',
-      gap: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(15),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(16),
-      marginTop: verticalScale(22),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    chapterIconChip: {
-      width: scale(38),
-      height: scale(38),
-      flexShrink: 0,
-      borderRadius: scale(11),
-      backgroundColor: colors.segmentTrack,
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    chapterTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    chapterOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.26),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    chapterTitle: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(15),
-      letterSpacing: scale(-0.15),
-      color: colors.ink,
-      marginTop: verticalScale(2),
+      fontSize: 31,
+      letterSpacing: -0.04 * 31,
+      lineHeight: 31 * 1.06,
+      color: INK,
     },
-    chapterMeta: {
+    sub: {
+      marginTop: 8,
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: 16,
+      lineHeight: 16 * 1.5,
+      color: INK_70,
+    },
+    topic: {
+      marginTop: 22,
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
+      fontSize: 17,
+      color: INK,
     },
-    statsRow: {
+
+    stats: {
       flexDirection: 'row',
-      alignSelf: 'stretch',
-      gap: scale(10),
-      marginTop: verticalScale(10),
+      gap: 28,
+      marginTop: 18,
+      paddingTop: 16,
+      paddingBottom: 4,
+      borderTopWidth: 1,
+      borderTopColor: HAIR,
     },
-    statCard: {
-      flex: 1,
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(15),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    statOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.26),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
+    statRow: {},
     statValue: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.72),
-      color: colors.ink,
-      marginTop: verticalScale(4),
+      fontSize: 26,
+      letterSpacing: -0.03 * 26,
+      color: INK,
     },
-    statCaption: {
+    statOf: {
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
+      fontSize: 17,
+      color: INK_50,
     },
-    statCaptionGreen: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: '#157A45',
+    statLabel: {
+      marginTop: 2,
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: 13,
+      color: INK_50,
     },
-    coveredCard: {
-      position: 'relative',
-      alignSelf: 'stretch',
-      backgroundColor: '#fff',
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(16),
-      paddingTop: verticalScale(22),
-      paddingRight: scale(18),
-      paddingBottom: verticalScale(18),
-      paddingLeft: scale(40),
-      marginTop: verticalScale(14),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.2,
-      shadowRadius: scale(10),
-      elevation: 4,
-    },
-    coveredRuledClip: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: scale(14.5),
-      overflow: 'hidden',
-    },
-    coveredRule: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      left: scale(26),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.35)',
-    },
-    coveredBadge: {
-      position: 'absolute',
-      top: verticalScale(-10),
-      left: scale(14),
-      backgroundColor: colors.marigold,
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(6),
-      paddingVertical: verticalScale(2),
-      paddingHorizontal: scale(8),
-    },
-    coveredBadgeText: {
+
+    coveredBlock: { marginTop: 30, gap: 12 },
+    label: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
-      color: colors.ink,
+      fontSize: 11,
+      letterSpacing: 0.14 * 11,
+      color: AMBER,
     },
-    coveredList: {
-      flexDirection: 'column',
-      gap: verticalScale(10),
-    },
-    coveredRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    coveredCheck: {
-      width: scale(18),
-      height: scale(18),
+    coveredRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
+    tick: {
+      width: 18,
+      height: 18,
+      marginTop: 3,
       flexShrink: 0,
-      borderRadius: scale(9),
-      backgroundColor: 'rgba(28,155,87,.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.35)',
+      borderRadius: 9,
+      backgroundColor: 'rgba(28,155,87,0.12)',
       alignItems: 'center',
       justifyContent: 'center',
     },
     coveredText: {
       flex: 1,
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    backupNote: {
-      alignSelf: 'stretch',
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(12),
-      lineHeight: scale(18),
-      color: colors.slate,
-      marginTop: verticalScale(14),
+      fontSize: 16,
+      lineHeight: 16 * 1.62,
+      color: INK_70,
     },
-    backupNoteBold: {
-      fontFamily: 'AnekLatin_700Bold',
+
+    foot: {
+      marginTop: 30,
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: 14,
+      lineHeight: 14 * 1.5,
+      color: INK_50,
     },
-    saveErrorText: {
+    error: {
+      marginTop: 12,
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.red,
-      marginTop: verticalScale(8),
+      fontSize: 13,
+      color: RED,
     },
-    footer: {
-      flexShrink: 0,
-      paddingHorizontal: scale(24),
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(12),
+
+    actions: {
+      paddingHorizontal: GUTTER,
+      paddingTop: 12,
+      gap: 4,
+      backgroundColor: PAPER,
+      borderTopWidth: 1,
+      borderTopColor: HAIR,
     },
-    ctaButton: {
-      flexDirection: 'row',
+    // No drop shadow: the ruled ground reads as paper, and a floating shadow
+    // over it is exactly the boxiness this screen was rebuilt to lose.
+    primary: {
+      height: 54,
+      borderRadius: 99,
+      backgroundColor: INK,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
     },
-    ctaButtonDisabled: {
-      opacity: 0.5,
+    primarySaved: {
+      backgroundColor: 'rgba(28,155,87,0.12)',
     },
-    ctaButtonText: {
+    primaryText: {
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
+      fontSize: 16,
+      color: PAPER,
+    },
+    primaryTextSaved: {
+      color: '#14663A',
     },
     dashboardLink: {
       textAlign: 'center',
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(13),
-      color: colors.slate,
-      paddingTop: verticalScale(13),
-      paddingBottom: verticalScale(2),
+      fontSize: 14,
+      color: INK_50,
+      paddingVertical: 14,
     },
   });
 }
