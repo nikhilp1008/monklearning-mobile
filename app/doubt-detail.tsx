@@ -17,6 +17,8 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
 
 export default function DoubtDetailScreen() {
   const params = useLocalSearchParams<{
+    /** Every question on the photo, comma-separated, in reading order. */
+    ids?: string;
     id?: string;
     title?: string;
     subject?: string;
@@ -27,18 +29,36 @@ export default function DoubtDetailScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [detail, setDetail] = useState<DoubtDetail | null>(null);
-  const [loading, setLoading] = useState(!!params.id);
+  const [details, setDetails] = useState<DoubtDetail[]>([]);
+  const [index, setIndex] = useState(0);
+  const [loading, setLoading] = useState(!!(params.ids || params.id));
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // A photo with three questions on it is one doubt with three questions —
+  // the same Q1/Q2/Q3 the student saw straight after snapping it. The API
+  // keeps a row per question, because they are solved and reported
+  // separately, so the whole page is fetched by id and reassembled here.
+  const ids = useMemo(
+    () =>
+      (params.ids ?? params.id ?? '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+    [params.ids, params.id]
+  );
+  const idKey = ids.join(',');
+
   useEffect(() => {
-    if (!params.id) return;
+    if (!idKey) return;
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    getDoubt(params.id)
-      .then((d) => {
-        if (!cancelled) setDetail(d);
+    Promise.all(idKey.split(',').map((id) => getDoubt(id)))
+      .then((loaded) => {
+        if (!cancelled) {
+          setDetails(loaded);
+          setIndex(0);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -51,28 +71,31 @@ export default function DoubtDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [idKey]);
 
-  // A saved doubt is a single question, so the solution screen renders it with
-  // no chip row — same component, same treatment as straight after a snap.
-  const questions: SolutionQuestion[] = useMemo(() => {
-    if (!detail) return [];
-    return [
-      {
-        id: 'Q1',
+  // One chip per question on the photo, so a saved doubt reads exactly as it
+  // did on snap-solved. SolutionScreen hides the chip row when there is one.
+  const questions: SolutionQuestion[] = useMemo(
+    () =>
+      details.map((detail, i) => ({
+        id: `Q${i + 1}`,
         // Run through latexToText like everywhere else: the raw stem carries
         // `$(\mathrm{P} \cup \mathrm{Q})$`, which this screen used to print
         // verbatim at the student.
-        text: latexToText(detail.stem ?? detail.question_text ?? params.title ?? 'This doubt'),
+        text: latexToText(
+          detail.stem ?? detail.question_text ?? (i === 0 ? params.title : null) ?? 'This doubt'
+        ),
         steps: parseSolutionSteps(detail.steps, detail.explanation),
         answer: detail.answer ? latexToText(detail.answer) : null,
         failureNote:
           detail.status === 'solved'
             ? null
             : (detail.failure_reason ?? 'This one couldn’t be solved from the photo.'),
-      },
-    ];
-  }, [detail, params.title]);
+      })),
+    [details, params.title]
+  );
+
+  const current = details[index];
 
   if (loading) {
     return (
@@ -101,22 +124,23 @@ export default function DoubtDetailScreen() {
       <StatusBar style="dark" />
       <SolutionScreen
         questions={questions}
-        index={0}
-        onSelect={() => {}}
+        index={index}
+        onSelect={setIndex}
         onBack={() => router.back()}
         onFollowUp={() =>
           router.push({
             pathname: '/entering-classroom',
             params: {
-              chapterTitle: detail?.chapter ?? detail?.concept ?? 'this doubt',
-              initialUtterance: questions[0].text,
+              // The question the student is looking at, not always the first.
+              chapterTitle: current?.chapter ?? current?.concept ?? 'this doubt',
+              initialUtterance: questions[index]?.text ?? '',
             },
           })
         }
         onReport={() =>
           router.push({
             pathname: '/report-sheet',
-            params: { doubtId: params.id ?? '' },
+            params: { doubtId: current?.id ?? params.id ?? '' },
           })
         }
       />

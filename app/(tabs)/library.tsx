@@ -151,6 +151,28 @@ export default function LibraryScreen() {
     [doubts, doubtsFilter]
   );
 
+  // One photo is one doubt, however many questions were on it. The API stores
+  // a row per question — which is right, they're solved and reported
+  // separately — but a student who snapped one page expects one entry here,
+  // and then Q1/Q2/Q3 inside it, exactly as they saw straight after the snap.
+  const doubtGroups = useMemo(() => {
+    const bySubmission = new Map<string, DoubtSummary[]>();
+    for (const doubt of visibleDoubts) {
+      // Older rows predate submission_id; fall back to the doubt's own id so
+      // they each stand alone rather than collapsing into one nameless group.
+      const key = doubt.submission_id || doubt.id;
+      const group = bySubmission.get(key);
+      if (group) group.push(doubt);
+      else bySubmission.set(key, [doubt]);
+    }
+    return Array.from(bySubmission.values()).map((questions) => {
+      const ordered = questions
+        .slice()
+        .sort((a, b) => (a.question_index ?? 0) - (b.question_index ?? 0));
+      return { key: ordered[0].submission_id || ordered[0].id, questions: ordered };
+    });
+  }, [visibleDoubts]);
+
   // Tracks each segment button's x/width so the sliding indicator below can
   // interpolate to its exact position instead of guessing at equal thirds —
   // "Notes"/"Doubts"/"Sessions" aren't the same width.
@@ -384,7 +406,7 @@ export default function LibraryScreen() {
                     </View>
                   </PressableScale>
                 ))}
-                <Text style={styles.filterCount}>{visibleDoubts.length} doubts</Text>
+                <Text style={styles.filterCount}>{doubtGroups.length} doubts</Text>
               </View>
 
               {doubtsLoading ? (
@@ -403,31 +425,44 @@ export default function LibraryScreen() {
                 </View>
               ) : (
                 <View style={styles.doubtsList}>
-                  {visibleDoubts.map((doubt) => (
-                    <PressableScale
-                      key={doubt.id}
-                      style={styles.doubtCard}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/doubt-detail',
-                          params: {
-                            id: doubt.id,
-                            title: doubt.stem ?? doubt.question_text ?? '',
-                            subject: doubt.subject ?? '',
-                            chapter: doubt.chapter ?? doubt.concept ?? '',
-                            time: `snapped ${formatRelativeTime(doubt.created_at)}`,
-                          },
-                        })
-                      }>
-                      <Text style={styles.doubtMeta}>
-                        <Text style={styles.doubtMetaSubject}>{doubt.subject ?? 'General'}</Text>
-                        {` · ${doubt.chapter ?? doubt.concept ?? 'Doubt'} · ${formatRelativeTime(doubt.created_at)}`}
-                      </Text>
-                      <Text style={styles.doubtTitle} numberOfLines={2}>
-                        {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
-                      </Text>
-                    </PressableScale>
-                  ))}
+                  {doubtGroups.map((group) => {
+                    const first = group.questions[0];
+                    const count = group.questions.length;
+                    return (
+                      <PressableScale
+                        key={group.key}
+                        style={styles.doubtCard}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/doubt-detail',
+                            params: {
+                              // Every question on the photo, in the order they
+                              // were read, so the detail screen can open the
+                              // whole page rather than one question of it.
+                              ids: group.questions.map((q) => q.id).join(','),
+                              id: first.id,
+                              title: first.stem ?? first.question_text ?? '',
+                              subject: first.subject ?? '',
+                              chapter: first.chapter ?? first.concept ?? '',
+                              time: `snapped ${formatRelativeTime(first.created_at)}`,
+                            },
+                          })
+                        }>
+                        <Text style={styles.doubtMeta}>
+                          <Text style={styles.doubtMetaSubject}>{first.subject ?? 'General'}</Text>
+                          {` · ${first.chapter ?? first.concept ?? 'Doubt'} · ${formatRelativeTime(first.created_at)}`}
+                        </Text>
+                        <Text style={styles.doubtTitle} numberOfLines={2}>
+                          {first.stem ?? first.question_text ?? '(photo doubt)'}
+                        </Text>
+                        {count > 1 && (
+                          <Text style={styles.doubtCount}>
+                            {count} questions on this photo
+                          </Text>
+                        )}
+                      </PressableScale>
+                    );
+                  })}
                 </View>
               )}
             </ScrollView>
@@ -767,6 +802,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'column',
       gap: verticalScale(12),
       marginTop: verticalScale(24),
+    },
+    doubtCount: {
+      marginTop: verticalScale(7),
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(11.5),
+      color: colors.faint,
     },
     doubtCard: {
       backgroundColor: '#fff',

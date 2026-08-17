@@ -59,6 +59,19 @@ const SYMBOLS: Record<string, string> = {
   lambdabar: 'ƛ', vec: '', hat: '', bar: '', dot: '',
 };
 
+/**
+ * The escapes that are spacing rather than punctuation: `\ ` and `\,` and
+ * friends. They matter most between a number and its unit, where dropping
+ * them (or, for `\,`, emitting a literal comma) is visible in the answer.
+ */
+const SPACING: Record<string, string> = {
+  ' ': ' ',
+  ',': ' ',
+  ';': ' ',
+  ':': ' ',
+  '!': '',
+};
+
 /** Wrappers whose braces vanish and whose contents render as-is. */
 const TRANSPARENT_WRAPPERS = new Set([
   'text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit',
@@ -139,8 +152,16 @@ export function convertMath(src: string): string {
     if (ch === '\\') {
       const match = /^[a-zA-Z]+/.exec(src.slice(i + 1));
       if (!match) {
-        // Escaped punctuation (\%, \$, \{) — emit the character itself.
         const next = src[i + 1];
+        // LaTeX's explicit spacings. `\,` is a thin space, not a comma —
+        // "8\,\text{H}" was rendering as "8, H", and "8\ \text{H}" as "8H",
+        // both of which put the unit in the wrong place.
+        if (next && next in SPACING) {
+          out += SPACING[next];
+          i += 2;
+          continue;
+        }
+        // Escaped punctuation (\%, \$, \{) — emit the character itself.
         if (next && next !== ' ') out += next;
         i += next ? 2 : 1;
         continue;
