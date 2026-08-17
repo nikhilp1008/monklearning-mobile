@@ -10,10 +10,37 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  SlideInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
-import { RuledPaper } from '@/components/ruled-paper';
+import {
+  AMBER,
+  AMBER_WASH,
+  BOARD_LEFT,
+  BOARD_TOP,
+  Blink,
+  GREEN,
+  INK_GHOST,
+  CaptionStrip,
+  DARK_CHROME,
+  DEEP_AMBER,
+  HAIRLINE,
+  INK,
+  INK_FAINT,
+  INK_MUTED,
+  MarginRule,
+  RED,
+  RHYTHM,
+  RuledGround,
+  ScrollIndicator,
+  settleToRhythm,
+} from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
@@ -95,7 +122,6 @@ const TOPICS = [
 
 const CHAR_TICK_MS = 26;
 const DIAGRAM_HOLD_TICKS = 24;
-const CHROME_HIDE_MS = 4200;
 const FOLLOW_SCROLL_MS = 350;
 const SEGMENT_DURATION_MS = 80000;
 const SEGMENT_TICK_MS = 200;
@@ -187,6 +213,7 @@ export default function LessonPlayerScreen() {
 
   // Chrome auto-hide / follow-scroll (adapted from live-classroom.tsx)
   const [chromeVisible, setChromeVisible] = useState(true);
+  const [boardHeight, setBoardHeight] = useState(390);
   const [following, setFollowing] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [ccOn, setCcOn] = useState(true);
@@ -195,26 +222,14 @@ export default function LessonPlayerScreen() {
   const [indicatorHeight, setIndicatorHeight] = useState(28);
 
   const scrollRef = useRef<ScrollView>(null);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const armHide = () => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => {
-      setChromeVisible((visible) => {
-        if (visible && !drawerOpen) return false;
-        return visible;
-      });
-    }, CHROME_HIDE_MS);
-  };
-
+  // No auto-hide: the handoff's state model toggles chrome on a board tap and
+  // nothing else on this screen runs on a timer.
   useEffect(() => {
-    armHide();
     return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -224,14 +239,26 @@ export default function LessonPlayerScreen() {
     return () => clearInterval(id);
   }, [following]);
 
+  // Header tucks up; the dock's slot collapses under it so "Back to now"
+  // drops into the dock's place instead of hanging in space. The chip is
+  // therefore always exactly 12pt above the dock, in both states.
+  const tuck = useSharedValue(0);
+  useEffect(() => {
+    tuck.value = withTiming(chromeVisible ? 0 : 1, { duration: 350, easing: Easing.ease });
+  }, [tuck, chromeVisible]);
+  const headerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -74 * tuck.value }],
+    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
+  }));
+  const dockSlotStyle = useAnimatedStyle(() => ({
+    height: 64 * (1 - tuck.value),
+    marginTop: 12 * (1 - tuck.value),
+    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 280 }),
+  }));
+
   const toggleChrome = () => {
     if (drawerOpen) return;
-    setChromeVisible((visible) => {
-      const next = !visible;
-      if (next) armHide();
-      else if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      return next;
-    });
+    setChromeVisible((visible) => !visible);
   };
 
   const onBoardScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -243,7 +270,14 @@ export default function LessonPlayerScreen() {
       setIndicatorTop((contentOffset.y / contentSize.height) * layoutMeasurement.height);
       setIndicatorVisible(true);
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
-      indicatorTimerRef.current = setTimeout(() => setIndicatorVisible(false), 900);
+      indicatorTimerRef.current = setTimeout(() => {
+        setIndicatorVisible(false);
+        const settled = settleToRhythm(
+          contentOffset.y,
+          contentSize.height - layoutMeasurement.height
+        );
+        if (settled != null) scrollRef.current?.scrollTo({ y: settled, animated: true });
+      }, 900);
     }
     const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
     setFollowing(atBottom);
@@ -257,19 +291,14 @@ export default function LessonPlayerScreen() {
   const openDrawer = () => {
     setDrawerOpen(true);
     setChromeVisible(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   };
 
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    armHide();
-  };
+  const closeDrawer = () => setDrawerOpen(false);
 
   const jumpToTopic = (index: number) => {
     setCurrentSegment(index);
     setSegElapsed(0);
     setDrawerOpen(false);
-    armHide();
   };
 
   const showJumpChip = !following;
@@ -279,19 +308,25 @@ export default function LessonPlayerScreen() {
   }
 
   return (
-    <Pressable style={styles.screen} onPress={toggleChrome}>
+    <View style={styles.screen}>
       <StatusBar style="dark" />
 
-      <View style={styles.boardWrap}>
-        <View style={styles.board}>
-          <RuledPaper step={verticalScale(27)} color="rgba(28,26,22,.055)" count={22} />
-          <ScrollView
-            ref={scrollRef}
-            style={styles.boardScroll}
-            contentContainerStyle={styles.boardContent}
-            scrollEventThrottle={16}
-            onScroll={onBoardScroll}
-            showsVerticalScrollIndicator={false}>
+      {/* The recorded lesson replays on the same page as the live class:
+          ruled paper to all four edges, no card and no frame. */}
+      <View style={styles.boardArea}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={toggleChrome}>
+          <RuledGround height={boardHeight} />
+        </Pressable>
+
+        <ScrollView
+          ref={scrollRef}
+          style={StyleSheet.absoluteFill}
+          contentContainerStyle={styles.boardContent}
+          scrollEventThrottle={16}
+          onScroll={onBoardScroll}
+          onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
+          showsVerticalScrollIndicator={false}>
+          <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
             {BOARD_BLOCKS.slice(0, revealedBlockCount).map((block, i) => (
               <BoardBlockView
                 key={i}
@@ -314,40 +349,46 @@ export default function LessonPlayerScreen() {
             )}
             {revealedBlockCount >= BOARD_BLOCKS.length && (
               <View style={styles.writingRow}>
-                <BlinkBar style={styles.writingCursor} />
-                <Text style={styles.writingText}>Drona is writing…</Text>
+                <Blink style={styles.writingCursor} />
+                <Text style={styles.writingText}>Writing…</Text>
               </View>
             )}
-          </ScrollView>
-        </View>
+          </Pressable>
+        </ScrollView>
 
-        <View style={styles.boardRule} pointerEvents="none" />
-        <View
-          style={[
-            styles.scrollIndicator,
-            { top: indicatorTop, height: indicatorHeight, opacity: indicatorVisible ? 1 : 0 },
-          ]}
-          pointerEvents="none"
-        />
+        <MarginRule />
+        <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
 
-        {showJumpChip && (
-          <View style={styles.backnowWrap} pointerEvents="box-none">
+        {/* Back is the only way out of this screen — no End button here — so
+            it gets a paper plate and a 40pt target. */}
+        <Animated.View
+          style={[styles.topBar, headerStyle]}
+          pointerEvents={chromeVisible ? 'auto' : 'none'}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+            <BackChevronIcon size={17} />
+          </Pressable>
+          <View style={styles.chapterChip}>
+            <Text style={styles.chapterChipTitle}>{chapterTitle}</Text>
+            <Text style={styles.chapterChipSub}>Physics · Class 11</Text>
+          </View>
+        </Animated.View>
+
+        {/* One bottom-centred column: the chip, then a collapsing slot holding
+            the dock. */}
+        <View style={styles.dockStack} pointerEvents="box-none">
+          {showJumpChip && (
             <Pressable style={styles.backnowChip} onPress={jumpToLive}>
               <Text style={styles.backnowArrow}>↓</Text>
               <Text style={styles.backnowText}>Back to now</Text>
             </Pressable>
-          </View>
-        )}
-
-        {chromeVisible && (
-          <View style={styles.dockWrap} pointerEvents="box-none">
-            <Animated.View entering={FadeIn.duration(200)} style={styles.dock}>
+          )}
+          <Animated.View style={[styles.dockSlot, dockSlotStyle]} pointerEvents="box-none">
+            <View style={styles.dock}>
               <Pressable style={styles.dockPlayBtn} onPress={() => setIsPlaying((p) => !p)}>
-                {isPlaying ? <PauseIcon size={scale(12)} /> : <PlayIcon size={scale(12)} />}
+                {isPlaying ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
               </Pressable>
-              <View style={styles.dockDivider} />
               <Pressable style={styles.dockTopicsBtn} onPress={openDrawer}>
-                <HamburgerIcon size={scale(11)} color={colors.slate} />
+                <HamburgerIcon size={13} color={INK} />
                 <Text style={styles.dockTopicsText}>Topics</Text>
               </Pressable>
               <Pressable
@@ -355,12 +396,15 @@ export default function LessonPlayerScreen() {
                 onPress={() => setCcOn((c) => !c)}>
                 <Text style={[styles.dockCcText, !ccOn && styles.dockCcTextOff]}>CC</Text>
               </Pressable>
-            </Animated.View>
-          </View>
-        )}
+            </View>
+          </Animated.View>
+        </View>
 
+        {/* Progress is a hairline flush on the bottom edge, one segment per
+            topic. No timestamps anywhere — this is a classroom, not a video
+            player. */}
         <View
-          style={[styles.segbar, { opacity: chromeVisible ? 1 : 0.5 }]}
+          style={[styles.segbar, { opacity: chromeVisible ? 1 : 0.45 }]}
           pointerEvents="none">
           {TOPICS.map((_, i) => (
             <SegmentTrack
@@ -374,33 +418,7 @@ export default function LessonPlayerScreen() {
         </View>
       </View>
 
-      {ccOn && (
-        <View style={styles.capWrapOuter}>
-          <View style={styles.capRow}>
-            <View style={styles.capBadge}>
-              <Text style={styles.capBadgeText}>CC</Text>
-            </View>
-            <View style={styles.capTextRow}>
-              <Text style={styles.capText} numberOfLines={1}>
-                {CAPTION_TEXT}
-              </Text>
-              <BlinkBar style={styles.capCursor} />
-            </View>
-          </View>
-        </View>
-      )}
-
-      {chromeVisible && (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.topBar}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <BackChevronIcon size={scale(15)} />
-          </Pressable>
-          <View style={styles.chapterChip}>
-            <Text style={styles.chapterChipTitle}>{chapterTitle}</Text>
-            <Text style={styles.chapterChipSub}>Physics · Class 11</Text>
-          </View>
-        </Animated.View>
-      )}
+      <CaptionStrip open={ccOn} listening={false} text={CAPTION_TEXT} />
 
       {drawerOpen && (
         <>
@@ -439,7 +457,7 @@ export default function LessonPlayerScreen() {
           </Animated.View>
         </>
       )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -481,7 +499,7 @@ function TopicRow({
   onPress: () => void;
 }) {
   const mark = status === 'done' ? '✓' : status === 'current' ? '●' : '○';
-  const markColor = status === 'done' ? colors.success : status === 'current' ? colors.marigold : '#C0BBAD';
+  const markColor = status === 'done' ? GREEN : status === 'current' ? AMBER : INK_GHOST;
   const nameStyle =
     status === 'done'
       ? styles.topicNameDone
@@ -628,15 +646,6 @@ function TrainsDiagram({ scale, styles }: { scale: (n: number) => number; styles
   );
 }
 
-function BlinkBar({ style }: { style: object }) {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => setVisible((v) => !v), 500);
-    return () => clearInterval(id);
-  }, []);
-  return <View style={[style, { opacity: visible ? 1 : 0 }]} />;
-}
-
 function BackChevronIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -687,314 +696,249 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
       backgroundColor: colors.paper,
     },
-    boardWrap: {
+    boardArea: {
       flex: 1,
       minHeight: 0,
-      marginTop: verticalScale(10),
-      marginHorizontal: scale(10),
       position: 'relative',
-    },
-    board: {
-      ...StyleSheet.absoluteFillObject,
       backgroundColor: '#fff',
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(18),
       overflow: 'hidden',
     },
-    boardScroll: {
-      flex: 1,
-    },
+    // 52 top, 56 left (the notch gutter), 40 right, 104 bottom (4×26) so the
+    // dock never sits on the last written line.
     boardContent: {
-      paddingTop: verticalScale(46),
-      paddingRight: scale(26),
-      paddingBottom: verticalScale(56),
-      paddingLeft: scale(58),
+      // flexGrow lets the tap target below stretch to the full board height,
+      // so tapping empty paper tucks the chrome just like tapping a line.
+      flexGrow: 1,
+      paddingTop: BOARD_TOP,
+      paddingRight: 40,
+      paddingBottom: 104,
+      paddingLeft: BOARD_LEFT,
     },
-    boardRule: {
-      position: 'absolute',
-      top: verticalScale(14),
-      bottom: verticalScale(14),
-      left: scale(40),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.35)',
-    },
-    scrollIndicator: {
-      position: 'absolute',
-      right: scale(5),
-      width: scale(3),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,26,22,.3)',
+    boardTapTarget: {
+      flex: 1,
     },
     boardHeading: {
       fontFamily: 'Kalam_700Bold',
-      fontSize: scale(17),
-      color: colors.red,
-      marginBottom: verticalScale(11),
+      fontSize: 17,
+      lineHeight: RHYTHM,
+      color: RED,
       transform: [{ rotate: '-0.4deg' }],
     },
     boardEquationLarge: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(17),
-      color: colors.ink,
-      marginBottom: verticalScale(9),
+      fontSize: 17,
+      lineHeight: RHYTHM,
+      color: INK,
     },
     boardEquationSmall: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(15.5),
-      color: colors.ink,
-      marginBottom: verticalScale(10),
+      fontSize: 15.5,
+      lineHeight: RHYTHM,
+      color: INK,
     },
     boardBody: {
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(21.6),
-      color: colors.slate,
-      marginBottom: verticalScale(10),
-      maxWidth: scale(560),
+      fontSize: 13.5,
+      lineHeight: RHYTHM,
+      color: INK_MUTED,
+      maxWidth: 560,
     },
     boardBodyBold: {
       fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
+      color: INK,
     },
     boardKalamNoteBase: {
       fontFamily: 'Kalam_700Bold',
+      lineHeight: RHYTHM,
     },
+    // Diagrams are whole multiples of the rhythm — 130 is 5×26 — so the
+    // writing below one lands back on a rule.
     diagramWrap: {
-      marginBottom: verticalScale(10),
+      height: 130,
+      justifyContent: 'center',
     },
     writingRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
-      paddingBottom: verticalScale(4),
+      gap: 8,
+      height: RHYTHM,
     },
     writingCursor: {
-      width: scale(8),
-      height: verticalScale(14),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
+      width: 8,
+      height: 14,
+      borderRadius: 2,
+      backgroundColor: AMBER,
     },
     writingText: {
       fontFamily: 'Kalam_700Bold',
-      fontSize: scale(12),
-      color: colors.faint,
+      fontSize: 12,
+      color: INK_FAINT,
     },
-    backnowWrap: {
+
+    // Header
+    topBar: {
       position: 'absolute',
-      left: '50%',
-      bottom: verticalScale(64),
-      width: scale(400),
-      marginLeft: -scale(200),
+      top: 14,
+      left: 52,
+      right: 26,
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: 12,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(252,250,244,.96)',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.22,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    chapterChip: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 8,
+      flexShrink: 1,
+    },
+    chapterChipTitle: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: 14,
+      color: INK,
+    },
+    chapterChipSub: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: 11.5,
+      color: INK_FAINT,
+    },
+
+    // The dock stack — chip above a collapsing slot holding the dock.
+    dockStack: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 18,
+      alignItems: 'center',
+    },
+    // Deliberately NOT overflow:hidden. The slot's job is to collapse the
+    // dock's space so the chip drops into its place; clipping it also clipped
+    // the dock's shadow into a hard grey rectangle. The dock fades out over
+    // the same 280ms, so nothing is seen overflowing.
+    dockSlot: {
+      justifyContent: 'flex-start',
     },
     backnowChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
-      backgroundColor: '#221D16',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(14),
-      elevation: 4,
+      gap: 8,
+      backgroundColor: DARK_CHROME,
+      borderRadius: 99,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 7 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 6,
     },
     backnowArrow: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: colors.marigold,
+      fontSize: 12,
+      color: AMBER,
     },
     backnowText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
+      fontSize: 12,
       color: '#EFEBDD',
-    },
-    dockWrap: {
-      position: 'absolute',
-      left: '50%',
-      bottom: verticalScale(12),
-      width: scale(400),
-      marginLeft: -scale(200),
-      alignItems: 'center',
     },
     dock: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: verticalScale(5),
-      paddingHorizontal: scale(6),
-      backgroundColor: 'rgba(252,250,244,.95)',
+      gap: 12,
+      paddingTop: 6,
+      paddingRight: 14,
+      paddingBottom: 6,
+      paddingLeft: 6,
+      borderRadius: 99,
+      backgroundColor: 'rgba(252,250,244,.94)',
       borderWidth: 1,
-      borderColor: colors.inputBorder,
-      borderRadius: scale(99),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(5) },
+      borderColor: HAIRLINE,
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.22,
-      shadowRadius: scale(12),
-      elevation: 3,
+      shadowRadius: 8,
+      elevation: 6,
     },
     dockPlayBtn: {
-      width: scale(32),
-      height: scale(32),
-      borderRadius: scale(16),
-      backgroundColor: colors.ink,
+      width: 44,
+      height: 44,
+      flexShrink: 0,
+      borderRadius: 22,
+      backgroundColor: INK,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    dockDivider: {
-      width: scale(1),
-      height: verticalScale(16),
-      backgroundColor: colors.inputBorder,
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 7,
+      elevation: 5,
     },
     dockTopicsBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(6),
-      paddingVertical: verticalScale(5),
-      paddingHorizontal: scale(11),
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
+      gap: 7,
     },
     dockTopicsText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: colors.slate,
+      fontSize: 12.5,
+      color: INK,
     },
     dockCcBtn: {
-      width: scale(26),
-      height: scale(26),
-      borderRadius: scale(13),
+      width: 30,
+      height: 30,
+      borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#FCF4E0',
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(238,163,31,.65)',
+      backgroundColor: AMBER_WASH,
     },
     dockCcBtnOff: {
-      backgroundColor: '#fff',
-      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: 'transparent',
     },
     dockCcText: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(8.5),
-      letterSpacing: scale(0.51),
-      color: colors.amberText,
+      fontSize: 9.5,
+      letterSpacing: 0.06 * 9.5,
+      color: DEEP_AMBER,
     },
     dockCcTextOff: {
-      color: colors.faint,
+      color: INK_FAINT,
     },
+
+    // Progress: flush on the bottom edge, one segment per topic.
     segbar: {
       position: 'absolute',
-      left: scale(24),
-      right: scale(24),
-      bottom: verticalScale(6),
+      left: 0,
+      right: 0,
+      bottom: 0,
       flexDirection: 'row',
-      gap: scale(4),
+      gap: 3,
     },
     segTrack: {
       flex: 1,
-      height: verticalScale(2.5),
-      borderRadius: scale(99),
+      height: 2.5,
       backgroundColor: 'rgba(28,26,22,.08)',
       overflow: 'hidden',
     },
     segFill: {
       height: '100%',
-      borderRadius: scale(99),
+      backgroundColor: AMBER,
     },
-    capWrapOuter: {
-      flexShrink: 0,
-      maxHeight: verticalScale(60),
-    },
-    capRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      backgroundColor: '#211C15',
-      borderRadius: scale(12),
-      marginHorizontal: scale(10),
-      marginBottom: verticalScale(10),
-      marginTop: verticalScale(8),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(16),
-    },
-    capBadge: {
-      flexShrink: 0,
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.45)',
-      borderRadius: scale(5),
-      paddingVertical: verticalScale(2),
-      paddingHorizontal: scale(5),
-    },
-    capBadgeText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
-      color: colors.marigold,
-    },
-    capTextRow: {
-      flex: 1,
-      minWidth: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    capText: {
-      flexShrink: 1,
-      fontFamily: 'AnekLatin_500Medium',
-      fontSize: scale(13.5),
-      color: '#EFEBDD',
-    },
-    capCursor: {
-      width: scale(2),
-      height: verticalScale(13),
-      marginLeft: scale(2),
-      backgroundColor: colors.marigold,
-    },
-    topBar: {
-      position: 'absolute',
-      top: verticalScale(18),
-      left: scale(26),
-      right: scale(26),
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    backBtn: {
-      width: scale(34),
-      height: scale(34),
-      borderRadius: scale(17),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: 'rgba(252,250,244,.94)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    chapterChip: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      gap: scale(8),
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(14),
-      backgroundColor: 'rgba(252,250,244,.94)',
-    },
-    chapterChipTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: colors.ink,
-    },
-    chapterChipSub: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
+
     scrim: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(22,19,14,.3)',

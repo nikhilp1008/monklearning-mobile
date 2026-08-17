@@ -12,11 +12,43 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Animated, {
+  Easing,
+  FadeIn,
+  SlideInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle, Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
-import { ProtractorMark } from '@/components/protractor-mark';
-import { RuledPaper } from '@/components/ruled-paper';
+import {
+  AMBER,
+  AMBER_WASH,
+  BOARD_LEFT,
+  BOARD_TOP,
+  Blink,
+  CaptionStrip,
+  DARK_CHROME,
+  DEEP_AMBER,
+  EdgeTab,
+  GREEN,
+  GREEN_INK,
+  HAIRLINE,
+  INK,
+  INK_FAINT,
+  INK_MUTED,
+  LevelBars,
+  MarginRule,
+  RED,
+  RHYTHM,
+  RuledGround,
+  ScrollIndicator,
+  TeacherWave,
+  settleToRhythm,
+} from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
@@ -28,7 +60,8 @@ import { BoardEvent, ConnectionStatus, DronaState, DronaVoiceClient } from '@/li
 import { supabase } from '@/lib/supabase';
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
-const CHROME_HIDE_MS = 4200;
+/** Half the rail's own height, so it can be centred with a transform. */
+const RAIL_HALF = 108;
 const FOLLOW_SCROLL_MS = 350;
 
 interface AudioRecorderLike {
@@ -179,6 +212,9 @@ export default function LiveClassroomScreen() {
 
   // --- Board follow-scroll / chrome auto-hide (unchanged from the original UI) ---
   const [chromeVisible, setChromeVisible] = useState(true);
+  // The caption strip is a real toggle now (CC on the rail), per the handoff.
+  const [captions, setCaptions] = useState(true);
+  const [boardHeight, setBoardHeight] = useState(390);
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -189,28 +225,18 @@ export default function LiveClassroomScreen() {
   const [indicatorHeight, setIndicatorHeight] = useState(28);
 
   const scrollRef = useRef<ScrollView>(null);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const armHide = () => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => {
-      setChromeVisible((visible) => {
-        if (visible && !handRaised && !reportOpen) return false;
-        return visible;
-      });
-    }, CHROME_HIDE_MS);
-  };
-
+  // No auto-hide. The handoff's state model has chrome toggled by a board tap
+  // and restored by the edge tab, and nothing on this screen animates on a
+  // timer except the writing indicator — a chrome that vanished on its own
+  // took the Interrupt button with it mid-thought.
   useEffect(() => {
-    armHide();
     return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -220,14 +246,26 @@ export default function LiveClassroomScreen() {
     return () => clearInterval(id);
   }, [following]);
 
+  // Chrome tuck: the header slides up out of frame and the rail slides right,
+  // both on the spec's 0.35s. The edge tab is what brings them back.
+  const tuck = useSharedValue(0);
+  useEffect(() => {
+    tuck.value = withTiming(chromeVisible ? 0 : 1, { duration: 350, easing: Easing.ease });
+  }, [tuck, chromeVisible]);
+  const headerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -74 * tuck.value }],
+    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
+  }));
+  const railStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -RAIL_HALF }, { translateX: 96 * tuck.value }],
+    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
+  }));
+
+  const showChrome = () => setChromeVisible(true);
+
   const toggleChrome = () => {
     if (reportOpen) return;
-    setChromeVisible((visible) => {
-      const next = !visible;
-      if (next) armHide();
-      else if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      return next;
-    });
+    setChromeVisible((visible) => !visible);
   };
 
   const onBoardScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -239,7 +277,16 @@ export default function LiveClassroomScreen() {
       setIndicatorTop((contentOffset.y / contentSize.height) * layoutMeasurement.height);
       setIndicatorVisible(true);
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
-      indicatorTimerRef.current = setTimeout(() => setIndicatorVisible(false), 900);
+      // Settle onto the rule grid when the board comes to rest, so a written
+      // line is never left half-cut by the top edge.
+      indicatorTimerRef.current = setTimeout(() => {
+        setIndicatorVisible(false);
+        const settled = settleToRhythm(
+          contentOffset.y,
+          contentSize.height - layoutMeasurement.height
+        );
+        if (settled != null) scrollRef.current?.scrollTo({ y: settled, animated: true });
+      }, 900);
     }
     const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
     setFollowing(atBottom);
@@ -270,7 +317,6 @@ export default function LiveClassroomScreen() {
 
     setHandRaised(true);
     setChromeVisible(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     clientRef.current?.sendPttStart();
     try {
       await recorder.startRecording({
@@ -306,7 +352,6 @@ export default function LiveClassroomScreen() {
 
   const doneListening = useCallback(async () => {
     setHandRaised(false);
-    armHide();
     try {
       await recorder.stopRecording();
     } catch {
@@ -328,19 +373,14 @@ export default function LiveClassroomScreen() {
   const openReport = () => {
     setReportOpen(true);
     setChromeVisible(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   };
 
-  const closeReport = () => {
-    setReportOpen(false);
-    armHide();
-  };
+  const closeReport = () => setReportOpen(false);
 
   const sendReport = () => {
     // Report submission isn't wired to a real endpoint yet — no
     // session-report API was part of this build's scope. UI-only for now.
     setReportOpen(false);
-    armHide();
     setToastVisible(true);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
@@ -380,6 +420,8 @@ export default function LiveClassroomScreen() {
   // connect effect) is what avoids rebuilding the WebSocket each render.
   endClassRef.current = endClass;
 
+  // Suppressed while the student holds Interrupt, so bottom centre has one
+  // owner — the Listening strip.
   const showJumpChip = !following && !handRaised;
 
   if (!isLandscape) {
@@ -402,74 +444,48 @@ export default function LiveClassroomScreen() {
   }
 
   return (
-    <Pressable style={styles.screen} onPress={toggleChrome}>
+    <View style={styles.screen}>
       <StatusBar style="dark" />
-      <View style={styles.boardWrap}>
-        <View style={styles.boardBackground} pointerEvents="none">
-          <RuledPaper step={verticalScale(27)} color="rgba(28,26,22,.06)" count={30} />
-        </View>
+
+      {/* The board is the screen. No card, no inset, no drawn frame — the
+          ruled page runs to all four edges and every control floats over it,
+          so the only border on a phone is the phone's own. */}
+      <View style={styles.boardArea}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={toggleChrome}>
+          <RuledGround height={boardHeight} />
+        </Pressable>
+
         <ScrollView
           ref={scrollRef}
-          style={styles.board}
+          style={StyleSheet.absoluteFill}
           contentContainerStyle={styles.boardContent}
           scrollEventThrottle={16}
           onScroll={onBoardScroll}
+          onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
           showsVerticalScrollIndicator={false}>
-          {board.length === 0 ? (
-            <View style={styles.writingRow}>
-              <WritingCursor styles={styles} />
-              <Text style={styles.writingText}>
-                {connectionStatus === 'open' ? 'Drona is writing…' : 'Connecting to Drona…'}
-              </Text>
-            </View>
-          ) : (
-            board.map((event, i) => (
-              <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
-                <BoardBlockView event={event} styles={styles} />
-              </Animated.View>
-            ))
-          )}
-        </ScrollView>
-        <View style={styles.boardRule} pointerEvents="none" />
-        <View
-          style={[
-            styles.scrollIndicator,
-            { top: indicatorTop, height: indicatorHeight, opacity: indicatorVisible ? 1 : 0 },
-          ]}
-          pointerEvents="none"
-        />
-
-        {showJumpChip && (
-          <Pressable style={styles.liveChip} onPress={jumpToLive}>
-            <Text style={styles.liveChipArrow}>↓</Text>
-            <Text style={styles.liveChipText}>Drona is writing — jump to live</Text>
+          <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
+            {board.length === 0 ? (
+              <View style={styles.writingRow}>
+                <Blink style={styles.writingCursor} />
+                <Text style={styles.writingText}>
+                  {connectionStatus === 'open' ? 'Writing…' : 'Connecting to Drona…'}
+                </Text>
+              </View>
+            ) : (
+              board.map((event, i) => (
+                <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
+                  <BoardBlockView event={event} styles={styles} />
+                </Animated.View>
+              ))
+            )}
           </Pressable>
-        )}
+        </ScrollView>
 
-        {handRaised && (
-          <View style={styles.listenChip}>
-            <MicIcon size={scale(15)} />
-            <Text style={styles.listenText}>Listening — poochho, main sun raha hoon</Text>
-            <Pressable style={styles.listenDone} onPress={doneListening}>
-              <Text style={styles.listenDoneText}>Done — continue class</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
+        <MarginRule />
+        <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
 
-      <View style={styles.capWrap}>
-        <View style={styles.capRow}>
-          <View style={styles.capBadge}>
-            <Text style={styles.capBadgeText}>CC</Text>
-          </View>
-          <Text style={styles.capText} numberOfLines={1}>
-            {caption}
-          </Text>
-        </View>
-      </View>
-
-      {chromeVisible && (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.topBar}>
+        {/* Header — tucks up and out on a board tap. */}
+        <Animated.View style={[styles.topBar, headerStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
           <View style={styles.topChapterChip}>
             <View style={styles.topChapterDot} />
             <Text style={styles.topChapterText} numberOfLines={1}>
@@ -477,11 +493,9 @@ export default function LiveClassroomScreen() {
             </Text>
           </View>
           <View style={styles.topLiveChip}>
-            <View
-              style={[
-                styles.topLiveDot,
-                connectionStatus !== 'open' && styles.topLiveDotWarn,
-              ]}
+            <Blink
+              style={[styles.topLiveDot, connectionStatus !== 'open' && styles.topLiveDotWarn]}
+              duration={1800}
             />
             {/* Priority ladder mirroring web's SessionView status badge, so
                 the student always knows who the room is waiting on. */}
@@ -513,7 +527,7 @@ export default function LiveClassroomScreen() {
           </View>
           <View style={styles.topSpacer} />
           <Pressable style={styles.topReportButton} onPress={openReport}>
-            <ReportIcon size={scale(11)} color={colors.slate} />
+            <ReportIcon size={12} color={INK_MUTED} />
             <Text style={styles.topReportText}>Report</Text>
           </Pressable>
           <Pressable style={styles.topEndButton} onPress={endClass} disabled={ending}>
@@ -521,65 +535,78 @@ export default function LiveClassroomScreen() {
             <Text style={styles.topEndText}>{ending ? 'Ending…' : 'End'}</Text>
           </Pressable>
         </Animated.View>
-      )}
 
-      {chromeVisible && (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.dock}>
-          <View style={styles.dockLogo}>
-            <ProtractorMark size={scale(18)} />
-          </View>
-          <View style={styles.dockWave}>
-            {[0, 0.18, 0.36, 0.54].map((delay) => (
-              <View key={delay} style={styles.dockWaveBar} />
+        {showJumpChip && (
+          <Pressable style={styles.liveChip} onPress={jumpToLive}>
+            <Text style={styles.liveChipArrow}>↓</Text>
+            <Text style={styles.liveChipText}>Jump to live</Text>
+          </Pressable>
+        )}
+
+        {/* Answer chips for Drona's checkpoint questions. Previously the state
+            frame's check_options were parsed and then discarded, so a student
+            was told "Your turn" with nothing on screen to answer with — the
+            class simply stalled. Mirrors web's AskSheet. */}
+        {checkOptions.length > 0 && !handRaised && (
+          <Animated.View entering={FadeIn.duration(200)} style={styles.askSheet}>
+            {checkOptions.map((option) => (
+              <Pressable
+                key={option}
+                style={styles.askChip}
+                onPress={() => {
+                  clientRef.current?.sendAnswer(option);
+                  setCheckOptions([]);
+                  setIsThinking(true);
+                }}>
+                <Text style={styles.askChipText}>{option}</Text>
+              </Pressable>
             ))}
-          </View>
-          <View style={styles.dockDivider} />
-          <Pressable style={styles.dockHandButton} onPress={raiseHand} disabled={handRaised}>
-            <HandIcon size={scale(18)} />
-          </Pressable>
-          <Text style={styles.dockHandLabel}>Hand</Text>
-          <Pressable
-            style={[styles.dockPauseButton, paused && styles.dockPauseButtonActive]}
-            onPress={togglePause}>
-            {paused ? (
-              <PlayIcon size={scale(14)} color={colors.paper} />
-            ) : (
-              <PauseIcon size={scale(14)} color={colors.ink} />
-            )}
-          </Pressable>
-          <View style={styles.dockCc}>
-            <Text style={styles.dockCcText}>CC</Text>
-          </View>
-          {/* Decorative — no wired behavior exists for this yet (nothing to
-              expand/reveal), so this stays a plain View rather than a dead
-              tap target. Flag to product if it was meant to do something. */}
-          <View style={styles.dockChevron}>
-            <ChevronRightIcon size={scale(13)} />
-          </View>
-        </Animated.View>
-      )}
+          </Animated.View>
+        )}
+      </View>
 
-      {/* Answer chips for Drona's checkpoint questions. Previously the state
-          frame's check_options were parsed and then discarded, so a student
-          was told "Your turn" with nothing on screen to answer with — the
-          class simply stalled. Mirrors web's AskSheet. */}
-      {checkOptions.length > 0 && !handRaised && (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.askSheet}>
-          {checkOptions.map((option) => (
-            <Pressable
-              key={option}
-              style={styles.askChip}
-              onPress={() => {
-                clientRef.current?.sendAnswer(option);
-                setCheckOptions([]);
-                setIsThinking(true);
-                armHide();
-              }}>
-              <Text style={styles.askChipText}>{option}</Text>
-            </Pressable>
-          ))}
-        </Animated.View>
-      )}
+      {/* One strip, two states — the caption line and Listening are mutually
+          exclusive, so the bottom edge always has exactly one owner. */}
+      <CaptionStrip open={captions || handRaised} listening={handRaised} text={caption} />
+
+      {/* The thumb rail is centred on the screen, not on the board, so it sits
+          under the thumb wherever the caption strip happens to be. */}
+      <Animated.View
+        style={[styles.rail, railStyle]}
+        pointerEvents={chromeVisible ? 'auto' : 'none'}>
+        <TeacherWave quiet={handRaised} />
+        <View style={styles.railDivider} />
+
+        {/* Press and hold to speak; release to hand the board back. No
+            confirm step, no "done" button, no modal. */}
+        <Pressable
+          style={[styles.talkButton, handRaised && styles.talkButtonOn]}
+          onPressIn={raiseHand}
+          onPressOut={doneListening}>
+          {handRaised && <TalkGlow />}
+          {handRaised && <TalkPulse />}
+          {handRaised ? (
+            <LevelBars color={INK} heights={[9, 17, 12]} />
+          ) : (
+            <MicIcon size={18} color={colors.paper} />
+          )}
+        </Pressable>
+        <Text style={[styles.talkLabel, handRaised && styles.talkLabelOn]}>
+          {handRaised ? 'Speaking' : 'Interrupt'}
+        </Text>
+
+        <View style={styles.railDivider} />
+        <Pressable style={styles.railButton} onPress={togglePause}>
+          {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
+        </Pressable>
+        <Pressable
+          style={[styles.railCc, !captions && styles.railCcOff]}
+          onPress={() => setCaptions((c) => !c)}>
+          <Text style={[styles.railCcText, !captions && styles.railCcTextOff]}>CC</Text>
+        </Pressable>
+      </Animated.View>
+
+      <EdgeTab visible={!chromeVisible} onPress={showChrome} />
 
       {/* Mic denied: say so plainly and offer the one action that fixes it.
           Drona keeps teaching behind this — only speaking is unavailable. */}
@@ -604,12 +631,6 @@ export default function LiveClassroomScreen() {
             </Pressable>
           </View>
         </Animated.View>
-      )}
-
-      {!chromeVisible && (
-        <View style={styles.handle}>
-          <ChevronLeftIcon size={scale(13)} />
-        </View>
       )}
 
       {toastVisible && (
@@ -682,7 +703,7 @@ export default function LiveClassroomScreen() {
           </Animated.View>
         </>
       )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -702,29 +723,72 @@ function BoardBlockView({ event, styles }: { event: BoardEvent; styles: Styles }
   );
 }
 
-function WritingCursor({ styles }: { styles: Styles }) {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => setVisible((v) => !v), 500);
-    return () => clearInterval(id);
-  }, []);
-  return <View style={[styles.writingCursor, { opacity: visible ? 1 : 0 }]} />;
-}
-
-function MicIcon({ size }: { size: number }) {
+function MicIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Path
         d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"
-        stroke={colors.marigold}
-        strokeWidth={2}
+        stroke={color}
+        strokeWidth={1.9}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Path d="M6 11a6 6 0 0 0 12 0" stroke={colors.marigold} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
     </Svg>
   );
 }
+
+/**
+ * The amber glow under the Interrupt button while it is held. A real radial
+ * gradient, centred at 50% 118% as the design has it — a linear one only
+ * fades along one axis and reads as a hard-edged block.
+ */
+function TalkGlow() {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Svg width={46} height={46}>
+        <Defs>
+          <RadialGradient id="talkGlow" cx="50%" cy="118%" rx="62%" ry="62%">
+            <Stop offset="0" stopColor={AMBER} stopOpacity={0.95} />
+            <Stop offset="1" stopColor={AMBER} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={23} cy={23} r={23} fill="url(#talkGlow)" />
+      </Svg>
+    </View>
+  );
+}
+
+/** The inset ring that pulses while speaking. Opacity only — nothing scales,
+ *  nothing leaves the 46pt circle. */
+function TalkPulse() {
+  const opacity = useSharedValue(0.15);
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.7, { duration: 750, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.15, { duration: 750, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1
+    );
+  }, [opacity]);
+  const animated = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[pulseStyle.ring, animated]} pointerEvents="none" />;
+}
+
+const pulseStyle = StyleSheet.create({
+  ring: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    bottom: 5,
+    left: 5,
+    borderRadius: 99,
+    borderWidth: 1.5,
+    borderColor: 'rgba(28,26,22,.5)',
+  },
+});
 
 function ReportIcon({ size, color }: { size: number; color: string }) {
   return (
@@ -734,20 +798,6 @@ function ReportIcon({ size, color }: { size: number; color: string }) {
         d="M5 4c4.2-2 8.8 2 14 0v10c-5.2 2-9.8-2-14 0"
         stroke={color}
         strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function HandIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"
-        stroke={colors.paper}
-        strokeWidth={1.9}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -767,34 +817,6 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Path d="M7 4.5v15l13-7.5-13-7.5Z" fill={color} />
-    </Svg>
-  );
-}
-
-function ChevronRightIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M9 6l6 6-6 6"
-        stroke={colors.faint}
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function ChevronLeftIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M15 6l-6 6 6 6"
-        stroke={colors.marigold}
-        strokeWidth={2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </Svg>
   );
 }
@@ -863,235 +885,130 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(13),
       color: colors.paper,
     },
-    boardWrap: {
+    // Full bleed: the ruled page fills the screen with no card, no radius and
+    // no border. This is the whole point of the redesign — an inset board
+    // inside the phone's own frame read as a box in a box, and its proportions
+    // changed with every device.
+    boardArea: {
       flex: 1,
       minHeight: 0,
-      margin: scale(10),
       position: 'relative',
-    },
-    boardBackground: {
-      ...StyleSheet.absoluteFillObject,
       backgroundColor: '#fff',
-      borderRadius: scale(18),
       overflow: 'hidden',
     },
-    board: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'transparent',
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(18),
-    },
+    // 52 top and bottom (2×26), 56 left (the notch gutter), 116 right to clear
+    // the thumb rail.
     boardContent: {
-      paddingTop: verticalScale(46),
-      paddingRight: scale(26),
-      paddingBottom: verticalScale(20),
-      paddingLeft: scale(58),
+      // flexGrow lets the tap target below stretch to the full board height,
+      // so tapping empty paper tucks the chrome just like tapping a line.
+      flexGrow: 1,
+      paddingTop: BOARD_TOP,
+      paddingRight: 116,
+      paddingBottom: BOARD_TOP,
+      paddingLeft: BOARD_LEFT,
     },
-    boardRule: {
-      position: 'absolute',
-      top: verticalScale(14),
-      bottom: verticalScale(14),
-      left: scale(40),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.35)',
-    },
-    scrollIndicator: {
-      position: 'absolute',
-      right: scale(5),
-      width: scale(3),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,26,22,.3)',
+    // Every board line is exactly one rule tall with no margins — that is what
+    // keeps the writing sitting ON the rules instead of drifting between them.
+    boardTapTarget: {
+      flex: 1,
     },
     boardHeading: {
       fontFamily: 'Kalam_700Bold',
-      fontSize: scale(17),
-      color: colors.red,
-      marginBottom: verticalScale(11),
+      fontSize: 17,
+      lineHeight: RHYTHM,
+      color: RED,
       transform: [{ rotate: '-0.4deg' }],
     },
     boardEquation: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(17),
-      color: colors.ink,
-      marginBottom: verticalScale(9),
+      fontSize: 17,
+      lineHeight: RHYTHM,
+      color: INK,
     },
     boardBody: {
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(21.6),
-      color: colors.slate,
-      marginBottom: verticalScale(10),
-      maxWidth: scale(560),
+      fontSize: 13.5,
+      lineHeight: RHYTHM,
+      color: INK_MUTED,
+      maxWidth: 560,
     },
     boardBodyBold: {
       fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
+      color: INK,
     },
     boardKalamNote: {
       fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14.5),
-      marginBottom: verticalScale(9),
-      transform: [{ rotate: '-0.35deg' }],
-      maxWidth: scale(560),
+      fontSize: 14.5,
+      lineHeight: RHYTHM,
+      maxWidth: 560,
+      transform: [{ rotate: '-0.4deg' }],
     },
     writingRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
-      paddingBottom: verticalScale(4),
+      gap: 8,
+      height: RHYTHM,
     },
     writingCursor: {
-      width: scale(8),
-      height: verticalScale(14),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
+      width: 8,
+      height: 14,
+      borderRadius: 2,
+      backgroundColor: AMBER,
     },
     writingText: {
       fontFamily: 'Kalam_700Bold',
-      fontSize: scale(12),
-      color: colors.faint,
+      fontSize: 12,
+      color: INK_FAINT,
     },
-    liveChip: {
-      position: 'absolute',
-      left: '50%',
-      bottom: verticalScale(12),
-      transform: [{ translateX: -scale(105) }],
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      backgroundColor: '#221D16',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(16),
-    },
-    liveChipArrow: {
-      color: colors.marigold,
-      fontWeight: '700',
-    },
-    liveChipText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: '#EFEBDD',
-    },
-    listenChip: {
-      position: 'absolute',
-      left: '50%',
-      bottom: verticalScale(12),
-      transform: [{ translateX: -scale(160) }],
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(14),
-      backgroundColor: '#221D16',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingRight: scale(9),
-      paddingLeft: scale(18),
-    },
-    listenText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(13),
-      color: '#EFEBDD',
-    },
-    listenDone: {
-      backgroundColor: colors.marigold,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(14),
-    },
-    listenDoneText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
-    capWrap: {
-      flexShrink: 0,
-      maxHeight: verticalScale(60),
-    },
-    capRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      backgroundColor: '#211C15',
-      borderRadius: scale(12),
-      marginHorizontal: scale(10),
-      marginBottom: verticalScale(10),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(16),
-    },
-    capBadge: {
-      flexShrink: 0,
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.45)',
-      borderRadius: scale(5),
-      paddingVertical: verticalScale(2),
-      paddingHorizontal: scale(5),
-    },
-    capBadgeText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
-      color: colors.marigold,
-    },
-    capText: {
-      flex: 1,
-      minWidth: 0,
-      fontFamily: 'AnekLatin_500Medium',
-      fontSize: scale(13.5),
-      color: '#EFEBDD',
-    },
+
+    // Header — left 56 so it starts on the same gutter as the writing.
     topBar: {
       position: 'absolute',
-      top: verticalScale(18),
-      left: scale(26),
-      right: scale(26),
+      top: 14,
+      left: BOARD_LEFT,
+      right: 26,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
+      gap: 12,
     },
     topChapterChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(7),
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      backgroundColor: 'rgba(252,250,244,.94)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(12),
-      maxWidth: scale(220),
+      gap: 7,
+      flexShrink: 1,
     },
     topChapterDot: {
-      width: scale(6),
-      height: scale(6),
-      borderRadius: scale(3),
-      backgroundColor: colors.marigold,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: AMBER,
     },
     topChapterText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: colors.ink,
+      fontSize: 13,
+      color: INK,
     },
     topLiveChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(6),
+      gap: 6,
+      flexShrink: 0,
     },
     topLiveDot: {
-      width: scale(6),
-      height: scale(6),
-      borderRadius: scale(3),
-      backgroundColor: '#1C9B57',
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: GREEN,
     },
     topLiveDotWarn: {
-      backgroundColor: colors.marigold,
+      backgroundColor: AMBER,
     },
     topLiveText: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
+      fontSize: 10,
+      letterSpacing: 0.12 * 10,
       textTransform: 'uppercase',
-      color: '#157A45',
+      color: GREEN_INK,
     },
     topSpacer: {
       flex: 1,
@@ -1099,149 +1016,149 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     topReportButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(6),
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      backgroundColor: 'rgba(252,250,244,.94)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(12),
+      gap: 6,
+      flexShrink: 0,
     },
     topReportText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: colors.slate,
+      fontSize: 12,
+      color: INK_MUTED,
     },
     topEndButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(6),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(221,68,51,.4)',
-      backgroundColor: 'rgba(252,247,243,.94)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(13),
+      gap: 6,
+      flexShrink: 0,
+      borderRadius: 99,
+      backgroundColor: RED,
+      paddingVertical: 6,
+      paddingHorizontal: 13,
     },
     topEndSquare: {
-      width: scale(10),
-      height: scale(10),
-      borderRadius: scale(2.5),
-      backgroundColor: '#C53A2B',
+      width: 9,
+      height: 9,
+      borderRadius: 2.5,
+      backgroundColor: '#fff',
     },
     topEndText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: '#C53A2B',
+      fontSize: 12,
+      color: '#fff',
     },
-    dock: {
+
+    // Jump to live — bottom centre, and suppressed while the student holds
+    // Interrupt so the Listening strip owns that edge alone.
+    liveChip: {
       position: 'absolute',
-      right: scale(16),
-      top: '50%',
-      transform: [{ translateY: -verticalScale(115) }],
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: verticalScale(8),
-      backgroundColor: 'rgba(252,250,244,.95)',
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(11),
-      paddingHorizontal: scale(8),
-    },
-    dockLogo: {
-      width: scale(32),
-      height: scale(32),
-      borderRadius: scale(16),
-      backgroundColor: colors.segmentTrack,
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dockWave: {
+      alignSelf: 'center',
+      bottom: 14,
       flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: scale(2),
-      height: verticalScale(12),
-    },
-    dockWaveBar: {
-      width: scale(2.5),
-      height: verticalScale(12),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
-    },
-    dockDivider: {
-      width: scale(26),
-      height: 1,
-      backgroundColor: colors.hairline,
-    },
-    dockHandButton: {
-      width: scale(46),
-      height: scale(46),
-      borderRadius: scale(23),
-      backgroundColor: colors.ink,
       alignItems: 'center',
-      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: DARK_CHROME,
+      borderRadius: 99,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 7 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 6,
     },
-    dockHandLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(8.5),
-      letterSpacing: scale(0.85),
-      textTransform: 'uppercase',
-      color: colors.slate,
-      marginTop: verticalScale(-3),
+    liveChipArrow: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: 12,
+      color: AMBER,
     },
-    dockPauseButton: {
-      width: scale(38),
-      height: scale(38),
-      borderRadius: scale(19),
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
+    liveChipText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: 12,
+      color: '#EFEBDD',
     },
-    dockPauseButtonActive: {
-      borderColor: colors.ink,
-      backgroundColor: colors.ink,
-    },
-    dockCc: {
-      width: scale(30),
-      height: scale(30),
-      borderRadius: scale(15),
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#FCF4E0',
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(238,163,31,.65)',
-    },
-    dockCcText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(0.57),
-      color: colors.amberText,
-    },
-    dockChevron: {
-      width: scale(26),
-      height: scale(26),
-      borderRadius: scale(13),
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    handle: {
+
+    // Thumb rail — a floating paper plate, centred on the screen.
+    rail: {
       position: 'absolute',
-      right: 0,
+      right: 12,
       top: '50%',
-      transform: [{ translateY: -verticalScale(43) }],
-      width: scale(20),
-      height: verticalScale(86),
-      borderTopLeftRadius: scale(12),
-      borderBottomLeftRadius: scale(12),
-      backgroundColor: 'rgba(28,26,22,.88)',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 13,
+      paddingHorizontal: 9,
+      borderRadius: 99,
+      backgroundColor: 'rgba(252,250,244,.94)',
+      borderWidth: 1,
+      borderColor: HAIRLINE,
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.22,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    railDivider: {
+      width: 22,
+      height: 1,
+      backgroundColor: 'rgba(28,26,22,.12)',
+    },
+    talkButton: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: INK,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 7,
+      elevation: 5,
+    },
+    talkButtonOn: {
+      backgroundColor: AMBER,
+    },
+    // Pinned to 54 so the plate cannot resize when the label changes.
+    talkLabel: {
+      width: 54,
+      marginTop: -4,
+      textAlign: 'center',
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: 8.5,
+      letterSpacing: 0.1 * 8.5,
+      textTransform: 'uppercase',
+      color: INK_MUTED,
+    },
+    talkLabelOn: {
+      color: DEEP_AMBER,
+    },
+    railButton: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
     },
+    railCc: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: AMBER_WASH,
+    },
+    railCcOff: {
+      backgroundColor: 'transparent',
+    },
+    railCcText: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: 9.5,
+      letterSpacing: 0.06 * 9.5,
+      color: DEEP_AMBER,
+    },
+    railCcTextOff: {
+      color: INK_FAINT,
+    },
+
     micDeniedCard: {
       position: 'absolute',
       left: '50%',
