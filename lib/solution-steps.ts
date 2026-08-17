@@ -9,11 +9,6 @@ export type ParsedStep = { title: string; lines: SolutionLine[] };
  *  numbers each step, so repeating it in the copy is noise. */
 const STEP_PREFIX = /^\s*(?:step\s*)?\d+\s*[:.)-]\s*/i;
 
-/** A clause that reads as an equation rather than a sentence: has a relational
- *  operator and little else. Used only for undelimited content, where the
- *  backend gave us no `$…$` to go on. */
-const LOOKS_LIKE_EQUATION = /^[^a-z]*(?:[A-Za-zΑ-Ωα-ω0-9_^{}()[\]./*+\-−×·÷√∫∑πΔλμθ°'"\s]|\\[a-zA-Z]+)*[=≈≤≥<>≠∴⟹→]/;
-
 function splitSentences(prose: string): string[] {
   return prose
     .split(/(?<=[.!?])\s+/)
@@ -31,40 +26,36 @@ function splitSentences(prose: string): string[] {
  * keeps its position relative to the prose around it, rather than being
  * hoisted to the end.
  */
+/** A clause that is nothing but one maths segment — optionally with a trailing
+ *  full stop. This is the whole test for "own line" treatment: the design's
+ *  rule is that maths is never inline in a sentence, but the solver routinely
+ *  emits inline symbols mid-sentence ("so $Q$ is another subset of $A$").
+ *  Promoting those would shatter the sentence into fragments, which is exactly
+ *  what it looked like before this guard existed. */
+const WHOLE_LINE_MATH = /^\s*(?:\$\$?[^$]+\$\$?|\\\([^)]*\\\)|\\\[[^\]]*\\\])\s*[.:]?\s*$/;
+
 export function parseSolutionStep(raw: string): ParsedStep {
   const source = (raw ?? '').replace(STEP_PREFIX, '').trim();
   if (!source) return { title: '', lines: [] };
 
-  // Pass 1 — split on explicit maths delimiters, which are unambiguous.
-  const chunks: SolutionLine[] = [];
-  const delimited = /\$\$?[^$]+\$\$?|\\\([^)]*\\\)|\\\[[^\]]*\\\]/g;
-  let cursor = 0;
-  let match: RegExpExecArray | null;
-  while ((match = delimited.exec(source))) {
-    const before = source.slice(cursor, match.index).trim();
-    if (before) chunks.push({ kind: 'text', text: before });
-    chunks.push({ kind: 'math', text: latexToText(match[0]) });
-    cursor = match.index + match[0].length;
-  }
-  const rest = source.slice(cursor).trim();
-  if (rest) chunks.push({ kind: 'text', text: rest });
+  // Break into candidate lines first — explicit newlines, then sentences — so
+  // "is this whole line maths?" is a question that can actually be asked.
+  const candidates = source
+    .split('\n')
+    .flatMap((block) => splitSentences(block.trim()))
+    .map((c) => c.trim())
+    .filter(Boolean);
 
-  // Pass 2 — inside plain prose, a line that is really an equation still gets
-  // the maths treatment. Newline-separated content is the reliable signal;
-  // splitting mid-sentence on "=" would wreck ordinary prose.
-  const lines: SolutionLine[] = [];
-  for (const chunk of chunks) {
-    if (chunk.kind === 'math') {
-      lines.push(chunk);
-      continue;
+  const lines: SolutionLine[] = candidates.map((candidate) => {
+    // Only an explicitly-delimited, whole-line segment gets the wash. Guessing
+    // at undelimited text was worse than not trying: "Let $|A| = n$" contains a
+    // relational operator and would have been torn out of its sentence.
+    if (WHOLE_LINE_MATH.test(candidate)) {
+      return { kind: 'math', text: latexToText(candidate).replace(/[.:]$/, '') };
     }
-    for (const piece of chunk.text.split('\n').map((p) => p.trim()).filter(Boolean)) {
-      lines.push({
-        kind: LOOKS_LIKE_EQUATION.test(piece) ? 'math' : 'text',
-        text: latexToText(piece),
-      });
-    }
-  }
+    // Inline maths stays inline, converted to Unicode with the prose around it.
+    return { kind: 'text', text: latexToText(candidate) };
+  });
 
   // The first sentence of the opening prose becomes the title, so each step
   // has the heading the design leads with. A step that opens on maths keeps
