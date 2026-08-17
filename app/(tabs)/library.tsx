@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -15,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { DRAFT_GREY, ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
+import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -315,10 +316,23 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* Erase mode only: a light amber wash falling from the very top of the
+          screen, the same gesture as the class-dismissal page. It sits behind
+          the header as well as the list, so there is no seam where the page
+          begins. Subtle on purpose — it should say "different mode", not
+          shout. */}
+      {eraseMode && (
+        <LinearGradient
+          colors={['rgba(238,163,31,0.16)', 'rgba(238,163,31,0.05)', 'rgba(255,255,255,0)']}
+          locations={[0, 0.45, 1]}
+          style={styles.eraseWash}
+          pointerEvents="none"
+        />
+      )}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerFixed}>
           <Text style={styles.heading}>Library</Text>
-          <View style={styles.segmentRow}>
+          <View style={[styles.segmentRow, eraseMode && styles.segmentRowErasing]}>
             {SEGMENTS.map((segment, index) => (
               <PressableScale
                 key={segment}
@@ -348,10 +362,6 @@ export default function LibraryScreen() {
               <EraseTool active={eraseMode} onPress={toggleErase} />
             )}
           </View>
-
-          {activeSegment === 'notes' && eraseMode && (
-            <EraseModeLine onDone={() => setEraseMode(false)} />
-          )}
         </View>
 
         <ScrollView
@@ -363,7 +373,7 @@ export default function LibraryScreen() {
           onMomentumScrollEnd={handleMomentumScrollEnd}
           scrollEventThrottle={16}
           style={styles.pager}>
-          <View style={[{ width: windowWidth }, eraseMode && styles.pageErasing]}>
+          <View style={{ width: windowWidth }}>
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
@@ -392,6 +402,8 @@ export default function LibraryScreen() {
                 ))}
                 <Text style={styles.filterCount}>{visibleNotes.length} notes</Text>
               </View>
+
+              {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
 
               {notesLoading ? (
                 <CardSkeletonList styles={styles} count={4} />
@@ -732,10 +744,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     segmentSpacer: {
       flex: 1,
     },
-    // Erase mode only: the page recedes to a draft grey so the cards read as
-    // the paper and the page as the desk. Reverts on exit.
-    pageErasing: {
-      backgroundColor: DRAFT_GREY,
+    eraseWash: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: verticalScale(560),
+    },
+    // Erase mode only: the tabs give up their underline while the mode line
+    // below the filters does the separating.
+    segmentRowErasing: {
+      borderBottomColor: 'transparent',
     },
     segmentIndicator: {
       position: 'absolute',

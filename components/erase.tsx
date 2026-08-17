@@ -119,13 +119,18 @@ export function EraseTool({ active, onPress }: { active: boolean; onPress: () =>
   );
 }
 
-/** Once the eraser is down, this says exactly what to do. */
+/**
+ * Once the eraser is down, this says exactly what to do. It sits directly
+ * above the cards it is talking about — under the subject filters, not up
+ * against the tabs, where it was crowding the tab underline.
+ */
 export function EraseModeLine({ onDone }: { onDone: () => void }) {
   return (
     <View style={lineStyles.row}>
       <Text style={lineStyles.hand}>rub any card to erase it</Text>
       <View style={lineStyles.rule} />
-      <Pressable onPress={onDone} hitSlop={10}>
+      {/* Shaped like the Erase pill so the two read as one control set. */}
+      <Pressable style={lineStyles.donePill} onPress={onDone} hitSlop={8}>
         <Text style={lineStyles.done}>DONE</Text>
       </Pressable>
     </View>
@@ -478,8 +483,9 @@ const lineStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    marginTop: 9,
+    gap: 10,
+    marginTop: 16,
+    marginBottom: 2,
   },
   undoRow: {
     flexDirection: 'row',
@@ -487,20 +493,31 @@ const lineStyles = StyleSheet.create({
     gap: 12,
     marginTop: 12,
   },
+  // The amber of the eraser itself, as the reference still has it — in a
+  // handwritten face it reads as a note in the margin rather than UI copy.
   hand: {
     fontFamily: 'Kalam_700Bold',
-    fontSize: 13,
-    color: INK_MUTED,
+    fontSize: 13.5,
+    letterSpacing: 0.2,
+    color: DEEP_AMBER,
   },
   rule: {
     flex: 1,
     height: 1,
     backgroundColor: HAIRLINE,
   },
+  donePill: {
+    paddingVertical: 5,
+    paddingHorizontal: 13,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: 'rgba(28,26,22,.22)',
+    backgroundColor: '#FFFFFF',
+  },
   done: {
     fontFamily: 'AnekLatin_800ExtraBold',
-    fontSize: 11.5,
-    letterSpacing: 0.06 * 11.5,
+    fontSize: 11,
+    letterSpacing: 0.08 * 11,
     color: INK,
   },
   undo: {
