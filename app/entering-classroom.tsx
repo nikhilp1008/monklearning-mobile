@@ -48,7 +48,7 @@ function friendlyScopeError(err: unknown): string {
 }
 
 export default function EnteringClassroomScreen() {
-  useLandscapeLock();
+  const isLandscape = useLandscapeLock();
   const params = useLocalSearchParams<{
     chapterId?: string;
     chapterTitle?: string;
@@ -179,6 +179,13 @@ export default function EnteringClassroomScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
+
+  // Hold on a plain paper-coloured field until the device has actually turned.
+  // Painting the landscape layout into a still-portrait window is what made
+  // this transition look broken — a squeezed frame, then a snap.
+  if (!isLandscape) {
+    return <View style={styles.rotateHold} />;
+  }
 
   if (stage === 'error') {
     return (
@@ -461,6 +468,12 @@ const dotStyles = StyleSheet.create({
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
+      flex: 1,
+      backgroundColor: colors.paper,
+    },
+    // Same ground as the screen itself, so the rotation reads as one continuous
+    // surface turning rather than a flash of something else.
+    rotateHold: {
       flex: 1,
       backgroundColor: colors.paper,
     },

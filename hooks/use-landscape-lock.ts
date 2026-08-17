@@ -1,6 +1,6 @@
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
 
 // Locks the screen to landscape while a classroom/lesson screen is focused,
 // restoring portrait on unmount — the rest of the app is portrait-only.
@@ -33,7 +33,34 @@ let landscapeLockCount = 0;
 let pendingRestore: ReturnType<typeof setTimeout> | null = null;
 const RESTORE_GRACE_MS = 120;
 
-export function useLandscapeLock() {
+/** How long to wait for the rotation before painting anyway. Locking can
+ *  legitimately be refused (iPad multitasking), and a screen that never
+ *  appears is far worse than one that appears un-rotated. */
+const ORIENTATION_TIMEOUT_MS = 700;
+
+/**
+ * Returns `true` once the screen is actually in landscape, so callers can hold
+ * their first paint until then.
+ *
+ * Without this, a landscape-designed screen mounts and paints instantly while
+ * the device is still portrait — the lock is requested in an effect, and
+ * rotation takes a few hundred milliseconds. The student sees a wide layout
+ * squeezed into a tall window, which then snaps into place. Gating on the real
+ * window dimensions removes that intermediate frame entirely.
+ */
+export function useLandscapeLock(): boolean {
+  const { width, height } = useWindowDimensions();
+  const [timedOut, setTimedOut] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    timeoutRef.current = setTimeout(() => setTimedOut(true), ORIENTATION_TIMEOUT_MS);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === 'web') return;
     landscapeLockCount += 1;
@@ -54,4 +81,8 @@ export function useLandscapeLock() {
       }
     };
   }, []);
+
+  // Web has no device to rotate, so never withhold the paint there.
+  if (Platform.OS === 'web') return true;
+  return width > height || timedOut;
 }

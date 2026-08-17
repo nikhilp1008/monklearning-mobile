@@ -74,7 +74,7 @@ try {
 }
 
 export default function LiveClassroomScreen() {
-  useLandscapeLock();
+  const isLandscape = useLandscapeLock();
   const params = useLocalSearchParams<{ sessionId?: string; chapterTitle?: string; subtopic?: string }>();
   const sessionId = params.sessionId ?? '';
   const chapterTitle = params.chapterTitle || 'this chapter';
@@ -381,6 +381,10 @@ export default function LiveClassroomScreen() {
   endClassRef.current = endClass;
 
   const showJumpChip = !following && !handRaised;
+
+  if (!isLandscape) {
+    return <View style={styles.rotateHold} />;
+  }
 
   if (connectError) {
     return (
@@ -820,6 +824,12 @@ function ScreenshotIcon({ size }: { size: number }) {
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
+      flex: 1,
+      backgroundColor: colors.paper,
+    },
+    // Held until the device has actually turned — painting a landscape
+    // layout into a still-portrait window is what made this look broken.
+    rotateHold: {
       flex: 1,
       backgroundColor: colors.paper,
     },

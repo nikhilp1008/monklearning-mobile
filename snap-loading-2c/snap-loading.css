@@ -1,0 +1,242 @@
+/* Monk Learning — Snap a doubt, loading state (2C "full bleed")
+   Self-contained. No dependencies beyond the two web fonts. */
+
+.snap-loading {
+  /* tokens */
+  --ink: #0B0A09;          /* screen background / scrim */
+  --paper: #1E1B16;        /* the captured page, dimmed */
+  --cream: #F7F5EC;        /* primary text */
+  --cream-dim: #9B958A;    /* secondary text */
+  --cream-quiet: #C9C3B4;  /* tertiary / cancel */
+  --amber: #EEA31F;        /* scan + accents */
+  --amber-hot: #FFD682;    /* leading edge of the sweep */
+
+  /* timing */
+  --scan-duration: 3s;     /* one top-to-bottom pass */
+  --stage-hold: 2.4s;      /* how long each stage line stays up */
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'Anek Latin', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- the shot ---------- */
+
+.snap-loading__photo {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  /* stand-in for the student's photo: replace with the real image */
+  background-image: repeating-linear-gradient(to bottom, transparent 0 46px, rgba(231, 225, 210, .055) 46px 47px);
+  background-size: cover;
+  background-position: center;
+}
+.snap-loading__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .62;              /* the shot sits back so the copy stays legible */
+  filter: saturate(.85);
+}
+
+/* Stand-in question text — delete when a real photo is used. */
+.snap-loading__demo-text {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  top: 300px;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 27px;
+  line-height: 1.55;
+  color: rgba(231, 225, 210, .62);
+}
+.snap-loading__demo-text b { font-weight: 700; }
+
+/* ---------- detected text lines ---------- */
+
+.snap-loading__lines { position: absolute; inset: 0; }
+.snap-loading__line {
+  position: absolute;
+  height: 43px;
+  border: 1px solid rgba(238, 163, 31, .8);
+  border-radius: 5px;
+  animation: snap-lit var(--scan-duration) linear infinite;
+}
+/* Emit one .snap-loading__line per OCR box, positioned from the OCR result,
+   with an animation-delay equal to (box.top / photoHeight) * var(--scan-duration). */
+.snap-loading__line:nth-child(1) { left: 28px;  right: 28px;  top: 292px; animation-delay: 0s; }
+.snap-loading__line:nth-child(2) { left: 28px;  right: 28px;  top: 334px; animation-delay: .1s; }
+.snap-loading__line:nth-child(3) { left: 28px;  right: 150px; top: 376px; animation-delay: .2s; }
+
+/* ---------- the sweep ---------- */
+
+.snap-loading__sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 280px;
+  background: linear-gradient(to bottom,
+    rgba(238, 163, 31, 0) 0%,
+    rgba(238, 163, 31, .06) 40%,
+    rgba(238, 163, 31, .26) 86%,
+    rgba(255, 214, 130, .9) 99%,
+    rgba(238, 163, 31, 0) 100%);
+  animation: snap-sweep var(--scan-duration) linear infinite;
+  will-change: transform;
+}
+
+/* ---------- scrim: keeps the chrome and the copy readable ---------- */
+
+.snap-loading__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(11, 10, 9, .86) 0 14%,
+    rgba(11, 10, 9, 0) 32%,
+    rgba(11, 10, 9, 0) 46%,
+    rgba(11, 10, 9, .9) 74%,
+    var(--ink) 100%);
+  pointer-events: none;
+}
+
+/* ---------- chrome ---------- */
+
+.snap-loading__status {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 30px 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.snap-loading__bar {
+  position: absolute;
+  left: 0; right: 0; top: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px;
+}
+.snap-loading__title { font-size: 19px; font-weight: 700; }
+.snap-loading__close {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(247, 245, 236, .12);
+  color: var(--cream-quiet);
+  font-size: 18px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.snap-loading__bar-spacer { width: 38px; }
+
+/* ---------- footer ---------- */
+
+.snap-loading__footer {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 0 34px 40px;
+  text-align: center;
+}
+.snap-loading__dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 26px;
+}
+.snap-loading__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: snap-dot 1.4s ease-in-out infinite;
+}
+.snap-loading__dots span:nth-child(2) { animation-delay: .18s; }
+.snap-loading__dots span:nth-child(3) { animation-delay: .36s; }
+
+.snap-loading__stages {
+  position: relative;
+  height: 48px;
+}
+.snap-loading__stage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: 31px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  opacity: 0;
+}
+/* CSS-only cycle (design reference). In production, drive .is-active from real
+   pipeline events instead — see README, "Wiring it to real progress". */
+.snap-loading--auto .snap-loading__stage {
+  animation: snap-stage calc(var(--stage-hold) * 5) ease-in-out infinite;
+}
+.snap-loading--auto .snap-loading__stage:nth-child(2) { animation-delay: calc(var(--stage-hold) * 1); }
+.snap-loading--auto .snap-loading__stage:nth-child(3) { animation-delay: calc(var(--stage-hold) * 2); }
+.snap-loading--auto .snap-loading__stage:nth-child(4) { animation-delay: calc(var(--stage-hold) * 3); }
+.snap-loading--auto .snap-loading__stage:nth-child(5) { animation-delay: calc(var(--stage-hold) * 4); }
+
+.snap-loading__stage.is-active { opacity: 1; transform: none; }
+
+.snap-loading__eta {
+  margin: 10px 0 0;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--cream-dim);
+}
+.snap-loading__cancel {
+  margin-top: 26px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream-quiet);
+  cursor: pointer;
+}
+
+/* ---------- keyframes ---------- */
+
+@keyframes snap-sweep {
+  from { transform: translateY(-280px); }
+  to   { transform: translateY(1000px); }   /* photo height + sweep height */
+}
+@keyframes snap-lit {
+  0%, 10%  { opacity: 0; }
+  20%      { opacity: 1; }
+  60%      { opacity: .5; }
+  100%     { opacity: .18; }
+}
+@keyframes snap-dot {
+  0%, 100% { opacity: .25; transform: scale(.8); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+@keyframes snap-stage {
+  0%          { opacity: 0; transform: translateY(8px); }
+  3.5%        { opacity: 1; transform: translateY(0); }
+  17%         { opacity: 1; transform: translateY(0); }
+  20.5%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .snap-loading__sweep { animation: none; opacity: .5; top: 40%; }
+  .snap-loading__line  { animation: none; opacity: .6; }
+  .snap-loading__dots span { animation: none; opacity: .7; }
+  .snap-loading--auto .snap-loading__stage { animation: none; }
+  .snap-loading--auto .snap-loading__stage:first-child { opacity: 1; }
+}

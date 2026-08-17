@@ -117,7 +117,7 @@ function revealSegments(segments: Segment[], chars: number): Segment[] {
 }
 
 export default function LessonPlayerScreen() {
-  useLandscapeLock();
+  const isLandscape = useLandscapeLock();
   const params = useLocalSearchParams<{ chapterTitle?: string }>();
   const chapterTitle = (params.chapterTitle ?? 'Kinematics').split(' · ')[0];
   const { scale, verticalScale } = useLandscapeScale();
@@ -273,6 +273,10 @@ export default function LessonPlayerScreen() {
   };
 
   const showJumpChip = !following;
+
+  if (!isLandscape) {
+    return <View style={styles.rotateHold} />;
+  }
 
   return (
     <Pressable style={styles.screen} onPress={toggleChrome}>
@@ -674,6 +678,12 @@ function PlayIcon({ size }: { size: number }) {
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
+      flex: 1,
+      backgroundColor: colors.paper,
+    },
+    // Held until the device has actually turned — painting a landscape
+    // layout into a still-portrait window is what made this look broken.
+    rotateHold: {
       flex: 1,
       backgroundColor: colors.paper,
     },

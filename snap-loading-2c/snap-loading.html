@@ -1,0 +1,44 @@
+<!-- Markup fragment for the Snap a doubt loading state (2C).
+     Drop into any container that gives it a size; it fills 100% x 100%.
+     Remove .snap-loading--auto and drive .is-active yourself once wired to the
+     real pipeline (see README). -->
+
+<div class="snap-loading snap-loading--auto" role="status" aria-live="polite">
+
+  <div class="snap-loading__photo">
+    <!-- <img src="capture.jpg" alt=""> -->
+  </div>
+
+  <p class="snap-loading__demo-text"><b>Q 14.</b> Predict the major product when 2-bromobutane reacts with alcoholic KOH, and name the mechanism. [3 marks]</p>
+
+  <div class="snap-loading__lines" aria-hidden="true">
+    <div class="snap-loading__line"></div>
+    <div class="snap-loading__line"></div>
+    <div class="snap-loading__line"></div>
+  </div>
+
+  <div class="snap-loading__sweep" aria-hidden="true"></div>
+  <div class="snap-loading__scrim" aria-hidden="true"></div>
+
+  <div class="snap-loading__status" aria-hidden="true"><span>9:41</span><span style="opacity:.7">&#9646;&#9646;&#9646;</span></div>
+
+  <div class="snap-loading__bar">
+    <button class="snap-loading__close" type="button" aria-label="Close">&#10005;</button>
+    <p class="snap-loading__title">Snap a doubt</p>
+    <span class="snap-loading__bar-spacer"></span>
+  </div>
+
+  <div class="snap-loading__footer">
+    <div class="snap-loading__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="snap-loading__stages">
+      <p class="snap-loading__stage">Reading your photo</p>
+      <p class="snap-loading__stage">Understanding the question</p>
+      <p class="snap-loading__stage">Working out the method</p>
+      <p class="snap-loading__stage">Writing the steps</p>
+      <p class="snap-loading__stage">Checking the answer</p>
+    </div>
+    <p class="snap-loading__eta">Usually about eight seconds. You will get the full working, not just the answer.</p>
+    <button class="snap-loading__cancel" type="button">Cancel</button>
+  </div>
+
+</div>

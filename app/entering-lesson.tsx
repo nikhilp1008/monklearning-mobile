@@ -23,7 +23,7 @@ import { useLandscapeLock } from '@/hooks/use-landscape-lock';
 const LOOP_MS = 3400;
 
 export default function EnteringLessonScreen() {
-  useLandscapeLock();
+  const isLandscape = useLandscapeLock();
   const params = useLocalSearchParams<{ chapterTitle?: string }>();
   const chapterTitle = params.chapterTitle ?? 'Kinematics · Relative velocity';
   const { scale, verticalScale } = useLandscapeScale();
@@ -40,6 +40,10 @@ export default function EnteringLessonScreen() {
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (!isLandscape) {
+    return <View style={styles.rotateHold} />;
+  }
 
   return (
     <Pressable style={styles.screen} onPress={goToLesson}>
@@ -147,6 +151,12 @@ function BlinkDot({ delay, style }: { delay: number; style: ViewStyle }) {
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
+      flex: 1,
+      backgroundColor: '#16130E',
+    },
+    // Held until the device has actually turned — painting a landscape
+    // layout into a still-portrait window is what made this look broken.
+    rotateHold: {
       flex: 1,
       backgroundColor: '#16130E',
     },

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monk Learning — Snap a doubt loading (2C)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="snap-loading.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:#E7E1D2;color:#1C1A16;font-family:'Anek Latin',system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;gap:26px;padding:56px 24px 70px}
+  a{color:#B97A0F;text-decoration:none}
+  a:hover{color:#8F5E0B}
+  .head{max-width:560px;text-align:center}
+  .head h1{font-size:30px;font-weight:700;letter-spacing:-.025em}
+  .head p{margin-top:8px;font-size:17px;line-height:1.5;color:#6B6559;text-wrap:pretty}
+  .frame{width:430px;height:932px;border-radius:44px;overflow:hidden;box-shadow:0 24px 60px rgba(28,26,22,.24);flex:none}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .controls button{border:1px solid rgba(28,26,22,.2);background:#FBF9F2;border-radius:100px;padding:9px 18px;font-family:inherit;font-size:15px;font-weight:600;color:#1C1A16;cursor:pointer}
+  .controls button:hover{border-color:rgba(28,26,22,.45)}
+  .note{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#8C867A}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>Snap a doubt &mdash; loading</h1>
+  <p>The captured page stays on screen behind an amber sweep that lights each detected line as it passes. The footer names the stage the pipeline is actually in. Files: <span class="note">snap-loading.css</span>, <span class="note">snap-loading.html</span>, <span class="note">README.md</span>.</p>
+</div>
+
+<div class="controls">
+  <button type="button" data-mode="auto">CSS auto-cycle</button>
+  <button type="button" data-mode="driven">Simulate real pipeline</button>
+  <button type="button" data-mode="stall">Simulate a slow answer</button>
+</div>
+
+<div class="frame">
+  <div class="snap-loading snap-loading--auto" id="snap" role="status" aria-live="polite">
+
+    <div class="snap-loading__photo">
+      <!-- <img src="capture.jpg" alt=""> -->
+    </div>
+
+    <p class="snap-loading__demo-text"><b>Q 14.</b> Predict the major product when 2-bromobutane reacts with alcoholic KOH, and name the mechanism. [3 marks]</p>
+
+    <div class="snap-loading__lines" aria-hidden="true">
+      <div class="snap-loading__line"></div>
+      <div class="snap-loading__line"></div>
+      <div class="snap-loading__line"></div>
+    </div>
+
+    <div class="snap-loading__sweep" aria-hidden="true"></div>
+    <div class="snap-loading__scrim" aria-hidden="true"></div>
+
+    <div class="snap-loading__status" aria-hidden="true"><span>9:41</span><span style="opacity:.7">&#9646;&#9646;&#9646;</span></div>
+
+    <div class="snap-loading__bar">
+      <button class="snap-loading__close" type="button" aria-label="Close">&#10005;</button>
+      <p class="snap-loading__title">Snap a doubt</p>
+      <span class="snap-loading__bar-spacer"></span>
+    </div>
+
+    <div class="snap-loading__footer">
+      <div class="snap-loading__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="snap-loading__stages">
+        <p class="snap-loading__stage">Reading your photo</p>
+        <p class="snap-loading__stage">Understanding the question</p>
+        <p class="snap-loading__stage">Working out the method</p>
+        <p class="snap-loading__stage">Writing the steps</p>
+        <p class="snap-loading__stage">Checking the answer</p>
+      </div>
+      <p class="snap-loading__eta">Usually about eight seconds. You will get the full working, not just the answer.</p>
+      <button class="snap-loading__cancel" type="button">Cancel</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Demo only. Shows the two ways the stage line can be driven.
+var root = document.getElementById('snap');
+var stages = Array.prototype.slice.call(root.querySelectorAll('.snap-loading__stage'));
+var timers = [];
+
+function reset() {
+  timers.forEach(clearTimeout);
+  timers = [];
+  stages.forEach(function (el) { el.classList.remove('is-active'); });
+  root.classList.remove('snap-loading--auto');
+}
+function show(i) {
+  stages.forEach(function (el, n) { el.classList.toggle('is-active', n === i); });
+}
+function run(steps) {           // steps: [stageIndex, holdMs]
+  reset();
+  var t = 0;
+  steps.forEach(function (s) {
+    timers.push(setTimeout(function () { show(s[0]); }, t));
+    t += s[1];
+  });
+}
+
+document.querySelectorAll('.controls button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var mode = b.dataset.mode;
+    if (mode === 'auto') { reset(); root.classList.add('snap-loading--auto'); return; }
+    if (mode === 'driven') {
+      // OCR done fast, solve normal, render fast — the sequence follows events
+      run([[0, 900], [1, 1400], [2, 3200], [3, 2100], [4, 1200]]);
+      timers.push(setTimeout(function () { show(4); }, 8800));
+      return;
+    }
+    // slow answer: hold the last honest stage rather than looping back
+    run([[0, 900], [1, 1600], [2, 9000], [3, 6000]]);
+  });
+});
+</script>
+</body>
+</html>
