@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
@@ -19,6 +19,7 @@ const SUGGESTIONS = [
 
 export default function PlanSheetScreen() {
   const { scale, verticalScale } = useScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [items, setItems] = useState<PlanItem[]>([]);
@@ -60,83 +61,86 @@ export default function PlanSheetScreen() {
     <View style={styles.root}>
       <StatusBar style="dark" />
       <Pressable style={styles.scrim} onPress={() => router.back()} />
-      <View style={styles.sheet}>
-        <SafeAreaView style={styles.flex} edges={['bottom']}>
-          <View style={styles.handle} />
+      {/* The home-indicator gap is padding on the sheet itself, not a
+          SafeAreaView inside it. The sheet is absolutely positioned with no
+          height of its own, so it measured to its content and the inset was
+          then added inside that measurement — which pushed the Done button
+          past the bottom edge, where it was clipped. */}
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, verticalScale(16)) }]}>
+        <View style={styles.handle} />
 
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>Today&apos;s plan</Text>
-            <PressableScale style={styles.closeButton} onPress={() => router.back()}>
-              <Text style={styles.closeGlyph}>✕</Text>
-            </PressableScale>
-          </View>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Today&apos;s plan</Text>
+          <PressableScale style={styles.closeButton} onPress={() => router.back()}>
+            <Text style={styles.closeGlyph}>✕</Text>
+          </PressableScale>
+        </View>
 
-          <Text style={styles.subtitle}>
-            Set up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.{' '}
-            <Text style={styles.subtitleAccent}>
-              {slotsLeft} slot{slotsLeft === 1 ? '' : 's'} left.
-            </Text>
+        <Text style={styles.subtitle}>
+          Set up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.{' '}
+          <Text style={styles.subtitleAccent}>
+            {slotsLeft} slot{slotsLeft === 1 ? '' : 's'} left.
           </Text>
+        </Text>
 
-          {items.length > 0 ? (
-            <View style={styles.planList}>
-              {items.map((item) => (
-                <View key={item.id} style={styles.planRow}>
-                  <View style={styles.planDot} />
-                  <Text style={styles.planText}>{item.text}</Text>
-                  <PressableScale
-                    style={styles.planRemove}
-                    hitSlop={8}
-                    onPress={() => removePlan(item.id)}>
-                    <Text style={styles.planRemoveGlyph}>✕</Text>
-                  </PressableScale>
-                </View>
+        {items.length > 0 ? (
+          <View style={styles.planList}>
+            {items.map((item) => (
+              <View key={item.id} style={styles.planRow}>
+                <View style={styles.planDot} />
+                <Text style={styles.planText}>{item.text}</Text>
+                <PressableScale
+                  style={styles.planRemove}
+                  hitSlop={8}
+                  onPress={() => removePlan(item.id)}>
+                  <Text style={styles.planRemoveGlyph}>✕</Text>
+                </PressableScale>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.emptyText}>Nothing planned yet — add one below.</Text>
+        )}
+
+        <View style={[styles.inputRow, !hasSlot && styles.rowDisabled]}>
+          <TextInput
+            style={styles.input}
+            value={draft}
+            onChangeText={setDraft}
+            editable={hasSlot}
+            placeholder="Write your own plan…"
+            placeholderTextColor={colors.faint}
+            returnKeyType="done"
+            onSubmitEditing={submitDraft}
+          />
+          <PressableScale
+            style={styles.submitButton}
+            disabled={!hasSlot || !draft.trim()}
+            onPress={submitDraft}>
+            <ArrowRightIcon color={colors.paper} size={scale(15)} />
+          </PressableScale>
+        </View>
+
+        {availableSuggestions.length > 0 && (
+          <>
+            <Text style={styles.suggestOverline}>Or pick a suggestion</Text>
+            <View style={[styles.chipsRow, !hasSlot && styles.rowDisabled]}>
+              {availableSuggestions.map((suggestion) => (
+                <PressableScale
+                  key={suggestion}
+                  style={styles.chip}
+                  disabled={!hasSlot}
+                  onPress={() => addPlan(suggestion)}>
+                  <Text style={styles.chipText}>+ {suggestion}</Text>
+                </PressableScale>
               ))}
             </View>
-          ) : (
-            <Text style={styles.emptyText}>Nothing planned yet — add one below.</Text>
-          )}
+          </>
+        )}
 
-          <View style={[styles.inputRow, !hasSlot && styles.rowDisabled]}>
-            <TextInput
-              style={styles.input}
-              value={draft}
-              onChangeText={setDraft}
-              editable={hasSlot}
-              placeholder="Write your own plan…"
-              placeholderTextColor={colors.faint}
-              returnKeyType="done"
-              onSubmitEditing={submitDraft}
-            />
-            <PressableScale
-              style={styles.submitButton}
-              disabled={!hasSlot || !draft.trim()}
-              onPress={submitDraft}>
-              <ArrowRightIcon color={colors.paper} size={scale(15)} />
-            </PressableScale>
-          </View>
-
-          {availableSuggestions.length > 0 && (
-            <>
-              <Text style={styles.suggestOverline}>Or pick a suggestion</Text>
-              <View style={[styles.chipsRow, !hasSlot && styles.rowDisabled]}>
-                {availableSuggestions.map((suggestion) => (
-                  <PressableScale
-                    key={suggestion}
-                    style={styles.chip}
-                    disabled={!hasSlot}
-                    onPress={() => addPlan(suggestion)}>
-                    <Text style={styles.chipText}>+ {suggestion}</Text>
-                  </PressableScale>
-                ))}
-              </View>
-            </>
-          )}
-
-          <PressableScale style={styles.doneButton} onPress={() => router.back()}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </PressableScale>
-        </SafeAreaView>
+        <PressableScale style={styles.doneButton} onPress={() => router.back()}>
+          <Text style={styles.doneButtonText}>Done</Text>
+        </PressableScale>
       </View>
     </View>
   );

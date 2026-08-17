@@ -2,6 +2,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -11,6 +20,13 @@ import { WashSelectRow } from '@/components/wash-select-row';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+
+// Matched to practice-focus.tsx, the app's other bottom sheet — a flick
+// dismisses even if the sheet barely moved, so a quick swipe down doesn't need
+// a full quarter-height drag to register.
+const DISMISS_VELOCITY = 900;
+const DISMISS_DISTANCE_RATIO = 0.25;
+const DISMISS_ANIMATION_DURATION = 220;
 
 const TALKS = [
   { title: 'EMF vs terminal voltage', when: '2d ago' },
@@ -29,6 +45,39 @@ export default function TopicSheetScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [selected, setSelected] = useState<string | null>(null);
   const [playToken, setPlayToken] = useState(0);
+
+  const translateY = useSharedValue(0);
+  // Measured rather than assumed: the sheet is pinned to a top offset, so its
+  // height is whatever the window leaves — which is not a constant.
+  const sheetHeight = useSharedValue(verticalScale(560));
+
+  const closeSheet = () => router.back();
+
+  const dragGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Downwards only. Dragging up would lift the sheet off the bottom edge
+      // and show the scrim underneath it.
+      translateY.value = Math.max(0, event.translationY);
+    })
+    .onEnd((event) => {
+      const pastDistance = translateY.value > sheetHeight.value * DISMISS_DISTANCE_RATIO;
+      const flicked = event.velocityY > DISMISS_VELOCITY;
+      if (pastDistance || flicked) {
+        translateY.value = withTiming(
+          sheetHeight.value,
+          { duration: DISMISS_ANIMATION_DURATION, easing: Easing.in(Easing.cubic) },
+          (finished) => {
+            if (finished) runOnJS(closeSheet)();
+          }
+        );
+      } else {
+        translateY.value = withSpring(0, { damping: 22, stiffness: 280 });
+      }
+    });
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const select = useCallback((topic: string) => {
     setSelected(topic);
@@ -97,18 +146,29 @@ export default function TopicSheetScreen() {
     <View style={styles.root}>
       <StatusBar style="dark" />
       <Pressable style={styles.scrim} onPress={() => router.back()} />
-      <View style={styles.sheet}>
+      <Animated.View
+        style={[styles.sheet, sheetAnimatedStyle]}
+        onLayout={(event) => {
+          sheetHeight.value = event.nativeEvent.layout.height;
+        }}>
         <SafeAreaView style={styles.flex} edges={['bottom']}>
-          <View style={styles.handle} />
-          <View style={styles.headerRow}>
-            <View style={styles.headerTextBlock}>
-              <Text style={styles.headerOverline}>
-                Chapter {chapterNumber} · {subject} · {classLabel}
-              </Text>
-              <Text style={styles.headerTitle}>{chapterTitle}</Text>
+          {/* The handle and the header, and nothing below them: the topic grid
+              is its own ScrollView, and a pan gesture over that would fight its
+              vertical scroll instead of handing off to it. */}
+          <GestureDetector gesture={dragGesture}>
+            <View style={styles.dragArea}>
+              <View style={styles.handle} />
+              <View style={styles.headerRow}>
+                <View style={styles.headerTextBlock}>
+                  <Text style={styles.headerOverline}>
+                    Chapter {chapterNumber} · {subject} · {classLabel}
+                  </Text>
+                  <Text style={styles.headerTitle}>{chapterTitle}</Text>
+                </View>
+                <Text style={styles.headerHint}>pick one topic</Text>
+              </View>
             </View>
-            <Text style={styles.headerHint}>pick one topic</Text>
-          </View>
+          </GestureDetector>
 
           <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
             {loading ? (
@@ -199,7 +259,7 @@ export default function TopicSheetScreen() {
             </Pressable>
           </View>
         </SafeAreaView>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -266,6 +326,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowOpacity: 0.25,
       shadowRadius: scale(20),
       elevation: 12,
+    },
+    // A generous grab target — the handle alone is 5pt tall, which is not
+// something a thumb can reliably catch.
+    dragArea: {
+      flexDirection: 'column',
+      paddingBottom: verticalScale(4),
     },
     handle: {
       width: scale(40),
