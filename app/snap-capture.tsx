@@ -37,6 +37,11 @@ export default function SnapCaptureScreen() {
   // return stage:'config' too, so reusing that as a "was this even uploaded"
   // signal would wrongly hide "Try again" on a real, retry-worthy backend hiccup.
   const [canRetryUpload, setCanRetryUpload] = useState(false);
+  /** Why we fell back to the idle screen, when it wasn't just a cancelled pick. */
+  const [idleNote, setIdleNote] = useState<string | null>(null);
+  /** Which permission was refused — the copy differs, and offering "choose from
+   *  gallery" to someone who just denied gallery access is a dead end. */
+  const [deniedTarget, setDeniedTarget] = useState<'camera' | 'gallery'>('camera');
 
   async function upload(toUpload: DoubtPhoto) {
     setPhase('uploading');
@@ -85,27 +90,46 @@ export default function SnapCaptureScreen() {
 
   async function openCamera() {
     setPhase('opening');
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      setPhase('permission_denied');
-      return;
+    setIdleNote(null);
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        setDeniedTarget('camera');
+        setPhase('permission_denied');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: false });
+      await handlePicked(result);
+    } catch {
+      // launchCameraAsync throws outright where no camera exists (every
+      // simulator, and some locked-down devices). Unhandled, the rejection
+      // left `phase` stuck on 'opening' — a black screen with a spinner, no
+      // text and no way out but the ✕. Fall back to a state that explains
+      // itself and still offers the gallery.
+      setIdleNote("Couldn't open the camera on this device. Pick a photo from your gallery instead.");
+      setPhase('idle');
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: false });
-    await handlePicked(result);
   }
 
   async function openGallery() {
     setPhase('opening');
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      setPhase('permission_denied');
-      return;
+    setIdleNote(null);
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setDeniedTarget('gallery');
+        setPhase('permission_denied');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.85,
+      });
+      await handlePicked(result);
+    } catch {
+      setIdleNote("Couldn't open your photos. Try again, or use the camera.");
+      setPhase('idle');
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.85,
-    });
-    await handlePicked(result);
   }
 
   // Opens the real camera the instant this screen is reached — no decorative
@@ -199,23 +223,39 @@ export default function SnapCaptureScreen() {
               <View style={styles.fallbackIconChip}>
                 <CameraOffIcon size={scale(22)} />
               </View>
-              <Text style={styles.statusTitle}>Camera access is off</Text>
+              <Text style={styles.statusTitle}>
+                {deniedTarget === 'camera' ? 'Camera access is off' : 'Photo access is off'}
+              </Text>
               <Text style={styles.statusSubtext}>
-                Turn it on in Settings to snap a doubt, or pick a photo you already have.
+                {deniedTarget === 'camera'
+                  ? 'Turn it on in Settings to snap a doubt, or pick a photo you already have.'
+                  : 'Turn it on in Settings to pick a saved photo, or use the camera instead.'}
               </Text>
               <View style={styles.failureActions}>
                 <Pressable style={styles.primaryAction} onPress={() => Linking.openSettings()}>
                   <Text style={styles.primaryActionText}>Open Settings</Text>
                 </Pressable>
-                <Pressable style={styles.secondaryAction} onPress={openGallery}>
-                  <Text style={styles.secondaryActionText}>Choose from gallery</Text>
-                </Pressable>
+                {/* Offer the OTHER route — sending someone who just denied the
+                    gallery back to the gallery is a loop. */}
+                {deniedTarget === 'camera' ? (
+                  <Pressable style={styles.secondaryAction} onPress={openGallery}>
+                    <Text style={styles.secondaryActionText}>Choose from gallery</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.secondaryAction} onPress={openCamera}>
+                    <Text style={styles.secondaryActionText}>Use camera</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           ) : phase === 'idle' ? (
             <View style={styles.fallbackBlock}>
-              <Text style={styles.statusTitle}>Didn&apos;t catch a photo</Text>
-              <Text style={styles.statusSubtext}>Try the camera again, or pick one from your gallery.</Text>
+              <Text style={styles.statusTitle}>
+                {idleNote ? 'Camera unavailable' : "Didn't catch a photo"}
+              </Text>
+              <Text style={styles.statusSubtext}>
+                {idleNote ?? 'Try the camera again, or pick one from your gallery.'}
+              </Text>
               <View style={styles.failureActions}>
                 <Pressable style={styles.primaryAction} onPress={openCamera}>
                   <Text style={styles.primaryActionText}>Open camera</Text>
@@ -226,8 +266,21 @@ export default function SnapCaptureScreen() {
               </View>
             </View>
           ) : (
+            // Was a bare spinner on near-black: if the camera was slow, or
+            // never came back at all, this screen said nothing and offered
+            // nothing. It now names what it's doing and keeps the gallery
+            // reachable throughout.
             <View style={styles.fallbackBlock}>
               <ActivityIndicator color="#EFEBDD" />
+              <Text style={styles.statusTitle}>Opening the camera…</Text>
+              <Text style={styles.statusSubtext}>
+                Point it at one question — up to 3 on a page.
+              </Text>
+              <View style={styles.failureActions}>
+                <Pressable style={styles.secondaryAction} onPress={openGallery}>
+                  <Text style={styles.secondaryActionText}>Choose from gallery</Text>
+                </Pressable>
+              </View>
             </View>
           )}
         </View>
