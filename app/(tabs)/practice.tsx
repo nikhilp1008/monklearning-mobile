@@ -1,7 +1,17 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  ViewStyle,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -79,14 +89,47 @@ export default function PracticeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSegment, activeSubject, focus.mode, focus.chapterId]);
 
+  /**
+   * Fetches the question after this one while the student is still reading the
+   * current solution, so tapping Next swaps instantly instead of waiting on a
+   * measured ~2.5-3.5s round-trip. Discarded silently on failure — Next falls
+   * back to fetching normally, so a failed prefetch costs nothing.
+   */
+  const prefetchedRef = useRef<NextQuestion | null>(null);
+  const prefetchSubjectRef = useRef(activeSubject);
+
+  function prefetchNext() {
+    prefetchedRef.current = null;
+    prefetchSubjectRef.current = activeSubject;
+    getNextQuestion({ subject: SUBJECT_QUERY[activeSubject] })
+      .then((result) => {
+        // Drop it if the student changed subject meanwhile — a Physics
+        // question must never appear under the Chemistry pill.
+        if ('exhausted' in result || prefetchSubjectRef.current !== activeSubject) return;
+        prefetchedRef.current = result;
+      })
+      .catch(() => {
+        prefetchedRef.current = null;
+      });
+  }
+
   async function loadQuestion() {
-    setLoading(true);
     setLoadError(null);
     setPoolMessage(null);
     setSelectedOption(null);
     setNumericInput('');
     setAnswerResult(null);
 
+    // Already have the next one waiting — no spinner, no wait.
+    const ready = prefetchedRef.current;
+    if (ready && prefetchSubjectRef.current === activeSubject) {
+      prefetchedRef.current = null;
+      setQuestion(ready);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
       // /practice/next's live PracticeNextRequest schema (confirmed via
       // GET /openapi.json) only accepts exam/class_level/subject — no
@@ -118,6 +161,9 @@ export default function PracticeScreen() {
     try {
       const result = await submitAnswer({ question_id: question.question_id, chosen_option: key });
       setAnswerResult(result);
+      // The student now has a solution to read — use that time to fetch what
+      // comes next, so Next feels instant.
+      prefetchNext();
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
     } finally {
@@ -135,6 +181,7 @@ export default function PracticeScreen() {
         chosen_value: value,
       });
       setAnswerResult(result);
+      prefetchNext();
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
     } finally {
@@ -319,7 +366,11 @@ export default function PracticeScreen() {
                   style={[styles.revealButton, !numericInput.trim() && styles.revealButtonDisabled]}
                   disabled={!numericInput.trim() || submitting || loading}
                   onPress={submitNumeric}>
-                  <Text style={styles.revealButtonText}>Submit</Text>
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={colors.ink} />
+                  ) : (
+                    <Text style={styles.revealButtonText}>Submit</Text>
+                  )}
                 </Pressable>
               )}
             </View>
@@ -329,6 +380,13 @@ export default function PracticeScreen() {
               const isYourWrongPick = revealed && selectedOption === key && !answerResult?.is_correct;
               const isCorrectReveal =
                 revealed && answerResult?.correct_option?.toLowerCase() === key.toLowerCase();
+              // Grading is a real ~2s server round-trip (measured live). Every
+              // style here used to key off `revealed`, so for those two seconds
+              // a tap changed nothing at all and the screen looked frozen.
+              // The choice is now acknowledged instantly and the others recede,
+              // so the wait reads as "checking" rather than "broken".
+              const isPending = submitting && selectedOption === key;
+              const isDimmed = submitting && selectedOption !== key;
               return (
                 <Pressable
                   key={key}
@@ -337,19 +395,23 @@ export default function PracticeScreen() {
                   style={[
                     styles.optionRow,
                     revealed && styles.optionRowRevealed,
+                    isPending && styles.optionRowPending,
+                    isDimmed && styles.optionRowDimmed,
                     isYourWrongPick && styles.optionRowWrong,
                     isCorrectReveal && styles.optionRowCorrect,
                   ]}>
                   <View
                     style={[
                       styles.optionBadge,
+                      isPending && styles.optionBadgePending,
                       isYourWrongPick && styles.optionBadgeWrong,
                       isCorrectReveal && styles.optionBadgeCorrect,
                     ]}>
                     <Text
                       style={[
                         styles.optionBadgeText,
-                        (isYourWrongPick || isCorrectReveal) && styles.optionBadgeTextOnColor,
+                        (isPending || isYourWrongPick || isCorrectReveal) &&
+                          styles.optionBadgeTextOnColor,
                       ]}>
                       {key.toUpperCase()}
                     </Text>
@@ -359,9 +421,10 @@ export default function PracticeScreen() {
                     fontSize={scale(14)}
                     lineHeight={scale(19.6)}
                     color={colors.ink}
-                    fontWeight={isYourWrongPick || isCorrectReveal ? '700' : '400'}
+                    fontWeight={isPending || isYourWrongPick || isCorrectReveal ? '700' : '400'}
                     style={styles.optionText}
                   />
+                  {isPending && <ActivityIndicator size="small" color={colors.ink} />}
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
                   {isCorrectReveal && <Text style={styles.optionTagCorrect}>CORRECT</Text>}
                 </Pressable>
@@ -904,6 +967,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: scale(1.6),
       borderColor: '#1C9B57',
       backgroundColor: 'rgba(28,155,87,.07)',
+    },
+    // Instant acknowledgement of a tap, held for the ~2s grading round-trip.
+    // Deliberately ink/neutral rather than green or red: the answer isn't
+    // known yet, and hinting either way before the server replies would be a
+    // lie the reveal then contradicts.
+    optionRowPending: {
+      borderColor: colors.ink,
+      backgroundColor: '#FBF9F2',
+    },
+    optionRowDimmed: {
+      opacity: 0.45,
+    },
+    optionBadgePending: {
+      backgroundColor: colors.ink,
+      borderColor: colors.ink,
     },
     optionBadge: {
       width: scale(26),
