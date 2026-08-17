@@ -98,7 +98,11 @@ export function SnapLoading({ photoUri, onCancel, onClose }: SnapLoadingProps) {
   return (
     <View style={styles.root}>
       <View style={styles.photoLayer}>
-        <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" transition={200} />
+        {/* `contain`, not `cover`: the design's own README says "nothing is
+            cropped away, so the student can still see what they sent", which
+            its CSS `object-fit: cover` contradicted. Showing the whole shot is
+            the intent — a student needs to see the question they sent. */}
+        <Image source={{ uri: photoUri }} style={styles.photo} contentFit="contain" transition={200} />
       </View>
 
       <ScanLines s={s} />

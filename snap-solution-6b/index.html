@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monk Learning — Snap It Out solution (6B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="solution-screen.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:#EFEAE0;color:#1C1A16;font-family:'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;gap:24px;padding:52px 24px 70px}
+  a{color:#B97A0F;text-decoration:none}
+  a:hover{color:#8F5E0B}
+  .head{max-width:560px;text-align:center}
+  .head h1{font-size:29px;font-weight:700;letter-spacing:-.03em}
+  .head p{margin-top:8px;font-size:16px;line-height:1.5;color:#57534B;text-wrap:pretty}
+  .frame{width:390px;height:844px;border-radius:32px;overflow:hidden;box-shadow:0 26px 56px -28px rgba(28,26,22,.5);flex:none}
+  .note{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#8A8478}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <h1>Snap It Out &mdash; solution screen</h1>
+  <p>Up to three questions are read from one photo. No photo on this screen: the parsed question is pinned at the top, the working runs down a numbered rail, and the answer closes it out. Tap Q1 / Q2 / Q3 and scroll.</p>
+</div>
+
+<div class="frame">
+  <div class="solution" id="solution">
+
+    <div class="solution__status"><span>9:41</span><span>&#9646;&#9646;&#9646;</span></div>
+
+    <div class="solution__bar">
+      <button class="solution__back" type="button" aria-label="Back">&#8249;</button>
+      <span class="solution__title">Solution</span>
+    </div>
+
+    <div class="solution__chips" data-chips role="tablist" aria-label="Questions from your snap"></div>
+
+    <div class="solution__scroll" data-scroll>
+      <p class="solution__question" data-question></p>
+    </div>
+
+    <div class="solution__actions">
+      <button class="solution__primary" type="button">Ask a follow-up</button>
+      <button class="solution__icon-btn" type="button" aria-label="Report a mistake">&#9873;</button>
+    </div>
+    <div class="solution__home"><span></span></div>
+
+  </div>
+</div>
+
+<script src="solution-screen.js"></script>
+<script>
+  renderSolution(document.getElementById('solution'), SNAP_QUESTIONS, 0);
+</script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+/* Monk Learning — Snap It Out solution screen (6B "boxy grid")
+   Self-contained. Only dependency is the Bricolage Grotesque web font. */
+
+.solution {
+  /* tokens */
+  --ink: #1C1A16;
+  --ink-70: #4A463D;
+  --ink-50: #8A8478;
+  --ink-30: #B5B0A4;
+  --paper: #FFFFFF;
+  --grid: rgba(28, 26, 22, .04);
+  --hair: rgba(28, 26, 22, .12);
+  --amber: #EEA31F;
+  --amber-wash: rgba(238, 163, 31, .11);
+  --green: #1C9B57;
+  --green-ink: #14663A;
+  --green-wash: rgba(28, 155, 87, .11);
+
+  --grid-size: 26px;   /* one square */
+  --gutter: 24px;      /* screen side padding */
+  --rail: 44px;        /* step-number column */
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--grid-size) - 1px), var(--grid) calc(var(--grid-size) - 1px) var(--grid-size)),
+    repeating-linear-gradient(to right,  transparent 0 calc(var(--grid-size) - 1px), var(--grid) calc(var(--grid-size) - 1px) var(--grid-size));
+  color: var(--ink);
+  font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- chrome ---------- */
+
+.solution__status {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px var(--gutter) 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.solution__status span:last-child { opacity: .45; }
+
+.solution__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--gutter) 0;
+}
+.solution__back {
+  width: 32px;
+  height: 32px;
+  margin-left: -6px;
+  border: none;
+  background: none;
+  font-size: 19px;
+  color: #3A362E;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.solution__title { font-size: 21px; font-weight: 700; letter-spacing: -.03em; }
+
+/* ---------- question switcher ---------- */
+
+.solution__chips {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  padding: 14px var(--gutter);
+}
+.solution__chip {
+  height: 38px;
+  padding: 0 20px;
+  border: 1px solid rgba(28, 26, 22, .16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .7);
+  color: var(--ink-50);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.solution__chip[aria-selected="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* ---------- scroll body ---------- */
+
+.solution__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--gutter) 130px;
+  scrollbar-width: none;
+}
+.solution__scroll::-webkit-scrollbar { display: none; }
+
+/* the parsed question — pinned, opaque so the grid never runs under it */
+.solution__question {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 6px 0 16px;
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ---------- steps ---------- */
+
+.solution__steps {
+  position: relative;
+  margin-top: 24px;
+  padding-left: var(--rail);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+.solution__steps::before {          /* the rail */
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--hair);
+}
+
+.solution__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.solution__num {
+  position: absolute;
+  left: calc(var(--rail) * -1);
+  top: 1px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(28, 26, 22, .22);
+  border-radius: 8px;
+  background: var(--paper);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #57534B;
+}
+.solution__step-title {
+  padding-top: 4px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.3;
+}
+
+/* prose line */
+.solution__text {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-70);
+}
+
+/* maths line — quiet amber wash, hugs its own text */
+.solution__math {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: var(--amber-wash);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* ---------- final answer ---------- */
+
+.solution__final { position: relative; display: flex; flex-direction: column; gap: 11px; }
+.solution__final .solution__num {
+  border: none;
+  background: var(--green-wash);
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+}
+.solution__final-label {
+  padding-top: 4px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--green);
+}
+.solution__answer {
+  align-self: flex-start;
+  padding: 8px 13px;
+  border-radius: 6px;
+  background: var(--green-wash);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--green-ink);
+}
+.solution__meta { font-size: 13px; font-weight: 600; color: var(--ink-30); }
+
+/* ---------- sticky actions ---------- */
+
+.solution__actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px var(--gutter);
+  background: linear-gradient(to top, var(--paper) 62%, rgba(255, 255, 255, 0));
+}
+.solution__primary {
+  flex: 1;
+  height: 54px;
+  border: none;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.solution__icon-btn {
+  width: 54px;
+  height: 54px;
+  flex: none;
+  border: 1.4px solid rgba(28, 26, 22, .16);
+  border-radius: 14px;
+  background: var(--paper);
+  font-size: 16px;
+  cursor: pointer;
+}
+.solution__home {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  display: grid;
+  place-items: center;
+}
+.solution__home span {
+  width: 120px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(28, 26, 22, .16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .solution__chip { transition: none; }
+}
