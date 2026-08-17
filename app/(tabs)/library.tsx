@@ -21,6 +21,7 @@ import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
+import { DEMO_NOTE_ID, DEMO_SESSION_ID } from '@/lib/demo-board';
 import { NoteSummary, listNotes } from '@/lib/notes';
 
 type Segment = 'notes' | 'doubts' | 'sessions';
@@ -50,30 +51,15 @@ type Session = {
   badge: { kind: 'urgent' | 'neutral' | 'saved'; text: string };
 };
 
+// DEMO_ — there is no endpoint that lists past sessions yet, so one sample
+// stands in to make the session page reviewable. Delete with lib/demo-board.ts
+// once /drona/sessions exists.
 const SESSIONS: Session[] = [
-  {
-    title: 'Photoelectric effect · threshold',
-    subject: 'Physics',
-    subline: 'last Sunday · 19 min',
-    badge: { kind: 'urgent', text: 'expires tonight' },
-  },
   {
     title: 'Rotational Motion · torque',
     subject: 'Physics',
-    subline: 'yesterday · 24 min',
+    subline: 'sample class',
     badge: { kind: 'neutral', text: '6 days left' },
-  },
-  {
-    title: 'Current Electricity · loop rule',
-    subject: 'Physics',
-    subline: 'Tuesday · 31 min',
-    badge: { kind: 'saved', text: 'Saved' },
-  },
-  {
-    title: 'Hybridisation in 10 minutes',
-    subject: 'Chemistry',
-    subline: '3 days ago · 12 min',
-    badge: { kind: 'neutral', text: '4 days left' },
   },
 ];
 
@@ -284,13 +270,44 @@ export default function LibraryScreen() {
                   <Text style={styles.stateText}>{notesError}</Text>
                 </View>
               ) : visibleNotes.length === 0 ? (
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>
-                    {notes.length === 0
-                      ? 'No saved notes yet — finish a class with Drona and save its board.'
-                      : `No ${notesFilter} notes yet.`}
-                  </Text>
-                </View>
+                // DEMO_ — while nothing real is saved, one sample note stands in
+                // so the note page can be reviewed on a phone. Delete this
+                // branch (and lib/demo-board.ts) once real notes exist.
+                notes.length === 0 && notesFilter === 'All' ? (
+                  <View style={styles.notesList}>
+                    <Text style={styles.sampleNote}>
+                      Nothing saved yet — here&apos;s a sample class so you can see how a note reads.
+                    </Text>
+                    <PressableScale
+                      style={styles.noteCard}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/note-detail',
+                          params: { id: DEMO_NOTE_ID },
+                        })
+                      }>
+                      <View style={styles.noteTopRow}>
+                        <View style={styles.noteSubjectRow}>
+                          <View style={[styles.noteDot, { backgroundColor: '#DD4433' }]} />
+                          <Text style={[styles.noteSubjectText, { color: '#C53A2B' }]}>Physics</Text>
+                        </View>
+                        <Text style={styles.noteTime}>sample</Text>
+                      </View>
+                      <Text style={styles.noteTitle} numberOfLines={2}>
+                        Rotational Motion · torque
+                      </Text>
+                      <Text style={styles.noteBody}>5 sections · derivation, diagram, worked example</Text>
+                    </PressableScale>
+                  </View>
+                ) : (
+                  <View style={styles.stateBlock}>
+                    <Text style={styles.stateText}>
+                      {notes.length === 0
+                        ? 'No saved notes yet — finish a class with Drona and save its board.'
+                        : `No ${notesFilter} notes yet.`}
+                    </Text>
+                  </View>
+                )
               ) : (
                 <View style={styles.notesList}>
                   {visibleNotes.map((note) => {
@@ -447,7 +464,8 @@ export default function LibraryScreen() {
                           chapter: session.title.includes(' · ')
                             ? session.title.split(' · ')[0]
                             : session.title,
-                          time: `class held ${session.subline}`,
+                          sessionId: DEMO_SESSION_ID,
+                          daysLeft: '6',
                         },
                       })
                     }>
@@ -694,6 +712,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',
+    },
+    // DEMO_ — the line above the stand-in note card.
+    sampleNote: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19),
+      color: colors.slate,
+      marginBottom: verticalScale(4),
     },
     doubtsList: {
       flexDirection: 'column',

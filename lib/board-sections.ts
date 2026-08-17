@@ -13,7 +13,14 @@ export type BoardBlock =
   | { kind: 'foot'; text: string }
   | { kind: 'math'; text: string; result?: boolean }
   | { kind: 'note'; text: string }
-  | { kind: 'steps'; steps: { title: string; lines: BoardStepLine[] }[] };
+  | { kind: 'steps'; steps: { title: string; lines: BoardStepLine[] }[] }
+  /** A question worked through in class: the question, the working, the answer. */
+  | { kind: 'problem'; text: string; work: string[]; answer: string }
+  /** The student's own questions, in their handwriting, answered underneath. */
+  | { kind: 'qa'; items: { q: string; a: string }[] }
+  /** A drawn figure. Keyed rather than inlined, since a diagram is a component,
+   *  not data — the renderer maps the id to the drawing. */
+  | { kind: 'figure'; figure: string; caption?: string };
 
 export type BoardStepLine = { kind: 'text' | 'math' | 'note' | 'result'; text: string };
 

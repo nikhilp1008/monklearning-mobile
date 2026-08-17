@@ -8,6 +8,7 @@ import { BoardPage } from '@/components/board-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { buildBoardContent } from '@/lib/board-sections';
+import { DEMO_BOARD, DEMO_NOTE_ID } from '@/lib/demo-board';
 import { NoteDetail, getNote } from '@/lib/notes';
 
 export default function NoteDetailScreen() {
@@ -26,8 +27,10 @@ export default function NoteDetailScreen() {
   const [loading, setLoading] = useState(!!params.id);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const isDemo = params.id === DEMO_NOTE_ID;
+
   useEffect(() => {
-    if (!params.id) return;
+    if (!params.id || isDemo) return;
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
@@ -44,23 +47,25 @@ export default function NoteDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [params.id, isDemo]);
 
   // Board items when the server stored them — one section per lesson segment,
   // which is the shape the design's section list wants — falling back to the
   // flat content for notes saved before they were kept.
   const board = useMemo(
     () =>
-      buildBoardContent({
+      isDemo
+        ? DEMO_BOARD
+        : buildBoardContent({
         topic: note?.concept ?? note?.chapter ?? params.title ?? 'This note',
         subject: note?.subject ?? params.subject ?? '',
         boardItems: note?.board_items,
         content: note?.content,
       }),
-    [note, params.title, params.subject]
+    [note, params.title, params.subject, isDemo]
   );
 
-  if (loading || loadError) {
+  if (!isDemo && (loading || loadError)) {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />

@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 
 import { BoardPage } from '@/components/board-page';
 import { buildBoardContent } from '@/lib/board-sections';
+import { DEMO_BOARD, DEMO_SESSION_ID } from '@/lib/demo-board';
 import { saveNote } from '@/lib/notes';
 
 /**
@@ -31,15 +32,19 @@ export default function SessionBoardScreen() {
 
   const daysLeft = Number(params.daysLeft) || 7;
 
+  const isDemo = params.sessionId === DEMO_SESSION_ID;
+
   const board = useMemo(
     () =>
-      buildBoardContent({
-        topic: params.title ?? 'This class',
-        subject: params.subject ?? '',
-        boardItems: null,
-        content: null,
-      }),
-    [params.title, params.subject]
+      isDemo
+        ? DEMO_BOARD
+        : buildBoardContent({
+            topic: params.title ?? 'This class',
+            subject: params.subject ?? '',
+            boardItems: null,
+            content: null,
+          }),
+    [params.title, params.subject, isDemo]
   );
 
   return (
@@ -51,7 +56,8 @@ export default function SessionBoardScreen() {
         daysLeft={daysLeft}
         onBack={() => router.back()}
         onSave={async () => {
-          if (!params.sessionId) return false;
+          // The sample session has nothing real to save.
+          if (!params.sessionId || isDemo) return isDemo;
           try {
             await saveNote(params.sessionId);
             return true;

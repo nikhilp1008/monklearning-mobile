@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
 
 import { BoardBlock, BoardContent } from '@/lib/board-sections';
 
@@ -119,6 +119,45 @@ function Block({ block, styles }: { block: BoardBlock; styles: Styles }) {
       return (
         <View style={[styles.mathWrap, block.result && styles.mathWrapResult]}>
           <Text style={[styles.math, block.result && styles.mathResult]}>{block.text}</Text>
+        </View>
+      );
+    case 'problem':
+      return (
+        <View style={styles.problemWrap}>
+          <Text style={styles.problem}>{block.text}</Text>
+          <View style={styles.work}>
+            {block.work.map((line, i) => (
+              <View key={i} style={styles.mathWrap}>
+                <Text style={styles.math}>{line}</Text>
+              </View>
+            ))}
+            <View style={styles.answerRow}>
+              <View style={styles.tick}>
+                <TickIcon />
+              </View>
+              <View style={styles.answerWrap}>
+                <Text style={styles.answerText}>{block.answer}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    case 'qa':
+      return (
+        <View style={styles.qa}>
+          {block.items.map((item, i) => (
+            <View key={i}>
+              <Text style={styles.q}>{item.q}</Text>
+              <MarkableText text={item.a} styles={styles} />
+            </View>
+          ))}
+        </View>
+      );
+    case 'figure':
+      return (
+        <View style={styles.figureWrap}>
+          {FIGURES[block.figure]?.()}
+          {!!block.caption && <Text style={styles.caption}>{block.caption}</Text>}
         </View>
       );
     case 'steps':
@@ -306,6 +345,73 @@ export function BoardPage({
   );
 }
 
+function TickIcon() {
+  return (
+    <Svg viewBox="0 0 24 24" width={12} height={12} fill="none">
+      <Path
+        d="M20 6 9 17l-5-5"
+        stroke={GREEN}
+        strokeWidth={3.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Figures the board can draw. Keyed so content stays data while the drawing
+ *  stays a component. */
+const FIGURES: Record<string, () => React.ReactElement> = {
+  torque: () => (
+    // Cropped to the drawing's own extents (y 42–150) — the full 0–150 box left
+    // a third of the figure empty above the arrow.
+    <Svg viewBox="0 42 300 110" width="100%" height={124}>
+      <Line x1={36} y1={105} x2={215} y2={105} stroke={INK} strokeWidth={2.5} strokeLinecap="round" />
+      <Circle cx={36} cy={105} r={6} fill={INK} />
+      <Line x1={28} y1={113} x2={44} y2={113} stroke={INK} strokeWidth={1.5} />
+      <Line x1={215} y1={105} x2={285} y2={65} stroke={AMBER} strokeWidth={2.5} strokeLinecap="round" />
+      <Polyline
+        points="271,66 285,65 277,76"
+        fill="none"
+        stroke={AMBER}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M 245 105 A 30 30 0 0 0 241 90" fill="none" stroke={AMBER} strokeWidth={1.6} />
+      <Line
+        x1={36}
+        y1={128}
+        x2={215}
+        y2={128}
+        stroke="rgba(28,26,22,.45)"
+        strokeWidth={1}
+        strokeDasharray="4 4"
+      />
+      <Line x1={36} y1={123} x2={36} y2={133} stroke="rgba(28,26,22,.45)" strokeWidth={1} />
+      <Line x1={215} y1={123} x2={215} y2={133} stroke="rgba(28,26,22,.45)" strokeWidth={1} />
+      <SvgText x={120} y={145} fontFamily="AnekLatin_700Bold" fontSize={14} fill={INK_70}>
+        r
+      </SvgText>
+      <SvgText
+        x={290}
+        y={58}
+        fontFamily="AnekLatin_700Bold"
+        fontSize={15}
+        fill={AMBER}
+        textAnchor="end">
+        F
+      </SvgText>
+      <SvgText x={252} y={96} fontFamily="AnekLatin_700Bold" fontSize={14} fill={AMBER}>
+        θ
+      </SvgText>
+      <SvgText x={20} y={92} fontFamily="AnekLatin_600SemiBold" fontSize={12} fill={INK_50}>
+        hinge
+      </SvgText>
+    </Svg>
+  ),
+};
+
 function BackChevron() {
   return (
     <Svg viewBox="0 0 24 24" width={20} height={20} fill="none">
@@ -471,6 +577,43 @@ function createStyles() {
       color: INK,
     },
     mathResult: { fontFamily: 'AnekLatin_700Bold', fontSize: 19 },
+
+    problemWrap: { alignSelf: 'stretch' },
+    problem: {
+      paddingBottom: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: HAIR,
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: 16,
+      lineHeight: 16 * 1.6,
+      color: INK,
+    },
+    work: { marginTop: 14, gap: 10, alignItems: 'flex-start' },
+    answerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+    tick: {
+      width: 26,
+      height: 26,
+      flexShrink: 0,
+      borderRadius: 13,
+      backgroundColor: 'rgba(28,155,87,0.12)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    answerWrap: {
+      paddingVertical: 8,
+      paddingHorizontal: 13,
+      borderRadius: 6,
+      backgroundColor: 'rgba(28,155,87,0.11)',
+    },
+    answerText: { fontFamily: 'AnekLatin_700Bold', fontSize: 19, color: GREEN_INK },
+    qa: { alignSelf: 'stretch', gap: 16 },
+    q: {
+      marginBottom: 7,
+      fontFamily: 'Kalam_700Bold',
+      fontSize: 17,
+      color: INK,
+    },
+    figureWrap: { alignSelf: 'stretch', paddingVertical: 6, gap: 6 },
 
     rail: { position: 'relative', paddingLeft: RAIL, gap: 22 },
     railLine: {

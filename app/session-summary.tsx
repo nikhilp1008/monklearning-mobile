@@ -5,7 +5,6 @@ import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { saveNote } from '@/lib/notes';
@@ -31,7 +30,6 @@ const PAPER = '#FFFFFF';
 const RULE = 'rgba(28,26,22,0.05)';
 const HAIR = 'rgba(28,26,22,0.12)';
 const AMBER = '#B08420';
-const GREEN = '#1C9B57';
 const RED = '#DD4433';
 
 const GUTTER = 24;
@@ -113,7 +111,7 @@ export default function SessionSummaryScreen() {
       {/* A warm wash behind the heading, fading to white — the page's only
           decoration, so nothing competes with the note card below. */}
       <LinearGradient
-        colors={['rgba(238,163,31,0.13)', 'rgba(238,163,31,0.03)', 'rgba(255,255,255,0)']}
+        colors={['rgba(238,163,31,0.30)', 'rgba(238,163,31,0.08)', 'rgba(255,255,255,0)']}
         locations={[0, 0.55, 1]}
         style={styles.wash}
         pointerEvents="none"
@@ -155,33 +153,34 @@ export default function SessionSummaryScreen() {
           {/* The note itself, in miniature. Ruled like the note page, so the
               student can see what they are about to keep. */}
           {covered.length > 0 && (
-            <Animated.View entering={FadeInDown.duration(340).delay(140)} style={styles.noteCard}>
-              <View style={styles.noteRules} pointerEvents="none">
-                {Array.from({ length: 14 }, (_, i) => (
-                  <View key={i} style={[styles.noteRule, { top: (i + 1) * CARD_RULE }]} />
-                ))}
-              </View>
+            <Animated.View entering={FadeInDown.duration(340).delay(140)}>
+              <Text style={styles.previewLead}>This class is now in your notes</Text>
 
-              <View style={styles.noteTab}>
-                <Text style={styles.noteTabText}>YOUR NOTE</Text>
-              </View>
-
-              <Text style={styles.label}>WHAT WE COVERED</Text>
-
-              {covered.map((line, i) => (
-                <View key={i} style={styles.coveredRow}>
-                  <View style={styles.tick}>
-                    <TickIcon />
-                  </View>
-                  <Text style={styles.coveredText}>{line}</Text>
+              {/* Built to read like the note page itself — ruled paper, an amber
+                  section label, plain prose lines. Ticks and bullets were a
+                  checklist, which is not what a note looks like. */}
+              <View style={styles.noteCard}>
+                <View style={styles.noteRules} pointerEvents="none">
+                  {Array.from({ length: 16 }, (_, i) => (
+                    <View key={i} style={[styles.noteRule, { top: (i + 1) * CARD_RULE }]} />
+                  ))}
                 </View>
-              ))}
 
-              <View style={styles.noteMore}>
-                <Text style={styles.noteMoreText}>
-                  The full board, every derivation and diagram, and the doubts you asked — all
-                  rewritten to read on your phone.
-                </Text>
+                <Text style={styles.noteTopic}>{chapterTitle}</Text>
+                <Text style={styles.label}>WHAT WE COVERED</Text>
+
+                {covered.map((line, i) => (
+                  <Text key={i} style={styles.coveredText}>
+                    {line}
+                  </Text>
+                ))}
+
+                <View style={styles.noteMore}>
+                  <Text style={styles.noteMoreText}>
+                    The rest of the board — every derivation, the diagrams, the worked examples and
+                    the doubts you asked — is in the full note.
+                  </Text>
+                </View>
               </View>
             </Animated.View>
           )}
@@ -212,20 +211,6 @@ export default function SessionSummaryScreen() {
         </Pressable>
       </View>
     </View>
-  );
-}
-
-function TickIcon() {
-  return (
-    <Svg viewBox="0 0 24 24" width={11} height={11} fill="none">
-      <Path
-        d="M20 6 9 17l-5-5"
-        stroke={GREEN}
-        strokeWidth={3.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
   );
 }
 
@@ -276,8 +261,7 @@ function createStyles() {
 
     noteCard: {
       position: 'relative',
-      marginTop: 28,
-      paddingTop: 26,
+      paddingTop: 20,
       paddingHorizontal: 18,
       paddingBottom: 18,
       borderWidth: 1,
@@ -295,21 +279,19 @@ function createStyles() {
     },
     noteRules: { ...StyleSheet.absoluteFillObject },
     noteRule: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: RULE },
-    noteTab: {
-      position: 'absolute',
-      top: 0,
-      left: 18,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderBottomLeftRadius: 7,
-      borderBottomRightRadius: 7,
-      backgroundColor: INK,
+    previewLead: {
+      marginTop: 28,
+      marginBottom: 10,
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: 13.5,
+      color: INK_50,
     },
-    noteTabText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: 9,
-      letterSpacing: 0.14 * 9,
-      color: PAPER,
+    noteTopic: {
+      marginBottom: 14,
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: 19,
+      letterSpacing: -0.03 * 19,
+      color: INK,
     },
 
     label: {
@@ -331,11 +313,11 @@ function createStyles() {
       justifyContent: 'center',
     },
     coveredText: {
-      flex: 1,
       fontFamily: 'AnekLatin_400Regular',
       fontSize: 15.5,
       lineHeight: CARD_RULE,
       color: INK_70,
+      marginBottom: CARD_RULE - 18,
     },
 
     noteMore: {
