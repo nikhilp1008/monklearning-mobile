@@ -190,7 +190,7 @@ export default function EnteringClassroomScreen() {
   if (stage === 'error') {
     return (
       <View style={styles.screen}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.errorBlock}>
             <Text style={styles.errorTitle}>Couldn&apos;t enter the classroom</Text>
@@ -206,7 +206,7 @@ export default function EnteringClassroomScreen() {
 
   return (
     <Pressable style={styles.screen} onPress={() => {}}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <LinearGradient
         colors={['rgba(238,163,31,.12)', 'rgba(238,163,31,0)']}
         start={{ x: 0.5, y: 0.3 }}
@@ -395,7 +395,7 @@ function ProtractorLoader({ size }: { size: number }) {
         cy={60}
         r={36}
         fill="none"
-        stroke={colors.ink}
+        stroke="#FCFAF4"
         strokeWidth={11}
         strokeLinecap="round"
         strokeDasharray="52 23.4"
@@ -406,7 +406,7 @@ function ProtractorLoader({ size }: { size: number }) {
         cy={60}
         r={19}
         fill="none"
-        stroke={colors.ink}
+        stroke="#FCFAF4"
         strokeWidth={9}
         strokeLinecap="round"
         strokeDasharray="21.8 18"
@@ -469,13 +469,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#16130E',
     },
     // Same ground as the screen itself, so the rotation reads as one continuous
     // surface turning rather than a flash of something else.
     rotateHold: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#16130E',
     },
     safeArea: {
       flex: 1,
@@ -506,8 +506,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(8),
       alignSelf: 'flex-start',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: 'rgba(28,26,22,.05)',
+      borderColor: 'rgba(255,255,255,.16)',
+      backgroundColor: 'rgba(255,255,255,.05)',
       borderRadius: scale(99),
       paddingVertical: verticalScale(8),
       paddingHorizontal: scale(16),
@@ -521,13 +521,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     chapterChipText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
     heading: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(27),
       letterSpacing: scale(-0.54),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
     statusRow: {
       flexDirection: 'row',
@@ -537,14 +537,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     statusText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(14),
-      color: colors.slate,
+      color: '#C7C1B3',
     },
     speechText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(21),
       lineHeight: scale(30),
       letterSpacing: scale(-0.3),
-      color: colors.ink,
+      color: '#EFEBDD',
       maxWidth: scale(560),
     },
     statusNote: {
@@ -560,8 +560,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     optionChip: {
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.18)',
-      backgroundColor: 'rgba(28,26,22,.06)',
+      borderColor: 'rgba(255,255,255,.18)',
+      backgroundColor: 'rgba(255,255,255,.06)',
       borderRadius: scale(99),
       paddingVertical: verticalScale(8),
       paddingHorizontal: scale(14),
@@ -569,7 +569,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     optionChipText: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(12.5),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
     inputRow: {
       flexDirection: 'row',
@@ -583,12 +583,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(46),
       borderRadius: scale(99),
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: 'rgba(28,26,22,.05)',
+      borderColor: 'rgba(255,255,255,.16)',
+      backgroundColor: 'rgba(255,255,255,.05)',
       paddingHorizontal: scale(18),
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(14),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
     sendButton: {
       width: scale(64),
@@ -604,7 +604,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     sendButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(14),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
     footer: {
       flexShrink: 0,
@@ -614,7 +614,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     footerHint: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(12),
-      color: colors.faint,
+      color: '#938D80',
     },
     errorBlock: {
       flex: 1,
@@ -626,12 +626,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     errorTitle: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(20),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
     errorBody: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
-      color: colors.slate,
+      color: '#C7C1B3',
       textAlign: 'center',
     },
     errorButton: {
@@ -644,7 +644,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     errorButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
-      color: colors.ink,
+      color: '#EFEBDD',
     },
   });
 }

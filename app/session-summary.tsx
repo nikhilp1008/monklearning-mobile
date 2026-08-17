@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { usePortraitLock } from '@/hooks/use-landscape-lock';
+
 import { CheckIcon } from '@/components/check-icon';
 import { ProtractorMark } from '@/components/protractor-mark';
 import { RuledPaper } from '@/components/ruled-paper';
@@ -15,6 +17,11 @@ import { saveNote } from '@/lib/notes';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function SessionSummaryScreen() {
+  // This screen is reached straight from the landscape classroom, so it asks
+  // for portrait itself rather than relying on the classroom to restore it on
+  // the way out — that restore was timer-based, and losing the race is what
+  // made this screen appear in landscape for a moment before snapping.
+  const isPortrait = usePortraitLock();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
@@ -72,6 +79,12 @@ export default function SessionSummaryScreen() {
         : saveState === 'error'
           ? 'Couldn’t save — tap to retry'
           : 'Save board to notes';
+
+  // Hold until the device is back in portrait, so this never flashes as a
+  // portrait layout stretched across a landscape window.
+  if (!isPortrait) {
+    return <View style={styles.rotateHold} />;
+  }
 
   return (
     <View style={styles.screen}>
@@ -194,6 +207,10 @@ function BookmarkIcon({ size }: { size: number }) {
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
+      flex: 1,
+      backgroundColor: colors.paper,
+    },
+    rotateHold: {
       flex: 1,
       backgroundColor: colors.paper,
     },
