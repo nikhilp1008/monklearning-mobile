@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -14,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { DRAFT_GREY, ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -21,8 +23,8 @@ import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
-import { DEMO_NOTE_ID, DEMO_SESSION_ID } from '@/lib/demo-board';
-import { NoteSummary, listNotes } from '@/lib/notes';
+import { DEMO_NOTE_CARDS, DEMO_SESSION_ID, DemoNoteCard } from '@/lib/demo-board';
+import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
 type Segment = 'notes' | 'doubts' | 'sessions';
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths';
@@ -72,11 +74,38 @@ export default function LibraryScreen() {
   const [doubtsFilter, setDoubtsFilter] = useState<SubjectFilter>('All');
   const pagerRef = useRef<ScrollView>(null);
 
+  // --- Erase to remove ---------------------------------------------------
+  // The mode belongs to the tab: it exists on Notes, and leaving Notes puts
+  // the eraser down rather than carrying the mode across.
+  const [eraseMode, setEraseMode] = useState(false);
+  /** The last removal, held so UNDO can put it back where it was. */
+  const [undoState, setUndoState] = useState<
+    { kind: 'sample'; index: number; item: DemoNoteCard } | { kind: 'note'; index: number; item: NoteSummary } | null
+  >(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const armUndo = useCallback((next: NonNullable<typeof undoState>) => {
+    // The newest removal owns the row; the previous one becomes final.
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoState(next);
+    undoTimerRef.current = setTimeout(() => setUndoState(null), ERASE.undoMs);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    },
+    []
+  );
+
   const [doubts, setDoubts] = useState<DoubtSummary[]>([]);
   const [doubtsLoading, setDoubtsLoading] = useState(true);
   const [doubtsError, setDoubtsError] = useState<string | null>(null);
 
   const [notes, setNotes] = useState<NoteSummary[]>([]);
+  // DEMO_ — sample cards so the erase gesture can be tried while the real
+  // Notes list is empty. Removing one is local only; there is nothing saved.
+  const [sampleNotes, setSampleNotes] = useState<DemoNoteCard[]>(DEMO_NOTE_CARDS);
   const [notesLoading, setNotesLoading] = useState(true);
   const [notesError, setNotesError] = useState<string | null>(null);
 
@@ -141,6 +170,73 @@ export default function LibraryScreen() {
     }, [fetchDoubts, fetchNotes])
   );
 
+  // The sample cards stand in only while nothing real is saved.
+  const showingSamples = notes.length === 0 && notesFilter === 'All';
+  const hasErasableNotes = showingSamples ? sampleNotes.length > 0 : notes.length > 0;
+
+  const toggleErase = useCallback(() => {
+    setEraseMode((on) => {
+      if (!on) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      return !on;
+    });
+  }, []);
+
+  // Empty list — put the eraser down and hide the tool.
+  useEffect(() => {
+    if (eraseMode && !hasErasableNotes) setEraseMode(false);
+  }, [eraseMode, hasErasableNotes]);
+
+  // The index is read here rather than inside the state updater: an updater
+  // has to be pure, and arming the undo row from inside one silently dropped
+  // it on the first removal.
+  const removeSample = useCallback(
+    (id: string) => {
+      const index = sampleNotes.findIndex((n) => n.id === id);
+      if (index < 0) return;
+      armUndo({ kind: 'sample', index, item: sampleNotes[index] });
+      setSampleNotes((prev) => prev.filter((n) => n.id !== id));
+    },
+    [armUndo, sampleNotes]
+  );
+
+  const removeNote = useCallback(
+    (id: string) => {
+      const index = notes.findIndex((n) => n.id === id);
+      if (index < 0) return;
+      armUndo({ kind: 'note', index, item: notes[index] });
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+      // The row is already gone from the list; the server catches up. A
+      // failure here is not worth a dialog — the next refetch corrects it.
+      deleteNote(id).catch(() => {});
+    },
+    [armUndo, notes]
+  );
+
+  const undoRemoval = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoState((state) => {
+      if (!state) return null;
+      // Back at its original index, not appended to the end.
+      if (state.kind === 'sample') {
+        setSampleNotes((prev) => {
+          const next = prev.slice();
+          next.splice(state.index, 0, state.item);
+          return next;
+        });
+      } else {
+        setNotes((prev) => {
+          const next = prev.slice();
+          next.splice(state.index, 0, state.item);
+          return next;
+        });
+        // Nothing re-creates a deleted note on the server yet — see the note
+        // in lib/notes.ts. Undo restores the list; the refetch on focus is
+        // what would drop it again, so this is flagged for the backend.
+      }
+      return null;
+    });
+  }, []);
+
   const visibleNotes = useMemo(
     () => notes.filter((n) => subjectMatches(n.subject, notesFilter)),
     [notes, notesFilter]
@@ -192,6 +288,7 @@ export default function LibraryScreen() {
 
   const goToSegment = (segment: Segment) => {
     setActiveSegment(segment);
+    if (segment !== 'notes') setEraseMode(false);
     pagerRef.current?.scrollTo({ x: SEGMENTS.indexOf(segment) * windowWidth, animated: true });
   };
 
@@ -202,7 +299,9 @@ export default function LibraryScreen() {
 
   const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
-    setActiveSegment(SEGMENTS[index] ?? 'notes');
+    const segment = SEGMENTS[index] ?? 'notes';
+    setActiveSegment(segment);
+    if (segment !== 'notes') setEraseMode(false);
   };
 
   const indicatorLeft = scrollX.interpolate({
@@ -241,7 +340,18 @@ export default function LibraryScreen() {
                 { left: indicatorLeft, width: indicatorWidth },
               ]}
             />
+            {/* The eraser lives at the right end of the tab row, and only on
+                Notes — session backups expire on their own, so nothing there
+                is the student's to delete. */}
+            <View style={styles.segmentSpacer} />
+            {activeSegment === 'notes' && hasErasableNotes && (
+              <EraseTool active={eraseMode} onPress={toggleErase} />
+            )}
           </View>
+
+          {activeSegment === 'notes' && eraseMode && (
+            <EraseModeLine onDone={() => setEraseMode(false)} />
+          )}
         </View>
 
         <ScrollView
@@ -253,7 +363,7 @@ export default function LibraryScreen() {
           onMomentumScrollEnd={handleMomentumScrollEnd}
           scrollEventThrottle={16}
           style={styles.pager}>
-          <View style={{ width: windowWidth }}>
+          <View style={[{ width: windowWidth }, eraseMode && styles.pageErasing]}>
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
@@ -290,34 +400,37 @@ export default function LibraryScreen() {
                   <Text style={styles.stateText}>{notesError}</Text>
                 </View>
               ) : visibleNotes.length === 0 ? (
-                // DEMO_ — while nothing real is saved, one sample note stands in
-                // so the note page can be reviewed on a phone. Delete this
-                // branch (and lib/demo-board.ts) once real notes exist.
-                notes.length === 0 && notesFilter === 'All' ? (
+                // DEMO_ — while nothing real is saved, these sample cards
+                // stand in so the erase gesture can be tried on a phone.
+                // Cards only: they don't open a note page, and erasing one
+                // removes it from this list and nothing else.
+                showingSamples ? (
                   <View style={styles.notesList}>
                     <Text style={styles.sampleNote}>
-                      Nothing saved yet — here&apos;s a sample class so you can see how a note reads.
+                      Nothing saved yet — these sample cards are here so you can try the eraser.
                     </Text>
-                    <PressableScale
-                      style={styles.noteCard}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/note-detail',
-                          params: { id: DEMO_NOTE_ID },
-                        })
-                      }>
-                      <View style={styles.noteTopRow}>
-                        <View style={styles.noteSubjectRow}>
-                          <View style={[styles.noteDot, { backgroundColor: '#DD4433' }]} />
-                          <Text style={[styles.noteSubjectText, { color: '#C53A2B' }]}>Physics</Text>
+                    {sampleNotes.map((card) => (
+                      <Erasable
+                        key={card.id}
+                        enabled={eraseMode}
+                        onRemove={() => removeSample(card.id)}>
+                        <View style={[styles.noteCard, eraseMode && styles.noteCardErasing]}>
+                          <View style={styles.noteTopRow}>
+                            <View style={styles.noteSubjectRow}>
+                              <View style={[styles.noteDot, { backgroundColor: card.dot }]} />
+                              <Text style={[styles.noteSubjectText, { color: card.tint }]}>
+                                {card.subject}
+                              </Text>
+                            </View>
+                            <Text style={styles.noteTime}>{card.time}</Text>
+                          </View>
+                          <Text style={styles.noteTitle} numberOfLines={2}>
+                            {card.title}
+                          </Text>
+                          <Text style={styles.noteBody}>{card.body}</Text>
                         </View>
-                        <Text style={styles.noteTime}>sample</Text>
-                      </View>
-                      <Text style={styles.noteTitle} numberOfLines={2}>
-                        Rotational Motion · torque
-                      </Text>
-                      <Text style={styles.noteBody}>5 sections · derivation, diagram, worked example</Text>
-                    </PressableScale>
+                      </Erasable>
+                    ))}
                   </View>
                 ) : (
                   <View style={styles.stateBlock}>
@@ -336,9 +449,13 @@ export default function LibraryScreen() {
                       label: colors.slate,
                     };
                     return (
-                      <PressableScale
+                      <Erasable
                         key={note.id}
-                        style={styles.noteCard}
+                        enabled={eraseMode}
+                        onRemove={() => removeNote(note.id)}>
+                      <PressableScale
+                        style={[styles.noteCard, eraseMode && styles.noteCardErasing]}
+                        disabled={eraseMode}
                         onPress={() =>
                           router.push({
                             pathname: '/note-detail',
@@ -365,10 +482,13 @@ export default function LibraryScreen() {
                         </Text>
                         <Text style={styles.noteBody}>{note.preview}</Text>
                       </PressableScale>
+                      </Erasable>
                     );
                   })}
                 </View>
               )}
+
+              {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
           </View>
 
@@ -608,6 +728,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     segment: {
       paddingVertical: verticalScale(8),
     },
+    // Pushes the eraser to the right end of the tab row.
+    segmentSpacer: {
+      flex: 1,
+    },
+    // Erase mode only: the page recedes to a draft grey so the cards read as
+    // the paper and the page as the desk. Reverts on exit.
+    pageErasing: {
+      backgroundColor: DRAFT_GREY,
+    },
     segmentIndicator: {
       position: 'absolute',
       bottom: 0,
@@ -737,6 +866,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowOpacity: 0.08,
       shadowRadius: scale(3),
       elevation: 2,
+    },
+    // Erase mode only: the card steps up very slightly so it sits above the
+    // grey. The card colour itself must stay white — the rub paints paper.
+    noteCardErasing: {
+      borderColor: 'rgba(28,26,22,.16)',
+      shadowOpacity: 0.12,
+      shadowRadius: 5,
     },
     noteTopRow: {
       flexDirection: 'row',

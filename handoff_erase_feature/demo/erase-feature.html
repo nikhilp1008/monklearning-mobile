@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MonkLearning · Erase-to-remove · feature demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Anek Latin',system-ui,sans-serif;color:#1C1A16;background:#EFEAE0;-webkit-font-smoothing:antialiased;display:grid;place-items:center;min-height:100vh;padding:28px}
+a{color:#9A6A12}a:hover{color:#DD4433}
+@keyframes dust{0%{transform:translate(0,0) scale(1);opacity:.8}100%{transform:translate(-14px,-9px) scale(.4);opacity:0}}
+@keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-2.5px)}75%{transform:translateX(2.5px)}}
+</style>
+</head>
+<body>
+
+<!-- FEATURE DEMO — the erase interaction only.
+     No status bar, no tab bar, no page chrome: this file documents the behaviour
+     so it can be dropped into the real Library screen. -->
+<div style="width:390px;background:#fff;border-radius:20px;padding:18px 20px 22px;box-shadow:0 26px 54px -32px rgba(28,26,22,.5)">
+
+  <!-- tab row: the tool lives at its right end, and only on Notes / Doubts -->
+  <div style="display:flex;align-items:center;gap:18px;box-shadow:inset 0 -1px rgba(28,26,22,.12);padding:0 2px">
+    <span id="tabNotes" onclick="setTab('notes')" style="font-weight:700;font-size:14px;padding:8px 0;box-shadow:inset 0 -2px #1C1A16;cursor:pointer">Notes</span>
+    <span id="tabDoubts" onclick="setTab('doubts')" style="font-weight:600;font-size:14px;padding:8px 0;color:#57534B;cursor:pointer">Doubts</span>
+    <span id="tabSessions" onclick="setTab('sessions')" style="font-weight:600;font-size:14px;padding:8px 0;color:#57534B;cursor:pointer">Sessions</span>
+    <span style="flex:1"></span>
+    <span id="tool" onclick="toggleMode()" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:7px;font-weight:700;font-size:12px;padding:5px 12px 5px 9px;border-radius:99px;border:1px solid rgba(28,26,22,.14);color:#57534B;cursor:pointer;transition:background .22s ease,color .22s ease,border-color .22s ease,opacity .2s ease">
+      <svg id="toolIco" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1C1A16" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 16.9 12.5 6.6a1.9 1.9 0 0 1 2.7-.4l2.9 2.1a1.9 1.9 0 0 1 .4 2.7L13.4 19H6.7a1.9 1.9 0 0 1-1.9-2.1z" fill="#FCF4E0"></path><path d="M9.4 12.2 15.7 16.8"></path><path d="M13.4 19h4.9"></path></svg>
+      <span id="toolLbl">Erase</span>
+    </span>
+  </div>
+
+  <!-- mode line: only visible while the eraser is down -->
+  <div id="modeLine" style="display:flex;align-items:center;gap:7px;margin-top:9px;opacity:0;max-height:0;overflow:hidden;transition:opacity .24s ease,max-height .28s ease">
+    <span style="font-family:'Kalam',cursive;font-weight:700;font-size:13px;color:#57534B">rub any card to erase it</span>
+    <span style="flex:1;height:1px;background:rgba(28,26,22,.14)"></span>
+    <span onclick="toggleMode()" style="font-weight:800;font-size:11.5px;letter-spacing:.06em;color:#1C1A16;cursor:pointer">DONE</span>
+  </div>
+
+  <div id="page" style="margin-top:12px;padding:8px;border-radius:14px;background:transparent;transition:background .3s ease">
+    <div id="list" style="display:flex;flex-direction:column;gap:9px"></div>
+  </div>
+
+  <div id="undo" style="display:flex;align-items:center;gap:12px;margin-top:12px;opacity:0;transform:translateY(8px);transition:opacity .26s ease,transform .3s cubic-bezier(.25,.8,.3,1);pointer-events:none">
+    <span style="flex:1;height:1px;background:rgba(28,26,22,.14)"></span>
+    <span style="font-family:'Kalam',cursive;font-weight:700;font-size:13px;color:#57534B">erased</span>
+    <span onclick="undoLast()" style="font-weight:800;font-size:11.5px;letter-spacing:.06em;color:#9A6A12;cursor:pointer">UNDO</span>
+    <span style="flex:1;height:1px;background:rgba(28,26,22,.14)"></span>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Erase-to-remove — reference implementation
+   Numbers here are the spec. See MECHANICS.md for why each one.
+   ───────────────────────────────────────────────────────────── */
+var CFG = {
+  brushRadius: 27,        // px, thumb-sized
+  strokeStep: 9,          // px between interpolated stamps
+  gridCols: 10,           // coverage grid
+  gridRows: 4,
+  threshold: 0.55,        // fraction of cells rubbed to commit
+  collapseMs: 340,        // height collapse after commit
+  undoMs: 5000            // undo window
+};
+
+var SEED = [
+  {id:'n1', subject:'Physics',   tint:'#C53A2B', dot:'#DD4433', time:'2 days ago',  title:"Ohm's law & drift velocity",  sub:'I = nAve. Current is just charge marching together.'},
+  {id:'n2', subject:'Chemistry', tint:'#157A45', dot:'#1C9B57', time:'last week',   title:'Balancing redox in acid',     sub:'Half-reactions, balance O with H₂O, H with H⁺.'},
+  {id:'n3', subject:'Maths',     tint:'#9A6A12', dot:'#EEA31F', time:'last week',   title:'Integration by parts',        sub:'ILATE order. Pick u so its derivative simplifies.'},
+  {id:'n4', subject:'Physics',   tint:'#C53A2B', dot:'#DD4433', time:'2 weeks ago', title:'Projectile motion essentials',sub:'Split into x and y. Time is the bridge.'}
+];
+
+var items = SEED.slice(), tab = 'notes', mode = false, drag = null, lastRemoved = null, undoTimer;
+var $ = function(id){ return document.getElementById(id); };
+
+function render(){
+  $('list').innerHTML = items.map(function(n){ return (
+    '<div data-id="'+n.id+'" style="position:relative;background:#fff;border:1px solid '+(mode?'rgba(28,26,22,.16)':'rgba(28,26,22,.1)')+';border-radius:14px;padding:14px 16px;box-shadow:'+(mode?'0 12px 26px -20px rgba(28,26,22,.55)':'0 10px 22px -18px rgba(28,26,22,.45)')+';transition:transform .28s cubic-bezier(.25,.8,.3,1),border-color .26s ease,box-shadow .26s ease,opacity .22s ease;overflow:hidden;'+(mode?'cursor:pointer':'')+'">'+
+      '<span data-ink style="display:block">'+
+        '<span style="display:flex;align-items:center;justify-content:space-between"><span style="display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:'+n.tint+'"><span style="width:6px;height:6px;border-radius:50%;background:'+n.dot+'"></span>'+n.subject+'</span><span style="font-family:\'Kalam\',cursive;font-weight:700;font-size:11px;color:#9C988C">'+n.time+'</span></span>'+
+        '<b style="display:block;font-weight:700;font-size:15px;margin-top:7px">'+n.title+'</b>'+
+        '<span style="display:block;font-size:12px;color:#57534B;margin-top:3px;line-height:1.45">'+n.sub+'</span>'+
+      '</span>'+
+      '<canvas data-erase style="position:absolute;inset:0;width:100%;height:100%;opacity:1;transition:opacity .3s ease;pointer-events:none"></canvas>'+
+      '<span data-dust style="position:absolute;inset:0;opacity:0;transition:opacity .2s ease;pointer-events:none"></span>'+
+    '</div>');
+  }).join('');
+  [].forEach.call($('list').children, function(c){
+    c.addEventListener('pointerdown', down);
+  });
+}
+
+/* ── tabs: the tool exists on Notes and Doubts, never on Sessions ── */
+function setTab(t){
+  tab = t;
+  ['notes','doubts','sessions'].forEach(function(k){
+    var el = $('tab'+k[0].toUpperCase()+k.slice(1));
+    el.style.fontWeight = k===t ? '700' : '600';
+    el.style.color = k===t ? '#1C1A16' : '#57534B';
+    el.style.boxShadow = k===t ? 'inset 0 -2px #1C1A16' : 'none';
+  });
+  var allowed = (t==='notes' || t==='doubts');
+  $('tool').style.opacity = allowed ? '1' : '0';
+  $('tool').style.pointerEvents = allowed ? 'auto' : 'none';
+  if(!allowed && mode) toggleMode();          // leaving to Sessions drops the tool
+}
+
+/* ── mode: ink tool, draft-grey page, white cards ── */
+function toggleMode(){
+  mode = !mode;
+  $('toolIco').querySelector('path').setAttribute('fill', mode ? '#FCFAF4' : '#FCF4E0');
+  $('toolIco').style.stroke = mode ? '#FCFAF4' : '#1C1A16';
+  $('tool').style.background = mode ? '#1C1A16' : 'transparent';
+  $('tool').style.borderColor = mode ? '#1C1A16' : 'rgba(28,26,22,.14)';
+  $('tool').style.color = mode ? '#FCFAF4' : '#57534B';
+  $('toolLbl').textContent = mode ? 'Erasing' : 'Erase';
+  $('modeLine').style.opacity = mode ? '1' : '0';
+  $('modeLine').style.maxHeight = mode ? '26px' : '0';
+  $('page').style.background = mode ? '#F4F3EF' : 'transparent';
+  [].forEach.call($('list').children, function(c,i){
+    c.style.borderColor = mode ? 'rgba(28,26,22,.16)' : 'rgba(28,26,22,.1)';
+    c.style.boxShadow = mode ? '0 12px 26px -20px rgba(28,26,22,.55)' : '0 10px 22px -18px rgba(28,26,22,.45)';
+    c.style.cursor = mode ? 'pointer' : '';
+    if(mode) c.style.animation = 'nudge .3s ease '+(i*0.03)+'s';
+  });
+}
+
+/* ── the eraser: starts under the finger, works in any direction ── */
+function prep(card){
+  var cv = card.querySelector('[data-erase]'), r = card.getBoundingClientRect();
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  if(cv.width !== Math.round(r.width*dpr) || cv.height !== Math.round(r.height*dpr)){
+    cv.width = Math.round(r.width*dpr);
+    cv.height = Math.round(r.height*dpr);
+    cv.getContext('2d').scale(dpr, dpr);
+  }
+  cv.style.opacity = '1';
+  return {cv: cv, ctx: cv.getContext('2d'), r: r};
+}
+function stamp(d, x, y){
+  var R = CFG.brushRadius, g = d.ctx.createRadialGradient(x,y,0,x,y,R);
+  g.addColorStop(0,   'rgba(255,255,255,1)');
+  g.addColorStop(.62, 'rgba(255,255,255,.97)');
+  g.addColorStop(1,   'rgba(255,255,255,0)');
+  d.ctx.fillStyle = g;
+  d.ctx.beginPath(); d.ctx.arc(x,y,R,0,6.2832); d.ctx.fill();
+  var col = Math.max(0, Math.min(d.cols-1, Math.floor(x/d.cw)));
+  var row = Math.max(0, Math.min(d.rows-1, Math.floor(y/d.chh)));
+  d.cells[row*d.cols+col] = 1;
+}
+function puff(card, x, y){
+  var dust = card.querySelector('[data-dust]');
+  dust.style.opacity = '1';
+  if(dust.childElementCount > 18) dust.innerHTML = '';
+  for(var i=0;i<2;i++){
+    var s = document.createElement('span');
+    s.style.cssText = 'position:absolute;left:'+(x+(Math.random()*16-8)).toFixed(0)+'px;top:'+(y+(Math.random()*14-7)).toFixed(0)+'px;width:'+(2+Math.random()*2.2).toFixed(1)+'px;height:'+(2+Math.random()*2).toFixed(1)+'px;border-radius:50%;background:rgba(28,26,22,.3);animation:dust '+(0.7+Math.random()*0.5).toFixed(2)+'s ease-out forwards';
+    dust.appendChild(s);
+    (function(el){ setTimeout(function(){ el.remove(); }, 1300); })(s);
+  }
+}
+function coverage(d){
+  var n = 0;
+  for(var k in d.cells) if(d.cells[k]) n++;
+  return n / (d.cols*d.rows);
+}
+function down(e){
+  if(!mode || drag) return;
+  var card = e.currentTarget, p = prep(card);
+  drag = {
+    card: card, id: card.dataset.id, cv: p.cv, ctx: p.ctx,
+    cols: CFG.gridCols, rows: CFG.gridRows,
+    cw: p.r.width/CFG.gridCols, chh: p.r.height/CFG.gridRows,
+    cells: {}, left: p.r.left, top: p.r.top,
+    lx: e.clientX - p.r.left, ly: e.clientY - p.r.top, p: 0
+  };
+  card.style.zIndex = '3';
+  stamp(drag, drag.lx, drag.ly);
+  puff(card, drag.lx, drag.ly);
+  window.addEventListener('pointermove', move, {passive:false});
+  window.addEventListener('pointerup', up);
+}
+function move(e){
+  if(!drag) return;
+  e.preventDefault();
+  var x = e.clientX - drag.left, y = e.clientY - drag.top;
+  var steps = Math.max(1, Math.ceil(Math.hypot(x-drag.lx, y-drag.ly)/CFG.strokeStep));
+  for(var i=1;i<=steps;i++) stamp(drag, drag.lx+(x-drag.lx)*i/steps, drag.ly+(y-drag.ly)*i/steps);
+  if(Math.hypot(x-drag.lx, y-drag.ly) > 10) puff(drag.card, x, y);
+  drag.lx = x; drag.ly = y;
+  drag.p = coverage(drag);
+  drag.card.style.transform = 'scale('+(1-Math.min(.035, drag.p*0.05))+')';
+}
+function up(){
+  if(!drag) return;
+  window.removeEventListener('pointermove', move);
+  window.removeEventListener('pointerup', up);
+  var d = drag, dust = d.card.querySelector('[data-dust]');
+  if(d.p > CFG.threshold){
+    dust.style.opacity = '0';
+    /* blank card settles, then collapses its own height so the cards below rise */
+    var h = d.card.getBoundingClientRect().height;
+    d.card.style.height = h+'px';
+    d.card.style.transition = 'transform .2s ease,opacity .22s ease';
+    d.card.style.transform = 'scale(.965)';
+    d.card.style.opacity = '.55';
+    requestAnimationFrame(function(){
+      d.card.style.transition = 'height '+CFG.collapseMs+'ms cubic-bezier(.3,.85,.3,1),margin '+CFG.collapseMs+'ms cubic-bezier(.3,.85,.3,1),padding .34s ease,opacity .26s ease,transform .3s ease';
+      d.card.style.height = '0px';
+      d.card.style.marginBottom = '-9px';
+      d.card.style.paddingTop = '0';
+      d.card.style.paddingBottom = '0';
+      d.card.style.opacity = '0';
+      d.card.style.transform = 'scale(.94)';
+    });
+    var idx = items.findIndex(function(n){ return n.id === d.id; });
+    lastRemoved = {item: items[idx], index: idx};
+    setTimeout(function(){
+      items = items.filter(function(n){ return n.id !== d.id; });
+      render();
+      showUndo();
+    }, CFG.collapseMs + 80);
+  } else {
+    d.cv.style.opacity = '0';
+    setTimeout(function(){ d.ctx.clearRect(0,0,d.cv.width,d.cv.height); d.cv.style.opacity = '1'; }, 320);
+    dust.style.opacity = '0';
+    d.card.style.transform = ''; d.card.style.zIndex = '';
+  }
+  drag = null;
+}
+
+/* ── undo: 5 seconds, then it is gone ── */
+function showUndo(){
+  var u = $('undo');
+  u.style.opacity = '1'; u.style.transform = 'translateY(0)'; u.style.pointerEvents = 'auto';
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, CFG.undoMs);
+}
+function hideUndo(){
+  var u = $('undo');
+  u.style.opacity = '0'; u.style.transform = 'translateY(8px)'; u.style.pointerEvents = 'none';
+}
+function undoLast(){
+  if(!lastRemoved) return;
+  items.splice(Math.min(lastRemoved.index, items.length), 0, lastRemoved.item);
+  lastRemoved = null;
+  render(); hideUndo();
+}
+
+render();
+setTab('notes');
+</script>
+</body>
+</html>

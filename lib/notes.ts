@@ -74,3 +74,9 @@ export function getNote(noteId: string): Promise<NoteDetail> {
 export function saveNote(sessionId: string): Promise<NoteDetail> {
   return apiFetch('/notes', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) });
 }
+
+/** DELETE /notes/{id} — user-scoped on the server, so a note can only ever be
+ *  removed by the student who saved it. Used by the Library's erase gesture. */
+export function deleteNote(noteId: string): Promise<void> {
+  return apiFetch(`/notes/${noteId}`, { method: 'DELETE' });
+}

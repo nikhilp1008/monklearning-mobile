@@ -121,3 +121,61 @@ export const DEMO_BOARD: BoardContent = {
     },
   ],
 };
+
+/**
+ * DEMO_ — a handful of sample note cards, so the erase gesture can be tried
+ * on a phone while the real Notes list is still empty. Cards only: these do
+ * not open a note page, and erasing one removes it from this list and nothing
+ * else — there is no note on the server to delete.
+ *
+ * Delete this array with the rest of this file once real notes exist.
+ */
+export interface DemoNoteCard {
+  id: string;
+  subject: string;
+  /** The subject label's ink, and the dot beside it. */
+  tint: string;
+  dot: string;
+  time: string;
+  title: string;
+  body: string;
+}
+
+export const DEMO_NOTE_CARDS: DemoNoteCard[] = [
+  {
+    id: 'demo-card-1',
+    subject: 'Physics',
+    tint: '#C53A2B',
+    dot: '#DD4433',
+    time: '2 days ago',
+    title: "Ohm's law & drift velocity",
+    body: 'I = nAve. Current is just charge marching together.',
+  },
+  {
+    id: 'demo-card-2',
+    subject: 'Chemistry',
+    tint: '#157A45',
+    dot: '#1C9B57',
+    time: 'last week',
+    title: 'Balancing redox in acid',
+    body: 'Half-reactions, balance O with H₂O, H with H⁺.',
+  },
+  {
+    id: 'demo-card-3',
+    subject: 'Maths',
+    tint: '#9A6A12',
+    dot: '#EEA31F',
+    time: 'last week',
+    title: 'Integration by parts',
+    body: 'ILATE order. Pick u so its derivative simplifies.',
+  },
+  {
+    id: 'demo-card-4',
+    subject: 'Physics',
+    tint: '#C53A2B',
+    dot: '#DD4433',
+    time: '2 weeks ago',
+    title: 'Projectile motion essentials',
+    body: 'Split into x and y. Time is the bridge.',
+  },
+];
