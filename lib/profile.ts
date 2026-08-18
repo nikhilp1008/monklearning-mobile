@@ -34,11 +34,17 @@ export interface StudentProfile {
   year: YearKey;
 }
 
+/**
+ * SAMPLE — stands in until onboarding persists what it collects and the API
+ * has a profile endpoint. A blank form tells you nothing about how the page
+ * reads, so these are filled: the email is deliberately left unverified so
+ * the Verify affordance is visible. Delete once real values arrive.
+ */
 const FALLBACK: StudentProfile = {
-  name: '',
-  email: '',
+  name: 'Aarav Sharma',
+  email: 'aarav.sharma@gmail.com',
   emailVerified: false,
-  phone: '',
+  phone: '+91 98765 43210',
   exam: 'jee',
   year: 'class12',
 };

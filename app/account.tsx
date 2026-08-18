@@ -1,32 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
-import { EXAMS, YEARS, type ExamKey, type YearKey } from '@/constants/onboarding';
+import { EXAMS, YEARS, type YearKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { StudentProfile, getProfile, saveProfile } from '@/lib/profile';
 
 /**
- * Personal information — the five things the app actually knows about a
- * student: name, class, exam, phone, email.
+ * Personal information.
  *
- * What this replaces had an email/phone/password stack with a change-password
- * form. There is no password anywhere in this product — students sign in with
- * a phone number and an OTP, and onboarding never sets one — so that form
- * could not have worked and the fields it sat under were the wrong three.
+ * What this replaces had email, phone and a change-password form. There is no
+ * password anywhere in this product — students sign in with a phone number
+ * and an OTP — so that form could not have worked.
  *
- * Email is optional at sign-up, so it has three states here: missing (ask for
- * it), present but unverified (offer to verify), verified (say so and stop).
- * Phone is the one field that can't be edited — it is the account, and it was
- * verified at the OTP step.
+ * The page opens with the student rather than with a field: monogram, name,
+ * and the one line that says who they are here. The rows below are the
+ * details behind it.
+ *
+ * Each field is exactly as editable as it really is. Name and email are
+ * typed. Class changes — a student who signs up in Class 11 is still here in
+ * Class 12 — so it opens a picker, rather than sitting in the page as three
+ * permanently-visible options inviting a stray tap. Exam is fixed at sign-up.
+ * Phone is the account itself, verified at the OTP step.
  */
 
 const VERIFIED_GREEN = '#157A45';
-
 const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
-const EXAM_ORDER: ExamKey[] = ['jee', 'neet', 'both'];
 
 export default function AccountScreen() {
   const { scale, verticalScale } = useScale();
@@ -36,6 +38,7 @@ export default function AccountScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [verifySent, setVerifySent] = useState(false);
+  const [classPickerOpen, setClassPickerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,15 +61,30 @@ export default function AccountScreen() {
   const emailChanged = profile ? email.trim() !== profile.email : false;
   const emailVerified = !!profile?.emailVerified && !emailChanged;
   const hasEmail = email.trim().length > 0;
+  const monogram = (profile?.name.trim()[0] ?? '·').toUpperCase();
 
   return (
     <SettingsPage title="Personal information" keyboardAware>
-      <Text style={styles.intro}>
-        This is what Drona knows about you. Everything except your number can be changed.
-      </Text>
+      {/* The student, not a form. */}
+      <View style={styles.identity}>
+        <View style={styles.monogramRing}>
+          <View style={styles.monogram}>
+            <Text style={styles.monogramText}>{monogram}</Text>
+          </View>
+        </View>
+        <View style={styles.identityText}>
+          <Text style={styles.identityName} numberOfLines={1}>
+            {profile?.name || 'Your name'}
+          </Text>
+          <Text style={styles.identityMeta}>
+            {profile ? `${YEARS[profile.year]} · ${EXAMS[profile.exam].name}` : ' '}
+          </Text>
+        </View>
+      </View>
 
       <View style={styles.card}>
-        <Field label="Full name">
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>FULL NAME</Text>
           <TextInput
             style={styles.input}
             value={name}
@@ -76,51 +94,36 @@ export default function AccountScreen() {
             placeholderTextColor={colors.faint}
             autoCapitalize="words"
           />
-        </Field>
+        </View>
 
-        {/* Class and exam are the two answers that shape every lesson, so they
-            are editable in place rather than buried behind another screen. */}
-        <Field label="Class">
-          <View style={styles.choiceRow}>
-            {YEAR_ORDER.map((key) => {
-              const on = profile?.year === key;
-              return (
-                <Pressable
-                  key={key}
-                  style={[styles.choice, on && styles.choiceOn]}
-                  onPress={() => patch({ year: key })}>
-                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{YEARS[key]}</Text>
-                </Pressable>
-              );
-            })}
+        {/* Opens a picker: this is the one detail that legitimately changes
+            mid-subscription, and a row that states it beats three options
+            sitting in the page waiting to be mis-tapped. */}
+        <Pressable style={styles.field} onPress={() => setClassPickerOpen(true)}>
+          <Text style={styles.fieldLabel}>CLASS</Text>
+          <View style={styles.rowValue}>
+            <Text style={styles.value}>{profile ? YEARS[profile.year] : '—'}</Text>
+            <View style={styles.changeChip}>
+              <Text style={styles.changeChipText}>Change</Text>
+              <ChevronIcon size={scale(11)} />
+            </View>
           </View>
-        </Field>
+        </Pressable>
 
-        <Field label="Exam">
-          <View style={styles.choiceRow}>
-            {EXAM_ORDER.map((key) => {
-              const on = profile?.exam === key;
-              return (
-                <Pressable
-                  key={key}
-                  style={[styles.choice, on && styles.choiceOn]}
-                  onPress={() => patch({ exam: key })}>
-                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>
-                    {EXAMS[key].name}
-                  </Text>
-                </Pressable>
-              );
-            })}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>EXAM</Text>
+          <View style={styles.rowValue}>
+            <Text style={styles.value}>{profile ? EXAMS[profile.exam].name : '—'}</Text>
+            <Text style={styles.subjectTag}>{profile ? EXAMS[profile.exam].tag : ''}</Text>
           </View>
-        </Field>
+        </View>
 
-        <Field label="Phone number">
-          <View style={styles.staticRow}>
-            <Text style={[styles.staticValue, !profile?.phone && styles.staticValueEmpty]}>
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>PHONE NUMBER</Text>
+          <View style={styles.rowValue}>
+            <Text style={[styles.value, !profile?.phone && styles.valueEmpty]}>
               {profile?.phone || 'Not set'}
             </Text>
-            {/* Only claim verified when there is actually a number — the tick
-                belongs to the OTP step, not to an empty field. */}
             {!!profile?.phone && (
               <View style={styles.verifiedTag}>
                 <CheckIcon size={scale(11)} />
@@ -128,78 +131,109 @@ export default function AccountScreen() {
               </View>
             )}
           </View>
-          <Text style={styles.hint}>Your number is your account, so it can&apos;t be changed here.</Text>
-        </Field>
+        </View>
 
-        <Field label="Email address" last>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={(next) => {
-              setEmail(next);
-              setVerifySent(false);
-            }}
-            onBlur={() => {
-              const trimmed = email.trim();
-              // A changed address is a different address — it has to be
-              // verified again, so the old tick doesn't carry over.
-              if (trimmed !== profile?.email) patch({ email: trimmed, emailVerified: false });
-            }}
-            placeholder="Add your email"
-            placeholderTextColor={colors.faint}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          {emailVerified ? (
-            <View style={styles.verifiedTag}>
-              <CheckIcon size={scale(11)} />
-              <Text style={styles.verifiedText}>Verified</Text>
-            </View>
-          ) : hasEmail ? (
-            <View style={styles.emailActionRow}>
-              <Text style={styles.hint}>
-                {verifySent
-                  ? 'Check your inbox — the link is good for an hour.'
-                  : 'Not verified yet. We use it for receipts and account recovery.'}
-              </Text>
+        <View style={[styles.field, styles.fieldLast]}>
+          <View style={styles.labelRow}>
+            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+            <Text style={styles.optionalTag}>OPTIONAL</Text>
+          </View>
+          <View style={styles.rowValue}>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={(next) => {
+                setEmail(next);
+                setVerifySent(false);
+              }}
+              onBlur={() => {
+                const trimmed = email.trim();
+                // A changed address is a different address — the old tick
+                // can't carry over to it.
+                if (trimmed !== profile?.email) patch({ email: trimmed, emailVerified: false });
+              }}
+              placeholder="Add your email"
+              placeholderTextColor={colors.faint}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {emailVerified ? (
+              <View style={styles.verifiedTag}>
+                <CheckIcon size={scale(11)} />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            ) : hasEmail ? (
               <Pressable
-                style={styles.verifyButton}
+                style={[styles.verifyButton, verifySent && styles.verifyButtonSent]}
                 disabled={verifySent}
                 onPress={() => setVerifySent(true)}>
-                <Text style={styles.verifyButtonText}>
+                <Text style={[styles.verifyButtonText, verifySent && styles.verifyButtonTextSent]}>
                   {verifySent ? 'Sent' : 'Verify'}
                 </Text>
               </Pressable>
-            </View>
-          ) : (
-            <Text style={styles.hint}>
-              Optional — but it&apos;s how you get receipts and how you get back in if you change
-              your number.
-            </Text>
-          )}
-        </Field>
+            ) : null}
+          </View>
+        </View>
       </View>
+
+      <ClassPicker
+        open={classPickerOpen}
+        current={profile?.year ?? 'class12'}
+        onClose={() => setClassPickerOpen(false)}
+        onPick={(year) => {
+          patch({ year });
+          setClassPickerOpen(false);
+        }}
+      />
     </SettingsPage>
   );
 }
 
-function Field({
-  label,
-  last = false,
-  children,
+/** The class sheet — three rows, the current one marked. */
+function ClassPicker({
+  open,
+  current,
+  onClose,
+  onPick,
 }: {
-  label: string;
-  last?: boolean;
-  children: React.ReactNode;
+  open: boolean;
+  current: YearKey;
+  onClose: () => void;
+  onPick: (year: YearKey) => void;
 }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+
   return (
-    <View style={[styles.field, last && styles.fieldLast]}>
-      <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
-      {children}
-    </View>
+    <Modal visible={open} transparent animationType="none" onRequestClose={onClose}>
+      <Animated.View entering={FadeIn.duration(180)} style={styles.scrimWrap}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Animated.View entering={SlideInDown.duration(260)} style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>Which class are you in?</Text>
+          <Text style={styles.sheetSub}>
+            Change it whenever you move up — your notes and progress come with you.
+          </Text>
+
+          <View style={styles.sheetList}>
+            {YEAR_ORDER.map((key) => {
+              const on = key === current;
+              return (
+                <Pressable
+                  key={key}
+                  style={[styles.sheetRow, on && styles.sheetRowOn]}
+                  onPress={() => onPick(key)}>
+                  <Text style={[styles.sheetRowText, on && styles.sheetRowTextOn]}>
+                    {YEARS[key]}
+                  </Text>
+                  {on && <CheckIcon size={scale(15)} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
   );
 }
 
@@ -217,31 +251,85 @@ function CheckIcon({ size }: { size: number }) {
   );
 }
 
+function ChevronIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M9 6l6 6-6 6"
+        stroke={colors.slate}
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    intro: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
-      color: colors.slate,
+    identity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(14),
       marginTop: verticalScale(18),
     },
-    // White on white, held by a hairline — Profile's own card treatment.
+    // 2pt of amber showing around the monogram — the same ring Profile puts
+    // around the chosen teacher.
+    monogramRing: {
+      padding: scale(2),
+      borderRadius: scale(99),
+      backgroundColor: 'rgba(238,163,31,.35)',
+    },
+    monogram: {
+      width: scale(58),
+      height: scale(58),
+      borderRadius: scale(29),
+      backgroundColor: colors.ink,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    monogramText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(24),
+      color: colors.paper,
+    },
+    identityText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    identityName: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(22),
+      letterSpacing: scale(-0.66),
+      color: colors.ink,
+    },
+    identityMeta: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
+      color: colors.faint,
+      marginTop: verticalScale(2),
+    },
+
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.14)',
       borderRadius: scale(18),
       paddingHorizontal: scale(18),
-      marginTop: verticalScale(16),
+      marginTop: verticalScale(20),
     },
     field: {
-      paddingVertical: verticalScale(15),
+      paddingVertical: verticalScale(14),
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(28,26,22,.1)',
     },
     fieldLast: {
       borderBottomWidth: 0,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
     },
     fieldLabel: {
       fontFamily: 'AnekLatin_800ExtraBold',
@@ -250,89 +338,155 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
       marginBottom: verticalScale(7),
     },
-    input: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(15.5),
-      color: colors.ink,
-      padding: 0,
+    optionalTag: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(8.5),
+      letterSpacing: scale(0.85),
+      color: colors.faint,
+      marginBottom: verticalScale(7),
+      paddingVertical: verticalScale(2),
+      paddingHorizontal: scale(6),
+      borderRadius: scale(4),
+      backgroundColor: 'rgba(28,26,22,.06)',
+      overflow: 'hidden',
     },
-    staticRow: {
+    rowValue: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: scale(10),
     },
-    staticValue: {
+    value: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(15.5),
       color: colors.ink,
     },
-    staticValueEmpty: {
+    valueEmpty: {
       color: colors.faint,
     },
-    hint: {
+    input: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(12),
-      lineHeight: scale(17),
-      color: colors.faint,
-      marginTop: verticalScale(6),
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15.5),
+      color: colors.ink,
+      padding: 0,
     },
-    // The same pill language as the Library's subject filters.
-    choiceRow: {
+    changeChip: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(7),
-    },
-    choice: {
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(14),
+      alignItems: 'center',
+      gap: scale(4),
+      flexShrink: 0,
+      paddingVertical: verticalScale(5),
+      paddingLeft: scale(11),
+      paddingRight: scale(8),
       borderRadius: scale(99),
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
+      borderColor: 'rgba(28,26,22,.16)',
       backgroundColor: '#fff',
     },
-    choiceOn: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
-    },
-    choiceText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(13),
+    changeChipText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(11.5),
       color: colors.slate,
     },
-    choiceTextOn: {
+    subjectTag: {
       fontFamily: 'AnekLatin_700Bold',
-      color: colors.paper,
+      fontSize: scale(11),
+      letterSpacing: scale(0.66),
+      color: colors.faint,
     },
     verifiedTag: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(5),
-      alignSelf: 'flex-start',
-      marginTop: verticalScale(7),
+      flexShrink: 0,
     },
     verifiedText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(11.5),
       color: VERIFIED_GREEN,
     },
-    emailActionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-    },
     verifyButton: {
       flexShrink: 0,
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(15),
+      paddingVertical: verticalScale(6),
+      paddingHorizontal: scale(14),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
     },
+    verifyButtonSent: {
+      backgroundColor: 'rgba(28,26,22,.08)',
+    },
     verifyButtonText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12.5),
+      fontSize: scale(12),
       color: colors.paper,
+    },
+    verifyButtonTextSent: {
+      color: colors.slate,
+    },
+
+    scrimWrap: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(22,19,14,.38)',
+    },
+    sheet: {
+      backgroundColor: colors.paper,
+      borderTopLeftRadius: scale(24),
+      borderTopRightRadius: scale(24),
+      paddingHorizontal: scale(22),
+      paddingBottom: verticalScale(34),
+    },
+    sheetHandle: {
+      width: scale(40),
+      height: verticalScale(5),
+      borderRadius: scale(99),
+      backgroundColor: 'rgba(28,26,22,.18)',
+      alignSelf: 'center',
+      marginTop: verticalScale(10),
+      marginBottom: verticalScale(16),
+    },
+    sheetTitle: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(19),
+      letterSpacing: scale(-0.4),
+      color: colors.ink,
+    },
+    sheetSub: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+    },
+    sheetList: {
+      gap: verticalScale(8),
+      marginTop: verticalScale(18),
+    },
+    sheetRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: verticalScale(15),
+      paddingHorizontal: scale(16),
+      borderRadius: scale(14),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
+      backgroundColor: '#fff',
+    },
+    sheetRowOn: {
+      borderWidth: scale(1.6),
+      borderColor: colors.marigold,
+      backgroundColor: '#FCF4E0',
+    },
+    sheetRowText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15.5),
+      color: colors.slate,
+    },
+    sheetRowTextOn: {
+      fontFamily: 'AnekLatin_700Bold',
+      color: colors.ink,
     },
   });
 }
