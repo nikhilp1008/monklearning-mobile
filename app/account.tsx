@@ -34,7 +34,9 @@ export default function AccountScreen() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [verifySent, setVerifySent] = useState(false);
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState(false);
   const [classOpen, setClassOpen] = useState(false);
 
   useEffect(() => {
@@ -54,6 +56,34 @@ export default function AccountScreen() {
     setProfile((prev) => (prev ? { ...prev, ...next } : prev));
     saveProfile(next);
   }, []);
+
+  const closeOtp = useCallback(() => {
+    setOtpOpen(false);
+    setOtp('');
+    setOtpError(false);
+  }, []);
+
+  const openOtp = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOtp('');
+    setOtpError(false);
+    setOtpOpen(true);
+    // No endpoint sends this yet — see the note at the top of lib/profile.ts.
+  }, []);
+
+  const confirmOtp = useCallback(() => {
+    // Nothing checks the code yet either, so any six digits pass. The moment
+    // there is an endpoint, this is the one call to make.
+    if (otp.length < 6) {
+      setOtpError(true);
+      return;
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    patch({ emailVerified: true });
+    setOtpOpen(false);
+    setOtp('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp]);
 
   const emailChanged = profile ? email.trim() !== profile.email : false;
   const emailVerified = !!profile?.emailVerified && !emailChanged;
@@ -146,7 +176,7 @@ export default function AccountScreen() {
               value={email}
               onChangeText={(next) => {
                 setEmail(next);
-                setVerifySent(false);
+                closeOtp();
               }}
               onBlur={() => {
                 const trimmed = email.trim();
@@ -164,17 +194,56 @@ export default function AccountScreen() {
                 <CheckIcon size={scale(11)} />
                 <Text style={styles.verifiedText}>Verified</Text>
               </View>
-            ) : hasEmail ? (
-              <Pressable
-                style={[styles.verifyButton, verifySent && styles.verifyButtonSent]}
-                disabled={verifySent}
-                onPress={() => setVerifySent(true)}>
-                <Text style={[styles.verifyButtonText, verifySent && styles.verifyButtonTextSent]}>
-                  {verifySent ? 'Sent' : 'Verify'}
-                </Text>
+            ) : hasEmail && !otpOpen ? (
+              <Pressable style={styles.verifyButton} onPress={openOtp}>
+                <Text style={styles.verifyButtonText}>Verify</Text>
               </Pressable>
             ) : null}
           </View>
+
+          {/* The code is taken here rather than on a screen of its own: it is
+              one field and one button, and sending the student somewhere else
+              to type six digits costs more than it is worth. */}
+          {otpOpen && (
+            <View style={styles.otpBlock}>
+              <View style={styles.otpRow}>
+                <TextInput
+                  style={styles.otpInput}
+                  value={otp}
+                  onChangeText={(next) => {
+                    setOtp(next.replace(/[^0-9]/g, '').slice(0, 6));
+                    setOtpError(false);
+                  }}
+                  placeholder="6-digit code"
+                  placeholderTextColor={colors.faint}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                />
+                <Pressable
+                  style={[styles.otpButton, otp.length < 6 && styles.otpButtonOff]}
+                  disabled={otp.length < 6}
+                  onPress={confirmOtp}>
+                  <Text
+                    style={[styles.otpButtonText, otp.length < 6 && styles.otpButtonTextOff]}>
+                    Confirm
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={[styles.otpHint, otpError && styles.otpHintError]}>
+                {otpError ? (
+                  'That code didn’t match. Check it and try again.'
+                ) : (
+                  <>
+                    Sent to {email.trim()} ·{' '}
+                    <Text style={styles.otpResend} onPress={openOtp}>
+                      Resend
+                    </Text>
+                  </>
+                )}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -318,16 +387,65 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
       backgroundColor: colors.ink,
     },
-    verifyButtonSent: {
-      backgroundColor: 'rgba(28,26,22,.08)',
-    },
+
     verifyButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(12),
       color: colors.paper,
     },
-    verifyButtonTextSent: {
-      color: colors.slate,
+    otpBlock: {
+      marginTop: verticalScale(12),
+    },
+    otpRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
+    },
+    otpInput: {
+      flex: 1,
+      height: verticalScale(42),
+      borderRadius: scale(11),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+      paddingHorizontal: scale(14),
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(15),
+      letterSpacing: scale(3),
+      color: colors.ink,
+    },
+    otpButton: {
+      flexShrink: 0,
+      height: verticalScale(42),
+      justifyContent: 'center',
+      paddingHorizontal: scale(16),
+      borderRadius: scale(11),
+      backgroundColor: colors.ink,
+    },
+    otpButtonOff: {
+      backgroundColor: 'rgba(28,26,22,.1)',
+    },
+    otpButtonText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(13),
+      color: colors.paper,
+    },
+    otpButtonTextOff: {
+      color: colors.faint,
+    },
+    otpHint: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(11.5),
+      color: colors.faint,
+      marginTop: verticalScale(8),
+    },
+    otpHintError: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      color: colors.red,
+    },
+    otpResend: {
+      fontFamily: 'AnekLatin_700Bold',
+      color: colors.amberText,
     },
 
   });
