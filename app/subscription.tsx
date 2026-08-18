@@ -1,145 +1,209 @@
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-import { CheckIcon } from '@/components/check-icon';
-import { ProtractorMark } from '@/components/protractor-mark';
+import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
+import { useMemo } from 'react';
 import { useScale } from '@/constants/scale';
 
-type PlanId = 'annual' | 'monthly';
+/**
+ * Your plan.
+ *
+ * What this replaces described a product we don't sell: an "Annual" plan at
+ * ₹11,999/year that "Renews", with a monthly/annual switcher. MonkLearning's
+ * payments are one-time and nothing auto-renews — our own Terms say so — so
+ * every number and every word on that screen was wrong.
+ *
+ * This screen answers what a student actually comes here to ask: what did I
+ * buy, when does it run out, what did I pay, and where is the receipt. The
+ * order below is that order.
+ *
+ * Chosen deliberately over the usual SaaS furniture:
+ *   * no card on file and no "manage billing" — we never store card details
+ *     (Privacy policy: "payment confirmations only"), so there is nothing to
+ *     manage between purchases;
+ *   * no cancel — there is no recurring charge to cancel, and saying so
+ *     plainly is worth more than a button that does nothing;
+ *   * expiry is stated as a date AND as days left, because "18 days" is what
+ *     a student actually reacts to.
+ */
+
+const GREEN = '#157A45';
+const GREEN_DOT = '#1C9B57';
+
+interface Purchase {
+  id: string;
+  /** What was bought, e.g. "JEE Main · 6 months". */
+  title: string;
+  paidOn: string;
+  amount: string;
+  invoiceNo: string;
+}
+
+interface PlanState {
+  track: string;
+  duration: string;
+  startedOn: string;
+  endsOn: string;
+  daysLeft: number;
+  totalDays: number;
+  amount: string;
+  purchases: Purchase[];
+}
+
+/**
+ * PLACEHOLDER — there is no plans/purchases endpoint on the API yet (the
+ * router table is doubts, drona, notes, practice, progress and nothing else),
+ * so this screen renders from a fixed object. The amounts here are NOT
+ * confirmed pricing: monklearning.com was unreachable when this was built, so
+ * every figure below is waiting on the real price list. Replace this whole
+ * object with the API response — the components read nothing else.
+ */
+const PLAN: PlanState = {
+  track: 'JEE Main',
+  duration: '6 months',
+  startedOn: '2 Jun 2026',
+  endsOn: '2 Dec 2026',
+  daysLeft: 107,
+  totalDays: 183,
+  amount: '₹—',
+  purchases: [
+    { id: 'p1', title: 'JEE Main · 6 months', paidOn: '2 Jun 2026', amount: '₹—', invoiceNo: 'ML-2026-0412' },
+    { id: 'p2', title: 'Day Pass', paidOn: '19 May 2026', amount: '₹249', invoiceNo: 'ML-2026-0288' },
+  ],
+};
+
+const INCLUDED = [
+  'Live classes with Drona or Vedha, in English or Hinglish',
+  'Snap a doubt — up to 3 questions a photo',
+  'Unlimited practice, and mock tests as chapters unlock',
+  'Every note and doubt you save, kept and exportable',
+];
 
 export default function SubscriptionScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
+
+  const elapsed = Math.max(0, Math.min(1, 1 - PLAN.daysLeft / PLAN.totalDays));
+  const expiringSoon = PLAN.daysLeft <= 14;
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
-          <View style={styles.headerRow}>
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <BackArrowIcon size={scale(15)} />
-            </Pressable>
-            <Text style={styles.headerTitle}>Your plan</Text>
+    <SettingsPage title="Your plan">
+      {/* What you have, and how long it has left. */}
+      <View style={styles.planCard}>
+        <View style={styles.planTopRow}>
+          <View style={styles.statusPill}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>ACTIVE</Text>
           </View>
-
-          <View style={styles.planCard}>
-            <Svg width="100%" height="100%" style={StyleSheet.absoluteFillObject}>
-              <Defs>
-                <RadialGradient
-                  id="planGrad"
-                  cx="85%"
-                  cy="0%"
-                  rx="130%"
-                  ry="130%"
-                  gradientUnits="objectBoundingBox">
-                  <Stop offset="0" stopColor="#2d271d" />
-                  <Stop offset="0.72" stopColor="#16130E" />
-                  <Stop offset="1" stopColor="#16130E" />
-                </RadialGradient>
-              </Defs>
-              <Rect x={0} y={0} width="100%" height="100%" fill="url(#planGrad)" />
-            </Svg>
-
-            <View style={styles.planTopRow}>
-              <View style={styles.planTitleGroup}>
-                <ProtractorMark size={scale(24)} ringColor={colors.paper} />
-                <Text style={styles.planTitle}>JEE Main · Annual</Text>
-              </View>
-              <View style={styles.activeBadge}>
-                <Text style={styles.activeBadgeText}>ACTIVE</Text>
-              </View>
-            </View>
-
-            <View style={styles.planInfoRow}>
-              <Text style={styles.planInfoLabel}>Renews</Text>
-              <Text style={styles.planInfoValue}>12 Jun 2027</Text>
-            </View>
-            <View style={styles.planInfoRowBilled}>
-              <Text style={styles.planInfoLabel}>Billed</Text>
-              <Text style={styles.planInfoValue}>₹11,999 / year</Text>
-            </View>
-
-            <View style={styles.planButtonsRow}>
-              <Pressable style={styles.manageButton}>
-                <Text style={styles.manageButtonText}>Manage billing</Text>
-              </Pressable>
-              <Pressable style={styles.invoicesButton}>
-                <Text style={styles.invoicesButtonText}>Invoices</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <Text style={styles.overline}>What&apos;s included</Text>
-          <View style={styles.includedCard}>
-            <IncludedRow
-              scale={scale}
-              verticalScale={verticalScale}
-              text="Unlimited live classes with Drona, all 3 subjects"
-            />
-            <IncludedRow
-              scale={scale}
-              verticalScale={verticalScale}
-              text="Unlimited snapped doubts & practice questions"
-            />
-            <IncludedRow
-              scale={scale}
-              verticalScale={verticalScale}
-              text="Full-pattern mock tests & readiness tracking"
-            />
-            <IncludedRow
-              scale={scale}
-              verticalScale={verticalScale}
-              text="Hinglish · English, switch anytime"
-            />
-          </View>
-
-          <Text style={styles.overline}>Switch plan</Text>
-          <View style={styles.plansRow}>
-            <PlanOptionCard
-              scale={scale}
-              verticalScale={verticalScale}
-              title="Annual"
-              price="₹999"
-              caption="billed yearly · save 33%"
-              selected={selectedPlan === 'annual'}
-              onPress={() => setSelectedPlan('annual')}
-            />
-            <PlanOptionCard
-              scale={scale}
-              verticalScale={verticalScale}
-              title="Monthly"
-              price="₹1,499"
-              caption="cancel anytime"
-              selected={selectedPlan === 'monthly'}
-              onPress={() => setSelectedPlan('monthly')}
-            />
-          </View>
-
-          <Text style={styles.disclaimer}>
-            If your plan lapses, your notes and doubts stay yours — only new classes, snaps and
-            mocks pause until you renew.
+          <Text style={styles.daysLeft}>
+            {PLAN.daysLeft} <Text style={styles.daysLeftUnit}>days left</Text>
           </Text>
         </View>
 
-        <View style={styles.footer}>
+        <Text style={styles.planTitle}>{PLAN.track}</Text>
+        <Text style={styles.planDuration}>{PLAN.duration} of full access</Text>
+
+        {/* One bar, because a date alone doesn't tell you where you are in it. */}
+        <View style={styles.track}>
+          <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
         </View>
-      </SafeAreaView>
-    </View>
+
+        <View style={styles.datesRow}>
+          <View>
+            <Text style={styles.dateLabel}>STARTED</Text>
+            <Text style={styles.dateValue}>{PLAN.startedOn}</Text>
+          </View>
+          <View style={styles.dateRight}>
+            <Text style={styles.dateLabel}>ENDS</Text>
+            <Text style={styles.dateValue}>{PLAN.endsOn}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* The thing students get wrong about one-time plans, said before they
+          have to wonder about it. */}
+      <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
+        <Text style={styles.noticeText}>
+          {expiringSoon
+            ? `Your access ends on ${PLAN.endsOn}. Nothing renews on its own — extend it when you're ready.`
+            : 'This is a one-time purchase. Nothing auto-renews, and no card is stored — when it ends, it just ends.'}
+        </Text>
+      </View>
+
+      <Pressable style={styles.primaryButton} onPress={() => {}}>
+        <Text style={styles.primaryButtonText}>Extend my access</Text>
+      </Pressable>
+
+      <Text style={styles.overline}>WHAT&apos;S INCLUDED</Text>
+      <View style={styles.card}>
+        {INCLUDED.map((line, i) => (
+          <View key={line} style={[styles.includedRow, i === INCLUDED.length - 1 && styles.rowLast]}>
+            <TickIcon size={scale(13)} />
+            <Text style={styles.includedText}>{line}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Receipts. GST invoices matter to parents paying for this. */}
+      <Text style={styles.overline}>PAYMENTS</Text>
+      <View style={styles.card}>
+        {PLAN.purchases.map((purchase, i) => (
+          <View
+            key={purchase.id}
+            style={[styles.payRow, i === PLAN.purchases.length - 1 && styles.rowLast]}>
+            <View style={styles.payTextBlock}>
+              <Text style={styles.payTitle}>{purchase.title}</Text>
+              <Text style={styles.paySub}>
+                {purchase.paidOn} · {purchase.invoiceNo}
+              </Text>
+            </View>
+            <Text style={styles.payAmount}>{purchase.amount}</Text>
+            <Pressable style={styles.invoiceButton} onPress={() => {}}>
+              <DownloadIcon size={scale(13)} />
+              <Text style={styles.invoiceButtonText}>Invoice</Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.footNote}>
+        Invoices include GST and are emailed to you as well. Questions about a payment? Write to{' '}
+        <Text
+          style={styles.link}
+          onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
+          support@monklearning.com
+        </Text>{' '}
+        — we reply within 24 hours.
+      </Text>
+
+      <Text style={styles.footNote}>
+        If your plan lapses, your notes and doubts stay yours and stay exportable. Only new
+        classes, snaps and practice pause.
+      </Text>
+    </SettingsPage>
   );
 }
 
-function BackArrowIcon({ size }: { size: number }) {
+function TickIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Path
-        d="M15 6l-6 6 6 6"
+        d="M4 12.5 9.5 18 20 6.5"
+        stroke={GREEN}
+        strokeWidth={2.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function DownloadIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M12 3v12M7 11l5 5 5-5M4 20h16"
         stroke={colors.ink}
         strokeWidth={2}
         strokeLinecap="round"
@@ -149,276 +213,222 @@ function BackArrowIcon({ size }: { size: number }) {
   );
 }
 
-function IncludedRow({
-  scale,
-  verticalScale,
-  text,
-}: {
-  scale: (n: number) => number;
-  verticalScale: (n: number) => number;
-  text: string;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: scale(10),
-        paddingVertical: verticalScale(7),
-      }}>
-      <CheckIcon size={scale(14)} color="#157A45" strokeWidth={2.6} />
-      <Text
-        style={{
-          flexShrink: 1,
-          fontFamily: 'AnekLatin_400Regular',
-          fontSize: scale(14),
-          color: colors.ink,
-        }}>
-        {text}
-      </Text>
-    </View>
-  );
-}
-
-function PlanOptionCard({
-  scale,
-  verticalScale,
-  title,
-  price,
-  caption,
-  selected,
-  onPress,
-}: {
-  scale: (n: number) => number;
-  verticalScale: (n: number) => number;
-  title: string;
-  price: string;
-  caption: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        flex: 1,
-        backgroundColor: selected ? '#FCF4E0' : '#fff',
-        borderWidth: selected ? scale(1.6) : scale(1.4),
-        borderColor: selected ? colors.marigold : colors.hairline,
-        borderRadius: scale(14),
-        paddingVertical: verticalScale(13),
-        paddingHorizontal: scale(14),
-      }}>
-      <Text
-        style={{
-          fontFamily: 'AnekLatin_700Bold',
-          fontSize: scale(14),
-          color: colors.ink,
-        }}>
-        {title}
-      </Text>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'baseline',
-          marginTop: verticalScale(4),
-        }}>
-        <Text
-          style={{
-            fontFamily: 'AnekLatin_700Bold',
-            fontSize: scale(17),
-            color: colors.ink,
-          }}>
-          {price}
-        </Text>
-        <Text
-          style={{
-            fontFamily: 'AnekLatin_600SemiBold',
-            fontSize: scale(11),
-            color: colors.slate,
-          }}>
-          /mo
-        </Text>
-      </View>
-      <Text
-        style={{
-          fontFamily: selected ? 'AnekLatin_700Bold' : 'AnekLatin_600SemiBold',
-          fontSize: scale(10),
-          color: selected ? colors.amberText : colors.faint,
-        }}>
-        {caption}
-      </Text>
-    </Pressable>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    content: {
-      flex: 1,
-      minHeight: 0,
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-    },
-    headerRow: {
-      flexShrink: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    backButton: {
-      width: scale(34),
-      height: scale(34),
-      flexShrink: 0,
-      borderRadius: scale(17),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(17),
-      color: colors.ink,
-    },
     planCard: {
-      position: 'relative',
-      overflow: 'hidden',
-      borderRadius: scale(18),
-      paddingVertical: verticalScale(20),
-      paddingHorizontal: scale(20),
-      marginTop: verticalScale(14),
-      shadowColor: '#16130E',
-      shadowOffset: { width: 0, height: verticalScale(8) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(12),
-      elevation: 5,
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
+      borderRadius: scale(20),
+      padding: scale(18),
+      marginTop: verticalScale(20),
     },
     planTopRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    planTitleGroup: {
+    statusPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
+      gap: scale(6),
+      paddingVertical: verticalScale(5),
+      paddingHorizontal: scale(11),
+      borderRadius: scale(99),
+      backgroundColor: 'rgba(28,155,87,.1)',
+    },
+    statusDot: {
+      width: scale(6),
+      height: scale(6),
+      borderRadius: scale(3),
+      backgroundColor: GREEN_DOT,
+    },
+    statusText: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(9.5),
+      letterSpacing: scale(1.14),
+      color: GREEN,
+    },
+    daysLeft: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(15),
+      color: colors.ink,
+    },
+    daysLeftUnit: {
+      fontFamily: 'AnekLatin_500Medium',
+      fontSize: scale(12.5),
+      color: colors.faint,
     },
     planTitle: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(16),
-      color: '#fff',
+      fontSize: scale(25),
+      letterSpacing: scale(-0.75),
+      color: colors.ink,
+      marginTop: verticalScale(14),
     },
-    activeBadge: {
-      backgroundColor: 'rgba(28,155,87,.18)',
-      borderWidth: scale(1),
-      borderColor: 'rgba(28,155,87,.4)',
+    planDuration: {
+      fontFamily: 'AnekLatin_500Medium',
+      fontSize: scale(13.5),
+      color: colors.slate,
+      marginTop: verticalScale(2),
+    },
+    track: {
+      height: verticalScale(5),
       borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(9),
+      backgroundColor: 'rgba(28,26,22,.08)',
+      overflow: 'hidden',
+      marginTop: verticalScale(16),
     },
-    activeBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(9),
-      color: '#157A45',
-    },
-    planInfoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(14),
-    },
-    planInfoRowBilled: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(5),
-    },
-    planInfoLabel: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13),
-      color: '#C7C1B3',
-    },
-    planInfoValue: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: '#EFEBDD',
-    },
-    planButtonsRow: {
-      flexDirection: 'row',
-      gap: scale(9),
-      marginTop: verticalScale(14),
-    },
-    manageButton: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: verticalScale(42),
+    trackFill: {
+      height: '100%',
       borderRadius: scale(99),
       backgroundColor: colors.marigold,
     },
-    manageButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: '#241a08',
+    datesRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: verticalScale(12),
     },
-    invoicesButton: {
-      flex: 1,
+    dateRight: {
+      alignItems: 'flex-end',
+    },
+    dateLabel: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(9),
+      letterSpacing: scale(1.08),
+      color: colors.faint,
+    },
+    dateValue: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13.5),
+      color: colors.ink,
+      marginTop: verticalScale(3),
+    },
+
+    notice: {
+      borderRadius: scale(14),
+      backgroundColor: colors.welcomePaper,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.1)',
+      paddingVertical: verticalScale(12),
+      paddingHorizontal: scale(14),
+      marginTop: verticalScale(12),
+    },
+    noticeWarn: {
+      backgroundColor: 'rgba(238,163,31,.1)',
+      borderColor: 'rgba(238,163,31,.35)',
+    },
+    noticeText: {
+      fontFamily: 'AnekLatin_500Medium',
+      fontSize: scale(12.5),
+      lineHeight: scale(18.5),
+      color: colors.slate,
+    },
+    primaryButton: {
+      height: verticalScale(50),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
-      height: verticalScale(42),
-      borderRadius: scale(99),
-      borderWidth: scale(1),
-      borderColor: 'rgba(255,255,255,.25)',
-    },
-    invoicesButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: '#EFEBDD',
-    },
-    overline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
-      textTransform: 'uppercase',
-      color: colors.faint,
-      marginTop: verticalScale(18),
-      marginBottom: verticalScale(8),
-    },
-    includedCard: {
-      backgroundColor: '#fff',
-      borderWidth: scale(1),
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    plansRow: {
-      flexDirection: 'row',
-      gap: scale(10),
-    },
-    disclaimer: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(11),
-      lineHeight: scale(17.05),
-      color: colors.faint,
       marginTop: verticalScale(14),
     },
-    footer: {
-      flexShrink: 0,
-      paddingTop: verticalScale(12),
-      paddingBottom: verticalScale(12),
+    primaryButtonText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(15),
+      color: colors.paper,
+    },
+
+    overline: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(9.5),
+      letterSpacing: scale(1.33),
+      color: colors.faint,
+      marginTop: verticalScale(26),
+      marginBottom: verticalScale(9),
+    },
+    card: {
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
+      borderRadius: scale(18),
+      paddingHorizontal: scale(16),
+    },
+    includedRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: scale(10),
+      paddingVertical: verticalScale(12),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.08)',
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    includedText: {
+      flex: 1,
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13.5),
+      lineHeight: scale(19.5),
+      color: colors.slate,
+    },
+
+    payRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(10),
+      paddingVertical: verticalScale(13),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.08)',
+    },
+    payTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    payTitle: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(14),
+      color: colors.ink,
+    },
+    paySub: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(11.5),
+      color: colors.faint,
+      marginTop: verticalScale(2),
+    },
+    payAmount: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(14),
+      color: colors.ink,
+    },
+    invoiceButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(5),
+      paddingVertical: verticalScale(6),
+      paddingHorizontal: scale(11),
+      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.18)',
+      backgroundColor: '#fff',
+    },
+    invoiceButtonText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(11.5),
+      color: colors.ink,
+    },
+
+    footNote: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(12),
+      lineHeight: scale(18),
+      color: colors.faint,
+      marginTop: verticalScale(16),
+    },
+    link: {
+      fontFamily: 'AnekLatin_700Bold',
+      color: colors.ink,
+      textDecorationLine: 'underline',
+      textDecorationColor: 'rgba(238,163,31,.6)',
     },
   });
 }

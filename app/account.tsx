@@ -1,234 +1,338 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
+import { EXAMS, YEARS, type ExamKey, type YearKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
+import { StudentProfile, getProfile, saveProfile } from '@/lib/profile';
+
+/**
+ * Personal information — the five things the app actually knows about a
+ * student: name, class, exam, phone, email.
+ *
+ * What this replaces had an email/phone/password stack with a change-password
+ * form. There is no password anywhere in this product — students sign in with
+ * a phone number and an OTP, and onboarding never sets one — so that form
+ * could not have worked and the fields it sat under were the wrong three.
+ *
+ * Email is optional at sign-up, so it has three states here: missing (ask for
+ * it), present but unverified (offer to verify), verified (say so and stop).
+ * Phone is the one field that can't be edited — it is the account, and it was
+ * verified at the OTP step.
+ */
 
 const VERIFIED_GREEN = '#157A45';
+
+const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
+const EXAM_ORDER: ExamKey[] = ['jee', 'neet', 'both'];
 
 export default function AccountScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [verifySent, setVerifySent] = useState(false);
 
-  const handleCancel = () => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-  };
+  useEffect(() => {
+    let cancelled = false;
+    getProfile().then((p) => {
+      if (cancelled) return;
+      setProfile(p);
+      setName(p.name);
+      setEmail(p.email);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const patch = useCallback((next: Partial<StudentProfile>) => {
+    setProfile((prev) => (prev ? { ...prev, ...next } : prev));
+    saveProfile(next);
+  }, []);
+
+  const emailChanged = profile ? email.trim() !== profile.email : false;
+  const emailVerified = !!profile?.emailVerified && !emailChanged;
+  const hasEmail = email.trim().length > 0;
 
   return (
     <SettingsPage title="Personal information" keyboardAware>
+      <Text style={styles.intro}>
+        This is what Drona knows about you. Everything except your number can be changed.
+      </Text>
+
       <View style={styles.card}>
-        <SecurityRow styles={styles} label="Email" value="aarav@example.com" />
-        <SecurityRow styles={styles} label="Phone" value="+91 98••• ••432" />
+        <Field label="Full name">
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            onBlur={() => patch({ name: name.trim() })}
+            placeholder="Your name"
+            placeholderTextColor={colors.faint}
+            autoCapitalize="words"
+          />
+        </Field>
 
-        <View style={[styles.securityRow, styles.securityRowLast]}>
-          <View>
-            <Text style={styles.rowLabel}>Password</Text>
-            <Text style={styles.rowValue}>••••••••••</Text>
+        {/* Class and exam are the two answers that shape every lesson, so they
+            are editable in place rather than buried behind another screen. */}
+        <Field label="Class">
+          <View style={styles.choiceRow}>
+            {YEAR_ORDER.map((key) => {
+              const on = profile?.year === key;
+              return (
+                <Pressable
+                  key={key}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => patch({ year: key })}>
+                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>{YEARS[key]}</Text>
+                </Pressable>
+              );
+            })}
           </View>
-          <Pressable style={styles.cancelButton} onPress={handleCancel}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </Pressable>
-        </View>
+        </Field>
 
-        <View style={styles.passwordForm}>
-          <FormField
-            styles={styles}
-            label="Current password"
-            placeholder="••••••••"
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            marginBottom={verticalScale(11)}
+        <Field label="Exam">
+          <View style={styles.choiceRow}>
+            {EXAM_ORDER.map((key) => {
+              const on = profile?.exam === key;
+              return (
+                <Pressable
+                  key={key}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => patch({ exam: key })}>
+                  <Text style={[styles.choiceText, on && styles.choiceTextOn]}>
+                    {EXAMS[key].name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Field>
+
+        <Field label="Phone number">
+          <View style={styles.staticRow}>
+            <Text style={[styles.staticValue, !profile?.phone && styles.staticValueEmpty]}>
+              {profile?.phone || 'Not set'}
+            </Text>
+            {/* Only claim verified when there is actually a number — the tick
+                belongs to the OTP step, not to an empty field. */}
+            {!!profile?.phone && (
+              <View style={styles.verifiedTag}>
+                <CheckIcon size={scale(11)} />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.hint}>Your number is your account, so it can&apos;t be changed here.</Text>
+        </Field>
+
+        <Field label="Email address" last>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={(next) => {
+              setEmail(next);
+              setVerifySent(false);
+            }}
+            onBlur={() => {
+              const trimmed = email.trim();
+              // A changed address is a different address — it has to be
+              // verified again, so the old tick doesn't carry over.
+              if (trimmed !== profile?.email) patch({ email: trimmed, emailVerified: false });
+            }}
+            placeholder="Add your email"
+            placeholderTextColor={colors.faint}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
-          <FormField
-            styles={styles}
-            label="New password"
-            placeholder="At least 8 characters"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            marginBottom={verticalScale(11)}
-          />
-          <FormField
-            styles={styles}
-            label="Confirm new password"
-            placeholder="Re-enter new password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            marginBottom={verticalScale(13)}
-          />
-          <Pressable style={styles.updateButton}>
-            <Text style={styles.updateButtonText}>Update password</Text>
-          </Pressable>
-        </View>
+
+          {emailVerified ? (
+            <View style={styles.verifiedTag}>
+              <CheckIcon size={scale(11)} />
+              <Text style={styles.verifiedText}>Verified</Text>
+            </View>
+          ) : hasEmail ? (
+            <View style={styles.emailActionRow}>
+              <Text style={styles.hint}>
+                {verifySent
+                  ? 'Check your inbox — the link is good for an hour.'
+                  : 'Not verified yet. We use it for receipts and account recovery.'}
+              </Text>
+              <Pressable
+                style={styles.verifyButton}
+                disabled={verifySent}
+                onPress={() => setVerifySent(true)}>
+                <Text style={styles.verifyButtonText}>
+                  {verifySent ? 'Sent' : 'Verify'}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={styles.hint}>
+              Optional — but it&apos;s how you get receipts and how you get back in if you change
+              your number.
+            </Text>
+          )}
+        </Field>
       </View>
     </SettingsPage>
   );
 }
 
-function SecurityRow({
-  styles,
+function Field({
   label,
-  value,
+  last = false,
+  children,
 }: {
-  styles: Styles;
   label: string;
-  value: string;
+  last?: boolean;
+  children: React.ReactNode;
 }) {
+  const { scale, verticalScale } = useScale();
+  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   return (
-    <View style={styles.securityRow}>
-      <View>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <Text style={styles.rowValue}>{value}</Text>
-      </View>
-      <View style={styles.securityRowRight}>
-        <Text style={styles.verifiedTag}>✓ Verified</Text>
-        <Text style={styles.changeText}>Change</Text>
-      </View>
+    <View style={[styles.field, last && styles.fieldLast]}>
+      <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
+      {children}
     </View>
   );
 }
 
-function FormField({
-  styles,
-  label,
-  placeholder,
-  value,
-  onChangeText,
-  marginBottom,
-}: {
-  styles: Styles;
-  label: string;
-  placeholder: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  marginBottom: number;
-}) {
+function CheckIcon({ size }: { size: number }) {
   return (
-    <View style={{ marginBottom }}>
-      <Text style={styles.formLabel}>{label}</Text>
-      <TextInput
-        style={styles.formInput}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.faint}
-        secureTextEntry
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M4 12.5 9.5 18 20 6.5"
+        stroke={VERIFIED_GREEN}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-    </View>
+    </Svg>
   );
 }
-
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    // White on white, held by a hairline — the same card treatment Profile
-    // uses for its teacher rows, so the two screens read as one surface.
+    intro: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(21),
+      color: colors.slate,
+      marginTop: verticalScale(18),
+    },
+    // White on white, held by a hairline — Profile's own card treatment.
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.14)',
       borderRadius: scale(18),
-      paddingVertical: verticalScale(16),
       paddingHorizontal: scale(18),
       marginTop: verticalScale(16),
     },
-
-    securityRow: {
+    field: {
+      paddingVertical: verticalScale(15),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.1)',
+    },
+    fieldLast: {
+      borderBottomWidth: 0,
+    },
+    fieldLabel: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(9.5),
+      letterSpacing: scale(1.14),
+      color: colors.faint,
+      marginBottom: verticalScale(7),
+    },
+    input: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15.5),
+      color: colors.ink,
+      padding: 0,
+    },
+    staticRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: scale(10),
-      paddingVertical: verticalScale(12),
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.1)',
-      borderStyle: 'dashed',
     },
-    securityRowLast: {
-      borderBottomWidth: 0,
+    staticValue: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15.5),
+      color: colors.ink,
     },
-    securityRowRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(9),
-    },
-    rowLabel: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
+    staticValueEmpty: {
       color: colors.faint,
     },
-    rowValue: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    verifiedTag: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: VERIFIED_GREEN,
-    },
-    changeText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+    hint: {
+      flex: 1,
+      fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(12),
-      color: colors.slate,
+      lineHeight: scale(17),
+      color: colors.faint,
+      marginTop: verticalScale(6),
     },
-    cancelButton: {
-      paddingVertical: verticalScale(8),
+    // The same pill language as the Library's subject filters.
+    choiceRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: scale(7),
+    },
+    choice: {
+      paddingVertical: verticalScale(7),
       paddingHorizontal: scale(14),
       borderRadius: scale(99),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.16)',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
       backgroundColor: '#fff',
     },
-    cancelButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
+    choiceOn: {
+      backgroundColor: colors.ink,
+      borderColor: colors.ink,
+    },
+    choiceText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
       color: colors.slate,
     },
-
-    passwordForm: {
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.14)',
-      borderStyle: 'dashed',
-      paddingTop: verticalScale(14),
-    },
-    formLabel: {
+    choiceTextOn: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: colors.slate,
-      marginBottom: verticalScale(5),
+      color: colors.paper,
     },
-    formInput: {
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(11),
-      paddingHorizontal: scale(14),
-      fontFamily: 'AnekLatin_500Medium',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    updateButton: {
-      alignSelf: 'flex-start',
+    verifiedTag: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      height: verticalScale(42),
-      paddingHorizontal: scale(18),
+      gap: scale(5),
+      alignSelf: 'flex-start',
+      marginTop: verticalScale(7),
+    },
+    verifiedText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(11.5),
+      color: VERIFIED_GREEN,
+    },
+    emailActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+    },
+    verifyButton: {
+      flexShrink: 0,
+      paddingVertical: verticalScale(7),
+      paddingHorizontal: scale(15),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
     },
-    updateButtonText: {
+    verifyButtonText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
+      fontSize: scale(12.5),
       color: colors.paper,
     },
   });
 }
-
-type Styles = ReturnType<typeof createStyles>;
