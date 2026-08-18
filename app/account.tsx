@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutAnimation, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
@@ -26,6 +32,7 @@ import { StudentProfile, getProfile, saveProfile } from '@/lib/profile';
 
 const VERIFIED_GREEN = '#157A45';
 const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
+const CODE_LENGTH = 6;
 
 export default function AccountScreen() {
   const { scale, verticalScale } = useScale();
@@ -37,6 +44,8 @@ export default function AccountScreen() {
   const [otpOpen, setOtpOpen] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState(false);
+  const codeInput = useRef<TextInput>(null);
+  const shake = useSharedValue(0);
   const [classOpen, setClassOpen] = useState(false);
 
   useEffect(() => {
@@ -69,21 +78,56 @@ export default function AccountScreen() {
     setOtpError(false);
     setOtpOpen(true);
     // No endpoint sends this yet — see the note at the top of lib/profile.ts.
+    // The keyboard comes up with the boxes; the delay just lets them mount.
+    setTimeout(() => codeInput.current?.focus(), 60);
   }, []);
 
-  const confirmOtp = useCallback(() => {
-    // Nothing checks the code yet either, so any six digits pass. The moment
-    // there is an endpoint, this is the one call to make.
-    if (otp.length < 6) {
-      setOtpError(true);
-      return;
-    }
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    patch({ emailVerified: true });
-    setOtpOpen(false);
-    setOtp('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otp]);
+  /**
+   * The sixth digit submits — there is no Confirm button, because by then the
+   * student has nothing left to decide. A wrong code shakes the row red and
+   * clears itself rather than parking an error message on the page.
+   */
+  const submitCode = useCallback(
+    (code: string) => {
+      // Nothing checks this yet. Until the endpoint exists, any code passes
+      // except 000000, which is kept failing so the error state stays
+      // reachable — delete that clause with the rest of this comment.
+      const accepted = code !== '000000';
+      if (!accepted) {
+        setOtpError(true);
+        shake.value = withSequence(
+          withTiming(-6, { duration: 45 }),
+          withTiming(6, { duration: 60 }),
+          withTiming(-4, { duration: 55 }),
+          withTiming(0, { duration: 45 })
+        );
+        setTimeout(() => {
+          setOtp('');
+          setOtpError(false);
+          codeInput.current?.focus();
+        }, 550);
+        return;
+      }
+      codeInput.current?.blur();
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      patch({ emailVerified: true });
+      setOtpOpen(false);
+      setOtp('');
+    },
+    [patch, shake]
+  );
+
+  const onCodeChange = useCallback(
+    (next: string) => {
+      const digits = next.replace(/[^0-9]/g, '').slice(0, CODE_LENGTH);
+      setOtp(digits);
+      setOtpError(false);
+      if (digits.length === CODE_LENGTH) submitCode(digits);
+    },
+    [submitCode]
+  );
+
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
 
   const emailChanged = profile ? email.trim() !== profile.email : false;
   const emailVerified = !!profile?.emailVerified && !emailChanged;
@@ -206,41 +250,44 @@ export default function AccountScreen() {
               to type six digits costs more than it is worth. */}
           {otpOpen && (
             <View style={styles.otpBlock}>
-              <View style={styles.otpRow}>
+              <Animated.View style={[styles.boxesRow, shakeStyle]}>
+                {Array.from({ length: CODE_LENGTH }, (_, i) => {
+                  const digit = otp[i];
+                  const active = !otpError && i === otp.length;
+                  return (
+                    <Pressable
+                      key={i}
+                      style={[
+                        styles.box,
+                        active && styles.boxActive,
+                        otpError && styles.boxError,
+                      ]}
+                      onPress={() => codeInput.current?.focus()}>
+                      <Text style={[styles.boxDigit, otpError && styles.boxDigitError]}>
+                        {digit ?? ''}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                {/* One real input behind the boxes — it takes the keyboard and
+                    the SMS/mail autofill; the boxes are only its picture. */}
                 <TextInput
-                  style={styles.otpInput}
+                  ref={codeInput}
+                  style={styles.hiddenInput}
                   value={otp}
-                  onChangeText={(next) => {
-                    setOtp(next.replace(/[^0-9]/g, '').slice(0, 6));
-                    setOtpError(false);
-                  }}
-                  placeholder="6-digit code"
-                  placeholderTextColor={colors.faint}
+                  onChangeText={onCodeChange}
                   keyboardType="number-pad"
-                  maxLength={6}
-                  autoFocus
+                  maxLength={CODE_LENGTH}
+                  caretHidden
+                  autoComplete="one-time-code"
+                  textContentType="oneTimeCode"
                 />
-                <Pressable
-                  style={[styles.otpButton, otp.length < 6 && styles.otpButtonOff]}
-                  disabled={otp.length < 6}
-                  onPress={confirmOtp}>
-                  <Text
-                    style={[styles.otpButtonText, otp.length < 6 && styles.otpButtonTextOff]}>
-                    Confirm
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={[styles.otpHint, otpError && styles.otpHintError]}>
-                {otpError ? (
-                  'That code didn’t match. Check it and try again.'
-                ) : (
-                  <>
-                    Sent to {email.trim()} ·{' '}
-                    <Text style={styles.otpResend} onPress={openOtp}>
-                      Resend
-                    </Text>
-                  </>
-                )}
+              </Animated.View>
+              <Text style={styles.otpHint}>
+                Sent to {email.trim()} ·{' '}
+                <Text style={styles.otpResend} onPress={openOtp}>
+                  Resend
+                </Text>
               </Text>
             </View>
           )}
@@ -396,52 +443,48 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     otpBlock: {
       marginTop: verticalScale(12),
     },
-    otpRow: {
+    // One box per digit, as onboarding does it — smaller, because this one
+    // lives inside a settings card rather than on its own screen.
+    boxesRow: {
       flexDirection: 'row',
-      alignItems: 'center',
       gap: scale(8),
     },
-    otpInput: {
+    box: {
       flex: 1,
-      height: verticalScale(42),
-      borderRadius: scale(11),
+      height: verticalScale(46),
+      borderRadius: scale(12),
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
+      borderColor: 'rgba(28,26,22,.14)',
       backgroundColor: '#fff',
-      paddingHorizontal: scale(14),
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(15),
-      letterSpacing: scale(3),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    boxActive: {
+      borderWidth: scale(1.5),
+      borderColor: colors.ink,
+    },
+    boxError: {
+      borderWidth: scale(1.5),
+      borderColor: colors.red,
+      backgroundColor: 'rgba(221,68,51,.06)',
+    },
+    boxDigit: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(20),
       color: colors.ink,
     },
-    otpButton: {
-      flexShrink: 0,
-      height: verticalScale(42),
-      justifyContent: 'center',
-      paddingHorizontal: scale(16),
-      borderRadius: scale(11),
-      backgroundColor: colors.ink,
+    boxDigitError: {
+      color: colors.red,
     },
-    otpButtonOff: {
-      backgroundColor: 'rgba(28,26,22,.1)',
-    },
-    otpButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: colors.paper,
-    },
-    otpButtonTextOff: {
-      color: colors.faint,
+    hiddenInput: {
+      ...StyleSheet.absoluteFillObject,
+      opacity: 0,
     },
     otpHint: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(11.5),
       color: colors.faint,
       marginTop: verticalScale(8),
-    },
-    otpHintError: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      color: colors.red,
     },
     otpResend: {
       fontFamily: 'AnekLatin_700Bold',
