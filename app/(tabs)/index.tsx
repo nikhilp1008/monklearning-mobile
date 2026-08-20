@@ -226,6 +226,7 @@ export default function HomeScreen() {
             </View>
 
             <PressableScale style={styles.card} onPress={() => router.push('/snap-capture')}>
+              <GraphTexture step={scale(24)} color={hairline(0.05)} />
               <View style={styles.cardTitleRow}>
                 <View style={styles.iconChip}>
                   <SnapIcon size={scale(20)} />
@@ -239,6 +240,10 @@ export default function HomeScreen() {
             </PressableScale>
 
             <PressableScale style={styles.card} onPress={() => router.push('/practice')}>
+              <View style={styles.cardTexture} pointerEvents="none">
+                <RuledPaper step={verticalScale(22)} color={hairline(0.055)} count={6} />
+              </View>
+              <View style={styles.practiceMarginRule} pointerEvents="none" />
               <View style={styles.cardTitleRow}>
                 <View style={styles.iconChip}>
                   <InfinityIcon size={scale(20)} />
@@ -421,6 +426,41 @@ function toStatsState(score: number, doubts: number, practised: number): StatsSt
   return { kind: 'ready', score, doubts, practised };
 }
 
+/** Graph paper for the Snap card — the surface its solutions are worked on.
+ *  Oversized line counts; the card's overflow:hidden does the cropping. */
+function GraphTexture({ step, color }: { step: number; color: string }) {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: 8 }, (_, i) => (
+        <View
+          key={`r${i}`}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: (i + 1) * step,
+            height: 1,
+            backgroundColor: color,
+          }}
+        />
+      ))}
+      {Array.from({ length: 24 }, (_, i) => (
+        <View
+          key={`c${i}`}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: (i + 1) * step,
+            width: 1,
+            backgroundColor: color,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 function InfinityIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -531,6 +571,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(21),
       letterSpacing: scale(-0.32),
       lineHeight: scale(25.2),
+    },
+    cardTexture: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    practiceMarginRule: {
+      position: 'absolute',
+      top: verticalScale(10),
+      bottom: verticalScale(10),
+      left: scale(13),
+      width: scale(1.4),
+      backgroundColor: 'rgba(221,68,51,.28)',
     },
     cardTitleRow: {
       flexDirection: 'row',
