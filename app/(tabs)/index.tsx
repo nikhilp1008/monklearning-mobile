@@ -40,6 +40,13 @@ const INK_RGB = '28,26,22'; // colors.ink — the app has exactly one black
 const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
 
 /**
+ * The page is pure white — that's the app's ground. Cards carry the warmth
+ * instead: a quiet cream fill, so a box reads as a box because its surface
+ * differs from the page, not because a shadow props up white-on-white.
+ */
+const CARD_CREAM = '#FAF8F1';
+
+/**
  * Editorial prompts for the "doubt of the day" card — hand-written, rotated
  * by day-of-year so the card genuinely changes daily. Tapping one hands the
  * question itself to Drona as the opening utterance, so the class starts on
@@ -444,7 +451,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -501,16 +508,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     card: {
       position: 'relative',
       overflow: 'hidden',
-      backgroundColor: '#fff',
+      backgroundColor: CARD_CREAM,
       borderWidth: 1,
-      borderColor: hairline(0.1),
+      borderColor: hairline(0.08),
       borderRadius: scale(16),
       padding: scale(20),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(4),
-      elevation: 1,
     },
     dronaCard: {
       borderColor: 'rgba(238,163,31,.35)',
@@ -719,17 +721,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       position: 'relative',
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.1),
+      borderColor: hairline(0.14),
       borderRadius: scale(16),
       paddingTop: verticalScale(16),
       paddingRight: scale(16),
       paddingBottom: verticalScale(16),
       paddingLeft: scale(40),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(4),
-      elevation: 1,
     },
     doubtRuledClip: {
       ...StyleSheet.absoluteFillObject,
@@ -816,9 +813,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     noteCard: {
       width: scale(210),
-      backgroundColor: '#fff',
+      backgroundColor: CARD_CREAM,
       borderWidth: 1,
-      borderColor: hairline(0.1),
+      borderColor: hairline(0.08),
       borderRadius: scale(16),
       paddingVertical: verticalScale(16),
       paddingHorizontal: scale(16),

@@ -190,7 +190,7 @@ function createStyles(
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: colors.paper,
+      backgroundColor: '#FFFFFF',
       borderTopWidth: 1.5,
       borderTopColor: 'rgba(28,26,22,.16)',
       paddingHorizontal: scale(12),
