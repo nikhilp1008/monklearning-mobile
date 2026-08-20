@@ -7,7 +7,6 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
-import { ProtractorMark } from '@/components/protractor-mark';
 import { RuledPaper } from '@/components/ruled-paper';
 import { Skeleton } from '@/components/skeleton';
 import { SnapIcon } from '@/components/snap-icon';
@@ -206,12 +205,9 @@ export default function HomeScreen() {
                 end={{ x: 0.7, y: 1 }}
                 style={StyleSheet.absoluteFillObject}
               />
-              <View style={styles.cardTitleRow}>
-                <ProtractorMark size={scale(30)} />
-                <Text style={[styles.cardTitle, styles.dronaTitle]} numberOfLines={1}>
-                  Learn with Drona
-                </Text>
-              </View>
+              <Text style={[styles.cardTitle, styles.dronaTitle]} numberOfLines={1}>
+                Learn with Drona
+              </Text>
               <Text style={styles.dronaBody}>
                 Pick a chapter and Drona teaches it out loud, writing on the board as it goes.
               </Text>
@@ -531,6 +527,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     dronaTitle: {
       color: colors.ink,
+      fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(21),
       letterSpacing: scale(-0.32),
       lineHeight: scale(25.2),
