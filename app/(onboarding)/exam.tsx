@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LeaderRow, ObButton } from '@/components/onboarding-kit';
 import { EXAMS, examTotal, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
+import { saveProfile } from '@/lib/profile';
 
 // `wipe` — background-size 0% 100% -> 100% 100%, .55s cubic-bezier(.2,.75,.2,1)
 // in the original CSS handoff. Reworked as an opacity fade below — see the
@@ -179,7 +180,12 @@ export default function ExamScreen() {
           <ObButton
             label={`Continue with ${active.label}`}
             withArrow
-            onPress={() => router.push({ pathname: '/class', params: { exam } })}
+            onPress={() => {
+              // Persist the entitlement the student chose — the Lessons exam
+              // pill and Personal information read it from the same store.
+              saveProfile({ exam });
+              router.push({ pathname: '/class', params: { exam } });
+            }}
           />
         </View>
       </SafeAreaView>

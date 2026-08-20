@@ -22,6 +22,7 @@ import {
   type ExamKey,
   type YearKey,
 } from '@/constants/onboarding';
+import { saveProfile } from '@/lib/profile';
 
 import { SelectRow } from './exam';
 
@@ -107,7 +108,14 @@ export default function ClassScreen() {
 
         {/* `margin-top:auto; padding:0 34px 34px` */}
         <View style={styles.footer}>
-          <ObButton label="Start learning" withArrow onPress={() => router.replace('/(tabs)')} />
+          <ObButton
+            label="Start learning"
+            withArrow
+            onPress={() => {
+              saveProfile({ year });
+              router.replace('/(tabs)');
+            }}
+          />
         </View>
       </SafeAreaView>
     </View>

@@ -1,54 +1,97 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
+import { Skeleton, stagger } from '@/components/skeleton';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
+import { EXAMS, type ExamKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
+import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+import { getProfile } from '@/lib/profile';
 
-type ChapterStatus = 'done' | 'new';
-
-type Chapter = {
-  number: string;
-  title: string;
-  status: ChapterStatus;
-};
-
-// Real NCERT Class 11 Physics syllabus (current rationalized CBSE
-// curriculum, 14 official chapters) — "Kinematics" informally combines
-// the two motion chapters, matching how this app (and most JEE/NEET
-// coaching material) already refers to that pair as one unit elsewhere.
-const CHAPTERS: Chapter[] = [
-  { number: '01', title: 'Units & Measurement', status: 'done' },
-  { number: '02', title: 'Kinematics', status: 'new' },
-  { number: '03', title: 'Laws of Motion', status: 'new' },
-  { number: '04', title: 'Work, Energy & Power', status: 'new' },
-  { number: '05', title: 'Rotational Motion', status: 'new' },
-  { number: '06', title: 'Gravitation', status: 'new' },
-  { number: '07', title: 'Mechanical Properties of Solids', status: 'new' },
-  { number: '08', title: 'Mechanical Properties of Fluids', status: 'new' },
-  { number: '09', title: 'Thermal Properties of Matter', status: 'new' },
-  { number: '10', title: 'Thermodynamics', status: 'new' },
-  { number: '11', title: 'Kinetic Theory', status: 'new' },
-  { number: '12', title: 'Oscillations', status: 'new' },
-  { number: '13', title: 'Waves', status: 'new' },
-];
+/**
+ * Lessons — the real course catalogue, from the same cached GET
+ * /drona/catalogue every other picker in the app reads. The subject pills
+ * and the class toggle actually filter now (they were decoration over a
+ * hardcoded Class-11 Physics list), the chapter count is counted, the exam
+ * pill reads the stored profile, and each row shows its true topic count
+ * instead of an invented Done/New status.
+ */
 
 const CLASSES = ['Class 11', 'Class 12'] as const;
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths'] as const;
+
+/** Catalogue subject strings → the compact pill labels used app-wide. */
+const SUBJECT_SHORT: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  maths: 'Maths',
+  biology: 'Biology',
+};
+
+function shortSubject(name: string): string {
+  return SUBJECT_SHORT[name.trim().toLowerCase()] ?? name;
+}
+
+type LoadState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; catalogue: CatalogueSubject[] }
+  | { kind: 'error' };
 
 export default function LessonsScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 11');
-  const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
+  const [subjectIndex, setSubjectIndex] = useState(0);
+  const [exam, setExam] = useState<ExamKey | null>(null);
 
-  const openChapter = (chapter: Chapter) =>
-    router.push({ pathname: '/entering-lesson', params: { chapterTitle: chapter.title } });
+  useEffect(() => {
+    let cancelled = false;
+    load();
+    getProfile().then((p) => {
+      if (!cancelled) setExam(p.exam);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function load() {
+    setState({ kind: 'loading' });
+    getCatalogue()
+      .then((catalogue) => setState({ kind: 'ready', catalogue }))
+      .catch(() => setState({ kind: 'error' }));
+  }
+
+  /** Canonical subject order app-wide: Physics, Chemistry, Maths, Biology. */
+  const catalogue = useMemo(() => {
+    if (state.kind !== 'ready') return [];
+    const rank = (name: string) => {
+      const i = ['physics', 'chemistry', 'mathematics', 'maths', 'biology'].indexOf(
+        name.trim().toLowerCase()
+      );
+      return i === -1 ? 99 : i;
+    };
+    return state.catalogue.slice().sort((a, b) => rank(a.subject) - rank(b.subject));
+  }, [state]);
+  const subject = catalogue[subjectIndex] ?? catalogue[0];
+  const classLevel = activeClass === 'Class 11' ? 11 : 12;
+
+  /** Chapters for the toggled class — null class_level rows belong to both. */
+  const visibleChapters = useMemo(() => {
+    if (!subject) return [];
+    return subject.chapters.filter(
+      (ch) => ch.class_level == null || ch.class_level === classLevel
+    );
+  }, [subject, classLevel]);
+
+  const openChapter = (chapterId: string, chapterTitle: string) =>
+    router.push({ pathname: '/entering-lesson', params: { chapterId, chapterTitle } });
 
   return (
     <View style={styles.screen}>
@@ -56,26 +99,25 @@ export default function LessonsScreen() {
         <View style={styles.content}>
           <View style={styles.headerRow}>
             <Text style={styles.heading}>Lessons</Text>
-            <View style={styles.jeePill}>
-              <LockIcon size={scale(11)} color={colors.slate} />
-              <Text style={styles.jeePillText}>JEE Main</Text>
-            </View>
+            {exam && (
+              <View style={styles.examPill}>
+                <LockIcon size={scale(11)} color={colors.slate} />
+                <Text style={styles.examPillText}>{EXAMS[exam].name}</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.subjectRow}>
-            {SUBJECTS.map((subject) => (
-              <PressableScale key={subject} onPress={() => setActiveSubject(subject)}>
+            {(state.kind === 'ready' ? catalogue : []).map((entry, i) => (
+              <PressableScale key={entry.subject} onPress={() => setSubjectIndex(i)}>
                 <View
-                  style={[
-                    styles.subjectPill,
-                    activeSubject === subject && styles.subjectPillActive,
-                  ]}>
+                  style={[styles.subjectPill, subjectIndex === i && styles.subjectPillActive]}>
                   <Text
                     style={[
                       styles.subjectPillText,
-                      activeSubject === subject && styles.subjectPillTextActive,
+                      subjectIndex === i && styles.subjectPillTextActive,
                     ]}>
-                    {subject}
+                    {shortSubject(entry.subject)}
                   </Text>
                 </View>
               </PressableScale>
@@ -93,36 +135,70 @@ export default function LessonsScreen() {
               textStyle={styles.classPillText}
               textActiveStyle={styles.classPillTextActive}
             />
-            <Text style={styles.chaptersCount}>13 chapters</Text>
+            {state.kind === 'ready' && (
+              <Text style={styles.chaptersCount}>
+                {visibleChapters.length} chapter{visibleChapters.length === 1 ? '' : 's'}
+              </Text>
+            )}
           </View>
 
-          <ScrollView
-            style={styles.listWrap}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}>
-            {CHAPTERS.map((chapter, index) => (
-              <PressableScale
-                key={chapter.number}
-                onPress={() => openChapter(chapter)}
-                style={[styles.row, index < CHAPTERS.length - 1 && styles.rowDivider]}>
-                <Text style={styles.rowNumber}>{chapter.number}</Text>
-                <View style={styles.rowTitleWrap}>
-                  <Text style={styles.rowTitle}>{chapter.title}</Text>
+          {state.kind === 'loading' && (
+            <View style={styles.listWrap}>
+              {Array.from({ length: 8 }, (_, i) => (
+                <View key={i} style={[styles.row, i < 7 && styles.rowDivider]}>
+                  <Skeleton delay={stagger(i, 70)} style={skeletonStyles.number} />
+                  <Skeleton delay={stagger(i, 70) + 40} style={skeletonStyles.title} />
                 </View>
-                {chapter.status === 'done' && (
-                  <View style={styles.doneBadge}>
-                    <CheckIcon size={scale(9)} color="#157A45" strokeWidth={3} />
-                    <Text style={styles.doneBadgeText}>Done</Text>
-                  </View>
-                )}
-                {chapter.status === 'new' && (
-                  <View style={styles.newBadge}>
-                    <Text style={styles.newBadgeText}>New</Text>
-                  </View>
-                )}
+              ))}
+            </View>
+          )}
+
+          {state.kind === 'error' && (
+            <View style={styles.stateBlock}>
+              <Text style={styles.stateText}>
+                Couldn&apos;t load the course catalogue. Check your connection and try again.
+              </Text>
+              <PressableScale style={styles.retryButton} onPress={load}>
+                <Text style={styles.retryButtonText}>Retry</Text>
               </PressableScale>
-            ))}
-          </ScrollView>
+            </View>
+          )}
+
+          {state.kind === 'ready' && (
+            <ScrollView
+              style={styles.listWrap}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}>
+              {visibleChapters.length === 0 ? (
+                <View style={styles.stateBlock}>
+                  <Text style={styles.stateText}>
+                    No {activeClass} {subject ? shortSubject(subject.subject) : ''} chapters in
+                    the catalogue yet.
+                  </Text>
+                </View>
+              ) : (
+                visibleChapters.map((chapter, index) => (
+                  <PressableScale
+                    key={chapter.id}
+                    onPress={() => openChapter(chapter.id, chapter.name)}
+                    style={[
+                      styles.row,
+                      index < visibleChapters.length - 1 && styles.rowDivider,
+                    ]}>
+                    <Text style={styles.rowNumber}>{String(index + 1).padStart(2, '0')}</Text>
+                    <View style={styles.rowTitleWrap}>
+                      <Text style={styles.rowTitle}>{chapter.name}</Text>
+                    </View>
+                    {chapter.subtopics.length > 0 && (
+                      <Text style={styles.topicsCount}>
+                        {chapter.subtopics.length} topic{chapter.subtopics.length === 1 ? '' : 's'}
+                      </Text>
+                    )}
+                  </PressableScale>
+                ))
+              )}
+            </ScrollView>
+          )}
         </View>
       </SafeAreaView>
     </View>
@@ -151,6 +227,11 @@ function LockIcon({ size, color }: { size: number; color: string }) {
 // app/(tabs)/index.tsx.
 const hairline = (alpha: number) => `rgba(28,26,22,${alpha})`;
 
+const skeletonStyles = StyleSheet.create({
+  number: { width: 22, height: 14, borderRadius: 4 },
+  title: { flex: 1, height: 16, borderRadius: 5 },
+});
+
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
@@ -176,18 +257,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       letterSpacing: scale(-0.6),
       color: colors.ink,
     },
-    jeePill: {
+    examPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(6),
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.12)',
+      borderColor: hairline(0.12),
       borderRadius: scale(99),
       paddingVertical: verticalScale(6),
       paddingHorizontal: scale(12),
       backgroundColor: '#fff',
     },
-    jeePillText: {
+    examPillText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(11),
       color: colors.slate,
@@ -201,7 +282,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     classTrack: {
       gap: scale(3),
       padding: scale(3),
-      backgroundColor: 'rgba(28,26,22,.055)',
+      backgroundColor: hairline(0.055),
       borderRadius: scale(99),
     },
     classThumb: {
@@ -234,18 +315,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       gap: scale(7),
       marginTop: verticalScale(16),
+      minHeight: verticalScale(30),
     },
     subjectPill: {
       paddingVertical: verticalScale(6),
       paddingHorizontal: scale(14),
       borderRadius: scale(99),
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
+      borderColor: hairline(0.14),
       backgroundColor: '#fff',
     },
     subjectPillActive: {
       borderWidth: 0,
-      backgroundColor: '#1C1A16',
+      backgroundColor: colors.ink,
     },
     subjectPillText: {
       fontFamily: 'AnekLatin_600SemiBold',
@@ -273,7 +355,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rowDivider: {
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.1)',
+      borderBottomColor: hairline(0.1),
       borderStyle: 'dashed',
     },
     rowNumber: {
@@ -291,33 +373,36 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(14),
       color: colors.ink,
     },
-    doneBadge: {
-      flexDirection: 'row',
+    topicsCount: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(11),
+      color: colors.faint,
+    },
+    stateBlock: {
+      marginTop: verticalScale(40),
       alignItems: 'center',
-      gap: scale(5),
-      backgroundColor: 'rgba(28,155,87,.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.3)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(9),
+      paddingHorizontal: scale(12),
     },
-    doneBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      color: '#157A45',
-    },
-    newBadge: {
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(9),
-    },
-    newBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
+    stateText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19.5),
       color: colors.slate,
+      textAlign: 'center',
+    },
+    retryButton: {
+      height: verticalScale(40),
+      paddingHorizontal: scale(18),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: verticalScale(14),
+    },
+    retryButtonText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
+      color: colors.paper,
     },
   });
 }
