@@ -218,6 +218,18 @@ export default function HomeScreen() {
                 Pick a chapter and Drona teaches it out loud, writing on the board as it goes.
               </Text>
               <PressableScale style={styles.dronaCta} onPress={() => router.push('/drona')}>
+                <LinearGradient
+                  colors={['#453C2E', '#241F18']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <LinearGradient
+                  colors={['rgba(255,247,230,.26)', 'rgba(255,247,230,0)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.dronaCtaGloss}
+                />
                 <Text style={styles.dronaCtaText}>Choose a topic</Text>
                 <ArrowRightIcon color="#FFF7E6" size={scale(14)} />
               </PressableScale>
@@ -570,6 +582,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(12),
     },
     dronaCta: {
+      position: 'relative',
+      overflow: 'hidden',
       alignSelf: 'flex-start',
       flexDirection: 'row',
       alignItems: 'center',
@@ -577,8 +591,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(44),
       paddingHorizontal: scale(20),
       borderRadius: scale(99),
-      backgroundColor: colors.ink,
+      // Fallback under the gradient; the warm rim is what keeps the dark
+      // pill from reading as a hole in the amber card.
+      backgroundColor: '#241F18',
+      borderWidth: 1,
+      borderColor: 'rgba(255,247,230,.35)',
       marginTop: verticalScale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(4) },
+      shadowOpacity: 0.22,
+      shadowRadius: scale(8),
+      elevation: 3,
+    },
+    dronaCtaGloss: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '55%',
     },
     dronaCtaText: {
       fontFamily: 'AnekLatin_700Bold',
