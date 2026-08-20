@@ -9,16 +9,78 @@ import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { ProtractorMark } from '@/components/protractor-mark';
 import { RuledPaper } from '@/components/ruled-paper';
+import { Skeleton } from '@/components/skeleton';
 import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
+import { getCachedProgress, getProgress } from '@/lib/progress';
+import { getStoredName } from '@/lib/profile';
 
-// The redesign's hairline borders are all shades of this ink, not the app's
-// usual `colors.hairline` rgba triple — keep the two distinct so any future
-// non-Home screen borders don't quietly drift with a shared token.
-const INK_RGB = '28,25,20';
+/**
+ * Home.
+ *
+ * Layout system, deliberately small so nothing drifts:
+ *  - type: 24 title · 18 card · 15 body · 13 secondary · 11 caption · 10 overline
+ *  - weights: Regular, SemiBold, ExtraBold (Kalam only for the red-pen accent)
+ *  - spacing: 24 gutter, 32 between sections, 20 card padding, 8/12/16 inside
+ *  - radii: 12 chips · 16 cards · 99 pills
+ *
+ * The three features are peers: one card shell, three instances. Drona keeps
+ * the amber wash and the only filled button — first among equals, not a
+ * different species.
+ *
+ * Every number on this screen is real or absent. Score and ledger come from
+ * /progress, notes from /notes; a brand-new account gets honest zero states,
+ * never sample data.
+ */
+
+const INK_RGB = '28,26,22'; // colors.ink — the app has exactly one black
 const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
+
+/**
+ * Editorial prompts for the "doubt of the day" card — hand-written, rotated
+ * by day-of-year so the card genuinely changes daily. Tapping one hands the
+ * question itself to Drona as the opening utterance, so the class starts on
+ * exactly this doubt instead of a blank "what do you want to learn?".
+ * Replace with a backend endpoint when one exists.
+ */
+const DAILY_DOUBTS = [
+  {
+    tag: 'Physics · Modern',
+    chapterTitle: 'Modern Physics',
+    question:
+      'Why do photoelectrons stop the moment intensity drops — but not when frequency drops below threshold?',
+  },
+  {
+    tag: 'Chemistry · Organic',
+    chapterTitle: 'Organic Chemistry',
+    question:
+      'Why does phenol nitrate so much faster than benzene, when both offer the same aromatic ring?',
+  },
+  {
+    tag: 'Maths · Calculus',
+    chapterTitle: 'Limits and Derivatives',
+    question:
+      'Why does L’Hôpital’s rule fail on (x + sin x)/x as x → ∞, even though it looks like ∞/∞?',
+  },
+] as const;
+
+function doubtOfTheDay(date: Date) {
+  const dayOfYear = Math.floor(
+    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000
+  );
+  return DAILY_DOUBTS[dayOfYear % DAILY_DOUBTS.length];
+}
+
+const SUBJECT_DOT: Record<string, string> = {
+  physics: '#DD4433',
+  chemistry: '#1C9B57',
+  mathematics: '#EEA31F',
+  maths: '#EEA31F',
+  biology: '#1C9B57',
+};
 
 function getGreeting(date: Date): string {
   const hour = date.getHours();
@@ -27,69 +89,78 @@ function getGreeting(date: Date): string {
   return 'Good evening';
 }
 
-const NOTES = [
-  {
-    id: 'ohms-law',
-    subject: 'Physics',
-    dotColor: '#DD4433',
-    title: "Ohm's law & drift velocity",
-    body: 'I = nAve. Charge marching together.',
-    time: '2 days ago',
-  },
-  {
-    id: 'redox',
-    subject: 'Chemistry',
-    dotColor: '#1C9B57',
-    title: 'Balancing redox in acid',
-    body: 'Half-reactions, O with H₂O.',
-    time: '4 days ago',
-  },
-  {
-    id: 'integration',
-    subject: 'Maths',
-    dotColor: '#EEA31F',
-    title: 'Integration by parts',
-    body: 'Pick u before dv, every time.',
-    time: 'last week',
-  },
-] as const;
+function timeAgo(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return 'last week';
+  return `${Math.floor(days / 7)} weeks ago`;
+}
 
-const SESSIONS = [
-  {
-    id: 'rotational-motion',
-    title: 'Rotational Motion · torque',
-    subject: 'Physics',
-    chapter: 'Rotational Motion',
-    meta: 'yesterday · 24 min',
-    badge: { kind: 'expiry', text: '6 days left' },
-  },
-  {
-    id: 'current-electricity',
-    title: 'Current Electricity · loop rule',
-    subject: 'Physics',
-    chapter: 'Current Electricity',
-    meta: 'Tue · 31 min',
-    badge: { kind: 'saved', text: 'Saved' },
-  },
-] as const;
+type StatsState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; score: number; doubts: number; practised: number }
+  | { kind: 'empty' }
+  | { kind: 'hidden' };
 
 export default function HomeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const greeting = `${getGreeting(new Date())}, Aarav`;
 
+  const [firstName, setFirstName] = useState('');
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
+  const [stats, setStats] = useState<StatsState>(() => {
+    const c = getCachedProgress();
+    if (!c) return { kind: 'loading' };
+    return toStatsState(c.monk_score.display, c.ledger.doubts_solved, c.ledger.questions_attempted);
+  });
+  const [notes, setNotes] = useState<NoteSummary[]>([]);
   const doneCount = planItems.filter((item) => item.done).length;
+  const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
   // Refetch on focus, not just mount — the plan is edited on a separate
-  // screen (plan-sheet.tsx) that this screen stays mounted underneath, so a
-  // plain mount-only fetch would never see what was just added there.
+  // screen this one stays mounted underneath, notes get saved from a class,
+  // and the score moves while the student practises.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      // The stored name only — a fresh install greets with "Namaste", never
+      // with the sample profile's name presented as the student's own.
+      getStoredName().then((name) => {
+        if (!cancelled) setFirstName(name?.trim().split(/\s+/)[0] ?? '');
+      });
       getTodayPlan().then((items) => {
         if (!cancelled) setPlanItems(items);
       });
+      getProgress()
+        .then((p) => {
+          if (cancelled) return;
+          setStats(
+            toStatsState(p.monk_score.display, p.ledger.doubts_solved, p.ledger.questions_attempted)
+          );
+        })
+        .catch(() => {
+          if (cancelled) return;
+          // No number is better than a wrong one — but a cached fetch is a
+          // true number, so fall back to it rather than hiding the strip (or
+          // worse, leaving the skeleton pulsing forever).
+          const c = getCachedProgress();
+          setStats(
+            c
+              ? toStatsState(c.monk_score.display, c.ledger.doubts_solved, c.ledger.questions_attempted)
+              : { kind: 'hidden' }
+          );
+        });
+      listNotes()
+        .then((r) => {
+          if (!cancelled) setNotes(r.notes.slice(0, 6));
+        })
+        .catch(() => {
+          // The section simply doesn't render without notes.
+        });
       return () => {
         cancelled = true;
       };
@@ -97,9 +168,7 @@ export default function HomeScreen() {
   );
 
   const togglePlanItem = (id: string) => {
-    const next = planItems.map((item) =>
-      item.id === id ? { ...item, done: !item.done } : item
-    );
+    const next = planItems.map((item) => (item.id === id ? { ...item, done: !item.done } : item));
     setPlanItems(next);
     saveTodayPlan(next);
   };
@@ -108,85 +177,112 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerRow}>
-          <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
-            {greeting}
-          </Text>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.headerEyebrow}>{getGreeting(new Date()).toUpperCase()}</Text>
+            <Text style={styles.headerName} numberOfLines={1} ellipsizeMode="tail">
+              {firstName || 'Namaste'}
+            </Text>
+          </View>
           <PressableScale style={styles.avatar} onPress={() => router.push('/profile')}>
-            <Text style={styles.avatarText}>A</Text>
+            <Text style={styles.avatarText}>{(firstName[0] ?? 'M').toUpperCase()}</Text>
           </PressableScale>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.heroCard}>
-            <LinearGradient
-              colors={['#FDF6E4', '#FBE9C6', '#F7DCA8']}
-              locations={[0, 0.55, 1]}
-              start={{ x: 0.3, y: 0 }}
-              end={{ x: 0.7, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <View style={styles.heroTitleRow}>
-              <View style={styles.heroIconChip}>
-                <ProtractorMark size={scale(27)} />
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* The three ways to study — one shell, three instances. */}
+          <View style={styles.cardsGroup}>
+            <View style={[styles.card, styles.dronaCard]}>
+              <LinearGradient
+                colors={['#FDF6E4', '#FBEFD5']}
+                start={{ x: 0.2, y: 0 }}
+                end={{ x: 0.8, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.cardTitleRow}>
+                <View style={[styles.iconChip, styles.dronaIconChip]}>
+                  <ProtractorMark size={scale(24)} />
+                </View>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  Learn with Drona
+                </Text>
               </View>
-              <Text style={styles.heroTitle} numberOfLines={1}>
-                Learn with Drona
+              <Text style={styles.dronaBody}>
+                Pick a chapter and Drona teaches it out loud, writing on the board as it goes.
               </Text>
+              <PressableScale style={styles.dronaCta} onPress={() => router.push('/drona')}>
+                <Text style={styles.dronaCtaText}>Choose a topic</Text>
+                <ArrowRightIcon color={colors.paper} size={scale(14)} />
+              </PressableScale>
             </View>
-            <Text style={styles.heroBody}>
-              Pick a chapter and Drona teaches it out loud, writing on the board as it goes.
-            </Text>
-            <PressableScale style={styles.heroCta} onPress={() => router.push('/drona')}>
-              <Text style={styles.heroCtaText}>Choose a topic</Text>
-              <ArrowRightIcon color="#FFF7E6" size={scale(14)} />
+
+            <PressableScale style={styles.card} onPress={() => router.push('/snap-capture')}>
+              <View style={styles.cardTitleRow}>
+                <View style={styles.iconChip}>
+                  <SnapIcon size={scale(20)} />
+                </View>
+                <View style={styles.cardTextBlock}>
+                  <Text style={styles.cardTitle}>Snap it out</Text>
+                  <Text style={styles.cardSubtitle}>Up to 3 questions, solved step by step</Text>
+                </View>
+                <ArrowRightIcon color={colors.faint} size={scale(16)} />
+              </View>
+            </PressableScale>
+
+            <PressableScale style={styles.card} onPress={() => router.push('/practice')}>
+              <View style={styles.cardTitleRow}>
+                <View style={styles.iconChip}>
+                  <InfinityIcon size={scale(20)} />
+                </View>
+                <View style={styles.cardTextBlock}>
+                  <Text style={styles.cardTitle}>Practice unlimited</Text>
+                  <Text style={styles.cardSubtitle}>Endless questions, one at a time</Text>
+                </View>
+                <ArrowRightIcon color={colors.faint} size={scale(16)} />
+              </View>
             </PressableScale>
           </View>
 
-          <View style={styles.actionList}>
-            <PressableScale
-              style={[styles.actionRow, styles.actionRowDivider]}
-              onPress={() => router.push('/snap-capture')}>
-              <View style={styles.actionIconChip}>
-                <SnapIcon size={scale(20)} />
-              </View>
-              <View style={styles.actionTextBlock}>
-                <Text style={styles.actionTitle}>Snap a doubt</Text>
-                <Text style={styles.actionSubtitle}>Up to 3 questions, solved step by step</Text>
-              </View>
-              <Text style={styles.actionArrow}>→</Text>
-            </PressableScale>
-            <PressableScale
-              style={[styles.actionRow, styles.actionRowDivider]}
-              onPress={() => router.push('/practice')}>
-              <View style={styles.actionIconChip}>
-                <InfinityIcon size={scale(20)} />
-              </View>
-              <View style={styles.actionTextBlock}>
-                <Text style={styles.actionTitle}>Practice unlimited</Text>
-                <Text style={styles.actionSubtitle}>6 solved today · never ends</Text>
-              </View>
-              <Text style={styles.actionArrow}>→</Text>
-            </PressableScale>
-          </View>
+          {stats.kind !== 'hidden' && (
+            <View style={styles.statsStrip}>
+              {stats.kind === 'loading' ? (
+                <>
+                  <View style={styles.statItem}>
+                    <Skeleton style={styles.statSkeletonValue} />
+                    <Skeleton delay={60} style={styles.statSkeletonLabel} />
+                  </View>
+                  <View style={styles.statItem}>
+                    <Skeleton delay={120} style={styles.statSkeletonValue} />
+                    <Skeleton delay={180} style={styles.statSkeletonLabel} />
+                  </View>
+                  <View style={styles.statItem}>
+                    <Skeleton delay={240} style={styles.statSkeletonValue} />
+                    <Skeleton delay={300} style={styles.statSkeletonLabel} />
+                  </View>
+                </>
+              ) : stats.kind === 'empty' ? (
+                <Text style={styles.statsEmptyText}>
+                  Your Monk Score starts the moment you answer your first question.
+                </Text>
+              ) : (
+                <>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stats.score}</Text>
+                    <Text style={styles.statLabel}>monk score</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, styles.statValueGreen]}>{stats.doubts}</Text>
+                    <Text style={styles.statLabel}>doubts solved</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stats.practised}</Text>
+                    <Text style={styles.statLabel}>practised</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          )}
 
-          <View style={styles.statsStrip}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>703</Text>
-              <Text style={styles.statLabel}>monk score</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, styles.statValueGreen]}>47</Text>
-              <Text style={styles.statLabel}>doubts solved</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>320</Text>
-              <Text style={styles.statLabel}>practised</Text>
-            </View>
-          </View>
-
-          <View style={styles.planCard}>
+          <View>
             <View style={styles.planHeaderRow}>
               <Text style={styles.planOverline}>Today&apos;s plan</Text>
               <View style={styles.planHeaderRight}>
@@ -197,7 +293,10 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                 )}
-                <PressableScale style={styles.planAddPill} onPress={() => router.push('/plan-sheet')}>
+                <PressableScale
+                  style={styles.planAddPill}
+                  hitSlop={12}
+                  onPress={() => router.push('/plan-sheet')}>
                   <Text style={styles.planAddText}>+ Add</Text>
                 </PressableScale>
               </View>
@@ -231,7 +330,16 @@ export default function HomeScreen() {
           <PressableScale
             style={styles.doubtCard}
             onPress={() =>
-              router.push({ pathname: '/entering-classroom', params: { chapterTitle: 'Modern Physics' } })
+              router.push({
+                pathname: '/entering-classroom',
+                params: {
+                  chapterTitle: dailyDoubt.chapterTitle,
+                  // The question rides along as the opening utterance, so the
+                  // class opens on this exact doubt — without it the student
+                  // lands on a blank scoping question instead.
+                  initialUtterance: dailyDoubt.question,
+                },
+              })
             }>
             <View style={styles.doubtRuledClip}>
               <RuledPaper step={verticalScale(24)} color={hairline(0.06)} count={12} />
@@ -239,90 +347,68 @@ export default function HomeScreen() {
             <View style={styles.doubtRule} />
             <View style={styles.doubtHeaderRow}>
               <Text style={styles.doubtLabel}>doubt of the day</Text>
-              <Text style={styles.doubtTag}>Physics · Modern</Text>
+              <Text style={styles.doubtTag}>{dailyDoubt.tag}</Text>
             </View>
-            <Text style={styles.doubtQuestion}>
-              Why do photoelectrons stop the moment intensity drops — but not when frequency
-              drops below threshold?
-            </Text>
+            <Text style={styles.doubtQuestion}>{dailyDoubt.question}</Text>
             <View style={styles.doubtCtaRow}>
               <Text style={styles.doubtCtaText}>Learn this with Drona</Text>
               <ArrowRightIcon color={colors.red} size={scale(13)} />
             </View>
           </PressableScale>
 
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionTitleDash} />
-              <Text style={styles.sectionTitle}>Recent notes</Text>
-            </View>
-            <PressableScale onPress={() => router.push('/library')}>
-              <Text style={styles.viewAll}>View all →</Text>
-            </PressableScale>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.notesRow}>
-            {NOTES.map((note) => (
-              <View key={note.id} style={styles.noteCard}>
-                <View style={styles.noteSubjectRow}>
-                  <View style={[styles.noteDot, { backgroundColor: note.dotColor }]} />
-                  <Text style={styles.noteSubject}>{note.subject}</Text>
+          {notes.length > 0 && (
+            <View>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionTitleRow}>
+                  <View style={styles.sectionTitleDash} />
+                  <Text style={styles.sectionTitle}>Recent notes</Text>
                 </View>
-                <Text style={styles.noteTitle}>{note.title}</Text>
-                <Text style={styles.noteBody}>{note.body}</Text>
-                <Text style={styles.noteTime}>{note.time}</Text>
+                <PressableScale hitSlop={12} onPress={() => router.push('/library')}>
+                  <Text style={styles.viewAll}>View all →</Text>
+                </PressableScale>
               </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionTitleDash} />
-              <Text style={styles.sectionTitle}>Recent sessions</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.notesRow}>
+                {notes.map((note) => (
+                  <PressableScale
+                    key={note.id}
+                    style={styles.noteCard}
+                    onPress={() => router.push({ pathname: '/note-detail', params: { id: note.id } })}>
+                    <View style={styles.noteSubjectRow}>
+                      <View
+                        style={[
+                          styles.noteDot,
+                          {
+                            backgroundColor:
+                              SUBJECT_DOT[(note.subject ?? '').toLowerCase()] ?? colors.marigold,
+                          },
+                        ]}
+                      />
+                      <Text style={styles.noteSubject}>{note.subject ?? 'Note'}</Text>
+                    </View>
+                    <Text style={styles.noteTitle} numberOfLines={2}>
+                      {note.concept ?? note.chapter ?? 'Class note'}
+                    </Text>
+                    <Text style={styles.noteBody} numberOfLines={1}>
+                      {note.preview}
+                    </Text>
+                    <Text style={styles.noteTime}>{timeAgo(note.created_at)}</Text>
+                  </PressableScale>
+                ))}
+              </ScrollView>
             </View>
-            <PressableScale onPress={() => router.push('/library')}>
-              <Text style={styles.viewAll}>View all →</Text>
-            </PressableScale>
-          </View>
-          <View style={styles.sessionList}>
-            {SESSIONS.map((session) => (
-              <PressableScale
-                key={session.id}
-                style={[styles.sessionRow, styles.actionRowDivider]}
-                onPress={() =>
-                  router.push({
-                    pathname: '/session-board',
-                    params: {
-                      title: session.title,
-                      subject: session.subject,
-                      chapter: session.chapter,
-                      time: session.meta,
-                    },
-                  })
-                }>
-                <View style={styles.sessionTextBlock}>
-                  <Text style={styles.sessionTitle} numberOfLines={1}>
-                    {session.title}
-                  </Text>
-                  <Text style={styles.sessionMeta}>{session.meta}</Text>
-                </View>
-                {session.badge.kind === 'expiry' ? (
-                  <Text style={styles.sessionExpiryText}>{session.badge.text}</Text>
-                ) : (
-                  <View style={styles.sessionSavedBadge}>
-                    <SavedCheckIcon size={scale(10)} />
-                    <Text style={styles.sessionSavedText}>{session.badge.text}</Text>
-                  </View>
-                )}
-              </PressableScale>
-            ))}
-          </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
   );
+}
+
+function toStatsState(score: number, doubts: number, practised: number): StatsState {
+  if (score === 0 && doubts === 0 && practised === 0) return { kind: 'empty' };
+  return { kind: 'ready', score, doubts, practised };
 }
 
 function InfinityIcon({ size }: { size: number }) {
@@ -354,25 +440,11 @@ function CheckIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-function SavedCheckIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M20 6 9 17l-5-5"
-        stroke="#157A45"
-        strokeWidth={3}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: '#fff',
+      backgroundColor: colors.paper,
     },
     safeArea: {
       flex: 1,
@@ -383,23 +455,32 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: scale(12),
-      paddingTop: verticalScale(10),
+      paddingTop: verticalScale(8),
       paddingHorizontal: scale(24),
-      paddingBottom: verticalScale(14),
+      paddingBottom: verticalScale(16),
     },
-    greeting: {
+    headerTextBlock: {
       flex: 1,
       minWidth: 0,
+    },
+    headerEyebrow: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(10),
+      letterSpacing: scale(1.4),
+      color: colors.faint,
+    },
+    headerName: {
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(21),
-      letterSpacing: scale(-0.315),
-      lineHeight: scale(25.2),
+      fontSize: scale(24),
+      letterSpacing: scale(-0.36),
+      lineHeight: scale(28.8),
       color: colors.ink,
+      marginTop: verticalScale(1),
     },
     avatar: {
-      width: scale(38),
-      height: scale(38),
-      borderRadius: scale(19),
+      width: scale(40),
+      height: scale(40),
+      borderRadius: scale(20),
       backgroundColor: colors.marigold,
       alignItems: 'center',
       justifyContent: 'center',
@@ -412,80 +493,36 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     scrollContent: {
       paddingHorizontal: scale(24),
       paddingBottom: verticalScale(130),
+      gap: verticalScale(32),
     },
-    heroCard: {
+    cardsGroup: {
+      gap: verticalScale(12),
+    },
+    card: {
       position: 'relative',
       overflow: 'hidden',
-      marginHorizontal: -scale(24),
-      paddingHorizontal: scale(24),
-      paddingVertical: verticalScale(24),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(238,163,31,.5)',
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(238,163,31,.5)',
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: hairline(0.1),
+      borderRadius: scale(16),
+      padding: scale(20),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(2) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(4),
+      elevation: 1,
     },
-    heroTitleRow: {
+    dronaCard: {
+      borderColor: 'rgba(238,163,31,.35)',
+    },
+    cardTitleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(12),
     },
-    heroIconChip: {
-      width: scale(42),
-      height: scale(42),
-      flexShrink: 0,
-      borderRadius: scale(13),
-      backgroundColor: 'rgba(255,255,255,.7)',
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.5)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    heroTitle: {
-      flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(22),
-      lineHeight: scale(24.2),
-      color: colors.ink,
-    },
-    heroBody: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
-      color: '#4A453D',
-      marginTop: verticalScale(12),
-    },
-    heroCta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(8),
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: '#241A08',
-      marginTop: verticalScale(20),
-    },
-    heroCtaText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(16),
-      color: '#FFF7E6',
-    },
-    actionList: {
-      marginHorizontal: -scale(24),
-      paddingHorizontal: scale(24),
-    },
-    actionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(14),
-      paddingVertical: verticalScale(18),
-    },
-    actionRowDivider: {
-      borderBottomWidth: 1,
-      borderBottomColor: hairline(0.1),
-    },
-    actionIconChip: {
-      width: scale(38),
-      height: scale(38),
+    iconChip: {
+      width: scale(40),
+      height: scale(40),
       flexShrink: 0,
       borderRadius: scale(12),
       backgroundColor: '#fff',
@@ -494,33 +531,55 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    actionTextBlock: {
+    dronaIconChip: {
+      borderColor: 'rgba(238,163,31,.5)',
+    },
+    cardTextBlock: {
       flex: 1,
       minWidth: 0,
     },
-    actionTitle: {
+    cardTitle: {
+      flex: 1,
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(18),
       color: colors.ink,
     },
-    actionSubtitle: {
+    cardSubtitle: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       marginTop: verticalScale(2),
     },
-    actionArrow: {
-      flexShrink: 0,
-      fontSize: scale(18),
-      color: '#B4AC9B',
+    dronaBody: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22.5),
+      color: colors.slate,
+      marginTop: verticalScale(12),
+    },
+    dronaCta: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
+      height: verticalScale(44),
+      paddingHorizontal: scale(20),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      marginTop: verticalScale(16),
+    },
+    dronaCtaText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15),
+      color: colors.paper,
     },
     statsStrip: {
       flexDirection: 'row',
       alignItems: 'center',
       borderTopWidth: 1,
-      borderTopColor: hairline(0.11),
+      borderTopColor: hairline(0.1),
       borderBottomWidth: 1,
-      borderBottomColor: hairline(0.11),
+      borderBottomColor: hairline(0.1),
       paddingVertical: verticalScale(16),
     },
     statItem: {
@@ -528,23 +587,38 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'flex-start',
     },
     statValue: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(20),
-      letterSpacing: scale(-0.4),
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(18),
+      letterSpacing: scale(-0.27),
       color: colors.ink,
     },
     statValueGreen: {
       color: '#157A45',
     },
     statLabel: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'AnekLatin_800ExtraBold',
       fontSize: scale(10),
       letterSpacing: scale(0.8),
       textTransform: 'uppercase',
       color: colors.faint,
     },
-    planCard: {
-      marginTop: verticalScale(23),
+    statSkeletonValue: {
+      width: scale(44),
+      height: verticalScale(18),
+      borderRadius: scale(5),
+    },
+    statSkeletonLabel: {
+      width: scale(64),
+      height: verticalScale(9),
+      borderRadius: scale(4),
+      marginTop: verticalScale(5),
+    },
+    statsEmptyText: {
+      flex: 1,
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19.5),
+      color: colors.slate,
     },
     planHeaderRow: {
       flexDirection: 'row',
@@ -562,7 +636,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     planHeaderRight: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(7),
+      gap: scale(8),
     },
     planBadge: {
       backgroundColor: 'rgba(28,155,87,.1)',
@@ -573,7 +647,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(9),
     },
     planBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(11),
       color: '#157A45',
     },
@@ -582,18 +656,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: 'rgba(28,26,22,.16)',
       borderRadius: scale(99),
       paddingVertical: verticalScale(5),
-      paddingHorizontal: scale(11),
+      paddingHorizontal: scale(12),
     },
     planAddText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(11),
       color: colors.ink,
     },
     planRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(11),
-      paddingVertical: verticalScale(11),
+      gap: scale(12),
+      paddingVertical: verticalScale(12),
       borderBottomWidth: 1,
       borderBottomColor: hairline(0.09),
       borderStyle: 'dashed',
@@ -619,47 +693,42 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     planRowTextDone: {
       flex: 1,
-      fontFamily: 'AnekLatin_500Medium',
-      fontSize: scale(14),
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(15),
       color: colors.faint,
       textDecorationLine: 'line-through',
     },
     planRowText: {
       flex: 1,
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(14),
+      fontSize: scale(15),
       color: colors.ink,
-    },
-    planRowAccent: {
-      fontFamily: 'Kalam_700Bold',
-      color: colors.red,
     },
     planEmptyText: {
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13.5),
+      fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
-      paddingVertical: verticalScale(11),
+      paddingVertical: verticalScale(12),
     },
     planEmptyAccent: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'AnekLatin_600SemiBold',
       color: colors.ink,
     },
     doubtCard: {
       position: 'relative',
-      backgroundColor: colors.welcomePaper,
+      backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: hairline(0.1),
       borderRadius: scale(16),
       paddingTop: verticalScale(16),
       paddingRight: scale(16),
-      paddingBottom: verticalScale(14),
+      paddingBottom: verticalScale(16),
       paddingLeft: scale(40),
-      marginTop: verticalScale(28),
       shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOffset: { width: 0, height: verticalScale(2) },
       shadowOpacity: 0.05,
-      shadowRadius: scale(2),
+      shadowRadius: scale(4),
       elevation: 1,
     },
     doubtRuledClip: {
@@ -688,26 +757,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     doubtTag: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
+      fontSize: scale(10),
       letterSpacing: scale(0.9),
       textTransform: 'uppercase',
       color: '#C53A2B',
     },
     doubtQuestion: {
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
+      fontSize: scale(15),
+      lineHeight: scale(22.5),
       color: colors.ink,
-      marginTop: verticalScale(7),
+      marginTop: verticalScale(8),
     },
     doubtCtaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(7),
+      gap: scale(8),
       marginTop: verticalScale(12),
     },
     doubtCtaText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(13),
       color: colors.ink,
     },
@@ -715,13 +784,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: verticalScale(40),
       marginBottom: verticalScale(12),
     },
     sectionTitleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(9),
+      gap: scale(8),
     },
     sectionTitleDash: {
       width: scale(18),
@@ -737,22 +805,22 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     viewAll: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
       color: colors.slate,
     },
     notesRow: {
-      gap: scale(10),
+      gap: scale(12),
       paddingRight: scale(20),
       paddingBottom: verticalScale(4),
     },
     noteCard: {
       width: scale(210),
-      backgroundColor: colors.welcomePaper,
+      backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: hairline(0.1),
-      borderRadius: scale(18),
-      paddingVertical: verticalScale(14),
+      borderRadius: scale(16),
+      paddingVertical: verticalScale(16),
       paddingHorizontal: scale(16),
     },
     noteSubjectRow: {
@@ -766,7 +834,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(3),
     },
     noteSubject: {
-      fontFamily: 'monospace',
+      fontFamily: 'AnekLatin_800ExtraBold',
       fontSize: scale(10),
       letterSpacing: scale(1.4),
       textTransform: 'uppercase',
@@ -774,9 +842,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     noteTitle: {
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(17),
-      letterSpacing: scale(-0.255),
-      lineHeight: scale(20.4),
+      fontSize: scale(15),
+      letterSpacing: scale(-0.225),
+      lineHeight: scale(19.5),
       color: colors.ink,
       marginTop: verticalScale(8),
     },
@@ -785,59 +853,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(13),
       lineHeight: scale(18.2),
       color: colors.slate,
-      marginTop: verticalScale(6),
+      marginTop: verticalScale(4),
     },
     noteTime: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(11),
       color: colors.faint,
       marginTop: verticalScale(12),
       paddingTop: verticalScale(10),
       borderTopWidth: 1,
       borderTopColor: hairline(0.1),
-    },
-    sessionList: {
-      flexDirection: 'column',
-    },
-    sessionRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: scale(12),
-      paddingVertical: verticalScale(15),
-    },
-    sessionTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    sessionTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(16),
-      letterSpacing: scale(-0.24),
-      color: colors.ink,
-    },
-    sessionMeta: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
-      marginTop: verticalScale(2),
-    },
-    sessionExpiryText: {
-      flexShrink: 0,
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
-    sessionSavedBadge: {
-      flexShrink: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(5),
-    },
-    sessionSavedText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: '#157A45',
     },
   });
 }

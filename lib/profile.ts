@@ -59,6 +59,21 @@ function readYear(value: string | null | undefined): YearKey {
     : FALLBACK.year;
 }
 
+/**
+ * The stored name only — null when the student never gave one, with no sample
+ * fallback. For surfaces that speak TO the student (the Home greeting): the
+ * sample profile is fine as placeholder *form* data on the Personal
+ * information page, but greeting a new student by a stranger's name is a lie.
+ */
+export async function getStoredName(): Promise<string | null> {
+  try {
+    const name = await AsyncStorage.getItem(KEYS.name);
+    return name?.trim() ? name : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getProfile(): Promise<StudentProfile> {
   try {
     const pairs = await AsyncStorage.multiGet(Object.values(KEYS));

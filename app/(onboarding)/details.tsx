@@ -30,6 +30,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { saveProfile } from '@/lib/profile';
 
 // CSS `ease` is cubic-bezier(.25,.1,.25,1); Reanimated's Easing.ease is a
 // different curve, so the bezier is spelled out (same call as welcome.tsx).
@@ -150,7 +151,21 @@ export default function DetailsScreen() {
 
           {/* `margin-top:auto; padding:0 34px 34px` */}
           <View style={styles.footer}>
-            <ObButton label="Continue" withArrow onPress={() => router.push('/exam')} />
+            <ObButton
+              label="Continue"
+              withArrow
+              onPress={() => {
+                // Persist what was typed so the rest of the app (the Home
+                // greeting, Personal information) knows this student by their
+                // own name instead of the sample profile's.
+                saveProfile({
+                  ...(name.trim() ? { name: name.trim() } : {}),
+                  ...(email.trim() ? { email: email.trim() } : {}),
+                  ...(phone ? { phone } : {}),
+                });
+                router.push('/exam');
+              }}
+            />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>

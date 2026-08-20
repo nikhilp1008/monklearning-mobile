@@ -629,7 +629,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: '#fff',
+      backgroundColor: colors.paper,
     },
     safeArea: {
       flex: 1,
@@ -931,7 +931,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     questionCard: {
       position: 'relative',
-      backgroundColor: '#FFFEFB',
+      backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.1)',
       borderRadius: scale(13),

@@ -680,14 +680,14 @@ function WarningIcon({ size }: { size: number }) {
 
 // Same ink triple + border treatment as the Home redesign, so white cards
 // on both screens read as one system — see app/(tabs)/index.tsx.
-const hairline = (alpha: number) => `rgba(28,25,20,${alpha})`;
+const hairline = (alpha: number) => `rgba(28,26,22,${alpha})`;
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
 
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: '#fff',
+      backgroundColor: colors.paper,
     },
     safeArea: {
       flex: 1,

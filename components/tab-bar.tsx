@@ -190,9 +190,9 @@ function createStyles(
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.paper,
       borderTopWidth: 1.5,
-      borderTopColor: 'rgba(28,25,20,.16)',
+      borderTopColor: 'rgba(28,26,22,.16)',
       paddingHorizontal: scale(12),
       // Split out of the row's own height rather than added on top, so the
       // total bar height (and the `fade` gradient pinned above it) stays
