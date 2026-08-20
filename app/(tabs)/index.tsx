@@ -200,7 +200,7 @@ export default function HomeScreen() {
           <View style={styles.cardsGroup}>
             <View style={[styles.card, styles.dronaCard]}>
               <LinearGradient
-                colors={['#FEF9EA', '#F9E4B2', '#F1CD82']}
+                colors={['#F7DCA8', '#FBE9C6', '#FDF6E4']}
                 locations={[0, 0.55, 1]}
                 start={{ x: 0.3, y: 0 }}
                 end={{ x: 0.7, y: 1 }}
@@ -597,7 +597,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(41),
       paddingHorizontal: scale(20),
       borderRadius: scale(99),
-      backgroundColor: '#3A3122',
+      backgroundColor: '#241F18',
     },
     dronaCtaText: {
       fontFamily: 'AnekLatin_700Bold',
