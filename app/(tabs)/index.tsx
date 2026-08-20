@@ -225,36 +225,32 @@ export default function HomeScreen() {
               </PressableScale>
             </View>
 
-            <PressableScale style={styles.card} onPress={() => router.push('/snap-capture')}>
-              <GraphTexture step={scale(24)} color={hairline(0.05)} />
-              <View style={styles.cardTitleRow}>
-                <View style={styles.iconChip}>
-                  <SnapIcon size={scale(20)} />
+            {/* Two tiles, not two thinner rows: the hero is wide, the pair is
+                square — different architecture, so neither reads as a lesser
+                copy of the other. The icons finally get the stage. */}
+            <View style={styles.tilesRow}>
+              <PressableScale style={[styles.card, styles.tile]} onPress={() => router.push('/snap-capture')}>
+                <View style={styles.tileHeader}>
+                  <View style={styles.tileChip}>
+                    <SnapIcon size={scale(24)} />
+                  </View>
+                  <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
-                <View style={styles.cardTextBlock}>
-                  <Text style={styles.cardTitle}>Snap it out</Text>
-                  <Text style={styles.cardSubtitle}>Up to 3 questions, solved step by step</Text>
-                </View>
-                <ArrowRightIcon color={colors.faint} size={scale(16)} />
-              </View>
-            </PressableScale>
+                <Text style={styles.tileTitle}>Snap it out</Text>
+                <Text style={styles.tileSubtitle}>Up to 3 questions, solved step by step</Text>
+              </PressableScale>
 
-            <PressableScale style={styles.card} onPress={() => router.push('/practice')}>
-              <View style={styles.cardTexture} pointerEvents="none">
-                <RuledPaper step={verticalScale(22)} color={hairline(0.055)} count={6} />
-              </View>
-              <View style={styles.practiceMarginRule} pointerEvents="none" />
-              <View style={styles.cardTitleRow}>
-                <View style={styles.iconChip}>
-                  <InfinityIcon size={scale(20)} />
+              <PressableScale style={[styles.card, styles.tile]} onPress={() => router.push('/practice')}>
+                <View style={styles.tileHeader}>
+                  <View style={styles.tileChip}>
+                    <InfinityIcon size={scale(24)} />
+                  </View>
+                  <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
-                <View style={styles.cardTextBlock}>
-                  <Text style={styles.cardTitle}>Practice unlimited</Text>
-                  <Text style={styles.cardSubtitle}>Endless questions, one at a time</Text>
-                </View>
-                <ArrowRightIcon color={colors.faint} size={scale(16)} />
-              </View>
-            </PressableScale>
+                <Text style={styles.tileTitle}>Practice unlimited</Text>
+                <Text style={styles.tileSubtitle}>Endless questions, one at a time</Text>
+              </PressableScale>
+            </View>
           </View>
 
           {stats.kind !== 'hidden' && (
@@ -426,41 +422,6 @@ function toStatsState(score: number, doubts: number, practised: number): StatsSt
   return { kind: 'ready', score, doubts, practised };
 }
 
-/** Graph paper for the Snap card — the surface its solutions are worked on.
- *  Oversized line counts; the card's overflow:hidden does the cropping. */
-function GraphTexture({ step, color }: { step: number; color: string }) {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {Array.from({ length: 8 }, (_, i) => (
-        <View
-          key={`r${i}`}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: (i + 1) * step,
-            height: 1,
-            backgroundColor: color,
-          }}
-        />
-      ))}
-      {Array.from({ length: 24 }, (_, i) => (
-        <View
-          key={`c${i}`}
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: (i + 1) * step,
-            width: 1,
-            backgroundColor: color,
-          }}
-        />
-      ))}
-    </View>
-  );
-}
-
 function InfinityIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -572,16 +533,42 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       letterSpacing: scale(-0.32),
       lineHeight: scale(25.2),
     },
-    cardTexture: {
-      ...StyleSheet.absoluteFillObject,
+    tilesRow: {
+      flexDirection: 'row',
+      gap: scale(12),
     },
-    practiceMarginRule: {
-      position: 'absolute',
-      top: verticalScale(10),
-      bottom: verticalScale(10),
-      left: scale(13),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.28)',
+    tile: {
+      flex: 1,
+      padding: scale(18),
+    },
+    tileHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
+    tileChip: {
+      width: scale(44),
+      height: scale(44),
+      borderRadius: scale(12),
+      backgroundColor: CARD_CHIP,
+      borderWidth: 1,
+      borderColor: hairline(0.1),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tileTitle: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(17),
+      letterSpacing: scale(-0.17),
+      color: colors.ink,
+      marginTop: verticalScale(14),
+    },
+    tileSubtitle: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(17.5),
+      color: colors.slate,
+      marginTop: verticalScale(3),
     },
     cardTitleRow: {
       flexDirection: 'row',
