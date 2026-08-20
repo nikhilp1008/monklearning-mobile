@@ -217,21 +217,17 @@ export default function HomeScreen() {
               <Text style={styles.dronaBody}>
                 Pick a chapter and Drona teaches it out loud, writing on the board as it goes.
               </Text>
-              <PressableScale style={styles.dronaCta} onPress={() => router.push('/drona')}>
+              <PressableScale style={styles.dronaCtaRing} onPress={() => router.push('/drona')}>
                 <LinearGradient
-                  colors={['#453C2E', '#241F18']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
+                  colors={['#FFE9BE', '#E2A62D']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
                   style={StyleSheet.absoluteFillObject}
                 />
-                <LinearGradient
-                  colors={['rgba(255,247,230,.26)', 'rgba(255,247,230,0)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.dronaCtaGloss}
-                />
-                <Text style={styles.dronaCtaText}>Choose a topic</Text>
-                <ArrowRightIcon color="#FFF7E6" size={scale(14)} />
+                <View style={styles.dronaCtaInner}>
+                  <Text style={styles.dronaCtaText}>Choose a topic</Text>
+                  <ArrowRightIcon color="#FFF7E6" size={scale(14)} />
+                </View>
               </PressableScale>
             </View>
 
@@ -581,34 +577,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
       marginTop: verticalScale(12),
     },
-    dronaCta: {
+    dronaCtaRing: {
       position: 'relative',
       overflow: 'hidden',
       alignSelf: 'flex-start',
+      borderRadius: scale(99),
+      padding: scale(1.5),
+      marginTop: verticalScale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(3) },
+      shadowOpacity: 0.18,
+      shadowRadius: scale(7),
+      elevation: 3,
+    },
+    dronaCtaInner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(8),
-      height: verticalScale(44),
+      height: verticalScale(41),
       paddingHorizontal: scale(20),
       borderRadius: scale(99),
-      // Fallback under the gradient; the warm rim is what keeps the dark
-      // pill from reading as a hole in the amber card.
       backgroundColor: '#241F18',
-      borderWidth: 1,
-      borderColor: 'rgba(255,247,230,.35)',
-      marginTop: verticalScale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.22,
-      shadowRadius: scale(8),
-      elevation: 3,
-    },
-    dronaCtaGloss: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '55%',
     },
     dronaCtaText: {
       fontFamily: 'AnekLatin_700Bold',
