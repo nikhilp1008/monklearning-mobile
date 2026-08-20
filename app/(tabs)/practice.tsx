@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -28,7 +27,9 @@ import {
   parseAnswerSolution,
   submitAnswer,
 } from '@/lib/practice';
+import { getCatalogue } from '@/lib/drona';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
+import { ProgressChapter, getCachedProgress, getProgress } from '@/lib/progress';
 
 const SUBJECTS = ['Physics', 'Chem', 'Maths'] as const;
 
@@ -39,22 +40,18 @@ const SUBJECT_QUERY: Record<(typeof SUBJECTS)[number], string> = {
   Maths: 'mathematics',
 };
 
-type UnlockItem = {
-  title: string;
-  status: 'weak' | 'building';
-  action: 'Learn' | 'Practise';
-};
 
-const UNLOCK_ITEMS: UnlockItem[] = [
-  { title: 'Rotational Motion', status: 'weak', action: 'Learn' },
-  { title: 'EM Induction', status: 'weak', action: 'Learn' },
-  { title: 'Thermodynamics', status: 'building', action: 'Practise' },
-];
 
 export default function PracticeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [activeSegment, setActiveSegment] = useState<'unlimited' | 'mock'>('unlimited');
+  // The mock gate reads the same /progress payload Progress renders — the
+  // chapters it asks the student to clear are their real needs_revision
+  // chapters, not an invented list.
+  const [reviseChapters, setReviseChapters] = useState<ProgressChapter[]>(() =>
+    weakChaptersFrom(getCachedProgress())
+  );
   const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
   const { focus, setFocus } = usePracticeFocus();
 
@@ -69,6 +66,34 @@ export default function PracticeScreen() {
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
 
   const revealed = answerResult !== null;
+
+  /**
+   * Drona routes carry a real chapterId whenever the catalogue (cached,
+   * usually already resolved) can name-match the question's chapter — the
+   * title-only push used to start a chapterless session on the blank
+   * scoping screen.
+   */
+  const goLearnChapter = async (chapterTitle: string | null) => {
+    const title = chapterTitle ?? 'this topic';
+    let chapterId: string | undefined;
+    try {
+      const catalogue = await getCatalogue();
+      const wanted = title.trim().toLowerCase();
+      for (const subj of catalogue) {
+        const hit = subj.chapters.find((ch) => ch.name.trim().toLowerCase() === wanted);
+        if (hit) {
+          chapterId = hit.id;
+          break;
+        }
+      }
+    } catch {
+      // No catalogue — the title still names the chapter for scoping.
+    }
+    router.push({
+      pathname: '/entering-classroom',
+      params: chapterId ? { chapterId, chapterTitle: title } : { chapterTitle: title },
+    });
+  };
 
   const solutionSteps = useMemo(
     () => (answerResult ? parseAnswerSolution(answerResult.solution) : []),
@@ -100,6 +125,21 @@ export default function PracticeScreen() {
     loadQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSegment, activeSubject, focus.mode, focus.chapterId]);
+
+  useEffect(() => {
+    if (activeSegment !== 'mock') return;
+    let cancelled = false;
+    getProgress()
+      .then((data) => {
+        if (!cancelled) setReviseChapters(weakChaptersFrom(data));
+      })
+      .catch(() => {
+        // The cached seed (possibly empty) stands; the copy handles both.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSegment]);
 
   /**
    * Fetches the question after this one while the student is still reading the
@@ -233,63 +273,52 @@ export default function PracticeScreen() {
                   <Text style={styles.lockedOverline}>Mock test</Text>
                   <Text style={styles.lockedTitle}>Locked for now</Text>
                 </View>
+                <View style={styles.previewBadge}>
+                  <Text style={styles.previewBadgeText}>Preview</Text>
+                </View>
               </View>
 
               <View style={styles.dronaCallCard}>
                 <Text style={styles.dronaCallOverline}>Drona&apos;s call</Text>
                 <Text style={styles.dronaCallBody}>
-                  &quot;You&apos;re close, Aarav, but two weak spots could cost you 10+ marks in
-                  a full paper. Clear these first and I&apos;ll open the mock.&quot;
+                  {reviseChapters.length > 0
+                    ? `"${reviseChapters.length} chapter${
+                        reviseChapters.length === 1 ? ' is' : 's are'
+                      } flagged 'needs revision' — weak spots cost real marks in a full paper. Clear them and I'll open the mock."`
+                    : '"Build your base in Practice first — the mock opens once your weak spots are cleared."'}
                 </Text>
               </View>
 
-              <View style={styles.readinessRow}>
-                <Text style={styles.readinessLabel}>Readiness</Text>
-                <Text style={styles.readinessValue}>
-                  68% <Text style={styles.readinessValueSub}>· unlocks at 80%</Text>
-                </Text>
-              </View>
-              <View style={styles.readinessTrack}>
-                <LinearGradient
-                  colors={['#F4C45A', '#E08E16']}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={[styles.readinessFill, { width: '68%' }]}
-                />
-                <View style={styles.readinessMarker} />
-              </View>
-
-              <Text style={styles.unlockOverline}>Clear these to unlock</Text>
-              <View style={styles.unlockList}>
-                {UNLOCK_ITEMS.map((item, index) => (
-                  <View
-                    key={item.title}
-                    style={[
-                      styles.unlockRow,
-                      index < UNLOCK_ITEMS.length - 1 && styles.unlockRowDivider,
-                    ]}>
-                    <View
-                      style={[
-                        styles.unlockDot,
-                        item.status === 'building' && styles.unlockDotBuilding,
-                      ]}
-                    />
-                    <Text style={styles.unlockTitle}>{item.title}</Text>
-                    <Pressable
-                      style={styles.unlockActionButton}
-                      onPress={() =>
-                        item.action === 'Learn'
-                          ? router.push({
+              {reviseChapters.length > 0 && (
+                <>
+                  <Text style={styles.unlockOverline}>Clear these to unlock</Text>
+                  <View style={styles.unlockList}>
+                    {reviseChapters.map((item, index) => (
+                      <View
+                        key={item.chapter_id}
+                        style={[
+                          styles.unlockRow,
+                          index < reviseChapters.length - 1 && styles.unlockRowDivider,
+                        ]}>
+                        <View style={styles.unlockDot} />
+                        <Text style={styles.unlockTitle} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Pressable
+                          style={styles.unlockActionButton}
+                          onPress={() =>
+                            router.push({
                               pathname: '/entering-classroom',
-                              params: { chapterTitle: item.title },
+                              params: { chapterId: item.chapter_id, chapterTitle: item.name },
                             })
-                          : setActiveSegment('unlimited')
-                      }>
-                      <Text style={styles.unlockActionText}>{item.action}</Text>
-                    </Pressable>
+                          }>
+                          <Text style={styles.unlockActionText}>Learn</Text>
+                        </Pressable>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
+                </>
+              )}
 
               <View style={styles.unlockInfoCard}>
                 <Text style={styles.unlockInfoOverline}>When it unlocks</Text>
@@ -448,13 +477,12 @@ export default function PracticeScreen() {
           {!revealed ? (
             <>
               <View style={styles.actionRow}>
-                <Pressable onPress={loadQuestion}>
+                <Pressable onPress={loadQuestion} hitSlop={10}>
                   <Text style={styles.nextInlineText}>Skip →</Text>
                 </Pressable>
-                <View style={styles.reportRow}>
-                  <FlagIcon size={scale(12)} color={colors.faint} />
-                  <Text style={styles.reportText}>Report</Text>
-                </View>
+                {/* No Report control: the report endpoint only accepts doubt
+                    ids today, so a practice-question report could never
+                    submit. It returns with a /practice report endpoint. */}
               </View>
 
               <View style={styles.stuckCard}>
@@ -466,12 +494,7 @@ export default function PracticeScreen() {
                 </View>
                 <Pressable
                   style={styles.learnButton}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/entering-classroom',
-                      params: { chapterTitle: question.chapter_name ?? 'this topic' },
-                    })
-                  }>
+                  onPress={() => goLearnChapter(question.chapter_name)}>
                   <Text style={styles.learnButtonText}>Learn this →</Text>
                 </Pressable>
               </View>
@@ -506,14 +529,7 @@ export default function PracticeScreen() {
               </View>
 
               <View style={styles.revealedActions}>
-                <Pressable
-                  hitSlop={8}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/entering-classroom',
-                      params: { chapterTitle: question.chapter_name ?? 'this topic' },
-                    })
-                  }>
+                <Pressable hitSlop={8} onPress={() => goLearnChapter(question.chapter_name)}>
                   <Text style={styles.deeperLinkText}>Go deeper with Drona →</Text>
                 </Pressable>
                 <Pressable style={styles.nextButton} onPress={loadQuestion}>
@@ -532,6 +548,16 @@ export default function PracticeScreen() {
   );
 }
 
+/** The real needs_revision chapters from /progress, worst mastery first. */
+function weakChaptersFrom(data: ReturnType<typeof getCachedProgress>): ProgressChapter[] {
+  if (!data) return [];
+  return data.subjects
+    .flatMap((s) => s.chapters)
+    .filter((ch) => ch.state === 'needs_revision')
+    .sort((a, b) => a.mastery - b.mastery)
+    .slice(0, 3);
+}
+
 function MockGlyphIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -548,21 +574,6 @@ function ChevronDownIcon({ size }: { size: number }) {
         d="m4 6 4 4 4-4"
         stroke="#9A6A12"
         strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function FlagIcon({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d="M5 21V4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-      <Path
-        d="M5 4c4.2-2 8.8 2 14 0v10c-5.2 2-9.8-2-14 0"
-        stroke={color}
-        strokeWidth={1.9}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -611,7 +622,6 @@ function QuestionSkeleton({
 
       <View style={styles.actionRow}>
         <Skeleton delay={480} style={styles.skeletonSkip} />
-        <Skeleton delay={480} style={styles.skeletonReport} />
       </View>
 
       <View style={styles.stuckCard}>
@@ -720,15 +730,29 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     lockedTitle: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(19),
+      fontSize: scale(18),
       letterSpacing: scale(-0.19),
       color: colors.ink,
+    },
+    previewBadge: {
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      borderRadius: scale(99),
+      paddingVertical: verticalScale(3),
+      paddingHorizontal: scale(10),
+    },
+    previewBadgeText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(10),
+      letterSpacing: scale(0.5),
+      textTransform: 'uppercase',
+      color: colors.faint,
     },
     dronaCallCard: {
       backgroundColor: '#FCF4E0',
       borderWidth: 1,
       borderColor: 'rgba(238,163,31,.4)',
-      borderRadius: scale(14),
+      borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
       marginTop: verticalScale(14),
@@ -746,52 +770,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(14),
       lineHeight: scale(21),
       color: colors.ink,
-    },
-    readinessRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(20),
-      marginBottom: verticalScale(8),
-    },
-    readinessLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    readinessValue: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    readinessValueSub: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
-    },
-    readinessTrack: {
-      position: 'relative',
-      height: verticalScale(10),
-      borderRadius: scale(99),
-      backgroundColor: '#EEE6D4',
-    },
-    readinessFill: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      borderRadius: scale(99),
-    },
-    readinessMarker: {
-      position: 'absolute',
-      left: '80%',
-      top: verticalScale(-4),
-      bottom: verticalScale(-4),
-      width: scale(2),
-      borderRadius: scale(2),
-      backgroundColor: colors.ink,
     },
     unlockOverline: {
       fontFamily: 'AnekLatin_800ExtraBold',
@@ -822,9 +800,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(3.5),
       backgroundColor: colors.red,
       flexShrink: 0,
-    },
-    unlockDotBuilding: {
-      backgroundColor: colors.marigold,
     },
     unlockTitle: {
       flex: 1,
@@ -909,11 +884,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     skeletonSkip: {
       width: scale(46),
       height: verticalScale(11),
-    },
-    skeletonReport: {
-      width: scale(54),
-      height: verticalScale(11),
-      marginLeft: 'auto',
     },
     skeletonStuckTitle: {
       width: '58%',
@@ -1098,17 +1068,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
       paddingHorizontal: scale(6),
     },
-    reportRow: {
-      marginLeft: 'auto',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-    },
-    reportText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
-    },
     stuckCard: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1116,7 +1075,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(14),
+      borderRadius: scale(16),
       paddingVertical: verticalScale(13),
       paddingHorizontal: scale(16),
       marginTop: verticalScale(12),
@@ -1165,7 +1124,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     explainEyebrow: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
+      fontSize: scale(10),
       letterSpacing: scale(1.1),
       color: colors.faint,
       marginBottom: verticalScale(16),
