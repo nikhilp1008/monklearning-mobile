@@ -25,13 +25,54 @@ export interface ProgressLedger {
   chapters_strong: number;
 }
 
+/** Spec §8's presentation states, verbatim from the API. */
+export type MasteryState = 'strong' | 'improving' | 'needs_revision' | 'not_started';
+
+export interface ProgressConcept {
+  concept_id: string;
+  name: string;
+  mastery: number;
+  state: MasteryState;
+}
+
+export interface ProgressChapter {
+  chapter_id: string;
+  name: string;
+  class_level: number;
+  subject: string;
+  mastery: number;
+  /** Null until chapter_exam_weights is researched server-side. */
+  weight_marks: number | null;
+  state: MasteryState;
+  headroom: number;
+  concepts: ProgressConcept[];
+  curated: boolean;
+}
+
+export interface ProgressSubject {
+  /** Lowercase API name: 'physics' | 'chemistry' | 'mathematics' | 'biology'. */
+  subject: string;
+  score: number;
+  chapters: ProgressChapter[];
+}
+
+export interface ProgressRecommendation {
+  role: 'highest_lever' | 'clear_flag' | 'exam_craft';
+  title: string;
+  reason: string;
+  subject?: string;
+  chapter_id?: string;
+  concept_id?: string;
+}
+
 export interface ProgressSummary {
   exam: string;
   entitlement: string;
   monk_score: MonkScore;
   ledger: ProgressLedger;
-  subjects: unknown[];
-  recommendations: unknown[];
+  subjects: ProgressSubject[];
+  pace: { available: boolean; note?: string };
+  recommendations: ProgressRecommendation[];
 }
 
 /**
