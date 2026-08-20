@@ -40,11 +40,11 @@ const INK_RGB = '28,26,22'; // colors.ink — the app has exactly one black
 const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
 
 /**
- * The page is pure white — that's the app's ground. Cards carry the warmth
- * instead: a quiet cream fill, so a box reads as a box because its surface
- * differs from the page, not because a shadow props up white-on-white.
+ * The page is pure white and so are the cards — the boxes earn their edges
+ * with a firm hairline and a soft, diffuse shadow (the same treatment the
+ * Library and Practice cards already use), never with a grey tint.
  */
-const CARD_CREAM = '#FAF8F1';
+const CARD_CHIP = '#FAF8F1'; // small warm surface for the icon chips only
 
 /**
  * Editorial prompts for the "doubt of the day" card — hand-written, rotated
@@ -200,7 +200,7 @@ export default function HomeScreen() {
           <View style={styles.cardsGroup}>
             <View style={[styles.card, styles.dronaCard]}>
               <LinearGradient
-                colors={['#FDF6E4', '#FBEFD5']}
+                colors={['#FFFCF3', '#FDF4DE']}
                 start={{ x: 0.2, y: 0 }}
                 end={{ x: 0.8, y: 1 }}
                 style={StyleSheet.absoluteFillObject}
@@ -218,7 +218,7 @@ export default function HomeScreen() {
               </Text>
               <PressableScale style={styles.dronaCta} onPress={() => router.push('/drona')}>
                 <Text style={styles.dronaCtaText}>Choose a topic</Text>
-                <ArrowRightIcon color={colors.paper} size={scale(14)} />
+                <ArrowRightIcon color="#3A2A06" size={scale(14)} />
               </PressableScale>
             </View>
 
@@ -508,11 +508,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     card: {
       position: 'relative',
       overflow: 'hidden',
-      backgroundColor: CARD_CREAM,
+      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.08),
+      borderColor: hairline(0.16),
       borderRadius: scale(16),
       padding: scale(20),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(4) },
+      shadowOpacity: 0.06,
+      shadowRadius: scale(12),
+      elevation: 2,
     },
     dronaCard: {
       borderColor: 'rgba(238,163,31,.35)',
@@ -527,13 +532,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: scale(40),
       flexShrink: 0,
       borderRadius: scale(12),
-      backgroundColor: '#fff',
+      backgroundColor: CARD_CHIP,
       borderWidth: 1,
       borderColor: hairline(0.1),
       alignItems: 'center',
       justifyContent: 'center',
     },
     dronaIconChip: {
+      backgroundColor: '#fff',
       borderColor: 'rgba(238,163,31,.5)',
     },
     cardTextBlock: {
@@ -567,13 +573,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(44),
       paddingHorizontal: scale(20),
       borderRadius: scale(99),
-      backgroundColor: colors.ink,
+      backgroundColor: colors.marigold,
       marginTop: verticalScale(16),
+      shadowColor: colors.marigold,
+      shadowOffset: { width: 0, height: verticalScale(3) },
+      shadowOpacity: 0.35,
+      shadowRadius: scale(8),
+      elevation: 2,
     },
     dronaCtaText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(15),
-      color: colors.paper,
+      color: '#3A2A06',
     },
     statsStrip: {
       flexDirection: 'row',
@@ -813,9 +824,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     noteCard: {
       width: scale(210),
-      backgroundColor: CARD_CREAM,
+      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.08),
+      borderColor: hairline(0.16),
       borderRadius: scale(16),
       paddingVertical: verticalScale(16),
       paddingHorizontal: scale(16),
