@@ -226,7 +226,7 @@ export default function HomeScreen() {
                 />
                 <View style={styles.dronaCtaInner}>
                   <Text style={styles.dronaCtaText}>Choose a topic</Text>
-                  <ArrowRightIcon color="#FFF7E6" size={scale(14)} />
+                  <ArrowRightIcon color={colors.ink} size={scale(14)} />
                 </View>
               </PressableScale>
             </View>
@@ -585,10 +585,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       padding: scale(1.5),
       marginTop: verticalScale(16),
       shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(3) },
-      shadowOpacity: 0.18,
-      shadowRadius: scale(7),
-      elevation: 3,
+      shadowOffset: { width: 0, height: verticalScale(5) },
+      shadowOpacity: 0.16,
+      shadowRadius: scale(10),
+      elevation: 4,
     },
     dronaCtaInner: {
       flexDirection: 'row',
@@ -597,12 +597,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(41),
       paddingHorizontal: scale(20),
       borderRadius: scale(99),
-      backgroundColor: '#241F18',
+      backgroundColor: '#FFFDF8',
     },
     dronaCtaText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(15),
-      color: '#FFF7E6',
+      color: colors.ink,
     },
     statsStrip: {
       flexDirection: 'row',
