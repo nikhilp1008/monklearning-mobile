@@ -207,9 +207,7 @@ export default function HomeScreen() {
                 style={StyleSheet.absoluteFillObject}
               />
               <View style={styles.cardTitleRow}>
-                <View style={[styles.iconChip, styles.dronaIconChip]}>
-                  <ProtractorMark size={scale(24)} />
-                </View>
+                <ProtractorMark size={scale(30)} />
                 <Text style={[styles.cardTitle, styles.dronaTitle]} numberOfLines={1}>
                   Learn with Drona
                 </Text>
@@ -533,6 +531,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     dronaTitle: {
       color: colors.ink,
+      fontSize: scale(21),
+      letterSpacing: scale(-0.32),
+      lineHeight: scale(25.2),
     },
     cardTitleRow: {
       flexDirection: 'row',
@@ -549,10 +550,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: hairline(0.1),
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    dronaIconChip: {
-      backgroundColor: '#fff',
-      borderColor: 'rgba(238,163,31,.5)',
     },
     cardTextBlock: {
       flex: 1,
