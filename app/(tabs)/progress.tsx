@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -19,15 +19,11 @@ import {
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
- * Progress — every number on this page comes from GET /progress or is
- * absent. The layout system is Home's: 24-gutter, 32 between sections,
- * white cards on hairline(0.16) with the soft shadow, radii 12/16/99, and
- * the 44-display / 24-title / 18 / 15 / 13 / 11 / 10 type ramp.
- *
- * The pace section from the static build is deliberately gone: the API
- * returns pace.available=false (no timing data exists yet), and a card
- * whose subtitle apologises for itself has no place on the page. It
- * returns when the backend can feed it.
+ * Progress — every score on this page comes from GET /progress or is
+ * absent; the pace card is the one exception, kept as a clearly-badged
+ * preview until the API has timing data. The layout system is Home's:
+ * 24-gutter, 32 between sections, white cards on hairline(0.16) with the
+ * soft shadow, radii 12/16/99.
  */
 
 const INK_RGB = '28,26,22';
@@ -45,8 +41,15 @@ const STATE_COLOR: Record<MasteryState, string> = {
 const STATE_LABEL: Record<MasteryState, string> = {
   strong: 'Strong',
   improving: 'Improving',
-  needs_revision: 'Needs revision',
+  needs_revision: 'Revise',
   not_started: 'Not started',
+};
+
+const STATE_WASH: Record<MasteryState, string> = {
+  strong: 'rgba(28,155,87,.1)',
+  improving: 'rgba(238,163,31,.14)',
+  needs_revision: 'rgba(221,68,51,.09)',
+  not_started: 'transparent',
 };
 
 const SUBJECT_LABEL: Record<string, string> = {
@@ -55,6 +58,22 @@ const SUBJECT_LABEL: Record<string, string> = {
   mathematics: 'Maths',
   biology: 'Biology',
 };
+
+/** How many rows the chapter list shows before "Show all" opens the rest —
+ *  active chapters always make the cut, quiet ones fill up to this floor. */
+const COLLAPSED_CHAPTER_COUNT = 6;
+
+/**
+ * SAMPLE — the pace card is a preview. GET /progress returns
+ * pace.available=false (question_serves has no timing data yet), so these
+ * rows are hand-written and badged "Preview" on screen. Wire to the real
+ * payload and delete this constant when the backend ships timing.
+ */
+const PACE_PREVIEW = [
+  { subject: 'Physics', actual: '3m 06s', target: '2m 54s', fill: 0.85, tick: 0.79, over: true },
+  { subject: 'Chemistry', actual: '1m 48s', target: '2m 00s', fill: 0.76, tick: 0.85, over: false },
+  { subject: 'Maths', actual: '3m 42s', target: '3m 30s', fill: 0.85, tick: 0.8, over: true },
+] as const;
 
 type LoadState =
   | { kind: 'loading' }
@@ -72,6 +91,8 @@ export default function ProgressScreen() {
   });
   const [subjectIndex, setSubjectIndex] = useState(0);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [showAllChapters, setShowAllChapters] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,10 +139,21 @@ export default function ProgressScreen() {
       data.ledger.chapters_strong > 0);
 
   /**
-   * The recommendation CTAs resolve real ids from the tree the same payload
-   * carries, so a Drona route always ships a chapterId — never the
-   * title-only push that used to drop students on a blank scoping screen.
+   * The collapsed list keeps every chapter the student has touched and
+   * fills with untouched ones up to the floor — a wall of 28 rows becomes
+   * "your active chapters, and the door to the rest".
    */
+  const visibleChapters = useMemo(() => {
+    if (!subject) return [];
+    if (showAllChapters) return subject.chapters;
+    const active = subject.chapters.filter((c) => c.state !== 'not_started');
+    if (active.length >= COLLAPSED_CHAPTER_COUNT) return active;
+    const quiet = subject.chapters.filter((c) => c.state === 'not_started');
+    return [...active, ...quiet.slice(0, COLLAPSED_CHAPTER_COUNT - active.length)];
+  }, [subject, showAllChapters]);
+
+  const hiddenCount = subject ? subject.chapters.length - visibleChapters.length : 0;
+
   const goPractiseChapter = (chapterId: string, subjectName: string, chapterName: string) => {
     setFocus({ mode: 'chapter', subject: subjectName, chapterId, chapterName });
     router.push('/practice');
@@ -156,6 +188,8 @@ export default function ProgressScreen() {
     }
     return null;
   };
+
+  const animateNext = () => LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
   return (
     <View style={styles.screen}>
@@ -195,7 +229,20 @@ export default function ProgressScreen() {
           {data && score && (
             <View style={styles.card}>
               <View style={styles.scoreHeaderRow}>
-                <Text style={styles.overline}>Monk Score</Text>
+                <View style={styles.scoreOverlineRow}>
+                  <Text style={styles.overline}>Monk Score</Text>
+                  <PressableScale
+                    hitSlop={10}
+                    style={[styles.infoBadge, infoOpen && styles.infoBadgeOpen]}
+                    onPress={() => {
+                      animateNext();
+                      setInfoOpen((v) => !v);
+                    }}>
+                    <Text style={[styles.infoBadgeText, infoOpen && styles.infoBadgeTextOpen]}>
+                      i
+                    </Text>
+                  </PressableScale>
+                </View>
                 {score.delta_week !== 0 && (
                   <View style={styles.deltaBadge}>
                     <Text style={styles.deltaBadgeText}>
@@ -210,10 +257,16 @@ export default function ProgressScreen() {
                 <Text style={styles.scoreMax}>/ 1000</Text>
               </View>
 
-              {started ? (
+              {infoOpen ? (
+                <Text style={styles.scoreBody}>
+                  Every first attempt at a question you&apos;ve never seen moves a concept&apos;s
+                  mastery. The score is the average across the whole syllabus — it never falls,
+                  but concepts flagged “needs revision” cap it until you refresh them. 1000 means
+                  command of everything.
+                </Text>
+              ) : started ? (
                 <Text style={styles.scoreBody}>
                   It moves only when you prove concepts on questions you&apos;ve never seen.
-                  1000 means command of the full syllabus.
                 </Text>
               ) : (
                 <Text style={styles.scoreBody}>
@@ -226,7 +279,9 @@ export default function ProgressScreen() {
                 <View
                   style={[
                     styles.climbFill,
-                    { width: `${Math.min(100, Math.max(score.display / 10, score.display > 0 ? 2 : 0))}%` },
+                    {
+                      width: `${Math.min(100, Math.max(score.display / 10, score.display > 0 ? 2 : 0))}%`,
+                    },
                   ]}
                 />
               </View>
@@ -259,12 +314,12 @@ export default function ProgressScreen() {
                     key={s.subject}
                     style={[styles.subjectCard, selected && styles.subjectCardSelected]}
                     onPress={() => {
+                      animateNext();
                       setSubjectIndex(i);
                       setExpandedChapter(null);
+                      setShowAllChapters(false);
                     }}>
-                    <Text style={styles.subjectName}>
-                      {SUBJECT_LABEL[s.subject] ?? s.subject}
-                    </Text>
+                    <Text style={styles.subjectName}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
                     <View style={styles.subjectScoreRow}>
                       <Text style={styles.subjectScore}>{s.score}</Text>
                       <Text style={styles.subjectScoreMax}>/1000</Text>
@@ -280,35 +335,90 @@ export default function ProgressScreen() {
               <Text style={styles.overline}>
                 {SUBJECT_LABEL[subject.subject] ?? subject.subject} · chapter by chapter
               </Text>
-              <View style={styles.legendRow}>
-                {(Object.keys(STATE_LABEL) as MasteryState[]).map((key) => (
-                  <View key={key} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: STATE_COLOR[key] }]} />
-                    <Text style={styles.legendText}>{STATE_LABEL[key]}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {subject.chapters.map((chapter, index) => (
-                <ChapterRow
-                  key={chapter.chapter_id}
-                  chapter={chapter}
-                  index={index}
-                  expanded={expandedChapter === chapter.chapter_id}
-                  onToggle={() =>
-                    setExpandedChapter(
-                      expandedChapter === chapter.chapter_id ? null : chapter.chapter_id
-                    )
-                  }
-                  styles={styles}
-                />
-              ))}
-
-              <Text style={styles.cardFootnote}>
-                Every state describes you — the syllabus itself is complete everywhere.
+              <Text style={styles.chapterHint}>
+                Tap a chapter to see its concepts. Grey means not started yet — the syllabus
+                itself is complete everywhere.
               </Text>
+
+              {visibleChapters.map((chapter, index) => {
+                const prev = visibleChapters[index - 1];
+                const showClassHeader = !prev || prev.class_level !== chapter.class_level;
+                return (
+                  <View key={chapter.chapter_id}>
+                    {showClassHeader && (
+                      <Text style={styles.classHeader}>Class {chapter.class_level}</Text>
+                    )}
+                    <ChapterRow
+                      chapter={chapter}
+                      expanded={expandedChapter === chapter.chapter_id}
+                      onToggle={() => {
+                        animateNext();
+                        setExpandedChapter(
+                          expandedChapter === chapter.chapter_id ? null : chapter.chapter_id
+                        );
+                      }}
+                      styles={styles}
+                    />
+                  </View>
+                );
+              })}
+
+              {(hiddenCount > 0 || showAllChapters) && (
+                <PressableScale
+                  style={styles.showAllButton}
+                  onPress={() => {
+                    animateNext();
+                    setShowAllChapters((v) => !v);
+                    if (showAllChapters) setExpandedChapter(null);
+                  }}>
+                  <Text style={styles.showAllText}>
+                    {showAllChapters
+                      ? 'Show less'
+                      : `Show all ${subject.chapters.length} chapters`}
+                  </Text>
+                  <View style={showAllChapters ? styles.chevronUp : styles.chevronDown}>
+                    <ChevronIcon color={colors.slate} />
+                  </View>
+                </PressableScale>
+              )}
             </View>
           )}
+
+          {/* Pace — preview until the API ships timing data. */}
+          <View style={styles.card}>
+            <View style={styles.scoreHeaderRow}>
+              <Text style={styles.overline}>Pace · avg time per question</Text>
+              <View style={styles.previewBadge}>
+                <Text style={styles.previewBadgeText}>Preview</Text>
+              </View>
+            </View>
+            {PACE_PREVIEW.map((row) => (
+              <View key={row.subject} style={styles.paceRow}>
+                <View style={styles.paceTextRow}>
+                  <Text style={styles.paceSubject}>{row.subject}</Text>
+                  <Text style={styles.paceTimes}>
+                    <Text style={styles.paceActual}>{row.actual}</Text> · target {row.target}
+                  </Text>
+                </View>
+                <View style={styles.paceTrack}>
+                  <View
+                    style={[
+                      styles.paceFill,
+                      {
+                        width: `${row.fill * 100}%`,
+                        backgroundColor: row.over ? colors.marigold : colors.masteryStrong,
+                      },
+                    ]}
+                  />
+                  <View style={[styles.paceTick, { left: `${row.tick * 100}%` }]} />
+                </View>
+              </View>
+            ))}
+            <Text style={styles.cardFootnote}>
+              Measured silently from Practice — you never run a timer. The black tick is the
+              exam&apos;s own per-question budget. Live numbers arrive soon.
+            </Text>
+          </View>
 
           {data && data.recommendations.length > 0 && (
             <View>
@@ -392,38 +502,47 @@ export default function ProgressScreen() {
 
 function ChapterRow({
   chapter,
-  index,
   expanded,
   onToggle,
   styles,
 }: {
   chapter: ProgressChapter;
-  index: number;
   expanded: boolean;
   onToggle: () => void;
   styles: ReturnType<typeof createStyles>;
 }) {
+  const touched = chapter.state !== 'not_started';
   return (
     <View>
       <PressableScale style={styles.chapterRow} onPress={onToggle}>
-        <Text style={styles.chapterNumber}>{String(index + 1).padStart(2, '0')}</Text>
-        <Text style={styles.chapterName} numberOfLines={1}>
+        <Text style={[styles.chapterName, !touched && styles.chapterNameQuiet]} numberOfLines={1}>
           {chapter.name}
         </Text>
-        {chapter.weight_marks != null && (
-          <Text style={styles.chapterMarks}>~{Math.round(chapter.weight_marks)} marks</Text>
+        {touched ? (
+          <View style={[styles.stateChip, { backgroundColor: STATE_WASH[chapter.state] }]}>
+            <View style={[styles.stateChipDot, { backgroundColor: STATE_COLOR[chapter.state] }]} />
+            <Text style={[styles.stateChipText, { color: STATE_COLOR[chapter.state] }]}>
+              {STATE_LABEL[chapter.state]}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.quietDot} />
         )}
-        <View style={[styles.chapterDot, { backgroundColor: STATE_COLOR[chapter.state] }]} />
-        <View style={expanded ? styles.chevronOpen : undefined}>
+        <View style={expanded ? styles.chevronUp : styles.chevronDown}>
           <ChevronIcon color={colors.faint} />
         </View>
       </PressableScale>
       {expanded && (
-        <View style={styles.conceptList}>
+        <View style={styles.conceptPanel}>
           {chapter.concepts.map((concept) => (
             <View key={concept.concept_id} style={styles.conceptRow}>
               <View style={[styles.conceptDot, { backgroundColor: STATE_COLOR[concept.state] }]} />
-              <Text style={styles.conceptName} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.conceptName,
+                  concept.state !== 'not_started' && styles.conceptNameTouched,
+                ]}
+                numberOfLines={2}>
                 {concept.name}
               </Text>
             </View>
@@ -438,7 +557,7 @@ function ChevronIcon({ color }: { color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={14} height={14} fill="none">
       <Path
-        d="m9 6 6 6-6 6"
+        d="m6 9 6 6 6-6"
         stroke={color}
         strokeWidth={2}
         strokeLinecap="round"
@@ -518,6 +637,32 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+    },
+    scoreOverlineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
+    },
+    infoBadge: {
+      width: scale(20),
+      height: scale(20),
+      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: hairline(0.25),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    infoBadgeOpen: {
+      backgroundColor: colors.ink,
+      borderColor: colors.ink,
+    },
+    infoBadgeText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(11),
+      color: colors.slate,
+    },
+    infoBadgeTextOpen: {
+      color: colors.paper,
     },
     deltaBadge: {
       backgroundColor: 'rgba(28,155,87,.1)',
@@ -641,41 +786,30 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(10),
       color: colors.faint,
     },
-    legendRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(12),
-      marginTop: verticalScale(12),
-      marginBottom: verticalScale(8),
+    chapterHint: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(12),
+      lineHeight: scale(18),
+      color: colors.faint,
+      marginTop: verticalScale(6),
+      marginBottom: verticalScale(4),
     },
-    legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(5),
-    },
-    legendDot: {
-      width: scale(7),
-      height: scale(7),
-      borderRadius: scale(99),
-    },
-    legendText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11),
-      color: colors.slate,
+    classHeader: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(10),
+      letterSpacing: scale(1.2),
+      textTransform: 'uppercase',
+      color: colors.faint,
+      marginTop: verticalScale(16),
+      marginBottom: verticalScale(4),
     },
     chapterRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
-      paddingVertical: verticalScale(12),
+      paddingVertical: verticalScale(13),
       borderTopWidth: 1,
-      borderTopColor: hairline(0.08),
-    },
-    chapterNumber: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      color: colors.faint,
-      width: scale(20),
+      borderTopColor: hairline(0.07),
     },
     chapterName: {
       flex: 1,
@@ -684,23 +818,49 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(15),
       color: colors.ink,
     },
-    chapterMarks: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
+    chapterNameQuiet: {
+      fontFamily: 'AnekLatin_400Regular',
+      color: colors.slate,
     },
-    chapterDot: {
-      width: scale(8),
-      height: scale(8),
+    stateChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(5),
+      borderRadius: scale(99),
+      paddingVertical: verticalScale(3),
+      paddingHorizontal: scale(9),
+    },
+    stateChipDot: {
+      width: scale(6),
+      height: scale(6),
       borderRadius: scale(99),
     },
-    chevronOpen: {
-      transform: [{ rotate: '90deg' }],
+    stateChipText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(10),
+      letterSpacing: scale(0.3),
     },
-    conceptList: {
-      paddingLeft: scale(30),
-      paddingBottom: verticalScale(12),
-      gap: verticalScale(8),
+    quietDot: {
+      width: scale(7),
+      height: scale(7),
+      borderRadius: scale(99),
+      backgroundColor: NOT_STARTED_GREY,
+      marginHorizontal: scale(4),
+    },
+    chevronDown: {
+      marginLeft: scale(2),
+    },
+    chevronUp: {
+      marginLeft: scale(2),
+      transform: [{ rotate: '180deg' }],
+    },
+    conceptPanel: {
+      marginLeft: scale(2),
+      marginBottom: verticalScale(12),
+      paddingLeft: scale(14),
+      borderLeftWidth: scale(2),
+      borderLeftColor: hairline(0.1),
+      gap: verticalScale(9),
     },
     conceptRow: {
       flexDirection: 'row',
@@ -711,20 +871,96 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: scale(6),
       height: scale(6),
       borderRadius: scale(99),
+      flexShrink: 0,
     },
     conceptName: {
       flex: 1,
       minWidth: 0,
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
+      lineHeight: scale(18.2),
+      color: colors.faint,
+    },
+    conceptNameTouched: {
       color: colors.slate,
+      fontFamily: 'AnekLatin_600SemiBold',
+    },
+    showAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: scale(6),
+      paddingVertical: verticalScale(12),
+      marginTop: verticalScale(4),
+      borderTopWidth: 1,
+      borderTopColor: hairline(0.07),
+    },
+    showAllText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
+      color: colors.slate,
+    },
+    previewBadge: {
+      borderWidth: 1,
+      borderColor: hairline(0.16),
+      borderRadius: scale(99),
+      paddingVertical: verticalScale(3),
+      paddingHorizontal: scale(10),
+    },
+    previewBadgeText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(10),
+      letterSpacing: scale(0.5),
+      textTransform: 'uppercase',
+      color: colors.faint,
+    },
+    paceRow: {
+      marginTop: verticalScale(14),
+    },
+    paceTextRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      marginBottom: verticalScale(6),
+    },
+    paceSubject: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
+      color: colors.ink,
+    },
+    paceTimes: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(11),
+      color: colors.faint,
+    },
+    paceActual: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(12),
+      color: colors.slate,
+    },
+    paceTrack: {
+      height: verticalScale(8),
+      borderRadius: scale(99),
+      backgroundColor: hairline(0.08),
+    },
+    paceFill: {
+      height: '100%',
+      borderRadius: scale(99),
+    },
+    paceTick: {
+      position: 'absolute',
+      top: verticalScale(-2),
+      bottom: verticalScale(-2),
+      width: scale(2),
+      borderRadius: scale(1),
+      backgroundColor: colors.ink,
     },
     cardFootnote: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(11),
       lineHeight: scale(16.5),
       color: colors.faint,
-      marginTop: verticalScale(12),
+      marginTop: verticalScale(14),
     },
     sectionTitleRow: {
       flexDirection: 'row',
