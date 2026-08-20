@@ -200,16 +200,17 @@ export default function HomeScreen() {
           <View style={styles.cardsGroup}>
             <View style={[styles.card, styles.dronaCard]}>
               <LinearGradient
-                colors={['#FFFCF3', '#FDF4DE']}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
+                colors={['#FDF6E4', '#FBE9C6', '#F7DCA8']}
+                locations={[0, 0.55, 1]}
+                start={{ x: 0.3, y: 0 }}
+                end={{ x: 0.7, y: 1 }}
                 style={StyleSheet.absoluteFillObject}
               />
               <View style={styles.cardTitleRow}>
                 <View style={[styles.iconChip, styles.dronaIconChip]}>
                   <ProtractorMark size={scale(24)} />
                 </View>
-                <Text style={styles.cardTitle} numberOfLines={1}>
+                <Text style={[styles.cardTitle, styles.dronaTitle]} numberOfLines={1}>
                   Learn with Drona
                 </Text>
               </View>
@@ -218,7 +219,7 @@ export default function HomeScreen() {
               </Text>
               <PressableScale style={styles.dronaCta} onPress={() => router.push('/drona')}>
                 <Text style={styles.dronaCtaText}>Choose a topic</Text>
-                <ArrowRightIcon color="#3A2A06" size={scale(14)} />
+                <ArrowRightIcon color="#FFF7E6" size={scale(14)} />
               </PressableScale>
             </View>
 
@@ -520,7 +521,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 2,
     },
     dronaCard: {
-      borderColor: 'rgba(238,163,31,.35)',
+      borderColor: 'rgba(238,163,31,.5)',
+    },
+    dronaTitle: {
+      color: colors.ink,
     },
     cardTitleRow: {
       flexDirection: 'row',
@@ -573,18 +577,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(44),
       paddingHorizontal: scale(20),
       borderRadius: scale(99),
-      backgroundColor: colors.marigold,
+      backgroundColor: colors.ink,
       marginTop: verticalScale(16),
-      shadowColor: colors.marigold,
-      shadowOffset: { width: 0, height: verticalScale(3) },
-      shadowOpacity: 0.35,
-      shadowRadius: scale(8),
-      elevation: 2,
     },
     dronaCtaText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(15),
-      color: '#3A2A06',
+      color: '#FFF7E6',
     },
     statsStrip: {
       flexDirection: 'row',
