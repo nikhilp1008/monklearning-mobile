@@ -15,7 +15,6 @@ import { useScale } from '@/constants/scale';
 import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { getCachedProgress, getProgress } from '@/lib/progress';
-import { getStoredName } from '@/lib/profile';
 
 /**
  * Home.
@@ -43,7 +42,6 @@ const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
  * with a firm hairline and a soft, diffuse shadow (the same treatment the
  * Library and Practice cards already use), never with a grey tint.
  */
-const CARD_CHIP = '#FAF8F1'; // small warm surface for the icon chips only
 
 /**
  * Editorial prompts for the "doubt of the day" card — hand-written, rotated
@@ -88,13 +86,6 @@ const SUBJECT_DOT: Record<string, string> = {
   biology: '#1C9B57',
 };
 
-function getGreeting(date: Date): string {
-  const hour = date.getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return '';
@@ -116,7 +107,6 @@ export default function HomeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [firstName, setFirstName] = useState('');
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
   const [stats, setStats] = useState<StatsState>(() => {
     const c = getCachedProgress();
@@ -133,11 +123,6 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      // The stored name only — a fresh install greets with "Namaste", never
-      // with the sample profile's name presented as the student's own.
-      getStoredName().then((name) => {
-        if (!cancelled) setFirstName(name?.trim().split(/\s+/)[0] ?? '');
-      });
       getTodayPlan().then((items) => {
         if (!cancelled) setPlanItems(items);
       });
@@ -183,15 +168,14 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerRow}>
-          <View style={styles.headerTextBlock}>
-            <Text style={styles.headerEyebrow}>{getGreeting(new Date()).toUpperCase()}</Text>
-            <Text style={styles.headerName} numberOfLines={1} ellipsizeMode="tail">
-              {firstName || 'Namaste'}
-            </Text>
-          </View>
-          <PressableScale style={styles.avatar} onPress={() => router.push('/profile')}>
-            <Text style={styles.avatarText}>{(firstName[0] ?? 'M').toUpperCase()}</Text>
+          <PressableScale style={styles.headerButton} onPress={() => router.push('/profile')}>
+            <PersonIcon size={scale(19)} />
           </PressableScale>
+          {/* Placeholder until notifications ship — the slot is reserved so
+              the header doesn't reflow when they do. */}
+          <View style={styles.headerButton}>
+            <BellIcon size={scale(19)} />
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -422,6 +406,35 @@ function toStatsState(score: number, doubts: number, practised: number): StatsSt
   return { kind: 'ready', score, doubts, practised };
 }
 
+function PersonIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Circle cx={12} cy={8.2} r={3.6} stroke={colors.ink} strokeWidth={1.8} />
+      <Path
+        d="M4.8 19.4c.9-3.4 3.8-5 7.2-5s6.3 1.6 7.2 5"
+        stroke={colors.ink}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function BellIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M6 10a6 6 0 0 1 12 0c0 3.4.8 5 1.8 6.2H4.2C5.2 15 6 13.4 6 10Z"
+        stroke={colors.ink}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M10 19.6a2.2 2.2 0 0 0 4 0" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 function InfinityIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -470,36 +483,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(24),
       paddingBottom: verticalScale(16),
     },
-    headerTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    headerEyebrow: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
-      color: colors.faint,
-    },
-    headerName: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.36),
-      lineHeight: scale(28.8),
-      color: colors.ink,
-      marginTop: verticalScale(1),
-    },
-    avatar: {
+    headerButton: {
       width: scale(40),
       height: scale(40),
       borderRadius: scale(20),
-      backgroundColor: colors.marigold,
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: hairline(0.16),
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    avatarText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(15),
-      color: '#3A2A06',
     },
     scrollContent: {
       paddingHorizontal: scale(24),
@@ -550,9 +542,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: scale(44),
       height: scale(44),
       borderRadius: scale(12),
-      backgroundColor: CARD_CHIP,
+      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.1),
+      borderColor: hairline(0.12),
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -574,17 +566,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(12),
-    },
-    iconChip: {
-      width: scale(40),
-      height: scale(40),
-      flexShrink: 0,
-      borderRadius: scale(12),
-      backgroundColor: CARD_CHIP,
-      borderWidth: 1,
-      borderColor: hairline(0.1),
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     cardTextBlock: {
       flex: 1,
