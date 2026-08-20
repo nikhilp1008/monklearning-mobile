@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import { ParsedStep, parseSolutionSteps } from '@/lib/solution-steps';
 
 export type QuestionType = 'single_correct' | 'numerical' | string;
 
@@ -32,14 +33,25 @@ export interface AnswerResult {
   solution: StructuredSolution | string | null;
 }
 
-/** Normalizes whatever shape `solution` arrives in into plain display text. */
-export function formatSolution(solution: AnswerResult['solution']): string | null {
-  if (!solution) return null;
-  if (typeof solution === 'string') return solution;
-  const parts: string[] = [];
-  if (solution.approach) parts.push(solution.approach);
-  if (solution.steps?.length) parts.push(...solution.steps);
-  return parts.length ? parts.join('\n\n') : null;
+/**
+ * Turns the practice solution into the same numbered steps Doubts and Snap are
+ * read on, so one worked solution looks like every other one in the app.
+ *
+ * Practice's steps arrive as bare strings rather than the `{n, text}` the
+ * doubts solver returns, and each one already opens with "Step 3: " — which
+ * parseSolutionSteps strips, since the rail does the numbering. `approach`
+ * isn't present on live rows but is kept: when it is, it's the lead-in.
+ */
+export function parseAnswerSolution(solution: AnswerResult['solution']): ParsedStep[] {
+  if (!solution) return [];
+  if (typeof solution === 'string') return parseSolutionSteps(null, solution);
+
+  const texts = [
+    ...(solution.approach ? [solution.approach] : []),
+    ...(solution.steps ?? []),
+  ];
+  if (!texts.length) return [];
+  return parseSolutionSteps(texts.map((text, i) => ({ n: i + 1, text })));
 }
 
 export interface PracticeStats {

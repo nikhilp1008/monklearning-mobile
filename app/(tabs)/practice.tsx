@@ -18,9 +18,16 @@ import { PracticeTabsHeader } from '@/components/practice-tabs-header';
 import { RuledPaper } from '@/components/ruled-paper';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { SlidingToggle } from '@/components/sliding-toggle';
+import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { AnswerResult, NextQuestion, formatSolution, getNextQuestion, submitAnswer } from '@/lib/practice';
+import {
+  AnswerResult,
+  NextQuestion,
+  getNextQuestion,
+  parseAnswerSolution,
+  submitAnswer,
+} from '@/lib/practice';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 
 const SUBJECTS = ['Physics', 'Chem', 'Maths'] as const;
@@ -62,6 +69,21 @@ export default function PracticeScreen() {
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
 
   const revealed = answerResult !== null;
+
+  const solutionSteps = useMemo(
+    () => (answerResult ? parseAnswerSolution(answerResult.solution) : []),
+    [answerResult]
+  );
+
+  /**
+   * The rail only closes with a ✓ Final answer when the screen isn't already
+   * showing it: an MCQ tags its correct option in the list above, but a
+   * numerical question has nowhere else to put the value.
+   */
+  const numericAnswer =
+    question?.question_type === 'numerical' && answerResult?.correct_value != null
+      ? String(answerResult.correct_value)
+      : null;
 
   // A chapter picked under one subject stops applying the moment the
   // student switches subject pills — it can't describe questions from a
@@ -456,41 +478,48 @@ export default function PracticeScreen() {
             </>
           ) : (
             <>
-              <View style={styles.explainCard}>
-                <View style={styles.explainRuledClip}>
-                  <RuledPaper step={verticalScale(27)} color="rgba(28,26,22,.055)" count={16} />
-                </View>
-                <View style={styles.explainRule} />
-                <View style={styles.explainBadge}>
-                  <Text style={styles.explainBadgeText}>
-                    {answerResult?.is_correct ? 'NICE — CORRECT' : 'SOLUTION'}
+              {/* The working is content, not a widget: a rule, an eyebrow and
+                  the same numbered rail Doubts and Snap are read on. The card
+                  it used to sit in — ruled paper, ink border, drop shadow, a
+                  sticker badge and a marigold pill inside — carried more
+                  weight than the question above it. */}
+              <View style={styles.explainSection}>
+                <View style={styles.explainDivider} />
+                <Text style={styles.explainEyebrow}>
+                  {answerResult?.is_correct ? 'WHY THAT’S RIGHT' : 'HOW IT’S SOLVED'}
+                </Text>
+
+                {solutionSteps.length > 0 ? (
+                  <SolutionSteps
+                    size="compact"
+                    steps={solutionSteps}
+                    // A picked option already carries its own CORRECT tag, so
+                    // repeating it here would only be noise. A numerical answer
+                    // has nothing else showing it.
+                    answer={numericAnswer}
+                  />
+                ) : (
+                  <Text style={styles.explainEmpty}>
+                    No worked solution is available for this question yet.
                   </Text>
-                </View>
-                <MathText
-                  text={
-                    (answerResult && formatSolution(answerResult.solution)) ??
-                    'No worked solution is available for this question yet.'
-                  }
-                  fontSize={scale(13)}
-                  lineHeight={scale(20.15)}
-                  color={colors.slate}
-                  style={styles.explainBody}
-                />
+                )}
+              </View>
+
+              <View style={styles.revealedActions}>
                 <Pressable
-                  style={styles.deeperButton}
+                  hitSlop={8}
                   onPress={() =>
                     router.push({
                       pathname: '/entering-classroom',
                       params: { chapterTitle: question.chapter_name ?? 'this topic' },
                     })
                   }>
-                  <Text style={styles.deeperButtonText}>Go deeper with Drona →</Text>
+                  <Text style={styles.deeperLinkText}>Go deeper with Drona →</Text>
+                </Pressable>
+                <Pressable style={styles.nextButton} onPress={loadQuestion}>
+                  <Text style={styles.nextButtonText}>Next →</Text>
                 </Pressable>
               </View>
-
-              <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                <Text style={styles.nextButtonText}>Next →</Text>
-              </Pressable>
             </>
           )}
             </>
@@ -1126,83 +1155,44 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: colors.paper,
     },
-    explainCard: {
-      position: 'relative',
-      backgroundColor: '#fff',
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(16),
-      paddingTop: verticalScale(22),
-      paddingRight: scale(16),
-      paddingBottom: verticalScale(16),
-      paddingLeft: scale(18),
-      marginTop: verticalScale(16),
-      overflow: 'visible',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.1,
-      shadowRadius: scale(10),
-      elevation: 3,
+    explainSection: {
+      marginTop: verticalScale(22),
     },
-    explainRuledClip: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: scale(14.5),
-      overflow: 'hidden',
+    explainDivider: {
+      height: 1,
+      backgroundColor: 'rgba(28,26,22,.12)',
+      marginBottom: verticalScale(16),
     },
-    explainRule: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      left: scale(24),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.35)',
-    },
-    explainBadge: {
-      position: 'absolute',
-      top: verticalScale(-10),
-      left: scale(14),
-      backgroundColor: colors.marigold,
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
-      borderRadius: scale(6),
-      paddingVertical: verticalScale(2),
-      paddingHorizontal: scale(8),
-    },
-    explainBadgeText: {
+    explainEyebrow: {
       fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
-      color: colors.ink,
+      fontSize: scale(9.5),
+      letterSpacing: scale(1.1),
+      color: colors.faint,
+      marginBottom: verticalScale(16),
     },
-    explainBody: {
-      marginTop: verticalScale(4),
-      marginLeft: scale(16),
+    explainEmpty: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13.5),
+      color: colors.faint,
     },
-    deeperButton: {
-      alignSelf: 'flex-start',
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(15),
-      borderRadius: scale(99),
-      backgroundColor: colors.marigold,
+    revealedActions: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: verticalScale(12),
-      marginLeft: scale(16),
+      justifyContent: 'space-between',
+      marginTop: verticalScale(24),
     },
-    deeperButtonText: {
+    deeperLinkText: {
       fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: '#241a08',
+      fontSize: scale(13),
+      color: colors.amberText,
     },
     nextButton: {
-      alignSelf: 'flex-end',
       height: verticalScale(46),
       paddingHorizontal: scale(22),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: verticalScale(14),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(6) },
       shadowOpacity: 0.28,

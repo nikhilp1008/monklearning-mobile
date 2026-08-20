@@ -256,6 +256,25 @@ export function convertMath(src: string): string {
 }
 
 /**
+ * Super/subscripts written without any `$…$` around them.
+ *
+ * The practice solver writes its working as prose and drops bare LaTeX into
+ * the middle of it — "the dimensions of B are M T^{-2} A^{-1}" — so the
+ * delimited-segment pass above never sees those and they reached students as
+ * literal `T^{-2}`. Each token is handed to convertMath on its own, which is
+ * the same code path a delimited one takes.
+ *
+ * Only braced groups and digit/sign arguments convert. Letters are left alone
+ * on purpose: `x_i` is worth less than the risk of mangling an ordinary
+ * underscore in prose.
+ */
+const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-])/g;
+
+function convertBareScripts(text: string): string {
+  return text.replace(BARE_SCRIPT, (token) => convertMath(token));
+}
+
+/**
  * Normalizes PDF-extraction artifacts, then converts every `$…$` / `$$…$$`
  * segment to Unicode, leaving plain prose untouched.
  *
@@ -304,5 +323,5 @@ export function latexToText(raw: string): string {
     out += ch;
     i += 1;
   }
-  return out;
+  return convertBareScripts(out);
 }

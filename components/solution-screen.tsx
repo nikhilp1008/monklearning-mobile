@@ -5,6 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
+import { SolutionSteps } from '@/components/solution-steps';
 import { ParsedStep } from '@/lib/solution-steps';
 
 /**
@@ -30,11 +31,6 @@ const INK_30 = '#B5B0A4';
 const PAPER = '#FFFFFF';
 const GRID = 'rgba(28,26,22,0.04)';
 const HAIR = 'rgba(28,26,22,0.12)';
-const AMBER_WASH = 'rgba(238,163,31,0.11)';
-const GREEN = '#1C9B57';
-const GREEN_INK = '#14663A';
-const GREEN_WASH = 'rgba(28,155,87,0.11)';
-
 const GRID_SIZE = 26;
 
 export type SolutionQuestion = {
@@ -158,46 +154,17 @@ export function SolutionScreen({
               <Text style={styles.failureText}>{question.failureNote}</Text>
             </View>
           ) : (
-            <View style={styles.steps}>
-              <View style={styles.rail} />
-
-              {question.steps.map((step, i) => (
-                <View key={i} style={styles.step}>
-                  <View style={styles.num}>
-                    <Text style={styles.numText}>{String(i + 1).padStart(2, '0')}</Text>
-                  </View>
-                  {!!step.title && <Text style={styles.stepTitle}>{step.title}</Text>}
-                  {step.lines.map((line, j) =>
-                    line.kind === 'math' ? (
-                      // Hugs its own text rather than stretching to a full-width
-                      // bar — the design calls this out as the earlier mistake.
-                      <View key={j} style={styles.mathWrap}>
-                        <Text style={styles.mathText}>{line.text}</Text>
-                      </View>
-                    ) : (
-                      <Text key={j} style={styles.proseText}>
-                        {line.text}
-                      </Text>
-                    )
-                  )}
-                </View>
-              ))}
-
-              {!!question.answer && (
-                <View style={styles.step}>
-                  <View style={[styles.num, styles.numFinal]}>
-                    <Text style={styles.numFinalText}>✓</Text>
-                  </View>
-                  <Text style={styles.finalLabel}>Final answer</Text>
-                  <View style={styles.answerWrap}>
-                    <Text style={styles.answerText}>{question.answer}</Text>
-                  </View>
+            <View style={styles.stepsBlock}>
+              <SolutionSteps
+                steps={question.steps}
+                answer={question.answer}
+                footer={
                   <Text style={styles.meta}>
                     {question.steps.length} step{question.steps.length === 1 ? '' : 's'}
                     {questions.length > 1 ? ' · tap a chip for the next question' : ''}
                   </Text>
-                </View>
-              )}
+                }
+              />
             </View>
           )}
         </ScrollView>
@@ -258,7 +225,6 @@ function FlagIcon() {
 
 function createStyles() {
   const GUTTER = 24;
-  const RAIL = 44;
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -336,103 +302,8 @@ function createStyles() {
       lineHeight: 16 * 1.6,
       color: INK,
     },
-    steps: {
-      position: 'relative',
+    stepsBlock: {
       marginTop: 24,
-      paddingLeft: RAIL,
-      gap: 30,
-    },
-    rail: {
-      position: 'absolute',
-      left: 13,
-      top: 10,
-      bottom: 10,
-      width: 1,
-      backgroundColor: HAIR,
-    },
-    step: {
-      position: 'relative',
-      gap: 12,
-      alignItems: 'flex-start',
-      alignSelf: 'stretch',
-    },
-    num: {
-      position: 'absolute',
-      left: -RAIL,
-      top: 1,
-      width: 28,
-      height: 28,
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,0.22)',
-      borderRadius: 8,
-      backgroundColor: PAPER,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    numText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: 12,
-      color: '#57534B',
-    },
-    numFinal: {
-      borderWidth: 0,
-      backgroundColor: GREEN_WASH,
-    },
-    numFinalText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: 13,
-      color: GREEN,
-    },
-    stepTitle: {
-      alignSelf: 'stretch',
-      paddingTop: 4,
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: 19,
-      letterSpacing: -0.02 * 19,
-      lineHeight: 19 * 1.3,
-      color: INK,
-    },
-    proseText: {
-      alignSelf: 'stretch',
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: 16,
-      lineHeight: 16 * 1.6,
-      color: INK_70,
-    },
-    mathWrap: {
-      alignSelf: 'flex-start',
-      maxWidth: '100%',
-      paddingVertical: 7,
-      paddingHorizontal: 12,
-      borderRadius: 6,
-      backgroundColor: AMBER_WASH,
-    },
-    mathText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: 17,
-      lineHeight: 17 * 1.6,
-      color: INK,
-    },
-    finalLabel: {
-      alignSelf: 'stretch',
-      paddingTop: 4,
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: 19,
-      letterSpacing: -0.02 * 19,
-      color: GREEN,
-    },
-    answerWrap: {
-      alignSelf: 'flex-start',
-      maxWidth: '100%',
-      paddingVertical: 8,
-      paddingHorizontal: 13,
-      borderRadius: 6,
-      backgroundColor: GREEN_WASH,
-    },
-    answerText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: 19,
-      color: GREEN_INK,
     },
     meta: {
       fontFamily: 'AnekLatin_600SemiBold',
@@ -513,10 +384,10 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
             <SkeletonParagraph lines={3} lineHeight={14} gap={10} widths={['100%', '96%', '54%']} />
           </View>
 
-          <View style={styles.steps}>
-            <View style={styles.rail} />
+          <View style={skeleton.steps}>
+            <View style={skeleton.rail} />
             {[0, 1].map((i) => (
-              <View key={i} style={styles.step}>
+              <View key={i} style={skeleton.step}>
                 <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
                 <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />
                 <SkeletonParagraph
@@ -539,6 +410,28 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 function createSkeletonStyles() {
   const RAIL = 44;
   return StyleSheet.create({
+    // Mirrors SolutionSteps' own rail geometry so the placeholder lands where
+    // the real steps will.
+    steps: {
+      position: 'relative',
+      marginTop: 24,
+      paddingLeft: RAIL,
+      gap: 30,
+    },
+    rail: {
+      position: 'absolute',
+      left: 13,
+      top: 10,
+      bottom: 10,
+      width: 1,
+      backgroundColor: HAIR,
+    },
+    step: {
+      position: 'relative',
+      gap: 12,
+      alignItems: 'flex-start',
+      alignSelf: 'stretch',
+    },
     // Sits exactly where the numbered badge will.
     num: {
       position: 'absolute',
