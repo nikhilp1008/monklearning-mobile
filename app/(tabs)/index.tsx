@@ -15,6 +15,7 @@ import { useScale } from '@/constants/scale';
 import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { getCachedProgress, getProgress } from '@/lib/progress';
+import { getStoredName } from '@/lib/profile';
 
 /**
  * Home.
@@ -107,6 +108,7 @@ export default function HomeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
+  const [initial, setInitial] = useState('');
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
   const [stats, setStats] = useState<StatsState>(() => {
     const c = getCachedProgress();
@@ -123,6 +125,11 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      // The stored name only — a fresh install shows the neutral glyph,
+      // never a sample profile's initial presented as the student's own.
+      getStoredName().then((name) => {
+        if (!cancelled) setInitial(name?.trim()[0]?.toUpperCase() ?? '');
+      });
       getTodayPlan().then((items) => {
         if (!cancelled) setPlanItems(items);
       });
@@ -169,7 +176,11 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerRow}>
           <PressableScale style={styles.headerButton} onPress={() => router.push('/profile')}>
-            <PersonIcon size={scale(19)} />
+            {initial ? (
+              <Text style={styles.headerInitial}>{initial}</Text>
+            ) : (
+              <PersonIcon size={scale(19)} />
+            )}
           </PressableScale>
           {/* Placeholder until notifications ship — the slot is reserved so
               the header doesn't reflow when they do. */}
@@ -492,6 +503,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: hairline(0.16),
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    headerInitial: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(16),
+      color: colors.ink,
     },
     scrollContent: {
       paddingHorizontal: scale(24),
