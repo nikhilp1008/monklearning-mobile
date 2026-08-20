@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -28,7 +29,7 @@ import { DEMO_NOTE_CARDS, DEMO_SESSION_ID, DemoNoteCard } from '@/lib/demo-board
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
 type Segment = 'notes' | 'doubts' | 'sessions';
-type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths';
+type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths' | 'Biology';
 
 const SEGMENTS: Segment[] = ['notes', 'doubts', 'sessions'];
 const SEGMENT_LABELS: Record<Segment, string> = {
@@ -36,7 +37,21 @@ const SEGMENT_LABELS: Record<Segment, string> = {
   doubts: 'Doubts',
   sessions: 'Sessions',
 };
-const SUBJECT_FILTERS: SubjectFilter[] = ['All', 'Physics', 'Chemistry', 'Maths'];
+const FILTERABLE_SUBJECTS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths', 'Biology'];
+const DEFAULT_FILTERS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths'];
+const SUBJECT_FILTER_LABEL: Record<string, SubjectFilter> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  maths: 'Maths',
+  biology: 'Biology',
+};
+
+/** The API stores subjects/chapters in whatever case they were ingested in —
+ *  "mathematics" and "Mathematics" both occur live. Display gets one case. */
+function titleCase(value: string): string {
+  return value.replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 // Subject -> accent color, since /notes doesn't return one — same three
 // brand accents used for the subject dot/label across the app.
@@ -61,7 +76,7 @@ const SESSIONS: Session[] = [
   {
     title: 'Rotational Motion · torque',
     subject: 'Physics',
-    subline: 'sample class',
+    subline: 'Sample · tap to see a backed-up board',
     badge: { kind: 'neutral', text: '6 days left' },
   },
 ];
@@ -73,6 +88,8 @@ export default function LibraryScreen() {
   const [activeSegment, setActiveSegment] = useState<Segment>('notes');
   const [notesFilter, setNotesFilter] = useState<SubjectFilter>('All');
   const [doubtsFilter, setDoubtsFilter] = useState<SubjectFilter>('All');
+  const [notesQuery, setNotesQuery] = useState('');
+  const [doubtsQuery, setDoubtsQuery] = useState('');
   const pagerRef = useRef<ScrollView>(null);
 
   // --- Erase to remove ---------------------------------------------------
@@ -238,14 +255,50 @@ export default function LibraryScreen() {
     });
   }, []);
 
-  const visibleNotes = useMemo(
-    () => notes.filter((n) => subjectMatches(n.subject, notesFilter)),
-    [notes, notesFilter]
-  );
+  const visibleNotes = useMemo(() => {
+    const q = notesQuery.trim().toLowerCase();
+    return notes.filter(
+      (n) =>
+        subjectMatches(n.subject, notesFilter) &&
+        (!q ||
+          [n.concept, n.chapter, n.preview]
+            .filter(Boolean)
+            .some((field) => field!.toLowerCase().includes(q)))
+    );
+  }, [notes, notesFilter, notesQuery]);
 
-  const visibleDoubts = useMemo(
-    () => doubts.filter((d) => subjectMatches(d.subject, doubtsFilter)),
-    [doubts, doubtsFilter]
+  const visibleDoubts = useMemo(() => {
+    const q = doubtsQuery.trim().toLowerCase();
+    return doubts.filter(
+      (d) =>
+        subjectMatches(d.subject, doubtsFilter) &&
+        (!q ||
+          [d.stem, d.question_text, d.chapter, d.concept]
+            .filter(Boolean)
+            .some((field) => field!.toLowerCase().includes(q)))
+    );
+  }, [doubts, doubtsFilter, doubtsQuery]);
+
+  /**
+   * The filter row offers only subjects the student actually has content in
+   * (plus the default trio while empty) — a NEET student's Biology no longer
+   * hides inside All because the pills were hardcoded for JEE.
+   */
+  const filtersFor = useCallback((subjects: (string | null)[]): SubjectFilter[] => {
+    const present = new Set(
+      subjects
+        .filter(Boolean)
+        .map((sub) => (SUBJECT_FILTER_LABEL[sub!.trim().toLowerCase()] ?? null))
+        .filter(Boolean) as SubjectFilter[]
+    );
+    const ordered = FILTERABLE_SUBJECTS.filter((f) => present.has(f));
+    return ['All', ...(ordered.length ? ordered : DEFAULT_FILTERS)];
+  }, []);
+
+  const notesFilters = useMemo(() => filtersFor(notes.map((n) => n.subject)), [filtersFor, notes]);
+  const doubtsFilters = useMemo(
+    () => filtersFor(doubts.map((d) => d.subject)),
+    [filtersFor, doubts]
   );
 
   // One photo is one doubt, however many questions were on it. The API stores
@@ -379,11 +432,19 @@ export default function LibraryScreen() {
               showsVerticalScrollIndicator={false}>
               <View style={styles.searchBar}>
                 <SearchIcon size={scale(15)} />
-                <Text style={styles.searchPlaceholder}>Search by concept or chapter…</Text>
+                <TextInput
+                  style={styles.searchInput}
+                  value={notesQuery}
+                  onChangeText={setNotesQuery}
+                  placeholder="Search by concept or chapter…"
+                  placeholderTextColor={colors.faint}
+                  autoCorrect={false}
+                  returnKeyType="search"
+                />
               </View>
 
               <View style={styles.filterRow}>
-                {SUBJECT_FILTERS.map((filter) => (
+                {notesFilters.map((filter) => (
                   <PressableScale key={filter} onPress={() => setNotesFilter(filter)}>
                     <View
                       style={[
@@ -400,7 +461,11 @@ export default function LibraryScreen() {
                     </View>
                   </PressableScale>
                 ))}
-                <Text style={styles.filterCount}>{visibleNotes.length} notes</Text>
+                <Text style={styles.filterCount}>
+                  {showingSamples
+                    ? `${sampleNotes.length} sample${sampleNotes.length === 1 ? '' : 's'}`
+                    : `${visibleNotes.length} note${visibleNotes.length === 1 ? '' : 's'}`}
+                </Text>
               </View>
 
               {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
@@ -449,7 +514,9 @@ export default function LibraryScreen() {
                     <Text style={styles.stateText}>
                       {notes.length === 0
                         ? 'No saved notes yet — finish a class with Drona and save its board.'
-                        : `No ${notesFilter} notes yet.`}
+                        : notesQuery.trim()
+                          ? 'No notes match that search.'
+                          : `No ${notesFilter} notes yet.`}
                     </Text>
                   </View>
                 )
@@ -511,7 +578,15 @@ export default function LibraryScreen() {
               <View style={styles.doubtsSearchRow}>
                 <View style={styles.doubtsSearchBar}>
                   <SearchIcon size={scale(15)} />
-                  <Text style={styles.searchPlaceholder}>Search your doubts…</Text>
+                  <TextInput
+                    style={styles.searchInput}
+                    value={doubtsQuery}
+                    onChangeText={setDoubtsQuery}
+                    placeholder="Search your doubts…"
+                    placeholderTextColor={colors.faint}
+                    autoCorrect={false}
+                    returnKeyType="search"
+                  />
                 </View>
                 <PressableScale
                   style={styles.cameraButton}
@@ -521,7 +596,7 @@ export default function LibraryScreen() {
               </View>
 
               <View style={styles.filterRow}>
-                {SUBJECT_FILTERS.map((filter) => (
+                {doubtsFilters.map((filter) => (
                   <PressableScale key={filter} onPress={() => setDoubtsFilter(filter)}>
                     <View
                       style={[
@@ -538,7 +613,9 @@ export default function LibraryScreen() {
                     </View>
                   </PressableScale>
                 ))}
-                <Text style={styles.filterCount}>{doubtGroups.length} doubts</Text>
+                <Text style={styles.filterCount}>
+                  {doubtGroups.length} doubt{doubtGroups.length === 1 ? '' : 's'}
+                </Text>
               </View>
 
               {doubtsLoading ? (
@@ -552,7 +629,9 @@ export default function LibraryScreen() {
                   <Text style={styles.stateText}>
                     {doubts.length === 0
                       ? 'No solved doubts yet — snap one to get started.'
-                      : `No ${doubtsFilter} doubts yet.`}
+                      : doubtsQuery.trim()
+                        ? 'No doubts match that search.'
+                        : `No ${doubtsFilter} doubts yet.`}
                   </Text>
                 </View>
               ) : (
@@ -581,8 +660,10 @@ export default function LibraryScreen() {
                           })
                         }>
                         <Text style={styles.doubtMeta}>
-                          <Text style={styles.doubtMetaSubject}>{first.subject ?? 'General'}</Text>
-                          {` · ${first.chapter ?? first.concept ?? 'Doubt'} · ${formatRelativeTime(first.created_at)}`}
+                          <Text style={styles.doubtMetaSubject}>
+                            {titleCase(first.subject ?? 'General')}
+                          </Text>
+                          {` · ${titleCase(first.chapter ?? first.concept ?? 'Doubt')} · ${formatRelativeTime(first.created_at)}`}
                         </Text>
                         <Text style={styles.doubtTitle} numberOfLines={2}>
                           {first.stem ?? first.question_text ?? '(photo doubt)'}
@@ -604,10 +685,17 @@ export default function LibraryScreen() {
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
+              <View style={styles.sessionsHeaderRow}>
+                <Text style={styles.sessionsOverline}>Recent classes</Text>
+                <View style={styles.previewBadge}>
+                  <Text style={styles.previewBadgeText}>Preview</Text>
+                </View>
+              </View>
               <Text style={styles.sessionsIntro}>
-                Every class is backed up here for{' '}
-                <Text style={styles.sessionsIntroBold}>7 days</Text>. Keep the ones you want as
-                notes; the rest quietly expire.
+                Every class you take will be backed up here for{' '}
+                <Text style={styles.sessionsIntroBold}>7 days</Text> — keep the ones you want as
+                notes, the rest quietly expire. The sample below shows how a backed-up class
+                opens.
               </Text>
 
               <View style={styles.sessionsList}>
@@ -784,10 +872,38 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(15),
       marginTop: verticalScale(12),
     },
-    searchPlaceholder: {
+    searchInput: {
       flex: 1,
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(14),
+      color: colors.ink,
+      paddingVertical: 0,
+    },
+    sessionsHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: verticalScale(16),
+    },
+    sessionsOverline: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(10),
+      letterSpacing: scale(1.2),
+      textTransform: 'uppercase',
+      color: colors.faint,
+    },
+    previewBadge: {
+      borderWidth: 1,
+      borderColor: hairline(0.16),
+      borderRadius: scale(99),
+      paddingVertical: verticalScale(3),
+      paddingHorizontal: scale(10),
+    },
+    previewBadgeText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(10),
+      letterSpacing: scale(0.5),
+      textTransform: 'uppercase',
       color: colors.faint,
     },
     doubtsSearchRow: {
@@ -876,13 +992,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     noteCard: {
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.2),
-      borderRadius: scale(14),
+      borderColor: hairline(0.16),
+      borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.08,
+      shadowOpacity: 0.06,
       shadowRadius: scale(3),
       elevation: 2,
     },
@@ -890,7 +1006,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // grey. The card colour itself must stay white — the rub paints paper.
     noteCardErasing: {
       borderColor: 'rgba(28,26,22,.16)',
-      shadowOpacity: 0.12,
+      shadowOpacity: 0.06,
       shadowRadius: 5,
     },
     noteTopRow: {
@@ -961,19 +1077,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     doubtCount: {
       marginTop: verticalScale(7),
       fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11.5),
+      fontSize: scale(12),
       color: colors.faint,
     },
     doubtCard: {
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.2),
-      borderRadius: scale(14),
+      borderColor: hairline(0.16),
+      borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.08,
+      shadowOpacity: 0.06,
       shadowRadius: scale(3),
       elevation: 2,
     },
@@ -1015,13 +1131,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(12),
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: hairline(0.2),
-      borderRadius: scale(14),
+      borderColor: hairline(0.16),
+      borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(15),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.08,
+      shadowOpacity: 0.06,
       shadowRadius: scale(3),
       elevation: 2,
     },
