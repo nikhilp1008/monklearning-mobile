@@ -90,8 +90,10 @@ export default function LessonsScreen() {
     );
   }, [subject, classLevel]);
 
+  // Straight into the player — lessons are pre-recorded, so there is
+  // nothing to load and no reason for an interstitial.
   const openChapter = (chapterId: string, chapterTitle: string) =>
-    router.push({ pathname: '/entering-lesson', params: { chapterId, chapterTitle } });
+    router.push({ pathname: '/lesson-player', params: { chapterId, chapterTitle } });
 
   return (
     <View style={styles.screen}>

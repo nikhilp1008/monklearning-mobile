@@ -132,10 +132,6 @@ export default function RootLayout() {
               animation: 'slide_from_bottom',
             }}
           />
-          <Stack.Screen
-            name="entering-lesson"
-            options={{ headerShown: false, animation: 'fade' }}
-          />
           <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
           <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />

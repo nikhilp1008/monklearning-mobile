@@ -145,7 +145,7 @@ function revealSegments(segments: Segment[], chars: number): Segment[] {
 
 export default function LessonPlayerScreen() {
   const isLandscape = useLandscapeLock();
-  const params = useLocalSearchParams<{ chapterTitle?: string }>();
+  const params = useLocalSearchParams<{ chapterId?: string; chapterTitle?: string }>();
   const chapterTitle = (params.chapterTitle ?? 'Kinematics').split(' · ')[0];
   const { scale, verticalScale } = useLandscapeScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
