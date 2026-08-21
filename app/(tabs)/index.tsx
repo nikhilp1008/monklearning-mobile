@@ -406,6 +406,19 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
           )}
+          {/* Last thing on the page, deliberately quiet: this is a reference
+              students visit once or twice, not a daily action. */}
+          <PressableScale style={styles.scopeRow} onPress={() => router.push('/exam-scope')}>
+            <View style={styles.scopeTextBlock}>
+              <Text style={styles.scopeOverline}>Exam scope</Text>
+              <Text style={styles.scopeTitle}>What&apos;s actually in your exam</Text>
+              <Text style={styles.scopeBody}>
+                Not every NCERT chapter is examinable — see what counts, and what you can stop
+                studying.
+              </Text>
+            </View>
+            <ArrowRightIcon color={colors.faint} size={scale(16)} />
+          </PressableScale>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -909,6 +922,38 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(18.2),
       color: colors.slate,
       marginTop: verticalScale(4),
+    },
+    scopeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(14),
+      paddingTop: verticalScale(20),
+      borderTopWidth: 1,
+      borderTopColor: hairline(0.1),
+    },
+    scopeTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    scopeOverline: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(10),
+      letterSpacing: scale(1.2),
+      textTransform: 'uppercase',
+      color: colors.faint,
+    },
+    scopeTitle: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15),
+      color: colors.ink,
+      marginTop: verticalScale(3),
+    },
+    scopeBody: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19.5),
+      color: colors.slate,
+      marginTop: verticalScale(2),
     },
     noteTime: {
       fontFamily: 'AnekLatin_600SemiBold',
