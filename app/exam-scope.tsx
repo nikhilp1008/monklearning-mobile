@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -8,6 +9,7 @@ import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { EXAM_SCOPE, SCOPE_SOURCE_NOTE, SCOPE_TIMELINE, type ScopeExam } from '@/lib/exam-scope';
+import { subjectScope, subjectsFor } from '@/lib/exam-scope-chapters';
 import { getProfile } from '@/lib/profile';
 
 /**
@@ -31,7 +33,6 @@ export default function ExamScopeScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [exam, setExam] = useState<ScopeExam>('jee');
-  const [openSection, setOpenSection] = useState<'archived' | 'exceptions' | null>(null);
 
   // Opens on the student's own exam; 'both' entitlements start on JEE.
   useEffect(() => {
@@ -45,13 +46,17 @@ export default function ExamScopeScreen() {
   }, []);
 
   const scope = EXAM_SCOPE[exam];
-  const dropped = scope.exceptions.filter((e) => e.kind === 'out');
-  const kept = scope.exceptions.filter((e) => e.kind === 'in');
 
-  const toggleSection = (key: 'archived' | 'exceptions') => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setOpenSection((current) => (current === key ? null : key));
-  };
+  // Counted from the chapter map rather than kept as a second list, so the
+  // headline can never drift from the per-subject pages it summarises.
+  const subjectDetails = subjectsFor(exam)
+    .map((key) => subjectScope(exam, key))
+    .filter(Boolean) as NonNullable<ReturnType<typeof subjectScope>>[];
+  const archivedCount = subjectDetails.reduce((n, s) => n + s.archived.length, 0);
+  const trimCount = subjectDetails.reduce(
+    (n, s) => n + s.chapters.filter((c) => c.trims?.length).length,
+    0
+  );
 
   return (
     <SettingsPage title="Exam scope">
@@ -68,7 +73,6 @@ export default function ExamScopeScreen() {
           onChange={(value) => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setExam(value === 'NEET UG' ? 'neet' : 'jee');
-            setOpenSection(null);
           }}
           trackStyle={styles.toggleTrack}
           thumbStyle={styles.toggleThumb}
@@ -99,86 +103,69 @@ export default function ExamScopeScreen() {
         </Text>
       </View>
 
-      {/* Archived — the genuinely droppable list */}
-      <PressableScale style={styles.card} onPress={() => toggleSection('archived')}>
-        <View style={styles.cardHeadRow}>
-          <View style={styles.cardHeadText}>
-            <Text style={styles.overline}>You can stop studying these</Text>
-            <Text style={styles.cardTitle}>{scope.archived.length} chapters, gone</Text>
-          </View>
-          <View style={openSection === 'archived' ? styles.chevronUp : undefined}>
-            <ChevronIcon color={colors.faint} />
-          </View>
-        </View>
-        <Text style={styles.cardBody}>
-          NCERT deleted these from the textbooks in 2023. They&apos;re in neither exam and not in
-          your boards either — but old coaching material still prints them.
-        </Text>
-
-        {openSection === 'archived' && (
-          <View style={styles.list}>
-            {scope.archived.map((chapter) => (
-              <View key={chapter.name} style={styles.listRow}>
-                <Text style={styles.strikeName} numberOfLines={1}>
-                  {chapter.name}
+      {/* The way in to the chapter-level map, one subject at a time. */}
+      <View style={styles.sectionHeadRow}>
+        <View style={styles.sectionDash} />
+        <Text style={styles.sectionTitle}>Chapter by chapter</Text>
+      </View>
+      <Text style={styles.answerLine}>
+        Open a subject to see every chapter you own — what&apos;s examined, what has a topic
+        quietly trimmed out, and what left the books in 2023.
+      </Text>
+      <View style={styles.subjectCards}>
+        {subjectDetails.map((detail) => {
+          const trims = detail.chapters.filter((c) => c.trims?.length).length;
+          return (
+            <PressableScale
+              key={detail.key}
+              style={styles.subjectCard}
+              onPress={() =>
+                router.push({
+                  pathname: '/exam-scope-subject',
+                  params: { subject: detail.key, exam },
+                })
+              }>
+              <View style={styles.subjectCardText}>
+                <Text style={styles.subjectCardName}>{detail.label}</Text>
+                <Text style={styles.subjectCardMeta}>
+                  {detail.chapters.length} chapters
+                  {trims > 0 ? ` · ${trims} with trims` : ''}
+                  {detail.archived.length > 0 ? ` · ${detail.archived.length} archived` : ''}
                 </Text>
-                <Text style={styles.listTag}>{chapter.subject}</Text>
               </View>
-            ))}
-          </View>
-        )}
-      </PressableScale>
-
-      {/* Topic exceptions — weight lighter, never skip */}
-      <PressableScale style={styles.card} onPress={() => toggleSection('exceptions')}>
-        <View style={styles.cardHeadRow}>
-          <View style={styles.cardHeadText}>
-            <Text style={styles.overline}>Weigh these lighter</Text>
-            <Text style={styles.cardTitle}>
-              {dropped.length} topics inside chapters you keep
-            </Text>
-          </View>
-          <View style={openSection === 'exceptions' ? styles.chevronUp : undefined}>
-            <ChevronIcon color={colors.faint} />
-          </View>
-        </View>
-        <Text style={styles.cardBody}>
-          Each one sits inside a chapter that is otherwise fully in scope — which is exactly why
-          a chapter list misses them. They&apos;re still in your CBSE boards, so learn them
-          lightly rather than skipping them.
-        </Text>
-
-        {openSection === 'exceptions' && (
-          <View style={styles.list}>
-            {dropped.map((item) => (
-              <View key={item.topic} style={styles.exceptionRow}>
-                <View style={styles.outDot} />
-                <View style={styles.exceptionText}>
-                  <Text style={styles.exceptionTopic}>{item.topic}</Text>
-                  <Text style={styles.exceptionChapter}>{item.chapter}</Text>
-                </View>
-              </View>
-            ))}
-
-            {kept.length > 0 && (
-              <>
-                <Text style={styles.listSubhead}>
-                  And these are yours — the other exam drops them, you don&apos;t
-                </Text>
-                {kept.map((item) => (
-                  <View key={item.topic} style={styles.exceptionRow}>
-                    <View style={styles.inDot} />
-                    <View style={styles.exceptionText}>
-                      <Text style={styles.exceptionTopic}>{item.topic}</Text>
-                      <Text style={styles.exceptionChapter}>{item.chapter}</Text>
-                    </View>
-                  </View>
+              <View style={styles.subjectCardMap}>
+                {detail.chapters.slice(0, 12).map((chapter, i) => (
+                  <View
+                    key={i}
+                    style={[styles.miniTile, !!chapter.trims?.length && styles.miniTileTrim]}
+                  />
                 ))}
-              </>
-            )}
+              </View>
+              <ChevronIcon color={colors.faint} />
+            </PressableScale>
+          );
+        })}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.overline}>What you can drop</Text>
+        <View style={styles.dropRow}>
+          <View style={styles.dropItem}>
+            <Text style={styles.dropValue}>{archivedCount}</Text>
+            <Text style={styles.dropLabel}>chapters gone{'\n'}from the books</Text>
           </View>
-        )}
-      </PressableScale>
+          <View style={styles.dropDivider} />
+          <View style={styles.dropItem}>
+            <Text style={styles.dropValue}>{trimCount}</Text>
+            <Text style={styles.dropLabel}>topics trimmed{'\n'}inside live chapters</Text>
+          </View>
+        </View>
+        <Text style={styles.cardNote}>
+          The first group left NCERT in 2023 — not in either exam, not in your boards. The second
+          sits inside chapters you keep and is still board material, so weigh it lighter rather
+          than skipping it. Both are named per subject below.
+        </Text>
+      </View>
 
       {scope.boardOnlyChapters.length > 0 && (
         <View style={styles.noteCard}>
@@ -442,6 +429,84 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: colors.faint,
       marginTop: verticalScale(1),
+    },
+    dropRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginTop: verticalScale(12),
+    },
+    dropItem: {
+      flex: 1,
+    },
+    dropDivider: {
+      width: 1,
+      alignSelf: 'stretch',
+      backgroundColor: hairline(0.1),
+      marginHorizontal: scale(16),
+    },
+    dropValue: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(30),
+      letterSpacing: scale(-0.6),
+      lineHeight: scale(34),
+      color: colors.ink,
+    },
+    dropLabel: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(11.5),
+      lineHeight: scale(16),
+      color: colors.faint,
+      marginTop: verticalScale(2),
+    },
+    subjectCards: {
+      marginTop: verticalScale(14),
+      gap: verticalScale(10),
+    },
+    subjectCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: hairline(0.16),
+      borderRadius: scale(16),
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(4) },
+      shadowOpacity: 0.06,
+      shadowRadius: scale(12),
+      elevation: 2,
+    },
+    subjectCardText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    subjectCardName: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(16),
+      color: colors.ink,
+    },
+    subjectCardMeta: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(12),
+      color: colors.faint,
+      marginTop: verticalScale(2),
+    },
+    subjectCardMap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      width: scale(46),
+      gap: scale(3),
+    },
+    miniTile: {
+      width: scale(8),
+      height: scale(8),
+      borderRadius: scale(2),
+      backgroundColor: hairline(0.75),
+    },
+    miniTileTrim: {
+      backgroundColor: colors.marigold,
     },
     noteCard: {
       backgroundColor: '#FCF4E0',

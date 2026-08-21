@@ -22,19 +22,6 @@ export interface ScopeSubject {
   chapters: number;
 }
 
-export interface ArchivedChapter {
-  name: string;
-  subject: string;
-}
-
-/** A topic inside an otherwise-live chapter — the case a chapter-level list misses. */
-export interface TopicException {
-  topic: string;
-  chapter: string;
-  /** 'out' = not examined here. 'in' = examined here though the other exam drops it. */
-  kind: 'out' | 'in';
-}
-
 export interface ScopeYear {
   period: string;
   headline: string;
@@ -47,24 +34,9 @@ export interface ExamScope {
   authority: string;
   subjects: ScopeSubject[];
   totalChapters: number;
-  archived: ArchivedChapter[];
-  exceptions: TopicException[];
   /** A whole NCERT chapter that is live for boards but absent from this exam. */
   boardOnlyChapters: string[];
 }
-
-/** Deleted from the NCERT books in the 2023 rationalisation — gone from both
- *  exams and from CBSE boards, but still printed in older coaching material. */
-const ARCHIVED_SHARED: ArchivedChapter[] = [
-  { name: 'The Solid State', subject: 'Chemistry' },
-  { name: 'Surface Chemistry', subject: 'Chemistry' },
-  { name: 'The s-Block Elements', subject: 'Chemistry' },
-  { name: 'Hydrogen', subject: 'Chemistry' },
-  { name: 'Polymers', subject: 'Chemistry' },
-  { name: 'Environmental Chemistry', subject: 'Chemistry' },
-  { name: 'Isolation of Elements (Metallurgy)', subject: 'Chemistry' },
-  { name: 'Communication Systems', subject: 'Physics' },
-];
 
 export const EXAM_SCOPE: Record<ScopeExam, ExamScope> = {
   jee: {
@@ -76,22 +48,6 @@ export const EXAM_SCOPE: Record<ScopeExam, ExamScope> = {
       { name: 'Maths', chapters: 25 },
     ],
     totalChapters: 72,
-    archived: [
-      ...ARCHIVED_SHARED,
-      { name: 'Mathematical Reasoning', subject: 'Maths' },
-      { name: 'Principle of Mathematical Induction', subject: 'Maths' },
-    ],
-    exceptions: [
-      { topic: 'Carnot engine', chapter: 'Thermodynamics · Physics 11', kind: 'out' },
-      { topic: 'Doppler effect', chapter: 'Waves · Physics 11', kind: 'out' },
-      { topic: 'Vector-product kinematics', chapter: 'Motion in a Plane · Physics 11', kind: 'out' },
-      { topic: 'Potentiometer', chapter: 'Current Electricity · Physics 12', kind: 'out' },
-      { topic: 'Cyclotron', chapter: 'Moving Charges and Magnetism · Physics 12', kind: 'out' },
-      { topic: 'Radioactive decay laws', chapter: 'Nuclei · Physics 12', kind: 'out' },
-      { topic: 'Early atomic models', chapter: 'Structure of Atom · Chemistry 11', kind: 'out' },
-      { topic: 'Residual gas-law sections', chapter: 'Chemistry 11', kind: 'out' },
-      { topic: 'Portions of 3D geometry', chapter: 'Three Dimensional Geometry · Maths 12', kind: 'out' },
-    ],
     boardOnlyChapters: ['Linear Programming'],
   },
   neet: {
@@ -103,30 +59,6 @@ export const EXAM_SCOPE: Record<ScopeExam, ExamScope> = {
       { name: 'Biology', chapters: 32 },
     ],
     totalChapters: 79,
-    archived: [
-      ...ARCHIVED_SHARED,
-      { name: 'Transport in Plants', subject: 'Biology' },
-      { name: 'Mineral Nutrition', subject: 'Biology' },
-      { name: 'Digestion and Absorption', subject: 'Biology' },
-      { name: 'Reproduction in Organisms', subject: 'Biology' },
-      { name: 'Strategies for Enhancement in Food Production', subject: 'Biology' },
-      { name: 'Environmental Issues', subject: 'Biology' },
-    ],
-    exceptions: [
-      { topic: 'Taxonomic Aids', chapter: 'The Living World · Biology 11', kind: 'out' },
-      { topic: 'Secondary Growth', chapter: 'Anatomy of Flowering Plants · Biology 11', kind: 'out' },
-      {
-        topic: 'Vernalisation & Seed Dormancy',
-        chapter: 'Plant Growth and Development · Biology 11',
-        kind: 'out',
-      },
-      { topic: 'Sense Organs', chapter: 'Neural Control and Coordination · Biology 11', kind: 'out' },
-      { topic: 'Ecological Succession', chapter: 'Ecosystem · Biology 12', kind: 'out' },
-      { topic: 'Xylem and Phloem', chapter: 'moved out of Transport in Plants', kind: 'in' },
-      { topic: 'Potentiometer', chapter: 'Current Electricity · Physics 12', kind: 'in' },
-      { topic: 'Cyclotron', chapter: 'Moving Charges and Magnetism · Physics 12', kind: 'in' },
-      { topic: 'Radioactive decay laws', chapter: 'Nuclei · Physics 12', kind: 'in' },
-    ],
     boardOnlyChapters: [],
   },
 };

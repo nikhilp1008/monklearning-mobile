@@ -134,6 +134,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope" options={{ headerShown: false }} />
+          <Stack.Screen name="exam-scope-subject" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
           <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />
           <Stack.Screen name="session-board" options={{ headerShown: false }} />
