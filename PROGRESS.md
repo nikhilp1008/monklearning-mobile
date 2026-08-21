@@ -151,11 +151,17 @@ Adding to this requires the confirm-first rule above.
 
 ## Known limitations / unresolved
 
-- **Browser tap simulation is unreliable.** Simulated `left_click` often
-  just text-selects or times out instead of triggering RN Web
-  `Pressable.onPress`. Interactive correctness must be verified by code
-  review + visual render, then confirmed by the user on-device — don't
-  claim tap interactions work from browser testing alone.
+- **SUPERSEDED (2026-08-20): use the iOS simulator, not the browser.**
+  Interaction testing now runs through
+  `mcp__Claude_Code_iOS_Simulator__control` (screenshot / tap / swipe /
+  text) with `xcrun simctl openurl monklearningapp://<route>` to jump to a
+  screen — taps register reliably there. The note below is kept because it
+  is still true of the *browser* preview: simulated `left_click` often just
+  text-selects or times out instead of triggering RN Web `Pressable.onPress`.
+- **Timed states need the timer raised before you screenshot.** Three
+  separate rounds were misdiagnosed as broken because a 550ms–5s state
+  (error flash, chrome auto-hide, undo row) had already reset by the time the
+  screenshot landed. Temporarily raise the constant, capture, then restore.
 - **Hard-reloading a deep (non-`/`) route redirects to Home** in this Expo
   web dev setup. Not a real app bug — just how the web dev server behaves.
 - **Metro/HMR shows transient stale error toasts** that clear on a genuine
@@ -4132,3 +4138,336 @@ Verified the converter against 17 representative cases compiled with esbuild and
 **Also confirmed this round (worth recording, since it was the user's actual question):** build #10's `.ipa` was downloaded from EAS and its compiled Hermes bundle inspected directly — every change from this session is present (`monklearning.todayPlan`, `monklearning.preferences.teacher`, `FINAL ANSWER`, katex refs, the notes renderer) and removed UI is confirmed absent ("This session:", "Ask a follow-up"). EAS uploads the working directory, not just committed files, so the build carried the uncommitted work despite reporting the older commit hash. **Delivery was never the problem.**
 
 **Verification:** `npx tsc --noEmit` and `npx expo lint` both clean. `expo-doctor` 18/18. Note `react-native-webview` is now unused by any source file — left installed rather than removed, since removing a package is a change worth asking about first (standing rule #1); it costs a little binary size and nothing else.
+
+---
+
+# Session 2026-08-17 → 08-20 — polish rounds, the five-tab audit, and Exam scope
+
+Everything below happened in one long session and none of it was logged as it
+went (a lapse — the file jumps straight from the 08-16 evening round to here).
+Recorded now in the order it happened, with commit hashes so any round can be
+found or reverted individually.
+
+## Round: profile cluster, erase feature, classroom handoff (2026-08-17)
+
+Grouped because these were a run of small user-reported items rather than one
+theme. Each was verified on the iOS simulator.
+
+- **Chapter selector**: the topic list didn't scroll at all (a plain `View`
+  with `flex: 1` where a `ScrollView` with `flexGrow: 1` content was needed);
+  the subject underline didn't slide like the class capsule next to it; the
+  redundant "Learn with Drona" heading above "What we are learning" removed.
+- **Profile sub-pages** (Personal information, Privacy, Terms, About) got a
+  shared shell — `components/settings-page.tsx`: pinned back header with a
+  scroll-driven hairline, white page, 24pt gutter, and `useSettingsStyles()`
+  so the four documents can't drift apart. Fixed the back button scrolling
+  away with the content on Profile itself.
+- **Skeleton placeholders** — `components/skeleton.tsx` (`Skeleton`,
+  `SkeletonParagraph`, `stagger`) replacing spinners, applied where a screen
+  waits on a real fetch.
+- **Erase feature** (`components/erase.tsx`) replicated from
+  `handoff_erase_feature/` and scoped to Library Notes only: rub-to-erase via
+  a `Gesture.Pan()` grid, a timed dip-then-collapse removal (not a worklet
+  completion callback — that never fired), a 5s Undo row, and a subtle amber
+  wash at the screen root while the mode is active. Two real bugs found and
+  fixed during it: `armUndo` called inside a `setState` updater (React drops
+  side effects there), and a stale-closure `pan` memo that stopped committing
+  rubs after the first.
+- **Landscape classroom** rebuilt against `handoff_landscape_classroom/` —
+  `components/classroom-chrome.tsx` holds the shared surface (ruled ground,
+  margin rule, caption strip, edge tab, `useChromeAutoHide`). Anek Devanagari
+  installed for the captions (approved first, per standing rule #1).
+- **Classroom loader** — the mark was missing its centre dot and the
+  composition sat wrong; rebuilt with counter-rotating rings and a static
+  amber dot.
+- **Scoping-screen leak fixed** — a `[]`-deps effect captured first-render
+  params before Expo Router attached them, so `chapter_id` was missing and the
+  scoping UI appeared intermittently between the loader and the classroom.
+  Proven from the literal string "this topic" in the user's screenshot mapping
+  to the API's own `chapter_name` fallback. Fixed with a params gate plus a
+  400ms backstop.
+- **Personal information** rebuilt three times against user feedback until it
+  landed: no exam selector (exam is an entitlement, not a preference), class
+  changed via an inline expand rather than a sheet, no identity header
+  duplicating the card, and email verification taken inline.
+- **Subscription page** redesigned on the same shell. **Still blocked**: every
+  amount is `₹—` because `monklearning.com` 404s and no pricing was supplied.
+
+## Round: OTP boxes on Personal information (commit `0bc99d6`)
+
+The single email-verification input became six digit boxes matching the
+onboarding pattern: one box per digit, the next empty box ringed, a hidden
+`TextInput` behind the row owning the keyboard and `one-time-code` autofill.
+No Confirm button — the sixth digit submits; a wrong code shakes the row via
+`withSequence`, turns the boxes red, then clears and refocuses.
+
+**Verification trap worth remembering:** the first three attempts looked
+broken because the 550ms error-state reset fired before the screenshot landed.
+Temporarily raising the reset to 8s made the red state photographable, then it
+was restored. This same trap has now bitten three separate rounds (chrome
+auto-hide, undo row, this) — **when verifying a timed state on the simulator,
+raise the timer first.**
+
+Until a verification endpoint exists, any code except `000000` is accepted so
+the failure state stays reachable; the clause is commented for deletion.
+
+## Round: Practice solution explanation — one shared rail (commit `4ab1231`)
+
+The explanation under a revealed answer was a card competing with the question
+above it (ruled paper, ink border, drop shadow, sticker badge, marigold pill
+inside), and the working arrived **structured** from the API (`{approach,
+steps[]}`) but was being flattened into one grey paragraph by `formatSolution`.
+
+The numbered rail from `components/solution-screen.tsx` was extracted into
+`components/solution-steps.tsx` so Doubts, Snap and Practice now render from
+one implementation; Practice asks for `size="compact"`. The card is gone — a
+rule, a quiet eyebrow, then the steps. `Go deeper with Drona` moved out of the
+explanation to sit beside Next. The rail closes with a green ✓ Final answer
+only for numerical questions, since an MCQ already tags its correct option.
+
+**Bug found along the way:** `latexToText` only converted inside `$…$`, but the
+practice solver writes bare LaTeX mid-prose — students were reading a literal
+`M T^{-2} A^{-1}`. Undelimited super/subscripts now go through the same
+conversion, which fixed Doubts and Notes too.
+
+**Data note:** a meaningful number of practice questions have no worked
+solution at all (three consecutive Assertion-Reason questions in testing),
+while a random sample of 10 all had one. Uneven, not systematic — on the
+backend punch list.
+
+## Round: Progress backend verified live, then wired (commits `3299726`, `a554027`)
+
+The user's co-founder said Progress was implemented server-side. Verified
+directly rather than taken on trust: minted an anon Supabase token and called
+the deployed API. `GET /progress` returns **200 with a 128KB payload** — 74
+chapters and 794 concepts for a JEE account, every chapter curated with a real
+concept list. Deployed commit `7e08e41` is the head of `origin/main`.
+
+**The audit that preceded the rebuild** found the same disease as Home, plus
+two aggravations: **17 distinct font sizes** (worse than Home's original 14,
+with half-point sizes like 9.5/10.5/11.5 revealing per-block optical tuning),
+**10 radii**, 18 vertical spacing values, `#9A6A12` hardcoded six times while
+`colors.amberText` sat unused, three false affordances (a dead "i" badge, a
+"featured" border that looked selected but wasn't, an "8 wks ago" implying
+history that doesn't exist), a hardcoded **Biology card for a JEE student**,
+and — worst — **Progress announcing 703 one tab away from Home's real 0**.
+
+Rebuilt on Home's system and wired to the live endpoint: real score with an
+honest first-day line, the student's actual three subjects, the full chapter
+tree with true mastery states, API recommendations, real ledger, skeletons,
+a retry card with cache fallback, and all-zero sections that simply don't
+render. Subject cards now really switch the chapter list; the dead badge is
+gone; "Practise this" sets the shared practice-focus context and "Revise with
+Drona" resolves the concept to its chapter **inside the payload** so it routes
+with a real `chapterId`.
+
+**Round two, on user feedback:** the "i" came back *working* (toggles a plain
+explanation, fills ink when open); the pace card came back as an honestly
+badged **Preview** with sample rows, kept so the section has a home when
+timing data ships; and the chapter list was decongested — the legend removed
+because rows now describe themselves with tinted state chips, CLASS 11/12
+grouping, only active chapters shown behind a "Show all 28" toggle, and
+expansion into an inset panel on a left rail instead of a raw dropdown.
+
+**Gaps the page deliberately omits** (backend, not client): per-subject weekly
+deltas, and the climb history (`progress_snapshots` is empty, so `delta_week`
+is 0 and the chart would be a single point).
+
+## Round: Home screen audit + rebuild (commit `fc4a705`)
+
+The user's instinct ("so much inconsistency... it feels heavy") was measured
+rather than argued with. The audit found **14 distinct font sizes** and 7 type
+treatments (including one `fontFamily: 'monospace'` — a system fallback in an
+Anek Latin page), **4 radii**, no spacing grid (2/4/7/11/23/40…), the greeting
+at 21pt SemiBold competing with a 22pt SemiBold hero title, three near-whites
+(`#fff` page, `welcomePaper` card, amber gradient) while `colors.paper`'s own
+comment says *"never pure white"*, a `#241A08` CTA that is **not** the app's
+ink `#1C1A16`, a 345×52 full-bleed button at ~13:1 contrast on the page's
+warmest surface, a 24pt "+ Add" target, and — the serious one — **`703`, `47`,
+`320`, the doubt of the day and all Recent notes/sessions were hardcoded
+literals**, so a new student's first screen after signup showed activity they
+never did.
+
+Rebuilt: 14 sizes → 6, three weights, 8pt grid with a 32 section gap, radii
+12/16/99, and **every number real or absent** — score and ledger from
+`/progress` (new `lib/progress.ts`, cached), notes from `/notes` (section
+hidden when empty), fake sessions deleted, honest zero states. Onboarding now
+**persists the typed name** so the greeting stops using the sample profile's.
+
+**A 19-agent review workflow** ran over the diff (three lenses, every finding
+adversarially verified) before showing the user anything. It confirmed 14
+findings; fixed: the fabricated greeting, a second black (`28,25,20` vs
+`colors.ink`, normalized app-wide), practice's card on the retired
+`welcomePaper` hex, a `timeAgo` NaN edge, and a state hole where the stats
+skeleton could pulse forever after a failed refetch with a warm cache.
+
+## Round: Home visual iteration — the long arc (commits `aa6db43` … `b997e11`)
+
+Ten commits of user-directed iteration. Recording the *conclusions*, since the
+intermediate states were explored and rejected:
+
+- **White is the ground.** The `colors.paper` sweep was reverted — every tab
+  and the tab bar are pure `#fff` again. Cards earn their edges with a firmer
+  hairline (`.16`) and a soft diffuse shadow, never a grey tint. A cream card
+  fill was tried and rejected ("reads grey").
+- **The Drona card's colours were right from the start.** Three explored
+  directions (dark classroom card, amber frame + ink pill, plain white) were
+  all declined; the answer was the original three-stop amber gradient at full
+  strength, **inverted** so the deepest amber opens at the top-left and fades
+  down-right. Weak/washed gradients read as beige — the fix for "it feels odd"
+  was *more* range, not less.
+- **The CTA went light.** After a black slab, a gloss-on-face attempt, a warm
+  coffee-dark, and a gold-rimmed dark pill, the resting state is **warm white
+  inside the gold gradient rim** with ink text. The root cause was value
+  contrast: the page's darkest object sat on its warmest surface, which is
+  what "hitting my eyes" meant. Placement was never the problem. (Worth
+  knowing: the *original* reference design's hero CTA was cream — the black
+  slab was a later drift.)
+- **The mark came off the card.** Boxed it read as a sticker, unboxed it
+  floated; the card now opens with **"Learn with Drona" in 21pt Bold alone**.
+  Gradient for character, type for identity, one pill for the action.
+- **Snap and Practice became tiles, not thinner rows.** A texture experiment
+  (graph paper / ruled paper per card) was built and rejected as decoration.
+  The differentiation is structural instead: the hero is wide, the pair is
+  square, side by side, each opening with its icon on a 44pt chip. Anything
+  shaped like a lesser version of the thing above it will feel left out no
+  matter what is painted on it.
+- **The header became chrome.** The greeting was a second 24pt headline on top
+  of the hero; it's gone. Two light outlined circles now: the student's
+  initial (ink on white, only from a genuinely stored name — neutral glyph
+  otherwise) on the left, a bell placeholder on the right.
+
+## Round: Library pass (commit `03f6256`)
+
+Healthiest of the five tabs — real data early — but it held the app's **last
+fabricated tab** and its **biggest false affordance**: both search bars were
+`Text` placeholders styled as inputs. They're real `TextInput`s now, filtering
+as you type with query-aware empty states. Sessions became an honest Preview
+(badge, future-tense copy, the sample card labels itself). "0 notes" above
+three visible sample cards now reads "4 samples". Subject filter pills derive
+from subjects actually present, so a NEET student's Biology gets a pill.
+Doubt metadata is title-cased — the API returns both "mathematics" and
+"Mathematics" for the same field and both were rendering raw.
+
+## Round: Lessons rebuilt on the real catalogue (commit `9a67a69`)
+
+The inverse of old Progress: good skin, hollow body. The list was 13 hardcoded
+Class-11 Physics chapters with an invented "Done" badge, behind a subject row
+and class toggle **that both did nothing** — the screen's only two controls
+were decoration, while the real catalogue sat cached in memory serving three
+other screens. Now reads `getCatalogue()`: pills derive from real subjects (so
+**Biology appeared for the first time**), the class toggle filters on real
+`class_level`, the count is counted, each row shows its true topic count, and
+rows route with real `chapterId`s. Skeletons, error+retry, and a per-filter
+empty state added. The exam pill reads the stored profile — and onboarding's
+exam/class screens now persist their choices (they never did).
+
+## Round: Practice pass (commit `d09503a`)
+
+Unlimited was already the best-wired screen; only a dead Report control (the
+report endpoint accepts doubt ids only, so it could never submit) and two more
+title-only Drona routes needed fixing.
+
+The **Mock segment** was the worst fabrication left in the app: a "Drona's
+call" quote addressing every student as **"Aarav"** with invented stakes, a
+**68%-of-80% readiness meter measuring nothing**, and three hardcoded weak
+chapters while the student's real ones sat in the `/progress` payload. It now
+reads real `needs_revision` chapters (worst mastery first, real `chapterId`s
+on the Learn buttons), Drona's call is built from the true count with a
+base-building line when there are none, and the invented meter is gone.
+
+## Round: Lessons open instantly (commit `7986948`)
+
+`entering-lesson.tsx` was 3.4 seconds of "Drona is queuing the board…" in
+front of pre-recorded content. Deleted outright — file and route registration.
+A chapter row routes straight into `lesson-player`, which handles its own
+landscape lock. **The live classroom keeps its loader on purpose**: there a
+real session starts (WS, scoping, planner), so that one is honest.
+
+## Round: Exam scope — a new feature (commits `6eec834`, `31950dd`)
+
+Built from the user's own research PDF (`JEE_Main_NEET_UG_Exam_Scope_Map_
+Verified_Aug2026.pdf`), which had to be decoded from its embedded font
+encoding to read (a +29 byte offset over the content streams; no `pdftoppm`
+available). Student feedback behind it: nobody tells students what's covered,
+and nobody knows that not all NCERT chapters are examinable.
+
+**Only the student-facing findings were carried across.** Deliberately left in
+the PDF: the tagging schema, annual review protocol, revision log, open
+worklist, unit-count discrepancy discussion, and source-confidence caveats —
+those tell the team how the map is maintained.
+
+Two files, two pages:
+- `lib/exam-scope.ts` — totals, subjects, the timeline, the source note.
+- `lib/exam-scope-chapters.ts` — the full per-subject chapter map with
+  per-exam trims. Static on purpose: the same research shows the syllabus
+  moves roughly once a decade, so an endpoint would be ceremony. **Update this
+  file when the annual review finds a diff.**
+- `app/exam-scope.tsx` — opens on the student's own exam, toggles between
+  them; totals, a "what you can drop" headline whose numbers are *counted from
+  the chapter map* so summary and detail can't drift, subject cards, and a
+  timeline answering "does it change every year?" (no — two amber dots for
+  2023/2024, everything since grey).
+- `app/exam-scope-subject.tsx` — the chapter-level map. A wrapped grid of one
+  tile per chapter gives the shape of the answer before a word is read, then a
+  "spine" of chapters on a rail split by class. Ordinary chapters stay quiet;
+  amber ones expand to name the exact trimmed topic, green ones (NEET) say
+  "the other exam drops this".
+
+**The framing distinction that matters, and must not be flattened:** archived
+chapters left the NCERT books and are gone from both exams *and* boards — a
+student can genuinely drop them. Topic trims sit inside live chapters and are
+**still CBSE board material** — the copy says *weigh lighter*, never *skip*.
+Telling a student to skip Carnot engine would cost them board marks. This is
+the PDF's own "lens, not a lock" principle.
+
+**Placement**: one quiet row at the very bottom of Home — no card, no colour —
+and standalone once open: nothing on either page navigates elsewhere.
+
+**One data call worth a second opinion:** States of Matter was added to
+Chemistry's archived list. The document's exclusions table says the whole unit
+was removed in 2024 even though it isn't in the named archive list, so JEE
+shows 11 archived rather than 10.
+
+## What this session established (read this before the next design round)
+
+**One visual system, now used by all five tabs:**
+- Type ramp: 24 title / 18 card / 15 body / 13 secondary / 11 caption /
+  10 overline, plus one 44pt display for the Monk Score. Weights: Regular,
+  SemiBold, ExtraBold. Kalam only for red-pen accents.
+- Spacing: 24 gutter, 32 between sections, 20 card padding, 8/12/16 inside.
+- Radii: 12 chips · 16 cards · 99 pills. Nothing else.
+- Card shell: `#fff` on `hairline(0.16)`, shadow `0/4/12` at 6%.
+- One black: `rgba(28,26,22,…)` / `colors.ink`. One page ground: `#fff`.
+
+**The honesty rule, which is the more important half:** every number on screen
+is real or absent. No sample data presented as the student's own; empty states
+say so; anything that can't be real yet wears a **Preview** badge. As of this
+session the tab bar contains **zero fabrications**. The three sanctioned
+placeholders are all badged on screen: Progress's pace card, Library's
+Sessions tab, and Practice's mock gate.
+
+**Verification workflow that worked:** the iOS simulator via
+`mcp__Claude_Code_iOS_Simulator__control` (screenshot / tap / swipe / text),
+plus `xcrun simctl openurl monklearningapp://<route>` to jump straight to a
+screen, and editing the app's `RCTAsyncLocalStorage_V1/manifest.json` to force
+a state (e.g. clearing `profile.name` to test the fresh-install greeting).
+This replaced the browser preview entirely and is far more reliable — the
+"browser tap simulation is unreliable" limitation recorded earlier no longer
+blocks interaction testing.
+
+## Still open after this session
+
+- **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
+  `www.monklearning.com` both 404. Needs the 1/3/6/11-month prices for JEE,
+  NEET and Both.
+- **`snap-explanations-teach`** — commit `e276081` in the co-founder's API
+  repo (`~/Desktop/monk-learning-api`), local only, never pushed. It reshapes
+  `prompts/snap_solve.md` (title → reasoning → one equation per line) and
+  raises `MAX_STEP_CHARS` 320 → 700. Awaiting the user's go-ahead.
+- **Backend punch list** (see `backend_followups_pending.md`) gained four
+  items this session: `/drona/sessions` for the Library Sessions tab, a
+  chapter param on `/practice/next`, a practice-question report endpoint, and
+  pace timing data (`question_serves`). Also still open from before:
+  per-subject weekly deltas and `progress_snapshots` for the climb chart, and
+  the uneven worked-solution coverage on practice questions.
