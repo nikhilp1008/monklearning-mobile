@@ -4456,6 +4456,26 @@ This replaced the browser preview entirely and is far more reliable — the
 "browser tap simulation is unreliable" limitation recorded earlier no longer
 blocks interaction testing.
 
+## Decided but not built — `MOMENTS.md` (2026-08-20)
+
+Brainstormed the two problems the user raised about Home — it leans top-heavy,
+and a brand-new student sees a blank Today's Plan and a 0 score — and agreed
+three features to close the second one. Written up as a spec **before** any
+design, in `MOMENTS.md` at the repo root, so the data and wiring are settled
+first: end-of-session celebration on the existing `session-summary.tsx`, a
+"your teacher noticed" observation card on Home, and milestones that persist
+on a page off Progress.
+
+The load-bearing decision recorded there: **we celebrate what a student has
+proven, not what they clicked** — because the Monk Score is defined as moving
+only on proven concepts, so volume badges would contradict our own number.
+Streaks, volume badges and leaderboards are explicitly excluded, with reasons,
+so nobody adds them by reflex.
+
+All three are client-only: `/progress` already returns the score, flag count,
+ledger and every concept's state, so a local snapshot-and-diff
+(`lib/proof.ts`) is the whole engine. No backend work needed.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
