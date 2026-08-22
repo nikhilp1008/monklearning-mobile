@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/skeleton';
 import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { countMilestones } from '@/lib/milestones';
 import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
 import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
@@ -120,6 +121,7 @@ export default function HomeScreen() {
   });
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [noticed, setNoticed] = useState<Observation | null>(null);
+  const [milestones, setMilestones] = useState({ total: 0, unseen: 0 });
   const doneCount = planItems.filter((item) => item.done).length;
   const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
@@ -147,6 +149,11 @@ export default function HomeScreen() {
           // and the numbers and the sentence about them can never disagree.
           classesTaken().then((classes) => {
             if (!cancelled) setNoticed(observe(p, classes));
+          });
+          // Same payload again for the header. Refetched on focus, so returning
+          // from the milestones page clears the dot without a manual refresh.
+          countMilestones(p).then((next) => {
+            if (!cancelled) setMilestones(next);
           });
         })
         .catch(() => {
@@ -191,11 +198,23 @@ export default function HomeScreen() {
               <PersonIcon size={scale(19)} />
             )}
           </PressableScale>
-          {/* Placeholder until notifications ship — the slot is reserved so
-              the header doesn't reflow when they do. */}
-          <View style={styles.headerButton}>
-            <BellIcon size={scale(19)} />
-          </View>
+          {/* Was a notification bell that did nothing. There is no notification
+              we actually want to send — the moments spec rules out the whole
+              "come back, you haven't studied" category — so the slot goes to
+              the one thing a student earns and might want to revisit.
+
+              Absent until there is something in it: an always-present icon
+              leading to an empty page teaches a student to ignore it, and that
+              first impression is hard to undo. Appearing on the day they earn
+              their first is a small reward in itself. */}
+          {milestones.total > 0 && (
+            <PressableScale
+              style={styles.headerButton}
+              onPress={() => router.push('/milestones')}>
+              <KeptIcon size={scale(19)} />
+              {milestones.unseen > 0 && <View style={styles.headerDot} />}
+            </PressableScale>
+          )}
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -466,17 +485,30 @@ function PersonIcon({ size }: { size: number }) {
   );
 }
 
-function BellIcon({ size }: { size: number }) {
+/**
+ * Milestones, as a bookmark with a ruled line through it.
+ *
+ * Not a trophy, medal or star — those are the game-badge vocabulary the
+ * moments spec rules out, and they would promise a kind of reward this app
+ * deliberately doesn't give. A bookmark says "a page you kept", which is
+ * literally what the milestones page is: entries a student returns to.
+ *
+ * The single rule inside the bookmark is what makes it ours rather than a
+ * stock glyph. It is the same ruled-paper line that runs through the note
+ * cards, the doubt of the day and the milestones sheet itself, so the icon
+ * belongs to the app's stationery rather than to a game.
+ */
+function KeptIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Path
-        d="M6 10a6 6 0 0 1 12 0c0 3.4.8 5 1.8 6.2H4.2C5.2 15 6 13.4 6 10Z"
+        d="M6.5 4.5h11v15l-5.5-4-5.5 4v-15Z"
         stroke={colors.ink}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Path d="M10 19.6a2.2 2.2 0 0 0 4 0" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
+      <Path d="M9.5 9.5h5" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -600,6 +632,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: hairline(0.16),
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    // Sits on the button's edge, the way an unread mark does — the one
+    // ambient signal in the app, and it points at something earned rather
+    // than at a reason to come back.
+    headerDot: {
+      position: 'absolute',
+      top: scale(1),
+      right: scale(1),
+      width: scale(9),
+      height: scale(9),
+      borderRadius: scale(4.5),
+      borderWidth: scale(1.5),
+      borderColor: '#fff',
+      backgroundColor: colors.marigold,
     },
     headerInitial: {
       fontFamily: 'AnekLatin_700Bold',

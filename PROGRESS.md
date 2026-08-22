@@ -4726,6 +4726,48 @@ sketched ("Kinetic Theory is your weakest chapter and you haven't opened it
 this week") needs per-chapter open tracking that nothing records yet. Left out
 rather than approximated.
 
+## Milestones move to the Home header
+
+The bell is gone. Two reasons, and the second is the real one.
+
+Milestones sat below the fold on Progress — realistically found by accident in
+week three, or never, which is a poor outcome for the one feature whose job is
+to make progress feel *kept*.
+
+And the bell was pointing at something we have already decided not to build.
+`MOMENTS.md` rules out the whole "come back, you haven't studied" category, so
+there was no notification we actually wanted to send. It was a dead control: a
+student tapped it and nothing happened. Removing it is a win before anything
+replaces it.
+
+**The upside of the swap.** The milestone dot becomes the app's only ambient
+signal — the same attention mechanic every app uses, but pointed at something
+the student earned rather than at our retention target.
+
+**Absent until earned.** The icon does not render until there is at least one
+milestone. An always-present icon leading to an empty page teaches a student to
+ignore it, and that first impression is hard to undo; the icon *appearing* on
+the day they finish their first class is a small reward in itself. Day one the
+header is just the profile initial.
+
+**The icon: a bookmark with a ruled line through it.** Not a trophy, medal or
+star — that is the game-badge vocabulary the spec rules out, and it would
+promise a kind of reward this app deliberately doesn't give. A bookmark says
+"a page you kept", which is literally what the page is. The single rule inside
+it is the same ruled-paper line running through the note cards, the doubt of
+the day and the milestones sheet, so the icon belongs to the app's stationery
+rather than to a game.
+
+**Kept, not moved:** the Milestones row on Progress stays. It sits with the
+ledger, where the numbers count and the collection names — that is context, not
+just navigation. Easy to drop if it reads as redundant.
+
+**Exam scope was left exactly where it is**, at the bottom of Home, on the
+user's call.
+
+Verified on device end to end: dot appears → page renders with the red-pen
+"new" marks in the margin → back → dot cleared, icon remains.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
