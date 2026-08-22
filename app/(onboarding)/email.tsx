@@ -32,7 +32,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LeaderRow, ObButton } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
-import { getStoredName } from '@/lib/profile';
+import { hasCompletedOnboarding, pullProfile } from '@/lib/profile';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 24;
@@ -154,10 +154,11 @@ export default function EmailScreen() {
    * A verified code is a real Supabase session, which is what the root gate
    * watches — so nothing here has to tell the router the student is in.
    *
-   * Where they go next depends on whether this device already knows them.
-   * The profile (name, exam, class) is device-local, so a returning student
-   * on a *new* device genuinely has nothing stored and should fill it in
-   * again; one who simply signed out and back in should not be asked twice.
+   * Where they go next is asked of the *server*, not the device. Checking
+   * local storage for a name looked equivalent and wasn't: a device with
+   * leftover data from earlier testing sent a brand-new sign-in straight to
+   * Home, skipping name, exam and class — which also left the account with no
+   * `target_exam`, and therefore the wrong subjects everywhere.
    */
   const verify = async () => {
     if (busy) return;
@@ -165,9 +166,13 @@ export default function EmailScreen() {
     setError(null);
     try {
       await verifyEmailOtp(email, code);
-      const known = await getStoredName();
-      if (known) router.replace('/(tabs)');
-      else router.replace({ pathname: '/details', params: { email: email.trim() } });
+      if (await hasCompletedOnboarding()) {
+        // Their details live on the server; bring them back to this device.
+        await pullProfile();
+        router.replace('/(tabs)');
+      } else {
+        router.replace({ pathname: '/details', params: { email: email.trim() } });
+      }
     } catch (err) {
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
       setBusy(false);

@@ -30,6 +30,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { getSessionEmail } from '@/lib/auth';
 import { saveProfile } from '@/lib/profile';
 
 // CSS `ease` is cubic-bezier(.25,.1,.25,1); Reanimated's Easing.ease is a
@@ -70,10 +71,23 @@ export default function DetailsScreen() {
   const { ds, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
   const params = useLocalSearchParams<{ email?: string }>();
-  const email = (params.email ?? '').trim();
+  const [email, setEmail] = useState((params.email ?? '').trim());
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+
+  // Reached without a param when the root gate resumes a half-finished
+  // onboarding — the session already knows the address in that case.
+  useEffect(() => {
+    if (email) return;
+    let cancelled = false;
+    getSessionEmail().then((v) => {
+      if (!cancelled && v) setEmail(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [email]);
   // Width of the name field's text, measured off an invisible mirror <Text> so
   // the designed caret can sit exactly after it (CSS: `gap:8px`).
   const [nameTextWidth, setNameTextWidth] = useState(0);

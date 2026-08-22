@@ -94,6 +94,9 @@ export default function RootLayout() {
   useEffect(() => {
     if (!ready || authState === 'loading') return;
     if (authState === 'signed_out') router.replace('/welcome');
+    // Verified, but stopped part-way through. Resume at the first unanswered
+    // question rather than starting them over at the welcome screens.
+    else if (authState === 'needs_onboarding') router.replace('/details');
   }, [ready, authState]);
 
   if (!ready) {

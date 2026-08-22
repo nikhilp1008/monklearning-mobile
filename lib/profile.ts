@@ -1,17 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ExamKey, YearKey } from '@/constants/onboarding';
+import { supabase } from '@/lib/supabase';
 
 /**
  * The student's own details — what onboarding asks for, kept so Personal
  * information can show and edit them.
  *
- * This is device-local. There is no profile endpoint on the API yet (the
- * router table has doubts, drona, notes, practice and progress, and nothing
- * else), and onboarding doesn't persist what it collects either — it just
- * navigates. So these live in AsyncStorage for now, exactly the way the
- * teacher and language preferences do, and move to the server the moment
- * there is a server to move them to. See lib/preferences.ts.
+ * AsyncStorage is the cache; Supabase's `profiles` table is the truth.
+ *
+ * That table already holds `display_name`, `enrolled_class`, `target_exam`
+ * and `phone`, and RLS lets a signed-in student write their own row — so
+ * there was never a need for an endpoint. Writing `target_exam` matters more
+ * than it looks: `GET /progress` reads it to decide which subjects exist, so
+ * it is what makes a NEET student see Biology instead of Maths, everywhere,
+ * without the app filtering anything itself.
  */
 
 const KEYS = {
@@ -137,5 +140,110 @@ export async function clearProfile(): Promise<void> {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch {
     // Nothing useful to do; the next sign-in overwrites these anyway.
+  }
+}
+
+/* ── server ──────────────────────────────────────────────────────────────── */
+
+/**
+ * `profiles.target_exam` is checked against 'JEE' and 'NEET' — uppercase, and
+ * **'both' is rejected** even though `progress.py` has a branch for it. Until
+ * that constraint is widened, a student who picks both is stored as JEE, which
+ * is also what the API would show them (`allowed[0]`), so at least nothing
+ * disagrees. Flagged for the co-founder.
+ */
+function examForServer(exam: ExamKey): 'JEE' | 'NEET' {
+  return exam === 'neet' ? 'NEET' : 'JEE';
+}
+
+/**
+ * `profiles.enrolled_class` is checked against 11, 12 and null. A dropper is
+ * neither, and is stored as 12 — they have finished Class 12 and study the
+ * whole syllabus, so it is the closest true value the column can hold. The
+ * exact answer stays in local storage, which is what the Profile page reads.
+ */
+function classForServer(year: YearKey): number {
+  return year === 'class11' ? 11 : 12;
+}
+
+/** Mirrors the local profile into `profiles`. Best-effort: a failed sync must
+ *  never block onboarding, and the next save retries it. */
+export async function pushProfile(): Promise<void> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user || user.is_anonymous) return;
+    const p = await getProfile();
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      display_name: p.name || null,
+      phone: p.phone || null,
+      phone_verified: p.phoneVerified,
+      target_exam: examForServer(p.exam),
+      enrolled_class: classForServer(p.year),
+    });
+  } catch (err) {
+    console.error('[profile] sync failed:', err);
+  }
+}
+
+/**
+ * Pulls the server's copy into local storage — what makes a reinstall, or a
+ * second device, come back with the student's own details rather than a blank
+ * form. Local values are overwritten, because the server is the truth.
+ */
+export async function pullProfile(): Promise<void> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user || user.is_anonymous) return;
+    const { data: rows } = await supabase
+      .from('profiles')
+      .select('display_name, phone, phone_verified, target_exam, enrolled_class')
+      .eq('id', user.id)
+      .limit(1);
+    const row = rows?.[0];
+    if (!row) return;
+    await saveProfile({
+      ...(row.display_name ? { name: row.display_name as string } : {}),
+      ...(row.phone ? { phone: row.phone as string } : {}),
+      phoneVerified: row.phone_verified === true,
+      exam: String(row.target_exam).toLowerCase() === 'neet' ? 'neet' : 'jee',
+      // 12 covers both Class 12 and droppers on the server, so a pull can only
+      // ever restore the coarse answer — it never overwrites a local
+      // 'dropper' with 'class12' unless there was nothing local to keep.
+      ...(row.enrolled_class === 11 ? { year: 'class11' as YearKey } : {}),
+    });
+    if (user.email) await saveProfile({ email: user.email, emailVerified: true });
+  } catch (err) {
+    console.error('[profile] pull failed:', err);
+  }
+}
+
+/**
+ * Has this student finished onboarding?
+ *
+ * Asked of the server, not the device. The previous check was "is there a name
+ * in local storage", which broke the moment a device had leftover data from
+ * earlier testing: a brand-new sign-in was treated as a returning student and
+ * dropped straight onto Home, skipping name, exam and class entirely.
+ *
+ * Defaults to `false` on any failure — sending a returning student through
+ * onboarding again is a small annoyance, while skipping it leaves an account
+ * with no exam, and therefore the wrong subjects everywhere.
+ */
+export async function hasCompletedOnboarding(): Promise<boolean> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user || user.is_anonymous) return false;
+    const { data: rows } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .limit(1);
+    return !!rows?.[0]?.display_name;
+  } catch {
+    return false;
   }
 }

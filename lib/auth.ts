@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { clearMilestoneState } from '@/lib/milestones';
-import { clearProfile } from '@/lib/profile';
+import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
 import { clearProgressCache } from '@/lib/progress';
 import { clearProofState } from '@/lib/proof';
 import { supabase } from '@/lib/supabase';
@@ -34,7 +34,7 @@ function timeout(ms: number): Promise<never> {
   });
 }
 
-export type AuthState = 'loading' | 'signed_in' | 'signed_out';
+export type AuthState = 'loading' | 'signed_in' | 'needs_onboarding' | 'signed_out';
 
 /**
  * Supabase's own messages are written for developers ("For security purposes,
@@ -119,18 +119,21 @@ export async function getSessionEmail(): Promise<string | null> {
 /**
  * The gate.
  *
- * An anonymous session counts as signed **out**. Every install before this
- * change was silently given one so API calls would work while auth was
- * mocked; treating those as signed in would walk existing testers straight
- * past onboarding without ever giving us their email.
+ * Three states, not two. "Signed in" is not the same as "ready to use the
+ * app": a student who verified their email and then quit before finishing
+ * onboarding has a session but no `target_exam`, and `GET /progress` decides
+ * which subjects exist from that field — so letting them onto Home leaves
+ * them with the wrong syllabus and no way back to the questions.
+ *
+ * An anonymous session counts as signed **out**. Every install before email
+ * auth was silently given one; honouring those would walk existing testers
+ * straight past onboarding without ever giving us their email.
  *
  * This must never get stuck on 'loading' — the root layout holds the splash
  * screen until it resolves, and a hung network call would otherwise blank the
  * whole app (which is exactly what happened to a TestFlight build once
  * already, see PROGRESS.md). The timeout race and the catch below guarantee
- * it always settles; failing to reach Supabase resolves to 'signed_out',
- * which lands the student on onboarding where they can retry, rather than on
- * a splash screen they can't leave.
+ * it always settles.
  */
 export function useAuthState(): AuthState {
   const [state, setState] = useState<AuthState>('loading');
@@ -138,9 +141,25 @@ export function useAuthState(): AuthState {
   useEffect(() => {
     let cancelled = false;
 
-    const resolve = (session: { user?: { is_anonymous?: boolean } } | null) => {
+    const resolve = async (session: { user?: { is_anonymous?: boolean } } | null) => {
       if (cancelled) return;
-      setState(session?.user && !session.user.is_anonymous ? 'signed_in' : 'signed_out');
+      if (!session?.user || session.user.is_anonymous) {
+        setState('signed_out');
+        return;
+      }
+      let done: boolean;
+      try {
+        done = await Promise.race([
+          hasCompletedOnboarding(),
+          timeout(SESSION_BOOTSTRAP_TIMEOUT_MS),
+        ]);
+      } catch {
+        // Offline. The local profile is the only evidence left, and it is
+        // exactly the right evidence for this one case: a student who has
+        // used this device before has a name stored, a new one does not.
+        done = !!(await getStoredName());
+      }
+      if (!cancelled) setState(done ? 'signed_in' : 'needs_onboarding');
     };
 
     (async () => {
@@ -149,7 +168,7 @@ export function useAuthState(): AuthState {
           supabase.auth.getSession(),
           timeout(SESSION_BOOTSTRAP_TIMEOUT_MS),
         ]);
-        resolve(data.session);
+        await resolve(data.session);
       } catch (err) {
         console.error('[auth] session bootstrap failed:', err);
         if (!cancelled) setState('signed_out');

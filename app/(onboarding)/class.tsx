@@ -22,7 +22,7 @@ import {
   type ExamKey,
   type YearKey,
 } from '@/constants/onboarding';
-import { saveProfile } from '@/lib/profile';
+import { pushProfile, saveProfile } from '@/lib/profile';
 
 import { SelectRow } from './exam';
 
@@ -111,8 +111,13 @@ export default function ClassScreen() {
           <ObButton
             label="Start learning"
             withArrow
-            onPress={() => {
-              saveProfile({ year });
+            onPress={async () => {
+              // Last step of onboarding, so this is where the whole profile
+              // reaches the server. `target_exam` in particular decides which
+              // subjects GET /progress returns — a NEET student gets Biology
+              // instead of Maths from this write, with no filtering in the app.
+              await saveProfile({ year });
+              await pushProfile();
               router.replace('/(tabs)');
             }}
           />

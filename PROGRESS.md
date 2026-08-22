@@ -4828,6 +4828,58 @@ have been saved as somebody else's real one.
 the flow reaches the email screen, and validation gates "Send OTP". The live
 send-and-verify round trip is untested — it needs a real inbox.
 
+## Onboarding was being skipped, and no student had an exam
+
+Reported live: verify the OTP, land straight on Home. Name, exam and class
+never asked.
+
+**Why.** `email.tsx` decided "returning student" by asking local storage for a
+stored name. Any device with leftover data from earlier testing therefore
+treated a brand-new sign-in as a returning one. It now asks the **server** —
+does this user id have a `display_name` in `profiles` — which is the only
+question that survives a reinstall, a second device, or a wiped account.
+
+**The bigger consequence.** Skipping onboarding meant `target_exam` was never
+written, and that field is what `GET /progress` reads to decide which subjects
+exist. Every student was silently defaulting to JEE.
+
+**What the database already had.** The `profiles` table holds `display_name`,
+`enrolled_class`, `target_exam`, `phone`, `phone_verified`, `teacher_voice`
+and `teaching_language`, and RLS lets a signed-in student write their own row.
+There was never a need for a profile endpoint — the app simply never wrote it.
+`lib/profile.ts` now syncs both ways: `pushProfile` at the end of onboarding,
+`pullProfile` on a returning sign-in so a reinstall comes back with the
+student's own details instead of a blank form.
+
+**Subjects are dynamic for free.** Writing `target_exam: 'NEET'` makes
+`/progress` return physics/chemistry/**biology** and drop mathematics — proven
+against the live stack for both exams. Progress, and anything else rendering
+that payload, needs no filtering of its own.
+
+**Except the catalogue.** `/drona/catalogue` returns every chapter in the
+database with no exam filter at all, so Lessons and the chapter picker would
+still have offered Biology to a JEE student. Filtered in `lib/drona.ts`, at the
+single fetch every caller shares. The proper fix is server-side next to the one
+`/progress` already does — flagged below. Library needs nothing: its filters
+are derived from the student's own notes and doubts.
+
+**The gate learned a third state.** "Signed in" is not "ready to use the app":
+a student who verifies their email and quits mid-onboarding has a session but
+no exam. `useAuthState` now returns `signed_out` / `needs_onboarding` /
+`signed_in`, and the middle one resumes at the details step. Offline, it falls
+back to the local stored name — which is the one situation that heuristic is
+actually right for.
+
+### For the co-founder
+
+- **`profiles.target_exam` rejects `'both'`.** The check constraint allows only
+  `'JEE'` and `'NEET'`, but `progress.py` has a whole `entitlement == "both"`
+  branch. A student who picks both is currently stored as JEE. Needs a
+  migration to widen the constraint.
+- **`/drona/catalogue` is not exam-filtered** the way `/progress` is.
+- **`enrolled_class` allows only 11, 12 or null**, so "dropper" is stored as 12.
+  The exact answer is kept locally.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
