@@ -24,6 +24,22 @@ export async function getTeacherPreference(): Promise<TeacherId> {
   return value === 'vedha' ? 'vedha' : 'drona';
 }
 
+/**
+ * The name to print when the teacher speaks to the student.
+ *
+ * Deliberately the app's spelling, not the backend's: the voice service calls
+ * the female persona "Veda" while every screen the student has ever seen says
+ * "Vedha". Until that mismatch is settled server-side, the app stays internally
+ * consistent — one surface suddenly dropping the 'h' would read as a bug.
+ */
+export function teacherName(teacher: TeacherId): string {
+  return teacher === 'vedha' ? 'Vedha' : 'Drona';
+}
+
+export async function getTeacherName(): Promise<string> {
+  return teacherName(await getTeacherPreference());
+}
+
 export async function setTeacherPreference(teacher: TeacherId): Promise<void> {
   await AsyncStorage.setItem(TEACHER_KEY, teacher);
 }

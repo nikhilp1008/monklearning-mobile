@@ -24,6 +24,7 @@ import {
   startDronaSession,
 } from '@/lib/drona-live';
 import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
+import { captureProof } from '@/lib/proof';
 
 type Stage = 'connecting' | 'scoping' | 'error';
 
@@ -95,6 +96,10 @@ export default function EnteringClassroomScreen() {
     if (startedRef.current || !paramsSettled) return;
     startedRef.current = true;
     let cancelled = false;
+    // Baseline for the end-of-class moment: whatever is proven from here on
+    // is measured against this. Fire-and-forget on purpose — the class must
+    // not wait on it, and a missed baseline only costs one silent summary.
+    captureProof();
     Promise.all([getTeacherPreference(), getLanguagePreference()])
       .then(([teacher, language]) => {
         if (cancelled) return Promise.reject(new Error('cancelled'));

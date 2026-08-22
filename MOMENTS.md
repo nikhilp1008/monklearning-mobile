@@ -191,14 +191,25 @@ Deliberately excluded, so nobody adds them by reflex later:
 
 ## Build order
 
-1. `lib/proof.ts` — snapshot, diff, seen-set. Everything depends on it, and it
-   is the only piece with real logic risk.
-2. **End-of-session moment** on `session-summary.tsx` (classes only) — smallest
-   surface, existing screen, proves the diff works against real data.
-3. **Milestones page** from Progress — derived collection, seen-set drives what
-   is marked new.
-4. **"Your teacher noticed"** card on Home — last, because it needs the most
-   copy work and benefits from seeing the other two land.
+1. ~~`lib/proof.ts` — snapshot, diff, seen-set.~~ **Done.**
+2. ~~**End-of-session moment** on `session-summary.tsx` (classes only).~~
+   **Done.**
+3. ~~**Milestones page** from Progress.~~ **Done** — with two corrections to
+   this spec, both recorded in PROGRESS.md: `all_flags_cleared` is *not*
+   derivable (a day-one student also has zero flags), so it is the one thing
+   stored; and the milestones page needs its own seen-set, because
+   `session-summary` consumes proof.ts's before the collection ever sees it.
+4. ~~**"Your teacher noticed"** card on Home.~~ **Done** — templated, as
+   recommended. Two things this spec didn't anticipate, both found on real
+   data: the API marks a chapter `needs_revision` the moment one question in
+   it goes wrong, so mastery is routinely `0.0` and "0% of it is holding"
+   reads like a broken string; and with several chapters tied at that same
+   zero, calling one of them "the weakest" is a superlative the data doesn't
+   support. The card now only makes a claim as strong as its evidence.
+
+**All four are built.** What is deliberately still open: Practice's option (a)
+vs (b), and the local-recency observation ("you haven't opened it this week"),
+which needs per-chapter open tracking that nothing records yet.
 
 Then decide Practice's option (a) or (b) with the moment already working for
 classes.

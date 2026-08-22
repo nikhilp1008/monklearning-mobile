@@ -1,13 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { saveNote } from '@/lib/notes';
+import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
 
 /**
  * Class dismissed — what the student sees the moment a live class ends.
@@ -71,6 +73,44 @@ export default function SessionSummaryScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const savedNoteId = useRef<string | null>(null);
 
+  /**
+   * What this class actually proved, if anything.
+   *
+   * Runs once on arrival, against the baseline `entering-classroom.tsx` took
+   * when the session started. The events are marked seen straight away rather
+   * than on unmount, because this screen is the moment — a student who taps
+   * through to their note and never comes back has still been told.
+   */
+  const [proof, setProof] = useState<ProofEvent[]>([]);
+  const proofRan = useRef(false);
+
+  useEffect(() => {
+    if (proofRan.current) return;
+    proofRan.current = true;
+    let alive = true;
+
+    (async () => {
+      // Only a class the backend actually recorded counts as a class taken.
+      const firstClass = params.sessionId ? await noteClassTaken() : null;
+      let events: ProofEvent[] = [];
+      try {
+        events = await collectProof();
+      } catch {
+        // Offline, or the score hasn't been recomputed yet. Either way there
+        // is nothing honest to say, and saying nothing is the designed
+        // outcome — the summary below stands on its own.
+      }
+      if (firstClass) events = rankEvents([firstClass, ...events]);
+      if (!alive || !events.length) return;
+      setProof(events);
+      markSeen(events);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [params.sessionId]);
+
   const handleSave = async () => {
     if (!params.sessionId || saveState === 'saving') return;
     if (saveState === 'saved') {
@@ -127,6 +167,10 @@ export default function SessionSummaryScreen() {
             <Text style={styles.sub}>Good work today — here&apos;s what you covered.</Text>
             <Text style={styles.topic}>{chapterTitle}</Text>
           </Animated.View>
+
+          {/* Above the tallies on purpose: what was proven outranks what was
+              counted. Renders nothing when nothing was proven. */}
+          <ProofMoment events={proof} />
 
           {(questionsAnswered > 0 || covered.length > 0) && (
             <Animated.View entering={FadeInDown.duration(340).delay(70)} style={styles.stats}>

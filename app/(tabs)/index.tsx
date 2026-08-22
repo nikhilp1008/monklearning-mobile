@@ -8,14 +8,17 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { RuledPaper } from '@/components/ruled-paper';
+import { NoticedCard } from '@/components/noticed-card';
 import { Skeleton } from '@/components/skeleton';
 import { SnapIcon } from '@/components/snap-icon';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
 import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { getStoredName } from '@/lib/profile';
+import { classesTaken } from '@/lib/proof';
 
 /**
  * Home.
@@ -116,6 +119,7 @@ export default function HomeScreen() {
     return toStatsState(c.monk_score.display, c.ledger.doubts_solved, c.ledger.questions_attempted);
   });
   const [notes, setNotes] = useState<NoteSummary[]>([]);
+  const [noticed, setNoticed] = useState<Observation | null>(null);
   const doneCount = planItems.filter((item) => item.done).length;
   const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
@@ -139,6 +143,11 @@ export default function HomeScreen() {
           setStats(
             toStatsState(p.monk_score.display, p.ledger.doubts_solved, p.ledger.questions_attempted)
           );
+          // The observation rides the same payload the strip does — one fetch,
+          // and the numbers and the sentence about them can never disagree.
+          classesTaken().then((classes) => {
+            if (!cancelled) setNoticed(observe(p, classes));
+          });
         })
         .catch(() => {
           if (cancelled) return;
@@ -194,7 +203,7 @@ export default function HomeScreen() {
           <View style={styles.cardsGroup}>
             <View style={[styles.card, styles.dronaCard]}>
               <LinearGradient
-                colors={['#F7DCA8', '#FBE9C6', '#FDF6E4']}
+                colors={['#EFC578', '#F8DFB0', '#FDF3DC']}
                 locations={[0, 0.55, 1]}
                 start={{ x: 0.3, y: 0 }}
                 end={{ x: 0.7, y: 1 }}
@@ -224,22 +233,26 @@ export default function HomeScreen() {
                 square — different architecture, so neither reads as a lesser
                 copy of the other. The icons finally get the stage. */}
             <View style={styles.tilesRow}>
-              <PressableScale style={[styles.card, styles.tile]} onPress={() => router.push('/snap-capture')}>
+              <PressableScale
+                style={[styles.card, styles.tile]}
+                onPress={() => router.push('/snap-capture')}>
                 <View style={styles.tileHeader}>
-                  <View style={styles.tileChip}>
+                  <TileChip size={scale(44)} radius={scale(12)}>
                     <SnapIcon size={scale(24)} />
-                  </View>
+                  </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
                 <Text style={styles.tileTitle}>Snap it out</Text>
                 <Text style={styles.tileSubtitle}>Up to 3 questions, solved step by step</Text>
               </PressableScale>
 
-              <PressableScale style={[styles.card, styles.tile]} onPress={() => router.push('/practice')}>
+              <PressableScale
+                style={[styles.card, styles.tile]}
+                onPress={() => router.push('/practice')}>
                 <View style={styles.tileHeader}>
-                  <View style={styles.tileChip}>
+                  <TileChip size={scale(44)} radius={scale(12)}>
                     <InfinityIcon size={scale(24)} />
-                  </View>
+                  </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
                 <Text style={styles.tileTitle}>Practice unlimited</Text>
@@ -286,6 +299,15 @@ export default function HomeScreen() {
                 </>
               )}
             </View>
+          )}
+
+          {/* The teacher reading the numbers just above. One remark, or
+              nothing — never a second section of the page. */}
+          {noticed && (
+            <NoticedCard
+              observation={noticed}
+              onPress={() => runObservationAction(noticed.action)}
+            />
           )}
 
           <View>
@@ -459,6 +481,44 @@ function BellIcon({ size }: { size: number }) {
   );
 }
 
+/**
+ * The tile's icon, as a soft gradient chip.
+ *
+ * This is the CRED idea kept deliberately quiet. A fully saturated chip looked
+ * good in isolation but put the most intense colour on the page onto the two
+ * *secondary* tiles, directly under a hero whose CTA is the palest thing on
+ * it — hierarchy upside down. The pale cream-to-gold ramp keeps the premium
+ * feel and leaves the Drona card leading.
+ *
+ * The card border stays. Dropping it was the one thing that clearly failed:
+ * without an edge the pair read as two floating icons rather than as buttons.
+ */
+function TileChip({
+  size,
+  radius,
+  children,
+}: {
+  size: number;
+  radius: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <LinearGradient
+      colors={['#FFF1D2', '#F0C063']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      {children}
+    </LinearGradient>
+  );
+}
+
 function InfinityIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -472,6 +532,30 @@ function InfinityIcon({ size }: { size: number }) {
       <Circle cx={12} cy={12} r={1.7} fill={colors.marigold} />
     </Svg>
   );
+}
+
+/**
+ * Where an observation sends you. The union is mapped to literal `router.push`
+ * calls rather than a route string, because typed routes are on and a stringly
+ * typed pathname would silently outlive a route rename.
+ */
+function runObservationAction(action: ObservationAction | undefined) {
+  switch (action?.kind) {
+    case 'progress':
+      router.push('/progress');
+      return;
+    case 'drona':
+      router.push('/drona');
+      return;
+    case 'lessons':
+      router.push('/lessons');
+      return;
+    case 'class':
+      router.push({
+        pathname: '/entering-classroom',
+        params: { chapterId: action.chapterId, chapterTitle: action.chapterTitle },
+      });
+  }
 }
 
 function CheckIcon({ size, color }: { size: number; color: string }) {
@@ -548,7 +632,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: 'rgba(238,163,31,.5)',
     },
     dronaTitle: {
-      color: colors.ink,
+      // Ink, held back a little rather than replaced. At full strength it was
+      // the only pure-black object on the card and read as pasted on top of
+      // the gradient; letting the amber show through warms it into the
+      // surface. Alpha, not a new colour — a warm hex here would drift brown,
+      // and the weight stays bold either way.
+      color: hairline(0.8),
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(21),
       letterSpacing: scale(-0.32),

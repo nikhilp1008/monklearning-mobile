@@ -4476,6 +4476,256 @@ All three are client-only: `/progress` already returns the score, flag count,
 ledger and every concept's state, so a local snapshot-and-diff
 (`lib/proof.ts`) is the whole engine. No backend work needed.
 
+## Moments, step 1 + 2: the proof engine and the end-of-class moment
+
+Built and verified on device. This is `MOMENTS.md`'s build order items 1 and 2;
+items 3 (milestones page) and 4 ("your teacher noticed" on Home) are not
+started.
+
+**`lib/proof.ts` — the engine.** Snapshot `/progress` down to ids and numbers
+(~1KB, not the 130KB tree), diff two snapshots into typed events, suppress
+anything already celebrated. Public surface: `captureProof()`,
+`collectProof()`, `diffProof()`, `unseen()`, `markSeen()`, `rankEvents()`,
+`noteClassTaken()`.
+
+Three decisions worth keeping:
+
+- **Firsts need evidence, not just a zero-less counter.** With no prior
+  snapshot, `first_question` only fires when the count is *exactly* 1.
+  Otherwise a student who reinstalls with 400 questions logged gets
+  congratulated on their "first question" — the precise kind of hollow praise
+  the whole feature exists to avoid.
+- **Event ids key on the transition, not the destination.** `score_up:40-47`,
+  not `score_up:47`. Keying on the destination means a student who dips and
+  re-climbs to the same number gets silence the second time.
+- **`first_class` is tracked locally** because `/progress`'s ledger counts
+  doubts and questions but *not* classes. `noteClassTaken()` is called when a
+  class ends, not when one is entered — backing out of the classroom is not a
+  class.
+
+**Where the snapshot is taken:** `entering-classroom.tsx`, fire-and-forget in
+the session-start effect. It must never block the class starting.
+
+**`components/proof-moment.tsx` — the card.** An amber margin rule and a wash,
+in the ruled-paper language; deliberately not a badge. It speaks *once*: the
+highest-ranked event becomes the sentence and everything else folds into one
+supporting line. This matters more than it sounds — a class that takes a
+chapter Strong emits ~10 `concept_strong` events (verified: Gravitation
+produced 9), and printing ten rows would turn proof into a scoreboard.
+
+**Verification.** A 26-check harness ran the real module against the real
+`/progress` payload (fetched with an anon token) — snapshot, diff, regression
+suppression, the reinstall guard, seen-set capping, and `collectProof()`
+end-to-end. Kept in the session scratchpad, not the repo: there is no test
+runner here, and it needs `sucrase` plus an AsyncStorage stub to run.
+
+Then on the simulator: first class → card appears; second class → silent, with
+no leftover gap; a planted stale snapshot → `all_flags_cleared`, two-line copy
+wrapping cleanly. Simulator state was cleaned up afterwards.
+
+**A trap, again.** The first screenshot showed no card — because
+`collectProof()` awaits a ~130KB fetch and the screenshot beat it. Same family
+as the OTP-reset trap already documented: *screenshot after the async work,
+not after the navigation.*
+
+**One thing to watch with real classes.** Every device test drove the diff
+from planted or local state. Whether the backend has recomputed mastery by the
+time `session-summary` mounts is unverified — if `/progress` lags the class
+end, the moment is silently skipped. Worth checking on the next real class,
+and worth asking the co-founder how quickly mastery is written after
+`endDronaSession()`.
+
+## Moments, step 3: the milestones page
+
+`MOMENTS.md` build-order item 3, built and verified. Item 4 ("your teacher
+noticed" on Home) is the only one left.
+
+**`lib/milestones.ts`** derives the collection from `/progress` on every open —
+`chapters_strong: 3` *means* three chapter milestones exist — grouped into
+Firsts / Chapters / Mastery. **`app/milestones.tsx`** renders it as a page in a
+notebook: a ruled sheet, a red margin rule, entries on the lines, and a
+handwritten red-pen "new" in the margin. Reached from a row under Progress's
+"The journey so far", which shows `N kept · N new` with a marigold dot.
+
+Two spec bugs found while building:
+
+- **`all_flags_cleared` is not derivable.** A day-one student has
+  `flagged_concepts: 0`, which is indistinguishable from a student who cleared
+  every flag — deriving it would hand the rarest card in the app to someone on
+  their first launch. It is now written down when the event actually fires
+  (`proof.earned`), and it is the *only* thing stored. MOMENTS.md's "almost
+  every milestone is recomputable" turned out to be load-bearing on the
+  "almost".
+- **proof.ts's seen-set cannot drive "new" here.** `session-summary` empties
+  that set into the end-of-class moment, so a chapter celebrated when it went
+  Strong would arrive in the collection already stale and almost nothing would
+  ever be marked new. Milestones got their own seen-set. Being told once and
+  finding it in your notebook are different events.
+
+**Deliberate omissions.** No locked or greyed rows — that is the game-badge
+pattern the spec rules out, and on day one it renders as a wall of failure; an
+empty collection gets a sentence and one button instead. And **no dates**:
+deriving the collection is what makes it survive a reinstall, and the price is
+that we know a chapter is Strong but not when it got there. A notebook of
+undated entries is honest; one where half the entries are dated is broken.
+
+**Verification.** A 17-check harness against the real `/progress` payload
+(day-one silence, the zero-flags trap, section grouping and ordering, caption
+casing, id stability across recomputes, the seen-set, `countMilestones`, and
+that proof.ts records *only* the un-rederivable event). Then on device: the
+Progress row read "2 kept · 2 new", matching the live account exactly; the page
+rendered; a second visit dropped the "new" marks; and a temporarily-injected
+rich set confirmed the three-section layout, a two-line chapter name, and the
+last row's rule dropping cleanly at the card edge. Injection reverted and the
+simulator's seen-set cleaned afterwards.
+
+**A trap worth writing down.** For most of this build the simulator was running
+a bundle from a *dead* Metro on :8081 while the live one was on :8082 — edits
+appeared to do nothing, and the obvious conclusion ("my code is wrong") was
+wrong. `xcrun simctl terminate` + `launch` surfaces the dev-launcher and shows
+which server is actually green. Check that before debugging a change that
+"isn't showing up".
+
+## Moments, step 4: "your teacher noticed" on Home
+
+The last item in `MOMENTS.md`'s build order. All four are now built.
+
+**`lib/noticed.ts`** returns one observation or nothing, ranked by leverage:
+day-one invitation → flags (a hard cap on the score) → volume without proof →
+an untouched subject → chapters needing revision → what's Strong. Templated,
+not model-generated, per the spec's own recommendation — free, offline,
+instant, and unable to drift into a claim we didn't intend.
+
+**`components/teacher-note.tsx`** is now the shell for *both* the end-of-class
+moment and this card. They are the same teacher saying two kinds of true
+thing; styled separately they would have drifted into looking like two
+unrelated system messages, which is what rule 3 exists to prevent.
+`proof-moment.tsx` was refactored onto it and re-verified for regression.
+
+**Placed directly under Home's stats strip** — the numbers, then what they
+mean — which is also the "everything below the fold is plain" fix from the
+original brainstorm.
+
+**Two bugs the real data found, that a synthetic fixture would have hidden:**
+
+- The API marks a chapter `needs_revision` as soon as one question in it goes
+  wrong, so `mastery` is frequently exactly `0.0`. The first device render
+  said *"Kinetic Theory is the weakest chapter you've started. 0% of it is
+  holding."* — technically true, reads like a broken template.
+- On this account **eight** chapters sat at that same zero. Naming one of them
+  "the weakest" is a superlative the data cannot support.
+
+Both fixed by making the claim only as strong as the evidence: the superlative
+is used *only* when one chapter is uniquely lowest and its mastery is above
+zero; otherwise the card names the chapter plainly and says how many others
+are in the same state. The CTA also changes — "Take it again" implies a class
+the student may never have had, so a zero-mastery chapter offers "Learn this
+chapter" instead.
+
+**Verification.** A 21-check harness over every branch against the real
+payload — ordering, the tie case, the zero-mastery case, singular/plural
+grammar, id stability, and that an all-`not_started` syllabus never names a
+weakest chapter. Then on device: the card in the live account's exact state,
+and the session-summary moment re-checked for regression after the refactor.
+
+### Round two: the card was wrong, and the tiles were too light
+
+Feedback on the first build: the card "feels very light and not attractive",
+takes too much space for one short fact, and "feels like another section on
+the home page". All correct. A full-width amber block with an overline, a
+headline, an explanatory sentence and a text link is a *section*. It was ~230pt
+tall to deliver six words.
+
+Rebuilt as `components/noticed-card.tsx`, about half the height:
+
+- **The teacher is present** — an initial in a marigold disc, which does the
+  job of "this is a person, not a system message" in one 34pt circle rather
+  than a line of label text.
+- **The noun is highlighted**, the way a student marks their own book. The eye
+  lands on the chapter name, which is the only actionable part of the line.
+- **The whole row is the target**, with the chevron. A text link *inside* a
+  card makes the card itself look inert.
+- The explanatory second sentence is gone. Observations now carry a one-line
+  `text`, a `focus` phrase to mark, and an optional short `meta` tag
+  ("+7 more", "38% holding") — never a second sentence.
+
+**Round three stripped it further.** The disc, the "<teacher> noticed" label
+and the highlighter mark were three signals competing inside 110pt and read as
+congested. All three are gone; what's left is the sentence, the tag and the
+chevron, in one ~78pt row.
+
+Worth recording what that costs: those three were what made the row the
+*teacher* speaking, which is MOMENTS.md rule 3. The amber keeps it in the
+teacher's colour, but nothing now says who is talking — this is an observation
+from the app. Half-signalling it was the worse option, so it went cleanly.
+Revisit if the row ever needs to feel personal again. The `focus` field was
+deleted from `Observation` with the highlighter rather than left as dead data.
+
+An earlier layout fix, kept: with the meta chip beside the sentence it stole
+enough width to wrap "Kinetic Theory needs / revising." — a line broken after
+its verb. The chip moved up to the label row, and the sentence gets full width.
+
+`teacher-note.tsx` stays as the *session-summary* shell. The two are no longer
+one component, deliberately: the end-of-class card is a moment the student has
+stopped to read and can afford height; this one is a remark passed on the way
+down the page. Same amber language, different objects.
+
+### The tiles: four rounds to get there
+
+Worth writing down because the first three rounds were wasted the same way —
+each was a variation on "draw more border", and the note below is the reason.
+
+1. **Four corner brackets, inset.** Read as noise: too many marks, too far
+   from the edge to belong to it.
+2. **Flush corner arms and edge-Ls**, ink and amber. Same idea again. Rejected.
+3. **Different devices** — an offset layer behind, a heavier border, a weighted
+   bottom edge, a notebook margin rule. Closer to real design choices, still
+   not right for the brand.
+4. **The CRED direction**, on request: depth from a soft gradient and one
+   saturated accent instead of any outline. The gradient icon chip landed.
+
+**What shipped:** a pale cream→gold gradient chip (`#FFF1D2` → `#F0C063`) on
+an otherwise unchanged white tile, border kept.
+
+Two findings from that round are the real content here:
+
+- **Dropping the border was the one clear failure.** Without an edge the pair
+  stopped reading as two tappable objects and became two floating icons. Every
+  later variant kept it.
+- **A fully saturated chip inverted the page's hierarchy.** It put the most
+  intense colour on Home onto the two *secondary* tiles, directly beneath a
+  hero whose CTA is the palest thing on it. A 44pt saturated square pulls the
+  eye harder than a large soft wash does. The fix was chosen on both sides:
+  the chip went pale, and the **Drona hero's own gradient was deepened**
+  (`#F7DCA8`→`#EFC578` at the dark end), so the hero leads on depth of colour
+  rather than by having a shinier object.
+
+**The hero's title.** "Learn with Drona" was `colors.ink` at full strength —
+the only pure-black object on the card, which made it read as pasted on top of
+the gradient rather than sitting in it. Now the same ink at **0.80 alpha**, so
+the amber tints it. Alpha rather than a warmer hex on purpose: a warm dark
+colour is the obvious way to "reduce the blackness", but that is exactly the
+move that drifted brown when it was tried on the CTA earlier. Letting the
+card's own gradient do the tinting also keeps it correct if the gradient is
+ever retuned. Contrast lands around 5.6:1 on the darkest part of the ramp.
+
+Note for next time: when a treatment is rejected twice, the third attempt
+should change the *device*, not the parameters. Three rounds here were spent
+re-tuning inset, weight and colour on what was always the same idea.
+
+**Earlier, superseded:** Snap it out / Practice unlimited were reading light,
+held by a single hairline. Rather than a second full border (heavier) or a
+gradient (competes with the hero), they now carry **corner brackets** — four
+short arms inset inside the existing hairline, like a viewfinder framing a
+shot. It reads as emphasis rather than weight, and leaves the middle of each
+tile as quiet as it was. Implemented as four Views (`CornerBrackets`) rather
+than an SVG so the arms inherit the card radius exactly.
+
+**Still open, deliberately:** the local-recency observation MOMENTS.md
+sketched ("Kinetic Theory is your weakest chapter and you haven't opened it
+this week") needs per-chapter open tracking that nothing records yet. Left out
+rather than approximated.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
