@@ -4880,6 +4880,35 @@ actually right for.
 - **`enrolled_class` allows only 11, 12 or null**, so "dropper" is stored as 12.
   The exact answer is kept locally.
 
+## Onboarding polish, and one thing deliberately not built
+
+- **The name field looked pre-filled.** The designed caret is positioned off an
+  invisible mirror `<Text>` that measures the field's contents — and it was
+  measuring the *placeholder* when the field was empty, parking the caret after
+  "Aarav Sharma". It now measures the typed name only, so an empty field puts
+  the caret where it belongs.
+- **"Optional" was doing the placeholder's job** in the phone field. A
+  placeholder shows the *shape* of the answer; spending it on a caveat left the
+  student guessing the format. Now `98765 43210`, with "optional" as a small
+  hint beneath.
+- **Email descenders were clipped.** iOS lays a TextInput's text out inside the
+  line box and clips what falls outside, so an explicit `lineHeight` was
+  shaving the bottom off g/p/y. Replaced with a `minHeight`, which reserves the
+  same vertical space without constraining where the glyphs sit.
+- **The "Already with us" line is dynamic** — but on the student's typing, not
+  on whether the address is registered. It now reads "Already with us / This
+  same box signs you back in" until the address is complete, then "Next / A
+  six-digit code, to this address".
+
+**Why not new-versus-returning:** answering that requires a lookup that tells
+anyone who types an address whether it has an account here. That is account
+enumeration, and it is the reason the industry standard is "if an account
+exists, we've sent a code". Supabase *can* be made to reveal it
+(`shouldCreateUser: false` errors for unknown addresses), which is precisely
+the vector to avoid. The place where the distinction is both known and safe is
+*after* verification, where `hasCompletedOnboarding()` already routes returning
+students straight to Home.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and

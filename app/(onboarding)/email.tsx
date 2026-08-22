@@ -180,6 +180,7 @@ export default function EmailScreen() {
   };
 
   const activeBox = code.length < CODE_LENGTH ? code.length : -1;
+  const ready = looksLikeEmail(email);
 
   return (
     <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
@@ -228,9 +229,17 @@ export default function EmailScreen() {
 
               {!!error && <Text style={s.error}>{error}</Text>}
 
+              {/* Dynamic, but not on whether the address is registered.
+                  Asking that would mean a lookup anyone could use to discover
+                  who has an account here — the reason the industry standard
+                  is "if an account exists, we've sent a code". So the line
+                  reacts to what we legitimately know: whether the student has
+                  finished typing, and therefore what the button is about to
+                  do. Before that it answers the question a returning student
+                  actually has, which is whether they're in the right box. */}
               <LeaderRow
-                label="Already with us"
-                value="Straight to your classroom"
+                label={ready ? 'Next' : 'Already with us'}
+                value={ready ? 'A six-digit code, to this address' : 'This same box signs you back in'}
                 tone="dark"
                 labelSize={15}
                 valueSize={15}
@@ -245,7 +254,7 @@ export default function EmailScreen() {
                 label={busy ? 'Sending…' : 'Send OTP'}
                 variant="ink"
                 withArrow
-                disabled={!looksLikeEmail(email) || busy}
+                disabled={!ready || busy}
                 onPress={sendOtp}
               />
             </View>
@@ -479,7 +488,11 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
       padding: 0,
       fontFamily: obFont.sb600,
       fontSize: ds(24),
-      lineHeight: ds(32),
+      // No lineHeight. iOS lays a TextInput's text out inside the line box and
+      // clips whatever falls outside it, which was shaving the descenders off
+      // g/p/y in an address. A minHeight reserves the same vertical space the
+      // design expects without constraining where the glyphs sit.
+      minHeight: ds(34),
       color: ob.ink,
     },
     error: {

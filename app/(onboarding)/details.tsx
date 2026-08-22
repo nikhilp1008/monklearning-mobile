@@ -128,11 +128,15 @@ export default function DetailsScreen() {
                     caretHidden
                     selectionColor={ob.amber}
                   />
+                  {/* Measures the *typed* name only. Measuring the
+                      placeholder too put the caret after "Aarav Sharma",
+                      which read as a name already filled in rather than as
+                      an empty field waiting for one. */}
                   <Text
                     style={[styles.value, styles.mirror]}
                     numberOfLines={1}
                     onLayout={onMeasureName}>
-                    {name.length > 0 ? name : NAME_PLACEHOLDER}
+                    {name}
                   </Text>
                   <Caret left={nameTextWidth + ds(8)} height={ds(24)} />
                 </View>
@@ -165,11 +169,16 @@ export default function DetailsScreen() {
                 style={[styles.value, styles.input, styles.emailInput]}
                 value={phone}
                 onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, '').slice(0, 10))}
-                placeholder="Optional"
+                placeholder="98765 43210"
                 placeholderTextColor={ob.ink30}
                 keyboardType="phone-pad"
                 selectionColor={ob.amber}
               />
+              {/* "Optional" belongs here, not in the placeholder — a
+                  placeholder's job is to show the shape of the answer, and
+                  spending it on a caveat leaves the student guessing the
+                  format. */}
+              <Text style={styles.hint}>Optional</Text>
             </View>
           </View>
 
@@ -354,6 +363,12 @@ function createStyles(
     },
     // `margin-top:8px`
     cardText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
+    hint: {
+      marginTop: ds(6),
+      fontFamily: obFont.r400,
+      fontSize: ds(13),
+      color: ob.ink40,
+    },
     emailInput: {
       marginTop: ds(8),
     },
