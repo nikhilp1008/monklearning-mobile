@@ -214,12 +214,13 @@ export default function EmailScreen() {
                         setError(null);
                       }}
                       placeholder="you@example.com"
-                      placeholderTextColor={ob.ink55}
+                      placeholderTextColor={ob.placeholder}
                       keyboardType="email-address"
                       autoCapitalize="none"
                       autoCorrect={false}
                       autoComplete="email"
                       textContentType="emailAddress"
+                      selectionColor={ob.amber}
                       returnKeyType="go"
                       onSubmitEditing={sendOtp}
                     />

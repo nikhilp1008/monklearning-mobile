@@ -13,16 +13,12 @@ import {
   Text,
   TextInput,
   View,
-  type LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
-  useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,7 +35,6 @@ const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
 // `@keyframes caret{0%,45%{opacity:1}50%,95%{opacity:0}100%{opacity:1}}`
 // at `1.1s steps(1) infinite` — a hard on/off, 550ms each half.
-const CARET_HALF_MS = 550;
 
 // `@keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}`
 // at `.5s .2s ease both`, with `stroke-dasharray:32` on the path.
@@ -88,11 +83,6 @@ export default function DetailsScreen() {
       cancelled = true;
     };
   }, [email]);
-  // Width of the name field's text, measured off an invisible mirror <Text> so
-  // the designed caret can sit exactly after it (CSS: `gap:8px`).
-  const [nameTextWidth, setNameTextWidth] = useState(0);
-
-  const onMeasureName = (e: LayoutChangeEvent) => setNameTextWidth(e.nativeEvent.layout.width);
 
   return (
     <View style={styles.screen}>
@@ -122,23 +112,10 @@ export default function DetailsScreen() {
                     value={name}
                     onChangeText={setName}
                     placeholder={NAME_PLACEHOLDER}
-                    placeholderTextColor={ob.ink30}
+                    placeholderTextColor={ob.placeholder}
                     autoCapitalize="words"
-                    // The designed caret below replaces the platform one.
-                    caretHidden
                     selectionColor={ob.amber}
                   />
-                  {/* Measures the *typed* name only. Measuring the
-                      placeholder too put the caret after "Aarav Sharma",
-                      which read as a name already filled in rather than as
-                      an empty field waiting for one. */}
-                  <Text
-                    style={[styles.value, styles.mirror]}
-                    numberOfLines={1}
-                    onLayout={onMeasureName}>
-                    {name}
-                  </Text>
-                  <Caret left={nameTextWidth + ds(8)} height={ds(24)} />
                 </View>
               </View>
             </View>
@@ -170,16 +147,15 @@ export default function DetailsScreen() {
                 value={phone}
                 onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, '').slice(0, 10))}
                 placeholder="98765 43210"
-                placeholderTextColor={ob.ink30}
+                placeholderTextColor={ob.placeholder}
                 keyboardType="phone-pad"
                 selectionColor={ob.amber}
               />
-              {/* "Optional" belongs here, not in the placeholder — a
-                  placeholder's job is to show the shape of the answer, and
-                  spending it on a caveat leaves the student guessing the
-                  format. */}
-              <Text style={styles.hint}>Optional</Text>
             </View>
+            {/* Outside the card on purpose. A caveat sitting inside the field
+                reads as part of the answer; beside it, it reads as a note
+                about the field — which is what it is. */}
+            <Text style={styles.hint}>Optional</Text>
           </View>
 
           {/* `margin-top:auto; padding:0 34px 34px` */}
@@ -202,29 +178,6 @@ export default function DetailsScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
-  );
-}
-
-// `width:2px;height:24px;background:#EEA31F;animation:caret 1.1s steps(1) infinite`
-function Caret({ left, height }: { left: number; height: number }) {
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    const step = { duration: CARET_HALF_MS, easing: Easing.steps(1, true) };
-    opacity.value = withRepeat(
-      withSequence(withTiming(1, step), withTiming(0, step)),
-      -1,
-      false
-    );
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-  return (
-    <View style={[caretStyles.slot, { left }]} pointerEvents="none">
-      {/* 2px is a hairline in the design — kept literal, not scaled. */}
-      <Animated.View style={[{ width: 2, height, backgroundColor: ob.amber }, animatedStyle]} />
     </View>
   );
 }
@@ -258,16 +211,6 @@ function DrawnCheck({ size }: { size: number }) {
   );
 }
 
-const caretStyles = StyleSheet.create({
-  // Sits on top of the value row and centres the bar vertically, exactly as
-  // `align-items:center` does in the CSS flex row.
-  slot: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-});
 
 function createStyles(
   ds: (size: number) => number,
@@ -364,7 +307,8 @@ function createStyles(
     // `margin-top:8px`
     cardText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
     hint: {
-      marginTop: ds(6),
+      marginTop: ds(-4),
+      marginLeft: ds(4),
       fontFamily: obFont.r400,
       fontSize: ds(13),
       color: ob.ink40,

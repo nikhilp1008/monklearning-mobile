@@ -4909,6 +4909,31 @@ the vector to avoid. The place where the distinction is both known and safe is
 *after* verification, where `hasCompletedOnboarding()` already routes returning
 students straight to Home.
 
+## The hand-drawn caret goes
+
+The onboarding handoff was a web prototype, and its blinking 2px amber caret
+was transcribed literally: `caretHidden` on the TextInput, plus an animated
+View positioned off an invisible mirror `<Text>` measuring the typed value.
+
+On a phone that is the wrong thing twice over. The platform already draws a
+caret that behaves correctly — it tracks selection, respects RTL, moves with
+the magnifier on a long-press, and matches every other text field the student
+uses. And the reproduction had a bug the real one cannot have: with nothing
+typed the mirror measured zero, so the caret sat at `0 + 8pt` — *on top of* the
+placeholder's second letter.
+
+Removed from the name field; the platform caret is tinted with `selectionColor`
+so it is still amber. The email field's caret was the untinted iOS blue and is
+now amber too. A field with **no** caret was considered and rejected: a text
+input that doesn't show where typing will land is genuinely harder to use, and
+that is not what the handoff's caret was for.
+
+**Two related fixes.** "Optional" moved outside the phone card — a caveat
+inside the field reads as part of the answer, beside it reads as a note about
+the field. And placeholders got their own tone (`ob.placeholder`,
+`rgba(28,26,22,.26)`): at `ink30` they were being read as filled-in answers,
+which is the one failure mode a placeholder has.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and

@@ -35,6 +35,10 @@ export const ob = {
   ink55: '#8C867A',
   ink40: '#A39B8B',
   ink30: '#B4AC9B',
+  // Placeholders only. Lighter than any text tone on purpose: at ink30 a
+  // placeholder was being read as a filled-in answer, which is the whole
+  // failure mode a placeholder has.
+  placeholder: 'rgba(28,26,22,.26)',
   surface: '#FFFFFF',
   surfaceWarm: '#F7F4EC',
   cream: '#FBF9F2',
