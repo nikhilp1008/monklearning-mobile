@@ -1,11 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
@@ -18,21 +12,26 @@ import { StudentProfile, getProfile, saveProfile } from '@/lib/profile';
  * Personal information.
  *
  * What this replaces had email, phone and a change-password form. There is no
- * password anywhere in this product — students sign in with a phone number
+ * password anywhere in this product — students sign in with an email address
  * and an OTP — so that form could not have worked.
  *
- * Each field is exactly as editable as it really is. Name and email are
- * typed. Class changes — a student who signs up in Class 11 is still here in
- * Class 12 — so its row opens in place to offer the three options, and closes
- * again on the pick. No sheet, no scrim, nothing dimmed: this is one field on
- * a settings page, and a modal to change it was more furniture than the
- * choice deserves. Exam is fixed at sign-up. Phone is the account itself,
- * verified at the OTP step.
+ * Each field is exactly as editable as it really is. Name is typed. Class
+ * changes — a student who signs up in Class 11 is still here in Class 12 — so
+ * its row opens in place to offer the three options, and closes again on the
+ * pick. No sheet, no scrim, nothing dimmed: this is one field on a settings
+ * page, and a modal to change it was more furniture than the choice deserves.
+ * Exam is fixed at sign-up.
+ *
+ * Email and phone have swapped roles. Email is now the account itself — it is
+ * what the sign-in code was sent to, so it is verified by definition and
+ * cannot be edited here; changing it would mean re-verifying, and there is no
+ * flow for that yet. Phone is collected but unverified: SMS needs an Indian
+ * sender and the legal work behind it, so its Verify button is deliberately
+ * present but says so rather than pretending.
  */
 
 const VERIFIED_GREEN = '#157A45';
 const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
-const CODE_LENGTH = 6;
 
 export default function AccountScreen() {
   const { scale, verticalScale } = useScale();
@@ -40,12 +39,8 @@ export default function AccountScreen() {
 
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [otpOpen, setOtpOpen] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [otpError, setOtpError] = useState(false);
-  const codeInput = useRef<TextInput>(null);
-  const shake = useSharedValue(0);
+  const [phone, setPhone] = useState('');
+  const [phoneNote, setPhoneNote] = useState(false);
   const [classOpen, setClassOpen] = useState(false);
 
   useEffect(() => {
@@ -54,7 +49,7 @@ export default function AccountScreen() {
       if (cancelled) return;
       setProfile(p);
       setName(p.name);
-      setEmail(p.email);
+      setPhone(p.phone);
     });
     return () => {
       cancelled = true;
@@ -66,72 +61,7 @@ export default function AccountScreen() {
     saveProfile(next);
   }, []);
 
-  const closeOtp = useCallback(() => {
-    setOtpOpen(false);
-    setOtp('');
-    setOtpError(false);
-  }, []);
-
-  const openOtp = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setOtp('');
-    setOtpError(false);
-    setOtpOpen(true);
-    // No endpoint sends this yet — see the note at the top of lib/profile.ts.
-    // The keyboard comes up with the boxes; the delay just lets them mount.
-    setTimeout(() => codeInput.current?.focus(), 60);
-  }, []);
-
-  /**
-   * The sixth digit submits — there is no Confirm button, because by then the
-   * student has nothing left to decide. A wrong code shakes the row red and
-   * clears itself rather than parking an error message on the page.
-   */
-  const submitCode = useCallback(
-    (code: string) => {
-      // Nothing checks this yet. Until the endpoint exists, any code passes
-      // except 000000, which is kept failing so the error state stays
-      // reachable — delete that clause with the rest of this comment.
-      const accepted = code !== '000000';
-      if (!accepted) {
-        setOtpError(true);
-        shake.value = withSequence(
-          withTiming(-6, { duration: 45 }),
-          withTiming(6, { duration: 60 }),
-          withTiming(-4, { duration: 55 }),
-          withTiming(0, { duration: 45 })
-        );
-        setTimeout(() => {
-          setOtp('');
-          setOtpError(false);
-          codeInput.current?.focus();
-        }, 550);
-        return;
-      }
-      codeInput.current?.blur();
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      patch({ emailVerified: true });
-      setOtpOpen(false);
-      setOtp('');
-    },
-    [patch, shake]
-  );
-
-  const onCodeChange = useCallback(
-    (next: string) => {
-      const digits = next.replace(/[^0-9]/g, '').slice(0, CODE_LENGTH);
-      setOtp(digits);
-      setOtpError(false);
-      if (digits.length === CODE_LENGTH) submitCode(digits);
-    },
-    [submitCode]
-  );
-
-  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
-
-  const emailChanged = profile ? email.trim() !== profile.email : false;
-  const emailVerified = !!profile?.emailVerified && !emailChanged;
-  const hasEmail = email.trim().length > 0;
+  const email = profile?.email ?? '';
 
   return (
     <SettingsPage title="Personal information" keyboardAware>
@@ -197,100 +127,52 @@ export default function AccountScreen() {
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>PHONE NUMBER</Text>
           <View style={styles.rowValue}>
-            <Text style={[styles.value, !profile?.phone && styles.valueEmpty]}>
-              {profile?.phone || 'Not set'}
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={(next) => {
+                setPhone(next);
+                setPhoneNote(false);
+              }}
+              onBlur={() => patch({ phone: phone.trim(), phoneVerified: false })}
+              placeholder="Add your number"
+              placeholderTextColor={colors.faint}
+              keyboardType="phone-pad"
+            />
+            {/* Present, but honest. SMS verification isn't live, and a button
+                that silently does nothing is worse than one that says why. */}
+            {phone.trim().length > 0 && (
+              <Pressable
+                style={styles.verifyButton}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setPhoneNote((v) => !v);
+                }}>
+                <Text style={styles.verifyButtonText}>Verify</Text>
+              </Pressable>
+            )}
+          </View>
+          {phoneNote && (
+            <Text style={styles.fieldNote}>
+              Number verification isn&apos;t live yet — your email is what keeps your account
+              secure for now. We&apos;ll text you the moment it is.
             </Text>
-            {!!profile?.phone && (
+          )}
+        </View>
+
+        <View style={[styles.field, styles.fieldLast]}>
+          <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+          <View style={styles.rowValue}>
+            <Text style={[styles.value, !email && styles.valueEmpty]} numberOfLines={1}>
+              {email || 'Not set'}
+            </Text>
+            {!!email && (
               <View style={styles.verifiedTag}>
                 <CheckIcon size={scale(11)} />
                 <Text style={styles.verifiedText}>Verified</Text>
               </View>
             )}
           </View>
-        </View>
-
-        <View style={[styles.field, styles.fieldLast]}>
-          <View style={styles.labelRow}>
-            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
-            <Text style={styles.optionalTag}>OPTIONAL</Text>
-          </View>
-          <View style={styles.rowValue}>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={(next) => {
-                setEmail(next);
-                closeOtp();
-              }}
-              onBlur={() => {
-                const trimmed = email.trim();
-                // A changed address is a different address — the old tick
-                // can't carry over to it.
-                if (trimmed !== profile?.email) patch({ email: trimmed, emailVerified: false });
-              }}
-              placeholder="Add your email"
-              placeholderTextColor={colors.faint}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {emailVerified ? (
-              <View style={styles.verifiedTag}>
-                <CheckIcon size={scale(11)} />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            ) : hasEmail && !otpOpen ? (
-              <Pressable style={styles.verifyButton} onPress={openOtp}>
-                <Text style={styles.verifyButtonText}>Verify</Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          {/* The code is taken here rather than on a screen of its own: it is
-              one field and one button, and sending the student somewhere else
-              to type six digits costs more than it is worth. */}
-          {otpOpen && (
-            <View style={styles.otpBlock}>
-              <Animated.View style={[styles.boxesRow, shakeStyle]}>
-                {Array.from({ length: CODE_LENGTH }, (_, i) => {
-                  const digit = otp[i];
-                  const active = !otpError && i === otp.length;
-                  return (
-                    <Pressable
-                      key={i}
-                      style={[
-                        styles.box,
-                        active && styles.boxActive,
-                        otpError && styles.boxError,
-                      ]}
-                      onPress={() => codeInput.current?.focus()}>
-                      <Text style={[styles.boxDigit, otpError && styles.boxDigitError]}>
-                        {digit ?? ''}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-                {/* One real input behind the boxes — it takes the keyboard and
-                    the SMS/mail autofill; the boxes are only its picture. */}
-                <TextInput
-                  ref={codeInput}
-                  style={styles.hiddenInput}
-                  value={otp}
-                  onChangeText={onCodeChange}
-                  keyboardType="number-pad"
-                  maxLength={CODE_LENGTH}
-                  caretHidden
-                  autoComplete="one-time-code"
-                  textContentType="oneTimeCode"
-                />
-              </Animated.View>
-              <Text style={styles.otpHint}>
-                Sent to {email.trim()} ·{' '}
-                <Text style={styles.otpResend} onPress={openOtp}>
-                  Resend
-                </Text>
-              </Text>
-            </View>
-          )}
         </View>
       </View>
 
@@ -414,6 +296,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(11),
       letterSpacing: scale(0.66),
+      color: colors.faint,
+    },
+    fieldNote: {
+      marginTop: verticalScale(8),
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(13 * 1.5),
       color: colors.faint,
     },
     verifiedTag: {

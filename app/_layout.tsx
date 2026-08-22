@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -19,7 +19,7 @@ import {
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
-import { useEnsureAnonymousSession } from '@/lib/auth';
+import { useAuthState } from '@/lib/auth';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -62,7 +62,7 @@ export default function RootLayout() {
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
   }
-  const sessionReady = useEnsureAnonymousSession();
+  const authState = useAuthState();
 
   const [failsafeTripped, setFailsafeTripped] = useState(false);
   useEffect(() => {
@@ -70,13 +70,31 @@ export default function RootLayout() {
     return () => clearTimeout(id);
   }, []);
 
-  const ready = ((fontsLoaded || fontsError) && sessionReady) || failsafeTripped;
+  const ready = ((fontsLoaded || fontsError) && authState !== 'loading') || failsafeTripped;
 
   useEffect(() => {
     if (ready) {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [ready]);
+
+  /**
+   * The gate. The app anchors to `(tabs)`, so an unauthenticated student is
+   * redirected out of it rather than the router being given a different
+   * entry point — which keeps every deep link working unchanged.
+   *
+   * It runs only once the splash screen is still up, so nothing flashes. An
+   * anonymous session counts as signed out (see lib/auth.ts): every install
+   * before email auth was silently given one, and honouring those would walk
+   * existing testers straight past onboarding.
+   *
+   * `authState` is live, so signing out anywhere in the app lands here too
+   * and no screen has to route on its own behalf.
+   */
+  useEffect(() => {
+    if (!ready || authState === 'loading') return;
+    if (authState === 'signed_out') router.replace('/welcome');
+  }, [ready, authState]);
 
   if (!ready) {
     return null;

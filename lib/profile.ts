@@ -19,6 +19,7 @@ const KEYS = {
   email: 'profile.email',
   emailVerified: 'profile.emailVerified',
   phone: 'profile.phone',
+  phoneVerified: 'profile.phoneVerified',
   exam: 'profile.exam',
   year: 'profile.year',
 } as const;
@@ -28,23 +29,33 @@ export interface StudentProfile {
   /** Empty when the student skipped it — it was never mandatory. */
   email: string;
   emailVerified: boolean;
-  /** Verified at the OTP step, so it is the one field that can't be edited. */
+  /**
+   * Collected during onboarding but never verified — SMS auth is deferred
+   * until there is an Indian sender, so nothing is ever sent here. Kept as a
+   * field rather than dropped so the number is already on file the day phone
+   * verification does ship.
+   */
   phone: string;
+  phoneVerified: boolean;
   exam: ExamKey;
   year: YearKey;
 }
 
 /**
- * SAMPLE — stands in until onboarding persists what it collects and the API
- * has a profile endpoint. A blank form tells you nothing about how the page
- * reads, so these are filled: the email is deliberately left unverified so
- * the Verify affordance is visible. Delete once real values arrive.
+ * Empty, not sample.
+ *
+ * These were filled with a made-up student while onboarding didn't persist
+ * anything — a blank form told you nothing about how the page read. Onboarding
+ * now writes real values, so a placeholder here would be showing one student
+ * another student's details. Exam and year keep real defaults because every
+ * screen that reads them needs *a* value; the identity fields do not.
  */
 const FALLBACK: StudentProfile = {
-  name: 'Aarav Sharma',
-  email: 'aarav.sharma@gmail.com',
+  name: '',
+  email: '',
   emailVerified: false,
-  phone: '+91 98765 43210',
+  phone: '',
+  phoneVerified: false,
   exam: 'jee',
   year: 'class12',
 };
@@ -83,6 +94,7 @@ export async function getProfile(): Promise<StudentProfile> {
       email: map[KEYS.email] ?? FALLBACK.email,
       emailVerified: map[KEYS.emailVerified] === 'true',
       phone: map[KEYS.phone] ?? FALLBACK.phone,
+      phoneVerified: map[KEYS.phoneVerified] === 'true',
       exam: readExam(map[KEYS.exam]),
       year: readYear(map[KEYS.year]),
     };
@@ -100,6 +112,9 @@ export async function saveProfile(patch: Partial<StudentProfile>): Promise<void>
     entries.push([KEYS.emailVerified, String(patch.emailVerified)]);
   }
   if (patch.phone !== undefined) entries.push([KEYS.phone, patch.phone]);
+  if (patch.phoneVerified !== undefined) {
+    entries.push([KEYS.phoneVerified, String(patch.phoneVerified)]);
+  }
   if (patch.exam !== undefined) entries.push([KEYS.exam, patch.exam]);
   if (patch.year !== undefined) entries.push([KEYS.year, patch.year]);
   if (!entries.length) return;
@@ -108,5 +123,19 @@ export async function saveProfile(patch: Partial<StudentProfile>): Promise<void>
   } catch {
     // A profile edit that fails to persist is not worth interrupting the
     // student for; the field keeps its new value for this session.
+  }
+}
+
+/**
+ * Forgets this student. Called on sign-out, because everything above is
+ * device-local: without it the next person to sign in on this phone inherits
+ * the previous one's name, exam and year — and, worse, onboarding would skip
+ * the details step because a stored name already exists.
+ */
+export async function clearProfile(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove(Object.values(KEYS));
+  } catch {
+    // Nothing useful to do; the next sign-in overwrites these anyway.
   }
 }

@@ -4768,6 +4768,66 @@ user's call.
 Verified on device end to end: dot appears → page renders with the red-pen
 "new" marks in the margin → back → dot cleared, icon remains.
 
+## Auth: email OTP replaces phone, and a real gate
+
+Phone/SMS auth needs an Indian sender and the legal work behind it. Early users
+can't wait for that, so the identity is now an email address plus a six-digit
+code, sent by Supabase through Resend.
+
+**No API change.** `app/auth.py` in the API repo only pulls `sub` out of the
+Supabase JWT and verifies it against JWKS — it never looks at *how* the user
+authenticated. An email-authed token validates identically to what we already
+send. Nothing to deploy.
+
+**Supabase config, verified live before building** (`GET /auth/v1/settings`):
+`email: true`, `disable_signup: false`, `mailer_autoconfirm: false` (so a code
+is really sent rather than the address being auto-confirmed), `phone: false`.
+The Magic Link template must print `{{ .Token }}` — a template emitting only
+`{{ .ConfirmationURL }}` would send a tappable link and there would be no code
+to type.
+
+**The thing that made this bigger than a field swap: there was no gate.** The
+app anchored straight to `(tabs)` and the only route into `/welcome` was
+Profile's "Log out". No new user had ever walked the onboarding flow. So the
+work was really: add the gate, then swap the field.
+
+- `lib/auth.ts` rewritten: `sendEmailOtp` / `verifyEmailOtp` / `signOut` /
+  `useAuthState`. The anonymous-session bootstrap is gone.
+- **An anonymous session counts as signed out.** Every install before this was
+  silently given one; honouring them would walk existing testers straight past
+  onboarding without ever collecting an email.
+- The gate lives in `_layout.tsx` and redirects out of `(tabs)` rather than
+  changing the entry point, so every deep link keeps working. It runs while the
+  splash is still up, so nothing flashes.
+- `useAuthState` must never stick on 'loading' — the splash is held on it.
+  Failure resolves to signed_out (onboarding, where a retry is possible)
+  rather than to a screen the student can't leave. Same failure mode that once
+  froze a TestFlight build on the splash screen.
+- **Sign-out now actually signs out** — it only navigated before. It also
+  clears profile, proof and milestone state, because all of that is
+  device-local: without it the next person to sign in on the phone inherits
+  the previous student's name and history, and a stale stored name would make
+  onboarding skip the details step for them.
+
+**Roles swapped.** `(onboarding)/phone.tsx` became `email.tsx` (git mv, so the
+history follows) with the designed OTP boxes intact. Phone moved to the details
+step as a plain optional field with no Verified tag. On Personal information,
+email is read-only and Verified — it is what the code was sent to — and phone
+carries a Verify button that says the feature isn't live rather than silently
+doing nothing.
+
+**Two sample-data bugs removed on the way.** `lib/profile.ts` still returned a
+made-up student (name, email, phone) as its fallback; that was fine while
+onboarding persisted nothing, and wrong now. And `details.tsx`'s `formatPhone`
+fell back to a sample number whenever the input wasn't exactly ten digits —
+safe while the number arrived pre-verified from an OTP step, unsafe the moment
+the field became optional and hand-typed, since a half-entered number would
+have been saved as somebody else's real one.
+
+**Verified on device:** existing anonymous session now lands on onboarding,
+the flow reaches the email screen, and validation gates "Send OTP". The live
+send-and-verify round trip is untested — it needs a real inbox.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and

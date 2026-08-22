@@ -1,14 +1,16 @@
-// 03a "Phone number" + 03b "Same page — OTP slides in".
+// 03a "Email address" + 03b "Same page — OTP slides in".
 //
 // These are ONE screen in the handoff, not two routes: the OTP block is
-// revealed below the number and the entry card collapses into a recap card
-// with a "Change" affordance. Hence a single file with a 'phone' | 'otp'
+// revealed below the address and the entry card collapses into a recap card
+// with a "Change" affordance. Hence a single file with an 'email' | 'otp'
 // state machine rather than a second route.
 //
-// Every number below is a raw design px off
-// design/Onboarding Final v2.dc.html (lines 89-161) passed through ds(),
-// which maps the 430pt design frame onto the device. Hairlines (1 / 1.5) and
-// the 2px caret stay literal — sub-pixel borders disappear on scale-down.
+// Was the phone screen. Phone/SMS auth needs an Indian sender and the legal
+// work that goes with it, and early users can't wait for that — so the same
+// screen now takes an email address and a six-digit code from Supabase
+// (delivered by Resend). A phone number is still collected on the next
+// screen, unverified. Every measurement below is unchanged from the original
+// design handoff.
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -28,38 +30,44 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LeaderRow, ObButton } from '@/components/onboarding-kit';
-import { RETURNING_USER_PHONE, ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
+import { getStoredName } from '@/lib/profile';
 
-const PHONE_LENGTH = 10;
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 24;
 
-/** `9821143307` -> `98211 43307`; partial input keeps the same grouping. */
-function formatPhone(digits: string) {
-  return `${digits.slice(0, 5)} ${digits.slice(5)}`.trim();
+/** Deliberately loose. The real check is whether the code arrives — a regex
+ *  that rejects a valid address is worse than one that lets a typo through
+ *  and gets no email. */
+function looksLikeEmail(value: string) {
+  const v = value.trim();
+  return v.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
 function onlyDigits(text: string, max: number) {
   return text.replace(/[^0-9]/g, '').slice(0, max);
 }
 
-type Stage = 'phone' | 'otp';
+type Stage = 'email' | 'otp';
 
-export default function PhoneScreen() {
+export default function EmailScreen() {
   const { ds, tracking } = useDesignScale();
   const s = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
 
-  const [stage, setStage] = useState<Stage>('phone');
-  const [phone, setPhone] = useState('');
+  const [stage, setStage] = useState<Stage>('email');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const phoneInput = useRef<TextInput>(null);
+  const emailInput = useRef<TextInput>(null);
   const codeInput = useRef<TextInput>(null);
 
   // `pop` runs per box as its digit appears. The handoff staggers the four
   // revealed digits 50/130/210/290ms, i.e. 50ms + 80ms per digit *in that
-  // batch* — so a pasted / SMS-autofilled code reproduces the mockup exactly
+  // batch* — so a pasted / autofilled code reproduces the mockup exactly
   // while a hand-typed digit pops after a flat 50ms instead of waiting out
   // its index.
   const popAnims = useRef(
@@ -70,7 +78,7 @@ export default function PhoneScreen() {
   // Keep the caret where the OS keyboard is pointing.
   useEffect(() => {
     const id = setTimeout(() => {
-      if (stage === 'phone') phoneInput.current?.focus();
+      if (stage === 'email') emailInput.current?.focus();
       else codeInput.current?.focus();
     }, 260);
     return () => clearTimeout(id);
@@ -81,18 +89,6 @@ export default function PhoneScreen() {
     const id = setTimeout(() => setSecondsLeft((n) => n - 1), 1000);
     return () => clearTimeout(id);
   }, [stage, secondsLeft]);
-
-  // "otp: string(6) // auto-submit on the sixth digit" — README, State
-  // management. Delayed just past `pop` so the last digit is seen landing.
-  useEffect(() => {
-    if (stage !== 'otp' || code.length !== CODE_LENGTH) return;
-    const id = setTimeout(() => {
-      codeInput.current?.blur();
-      verify();
-    }, 420);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, code]);
 
   const handleCodeChange = (text: string) => {
     const next = onlyDigits(text, CODE_LENGTH);
@@ -110,34 +106,72 @@ export default function PhoneScreen() {
     }
     prevCodeLength.current = next.length;
     setCode(next);
+    setError(null);
   };
 
-  const sendOtp = () => {
+  const sendOtp = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await sendEmailOtp(email);
+      setCode('');
+      prevCodeLength.current = 0;
+      setSecondsLeft(RESEND_SECONDS);
+      setStage('otp');
+    } catch (err) {
+      setError(friendlyAuthError(err instanceof Error ? err.message : ''));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changeEmail = () => {
     setCode('');
     prevCodeLength.current = 0;
-    setSecondsLeft(RESEND_SECONDS);
-    setStage('otp');
+    setError(null);
+    setStage('email');
   };
 
-  const changeNumber = () => {
-    setCode('');
-    prevCodeLength.current = 0;
-    setStage('phone');
+  const resend = async () => {
+    if (secondsLeft > 0 || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await sendEmailOtp(email);
+      setCode('');
+      prevCodeLength.current = 0;
+      setSecondsLeft(RESEND_SECONDS);
+      codeInput.current?.focus();
+    } catch (err) {
+      setError(friendlyAuthError(err instanceof Error ? err.message : ''));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const resend = () => {
-    if (secondsLeft > 0) return;
-    setCode('');
-    prevCodeLength.current = 0;
-    setSecondsLeft(RESEND_SECONDS);
-    codeInput.current?.focus();
-  };
-
-  // README "Interactions": a number already in the database is recognised
-  // here — verify, then straight to Home, skipping screens 04-06.
-  const verify = () => {
-    if (phone === RETURNING_USER_PHONE) router.replace('/(tabs)');
-    else router.push({ pathname: '/details', params: { phone } });
+  /**
+   * A verified code is a real Supabase session, which is what the root gate
+   * watches — so nothing here has to tell the router the student is in.
+   *
+   * Where they go next depends on whether this device already knows them.
+   * The profile (name, exam, class) is device-local, so a returning student
+   * on a *new* device genuinely has nothing stored and should fill it in
+   * again; one who simply signed out and back in should not be asked twice.
+   */
+  const verify = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await verifyEmailOtp(email, code);
+      const known = await getStoredName();
+      if (known) router.replace('/(tabs)');
+      else router.replace({ pathname: '/details', params: { email: email.trim() } });
+    } catch (err) {
+      setError(friendlyAuthError(err instanceof Error ? err.message : ''));
+      setBusy(false);
+    }
   };
 
   const activeBox = code.length < CODE_LENGTH ? code.length : -1;
@@ -148,11 +182,11 @@ export default function PhoneScreen() {
       <KeyboardAvoidingView
         style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {stage === 'phone' ? (
+        {stage === 'email' ? (
           <>
             <View style={s.headBlock}>
               <Text style={s.headline}>
-                What&apos;s <Text style={s.headlineStrong}>your number</Text>?
+                What&apos;s <Text style={s.headlineStrong}>your email</Text>?
               </Text>
               <Text style={s.sub}>It is your account. No passwords to remember, ever.</Text>
             </View>
@@ -161,27 +195,33 @@ export default function PhoneScreen() {
               {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
                   shadow spread, so the ring is a padded wrapper behind the
                   card — radius 20 + 5 so the corners stay concentric. */}
-              <Pressable style={s.focusRing} onPress={() => phoneInput.current?.focus()}>
-                <View style={s.phoneCard}>
-                  <Text style={s.fieldLabel}>PHONE NUMBER</Text>
+              <Pressable style={s.focusRing} onPress={() => emailInput.current?.focus()}>
+                <View style={s.fieldCard}>
+                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
                   <View style={s.valueRow}>
-                    <Text style={s.valuePrefix}>+91</Text>
-                    {phone.length > 0 && <Text style={s.valueDigits}>{formatPhone(phone)}</Text>}
-                    <Caret width={2} height={ds(32)} />
+                    <TextInput
+                      ref={emailInput}
+                      style={s.emailInput}
+                      value={email}
+                      onChangeText={(t) => {
+                        setEmail(t);
+                        setError(null);
+                      }}
+                      placeholder="you@example.com"
+                      placeholderTextColor={ob.ink55}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="email"
+                      textContentType="emailAddress"
+                      returnKeyType="go"
+                      onSubmitEditing={sendOtp}
+                    />
                   </View>
-                  <TextInput
-                    ref={phoneInput}
-                    style={s.hiddenInput}
-                    value={phone}
-                    onChangeText={(t) => setPhone(onlyDigits(t, PHONE_LENGTH))}
-                    keyboardType="phone-pad"
-                    maxLength={PHONE_LENGTH}
-                    caretHidden
-                    autoComplete="tel"
-                    textContentType="telephoneNumber"
-                  />
                 </View>
               </Pressable>
+
+              {!!error && <Text style={s.error}>{error}</Text>}
 
               <LeaderRow
                 label="Already with us"
@@ -197,10 +237,10 @@ export default function PhoneScreen() {
 
             <View style={s.footer}>
               <ObButton
-                label="Send OTP"
+                label={busy ? 'Sending…' : 'Send OTP'}
                 variant="ink"
                 withArrow
-                disabled={phone.length < PHONE_LENGTH}
+                disabled={!looksLikeEmail(email) || busy}
                 onPress={sendOtp}
               />
             </View>
@@ -215,11 +255,13 @@ export default function PhoneScreen() {
 
             <View style={s.recapBlock}>
               <View style={s.recapCard}>
-                <View>
-                  <Text style={s.fieldLabel}>PHONE NUMBER</Text>
-                  <Text style={s.recapValue}>+91 {formatPhone(phone)}</Text>
+                <View style={s.recapText}>
+                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                  <Text style={s.recapValue} numberOfLines={1}>
+                    {email.trim()}
+                  </Text>
                 </View>
-                <Pressable onPress={changeNumber} hitSlop={ds(10)}>
+                <Pressable onPress={changeEmail} hitSlop={ds(10)}>
                   <Text style={s.changeLink}>Change</Text>
                 </Pressable>
               </View>
@@ -275,8 +317,10 @@ export default function PhoneScreen() {
               </View>
             </Rise>
 
+            {!!error && <Text style={[s.error, s.errorOtp]}>{error}</Text>}
+
             <View style={s.resendBlock}>
-              <Pressable onPress={resend} disabled={secondsLeft > 0} hitSlop={ds(10)}>
+              <Pressable onPress={resend} disabled={secondsLeft > 0 || busy} hitSlop={ds(10)}>
                 <Text style={s.resendText}>
                   {secondsLeft > 0
                     ? `Resend 0:${String(secondsLeft).padStart(2, '0')}`
@@ -287,10 +331,10 @@ export default function PhoneScreen() {
 
             <View style={s.footer}>
               <ObButton
-                label="Verify & continue"
+                label={busy ? 'Verifying…' : 'Verify & continue'}
                 variant="ink"
                 withArrow
-                disabled={code.length < CODE_LENGTH}
+                disabled={code.length < CODE_LENGTH || busy}
                 onPress={verify}
               />
             </View>
@@ -407,7 +451,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     // padding:34px 26px 0
     cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(26) },
     focusRing: { padding: ds(5), borderRadius: ds(25), backgroundColor: ob.focusRing },
-    phoneCard: {
+    fieldCard: {
       borderRadius: ds(20),
       backgroundColor: ob.surface,
       borderWidth: 1.5,
@@ -422,6 +466,28 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
       color: ob.ink55,
     },
     valueRow: { marginTop: ds(10), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
+    // Typed straight into the card rather than behind a hidden input: an
+    // address is variable-length and proportional, so the per-character
+    // caret trick the phone digits used has nothing to align to.
+    emailInput: {
+      flex: 1,
+      padding: 0,
+      fontFamily: obFont.sb600,
+      fontSize: ds(24),
+      lineHeight: ds(32),
+      color: ob.ink,
+    },
+    error: {
+      marginTop: ds(14),
+      fontFamily: obFont.r400,
+      fontSize: ds(15),
+      lineHeight: ds(15 * 1.4),
+      // The onboarding palette has no error tone of its own; this is the
+      // same red the rest of the app uses for the red-pen accents.
+      color: '#DD4433',
+    },
+    errorOtp: { paddingHorizontal: ds(26) },
+    recapText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
     valuePrefix: {
       fontFamily: obFont.sb600,
       fontSize: ds(30),

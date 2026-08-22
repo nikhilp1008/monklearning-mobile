@@ -355,3 +355,12 @@ export async function collectProof(): Promise<ProofEvent[]> {
   await writeSnapshot(current);
   return rankEvents(events);
 }
+
+/** Every local trace of this student's proof history. See `clearProfile`. */
+export async function clearProofState(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove([SNAPSHOT_KEY, SEEN_KEY, CLASSES_KEY, EARNED_KEY]);
+  } catch {
+    // Nothing useful to do.
+  }
+}

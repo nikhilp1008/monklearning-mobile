@@ -49,14 +49,18 @@ const DRAW_DELAY_MS = 200;
 // The design's sample values. `Aarav Sharma` is the name the mockup shows typed
 // into the active card; here it is the placeholder, since the field is real.
 const NAME_PLACEHOLDER = 'Aarav Sharma';
-const EMAIL_PLACEHOLDER = 'you@example.com';
-const PHONE_FALLBACK = '+91 98211 43307';
-
-// `+91 98211 43307` — the design's grouping, applied to the verified number.
+// `+91 98211 43307` — the design's grouping.
+//
+// This used to fall back to a sample number when the input wasn't exactly ten
+// digits, which was safe while the number arrived pre-verified from the OTP
+// step. It is not safe now that the field is optional and hand-typed: a
+// half-entered number would have been saved as somebody else's real one.
+// Empty in, empty out; a partial keeps whatever was actually typed.
 function formatPhone(raw?: string) {
   const digits = (raw ?? '').replace(/[^0-9]/g, '');
   const local = digits.length > 10 ? digits.slice(-10) : digits;
-  if (local.length !== 10) return PHONE_FALLBACK;
+  if (!local) return '';
+  if (local.length !== 10) return `+91 ${local}`;
   return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
 }
 
@@ -65,11 +69,11 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 export default function DetailsScreen() {
   const { ds, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
-  const params = useLocalSearchParams<{ phone?: string }>();
-  const phone = useMemo(() => formatPhone(params.phone), [params.phone]);
+  const params = useLocalSearchParams<{ email?: string }>();
+  const email = (params.email ?? '').trim();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   // Width of the name field's text, measured off an invisible mirror <Text> so
   // the designed caret can sit exactly after it (CSS: `gap:8px`).
   const [nameTextWidth, setNameTextWidth] = useState(0);
@@ -121,31 +125,37 @@ export default function DetailsScreen() {
               </View>
             </View>
 
-            {/* EMAIL ADDRESS */}
-            <View style={[styles.card, styles.cardIdle]}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <TextInput
-                style={[styles.value, styles.input, styles.emailInput]}
-                value={email}
-                onChangeText={setEmail}
-                placeholder={EMAIL_PLACEHOLDER}
-                placeholderTextColor={ob.ink30}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                selectionColor={ob.amber}
-              />
-            </View>
-
-            {/* PHONE NUMBER — read only, already verified at the OTP step. */}
+            {/* EMAIL ADDRESS — read only. This is the address the code was
+                just sent to, so it is the one field on the page that is
+                already proven; editing it here would mean re-verifying. */}
             <View style={[styles.card, styles.cardWarm]}>
-              <View>
-                <Text style={styles.label}>PHONE NUMBER</Text>
-                <Text style={[styles.value, styles.phoneValue]}>{phone}</Text>
+              <View style={styles.cardText}>
+                <Text style={styles.label}>EMAIL ADDRESS</Text>
+                <Text style={[styles.value, styles.phoneValue]} numberOfLines={1}>
+                  {email}
+                </Text>
               </View>
               <View style={styles.verified}>
                 <DrawnCheck size={ds(20)} />
                 <Text style={styles.verifiedText}>Verified</Text>
               </View>
+            </View>
+
+            {/* PHONE NUMBER — collected, not verified. SMS auth needs an
+                Indian sender and the legal work behind it; until that lands
+                nothing is sent here, so it is a plain optional field and
+                deliberately carries no Verified tag. */}
+            <View style={[styles.card, styles.cardIdle]}>
+              <Text style={styles.label}>PHONE NUMBER</Text>
+              <TextInput
+                style={[styles.value, styles.input, styles.emailInput]}
+                value={phone}
+                onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, '').slice(0, 10))}
+                placeholder="Optional"
+                placeholderTextColor={ob.ink30}
+                keyboardType="phone-pad"
+                selectionColor={ob.amber}
+              />
             </View>
           </View>
 
@@ -160,8 +170,8 @@ export default function DetailsScreen() {
                 // own name instead of the sample profile's.
                 saveProfile({
                   ...(name.trim() ? { name: name.trim() } : {}),
-                  ...(email.trim() ? { email: email.trim() } : {}),
-                  ...(phone ? { phone } : {}),
+                  ...(email ? { email, emailVerified: true } : {}),
+                  ...(phone ? { phone: formatPhone(phone), phoneVerified: false } : {}),
                 });
                 router.push('/exam');
               }}
@@ -329,6 +339,7 @@ function createStyles(
       flex: 1,
     },
     // `margin-top:8px`
+    cardText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
     emailInput: {
       marginTop: ds(8),
     },

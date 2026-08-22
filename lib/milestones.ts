@@ -201,3 +201,13 @@ export async function loadMilestones(
   const milestones = deriveMilestones(data, classCount, earned);
   return { milestones, unseen: await unseenIds(milestones) };
 }
+
+/** The seen-set only — the collection itself is derived, so there is nothing
+ *  else here to forget. See `clearProfile`. */
+export async function clearMilestoneState(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(SEEN_KEY);
+  } catch {
+    // Nothing useful to do.
+  }
+}

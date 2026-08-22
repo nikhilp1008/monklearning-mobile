@@ -104,7 +104,7 @@ export default function WelcomeTwoScreen() {
             <View style={[styles.pill, styles.pillIdle]} />
             <View style={[styles.pill, styles.pillActive]} />
           </View>
-          <ObButton label="Get started" variant="cream" onPress={() => router.push('/phone')} />
+          <ObButton label="Get started" variant="cream" onPress={() => router.push('/email')} />
         </View>
       </SafeAreaView>
     </View>

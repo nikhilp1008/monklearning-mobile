@@ -37,6 +37,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
+import { signOut } from '@/lib/auth';
 import { SettingsHeader } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -320,7 +321,10 @@ export default function ProfileScreen() {
 
           {/* Log out */}
           <View style={styles.logOutWrap}>
-            <PressableScale style={styles.logOutButton} onPress={() => router.push('/welcome')}>
+            {/* Ends the Supabase session and clears this student's local data;
+                the root gate sees the change and routes to onboarding itself,
+                so there is nothing to navigate to here. */}
+            <PressableScale style={styles.logOutButton} onPress={() => signOut()}>
               <Text style={styles.logOutText}>Log out</Text>
             </PressableScale>
           </View>
