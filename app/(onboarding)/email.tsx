@@ -29,7 +29,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObButton } from '@/components/onboarding-kit';
+import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
 import { hasCompletedOnboarding, pullProfile } from '@/lib/profile';
@@ -171,10 +171,14 @@ export default function EmailScreen() {
         await pullProfile();
         router.replace('/(tabs)');
       } else {
-        router.replace({ pathname: '/details', params: { email: email.trim() } });
+        router.push({ pathname: '/details', params: { email: email.trim() } });
       }
     } catch (err) {
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
+    } finally {
+      // Always cleared: this screen stays mounted behind `details` now, and
+      // coming back to a permanently disabled "Verifying…" button would be a
+      // dead end.
       setBusy(false);
     }
   };
@@ -185,6 +189,7 @@ export default function EmailScreen() {
   return (
     <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
+      <ObBack />
       <KeyboardAvoidingView
         style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

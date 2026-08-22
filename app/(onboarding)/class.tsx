@@ -11,7 +11,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObButton } from '@/components/onboarding-kit';
+import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
 import {
   EXAMS,
   YEARS,
@@ -40,7 +40,9 @@ export default function ClassScreen() {
   const params = useLocalSearchParams<{ exam?: string }>();
   const exam = resolveExam(params.exam);
 
-  const [year, setYear] = useState<YearKey>('class12');
+  // Nothing preselected, for the same reason as the exam rows: a highlighted
+  // row reads as an answer the student already gave.
+  const [year, setYear] = useState<YearKey | null>(null);
   const [playToken, setPlayToken] = useState(0);
 
   const select = useCallback((key: YearKey) => {
@@ -52,6 +54,7 @@ export default function ClassScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <ObBack />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
@@ -91,7 +94,7 @@ export default function ClassScreen() {
             />
             <LeaderRow
               label="Year"
-              value={YEARS[year]}
+              value={year ? YEARS[year] : '—'}
               labelSize={16}
               valueSize={17}
               style={styles.summaryRow}
@@ -109,9 +112,11 @@ export default function ClassScreen() {
         {/* `margin-top:auto; padding:0 34px 34px` */}
         <View style={styles.footer}>
           <ObButton
-            label="Start learning"
+            label={year ? 'Start learning' : 'Pick your year'}
+            disabled={!year}
             withArrow
             onPress={async () => {
+              if (!year) return;
               // Last step of onboarding, so this is where the whole profile
               // reaches the server. `target_exam` in particular decides which
               // subjects GET /progress returns — a NEET student gets Biology

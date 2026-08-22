@@ -2,7 +2,10 @@
 // screen in design_handoff_onboarding_flow, so they live here once rather
 // than being re-derived per screen — that's what keeps the six screens
 // pixel-identical to each other.
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 
@@ -142,3 +145,57 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
 });
+
+/**
+ * Back, for the middle of onboarding.
+ *
+ * Absolutely positioned into the 52pt of whitespace every onboarding screen
+ * already leaves above its headline, so adding it disturbs none of the
+ * handoff's vertical rhythm.
+ *
+ * Renders nothing when there is nowhere to go — the first screens have no
+ * previous step, and the root gate can drop a student straight onto `details`
+ * with an empty history when it resumes a half-finished onboarding.
+ */
+export function ObBack() {
+  const { ds } = useDesignScale();
+  // Absolute children are laid out against the parent's border box, so the
+  // SafeAreaView's top padding does not move them — without this the button
+  // sits on top of the clock.
+  const insets = useSafeAreaInsets();
+  if (!router.canGoBack()) return null;
+  return (
+    <Pressable
+      onPress={() => router.back()}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      style={({ pressed }) => [
+        {
+          position: 'absolute',
+          top: insets.top + ds(6),
+          left: ds(26),
+          width: ds(40),
+          height: ds(40),
+          borderRadius: ds(20),
+          borderWidth: 1.5,
+          borderColor: ob.hairline14,
+          backgroundColor: ob.surface,
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2,
+        },
+        { opacity: pressed ? 0.7 : 1 },
+      ]}>
+      <Svg viewBox="0 0 24 24" width={ds(17)} height={ds(17)} fill="none">
+        <Path
+          d="M15 6l-6 6 6 6"
+          stroke={ob.ink}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </Pressable>
+  );
+}

@@ -20,7 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObButton } from '@/components/onboarding-kit';
+import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
 import { EXAMS, examTotal, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
 import { saveProfile } from '@/lib/profile';
 
@@ -108,7 +108,10 @@ export default function ExamScreen() {
   const { ds, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
 
-  const [exam, setExam] = useState<ExamKey>('jee');
+  // Nothing preselected. A highlighted row reads as an answer already given,
+  // and the exam decides which subjects exist for the rest of the account —
+  // it is the one thing in onboarding that must be a deliberate choice.
+  const [exam, setExam] = useState<ExamKey | null>(null);
   const [playToken, setPlayToken] = useState(0);
 
   const select = useCallback((key: ExamKey) => {
@@ -116,13 +119,14 @@ export default function ExamScreen() {
     setPlayToken((n) => n + 1);
   }, []);
 
-  const active = EXAMS[exam];
-  const total = examTotal(exam);
+  const active = exam ? EXAMS[exam] : null;
+  const total = exam ? examTotal(exam) : 0;
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <ObBack />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
@@ -148,39 +152,47 @@ export default function ExamScreen() {
             ))}
           </View>
 
-          {/* `padding:34px 34px 0` — live syllabus summary */}
-          <View style={styles.summary}>
-            <View style={styles.summaryHeader}>
-              <Text style={styles.summaryLabel}>
-                WE TEACH ALL OF <Text style={styles.summaryLabelExam}>{active.upper}</Text>
-              </Text>
-              <View style={styles.summaryTotal}>
-                <Text style={styles.summaryTotalValue}>{total}</Text>
-                <Text style={styles.summaryTotalUnit}>chapters</Text>
+          {/* `padding:34px 34px 0` — live syllabus summary.
+              Hidden until a row is picked: the line above promises "the
+              syllabus below is what we teach for it", and there is no "it"
+              yet. Revealing it on the tap is also what makes the choice feel
+              answered. */}
+          {active && (
+            <View style={styles.summary}>
+              <View style={styles.summaryHeader}>
+                <Text style={styles.summaryLabel}>
+                  WE TEACH ALL OF <Text style={styles.summaryLabelExam}>{active.upper}</Text>
+                </Text>
+                <View style={styles.summaryTotal}>
+                  <Text style={styles.summaryTotalValue}>{total}</Text>
+                  <Text style={styles.summaryTotalUnit}>chapters</Text>
+                </View>
               </View>
+
+              {active.subjects.map((subject) => (
+                <LeaderRow
+                  key={subject.name}
+                  label={subject.name}
+                  value={String(subject.count)}
+                  labelSize={16}
+                  valueSize={19}
+                  style={styles.subjectRow}
+                />
+              ))}
+
+              <Text style={styles.footnote}>{active.sample}</Text>
             </View>
-
-            {active.subjects.map((subject) => (
-              <LeaderRow
-                key={subject.name}
-                label={subject.name}
-                value={String(subject.count)}
-                labelSize={16}
-                valueSize={19}
-                style={styles.subjectRow}
-              />
-            ))}
-
-            <Text style={styles.footnote}>{active.sample}</Text>
-          </View>
+          )}
         </ScrollView>
 
         {/* `margin-top:auto; padding:0 34px 34px` */}
         <View style={styles.footer}>
           <ObButton
-            label={`Continue with ${active.label}`}
+            label={active ? `Continue with ${active.label}` : 'Pick your exam'}
             withArrow
+            disabled={!exam}
             onPress={() => {
+              if (!exam) return;
               // Persist the entitlement the student chose — the Lessons exam
               // pill and Personal information read it from the same store.
               saveProfile({ exam });

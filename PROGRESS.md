@@ -4934,6 +4934,42 @@ the field. And placeholders got their own tone (`ob.placeholder`,
 `rgba(28,26,22,.26)`): at `ink30` they were being read as filled-in answers,
 which is the one failure mode a placeholder has.
 
+## Onboarding: nothing preselected, and a way back
+
+**The exam and year rows arrived preselected** (`'jee'`, `'class12'`). A
+highlighted row reads as an answer already given, so a student could tap
+Continue twice and never actually choose — and the exam is the single most
+consequential field in the account, because `profiles.target_exam` decides
+which subjects exist everywhere afterwards. Both now start empty, and the CTA
+is disabled until a row is tapped (`Pick your exam` / `Pick your year`).
+
+**The exam screen's syllabus panel is now revealed by the choice** rather than
+sitting there pre-filled. The screen's own subtitle promises "the syllabus
+below is what we teach for it" — with nothing selected there is no "it". It
+also turns the tap into an answer: pick NEET and Physics/Chemistry/Biology and
+a 79-chapter total appear underneath.
+
+**`ObBack`**, in the onboarding kit, on email / details / exam / class. Not on
+the two welcome screens, which have no previous step. It is absolutely
+positioned into the 52pt of whitespace every screen already leaves above its
+headline, so it disturbs none of the handoff's vertical rhythm.
+
+Two things it has to get right:
+
+- **It renders only when `router.canGoBack()`.** The root gate can drop a
+  student straight onto `details` with an empty history when it resumes a
+  half-finished onboarding, and a back button with nowhere to go is worse than
+  none.
+- **It offsets by the safe-area inset itself.** Absolute children are laid out
+  against the parent's border box, so a `SafeAreaView`'s top padding does not
+  move them — the first build sat on top of the clock.
+
+`email.tsx` now `push`es `details` instead of replacing it, so back from
+details returns to the OTP screen (where "Change" is) rather than skipping to
+the welcome screens. `busy` moved to a `finally` as a result: the screen stays
+mounted behind `details` now, and coming back to a permanently disabled
+"Verifying…" button would have been a dead end.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
