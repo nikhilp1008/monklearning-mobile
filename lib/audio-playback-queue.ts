@@ -32,7 +32,14 @@ export class AudioPlaybackQueue {
   onQueueDrained?: () => void;
 
   constructor() {
-    this.player = createAudioPlayer(null);
+    // `keepAudioSessionActive` defaults to false, which makes expo-audio
+    // deactivate the whole AVAudioSession after every clip finishes and
+    // re-activate it on the next `play()`. Drona speaks one sentence per
+    // clip, so that is a teardown-and-rebuild at every sentence boundary —
+    // expensive, route-reconfiguring, and it clips the head of the next clip.
+    // Nothing else in the app plays audio while a class is running, so
+    // holding the session is both safe and much steadier.
+    this.player = createAudioPlayer(null, { keepAudioSessionActive: true });
     const subscription = this.player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       if (status.didJustFinish) this.advance();
     });

@@ -138,6 +138,32 @@ export class DronaVoiceClient {
     this.ws = null;
   }
 
+  /** Resolved by `ws.onopen`; see `whenReady`. */
+  private readyWaiters: (() => void)[] = [];
+
+  /**
+   * Resolves once the socket is genuinely OPEN, rejecting after `timeoutMs`.
+   *
+   * `sendUtterance` silently drops anything sent before then, so the caller
+   * that kicks off the first teaching turn needs to know rather than guess. A
+   * fixed delay was the old approach and it was both slower than necessary on
+   * a fast connection and too short on a slow one.
+   */
+  whenReady(timeoutMs: number): Promise<void> {
+    if (this.ws?.readyState === WebSocket.OPEN) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.readyWaiters = this.readyWaiters.filter((w) => w !== onOpen);
+        reject(new Error('Voice connection timed out'));
+      }, timeoutMs);
+      const onOpen = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      this.readyWaiters.push(onOpen);
+    });
+  }
+
   private async openSocket() {
     this.handlers.onConnectionChange?.(this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
 
@@ -162,6 +188,10 @@ export class DronaVoiceClient {
       this.reconnectAttempt = 0;
       this.reconnectScheduled = false;
       this.handlers.onConnectionChange?.('open');
+      // Release anyone waiting to send the first utterance.
+      const waiters = this.readyWaiters;
+      this.readyWaiters = [];
+      waiters.forEach((resolve) => resolve());
     };
     ws.onmessage = (event) => this.handleMessage(event.data);
     // Web schedules from onerror too: a failed handshake does not reliably

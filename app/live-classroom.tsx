@@ -53,7 +53,7 @@ import {
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
-import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from 'expo-audio';
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
@@ -158,6 +158,24 @@ export default function LiveClassroomScreen() {
       return data.session?.access_token ?? null;
     };
 
+    // The audio session is never configured anywhere else in the app, so
+    // without this iOS leaves it on its default `soloAmbient` category: the
+    // ringer switch silences Drona completely and playback stops the moment
+    // the phone locks. `.playback` is what a lesson needs.
+    //
+    // Deliberately NOT `allowsRecording: true`. expo-audio's setAudioMode has
+    // no `defaultToSpeaker` option, so that would put the session into
+    // `.playAndRecord` and route Drona to the earpiece. `@siteed/audio-studio`
+    // already asks for the right category with DefaultToSpeaker when the mic
+    // is actually needed, so it owns push-to-talk and this owns playback.
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: 'mixWithOthers',
+    }).catch((err) => {
+      console.error('[live-classroom] could not configure the audio session:', err);
+    });
+
     const client = new DronaVoiceClient(sessionId, getAccessToken, apiBaseUrl, {
       onConnectionChange: setConnectionStatus,
       onState: (state: DronaState) => {
@@ -193,11 +211,20 @@ export default function LiveClassroomScreen() {
     });
     clientRef.current = client;
     client.connect();
-    // Kicks off the first teaching turn. The server also auto-fires one on
-    // WS connect if the session is already in "teaching" phase, but both
-    // are safely single-flighted server-side (see PROGRESS.md notes on the
-    // live_session_ws.py turn queue) — sending this is not a double-trigger risk.
-    setTimeout(() => client.sendUtterance('Begin lesson segment'), 300);
+    // Kicks off the first teaching turn, once the socket is genuinely open.
+    //
+    // This used to be `setTimeout(..., 300)`, which is both an unconditional
+    // 300ms of silence and a race: `sendUtterance` drops the message if the
+    // socket is not OPEN yet, and a token fetch plus a TLS handshake on
+    // cellular routinely takes longer than 300ms. The server also auto-fires
+    // a turn on connect and both are single-flighted server-side, so this is
+    // not a double-trigger risk.
+    void client
+      .whenReady(10000)
+      .then(() => client.sendUtterance('Begin lesson segment'))
+      .catch(() => {
+        // Never opened — `onConnectionChange` has already told the student.
+      });
 
     return () => {
       cancelled = true;
@@ -361,6 +388,17 @@ export default function LiveClassroomScreen() {
       // Already stopped or never started — nothing to clean up.
     }
     clientRef.current?.sendPttStop();
+    // audio-studio deactivates the shared session when it stops recording, and
+    // nothing else puts it back — so without this the first TTS chunk after
+    // every push-to-talk pays a full re-activation, and can be inaudible.
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: 'mixWithOthers',
+    }).catch(() => {
+      // Playback may be quieter until the next turn; not worth interrupting
+      // the lesson for.
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

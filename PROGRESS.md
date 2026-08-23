@@ -5413,6 +5413,61 @@ The lesson, again: the last two rounds of this were both caused by fixing a
 symptom without walking the flow the fix sits in. Reading the code said the
 gate was right; two minutes on the device said it was not.
 
+## The classroom audio session was never configured
+
+Reported: no voice at all in the classroom, push-to-talk not working, and a
+long wait to get in.
+
+**The root cause of "no voice": `setAudioModeAsync` is called nowhere in the
+app.** Grepped the whole repo — not once. So iOS leaves the app on its default
+`AVAudioSessionCategorySoloAmbient`, which is silenced by the ringer switch and
+stops on lock. Every other audio symptom sits on top of that.
+
+Three fixes, all contained:
+
+1. **The session is configured at classroom mount** — `playsInSilentMode: true`
+   with `mixWithOthers`, which puts it in `.playback` and activates it once.
+   Deliberately *not* `allowsRecording: true`: expo-audio's `setAudioMode` has
+   no `defaultToSpeaker` option, so that would move the session to
+   `.playAndRecord` and route Drona to the earpiece. `@siteed/audio-studio`
+   already asks for the right category with `DefaultToSpeaker` when the mic is
+   genuinely needed, so it owns push-to-talk and this owns playback.
+2. **The session is re-applied after every push-to-talk.** audio-studio calls
+   `setActive(false)` when it stops recording and nothing put it back, so the
+   first TTS chunk after each turn paid a full re-activation — and could be
+   inaudible.
+3. **`createAudioPlayer(null, { keepAudioSessionActive: true })`.** The default
+   is `false`, which makes expo-audio deactivate the whole session after every
+   clip and re-activate on the next `play()`. Drona speaks one sentence per
+   clip, so that was a teardown-and-rebuild at every sentence boundary.
+
+**And the kick-off no longer races a timer.** It was
+`setTimeout(() => sendUtterance('Begin lesson segment'), 300)` — an
+unconditional 300ms of silence, and a drop: `sendUtterance` discards anything
+sent before the socket is OPEN, which a token fetch plus a TLS handshake on
+cellular routinely outlasts. `DronaVoiceClient.whenReady(timeoutMs)` now
+resolves from `ws.onopen`, so it is as fast as the connection allows and never
+silently lost.
+
+**What is NOT fixed, and is the main latency item.** The web client opens the
+WebSocket the instant the session starts, while the student is still choosing a
+subtopic; the app does not build it until the classroom screen mounts — after
+the slow scoping call and after awaiting a Supabase token. DNS, TLS, the
+upgrade and JWKS validation all sit on the critical path here and cost web
+nothing. That is a real refactor across two screens and a shared client
+instance, and it wants the on-device instrumentation the voice review
+recommended (the app has none; web has timing telemetry). Deliberately not
+rushed into this build.
+
+**Honest limits of this verification.** The fixes compile, bundle and the class
+starts — a session opened, Drona replied in Hinglish, no errors in the log. But
+**audibility itself cannot be verified from here**: there is no way to hear the
+simulator's output, and push-to-talk depends on a native module and a
+microphone that behave differently under the Simulator. Both need a device and
+an ear. The specific thing to check is whether Drona is now audible with the
+ringer switch **on** — that is the exact symptom `soloAmbient` produces and
+what fix 1 addresses.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
