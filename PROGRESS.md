@@ -5468,6 +5468,41 @@ an ear. The specific thing to check is whether Drona is now audible with the
 ringer switch **on** — that is the exact symptom `soloAmbient` produces and
 what fix 1 addresses.
 
+## The scoping screen, and where the classroom minute actually goes
+
+Reported as "we removed this screen" and "it loads for a minute". Both worth
+recording precisely, because neither is what it looked like.
+
+**It was never removed.** Commit `7986948` deleted the **Lessons** loading
+interstitial — the pre-recorded lesson player, which had nothing to load. The
+screen in question is Drona's *scoping* step in `entering-classroom.tsx`, where
+he asks which subtopic. Different screen, different flow, still there by
+design.
+
+**When it appears, measured against the live API.** A real subtopic
+(`"Systems of Units and SI Units"`) returns `plan_ready: true` and goes
+straight into the classroom — no scoping screen. Options come back only when
+the utterance is not a subtopic. So of the three ways in:
+
+- topic-sheet → tap a subtopic → **straight in** (correct);
+- topic-sheet → the free-talk row → no utterance sent, **scoping by design**;
+- Home's doubt of the day → sends the *question*, which is not a subtopic, so
+  the backend asks — and the student lands on a Q&A screen after tapping a
+  specific doubt.
+
+That third one contradicts the intent already written into `submit()`: its
+`catch` says a preselected student "has answered every question this screen
+exists to ask" and shows a plain error rather than scoping. The
+`plan_ready: false` branch has no such guard. Left as-is deliberately —
+auto-answering costs a second 31s round trip, and which way it should go is a
+product call, not a bug fix.
+
+**The minute is one server call.** `POST /drona/session/{id}/scope` measured at
+**31.0s** against Railway for a subtopic that returns `plan_ready: true`;
+`session/start` is 1.3s by comparison. No client change shortens it. Flagged in
+`backend_followups_pending.md` — it is the single biggest thing standing between
+a student and their first class.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
