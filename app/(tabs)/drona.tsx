@@ -9,10 +9,24 @@ import { Skeleton, stagger } from '@/components/skeleton';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+import { CatalogueSubject, examSubjects, getCatalogue } from '@/lib/drona';
+import { getProfile } from '@/lib/profile';
 
 const CLASSES = ['Class 11', 'Class 12'] as const;
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths'] as const;
+/**
+ * Tabs follow the student's exam, they are not a fixed three.
+ *
+ * `getCatalogue()` filters mathematics out for a NEET student and returns
+ * biology instead. This list used to be hardcoded PCM, so a NEET student got a
+ * "Maths" tab whose lookup could only ever return an empty array — no error,
+ * no explanation — while biology sat in the payload with no tab to show it.
+ */
+const SUBJECT_LABEL: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  biology: 'Biology',
+};
 
 const CLASS_LEVEL: Record<(typeof CLASSES)[number], number> = {
   'Class 11': 11,
@@ -32,7 +46,26 @@ export default function ChapterSelectorScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 12');
-  const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
+  const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chemistry', 'Maths']);
+  const [activeSubject, setActiveSubject] = useState<string>('Physics');
+
+  // The exam decides the tabs. Physics and Chemistry are in every exam, so the
+  // initial guess above is never wrong for the first two — only the third tab
+  // changes, and it settles before the catalogue finishes loading.
+  useEffect(() => {
+    let cancelled = false;
+    getProfile().then(({ exam }) => {
+      if (cancelled) return;
+      const next = examSubjects(exam).map((k) => SUBJECT_LABEL[k] ?? k);
+      setSubjects(next);
+      // Guard against a stranded tab: a student who switches exam would
+      // otherwise keep a selection that no longer exists.
+      setActiveSubject((current) => (next.includes(current) ? current : next[0]));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const listRef = useRef<ScrollView>(null);
 
@@ -106,7 +139,7 @@ export default function ChapterSelectorScreen() {
           {/* Same slider as the class capsule, anchored to the baseline so the
               marigold rule travels between subjects instead of jumping. */}
           <SlidingToggle
-            options={SUBJECTS}
+            options={subjects}
             value={activeSubject}
             onChange={setActiveSubject}
             thumbAnchor="bottom"

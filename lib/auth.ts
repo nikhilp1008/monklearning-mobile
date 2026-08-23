@@ -179,9 +179,15 @@ export function useAuthState(): AuthState {
           timeout(SESSION_BOOTSTRAP_TIMEOUT_MS),
         ]);
       } catch {
-        // Offline. The local profile is the only evidence left, and it is
-        // exactly the right evidence for this one case: a student who has
-        // used this device before has a name stored, a new one does not.
+        // The question could not be asked — offline, or the request timed
+        // out. The local profile is the right evidence for exactly this case:
+        // a student who has used this device before has a name stored, a new
+        // one does not.
+        //
+        // This branch was previously unreachable for the common failure:
+        // `hasCompletedOnboarding` swallowed postgrest's returned error and
+        // answered `false`, so a signal drop threw an established student
+        // into onboarding. It now throws, which is what makes this run.
         done = !!(await getStoredName());
       }
       if (!cancelled) setState(done ? 'signed_in' : 'needs_onboarding');

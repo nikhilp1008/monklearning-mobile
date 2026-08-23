@@ -32,7 +32,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
-import { hasCompletedOnboarding, pullProfile } from '@/lib/profile';
+import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 24;
@@ -166,9 +166,21 @@ export default function EmailScreen() {
     setError(null);
     try {
       await verifyEmailOtp(email, code);
-      if (await hasCompletedOnboarding()) {
+      let known: boolean;
+      try {
+        known = await hasCompletedOnboarding();
+      } catch {
+        // Verified, but we cannot reach the profile table. Falling back to
+        // local evidence rather than assuming "new": guessing new would send
+        // a returning student through onboarding, and the push at the end of
+        // it would overwrite their real name and exam with retyped ones.
+        known = !!(await getStoredName());
+      }
+      if (known) {
         // Their details live on the server; bring them back to this device.
-        await pullProfile();
+        await pullProfile().catch(() => {
+          // Offline — the local copy stands until the next successful pull.
+        });
         router.replace('/(tabs)');
       } else {
         router.push({ pathname: '/details', params: { email: email.trim() } });

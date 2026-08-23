@@ -161,6 +161,10 @@ export default function DetailsScreen() {
                 style={[styles.value, styles.input, styles.emailInput]}
                 value={phone}
                 onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, '').slice(0, 10))}
+                // Native cap as well as the slice above. Without it the field
+                // paints the 11th digit, React re-renders with it removed, and
+                // the student sees it flash on for a frame.
+                maxLength={10}
                 placeholder="98765 43210"
                 placeholderTextColor={ob.placeholder}
                 keyboardType="phone-pad"

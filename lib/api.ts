@@ -103,3 +103,22 @@ export async function apiFetch<T>(
 
   return responseData as T;
 }
+
+/**
+ * A loading failure in the student's language.
+ *
+ * The list screens used to render `err.message` straight through, which meant
+ * a student could be shown "No authentication session found" or "API request
+ * failed with status 404" — both real, both meaningless to them. The raw
+ * message still reaches the console for us.
+ */
+export function friendlyLoadError(err: unknown, subject: string): string {
+  const message = err instanceof Error ? err.message.toLowerCase() : '';
+  if (message.includes('authentication') || message.includes('401')) {
+    return 'Please sign in again to see this.';
+  }
+  if (message.includes('network') || message.includes('timed out') || message.includes('timeout')) {
+    return `Couldn't reach the server. Check your connection and pull to retry.`;
+  }
+  return `Couldn't load your ${subject} just now. Pull to retry.`;
+}

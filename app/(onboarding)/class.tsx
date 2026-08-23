@@ -43,6 +43,8 @@ export default function ClassScreen() {
   // Nothing preselected, for the same reason as the exam rows: a highlighted
   // row reads as an answer the student already gave.
   const [year, setYear] = useState<YearKey | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [playToken, setPlayToken] = useState(0);
 
   const select = useCallback((key: YearKey) => {
@@ -111,18 +113,32 @@ export default function ClassScreen() {
 
         {/* `margin-top:auto; padding:0 34px 34px` */}
         <View style={styles.footer}>
+          {!!saveError && <Text style={styles.saveError}>{saveError}</Text>}
           <ObButton
-            label={year ? 'Start learning' : 'Pick your year'}
-            disabled={!year}
+            label={saving ? 'Saving…' : year ? 'Start learning' : 'Pick your year'}
+            disabled={!year || saving}
             withArrow
             onPress={async () => {
-              if (!year) return;
+              if (!year || saving) return;
+              setSaving(true);
+              setSaveError(null);
               // Last step of onboarding, so this is where the whole profile
               // reaches the server. `target_exam` in particular decides which
               // subjects GET /progress returns — a NEET student gets Biology
               // instead of Maths from this write, with no filtering in the app.
               await saveProfile({ year });
-              await pushProfile();
+              try {
+                await pushProfile();
+              } catch {
+                // Do NOT wave them through. Without this write there is no
+                // `display_name` on the server, so every later launch reads as
+                // "never onboarded" and sends them round again — a loop they
+                // cannot escape and we would never hear about. Better to stop
+                // here, where retrying costs one tap.
+                setSaving(false);
+                setSaveError('Couldn’t save your details. Check your connection and try again.');
+                return;
+              }
               router.replace('/(tabs)');
             }}
           />
@@ -198,6 +214,13 @@ function createStyles(
     footer: {
       paddingHorizontal: ds(34),
       paddingBottom: ds(34),
+    },
+    saveError: {
+      marginBottom: ds(12),
+      fontFamily: obFont.r400,
+      fontSize: ds(15),
+      lineHeight: ds(15 * 1.4),
+      color: '#DD4433',
     },
   });
 }

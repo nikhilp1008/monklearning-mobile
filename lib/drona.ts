@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import type { ExamKey } from '@/constants/onboarding';
 import { getProfile } from '@/lib/profile';
 
 export interface Subtopic {
@@ -40,6 +41,18 @@ let cataloguePromise: Promise<CatalogueSubject[]> | null = null;
  * The proper fix is server-side, next to the filter `/progress` already does.
  * Flagged for the co-founder; this holds the line until then.
  */
+/**
+ * The API subject names an exam actually covers, in the order screens show
+ * them. Exported because filtering the catalogue is not enough on its own:
+ * any screen that renders its own subject tabs has to agree with it, or it
+ * offers a tab whose list can only ever be empty.
+ */
+export function examSubjects(exam: ExamKey): string[] {
+  if (exam === 'neet') return ['physics', 'chemistry', 'biology'];
+  if (exam === 'both') return ['physics', 'chemistry', 'mathematics', 'biology'];
+  return ['physics', 'chemistry', 'mathematics'];
+}
+
 function allowedSubjects(exam: string): (subject: string) => boolean {
   const optional = exam === 'neet' ? 'biology' : exam === 'both' ? null : 'mathematics';
   return (subject) => {

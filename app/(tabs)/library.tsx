@@ -22,6 +22,7 @@ import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
+import { friendlyLoadError } from '@/lib/api';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
@@ -113,16 +114,50 @@ export default function LibraryScreen() {
   >(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const armUndo = useCallback((next: NonNullable<typeof undoState>) => {
-    // The newest removal owns the row; the previous one becomes final.
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoState(next);
-    undoTimerRef.current = setTimeout(() => setUndoState(null), ERASE.undoMs);
+  /**
+   * The server delete is deferred until the undo window closes.
+   *
+   * It used to fire the moment the card was rubbed out, so UNDO put the card
+   * back on screen and nothing put it back on the server: switch tabs, the
+   * focus refetch runs, and it is gone for good. The affordance worked and the
+   * promise behind it did not.
+   *
+   * Held here rather than in the removers so the rule is in one place: the
+   * newest removal owns the row, and arming a new one commits the previous
+   * one's delete immediately — which is exactly when that one stopped being
+   * undoable.
+   */
+  const pendingDeleteRef = useRef<(() => void) | null>(null);
+
+  const commitPendingDelete = useCallback(() => {
+    const run = pendingDeleteRef.current;
+    pendingDeleteRef.current = null;
+    run?.();
   }, []);
+
+  const armUndo = useCallback(
+    (next: NonNullable<typeof undoState>, commit?: () => void) => {
+      // The newest removal owns the row; the previous one becomes final.
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      commitPendingDelete();
+      pendingDeleteRef.current = commit ?? null;
+      setUndoState(next);
+      undoTimerRef.current = setTimeout(() => {
+        commitPendingDelete();
+        setUndoState(null);
+      }, ERASE.undoMs);
+    },
+    [commitPendingDelete]
+  );
 
   useEffect(
     () => () => {
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      // Leaving the screen ends the undo window: commit rather than drop it,
+      // or a card the student erased would quietly come back.
+      const run = pendingDeleteRef.current;
+      pendingDeleteRef.current = null;
+      run?.();
     },
     []
   );
@@ -155,7 +190,7 @@ export default function LibraryScreen() {
         if (!cancelled) setDoubts(res.doubts.filter((d) => d.status === 'solved'));
       })
       .catch((err) => {
-        if (!cancelled) setDoubtsError(err instanceof Error ? err.message : 'Could not load your doubts.');
+        if (!cancelled) setDoubtsError(friendlyLoadError(err, 'doubts'));
       })
       .finally(() => {
         if (!cancelled) setDoubtsLoading(false);
@@ -174,7 +209,7 @@ export default function LibraryScreen() {
         if (!cancelled) setNotes(res.notes);
       })
       .catch((err) => {
-        if (!cancelled) setNotesError(err instanceof Error ? err.message : 'Could not load your notes.');
+        if (!cancelled) setNotesError(friendlyLoadError(err, 'notes'));
       })
       .finally(() => {
         if (!cancelled) setNotesLoading(false);
@@ -249,11 +284,11 @@ export default function LibraryScreen() {
     (id: string) => {
       const index = notes.findIndex((n) => n.id === id);
       if (index < 0) return;
-      armUndo({ kind: 'note', index, item: notes[index] });
+      armUndo({ kind: 'note', index, item: notes[index] }, () => {
+        // A failure here is not worth a dialog — the next refetch corrects it.
+        deleteNote(id).catch(() => {});
+      });
       setNotes((prev) => prev.filter((n) => n.id !== id));
-      // The row is already gone from the list; the server catches up. A
-      // failure here is not worth a dialog — the next refetch corrects it.
-      deleteNote(id).catch(() => {});
     },
     [armUndo, notes]
   );
@@ -272,18 +307,22 @@ export default function LibraryScreen() {
     (id: string) => {
       const index = doubts.findIndex((d) => d.id === id);
       if (index < 0) return;
-      armUndo({ kind: 'doubt', index, item: doubts[index] });
+      armUndo({ kind: 'doubt', index, item: doubts[index] }, () => {
+        // DELETE /doubts/{id} drops one question, and the photo only when no
+        // other question still uses it — which is why these are one card per
+        // question. Runs only once undo is no longer on offer.
+        deleteDoubt(id).catch(() => {});
+      });
       setDoubts((prev) => prev.filter((d) => d.id !== id));
-      // Already gone from the list; the server catches up. DELETE /doubts/{id}
-      // drops one question, and the photo only when no other question still
-      // uses it — which is exactly why these are one card per question.
-      deleteDoubt(id).catch(() => {});
     },
     [armUndo, doubts]
   );
 
   const undoRemoval = useCallback(() => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    // Nothing was sent yet, so undo is a genuine cancel rather than a
+    // best-effort restore of something already deleted.
+    pendingDeleteRef.current = null;
     setUndoState((state) => {
       if (!state) return null;
       // Back at its original index, not appended to the end.

@@ -173,25 +173,30 @@ function classForServer(year: YearKey): number {
   return year === 'class11' ? 11 : 12;
 }
 
-/** Mirrors the local profile into `profiles`. Best-effort: a failed sync must
- *  never block onboarding, and the next save retries it. */
+/**
+ * Mirrors the local profile into `profiles`.
+ *
+ * **Throws on failure.** It used to swallow everything, and postgrest reports
+ * write failures by *returning* an error rather than throwing — so an RLS
+ * denial, a `target_exam` check-constraint rejection or a dropped connection
+ * at the last step of onboarding left `display_name` unset while the student
+ * was waved through to the app. Every launch after that failed the onboarding
+ * check and sent them round again, forever, with nothing logged.
+ */
 export async function pushProfile(): Promise<void> {
-  try {
-    const { data } = await supabase.auth.getSession();
-    const user = data.session?.user;
-    if (!user || user.is_anonymous) return;
-    const p = await getProfile();
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      display_name: p.name || null,
-      phone: p.phone || null,
-      phone_verified: p.phoneVerified,
-      target_exam: examForServer(p.exam),
-      enrolled_class: classForServer(p.year),
-    });
-  } catch (err) {
-    console.error('[profile] sync failed:', err);
-  }
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+  if (!user || user.is_anonymous) return;
+  const p = await getProfile();
+  const { error } = await supabase.from('profiles').upsert({
+    id: user.id,
+    display_name: p.name || null,
+    phone: p.phone || null,
+    phone_verified: p.phoneVerified,
+    target_exam: examForServer(p.exam),
+    enrolled_class: classForServer(p.year),
+  });
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -231,27 +236,27 @@ export async function pullProfile(): Promise<void> {
 /**
  * Has this student finished onboarding?
  *
- * Asked of the server, not the device. The previous check was "is there a name
- * in local storage", which broke the moment a device had leftover data from
- * earlier testing: a brand-new sign-in was treated as a returning student and
- * dropped straight onto Home, skipping name, exam and class entirely.
+ * Asked of the server, not the device — that is the only question that
+ * survives a reinstall or a second device.
  *
- * Defaults to `false` on any failure — sending a returning student through
- * onboarding again is a small annoyance, while skipping it leaves an account
- * with no exam, and therefore the wrong subjects everywhere.
+ * **Throws when it cannot ask.** postgrest returns `{ data: null, error }` on
+ * a network failure rather than rejecting, so reading only `data` made "the
+ * request failed" indistinguishable from "there is no row". That is not a
+ * harmless conflation: it told the gate an established student had never
+ * onboarded, which threw them into onboarding mid-session on any signal drop
+ * — and the re-onboarding then overwrote their real name and exam on the
+ * server with whatever they retyped. Callers must decide what an unanswerable
+ * question means for them; none of them may treat it as `false`.
  */
 export async function hasCompletedOnboarding(): Promise<boolean> {
-  try {
-    const { data } = await supabase.auth.getSession();
-    const user = data.session?.user;
-    if (!user || user.is_anonymous) return false;
-    const { data: rows } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', user.id)
-      .limit(1);
-    return !!rows?.[0]?.display_name;
-  } catch {
-    return false;
-  }
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+  if (!user || user.is_anonymous) return false;
+  const { data: rows, error } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', user.id)
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return !!rows?.[0]?.display_name;
 }

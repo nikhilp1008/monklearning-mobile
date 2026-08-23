@@ -5197,6 +5197,103 @@ key gone and every `monklearning.*` key cleared.
 profile, so the build number takes care of itself, and the production env
 already points at live Supabase and the Railway API.
 
+## Pre-TestFlight review, and the six defects it found
+
+Three parallel agents: a wiring/regression review, and the two reported
+performance bugs. `tsc` and `eslint` were clean and caught none of what
+follows — worth remembering about what those tools are for.
+
+**Fixed before shipping:**
+
+1. **A NEET student had no Biology and an empty Maths tab.** `drona.tsx` and
+   `practice.tsx` hardcoded `['Physics','Chemistry','Maths']` while
+   `getCatalogue()` had just been taught to filter mathematics *out* for NEET
+   and return biology instead. The Maths tab's lookup could only ever return
+   an empty array — no error, no explanation — and biology sat in the payload
+   with no tab to show it. Tabs now come from `examSubjects(exam)`, exported
+   from `lib/drona.ts` so the filter and the tabs cannot disagree again. This
+   was self-inflicted: filtering the catalogue without checking who else
+   rendered subject lists.
+
+2. **A network blip looked exactly like "never onboarded".** postgrest
+   *returns* `{data:null,error}` rather than throwing, and
+   `hasCompletedOnboarding` read only `data`. So a signal drop answered
+   "false": the gate threw an established student into onboarding mid-session,
+   and `pushProfile` then overwrote their real name and exam with whatever
+   they retyped. It now throws, and both callers fall back to the local stored
+   name — which is what the comment in `useAuthState` had claimed all along
+   while the code made that branch unreachable.
+
+3. **`pushProfile` could not fail loudly**, so a failed write at the last step
+   of onboarding left `display_name` unset while the student was waved
+   through — and every later launch read as "never onboarded" and sent them
+   round again, forever, with nothing logged. It throws now, and `class.tsx`
+   stops and offers a retry instead of continuing.
+
+4. **UNDO was a lie.** The server delete fired the instant a card was rubbed
+   out, so undo restored the row on screen and nothing restored it on the
+   server: switch tabs, the focus refetch runs, gone for good. The delete is
+   now deferred until the undo window closes, committed early if another
+   removal arms, and committed on unmount so leaving the screen does not
+   quietly resurrect a card.
+
+5. **Developer strings shown to students** — "No authentication session found"
+   was caught rendering on screen during verification. `friendlyLoadError` now
+   stands between `err.message` and the student.
+
+6. **The phone field flickered on the 11th digit.** `onChangeText` sliced to
+   ten, but the native field had already painted the eleventh, so it flashed
+   on for a frame. `maxLength` refuses it at the native layer.
+
+**Also:** `userInterfaceStyle` is now `light` and the root `StatusBar` is
+`dark`. The app has no dark theme, so `automatic`/`auto` was only ever right by
+accident, and it governs native UI the app doesn't draw — keyboard, action
+sheets, photo picker, alerts.
+
+**Verified after the changes:** `tsc` and `eslint` clean, a real production
+bundle exports (5.89 MB Hermes bytecode — the check dev mode cannot give), all
+four logic harnesses pass, and `/progress`, `/drona/catalogue`, `/doubts`,
+`/notes` all answer on the live API.
+
+**Known and deliberately not fixed in this build** — real, but none of them
+break a first run, and each is better done with care than at the last minute:
+the tabs remaining under a sign-out (iOS back-swipe can re-enter), the
+`getProgress` cache being repopulated by an in-flight request after
+sign-out, Personal-information edits not pushing to the server, `collectProof`
+burning its baseline when the summary is left early, samples reappearing after
+the last real card is erased, and `Erasable`'s uncancelled commit timer.
+
+### The two performance reports
+
+**Snap.** The premise was wrong in a useful way: the app and web do **not**
+call the same endpoint. App → `POST /doubts`, blocking. Web → `POST
+/doubts/stream`, SSE, whose own comment records *"first answer at 26s instead
+of 75s"*. Same total work, completely different time-to-first-pixel. Worse,
+web's `.env.local` points at `localhost:8000` while the app points at Railway,
+so any laptop-vs-phone comparison was measuring the network, not the code.
+The dominant client-side cause is that the app uploads a **full-resolution
+iPhone photo** — `quality: 0.85` in expo-image-picker is JPEG compression, not
+resolution, and `expo-image-manipulator` is not installed. 3–8 MB per snap;
+6–14s on Indian 4G. Web users pick an existing screenshot at 100–500 KB, a
+~10× difference from user behaviour rather than code. Ruled out with evidence:
+no base64, no polling, no re-fetch, one round-trip each side.
+
+**Voice.** Two distinct problems. The **delay** is structural: web opens the
+WebSocket the instant the session starts, while the student is still choosing
+a subtopic; the app doesn't build it until the classroom mounts — after the
+slow scoping call and after awaiting a Supabase token — so DNS, TLS, the
+upgrade and JWKS validation all sit on the critical path. There is also a race:
+the kick-off utterance fires on a fixed `setTimeout(300ms)` and is silently
+dropped if the socket isn't open, which cellular routinely causes; web polls
+for readiness. The **glitching** is separate and nearly free to fix:
+`createAudioPlayer(null)` defaults `keepAudioSessionActive: false`, so iOS
+tears down and rebuilds the audio session between *every sentence*, making
+each boundary a 100 ms race — which is why it stutters intermittently rather
+than consistently. Underneath that, a fresh `AVPlayerItem` per sentence with no
+preloading guarantees a gap; web schedules sample-accurately on the Web Audio
+clock. Separately: **`setAudioModeAsync` is never called anywhere**, so the
+hardware mute switch silences Drona entirely and playback stops on lock.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

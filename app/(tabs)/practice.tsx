@@ -27,17 +27,29 @@ import {
   parseAnswerSolution,
   submitAnswer,
 } from '@/lib/practice';
-import { getCatalogue } from '@/lib/drona';
+import { examSubjects, getCatalogue } from '@/lib/drona';
+import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 import { ProgressChapter, getCachedProgress, getProgress } from '@/lib/progress';
 
-const SUBJECTS = ['Physics', 'Chem', 'Maths'] as const;
+/**
+ * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
+ * tab that can only serve questions from a syllabus they are not sitting,
+ * and no way to reach Biology at all.
+ */
+const SUBJECT_LABEL: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chem',
+  mathematics: 'Maths',
+  biology: 'Bio',
+};
 
-// UI labels -> the subject strings the API's questions table actually uses.
-const SUBJECT_QUERY: Record<(typeof SUBJECTS)[number], string> = {
+/** UI label -> the subject string the API's questions table actually uses. */
+const SUBJECT_QUERY: Record<string, string> = {
   Physics: 'physics',
   Chem: 'chemistry',
   Maths: 'mathematics',
+  Bio: 'biology',
 };
 
 
@@ -52,7 +64,21 @@ export default function PracticeScreen() {
   const [reviseChapters, setReviseChapters] = useState<ProgressChapter[]>(() =>
     weakChaptersFrom(getCachedProgress())
   );
-  const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
+  const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chem', 'Maths']);
+  const [activeSubject, setActiveSubject] = useState<string>('Physics');
+
+  useEffect(() => {
+    let cancelled = false;
+    getProfile().then(({ exam }) => {
+      if (cancelled) return;
+      const next = examSubjects(exam).map((k) => SUBJECT_LABEL[k] ?? k);
+      setSubjects(next);
+      setActiveSubject((current) => (next.includes(current) ? current : next[0]));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const { focus, setFocus } = usePracticeFocus();
 
   const [question, setQuestion] = useState<NextQuestion | null>(null);
@@ -337,7 +363,7 @@ export default function PracticeScreen() {
             <>
           <View style={styles.filterRow}>
             <SlidingToggle
-              options={SUBJECTS}
+              options={subjects}
               value={activeSubject}
               onChange={setActiveSubject}
               trackStyle={styles.subjectTrack}
