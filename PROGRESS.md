@@ -5020,6 +5020,50 @@ server's copy. These are the two screens most likely to be the first thing
 opened on a new device, where AsyncStorage is empty and `profiles` holds the
 only real answers.
 
+## handoff_icons_v1 — the three home icons
+
+Snap, Practice and Milestones replaced with the designer's set. Transcribed
+from the handoff's own `react-native/MonkIcons.tsx` rather than redrawn, so the
+geometry is exact to the decimal; only the ink default is re-sourced from
+`colors.ink` (the same `#1C1A16`) so a palette change cannot leave these three
+behind.
+
+**The chip went through three states, and the reasons are the useful part.**
+
+Every icon in the set carries exactly one filled amber accent — the flash lamp,
+the mark on the current sheet, the medal face — and the whole set is built
+around it.
+
+1. **The cream-to-gold gradient had to go.** It ended at `#F0C063`: the same
+   hue and nearly the same value as the accent's `#EEA31F`. The accent measured
+   about **1.3:1** against it and vanished entirely.
+2. **The spec's `#FDF3DE` tint** cleared the accent (~1.9:1) but sat too close
+   to the white card to hold an edge — the chip stopped reading as an object
+   and the icon looked adrift in the corner.
+3. **White with an ink hairline.** Best contrast available for both the strokes
+   and the accent, and the hairline gives back the edge the tint could not. It
+   also keeps a third warm surface off a page that already has the amber hero
+   and the observation row.
+
+**One recorded deviation from the spec: stroke 2.1, not 1.9.** "Darker" could
+not be answered with colour — the ink is already the darkest in the product and
+the handoff explicitly forbids substituting pure black. What reads as light at
+chip size is the stroke: 1.9 on the 24 grid rendered at 22pt is a 1.74pt line.
+The spec's actual rule is that the stroke must not *scale with the icon*, and
+that still holds — this is one constant at every size. `STROKE` in
+`components/monk-icons.tsx` is the single place to revert it.
+
+**Library's camera was a different camera.** The doubts search row had its own
+`SnapIcon` for the same "snap a doubt" action. Unified to `SnapADoubtIcon` at
+20pt (the set's floor, below which the accent fuses into the stroke beside it),
+inverted to paper on the ink pill. `components/snap-icon.tsx` deleted.
+
+**Noticed, not changed:** the milestones badge dot is marigold and the medal's
+face is also amber, so two ambers sit on one 40pt button. It reads acceptably —
+different sizes, ~20pt apart, clearly badge-plus-icon. The handoff's own
+philosophy ("use the row, not the icon" for state) would suggest dropping the
+dot and warming the whole button instead.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and

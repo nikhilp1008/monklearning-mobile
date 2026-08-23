@@ -21,7 +21,7 @@ import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components
 import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { SnapIcon } from '@/components/snap-icon';
+import { SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
@@ -591,7 +591,12 @@ export default function LibraryScreen() {
                 <PressableScale
                   style={styles.cameraButton}
                   onPress={() => router.push('/snap-capture')}>
-                  <SnapIcon size={scale(19)} color={colors.paper} />
+                  {/* Same camera as Home's tile — one shape for one action.
+                      Ink-on-dark inverts to paper; the amber accent is left
+                      alone, since it reads cleanly on the ink fill and is the
+                      one mark the icon is built around. 20pt is the set's
+                      floor, below which the accent fuses into the stroke. */}
+                  <SnapADoubtIcon size={scale(20)} color={colors.paper} />
                 </PressableScale>
               </View>
 

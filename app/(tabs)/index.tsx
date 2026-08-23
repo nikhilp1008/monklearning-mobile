@@ -10,7 +10,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RuledPaper } from '@/components/ruled-paper';
 import { NoticedCard } from '@/components/noticed-card';
 import { Skeleton } from '@/components/skeleton';
-import { SnapIcon } from '@/components/snap-icon';
+import { MilestonesIcon, PracticeIcon, SnapADoubtIcon, TILE_CHIP } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { countMilestones } from '@/lib/milestones';
@@ -211,7 +211,7 @@ export default function HomeScreen() {
             <PressableScale
               style={styles.headerButton}
               onPress={() => router.push('/milestones')}>
-              <KeptIcon size={scale(19)} />
+              <MilestonesIcon size={scale(20)} />
               {milestones.unseen > 0 && <View style={styles.headerDot} />}
             </PressableScale>
           )}
@@ -257,7 +257,7 @@ export default function HomeScreen() {
                 onPress={() => router.push('/snap-capture')}>
                 <View style={styles.tileHeader}>
                   <TileChip size={scale(44)} radius={scale(12)}>
-                    <SnapIcon size={scale(24)} />
+                    <SnapADoubtIcon size={scale(22)} />
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
@@ -270,7 +270,7 @@ export default function HomeScreen() {
                 onPress={() => router.push('/practice')}>
                 <View style={styles.tileHeader}>
                   <TileChip size={scale(44)} radius={scale(12)}>
-                    <InfinityIcon size={scale(24)} />
+                    <PracticeIcon size={scale(22)} />
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
@@ -485,45 +485,16 @@ function PersonIcon({ size }: { size: number }) {
   );
 }
 
-/**
- * Milestones, as a bookmark with a ruled line through it.
- *
- * Not a trophy, medal or star — those are the game-badge vocabulary the
- * moments spec rules out, and they would promise a kind of reward this app
- * deliberately doesn't give. A bookmark says "a page you kept", which is
- * literally what the milestones page is: entries a student returns to.
- *
- * The single rule inside the bookmark is what makes it ours rather than a
- * stock glyph. It is the same ruled-paper line that runs through the note
- * cards, the doubt of the day and the milestones sheet itself, so the icon
- * belongs to the app's stationery rather than to a game.
- */
-function KeptIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M6.5 4.5h11v15l-5.5-4-5.5 4v-15Z"
-        stroke={colors.ink}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M9.5 9.5h5" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
-    </Svg>
-  );
-}
 
 /**
- * The tile's icon, as a soft gradient chip.
+ * The tile's icon chip.
  *
- * This is the CRED idea kept deliberately quiet. A fully saturated chip looked
- * good in isolation but put the most intense colour on the page onto the two
- * *secondary* tiles, directly under a hero whose CTA is the palest thing on
- * it — hierarchy upside down. The pale cream-to-gold ramp keeps the premium
- * feel and leaves the Drona card leading.
- *
- * The card border stays. Dropping it was the one thing that clearly failed:
- * without an edge the pair read as two floating icons rather than as buttons.
+ * White with a hairline. It has been three things now, and the reasons matter:
+ * a cream-to-gold gradient, which ended at `#F0C063` and swallowed the amber
+ * accent every `handoff_icons_v1` icon is built around (about 1.3:1); then the
+ * spec's `#FDF3DE` tint, which cleared the accent but left the chip too close
+ * to the white card to hold an edge. White clears the accent best of all, and
+ * the hairline gives back the edge the tint could not.
  */
 function TileChip({
   size,
@@ -535,36 +506,23 @@ function TileChip({
   children: React.ReactNode;
 }) {
   return (
-    <LinearGradient
-      colors={['#FFF1D2', '#F0C063']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <View
       style={{
         width: size,
         height: size,
         borderRadius: radius,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: TILE_CHIP,
+        borderWidth: 1,
+        borderColor: 'rgba(28,26,22,.10)',
       }}>
       {children}
-    </LinearGradient>
+    </View>
   );
 }
 
-function InfinityIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M18.2 8.4c4.8 0 4.8 7.2 0 7.2-4.6 0-5.8-7.2-10.4-7.2-4.8 0-4.8 7.2 0 7.2 4.6 0 5.8-7.2 10.4-7.2"
-        stroke={colors.ink}
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={12} cy={12} r={1.7} fill={colors.marigold} />
-    </Svg>
-  );
-}
+
 
 /**
  * Where an observation sends you. The union is mapped to literal `router.push`

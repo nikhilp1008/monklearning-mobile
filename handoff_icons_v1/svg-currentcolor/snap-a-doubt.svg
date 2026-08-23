@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3"></path>
+  <rect x="2.8" y="6.4" width="18.4" height="13.5" rx="3.2"></rect>
+  <circle cx="12" cy="13.2" r="3.6"></circle>
+  <circle cx="17.8" cy="9.9" r="1.4" fill="var(--monk-accent, #EEA31F)" stroke="none"></circle>
+</svg>
