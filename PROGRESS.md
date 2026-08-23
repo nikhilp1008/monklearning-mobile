@@ -5203,7 +5203,35 @@ Three parallel agents: a wiring/regression review, and the two reported
 performance bugs. `tsc` and `eslint` were clean and caught none of what
 follows — worth remembering about what those tools are for.
 
-**Fixed before shipping:**
+**The one the review got wrong.** It checked "navigate before ready" and
+declared it clean, reasoning that the `<Stack>`'s child effects flush before
+the root layout's. The device disagreed: *"The 'navigation' object hasn't been
+initialized yet."*
+
+The redirect effect is declared **above** `if (!ready) return null`, so on the
+render where `ready` first flips true it can fire in the same commit that
+mounts the `<Stack>` — before expo-router's container has published its state.
+
+What makes this worse than a red box: **in a release build LogBox is not there
+to show it.** `router.replace` throws, the redirect is silently dropped, and an
+unauthenticated student stays on the tabs. The single thing the gate exists to
+prevent, failing invisibly.
+
+Fixed by waiting on the navigator itself — `useRootNavigationState()?.key` is
+undefined until it is genuinely ready — rather than on our own `ready` flag.
+The splash is held until then too, so no frame of the tabs shows on the way to
+onboarding.
+
+**And a bug nearly introduced by that fix:** holding the splash on the
+navigator would have re-created the *exact* failure this file already carries a
+15s failsafe for — a splash screen nothing can dismiss. `failsafeTripped` now
+overrides it. Showing the tabs un-redirected is bad; showing a dead app is
+worse.
+
+Evidence: the error appeared once in the Metro log before the change and zero
+times across three cold launches after.
+
+**Also fixed before shipping:**
 
 1. **A NEET student had no Biology and an empty Maths tab.** `drona.tsx` and
    `practice.tsx` hardcoded `['Physics','Chemistry','Maths']` while

@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -63,6 +63,20 @@ export default function RootLayout() {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
   }
   const authState = useAuthState();
+  /**
+   * The navigator's own readiness, which is not the same as ours.
+   *
+   * `key` is undefined until the root navigator has mounted and published its
+   * state. Without this the redirect below could fire in the same commit that
+   * first mounts the `<Stack>` — React runs the effect, expo-router's
+   * container has not reported ready yet, and `router.replace` throws "the
+   * navigation object hasn't been initialized yet".
+   *
+   * That failure is quiet in a release build: LogBox is not there to show it,
+   * the redirect is simply dropped, and an unauthenticated student stays on
+   * the tabs. Which is the one thing this gate exists to prevent.
+   */
+  const navigatorReady = useRootNavigationState()?.key != null;
 
   const [failsafeTripped, setFailsafeTripped] = useState(false);
   useEffect(() => {
@@ -73,10 +87,18 @@ export default function RootLayout() {
   const ready = ((fontsLoaded || fontsError) && authState !== 'loading') || failsafeTripped;
 
   useEffect(() => {
-    if (ready) {
+    // Held until the navigator is up as well, so the redirect below has
+    // already run by the time anything is visible — otherwise a signed-out
+    // student sees a frame of the tabs before onboarding replaces it.
+    //
+    // `failsafeTripped` still overrides it. Waiting on the navigator without
+    // that escape would re-create the exact bug this file already carries a
+    // 15s failsafe for: a splash screen nothing can dismiss. Showing the tabs
+    // un-redirected is bad; showing a dead app is worse.
+    if (ready && (navigatorReady || failsafeTripped)) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [ready]);
+  }, [ready, navigatorReady, failsafeTripped]);
 
   /**
    * The gate. The app anchors to `(tabs)`, so an unauthenticated student is
@@ -92,12 +114,12 @@ export default function RootLayout() {
    * and no screen has to route on its own behalf.
    */
   useEffect(() => {
-    if (!ready || authState === 'loading') return;
+    if (!ready || !navigatorReady || authState === 'loading') return;
     if (authState === 'signed_out') router.replace('/welcome');
     // Verified, but stopped part-way through. Resume at the first unanswered
     // question rather than starting them over at the welcome screens.
     else if (authState === 'needs_onboarding') router.replace('/details');
-  }, [ready, authState]);
+  }, [ready, navigatorReady, authState]);
 
   if (!ready) {
     return null;
