@@ -10,14 +10,8 @@ import Svg, { Path } from 'react-native-svg';
 import { SnapLoading } from '@/components/snap-loading';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import {
-  DoubtPhoto,
-  SnapFailure,
-  readSnapFailure,
-  rejectPhoto,
-  setPendingSnapResult,
-  snapDoubt,
-} from '@/lib/doubts';
+import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
+import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 
 type Phase = 'opening' | 'idle' | 'permission_denied' | 'uploading' | 'failed';
 
@@ -43,37 +37,54 @@ export default function SnapCaptureScreen() {
   /** Which permission was refused — the copy differs, and offering "choose from
    *  gallery" to someone who just denied gallery access is a dead end. */
   const [deniedTarget, setDeniedTarget] = useState<'camera' | 'gallery'>('camera');
-  /** Lets Cancel on the loading screen actually stop the request in flight,
-   *  rather than leaving it running against a screen nobody is watching. */
-  const uploadAbortRef = useRef<AbortController | null>(null);
 
-  async function upload(toUpload: DoubtPhoto) {
+  const job = useSnapJob();
+
+  /**
+   * Starts the solve and lets the scan play, then hands over to the solution
+   * screen whether or not the answer is back.
+   *
+   * A solve runs 30–45s, and the scanning animation has nothing new to say
+   * after the first few seconds of it — holding someone there for the rest is
+   * just a long wait on a screen that gets thrown away. So it hands over on
+   * whichever comes first: the answer, or `SNAP_HANDOFF_MS`. The solution
+   * screen shows its skeleton until the result lands, which puts the wait on
+   * the page the content will actually fill.
+   *
+   * A failure *before* the handoff keeps the student here, because this is the
+   * screen that can act on it — quota, an unreadable photo, "try again" all
+   * belong next to the camera, not on an empty solution page. After the
+   * handoff the solution screen owns it.
+   *
+   * `replace`, not `push`: this screen has no job left once it hands over, and
+   * back should return to wherever the student opened Snap from rather than to
+   * a scan of a doubt already solved.
+   */
+  function upload(toUpload: DoubtPhoto) {
     setPhase('uploading');
     setFailure(null);
-    const controller = new AbortController();
-    uploadAbortRef.current = controller;
-    try {
-      const response = await snapDoubt(toUpload, controller.signal);
-      // Handed off via a module-level slot, not a router param — see
-      // setPendingSnapResult's own comment for why JSON.stringify-through-
-      // params is unsafe for this payload.
-      setPendingSnapResult(response);
-      router.push('/snap-solved');
-    } catch (err) {
-      // A deliberate cancel already closed the screen — don't flash a failure
-      // at someone who asked to stop.
-      if (controller.signal.aborted) return;
-      const result = readSnapFailure(err);
-      setFailure(result);
-      setCanRetryUpload(result.stage !== 'quota');
-      setPhase('failed');
-    } finally {
-      uploadAbortRef.current = null;
-    }
+    startSnapJob(toUpload);
   }
 
+  useEffect(() => {
+    if (phase !== 'uploading') return;
+    if (job.status === 'solved') {
+      router.replace('/snap-solved');
+      return;
+    }
+    if (job.status === 'failed') {
+      setFailure(job.failure);
+      setCanRetryUpload(job.failure.stage !== 'quota');
+      setPhase('failed');
+      return;
+    }
+    if (job.status !== 'solving') return;
+    const id = setTimeout(() => router.replace('/snap-solved'), SNAP_HANDOFF_MS);
+    return () => clearTimeout(id);
+  }, [phase, job]);
+
   const cancelUpload = () => {
-    uploadAbortRef.current?.abort();
+    cancelSnapJob();
     close();
   };
 
@@ -101,7 +112,7 @@ export default function SnapCaptureScreen() {
       return;
     }
 
-    await upload(picked);
+    upload(picked);
   }
 
   async function openCamera() {

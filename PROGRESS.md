@@ -5744,6 +5744,83 @@ replayed on attach. Backing out of scoping discards the unclaimed socket.
 This removes connect + auth from the critical path. It does **not** touch the
 `scope` call itself, which remains the dominant and highly variable cost.
 
+## Snap: the scan that didn't fit the photo, and the 45s wait
+
+### The floating outlines
+
+The detected-text outlines were positioned against the **screen** —
+`top: height * 0.34`, `left: 28`, `right: 28` — while the photo is drawn with
+`contentFit="contain"`, which fits the longer axis and centres the other. The
+two only agree when the shot happens to match the phone's shape. On anything
+wide or small the photo sat in a band across the middle and the outlines hung
+above it in the black, boxing nothing. That is the "disconnected" read.
+
+Now the photo's laid-out rect is computed from its intrinsic aspect (from
+expo-image's own `onLoad`) and the frame, and everything in the scan is a
+fraction of *that*: the outlines, their insets, their height, and the sweep,
+which is clipped to the photo so the beam travels the shot rather than the
+phone. Nothing is drawn until the rect is known — an outline placed on a guess
+is exactly the bug being fixed.
+
+### The black surround
+
+`contain` is the right call and stays: a student has to see the whole question
+they sent, and the design's README says so even though its CSS said `cover`.
+But `contain` leaves bars wherever the shapes disagree, and those bars were
+flat black — a wide shot meant most of the screen was dead.
+
+Filled with the same photo, cropped to `cover`, blurred past legibility and
+dimmed under the real one. Every aspect ratio now reads the same: the photo,
+sitting on itself. No new asset, no crop, nothing hidden.
+
+### Nobody waits 45 seconds on a loading screen
+
+A solve runs 30–45s and the scan has nothing new to say after the first few
+seconds of it. The capture screen owned the request, so it held the student
+there for all of it, on a screen that then gets thrown away.
+
+The request moved into `lib/snap-job.ts`, outside React, so it can outlive the
+screen that started it. The scan plays for `SNAP_HANDOFF_MS` (7s — long enough
+to read as a real step, landing mid-third-stage-line) and then hands over to
+the solution screen, which shows the skeleton the Library's doubt detail was
+already using. The wait now happens on the page the content will fill.
+
+Whichever comes first wins: an answer back inside 7s navigates immediately.
+
+A failure *before* the handoff keeps the student on the capture screen, which
+is the one that can act on it — quota, an unreadable photo, "try again" all
+belong next to the camera. After the handoff the solution screen owns it and
+offers "Try another photo".
+
+`replace`, not `push`: back should return to wherever Snap was opened from,
+not to a scan of a doubt already solved.
+
+Two details that make it safe:
+
+- **A generation counter.** Abort alone doesn't cover the window between
+  `abort()` and the promise settling, so a stale request could overwrite a
+  newer job. Every start, cancel and clear bumps it; a resolution from an old
+  generation is dropped.
+- **`clearFinishedSnapJob`** drops a *finished* job on the way out so a stale
+  answer can never reappear, but deliberately leaves one still running:
+  `POST /doubts` has already created the doubt server-side, and killing it
+  would lose a solve the student is about to find in their Library.
+
+Retired `setPendingSnapResult`, which could only carry a result that had
+already arrived.
+
+The solution skeleton went from two step rows to four — two left the lower half
+of the page blank, which reads as "this is all there is" and then jumps.
+
+### Verified on device, all three paths
+
+- **Wide photo (1800×700) and a 1400×760 question**: margins are a blurred
+  continuation, outlines sit on the text lines.
+- **Handoff**: Solution page with skeleton at ~7s, solve still running.
+- **Success**: skeleton replaced by the real six-step working.
+- **Failure after handoff**: remedy copy and "Try another photo", which
+  returns to capture.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

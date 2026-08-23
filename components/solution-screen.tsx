@@ -386,7 +386,13 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 
           <View style={skeleton.steps}>
             <View style={skeleton.rail} />
-            {[0, 1].map((i) => (
+            {/* Four, not two. A solve typically comes back with five or six
+                steps, and a placeholder that stops halfway down leaves the
+                lower half of the page blank — which reads as "this is all
+                there is" and then jumps when it isn't. Four fills the fold on
+                every size this ships to without pretending to know the exact
+                count. */}
+            {[0, 1, 2, 3].map((i) => (
               <View key={i} style={skeleton.step}>
                 <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
                 <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />

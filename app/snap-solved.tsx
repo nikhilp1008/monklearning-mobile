@@ -4,10 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SolutionQuestion, SolutionScreen } from '@/components/solution-screen';
+import {
+  SolutionQuestion,
+  SolutionScreen,
+  SolutionScreenSkeleton,
+} from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { Remedy, clearPendingSnapResult, peekPendingSnapResult } from '@/lib/doubts';
+import { Remedy } from '@/lib/doubts';
+import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
 import { latexToText } from '@/lib/latex-text';
 import { parseSolutionSteps } from '@/lib/solution-steps';
 
@@ -22,13 +27,15 @@ export default function SnapSolvedScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [index, setIndex] = useState(0);
 
-  // Read once via a lazy initializer (safe under StrictMode double-invoke —
-  // see clearPendingSnapResult's comment), then clear it so back-navigating
-  // here again shows the empty state instead of stale data.
-  const [response] = useState(() => peekPendingSnapResult());
-  useEffect(() => {
-    clearPendingSnapResult();
-  }, []);
+  // The student is often here *before* the answer is: the capture screen hands
+  // over after SNAP_HANDOFF_MS whether or not the solve has finished, so this
+  // screen is the one that waits. See lib/snap-job.ts.
+  const job = useSnapJob();
+  const response = job.status === 'solved' ? job.response : null;
+
+  // Dropped on the way out so coming back never shows a stale answer. A solve
+  // still running is deliberately left alone — see clearFinishedSnapJob.
+  useEffect(() => clearFinishedSnapJob, []);
 
   const questions: SolutionQuestion[] = useMemo(
     () =>
@@ -46,6 +53,34 @@ export default function SnapSolvedScreen() {
       })),
     [response]
   );
+
+  if (job.status === 'solving') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <SolutionScreenSkeleton onBack={() => router.back()} />
+      </>
+    );
+  }
+
+  if (job.status === 'failed') {
+    return (
+      <View style={styles.screen}>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>Couldn&apos;t solve this one</Text>
+            <Text style={styles.emptyBody}>
+              {job.failure.remedy ? REMEDY_COPY[job.failure.remedy] : job.failure.message}
+            </Text>
+            <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
+              <Text style={styles.ctaButtonText}>Try another photo</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   if (!response || questions.length === 0) {
     return (

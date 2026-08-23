@@ -193,32 +193,6 @@ export function deleteDoubt(doubtId: string): Promise<void> {
   return apiFetch(`/doubts/${doubtId}`, { method: 'DELETE' });
 }
 
-/**
- * Hands a just-solved SnapResponse from snap-capture to snap-solved without
- * round-tripping it through router params: expo-router encodes push() params
- * and useLocalSearchParams decodes them AGAIN on read, so any literal
- * "%XX"-shaped substring inside solution text or LaTeX (e.g. in `steps`)
- * would get silently corrupted by the extra decode. This is a single,
- * synchronous, same-process handoff, so a module-level slot is sufficient —
- * `take` clears it so back-navigation doesn't show stale data.
- */
-// Split into peek/clear rather than one combined "take" — a component reading
-// this via a useState lazy initializer can have that initializer invoked
-// twice under React StrictMode's dev-only double-render check; a combined
-// read-and-clear would silently lose the payload on the second call. peek()
-// is a pure, idempotent read; clear() is idempotent too, so calling it from
-// an effect (which also double-fires under StrictMode) is safe.
-let pendingSnapResult: SnapResponse | null = null;
-export function setPendingSnapResult(response: SnapResponse) {
-  pendingSnapResult = response;
-}
-export function peekPendingSnapResult(): SnapResponse | null {
-  return pendingSnapResult;
-}
-export function clearPendingSnapResult() {
-  pendingSnapResult = null;
-}
-
 /** Normalizes the app's compact subject labels against the API's own vocabulary. */
 export function subjectMatches(apiSubject: string | null | undefined, filter: string): boolean {
   if (filter === 'All') return true;
