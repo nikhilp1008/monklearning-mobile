@@ -52,12 +52,6 @@ const SUBJECT_FILTER_LABEL: Record<string, SubjectFilter> = {
   biology: 'Biology',
 };
 
-/** The API stores subjects/chapters in whatever case they were ingested in —
- *  "mathematics" and "Mathematics" both occur live. Display gets one case. */
-function titleCase(value: string): string {
-  return value.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 // Subject -> accent color, since /notes doesn't return one — same three
 // brand accents used for the subject dot/label across the app.
 const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
@@ -635,29 +629,18 @@ export default function LibraryScreen() {
               ) : showingDoubtSamples ? (
                 // DEMO_ — sample cards so the tab can be read before anything
                 // is snapped. Both came off one photo and carry different
-                // subjects, which is the exact case that makes one card per
-                // question the right unit.
+                // subjects, which is the case that makes one card per question
+                // the right unit.
                 <View style={styles.doubtsList}>
                   <Text style={styles.doubtsSampleNote}>
-                    Nothing snapped yet — these two came off one photo, and they stand alone so
-                    you can filter and delete them separately.
+                    Nothing snapped yet — these two came off one photo, and each stands alone so
+                    you can find and delete them separately.
                   </Text>
                   {DEMO_DOUBT_CARDS.map((card) => (
                     <View key={card.id} style={styles.doubtCard}>
-                      <View style={styles.noteTopRow}>
-                        <View style={styles.noteSubjectRow}>
-                          <View style={[styles.noteDot, { backgroundColor: card.dot }]} />
-                          <Text style={[styles.noteSubjectText, { color: card.tint }]}>
-                            {card.subject}
-                          </Text>
-                        </View>
-                        <Text style={styles.noteTime}>{card.time}</Text>
-                      </View>
-                      <Text style={styles.noteTitle} numberOfLines={2}>
-                        {card.title}
-                      </Text>
-                      <Text style={styles.doubtQuestion} numberOfLines={2}>
-                        {card.body}
+                      <View style={styles.doubtRule} />
+                      <Text style={styles.doubtQuestion} numberOfLines={3}>
+                        {card.question}
                       </Text>
                     </View>
                   ))}
@@ -672,55 +655,40 @@ export default function LibraryScreen() {
                 </View>
               ) : (
                 <View style={styles.doubtsList}>
-                  {visibleDoubts.map((doubt) => {
-                    const accent = SUBJECT_ACCENT[(doubt.subject ?? '').toLowerCase()] ?? {
-                      dot: colors.faint,
-                      label: colors.slate,
-                    };
-                    // `concept` is the API's own short title; `chapter` is the
-                    // wider topic and stands in when there is no concept.
-                    const topic = doubt.concept ?? doubt.chapter ?? 'Doubt';
-                    return (
-                      <PressableScale
-                        key={doubt.id}
-                        style={styles.doubtCard}
-                        onPress={() =>
-                          router.push({
-                            pathname: '/doubt-detail',
-                            params: {
-                              id: doubt.id,
-                              title: doubt.stem ?? doubt.question_text ?? '',
-                              subject: doubt.subject ?? '',
-                              chapter: doubt.chapter ?? doubt.concept ?? '',
-                              time: `snapped ${formatRelativeTime(doubt.created_at)}`,
-                            },
-                          })
-                        }>
-                        {/* The same three-part shape as a note: whose it is and
-                            when, then the topic, then the content. This card
-                            used to open straight into the question with the
-                            subject, chapter and time crushed into one grey line
-                            above it — nothing to scan, and no topic at all. */}
-                        <View style={styles.noteTopRow}>
-                          <View style={styles.noteSubjectRow}>
-                            <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
-                            <Text style={[styles.noteSubjectText, { color: accent.label }]}>
-                              {titleCase(doubt.subject ?? 'General')}
-                            </Text>
-                          </View>
-                          <Text style={styles.noteTime}>
-                            {formatRelativeTime(doubt.created_at)}
-                          </Text>
-                        </View>
-                        <Text style={styles.noteTitle} numberOfLines={2}>
-                          {titleCase(topic)}
-                        </Text>
-                        <Text style={styles.doubtQuestion} numberOfLines={2}>
-                          {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
-                        </Text>
-                      </PressableScale>
-                    );
-                  })}
+                  {visibleDoubts.map((doubt) => (
+                    <PressableScale
+                      key={doubt.id}
+                      style={styles.doubtCard}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/doubt-detail',
+                          params: {
+                            id: doubt.id,
+                            title: doubt.stem ?? doubt.question_text ?? '',
+                            subject: doubt.subject ?? '',
+                            chapter: doubt.chapter ?? doubt.concept ?? '',
+                            time: `snapped ${formatRelativeTime(doubt.created_at)}`,
+                          },
+                        })
+                      }>
+                      {/* A doubt is not a note, and briefly it looked like one
+                          — subject dot, timestamp, bold topic, body line. But
+                          a note is something taught and titled, while a doubt
+                          is a question the student asked. So the question is
+                          the whole card, and the red margin rule is the same
+                          one the doubt of the day carries on Home: the app
+                          already had a mark for "this is a doubt".
+
+                          No subject tag, no time, and no topic name invented
+                          above the question — the filter and search do the
+                          finding, and a manufactured heading only competes
+                          with the words the student actually wrote down. */}
+                      <View style={styles.doubtRule} />
+                      <Text style={styles.doubtQuestion} numberOfLines={3}>
+                        {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
+                      </Text>
+                    </PressableScale>
+                  ))}
                 </View>
               )}
             </ScrollView>
@@ -1122,24 +1090,37 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(24),
     },
     doubtCard: {
+      position: 'relative',
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: hairline(0.16),
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(16),
+      paddingLeft: scale(30),
+      paddingRight: scale(16),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(1) },
       shadowOpacity: 0.06,
       shadowRadius: scale(3),
       elevation: 2,
     },
+    // The same red margin rule the doubt of the day carries on Home. It is
+    // what tells a glance this list is questions, not notes, and it does the
+    // job the subject tag and topic heading were doing badly.
+    doubtRule: {
+      position: 'absolute',
+      top: verticalScale(14),
+      bottom: verticalScale(14),
+      left: scale(16),
+      width: scale(1.4),
+      borderRadius: scale(1),
+      backgroundColor: 'rgba(221,68,51,.4)',
+    },
     doubtQuestion: {
-      marginTop: verticalScale(4),
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19),
-      color: colors.slate,
+      fontSize: scale(15),
+      lineHeight: scale(22.5),
+      color: colors.ink,
     },
     doubtsSampleNote: {
       fontFamily: 'AnekLatin_400Regular',

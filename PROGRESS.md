@@ -5076,7 +5076,19 @@ dot and warming the whole button instead.
 
 ## Doubts: one card per question, and a card you can actually read
 
-**The layout.** A doubt card was a cramped grey meta line —
+**Correction, second pass: a doubt is not a note.** The first fix gave doubts
+the note card's exact structure — subject dot, timestamp, bold topic, body
+line — and in copying it wholesale erased the difference between the two tabs.
+A note is something taught and titled. A doubt is a question the student asked.
+So the card is now the question and nothing else: no subject tag, no time, and
+no topic name invented above it. A manufactured heading only competes with the
+words the student actually wrote down, and the filter and search do the finding.
+
+What marks it as a doubt is the **red margin rule** — the same one the doubt of
+the day carries on Home. The app already had a mark for this; it just was not
+being used in the list.
+
+**First pass, on the original complaint.** A doubt card was a cramped grey line —
 `Subject · Chapter · time` all in one 10pt run — and then the raw question
 text as its title. No topic, nothing to scan, and it opened mid-sentence and
 ended mid-sentence. A note beside it has a clear three-part shape, so doubts
