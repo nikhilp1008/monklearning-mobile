@@ -4985,6 +4985,13 @@ short one. What is worth blocking is a field holding no name at all — blank, o
 against explicit Latin / Latin-Extended / Devanagari ranges rather than `\p{L}`,
 which is not worth depending on in Hermes.
 
+**A formatting slip worth not repeating.** Running `prettier` on
+`details.tsx` without the project's settings reformatted the whole file to
+double quotes, inflating one commit's diff from a few lines to 51/39 and
+burying the real change. The house style is single quotes at 100 columns;
+there is no `.prettierrc` to enforce it, so pass the flags explicitly or do
+not run it.
+
 **The bordered back circle is gone.** Two things were wrong with it. It was
 placed at the 26pt card column while the headline sits at 34pt, so it lined up
 with nothing on the page. And a bordered circle is chrome borrowed from the
@@ -5122,18 +5129,96 @@ filtered-empty result — "no Chemistry doubts yet" is a true answer that sample
 would contradict. They are deliberately one Physics and one Chemistry *off the
 same photo*, which is the exact case that forced the split.
 
-## Still open after this session
+## Still open
 
-- **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
-  `www.monklearning.com` both 404. Needs the 1/3/6/11-month prices for JEE,
+Current as of 2026-08-23. Grouped by who is blocked.
+
+### Needs a decision from the user
+
+- **Practice has no end**, so there is no moment to celebrate there.
+  `MOMENTS.md` offers (a) define a sitting — snapshot on mount, diff on leave —
+  or (b) add a real stopping point after N questions. (a) changes nothing about
+  how Practice feels; (b) is a product change to its never-ending framing. The
+  user has flagged the never-ending framing itself as something to fix, so this
+  may be decided by that larger change.
+- **Deleting a doubt.** Planned, not built. The one-card-per-question split
+  landed partly to make it possible: a student can now drop a single bad
+  question instead of the whole photo. Notes already have the erase gesture and
+  its undo — the same pattern is the obvious starting point.
+- **Subscription pricing** — every amount is still `₹—`. `monklearning.com`
+  and `www.monklearning.com` both 404. Needs the 1/3/6/11-month prices for JEE,
   NEET and Both.
-- **`snap-explanations-teach`** — commit `e276081` in the co-founder's API
-  repo (`~/Desktop/monk-learning-api`), local only, never pushed. It reshapes
+- **`snap-explanations-teach`** — commit `e276081` in the API repo
+  (`~/Desktop/monk-learning-api`), local only, never pushed. Reshapes
   `prompts/snap_solve.md` (title → reasoning → one equation per line) and
-  raises `MAX_STEP_CHARS` 320 → 700. Awaiting the user's go-ahead.
-- **Backend punch list** (see `backend_followups_pending.md`) gained four
-  items this session: `/drona/sessions` for the Library Sessions tab, a
-  chapter param on `/practice/next`, a practice-question report endpoint, and
-  pace timing data (`question_serves`). Also still open from before:
-  per-subject weekly deltas and `progress_snapshots` for the climb chart, and
-  the uneven worked-solution coverage on practice questions.
+  raises `MAX_STEP_CHARS` 320 → 700. Awaiting a go-ahead.
+
+### Needs the co-founder
+
+Full list in `backend_followups_pending.md`. The three added by the auth work
+are the ones with visible consequences today:
+
+- **`profiles.target_exam` rejects `'both'`.** The check constraint allows only
+  `'JEE'` and `'NEET'`, yet `progress.py` has a whole `entitlement == "both"`
+  branch. A student who picks Both is stored as JEE right now, and will not see
+  Biology until the constraint is widened.
+- **`/drona/catalogue` is not exam-filtered** the way `/progress` is — it
+  returns every chapter in the database. Worked around client-side in
+  `lib/drona.ts`; it belongs server-side, next to the filter `/progress`
+  already does.
+- **`enrolled_class` allows only 11, 12 or null**, so "dropper" is stored as 12
+  and the exact answer survives only in local storage.
+
+Older, still open: `/drona/sessions` for the Library Sessions tab, a chapter
+param on `/practice/next`, a practice-question report endpoint, pace timing
+data (`question_serves`), per-subject weekly deltas and `progress_snapshots`
+for the climb chart, and the uneven worked-solution coverage on practice
+questions.
+
+### Unverified — worth proving before trusting
+
+- **The live OTP round trip has never been run.** Everything up to it is
+  verified: Supabase config was read before building (email on, signups open,
+  `mailer_autoconfirm` off), the gate correctly kicks an anonymous session out
+  to onboarding, and validation gates the Send button. But no code has actually
+  been emailed and exchanged for a session in a test we watched. That is where
+  Resend delivery and the `{{ .Token }}` template assumption get tested for
+  real. The user has since signed in on the simulator, which is good evidence
+  it works end to end, but it was not observed step by step.
+- **Whether `/progress` recomputes fast enough for the end-of-class moment.**
+  Every device test drove the diff from planted or local state. If the backend
+  has not written mastery by the time `session-summary` mounts, the diff is
+  empty and the moment is silently skipped — the feature would work perfectly
+  and never fire. One real class answers it.
+- **The `both` entitlement path**, for the same reason as the constraint above:
+  nothing has exercised a Both student end to end.
+
+### Deliberately not built
+
+- **Account enumeration on the email screen.** The "Already with us" line
+  reacts to the student's typing, not to whether the address is registered.
+  Answering the latter needs a lookup that tells anyone who types an address
+  whether it has an account here. Supabase *can* be made to reveal it
+  (`shouldCreateUser: false` errors on unknown addresses), which is exactly the
+  vector to avoid. The place the distinction is both known and safe is after
+  verification, where `hasCompletedOnboarding()` already routes returning
+  students straight to Home.
+- **The local-recency observation** `MOMENTS.md` sketched for the "noticed"
+  card — *"Kinetic Theory is your weakest chapter and you haven't opened it
+  this week"* — needs per-chapter open tracking that nothing records yet. Left
+  out rather than approximated. `ProofSnapshot.at` exists for the day it ships.
+- **Streaks, volume badges, leaderboards, notification guilt.** Written into
+  `MOMENTS.md` with reasons so nobody adds them by reflex.
+
+### Noticed, not acted on
+
+- **Two ambers on the milestones button.** The badge dot is marigold and the
+  medal icon's face is also amber. It reads acceptably — different sizes, ~20pt
+  apart, clearly badge-plus-icon. The `handoff_icons_v1` philosophy ("use the
+  row, not the icon" for state) would suggest dropping the dot and warming the
+  whole button instead.
+- **`handoff_icons_v1` stroke is 2.1, not the spec's 1.9.** A recorded
+  deviation, made because "darker" could not be answered with colour — the ink
+  is already the product's darkest and the spec forbids pure black. One
+  constant in `components/monk-icons.tsx`, easy to revert if the designer wants
+  the original optical weight.
