@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, router, usePathname, useRootNavigationState } from 'expo-router';
+import { Stack, router, useRootNavigationState, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -88,44 +88,48 @@ export default function RootLayout() {
   const ready = ((fontsLoaded || fontsError) && authState !== 'loading') || failsafeTripped;
 
   /**
-   * Where the gate wants us, and whether we are there yet.
+   * Is the student inside onboarding, anywhere in it?
    *
-   * One value drives both the redirect and the "has it landed" check, so the
-   * two cannot disagree — matching on the destination rather than on "not the
-   * tabs" also means an unexpected anchor path can't uncover the app early.
+   * Not "are they on the exact screen we sent them to". Matching one pathname
+   * was a real bug: the moment they pressed Continue on `details` and moved to
+   * `exam`, the path no longer matched, the gate decided a redirect was still
+   * owed and replaced them back to `details` — remounted, name wiped. They
+   * could not get past the first step.
    *
-   * This exists because hiding the splash on `navigatorReady` was not enough:
-   * that effect and the redirect effect run in the same commit, so the splash
-   * lifted while the navigation was still a frame away and a signed-out
-   * student saw Home flash before onboarding replaced it. Waiting a fixed
-   * number of frames instead would be guessing; this is a fact about where
-   * the router actually is, so it holds whatever the build or the device
-   * speed.
+   * The group is the right unit. Every screen in `(onboarding)` is somewhere
+   * the gate is happy for them to be, so it only ever acts on someone who is
+   * outside it entirely.
    */
-  const pathname = usePathname();
-  const gateTarget =
-    authState === 'signed_out' ? '/welcome' : authState === 'needs_onboarding' ? '/details' : null;
+  const segments = useSegments();
+  const inOnboarding = segments[0] === '(onboarding)';
+  const needsOnboardingFlow = authState === 'signed_out' || authState === 'needs_onboarding';
   const gateSettled =
-    ready && navigatorReady && authState !== 'loading' && (!gateTarget || pathname.startsWith(gateTarget));
+    ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding);
 
   useEffect(() => {
-    // `failsafeTripped` still overrides it. Waiting on the gate without that
-    // escape would re-create the exact bug this file already carries a 15s
-    // failsafe for: a splash screen nothing can dismiss. Showing the tabs
-    // un-redirected is bad; showing a dead app is worse.
+    if (!ready || !navigatorReady || !needsOnboardingFlow) return;
+    // Already somewhere in onboarding — leave them where they are, mid-form.
+    if (inOnboarding) return;
+    // Signed out starts at the beginning; verified-but-unfinished resumes at
+    // the first unanswered question rather than starting over.
+    router.replace(authState === 'signed_out' ? '/welcome' : '/details');
+  }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, authState]);
+
+  useEffect(() => {
+    // `failsafeTripped` overrides it. Waiting on the gate without that escape
+    // would re-create the exact bug this file already carries a 15s failsafe
+    // for: a splash screen nothing can dismiss.
     if (gateSettled || failsafeTripped) {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [gateSettled, failsafeTripped]);
 
   /**
-   * The cover comes down two frames after the router says we have arrived.
+   * The cover comes down two frames after the gate settles.
    *
-   * `usePathname()` reports the new route before that route has painted, so
-   * lifting exactly on it still showed a frame of the screen being replaced —
-   * measured at 1 flash in 3 cold launches. Erring late is free: an extra
-   * frame of plain white against a white splash is invisible, while an extra
-   * frame of Home is the whole bug.
+   * Belt to `(tabs)/_layout`'s braces: that stops Home rendering at all, and
+   * this keeps the gap it leaves plain white rather than blank. Erring late is
+   * free — an extra frame of white against a white splash is invisible.
    */
   const [coverDown, setCoverDown] = useState(false);
   useEffect(() => {
@@ -139,27 +143,6 @@ export default function RootLayout() {
       if (inner !== undefined) cancelAnimationFrame(inner);
     };
   }, [gateSettled, failsafeTripped]);
-
-  /**
-   * The gate. The app anchors to `(tabs)`, so an unauthenticated student is
-   * redirected out of it rather than the router being given a different
-   * entry point — which keeps every deep link working unchanged.
-   *
-   * It runs only once the splash screen is still up, so nothing flashes. An
-   * anonymous session counts as signed out (see lib/auth.ts): every install
-   * before email auth was silently given one, and honouring those would walk
-   * existing testers straight past onboarding.
-   *
-   * `authState` is live, so signing out anywhere in the app lands here too
-   * and no screen has to route on its own behalf.
-   */
-  useEffect(() => {
-    if (!ready || !navigatorReady || !gateTarget) return;
-    // Already there — re-replacing would reset a half-filled onboarding form
-    // every time `authState` re-emits.
-    if (pathname.startsWith(gateTarget)) return;
-    router.replace(gateTarget);
-  }, [ready, navigatorReady, gateTarget, pathname]);
 
 
   if (!ready) {

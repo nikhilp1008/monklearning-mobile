@@ -39,6 +39,25 @@ function timeout(ms: number): Promise<never> {
 export type AuthState = 'loading' | 'signed_in' | 'needs_onboarding' | 'signed_out';
 
 /**
+ * Re-ask the gate its question.
+ *
+ * `useAuthState` recomputes on Supabase **auth** events, and finishing
+ * onboarding is not one — it writes a row to `profiles`. Without this the
+ * verdict stays `needs_onboarding` after the student has just completed it:
+ * the tabs decline to render, and the root gate sees a redirect still owed and
+ * sends them back to onboarding. A loop, with no way out.
+ *
+ * Awaited by the caller so the verdict has flipped *before* navigation, rather
+ * than leaving a window where the tabs are asked to paint while the answer is
+ * still the old one.
+ */
+const revalidators = new Set<() => Promise<void>>();
+
+export async function revalidateAuthState(): Promise<void> {
+  await Promise.all(Array.from(revalidators, (run) => run()));
+}
+
+/**
  * Supabase's own messages are written for developers ("For security purposes,
  * you can only request this after 41 seconds"). These are the same facts in
  * the app's voice. Anything unrecognised falls through to a generic line
@@ -212,8 +231,16 @@ export function useAuthState(): AuthState {
       resolve(session);
     });
 
+    // ...and the one transition Supabase cannot tell us about.
+    const revalidate = async () => {
+      const { data } = await supabase.auth.getSession();
+      await resolve(data.session);
+    };
+    revalidators.add(revalidate);
+
     return () => {
       cancelled = true;
+      revalidators.delete(revalidate);
       sub.subscription.unsubscribe();
     };
   }, []);

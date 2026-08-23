@@ -22,6 +22,7 @@ import {
   type ExamKey,
   type YearKey,
 } from '@/constants/onboarding';
+import { revalidateAuthState } from '@/lib/auth';
 import { pushProfile, saveProfile } from '@/lib/profile';
 
 import { SelectRow } from './exam';
@@ -139,6 +140,11 @@ export default function ClassScreen() {
                 setSaveError('Couldn’t save your details. Check your connection and try again.');
                 return;
               }
+              // The gate still believes onboarding is owed — it recomputes on
+              // Supabase auth events and this was a write to `profiles`.
+              // Awaited before navigating so the tabs are never asked to paint
+              // while the answer is still the old one.
+              await revalidateAuthState();
               router.replace('/(tabs)');
             }}
           />

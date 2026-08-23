@@ -5374,6 +5374,45 @@ preloading guarantees a gap; web schedules sample-accurately on the Web Audio
 clock. Separately: **`setAudioModeAsync` is never called anywhere**, so the
 hardware mute switch silences Drona entirely and playback stops on lock.
 
+## The gate trapped students inside onboarding
+
+Reported from a real TestFlight build: onboarding would not let you out. Two
+bugs, both introduced by the previous two commits, both mine.
+
+**1. You could not get past step one.** The gate's "have we arrived?" test
+matched a single pathname (`/details`). Pressing Continue moved to `/exam`,
+which no longer matched, so the gate concluded a redirect was still owed and
+replaced back to `/details` — remounted, name wiped. Caught by walking the flow
+on device: typed a name, pressed Continue, and landed back on an empty details
+form.
+
+The unit was wrong. Every screen in `(onboarding)` is somewhere the gate is
+happy for a student to be, so it now tests the **group** via `useSegments()`
+and only acts on someone outside it entirely.
+
+**2. Finishing onboarding did not release the gate.** `useAuthState`
+recomputes on Supabase **auth** events, and completing onboarding writes a row
+to `profiles` — which is not one. So the verdict stayed `needs_onboarding`:
+`(tabs)/_layout` (which had just been taught to render nothing in that state)
+returned null, and the root gate saw a redirect still owed and sent them back.
+A closed loop.
+
+Fixed with an explicit `revalidateAuthState()` that `class.tsx` awaits after a
+successful `pushProfile()`, so the verdict has flipped *before* navigation
+rather than leaving a window where the tabs are asked to paint while the answer
+is still the old one.
+
+**Walked end to end on device, not reasoned about:** planted a real verified
+session with no profile row → landed on details → typed a name → exam (stayed
+put) → NEET → class → Start learning → **Home**. Server row read back as
+`Priya Nair / NEET / 12`. Relaunched: straight to Home, still signed in.
+Practice tabs read **Physics · Chem · Bio** — the NEET fix holding for a
+student created through the real flow rather than a planted one.
+
+The lesson, again: the last two rounds of this were both caused by fixing a
+symptom without walking the flow the fix sits in. Reading the code said the
+gate was right; two minutes on the device said it was not.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
