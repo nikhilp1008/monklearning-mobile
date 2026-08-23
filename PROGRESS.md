@@ -5666,6 +5666,84 @@ scoping step, while mobile navigates screens and only builds the client on the
 new screen's mount, so connect + auth land *after* the scope call rather than
 during it. Not yet fixed.
 
+## Push-to-talk, the chrome, and the socket that opened too late
+
+### The simulator's audio, settled by reboot
+
+The previous session concluded the silence was the simulator's missing
+CoreAudio output device, not the app. Confirmed the only way that counts:
+**rebooted the simulator, changed no code, ran the same class.**
+
+- Before: `currentTime` 0.000, `isLoaded` false, forever.
+- After: `+900ms t=0.571 loaded=true`, and clips advancing at 13.3s / 3.8s /
+  11.7s — real speech durations, **zero** skips through the new supervisor.
+
+So it had been the environment, and it explains "it used to work": the
+simulator resolves the host's default output device once and does not recover
+when that device changes underneath it. This Mac has an HDMI display and a
+virtual Teams audio device, either of which can take the default away.
+Quitting and reopening Simulator is the fix; `sudo killall coreaudiod` if not.
+
+### Push-to-talk — the actual reason, and it was never the hold
+
+The button did nothing because **`startRecording` takes 2.75 seconds** inside
+the press handler. Measured on device: touch at `t+0`, `startRecording`
+resolves at `t+2752`, first PCM frame at `t+2897`. The server discards a hold
+delivering under 0.5s of audio (`duration_s = len(pcm)/32000` in
+`live_session_ws.py`), so a normal press sent almost nothing and came back
+"Hold the button a little longer" — while the student was holding it. No hold
+length fixes that; the cost is paid *after* the finger lands.
+
+Web has never had the problem because it never starts anything on press:
+`getUserMedia` and the ScriptProcessor come up once at session init, and
+`startPushToTalk()` is two synchronous lines — set a flag, send `ptt_start` —
+while `onaudioprocess` gates on that flag.
+
+Now the same shape. The recorder is warmed once when the classroom mounts,
+`raiseHand`/`doneListening` are synchronous, and `onAudioStream` drops frames
+unless the button is down. The trade is an open mic for the length of the
+class, with iOS's indicator showing throughout — the same trade the web client
+makes. Nothing is transmitted while the gate is shut; frames are dropped
+before they reach the socket. Added a 30s hold ceiling so a release that never
+arrives cannot hold the floor and leave the server's `is_ptt_active` set,
+which would otherwise eat the *next* hold too.
+
+Confirmed working by the user on device.
+
+### The rail tucks again
+
+Last session the rail was made permanent because the press-and-hold button
+lives in it and a tucked rail hid the only way to interrupt Drona. That was
+the wrong fix for the wrong problem — holding the button did nothing for the
+reason above, not because the rail was hiding. With that fixed, the chrome
+behaves as one piece again: header up, rail right, both on the spec's 0.35s,
+instead of one lone element that never leaves. Two ways back, both already
+built: a tap anywhere on the board, and the `EdgeTab` on the right edge. And
+`useChromeAutoHide`'s `blocked` guard means the timer never runs mid-hold, so
+the rail cannot vanish out from under a thumb using it.
+
+### The socket now opens during scoping
+
+It used to be built on the classroom screen's mount, which is the last thing
+to happen: `session/start`, subtopic pick, `scope` (3.4s–31s), navigation,
+*then* connect + authenticate. Web opens its socket at `session/start` and
+keeps it across the whole scoping step.
+
+`session_id` exists the moment `session/start` returns and the socket needs
+nothing from scoping, so it is opened there now (`lib/drona-prewarm.ts`) and
+handed to the classroom, which swaps in its own handlers. A module-level slot
+rather than context: the two screens are separate routes with no shared
+provider, and it has to survive the first one unmounting.
+
+The piece that makes it safe is the **pre-attach buffer**. Between `connect()`
+and `setHandlers()` the server can already have sent `state`, `board_events`,
+even a whole first turn — dropping those would trade a latency win for a class
+that starts mid-sentence. They are buffered (bounded at 200 frames) and
+replayed on attach. Backing out of scoping discards the unclaimed socket.
+
+This removes connect + auth from the critical path. It does **not** touch the
+`scope` call itself, which remains the dominant and highly variable cost.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

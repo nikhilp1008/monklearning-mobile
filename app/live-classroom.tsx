@@ -57,13 +57,24 @@ import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudi
 
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
-import { BoardEvent, ConnectionStatus, DronaState, DronaVoiceClient } from '@/lib/drona-voice-client';
+import { claimDronaClient } from '@/lib/drona-prewarm';
+import {
+  BoardEvent,
+  ConnectionStatus,
+  DronaState,
+  DronaVoiceClient,
+  DronaVoiceHandlers,
+} from '@/lib/drona-voice-client';
 import { supabase } from '@/lib/supabase';
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 /** Half the rail's own height, so it can be centred with a transform. */
 const RAIL_HALF = 108;
+/** Far enough right to clear the rail's own width plus its 12pt inset. */
+const RAIL_TUCK_X = 92;
 const FOLLOW_SCROLL_MS = 350;
+/** A hold this long is a stuck button, not an answer. */
+const MAX_HOLD_MS = 30000;
 
 interface AudioRecorderLike {
   startRecording(options: {
@@ -176,7 +187,11 @@ export default function LiveClassroomScreen() {
       console.error('[live-classroom] could not configure the audio session:', err);
     });
 
-    const client = new DronaVoiceClient(sessionId, getAccessToken, apiBaseUrl, {
+    // Built and connected back on the scoping screen if the student came the
+    // usual way, so the socket is often already open by now. Anything that
+    // arrived before this point was buffered and replays on `setHandlers`.
+    const warmed = claimDronaClient(sessionId);
+    const handlers: DronaVoiceHandlers = {
       onConnectionChange: setConnectionStatus,
       onState: (state: DronaState) => {
         // A connect that lands on 'teaching' means the server is already
@@ -217,9 +232,17 @@ export default function LiveClassroomScreen() {
         if (!cancelled) void endClassRef.current?.();
       },
       onError: (message) => setCaption(message),
-    });
+    };
+
+    let client: DronaVoiceClient;
+    if (warmed) {
+      client = warmed;
+      client.setHandlers(handlers);
+    } else {
+      client = new DronaVoiceClient(sessionId, getAccessToken, apiBaseUrl, handlers);
+      client.connect();
+    }
     clientRef.current = client;
-    client.connect();
     // Kicks off the first teaching turn — but only if the server has not
     // already started one.
     //
@@ -239,9 +262,8 @@ export default function LiveClassroomScreen() {
     // This used to be `setTimeout(..., 300)`, which is both an unconditional
     // 300ms of silence and a race: `sendUtterance` drops the message if the
     // socket is not OPEN yet, and a token fetch plus a TLS handshake on
-    // cellular routinely takes longer than 300ms. The server also auto-fires
-    // a turn on connect and both are single-flighted server-side, so this is
-    // not a double-trigger risk.
+    // cellular routinely takes longer than 300ms. With the socket now warmed
+    // on the scoping screen, `whenReady` usually resolves immediately.
     void client
       .whenReady(10000)
       .then(() => {
@@ -272,16 +294,13 @@ export default function LiveClassroomScreen() {
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   /**
-   * The synchronous truth about whether the student is holding the button.
-   *
-   * `raiseHand` is async — it awaits a permission check and then
-   * `startRecording` — while `doneListening` fires the instant a finger lifts.
-   * On a short hold the release can therefore land *before* the start
-   * resolves, so state set inside `raiseHand` is not a reliable record of
-   * whether a turn is open. This ref is set before the first `await` and
-   * cleared on release, so both handlers agree at every point.
+   * Whether the student is holding the button, readable from the audio
+   * callback. `onAudioStream` fires on the native module's clock, outside
+   * React's render cycle, so it cannot see `handRaised` state — this ref is
+   * what it gates on, and both press handlers write it synchronously.
    */
   const handRaisedRef = useRef(false);
+  const holdCeilingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Set when the socket opens onto a session already in 'teaching'. */
   const serverStartedTurnRef = useRef(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -326,23 +345,26 @@ export default function LiveClassroomScreen() {
     opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
   }));
   /**
-   * The thumb rail does not tuck away, unlike the rest of the chrome.
+   * The rail tucks with the rest of the chrome — header up, rail right, both
+   * on the spec's 0.35s.
    *
-   * It used to: after `CHROME_HIDE_MS` (4s) it animated to `opacity: 0` and
-   * took `pointerEvents: 'none'`, which meant the press-and-hold button — the
-   * only way to interrupt Drona — was invisible and untappable four seconds
-   * into every class. `useChromeAutoHide`'s `blocked` guard does not help,
-   * because it only keeps chrome open *while already speaking*; it cannot get
-   * you to the button in the first place. There is an `EdgeTab` to bring the
-   * chrome back, but expecting a student to discover it before they can say
-   * anything is the wrong trade for the core interaction of a live class.
-   * The web client keeps its push-to-talk button permanently mounted.
+   * It briefly did not, because the press-and-hold button lives in it and a
+   * tucked rail made the only way to interrupt Drona invisible four seconds
+   * into every class. That was the wrong fix for the wrong problem: holding
+   * the button did nothing at the time for an unrelated reason (the recorder
+   * was started inside the press handler and took 2.75s to come up, so the
+   * server threw every hold away as too short — see `raiseHand`). With that
+   * fixed, the button works, and the chrome can behave as one piece again
+   * rather than one lone element that never leaves.
    *
-   * The top bar still tucks — that is where the board actually wants the
-   * room.
+   * Two ways back, both already here: a tap anywhere on the board, and the
+   * `EdgeTab` on the right edge. And `useChromeAutoHide`'s `blocked` guard
+   * means the timer never runs mid-hold, so the rail cannot vanish out from
+   * under a thumb that is using it.
    */
   const railStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -RAIL_HALF }],
+    transform: [{ translateY: -RAIL_HALF }, { translateX: RAIL_TUCK_X * tuck.value }],
+    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
   }));
 
   const showChrome = () => setChromeVisible(true);
@@ -381,96 +403,120 @@ export default function LiveClassroomScreen() {
     scrollRef.current?.scrollToEnd({ animated: true });
   };
 
-  // --- Real push-to-talk, replacing the old fake hand-raise timers ---
-  const raiseHand = useCallback(async () => {
-    // Claimed synchronously, before anything is awaited — see `handRaisedRef`.
-    handRaisedRef.current = true;
-    // Ask before recording, the same way snap-capture asks before opening the
-    // camera. Previously this went straight to startRecording: iOS auto-prompts
-    // on the first attempt so it usually worked, but a student who ever tapped
-    // "Don't Allow" got a silent dead button with nothing explaining why and no
-    // route back. Checking first also means the denial state is a real,
-    // recoverable screen rather than a failed recording.
-    const existing = await getRecordingPermissionsAsync();
-    let granted = existing.granted;
-    if (!granted && existing.canAskAgain) {
-      granted = (await requestRecordingPermissionsAsync()).granted;
-    }
-    if (!granted) {
+  // --- Real push-to-talk ---
+  /**
+   * The capture chain runs for the whole class; the button only opens a gate.
+   *
+   * It used to call `startRecording` inside the press handler, and that is
+   * measured at **2.75 seconds** to resolve on device — first PCM frame at
+   * +2.9s from the touch. The server discards any hold that delivers under
+   * 0.5s of audio (`duration_s = len(pcm)/32000` in `live_session_ws.py`), so
+   * a student pressing and speaking normally sent almost nothing and got
+   * "Hold the button a little longer" every single time — while holding it.
+   * No hold length fixes that; the cost is paid after the finger lands.
+   *
+   * Web has never had the problem because it never starts anything on press:
+   * `getUserMedia` and the ScriptProcessor come up once at session init and
+   * `startPushToTalk()` is two synchronous lines — set a flag, send
+   * `ptt_start` — while `onaudioprocess` gates on that flag. This now matches
+   * it: the recorder is warmed once below, `raiseHand` is synchronous, and
+   * `onAudioStream` drops frames unless the button is actually down.
+   *
+   * The trade is an open mic for the length of the class (iOS shows its
+   * indicator throughout), which is the same trade the web client makes.
+   * Nothing is transmitted while the gate is shut — frames are dropped in
+   * `onAudioStream`, before they reach the socket.
+   */
+  const micReadyRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const existing = await getRecordingPermissionsAsync();
+      let granted = existing.granted;
+      if (!granted && existing.canAskAgain) {
+        granted = (await requestRecordingPermissionsAsync()).granted;
+      }
+      if (cancelled) return;
+      if (!granted) {
+        // Not an error state yet — the button explains itself when pressed.
+        return;
+      }
+      try {
+        await recorder.startRecording({
+          sampleRate: 16000,
+          channels: 1,
+          encoding: 'pcm_16bit',
+          // 100ms, matching web's ~128ms cadence. The gate is in JS, so this
+          // is only about how finely a hold can be sliced at its edges.
+          interval: 100,
+          // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
+          // `.playAndRecord` category to the earpiece receiver — and this
+          // category is now held for the whole class, so without it every
+          // Drona chunk would play near-inaudibly through the earpiece.
+          ios: {
+            audioSession: {
+              category: 'PlayAndRecord',
+              categoryOptions: ['AllowBluetooth', 'MixWithOthers', 'DefaultToSpeaker'],
+            },
+          },
+          onAudioStream: async (event: { data: unknown }) => {
+            // The gate. Closed unless a finger is on the button.
+            if (!handRaisedRef.current) return;
+            if (typeof event.data === 'string') {
+              clientRef.current?.sendPcmChunk(base64ToBytes(event.data));
+            }
+          },
+        });
+        if (!cancelled) micReadyRef.current = true;
+      } catch {
+        // Leave `micReadyRef` false; the button reports it on press.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      micReadyRef.current = false;
       handRaisedRef.current = false;
+      recorder.stopRecording().catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const raiseHand = useCallback(() => {
+    if (handRaisedRef.current) return;
+    if (!micReadyRef.current) {
       setMicDenied(true);
       return;
     }
-    // Let go during the permission check — do not open a turn they are no
-    // longer holding.
-    if (!handRaisedRef.current) return;
-
+    // Synchronous, in this order, so the server's PTT window opens before the
+    // first frame can arrive rather than after it.
+    handRaisedRef.current = true;
     setHandRaised(true);
     setChromeVisible(true);
     clientRef.current?.sendPttStart();
-    try {
-      await recorder.startRecording({
-        sampleRate: 16000,
-        channels: 1,
-        encoding: 'pcm_16bit',
-        // 100ms, not 250. The server discards a hold shorter than 0.5s
-        // (`stt_too_short`), and native start-up latency already eats the
-        // first few hundred ms of one — at 250ms a quick press could deliver
-        // under the floor and be thrown away. Web emits every ~128ms from an
-        // already-running capture chain.
-        interval: 100,
-        // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
-        // `.playAndRecord` category to the earpiece receiver — confirmed via
-        // the native module's own session setup, which only requests
-        // AllowBluetooth/MixWithOthers. Once the mic is used once, every
-        // later Drona TTS chunk would otherwise play near-inaudibly through
-        // the earpiece instead of the loudspeaker.
-        ios: {
-          audioSession: {
-            category: 'PlayAndRecord',
-            categoryOptions: ['AllowBluetooth', 'MixWithOthers', 'DefaultToSpeaker'],
-          },
-        },
-        onAudioStream: async (event: { data: unknown }) => {
-          if (typeof event.data === 'string') {
-            clientRef.current?.sendPcmChunk(base64ToBytes(event.data));
-          }
-        },
-      });
-    } catch {
-      setCaption('Couldn’t reach the microphone — check permissions and try again.');
-      setHandRaised(false);
-      clientRef.current?.sendPttStop();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // A release that never arrives would hold the floor forever and leave the
+    // server's `is_ptt_active` set, which then eats the *next* hold. Cheap
+    // insurance; a real answer is never this long.
+    if (holdCeilingRef.current) clearTimeout(holdCeilingRef.current);
+    holdCeilingRef.current = setTimeout(() => doneListeningRef.current?.(), MAX_HOLD_MS);
   }, []);
 
-  const doneListening = useCallback(async () => {
-    // Releasing without ever having started sends a `ptt_stop` for a
-    // `ptt_start` the server never saw, which leaves its `is_ptt_active`
-    // out of step and makes it discard the *next* hold's audio.
+  const doneListening = useCallback(() => {
     if (!handRaisedRef.current) return;
     handRaisedRef.current = false;
     setHandRaised(false);
-    try {
-      await recorder.stopRecording();
-    } catch {
-      // Already stopped or never started — nothing to clean up.
+    if (holdCeilingRef.current) {
+      clearTimeout(holdCeilingRef.current);
+      holdCeilingRef.current = null;
     }
     clientRef.current?.sendPttStop();
-    // audio-studio deactivates the shared session when it stops recording, and
-    // nothing else puts it back — so without this the first TTS chunk after
-    // every push-to-talk pays a full re-activation, and can be inaudible.
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: false,
-      interruptionMode: 'mixWithOthers',
-    }).catch(() => {
-      // Playback may be quieter until the next turn; not worth interrupting
-      // the lesson for.
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // `raiseHand`'s ceiling timer needs to call the *current* `doneListening`
+  // without taking it as a dependency and re-arming on every render.
+  const doneListeningRef = useRef<() => void>(doneListening);
+  doneListeningRef.current = doneListening;
 
   const togglePause = () => {
     setPaused((p) => {
@@ -500,12 +546,13 @@ export default function LiveClassroomScreen() {
   const endClass = async () => {
     if (ending) return;
     setEnding(true);
-    if (handRaised) {
-      try {
-        await recorder.stopRecording();
-      } catch {
-        // ignore
-      }
+    // Close an open turn cleanly before the socket goes; the recorder itself
+    // is torn down by the mount effect's cleanup on unmount.
+    doneListening();
+    try {
+      await recorder.stopRecording();
+    } catch {
+      // Never started, or already stopped.
     }
     clientRef.current?.disconnect();
     try {
@@ -682,7 +729,7 @@ export default function LiveClassroomScreen() {
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
           under the thumb wherever the caption strip happens to be. */}
-      <Animated.View style={[styles.rail, railStyle]}>
+      <Animated.View style={[styles.rail, railStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
         <TeacherWave quiet={handRaised} />
         <View style={styles.railDivider} />
 

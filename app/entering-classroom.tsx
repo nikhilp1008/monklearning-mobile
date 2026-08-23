@@ -23,7 +23,9 @@ import {
   scopeDronaSession,
   startDronaSession,
 } from '@/lib/drona-live';
+import { discardPrewarmedClient, prewarmDronaClient } from '@/lib/drona-prewarm';
 import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
+import { supabase } from '@/lib/supabase';
 import { captureProof } from '@/lib/proof';
 
 type Stage = 'connecting' | 'scoping' | 'error';
@@ -112,6 +114,17 @@ export default function EnteringClassroomScreen() {
       .then((res) => {
         if (cancelled) return;
         setSessionId(res.session_id);
+        // Open the class socket now, against the id we just got, so connect
+        // and auth overlap the scoping step instead of queueing behind it.
+        // See lib/drona-prewarm.ts.
+        const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
+        if (apiBaseUrl) {
+          prewarmDronaClient(
+            res.session_id,
+            async () => (await supabase.auth.getSession()).data.session?.access_token ?? null,
+            apiBaseUrl
+          );
+        }
         setSpeech(res.speech);
         // A pre-selected subtopic auto-submits below — stay on the loading
         // screen until that resolves, rather than flashing the scoping UI.
@@ -129,6 +142,15 @@ export default function EnteringClassroomScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsSettled]);
+
+  /**
+   * A student who backs out of scoping leaves a live socket behind, and the
+   * classroom that would have claimed it never mounts. Handing it back is
+   * only correct on the way *out* — navigating forward unmounts this screen
+   * too, and by then the classroom has already claimed it, so `claimDronaClient`
+   * has emptied the slot and this is a no-op.
+   */
+  useEffect(() => discardPrewarmedClient, []);
 
   async function submit(
     utterance: string,

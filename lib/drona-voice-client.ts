@@ -77,6 +77,14 @@ const TTS_SAMPLE_RATE = 24000;
  *   playing" rather than the web client's wall-clock lookahead scheduling —
  *   see AudioPlaybackQueue's own comment for why that's an acceptable trade.
  */
+/**
+ * Identity-compared sentinel marking a client built before its screen exists.
+ * `DronaVoiceClient` buffers inbound frames while this is its handler set.
+ */
+export const PREWARM_HANDLERS: DronaVoiceHandlers = {};
+/** Roughly one long turn's worth of frames. */
+const PREATTACH_BUFFER_MAX = 200;
+
 export class DronaVoiceClient {
   private ws: WebSocket | null = null;
   private readonly sessionId: string;
@@ -88,7 +96,7 @@ export class DronaVoiceClient {
    *  well over an hour into a session"). */
   private readonly getAccessToken: () => Promise<string | null>;
   private readonly wsBaseUrl: string;
-  private readonly handlers: DronaVoiceHandlers;
+  private handlers: DronaVoiceHandlers;
   private readonly playback = new AudioPlaybackQueue();
 
   private manualDisconnect = false;
@@ -116,6 +124,7 @@ export class DronaVoiceClient {
     this.getAccessToken = getAccessToken;
     this.wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws').replace(/\/$/, '');
     this.handlers = handlers;
+    this.buffering = handlers === PREWARM_HANDLERS;
 
     this.playback.onItemStart = (id) => {
       const meta = this.chunkMeta.get(id);
@@ -129,6 +138,29 @@ export class DronaVoiceClient {
     this.manualDisconnect = false;
     void this.openSocket();
   }
+
+  /**
+   * Attaches the real handlers to a socket that was opened ahead of the
+   * screen that owns them, and replays everything that arrived meanwhile.
+   *
+   * See `lib/drona-prewarm.ts` for why the socket opens early. The buffer is
+   * what makes it safe: between `connect()` and this call the server can
+   * already have sent `state`, `board_events`, even a whole first turn, and
+   * dropping those would trade a latency win for a class that starts
+   * mid-sentence.
+   */
+  setHandlers(handlers: DronaVoiceHandlers) {
+    this.handlers = handlers;
+    this.buffering = false;
+    const queued = this.preAttachBuffer;
+    this.preAttachBuffer = [];
+    if (this.ws?.readyState === WebSocket.OPEN) handlers.onConnectionChange?.('open');
+    for (const raw of queued) this.handleMessage(raw);
+  }
+
+  /** True while no screen has claimed this client yet. */
+  private buffering = false;
+  private preAttachBuffer: string[] = [];
 
   disconnect() {
     this.manualDisconnect = true;
@@ -225,6 +257,12 @@ export class DronaVoiceClient {
 
   private handleMessage(data: unknown) {
     if (typeof data !== 'string') return; // server never sends binary frames outbound
+    if (this.buffering) {
+      // Bounded: a runaway server should not grow this without limit if the
+      // student never reaches the classroom.
+      if (this.preAttachBuffer.length < PREATTACH_BUFFER_MAX) this.preAttachBuffer.push(data);
+      return;
+    }
     let msg: Record<string, unknown>;
     try {
       msg = JSON.parse(data);
