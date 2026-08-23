@@ -5222,7 +5222,29 @@ undefined until it is genuinely ready — rather than on our own `ready` flag.
 The splash is held until then too, so no frame of the tabs shows on the way to
 onboarding.
 
-**And a bug nearly introduced by that fix:** holding the splash on the
+**A second, separate flash, found after that fix.** Home was still visible for
+about a second before onboarding replaced it. Three causes stacked, and only
+frame-capture separated them — a single screenshot could not.
+
+1. **`anchor: '(tabs)'` means the Stack renders Home the instant it mounts**,
+   and the redirect cannot run until at least the next commit. Home is on
+   screen for a frame or more no matter how early the gate decides. The native
+   splash is supposed to hide that, and in a dev client it does not: its launch
+   screen is dismissed when the bundle loads, regardless of `hideAsync`.
+   Fixed by covering the transition with a plain view *we* own.
+2. **The replace was animated**, so a frame of Home kept sliding out after the
+   cover had lifted. The gate reaches onboarding by replacing the anchor —
+   there is nothing to animate *from* — so `animation: 'none'`.
+3. **`usePathname()` reports the new route before it has painted.** Lifting the
+   cover exactly on it still leaked a frame. It now lifts two frames later:
+   erring late is free, since an extra frame of white against a white splash is
+   invisible, while an extra frame of Home is the entire bug.
+
+Measured by capturing ~30 frames per cold launch and classifying each by the
+brightness and warmth of the band where Home's amber hero sits. Before: 1 flash
+in 3 launches. After all three fixes: **0 in 5**.
+
+**And a bug nearly introduced by the earlier fix:** holding the splash on the
 navigator would have re-created the *exact* failure this file already carries a
 15s failsafe for — a splash screen nothing can dismiss. `failsafeTripped` now
 overrides it. Showing the tabs un-redirected is bad; showing a dead app is
