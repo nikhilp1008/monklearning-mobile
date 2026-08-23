@@ -52,3 +52,14 @@ export async function getLanguagePreference(): Promise<LanguageId> {
 export async function setLanguagePreference(language: LanguageId): Promise<void> {
   await AsyncStorage.setItem(LANGUAGE_KEY, language);
 }
+
+/** Forgets the teacher and language choice. Called on sign-out: "your
+ *  teacher" is a student's pick, not a device setting, so the next person to
+ *  sign in on this phone should choose their own rather than inherit one. */
+export async function clearPreferences(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove([TEACHER_KEY, LANGUAGE_KEY]);
+  } catch {
+    // Both fall back to their defaults when missing.
+  }
+}

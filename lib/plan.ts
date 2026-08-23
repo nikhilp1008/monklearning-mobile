@@ -47,3 +47,13 @@ export async function saveTodayPlan(items: PlanItem[]): Promise<void> {
 export function newPlanId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+/** Forgets today's plan. Called on sign-out — it is one student's list, and
+ *  the next person to sign in on this phone should not inherit it. */
+export async function clearTodayPlan(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing useful to do; the plan is per-day anyway.
+  }
+}

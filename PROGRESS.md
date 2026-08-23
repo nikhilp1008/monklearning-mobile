@@ -5165,6 +5165,38 @@ timed-state technique to capture: its life is 5s, which a screenshot
 round-trip outruns, so `ERASE.undoMs` was temporarily raised to 60s and put
 back.
 
+## Shipping to TestFlight: the anon handover
+
+Existing testers already have an **anonymous** Supabase session, and an app
+update keeps AsyncStorage — so without care they would either walk past
+onboarding or sign into a new account sitting on the previous era's local data.
+
+The gate already treated an anonymous session as signed out, which was enough
+to land them on onboarding. It was not enough to be clean: the plan, the proof
+snapshot, the milestone seen-set and the teacher/language pick would all have
+survived under whatever account they signed into next.
+
+So the anon session is now **ended rather than ignored**. `useAuthState` sees
+`is_anonymous`, sets signed-out immediately (so nothing waits on the network)
+and calls `signOut()` in the background, which wipes every account-scoped local
+key. It runs exactly once — afterwards there is no session to detect, and a
+fresh install never had one. Offline, the session survives, still reads as
+signed out, and the teardown retries next launch.
+
+`signOut()` grew to cover what it had been missing: today's plan and the
+teacher/language preference. "Your teacher" is a student's pick, not a device
+setting, so the next person to sign in on that phone should choose their own.
+
+**Verified by simulating a tester's device**: planted a real anonymous session
+plus `todayPlan`, `milestones.seen`, `proof.classes` and a non-default teacher,
+launched, and confirmed the app opens on onboarding screen 1 with the session
+key gone and every `monklearning.*` key cleared.
+
+**Build config needed nothing.** `eas.json` already has
+`appVersionSource: "remote"` with `autoIncrement: true` on the production
+profile, so the build number takes care of itself, and the production env
+already points at live Supabase and the Railway API.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

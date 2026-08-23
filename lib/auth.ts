@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { clearMilestoneState } from '@/lib/milestones';
 import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
+import { clearTodayPlan } from '@/lib/plan';
+import { clearPreferences } from '@/lib/preferences';
 import { clearProgressCache } from '@/lib/progress';
 import { clearProofState } from '@/lib/proof';
 import { supabase } from '@/lib/supabase';
@@ -91,8 +93,8 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
  * Ends the session *and* forgets the student.
  *
  * Everything the app keeps about a student outside Supabase is device-local:
- * name and exam, the proof snapshot, the milestone seen-set, the cached
- * progress payload. Signing out without clearing them hands all of it to
+ * name and exam, the proof snapshot, the milestone seen-set, today's plan, the
+ * teacher and language they picked, and the cached progress payload. Signing out without clearing them hands all of it to
  * whoever signs in next on the same phone — and a stale stored name would
  * also make onboarding skip the details step for them.
  *
@@ -101,7 +103,13 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   clearProgressCache();
-  await Promise.all([clearProfile(), clearProofState(), clearMilestoneState()]);
+  await Promise.all([
+    clearProfile(),
+    clearProofState(),
+    clearMilestoneState(),
+    clearTodayPlan(),
+    clearPreferences(),
+  ]);
 }
 
 /** The address the student actually signed in with — not the stored profile. */
@@ -143,8 +151,25 @@ export function useAuthState(): AuthState {
 
     const resolve = async (session: { user?: { is_anonymous?: boolean } } | null) => {
       if (cancelled) return;
-      if (!session?.user || session.user.is_anonymous) {
+      if (!session?.user) {
         setState('signed_out');
+        return;
+      }
+      if (session.user.is_anonymous) {
+        // Every install before email auth was silently given an anonymous
+        // session, and an app update keeps it. Treating it as signed out is
+        // enough to land the student on onboarding, but it would leave the
+        // anon era's device-local data — plan, proof snapshot, milestone
+        // seen-set — sitting under whatever account they sign into next.
+        //
+        // So the anon session is ended rather than ignored. It runs exactly
+        // once: afterwards there is no session to detect, and a fresh install
+        // never had one.
+        setState('signed_out');
+        signOut().catch(() => {
+          // Offline. The session stays, still reads as signed out, and this
+          // runs again on the next launch.
+        });
         return;
       }
       let done: boolean;
