@@ -17,8 +17,6 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
 
 export default function DoubtDetailScreen() {
   const params = useLocalSearchParams<{
-    /** Every question on the photo, comma-separated, in reading order. */
-    ids?: string;
     id?: string;
     title?: string;
     subject?: string;
@@ -31,20 +29,23 @@ export default function DoubtDetailScreen() {
 
   const [details, setDetails] = useState<DoubtDetail[]>([]);
   const [index, setIndex] = useState(0);
-  const [loading, setLoading] = useState(!!(params.ids || params.id));
+  const [loading, setLoading] = useState(!!params.id);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // A photo with three questions on it is one doubt with three questions —
-  // the same Q1/Q2/Q3 the student saw straight after snapping it. The API
-  // keeps a row per question, because they are solved and reported
-  // separately, so the whole page is fetched by id and reassembled here.
+  // One question, not one photo.
+  //
+  // This used to take a comma-separated `ids` of every question read off the
+  // same photo and reassemble the page here, matching what the student saw
+  // right after snapping. The Library list no longer groups them: a photo can
+  // carry a Physics question and a Chemistry one, which a single card can
+  // neither filter nor let you delete half of. So a doubt opened from the
+  // library is exactly the one that was tapped.
+  //
+  // The multi-question view still exists where it belongs — `snap-solved`,
+  // immediately after the photo is taken.
   const ids = useMemo(
-    () =>
-      (params.ids ?? params.id ?? '')
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean),
-    [params.ids, params.id]
+    () => (params.id ?? '').split(',').map((id) => id.trim()).filter(Boolean),
+    [params.id]
   );
   const idKey = ids.join(',');
 

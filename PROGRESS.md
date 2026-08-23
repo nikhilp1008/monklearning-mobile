@@ -5074,6 +5074,42 @@ different sizes, ~20pt apart, clearly badge-plus-icon. The handoff's own
 philosophy ("use the row, not the icon" for state) would suggest dropping the
 dot and warming the whole button instead.
 
+## Doubts: one card per question, and a card you can actually read
+
+**The layout.** A doubt card was a cramped grey meta line —
+`Subject · Chapter · time` all in one 10pt run — and then the raw question
+text as its title. No topic, nothing to scan, and it opened mid-sentence and
+ended mid-sentence. A note beside it has a clear three-part shape, so doubts
+now use the same one:
+
+- subject dot and label on the left, relative time on the right;
+- the **topic** as the title (`concept`, the API's own short title, falling
+  back to `chapter`);
+- the question itself as the body line, two lines and truncated.
+
+**One card per question, not per photo.** They were grouped by
+`submission_id`, so a page with three questions became one card reading "3
+questions on this photo". That matched the moment right after snapping, and it
+broke two things that matter more:
+
+- **Filtering is impossible.** A photo can hold a Physics question and a
+  Chemistry one. A grouped card carries one subject, so the subject filter
+  above it is wrong for that card by construction.
+- **Deleting is all-or-nothing.** A student who wants to drop one bad question
+  would have to drop the whole page with it.
+
+The API already returns a row per question, each with its own id, subject and
+chapter — the grouping was the app undoing that. `doubt-detail` was simplified
+to match: it took a comma-separated `ids` of the whole page, and now opens the
+one doubt that was tapped. The multi-question view still exists where it
+belongs, on `snap-solved`, immediately after the photo is taken.
+
+**Two sample doubts** (`DEMO_DOUBT_CARDS`), on the same rule as the note
+samples: they stand in only while nothing real exists, and never instead of a
+filtered-empty result — "no Chemistry doubts yet" is a true answer that samples
+would contradict. They are deliberately one Physics and one Chemistry *off the
+same photo*, which is the exact case that forced the split.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and

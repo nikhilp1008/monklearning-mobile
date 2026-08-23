@@ -179,3 +179,46 @@ export const DEMO_NOTE_CARDS: DemoNoteCard[] = [
     body: 'Split into x and y. Time is the bridge.',
   },
 ];
+
+/**
+ * Two sample doubts, so the Doubts tab can be read before anything is snapped.
+ *
+ * Deliberately from the *same photo* and different subjects. That is the exact
+ * case that forced doubts to be one card per question rather than one per
+ * snap: grouped, these two would sit inside a single card, and no subject
+ * filter could ever separate a Physics question from a Chemistry one — nor
+ * could a student delete just one of them.
+ */
+export interface DemoDoubtCard {
+  id: string;
+  subject: string;
+  /** The subject label's ink, and the dot beside it. */
+  tint: string;
+  dot: string;
+  time: string;
+  /** The chapter-level topic — what `concept`/`chapter` carries on a real doubt. */
+  title: string;
+  /** The question itself, as `stem` would give it. */
+  body: string;
+}
+
+export const DEMO_DOUBT_CARDS: DemoDoubtCard[] = [
+  {
+    id: 'demo-doubt-1',
+    subject: 'Physics',
+    tint: '#C53A2B',
+    dot: '#DD4433',
+    time: 'yesterday',
+    title: 'Rotational Motion',
+    body: 'A solid cylinder of mass M and radius R rolls without slipping down an incline of angle θ. Find its acceleration.',
+  },
+  {
+    id: 'demo-doubt-2',
+    subject: 'Chemistry',
+    tint: '#157A45',
+    dot: '#1C9B57',
+    time: 'yesterday',
+    title: 'Chemical Kinetics',
+    body: 'For a first-order reaction, 75% completion takes 60 minutes. What is the half-life?',
+  },
+];

@@ -25,7 +25,12 @@ import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
-import { DEMO_NOTE_CARDS, DEMO_SESSION_ID, DemoNoteCard } from '@/lib/demo-board';
+import {
+  DEMO_DOUBT_CARDS,
+  DEMO_NOTE_CARDS,
+  DEMO_SESSION_ID,
+  DemoNoteCard,
+} from '@/lib/demo-board';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
 type Segment = 'notes' | 'doubts' | 'sessions';
@@ -191,6 +196,10 @@ export default function LibraryScreen() {
   // The sample cards stand in only while nothing real is saved.
   const showingSamples = notes.length === 0 && notesFilter === 'All';
   const hasErasableNotes = showingSamples ? sampleNotes.length > 0 : notes.length > 0;
+  // Same rule as the notes samples: they stand in only while nothing real
+  // exists, and never instead of a filtered-empty result — "no Chemistry
+  // doubts yet" is a true answer and samples would contradict it.
+  const showingDoubtSamples = doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
 
   const toggleErase = useCallback(() => {
     setEraseMode((on) => {
@@ -301,27 +310,18 @@ export default function LibraryScreen() {
     [filtersFor, doubts]
   );
 
-  // One photo is one doubt, however many questions were on it. The API stores
-  // a row per question — which is right, they're solved and reported
-  // separately — but a student who snapped one page expects one entry here,
-  // and then Q1/Q2/Q3 inside it, exactly as they saw straight after the snap.
-  const doubtGroups = useMemo(() => {
-    const bySubmission = new Map<string, DoubtSummary[]>();
-    for (const doubt of visibleDoubts) {
-      // Older rows predate submission_id; fall back to the doubt's own id so
-      // they each stand alone rather than collapsing into one nameless group.
-      const key = doubt.submission_id || doubt.id;
-      const group = bySubmission.get(key);
-      if (group) group.push(doubt);
-      else bySubmission.set(key, [doubt]);
-    }
-    return Array.from(bySubmission.values()).map((questions) => {
-      const ordered = questions
-        .slice()
-        .sort((a, b) => (a.question_index ?? 0) - (b.question_index ?? 0));
-      return { key: ordered[0].submission_id || ordered[0].id, questions: ordered };
-    });
-  }, [visibleDoubts]);
+  // One card per question, deliberately — not one per photo.
+  //
+  // These used to be grouped by `submission_id`, so a page with three
+  // questions appeared as one card with "3 questions on this photo" under it.
+  // It matched what the student saw right after snapping, and it broke two
+  // things that matter more. A photo can hold a Physics question and a
+  // Chemistry one, and a grouped card can only carry one subject — so the
+  // filter above is wrong for it by construction. And when deleting arrives, a
+  // student wanting to drop one bad question would have to drop the page.
+  //
+  // The API already returns a row per question, each with its own id, subject
+  // and chapter. This is simply not undoing that any more.
 
   // Tracks each segment button's x/width so the sliding indicator below can
   // interpolate to its exact position instead of guessing at equal thirds —
@@ -620,7 +620,9 @@ export default function LibraryScreen() {
                   </PressableScale>
                 ))}
                 <Text style={styles.filterCount}>
-                  {doubtGroups.length} doubt{doubtGroups.length === 1 ? '' : 's'}
+                  {showingDoubtSamples
+                    ? `${DEMO_DOUBT_CARDS.length} sample${DEMO_DOUBT_CARDS.length === 1 ? '' : 's'}`
+                    : `${visibleDoubts.length} doubt${visibleDoubts.length === 1 ? '' : 's'}`}
                 </Text>
               </View>
 
@@ -630,55 +632,92 @@ export default function LibraryScreen() {
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>{doubtsError}</Text>
                 </View>
+              ) : showingDoubtSamples ? (
+                // DEMO_ — sample cards so the tab can be read before anything
+                // is snapped. Both came off one photo and carry different
+                // subjects, which is the exact case that makes one card per
+                // question the right unit.
+                <View style={styles.doubtsList}>
+                  <Text style={styles.doubtsSampleNote}>
+                    Nothing snapped yet — these two came off one photo, and they stand alone so
+                    you can filter and delete them separately.
+                  </Text>
+                  {DEMO_DOUBT_CARDS.map((card) => (
+                    <View key={card.id} style={styles.doubtCard}>
+                      <View style={styles.noteTopRow}>
+                        <View style={styles.noteSubjectRow}>
+                          <View style={[styles.noteDot, { backgroundColor: card.dot }]} />
+                          <Text style={[styles.noteSubjectText, { color: card.tint }]}>
+                            {card.subject}
+                          </Text>
+                        </View>
+                        <Text style={styles.noteTime}>{card.time}</Text>
+                      </View>
+                      <Text style={styles.noteTitle} numberOfLines={2}>
+                        {card.title}
+                      </Text>
+                      <Text style={styles.doubtQuestion} numberOfLines={2}>
+                        {card.body}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               ) : visibleDoubts.length === 0 ? (
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>
-                    {doubts.length === 0
-                      ? 'No solved doubts yet — snap one to get started.'
-                      : doubtsQuery.trim()
-                        ? 'No doubts match that search.'
-                        : `No ${doubtsFilter} doubts yet.`}
+                    {doubtsQuery.trim()
+                      ? 'No doubts match that search.'
+                      : `No ${doubtsFilter} doubts yet.`}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.doubtsList}>
-                  {doubtGroups.map((group) => {
-                    const first = group.questions[0];
-                    const count = group.questions.length;
+                  {visibleDoubts.map((doubt) => {
+                    const accent = SUBJECT_ACCENT[(doubt.subject ?? '').toLowerCase()] ?? {
+                      dot: colors.faint,
+                      label: colors.slate,
+                    };
+                    // `concept` is the API's own short title; `chapter` is the
+                    // wider topic and stands in when there is no concept.
+                    const topic = doubt.concept ?? doubt.chapter ?? 'Doubt';
                     return (
                       <PressableScale
-                        key={group.key}
+                        key={doubt.id}
                         style={styles.doubtCard}
                         onPress={() =>
                           router.push({
                             pathname: '/doubt-detail',
                             params: {
-                              // Every question on the photo, in the order they
-                              // were read, so the detail screen can open the
-                              // whole page rather than one question of it.
-                              ids: group.questions.map((q) => q.id).join(','),
-                              id: first.id,
-                              title: first.stem ?? first.question_text ?? '',
-                              subject: first.subject ?? '',
-                              chapter: first.chapter ?? first.concept ?? '',
-                              time: `snapped ${formatRelativeTime(first.created_at)}`,
+                              id: doubt.id,
+                              title: doubt.stem ?? doubt.question_text ?? '',
+                              subject: doubt.subject ?? '',
+                              chapter: doubt.chapter ?? doubt.concept ?? '',
+                              time: `snapped ${formatRelativeTime(doubt.created_at)}`,
                             },
                           })
                         }>
-                        <Text style={styles.doubtMeta}>
-                          <Text style={styles.doubtMetaSubject}>
-                            {titleCase(first.subject ?? 'General')}
+                        {/* The same three-part shape as a note: whose it is and
+                            when, then the topic, then the content. This card
+                            used to open straight into the question with the
+                            subject, chapter and time crushed into one grey line
+                            above it — nothing to scan, and no topic at all. */}
+                        <View style={styles.noteTopRow}>
+                          <View style={styles.noteSubjectRow}>
+                            <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
+                            <Text style={[styles.noteSubjectText, { color: accent.label }]}>
+                              {titleCase(doubt.subject ?? 'General')}
+                            </Text>
+                          </View>
+                          <Text style={styles.noteTime}>
+                            {formatRelativeTime(doubt.created_at)}
                           </Text>
-                          {` · ${titleCase(first.chapter ?? first.concept ?? 'Doubt')} · ${formatRelativeTime(first.created_at)}`}
+                        </View>
+                        <Text style={styles.noteTitle} numberOfLines={2}>
+                          {titleCase(topic)}
                         </Text>
-                        <Text style={styles.doubtTitle} numberOfLines={2}>
-                          {first.stem ?? first.question_text ?? '(photo doubt)'}
+                        <Text style={styles.doubtQuestion} numberOfLines={2}>
+                          {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
                         </Text>
-                        {count > 1 && (
-                          <Text style={styles.doubtCount}>
-                            {count} questions on this photo
-                          </Text>
-                        )}
                       </PressableScale>
                     );
                   })}
@@ -1082,12 +1121,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(12),
       marginTop: verticalScale(24),
     },
-    doubtCount: {
-      marginTop: verticalScale(7),
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
-    },
     doubtCard: {
       backgroundColor: '#fff',
       borderWidth: 1,
@@ -1101,21 +1134,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(3),
       elevation: 2,
     },
-    doubtMeta: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(10),
-      color: colors.faint,
-    },
-    doubtMetaSubject: {
-      fontFamily: 'AnekLatin_700Bold',
+    doubtQuestion: {
+      marginTop: verticalScale(4),
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19),
       color: colors.slate,
     },
-    doubtTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(14),
-      lineHeight: scale(19.6),
-      color: colors.ink,
-      marginTop: verticalScale(3),
+    doubtsSampleNote: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19),
+      color: colors.faint,
+      marginBottom: verticalScale(4),
     },
     sessionsIntro: {
       fontFamily: 'AnekLatin_400Regular',
