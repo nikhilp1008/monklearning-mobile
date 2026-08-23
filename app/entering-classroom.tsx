@@ -139,18 +139,18 @@ export default function EnteringClassroomScreen() {
     setSubmitting(true);
     setStatusNote(null);
     try {
-      // /drona/topic/check is confirmed live (2026-08-16, reproduced for two
-      // different chapters) to always return "other_chapter" pointing at the
-      // session's OWN chapter, for every utterance — a 100% backend bug, not
-      // a client issue (see PROGRESS.md / the co-founder punch-list memory).
-      // It's skipped for utterances we already know are on-topic by
-      // construction — a subtopic tapped straight from this chapter's real
-      // catalogue list, or an option chip the backend itself suggested this
-      // same session. Genuine free-text input still goes through the check,
-      // since that's the one case it's actually meant to catch, and this
-      // stays easy to delete once the backend bug is fixed.
+      // Was believed to be "a 100% backend bug — always returns
+      // other_chapter". It was ours: we sent `session_id`, the server only
+      // reads `chapter_id`, so it was null on every call and the router could
+      // never match the chapter the student was already in. See
+      // `checkDronaTopic`. Sending the chapter id fixes it, and the check now
+      // does the job it exists for instead of rejecting everything.
+      //
+      // Still skipped for utterances known on-topic by construction — a
+      // subtopic tapped from this chapter's own catalogue, or an option chip
+      // the backend itself just offered.
       if (!opts.skipCheck) {
-        const check = await checkDronaTopic({ utterance: trimmed, session_id: sessionId });
+        const check = await checkDronaTopic({ utterance: trimmed, chapter_id: chapterId });
         if (check.status === 'other_chapter') {
           setStatusNote(check.message);
           setInput('');

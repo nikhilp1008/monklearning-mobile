@@ -5503,6 +5503,117 @@ product call, not a bug fix.
 `backend_followups_pending.md` — it is the single biggest thing standing between
 a student and their first class.
 
+## Web vs mobile, from the backend outwards
+
+Prompted by: it works on web, why not on mobile, same APIs. Answered by going
+to the server first instead of guessing at the client.
+
+### Two things that made every earlier comparison invalid
+
+- **The API repo was checked out on `snap-explanations-teach`**, which differs
+  from `main` *inside `live_session_ws.py`*. Railway deploys `main`. Read
+  production with `git show origin/main:<path>`, never the working tree.
+- **The web repo was 11 commits stale**, including
+  `0d2dd36 fix(learn): live transcript survives the hold` — the push-to-talk
+  code being compared. Pulled to the deployed commit.
+
+### The protocol, observed rather than read
+
+Connected to the live WebSocket from the command line against production:
+
+- **No binary frames from the server at all.** Everything is JSON text.
+- Audio arrives as `audio_chunk` with base64 in an `audio` field, alongside
+  `speech` and a `board_event`.
+- One turn: `audio_chunk` ×11, `state` ×6, `speech_delta` ×2, `board_events`,
+  `ping`, `meta`, `turn_complete`. First audio at **+14.6s**.
+- One chunk decoded to 356,352 bytes = **7.42s at 24kHz mono 16-bit**.
+
+### `/drona/topic/check` — a client bug we had recorded as a backend one
+
+`entering-classroom.tsx` carried a comment asserting the endpoint "always
+returns other_chapter … a 100% backend bug, not a client issue". **It was
+ours.** The server reads one field — `chapter_id` (`routers/drona.py:114`) —
+and mobile sent `session_id`, which is ignored. With `chapter_id` null the
+router skips the local subtopic match and can never match the student's own
+chapter, so *everything* comes back as belonging elsewhere.
+
+Proven against production, same utterance and chapter:
+
+- `{utterance, session_id}` → `other_chapter`, *"That's covered in Units &
+  Measurements, not this chapter."* — which **is** the chapter.
+- `{utterance, chapter_id}` → `ok`.
+
+That is why the scoping screen was a dead end: every typed answer bounced.
+Web has always sent `chapter_id`.
+
+### Why there is no audio — what was eliminated, and what is left
+
+Eliminated by testing the real code against real captured server data:
+message handling, the base64 decoder (byte-identical to Node's), the WAV
+encoder (macOS `afinfo` reports a valid `1 ch, 24000 Hz, Int16, 7.424 sec`
+file), the sample-rate constant, and the `expo-file-system` call. The audio
+session is also correct now.
+
+*(A false alarm on the way: the WAV encoder appeared to emit a header with
+zero channels and zero bit depth. That was the test harness calling it with
+two arguments where the real caller passes four. Verified the caller before
+believing it — the lesson being that the harness is as likely to be wrong as
+the code.)*
+
+**The board is not evidence that audio arrived.** `turn_complete` flushes
+every buffered board event unconditionally, so the board paints in full even
+if not one clip plays. The discriminator: board appearing *line by line* means
+playback is running; *all at once in a lump* means it never started.
+
+**Leading remaining candidate, inferred not observed:** `play()` is issued in
+the same tick as `replace()`, which on iOS reaches
+`AVPlayer.playImmediately(atRate:)` — documented as not waiting for buffering.
+The item is microseconds old, so its status can still be `.unknown`; the rate
+is set and can fall straight back to zero, `didJustFinish` never fires, and
+the queue wedges with every later sentence untouched. Addressed with a
+**watchdog that re-issues `play()`** if the position has not moved after
+400ms — deliberately a retry rather than a readiness gate, because the
+diagnosis is an inference and must not be able to make things worse.
+
+### Push-to-talk — why it did nothing
+
+**The button was invisible and untappable four seconds in.** It lived inside
+the chrome rail, which after `CHROME_HIDE_MS` takes `pointerEvents: 'none'`
+and animates to `opacity: 0`. `useChromeAutoHide`'s `blocked` guard only holds
+chrome open *while already speaking* — it cannot get you to the button. The
+rail no longer tucks; the top bar still does, which is where the board wants
+the room. Web keeps its push-to-talk button permanently mounted.
+
+Two more, both real: `raiseHand` was async (permission check, then
+`startRecording`) while release fires on the student's clock, so a short hold
+could stop before the start resolved — and send a `ptt_stop` for a `ptt_start`
+the server never saw, leaving `is_ptt_active` out of step for the *next* hold.
+Now claimed synchronously via a ref both handlers share. And the mic emitted
+every 250ms against a server floor of 0.5s, so a quick press could fall under
+it and be discarded; now 100ms.
+
+### Also fixed
+
+- **A duplicated LLM turn on every class.** Mobile connects after scoping, so
+  the phase is already `teaching` and the server auto-fires turn one. Sending
+  the kick-off utterance on top is read as a barge-in: it aborts that turn and
+  runs a second. The comment claiming both were "single-flighted server-side"
+  was wrong. Now gated on the phase in the first `state` frame.
+- **Bare `state` frames blanked the phase.** They carry only the field that
+  changed, and the assignment was unguarded.
+- **Checkpoint chips were wiped** by `setCheckOptions(state.check_options ?? [])`
+  on any frame that lacked them — including the one after `turn_complete`.
+
+### Latency, measured
+
+`POST /drona/session/{id}/scope` took **31.0s** once and **3.4s** later, same
+shape of request — so it is variable, likely cold start, and should be
+measured again before anyone optimises for it. The structural difference
+stands: web opens its socket at `session/start` and keeps it across the whole
+scoping step, while mobile navigates screens and only builds the client on the
+new screen's mount, so connect + auth land *after* the scope call rather than
+during it. Not yet fixed.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

@@ -73,9 +73,26 @@ export function startDronaSession(params: {
   return apiFetch('/drona/session/start', { method: 'POST', body: JSON.stringify(params) });
 }
 
+/**
+ * POST /drona/topic/check — "is this utterance in this chapter?"
+ *
+ * Takes `chapter_id`, not `session_id`. The server reads exactly one field
+ * (`routers/drona.py:114`, `chapter_id = payload.get("chapter_id") or None`)
+ * and ignores everything else, so sending a session id left it null — which
+ * makes the router skip the local subtopic match entirely and report *every*
+ * utterance as belonging to another chapter, including the chapter the
+ * student is actually in.
+ *
+ * Proven against production: the same utterance and chapter returns
+ * `other_chapter` ("That's covered in Units & Measurements, not this
+ * chapter") when sent the old way and `ok` when sent `chapter_id`. The web
+ * client has always sent `chapter_id`, which is why it never saw this.
+ */
 export function checkDronaTopic(params: {
   utterance: string;
-  session_id?: string;
+  /** Omit only for genuine free-text entry with no chapter in mind — the
+   *  server's null case is meant for exactly that, and nothing else. */
+  chapter_id?: string;
 }): Promise<TopicCheckResult> {
   return apiFetch('/drona/topic/check', { method: 'POST', body: JSON.stringify(params) });
 }

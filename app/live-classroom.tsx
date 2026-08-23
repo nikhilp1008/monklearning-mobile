@@ -179,10 +179,19 @@ export default function LiveClassroomScreen() {
     const client = new DronaVoiceClient(sessionId, getAccessToken, apiBaseUrl, {
       onConnectionChange: setConnectionStatus,
       onState: (state: DronaState) => {
-        setSessionPhase(state.phase);
+        // A connect that lands on 'teaching' means the server is already
+        // running turn one; see the kick-off note below.
+        if (state.phase === 'teaching') serverStartedTurnRef.current = true;
+        // Bare state frames carry only the field that changed (e.g.
+        // `no_response_timer_paused`), so an unguarded assignment blanked the
+        // phase on every one of them.
+        if (state.phase) setSessionPhase(state.phase);
         // Checkpoint questions: the client holds these until the turn's audio
         // finishes, so by the time this arrives Drona has actually asked it.
-        setCheckOptions(state.check_options ?? []);
+        // Only when the frame actually carries them — the post-turn_complete
+        // state frame does not, and assigning `[]` there wiped the chips the
+        // student was meant to answer.
+        if (state.check_options) setCheckOptions(state.check_options);
         if (state.question_text) setCaption(state.question_text);
       },
       onBoardReveal: (event) => setBoard((prev) => [...prev, event]),
@@ -211,7 +220,21 @@ export default function LiveClassroomScreen() {
     });
     clientRef.current = client;
     client.connect();
-    // Kicks off the first teaching turn, once the socket is genuinely open.
+    // Kicks off the first teaching turn — but only if the server has not
+    // already started one.
+    //
+    // Mobile connects *after* scoping, so the session's phase is already
+    // 'teaching' by the time the socket opens, and the server auto-fires turn
+    // one itself on connect. Sending an utterance on top of that is read as a
+    // barge-in: it aborts the turn already in flight and runs a second LLM
+    // turn in its place. The old comment here claimed both were
+    // "single-flighted server-side, so this is not a double-trigger risk" —
+    // that was wrong, and it cost one wasted LLM turn and TTS lease per class.
+    // Web never hit it because its socket opens while the phase is still
+    // 'scoping'.
+    //
+    // The first `state` frame carries the phase, so `sawTeachingOnConnect`
+    // below decides.
     //
     // This used to be `setTimeout(..., 300)`, which is both an unconditional
     // 300ms of silence and a race: `sendUtterance` drops the message if the
@@ -221,7 +244,10 @@ export default function LiveClassroomScreen() {
     // not a double-trigger risk.
     void client
       .whenReady(10000)
-      .then(() => client.sendUtterance('Begin lesson segment'))
+      .then(() => {
+        if (serverStartedTurnRef.current) return;
+        client.sendUtterance('Begin lesson segment');
+      })
       .catch(() => {
         // Never opened — `onConnectionChange` has already told the student.
       });
@@ -245,6 +271,19 @@ export default function LiveClassroomScreen() {
   const [boardHeight, setBoardHeight] = useState(390);
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
+  /**
+   * The synchronous truth about whether the student is holding the button.
+   *
+   * `raiseHand` is async — it awaits a permission check and then
+   * `startRecording` — while `doneListening` fires the instant a finger lifts.
+   * On a short hold the release can therefore land *before* the start
+   * resolves, so state set inside `raiseHand` is not a reliable record of
+   * whether a turn is open. This ref is set before the first `await` and
+   * cleared on release, so both handlers agree at every point.
+   */
+  const handRaisedRef = useRef(false);
+  /** Set when the socket opens onto a session already in 'teaching'. */
+  const serverStartedTurnRef = useRef(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string | null>('Wrong answer');
   const [toastVisible, setToastVisible] = useState(false);
@@ -286,9 +325,24 @@ export default function LiveClassroomScreen() {
     transform: [{ translateY: -74 * tuck.value }],
     opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
   }));
+  /**
+   * The thumb rail does not tuck away, unlike the rest of the chrome.
+   *
+   * It used to: after `CHROME_HIDE_MS` (4s) it animated to `opacity: 0` and
+   * took `pointerEvents: 'none'`, which meant the press-and-hold button — the
+   * only way to interrupt Drona — was invisible and untappable four seconds
+   * into every class. `useChromeAutoHide`'s `blocked` guard does not help,
+   * because it only keeps chrome open *while already speaking*; it cannot get
+   * you to the button in the first place. There is an `EdgeTab` to bring the
+   * chrome back, but expecting a student to discover it before they can say
+   * anything is the wrong trade for the core interaction of a live class.
+   * The web client keeps its push-to-talk button permanently mounted.
+   *
+   * The top bar still tucks — that is where the board actually wants the
+   * room.
+   */
   const railStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -RAIL_HALF }, { translateX: 96 * tuck.value }],
-    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
+    transform: [{ translateY: -RAIL_HALF }],
   }));
 
   const showChrome = () => setChromeVisible(true);
@@ -329,6 +383,8 @@ export default function LiveClassroomScreen() {
 
   // --- Real push-to-talk, replacing the old fake hand-raise timers ---
   const raiseHand = useCallback(async () => {
+    // Claimed synchronously, before anything is awaited — see `handRaisedRef`.
+    handRaisedRef.current = true;
     // Ask before recording, the same way snap-capture asks before opening the
     // camera. Previously this went straight to startRecording: iOS auto-prompts
     // on the first attempt so it usually worked, but a student who ever tapped
@@ -341,9 +397,13 @@ export default function LiveClassroomScreen() {
       granted = (await requestRecordingPermissionsAsync()).granted;
     }
     if (!granted) {
+      handRaisedRef.current = false;
       setMicDenied(true);
       return;
     }
+    // Let go during the permission check — do not open a turn they are no
+    // longer holding.
+    if (!handRaisedRef.current) return;
 
     setHandRaised(true);
     setChromeVisible(true);
@@ -353,7 +413,12 @@ export default function LiveClassroomScreen() {
         sampleRate: 16000,
         channels: 1,
         encoding: 'pcm_16bit',
-        interval: 250,
+        // 100ms, not 250. The server discards a hold shorter than 0.5s
+        // (`stt_too_short`), and native start-up latency already eats the
+        // first few hundred ms of one — at 250ms a quick press could deliver
+        // under the floor and be thrown away. Web emits every ~128ms from an
+        // already-running capture chain.
+        interval: 100,
         // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
         // `.playAndRecord` category to the earpiece receiver — confirmed via
         // the native module's own session setup, which only requests
@@ -381,6 +446,11 @@ export default function LiveClassroomScreen() {
   }, []);
 
   const doneListening = useCallback(async () => {
+    // Releasing without ever having started sends a `ptt_stop` for a
+    // `ptt_start` the server never saw, which leaves its `is_ptt_active`
+    // out of step and makes it discard the *next* hold's audio.
+    if (!handRaisedRef.current) return;
+    handRaisedRef.current = false;
     setHandRaised(false);
     try {
       await recorder.stopRecording();
@@ -612,9 +682,7 @@ export default function LiveClassroomScreen() {
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
           under the thumb wherever the caption strip happens to be. */}
-      <Animated.View
-        style={[styles.rail, railStyle]}
-        pointerEvents={chromeVisible ? 'auto' : 'none'}>
+      <Animated.View style={[styles.rail, railStyle]}>
         <TeacherWave quiet={handRaised} />
         <View style={styles.railDivider} />
 
