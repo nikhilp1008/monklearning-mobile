@@ -177,7 +177,19 @@ export default function RootLayout() {
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </PracticeFocusProvider>
-      <StatusBar style="auto" />
+      {/* Dark glyphs, not "auto".
+          Every screen in this app paints a light ground — there is no dark
+          theme — so "auto", which follows the system appearance, is only ever
+          right by accident. Paired with userInterfaceStyle:"light" in
+          app.json, which also stops iOS handing the app a dark appearance for
+          native UI it doesn't control: the keyboard, action sheets, the photo
+          picker and system alerts.
+
+          Fifteen screens (every tab, plus account/terms/milestones and the
+          rest) declare no StatusBar of their own and inherit this one, so it
+          is the only thing standing between them and whatever style the last
+          screen happened to set. */}
+      <StatusBar style="dark" />
     </ThemeProvider>
     </GestureHandlerRootView>
   );
