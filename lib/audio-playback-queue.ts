@@ -3,6 +3,18 @@ import { File, Paths } from 'expo-file-system';
 
 import { wrapPcmAsWav } from '@/lib/audio-pcm';
 
+/** How often the supervisor looks at the playhead. */
+const SUPERVISOR_TICK_MS = 400;
+/**
+ * Consecutive still ticks before a clip is written off — 2.0s of a clip that
+ * claims to be playing without the playhead moving. These are local files that
+ * are fully on disk before `play()` is called, so a real one is never this slow
+ * to get going.
+ */
+const STALL_TICKS_BEFORE_SKIP = 5;
+/** How close to the end counts as finished, for a missed `didJustFinish`. */
+const END_SLACK_S = 0.15;
+
 export interface PlaybackQueueItem {
   id: string;
   /** Raw headerless PCM bytes, decoded from the audio_chunk's base64 `audio` field. */
@@ -27,9 +39,10 @@ export class AudioPlaybackQueue {
   private queue: { item: PlaybackQueueItem; uri: string }[] = [];
   private playing = false;
   private removeListener: (() => void) | null = null;
-  /** Watchdog for a clip that was told to play and never started. */
-  private startWatchdog: ReturnType<typeof setTimeout> | null = null;
+  /** Ticker that watches a playing clip for progress; see `supervise`. */
+  private supervisor: ReturnType<typeof setInterval> | null = null;
   private lastPosition = -1;
+  private stalledTicks = 0;
 
   onItemStart?: (id: string) => void;
   onQueueDrained?: () => void;
@@ -45,13 +58,6 @@ export class AudioPlaybackQueue {
     this.player = createAudioPlayer(null, { keepAudioSessionActive: true });
     const subscription = this.player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
       if (status.didJustFinish) this.advance();
-      else if (status.playing) {
-        // Genuinely started — the watchdog has nothing to rescue.
-        if (this.startWatchdog) {
-          clearTimeout(this.startWatchdog);
-          this.startWatchdog = null;
-        }
-      }
     });
     this.removeListener = () => subscription.remove();
   }
@@ -66,10 +72,7 @@ export class AudioPlaybackQueue {
   }
 
   private advance() {
-    if (this.startWatchdog) {
-      clearTimeout(this.startWatchdog);
-      this.startWatchdog = null;
-    }
+    this.stopSupervisor();
     const next = this.queue.shift();
     if (!next) {
       this.playing = false;
@@ -79,35 +82,77 @@ export class AudioPlaybackQueue {
     this.playing = true;
     this.player.replace({ uri: next.uri });
     this.player.play();
+    // Fired even if the clip turns out to be silent: the caption and board
+    // line are the lesson, and a student who cannot hear should still get
+    // them. See `supervise` for what happens when the audio never arrives.
     this.onItemStart?.(next.item.id);
+    this.startSupervisor();
+  }
 
-    /**
-     * `play()` is issued in the same tick as `replace()`, and on iOS that
-     * reaches `AVPlayer.playImmediately(atRate:)` — which by documentation
-     * does *not* wait for buffering. The item it is handed was created
-     * microseconds earlier, so its status can still be `.unknown` with an
-     * empty buffer. Nothing throws; the rate is simply set and can fall
-     * straight back to zero. `AVPlayerItemDidPlayToEndTime` then never fires,
-     * `didJustFinish` never arrives, `playing` stays true forever, and every
-     * later sentence sits in the queue untouched — silence, with a board that
-     * still paints because board events are flushed on `turn_complete`
-     * regardless.
-     *
-     * A retry rather than a readiness gate on purpose: this is an inference,
-     * not something observed on a device, so it must not be able to make
-     * matters worse. If the first `play()` did work, `currentTime` has moved
-     * and this is a no-op.
-     */
+  /**
+   * Watches the playhead and moves the queue on when it stops moving.
+   *
+   * `didJustFinish` is the only thing that normally advances the queue, and it
+   * rides on `AVPlayerItemDidPlayToEndTime` — so anything that stops a clip
+   * from reaching its end stops the whole class, permanently and silently.
+   * Every later sentence then piles into `queue` untouched.
+   *
+   * That is not hypothetical. On a simulator whose CoreAudio has no output
+   * device (`AQMEIO: error -66680 finding/initializing Default-InputOutput`)
+   * AVPlayer still reports `timeControlStatus == .playing` and a correct
+   * duration, while the playhead sits at exactly 0.0 forever. The first clip
+   * wedges and nothing is ever heard or advanced again. A device with a
+   * genuine route can hit the same shape for its own reasons — a failed item,
+   * a lost interruption, a route change mid-clip.
+   *
+   * So: re-issue `play()` once in case it was a lost start, then give up on
+   * the clip and take the next one. Losing one sentence is survivable; losing
+   * the rest of the lesson is not.
+   */
+  private startSupervisor() {
     this.lastPosition = -1;
-    this.startWatchdog = setTimeout(() => {
-      this.startWatchdog = null;
-      if (!this.playing) return;
-      const position = this.player.currentTime ?? 0;
-      if (position <= 0 || position === this.lastPosition) {
-        this.player.play();
+    this.stalledTicks = 0;
+    this.supervisor = setInterval(() => {
+      if (!this.playing) {
+        this.stopSupervisor();
+        return;
       }
-      this.lastPosition = position;
-    }, 400);
+      const position = this.player.currentTime ?? 0;
+      const duration = this.player.duration ?? 0;
+
+      // A missed `didJustFinish` — the clip played out but the notification
+      // never landed. Treat reaching the end as the end.
+      if (duration > 0 && position >= duration - END_SLACK_S) {
+        this.advance();
+        return;
+      }
+
+      if (position > this.lastPosition) {
+        this.lastPosition = position;
+        this.stalledTicks = 0;
+        return;
+      }
+
+      this.stalledTicks += 1;
+      if (this.stalledTicks === 1) {
+        // Possibly just a start that didn't take. Local files load fast, so
+        // one nudge is enough to tell a slow start from a dead one.
+        this.player.play();
+        return;
+      }
+      if (this.stalledTicks >= STALL_TICKS_BEFORE_SKIP) {
+        this.advance();
+      }
+    }, SUPERVISOR_TICK_MS);
+  }
+
+  private stopSupervisor() {
+    if (this.supervisor) {
+      clearInterval(this.supervisor);
+      this.supervisor = null;
+    }
+    this.lastPosition = -1;
+    this.stalledTicks = 0;
   }
 
   pause() {
@@ -120,6 +165,7 @@ export class AudioPlaybackQueue {
 
   /** Drops everything queued and stops the current clip — for barge-in/interrupt and session end. */
   clear() {
+    this.stopSupervisor();
     this.queue = [];
     this.playing = false;
     this.player.pause();

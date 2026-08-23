@@ -5546,34 +5546,86 @@ Proven against production, same utterance and chapter:
 That is why the scoping screen was a dead end: every typed answer bounced.
 Web has always sent `chapter_id`.
 
-### Why there is no audio — what was eliminated, and what is left
+### Why there is no audio — settled, and it is not our code
 
-Eliminated by testing the real code against real captured server data:
-message handling, the base64 decoder (byte-identical to Node's), the WAV
-encoder (macOS `afinfo` reports a valid `1 ch, 24000 Hz, Int16, 7.424 sec`
-file), the sample-rate constant, and the `expo-file-system` call. The audio
-session is also correct now.
+Instrumented the real playback queue on a real device run, wrote the
+diagnostics to a file inside the app container (React Native's `console.log`
+never reaches `os_log`, so `log stream` cannot see it), and read AVFoundation's
+own status dictionary. One turn, eleven chunks:
 
-*(A false alarm on the way: the WAV encoder appeared to emit a header with
-zero channels and zero bit depth. That was the test harness calling it with
-two arguments where the real caller passes four. Verified the caller before
-believing it — the lesson being that the harness is as likely to be wrong as
-the code.)*
+- Every chunk arrived with real PCM, and the WAV the app wrote to disk is
+  valid — macOS `afinfo` on the actual device-written file reports
+  `1 ch, 24000 Hz, Int16, 6.485 sec`, and the duration matches the byte count
+  exactly.
+- `AVPlayer` reported `playbackState: readyToPlay`,
+  `timeControlStatus: playing`, `duration: 14.08` (correct to the sample) —
+  and `currentTime: 0`, `isLoaded: false`, unchanged for as long as it was
+  watched.
+- `advance` ran exactly once. `didJustFinish` never fired, so the queue never
+  moved and the other ten chunks piled up untouched.
 
-**The board is not evidence that audio arrived.** `turn_complete` flushes
-every buffered board event unconditionally, so the board paints in full even
-if not one clip plays. The discriminator: board appearing *line by line* means
-playback is running; *all at once in a lump* means it never started.
+**A/B against Apple's own encoder settled it.** The same audio re-encoded by
+`afconvert` — once as a fresh WAV, once as AAC in an m4a — behaved
+*identically*: duration parsed, `playing: true`, playhead frozen at zero. An
+AAC file produced by `afconvert` is not malformed. Nor is the problem anywhere
+near the classroom: the same file played at app boot, before any WebSocket,
+any recorder, or any of our session juggling, froze the same way.
 
-**Leading remaining candidate, inferred not observed:** `play()` is issued in
-the same tick as `replace()`, which on iOS reaches
-`AVPlayer.playImmediately(atRate:)` — documented as not waiting for buffering.
-The item is microseconds old, so its status can still be `.unknown`; the rate
-is set and can fall straight back to zero, `didJustFinish` never fires, and
-the queue wedges with every later sentence untouched. Addressed with a
-**watchdog that re-issues `play()`** if the position has not moved after
-400ms — deliberately a retry rather than a readiness gate, because the
-diagnosis is an inference and must not be able to make things worse.
+CoreAudio then said it outright in the simulator's own log:
+
+```
+HALC_ProxyObjectMap::_CreateSystemObject: there is no system object
+AggregateDevice.mm:905  couldn't get default output device, ID = 0, err = 0!
+AQMEIO.cpp:358          error -66680 finding/initializing Default-InputOutput
+CA_UISoundClient.cpp:1114  Can't make UISound Renderer
+```
+
+SpringBoard hits the same error, so it is the whole simulator, not this app.
+The decoder builds fine (`ACMP4AACBaseDecoder: aac -> Float32`); only the
+output device is missing. **This simulator has no audio route.** Nothing in
+the app can produce sound on it, and no app-side change will.
+
+*(Two corrections to the record this forces. The earlier note here named
+`playImmediately(atRate:)` racing an unready item as the leading candidate,
+labelled INFERRED. It is now disproven — the item is unready because there is
+nowhere to render to, not the other way round. And the 400ms watchdog shipped
+against that theory was treating a symptom of a cause that wasn't there.
+Replaced, below, with something that earns its place for a different reason.
+A false alarm earlier in the same investigation: the WAV encoder appeared to
+emit a zero-channel header, which turned out to be the test harness calling it
+with two arguments where the real caller passes four.)*
+
+### The real bug the dead simulator exposed
+
+`didJustFinish` is the **only** thing that normally advances the queue, and it
+rides on `AVPlayerItemDidPlayToEndTime`. So anything that stops one clip from
+reaching its end stops the entire class — permanently, silently, with every
+later sentence stuck in the array. One unlucky clip and the lesson is over.
+
+That is a real fault on a real device too: a failed item, an interruption whose
+resume is lost, a route change mid-clip. The simulator just happens to be a
+perfect fault injector for it.
+
+Replaced with a supervisor that watches the playhead while a clip claims to be
+playing. If it hasn't moved, re-issue `play()` once — a start that didn't take
+is cheap to retry. If it still hasn't moved after 2s, write the clip off and
+take the next one: local files are fully on disk before `play()` is called, so
+a real one is never that slow. It also advances on reaching the end, in case
+`didJustFinish` is ever missed. Losing one sentence is survivable; losing the
+rest of the lesson is not.
+
+`onItemStart` still fires for a clip that turns out silent, on purpose — the
+caption and the board line are the lesson, and a student who cannot hear should
+still get them.
+
+**Verified on the dead simulator.** With no audio route at all, the class now
+runs the whole turn through — board title, every board line in sequence,
+captions, and the checkpoint chips. Before the change it froze on clip one.
+
+**Still unverified:** that audio is audible on a working device. Everything
+between the socket and `AVPlayer` is now proven correct on-device, and the only
+demonstrated fault is the simulator's missing output. It needs one listen on
+real hardware to close.
 
 ### Push-to-talk — why it did nothing
 
