@@ -20,7 +20,7 @@ import {
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
-import { useAuthState } from '@/lib/auth';
+import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -161,6 +161,7 @@ export default function RootLayout() {
     router.replace(gateTarget);
   }, [ready, navigatorReady, gateTarget, pathname]);
 
+
   if (!ready) {
     return null;
   }
@@ -168,6 +169,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AuthStateContext.Provider value={authState}>
       <PracticeFocusProvider>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -246,6 +248,7 @@ export default function RootLayout() {
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </PracticeFocusProvider>
+      </AuthStateContext.Provider>
       {/* Dark glyphs, not "auto".
           Every screen in this app paints a light ground — there is no dark
           theme — so "auto", which follows the system appearance, is only ever

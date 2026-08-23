@@ -5240,9 +5240,39 @@ frame-capture separated them — a single screenshot could not.
    erring late is free, since an extra frame of white against a white splash is
    invisible, while an extra frame of Home is the entire bug.
 
-Measured by capturing ~30 frames per cold launch and classifying each by the
-brightness and warmth of the band where Home's amber hero sits. Before: 1 flash
-in 3 launches. After all three fixes: **0 in 5**.
+None of that was enough, and the way it was measured was wrong. Sampling with
+`simctl io screenshot` runs at roughly 3 fps; the flash is two or three frames.
+"0 Home frames in 5 launches" was sampling luck, not evidence — the user could
+still see it.
+
+**Timestamped tracing found it in one run.** Temporary `console.log`s on every
+gate transition and on `HomeScreen`'s render gave the real sequence:
+
+```
++8ms   ready=false          navigatorReady=TRUE     <- never gated anything
++13ms  authState=signed_out target=/welcome
++122ms ready=true → HomeScreen RENDER
++168ms WelcomeScreen RENDER
+```
+
+Two things fell out. `useRootNavigationState()` already had a key at +8ms, so
+the "wait for the navigator" guard was protecting nothing here. And Home was
+mounted for a **measured ~46ms** — two or three frames, exactly a blink.
+
+A magenta full-screen probe held for 3s proved the cover *does* paint above the
+navigator, which ruled out z-order and left only one conclusion: covering the
+window is the wrong fix.
+
+**The fix is that Home never renders.** `(tabs)/_layout` now returns `null`
+while the gate owes a redirect, reading the verdict from an `AuthStateContext`
+the root provides — one subscription, one `profiles` query, and no way for the
+two consumers to disagree. Re-traced: `HomeScreen RENDER` appears **0 times**,
+and launch is faster (+120ms to settled, from +186ms) because Home is not built
+at all.
+
+The lesson worth keeping: for anything measured in frames, instrument and read
+timestamps. A screenshot sampler cannot see it, and "I didn't catch it" is not
+the same as "it is not there".
 
 **And a bug nearly introduced by the earlier fix:** holding the splash on the
 navigator would have re-created the *exact* failure this file already carries a

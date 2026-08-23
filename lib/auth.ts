@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 import { clearMilestoneState } from '@/lib/milestones';
 import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
@@ -219,4 +219,23 @@ export function useAuthState(): AuthState {
   }, []);
 
   return state;
+}
+
+/**
+ * The gate's verdict, shared downwards.
+ *
+ * `(tabs)/_layout` needs it so the tabs can decline to render at all while a
+ * redirect is owed. Covering them was not enough: the root redirect cannot run
+ * until at least the commit after the navigator mounts, and `anchor:'(tabs)'`
+ * paints Home in that commit — a ~46ms window, measured, which is two or three
+ * frames and reads as a blink.
+ *
+ * A context rather than a second `useAuthState()` call, so there is one
+ * subscription and one `profiles` query per launch and the two consumers can
+ * never disagree about who is signed in.
+ */
+export const AuthStateContext = createContext<AuthState>('loading');
+
+export function useSharedAuthState(): AuthState {
+  return useContext(AuthStateContext);
 }
