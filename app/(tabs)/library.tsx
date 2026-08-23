@@ -24,11 +24,18 @@ import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
+import {
+  DoubtSummary,
+  deleteDoubt,
+  formatRelativeTime,
+  listDoubts,
+  subjectMatches,
+} from '@/lib/doubts';
 import {
   DEMO_DOUBT_CARDS,
   DEMO_NOTE_CARDS,
   DEMO_SESSION_ID,
+  DemoDoubtCard,
   DemoNoteCard,
 } from '@/lib/demo-board';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
@@ -92,12 +99,17 @@ export default function LibraryScreen() {
   const pagerRef = useRef<ScrollView>(null);
 
   // --- Erase to remove ---------------------------------------------------
-  // The mode belongs to the tab: it exists on Notes, and leaving Notes puts
-  // the eraser down rather than carrying the mode across.
+  // The mode belongs to the list you are looking at: Notes and Doubts each
+  // have one, and changing tab puts the eraser down rather than carrying the
+  // mode across to a list you did not arm it for.
   const [eraseMode, setEraseMode] = useState(false);
   /** The last removal, held so UNDO can put it back where it was. */
   const [undoState, setUndoState] = useState<
-    { kind: 'sample'; index: number; item: DemoNoteCard } | { kind: 'note'; index: number; item: NoteSummary } | null
+    | { kind: 'sample'; index: number; item: DemoNoteCard }
+    | { kind: 'note'; index: number; item: NoteSummary }
+    | { kind: 'doubtSample'; index: number; item: DemoDoubtCard }
+    | { kind: 'doubt'; index: number; item: DoubtSummary }
+    | null
   >(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,6 +128,9 @@ export default function LibraryScreen() {
   );
 
   const [doubts, setDoubts] = useState<DoubtSummary[]>([]);
+  // DEMO_ — the same trick Notes uses: sample cards so the erase gesture can
+  // be tried while the real list is empty. Removing one is local only.
+  const [sampleDoubts, setSampleDoubts] = useState<DemoDoubtCard[]>(DEMO_DOUBT_CARDS);
   const [doubtsLoading, setDoubtsLoading] = useState(true);
   const [doubtsError, setDoubtsError] = useState<string | null>(null);
 
@@ -194,6 +209,7 @@ export default function LibraryScreen() {
   // exists, and never instead of a filtered-empty result — "no Chemistry
   // doubts yet" is a true answer and samples would contradict it.
   const showingDoubtSamples = doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
+  const hasErasableDoubts = showingDoubtSamples ? sampleDoubts.length > 0 : doubts.length > 0;
 
   const toggleErase = useCallback(() => {
     setEraseMode((on) => {
@@ -202,10 +218,19 @@ export default function LibraryScreen() {
     });
   }, []);
 
+  /** Only Notes and Doubts can be erased; Sessions is a preview with nothing
+   *  of the student's own in it. */
+  const canErase =
+    activeSegment === 'notes'
+      ? hasErasableNotes
+      : activeSegment === 'doubts'
+        ? hasErasableDoubts
+        : false;
+
   // Empty list — put the eraser down and hide the tool.
   useEffect(() => {
-    if (eraseMode && !hasErasableNotes) setEraseMode(false);
-  }, [eraseMode, hasErasableNotes]);
+    if (eraseMode && !canErase) setEraseMode(false);
+  }, [eraseMode, canErase]);
 
   // The index is read here rather than inside the state updater: an updater
   // has to be pure, and arming the undo row from inside one silently dropped
@@ -233,6 +258,30 @@ export default function LibraryScreen() {
     [armUndo, notes]
   );
 
+  const removeDoubtSample = useCallback(
+    (id: string) => {
+      const index = sampleDoubts.findIndex((d) => d.id === id);
+      if (index < 0) return;
+      armUndo({ kind: 'doubtSample', index, item: sampleDoubts[index] });
+      setSampleDoubts((prev) => prev.filter((d) => d.id !== id));
+    },
+    [armUndo, sampleDoubts]
+  );
+
+  const removeDoubt = useCallback(
+    (id: string) => {
+      const index = doubts.findIndex((d) => d.id === id);
+      if (index < 0) return;
+      armUndo({ kind: 'doubt', index, item: doubts[index] });
+      setDoubts((prev) => prev.filter((d) => d.id !== id));
+      // Already gone from the list; the server catches up. DELETE /doubts/{id}
+      // drops one question, and the photo only when no other question still
+      // uses it — which is exactly why these are one card per question.
+      deleteDoubt(id).catch(() => {});
+    },
+    [armUndo, doubts]
+  );
+
   const undoRemoval = useCallback(() => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     setUndoState((state) => {
@@ -244,6 +293,21 @@ export default function LibraryScreen() {
           next.splice(state.index, 0, state.item);
           return next;
         });
+      } else if (state.kind === 'doubtSample') {
+        setSampleDoubts((prev) => {
+          const next = prev.slice();
+          next.splice(state.index, 0, state.item);
+          return next;
+        });
+      } else if (state.kind === 'doubt') {
+        setDoubts((prev) => {
+          const next = prev.slice();
+          next.splice(state.index, 0, state.item);
+          return next;
+        });
+        // Same gap as notes: the row is already deleted server-side and
+        // nothing re-creates it, so the next refetch drops it again. Flagged
+        // for the backend — undo needs a soft delete to be honest.
       } else {
         setNotes((prev) => {
           const next = prev.slice();
@@ -336,7 +400,7 @@ export default function LibraryScreen() {
 
   const goToSegment = (segment: Segment) => {
     setActiveSegment(segment);
-    if (segment !== 'notes') setEraseMode(false);
+    setEraseMode(false);
     pagerRef.current?.scrollTo({ x: SEGMENTS.indexOf(segment) * windowWidth, animated: true });
   };
 
@@ -349,7 +413,7 @@ export default function LibraryScreen() {
     const index = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
     const segment = SEGMENTS[index] ?? 'notes';
     setActiveSegment(segment);
-    if (segment !== 'notes') setEraseMode(false);
+    setEraseMode(false);
   };
 
   const indicatorLeft = scrollX.interpolate({
@@ -405,7 +469,7 @@ export default function LibraryScreen() {
                 Notes — session backups expire on their own, so nothing there
                 is the student's to delete. */}
             <View style={styles.segmentSpacer} />
-            {activeSegment === 'notes' && hasErasableNotes && (
+            {canErase && (
               <EraseTool active={eraseMode} onPress={toggleErase} />
             )}
           </View>
@@ -620,6 +684,7 @@ export default function LibraryScreen() {
                 </Text>
               </View>
 
+              {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
               {doubtsLoading ? (
                 <CardSkeletonList styles={styles} count={4} />
               ) : doubtsError ? (
@@ -634,15 +699,20 @@ export default function LibraryScreen() {
                 <View style={styles.doubtsList}>
                   <Text style={styles.doubtsSampleNote}>
                     Nothing snapped yet — these two came off one photo, and each stands alone so
-                    you can find and delete them separately.
+                    you can find and erase them separately.
                   </Text>
-                  {DEMO_DOUBT_CARDS.map((card) => (
-                    <View key={card.id} style={styles.doubtCard}>
-                      <View style={styles.doubtRule} />
-                      <Text style={styles.doubtQuestion} numberOfLines={3}>
-                        {card.question}
-                      </Text>
-                    </View>
+                  {sampleDoubts.map((card) => (
+                    <Erasable
+                      key={card.id}
+                      enabled={eraseMode}
+                      onRemove={() => removeDoubtSample(card.id)}>
+                      <View style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}>
+                        <View style={styles.doubtRule} />
+                        <Text style={styles.doubtQuestion} numberOfLines={3}>
+                          {card.question}
+                        </Text>
+                      </View>
+                    </Erasable>
                   ))}
                 </View>
               ) : visibleDoubts.length === 0 ? (
@@ -656,9 +726,13 @@ export default function LibraryScreen() {
               ) : (
                 <View style={styles.doubtsList}>
                   {visibleDoubts.map((doubt) => (
-                    <PressableScale
+                    <Erasable
                       key={doubt.id}
-                      style={styles.doubtCard}
+                      enabled={eraseMode}
+                      onRemove={() => removeDoubt(doubt.id)}>
+                    <PressableScale
+                      style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}
+                      disabled={eraseMode}
                       onPress={() =>
                         router.push({
                           pathname: '/doubt-detail',
@@ -688,9 +762,11 @@ export default function LibraryScreen() {
                         {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
                       </Text>
                     </PressableScale>
+                    </Erasable>
                   ))}
                 </View>
               )}
+              {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
           </View>
 

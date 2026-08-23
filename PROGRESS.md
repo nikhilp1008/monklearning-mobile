@@ -5129,6 +5129,42 @@ filtered-empty result — "no Chemistry doubts yet" is a true answer that sample
 would contradict. They are deliberately one Physics and one Chemistry *off the
 same photo*, which is the exact case that forced the split.
 
+## Erase comes to Doubts
+
+The same rub-to-erase gesture Notes has, now on the Doubts tab. The endpoint
+was already there — `DELETE /doubts/{id}`, scoped to the user — and
+`deleteDoubt` was already in `lib/doubts.ts`; only the UI was missing.
+
+**Generalised rather than duplicated.** The erase machinery was written for
+notes: one `eraseMode`, one undo slot typed to `DemoNoteCard | NoteSummary`,
+and a `hasErasableNotes` flag gating the tool. Rather than a parallel copy for
+doubts, the undo slot became a four-way union (note, note-sample, doubt,
+doubt-sample) and the gate became `canErase`, resolved from the active
+segment. Sessions returns false — it is a preview with nothing of the
+student's own in it.
+
+**The eraser now goes down on any tab change**, not only on leaving Notes. It
+belongs to the list you are looking at, and carrying an armed eraser into a
+list you did not arm it for is how accidents happen.
+
+**Why per-question deletion matters here.** `DELETE /doubts/{id}` drops one
+row and removes the photo only when no other question still uses it. So
+erasing Q2 of a three-question page leaves Q1 and Q3 — and their image —
+intact. That is precisely the case that forced one card per question, and the
+API was already built for it.
+
+**Same honest gap as notes:** the row is deleted server-side immediately, and
+nothing re-creates it, so UNDO restores the list but the next refetch on focus
+drops it again. Undo needs a soft delete to be truthful. Flagged for the
+backend alongside the notes version of the same problem.
+
+**Verified on device** — armed the eraser, rubbed a card out, watched the UNDO
+row, tapped it, saw the card come back at its original index, and saw the tool
+disarm itself when the list emptied. The undo row needed the documented
+timed-state technique to capture: its life is 5s, which a screenshot
+round-trip outruns, so `ERASE.undoMs` was temporarily raised to 60s and put
+back.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
