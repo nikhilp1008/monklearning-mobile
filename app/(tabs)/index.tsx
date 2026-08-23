@@ -10,7 +10,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { RuledPaper } from '@/components/ruled-paper';
 import { NoticedCard } from '@/components/noticed-card';
 import { Skeleton } from '@/components/skeleton';
-import { MilestonesIcon, PracticeIcon, SnapADoubtIcon, TILE_CHIP } from '@/components/monk-icons';
+import { ICON_CHIP, MilestonesIcon, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { countMilestones } from '@/lib/milestones';
@@ -256,8 +256,8 @@ export default function HomeScreen() {
                 style={[styles.card, styles.tile]}
                 onPress={() => router.push('/snap-capture')}>
                 <View style={styles.tileHeader}>
-                  <TileChip size={scale(44)} radius={scale(12)}>
-                    <SnapADoubtIcon size={scale(22)} />
+                  <TileChip size={scale(ICON_CHIP.size)} radius={scale(ICON_CHIP.radius)}>
+                    <SnapADoubtIcon size={scale(ICON_CHIP.icon)} />
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
@@ -269,8 +269,8 @@ export default function HomeScreen() {
                 style={[styles.card, styles.tile]}
                 onPress={() => router.push('/practice')}>
                 <View style={styles.tileHeader}>
-                  <TileChip size={scale(44)} radius={scale(12)}>
-                    <PracticeIcon size={scale(22)} />
+                  <TileChip size={scale(ICON_CHIP.size)} radius={scale(ICON_CHIP.radius)}>
+                    <PracticeIcon size={scale(ICON_CHIP.icon)} />
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
@@ -513,9 +513,9 @@ function TileChip({
         borderRadius: radius,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: TILE_CHIP,
+        backgroundColor: ICON_CHIP.background,
         borderWidth: 1,
-        borderColor: 'rgba(28,26,22,.10)',
+        borderColor: ICON_CHIP.border,
       }}>
       {children}
     </View>

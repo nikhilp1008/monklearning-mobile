@@ -43,14 +43,28 @@ const AMBER_ACCENT = '#EEA31F';
 const STROKE = 2.1;
 
 /**
- * The chip is white, not the spec's `#FDF3DE` tint.
+ * The chip these icons sit in — white, with an ink hairline.
  *
- * The tint's job was to give the amber accent clearance from a warm ground.
- * White does that better — it is the highest contrast available for both the
- * ink strokes and the accent — and it keeps the chip from adding a third warm
- * surface to a page that already has the amber hero and the observation row.
+ * Exported as values, not baked into a component, because the two places that
+ * use it need different wrappers: Home's is decoration inside a tappable card,
+ * Library's *is* the button. Sharing the numbers is what stops them drifting
+ * apart again — they had, into a white rounded-square on Home and an
+ * ink-filled circle in Library, the same glyph reading as two different
+ * objects.
+ *
+ * White rather than the spec's `#FDF3DE` tint: it is the best contrast
+ * available for both the ink strokes and the amber accent, and it keeps a
+ * third warm surface off a page that already has the amber hero. The hairline
+ * gives the chip the edge the tint could not hold against a white card.
  */
-export const TILE_CHIP = '#FFFFFF';
+export const ICON_CHIP = {
+  size: 44,
+  radius: 12,
+  background: '#FFFFFF',
+  border: 'rgba(28,26,22,.10)',
+  /** Artwork size inside the chip. The set's floor is 20. */
+  icon: 22,
+} as const;
 
 export interface MonkIconProps {
   size?: number;

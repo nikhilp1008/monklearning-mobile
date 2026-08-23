@@ -5053,10 +5053,20 @@ The spec's actual rule is that the stroke must not *scale with the icon*, and
 that still holds — this is one constant at every size. `STROKE` in
 `components/monk-icons.tsx` is the single place to revert it.
 
-**Library's camera was a different camera.** The doubts search row had its own
-`SnapIcon` for the same "snap a doubt" action. Unified to `SnapADoubtIcon` at
-20pt (the set's floor, below which the accent fuses into the stroke beside it),
-inverted to paper on the ink pill. `components/snap-icon.tsx` deleted.
+**Library's camera was a different camera — twice over.** The doubts search row
+had its own `SnapIcon` for the same "snap a doubt" action, so the glyph was
+swapped first. That was not enough: the button was an ink-filled *circle* with
+the strokes inverted to white, while Home's was a white *rounded square* with
+ink strokes. Same action, same glyph, two unrelated-looking controls.
+
+It now uses Home's chip exactly. The chip is exported from
+`components/monk-icons.tsx` as `ICON_CHIP` — values rather than a component,
+because the two callers need different wrappers (Home's is decoration inside a
+tappable card, Library's *is* the button). Sharing the numbers is what stops
+them drifting apart a third time. `components/snap-icon.tsx` deleted.
+
+The affordance survives the lighter treatment because the square reads as a
+distinct control against the search field's pill.
 
 **Noticed, not changed:** the milestones badge dot is marigold and the medal's
 face is also amber, so two ambers sit on one 40pt button. It reads acceptably —

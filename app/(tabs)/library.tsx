@@ -21,7 +21,7 @@ import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components
 import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { SnapADoubtIcon } from '@/components/monk-icons';
+import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtSummary, formatRelativeTime, listDoubts, subjectMatches } from '@/lib/doubts';
@@ -591,12 +591,13 @@ export default function LibraryScreen() {
                 <PressableScale
                   style={styles.cameraButton}
                   onPress={() => router.push('/snap-capture')}>
-                  {/* Same camera as Home's tile — one shape for one action.
-                      Ink-on-dark inverts to paper; the amber accent is left
-                      alone, since it reads cleanly on the ink fill and is the
-                      one mark the icon is built around. 20pt is the set's
-                      floor, below which the accent fuses into the stroke. */}
-                  <SnapADoubtIcon size={scale(20)} color={colors.paper} />
+                  {/* Home's chip exactly — same white ground, same hairline,
+                      same radius, same ink strokes. It was an ink-filled
+                      circle with the strokes inverted, which made the same
+                      action read as two unrelated controls between the two
+                      screens. The square against the search field's pill is
+                      what keeps it reading as a button. */}
+                  <SnapADoubtIcon size={scale(ICON_CHIP.icon)} />
                 </PressableScale>
               </View>
 
@@ -930,11 +931,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(15),
     },
     cameraButton: {
-      width: scale(44),
-      height: scale(44),
+      width: scale(ICON_CHIP.size),
+      height: scale(ICON_CHIP.size),
       flexShrink: 0,
-      borderRadius: scale(22),
-      backgroundColor: colors.ink,
+      borderRadius: scale(ICON_CHIP.radius),
+      backgroundColor: ICON_CHIP.background,
+      borderWidth: 1,
+      borderColor: ICON_CHIP.border,
       alignItems: 'center',
       justifyContent: 'center',
     },
