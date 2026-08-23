@@ -3,31 +3,24 @@
 // Every number below is a raw design px lifted off that markup, passed through ds().
 // The mockup's "9:41" status row is deliberately not reproduced — that is prototype
 // chrome, and the real OS status bar sits there instead.
-import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
   useSharedValue,
   withDelay,
   withTiming,
-} from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
-import { ObBack, ObButton } from "@/components/onboarding-kit";
-import { ob, obFont, useDesignScale } from "@/constants/onboarding";
-import { getSessionEmail } from "@/lib/auth";
-import { saveProfile } from "@/lib/profile";
+import { ObBack, ObButton } from '@/components/onboarding-kit';
+import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { getSessionEmail } from '@/lib/auth';
+import { saveProfile } from '@/lib/profile';
 
 // CSS `ease` is cubic-bezier(.25,.1,.25,1); Reanimated's Easing.ease is a
 // different curve, so the bezier is spelled out (same call as welcome.tsx).
@@ -44,7 +37,26 @@ const DRAW_DELAY_MS = 200;
 
 // The design's sample values. `Aarav Sharma` is the name the mockup shows typed
 // into the active card; here it is the placeholder, since the field is real.
-const NAME_PLACEHOLDER = "Aarav Sharma";
+const NAME_PLACEHOLDER = 'Aarav Sharma';
+
+/**
+ * Two characters, not five or six.
+ *
+ * A longer floor looks safer and isn't — it rejects real students. Om, Ram,
+ * Anu, Sai, Jay and Dev are all three characters or fewer, and a field that
+ * refuses a student's actual name is a far worse failure than one that accepts
+ * a short one. What is worth blocking is a field holding no name at all:
+ * blank, or "12", or "...". So two characters, at least one of them a letter.
+ */
+const NAME_MIN = 2;
+// Latin, Latin-Extended and Devanagari, spelled out rather than \p{L} — Hermes
+// support for unicode property escapes is not worth depending on here.
+const HAS_LETTER = /[A-Za-z\u00C0-\u024F\u0900-\u097F]/;
+
+function isUsableName(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length >= NAME_MIN && HAS_LETTER.test(trimmed);
+}
 // `+91 98211 43307` — the design's grouping.
 //
 // This used to fall back to a sample number when the input wasn't exactly ten
@@ -53,9 +65,9 @@ const NAME_PLACEHOLDER = "Aarav Sharma";
 // half-entered number would have been saved as somebody else's real one.
 // Empty in, empty out; a partial keeps whatever was actually typed.
 function formatPhone(raw?: string) {
-  const digits = (raw ?? "").replace(/[^0-9]/g, "");
+  const digits = (raw ?? '').replace(/[^0-9]/g, '');
   const local = digits.length > 10 ? digits.slice(-10) : digits;
-  if (!local) return "";
+  if (!local) return '';
   if (local.length !== 10) return `+91 ${local}`;
   return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
 }
@@ -66,10 +78,11 @@ export default function DetailsScreen() {
   const { ds, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
   const params = useLocalSearchParams<{ email?: string }>();
-  const [email, setEmail] = useState((params.email ?? "").trim());
+  const [email, setEmail] = useState((params.email ?? '').trim());
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const nameOk = isUsableName(name);
 
   // Reached without a param when the root gate resumes a half-finished
   // onboarding — the session already knows the address in that case.
@@ -87,20 +100,18 @@ export default function DetailsScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ObBack />
         <KeyboardAvoidingView
           style={styles.safeArea}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           {/* `padding:52px 34px 0` */}
           <View style={styles.headlineBlock}>
             <Text style={styles.headline}>
               Who is <Text style={styles.headlineBold}>joining the class</Text>?
             </Text>
-            <Text style={styles.sub}>
-              Two fields, and your teacher knows what to call you.
-            </Text>
+            <Text style={styles.sub}>Two fields, and your teacher knows what to call you.</Text>
           </View>
 
           {/* `padding:32px 26px 0; display:flex; flex-direction:column; gap:12px` */}
@@ -130,10 +141,7 @@ export default function DetailsScreen() {
             <View style={[styles.card, styles.cardWarm]}>
               <View style={styles.cardText}>
                 <Text style={styles.label}>EMAIL ADDRESS</Text>
-                <Text
-                  style={[styles.value, styles.phoneValue]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.value, styles.phoneValue]} numberOfLines={1}>
                   {email}
                 </Text>
               </View>
@@ -152,9 +160,7 @@ export default function DetailsScreen() {
               <TextInput
                 style={[styles.value, styles.input, styles.emailInput]}
                 value={phone}
-                onChangeText={(t) =>
-                  setPhone(t.replace(/[^0-9]/g, "").slice(0, 10))
-                }
+                onChangeText={(t) => setPhone(t.replace(/[^0-9]/g, '').slice(0, 10))}
                 placeholder="98765 43210"
                 placeholderTextColor={ob.placeholder}
                 keyboardType="phone-pad"
@@ -170,20 +176,20 @@ export default function DetailsScreen() {
           {/* `margin-top:auto; padding:0 34px 34px` */}
           <View style={styles.footer}>
             <ObButton
-              label="Continue"
+              label={nameOk ? 'Continue' : 'Add your name'}
               withArrow
+              disabled={!nameOk}
               onPress={() => {
+                if (!nameOk) return;
                 // Persist what was typed so the rest of the app (the Home
                 // greeting, Personal information) knows this student by their
                 // own name instead of the sample profile's.
                 saveProfile({
                   ...(name.trim() ? { name: name.trim() } : {}),
                   ...(email ? { email, emailVerified: true } : {}),
-                  ...(phone
-                    ? { phone: formatPhone(phone), phoneVerified: false }
-                    : {}),
+                  ...(phone ? { phone: formatPhone(phone), phoneVerified: false } : {}),
                 });
-                router.push("/exam");
+                router.push('/exam');
               }}
             />
           </View>
@@ -264,7 +270,7 @@ function createStyles(
     fieldStack: {
       paddingTop: ds(32),
       paddingHorizontal: ds(26),
-      flexDirection: "column",
+      flexDirection: 'column',
       gap: ds(12),
     },
     // `box-shadow:0 0 0 5px rgba(238,163,31,.18)` around a 20px radius card.
@@ -291,9 +297,9 @@ function createStyles(
     },
     cardWarm: {
       backgroundColor: ob.surfaceWarm,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
     },
     // 13px / 700 / ls .1em / #8C867A
     label: {
@@ -333,21 +339,21 @@ function createStyles(
     },
     valueRow: {
       marginTop: ds(8),
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     // Invisible width probe for the caret's x position.
     mirror: {
-      position: "absolute",
+      position: 'absolute',
       left: 0,
       top: 0,
       opacity: 0,
-      pointerEvents: "none",
+      pointerEvents: 'none',
     },
     // `gap:8px; font-size:15px; font-weight:700; color:#5F5A50`
     verified: {
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: ds(8),
     },
     verifiedText: {
@@ -357,7 +363,7 @@ function createStyles(
     },
     // `margin-top:auto; padding:0 34px 34px`
     footer: {
-      marginTop: "auto",
+      marginTop: 'auto',
       paddingHorizontal: ds(34),
       paddingBottom: ds(34),
     },

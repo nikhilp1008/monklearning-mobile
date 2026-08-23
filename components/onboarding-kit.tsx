@@ -149,49 +149,45 @@ const styles = StyleSheet.create({
 /**
  * Back, for the middle of onboarding.
  *
- * Absolutely positioned into the 52pt of whitespace every onboarding screen
- * already leaves above its headline, so adding it disturbs none of the
- * handoff's vertical rhythm.
+ * A bare chevron, aligned to the 34pt headline column — it belongs to the type
+ * layout, not to the 26pt card column, and not to the settings screens whose
+ * bordered circle this replaced. That circle read as chrome borrowed from
+ * another part of the app, and being off the headline's left edge it lined up
+ * with nothing.
  *
- * Renders nothing when there is nowhere to go — the first screens have no
- * previous step, and the root gate can drop a student straight onto `details`
- * with an empty history when it resumes a half-finished onboarding.
+ * Renders nothing when there is nowhere to go: the root gate can drop a
+ * student onto `details` with an empty history, and a back button that does
+ * nothing is worse than none.
  */
 export function ObBack() {
   const { ds } = useDesignScale();
-  // Absolute children are laid out against the parent's border box, so the
-  // SafeAreaView's top padding does not move them — without this the button
-  // sits on top of the clock.
+  // Absolute children are laid out against the parent's border box, so a
+  // SafeAreaView's top padding does not move them.
   const insets = useSafeAreaInsets();
   if (!router.canGoBack()) return null;
   return (
     <Pressable
       onPress={() => router.back()}
-      hitSlop={12}
+      // Generous, because the glyph itself is small and sits in open space.
+      hitSlop={16}
       accessibilityRole="button"
       accessibilityLabel="Go back"
       style={({ pressed }) => [
         {
           position: 'absolute',
-          top: insets.top + ds(6),
-          left: ds(26),
-          width: ds(40),
-          height: ds(40),
-          borderRadius: ds(20),
-          borderWidth: 1.5,
-          borderColor: ob.hairline14,
-          backgroundColor: ob.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
+          top: insets.top + ds(14),
+          left: ds(34),
+          paddingVertical: ds(4),
+          paddingRight: ds(10),
           zIndex: 2,
+          opacity: pressed ? 0.5 : 1,
         },
-        { opacity: pressed ? 0.7 : 1 },
       ]}>
-      <Svg viewBox="0 0 24 24" width={ds(17)} height={ds(17)} fill="none">
+      <Svg viewBox="0 0 24 24" width={ds(20)} height={ds(20)} fill="none">
         <Path
-          d="M15 6l-6 6 6 6"
-          stroke={ob.ink}
-          strokeWidth={2}
+          d="M15 5l-7 7 7 7"
+          stroke={ob.ink55}
+          strokeWidth={2.2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />

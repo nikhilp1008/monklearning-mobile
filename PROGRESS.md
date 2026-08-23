@@ -4970,6 +4970,32 @@ the welcome screens. `busy` moved to a `finally` as a result: the screen stays
 mounted behind `details` now, and coming back to a permanently disabled
 "Verifying…" button would have been a dead end.
 
+## Name required, and the back button rethought
+
+**Continue was enabled with an empty name field**, so a student could pass
+straight through and end up with a blank `display_name` — which then reads as a
+completed onboarding to `hasCompletedOnboarding()`. Now required, with the CTA
+disabled and labelled "Add your name" until it is.
+
+**The minimum is two characters, not five or six.** A longer floor looks safer
+and isn't: Om, Ram, Anu, Sai, Jay and Dev are all three characters or fewer, and
+an app that refuses a student's actual name fails far worse than one accepting a
+short one. What is worth blocking is a field holding no name at all — blank, or
+"12", or "...". So: two characters, at least one of them a letter, matched
+against explicit Latin / Latin-Extended / Devanagari ranges rather than `\p{L}`,
+which is not worth depending on in Hermes.
+
+**The bordered back circle is gone.** Two things were wrong with it. It was
+placed at the 26pt card column while the headline sits at 34pt, so it lined up
+with nothing on the page. And a bordered circle is chrome borrowed from the
+settings screens — onboarding is headline-led with no chrome anywhere, so it
+read as imported furniture.
+
+Replaced by a bare chevron on the 34pt headline column, sitting directly above
+the headline's first letter so it belongs to the type layout. A labelled
+"‹ BACK" eyebrow was built and compared side by side; the bare chevron was
+chosen for being quieter.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and
