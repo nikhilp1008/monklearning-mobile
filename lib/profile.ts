@@ -24,6 +24,7 @@ const KEYS = {
   phone: 'profile.phone',
   phoneVerified: 'profile.phoneVerified',
   exam: 'profile.exam',
+  joined: 'profile.joined',
   year: 'profile.year',
 } as const;
 
@@ -42,6 +43,9 @@ export interface StudentProfile {
   phoneVerified: boolean;
   exam: ExamKey;
   year: YearKey;
+  /** ISO date the account was created, from `profiles.created_at`. Empty
+   *  until the first successful pull. */
+  joined: string;
 }
 
 /**
@@ -61,6 +65,7 @@ const FALLBACK: StudentProfile = {
   phoneVerified: false,
   exam: 'jee',
   year: 'class12',
+  joined: '',
 };
 
 function readExam(value: string | null | undefined): ExamKey {
@@ -100,6 +105,7 @@ export async function getProfile(): Promise<StudentProfile> {
       phoneVerified: map[KEYS.phoneVerified] === 'true',
       exam: readExam(map[KEYS.exam]),
       year: readYear(map[KEYS.year]),
+      joined: map[KEYS.joined] ?? FALLBACK.joined,
     };
   } catch {
     return FALLBACK;
@@ -120,6 +126,7 @@ export async function saveProfile(patch: Partial<StudentProfile>): Promise<void>
   }
   if (patch.exam !== undefined) entries.push([KEYS.exam, patch.exam]);
   if (patch.year !== undefined) entries.push([KEYS.year, patch.year]);
+  if (patch.joined !== undefined) entries.push([KEYS.joined, patch.joined]);
   if (!entries.length) return;
   try {
     await AsyncStorage.multiSet(entries);
@@ -199,7 +206,7 @@ export async function pullProfile(): Promise<void> {
     if (!user || user.is_anonymous) return;
     const { data: rows } = await supabase
       .from('profiles')
-      .select('display_name, phone, phone_verified, target_exam, enrolled_class')
+      .select('display_name, phone, phone_verified, target_exam, enrolled_class, created_at')
       .eq('id', user.id)
       .limit(1);
     const row = rows?.[0];
@@ -213,6 +220,7 @@ export async function pullProfile(): Promise<void> {
       // ever restore the coarse answer — it never overwrites a local
       // 'dropper' with 'class12' unless there was nothing local to keep.
       ...(row.enrolled_class === 11 ? { year: 'class11' as YearKey } : {}),
+      ...(row.created_at ? { joined: String(row.created_at) } : {}),
     });
     if (user.email) await saveProfile({ email: user.email, emailVerified: true });
   } catch (err) {

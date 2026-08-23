@@ -6,7 +6,7 @@ import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { EXAMS, YEARS, type YearKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
-import { StudentProfile, getProfile, saveProfile } from '@/lib/profile';
+import { StudentProfile, getProfile, pullProfile, saveProfile } from '@/lib/profile';
 
 /**
  * Personal information.
@@ -45,12 +45,22 @@ export default function AccountScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    getProfile().then((p) => {
+    const apply = (p: StudentProfile) => {
       if (cancelled) return;
       setProfile(p);
       setName(p.name);
       setPhone(p.phone);
-    });
+    };
+    // Local first so the form paints instantly, then the server's copy — this
+    // page can be the first one opened on a new device, where local storage is
+    // empty and `profiles` holds the only real answers.
+    getProfile().then(apply);
+    pullProfile()
+      .then(getProfile)
+      .then(apply)
+      .catch(() => {
+        // The locally-loaded copy above still stands.
+      });
     return () => {
       cancelled = true;
     };

@@ -4996,6 +4996,30 @@ the headline's first letter so it belongs to the type layout. A labelled
 "‹ BACK" eyebrow was built and compared side by side; the bare chevron was
 chosen for being quieter.
 
+## Profile was still a mockup
+
+The identity block was entirely hardcoded: "Aarav Sharma", "Class 12 · with
+Drona since June", "JEE Main", and a Physics/Chemistry/Maths chip row. Every one
+of those is now read from the student's own record.
+
+- **Name, class and exam** come from the profile store, which is backed by
+  Supabase `profiles`.
+- **"since June" is now a real date**, from `profiles.created_at` — added to
+  `StudentProfile` as `joined` and pulled alongside the rest. The year is only
+  printed once it stops being obvious: a student who signed up this year does
+  not need telling which year that was.
+- **The subject chips follow the exam**, so a NEET student sees Biology where
+  this row used to hardcode Maths.
+- Every clause of the subtitle is conditional. A field the student skipped
+  shortens the line rather than being filled with a placeholder standing in for
+  something we do not know.
+
+**Both Profile and Personal information now pull from the server on open**, not
+just read local storage — local first so the page paints immediately, then the
+server's copy. These are the two screens most likely to be the first thing
+opened on a new device, where AsyncStorage is empty and `profiles` holds the
+only real answers.
+
 ## Still open after this session
 
 - **Subscription pricing** — every amount is `₹—`. `monklearning.com` and

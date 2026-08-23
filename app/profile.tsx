@@ -38,7 +38,9 @@ import Svg, {
 
 import { PressableScale } from '@/components/pressable-scale';
 import { signOut } from '@/lib/auth';
+import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
 import { SettingsHeader } from '@/components/settings-page';
+import { EXAMS, YEARS } from '@/constants/onboarding';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
@@ -103,7 +105,20 @@ const LANGUAGES: { id: LanguageId; label: string }[] = [
   { id: 'english', label: 'English' },
 ];
 
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths'];
+/**
+ * "Joined June" style, from `profiles.created_at`.
+ *
+ * The year is only printed once it stops being obvious — a student who signed
+ * up this year does not need telling which year that was.
+ */
+function joinedLabel(iso: string): string | null {
+  if (!iso) return null;
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  const month = at.toLocaleDateString('en-GB', { month: 'long' });
+  const now = new Date();
+  return at.getFullYear() === now.getFullYear() ? month : `${month} ${at.getFullYear()}`;
+}
 
 const MORE_LINKS: { label: string; href: Parameters<typeof router.push>[0] }[] = [
   { label: 'Personal information', href: '/account' },
@@ -123,6 +138,7 @@ export default function ProfileScreen() {
 
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [language, setLanguage] = useState<LanguageId>('hinglish');
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,6 +147,16 @@ export default function ProfileScreen() {
       setTeacher(t);
       setLanguage(l);
     });
+    // Local first so the page paints immediately, then refreshed from the
+    // server — this is the screen most likely to be opened on a new device,
+    // where the local copy is empty and `profiles` is the only source.
+    getProfile().then((p) => !cancelled && setProfile(p));
+    pullProfile()
+      .then(getProfile)
+      .then((p) => !cancelled && setProfile(p))
+      .catch(() => {
+        // The locally-loaded copy above still stands.
+      });
     return () => {
       cancelled = true;
     };
@@ -147,6 +173,8 @@ export default function ProfileScreen() {
   };
 
   const teacherName = TEACHERS.find((t) => t.id === teacher)?.name ?? 'Drona';
+  const exam = profile ? EXAMS[profile.exam] : null;
+  const joined = joinedLabel(profile?.joined ?? '');
 
   return (
     <View style={styles.screen}>
@@ -163,12 +191,22 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}>
           {/* Identity */}
           <View style={[styles.section, styles.sectionFirst]}>
-            <Text style={styles.name}>Aarav Sharma</Text>
-            <Text style={styles.nameSub}>Class 12 · with {teacherName} since June</Text>
+            <Text style={styles.name}>{profile?.name || 'Your account'}</Text>
+            {/* Every clause here is conditional: a student who skipped a field
+                should get a shorter line, never a placeholder standing in for
+                something we don't know. */}
+            <Text style={styles.nameSub}>
+              {[
+                profile ? YEARS[profile.year] : null,
+                `with ${teacherName}${joined ? ` since ${joined}` : ''}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
             <View style={styles.examLeaderRow}>
               <Text style={styles.examLeaderLabel}>Exam</Text>
               <View style={styles.leaderLine} />
-              <Text style={styles.examLeaderValue}>JEE Main</Text>
+              <Text style={styles.examLeaderValue}>{exam?.name ?? '—'}</Text>
             </View>
           </View>
 
@@ -265,11 +303,13 @@ export default function ProfileScreen() {
                 <Text style={styles.manageChevron}>›</Text>
               </PressableScale>
             </View>
-            <Text style={styles.examName}>JEE Main</Text>
+            <Text style={styles.examName}>{exam?.name ?? '—'}</Text>
             <View style={styles.chipRow}>
-              {SUBJECTS.map((subject) => (
-                <View key={subject} style={styles.chip}>
-                  <Text style={styles.chipText}>{subject}</Text>
+              {/* Follows the exam, so a NEET student sees Biology here rather
+                  than the Maths this row used to hardcode. */}
+              {(exam?.subjects ?? []).map((subject) => (
+                <View key={subject.name} style={styles.chip}>
+                  <Text style={styles.chipText}>{subject.name}</Text>
                 </View>
               ))}
             </View>
