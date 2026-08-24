@@ -19,6 +19,11 @@ export interface DoubtSummary {
   question_text: string | null;
   stem?: string | null;
   subject: string | null;
+  /** What to print for `subject` — "Math", not "mathematics". */
+  subject_label?: string | null;
+  /** False when this doubt's subject is not on the student's exam. Null when
+   *  the photo was illegible and no subject was read at all. */
+  on_syllabus?: boolean | null;
   /** Chapter-level topic ("Waves and Organ Pipes") — the API column is `chapter`. */
   chapter: string | null;
   /** Short display title for the doubt. */
@@ -47,10 +52,33 @@ export interface DoubtDetail extends Omit<DoubtSummary, 'scrap'> {
   reported: boolean;
 }
 
+/**
+ * One filter chip, as the server composes them.
+ *
+ * Which subjects belong on the row depends on the student's exam, which lives
+ * on `profiles` and is resolved server-side — so this is not something the
+ * client can derive. The list is their syllabus first (JEE gets Physics,
+ * Chemistry, Math whether or not they have snapped one yet), then any subject
+ * they have actually snapped from outside it, flagged `on_syllabus: false`.
+ *
+ * Off-syllabus is labelled, never hidden: the subject is a best-effort label
+ * from a model — a real stereochemistry question came back tagged Biology —
+ * and a doubt you cannot find is worse than a chip you did not expect.
+ */
+export interface DoubtSubjectChip {
+  /** The stored value. Filtering holds this; the chip prints `label`. */
+  key: string;
+  /** "Math", not "mathematics" — what the student reads. */
+  label: string;
+  on_syllabus: boolean;
+}
+
 export interface DoubtsListResponse {
   doubts: DoubtSummary[];
   count: number;
-  subjects: string[];
+  subjects: DoubtSubjectChip[];
+  /** 'jee' | 'neet' | 'both', as the server resolved it from the profile. */
+  exam: string;
 }
 
 /** One question inside a submission, as returned by POST /doubts. */
@@ -140,11 +168,14 @@ export function rejectPhoto(photo: DoubtPhoto): string | null {
 }
 
 export function listDoubts(params: { q?: string } = {}): Promise<DoubtsListResponse> {
-  // No `subject` param here on purpose: the API's subject vocabulary
-  // ("Mathematics") doesn't match the app's compact filter labels ("Maths"),
-  // and matching semantics on the server side (exact/partial/case) aren't
-  // verified — fetch everything and filter client-side instead, same
-  // approach as the Drona catalogue's subject matching.
+  // Still no `subject` param, but for a different reason than before.
+  //
+  // It used to be that the API's vocabulary ("Mathematics") did not match the
+  // app's labels ("Maths") and the server's matching semantics were unverified.
+  // Both are settled now: storage was migrated to one lowercase name per
+  // subject, and `?subject=` round-trips "Math", "Maths" and "mathematics"
+  // alike. The reason to keep filtering client-side is simply that the list is
+  // capped and already in hand — switching a chip should not cost a round trip.
   const search = new URLSearchParams();
   if (params.q?.trim()) search.set('q', params.q.trim());
   const qs = search.toString();

@@ -26,6 +26,7 @@ import { friendlyLoadError } from '@/lib/api';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
+  DoubtSubjectChip,
   DoubtSummary,
   deleteDoubt,
   formatRelativeTime,
@@ -94,7 +95,13 @@ export default function LibraryScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const [activeSegment, setActiveSegment] = useState<Segment>('notes');
   const [notesFilter, setNotesFilter] = useState<SubjectFilter>('All');
-  const [doubtsFilter, setDoubtsFilter] = useState<SubjectFilter>('All');
+  /**
+   * The doubts filter holds the stored subject KEY ("mathematics"), not the
+   * label — the chip prints `label` ("Math"). Notes keep the label-based
+   * `SubjectFilter` because /notes has no chip endpoint to read from.
+   */
+  const [doubtsFilter, setDoubtsFilter] = useState<string>('All');
+  const [doubtChips, setDoubtChips] = useState<DoubtSubjectChip[]>([]);
   const [notesQuery, setNotesQuery] = useState('');
   const [doubtsQuery, setDoubtsQuery] = useState('');
   const pagerRef = useRef<ScrollView>(null);
@@ -176,18 +183,18 @@ export default function LibraryScreen() {
   const [notesLoading, setNotesLoading] = useState(true);
   const [notesError, setNotesError] = useState<string | null>(null);
 
-  // Fetched unfiltered — the API's subject vocabulary ("Mathematics") doesn't
-  // match the app's compact filter labels ("Maths"), so filtering happens
-  // client-side via subjectMatches() below instead of trusting a server-side
-  // ?subject= match. Filter is applied at render time, not fetch time, so
-  // switching pills doesn't need a network round-trip.
+  // Fetched unfiltered and filtered at render time, so switching a chip costs
+  // no round trip. The chips themselves come from the response rather than
+  // being derived from the rows — see `doubtsFilters`.
   const fetchDoubts = useCallback(() => {
     let cancelled = false;
     setDoubtsLoading(true);
     setDoubtsError(null);
     listDoubts()
       .then((res) => {
-        if (!cancelled) setDoubts(res.doubts.filter((d) => d.status === 'solved'));
+        if (cancelled) return;
+        setDoubts(res.doubts.filter((d) => d.status === 'solved'));
+        setDoubtChips(res.subjects ?? []);
       })
       .catch((err) => {
         if (!cancelled) setDoubtsError(friendlyLoadError(err, 'doubts'));
@@ -402,9 +409,32 @@ export default function LibraryScreen() {
   }, []);
 
   const notesFilters = useMemo(() => filtersFor(notes.map((n) => n.subject)), [filtersFor, notes]);
-  const doubtsFilters = useMemo(
-    () => filtersFor(doubts.map((d) => d.subject)),
-    [filtersFor, doubts]
+  /**
+   * Doubts chips come from the server, notes chips are still derived.
+   *
+   * Which subjects belong here depends on the student's exam, which lives on
+   * `profiles` — the client cannot derive it. Deriving from the rows, as this
+   * used to, meant a NEET student saw no Biology chip until they had already
+   * snapped a Biology doubt, and the chip row changed shape as they used the
+   * app. The server sends their syllabus first and appends anything they have
+   * snapped from outside it, so the row is stable and complete from the first
+   * open.
+   *
+   * The fallback is the old derivation, for a response that predates the
+   * field — a missing chip row would leave no way to filter at all.
+   */
+  const doubtsFilters = useMemo<DoubtSubjectChip[]>(() => {
+    if (doubtChips.length > 0) return doubtChips;
+    return filtersFor(doubts.map((d) => d.subject))
+      .filter((label) => label !== 'All')
+      .map((label) => ({ key: label, label, on_syllabus: true }));
+  }, [doubtChips, filtersFor, doubts]);
+
+  /** The chip's own wording, so the empty state says "No Math doubts yet"
+   *  rather than the stored key. */
+  const doubtsFilterLabel = useMemo(
+    () => doubtsFilters.find((c) => c.key === doubtsFilter)?.label ?? doubtsFilter,
+    [doubtsFilters, doubtsFilter]
   );
 
   // One card per question, deliberately — not one per photo.
@@ -699,20 +729,36 @@ export default function LibraryScreen() {
               </View>
 
               <View style={styles.filterRow}>
-                {doubtsFilters.map((filter) => (
-                  <PressableScale key={filter} onPress={() => setDoubtsFilter(filter)}>
+                <PressableScale onPress={() => setDoubtsFilter('All')}>
+                  <View style={[styles.filterPill, doubtsFilter === 'All' && styles.filterPillActive]}>
+                    <Text
+                      style={[
+                        styles.filterPillText,
+                        doubtsFilter === 'All' && styles.filterPillTextActive,
+                      ]}>
+                      All
+                    </Text>
+                  </View>
+                </PressableScale>
+                {doubtsFilters.map((chip) => (
+                  <PressableScale key={chip.key} onPress={() => setDoubtsFilter(chip.key)}>
                     <View
                       style={[
                         styles.filterPill,
-                        doubtsFilter === filter && styles.filterPillActive,
+                        doubtsFilter === chip.key && styles.filterPillActive,
                       ]}>
                       <Text
                         style={[
                           styles.filterPillText,
-                          doubtsFilter === filter && styles.filterPillTextActive,
+                          doubtsFilter === chip.key && styles.filterPillTextActive,
                         ]}>
-                        {filter}
+                        {chip.label}
                       </Text>
+                      {/* Off their exam, but they snapped it, so it is theirs
+                          to find. A dot rather than a word: the chip row is
+                          already the widest thing on the page, and the label
+                          is what has to stay readable. */}
+                      {!chip.on_syllabus && <View style={styles.filterPillOffSyllabus} />}
                     </View>
                   </PressableScale>
                 ))}
@@ -759,7 +805,7 @@ export default function LibraryScreen() {
                   <Text style={styles.stateText}>
                     {doubtsQuery.trim()
                       ? 'No doubts match that search.'
-                      : `No ${doubtsFilter} doubts yet.`}
+                      : `No ${doubtsFilterLabel} doubts yet.`}
                   </Text>
                 </View>
               ) : (
@@ -1070,12 +1116,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(12),
     },
     filterPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(5),
       paddingVertical: verticalScale(6),
       paddingHorizontal: scale(13),
       borderRadius: scale(99),
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.14)',
       backgroundColor: '#fff',
+    },
+    /** Marks a chip that is not on this student's exam. Amber, because it is
+     *  a note and not a warning — nothing here is wrong or refused. */
+    filterPillOffSyllabus: {
+      width: scale(5),
+      height: scale(5),
+      borderRadius: scale(99),
+      backgroundColor: '#EEA31F',
     },
     filterPillActive: {
       borderWidth: 0,
