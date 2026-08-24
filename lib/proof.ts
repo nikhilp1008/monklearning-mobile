@@ -29,6 +29,28 @@ const CLASSES_KEY = 'monklearning.proof.classes';
 const EARNED_KEY = 'monklearning.proof.earned';
 
 /**
+ * Bumped whenever the server changes how the Monk Score is *computed*, as
+ * opposed to what the student has proved.
+ *
+ * A snapshot is only comparable to a later reading of the same scoring. When
+ * the backend populated `chapter_exam_weights` — the table existed but was
+ * empty, so every one of the 107 chapters had been taking a flat 1.0 fallback
+ * — subject scores went from a plain mean to a mark-weighted one. The spread
+ * between the lightest and heaviest chapter is roughly 21x, so a score can
+ * move tens of points in either direction without a student doing anything.
+ * Diffing across that boundary would credit a class for a reweighting.
+ *
+ * Only `score_up` consults this. The rest of the diff is built from the ledger
+ * counters and the strong-concept id sets, which the change did not touch, and
+ * throwing those away to fix a score line would cost a student the
+ * `chapter_strong` moment they actually earned.
+ *
+ * Version 2: `chapter_exam_weights` populated, and off-syllabus chapters no
+ * longer scored at 0 (both 2026-08-23).
+ */
+const SNAPSHOT_VERSION = 2;
+
+/**
  * Ids of celebrated events kept before the oldest are dropped. Generous
  * enough that nothing a student is likely to re-earn falls out, and the
  * failure mode if one does is a repeated celebration, not a wrong one.
@@ -44,6 +66,11 @@ export interface ProofSnapshot {
    * scratch the day it ships.
    */
   at: number;
+  /**
+   * The `SNAPSHOT_VERSION` this was captured under. Absent on anything written
+   * before the field existed, which is exactly the case it has to catch.
+   */
+  v?: number;
   score: number;
   flagged: number;
   doubtsSolved: number;
@@ -89,6 +116,7 @@ export function snapshotOf(data: ProgressSummary): ProofSnapshot {
   }
   return {
     at: Date.now(),
+    v: SNAPSHOT_VERSION,
     score: data.monk_score.display,
     flagged: data.monk_score.flagged_concepts,
     doubtsSolved: data.ledger.doubts_solved,
@@ -185,7 +213,10 @@ export function diffProof(
     });
   }
 
-  if (now.score > previous.score) {
+  // Only comparable within one scoring version — see SNAPSHOT_VERSION. A
+  // baseline from before the change is skipped once and re-stamped on write,
+  // so this costs at most one score line, on the first class after updating.
+  if (previous.v === SNAPSHOT_VERSION && now.score > previous.score) {
     events.push({
       id: `score_up:${previous.score}-${now.score}`,
       kind: 'score_up',

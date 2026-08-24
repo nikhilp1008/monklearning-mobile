@@ -270,12 +270,31 @@ export default function ProgressScreen() {
                 <Text style={styles.scoreMax}>/ 1000</Text>
               </View>
 
+              {/* No "never falls" here any more, in either line.
+                *
+                * It used to say the score "never falls" and "only ever climbs".
+                * That was written against a server-side ratchet — display is
+                * `min(max(raw, ...previous raws), ceiling)` — which only holds
+                * the floor up if there ARE previous raws. `progress_snapshots`
+                * is empty until a nightly job ships, so display is just the
+                * raw score today and it moves both ways. It moves both ways
+                * for a second reason now too: chapters carry exam weights, so
+                * the average behind it can shift under a student who has done
+                * nothing.
+                *
+                * A promise the product cannot keep is worse than no promise,
+                * and this one breaks on plain app open with no class in
+                * between to explain it. What is said instead is true either
+                * way: the score is a weighted average, and it answers to
+                * proving concepts. Put the "never falls" line back when the
+                * snapshot job is running, not before. */}
               {infoOpen ? (
                 <Text style={styles.scoreBody}>
                   Every first attempt at a question you&apos;ve never seen moves a concept&apos;s
-                  mastery. The score is the average across the whole syllabus — it never falls,
-                  but concepts flagged “needs revision” cap it until you refresh them. 1000 means
-                  command of everything.
+                  mastery. The score is the average across your whole syllabus, weighted by what
+                  each chapter is worth in the exam — so the chapters that carry the most marks
+                  move it the most. Concepts flagged “needs revision” cap it until you refresh
+                  them. 1000 means command of everything.
                 </Text>
               ) : started ? (
                 <Text style={styles.scoreBody}>
@@ -283,8 +302,7 @@ export default function ProgressScreen() {
                 </Text>
               ) : (
                 <Text style={styles.scoreBody}>
-                  Your score starts the moment you answer your first practice question — it only
-                  ever climbs, never falls.
+                  Your score starts the moment you answer your first practice question.
                 </Text>
               )}
 
@@ -306,12 +324,14 @@ export default function ProgressScreen() {
               {score.flagged_concepts > 0 && (
                 <View style={styles.flagBox}>
                   <Text style={styles.flagText}>
-                    Your score never falls — but{' '}
+                    {/* Same correction as above: the claim was untrue and it
+                        was not carrying the sentence anyway. The cap is the
+                        point here. */}
                     <Text style={styles.flagTextStrong}>
                       {score.flagged_concepts} concept{score.flagged_concepts === 1 ? '' : 's'}{' '}
                       flagged “needs revision”
                     </Text>{' '}
-                    cap how high it can climb until you refresh them.
+                    cap how high your score can climb until you refresh them.
                   </Text>
                 </View>
               )}
