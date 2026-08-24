@@ -26,26 +26,17 @@ export interface CatalogueSubject {
 // share one network request instead of each firing their own, and so a
 // resolved catalogue is reused for the rest of the app session. Cleared on
 // rejection so a failed fetch doesn't permanently poison every future call.
-let cataloguePromise: Promise<CatalogueSubject[]> | null = null;
+//
+// Keyed by exam now that the server does the narrowing: two students' views of
+// the corpus are different documents, and one slot would serve whichever was
+// asked for first to everyone after.
+const catalogueByExam = new Map<ExamKey, Promise<CatalogueSubject[]>>();
 
 /**
- * Which API subject names a student's exam actually covers.
- *
- * `GET /progress` filters its subjects server-side from `profiles.target_exam`,
- * but `/drona/catalogue` does not — it returns every chapter in the database.
- * So without this a JEE student would be offered Biology in Lessons and in the
- * chapter picker, and a NEET student would be offered Maths. Filtering here
- * rather than in each screen means the one fetch every caller shares is
- * already correct.
- *
- * The proper fix is server-side, next to the filter `/progress` already does.
- * Flagged for the co-founder; this holds the line until then.
- */
-/**
  * The API subject names an exam actually covers, in the order screens show
- * them. Exported because filtering the catalogue is not enough on its own:
- * any screen that renders its own subject tabs has to agree with it, or it
- * offers a tab whose list can only ever be empty.
+ * them. Exported because the catalogue is not enough on its own: a screen that
+ * renders its own subject tabs has to agree with it, or it offers a tab whose
+ * list can only ever be empty.
  */
 export function examSubjects(exam: ExamKey): string[] {
   if (exam === 'neet') return ['physics', 'chemistry', 'biology'];
@@ -53,45 +44,60 @@ export function examSubjects(exam: ExamKey): string[] {
   return ['physics', 'chemistry', 'mathematics'];
 }
 
-function allowedSubjects(exam: string): (subject: string) => boolean {
-  const optional = exam === 'neet' ? 'biology' : exam === 'both' ? null : 'mathematics';
-  return (subject) => {
-    const s = subject.trim().toLowerCase();
-    if (s === 'physics' || s === 'chemistry') return true;
-    if (optional === null) return true;
-    const normalised = s === 'maths' || s === 'math' ? 'mathematics' : s;
-    return normalised === optional;
-  };
-}
-
-/** The raw tree, cached. Use `getCatalogue` — this is not exam-filtered. */
-function fetchCatalogue(): Promise<CatalogueSubject[]> {
-  if (!cataloguePromise) {
-    // Returned as `promise`, not re-read from `cataloguePromise`, on purpose:
-    // the reset inside .catch() reassigns the module variable from a closure,
-    // which makes TS widen its narrowed type back to nullable for any read
-    // after this point — the local const sidesteps that entirely.
-    const promise: Promise<CatalogueSubject[]> = apiFetch<CatalogueSubject[]>(
-      '/drona/catalogue'
-    ).catch((err) => {
-      cataloguePromise = null;
-      throw err;
-    });
-    cataloguePromise = promise;
-    return promise;
-  }
-  return cataloguePromise;
+/**
+ * The raw tree for one exam view, cached. Use `getCatalogue`.
+ *
+ * `?exam=` replaces the subject filter this module used to run over the whole
+ * corpus. Most of what that filter did was right — dropping Biology for JEE
+ * and Mathematics for NEET is the bulk of the narrowing, and the counts barely
+ * move without it. What it could not do is read each concept's `exams` tag,
+ * which is the rest:
+ *
+ *   JEE   client-filtered 75 ch / 801 concepts -> server 74 / 793
+ *   NEET  client-filtered 79 ch / 862 concepts -> server 79 / 843
+ *
+ * Small, and worth having anyway. The chapter JEE loses is Linear Programming,
+ * which went board-only — the same chapter that was dragging the Mathematics
+ * score down by ~4% until `fix(progress): an off-syllabus chapter must not be
+ * scored`. Offering a student a chapter they cannot be examined on, in a
+ * picker, is exactly the thing the tag exists to prevent, and no client-side
+ * rule could have found it: it needs per-concept data the catalogue does not
+ * send.
+ *
+ * The larger reason is that the syllabus stops being duplicated here at all.
+ *
+ * `both` sends no param at all: the server's default is deliberately the whole
+ * corpus, so that a hidden chapter and a broken one never look alike.
+ */
+function fetchCatalogue(exam: ExamKey): Promise<CatalogueSubject[]> {
+  const cached = catalogueByExam.get(exam);
+  if (cached) return cached;
+  // Returned as `promise`, not re-read from the map, on purpose: the delete
+  // inside .catch() runs from a closure, and reading back afterwards would
+  // hand TS a possibly-undefined it cannot narrow.
+  const query = exam === 'both' ? '' : `?exam=${exam}`;
+  const promise: Promise<CatalogueSubject[]> = apiFetch<CatalogueSubject[]>(
+    `/drona/catalogue${query}`
+  ).catch((err) => {
+    catalogueByExam.delete(exam);
+    throw err;
+  });
+  catalogueByExam.set(exam, promise);
+  return promise;
 }
 
 /**
- * GET /drona/catalogue, narrowed to the student's exam.
+ * GET /drona/catalogue, narrowed to the student's exam by the server.
  *
- * Filtered on every call rather than cached filtered, so changing the exam on
- * the Profile page takes effect immediately — the underlying fetch is still
- * shared and happens once.
+ * Resolved from the profile on every call rather than captured once, so
+ * changing the exam on the Profile page takes effect immediately — it simply
+ * reads a different cache slot.
  */
 export async function getCatalogue(): Promise<CatalogueSubject[]> {
-  const [all, profile] = await Promise.all([fetchCatalogue(), getProfile()]);
-  const keep = allowedSubjects(profile.exam);
-  return all.filter((s) => keep(s.subject));
+  const profile = await getProfile();
+  const subjects = await fetchCatalogue(profile.exam);
+  // A subject group is keyed before its chapters are vetted server-side, so a
+  // subject whose every chapter is off-syllabus can arrive with an empty list.
+  // Dropping it here keeps that from becoming a tab with nothing behind it.
+  return subjects.filter((s) => s.chapters.length > 0);
 }

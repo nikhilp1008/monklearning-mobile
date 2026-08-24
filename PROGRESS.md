@@ -5821,6 +5821,85 @@ of the page blank, which reads as "this is all there is" and then jumps.
 - **Failure after handoff**: remedy copy and "Try another photo", which
   returns to capture.
 
+## The catalogue narrows server-side now
+
+`lib/drona.ts` carried a workaround with a note on it: *"The proper fix is
+server-side, next to the filter /progress already does. Flagged for the
+co-founder; this holds the line until then."* It shipped —
+`532f581 fix(learn): narrow the catalogue on the student's pick, not on their
+profile` — so `GET /drona/catalogue?exam=jee|neet` now exists, wire shape
+unchanged. The client filter is gone.
+
+Measured on device before and after, rather than taken from the commit
+message:
+
+```
+corpus (no ?exam=)   mathematics 28ch/292co  chemistry 19/243
+                     biology     32ch/353co  physics   28/266   = 107ch/1154co
+client-filtered JEE  drop biology                                =  75ch/ 801co
+server  ?exam=jee    mathematics 27  chemistry 19  physics 28    =  74ch/ 793co
+server  ?exam=neet   chemistry   19  biology   32  physics 28    =  79ch/ 843co
+   (client-filtered NEET, for comparison, would be 79ch/862co)
+```
+
+**A correction to what I told the user.** I read "74 chapters / 794 concepts
+for JEE" against "106 chapters, 1,144 concepts" in the commit message and
+reported that ~30 chapters were being offered off-syllabus. That was wrong:
+almost all of that gap is Biology, which the client filter already removed.
+The real delta is **1 chapter and 8 concepts** for JEE, and **0 chapters and
+19 concepts** for NEET.
+
+Still worth doing, for two reasons that survive the smaller number:
+
+- The one chapter is **Linear Programming**, which went board-only — the same
+  chapter that was dragging the Mathematics score down by ~4% until
+  `fix(progress): an off-syllabus chapter must not be scored`. Verified gone
+  from the Class 12 Maths picker, which now ends Vector Algebra / Three
+  Dimensional Geometry / Probability. No client-side rule could have found it:
+  it needs the per-concept `exams` tag, which the catalogue does not send.
+- The syllabus stops being duplicated in the client at all. `allowedSubjects`
+  encoded "Mathematics is JEE-only, Biology is NEET-only" in a second place,
+  which is a fact about the exam, not about this app.
+
+The cache is now keyed by exam — two students' views are different documents,
+and one slot would have served whichever was asked for first to everyone
+after. Empty subject groups are dropped on arrival: the server keys a subject
+before vetting its chapters, so a subject whose chapters are all off-syllabus
+can arrive with an empty list, and that would have become a tab with nothing
+behind it. `examSubjects()` stays — screens that render their own tabs still
+need the order.
+
+### Repo state, checked at the same time
+
+- **Mobile** in sync, 0/0.
+- **API** local checkout was **51 commits behind `main`** and still on
+  `snap-explanations-teach`. That is the same trap that invalidated an earlier
+  comparison: Railway deploys `main`, so the working tree is the wrong server.
+- **Web** 6 behind on Desktop, 174 on the Downloads copy.
+
+Re-verified against the latest `main` that both live-class fixes still hold:
+`topic/check` still reads only `chapter_id`, and the PTT floor is still
+`duration_s < 0.5` over `/32000.0`.
+
+Still to pick up from the backend's last 51 commits:
+
+- **`/doubts` changed shape.** `subjects` is now `[{key,label,on_syllabus}]`
+  not `string[]`, rows gained `subject_label` and `on_syllabus`, response
+  gained `exam`. Our type is stale but nothing reads it, so no runtime break.
+  Web already adopted it (`2652d00`).
+- **Monk Score numbers will move on deploy** — `chapter_exam_weights`
+  populated (was falling back to flat 1.0 for all 107 chapters) plus
+  off-syllabus chapters no longer scored. No code change needed, but the proof
+  engine's stored baselines predate it and may fire spurious "score moved"
+  moments on first open.
+- **A possible mirror of a web bug.** Web shipped `7c3699f`: audio buffers
+  ahead of playback, so a turn can be fully *arrived* while the student is
+  still 20s behind, and an interrupt in that window was misread as answering
+  the checkpoint. Ours holds `pendingState` until `turn_complete` instead of
+  mounting on barge-in, so not that bug — but a barge-in aborts the turn, so
+  `turn_complete` may never arrive and the held checkpoint either never mounts
+  or flushes stale on the next turn. Unconfirmed.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
