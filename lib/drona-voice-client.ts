@@ -273,11 +273,23 @@ export class DronaVoiceClient {
     switch (msg.type) {
       case 'state': {
         const state = msg as unknown as DronaState;
-        // A checkpoint question's chips arrive with the state frame, but its
-        // audio is still queued — showing them now would let the student
-        // answer a question Drona has not finished asking. Held until
-        // turn_complete, matching web.
-        if (state.check_options?.length) {
+        /**
+         * A checkpoint question's chips arrive with the state frame while its
+         * audio is still queued, so showing them immediately would let a
+         * student answer a question Drona has not finished asking. They are
+         * held until `turn_complete`.
+         *
+         * Only while a turn is actually running, though. The server also
+         * re-sends a bare state frame carrying `check_options` when a socket
+         * reconnects onto a session already in `awaiting_answer`
+         * (`live_session_ws.py:250-270`) — no turn behind it, so no
+         * `turn_complete` is ever coming. Held unconditionally, those chips
+         * were kept forever and the student sat on a silent board with nothing
+         * to answer: precisely the symptom that resume frame exists to
+         * prevent. Reconnects are routine on a phone — `RECONNECT_DELAYS_MS`
+         * has six entries — so this was the common case, not the exotic one.
+         */
+        if (state.check_options?.length && this.turnInFlight) {
           this.pendingState = state;
         } else {
           this.handlers.onState?.(state);
@@ -286,12 +298,14 @@ export class DronaVoiceClient {
         break;
       }
       case 'board_events':
+        this.turnInFlight = true;
         this.bufferBoardEvents((msg.events as BoardEvent[]) ?? []);
         break;
       case 'board_replay':
         this.handlers.onBoardReplay?.((msg.events as BoardEvent[]) ?? []);
         break;
       case 'audio_chunk':
+        this.turnInFlight = true;
         this.handleAudioChunk(msg);
         break;
       case 'transcript_partial':
@@ -310,6 +324,7 @@ export class DronaVoiceClient {
         this.handlers.onAnswerResult?.(msg as unknown as DronaAnswerResult);
         break;
       case 'turn_complete':
+        this.turnInFlight = false;
         this.flushPendingBoardEvents();
         if (this.pendingState) {
           this.handlers.onState?.(this.pendingState);
@@ -336,6 +351,15 @@ export class DronaVoiceClient {
 
   /** A state frame carrying check_options, held until its turn finishes. */
   private pendingState: DronaState | null = null;
+  /**
+   * Whether a turn is currently being delivered.
+   *
+   * Set by the first frame of a turn that can only come from one — board
+   * events or an audio chunk, both of which the server emits before the state
+   * frame carrying the checkpoint. Cleared on `turn_complete`, and on
+   * `bargeIn`, which is the case `turn_complete` never covers.
+   */
+  private turnInFlight = false;
 
   /** Board items for the whole turn arrive ahead of their audio — held here,
    *  not shown yet, until each item's paired audio_chunk starts playing. */
@@ -385,11 +409,13 @@ export class DronaVoiceClient {
   }
 
   sendUtterance(text: string) {
+    this.dropHeldTurn();
     this.sendJson({ type: 'utterance', text });
   }
 
   /** The student's answer to a checkpoint question, from a chip tap. */
   sendAnswer(text: string) {
+    this.dropHeldTurn();
     this.sendJson({ type: 'utterance', text });
   }
 
@@ -401,10 +427,42 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'ptt_start' });
   }
 
-  /** Drops everything queued/playing so the room goes quiet immediately. */
+  /**
+   * Drops everything queued/playing so the room goes quiet immediately.
+   *
+   * Also drops what was being held for the turn being abandoned. A barge-in
+   * aborts the turn server-side (`abort_active_turn`), and that path cancels
+   * the task without sending `turn_complete` — the runner catches
+   * `asyncio.TimeoutError` and `Exception`, and `CancelledError` is neither,
+   * so nothing is ever sent. Anything held for that turn was therefore held
+   * forever: its chips never mounted, and worse, they flushed onto a *later*
+   * turn's `turn_complete`, remounting a question already gone and flipping
+   * the UI back to awaiting-answer. Board events had the same shape — buffered
+   * per turn but never reset per turn, so stale seqs from an abandoned
+   * explanation surfaced under a later one.
+   *
+   * Discarding is right rather than deferring: the server drops the trailing
+   * question from what it parks, and the reply turn asks its own.
+   */
   bargeIn() {
+    this.dropHeldTurn();
     this.chunkMeta.clear();
     this.playback.clear();
+  }
+
+  /**
+   * Forgets whatever is being held for a turn that is about to be abandoned.
+   *
+   * Separate from `bargeIn` because the audio does not always need dropping:
+   * answering a checkpoint by tapping a chip sends an `utterance`, and the
+   * server aborts the running turn for that too (`barge_in_text`), with the
+   * same missing `turn_complete`. The held state has to go either way; the
+   * playback queue is only the microphone's business.
+   */
+  private dropHeldTurn() {
+    this.turnInFlight = false;
+    this.pendingState = null;
+    this.pendingBoardEvents = [];
   }
 
   /** Raw 16kHz/16-bit/mono PCM, headerless — matches the format
@@ -418,7 +476,11 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'ptt_stop' });
   }
 
+  /** Unused today — no caller in app/, lib/ or components/. Kept consistent
+   *  with the other two abort paths so it cannot become the next leak. */
   interrupt(playbackPosition: number, cutoffText: string) {
+    this.dropHeldTurn();
+    this.chunkMeta.clear();
     this.playback.clear();
     this.sendJson({ type: 'interrupt', playback_position: playbackPosition, cutoff_text: cutoffText });
   }

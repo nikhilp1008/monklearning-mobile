@@ -5900,6 +5900,113 @@ Still to pick up from the backend's last 51 commits:
   `turn_complete` may never arrive and the held checkpoint either never mounts
   or flushes stale on the next turn. Unconfirmed.
 
+## Three things the backend's 51 commits asked of the client
+
+### Doubts chips come from the API
+
+Which subjects belong on the filter row depends on the student's exam, which
+lives on `profiles` — the client cannot derive it. Deriving from the rows, as
+Library did, meant a NEET student saw no Biology chip until they had already
+snapped a Biology doubt, and the row changed shape as they used the app.
+`GET /doubts` now sends the syllabus first and appends anything snapped from
+outside it, flagged `on_syllabus: false`.
+
+Off-syllabus chips get an amber dot rather than being hidden. The subject is a
+best-effort label from a model — a real stereochemistry question came back
+tagged Biology — and a doubt you cannot find is worse than a chip you did not
+expect. The filter holds the stored key (`mathematics`) while the chip prints
+the label (`Math`), which is what lets an equality filter round-trip.
+
+Verified on device: chips read All / Physics / Chemistry / Math, and Math
+filters 3 doubts to the 2 stored as mathematics. Notes keep the derived
+label-based filter — `/notes` has no chip endpoint.
+
+### The Monk Score moves on its own now, and we were promising it wouldn't
+
+`chapter_exam_weights` had existed since 0017 and been empty, so all 107
+chapters took a flat 1.0 fallback and subject scores were plain means. They
+are mark-weighted now. The spread between lightest and heaviest chapter is
+about 21x, so a score can move tens of points in either direction with the
+student doing nothing.
+
+**The proof engine** captures at class start and diffs at class end, so a class
+spanning the deploy would credit itself with a reweighting. `SNAPSHOT_VERSION`
+guards **only** the `score_up` comparison. Everything else in the diff — the
+ledger counters, the strong-concept and strong-chapter id sets — is untouched
+by the change, and `diffProof` only tests for additions, so a chapter
+disappearing from the payload cannot emit anything either. Invalidating the
+whole baseline would have cost a student the `chapter_strong` moment they
+actually earned, to fix a score line. A pre-fix snapshot parses with `v`
+undefined, suppresses `score_up` once, and re-stamps on write.
+
+**The larger exposure was copy.** Progress told students the score *"never
+falls"* and *"only ever climbs, never falls"*, in three places. That was
+written against a server-side ratchet — `display = min(max(raw, ...previous
+raws), ceiling)` — which only holds a floor if there *are* previous raws, and
+`progress_snapshots` is "empty until the nightly job ships". So `display` is
+the raw score today, it moves both ways, and roughly half of students will
+watch it drop on plain app open with no class in between to explain it. A
+promise the product cannot keep is worse than no promise. Removed; the
+explainer now says what is true either way, and the flag banner leads with the
+cap it was actually about. Put the line back when the snapshot job runs.
+
+Worth recording: `all_flags_cleared` was the event most likely to embarrass us
+— a permanent, un-revokable "Every flag is cleared" milestone. It cannot fire.
+Nothing in the backend ever writes `flag_state='flagged'`, so
+`flagged_concepts` is 0 for everyone and `now.flagged < previous.flagged` is
+never true. That whole branch is dead in production today.
+
+### The held checkpoint had nowhere to go
+
+Mobile does **not** have the web bug that `7c3699f` fixed — nothing here mounts
+chips on barge-in; they can only arrive via `turn_complete`. It had the mirror,
+in three places, and the common one had nothing to do with barge-in at all.
+
+**`turn_complete` is never sent after an aborted turn.** `abort_active_turn`
+cancels the task; the runner catches `asyncio.TimeoutError` and `Exception`,
+and `CancelledError` is neither on 3.11, so the `finally` sends nothing.
+Anything the client was holding for that turn was held forever.
+
+Three abort paths, all now dropping what they hold:
+
+- **Push-to-talk** (`barge_in_mic`) — the checkpoint the student was about to
+  be asked never mounted; worse, it flushed onto a *later* turn's
+  `turn_complete`, remounting a question already gone and flipping the UI back
+  to awaiting-answer. `pendingBoardEvents` had the same shape — buffered per
+  turn, never reset per turn.
+- **A tapped chip or typed message** (`barge_in_text`) — same abort, and
+  `sendAnswer`/`sendUtterance` went nowhere near `bargeIn`. Hence
+  `dropHeldTurn()`, separate from `bargeIn` because the playback queue is only
+  the microphone's business.
+- **`interrupt()`** — no caller today, made consistent so it cannot become the
+  next one.
+
+**And the case that is not a barge-in at all.** The server re-sends a bare
+`state` frame carrying `check_options` when a socket reconnects onto a session
+already in `awaiting_answer`. No turn behind it, so no `turn_complete` is ever
+coming. Held unconditionally, those chips were kept forever and the student sat
+on a silent board with nothing to answer — precisely the symptom that resume
+frame exists to prevent. Reconnects are routine on a phone. Chips are now held
+only while `turnInFlight`, set by the first board or audio frame of a turn,
+which the server emits before the state frame.
+
+Verified: the happy path is unchanged — a class runs, the board paints, and the
+checkpoint chips mount. **Not** verified on device: the reconnect and abort
+paths themselves, which need a socket drop or an interrupt at a specific point
+in a turn. The server behaviour they rest on is quoted above and was read from
+`origin/main`, not the working tree.
+
+**Left undone, deliberately.** The gate is still `turn_complete`, which is a
+*network* event — it fires when the server finished sending, not when the
+student finished hearing. On a queue buffered several sentences ahead, chips
+can still mount before Drona has asked the question, which is the same
+ARRIVED-is-not-HEARD category error web fixed, relocated.
+`AudioPlaybackQueue.onQueueDrained` exists and is fired but has never been
+assigned anywhere — gating the flush on drain is the mobile-native equivalent
+of web's `turnCompleteFireAt`. It is a real change with its own failure modes
+(a turn whose audio never plays), so it wants its own pass rather than riding
+along with a leak fix.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
