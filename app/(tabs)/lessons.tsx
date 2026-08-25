@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +23,24 @@ import { getProfile } from '@/lib/profile';
  */
 
 const CLASSES = ['Class 11', 'Class 12'] as const;
+
+/**
+ * No lesson has been recorded yet, so no chapter here opens.
+ *
+ * The catalogue is still worth showing: a student can see the syllabus their
+ * exam covers and what is coming, which is the same bargain the Textbooks
+ * chapter list makes with its own unwritten chapters, and it carries the same
+ * SOON tag so the two read alike.
+ *
+ * Rows are deliberately NOT dimmed the way an unwritten textbook chapter is.
+ * There, dimming means something because it sits beside a chapter that is
+ * ready. Here every row is unavailable, so dimming all of them would say
+ * nothing and would only make a browsable list look broken.
+ *
+ * When the first lesson ships, this becomes a per-chapter check the way
+ * `isChapterReady` works for textbooks, and `lesson-player` gets its caller
+ * back.
+ */
 
 /** Catalogue subject strings → the compact pill labels used app-wide. */
 const SUBJECT_SHORT: Record<string, string> = {
@@ -89,11 +107,6 @@ export default function LessonsScreen() {
       (ch) => ch.class_level == null || ch.class_level === classLevel
     );
   }, [subject, classLevel]);
-
-  // Straight into the player — lessons are pre-recorded, so there is
-  // nothing to load and no reason for an interstitial.
-  const openChapter = (chapterId: string, chapterTitle: string) =>
-    router.push({ pathname: '/lesson-player', params: { chapterId, chapterTitle } });
 
   return (
     <View style={styles.screen}>
@@ -180,9 +193,8 @@ export default function LessonsScreen() {
                 </View>
               ) : (
                 visibleChapters.map((chapter, index) => (
-                  <PressableScale
+                  <View
                     key={chapter.id}
-                    onPress={() => openChapter(chapter.id, chapter.name)}
                     style={[
                       styles.row,
                       index < visibleChapters.length - 1 && styles.rowDivider,
@@ -196,7 +208,8 @@ export default function LessonsScreen() {
                         {chapter.subtopics.length} topic{chapter.subtopics.length === 1 ? '' : 's'}
                       </Text>
                     )}
-                  </PressableScale>
+                    <Text style={styles.soon}>Soon</Text>
+                  </View>
                 ))
               )}
             </ScrollView>
@@ -379,6 +392,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
+    },
+    // The same tag the Textbooks chapter list uses for a chapter that is not
+    // written yet, so "not ready" looks the same wherever a student meets it.
+    soon: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(9.5),
+      letterSpacing: scale(0.8),
+      textTransform: 'uppercase',
+      color: colors.quiet,
     },
     stateBlock: {
       marginTop: verticalScale(40),

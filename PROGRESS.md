@@ -6255,6 +6255,27 @@ is mostly READY badges tells a student nothing.
 contrast. SOON stays, because that one does real work: it explains why a row
 cannot be opened.
 
+## Lessons says SOON, like Textbooks does
+
+No lesson has been recorded, and every chapter row opened `lesson-player`
+anyway. Rows are inert now and carry the same SOON tag the Textbooks chapter
+list uses for an unwritten chapter, so "not ready" looks the same wherever a
+student meets it. The topic count stays beside it: knowing a chapter will have
+eleven lessons is worth reading even before they exist.
+
+The catalogue itself is still worth showing. A student can see the syllabus
+their exam covers and what is coming, which is the same bargain the Textbooks
+chapter list makes.
+
+**Rows are deliberately not dimmed**, unlike an unwritten textbook chapter.
+There, dimming carries meaning because the row sits beside one that is ready.
+Here every row is unavailable, so dimming all of them would say nothing and
+would only make a browsable list look broken.
+
+`lesson-player` keeps its route and loses its only caller. When the first
+lesson ships this becomes a per-chapter check, the way `isChapterReady` already
+works for textbooks.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
