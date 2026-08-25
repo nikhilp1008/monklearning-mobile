@@ -6243,6 +6243,18 @@ a different page. They stay as named tokens rather than being inlined, so
 warming them again is one line each and nothing else in the app can pick the
 value up by accident.
 
+## The READY badge is gone, and stays gone
+
+A written chapter was already the only row at full opacity, in bold, with an
+amber number, a chevron and a live press state, sitting among rows that are
+dimmed and inert. The badge was a fourth signal saying what three had said, and
+it would have got louder rather than quieter as more chapters land: a list that
+is mostly READY badges tells a student nothing.
+
+**Do not add it back when the next chapter ships.** Availability is carried by
+contrast. SOON stays, because that one does real work: it explains why a row
+cannot be opened.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

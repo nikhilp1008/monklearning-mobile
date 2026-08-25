@@ -144,21 +144,23 @@ export default function TextbookChaptersScreen() {
                     ]}>
                     <Text style={styles.rowNumber}>{index + 1}</Text>
                     <Text style={[styles.rowTitle, ready && styles.rowTitleReady]}>{chapter.name}</Text>
+                    {/* No READY badge. A written chapter is already the only
+                        one at full opacity, in bold, with a chevron and a live
+                        press state, next to rows that are dimmed and inert.
+                        The badge said a fourth time what three signals had
+                        already said, and it would only get louder as more
+                        chapters land. SOON stays: that one is doing real work,
+                        explaining why a row cannot be opened. */}
                     {ready ? (
-                      <>
-                        <View style={styles.readyBadge}>
-                          <Text style={styles.readyText}>Ready</Text>
-                        </View>
-                        <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
-                          <Path
-                            d="M6 3.5 10.5 8 6 12.5"
-                            stroke={colors.amberText}
-                            strokeWidth={1.9}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </Svg>
-                      </>
+                      <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
+                        <Path
+                          d="M6 3.5 10.5 8 6 12.5"
+                          stroke={colors.amberText}
+                          strokeWidth={1.9}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
                     ) : (
                       <Text style={styles.soonText}>Soon</Text>
                     )}
@@ -255,21 +257,6 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       color: colors.ink,
     },
     rowTitleReady: { fontFamily: 'AnekLatin_700Bold' },
-    readyBadge: {
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.5)',
-      backgroundColor: colors.tint,
-      paddingVertical: scale(4),
-      paddingHorizontal: scale(9),
-    },
-    readyText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(0.8),
-      textTransform: 'uppercase',
-      color: colors.amberText,
-    },
     soonText: {
       ...kicker(scale, 9.5),
       color: colors.quiet,
