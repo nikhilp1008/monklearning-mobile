@@ -207,6 +207,16 @@ export default function RootLayout() {
               animation: 'slide_from_bottom',
             }}
           />
+          <Stack.Screen name="textbook-chapters" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-reader" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="textbook-topics"
+            options={{
+              headerShown: false,
+              presentation: 'transparentModal',
+              animation: 'slide_from_bottom',
+            }}
+          />
           <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
           <Stack.Screen name="milestones" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope" options={{ headerShown: false }} />

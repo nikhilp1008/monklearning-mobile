@@ -9,6 +9,19 @@ export const colors = {
   marigold: '#EEA31F',  // focus dot, primary accent, "the daily goal"
   slate: '#57534B',     // secondary/muted text
   faint: '#9C988C',     // tertiary text, overline labels
+  // Lighter than `faint`, for text that must recede behind it without
+  // disappearing: list numbers beside a title, a swipe hint. Added with the
+  // Textbooks reader, which is the first surface that needed two tiers of
+  // quiet at once.
+  quiet: '#C0B8A6',
+  // A control that is present but cannot be used, e.g. the prev-topic chevron
+  // on the first topic. Deliberately not `faint`: disabled is a lighter state
+  // than merely secondary, and using one token for both made a live control
+  // and a dead one look the same.
+  disabled: '#D8D2C2',
+  // The warm tint behind a selected row, a revealed answer, or a pressed
+  // surface. Same value the icon chip and filter pills already use.
+  tint: '#FCF4E0',
   red: '#DD4433',       // handwritten red-pen accents, checkmarks, alt dot
   hairline: 'rgba(28,26,22,.12)',  // card/row borders
   inputBorder: 'rgba(28,26,22,.14)', // form field borders (unfocused)

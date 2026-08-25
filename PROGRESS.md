@@ -6007,6 +6007,103 @@ of web's `turnCompleteFireAt`. It is a real change with its own failure modes
 (a turn whose audio never plays), so it wants its own pass rather than riding
 along with a leak fix.
 
+## Textbooks
+
+A subject, a chapter, and a reader built from a fixed block system, living as a
+fourth segment of the Library beside Doubts. Chapter 1 (Sets) ships with it:
+5 topics, 108 blocks, every one of the 15 block types and all 6 diagram kinds.
+
+### Where it differs from the handoff, and why
+
+The handoff is high-fidelity and mostly followed. Four things were changed
+deliberately, all so it reads as part of this app rather than a guest inside
+it. Textbooks sits one swipe from Notes and Doubts, so a foreign detail is
+visible right beside the thing it disagrees with.
+
+- **Subject colours are ours.** The handoff paints Physics amber, Chemistry red
+  and Mathematics green. `SUBJECT_ACCENT` has always painted Physics red,
+  Chemistry green and Mathematics amber on every note and doubt card. The
+  handoff's palette would have made Physics red on a note and amber on a tile
+  on the same screen. Biology is the one new colour: the app maps it to
+  Chemistry's green, which is fine when one subject label shows at a time and
+  wrong on a grid showing both, so it takes the handoff's olive.
+- **Kickers are Anek, not monospace.** Every small uppercase label in the
+  handoff is `ui-monospace`. This app's kicker is `AnekLatin_800ExtraBold`
+  with wide tracking, which `SESSIONS` and the note-card subject label already
+  use.
+- **Borders are `rgba(28,26,22,…)`.** The handoff writes `rgba(28,25,20,…)`,
+  which does not match the handoff's own ink `#1C1A16`. Ours is the correct
+  derivation and is used in ~90 places.
+- **One warm tint.** The handoff adds `#F6F1E4` for pressed and revealed
+  surfaces; the app already ships `#FCF4E0` for that job. Two near-identical
+  warm tints is how a palette rots.
+
+Kept from the handoff: serif italic for every formula, set symbol and variable.
+The app has no serif anywhere else, but the content is authored assuming one
+and maths genuinely reads better in it. The Solutions screen still renders
+maths in Anek, which is an inconsistency worth closing later.
+
+Two tokens were added to `brand.js` rather than left as magic hex in one
+feature: `quiet` (`#C0B8A6`, lighter than `faint`) and `disabled` (`#D8D2C2`).
+
+### Exam-aware, and on our own syllabus
+
+The tiles follow the student's exam through the same `examSubjects()` the Learn
+catalogue uses: JEE sees three and never Biology, NEET sees three and never
+Mathematics, both sees four. Chapters come from `/drona/catalogue`, so
+Textbooks and Learn cannot offer different syllabuses. The handoff's hardcoded
+NCERT lists are unused.
+
+Chapters without written content are listed and marked SOON rather than
+hidden. A syllabus with holes is more useful than a short list that looks
+complete.
+
+### The five hooks
+
+The writer authored a separate "why this matters in the exam" hook for all five
+topics; the prototype reader rendered topic 1's and dropped the other four
+(`if (b.t === 'hook' && ti > 0) return;`). Rather than lose four paragraphs of
+real exam guidance, or open an accordion on every topic, all five are merged
+into the single hook at the top of topic 1, each under its own topic heading.
+
+### Inline markup, and the one genuinely hard part
+
+Block copy carries `<b> <i> <sup> <sub> <br>` and nothing else: 770 italics,
+142 bolds, 120 subscripts, 82 superscripts, 14 of them nested. There was no
+renderer for that, so `components/textbook/markup.tsx` is a small recursive
+parser producing nested `<Text>`. Verified against all 148 tagged strings in
+the chapter: no text lost, order preserved, and unclosed, crossed and stray
+tags all degrade to plain text rather than taking a screen down.
+
+**React Native cannot raise a nested text run.** `transform: translateY`, a
+smaller `lineHeight` and a larger `lineHeight` were rendered side by side
+against a plain smaller run on device, and all four came out pixel-identical.
+That matters because `2` followed by a small `k` reads as two times k, not two
+to the k.
+
+So exponents convert to real Unicode superscript characters, which need no
+offset because the glyph itself is raised. **All 40 exponents in the chapter
+convert**; 53 of 60 subscripts do. The seven that do not are whole expressions
+like `lcm(m, n)` and `i∈I`, which Unicode has no subscript letters for, and
+they stay as small text, which is where a subscript sits anyway. Same trade
+`lib/latex-text.ts` made for practice questions, and the reason neither screen
+needs a WebView.
+
+One rendering bug found on device and fixed in the renderer rather than the
+content: `set-builder ↔ interval` arrived as a blue emoji pictogram, because
+iOS gives U+2194 emoji presentation by default. Arrows now get VARIATION
+SELECTOR-15. An author writing a plain arrow is doing nothing wrong.
+
+### Verified on device
+
+Library with four segments; the Textbooks grid showing three tiles for a JEE
+profile with no Biology, in the app's own subject colours; the chapter list
+from our catalogue with Sets READY and the rest SOON; the reader with the
+merged hook, serif maths, working topic navigation, progress, and the solved
+example, practice and MCQ carousels with their peek, dots and swipe hint;
+diagrams, mistakes, pro-tip and checkpoint blocks; and raised exponents
+throughout.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<script src="./ch1-sets-chapter.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Anek Latin',system-ui,sans-serif;color:#1C1A16;background:#EFE9DA;-webkit-font-smoothing:antialiased}
+a{color:#9A6A12;text-decoration:none}
+a:hover{color:#EEA31F}
+.mlsc::-webkit-scrollbar{width:0;height:0}
+.mlsc{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetUp{from{transform:translateY(52px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideL{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideL2{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideR{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideR2{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes cardInA{from{opacity:.35;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes cardInB{from{opacity:.35;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:44px 24px 64px;gap:20px">
+  <div style="width:390px;display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+    <span style="font-weight:700;font-size:19px;letter-spacing:-.02em">Ch 1 · Sets · reader v2</span>
+    <span style="font-size:13px;font-weight:700;color:#9C988C">swipe the cards · tap the bar for contents</span>
+  </div>
+
+  <div style="width:390px;height:844px;background:#FFFFFF;border:1px solid rgba(28,25,20,.14);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 26px 60px rgba(28,26,22,.16);position:relative">
+    <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 24px 6px">
+      <span style="font-weight:700;font-size:14px">9:41</span>
+      <span style="display:flex;align-items:center;gap:5px">
+        <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:3px;height:4px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:6px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:8px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:10px;background:rgba(28,25,20,.3);border-radius:1px"></i></span>
+        <span style="width:22px;height:11px;border:1px solid rgba(28,25,20,.4);border-radius:3px;position:relative;display:block"><span style="position:absolute;top:1px;bottom:1px;left:1px;width:14px;background:#1C1A16;border-radius:1px"></span></span>
+      </span>
+    </div>
+
+    <div data-screen-label="Reader" style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <div style="flex:none;position:relative;display:flex;align-items:center;gap:8px;padding:6px 20px 10px;border-bottom:1px solid rgba(28,25,20,.1)">
+        <a href="Textbooks Concept - Full Flow.dc.html" style="display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;flex:none">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M14 8H3M7 3.5 2.5 8 7 12.5" stroke="#1C1A16" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </a>
+        <span style="flex:1;min-width:0">
+          <b style="display:block;font-weight:700;font-size:15px;letter-spacing:-.01em">Sets</b>
+          <span style="display:block;font-size:12px;font-weight:700;color:#9C988C">Chapter 01 · Mathematics</span>
+        </span>
+        <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#9C988C;flex:none">{{ pctLabel }}</span>
+        <span style="position:absolute;left:0;bottom:-1px;height:2px;background:#EEA31F;width:{{ pctW }};transition:width .15s"></span>
+      </div>
+
+      <div class="mlsc" ref="{{ scRef }}" onScroll="{{ onRdScroll }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#FFFEFB">
+        <div style="padding:4px 0 36px">
+            <div data-screen-label="{{ tLabel }}" style="padding:22px 24px 10px;display:flex;flex-direction:column;gap:20px;animation:{{ slideAnim }}">
+              <div style="border-bottom:1px solid rgba(28,25,20,.1);padding-bottom:14px">
+                <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">TOPIC {{ tN }} / {{ tCount }}</p>
+                <p style="font-weight:700;font-size:25px;letter-spacing:-.026em;line-height:1.12;margin-top:5px;text-wrap:pretty">{{ tTitle }}</p>
+              </div>
+
+              <sc-for list="{{ vBlocks }}" as="b" hint-placeholder-count="8">
+                <div>
+                  <sc-if value="{{ b.isHook }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;overflow:hidden">
+                      <div onClick="{{ b.toggle }}" style-active="background:#F6F1E4" style="display:flex;align-items:center;gap:10px;padding:12px 15px;cursor:pointer">
+                        <p style="flex:1;font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">WHY THIS MATTERS IN THE EXAM</p>
+                        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" style="flex:none;transform:rotate({{ b.rot }});transition:transform .2s"><path d="M3.5 6 8 10.5 12.5 6" stroke="#9C988C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                      </div>
+                      <sc-if value="{{ b.open }}" hint-placeholder-val="{{ false }}">
+                        <p style="padding:0 15px 13px;font-size:14.5px;line-height:1.6;color:#4A453D;animation:fadeUp .2s;text-wrap:pretty">{{ b.html }}</p>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isP }}" hint-placeholder-val="{{ true }}">
+                    <p style="font-size:16.5px;line-height:1.66;text-wrap:pretty">{{ b.html }}</p>
+                  </sc-if>
+                  <sc-if value="{{ b.isThink }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-family:'Kalam',cursive;font-weight:400;font-size:16px;line-height:1.55;color:#57534B;padding:2px 0 2px 14px;border-left:2px solid rgba(28,25,20,.16)">think about it this way… {{ b.html }}</p>
+                  </sc-if>
+                  <sc-if value="{{ b.isDef }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;padding:14px 16px">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">DEFINITION</p>
+                      <p style="font-weight:700;font-size:17px;letter-spacing:-.015em;margin-top:6px">{{ b.term }}</p>
+                      <p style="font-size:15px;line-height:1.6;color:#4A453D;margin-top:4px;text-wrap:pretty">{{ b.html }}</p>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isDefgrid }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;overflow:hidden">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em;padding:13px 16px 4px">{{ b.gtitle }}</p>
+                      <sc-for list="{{ b.rows }}" as="r" hint-placeholder-count="5">
+                        <div style="display:flex;gap:12px;padding:9px 16px;border-top:1px solid rgba(28,25,20,.06)">
+                          <span style="flex:none;width:116px;font-size:13px;font-weight:700;line-height:1.45">{{ r.k }}</span>
+                          <span style="flex:1;font-size:13.5px;line-height:1.5;color:#57534B">{{ r.v }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isFormula }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;padding:14px 16px 13px">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">{{ b.kicker }}</p>
+                        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#C0B8A6">{{ b.tag }}</p>
+                      </div>
+                      <p style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:20px;color:#1C1A16;text-align:center;padding:16px 4px 14px;line-height:1.4;text-wrap:pretty">{{ b.main }}</p>
+                      <div style="display:flex;flex-direction:column;gap:4px;border-top:1px solid rgba(28,25,20,.08);padding-top:10px">
+                        <sc-for list="{{ b.legend }}" as="l" hint-placeholder-count="2">
+                          <p style="font-size:13px;line-height:1.55;color:#9C988C">{{ l.html }}</p>
+                        </sc-for>
+                        <sc-if value="{{ b.note }}" hint-placeholder-val="{{ false }}">
+                          <p style="font-size:13px;line-height:1.5;color:#57534B">{{ b.note }}</p>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isProc }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;padding:14px 16px">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">HOW TO · {{ b.ptitle }}</p>
+                      <div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">
+                        <sc-for list="{{ b.steps }}" as="s" hint-placeholder-count="3">
+                          <div style="display:flex;gap:11px">
+                            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#C0B8A6;flex:none;padding-top:2px">{{ s.n }}</span>
+                            <p style="flex:1;font-size:14.5px;line-height:1.55;color:#4A453D;text-wrap:pretty">{{ s.html }}</p>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isDeriv }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;overflow:hidden">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em;padding:13px 16px 9px">{{ b.kicker }}</p>
+                      <sc-for list="{{ b.steps }}" as="s" hint-placeholder-count="4">
+                        <div style="border-top:1px solid rgba(28,25,20,.06)">
+                          <div onClick="{{ s.go }}" style-active="background:#F6F1E4" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;background:{{ s.bg }}">
+                            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#C0B8A6;flex:none;width:16px">{{ s.n }}</span>
+                            <span style="flex:1;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:15.5px;line-height:1.4">{{ s.eq }}</span>
+                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" style="flex:none;transform:rotate({{ s.rot }});transition:transform .2s"><path d="M3.5 6 8 10.5 12.5 6" stroke="#9C988C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                          </div>
+                          <sc-if value="{{ s.open }}" hint-placeholder-val="{{ false }}">
+                            <p style="padding:0 16px 12px 44px;font-size:13.5px;line-height:1.55;color:#57534B;animation:fadeUp .2s;text-wrap:pretty">{{ s.why }}</p>
+                          </sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ b.isDia }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;padding:13px 12px 4px">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em;padding:0 4px">{{ b.kicker }}</p>
+                      <div style="margin-top:10px">
+                        <sc-if value="{{ b.isNumsys }}" hint-placeholder-val="{{ false }}">
+                          <div style="padding:0 4px;position:relative">
+                            <div style="border:1.5px solid {{ b.r4bd }};background:{{ b.r4bg }};border-radius:18px;padding:24px 32px 11px 11px;transition:all .25s;position:relative">
+                              <span style="position:absolute;top:5px;left:11px;font-family:Georgia,serif;font-size:12.5px;font-weight:{{ b.r4w }};color:{{ b.r4fg }}">ℝ reals</span>
+                              <span style="position:absolute;top:50%;right:6px;transform:translateY(-50%);font-family:Georgia,serif;font-size:11.5px;font-weight:{{ b.tW }};color:{{ b.tFg }};writing-mode:vertical-rl">𝕋 irrational</span>
+                              <div style="border:1.5px solid {{ b.r3bd }};background:{{ b.r3bg }};border-radius:14px;padding:22px 11px 9px;transition:all .25s;position:relative">
+                                <span style="position:absolute;top:4px;left:11px;font-family:Georgia,serif;font-size:12.5px;font-weight:{{ b.r3w }};color:{{ b.r3fg }}">ℚ fractions</span>
+                                <div style="border:1.5px solid {{ b.r2bd }};background:{{ b.r2bg }};border-radius:12px;padding:22px 11px 9px;transition:all .25s;position:relative">
+                                  <span style="position:absolute;top:4px;left:11px;font-family:Georgia,serif;font-size:12.5px;font-weight:{{ b.r2w }};color:{{ b.r2fg }}">ℤ integers</span>
+                                  <div style="border:1.5px solid {{ b.r1bd }};background:{{ b.r1bg }};border-radius:10px;padding:22px 11px 9px;transition:all .25s;position:relative">
+                                    <span style="position:absolute;top:4px;left:11px;font-family:Georgia,serif;font-size:12.5px;font-weight:{{ b.r1w }};color:{{ b.r1fg }}">𝕎 wholes</span>
+                                    <div style="border:1.5px solid {{ b.r0bd }};background:{{ b.r0bg }};border-radius:8px;padding:8px 11px;transition:all .25s">
+                                      <span style="font-family:Georgia,serif;font-size:12.5px;font-weight:{{ b.r0w }};color:{{ b.r0fg }}">ℕ naturals 1, 2, 3, …</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ b.isLattice }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;flex-direction:column;gap:8px;align-items:center;padding:2px 0">
+                            <div style="display:flex;gap:8px"><span style="padding:5px 13px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr0bg }};color:{{ b.lr0fg }};border:1px solid {{ b.lr0bd }};transition:all .25s">∅</span></div>
+                            <div style="display:flex;gap:8px"><span style="padding:5px 11px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr1bg }};color:{{ b.lr1fg }};border:1px solid {{ b.lr1bd }};transition:all .25s">{p}</span><span style="padding:5px 11px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr1bg }};color:{{ b.lr1fg }};border:1px solid {{ b.lr1bd }};transition:all .25s">{q}</span><span style="padding:5px 11px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr1bg }};color:{{ b.lr1fg }};border:1px solid {{ b.lr1bd }};transition:all .25s">{r}</span></div>
+                            <div style="display:flex;gap:8px"><span style="padding:5px 10px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr2bg }};color:{{ b.lr2fg }};border:1px solid {{ b.lr2bd }};transition:all .25s">{p,q}</span><span style="padding:5px 10px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr2bg }};color:{{ b.lr2fg }};border:1px solid {{ b.lr2bd }};transition:all .25s">{p,r}</span><span style="padding:5px 10px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr2bg }};color:{{ b.lr2fg }};border:1px solid {{ b.lr2bd }};transition:all .25s">{q,r}</span></div>
+                            <div style="display:flex;gap:8px"><span style="padding:5px 13px;border-radius:99px;font-family:Georgia,serif;font-style:italic;font-size:14px;background:{{ b.lr3bg }};color:{{ b.lr3fg }};border:1px solid {{ b.lr3bd }};transition:all .25s">{p, q, r}</span></div>
+                            <p style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#C0B8A6">1 + 3 + 3 + 1 = 8 = 2³</p>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ b.isVenn2 }}" hint-placeholder-val="{{ false }}">
+                          <svg viewBox="0 0 320 180" width="100%" style="display:block">
+                            <defs><clipPath id="v2cb"><circle cx="195" cy="88" r="54"></circle></clipPath></defs>
+                            <rect x="6" y="10" width="308" height="152" rx="12" fill="rgba(238,163,31,.35)" opacity="{{ b.v2rect }}" style="transition:opacity .25s"></rect>
+                            <circle cx="195" cy="88" r="54" fill="rgba(238,163,31,.35)" opacity="{{ b.v2b }}" style="transition:opacity .25s"></circle>
+                            <circle cx="125" cy="88" r="54" fill="rgba(238,163,31,.35)" opacity="{{ b.v2a }}" style="transition:opacity .25s"></circle>
+                            <circle cx="125" cy="88" r="54" fill="#FFFFFF" opacity="{{ b.v2aP }}" style="transition:opacity .25s"></circle>
+                            <g clip-path="url(#v2cb)"><circle cx="125" cy="88" r="54" fill="{{ b.v2lensFill }}" opacity="{{ b.v2lensO }}" style="transition:opacity .25s"></circle></g>
+                            <rect x="6" y="10" width="308" height="152" rx="12" fill="none" stroke="#1C1A16" stroke-width="1.3"></rect>
+                            <circle cx="125" cy="88" r="54" fill="none" stroke="#1C1A16" stroke-width="1.5"></circle>
+                            <circle cx="195" cy="88" r="54" fill="none" stroke="#1C1A16" stroke-width="1.5"></circle>
+                            <text x="16" y="28" font-size="12" font-family="Georgia" font-style="italic" fill="#9C988C">U</text>
+                            <text x="78" y="40" font-size="14" font-family="Georgia" font-style="italic" fill="#1C1A16">A</text>
+                            <text x="234" y="40" font-size="14" font-family="Georgia" font-style="italic" fill="#1C1A16">B</text>
+                          </svg>
+                        </sc-if>
+                        <sc-if value="{{ b.isVenn3 }}" hint-placeholder-val="{{ false }}">
+                          <svg viewBox="0 0 320 212" width="100%" style="display:block">
+                            <defs><clipPath id="v3cb"><circle cx="195" cy="82" r="50"></circle></clipPath><clipPath id="v3cc"><circle cx="160" cy="132" r="50"></circle></clipPath><clipPath id="v3ca"><circle cx="125" cy="82" r="50"></circle></clipPath></defs>
+                            <rect x="6" y="8" width="308" height="196" rx="12" fill="rgba(238,163,31,.35)" opacity="{{ b.v3r }}" style="transition:opacity .25s"></rect>
+                            <circle cx="125" cy="82" r="50" fill="rgba(238,163,31,.35)" opacity="{{ b.v3c }}" style="transition:opacity .25s"></circle>
+                            <circle cx="195" cy="82" r="50" fill="rgba(238,163,31,.35)" opacity="{{ b.v3c }}" style="transition:opacity .25s"></circle>
+                            <circle cx="160" cy="132" r="50" fill="rgba(238,163,31,.35)" opacity="{{ b.v3c }}" style="transition:opacity .25s"></circle>
+                            <circle cx="125" cy="82" r="50" fill="#FFFFFF" opacity="{{ b.v3p }}" style="transition:opacity .25s"></circle>
+                            <circle cx="195" cy="82" r="50" fill="#FFFFFF" opacity="{{ b.v3p }}" style="transition:opacity .25s"></circle>
+                            <circle cx="160" cy="132" r="50" fill="#FFFFFF" opacity="{{ b.v3p }}" style="transition:opacity .25s"></circle>
+                            <g clip-path="url(#v3cb)"><circle cx="125" cy="82" r="50" fill="{{ b.v3lf }}" opacity="{{ b.v3lo }}" style="transition:opacity .25s"></circle></g>
+                            <g clip-path="url(#v3cc)"><circle cx="195" cy="82" r="50" fill="{{ b.v3lf }}" opacity="{{ b.v3lo }}" style="transition:opacity .25s"></circle></g>
+                            <g clip-path="url(#v3ca)"><circle cx="160" cy="132" r="50" fill="{{ b.v3lf }}" opacity="{{ b.v3lo }}" style="transition:opacity .25s"></circle></g>
+                            <g clip-path="url(#v3cb)"><g clip-path="url(#v3cc)"><circle cx="125" cy="82" r="50" fill="{{ b.v3cf }}" opacity="{{ b.v3co }}" style="transition:opacity .25s"></circle></g></g>
+                            <rect x="6" y="8" width="308" height="196" rx="12" fill="none" stroke="#1C1A16" stroke-width="1.3"></rect>
+                            <circle cx="125" cy="82" r="50" fill="none" stroke="#1C1A16" stroke-width="1.5"></circle>
+                            <circle cx="195" cy="82" r="50" fill="none" stroke="#1C1A16" stroke-width="1.5"></circle>
+                            <circle cx="160" cy="132" r="50" fill="none" stroke="#1C1A16" stroke-width="1.5"></circle>
+                            <text x="16" y="26" font-size="12" font-family="Georgia" font-style="italic" fill="#9C988C">U</text>
+                            <text x="80" y="38" font-size="14" font-family="Georgia" font-style="italic" fill="#1C1A16">A</text>
+                            <text x="232" y="38" font-size="14" font-family="Georgia" font-style="italic" fill="#1C1A16">B</text>
+                            <text x="155" y="198" font-size="14" font-family="Georgia" font-style="italic" fill="#1C1A16">C</text>
+                          </svg>
+                        </sc-if>
+                        <sc-if value="{{ b.isFam }}" hint-placeholder-val="{{ false }}">
+                          <svg viewBox="0 0 320 152" width="100%" style="display:block">
+                            <text x="288" y="40" font-size="11" font-family="Georgia" font-style="italic" fill="#9C988C">A₁</text>
+                            <line x1="26" y1="36" x2="284" y2="36" stroke="#EEA31F" stroke-width="7" stroke-linecap="round" opacity=".5"></line>
+                            <circle cx="284" cy="36" r="4.5" fill="#FFFFFF" stroke="#9A6A12" stroke-width="1.5"></circle>
+                            <text x="162" y="70" font-size="11" font-family="Georgia" font-style="italic" fill="#9C988C">A₂</text>
+                            <line x1="26" y1="66" x2="155" y2="66" stroke="#EEA31F" stroke-width="7" stroke-linecap="round" opacity=".65"></line>
+                            <circle cx="155" cy="66" r="4.5" fill="#FFFFFF" stroke="#9A6A12" stroke-width="1.5"></circle>
+                            <text x="120" y="100" font-size="11" font-family="Georgia" font-style="italic" fill="#9C988C">A₃</text>
+                            <line x1="26" y1="96" x2="112" y2="96" stroke="#EEA31F" stroke-width="7" stroke-linecap="round" opacity=".8"></line>
+                            <circle cx="112" cy="96" r="4.5" fill="#FFFFFF" stroke="#9A6A12" stroke-width="1.5"></circle>
+                            <circle cx="26" cy="36" r="5" fill="{{ b.famDot }}" stroke="{{ b.famStroke }}" stroke-width="1.8" style="transition:all .25s"></circle>
+                            <circle cx="26" cy="66" r="5" fill="{{ b.famDot }}" stroke="{{ b.famStroke }}" stroke-width="1.8" style="transition:all .25s"></circle>
+                            <circle cx="26" cy="96" r="5" fill="{{ b.famDot }}" stroke="{{ b.famStroke }}" stroke-width="1.8" style="transition:all .25s"></circle>
+                            <line x1="14" y1="126" x2="306" y2="126" stroke="#1C1A16" stroke-width="1.4"></line>
+                            <text x="22" y="146" font-size="12" font-family="Georgia" fill="#57534B">0</text>
+                            <text x="280" y="146" font-size="12" font-family="Georgia" fill="#57534B">1</text>
+                            <circle cx="26" cy="126" r="5.5" fill="{{ b.famResDot }}" stroke="{{ b.famResStroke }}" stroke-width="1.8" style="transition:all .25s"></circle>
+                            <text x="40" y="121" font-size="13" font-family="Georgia" font-style="italic" fill="{{ b.famResCol }}" style="transition:fill .25s">{{ b.famRes }}</text>
+                          </svg>
+                        </sc-if>
+                        <sc-if value="{{ b.isGrid }}" hint-placeholder-val="{{ false }}">
+                          <div style="padding:0 4px">
+                            <div style="display:grid;grid-template-columns:32px repeat(6, 1fr) 32px;gap:4px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;text-align:center">
+                              <span></span><span style="color:#C0B8A6;padding:4px 0">x₁</span><span style="color:#C0B8A6;padding:4px 0">x₂</span><span style="color:#C0B8A6;padding:4px 0">x₃</span><span style="color:#C0B8A6;padding:4px 0">x₄</span><span style="color:#C0B8A6;padding:4px 0">x₅</span><span style="color:#C0B8A6;padding:4px 0">x₆</span><span style="color:{{ b.gRowHd }};padding:4px 0">Σ</span>
+                              <sc-for list="{{ b.gRows }}" as="g" hint-placeholder-count="4">
+                                <span style="color:#C0B8A6;padding:7px 0">{{ g.name }}</span>
+                                <span style="background:{{ g.c1bg }};border-radius:7px;padding:7px 0;color:#1C1A16;transition:all .25s">{{ g.c1 }}</span>
+                                <span style="background:{{ g.c2bg }};border-radius:7px;padding:7px 0;color:#1C1A16;transition:all .25s">{{ g.c2 }}</span>
+                                <span style="background:{{ g.c3bg }};border-radius:7px;padding:7px 0;color:#1C1A16;transition:all .25s">{{ g.c3 }}</span>
+                                <span style="background:{{ g.c4bg }};border-radius:7px;padding:7px 0;color:#1C1A16;transition:all .25s">{{ g.c4 }}</span>
+                                <span style="background:{{ g.c5bg }};border-radius:7px;padding:7px 0;color:#1C1A16;transition:all .25s">{{ g.c5 }}</span>
+                                <span style="background:{{ g.c6bg }};border-radius:7px;padding:7px 0;color:#1C1A16;transition:all .25s">{{ g.c6 }}</span>
+                                <span style="color:{{ b.gRowTot }};padding:7px 0;transition:color .25s">3</span>
+                              </sc-for>
+                              <span style="color:{{ b.gColHd }};padding:4px 0">Σ</span>
+                              <span style="color:{{ b.gColTot }};padding:4px 0;transition:color .25s">2</span><span style="color:{{ b.gColTot }};padding:4px 0;transition:color .25s">2</span><span style="color:{{ b.gColTot }};padding:4px 0;transition:color .25s">2</span><span style="color:{{ b.gColTot }};padding:4px 0;transition:color .25s">2</span><span style="color:{{ b.gColTot }};padding:4px 0;transition:color .25s">2</span><span style="color:{{ b.gColTot }};padding:4px 0;transition:color .25s">2</span>
+                              <span style="font-size:11px;color:#9A6A12;padding:4px 0">12</span>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <div style="display:flex;gap:6px;padding:11px 4px 11px;flex-wrap:wrap">
+                          <sc-for list="{{ b.dChips }}" as="d" hint-placeholder-count="3">
+                            <span onClick="{{ d.go }}" style-active="transform:scale(.96)" style="flex:none;display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:99px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;cursor:pointer;background:{{ d.bg }};color:{{ d.fg }};border:1px solid {{ d.bd }};transition:all .2s">{{ d.label }}</span>
+                          </sc-for>
+                        </div>
+                        <p style="font-size:13.5px;line-height:1.55;color:#57534B;padding:0 4px 10px;min-height:36px;text-wrap:pretty">{{ b.dCaption }}</p>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ b.isExG }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-right:-24px">
+                    <div onPointerDown="{{ b.pd }}" onPointerMove="{{ b.pm }}" onPointerUp="{{ b.pu }}" onPointerLeave="{{ b.pu }}" style="display:flex;gap:12px;touch-action:pan-y;cursor:grab;user-select:none;transform:translateX({{ b.trackX }}px);transition:{{ b.tr }}">
+                    <sc-for list="{{ b.cards }}" as="c" hint-placeholder-count="3">
+                    <div style="flex:none;width:306px;background:#FFFFFF;border:1px solid rgba(28,25,20,.14);border-radius:14px;padding:14px 16px;opacity:{{ c.op }};transform:scale({{ c.sc }});transition:opacity .3s, transform .3s">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <p style="flex:1;font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">SOLVED EXAMPLE · {{ c.pos }}</p>
+                        <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#C0B8A6;letter-spacing:.06em">{{ c.tag }}</span>
+                      </div>
+                      <p style="font-size:15px;line-height:1.6;margin-top:8px;text-wrap:pretty">{{ c.q }}</p>
+                      <div style="display:flex;flex-direction:column;gap:7px;margin-top:11px;border-top:1px dashed rgba(28,25,20,.14);padding-top:11px">
+                        <sc-for list="{{ c.steps }}" as="s" hint-placeholder-count="2">
+                          <div style="display:flex;gap:10px">
+                            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#C0B8A6;flex:none;padding-top:2px">{{ s.n }}</span>
+                            <p style="flex:1;font-size:14px;line-height:1.55;color:#4A453D;text-wrap:pretty">{{ s.html }}</p>
+                          </div>
+                        </sc-for>
+                      </div>
+                      <p style="display:inline-flex;margin-top:11px;padding:6px 12px;background:#F6F1E4;border-radius:8px;font-size:13.5px;font-weight:700;color:#1C1A16;line-height:1.45">{{ c.ans }}</p>
+                    </div>
+                    </sc-for>
+                    <div style="flex:none;width:12px"></div>
+                    </div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 2px 0">
+                      <sc-for list="{{ b.dots }}" as="d" hint-placeholder-count="4">
+                        <span onClick="{{ d.go }}" style="width:8px;height:8px;border-radius:99px;background:{{ d.bg }};cursor:pointer;transition:background .2s"></span>
+                      </sc-for>
+                      <sc-if value="{{ b.showHint }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#C0B8A6;letter-spacing:.12em;margin-left:8px">← SWIPE</span>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ b.isMcqG }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-right:-24px">
+                    <div onPointerDown="{{ b.pd }}" onPointerMove="{{ b.pm }}" onPointerUp="{{ b.pu }}" onPointerLeave="{{ b.pu }}" style="display:flex;gap:12px;touch-action:pan-y;cursor:grab;user-select:none;transform:translateX({{ b.trackX }}px);transition:{{ b.tr }}">
+                    <sc-for list="{{ b.cards }}" as="c" hint-placeholder-count="3">
+                    <div style="flex:none;width:306px;background:#FFFFFF;border:1px solid rgba(28,25,20,.14);border-radius:14px;padding:14px 16px;opacity:{{ c.op }};transform:scale({{ c.sc }});transition:opacity .3s, transform .3s">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">CRACK THE MCQ · {{ c.pos }}</p>
+                      <p style="font-size:15px;line-height:1.6;margin-top:8px;text-wrap:pretty">{{ c.q }}</p>
+                      <div style="display:flex;flex-direction:column;gap:7px;margin-top:11px">
+                        <sc-for list="{{ c.opts }}" as="o" hint-placeholder-count="4">
+                          <div onClick="{{ o.go }}" style-active="transform:scale(.985)" style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ o.bg }};border:1px solid {{ o.bd }};transition:all .2s">
+                            <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:#C0B8A6;flex:none">{{ o.tag }}</span>
+                            <span style="flex:1;font-size:14px;font-weight:600;line-height:1.45">{{ o.label }}</span>
+                            <span style="font-size:13.5px;font-weight:700;color:{{ o.markCol }};flex:none">{{ o.mark }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                      <sc-if value="{{ c.nudge }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:9px;padding:10px 12px;background:#F6F1E4;border-radius:10px;animation:fadeUp .22s">
+                          <p style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#9C988C;letter-spacing:.12em">NOT QUITE. HERE'S THE TRAP</p>
+                          <p style="font-size:13.5px;line-height:1.55;color:#4A453D;margin-top:4px;text-wrap:pretty">{{ c.nudge }}</p>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ c.solved }}" hint-placeholder-val="{{ false }}">
+                        <div style="margin-top:9px;padding:10px 12px;background:#F6F1E4;border-radius:10px;animation:fadeUp .22s">
+                          <p style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#9A6A12;letter-spacing:.12em">SOLVED ✓</p>
+                          <p style="font-size:13.5px;line-height:1.55;color:#4A453D;margin-top:4px;text-wrap:pretty">{{ c.solution }}</p>
+                        </div>
+                      </sc-if>
+                    </div>
+                    </sc-for>
+                    <div style="flex:none;width:12px"></div>
+                    </div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 2px 0">
+                      <sc-for list="{{ b.dots }}" as="d" hint-placeholder-count="4">
+                        <span onClick="{{ d.go }}" style="width:8px;height:8px;border-radius:99px;background:{{ d.bg }};cursor:pointer;transition:background .2s"></span>
+                      </sc-for>
+                      <sc-if value="{{ b.showHint }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#C0B8A6;letter-spacing:.12em;margin-left:8px">← SWIPE</span>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ b.isPractice }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-right:-24px">
+                    <div onPointerDown="{{ b.pd }}" onPointerMove="{{ b.pm }}" onPointerUp="{{ b.pu }}" onPointerLeave="{{ b.pu }}" style="display:flex;gap:12px;touch-action:pan-y;cursor:grab;user-select:none;transform:translateX({{ b.trackX }}px);transition:{{ b.tr }}">
+                    <sc-for list="{{ b.cards }}" as="c" hint-placeholder-count="3">
+                    <div style="flex:none;width:306px;background:#FFFFFF;border:1px solid rgba(28,25,20,.14);border-radius:14px;padding:14px 16px;opacity:{{ c.op }};transform:scale({{ c.sc }});transition:opacity .3s, transform .3s">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <p style="flex:1;font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">PRACTICE · {{ c.pos }}</p>
+                        <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#C0B8A6;letter-spacing:.06em">TRY FIRST</span>
+                      </div>
+                      <p style="font-size:15px;line-height:1.6;margin-top:8px;min-height:48px;text-wrap:pretty">{{ c.q }}</p>
+                      <sc-if value="{{ c.shown }}" hint-placeholder-val="{{ false }}">
+                        <p style="margin-top:10px;padding:10px 12px;background:#F6F1E4;border-radius:10px;font-size:13.5px;line-height:1.55;color:#4A453D;animation:fadeUp .2s;text-wrap:pretty">{{ c.a }}</p>
+                      </sc-if>
+                      <sc-if value="{{ c.notShown }}" hint-placeholder-val="{{ false }}">
+                        <span onClick="{{ c.reveal }}" style-active="transform:scale(.97)" style="display:inline-flex;align-items:center;height:36px;padding:0 16px;margin-top:10px;border-radius:99px;border:1px solid rgba(28,25,20,.22);font-size:13.5px;font-weight:700;cursor:pointer;transition:transform .15s">Check answer</span>
+                      </sc-if>
+                    </div>
+                    </sc-for>
+                    <div style="flex:none;width:12px"></div>
+                    </div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 2px 0">
+                      <sc-for list="{{ b.dots }}" as="d" hint-placeholder-count="5">
+                        <span onClick="{{ d.go }}" style="width:8px;height:8px;border-radius:99px;background:{{ d.bg }};cursor:pointer;transition:background .2s"></span>
+                      </sc-for>
+                      <sc-if value="{{ b.showHint }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#C0B8A6;letter-spacing:.12em;margin-left:8px">← SWIPE</span>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ b.isMistakes }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:12px;padding:14px 16px">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">WATCH OUT</p>
+                      <div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">
+                        <sc-for list="{{ b.items }}" as="m" hint-placeholder-count="3">
+                          <div style="display:flex;gap:11px">
+                            <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#DD4433;flex:none;padding-top:1px">✗</span>
+                            <p style="flex:1;font-size:14px;line-height:1.55;color:#4A453D;text-wrap:pretty">{{ m.html }}</p>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isProtip }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px dashed rgba(28,25,20,.25);border-radius:12px;padding:13px 16px">
+                      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em">PRO-TIP</p>
+                      <p style="font-family:'Kalam',cursive;font-weight:400;font-size:15.5px;line-height:1.5;color:#57534B;margin-top:6px">{{ b.html }}</p>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isSnapshot }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid rgba(28,25,20,.16);border-radius:14px;overflow:hidden;margin-top:2px">
+                      <div style="padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(28,25,20,.1);background:#F6F1E4">
+                        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#57534B;letter-spacing:.12em">CHECKPOINT · TOPIC {{ b.tn }} SNAPSHOT</p>
+                        <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9A6A12">✓</span>
+                      </div>
+                      <div style="padding:14px 16px;background:{{ snapBg }}">
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                          <sc-for list="{{ b.rows }}" as="r" hint-placeholder-count="5">
+                            <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+                              <span style="font-family:Georgia,'Times New Roman',serif;font-size:14.5px;line-height:1.4">{{ r.f }}</span>
+                              <span style="font-size:12px;color:#9C988C">{{ r.note }}</span>
+                            </div>
+                          </sc-for>
+                        </div>
+                        <div style="border-top:1px dashed rgba(28,25,20,.16);margin-top:12px;padding-top:9px;display:flex;flex-direction:column;gap:3px">
+                          <sc-for list="{{ b.aids }}" as="a" hint-placeholder-count="2">
+                            <p style="font-family:'Kalam',cursive;font-weight:400;font-size:14px;color:#57534B">{{ a.text }}</p>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+
+            </div>
+        </div>
+      </div>
+
+      <div style="flex:none;display:flex;justify-content:center;padding:0 16px 18px">
+        <div style="display:flex;align-items:center;gap:4px;width:100%;background:#FFFFFF;border:1px solid rgba(28,25,20,.12);border-radius:99px;padding:6px 8px;box-shadow:0 8px 26px rgba(28,26,22,.12)">
+          <span onClick="{{ openSheet }}" style-active="background:#F6F1E4" style="display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:99px;cursor:pointer;transition:background .15s;flex:none">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" stroke="#1C1A16" stroke-width="1.7" stroke-linecap="round"></path></svg>
+            <span style="font-size:13.5px;font-weight:700;letter-spacing:-.01em">Topics</span>
+          </span>
+          <span style="flex:1"></span>
+          <span onClick="{{ prevTopic }}" style-active="transform:scale(.92)" style="display:inline-flex;width:44px;height:40px;align-items:center;justify-content:center;cursor:pointer;border-radius:99px;transition:transform .15s">
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M10.5 3 5.5 8 10.5 13" stroke="{{ prevTCol }}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </span>
+          <span onClick="{{ openSheet }}" style-active="background:#EFE9DA" style="display:inline-flex;align-items:center;justify-content:center;height:40px;min-width:64px;padding:0 16px;border-radius:99px;background:#F6F1E4;cursor:pointer;font-size:14.5px;font-weight:700;letter-spacing:.01em;transition:background .15s"><span>{{ tNShort }}</span><span style="color:#9C988C;font-weight:600">/{{ tCountShort }}</span></span>
+          <span onClick="{{ nextTopic }}" style-active="transform:scale(.92)" style="display:inline-flex;width:44px;height:40px;align-items:center;justify-content:center;cursor:pointer;border-radius:99px;transition:transform .15s">
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M5.5 3 10.5 8 5.5 13" stroke="{{ nextTCol }}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </span>
+          <span style="flex:1"></span>
+          <span style="width:86px;flex:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(28,26,22,.3);z-index:5;animation:fadeIn .2s;cursor:pointer"></div>
+      <div data-screen-label="Topic sheet" style="position:absolute;left:0;right:0;bottom:0;background:#FFFEFB;border-radius:22px 22px 28px 28px;z-index:6;animation:sheetUp .28s cubic-bezier(.2,.7,.3,1);padding:12px 10px 24px;box-shadow:0 -14px 44px rgba(28,26,22,.2)">
+        <span style="display:block;width:40px;height:4px;border-radius:99px;background:rgba(28,25,20,.16);margin:0 auto"></span>
+        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;color:#9C988C;letter-spacing:.12em;padding:16px 16px 8px">IN THIS CHAPTER · SETS</p>
+        <sc-for list="{{ sheetRows }}" as="r" hint-placeholder-count="5">
+          <div onClick="{{ r.go }}" style-active="background:#F6F1E4" style="display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:12px;cursor:pointer;background:{{ r.bg }}">
+            <span style="font-family:Georgia,'Times New Roman',serif;font-size:16px;color:{{ r.nCol }};flex:none;width:22px;text-align:right">{{ r.n }}</span>
+            <span style="flex:1;min-width:0;font-size:15.5px;line-height:1.35;letter-spacing:-.008em;font-weight:{{ r.w }}">{{ r.title }}</span>
+            <sc-if value="{{ r.cur }}" hint-placeholder-val="{{ false }}">
+              <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;color:#9A6A12;letter-spacing:.08em">READING</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;ruledSnapshot&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Style&quot;}}">
+class Component extends DCLogic {
+  state = { pct: 0, act: 0, sheet: false, anim: 0, dirSign: 1, mcq: {}, prac: {}, drv: {}, dia: {}, pg: {}, hook: {} };
+  scEl = null; swipeX = null;
+
+  R(h) { return React.createElement('span', { dangerouslySetInnerHTML: { __html: h } }); }
+
+  componentDidMount() {
+    const poll = () => { if (window.CH1SETS) this.forceUpdate(); else setTimeout(poll, 120); };
+    poll();
+  }
+
+  goTopic(i) {
+    const D = window.CH1SETS || { topics: [] };
+    if (i < 0 || i >= D.topics.length) { this.setState({ sheet: false }); return; }
+    const dir = i >= this.state.act ? 1 : -1;
+    this.setState(s => ({ act: i, sheet: false, pct: 0, anim: s.anim + 1, dirSign: dir }), () => { if (this.scEl) this.scEl.scrollTo({ top: 0 }); });
+  }
+
+  slider(uid, count) {
+    const st = this.state;
+    const cur = Math.min(st.pg[uid] ?? 0, count - 1);
+    const d = (st.drag && st.drag.uid === uid) ? st.drag : null;
+    const dx = d ? d.dx : 0;
+    const STEP = 318; // card 306 + gap 12
+    const set = (i) => this.setState(s => ({ pg: { ...s.pg, [uid]: Math.max(0, Math.min(count - 1, i)) }, drag: null }));
+    return {
+      cur,
+      strip: {
+        trackX: Math.round((dx - cur * STEP) * 10) / 10,
+        tr: (d && d.dragging) ? 'none' : 'transform .34s cubic-bezier(.22,.85,.3,1)',
+        showHint: cur === 0 && count > 1,
+        pd: (e) => this.setState({ drag: { uid, sx: e.clientX, dx: 0, dragging: true } }),
+        pm: (e) => {
+          const dr = this.state.drag; if (!dr || dr.uid !== uid || !dr.dragging) return;
+          let ndx = e.clientX - dr.sx;
+          if ((ndx < 0 && cur >= count - 1) || (ndx > 0 && cur <= 0)) ndx *= .3;
+          if (Math.abs(ndx - dr.dx) > 1.5) this.setState({ drag: { ...dr, dx: ndx } });
+        },
+        pu: () => {
+          const dr = this.state.drag; if (!dr || dr.uid !== uid || !dr.dragging) return;
+          if (dr.dx < -60 && cur < count - 1) set(cur + 1);
+          else if (dr.dx > 60 && cur > 0) set(cur - 1);
+          else this.setState({ drag: null });
+        }
+      },
+      dots: Array.from({ length: count }, (_, i) => ({ go: () => set(i), i }))
+    };
+  }
+
+  diaView(b, uid) {
+    const st = this.state;
+    const AMB = 'rgba(238,163,31,.35)', PAP = '#FFFFFF';
+    const sel = st.dia[uid] ?? 0;
+    const pick = (i) => () => this.setState(s => ({ dia: { ...s.dia, [uid]: i } }));
+    const chip = (labels, caps) => ({
+      dChips: labels.map((label, i) => ({ label, go: pick(i), bg: sel === i ? '#1C1A16' : '#FFFEFB', fg: sel === i ? '#FFFEFB' : '#57534B', bd: sel === i ? '#1C1A16' : 'rgba(28,25,20,.18)' })),
+      dCaption: caps[sel]
+    });
+    if (b.kind === 'numsys') {
+      const caps = [
+        'ℕ = {1, 2, 3, …}. Counting starts at 1. The innermost circle: everything else grows outward from here.',
+        '𝕎 = {0, 1, 2, …}. The naturals plus zero.',
+        'ℤ adds the negatives: {…, −2, −1, 0, 1, 2, …}.',
+        'ℚ = every fraction p/q with p, q ∈ ℤ, q ≠ 0. The rationals.',
+        'ℝ = the whole continuous number line. Every set here nests inside it: ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ.',
+        '𝕋 = the irrationals: the band inside ℝ but outside ℚ. √2, π and friends live here.'
+      ];
+      const v = chip(['ℕ', '𝕎', 'ℤ', 'ℚ', 'ℝ', '𝕋'], caps);
+      const ring = (i) => {
+        const on = sel === i;
+        return { bd: on ? '#9A6A12' : 'rgba(28,25,20,.18)', bg: on ? 'rgba(238,163,31,.14)' : 'transparent', w: on ? 'bold' : 'normal', fg: on ? '#9A6A12' : '#9C988C' };
+      };
+      const r = [ring(0), ring(1), ring(2), ring(3), ring(4)];
+      const tOn = sel === 5;
+      if (tOn) { r[4].bg = 'rgba(238,163,31,.18)'; r[4].bd = '#9A6A12'; r[3].bg = '#FFFFFF'; }
+      return { isNumsys: true, ...v,
+        r0bd: r[0].bd, r0bg: r[0].bg, r0w: r[0].w, r0fg: r[0].fg,
+        r1bd: r[1].bd, r1bg: r[1].bg, r1w: r[1].w, r1fg: r[1].fg,
+        r2bd: r[2].bd, r2bg: r[2].bg, r2w: r[2].w, r2fg: r[2].fg,
+        r3bd: r[3].bd, r3bg: r[3].bg, r3w: r[3].w, r3fg: r[3].fg,
+        r4bd: r[4].bd, r4bg: r[4].bg, r4w: r[4].w, r4fg: r[4].fg,
+        tW: tOn ? 'bold' : 'normal', tFg: tOn ? '#9A6A12' : '#C0B8A6' };
+    }
+    if (b.kind === 'lattice') {
+      const caps = [
+        'C(3, 0) = 1 subset of size zero. ∅ is always on the menu, and always forgotten first.',
+        'C(3, 1) = 3 singletons.',
+        'C(3, 2) = 3 pairs.',
+        'C(3, 3) = 1: the whole set A itself, the other improper subset.'
+      ];
+      const v = chip(['SIZE 0', 'SIZE 1', 'SIZE 2', 'SIZE 3'], caps);
+      const row = (i) => sel === i ? { bg: '#1C1A16', fg: '#FFFEFB', bd: '#1C1A16' } : { bg: '#FFFEFB', fg: '#1C1A16', bd: 'rgba(28,25,20,.18)' };
+      const rr = [row(0), row(1), row(2), row(3)];
+      return { isLattice: true, ...v,
+        lr0bg: rr[0].bg, lr0fg: rr[0].fg, lr0bd: rr[0].bd,
+        lr1bg: rr[1].bg, lr1fg: rr[1].fg, lr1bd: rr[1].bd,
+        lr2bg: rr[2].bg, lr2fg: rr[2].fg, lr2bd: rr[2].bd,
+        lr3bg: rr[3].bg, lr3fg: rr[3].fg, lr3bd: rr[3].bd };
+    }
+    if (b.kind === 'venn2') {
+      const caps = [
+        'A ∪ B: everyone in either list (or both). Three of the four regions shaded; only “neither” is left out.',
+        'A ∩ B: the lens, in both lists at once. Keyword: and.',
+        'A − B: the “only A” crescent. One-directional: the source keeps what the other set doesn’t touch.',
+        'B − A: the mirror crescent. Difference is not commutative.',
+        'A △ B: exactly one of the two, never both: the two crescents together.',
+        'A′: everything outside circle A, including B’s crescent. Meaningless until U is fixed.'
+      ];
+      const v = chip(['A ∪ B', 'A ∩ B', 'A − B', 'B − A', 'A △ B', 'A′'], caps);
+      const L = [
+        { rect: 0, b: 1, a: 1, aP: 0, lf: AMB, lo: 0 },
+        { rect: 0, b: 0, a: 0, aP: 0, lf: AMB, lo: 1 },
+        { rect: 0, b: 0, a: 1, aP: 0, lf: PAP, lo: 1 },
+        { rect: 0, b: 1, a: 0, aP: 0, lf: PAP, lo: 1 },
+        { rect: 0, b: 1, a: 1, aP: 0, lf: PAP, lo: 1 },
+        { rect: 1, b: 0, a: 0, aP: 1, lf: PAP, lo: 0 }
+      ][sel];
+      return { isVenn2: true, ...v, v2rect: L.rect, v2b: L.b, v2a: L.a, v2aP: L.aP, v2lensFill: L.lf, v2lensO: L.lo };
+    }
+    if (b.kind === 'venn3') {
+      const caps = [
+        'Exactly one: the three outer crescents. Σn(A) − 2Σn(A∩B) + 3n(A∩B∩C).',
+        'Exactly two: the three petals, centre excluded. Σn(A∩B) − 3n(A∩B∩C): the centre gets removed all three times.',
+        'All three: the centre, n(A∩B∩C). Fill it first, always.',
+        'None: outside every circle, n(U) − n(A ∪ B ∪ C).'
+      ];
+      const v = chip(['EXACTLY ONE', 'EXACTLY TWO', 'ALL THREE', 'NONE'], caps);
+      const L = [
+        { r: 0, c: 1, p: 0, lf: PAP, lo: 1, cf: PAP, co: 0 },
+        { r: 0, c: 0, p: 0, lf: AMB, lo: 1, cf: PAP, co: 1 },
+        { r: 0, c: 0, p: 0, lf: AMB, lo: 0, cf: AMB, co: 1 },
+        { r: 1, c: 0, p: 1, lf: PAP, lo: 0, cf: PAP, co: 0 }
+      ][sel];
+      return { isVenn3: true, ...v, v3r: L.r, v3c: L.c, v3p: L.p, v3lf: L.lf, v3lo: L.lo, v3cf: L.cf, v3co: L.co };
+    }
+    if (b.kind === 'family') {
+      const caps = [
+        '( 0, 1/n ): open at 0. The bars shrink towards 0 but 0 was never inside a single one: ⋂ = ∅. Shrinking is not arriving.',
+        '[ 0, 1/n ]: closed at 0. Now 0 belongs to every member, and nothing else survives: ⋂ = {0}. One bracket, whole mark.'
+      ];
+      const v = chip(['( 0, 1/n )', '[ 0, 1/n ]'], caps);
+      const closed = sel === 1;
+      return { isFam: true, ...v,
+        famDot: closed ? '#EEA31F' : '#FFFFFF', famStroke: closed ? '#1C1A16' : '#DD4433',
+        famResDot: closed ? '#EEA31F' : '#FFFFFF', famResStroke: closed ? '#1C1A16' : '#DD4433',
+        famRes: closed ? '⋂ = {0}' : '⋂ = ∅', famResCol: closed ? '#9A6A12' : '#DD4433' };
+    }
+    if (b.kind === 'grid') {
+      const caps = [
+        'Count by rows: 4 sets × 3 elements each = 12 incidences. That is mp.',
+        'Count by columns: 6 elements × multiplicity 2 = 12. Same ticks, second count: k·n(S). Hence mp = k·n(S).'
+      ];
+      const v = chip(['BY ROWS', 'BY COLUMNS'], caps);
+      const rows = [[1,1,1,0,0,0],[0,0,0,1,1,1],[1,1,0,1,0,0],[0,0,1,0,1,1]];
+      const byRows = sel === 0;
+      const gRows = rows.map((cells, i) => {
+        const o = { name: 'A' + '₁₂₃₄'[i] };
+        cells.forEach((c, j) => {
+          o['c' + (j + 1)] = c ? '✓' : '·';
+          o['c' + (j + 1) + 'bg'] = c ? (byRows ? 'rgba(238,163,31,.22)' : 'rgba(28,25,20,.08)') : '#FAF8F2';
+        });
+        return o;
+      });
+      return { isGrid: true, ...v, gRows,
+        gRowHd: byRows ? '#9A6A12' : '#D8D2C2', gRowTot: byRows ? '#9A6A12' : '#D8D2C2',
+        gColHd: byRows ? '#D8D2C2' : '#9A6A12', gColTot: byRows ? '#D8D2C2' : '#9A6A12' };
+    }
+    return {};
+  }
+
+  renderVals() {
+    const st = this.state;
+    const D = window.CH1SETS || { topics: [] };
+    const R = (h) => this.R(h);
+    const FLAGS = { isHook: false, isP: false, isThink: false, isDef: false, isDefgrid: false, isFormula: false, isProc: false, isDeriv: false, isDia: false, isExG: false, isMcqG: false, isPractice: false, isMistakes: false, isProtip: false, isSnapshot: false };
+
+    const mapTopic = (t, ti) => {
+      // group consecutive ex / mcq blocks into carousels; exam-hook only on the first topic
+      const grouped = [];
+      t.blocks.forEach((b) => {
+        if (b.t === 'hook' && ti > 0) return;
+        const last = grouped[grouped.length - 1];
+        if (b.t === 'ex') { if (last && last.t === 'exG') last.items.push(b); else grouped.push({ t: 'exG', items: [b] }); }
+        else if (b.t === 'mcq') { if (last && last.t === 'mcqG') last.items.push(b); else grouped.push({ t: 'mcqG', items: [b] }); }
+        else grouped.push(b);
+      });
+      return {
+        blocks: grouped.map((b, bi) => {
+          const uid = ti + '-' + bi;
+          const v = { ...FLAGS };
+          if (b.t === 'hook') {
+            v.isHook = true; v.html = R(b.html);
+            const open = !!st.hook[uid];
+            v.open = open; v.rot = open ? '180deg' : '0deg';
+            v.toggle = () => this.setState(s => ({ hook: { ...s.hook, [uid]: !s.hook[uid] } }));
+          }
+          else if (b.t === 'p') { v.isP = true; v.html = R(b.html); }
+          else if (b.t === 'think') { v.isThink = true; v.html = R(b.html); }
+          else if (b.t === 'def') { v.isDef = true; v.term = b.term; v.html = R(b.html); }
+          else if (b.t === 'defgrid') { v.isDefgrid = true; v.gtitle = b.title.toUpperCase(); v.rows = b.rows.map(r => ({ k: R(r.k), v: R(r.v) })); }
+          else if (b.t === 'formula') { v.isFormula = true; v.kicker = b.kicker; v.tag = b.tag || ''; v.main = R(b.main); v.legend = b.legend.map(l => ({ html: R(l) })); v.note = b.note ? R(b.note) : false; }
+          else if (b.t === 'proc') { v.isProc = true; v.ptitle = b.title.toUpperCase(); v.steps = b.steps.map((s, i) => ({ n: String(i + 1).padStart(2, '0'), html: R(s) })); }
+          else if (b.t === 'deriv') {
+            v.isDeriv = true; v.kicker = b.kicker;
+            v.steps = b.steps.map((s, i) => {
+              const open = st.drv[uid] === i;
+              return { n: String(i + 1).padStart(2, '0'), eq: R(s.eq), why: s.why, open, rot: open ? '180deg' : '0deg', bg: open ? '#FAF8F2' : 'transparent', go: () => this.setState(x => ({ drv: { ...x.drv, [uid]: x.drv[uid] === i ? null : i } })) };
+            });
+          }
+          else if (b.t === 'diagram') { v.isDia = true; v.kicker = b.kicker; Object.assign(v, this.diaView(b, uid)); }
+          else if (b.t === 'exG') {
+            v.isExG = true;
+            const P = this.slider(uid, b.items.length);
+            v.cards = b.items.map((ex, ci) => ({
+              pos: (ci + 1) + ' OF ' + b.items.length, tag: ex.tag,
+              q: R(ex.q), steps: ex.steps.map((s, j) => ({ n: String(j + 1), html: R(s) })), ans: R(ex.ans),
+              op: ci === P.cur ? 1 : .55, sc: ci === P.cur ? 1 : .98
+            }));
+            Object.assign(v, P.strip);
+            v.dots = P.dots.map(d => ({ go: d.go, bg: d.i === P.cur ? '#1C1A16' : 'rgba(28,25,20,.18)' }));
+          }
+          else if (b.t === 'mcqG') {
+            v.isMcqG = true;
+            const P = this.slider(uid, b.items.length);
+            v.cards = b.items.map((q, ci) => {
+              const mKey = uid + '_' + ci;
+              const m = st.mcq[mKey] || { pick: null, solved: false };
+              return {
+                pos: 'Q' + (ci + 1) + ' OF ' + b.items.length,
+                q: R(q.q),
+                opts: q.opts.map((o, i) => {
+                  const right = i === q.correct && m.solved, wrong = m.pick === i && i !== q.correct;
+                  return {
+                    tag: 'ABCD'[i], label: R(o.label),
+                    bg: right ? '#F6F1E4' : '#FFFEFB',
+                    bd: right ? '#1C1A16' : wrong ? 'rgba(221,68,51,.5)' : 'rgba(28,25,20,.14)',
+                    mark: right ? '✓' : wrong ? '✗' : '', markCol: right ? '#9A6A12' : '#DD4433',
+                    go: () => { const cur = this.state.mcq[mKey] || {}; if (cur.solved) return; this.setState(x => ({ mcq: { ...x.mcq, [mKey]: { pick: i, solved: i === q.correct } } })); }
+                  };
+                }),
+                nudge: (!m.solved && m.pick !== null && q.opts[m.pick].nudge) ? R(q.opts[m.pick].nudge) : false,
+                solved: m.solved, solution: R(q.solution),
+                op: ci === P.cur ? 1 : .55, sc: ci === P.cur ? 1 : .98
+              };
+            });
+            const solvedDots = b.items.map((_, i) => (st.mcq[uid + '_' + i] || {}).solved);
+            Object.assign(v, P.strip);
+            v.dots = P.dots.map(d => ({ go: d.go, bg: d.i === P.cur ? '#1C1A16' : solvedDots[d.i] ? '#EEA31F' : 'rgba(28,25,20,.18)' }));
+          }
+          else if (b.t === 'practice') {
+            v.isPractice = true;
+            const P = this.slider(uid, b.items.length);
+            v.cards = b.items.map((it, ci) => {
+              const key = uid + '_' + ci;
+              const shown = !!st.prac[key];
+              return {
+                pos: (ci + 1) + ' OF ' + b.items.length,
+                q: R(it.q), a: R(it.a), shown, notShown: !shown,
+                reveal: () => this.setState(x => ({ prac: { ...x.prac, [key]: true } })),
+                op: ci === P.cur ? 1 : .55, sc: ci === P.cur ? 1 : .98
+              };
+            });
+            const doneDots = b.items.map((_, i) => !!st.prac[uid + '_' + i]);
+            Object.assign(v, P.strip);
+            v.dots = P.dots.map(d => ({ go: d.go, bg: d.i === P.cur ? '#1C1A16' : doneDots[d.i] ? '#EEA31F' : 'rgba(28,25,20,.18)' }));
+          }
+          else if (b.t === 'mistakes') { v.isMistakes = true; v.items = b.items.map(m => ({ html: R(m) })); }
+          else if (b.t === 'protip') { v.isProtip = true; v.html = R(b.html); }
+          else if (b.t === 'snapshot') { v.isSnapshot = true; v.tn = t.n; v.rows = b.rows.map(r => ({ f: R(r.f), note: r.note })); v.aids = b.aids.map(a => ({ text: a })); }
+          return v;
+        })
+      };
+    };
+
+    const nT = D.topics.length;
+    const act = Math.min(st.act, Math.max(0, nT - 1));
+    const cur = D.topics[act] || { n: '01', title: '' };
+    const T = D.topics[act] ? mapTopic(D.topics[act], act) : { blocks: [] };
+    const anims = st.dirSign > 0 ? ['slideL', 'slideL2'] : ['slideR', 'slideR2'];
+    const ruled = this.props.ruledSnapshot ?? true;
+    return {
+      vBlocks: T.blocks, tN: cur.n, tTitle: cur.title, tLabel: 'Topic ' + cur.n,
+      tCount: '0' + (nT || 5),
+      tNShort: String(act + 1), tCountShort: String(nT || 5),
+      slideAnim: anims[st.anim % 2] + ' .32s cubic-bezier(.2,.7,.3,1)',
+      scRef: (el) => { if (el) this.scEl = el; },
+      pctLabel: Math.round(st.pct) + '%', pctW: st.pct + '%',
+      onRdScroll: (e) => {
+        const el = e.target;
+        const p = Math.min(100, Math.max(0, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100));
+        if (Math.abs(p - st.pct) > 0.8) this.setState({ pct: p });
+      },
+      sheetOpen: st.sheet,
+      openSheet: () => this.setState({ sheet: true }),
+      closeSheet: () => this.setState({ sheet: false }),
+      sheetRows: D.topics.map((tp, i) => ({
+        n: tp.n, title: tp.title, cur: i === act,
+        bg: i === act ? '#F6F1E4' : 'transparent',
+        nCol: i === act ? '#9A6A12' : '#C0B8A6',
+        w: i === act ? 700 : 500,
+        go: () => this.goTopic(i)
+      })),
+      prevTopic: () => this.goTopic(this.state.act - 1),
+      nextTopic: () => this.goTopic(this.state.act + 1),
+      prevTCol: act === 0 ? '#D8D2C2' : '#1C1A16',
+      nextTCol: act >= nT - 1 ? '#D8D2C2' : '#1C1A16',
+      snapBg: ruled ? 'repeating-linear-gradient(180deg, #FFFEFB 0 26px, rgba(28,25,20,.04) 26px 27px)' : '#FFFEFB'
+    };
+  }
+}
+</script>
+</body>
+</html>
