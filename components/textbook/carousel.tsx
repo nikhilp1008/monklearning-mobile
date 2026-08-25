@@ -1,6 +1,12 @@
 import { useRef } from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import {
+  Animated,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { colors } from '@/constants/brand';
 import { CARD_GAP, CARD_W, kicker } from '@/components/textbook/theme';
@@ -8,16 +14,19 @@ import { CARD_GAP, CARD_W, kicker } from '@/components/textbook/theme';
 /**
  * The swipeable card rail used by solved examples, MCQs and practice.
  *
- * A snapping `ScrollView` rather than a hand-rolled pan gesture. The design
- * asks for drag-following-finger, a threshold past which it advances one card,
- * a spring back otherwise, and rubber-band resistance at the ends. That is the
- * exact behaviour `snapToInterval` plus `decelerationRate="fast"` already
- * gives, natively, on both platforms, including the overscroll physics that
- * are tedious and easy to get subtly wrong by hand.
+ * A snapping `ScrollView` rather than a hand-rolled pan gesture: the design
+ * asks for drag-following-finger, a threshold that advances one card, a spring
+ * back otherwise and rubber-banding at the ends, which is exactly what
+ * `snapToInterval` plus `decelerationRate="fast"` already gives natively on
+ * both platforms.
  *
- * Cards are laid out edge to edge and the rail is allowed to bleed into the
- * screen's right gutter, so the next card peeks. That peek is what tells a
- * student there is more without needing the hint text.
+ * The card's own presence is driven by the **scroll offset**, not by the
+ * settled page index. It used to key off `onMomentumScrollEnd`, which fires
+ * only once the scroll has fully stopped, so the next card sat dimmed through
+ * the whole drag and then faded up late, well after the finger had gone. Now
+ * every card interpolates against the live offset, which puts the change under
+ * the finger where it belongs. Native driver, so it does not ride the JS
+ * thread.
  */
 export function Carousel({
   count,
@@ -30,34 +39,43 @@ export function Carousel({
   page: number;
   onPage: (index: number) => void;
   scale: (n: number) => number;
-  children: React.ReactNode;
+  /** Called with (offsetX, step) so each card can place itself. */
+  children: (offset: Animated.Value, step: number) => React.ReactNode;
 }) {
   const step = scale(CARD_W) + scale(CARD_GAP);
-  const ref = useRef<ScrollView>(null);
-  const styles = makeStyles(scale);
+  const offset = useRef(new Animated.Value(0)).current;
 
+  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { x: offset } } }], {
+    useNativeDriver: true,
+  });
+
+  // Still tracked, but only for the dots and the swipe hint, which are about
+  // where the student landed rather than where their finger is.
   const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = Math.round(e.nativeEvent.contentOffset.x / step);
     if (next !== page) onPage(next);
   };
 
+  const styles = makeStyles(scale);
+
   return (
     <View>
-      <ScrollView
-        ref={ref}
+      <Animated.ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={step}
         decelerationRate="fast"
         disableIntervalMomentum
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         onMomentumScrollEnd={onEnd}
         contentContainerStyle={styles.track}>
-        {children}
-      </ScrollView>
+        {children(offset, step)}
+      </Animated.ScrollView>
 
       <View style={styles.dots}>
         {Array.from({ length: count }, (_, i) => (
-          <Dot key={i} active={i === page} scale={scale} />
+          <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
         ))}
         {count > 1 && page === 0 && <Text style={[kicker(scale, 9.5), styles.hint]}>← Swipe</Text>}
       </View>
@@ -65,32 +83,36 @@ export function Carousel({
   );
 }
 
-/** A card's own presence in the rail: the current one is full, its neighbours
- *  sit back. Opacity and scale only, never layout. */
+/** One card, placed against the live scroll offset. */
 export function CarouselCard({
-  active,
+  index,
+  offset,
+  step,
   scale,
   children,
 }: {
-  active: boolean;
+  index: number;
+  offset: Animated.Value;
+  step: number;
   scale: (n: number) => number;
   children: React.ReactNode;
 }) {
-  const style = useAnimatedStyle(() => ({
-    opacity: withTiming(active ? 1 : 0.55, { duration: 300 }),
-    transform: [{ scale: withTiming(active ? 1 : 0.98, { duration: 300 }) }],
-  }));
-  return <Animated.View style={[{ width: scale(CARD_W) }, style]}>{children}</Animated.View>;
-}
-
-function Dot({ active, scale }: { active: boolean; scale: (n: number) => number }) {
-  const style = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(active ? colors.ink : 'rgba(28,26,22,.18)', { duration: 200 }),
-  }));
+  const inputRange = [(index - 1) * step, index * step, (index + 1) * step];
+  const opacity = offset.interpolate({
+    inputRange,
+    outputRange: [0.55, 1, 0.55],
+    extrapolate: 'clamp',
+  });
+  const cardScale = offset.interpolate({
+    inputRange,
+    outputRange: [0.98, 1, 0.98],
+    extrapolate: 'clamp',
+  });
   return (
     <Animated.View
-      style={[{ width: scale(6), height: scale(6), borderRadius: scale(99) }, style]}
-    />
+      style={{ width: scale(CARD_W), opacity, transform: [{ scale: cardScale }] }}>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -108,9 +130,13 @@ function makeStyles(scale: (n: number) => number) {
       gap: scale(6),
       paddingTop: scale(12),
     },
-    hint: {
-      color: colors.quiet,
-      marginLeft: scale(8),
+    dot: {
+      width: scale(6),
+      height: scale(6),
+      borderRadius: scale(99),
+      backgroundColor: 'rgba(28,26,22,.18)',
     },
+    dotActive: { backgroundColor: colors.ink },
+    hint: { color: colors.quiet, marginLeft: scale(8) },
   });
 }

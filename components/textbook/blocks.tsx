@@ -111,9 +111,17 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
         </View>
       );
 
+    // Four blocks below carry no card any more: def, defgrid, proc and
+    // mistakes are prose and lists, and boxing them turned a page of reading
+    // into a stack of panels. On a warm ground every white panel is also a
+    // seam, so the page looked patched the further you scrolled. A kicker and
+    // a rule carry the same "this is a definition" signal at a fraction of the
+    // weight. Boxes are kept only where the content is genuinely a discrete
+    // object: a formula, a figure, an accordion, a swipeable card, and the
+    // end-of-topic checkpoint.
     case 'def':
       return (
-        <View style={s.card}>
+        <View style={st.plainBlock}>
           <Text style={kicker(scale)}>Definition</Text>
           <Text style={st.defTerm}>{block.term}</Text>
           <Markup html={block.html} size={scale(15)} style={[s.blockBody, st.defBody]} />
@@ -122,7 +130,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
 
     case 'defgrid':
       return (
-        <View style={s.cardFlush}>
+        <View>
           <Text style={[kicker(scale), st.gridTitle]}>{block.title}</Text>
           {block.rows.map((row, i) => (
             <View key={i} style={st.gridRow}>
@@ -152,7 +160,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
 
     case 'proc':
       return (
-        <View style={s.card}>
+        <View style={st.plainBlock}>
           <Text style={kicker(scale)}>How to · {block.title}</Text>
           <View style={st.procList}>
             {block.steps.map((step, i) => (
@@ -219,8 +227,9 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
           page={page}
           onPage={(i) => ctx.set('page', ctx.uid, i)}
           scale={scale}>
-          {block.items.map((ex, i) => (
-            <CarouselCard key={i} active={i === page} scale={scale}>
+          {(offset, step) =>
+            block.items.map((ex, i) => (
+            <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
               <View style={st.swipeCard}>
                 <View style={st.formulaHead}>
                   <Text style={[kicker(scale), st.grow]}>
@@ -240,7 +249,8 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                 <Markup html={ex.ans} size={scale(14)} style={[s.tintPanel, st.exAns]} />
               </View>
             </CarouselCard>
-          ))}
+            ))
+          }
         </Carousel>
       );
     }
@@ -253,13 +263,14 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
           page={page}
           onPage={(i) => ctx.set('page', ctx.uid, i)}
           scale={scale}>
-          {block.items.map((q, i) => {
+          {(offset, step) =>
+            block.items.map((q, i) => {
             const key = `${ctx.uid}_${i}`;
             const answer = ctx.state.mcq[key] ?? { pick: null, solved: false };
             const nudge =
               !answer.solved && answer.pick !== null ? q.opts[answer.pick]?.nudge : null;
             return (
-              <CarouselCard key={i} active={i === page} scale={scale}>
+              <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
                   <Text style={kicker(scale)}>
                     Crack the MCQ · Q{i + 1} of {block.items.length}
@@ -308,7 +319,8 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                 </View>
               </CarouselCard>
             );
-          })}
+            })
+          }
         </Carousel>
       );
     }
@@ -321,11 +333,12 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
           page={page}
           onPage={(i) => ctx.set('page', ctx.uid, i)}
           scale={scale}>
-          {block.items.map((item, i) => {
+          {(offset, step) =>
+            block.items.map((item, i) => {
             const key = `${ctx.uid}_${i}`;
             const shown = !!ctx.state.practice[key];
             return (
-              <CarouselCard key={i} active={i === page} scale={scale}>
+              <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
                   <View style={st.formulaHead}>
                     <Text style={[kicker(scale), st.grow]}>
@@ -346,14 +359,15 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                 </View>
               </CarouselCard>
             );
-          })}
+            })
+          }
         </Carousel>
       );
     }
 
     case 'mistakes':
       return (
-        <View style={s.card}>
+        <View style={st.plainBlock}>
           <Text style={kicker(scale)}>Watch out</Text>
           <View style={st.procList}>
             {block.items.map((item, i) => (
@@ -412,6 +426,13 @@ export type { Block };
 function makeStyles(scale: (n: number) => number) {
   return StyleSheet.create({
     grow: { flex: 1 },
+    /** Un-boxed blocks. A hairline on the left is enough to say "this is a
+     *  unit" without drawing a container around it. */
+    plainBlock: {
+      paddingLeft: scale(14),
+      borderLeftWidth: 2,
+      borderLeftColor: 'rgba(28,26,22,.10)',
+    },
     pressed: { backgroundColor: colors.tint },
     hookHead: {
       flexDirection: 'row',
@@ -436,12 +457,11 @@ function makeStyles(scale: (n: number) => number) {
       marginTop: scale(6),
     },
     defBody: { marginTop: scale(4) },
-    gridTitle: { paddingTop: scale(13), paddingHorizontal: scale(16), paddingBottom: scale(4) },
+    gridTitle: { paddingBottom: scale(6) },
     gridRow: {
       flexDirection: 'row',
       gap: scale(12),
       paddingVertical: scale(9),
-      paddingHorizontal: scale(16),
       borderTopWidth: 1,
       borderTopColor: BORDER_SOFT,
     },
@@ -512,7 +532,7 @@ function makeStyles(scale: (n: number) => number) {
     },
     diaKicker: { marginBottom: scale(10) },
     swipeCard: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.readingCard,
       borderWidth: 1,
       borderColor: CARD_BORDER,
       borderRadius: scale(14),
@@ -559,7 +579,7 @@ function makeStyles(scale: (n: number) => number) {
       borderRadius: scale(10),
       borderWidth: 1,
       borderColor: CARD_BORDER,
-      backgroundColor: colors.paper,
+      backgroundColor: colors.reading,
     },
     optRight: { backgroundColor: colors.tint, borderColor: colors.ink },
     optWrong: { borderColor: 'rgba(221,68,51,.5)' },

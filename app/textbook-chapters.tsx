@@ -163,7 +163,10 @@ export default function TextbookChaptersScreen() {
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.paper },
+    // '#fff', like every other screen in this app (Home, Progress, Library,
+    // Learn, Practice all set it literally). `colors.paper` is a warm
+    // off-white and reads as a different page beside them.
+    screen: { flex: 1, backgroundColor: '#fff' },
     safeArea: { flex: 1 },
     bar: {
       flexDirection: 'row',

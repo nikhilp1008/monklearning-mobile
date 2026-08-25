@@ -6144,6 +6144,67 @@ Flex distributes the remaining space, so there is no arithmetic left to round.
 Verified by rendering the real component at 375, 390, 393, 402 and 430pt on
 device: side by side at all five.
 
+## Textbooks, second pass: measured rather than eyeballed
+
+Four reports from reading it on a phone. Each one turned out to have a cause
+worth writing down.
+
+### The chapter list was warm because it was on the wrong token
+
+It used `colors.paper` (`#FFFDF8`, "warm off-white, never pure white"). But no
+screen in this app actually uses `paper` as its ground: Home, Progress,
+Library, Learn and Practice all set `backgroundColor: '#fff'` literally. So the
+chapter list was the only warm page among them. Now `'#fff'`, like its
+siblings. Same for the topic sheet.
+
+### The reader's warmth was too much, and its cards were too hard
+
+`#FAF6EA` read as its own theme sitting next to pure-white screens, and every
+block card was pure white on top of it, which is what made the page look
+patched and grey the further you scrolled. Two changes: the ground softened to
+`#FBF8F0`, and cards moved off pure white to `colors.readingCard`
+(`#FFFDF7`), one step up from the ground rather than a hard edge.
+
+### Fewer boxes
+
+`def`, `defgrid`, `proc` and `mistakes` are prose and lists, and boxing them
+turned a page of reading into a stack of panels. They now carry a kicker and,
+where they need to read as a unit, a hairline down the left. Boxes are kept
+only where the content is genuinely a discrete object: a formula, a figure, an
+accordion, a swipeable card, and the end-of-topic checkpoint.
+
+### The carousel faded late because it was watching the wrong event
+
+Card opacity and scale keyed off the page index, which only updates in
+`onMomentumScrollEnd` — that fires once the scroll has fully stopped. So the
+incoming card stayed dimmed through the entire drag and then faded up well
+after the finger had gone, which is exactly the "takes some time to get to
+white" that was reported. Now each card interpolates against the live scroll
+offset through `Animated.event` on the native driver, so the change happens
+under the finger. The index is still tracked, but only for the dots and the
+swipe hint, which are about where the student landed rather than where their
+finger is.
+
+### The Mathematics tile, and two wrong fixes before the right one
+
+Measured from the screenshot: Physics 173.0pt, Chemistry 173.0pt,
+**Mathematics 192.7pt**.
+
+The first layout computed `(scale(390) - gutters - gap) / 2`. Since
+`scale(390)` resolves to exactly the window width, that is an exact fit at
+every width, and sub-pixel rounding tipped the second tile onto its own row on
+some phones.
+
+The second gave every tile `flex: 1`, which fixed the wrapping and introduced
+this: a flex item will not shrink below its own content, and "Mathematics" is a
+longer word than its half of the row. `minWidth: 0` did not move it, which is
+worth knowing.
+
+The third measures the row with `onLayout` and floors
+`(width - gap) / 2`. The number now comes from the layout that actually
+happened rather than from the window, and flooring guarantees two tiles plus a
+gap can never exceed it. Re-measured: **173.0 / 173.0 / 173.0**.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

@@ -64,7 +64,7 @@ export function mathText(scale: (n: number) => number, size: number): TextStyle 
 export function makeBlockStyles(scale: (n: number) => number) {
   return StyleSheet.create({
     card: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.readingCard,
       borderWidth: 1,
       borderColor: BORDER,
       borderRadius: scale(12),
@@ -72,7 +72,7 @@ export function makeBlockStyles(scale: (n: number) => number) {
       paddingHorizontal: scale(16),
     },
     cardFlush: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.readingCard,
       borderWidth: 1,
       borderColor: BORDER,
       borderRadius: scale(12),

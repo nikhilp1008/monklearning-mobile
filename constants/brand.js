@@ -7,12 +7,16 @@ export const colors = {
   paper: '#FFFDF8',     // background — warm off-white, never pure white
   welcomePaper: '#FFFEFB', // onboarding-only background, distinct from paper
   // The textbook reader's ground, and only that. A student sits on this page
-  // for a long stretch rather than scanning it, and `paper` is bright enough
-  // to feel heavy over that long. Warm enough to notice and settle behind,
-  // not so warm it tints the ink. Every other textbook screen (subject grid,
-  // chapter list) stays on `paper` with the rest of the app, so the warmth
-  // reads as "you are reading now" rather than as a second theme.
-  reading: '#FAF6EA',
+  // for a long stretch rather than scanning it, and white is heavy over that
+  // long. Every other screen in this app is pure white, so this has to be warm
+  // enough to rest the eye and light enough not to read as a second theme
+  // sitting next to them. An earlier, warmer #FAF6EA did read as its own
+  // theme, and the white block cards on top of it looked pasted on.
+  reading: '#FBF8F0',
+  // Block cards inside the reader. Not pure white: against a warm page a pure
+  // white card is a hard edge, and the reader has enough of them that the page
+  // starts to look patched. One step off the ground is enough to lift a card.
+  readingCard: '#FFFDF7',
   marigold: '#EEA31F',  // focus dot, primary accent, "the daily goal"
   slate: '#57534B',     // secondary/muted text
   faint: '#9C988C',     // tertiary text, overline labels

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/brand';
 import { SUBJECT_TILES, SubjectIcon } from '@/components/textbook/subjects';
@@ -28,6 +28,26 @@ export function TextbooksPage({
 }) {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [subjects, setSubjects] = useState<string[] | null>(null);
+  /**
+   * The row's real width, measured.
+   *
+   * Two earlier attempts failed for the same underlying reason. Deriving the
+   * width from `scale(390)` produced an exact fit that sub-pixel rounding
+   * tipped into wrapping. Letting flex share the row instead left Mathematics
+   * at 192.7pt against Physics and Chemistry at 173.0pt, because a flex item
+   * will not shrink below its own content and "Mathematics" is a longer word
+   * than its half of the row; `minWidth: 0` did not move it.
+   *
+   * Measuring the container removes both failure modes: the number comes from
+   * the layout that actually happened rather than from the window, and
+   * flooring it guarantees two tiles plus the gap can never exceed it.
+   */
+  const [rowWidth, setRowWidth] = useState(0);
+  const onRowLayout = (event: LayoutChangeEvent) => {
+    const measured = event.nativeEvent.layout.width;
+    setRowWidth((current) => (Math.abs(current - measured) > 0.5 ? measured : current));
+  };
+  const tileWidth = rowWidth > 0 ? Math.floor((rowWidth - scale(14)) / 2) : undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -66,18 +86,21 @@ export function TextbooksPage({
   return (
     <View style={styles.grid}>
       {rows.map((row, rowIndex) => (
-        <View key={rowIndex} style={styles.row}>
+        <View key={rowIndex} style={styles.row} onLayout={rowIndex === 0 ? onRowLayout : undefined}>
           {row.map((subject, columnIndex) => {
             if (!subject) return <View key={`gap-${columnIndex}`} style={styles.filler} />;
             const tile = SUBJECT_TILES[subject];
             if (!tile) return <View key={subject} style={styles.filler} />;
+            // Hidden until measured, so a first frame at the wrong width is
+            // never visible.
+            if (!tileWidth) return <View key={subject} style={styles.filler} />;
             return (
               <Pressable
                 key={subject}
                 onPress={() => router.push({ pathname: '/textbook-chapters', params: { subject } })}
                 style={({ pressed }) => [
                   styles.tile,
-                  { backgroundColor: tile.background, borderColor: tile.border },
+                  { width: tileWidth, backgroundColor: tile.background, borderColor: tile.border },
                   pressed && styles.tilePressed,
                 ]}>
                 <SubjectIcon subject={subject} size={scale(34)} tile={tile} />
@@ -101,7 +124,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     row: { flexDirection: 'row', gap: scale(14) },
     filler: { flex: 1 },
     tile: {
-      flex: 1,
+      // Width is set inline from the measured row; see `tileWidth`.
       height: verticalScale(190),
       borderRadius: scale(18),
       borderWidth: 1,

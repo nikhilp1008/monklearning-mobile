@@ -67,7 +67,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     root: { flex: 1, justifyContent: 'flex-end' },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(28,26,22,.3)' },
     sheet: {
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
       borderTopLeftRadius: scale(22),
       borderTopRightRadius: scale(22),
       maxHeight: '62%',
