@@ -37,7 +37,12 @@ import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-
  * design asks for no reading progress, no streaks and nothing to keep up with.
  */
 export default function TextbookReaderScreen() {
-  const params = useLocalSearchParams<{ subject?: string; classLevel?: string; title?: string }>();
+  const params = useLocalSearchParams<{
+    subject?: string;
+    classLevel?: string;
+    title?: string;
+    number?: string;
+  }>();
   const subject = (params.subject ?? '').toLowerCase();
   const classLevel = Number(params.classLevel ?? 11);
   const title = params.title ?? '';
@@ -171,7 +176,7 @@ export default function TextbookReaderScreen() {
               {chapter.title}
             </Text>
             <Text style={styles.chapterMeta} numberOfLines={1}>
-              Chapter {chapter.chapter} · {chapter.subject}
+              Chapter {params.number || chapter.chapter} · {chapter.subject}
             </Text>
           </View>
           <Text style={styles.percent}>{Math.round(percent)}%</Text>

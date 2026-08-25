@@ -6205,6 +6205,44 @@ The third measures the row with `onLayout` and floors
 happened rather than from the window, and flooring guarantees two tiles plus a
 gap can never exceed it. Re-measured: **173.0 / 173.0 / 173.0**.
 
+## Textbooks, third pass
+
+### The chapter number follows the catalogue
+
+The reader printed the content file's own NCERT number ("01") while the list it
+was opened from showed Sets at 2, because our corpus opens Class 11 Maths with
+Basic Mathematics. Two numbers for one chapter, one screen apart. The list now
+passes the number it displayed, and the reader prints that, falling back to the
+file's own only if it arrives without one.
+
+### The swipe label is gone, and the dots move with the finger
+
+A row of dots with one lit is the most recognised affordance on a phone, and
+"← SWIPE" beside it was the only instruction on a page that otherwise never
+instructs. Removed.
+
+The dots now interpolate against the live scroll offset, the same way the cards
+do, rather than snapping to the settled index. Opacity and scale rather than a
+colour change, because colour cannot be interpolated on the native driver and
+every dot is the same ink already.
+
+That also made the stored carousel position honest. `page` had become
+write-only once the cards stopped reading it: the reader kept a card index per
+block so it would survive a topic switch, and nothing ever applied it, so
+coming back to a topic dropped you on card one of a rail you were halfway
+through. The scroller is now seeded from it. Verified: leave topic 1 on
+practice card 2, go to topic 2, come back, still on card 2.
+
+### The reader is white, on trial
+
+`reading` and `readingCard` are both `#FFFFFF` for now. The argument for warming
+them stands (a student sits on this page for a long stretch rather than
+scanning it), and two warmer values were tried: `#FAF6EA` read as its own theme
+beside the app's pure-white screens, and `#FBF8F0` was better but still visibly
+a different page. They stay as named tokens rather than being inlined, so
+warming them again is one line each and nothing else in the app can pick the
+value up by accident.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

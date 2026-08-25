@@ -122,7 +122,19 @@ export default function TextbookChaptersScreen() {
                     onPress={() =>
                       router.push({
                         pathname: '/textbook-reader',
-                        params: { subject, classLevel: String(classLevel), title: chapter.name },
+                        params: {
+                          subject,
+                          classLevel: String(classLevel),
+                          title: chapter.name,
+                          // The reader prints whatever number this list showed.
+                          // The content file carries its own NCERT number, and
+                          // the two disagree: our corpus opens Class 11 Maths
+                          // with Basic Mathematics, so Sets is chapter 2 here
+                          // and "01" in the file. Two numbers for one chapter,
+                          // one screen apart, is the sort of thing a student
+                          // notices and cannot explain.
+                          number: String(index + 1).padStart(2, '0'),
+                        },
                       })
                     }
                     style={({ pressed }) => [

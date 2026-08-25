@@ -6,17 +6,20 @@ export const colors = {
   ink: '#1C1A16',      // primary text, borders, ink-offset shadows
   paper: '#FFFDF8',     // background — warm off-white, never pure white
   welcomePaper: '#FFFEFB', // onboarding-only background, distinct from paper
-  // The textbook reader's ground, and only that. A student sits on this page
-  // for a long stretch rather than scanning it, and white is heavy over that
-  // long. Every other screen in this app is pure white, so this has to be warm
-  // enough to rest the eye and light enough not to read as a second theme
-  // sitting next to them. An earlier, warmer #FAF6EA did read as its own
-  // theme, and the white block cards on top of it looked pasted on.
-  reading: '#FBF8F0',
+  // The textbook reader's ground, and the cards on it.
+  //
+  // Currently both pure white, on trial. The argument for warming them is real
+  // (a student sits on this page for a long stretch rather than scanning it,
+  // and white is heavy over that long) and two warmer values were tried:
+  // #FAF6EA read as its own theme beside the app's pure-white screens, and
+  // #FBF8F0 was better but still visibly a different page. They stay as named
+  // tokens rather than being inlined so warming them again is one line each,
+  // and so nothing else in the app can pick the value up by accident.
+  reading: '#FFFFFF',
   // Block cards inside the reader. Not pure white: against a warm page a pure
   // white card is a hard edge, and the reader has enough of them that the page
   // starts to look patched. One step off the ground is enough to lift a card.
-  readingCard: '#FFFDF7',
+  readingCard: '#FFFFFF',
   marigold: '#EEA31F',  // focus dot, primary accent, "the daily goal"
   slate: '#57534B',     // secondary/muted text
   faint: '#9C988C',     // tertiary text, overline labels
