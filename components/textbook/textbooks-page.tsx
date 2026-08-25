@@ -46,25 +46,47 @@ export function TextbooksPage({
     };
   }, []);
 
+  // Laid out as explicit rows of two rather than a wrapping grid.
+  //
+  // The wrapping version computed each tile as
+  // `(scale(390) - gutters - gap) / 2`, and since `scale(390)` resolves to
+  // exactly the window width that is an exact fit: two tiles plus the gap
+  // equal the content box to the last decimal. Any sub-pixel rounding tips
+  // the second tile onto its own line, which is why it looked right on one
+  // device and stacked one-per-row on another. Letting flex distribute the
+  // remaining space removes the arithmetic, and with it the rounding.
+  const rows: (string | null)[][] = [];
+  for (let i = 0; i < (subjects ?? []).length; i += 2) {
+    const pair = (subjects ?? []).slice(i, i + 2);
+    // An odd last subject keeps its half-width; without the filler, `flex: 1`
+    // would stretch it into a full-width banner.
+    rows.push(pair.length === 2 ? pair : [pair[0], null]);
+  }
+
   return (
     <View style={styles.grid}>
-      {(subjects ?? []).map((subject) => {
-        const tile = SUBJECT_TILES[subject];
-        if (!tile) return null;
-        return (
-          <Pressable
-            key={subject}
-            onPress={() => router.push({ pathname: '/textbook-chapters', params: { subject } })}
-            style={({ pressed }) => [
-              styles.tile,
-              { backgroundColor: tile.background, borderColor: tile.border },
-              pressed && styles.tilePressed,
-            ]}>
-            <SubjectIcon subject={subject} size={scale(34)} tile={tile} />
-            <Text style={styles.tileName}>{tile.label}</Text>
-          </Pressable>
-        );
-      })}
+      {rows.map((row, rowIndex) => (
+        <View key={rowIndex} style={styles.row}>
+          {row.map((subject, columnIndex) => {
+            if (!subject) return <View key={`gap-${columnIndex}`} style={styles.filler} />;
+            const tile = SUBJECT_TILES[subject];
+            if (!tile) return <View key={subject} style={styles.filler} />;
+            return (
+              <Pressable
+                key={subject}
+                onPress={() => router.push({ pathname: '/textbook-chapters', params: { subject } })}
+                style={({ pressed }) => [
+                  styles.tile,
+                  { backgroundColor: tile.background, borderColor: tile.border },
+                  pressed && styles.tilePressed,
+                ]}>
+                <SubjectIcon subject={subject} size={scale(34)} tile={tile} />
+                <Text style={styles.tileName}>{tile.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -72,18 +94,14 @@ export function TextbooksPage({
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
     grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
       gap: scale(14),
       paddingHorizontal: scale(20),
       paddingTop: verticalScale(14),
-      // Top-aligned on purpose: with three tiles the grid must not stretch to
-      // fill the screen, or the odd one out becomes a full-width banner.
-      alignContent: 'flex-start',
     },
+    row: { flexDirection: 'row', gap: scale(14) },
+    filler: { flex: 1 },
     tile: {
-      // Two per row against the page's own 20pt gutters and the 14pt gap.
-      width: (scale(390) - scale(40) - scale(14)) / 2,
+      flex: 1,
       height: verticalScale(190),
       borderRadius: scale(18),
       borderWidth: 1,

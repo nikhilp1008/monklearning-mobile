@@ -6104,6 +6104,46 @@ example, practice and MCQ carousels with their peek, dots and swipe hint;
 diagrams, mistakes, pro-tip and checkpoint blocks; and raised exponents
 throughout.
 
+## Three corrections to Textbooks, from reading it on a real phone
+
+### The reader gets its own warm ground
+
+`colors.reading` (`#FAF6EA`), and only the reader uses it. A student sits on
+that page for a long stretch rather than scanning it, and `paper` is bright
+enough to feel heavy over that long. The subject grid, the chapter list and the
+topic sheet all stay on `paper` with the rest of the app, so the warmth reads
+as "you are reading now" rather than as a second theme. Block cards stay white
+and lift off it.
+
+### The class toggle is the app's, not a lookalike
+
+The Class 11 / Class 12 control was hand-rolled: an ink-filled pill on
+`segmentTrack`, with no animation. The app already has `SlidingToggle`, used by
+Learn with Drona's chapter picker, Lessons, Practice and Exam scope, which
+measures each pill and springs a white thumb between them. Swapped in with
+Drona's own styling. A lookalike reads as a different app the moment it moves,
+and this one did not move at all.
+
+### The subject grid stacked one-per-row on some phones
+
+The tiles were a wrapping grid with a computed width:
+
+```
+(scale(390) - gutters - gap) / 2
+```
+
+`scale(390)` resolves to exactly the window width, so that is an *exact* fit:
+two tiles plus the gap equal the content box to the last decimal, at every
+width. Any sub-pixel rounding tips the second tile onto its own line, which is
+why it looked right on one device and stacked on another. At 390pt the two
+sides are equal before floating point even gets involved.
+
+Replaced with explicit rows of two, each tile `flex: 1`, and a filler for an odd
+last subject so it keeps its half width instead of stretching into a banner.
+Flex distributes the remaining space, so there is no arithmetic left to round.
+Verified by rendering the real component at 375, 390, 393, 402 and 430pt on
+device: side by side at all five.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.

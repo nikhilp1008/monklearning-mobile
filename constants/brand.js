@@ -6,6 +6,13 @@ export const colors = {
   ink: '#1C1A16',      // primary text, borders, ink-offset shadows
   paper: '#FFFDF8',     // background — warm off-white, never pure white
   welcomePaper: '#FFFEFB', // onboarding-only background, distinct from paper
+  // The textbook reader's ground, and only that. A student sits on this page
+  // for a long stretch rather than scanning it, and `paper` is bright enough
+  // to feel heavy over that long. Warm enough to notice and settle behind,
+  // not so warm it tints the ink. Every other textbook screen (subject grid,
+  // chapter list) stays on `paper` with the rest of the app, so the warmth
+  // reads as "you are reading now" rather than as a second theme.
+  reading: '#FAF6EA',
   marigold: '#EEA31F',  // focus dot, primary accent, "the daily goal"
   slate: '#57534B',     // secondary/muted text
   faint: '#9C988C',     // tertiary text, overline labels

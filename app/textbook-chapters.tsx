@@ -11,6 +11,7 @@ import { useScale } from '@/constants/scale';
 import { friendlyLoadError } from '@/lib/api';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
 import { isChapterReady } from '@/lib/textbooks';
+import { SlidingToggle } from '@/components/sliding-toggle';
 import { SUBJECT_TILES } from '@/components/textbook/subjects';
 import { kicker } from '@/components/textbook/theme';
 
@@ -27,6 +28,10 @@ import { kicker } from '@/components/textbook/theme';
  * hidden, marked SOON, because a syllabus with holes in it is more useful than
  * a short list that looks complete.
  */
+const CLASSES = ['Class 11', 'Class 12'] as const;
+type ClassOption = (typeof CLASSES)[number];
+const CLASS_LEVEL: Record<ClassOption, number> = { 'Class 11': 11, 'Class 12': 12 };
+
 export default function TextbookChaptersScreen() {
   const params = useLocalSearchParams<{ subject?: string }>();
   const subject = (params.subject ?? 'mathematics').toLowerCase();
@@ -35,7 +40,8 @@ export default function TextbookChaptersScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [classLevel, setClassLevel] = useState<11 | 12>(11);
+  const [activeClass, setActiveClass] = useState<ClassOption>('Class 11');
+  const classLevel = CLASS_LEVEL[activeClass];
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,21 +81,20 @@ export default function TextbookChaptersScreen() {
             </Svg>
           </Pressable>
 
-          <View style={styles.classTrack}>
-            {([11, 12] as const).map((level) => {
-              const active = level === classLevel;
-              return (
-                <Pressable
-                  key={level}
-                  onPress={() => setClassLevel(level)}
-                  style={[styles.classSeg, active && styles.classSegActive]}>
-                  <Text style={[styles.classLabel, active && styles.classLabelActive]}>
-                    Class {level}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {/* The same control Learn with Drona's chapter picker uses, not a
+              lookalike: measured pills, a spring-driven thumb, and the app's
+              own track and shadow. A hand-rolled copy sat here first and read
+              as a different app the moment it moved. */}
+          <SlidingToggle
+            options={CLASSES}
+            value={activeClass}
+            onChange={setActiveClass}
+            trackStyle={styles.classToggle}
+            thumbStyle={styles.classThumb}
+            pillStyle={styles.classPill}
+            textStyle={styles.classPillText}
+            textActiveStyle={styles.classPillTextActive}
+          />
         </View>
 
         <Text style={styles.title}>{tile?.label ?? 'Textbooks'}</Text>
@@ -173,26 +178,32 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       alignItems: 'flex-start',
       justifyContent: 'center',
     },
-    classTrack: {
-      flexDirection: 'row',
-      backgroundColor: colors.segmentTrack,
-      borderRadius: scale(99),
+    classToggle: {
+      gap: scale(3),
       padding: scale(3),
-    },
-    classSeg: {
-      width: scale(74),
-      height: scale(30),
-      alignItems: 'center',
-      justifyContent: 'center',
+      backgroundColor: 'rgba(28,26,22,.055)',
       borderRadius: scale(99),
     },
-    classSegActive: { backgroundColor: colors.ink },
-    classLabel: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: colors.faint,
+    classThumb: {
+      backgroundColor: '#fff',
+      borderRadius: scale(99),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(2) },
+      shadowOpacity: 0.12,
+      shadowRadius: scale(6),
+      elevation: 2,
     },
-    classLabelActive: { color: colors.paper },
+    classPill: {
+      paddingVertical: verticalScale(6),
+      paddingHorizontal: scale(13),
+      borderRadius: scale(99),
+    },
+    classPillText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(12),
+      color: colors.slate,
+    },
+    classPillTextActive: { color: colors.ink },
     title: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(33),

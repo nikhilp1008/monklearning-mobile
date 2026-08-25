@@ -277,7 +277,7 @@ export default function TextbookReaderScreen() {
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.paper },
+    screen: { flex: 1, backgroundColor: colors.reading },
     safeArea: { flex: 1 },
     topBar: {
       flexDirection: 'row',
