@@ -6299,6 +6299,35 @@ blocks, 96 figures, from 1,085 pages of source.
 | Statistics | 5 | 119 | 4 |
 | Probability | 6 | 151 | 7 |
 
+### Authoring another subject or class
+
+Nothing in the pipeline is specific to Class 11 Mathematics. To add a subject:
+
+1. **Extract.** No PDF tooling is installed; the stdlib extractor lives in the
+   session scratchpad and should be copied somewhere durable before it is
+   needed again. It reads FlateDecode streams through the document's ToUnicode
+   CMaps and reconstructs inter-word spacing from TJ kerning. Check its output
+   on a body page before trusting a whole book: the three bugs it had were all
+   invisible until a chapter author hit them.
+2. **Map the source's chapters onto the catalogue's**, which is what the
+   Chapters screen matches on. The two disagree more often than not: the
+   reference calls them "Trigonometric Functions" and "Complex Numbers and
+   Quadratic Equations" where our corpus says "Trigonometry" and "Complex
+   Numbers". `chapterKey` normalises punctuation and casing; the rest is a
+   judgement call, and the catalogue always wins.
+3. **Decide the figures by reading the source, not by guessing.** A histogram
+   kind was planned for Statistics and dropped after finding that chapter never
+   mentions one. Grep the range for the words its figures would use.
+4. **One agent per chapter**, given the spec, a finished chapter to match, its
+   page range, the figure vocabulary and the three checks to run. Do not let
+   them edit `lib/textbooks.ts`: parallel authors collide there, and
+   registering is one line the parent adds when the agent reports.
+5. **Do not register a chapter that validates clean until its author reports.**
+   Files validate clean mid-write; Conics did, well before it was finished.
+6. **Tell short chapters not to pad.** 3D Geometry and Statistics came in at
+   124 and 119 blocks against the hundred-page chapters' 150, and that is the
+   honest reading of 40 and 45 pages. Forcing parity produces filler.
+
 **Basic Mathematics is the one gap.** It is chapter 1 in our catalogue and the
 reference book starts at Sets, so it has no source and stays SOON.
 
@@ -6347,7 +6376,7 @@ chapter's author to catch them.**
 
 ## Still open
 
-Current as of 2026-08-23. Grouped by who is blocked.
+Current as of 2026-08-27. Grouped by who is blocked.
 
 ### Needs a decision from the user
 
@@ -6357,10 +6386,37 @@ Current as of 2026-08-23. Grouped by who is blocked.
   how Practice feels; (b) is a product change to its never-ending framing. The
   user has flagged the never-ending framing itself as something to fix, so this
   may be decided by that larger change.
-- **Deleting a doubt.** Planned, not built. The one-card-per-question split
-  landed partly to make it possible: a student can now drop a single bad
-  question instead of the whole photo. Notes already have the erase gesture and
-  its undo — the same pattern is the obvious starting point.
+- ~~**Deleting a doubt.**~~ **Built.** The erase gesture and its deferred undo
+  now cover doubts as well as notes (`app/(tabs)/library.tsx`, calling
+  `deleteDoubt`), and the one-card-per-question split is what makes it useful:
+  a student drops a single bad question rather than the whole photo. What is
+  still open is server-side, not here: the delete is hard, so the undo window
+  is a local timer rather than a soft delete the API could reverse.
+- **Basic Mathematics has no source.** It is chapter 1 of Class 11 Maths in
+  our catalogue, and the Drona reference book starts at Sets, so it is the one
+  chapter of fourteen that could not be written. Its row stays SOON. Either a
+  source document for it, or a decision to drop it from the catalogue, closes
+  this.
+- **Class 12 Mathematics is next**, awaiting its reference document. The
+  pipeline is ready for it and needs nothing new: the extractor, the block
+  schema, the nine figure kinds and `scripts/validate-chapters.mjs` are all
+  subject-agnostic. Registering a chapter is one line keyed on the catalogue's
+  own title, and `chapterKey` already normalises the punctuation that differs
+  between the catalogue and a source book.
+- **Physics and Chemistry textbooks do not exist.** Both subject tiles are
+  live and every chapter row under them reads SOON. Same pipeline applies when
+  their references arrive; the figure vocabulary is the open question, since
+  neither subject's diagrams are covered by the nine maths kinds.
+- **The fifteen source errors deserve a review of their own.** Each is recorded
+  in the header of the chapter carrying the correction, and each was found by
+  recomputation rather than by looking for them. Thirteen were not in the
+  book's own errata. That rate says the answer keys have not been checked
+  systematically, and the next subject's reference should be assumed to be in
+  the same state.
+- **No lesson has been recorded**, so every chapter row in the Lessons tab is
+  inert and carries a SOON tag. When the first one ships, that becomes a
+  per-chapter check the way `isChapterReady` already works for textbooks, and
+  `lesson-player` gets its only caller back.
 - **Subscription pricing** — every amount is still `₹—`. `monklearning.com`
   and `www.monklearning.com` both 404. Needs the 1/3/6/11-month prices for JEE,
   NEET and Both.
@@ -6378,10 +6434,12 @@ are the ones with visible consequences today:
   `'JEE'` and `'NEET'`, yet `progress.py` has a whole `entitlement == "both"`
   branch. A student who picks Both is stored as JEE right now, and will not see
   Biology until the constraint is widened.
-- **`/drona/catalogue` is not exam-filtered** the way `/progress` is — it
-  returns every chapter in the database. Worked around client-side in
-  `lib/drona.ts`; it belongs server-side, next to the filter `/progress`
-  already does.
+- ~~**`/drona/catalogue` is not exam-filtered.**~~ **Done**, server-side, and
+  the client workaround is gone: `lib/drona.ts` sends `?exam=` and caches per
+  exam. Measured on device, the server does more than the subject filter it
+  replaced, because it also reads each concept's `exams` tag: JEE goes from 75
+  chapters and 801 concepts to 74 and 793, NEET from 79 and 862 to 79 and 843.
+  The chapter it removes for JEE is Linear Programming, which is board-only.
 - **`enrolled_class` allows only 11, 12 or null**, so "dropper" is stored as 12
   and the exact answer survives only in local storage.
 
