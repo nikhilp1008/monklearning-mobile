@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   NativeScrollEvent,
@@ -17,7 +18,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Line, Path, Rect, SvgXml, Text as SvgText } from 'react-native-svg';
 
 import {
   AMBER,
@@ -26,6 +27,7 @@ import {
   BOARD_TOP,
   Blink,
   GREEN,
+  GREEN_INK,
   INK_GHOST,
   CaptionStrip,
   DARK_CHROME,
@@ -45,6 +47,13 @@ import {
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
+import { getScene } from '@/components/scenes';
+import {
+  getLessonSections,
+  type BoardEvent,
+  type Language,
+  type LessonSection,
+} from '@/lib/lessons';
 
 type Segment = { text: string; bold?: boolean };
 type BoardBlock =
@@ -52,6 +61,9 @@ type BoardBlock =
   | { kind: 'equation'; text: string; size: 'large' | 'small' }
   | { kind: 'body'; segments: Segment[] }
   | { kind: 'diagram' }
+  /** A real authored figure from `lesson_sections.board_content` — the same
+   *  SVG markup the webpage draws, rendered by react-native-svg. */
+  | { kind: 'svg'; svg: string; caption?: string }
   | {
       kind: 'kalamNote';
       text: string;
@@ -62,64 +74,59 @@ type BoardBlock =
       maxWidth?: number;
     };
 
-const BOARD_BLOCKS: BoardBlock[] = [
-  { kind: 'kalamHeading', text: 'two trains, one platform' },
-  { kind: 'equation', text: 'v(A rel B) = v(A) − v(B)', size: 'large' },
-  {
-    kind: 'body',
-    segments: [
-      { text: 'Velocity is always measured ' },
-      { text: 'relative to something', bold: true },
-      { text: '. Change the observer, change the answer.' },
-    ],
-  },
-  { kind: 'diagram' },
-  {
-    kind: 'body',
-    segments: [
-      { text: 'Same direction, same speed → they see each other ' },
-      { text: 'standing still', bold: true },
-      { text: '.' },
-    ],
-  },
-  {
-    kind: 'kalamNote',
-    text: 'aur opposite direction?',
-    color: '#157A45',
-    fontSize: 15,
-    rotateDeg: -0.3,
-    marginBottom: 9,
-  },
-  { kind: 'equation', text: '|v(A rel B)| = 60 + 60 = 120 km/h', size: 'small' },
-  {
-    kind: 'body',
-    segments: [
-      { text: 'Crossing trains flash past each other — the speeds ' },
-      { text: 'add', bold: true },
-      { text: ". That's why the other train is gone in two seconds." },
-    ],
-  },
-  {
-    kind: 'kalamNote',
-    text: 'same idea powers river–boat problems — up next.',
-    color: colors.red,
-    fontSize: 14.5,
-    rotateDeg: -0.4,
-    marginBottom: 8,
-    maxWidth: 560,
-  },
-];
+/**
+ * A `board_content` event, as authored for the webpage, expressed in this
+ * board's own vocabulary.
+ *
+ * The two vocabularies were built independently and line up almost exactly —
+ * the one gap is `diagram`, which here meant the hardcoded trains drawing and
+ * now carries real SVG. An unrecognised type keeps its words as body text
+ * rather than disappearing, so a new authoring kind degrades instead of
+ * blanking part of a lesson.
+ */
+function toBoardBlock(event: BoardEvent): BoardBlock | null {
+  const text = (event.text ?? event.latex ?? '').trim();
 
-const CAPTION_TEXT =
-  '…dono train same speed pe hain, toh ek dusre ke liye ruki hui';
+  switch (event.type) {
+    case 'heading':
+      return text ? { kind: 'kalamHeading', text } : null;
+    case 'formula':
+      return text ? { kind: 'equation', text, size: 'large' } : null;
+    case 'note':
+      return text
+        ? {
+            kind: 'kalamNote',
+            text,
+            color: GREEN_INK,
+            fontSize: 15,
+            rotateDeg: -0.3,
+            marginBottom: 8,
+            maxWidth: 560,
+          }
+        : null;
+    case 'diagram':
+      return event.svg
+        ? { kind: 'svg', svg: event.svg, caption: event.caption }
+        : event.caption
+          ? { kind: 'body', segments: [{ text: event.caption }] }
+          : null;
+    default:
+      return text
+        ? {
+            kind: 'body',
+            segments: [{ text, bold: event.emphasis === 'high' || event.emphasis === 'key' }],
+          }
+        : null;
+  }
+}
 
-const TOPICS = [
-  { name: 'Displacement & distance' },
-  { name: 'Average & instantaneous velocity' },
-  { name: 'Relative velocity' },
-  { name: 'Projectile basics' },
-  { name: 'River–boat problems' },
-];
+/** How many characters a block holds, for the writing animation. */
+function blockLength(block: BoardBlock): number {
+  if (block.kind === 'body') return block.segments.reduce((n, s) => n + s.text.length, 0);
+  if (block.kind === 'svg') return 0;
+  if (block.kind === 'diagram') return 0;
+  return block.text.length;
+}
 
 const CHAR_TICK_MS = 26;
 const DIAGRAM_HOLD_TICKS = 24;
@@ -143,74 +150,136 @@ function revealSegments(segments: Segment[], chars: number): Segment[] {
   return result;
 }
 
+type LoadState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; sections: LessonSection[] }
+  | { kind: 'error' };
+
 export default function LessonPlayerScreen() {
   const isLandscape = useLandscapeLock();
-  const params = useLocalSearchParams<{ chapterId?: string; chapterTitle?: string }>();
-  const chapterTitle = (params.chapterTitle ?? 'Kinematics').split(' · ')[0];
+  const params = useLocalSearchParams<{
+    chapterId?: string;
+    chapterTitle?: string;
+    subject?: string;
+    classLabel?: string;
+  }>();
+  const chapterId = params.chapterId ?? '';
+  const chapterTitle = (params.chapterTitle ?? 'Lesson').split(' · ')[0];
+  const chapterSub = [params.subject, params.classLabel].filter(Boolean).join(' · ');
   const { scale, verticalScale } = useLandscapeScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  // Board typewriter (adapted from live-classroom.tsx)
-  const [revealedBlockCount, setRevealedBlockCount] = useState(0);
-  const [currentChars, setCurrentChars] = useState(0);
-  const [diagramHold, setDiagramHold] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [language, setLanguage] = useState<Language>('english');
+  const [state, setState] = useState<LoadState>({ kind: 'loading' });
+  /** The section being taught. Named `currentSegment` because the progress bar
+   *  below draws one segment per section, exactly as it did per topic. */
+  const [currentSegment, setCurrentSegment] = useState(0);
+
+  const sections = state.kind === 'ready' ? state.sections : [];
+  const section = sections[currentSegment] ?? null;
+
+  const load = useCallback(() => {
+    if (!chapterId) {
+      setState({ kind: 'error' });
+      return;
+    }
+    setState({ kind: 'loading' });
+    getLessonSections(chapterId, language)
+      .then((rows) => setState({ kind: 'ready', sections: rows }))
+      .catch(() => setState({ kind: 'error' }));
+  }, [chapterId, language]);
+
+  useEffect(load, [load]);
+
+  // The narration is the clock: 100ms so a line lands with the sentence that
+  // introduces it rather than a beat behind it.
+  const source = useMemo(
+    () => (section?.audioUrl ? { uri: section.audioUrl } : null),
+    [section?.audioUrl]
+  );
+  const player = useAudioPlayer(source, { updateInterval: 100 });
+  const status = useAudioPlayerStatus(player);
+  const isPlaying = status.playing ?? false;
+  const currentTime = status.currentTime ?? 0;
+  const duration = status.duration || section?.durationSec || 0;
+
+  /**
+   * Events paired with the moment they are spoken. Mapping can drop an event
+   * (one with no words and no drawing), so the timing is carried alongside its
+   * block rather than looked up by index afterwards — indices into `events`
+   * and into `blocks` are not the same list once anything is dropped.
+   */
+  const blocks = useMemo(() => {
+    if (!section) return [] as { block: BoardBlock; at: number }[];
+    const out: { block: BoardBlock; at: number }[] = [];
+    section.events.forEach((event, i) => {
+      const block = toBoardBlock(event);
+      if (block) out.push({ block, at: section.revealAt[i] ?? 0 });
+    });
+    return out;
+  }, [section]);
+
+  /**
+   * Which blocks are finished, and how far into writing the current one we
+   * are. Both fall out of the playhead, so scrubbing, pausing and switching
+   * language stay in sync without a second timer to keep honest — which is
+   * what the old `setInterval` typewriter could not do.
+   */
+  const { revealedBlockCount, currentChars } = useMemo(() => {
+    if (blocks.length === 0) return { revealedBlockCount: 0, currentChars: 0 };
+    let idx = -1;
+    for (let i = 0; i < blocks.length; i++) {
+      if (blocks[i].at <= currentTime) idx = i;
+      else break;
+    }
+    if (idx < 0) return { revealedBlockCount: 0, currentChars: 0 };
+
+    const start = blocks[idx].at;
+    const end = idx + 1 < blocks.length ? blocks[idx + 1].at : duration || start + 1;
+    const span = Math.max(0.001, end - start);
+    const progress = Math.max(0, Math.min(1, (currentTime - start) / span));
+    const length = blockLength(blocks[idx].block);
+    // Written a little faster than the gap it is given, so a line is finished
+    // and readable while the teacher is still talking about it rather than
+    // completing exactly as the next one starts.
+    const chars = length === 0 ? Infinity : Math.ceil(length * Math.min(1, progress * 1.35));
+    return { revealedBlockCount: idx, currentChars: chars };
+  }, [blocks, currentTime, duration]);
+
+  const caption = useMemo(() => {
+    if (!section) return '';
+    const spoken = revealedBlockCount;
+    return section.captions[spoken]?.text ?? section.captions[spoken - 1]?.text ?? '';
+  }, [section, revealedBlockCount]);
+
+  /**
+   * A lesson starts teaching as soon as it is opened, and sections play on
+   * into each other — a student who tapped a chapter has already said they
+   * want the class, and making them tap play again for each of ninety-two
+   * sections turns listening into clicking.
+   */
+  const wasPlayingRef = useRef(true);
+  useEffect(() => {
+    if (isPlaying) wasPlayingRef.current = true;
+  }, [isPlaying]);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      if (!isPlaying) return;
-      setRevealedBlockCount((blockIdx) => {
-        if (blockIdx >= BOARD_BLOCKS.length) return blockIdx;
-        const block = BOARD_BLOCKS[blockIdx];
-        if (block.kind === 'diagram') {
-          setDiagramHold((h) => {
-            if (h + 1 >= DIAGRAM_HOLD_TICKS) {
-              setCurrentChars(0);
-              return 0;
-            }
-            return h + 1;
-          });
-          if (diagramHold + 1 >= DIAGRAM_HOLD_TICKS) return blockIdx + 1;
-          return blockIdx;
-        }
-        const fullLength =
-          block.kind === 'body'
-            ? block.segments.reduce((sum, s) => sum + s.text.length, 0)
-            : block.text.length;
-        const step = Math.random() < 0.25 ? 2 : 1;
-        const next = currentChars + step;
-        if (next >= fullLength) {
-          setCurrentChars(0);
-          return blockIdx + 1;
-        }
-        setCurrentChars(next);
-        return blockIdx;
-      });
-    }, CHAR_TICK_MS);
-    return () => clearInterval(id);
-  }, [isPlaying, currentChars, diagramHold]);
-
-  // 5-segment story progress bar — 80s per segment, respects play/pause.
-  const [currentSegment, setCurrentSegment] = useState(2);
-  const [segElapsed, setSegElapsed] = useState(0);
+    if (status.didJustFinish) {
+      setCurrentSegment((i) => (i + 1 < sections.length ? i + 1 : i));
+    }
+  }, [status.didJustFinish, sections.length]);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      if (!isPlaying) return;
-      setSegElapsed((elapsed) => {
-        const next = elapsed + SEGMENT_TICK_MS;
-        if (next < SEGMENT_DURATION_MS) return next;
-        if (currentSegment < TOPICS.length - 1) {
-          setCurrentSegment((s) => s + 1);
-          return 0;
-        }
-        return SEGMENT_DURATION_MS;
-      });
-    }, SEGMENT_TICK_MS);
-    return () => clearInterval(id);
-  }, [isPlaying, currentSegment]);
+    if (wasPlayingRef.current) player.play();
+  }, [player]);
 
-  const segProgress = segElapsed / SEGMENT_DURATION_MS;
+  /** The authored scene for this exact section, if one has been ported. */
+  const SceneForSection = useMemo(
+    () => getScene(chapterId, section?.position),
+    [chapterId, section?.position]
+  );
+
+  const segProgress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
 
   // Chrome auto-hide / follow-scroll (adapted from live-classroom.tsx)
   const [chromeVisible, setChromeVisible] = useState(true);
@@ -236,11 +305,15 @@ export default function LessonPlayerScreen() {
   }, []);
 
   useEffect(() => {
+    // A scene draws on a fixed canvas rather than growing downward, so there
+    // is nothing to follow — and scrolling to the end parks the board below
+    // the drawing, which looks like a blank lesson.
+    if (SceneForSection) return;
     const id = setInterval(() => {
       if (following) scrollRef.current?.scrollToEnd({ animated: false });
     }, FOLLOW_SCROLL_MS);
     return () => clearInterval(id);
-  }, [following]);
+  }, [following, SceneForSection]);
 
   // Header tucks up; the dock's slot collapses under it so "Back to now"
   // drops into the dock's place instead of hanging in space. The chip is
@@ -300,7 +373,6 @@ export default function LessonPlayerScreen() {
 
   const jumpToTopic = (index: number) => {
     setCurrentSegment(index);
-    setSegElapsed(0);
     setDrawerOpen(false);
   };
 
@@ -330,7 +402,22 @@ export default function LessonPlayerScreen() {
           onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
           showsVerticalScrollIndicator={false}>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
-            {BOARD_BLOCKS.slice(0, revealedBlockCount).map((block, i) => (
+            {section && <Text style={styles.sectionHeading}>{section.title}</Text>}
+            {/* A hand-authored scene, when this section has one: the same
+                choreographed board the webpage draws, driven by the same
+                playhead. Sections without one fall through to their
+                board_content events below — the webpage's own fallback. */}
+            {SceneForSection ? (
+              <View style={styles.sceneWrap}>
+                <SceneForSection
+                  currentTime={currentTime}
+                  reveals={section?.revealAt ?? []}
+                  language={language}
+                />
+              </View>
+            ) : null}
+            {!SceneForSection &&
+              blocks.slice(0, revealedBlockCount).map(({ block }, i) => (
               <BoardBlockView
                 key={i}
                 block={block}
@@ -340,17 +427,27 @@ export default function LessonPlayerScreen() {
                 verticalScale={verticalScale}
               />
             ))}
-            {revealedBlockCount < BOARD_BLOCKS.length && (
+            {!SceneForSection && revealedBlockCount < blocks.length && (
               <BoardBlockView
                 key={revealedBlockCount}
-                block={BOARD_BLOCKS[revealedBlockCount]}
+                block={blocks[revealedBlockCount].block}
                 chars={currentChars}
                 styles={styles}
                 scale={scale}
                 verticalScale={verticalScale}
               />
             )}
-            {revealedBlockCount >= BOARD_BLOCKS.length && (
+            {state.kind === 'loading' && (
+              <Text style={styles.boardBody}>Loading the lesson…</Text>
+            )}
+            {state.kind === 'error' && (
+              <Pressable onPress={load}>
+                <Text style={styles.boardBody}>
+                  Couldn&apos;t load this lesson. Tap to try again.
+                </Text>
+              </Pressable>
+            )}
+            {blocks.length > 0 && revealedBlockCount >= blocks.length && (
               <View style={styles.writingRow}>
                 <Blink style={styles.writingCursor} />
                 <Text style={styles.writingText}>Writing…</Text>
@@ -372,7 +469,10 @@ export default function LessonPlayerScreen() {
           </Pressable>
           <View style={styles.chapterChip}>
             <Text style={styles.chapterChipTitle}>{chapterTitle}</Text>
-            <Text style={styles.chapterChipSub}>Physics · Class 11</Text>
+            <Text style={styles.chapterChipSub}>
+              {chapterSub ? `${chapterSub} · ` : ''}
+              {sections.length > 0 ? `Section ${currentSegment + 1} of ${sections.length}` : ''}
+            </Text>
           </View>
         </Animated.View>
 
@@ -387,7 +487,17 @@ export default function LessonPlayerScreen() {
           )}
           <Animated.View style={[styles.dockSlot, dockSlotStyle]} pointerEvents="box-none">
             <View style={styles.dock}>
-              <Pressable style={styles.dockPlayBtn} onPress={() => setIsPlaying((p) => !p)}>
+              <Pressable
+                style={styles.dockPlayBtn}
+                onPress={() => {
+                  if (isPlaying) {
+                    wasPlayingRef.current = false;
+                    player.pause();
+                  } else {
+                    wasPlayingRef.current = true;
+                    player.play();
+                  }
+                }}>
                 {isPlaying ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
               </Pressable>
               <Pressable style={styles.dockTopicsBtn} onPress={openDrawer}>
@@ -409,7 +519,7 @@ export default function LessonPlayerScreen() {
         <View
           style={[styles.segbar, { opacity: chromeVisible ? 1 : 0.45 }]}
           pointerEvents="none">
-          {TOPICS.map((_, i) => (
+          {sections.map((_, i) => (
             <SegmentTrack
               key={i}
               index={i}
@@ -421,7 +531,7 @@ export default function LessonPlayerScreen() {
         </View>
       </View>
 
-      <CaptionStrip open={ccOn} listening={false} text={CAPTION_TEXT} />
+      <CaptionStrip open={ccOn} listening={false} text={caption} />
 
       {drawerOpen && (
         <>
@@ -438,13 +548,14 @@ export default function LessonPlayerScreen() {
             </View>
 
             <View style={styles.drawerList}>
-              {TOPICS.map((topic, i) => {
-                const status = i < currentSegment ? 'done' : i === currentSegment ? 'current' : 'upcoming';
+              {sections.map((entry, i) => {
+                const rowStatus =
+                  i < currentSegment ? 'done' : i === currentSegment ? 'current' : 'upcoming';
                 return (
                   <TopicRow
-                    key={i}
-                    name={topic.name}
-                    status={status}
+                    key={entry.id}
+                    name={entry.title}
+                    status={rowStatus}
                     styles={styles}
                     onPress={() => jumpToTopic(i)}
                   />
@@ -570,6 +681,9 @@ function BoardBlockView({
   if (block.kind === 'diagram') {
     return <TrainsDiagram scale={scale} styles={styles} />;
   }
+  if (block.kind === 'svg') {
+    return <AuthoredFigure block={block} styles={styles} scale={scale} />;
+  }
   const visible = revealSegments(block.segments, chars);
   return (
     <Text style={styles.boardBody}>
@@ -579,6 +693,101 @@ function BoardBlockView({
         </Text>
       ))}
     </Text>
+  );
+}
+
+/**
+ * Entities the authored figures use that react-native-svg's parser does not
+ * resolve. It handles the five XML built-ins and nothing else, so `&#215;`
+ * reaches the board as the literal text "&#215;" instead of "×".
+ *
+ * The five built-ins (`amp`, `lt`, `gt`, `quot`, `apos`) are deliberately
+ * absent: decoding `&amp;` to a bare `&`, or `&lt;` to `<`, would corrupt the
+ * very markup being parsed.
+ */
+const SVG_ENTITIES: Record<string, string> = {
+  nbsp: ' ', times: '×', divide: '÷', minus: '−', plusmn: '±', deg: '°',
+  micro: 'µ', ne: '≠', le: '≤', ge: '≥', asymp: '≈', equiv: '≡', prop: '∝',
+  rarr: '→', larr: '←', uarr: '↑', darr: '↓', harr: '↔', rArr: '⇒', lArr: '⇐',
+  hellip: '…', ndash: '–', mdash: '—', prime: '′', Prime: '″', bull: '•',
+  alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', theta: 'θ',
+  lambda: 'λ', mu: 'μ', nu: 'ν', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ',
+  phi: 'φ', omega: 'ω', Delta: 'Δ', Sigma: 'Σ', Omega: 'Ω', Phi: 'Φ',
+  infin: '∞', radic: '√', sum: '∑', int: '∫', part: '∂', prop2: '∝',
+  frac12: '½', frac13: '⅓', frac14: '¼', sup2: '²', sup3: '³',
+};
+
+/** A decoded character, unless it is one that would break the XML around it. */
+function safeEntityChar(code: number, original: string): string {
+  if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return original;
+  const char = String.fromCodePoint(code);
+  return '<>&"\''.includes(char) ? original : char;
+}
+
+function decodeSvgEntities(svg: string): string {
+  return svg
+    .replace(/&#x([0-9a-fA-F]+);/g, (m, hex) => safeEntityChar(parseInt(hex, 16), m))
+    .replace(/&#(\d+);/g, (m, dec) => safeEntityChar(parseInt(dec, 10), m))
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (m, name) => SVG_ENTITIES[name] ?? m);
+}
+
+/**
+ * Native text metrics are not the browser's: the same `font-family="sans-serif"`
+ * label sets a little wider here, so a label authored to sit just inside the
+ * right edge of the viewBox is clipped by it — "= 350 cm" arriving as
+ * "= 350 c". Widening the box gives that overflow somewhere to go, at the cost
+ * of drawing everything fractionally smaller.
+ */
+function padViewBox(svg: string): string {
+  return svg.replace(
+    /viewBox\s*=\s*["']\s*([-\d.]+)[,\s]+([-\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)\s*["']/i,
+    (match, x, y, w, h) => {
+      const width = Number(w);
+      const height = Number(h);
+      if (!(width > 0) || !(height > 0)) return match;
+      return `viewBox="${x} ${y} ${(width * 1.07).toFixed(2)} ${height}"`;
+    }
+  );
+}
+
+/**
+ * `viewBox` is what the authored figures carry — explicit width/height
+ * attributes usually are not — so the aspect ratio comes from there and the
+ * drawing is laid out to the board's column width. Without this a figure
+ * renders at whatever intrinsic size it claims and is cropped.
+ */
+function viewBoxAspect(svg: string): number | null {
+  const match = svg.match(
+    /viewBox\s*=\s*["']\s*[-\d.]+[,\s]+[-\d.]+[,\s]+([\d.]+)[,\s]+([\d.]+)/i
+  );
+  if (!match) return null;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (!(width > 0) || !(height > 0)) return null;
+  return width / height;
+}
+
+function AuthoredFigure({
+  block,
+  styles,
+  scale,
+}: {
+  block: Extract<BoardBlock, { kind: 'svg' }>;
+  styles: Styles;
+  scale: (n: number) => number;
+}) {
+  // Prepared once per figure: both passes are string rewrites, and the aspect
+  // has to be read from the padded box rather than the authored one.
+  const svg = useMemo(() => padViewBox(decodeSvgEntities(block.svg)), [block.svg]);
+  const width = scale(430);
+  const height = width / (viewBoxAspect(svg) ?? 16 / 9);
+  return (
+    <View style={styles.figureWrap}>
+      <View style={{ width, height }}>
+        <SvgXml xml={svg} width="100%" height="100%" />
+      </View>
+      {!!block.caption && <Text style={styles.figureCaption}>{block.caption}</Text>}
+    </View>
   );
 }
 
@@ -744,6 +953,36 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: 13.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
+      maxWidth: 560,
+    },
+    // The section's own title, written at the top of the board the way a
+    // teacher writes what today is about before starting on it.
+    sectionHeading: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: 17,
+      lineHeight: RHYTHM,
+      letterSpacing: -0.3,
+      color: INK,
+      maxWidth: 560,
+      marginBottom: 6,
+    },
+    // The authored scenes are drawn on a 1080x620 canvas; giving the wrapper
+    // that aspect lets the board scroll past it like any other block.
+    sceneWrap: {
+      alignSelf: 'stretch',
+      height: verticalScale(300),
+      marginBottom: 8,
+    },
+    figureWrap: {
+      alignItems: 'flex-start',
+      gap: 6,
+      marginVertical: 8,
+    },
+    figureCaption: {
+      fontFamily: 'AnekLatin_500Medium',
+      fontSize: 11,
+      lineHeight: 16,
+      color: INK_FAINT,
       maxWidth: 560,
     },
     boardBodyBold: {

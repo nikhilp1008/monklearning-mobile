@@ -1,4 +1,5 @@
 
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { colors } from '@/constants/brand';
 import { EXAMS, type ExamKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+import { getLessonSectionCounts, type ChapterLessonMeta } from '@/lib/lessons';
 import { getProfile } from '@/lib/profile';
 
 /**
@@ -25,21 +27,19 @@ import { getProfile } from '@/lib/profile';
 const CLASSES = ['Class 11', 'Class 12'] as const;
 
 /**
- * No lesson has been recorded yet, so no chapter here opens.
+ * Chapters open into the recorded lesson, the way they do on the webpage.
  *
- * The catalogue is still worth showing: a student can see the syllabus their
- * exam covers and what is coming, which is the same bargain the Textbooks
- * chapter list makes with its own unwritten chapters, and it carries the same
- * SOON tag so the two read alike.
+ * Every row used to be tagged SOON on the belief that "no lesson has been
+ * recorded yet". That stopped being true a while ago: the lessons live in
+ * Supabase `lesson_sections`, keyed by the same `chapters.id` this catalogue
+ * already carries. `/drona/catalogue` just cannot see them — it returns
+ * chapter and concept NAMES only, no board content and no audio — so this
+ * screen never had anything to open.
  *
- * Rows are deliberately NOT dimmed the way an unwritten textbook chapter is.
- * There, dimming means something because it sits beside a chapter that is
- * ready. Here every row is unavailable, so dimming all of them would say
- * nothing and would only make a browsable list look broken.
- *
- * When the first lesson ships, this becomes a per-chapter check the way
- * `isChapterReady` works for textbooks, and `lesson-player` gets its caller
- * back.
+ * The SOON tag is kept, but it is now earned per chapter rather than assumed
+ * for all of them: a chapter with no sections of its own still says SOON,
+ * exactly the webpage's `isClickable = sectionCount > 0`. Counts are one
+ * query for the whole visible list (see `getLessonSectionCounts`).
  */
 
 /** Catalogue subject strings → the compact pill labels used app-wide. */
@@ -67,6 +67,13 @@ export default function LessonsScreen() {
   const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 11');
   const [subjectIndex, setSubjectIndex] = useState(0);
   const [exam, setExam] = useState<ExamKey | null>(null);
+  /**
+   * chapterId → how many recorded sections it has. Absent while the counts are
+   * still in flight, which is why rows read as SOON until it arrives: claiming
+   * a chapter is ready and then failing to open it is the worse of the two
+   * wrong answers.
+   */
+  const [sectionCounts, setSectionCounts] = useState<Map<string, ChapterLessonMeta> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,8 +89,16 @@ export default function LessonsScreen() {
   function load() {
     setState({ kind: 'loading' });
     getCatalogue()
-      .then((catalogue) => setState({ kind: 'ready', catalogue }))
-      .catch(() => setState({ kind: 'error' }));
+      .then((catalogue) => {
+        setState({ kind: 'ready', catalogue });
+        // Covers every chapter at once and is cached for the run, so switching
+        // subject or class never waits on the network again.
+        return getLessonSectionCounts();
+      })
+      .then((counts) => counts && setSectionCounts(counts))
+      // A counts failure is not a catalogue failure: the list still browses,
+      // the rows just stay SOON rather than the screen going to an error.
+      .catch(() => setState((prev) => (prev.kind === 'ready' ? prev : { kind: 'error' })));
   }
 
   /** Canonical subject order app-wide: Physics, Chemistry, Maths, Biology. */
@@ -192,25 +207,78 @@ export default function LessonsScreen() {
                   </Text>
                 </View>
               ) : (
-                visibleChapters.map((chapter, index) => (
-                  <View
-                    key={chapter.id}
-                    style={[
-                      styles.row,
-                      index < visibleChapters.length - 1 && styles.rowDivider,
-                    ]}>
-                    <Text style={styles.rowNumber}>{String(index + 1).padStart(2, '0')}</Text>
-                    <View style={styles.rowTitleWrap}>
-                      <Text style={styles.rowTitle}>{chapter.name}</Text>
-                    </View>
-                    {chapter.subtopics.length > 0 && (
-                      <Text style={styles.topicsCount}>
-                        {chapter.subtopics.length} topic{chapter.subtopics.length === 1 ? '' : 's'}
-                      </Text>
-                    )}
-                    <Text style={styles.soon}>Soon</Text>
-                  </View>
-                ))
+                visibleChapters.map((chapter, index) => {
+                  const meta = sectionCounts?.get(chapter.id);
+                  const ready = (meta?.sections ?? 0) > 0;
+                  // Until the counts land, a chapter is neither ready nor
+                  // SOON — it is simply unknown. Showing SOON in that gap
+                  // told students a chapter had no lesson and then silently
+                  // corrected itself a second later.
+                  const settled = sectionCounts !== null;
+                  const rowStyle = [
+                    styles.row,
+                    index < visibleChapters.length - 1 && styles.rowDivider,
+                  ];
+                  const inner = (
+                    <>
+                      <Text style={styles.rowNumber}>{String(index + 1).padStart(2, '0')}</Text>
+                      <View style={styles.rowTitleWrap}>
+                        <Text style={styles.rowTitle}>{chapter.name}</Text>
+                      </View>
+                      {/* Sections are what actually plays, so a ready chapter
+                          counts those; an unwritten one still shows the
+                          syllabus it will cover. */}
+                      {ready && meta ? (
+                        // The webpage's chapter card counts subtopics, not
+                        // sections — a chapter reads as "12 subtopics", which is
+                        // the syllabus unit a student recognises, where "92
+                        // sections" is an authoring detail.
+                        <Text style={styles.topicsCount}>
+                          {meta.subtopics} subtopic{meta.subtopics === 1 ? '' : 's'}
+                        </Text>
+                      ) : (
+                        chapter.subtopics.length > 0 && (
+                          <Text style={styles.topicsCount}>
+                            {chapter.subtopics.length} topic
+                            {chapter.subtopics.length === 1 ? '' : 's'}
+                          </Text>
+                        )
+                      )}
+                      {ready ? (
+                        <Text style={styles.rowArrow}>→</Text>
+                      ) : settled ? (
+                        <Text style={styles.soon}>Soon</Text>
+                      ) : null}
+                    </>
+                  );
+
+                  if (!ready) {
+                    return (
+                      <View key={chapter.id} style={rowStyle}>
+                        {inner}
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <PressableScale
+                      key={chapter.id}
+                      style={rowStyle}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/lesson-player',
+                          params: {
+                            chapterId: chapter.id,
+                            chapterTitle: chapter.name,
+                            subject: subject ? shortSubject(subject.subject) : '',
+                            classLabel: activeClass,
+                          },
+                        })
+                      }>
+                      {inner}
+                    </PressableScale>
+                  );
+                })
               )}
             </ScrollView>
           )}
@@ -391,6 +459,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     topicsCount: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(11),
+      color: colors.faint,
+    },
+    // Same affordance the drona chapter list ends its rows with, so a chapter
+    // that opens looks the same wherever a student meets one.
+    rowArrow: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(13),
       color: colors.faint,
     },
     // The same tag the Textbooks chapter list uses for a chapter that is not
