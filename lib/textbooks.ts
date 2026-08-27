@@ -232,6 +232,9 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-05-inequalities'),
   'mathematics|11|permutations and combinations': () =>
     import('@/content/textbooks/math-11-06-permutations'),
+  'mathematics|11|binomial theorem': () => import('@/content/textbooks/math-11-07-binomial'),
+  'mathematics|11|sequences and series': () =>
+    import('@/content/textbooks/math-11-08-sequences'),
   'mathematics|11|straight lines': () =>
     import('@/content/textbooks/math-11-09-straight-lines'),
 };
