@@ -24,6 +24,8 @@ import Svg, {
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
+import type { DiagramFrame } from '@/lib/textbooks';
+import { Plot, UnitCircle } from '@/components/textbook/plot';
 import { useScale } from '@/constants/scale';
 
 /**
@@ -68,12 +70,18 @@ const FAINT_FILL = '#FAF8F2';
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
 export const DIAGRAM_KINDS: readonly string[] = [
+  // The six bespoke set-theory figures, each with its captions built in.
   'numsys',
   'lattice',
   'venn2',
   'venn3',
   'family',
   'grid',
+  // The parameterised ones. These draw whatever the content block's `frames`
+  // describe, so a chapter can author a figure without touching this file.
+  'plot',
+  'numberline',
+  'unitcircle',
 ];
 
 interface KindConfig {
@@ -157,10 +165,19 @@ export function TextbookDiagram({
   kind,
   selected,
   onSelect,
+  chips,
+  captions,
+  mathChips,
+  frames,
 }: {
   kind: string;
   selected: number;
   onSelect: (i: number) => void;
+  /** Authored by the chapter; falls back to the built-in text for the six. */
+  chips?: string[];
+  captions?: string[];
+  mathChips?: boolean;
+  frames?: DiagramFrame[];
 }) {
   const { scale } = useScale();
   const styles = useMemo(() => createStyles(scale), [scale]);
@@ -170,7 +187,12 @@ export function TextbookDiagram({
     setMeasured(e.nativeEvent.layout.width);
   }, []);
 
-  const config = CONFIG[kind];
+  // A chapter's own chips and captions win. The built-in CONFIG stays for the
+  // six figures written before diagrams were authorable.
+  const authored = chips && chips.length > 0;
+  const config: KindConfig | undefined = authored
+    ? { chips, captions: captions ?? [], mathChips: mathChips ?? false }
+    : CONFIG[kind];
   // The SVG figures need a pixel width before they can pick a height. The
   // fallback is the 390pt canvas minus its 24pt gutters, the card border and
   // the card's own padding, so the first frame is already the right size on a
@@ -190,6 +212,12 @@ export function TextbookDiagram({
         {kind === 'venn3' && <VennThree selected={sel} width={figureWidth} />}
         {kind === 'family' && <IntervalFamily selected={sel} width={figureWidth} />}
         {kind === 'grid' && <IncidenceGrid selected={sel} styles={styles} />}
+        {(kind === 'plot' || kind === 'numberline') && frames?.[sel] && (
+          <Plot frame={frames[sel]} width={figureWidth} kind={kind} />
+        )}
+        {kind === 'unitcircle' && frames?.[sel] && (
+          <UnitCircle frame={frames[sel]} width={figureWidth} />
+        )}
       </View>
       <View style={styles.chipRow}>
         {config.chips.map((label, i) => (

@@ -214,6 +214,10 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             kind={block.kind}
             selected={selected}
             onSelect={(i) => ctx.set('diagram', ctx.uid, i)}
+            chips={block.chips}
+            captions={block.captions}
+            mathChips={block.mathChips}
+            frames={block.frames}
           />
         </View>
       );

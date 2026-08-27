@@ -11,6 +11,55 @@ import type { ExamKey } from '@/constants/onboarding';
  * `html` fields carry a closed set of inline tags — b, i, sup, sub, br — and
  * nothing else. See components/textbook/markup.tsx.
  */
+/**
+ * A curve the `plot` figure knows how to draw.
+ *
+ * A named vocabulary rather than an expression string: content stays compact
+ * and declarative, and the reader never evaluates anything a chapter wrote.
+ * `x` is the plot's own x, in the frame's units.
+ */
+export type PlotCurve =
+  /** a·sin(b(x − c)) + d, and the same for cos/tan. */
+  | { c: 'sin' | 'cos' | 'tan'; a?: number; b?: number; shift?: number; d?: number; dash?: boolean; soft?: boolean }
+  /** y = m·x + k. */
+  | { c: 'line'; m: number; k: number; dash?: boolean; soft?: boolean }
+  /** A vertical line, which `line` cannot express. */
+  | { c: 'vline'; x: number; dash?: boolean; soft?: boolean }
+  /** Σ coeffs[i]·x^i, lowest power first. */
+  | { c: 'poly'; coeffs: number[]; dash?: boolean; soft?: boolean }
+  | { c: 'circle'; cx?: number; cy?: number; r: number; dash?: boolean; soft?: boolean }
+  /** (x−cx)²/a² + (y−cy)²/b² = 1. */
+  | { c: 'ellipse'; cx?: number; cy?: number; a: number; b: number; dash?: boolean; soft?: boolean }
+  /** (x−cx)²/a² − (y−cy)²/b² = 1, both branches. */
+  | { c: 'hyperbola'; cx?: number; cy?: number; a: number; b: number; dash?: boolean; soft?: boolean }
+  /** y² = 4ax when `horizontal`, else x² = 4ay. */
+  | { c: 'parabola'; a: number; horizontal?: boolean; dash?: boolean; soft?: boolean }
+  | { c: 'abs' | 'exp' | 'log' | 'sqrt' | 'recip'; a?: number; dash?: boolean; soft?: boolean };
+
+/** One drawing, matched by index to one chip. */
+export interface DiagramFrame {
+  /** Visible window. Defaults suit a unit-scale figure. */
+  x?: [number, number];
+  y?: [number, number];
+  curves?: PlotCurve[];
+  /** Dots, with optional labels. `open` draws a hollow point. */
+  points?: { x: number; y: number; label?: string; open?: boolean; soft?: boolean }[];
+  /** Straight segments, for radii, projections, chords, vectors. */
+  segments?: { from: [number, number]; to: [number, number]; dash?: boolean; soft?: boolean; arrow?: boolean; label?: string }[];
+  /** Free-floating text at a point in plot units. */
+  labels?: { x: number; y: number; text: string; soft?: boolean }[];
+  /** Shaded band between two x values, or above/below a line. */
+  bands?: { x0?: number; x1?: number; y0?: number; y1?: number }[];
+  /** `numberline` only: intervals on ℝ, with bracket ends. */
+  intervals?: { from: number; to: number; openLeft?: boolean; openRight?: boolean; soft?: boolean; label?: string }[];
+  /** `unitcircle` only: the angle to sweep, in degrees. */
+  angle?: number;
+  /** `unitcircle` only: which of the three ratios to draw. */
+  show?: ('sin' | 'cos' | 'tan')[];
+  /** Axis tick labels in multiples of π, for trig plots. */
+  piTicks?: boolean;
+}
+
 export type Block =
   | { t: 'hook'; html: string }
   | { t: 'p'; html: string }
@@ -27,7 +76,30 @@ export type Block =
     }
   | { t: 'proc'; title: string; steps: string[] }
   | { t: 'deriv'; kicker: string; steps: { eq: string; why: string }[] }
-  | { t: 'diagram'; kind: string; kicker: string }
+  | {
+      t: 'diagram';
+      kind: string;
+      kicker: string;
+      /**
+       * Chip labels and their captions.
+       *
+       * These were built into the reader, one hardcoded block per figure, which
+       * meant a chapter's editorial writing lived in a shared component and a
+       * new figure could not be authored without editing it. They belong to the
+       * chapter. Optional so the six original set-theory figures keep their
+       * built-in text and nothing had to be migrated.
+       */
+      chips?: string[];
+      captions?: string[];
+      /** True when chip labels are maths notation and need the serif face. */
+      mathChips?: boolean;
+      /**
+       * What to draw, one entry per chip. Only the parameterised kinds
+       * (`plot`, `numberline`, `unitcircle`) read this; the bespoke set-theory
+       * figures draw themselves from `selected` alone.
+       */
+      frames?: DiagramFrame[];
+    }
   | { t: 'ex'; tag: string; q: string; steps: string[]; ans: string }
   // `nudge` is null, not absent, on the correct option: there is no trap to
   // name. The spec asks for one on every wrong option and nothing on the right
