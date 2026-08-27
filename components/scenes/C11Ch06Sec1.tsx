@@ -91,8 +91,8 @@ export default function C11Ch06Sec1({ currentTime, reveals, language }: ScenePro
       />
 
       {/* the coach + platform metaphor group — vacates its space at beat 7 */}
-      {/* The web fades this group with a CSS transition; react-native-svg has
-          no transition property, so the opacity is applied directly. */}
+      {/* The web fades this group with a CSS transition; react-native-svg
+          has no transition property, so the opacity is applied directly. */}
       <G opacity={coachOn ? 1 : 0}>
         {/* beat 1 — represent the scene */}
         <Draw

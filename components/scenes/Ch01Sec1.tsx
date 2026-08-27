@@ -179,8 +179,8 @@ export default function Ch01Sec1({ currentTime, reveals, language }: SceneProps)
       </Fade>
 
       {/* metre stick: steps across live; parked + dimmed once the beat is past */}
-      {/* CSS opacity/transform on the web; react-native-svg takes opacity as a
-          prop and `x` as its translate shorthand. */}
+      {/* CSS opacity/transform on the web; react-native-svg takes opacity
+          as a prop and `x` as its translate shorthand. */}
       <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1} x={beat > 3 ? 480 : 0}>
         <G>
           <Rect
