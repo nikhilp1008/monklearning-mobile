@@ -261,6 +261,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'mathematics|11|conic sections': () => import('@/content/textbooks/math-11-10-conics'),
   'mathematics|11|introduction to three dimensional geometry': () =>
     import('@/content/textbooks/math-11-11-three-d'),
+  'mathematics|11|limits and derivatives': () =>
+    import('@/content/textbooks/math-11-12-limits'),
   'mathematics|11|probability': () => import('@/content/textbooks/math-11-14-probability'),
 };
 
