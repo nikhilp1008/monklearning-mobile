@@ -30,10 +30,31 @@ export type PlotCurve =
   | { c: 'circle'; cx?: number; cy?: number; r: number; dash?: boolean; soft?: boolean }
   /** (x−cx)²/a² + (y−cy)²/b² = 1. */
   | { c: 'ellipse'; cx?: number; cy?: number; a: number; b: number; dash?: boolean; soft?: boolean }
-  /** (x−cx)²/a² − (y−cy)²/b² = 1, both branches. */
-  | { c: 'hyperbola'; cx?: number; cy?: number; a: number; b: number; dash?: boolean; soft?: boolean }
-  /** y² = 4ax when `horizontal`, else x² = 4ay. */
-  | { c: 'parabola'; a: number; horizontal?: boolean; dash?: boolean; soft?: boolean }
+  /**
+   * (x−cx)²/a² − (y−cy)²/b² = 1, both branches. `vertical` gives the
+   * conjugate orientation, (y−cy)²/a² − (x−cx)²/b² = 1, which opens up and
+   * down: without it the conjugate hyperbola could not be drawn at all.
+   */
+  | {
+      c: 'hyperbola';
+      cx?: number;
+      cy?: number;
+      a: number;
+      b: number;
+      vertical?: boolean;
+      dash?: boolean;
+      soft?: boolean;
+    }
+  /** y² = 4ax when `horizontal`, else x² = 4ay, with its vertex at (cx, cy). */
+  | {
+      c: 'parabola';
+      a: number;
+      cx?: number;
+      cy?: number;
+      horizontal?: boolean;
+      dash?: boolean;
+      soft?: boolean;
+    }
   | { c: 'abs' | 'exp' | 'log' | 'sqrt' | 'recip'; a?: number; dash?: boolean; soft?: boolean };
 
 /** One drawing, matched by index to one chip. */
@@ -237,6 +258,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-08-sequences'),
   'mathematics|11|straight lines': () =>
     import('@/content/textbooks/math-11-09-straight-lines'),
+  'mathematics|11|conic sections': () => import('@/content/textbooks/math-11-10-conics'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

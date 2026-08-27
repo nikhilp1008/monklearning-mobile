@@ -45,7 +45,8 @@ function evalCurve(c: PlotCurve, x: number): number | null {
     case 'poly':
       return c.coeffs.reduce((sum, k, i) => sum + k * Math.pow(x, i), 0);
     case 'parabola':
-      return c.horizontal ? null : (x * x) / (4 * c.a);
+      // The horizontal one is not a function of x; parametricPath draws it.
+      return c.horizontal ? null : (c.cy ?? 0) + Math.pow(x - (c.cx ?? 0), 2) / (4 * c.a);
     case 'abs':
       return (c.a ?? 1) * Math.abs(x);
     case 'exp':
@@ -95,7 +96,12 @@ function parametricPath(
       let d = '';
       for (let i = 0; i <= 60; i++) {
         const t = -2.2 + (i / 60) * 4.4;
-        d += `${i ? 'L' : 'M'}${pt(cx + sign * c.a * Math.cosh(t), cy + c.b * Math.sinh(t))}`;
+        // `vertical` swaps which axis the branches straddle, giving the
+        // conjugate hyperbola that opens up and down.
+        const [px, py] = c.vertical
+          ? [cx + c.b * Math.sinh(t), cy + sign * c.a * Math.cosh(t)]
+          : [cx + sign * c.a * Math.cosh(t), cy + c.b * Math.sinh(t)];
+        d += `${i ? 'L' : 'M'}${pt(px, py)}`;
       }
       return d;
     };
@@ -108,10 +114,12 @@ function parametricPath(
     return `M${X(c.x).toFixed(2)},0 L${X(c.x).toFixed(2)},9999`;
   }
   if (c.c === 'parabola' && c.horizontal) {
+    const cx = c.cx ?? 0;
+    const cy = c.cy ?? 0;
     let d = '';
     for (let i = 0; i <= 120; i++) {
       const t = -3 + (i / 120) * 6;
-      d += `${i ? 'L' : 'M'}${pt(c.a * t * t, 2 * c.a * t)}`;
+      d += `${i ? 'L' : 'M'}${pt(cx + c.a * t * t, cy + 2 * c.a * t)}`;
     }
     return d;
   }
