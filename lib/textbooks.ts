@@ -181,6 +181,12 @@ export function groupBlocks(blocks: Block[]): RenderBlock[] {
  */
 const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'mathematics|11|sets': () => import('@/content/textbooks/math-11-01-sets'),
+  // Keyed by the CATALOGUE's title, not the source book's. The reference PDF
+  // calls this chapter "Trigonometric Functions"; our catalogue calls it
+  // "Trigonometry", and the catalogue is what the Chapters screen matches on.
+  'mathematics|11|trigonometry': () => import('@/content/textbooks/math-11-03-trigonometry'),
+  'mathematics|11|linear inequalities': () =>
+    import('@/content/textbooks/math-11-05-inequalities'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

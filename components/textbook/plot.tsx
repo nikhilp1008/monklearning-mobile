@@ -101,6 +101,12 @@ function parametricPath(
     };
     return `${arm(1)} ${arm(-1)}`;
   }
+  if (c.c === 'vline') {
+    // Declared in the vocabulary but never implemented, so it drew an empty
+    // path: a boundary line that silently was not there. Drawn full-height
+    // here, clipped by the SVG viewport like every other curve.
+    return `M${X(c.x).toFixed(2)},0 L${X(c.x).toFixed(2)},9999`;
+  }
   if (c.c === 'parabola' && c.horizontal) {
     let d = '';
     for (let i = 0; i <= 120; i++) {

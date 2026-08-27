@@ -173,7 +173,12 @@ export default function TextbookReaderScreen() {
           </Pressable>
           <View style={styles.topBarText}>
             <Text style={styles.chapterTitle} numberOfLines={1}>
-              {chapter.title}
+              {/* The catalogue's name, not the source book's. Our corpus calls
+                  this chapter "Trigonometry" where the reference PDF calls it
+                  "Trigonometric Functions", and a student who taps one name
+                  should not land on another. Same reason the number comes from
+                  the list. */}
+              {title || chapter.title}
             </Text>
             <Text style={styles.chapterMeta} numberOfLines={1}>
               Chapter {params.number || chapter.chapter} · {chapter.subject}
