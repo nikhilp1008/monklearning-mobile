@@ -1,5 +1,5 @@
 /**
- * Chapter 04 · Complex Numbers and Quadratic Equations — Mathematics, Class 11.
+ * Chapter 04 · Complex Numbers and Quadratic Equations. Mathematics, Class 11.
  *
  * Restructured from pages 283–351 of the Drona Class 11 Mathematics Master
  * Reference into the block system in design_handoff_textbooks/CONTENT_SPEC.md,
@@ -1569,8 +1569,8 @@ export const ch04Complex: Chapter = {
           "solution": "Ratio 1 means equidistant, which is the perpendicular bisector of the segment from 1 to 3, the vertical line Re(z) = 2."
         },
         {
-          "q": "If |<i>z</i> − 3 − 4<i>i</i>| = 2, the minimum value of |<i>z</i>| is:",
           "t": "mcq",
+          "q": "If |<i>z</i> − 3 − 4<i>i</i>| = 2, the minimum value of |<i>z</i>| is:",
           "correct": 1,
           "opts": [
             {
@@ -2060,6 +2060,437 @@ export const ch04Complex: Chapter = {
           "aids": [
             "“check D first, compute second”",
             "“mirror pairs need real coefficients”"
+          ]
+        }
+      ]
+    },
+    {
+      "n": "06",
+      "title": "Real Quadratics: Sign, Location and Transformation",
+      "chip": "06 REAL ROOTS",
+      "kalam": "stop solving, start looking at the graph",
+      "blocks": [
+        {
+          "t": "p",
+          "html": "Until now a quadratic was something to be <b>solved</b>. This whole topic rests on refusing to solve it. Instead you look at the curve <i>y</i> = <i>ax</i><sup>2</sup> + <i>bx</i> + <i>c</i>, a parabola, and read the answer off its shape and position. Picture a ball hit high over the Wankhede outfield: its flight path is a downward parabola, and the three questions a fielder cares about are exactly the three questions asked here."
+        },
+        {
+          "t": "p",
+          "html": "<b>Does the ball ever touch the ground?</b> That is the sign question, settled entirely by the discriminant. <b>How high does it get, and when?</b> That is the extremum question, settled by the vertex. <b>Does it land inside the boundary rope or outside?</b> That is the location question, and it asks not merely whether the roots are real but <b>where on the number line they sit</b>. Everything below assumes <i>a</i>, <i>b</i>, <i>c</i> ∈ ℝ and <i>a</i> ≠ 0."
+        },
+        {
+          "t": "p",
+          "html": "One correction before anything else. Students look at <i>x</i><sup>2</sup> − 4<i>x</i> + 7, see the +7, and conclude it is positive. That reasoning is accidental. The correct reasoning is: <i>D</i> = 16 − 28 = −12 < 0, so the parabola never crosses the axis; having no crossing it can never change sign; so it keeps forever the sign it has far out to the right, which is the sign of <i>a</i>. <b>The sign of a quadratic is decided by the discriminant, not by the constant term.</b>"
+        },
+        {
+          "t": "formula",
+          "kicker": "THE VERTEX FORM",
+          "tag": "everything follows from this",
+          "main": "f(x) = a(x + b/2a)<sup>2</sup> − D/4a",
+          "legend": [
+            "the vertex is at x = −b/2a, and the value there is −D/4a",
+            "a > 0: minimum −D/4a, range [−D/4a, ∞) · a < 0: maximum −D/4a, range (−∞, −D/4a]"
+          ],
+          "note": "The squared bracket is never negative and is zero only at the vertex, so multiplying by a positive a preserves the ordering and by a negative a reverses it. That is the whole proof."
+        },
+        {
+          "t": "formula",
+          "kicker": "ONE SIGN FOR EVERY x",
+          "tag": "four “if and only if”s",
+          "main": "f(x) > 0 for all x ⟺ a > 0 and D < 0",
+          "legend": [
+            "f(x) ≥ 0 for all x ⟺ a > 0 and D ≤ 0",
+            "f(x) < 0 for all x ⟺ a < 0 and D < 0 · f(x) ≤ 0 for all x ⟺ a < 0 and D ≤ 0"
+          ],
+          "note": "Compact version: f has the same sign as a at every real x if and only if D < 0. If a itself holds a parameter, test a = 0 separately, because a linear expression is never of one sign on all of ℝ."
+        },
+        {
+          "t": "think",
+          "html": "<i>D</i> < 0 only says the sign never changes. it does not say <b>which</b> sign. you always need <i>a</i> alongside it, and half the marks in this topic are lost by writing down one of the pair and not the other."
+        },
+        {
+          "t": "formula",
+          "kicker": "THE MASTER IDENTITY",
+          "tag": "for locating roots",
+          "main": "a f(k) = a<sup>2</sup>(k − α)(k − β)",
+          "legend": [
+            "since a² > 0, the sign of af(k) is the sign of (k − α)(k − β)",
+            "with real roots: af(k) > 0 ⟺ k is outside the root pair · af(k) < 0 ⟺ k is between them · af(k) = 0 ⟺ k is a root"
+          ],
+          "note": "The trap: if D < 0 then af(k) = a²|k − α|² > 0 for every real k, so the test passes and proves nothing. D ≥ 0 must be secured separately."
+        },
+        {
+          "t": "diagram",
+          "kind": "numberline",
+          "kicker": "DIAGRAM · BOTH ROOTS GREATER THAN 2, TAP A VALUE",
+          "mathChips": true,
+          "chips": ["k = 5", "k = 8", "k = 9", "k = 10"],
+          "captions": [
+            "Both roots of x² − 6x + k = 0 must land in the shaded region x > 2. At k = 5 the roots are 1 and 5, and 1 misses. The test af(2) > 0 catches it, since f(2) = k − 8 = −3 < 0.",
+            "k = 8 puts a root exactly on the signpost: roots 2 and 4. “Greater than 2” fails by a hair, which is why af(2) > 0 is strict and k = 8 is excluded.",
+            "k = 9 gives D = 0 and a repeated root at 3, comfortably inside. A repeated root is still allowed, which is exactly why the condition reads D ≥ 0 and not D > 0.",
+            "k = 10 gives D = −4, so there are no real roots at all. Yet f(2) = 2 > 0, so af(2) > 0 passes vacuously. That is why D ≥ 0 is written as its own separate line."
+          ],
+          "frames": [
+            {
+              "x": [0, 8],
+              "bands": [{ "x0": 2, "x1": 8 }],
+              "points": [
+                { "x": 1, "y": 0, "label": "1" },
+                { "x": 5, "y": 0, "label": "5" }
+              ]
+            },
+            {
+              "x": [0, 8],
+              "bands": [{ "x0": 2, "x1": 8 }],
+              "points": [
+                { "x": 2, "y": 0, "label": "2" },
+                { "x": 4, "y": 0, "label": "4" }
+              ]
+            },
+            {
+              "x": [0, 8],
+              "bands": [{ "x0": 2, "x1": 8 }],
+              "points": [{ "x": 3, "y": 0, "label": "3, twice" }]
+            },
+            {
+              "x": [0, 8],
+              "bands": [{ "x0": 2, "x1": 8 }]
+            }
+          ]
+        },
+        {
+          "t": "defgrid",
+          "title": "Location of roots",
+          "tag": "α, β the roots · k, k₁ < k₂ real",
+          "rows": [
+            {
+              "k": "Both roots > <i>k</i>",
+              "v": "<i>D</i> ≥ 0 and <i>af</i>(<i>k</i>) > 0 and −<i>b</i>/2<i>a</i> > <i>k</i>"
+            },
+            {
+              "k": "Both roots < <i>k</i>",
+              "v": "<i>D</i> ≥ 0 and <i>af</i>(<i>k</i>) > 0 and −<i>b</i>/2<i>a</i> < <i>k</i>"
+            },
+            {
+              "k": "<i>k</i> strictly between",
+              "v": "<i>af</i>(<i>k</i>) < 0 alone, which already forces <i>D</i> > 0"
+            },
+            {
+              "k": "Both roots in (<i>k</i><sub>1</sub>, <i>k</i><sub>2</sub>)",
+              "v": "<i>D</i> ≥ 0, <i>af</i>(<i>k</i><sub>1</sub>) > 0, <i>af</i>(<i>k</i><sub>2</sub>) > 0, and <i>k</i><sub>1</sub> < −<i>b</i>/2<i>a</i> < <i>k</i><sub>2</sub>"
+            },
+            {
+              "k": "Exactly one in (<i>k</i><sub>1</sub>, <i>k</i><sub>2</sub>)",
+              "v": "<i>f</i>(<i>k</i><sub>1</sub>)<i>f</i>(<i>k</i><sub>2</sub>) < 0, then test <i>f</i>(<i>k</i><sub>1</sub>) = 0 and <i>f</i>(<i>k</i><sub>2</sub>) = 0 by hand"
+            },
+            {
+              "k": "Roots straddle the interval",
+              "v": "<i>af</i>(<i>k</i><sub>1</sub>) < 0 and <i>af</i>(<i>k</i><sub>2</sub>) < 0"
+            }
+          ]
+        },
+        {
+          "t": "p",
+          "html": "Now the second half of the topic. Route 1 and Route 2 run across Bengaluru on different paths, and you want to know whether they share a stop. That is a <b>common root</b>. The practical trick: if a stop is on both routes it is also on the “difference” of the two routes, the object you get by cancelling everything they have in common. Subtracting one quadratic from a suitable multiple of the other kills the <i>x</i><sup>2</sup> term and leaves a <b>linear</b> equation, which hands you the shared stop directly. The caution is that the linear equation is a consequence, not a guarantee: it produces a candidate, and the candidate must be substituted back."
+        },
+        {
+          "t": "formula",
+          "kicker": "COMMON ROOTS",
+          "tag": "two quadratics",
+          "main": "(c<sub>1</sub>a<sub>2</sub> − c<sub>2</sub>a<sub>1</sub>)<sup>2</sup> = (a<sub>1</sub>b<sub>2</sub> − a<sub>2</sub>b<sub>1</sub>)(b<sub>1</sub>c<sub>2</sub> − b<sub>2</sub>c<sub>1</sub>)",
+          "legend": [
+            "exactly one common root, when a₁b₂ − a₂b₁ ≠ 0; the root is (c₁a₂ − c₂a₁)/(a₁b₂ − a₂b₁)",
+            "both roots common ⟺ the coefficient triples are proportional, a₁ : b₁ : c₁ = a₂ : b₂ : c₂"
+          ],
+          "note": "If both equations have real coefficients and share a non-real root, they share both roots, because the conjugate is shared too. Then the coefficients are proportional and no formula is needed."
+        },
+        {
+          "t": "formula",
+          "kicker": "SYMMETRIC FUNCTIONS OF THE ROOTS",
+          "tag": "never find the roots",
+          "main": "α<sup>2</sup> + β<sup>2</sup> = (α + β)<sup>2</sup> − 2αβ = (b<sup>2</sup> − 2ac)/a<sup>2</sup>",
+          "legend": [
+            "(α − β)² = D/a², so |α − β| = √D/|a| when D ≥ 0",
+            "α³ + β³ = (3abc − b³)/a³ · 1/α + 1/β = −b/c · α/β + β/α = (b² − 2ac)/ac, both needing c ≠ 0"
+          ],
+          "note": "|α − β| = √D/|a| is the bridge between the discriminant and how far apart the roots sit, and the quickest route to any question that constrains their separation."
+        },
+        {
+          "t": "p",
+          "html": "Last idea: <b>change the ruler, not the object</b>. To reprint a railway timetable in a time zone ninety minutes behind, you do not re-survey the track; you apply one conversion rule to the timetable. A transformation of equations is exactly that. Given <i>ax</i><sup>2</sup> + <i>bx</i> + <i>c</i> = 0 and asked for the equation whose roots are <i>α</i> + <i>h</i>, or 1/<i>α</i>, or <i>α</i><sup>2</sup>, the wrong move is to find <i>α</i> and <i>β</i>: they are usually irrational or non-real and you do not need them. Write the rule <i>y</i> = <i>φ</i>(<i>x</i>), <b>invert it</b> to get <i>x</i> in terms of <i>y</i>, and substitute that into the equation you already have."
+        },
+        {
+          "t": "defgrid",
+          "title": "Standard transformations",
+          "tag": "you substitute the inverse",
+          "rows": [
+            {
+              "k": "Roots <i>α</i> + <i>h</i>",
+              "v": "put <i>x</i> = <i>y</i> − <i>h</i>: <i>ay</i><sup>2</sup> + (<i>b</i> − 2<i>ah</i>)<i>y</i> + (<i>ah</i><sup>2</sup> − <i>bh</i> + <i>c</i>) = 0"
+            },
+            {
+              "k": "Roots <i>kα</i>, <i>k</i> ≠ 0",
+              "v": "put <i>x</i> = <i>y</i>/<i>k</i>: <i>ay</i><sup>2</sup> + <i>bky</i> + <i>ck</i><sup>2</sup> = 0"
+            },
+            {
+              "k": "Roots −<i>α</i>",
+              "v": "<i>ay</i><sup>2</sup> − <i>by</i> + <i>c</i> = 0"
+            },
+            {
+              "k": "Roots 1/<i>α</i>, needs <i>c</i> ≠ 0",
+              "v": "<i>cy</i><sup>2</sup> + <i>by</i> + <i>a</i> = 0, the coefficients simply reverse and <b>no sign changes</b>"
+            },
+            {
+              "k": "Roots <i>α</i><sup>2</sup>",
+              "v": "<i>a</i><sup>2</sup><i>y</i><sup>2</sup> + (2<i>ac</i> − <i>b</i><sup>2</sup>)<i>y</i> + <i>c</i><sup>2</sup> = 0"
+            },
+            {
+              "k": "No <i>y</i>-term (depressed)",
+              "v": "put <i>x</i> = <i>y</i> − <i>b</i>/2<i>a</i>: <i>ay</i><sup>2</sup> = <i>D</i>/4<i>a</i>, the vertex form as an equation"
+            }
+          ]
+        },
+        {
+          "t": "formula",
+          "kicker": "NEWTON'S POWER-SUM RECURRENCE",
+          "tag": "S<sub>n</sub> = α<sup>n</sup> + β<sup>n</sup>",
+          "main": "aS<sub>n</sub> + bS<sub>n−1</sub> + cS<sub>n−2</sub> = 0",
+          "legend": [
+            "seeds S₀ = 2 (there are two roots) and S₁ = α + β = −b/a; valid for every n ≥ 2",
+            "it extends to negative n exactly when c ≠ 0, so that neither root is zero"
+          ],
+          "note": "Reduction modulo the quadratic: writing g(x) = (ax² + bx + c)q(x) + px + t gives g(α) = pα + t, because the first product vanishes at α. Keep the remainder, discard the quotient."
+        },
+        {
+          "t": "proc",
+          "title": "Location of roots under a parameter",
+          "steps": [
+            "Write <i>f</i>(<i>x</i>) explicitly in terms of the parameter and confirm <i>a</i> ≠ 0. If the parameter can make <i>a</i> = 0, handle that value first as a separate linear case.",
+            "Translate the requirement into the <b>full</b> condition set from the table. Do not economise: write <i>D</i>, then <i>af</i>(<i>k</i>), then the vertex condition, as a vertical stack. Each line rules out a different unwanted picture.",
+            "Solve each condition separately as an inequality in the parameter, keeping the results as explicit intervals, then <b>intersect</b> them. They are simultaneous, not alternative.",
+            "Test the endpoints of your final interval by substituting back and finding the actual roots. Endpoints are exactly where <i>D</i> = 0 or where <i>k</i> is itself a root, and that is where the marks are.",
+            "For a transformation, invert the rule on a separate line before substituting, then cross-check the new sum and product against <i>α</i> + <i>β</i> and <i>αβ</i>. That check costs one line and catches every sign slip."
+          ]
+        },
+        {
+          "t": "ex",
+          "tag": "CBSE BOARD",
+          "q": "Show <i>f</i>(<i>x</i>) = 2<i>x</i><sup>2</sup> − 8<i>x</i> + 11 is positive for every real <i>x</i>, give its minimum and range, then solve <i>x</i><sup>2</sup> − 5<i>x</i> + 6 ≤ 0.",
+          "steps": [
+            "<i>D</i> = 64 − 88 = −24 < 0 and <i>a</i> = 2 > 0, so <i>f</i> > 0 throughout ℝ.",
+            "Minimum at <i>x</i> = −<i>b</i>/2<i>a</i> = 2, of value −<i>D</i>/4<i>a</i> = 24/8 = 3. Check: <i>f</i>(2) = 8 − 16 + 11 = 3. Range [3, ∞).",
+            "For the inequality, <i>x</i><sup>2</sup> − 5<i>x</i> + 6 = (<i>x</i> − 2)(<i>x</i> − 3) with <i>a</i> > 0, so it is negative strictly between the roots. The sign is non-strict, so the roots are included."
+          ],
+          "ans": "min 3 at x = 2, range [3, ∞) · x ∈ [2, 3]"
+        },
+        {
+          "t": "ex",
+          "tag": "JEE MAIN · SPEED TRAP",
+          "q": "Find all real <i>a</i> for which <i>ax</i><sup>2</sup> + 4<i>x</i> + <i>a</i> > 0 for every real <i>x</i>.",
+          "steps": [
+            "The seductive one-liner is “<i>D</i> ≤ 0, so 16 − 4<i>a</i><sup>2</sup> ≤ 0, so |<i>a</i>| ≥ 2”. It is wrong three times over.",
+            "First, <i>a</i> = 0 is not a quadratic at all: the expression becomes 4<i>x</i>, negative for every <i>x</i> < 0. Discard it.",
+            "Second, positivity needs <i>a</i> > 0 as well as <i>D</i> < 0: at <i>a</i> = −3 the expression is negative everywhere, the exact opposite of what was asked. Third, the inequality is strict: at <i>a</i> = 2 it is 2(<i>x</i> + 1)<sup>2</sup>, which is 0 at <i>x</i> = −1.",
+            "So <i>D</i> < 0 gives <i>a</i><sup>2</sup> > 4, and intersecting with <i>a</i> > 0 leaves <i>a</i> > 2."
+          ],
+          "ans": "a ∈ (2, ∞)"
+        },
+        {
+          "t": "ex",
+          "tag": "JEE MAIN",
+          "q": "Find all real <i>k</i> for which <i>x</i><sup>2</sup> + <i>kx</i> + 1 = 0 and <i>x</i><sup>2</sup> + <i>x</i> + <i>k</i> = 0 have at least one common root.",
+          "steps": [
+            "Check proportional coefficients first. Both leading coefficients are 1, so proportionality forces <i>k</i> = 1 from the <i>x</i>-terms and 1 = <i>k</i> from the constants. They agree, so <i>k</i> = 1 makes the two equations identical and <b>both</b> roots common.",
+            "For <i>k</i> ≠ 1, subtract to kill the <i>x</i><sup>2</sup> term: (<i>k</i> − 1)<i>x</i> + (1 − <i>k</i>) = (<i>k</i> − 1)(<i>x</i> − 1) = 0, so the candidate is <i>x</i> = 1.",
+            "Substitute back, as the procedure demands: 1 + <i>k</i> + 1 = 0 gives <i>k</i> = −2, and the other equation checks out too.",
+            "At <i>k</i> = −2 the equations are (<i>x</i> − 1)<sup>2</sup> = 0 and (<i>x</i> − 1)(<i>x</i> + 2) = 0, sharing exactly the root 1."
+          ],
+          "ans": "k = 1 (both roots common) · k = −2 (exactly one, x = 1)"
+        },
+        {
+          "t": "ex",
+          "tag": "JEE ADVANCED",
+          "q": "<i>α</i>, <i>β</i> are the roots of <i>x</i><sup>2</sup> − 2<i>x</i> + 4 = 0. Find (a) <i>α</i><sup>9</sup> + <i>β</i><sup>9</sup>, (b) <i>α</i><sup>4</sup> − 4<i>α</i><sup>3</sup> + 8<i>α</i><sup>2</sup> + 3<i>α</i> + 5.",
+          "steps": [
+            "<i>D</i> = −12, so the roots are 1 ± <i>i</i>√3. Finding them and taking a ninth power is exactly the work these two machines exist to avoid.",
+            "(a) The recurrence is <i>S<sub>n</sub></i> = 2<i>S</i><sub><i>n</i>−1</sub> − 4<i>S</i><sub><i>n</i>−2</sub> with <i>S</i><sub>0</sub> = 2, <i>S</i><sub>1</sub> = 2. Running it: −4, −16, −16, 32, 128, 128, −256, −1024.",
+            "Check by polar form: the roots are 2<i>e</i><sup>±<i>i</i>π/3</sup>, so <i>S<sub>n</sub></i> = 2<sup><i>n</i>+1</sup> cos(<i>nπ</i>/3), and at <i>n</i> = 9 that is 2<sup>10</sup>cos 3π = −1024.",
+            "(b) Divide by <i>x</i><sup>2</sup> − 2<i>x</i> + 4: the quotient is <i>x</i><sup>2</sup> − 2<i>x</i> and the remainder is 11<i>x</i> + 5. Since <i>α</i><sup>2</sup> − 2<i>α</i> + 4 = 0, the quotient term vanishes."
+          ],
+          "ans": "(a) −1024 · (b) 11α + 5"
+        },
+        {
+          "t": "practice",
+          "items": [
+            {
+              "q": "[CBSE] Show <i>x</i><sup>2</sup> − 3<i>x</i> + 4 > 0 for every real <i>x</i>, and give the minimum value and where it occurs.",
+              "a": "<i>D</i> = 9 − 16 = −7 < 0 with <i>a</i> > 0. Minimum −<i>D</i>/4<i>a</i> = 7/4, at <i>x</i> = 3/2."
+            },
+            {
+              "q": "[CBSE] Solve 2<i>x</i><sup>2</sup> − 5<i>x</i> − 3 ≥ 0.",
+              "a": "(2<i>x</i> + 1)(<i>x</i> − 3) with <i>a</i> > 0, roots −1/2 and 3, so <i>x</i> ∈ (−∞, −1/2] ∪ [3, ∞)."
+            },
+            {
+              "q": "[JEE Main] Find all <i>k</i> for which both roots of <i>x</i><sup>2</sup> − 6<i>x</i> + <i>k</i> = 0 are greater than 2.",
+              "a": "<i>D</i> ≥ 0 gives <i>k</i> ≤ 9; <i>af</i>(2) > 0 gives <i>k</i> > 8; the vertex is at 3 > 2 always. So 8 < <i>k</i> ≤ 9."
+            },
+            {
+              "q": "[JEE Main] Form the equation whose roots are the reciprocals of those of 5<i>x</i><sup>2</sup> − 3<i>x</i> + 2 = 0, and the squares of those of <i>x</i><sup>2</sup> + 6<i>x</i> + 4 = 0.",
+              "a": "Reverse the coefficients: 2<i>y</i><sup>2</sup> − 3<i>y</i> + 5 = 0. For the squares, <i>y</i><sup>2</sup> + (8 − 36)<i>y</i> + 16 = <i>y</i><sup>2</sup> − 28<i>y</i> + 16 = 0."
+            },
+            {
+              "q": "[JEE Advanced] With <i>α</i>, <i>β</i> the roots of <i>x</i><sup>2</sup> − 5<i>x</i> + 3 = 0, find <i>α</i><sup>4</sup> + <i>β</i><sup>4</sup>. Then, for <i>α</i> a root of <i>x</i><sup>2</sup> − <i>x</i> − 1 = 0, show <i>α</i><sup>5</sup> = 5<i>α</i> + 3.",
+              "a": "<i>S<sub>n</sub></i> = 5<i>S</i><sub><i>n</i>−1</sub> − 3<i>S</i><sub><i>n</i>−2</sub> with <i>S</i><sub>0</sub> = 2, <i>S</i><sub>1</sub> = 5 gives 19, 80, 343. Check: 19<sup>2</sup> − 2(9) = 343. For the second, dividing <i>x</i><sup>5</sup> by <i>x</i><sup>2</sup> − <i>x</i> − 1 leaves the remainder 5<i>x</i> + 3."
+            }
+          ]
+        },
+        {
+          "t": "mcq",
+          "q": "<i>x</i><sup>2</sup> − 4<i>x</i> + <i>k</i> is positive for every real <i>x</i> if and only if:",
+          "correct": 1,
+          "opts": [
+            {
+              "label": "k < 4",
+              "nudge": "That is D > 0, the condition for two distinct real roots, which is precisely when the expression is not of one sign."
+            },
+            {
+              "label": "k > 4",
+              "nudge": null
+            },
+            {
+              "label": "k ≥ 4",
+              "nudge": "That uses D ≤ 0. At k = 4 the expression is (x − 2)², which is 0 at x = 2 and so not positive for every x."
+            },
+            {
+              "label": "every real k",
+              "nudge": "This assumes a > 0 alone forces positivity and ignores the discriminant entirely."
+            }
+          ],
+          "solution": "a = 1 > 0 already, so the requirement reduces to D < 0: 16 − 4k < 0, that is k > 4. Strict inequality, strict discriminant."
+        },
+        {
+          "t": "mcq",
+          "q": "If <i>x</i><sup>2</sup> + 2<i>x</i> + 3 = 0 and <i>ax</i><sup>2</sup> + <i>bx</i> + <i>c</i> = 0, with <i>a</i>, <i>b</i>, <i>c</i> real, have a common root, then <i>a</i> : <i>b</i> : <i>c</i> is:",
+          "correct": 0,
+          "opts": [
+            {
+              "label": "1 : 2 : 3",
+              "nudge": null
+            },
+            {
+              "label": "3 : 2 : 1",
+              "nudge": "The proportion has been read backwards, from the reciprocals rather than the coefficients themselves."
+            },
+            {
+              "label": "1 : 3 : 2",
+              "nudge": "b and c have been swapped. The order of the coefficient string is fixed."
+            },
+            {
+              "label": "it cannot be determined",
+              "nudge": "That is what the one-common-root formula suggests, but the first equation has D = −8 < 0, which settles the question before any formula."
+            }
+          ],
+          "solution": "D = 4 − 12 < 0, so the shared root is non-real; with real coefficients its conjugate is shared too, so both roots are common and the coefficients are proportional."
+        },
+        {
+          "t": "mcq",
+          "q": "The equation whose roots are each 2 more than the roots of <i>x</i><sup>2</sup> − 4<i>x</i> + 3 = 0 is:",
+          "correct": 0,
+          "opts": [
+            {
+              "label": "y² − 8y + 15 = 0",
+              "nudge": null
+            },
+            {
+              "label": "y² − 1 = 0",
+              "nudge": "That comes from substituting x = y + 2, which decreases the roots by 2. You substitute the inverse of the rule, not the rule."
+            },
+            {
+              "label": "y² − 4y + 15 = 0",
+              "nudge": "The new product was computed but the old sum was copied straight across."
+            },
+            {
+              "label": "y² − 8y + 3 = 0",
+              "nudge": "The mirror slip: the sum was shifted correctly and the old product copied."
+            }
+          ],
+          "solution": "The rule is y = x + 2, so substitute x = y − 2: (y − 2)² − 4(y − 2) + 3 = y² − 8y + 15. Check: old roots 1 and 3, new roots 3 and 5, sum 8 and product 15."
+        },
+        {
+          "t": "mcq",
+          "q": "If <i>α</i>, <i>β</i> are the roots of <i>x</i><sup>2</sup> − 6<i>x</i> + 5 = 0, the equation with roots <i>α</i><sup>2</sup>, <i>β</i><sup>2</sup> is:",
+          "correct": 0,
+          "opts": [
+            {
+              "label": "y² − 26y + 25 = 0",
+              "nudge": null
+            },
+            {
+              "label": "y² − 36y + 25 = 0",
+              "nudge": "This used α² + β² = (α + β)², dropping the −2αβ. The sum of the squares is not the square of the sum."
+            },
+            {
+              "label": "y² − 26y + 5 = 0",
+              "nudge": "The sum was squared correctly but the product was not: it should be (αβ)², not αβ."
+            },
+            {
+              "label": "y² − 12y + 25 = 0",
+              "nudge": "The roots were doubled rather than squared, so the sum came out as 2(α + β)."
+            }
+          ],
+          "solution": "Roots 1 and 5, so squares 1 and 25: sum 26, product 25. By formula, y² + (2ac − b²)y + c² = y² − 26y + 25."
+        },
+        {
+          "t": "mistakes",
+          "items": [
+            "Forgetting the <b><i>a</i> = 0 case</b> when the leading coefficient carries a parameter. Split it off first and treat the linear expression on its own.",
+            "Using <i>D</i> < 0 alone for “always positive”. It only says the sign never changes; <b>pair it with <i>a</i> > 0</b>.",
+            "Using <i>af</i>(<i>k</i>) > 0 without first securing <i>D</i> ≥ 0. When <i>D</i> < 0 the test <b>passes vacuously</b> and admits parameters with no real roots at all.",
+            "Dropping the vertex condition. <i>D</i> ≥ 0 with <i>af</i>(<i>k</i>) > 0 says only that <i>k</i> is outside the pair, <b>not on which side</b>.",
+            "Confusing the extreme value −<i>D</i>/4<i>a</i> with the point <i>x</i> = −<i>b</i>/2<i>a</i> where it occurs, and accepting a subtraction candidate as a common root <b>without substituting back</b>.",
+            "Substituting the rule instead of its inverse in a transformation, and squaring the sum instead of summing the squares."
+          ]
+        },
+        {
+          "t": "protip",
+          "html": "write the location conditions as a vertical stack, <i>D</i>, then <i>af</i>(<i>k</i><sub>1</sub>), then <i>af</i>(<i>k</i><sub>2</sub>), then vertex, before solving any of them. under exam pressure a stack is far harder to leave incomplete than a paragraph, and then substitute both endpoints of your answer interval back."
+        },
+        {
+          "t": "snapshot",
+          "rows": [
+            {
+              "f": "f(x) = a(x + b/2a)² − D/4a",
+              "note": "vertex at −b/2a, value −D/4a"
+            },
+            {
+              "f": "f > 0 ∀x ⟺ a > 0 and D < 0",
+              "note": "same sign as a everywhere ⟺ D < 0"
+            },
+            {
+              "f": "a f(k) = a²(k − α)(k − β)",
+              "note": "> 0 outside · < 0 between · beware D < 0"
+            },
+            {
+              "f": "both roots > k: D ≥ 0, af(k) > 0, −b/2a > k",
+              "note": "all three lines, every time"
+            },
+            {
+              "f": "both roots common ⟺ a₁ : b₁ : c₁ = a₂ : b₂ : c₂",
+              "note": "eliminate x², then substitute back"
+            },
+            {
+              "f": "1/α: cy² + by + a = 0 · α²: a²y² + (2ac − b²)y + c² = 0",
+              "note": "substitute the inverse rule"
+            },
+            {
+              "f": "aSₙ + bSₙ₋₁ + cSₙ₋₂ = 0, S₀ = 2, S₁ = −b/a",
+              "note": "g(α) = remainder of g mod the quadratic"
+            }
+          ],
+          "aids": [
+            "“D says whether the sign changes, a says which sign”",
+            "“two roots, so S₀ is 2 and never 1”"
           ]
         }
       ]

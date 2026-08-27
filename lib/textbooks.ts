@@ -184,7 +184,10 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // Keyed by the CATALOGUE's title, not the source book's. The reference PDF
   // calls this chapter "Trigonometric Functions"; our catalogue calls it
   // "Trigonometry", and the catalogue is what the Chapters screen matches on.
+  'mathematics|11|relations and functions': () =>
+    import('@/content/textbooks/math-11-02-relations'),
   'mathematics|11|trigonometry': () => import('@/content/textbooks/math-11-03-trigonometry'),
+  'mathematics|11|complex numbers': () => import('@/content/textbooks/math-11-04-complex'),
   'mathematics|11|linear inequalities': () =>
     import('@/content/textbooks/math-11-05-inequalities'),
 };

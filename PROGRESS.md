@@ -6276,6 +6276,60 @@ would only make a browsable list look broken.
 lesson ships this becomes a per-chapter check, the way `isChapterReady` already
 works for textbooks.
 
+## Class 11 Maths textbooks: the first wave
+
+Four chapters authored from the 1094-page Drona Class 11 Mathematics Master
+Reference, against the block spec, one agent per chapter:
+
+| Chapter | Topics | Blocks | Figures |
+|---|---|---|---|
+| Relations & Functions | 6 | 147 | 5 |
+| Trigonometry | 6 | 148 | 8 |
+| Complex Numbers | 6 | 151 | 7 |
+| Linear Inequalities | 6 | 149 | 6 |
+
+All four land at or above the finished Sets chapter's density (108 blocks), so
+this is not thinned-out filler. 11,226 lines of content across five chapters.
+
+**Reading the source.** No PDF tooling is installed and poppler is not
+available, so rather than add a dependency there is a stdlib extractor
+(FlateDecode plus the document's 247 ToUnicode CMaps) in the session
+scratchpad. Two defects in it, both found by the chapter authors: it crashed
+from page 145 on, because a bfrange target can be a surrogate pair and reading
+it as one integer overflows; and it ran every word together, because a PDF
+encodes an inter-word space as a large negative kerning adjustment rather than
+a space character. Both fixed.
+
+**Registry keys on the catalogue's title, not the book's.** The reference calls
+chapter 3 "Trigonometric Functions" and chapter 4 "Complex Numbers and
+Quadratic Equations"; our corpus calls them "Trigonometry" and "Complex
+Numbers". The Chapters screen matches on the catalogue, so that is what the key
+uses, and the reader now prints the catalogue's title as well as its number.
+Tapping one name and landing on another was the same defect twice.
+
+**Basic Mathematics has no source.** It is chapter 1 in our catalogue and the
+reference book starts at Sets, so it stays SOON until separate material exists.
+
+**A structural validator** runs over every authored chapter: topic count, one
+hook on topic one, every topic ending in exactly one snapshot, four MCQ options
+with a nudge on each wrong one and none on the right one, diagram kinds that
+actually render, chips/captions/frames the same length, no em dashes, no tags
+outside the allowed five. Its first pass flagged the finished Sets chapter for
+emoji, which turned out to be the check mark and ballot X that a maths chapter
+legitimately uses. The range was too broad, not the content wrong.
+
+**What the authors caught that we would not have.** One found that `vline` was
+declared in the curve vocabulary and never implemented, drawing an empty path,
+which is exactly what the Inequalities author had been told to use for
+inequality boundaries. Another found a wrong answer in the source itself: the
+locus |z − 1|/|z + 1| = 2 has centre −5/3, not 5/3, and the chapter states the
+correct value.
+
+**Nine chapters remain**, 767 pages: Permutations, Binomial Theorem, Sequences,
+Straight Lines, Conic Sections, 3D Geometry, Limits and Derivatives, Statistics,
+Probability. Two will want figure kinds that do not exist yet, a counting tree
+and a histogram.
+
 ## Still open
 
 Current as of 2026-08-23. Grouped by who is blocked.
