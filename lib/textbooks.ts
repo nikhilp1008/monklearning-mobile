@@ -58,6 +58,46 @@ export interface DiagramFrame {
   show?: ('sin' | 'cos' | 'tan')[];
   /** Axis tick labels in multiples of π, for trig plots. */
   piTicks?: boolean;
+
+  /**
+   * `tree` only: a counting tree, drawn left to right.
+   *
+   * Level 1 fans out in full; level 2 expands from the first node only and the
+   * rest carry a multiplier badge. That is how the multiplication principle is
+   * drawn on a board, and a fully expanded 4 x 3 x 2 is 24 leaves, which does
+   * not fit a phone and does not teach anything the collapsed form does not.
+   */
+  tree?: {
+    root?: string;
+    levels: { label: string; count: number; names?: string[] }[];
+    /** The arithmetic the picture is making, e.g. "4 × 3 × 2 = 24". */
+    total?: string;
+  };
+
+  /** `pascal` only: rows of the triangle, with cells to call out. */
+  pascal?: {
+    rows: number;
+    /** [row, index] pairs, 0-based, drawn in amber. */
+    highlight?: [number, number][];
+    /** A second, softer set: the two cells that add to a highlighted one. */
+    parents?: [number, number][];
+  };
+
+  /**
+   * `axes3d` only: one point in an isometric frame.
+   *
+   * Isometric rather than perspective on purpose: equal foreshortening on all
+   * three axes keeps a unit on x the same length as a unit on z, so a student
+   * can read coordinates off the drawing instead of trusting it.
+   */
+  axes3d?: {
+    point?: [number, number, number];
+    label?: string;
+    /** Dropped lines to the axes and the xy-plane. */
+    projections?: boolean;
+    /** The cuboid from the origin to the point. */
+    box?: boolean;
+  };
 }
 
 export type Block =

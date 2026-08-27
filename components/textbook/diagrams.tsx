@@ -25,6 +25,7 @@ import Svg, {
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import type { DiagramFrame } from '@/lib/textbooks';
+import { Axes3D, CountingTree, PascalTriangle } from '@/components/textbook/figures';
 import { Plot, UnitCircle } from '@/components/textbook/plot';
 import { useScale } from '@/constants/scale';
 
@@ -82,6 +83,9 @@ export const DIAGRAM_KINDS: readonly string[] = [
   'plot',
   'numberline',
   'unitcircle',
+  'tree',
+  'pascal',
+  'axes3d',
 ];
 
 interface KindConfig {
@@ -217,6 +221,15 @@ export function TextbookDiagram({
         )}
         {kind === 'unitcircle' && frames?.[sel] && (
           <UnitCircle frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'tree' && frames?.[sel] && (
+          <CountingTree frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'pascal' && frames?.[sel] && (
+          <PascalTriangle frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'axes3d' && frames?.[sel] && (
+          <Axes3D frame={frames[sel]} width={figureWidth} />
         )}
       </View>
       <View style={styles.chipRow}>
