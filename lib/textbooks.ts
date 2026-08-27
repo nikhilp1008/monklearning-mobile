@@ -232,6 +232,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-05-inequalities'),
   'mathematics|11|permutations and combinations': () =>
     import('@/content/textbooks/math-11-06-permutations'),
+  'mathematics|11|straight lines': () =>
+    import('@/content/textbooks/math-11-09-straight-lines'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
