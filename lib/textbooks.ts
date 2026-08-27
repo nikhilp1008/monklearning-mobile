@@ -263,6 +263,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-11-three-d'),
   'mathematics|11|limits and derivatives': () =>
     import('@/content/textbooks/math-11-12-limits'),
+  'mathematics|11|statistics': () => import('@/content/textbooks/math-11-13-statistics'),
   'mathematics|11|probability': () => import('@/content/textbooks/math-11-14-probability'),
 };
 
