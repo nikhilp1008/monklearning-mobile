@@ -275,6 +275,29 @@ function convertBareScripts(text: string): string {
 }
 
 /**
+ * `<smiles>CC=CC(C)O</smiles>` — a molecule, tagged by the OCR.
+ *
+ * `mathpix.py` asks for `include_smiles`, so a chemistry photo whose paper
+ * showed a skeletal structure comes back with the structure as a SMILES string
+ * inside this tag. Nothing here strips it, so it reached the Solution screen as
+ * literal markup: "How many stereoisomers are possible for
+ * <smiles>CC=CC(C)O</smiles>?".
+ *
+ * The webpage draws the molecule with `smiles-drawer`, which cannot run here:
+ * it builds a live `SVGSVGElement` through `document.createElementNS`. This is
+ * the webpage's own fallback instead, the one it shows when that drawer fails
+ * to parse. It is a mitigation, not parity — a student who cannot read SMILES
+ * still cannot see the structure. Drawing it properly belongs on the server,
+ * which would serve both clients and let the webpage drop a 190KB import.
+ */
+const SMILES_TAG = /<smiles>\s*([^<]*?)\s*<\/smiles>/gi;
+
+function unwrapSmiles(text: string): string {
+  return text.replace(SMILES_TAG, (_, formula: string) =>
+    formula.trim() ? `structure: ${formula.trim()}` : 'structure');
+}
+
+/**
  * Normalizes PDF-extraction artifacts, then converts every `$…$` / `$$…$$`
  * segment to Unicode, leaving plain prose untouched.
  *
@@ -283,7 +306,7 @@ function convertBareScripts(text: string): string {
  * PDF extraction, not real paragraph breaks.
  */
 export function latexToText(raw: string): string {
-  const normalized = raw
+  const normalized = unwrapSmiles(raw)
     .replace(/-\n/g, '')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')
