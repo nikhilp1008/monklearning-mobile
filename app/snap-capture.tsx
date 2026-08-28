@@ -7,13 +7,14 @@ import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { SnapCrop } from '@/components/snap-crop';
 import { SnapLoading } from '@/components/snap-loading';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 
-type Phase = 'opening' | 'idle' | 'permission_denied' | 'uploading' | 'failed';
+type Phase = 'opening' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
 
 function quotaMessage(failure: SnapFailure): string {
   if (failure.daily_limit == null) return failure.message;
@@ -112,7 +113,9 @@ export default function SnapCaptureScreen() {
       return;
     }
 
-    upload(picked);
+    // Straight to the crop, not to the solver. A photo of a page holds more
+    // than one question, and choosing which one to send is the student's call.
+    setPhase('cropping');
   }
 
   async function openCamera() {
@@ -176,6 +179,22 @@ export default function SnapCaptureScreen() {
   // The full-bleed loading design owns the whole screen while a solve is in
   // flight — the student's own shot behind the scan, not a spinner over a
   // thumbnail. See snap-loading-2c/ for the spec this implements.
+  if (phase === 'cropping' && photo) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <SnapCrop
+          photo={photo}
+          onCancel={() => setPhase('idle')}
+          onDone={(cropped) => {
+            setPhoto(cropped);
+            upload(cropped);
+          }}
+        />
+      </>
+    );
+  }
+
   if (phase === 'uploading' && photo) {
     return (
       <>
