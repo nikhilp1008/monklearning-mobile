@@ -69,19 +69,57 @@ export default function SnapCaptureScreen() {
 
   useEffect(() => {
     if (phase !== 'uploading') return;
-    if (job.status === 'solved') {
-      router.replace('/snap-solved');
-      return;
-    }
+
     if (job.status === 'failed') {
       setFailure(job.failure);
       setCanRetryUpload(job.failure.stage !== 'quota');
       setPhase('failed');
       return;
     }
+
+    if (job.status === 'solved') {
+      // Nothing worth opening a Solution screen for. Saying so here, over the
+      // photo they just took, is the honest place for it: sending someone to a
+      // page titled Solution to read "try snapping it again" is a wasted
+      // navigation and a worse answer.
+      const usable = job.response.questions.some(
+        (q) => q.status === 'solved' || q.status === 'unsure'
+      );
+      if (!usable) {
+        const first = job.response.questions[0];
+        setFailure({
+          message: first?.failure_reason || 'We could not find a question in that photo.',
+          stage: 'read',
+          remedy: (first?.remedy as SnapFailure['remedy']) ?? 'retake',
+          retake_helps: true,
+        });
+        setCanRetryUpload(true);
+        setPhase('failed');
+        return;
+      }
+      router.replace('/snap-solved');
+      return;
+    }
+
     if (job.status !== 'solving') return;
-    const id = setTimeout(() => router.replace('/snap-solved'), SNAP_HANDOFF_MS);
-    return () => clearTimeout(id);
+
+    // Hand off as soon as the photo has actually been read.
+    //
+    // It used to hand off on a blind 7s timer, which meant a photo with no
+    // question in it landed on the Solution screen and only then admitted it
+    // had nothing. `questions_read` tells us there IS a question well before
+    // the answer exists, so that is what the navigation waits for.
+    if (job.read.some((q) => q.legible !== false)) {
+      router.replace('/snap-solved');
+      return;
+    }
+
+    // The non-streaming fallback never reports what it read, so there is
+    // nothing to wait for and the timer is the only signal available.
+    if (!job.streaming) {
+      const id = setTimeout(() => router.replace('/snap-solved'), SNAP_HANDOFF_MS);
+      return () => clearTimeout(id);
+    }
   }, [phase, job]);
 
   const cancelUpload = () => {

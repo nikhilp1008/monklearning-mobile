@@ -30,6 +30,7 @@ const HANDLE_TOUCH = 44;
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
+type Edge = 'top' | 'bottom' | 'left' | 'right';
 
 export function SnapCrop({
   photo,
@@ -157,6 +158,34 @@ export function SnapCrop({
     return { tl: make('tl'), tr: make('tr'), bl: make('bl'), br: make('br') };
   }, []);
 
+  const edges = useMemo(() => {
+    const make = (edge: Edge) =>
+      Gesture.Pan()
+        .onBegin(() => {
+          startRef.current = cropRef.current;
+        })
+        .onUpdate((e) => {
+          const from = startRef.current;
+          if (!from) return;
+          const next = { ...from };
+          if (edge === 'top') {
+            next.y = from.y + e.translationY;
+            next.h = from.h - e.translationY;
+          } else if (edge === 'bottom') {
+            next.h = from.h + e.translationY;
+          } else if (edge === 'left') {
+            next.x = from.x + e.translationX;
+            next.w = from.w - e.translationX;
+          } else {
+            next.w = from.w + e.translationX;
+          }
+          if (next.w < MIN_SIDE || next.h < MIN_SIDE) return;
+          setCrop(clampRef.current(next));
+        })
+        .runOnJS(true);
+    return { top: make('top'), bottom: make('bottom'), left: make('left'), right: make('right') };
+  }, []);
+
   const rotate = () => setRotation((r) => (r + 90) % 360);
 
   const confirm = async () => {
@@ -196,8 +225,9 @@ export function SnapCrop({
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/* No title. The button at the bottom already says what this is, and
+            saying it twice cost the photo a band of height. */}
         <View style={styles.bar}>
-          <Text style={styles.title}>Crop &amp; continue</Text>
           <Pressable style={styles.close} onPress={onCancel} accessibilityLabel="Cancel" hitSlop={10}>
             <Text style={styles.closeGlyph}>✕</Text>
           </Pressable>
@@ -259,6 +289,12 @@ export function SnapCrop({
                 </View>
               </GestureDetector>
 
+              {/* Corners resize both sides at once; the mid-edge bars move one
+                  edge. Four brackets on their own read as a viewfinder rather
+                  than as something you can take hold of. */}
+              {(['top', 'bottom', 'left', 'right'] as Edge[]).map((e) => (
+                <EdgeHandle key={e} edge={e} crop={crop} styles={styles} gesture={edges[e]} />
+              ))}
               {(['tl', 'tr', 'bl', 'br'] as Corner[]).map((c) => (
                 <CornerHandle
                   key={c}
@@ -290,6 +326,39 @@ export function SnapCrop({
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+/** One mid-edge bar, and the touch target that drags that edge alone. */
+function EdgeHandle({
+  edge,
+  crop,
+  styles,
+  gesture,
+}: {
+  edge: Edge;
+  crop: Rect;
+  styles: ReturnType<typeof createStyles>;
+  gesture: ReturnType<typeof Gesture.Pan>;
+}) {
+  const vertical = edge === 'left' || edge === 'right';
+  const cx = edge === 'left' ? crop.x : edge === 'right' ? crop.x + crop.w : crop.x + crop.w / 2;
+  const cy = edge === 'top' ? crop.y : edge === 'bottom' ? crop.y + crop.h : crop.y + crop.h / 2;
+  return (
+    <GestureDetector gesture={gesture}>
+      <View
+        style={{
+          position: 'absolute',
+          left: cx - HANDLE_TOUCH / 2,
+          top: cy - HANDLE_TOUCH / 2,
+          width: HANDLE_TOUCH,
+          height: HANDLE_TOUCH,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+        <View style={vertical ? styles.edgeBarV : styles.edgeBarH} />
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -342,11 +411,10 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     bar: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
       paddingTop: verticalScale(6),
-      paddingBottom: verticalScale(12),
+      paddingBottom: verticalScale(10),
     },
-    title: { fontFamily: 'AnekLatin_700Bold', fontSize: scale(22), color: '#FFFFFF' },
     close: {
       width: scale(34),
       height: scale(34),
@@ -383,6 +451,28 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       shadowColor: '#000000',
       shadowOpacity: 0.35,
       shadowRadius: 1,
+      shadowOffset: { width: 0, height: 0 },
+    },
+    // Short bars, half a bracket long, so they read as grips rather than as
+    // more frame.
+    edgeBarH: {
+      width: BRACKET,
+      height: scale(3),
+      borderRadius: scale(2),
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000000',
+      shadowOpacity: 0.4,
+      shadowRadius: 2,
+      shadowOffset: { width: 0, height: 0 },
+    },
+    edgeBarV: {
+      width: scale(3),
+      height: BRACKET,
+      borderRadius: scale(2),
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000000',
+      shadowOpacity: 0.4,
+      shadowRadius: 2,
       shadowOffset: { width: 0, height: 0 },
     },
     bracket: {

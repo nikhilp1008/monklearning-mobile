@@ -1,7 +1,14 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Image as RNImage,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -66,6 +73,22 @@ export function SnapLoading({ photoUri, onCancel, onClose }: SnapLoadingProps) {
   const [longWait, setLongWait] = useState(false);
   /** The card's measured height, so the sweep travels exactly its length. */
   const [cardH, setCardH] = useState(Math.round(height * 0.44));
+  /**
+   * The shot's own aspect, so the card is the shape of the photo.
+   *
+   * The card used to be a fixed box with the image contained inside it, which
+   * left bands of empty card above and below a wide shot. The student is being
+   * shown what they sent; the frame should be the photo's shape, not a window
+   * onto it.
+   */
+  const [aspect, setAspect] = useState<number | null>(null);
+  useEffect(() => {
+    RNImage.getSize(
+      photoUri,
+      (w, h) => setAspect(h > 0 ? w / h : null),
+      () => setAspect(null)
+    );
+  }, [photoUri]);
 
   // "Run long, hold": stop at the last stage rather than looping back to the
   // first — looping reads as a hang.
@@ -115,26 +138,30 @@ export function SnapLoading({ photoUri, onCancel, onClose }: SnapLoadingProps) {
           <StageLine key={stage} styles={styles} scale={scale} text={SNAP_STAGES[stage]} />
         </View>
 
-        <View
-          style={styles.card}
-          onLayout={(e) => setCardH(Math.round(e.nativeEvent.layout.height))}>
+        <View style={styles.cardWrap}>
+          <View
+            style={[styles.card, aspect ? { aspectRatio: aspect } : { flex: 1 }]}
+            onLayout={(e) => setCardH(Math.round(e.nativeEvent.layout.height))}>
           {/* `contain`: a student has to be able to see the question they sent,
               and cropping it away to fill a card defeats the point of showing
               it at all. */}
-          <Image source={{ uri: photoUri }} style={styles.photo} contentFit="contain" transition={220} />
+            {/* `cover` is safe now that the card IS the photo's shape: there
+                is nothing to crop away. */}
+            <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" transition={220} />
 
-          <Animated.View style={[styles.sweep, { height: bandH }, sweepStyle]} pointerEvents="none">
-            <LinearGradient
-              colors={[
-                'rgba(238,163,31,0)',
-                'rgba(238,163,31,0.10)',
-                'rgba(238,163,31,0.28)',
-                'rgba(255,214,130,0.85)',
-              ]}
-              locations={[0, 0.55, 0.92, 1]}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
+            <Animated.View style={[styles.sweep, { height: bandH }, sweepStyle]} pointerEvents="none">
+              <LinearGradient
+                colors={[
+                  'rgba(238,163,31,0)',
+                  'rgba(238,163,31,0.10)',
+                  'rgba(238,163,31,0.28)',
+                  'rgba(255,214,130,0.85)',
+                ]}
+                locations={[0, 0.55, 0.92, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -234,8 +261,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     /** The shot, held like a page. The border is what makes it an object on
      *  the paper rather than a hole cut into it. */
-    card: {
+    cardWrap: {
       flex: 1,
+      justifyContent: 'center',
+    },
+    card: {
+      width: '100%',
+      maxHeight: '100%',
       borderRadius: scale(18),
       overflow: 'hidden',
       backgroundColor: '#FFFFFF',

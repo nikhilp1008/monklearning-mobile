@@ -38,6 +38,12 @@ export type SnapJob =
       status: 'solving';
       photoUri: string;
       /**
+       * False once the request has fallen back to the non-streaming route, so
+       * the screen knows whether an empty `read` means "not read yet" or
+       * "this route never reports that".
+       */
+      streaming: boolean;
+      /**
        * What the photo said, as soon as the server had read it and before any
        * answer exists. Empty until the `questions_read` frame lands, or for
        * the whole solve if the request fell back to the non-streaming route.
@@ -81,7 +87,7 @@ export function startSnapJob(photo: DoubtPhoto): void {
   controller?.abort();
   const mine = ++generation;
   controller = new AbortController();
-  emit({ status: 'solving', photoUri: photo.uri, read: [], solved: [] });
+  emit({ status: 'solving', photoUri: photo.uri, streaming: true, read: [], solved: [] });
 
   /** Only meaningful while this job is the current one. */
   const patch = (fn: (j: Extract<SnapJob, { status: 'solving' }>) => SnapJob) => {
@@ -117,6 +123,7 @@ export function startSnapJob(photo: DoubtPhoto): void {
         fail(err);
         return;
       }
+      patch((j) => ({ ...j, streaming: false }));
       snapDoubt(photo, controller?.signal).then(succeed).catch(fail);
     });
 }
