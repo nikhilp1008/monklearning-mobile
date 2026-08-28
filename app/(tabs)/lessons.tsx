@@ -37,9 +37,13 @@ const CLASSES = ['Class 11', 'Class 12'] as const;
  * screen never had anything to open.
  *
  * The SOON tag is kept, but it is now earned per chapter rather than assumed
- * for all of them: a chapter with no sections of its own still says SOON,
- * exactly the webpage's `isClickable = sectionCount > 0`. Counts are one
- * query for the whole visible list (see `getLessonSectionCounts`).
+ * for all of them. The bar is higher than the webpage's
+ * `isClickable = sectionCount > 0`: a chapter opens only when every one of its
+ * sections would actually play, so "recorded" and "finished" are not treated
+ * as the same thing. 97 of the 106 chapters that have sections clear it. The
+ * nine that do not would have shown a student either a blank board or a silent
+ * one, which is worse than an honest SOON. Counts are two queries for the whole
+ * visible list (see `getLessonSectionCounts`).
  */
 
 /** Catalogue subject strings → the compact pill labels used app-wide. */
@@ -209,7 +213,10 @@ export default function LessonsScreen() {
               ) : (
                 visibleChapters.map((chapter, index) => {
                   const meta = sectionCounts?.get(chapter.id);
-                  const ready = (meta?.sections ?? 0) > 0;
+                  // Every section has to play, not just exist. A chapter with
+                  // even one blank board or one silent section stays SOON:
+                  // see `getLessonSectionCounts`.
+                  const ready = (meta?.sections ?? 0) > 0 && (meta?.incomplete ?? 0) === 0;
                   // Until the counts land, a chapter is neither ready nor
                   // SOON — it is simply unknown. Showing SOON in that gap
                   // told students a chapter had no lesson and then silently

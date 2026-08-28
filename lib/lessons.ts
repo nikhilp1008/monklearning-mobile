@@ -138,12 +138,67 @@ const PAGE_SIZE = 1000;
  * SUBTOPIC count on its chapter cards ("12 subtopics") and gates on the
  * section count, so both are carried rather than conflated.
  */
-export type ChapterLessonMeta = { sections: number; subtopics: number };
+export type ChapterLessonMeta = {
+  sections: number;
+  subtopics: number;
+  /**
+   * Sections that would not play properly: no board to draw, or no narration
+   * to draw it against. See `fetchIncompleteCounts`.
+   */
+  incomplete: number;
+};
 
 /** The counts are identical for every student and change only when new content
  *  ships, so the whole map is fetched once per app run rather than on each
  *  visit to the tab. A failure clears the cache so the next visit retries. */
 let countsCache: Promise<Map<string, ChapterLessonMeta>> | null = null;
+
+/**
+ * Sections that are recorded but not finished, counted per chapter.
+ *
+ * "Has a row in `lesson_sections`" is not the same as "plays". Two things are
+ * genuinely missing in the data today, and each breaks a lesson in a way a
+ * student would notice immediately:
+ *
+ *  - `board_content = []` — narration with nothing to draw. All 59 sections of
+ *    Chemistry Class 11 "Some Basic Concepts" are in this state, so that whole
+ *    chapter is a voice over a blank page.
+ *  - `segments_english` null — a board that reveals in silence, with no
+ *    captions either. 18 sections across eight Mathematics chapters, two or
+ *    four at a time.
+ *
+ * Audio, durations and reveal timings are present on all 6,166 rows, so those
+ * are not checked: a filter that can never fire is a filter that will quietly
+ * rot. Add one here the day that stops being true.
+ *
+ * Cheap on purpose. This returns the ~77 broken rows rather than auditing all
+ * 6,166, so it is one small request regardless of how the library grows.
+ */
+async function fetchIncompleteCounts(): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const bump = (rows: { chapter_id: string | null }[]) => {
+    for (const row of rows) {
+      if (!row.chapter_id) continue;
+      out.set(row.chapter_id, (out.get(row.chapter_id) ?? 0) + 1);
+    }
+  };
+
+  const blankBoard = await supabase
+    .from('lesson_sections')
+    .select('chapter_id')
+    .eq('board_content', '[]');
+  if (blankBoard.error) throw new Error(blankBoard.error.message);
+  bump((blankBoard.data ?? []) as { chapter_id: string | null }[]);
+
+  const noNarration = await supabase
+    .from('lesson_sections')
+    .select('chapter_id')
+    .is('segments_english', null);
+  if (noNarration.error) throw new Error(noNarration.error.message);
+  bump((noNarration.data ?? []) as { chapter_id: string | null }[]);
+
+  return out;
+}
 
 async function fetchSectionCounts(): Promise<Map<string, ChapterLessonMeta>> {
   const counts = new Map<string, { sections: number; subtopics: Set<string> }>();
@@ -169,6 +224,7 @@ async function fetchSectionCounts(): Promise<Map<string, ChapterLessonMeta>> {
     if (rows.length < PAGE_SIZE) break;
   }
 
+  const incomplete = await fetchIncompleteCounts();
   const out = new Map<string, ChapterLessonMeta>();
   for (const [id, entry] of counts) {
     // A chapter whose sections carry no subtopic still has to show a number;
@@ -176,15 +232,16 @@ async function fetchSectionCounts(): Promise<Map<string, ChapterLessonMeta>> {
     out.set(id, {
       sections: entry.sections,
       subtopics: entry.subtopics.size > 0 ? entry.subtopics.size : entry.sections,
+      incomplete: incomplete.get(id) ?? 0,
     });
   }
   return out;
 }
 
 /**
- * How many recorded sections each chapter has, for the per-chapter gate on the
- * Lessons list — the webpage's `isClickable = sectionCount > 0`. A chapter
- * missing from the map simply has no lesson yet.
+ * How many recorded sections each chapter has, and how many of them are not
+ * finished, for the per-chapter gate on the Lessons list. A chapter missing
+ * from the map simply has no lesson yet.
  *
  * Only `chapter_id` is selected: pulling board content to compute a count
  * would be megabytes for a number.

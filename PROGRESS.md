@@ -6413,10 +6413,20 @@ Current as of 2026-08-27. Grouped by who is blocked.
   book's own errata. That rate says the answer keys have not been checked
   systematically, and the next subject's reference should be assumed to be in
   the same state.
-- **No lesson has been recorded**, so every chapter row in the Lessons tab is
-  inert and carries a SOON tag. When the first one ships, that becomes a
-  per-chapter check the way `isChapterReady` already works for textbooks, and
-  `lesson-player` gets its only caller back.
+- ~~**No lesson has been recorded.**~~ **That was wrong, and it was mine.** The
+  co-founder's `ddae68d` shows 6,166 sections had been sitting in
+  `lesson_sections` all along, covering 106 of 107 chapters. The Lessons tab
+  could not see them because `/drona/catalogue` returns names only. I took "we
+  have not started rendering lessons" at face value and wrote it into a code
+  comment as fact, which is exactly the kind of assumption that should have
+  been checked against the data before it was documented.
+- **Nine chapters are recorded but not finished**, and are gated back to SOON:
+  Chemistry Class 11 "Some Basic Concepts", whose 59 sections all have
+  `board_content = []`, so it is narration over a blank page; and eight
+  Mathematics chapters with two or four sections each whose `segments_english`
+  is null, so the board reveals in silence. Audio, durations and reveal timings
+  are present on all 6,166 rows. The eight Mathematics chapters need two
+  sections of narration each to come back, which is small and findable.
 - **Subscription pricing** — every amount is still `₹—`. `monklearning.com`
   and `www.monklearning.com` both 404. Needs the 1/3/6/11-month prices for JEE,
   NEET and Both.
