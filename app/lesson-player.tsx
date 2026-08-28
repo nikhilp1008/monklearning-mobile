@@ -53,6 +53,7 @@ import {
   type BoardEvent,
   type Language,
   type LessonSection,
+  groupBySubtopic,
 } from '@/lib/lessons';
 
 type Segment = { text: string; bold?: boolean };
@@ -131,6 +132,10 @@ function blockLength(block: BoardBlock): number {
 const CHAR_TICK_MS = 26;
 const DIAGRAM_HOLD_TICKS = 24;
 const FOLLOW_SCROLL_MS = 350;
+/** Row and heading heights, for scrolling the drawer to the current section.
+ *  Approximate on purpose: this positions a list, it does not lay one out. */
+const TOPIC_ROW_H = 52;
+const TOPIC_GROUP_H = 26;
 const SEGMENT_DURATION_MS = 80000;
 const SEGMENT_TICK_MS = 200;
 // Literal markup keyframe: `@keyframes mlProg{from{width:56%}to{width:100%}}` —
@@ -286,6 +291,20 @@ export default function LessonPlayerScreen() {
   const [boardHeight, setBoardHeight] = useState(390);
   const [following, setFollowing] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerScrollRef = useRef<ScrollView>(null);
+
+  /**
+   * Sections under their subtopic, each group carrying the index its first
+   * section sits at so a row can still jump by absolute position.
+   */
+  const subtopicGroups = useMemo(() => {
+    let first = 0;
+    return groupBySubtopic(sections).map((g) => {
+      const entry = { ...g, first };
+      first += g.sections.length;
+      return entry;
+    });
+  }, [sections]);
   const [ccOn, setCcOn] = useState(true);
   const [indicatorVisible, setIndicatorVisible] = useState(false);
   const [indicatorTop, setIndicatorTop] = useState(0);
@@ -368,6 +387,28 @@ export default function LessonPlayerScreen() {
     setDrawerOpen(true);
     setChromeVisible(true);
   };
+
+  /**
+   * Open the drawer on where the student actually is.
+   *
+   * A chapter runs to 92 sections. Opening at the top on section 40 means
+   * scrolling to find the row that says "Now playing", which is the one thing
+   * they came to the list already knowing. Measured from the row height rather
+   * than `scrollTo`-by-ref so a group heading in between still lands right.
+   */
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const before = subtopicGroups.filter((g) => g.first <= currentSegment).length;
+    const y = currentSegment * TOPIC_ROW_H + before * TOPIC_GROUP_H;
+    const id = setTimeout(
+      () => drawerScrollRef.current?.scrollTo({ y: Math.max(0, y - TOPIC_ROW_H * 2), animated: false }),
+      // After the slide-in has laid the list out; scrolling a zero-height
+      // ScrollView does nothing and leaves it at the top.
+      60
+    );
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen]);
 
   const closeDrawer = () => setDrawerOpen(false);
 
@@ -547,21 +588,40 @@ export default function LessonPlayerScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.drawerList}>
-              {sections.map((entry, i) => {
-                const rowStatus =
-                  i < currentSegment ? 'done' : i === currentSegment ? 'current' : 'upcoming';
-                return (
-                  <TopicRow
-                    key={entry.id}
-                    name={entry.title}
-                    status={rowStatus}
-                    styles={styles}
-                    onPress={() => jumpToTopic(i)}
-                  />
-                );
-              })}
-            </View>
+            {/* A ScrollView, not a View. A chapter runs to 92 sections and this
+                was a fixed-height column, so everything past the seventh row was
+                laid out beyond the drawer and clipped: invisible, and untappable
+                even though every row has a handler. That is what "the topics are
+                not clickable" was. */}
+            <ScrollView
+              ref={drawerScrollRef}
+              style={styles.drawerList}
+              contentContainerStyle={styles.drawerListContent}
+              showsVerticalScrollIndicator>
+              {subtopicGroups.map((group) => (
+                <View key={`${group.subtopic}-${group.first}`}>
+                  {/* The subtopic is the unit a student is actually looking
+                      for; 92 flat titles are not navigable. */}
+                  <Text style={styles.topicGroupHeading} numberOfLines={2}>
+                    {group.subtopic}
+                  </Text>
+                  {group.sections.map((entry, n) => {
+                    const i = group.first + n;
+                    return (
+                      <TopicRow
+                        key={entry.id}
+                        name={entry.title}
+                        status={
+                          i < currentSegment ? 'done' : i === currentSegment ? 'current' : 'upcoming'
+                        }
+                        styles={styles}
+                        onPress={() => jumpToTopic(i)}
+                      />
+                    );
+                  })}
+                </View>
+              ))}
+            </ScrollView>
 
             <View style={styles.drawerFooter}>
               <Text style={styles.drawerFooterText}>
@@ -626,7 +686,11 @@ function TopicRow({
       onPress={onPress}>
       <Text style={[styles.topicMark, { color: markColor }]}>{mark}</Text>
       <View style={styles.topicTextCol}>
-        <Text style={nameStyle} numberOfLines={1}>
+        {/* Two lines. At 272pt wide, one line cut "A measurement is a number
+            and a unit" to "…number and a…", which is not a name a student can
+            pick out of a list. Wrapping keeps every title whole; nothing is
+            summarised away. */}
+        <Text style={nameStyle} numberOfLines={2}>
           {name}
         </Text>
         {/* the source markup always renders this line (empty when not current) so every
@@ -1242,10 +1306,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     drawerList: {
       flex: 1,
+    },
+    drawerListContent: {
       paddingTop: verticalScale(2),
       paddingHorizontal: scale(10),
       paddingBottom: verticalScale(8),
       gap: scale(3),
+    },
+    /** The subtopic a run of sections belongs to. Quiet, because it labels the
+     *  rows rather than competing with them. */
+    topicGroupHeading: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(9.5),
+      letterSpacing: scale(0.7),
+      textTransform: 'uppercase',
+      color: colors.quiet,
+      paddingHorizontal: scale(10),
+      paddingTop: verticalScale(10),
+      paddingBottom: verticalScale(4),
     },
     drawerFooter: {
       paddingTop: verticalScale(8),
