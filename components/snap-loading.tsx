@@ -300,6 +300,43 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       lineHeight: scale(19),
       color: colors.slate,
     },
+    failScrim: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(255,253,248,.55)',
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: scale(10),
+    },
+    primary: {
+      flex: 1,
+      paddingVertical: verticalScale(14),
+      borderRadius: scale(99),
+      alignItems: 'center',
+      backgroundColor: colors.ink,
+    },
+    primaryText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(15),
+      color: colors.paper,
+    },
+    secondary: {
+      flex: 1,
+      paddingVertical: verticalScale(14),
+      borderRadius: scale(99),
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.hairline,
+    },
+    secondaryOnly: {
+      backgroundColor: colors.ink,
+      borderColor: colors.ink,
+    },
+    secondaryText: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(15),
+      color: colors.ink,
+    },
     cancel: {
       alignSelf: 'stretch',
       paddingVertical: verticalScale(13),
@@ -313,4 +350,124 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       color: colors.ink,
     },
   });
+}
+
+/**
+ * Our own words for a failure, keyed on the remedy rather than printed from
+ * the server's `message`.
+ *
+ * The API writes copy like "Monk could not find a question in that photo",
+ * which names a product nobody here is called and is written for a different
+ * surface. `remedy` is a stable enum, so the sentence a student reads can live
+ * with the screen that shows it. The server's own message is still the
+ * fallback for a remedy we do not recognise.
+ */
+const FAILURE_COPY: Record<string, { title: string; body: string }> = {
+  retake: {
+    title: 'No question in that shot',
+    body: 'Get the whole question in frame, hold steady, and keep the page well lit.',
+  },
+  not_photo: {
+    title: 'This one needs its figure',
+    body: 'There is a diagram here that cannot be read from the text alone.',
+  },
+  our_side: {
+    title: 'That was on our end',
+    body: 'Nothing wrong with your photo. Give it another go in a moment.',
+  },
+};
+
+export function SnapFailed({
+  photoUri,
+  title,
+  body,
+  onRetry,
+  onRetake,
+  onClose,
+}: {
+  photoUri: string;
+  /** Overrides the remedy copy, for cases like the daily limit. */
+  title: string;
+  body: string;
+  onRetry?: () => void;
+  onRetake?: () => void;
+  onClose: () => void;
+}) {
+  const { scale, verticalScale } = useScale();
+  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const [aspect, setAspect] = useState<number | null>(null);
+
+  useEffect(() => {
+    RNImage.getSize(
+      photoUri,
+      (w, h) => setAspect(h > 0 ? w / h : null),
+      () => setAspect(null)
+    );
+  }, [photoUri]);
+
+  return (
+    <View style={styles.root}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.bar}>
+          <Text style={styles.kicker}>Snap a doubt</Text>
+          <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Close" hitSlop={10}>
+            <Text style={styles.closeGlyph}>✕</Text>
+          </Pressable>
+        </View>
+
+        {/* Same heading slot the stage line occupies, so the screen reads as
+            the scan resolving rather than as somewhere new. */}
+        <View style={styles.stageWrap}>
+          <Text style={styles.stage} numberOfLines={2}>
+            {title}
+          </Text>
+        </View>
+
+        <View style={styles.cardWrap}>
+          <View style={[styles.card, aspect ? { aspectRatio: aspect } : { flex: 1 }]}>
+            <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" transition={200} />
+            {/* The shot stays visible and steps back, because it is the thing
+                the student is being asked to judge and retake. */}
+            <View style={styles.failScrim} />
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.eta}>{body}</Text>
+          <View style={styles.actions}>
+            {onRetry && (
+              <Pressable style={styles.primary} onPress={onRetry}>
+                <Text style={styles.primaryText}>Try again</Text>
+              </Pressable>
+            )}
+            {onRetake && (
+              <Pressable
+                style={[styles.secondary, !onRetry && styles.secondaryOnly]}
+                onPress={onRetake}>
+                <Text style={styles.secondaryText}>Take another</Text>
+              </Pressable>
+            )}
+            {!onRetry && !onRetake && (
+              <Pressable style={styles.primary} onPress={onClose}>
+                <Text style={styles.primaryText}>Got it</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+/** The remedy's copy, or the server's sentence if we do not know the remedy. */
+export function failureCopy(
+  remedy: string | null | undefined,
+  serverMessage: string
+): { title: string; body: string } {
+  return (
+    FAILURE_COPY[remedy ?? ''] ?? {
+      title: 'Couldn’t read that one',
+      body: serverMessage,
+    }
+  );
 }

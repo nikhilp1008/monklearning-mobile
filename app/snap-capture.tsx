@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { SnapCrop } from '@/components/snap-crop';
-import { SnapLoading } from '@/components/snap-loading';
+import { SnapFailed, SnapLoading, failureCopy } from '@/components/snap-loading';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
@@ -228,6 +228,26 @@ export default function SnapCaptureScreen() {
             setPhoto(cropped);
             upload(cropped);
           }}
+        />
+      </>
+    );
+  }
+
+  if (phase === 'failed' && photo && failure) {
+    const quota = failure.stage === 'quota';
+    const copy = quota
+      ? { title: 'That is today’s limit', body: quotaMessage(failure) }
+      : failureCopy(failure.remedy, failure.message);
+    return (
+      <>
+        <StatusBar style="dark" />
+        <SnapFailed
+          photoUri={photo.uri}
+          title={copy.title}
+          body={copy.body}
+          onRetry={!quota && canRetryUpload ? () => upload(photo) : undefined}
+          onRetake={!quota && failure.retake_helps !== false ? openCamera : undefined}
+          onClose={close}
         />
       </>
     );
