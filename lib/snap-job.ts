@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import { DoubtPhoto, SnapFailure, SnapResponse, readSnapFailure, snapDoubt } from '@/lib/doubts';
+import { ReadQuestion, snapDoubtStreaming } from '@/lib/snap-stream';
 
 /**
  * The in-flight snap, held outside React so it can outlive the screen that
@@ -33,7 +34,18 @@ export const SNAP_HANDOFF_MS = 7000;
 
 export type SnapJob =
   | { status: 'idle' }
-  | { status: 'solving'; photoUri: string }
+  | {
+      status: 'solving';
+      photoUri: string;
+      /**
+       * What the photo said, as soon as the server had read it and before any
+       * answer exists. Empty until the `questions_read` frame lands, or for
+       * the whole solve if the request fell back to the non-streaming route.
+       */
+      read: ReadQuestion[];
+      /** Questions already answered, so the screen can fill in as they land. */
+      solved: SnapResponse['questions'];
+    }
   | { status: 'solved'; photoUri: string; response: SnapResponse }
   | { status: 'failed'; photoUri: string; failure: SnapFailure };
 
@@ -55,23 +67,57 @@ function emit(next: SnapJob) {
   for (const listener of listeners) listener();
 }
 
+/**
+ * Streams by default, falls back to the plain POST.
+ *
+ * `POST /doubts/stream` is the same pipeline delivered question by question,
+ * so the transcribed question can be on screen ~20s before its answer exists.
+ * If the stream cannot even start — an older API, a proxy that buffers
+ * event-streams, a device whose XHR does not report progress — the whole solve
+ * still works through `POST /doubts`; the student just waits the way they did
+ * before. A degraded snap is much worse than a late question.
+ */
 export function startSnapJob(photo: DoubtPhoto): void {
   controller?.abort();
   const mine = ++generation;
   controller = new AbortController();
-  emit({ status: 'solving', photoUri: photo.uri });
+  emit({ status: 'solving', photoUri: photo.uri, read: [], solved: [] });
 
-  snapDoubt(photo, controller.signal)
-    .then((response) => {
-      if (mine !== generation) return;
-      emit({ status: 'solved', photoUri: photo.uri, response });
-    })
+  /** Only meaningful while this job is the current one. */
+  const patch = (fn: (j: Extract<SnapJob, { status: 'solving' }>) => SnapJob) => {
+    if (mine !== generation || job.status !== 'solving') return;
+    emit(fn(job));
+  };
+
+  const succeed = (response: SnapResponse) => {
+    if (mine !== generation) return;
+    emit({ status: 'solved', photoUri: photo.uri, response });
+  };
+  const fail = (err: unknown) => {
+    if (mine !== generation) return;
+    if (controller?.signal.aborted) return;
+    emit({ status: 'failed', photoUri: photo.uri, failure: readSnapFailure(err) });
+  };
+
+  snapDoubtStreaming(
+    photo,
+    {
+      onQuestionsRead: (read) => patch((j) => ({ ...j, read })),
+      onQuestion: (q) => patch((j) => ({ ...j, solved: [...j.solved, q] })),
+    },
+    controller.signal
+  )
+    .then(succeed)
     .catch((err) => {
-      if (mine !== generation) return;
-      // A cancel already took the student somewhere else; do not flash a
-      // failure at someone who asked to stop.
-      if (controller?.signal.aborted) return;
-      emit({ status: 'failed', photoUri: photo.uri, failure: readSnapFailure(err) });
+      if (mine !== generation || controller?.signal.aborted) return;
+      // A failure the SERVER described is a real answer about this photo, not a
+      // transport problem, so retrying on the other route would only ask the
+      // same question twice and bill the student's quota for it.
+      if ((err as { snapFailure?: unknown })?.snapFailure) {
+        fail(err);
+        return;
+      }
+      snapDoubt(photo, controller?.signal).then(succeed).catch(fail);
     });
 }
 

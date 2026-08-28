@@ -6427,18 +6427,6 @@ Current as of 2026-08-27. Grouped by who is blocked.
   is null, so the board reveals in silence. Audio, durations and reveal timings
   are present on all 6,166 rows. The eight Mathematics chapters need two
   sections of narration each to come back, which is small and findable.
-- **Snap does not stream, so the question appears late.** The API already
-  yields a `questions_read` event straight after transcription, and
-  `POST /doubts/stream` forwards it; the webpage uses that to paint the
-  transcribed question immediately with per-question progress beside it. Mobile
-  calls the non-streaming `POST /doubts`, so from the handoff at 7s to the
-  answer at 30-45s a student sees a skeleton with no question text, and learns
-  the photo was misread only at the very end. The route to fix it is known and
-  the mechanics are checked: React Native's `XMLHttpRequest` accumulates
-  incremental text, which is enough to parse SSE frames, and it keeps the
-  existing `{uri, name, type}` upload shape. `expo/fetch` streams but cannot
-  upload that part shape, so it is the wrong tool here. Needs a decision because
-  it changes the request path of a core feature.
 - **Molecules are named, not drawn.** `latexToText` now unwraps
   `<smiles>CC=CC(C)O</smiles>` to "structure: CC=CC(C)O" rather than printing
   the markup, which is the webpage's own parse-failure fallback. It is a

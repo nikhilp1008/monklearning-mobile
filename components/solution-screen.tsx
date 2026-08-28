@@ -38,6 +38,12 @@ export type SolutionQuestion = {
   text: string;
   steps: ParsedStep[];
   answer: string | null;
+  /**
+   * The question has been read but not yet solved. Its text is real; its
+   * working is still coming, so the steps area shows the placeholder instead
+   * of an empty rail that reads as "no steps".
+   */
+  pending?: boolean;
   /** Shown in place of the working when this question could not be solved. */
   failureNote?: string | null;
 };
@@ -149,7 +155,15 @@ export function SolutionScreen({
             <Text style={styles.questionText}>{question.text}</Text>
           </View>
 
-          {question.failureNote ? (
+          {question.pending ? (
+            // The question is on screen ~20s before its answer exists, so this
+            // is the only part still waiting. Same placeholder the whole screen
+            // used to show, now scoped to the half that is genuinely unknown.
+            <View style={styles.stepsBlock}>
+              <StepsPlaceholder />
+              <Text style={styles.meta}>working it out…</Text>
+            </View>
+          ) : question.failureNote ? (
             <View style={styles.failureBlock}>
               <Text style={styles.failureText}>{question.failureNote}</Text>
             </View>
@@ -364,9 +378,40 @@ function createStyles() {
  * The layout doesn't move when the real solution lands — only the bars become
  * words.
  */
+
+/**
+ * The numbered-rail placeholder, shared by the whole-page skeleton and by a
+ * single question whose working has not arrived yet.
+ *
+ * Four rows, not two. A solve typically comes back with five or six steps, and
+ * a placeholder that stops halfway leaves the lower half blank, which reads as
+ * "this is all there is" and then jumps when it isn't.
+ */
+function StepsPlaceholder() {
+  const skeleton = useMemo(() => createSkeletonStyles(), []);
+  return (
+    <View style={skeleton.steps}>
+      <View style={skeleton.rail} />
+      {[0, 1, 2, 3].map((i) => (
+        <View key={i} style={skeleton.step}>
+          <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
+          <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />
+          <SkeletonParagraph
+            lines={2}
+            lineHeight={13}
+            gap={9}
+            delay={stagger(i, 120) + 60}
+            widths={['100%', '72%']}
+          />
+          <Skeleton delay={stagger(i, 120) + 180} style={skeleton.math} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
   const styles = useMemo(() => createStyles(), []);
-  const skeleton = useMemo(() => createSkeletonStyles(), []);
 
   return (
     <View style={styles.screen}>
@@ -384,29 +429,7 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
             <SkeletonParagraph lines={3} lineHeight={14} gap={10} widths={['100%', '96%', '54%']} />
           </View>
 
-          <View style={skeleton.steps}>
-            <View style={skeleton.rail} />
-            {/* Four, not two. A solve typically comes back with five or six
-                steps, and a placeholder that stops halfway down leaves the
-                lower half of the page blank — which reads as "this is all
-                there is" and then jumps when it isn't. Four fills the fold on
-                every size this ships to without pretending to know the exact
-                count. */}
-            {[0, 1, 2, 3].map((i) => (
-              <View key={i} style={skeleton.step}>
-                <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
-                <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />
-                <SkeletonParagraph
-                  lines={2}
-                  lineHeight={13}
-                  gap={9}
-                  delay={stagger(i, 120) + 60}
-                  widths={['100%', '72%']}
-                />
-                <Skeleton delay={stagger(i, 120) + 180} style={skeleton.math} />
-              </View>
-            ))}
-          </View>
+          <StepsPlaceholder />
         </View>
       </SafeAreaView>
     </View>

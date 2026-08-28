@@ -11,7 +11,7 @@ import {
 } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { Remedy } from '@/lib/doubts';
+import { Remedy, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
 import { latexToText } from '@/lib/latex-text';
 import { parseSolutionSteps } from '@/lib/solution-steps';
@@ -37,28 +37,71 @@ export default function SnapSolvedScreen() {
   // still running is deliberately left alone — see clearFinishedSnapJob.
   useEffect(() => clearFinishedSnapJob, []);
 
+  const solve = (q: SnappedQuestion, i: number): SolutionQuestion => ({
+    id: `Q${i + 1}`,
+    text: latexToText(q.stem ?? q.question_text ?? 'Could not read this question.'),
+    steps: parseSolutionSteps(q.steps, q.explanation),
+    answer: q.answer ? latexToText(q.answer) : null,
+    failureNote:
+      q.status === 'solved'
+        ? null
+        : (q.failure_reason ?? null) ||
+          REMEDY_COPY[(q.remedy as Remedy) ?? 'our_side'] ||
+          null,
+  });
+
   const questions: SolutionQuestion[] = useMemo(
-    () =>
-      (response?.questions ?? []).map((q, i) => ({
-        id: `Q${i + 1}`,
-        text: latexToText(q.stem ?? q.question_text ?? 'Could not read this question.'),
-        steps: parseSolutionSteps(q.steps, q.explanation),
-        answer: q.answer ? latexToText(q.answer) : null,
-        failureNote:
-          q.status === 'solved'
-            ? null
-            : (q.failure_reason ?? null) ||
-              REMEDY_COPY[(q.remedy as Remedy) ?? 'our_side'] ||
-              null,
-      })),
+    () => (response?.questions ?? []).map(solve),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [response]
   );
 
+  /**
+   * While the solve runs, show what the photo actually said.
+   *
+   * The stream sends the transcribed questions ~20s before the first answer
+   * exists, so a student can read their own question, and catch a misread
+   * photo, instead of watching a skeleton for the whole 30 to 45 seconds. Each
+   * question fills in as its answer lands; the ones still working keep the
+   * step placeholder.
+   */
+  const reading: SolutionQuestion[] = useMemo(() => {
+    if (job.status !== 'solving') return [];
+    const done = new Map(job.solved.map((q) => [q.question_index, q]));
+    return job.read.map((r, i) => {
+      const answered = done.get(r.question_index);
+      if (answered) return solve(answered, i);
+      return {
+        id: `Q${i + 1}`,
+        text: latexToText(r.stem ?? r.question_text ?? 'Could not read this question.'),
+        steps: [],
+        answer: null,
+        pending: true,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job]);
+
   if (job.status === 'solving') {
+    // Nothing has been read yet: there is genuinely nothing to show but the
+    // shape of the page, which is what the full-page skeleton is.
+    if (reading.length === 0) {
+      return (
+        <>
+          <StatusBar style="dark" />
+          <SolutionScreenSkeleton onBack={() => router.back()} />
+        </>
+      );
+    }
     return (
       <>
         <StatusBar style="dark" />
-        <SolutionScreenSkeleton onBack={() => router.back()} />
+        <SolutionScreen
+          questions={reading}
+          index={Math.min(index, reading.length - 1)}
+          onSelect={setIndex}
+          onBack={() => router.back()}
+        />
       </>
     );
   }

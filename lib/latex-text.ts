@@ -45,6 +45,7 @@ const SYMBOLS: Record<string, string> = {
   times: '×', cdot: '·', div: '÷', pm: '±', mp: '∓', ast: '∗',
   leq: '≤', le: '≤', geq: '≥', ge: '≥', neq: '≠', ne: '≠', approx: '≈',
   equiv: '≡', sim: '∼', simeq: '≃', propto: '∝', ll: '≪', gg: '≫',
+  wedge: '∧', vee: '∨', land: '∧', lor: '∨',
   // Arrows
   rightarrow: '→', to: '→', leftarrow: '←', leftrightarrow: '↔',
   Rightarrow: '⇒', Leftarrow: '⇐', Leftrightarrow: '⇔', longrightarrow: '⟶',
@@ -270,6 +271,17 @@ export function convertMath(src: string): string {
  */
 const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-])/g;
 
+/**
+ * `t^\wedge 2` — Mathpix transcribing a caret twice.
+ *
+ * When the page shows `t^2` written with a visible caret, the OCR encodes both
+ * the superscript AND the caret glyph, and `\wedge` is how it spells that
+ * glyph. Rendered literally it reads `tʷᵉᵈᵍᵉ 2`, which is how the stem of a
+ * kinematics question arrived on the Solution screen. The exponent is the
+ * meaning; the second caret is noise.
+ */
+const DOUBLED_CARET = /\^\s*\\wedge\s*/g;
+
 function convertBareScripts(text: string): string {
   return text.replace(BARE_SCRIPT, (token) => convertMath(token));
 }
@@ -307,6 +319,7 @@ function unwrapSmiles(text: string): string {
  */
 export function latexToText(raw: string): string {
   const normalized = unwrapSmiles(raw)
+    .replace(DOUBLED_CARET, '^')
     .replace(/-\n/g, '')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')

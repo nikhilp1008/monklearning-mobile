@@ -264,6 +264,11 @@ export function readSnapFailure(error: unknown): SnapFailure {
     stage: 'unknown',
     remedy: 'our_side',
   };
+  // The streaming path rejects with the server's own `error` frame attached,
+  // which is richer than anything that could be recovered from the message.
+  const attached = (error as { snapFailure?: SnapFailure } | null)?.snapFailure;
+  if (attached) return attached;
+
   if (!(error instanceof ApiError)) {
     if (error instanceof Error && error.message) {
       return { message: error.message, stage: 'unknown' };
