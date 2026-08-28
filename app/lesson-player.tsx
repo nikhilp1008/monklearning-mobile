@@ -1325,9 +1325,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       right: 0,
       bottom: 0,
       width: scale(272),
-      // White, not the reader's warm paper: this is a control panel over the
-      // page, and reading it as a separate surface is the point.
-      backgroundColor: '#FFFFFF',
+      // A hair off white, so the playing row can BE white and still read as
+      // lifted off it. Neutral rather than the reader's cream: this is chrome
+      // over the page, not more paper.
+      backgroundColor: '#F5F5F3',
       borderLeftWidth: 1,
       borderLeftColor: colors.hairline,
       flexDirection: 'column',
@@ -1380,7 +1381,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     group: {
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.06)',
+      borderBottomColor: 'rgba(28,26,22,.05)',
     },
     /** The topic. The heading of its own list, and the thing a student is
      *  actually looking for. */
@@ -1398,9 +1399,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(16),
       color: colors.ink,
     },
-    /** The topic being taught. Amber says "you are here" without a badge. */
+    /**
+     * The topic being taught needs no colour of its own: it is the one the
+     * accordion opens to, and the white card sits inside it. Weight alone.
+     */
     groupNameActive: {
-      color: colors.amberText,
+      fontFamily: 'AnekLatin_800ExtraBold',
     },
     groupCount: {
       fontFamily: 'AnekLatin_600SemiBold',
@@ -1412,8 +1416,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(16),
       paddingBottom: verticalScale(14),
       borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.12)',
-      borderStyle: 'dashed',
+      borderTopColor: 'rgba(28,26,22,.07)',
     },
     drawerFooterText: {
       fontFamily: 'AnekLatin_600SemiBold',
@@ -1427,10 +1430,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingRight: scale(12),
       backgroundColor: 'transparent',
     },
-    /** A wash, not a slab. Solid ink turned the playing section into the
-     *  loudest thing on a panel whose job is to be scanned. */
+    /**
+     * The playing section is a white card lifted off the panel.
+     *
+     * It has been a solid ink slab and an amber wash, and both were louder
+     * than a list you are meant to scan. Raising it instead of colouring it
+     * says "here" with depth rather than hue, and leaves the type black
+     * everywhere so nothing competes with the titles themselves.
+     */
     topicRowCurrent: {
-      backgroundColor: colors.tint,
+      backgroundColor: '#FFFFFF',
+      borderRadius: scale(9),
+      marginHorizontal: scale(7),
+      paddingLeft: scale(13),
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.07,
+      shadowRadius: scale(3),
+      elevation: 2,
     },
     // Finished sections recede rather than being ticked.
     topicNameDone: {
@@ -1443,7 +1460,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(11.5),
       lineHeight: scale(15),
-      color: colors.amberText,
+      color: colors.ink,
     },
     topicNameUpcoming: {
       fontFamily: 'AnekLatin_400Regular',
