@@ -6431,9 +6431,11 @@ Current as of 2026-08-27. Grouped by who is blocked.
   and `www.monklearning.com` both 404. Needs the 1/3/6/11-month prices for JEE,
   NEET and Both.
 - **`snap-explanations-teach`** — commit `e276081` in the API repo
-  (`~/Desktop/monk-learning-api`), local only, never pushed. Reshapes
-  `prompts/snap_solve.md` (title → reasoning → one equation per line) and
-  raises `MAX_STEP_CHARS` 320 → 700. Awaiting a go-ahead.
+  (`~/Desktop/monk-learning-api`). Reshapes `prompts/snap_solve.md` (title →
+  reasoning → one equation per line) and raises `MAX_STEP_CHARS` 320 → 700.
+  Awaiting a go-ahead. Corrected: this was recorded as "local only, never
+  pushed"; it is on `origin/snap-explanations-teach`, it is simply not merged
+  to `main`.
 
 ### Needs the co-founder
 
