@@ -65,11 +65,20 @@ KIT_FILES = {"math-kit", "chem-kit"}
 # Fixes applied after conversion, so a re-run lands on the same working tree
 # rather than undoing hand corrections. Each is a genuine web/native
 # difference, not a preference.
+# What react-native-svg's <Text> tree accepts, versus the web's ReactNode.
+TEXT_CHILD = "string | number | (string | number)[]"
+
 POST_FIXES = [
     # react-native-svg's <Text> tree accepts text, not arbitrary ReactNode, so
     # the subscript/superscript helpers have to say what they really take.
     ("({ children }: { children: React.ReactNode })",
-     "({ children }: { children: string | number | (string | number)[] })"),
+     f"({{ children }}: {{ children: {TEXT_CHILD} }})"),
+    # `baselineShift` is CSS and unimplemented on native; a <TSpan> shifts with
+    # `dy`. The em values match what the browser renders for sub and super.
+    ('baselineShift="sub" fontSize="0.7em"', 'dy="0.32em" fontSize="0.7em"'),
+    ('baselineShift="super" fontSize="0.7em"', 'dy="-0.5em" fontSize="0.7em"'),
+    ('baselineShift="sub"', 'dy="0.32em"'),
+    ('baselineShift="super"', 'dy="-0.5em"'),
 ]
 
 # `math-kit` declares a `Circle` shape type alongside the imported <Circle>
@@ -104,8 +113,112 @@ STYLE_FIXES = {
 }
 
 
+
+def _split_top_level(body):
+    """Split `a: 1, b: f(x, y)` on commas that are not nested."""
+    out, depth, cur = [], 0, ""
+    for ch in body:
+        if ch in "([{": depth += 1
+        elif ch in ")]}": depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur); cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur)
+    return [x.strip() for x in out if x.strip()]
+
+
+# CSS declarations with no react-native-svg equivalent. The kit's Fade and Draw
+# own animation here, so a transition is not a missing feature, it is the web's
+# way of doing what Reanimated already does.
+DROPPED_CSS = ("transition", "transitionDelay", "animation", "animationDelay",
+               "willChange", "transformOrigin", "transformBox")
+
+
+
+def _translate_prop(value):
+    """A CSS translate -> react-native-svg's `x` / `y` translate shorthand.
+
+    Handles the literal (`"translateX(480px)"`), the interpolated
+    (`` `translateY(${EXPR}px)` ``), and the conditional form the scenes use to
+    gate a move on a beat, where the web's `undefined` means "stay put" and the
+    native equivalent is an explicit 0.
+    """
+    value = value.strip()
+    m = re.fullmatch(r'(.+?)\s*\?\s*(.+?)\s*:\s*undefined', value, re.S)
+    cond, inner = (m.group(1), m.group(2)) if m else (None, value)
+
+    t = re.fullmatch(r'[`"]translate([XY])\((?:\$\{)?(.+?)(?:\})?px\)[`"]',
+                     inner.strip(), re.S)
+    if not t:
+        return None
+    axis, expr = t.group(1).lower(), t.group(2).strip()
+    return f"{axis}={{{cond.strip()} ? {expr} : 0}}" if cond else f"{axis}={{{expr}}}"
+
+
+def convert_inline_style(text):
+    """Rewrite `style={{...}}` into react-native-svg props.
+
+    Scenes carry their reveal state as inline CSS on the web: an opacity driven
+    by `beat`, plus a transition that eases it. react-native-svg takes opacity
+    as a prop and has no transition property at all, so the opacity survives and
+    the easing is dropped.
+
+    Returns (text, unconverted) where `unconverted` lists declarations this does
+    not understand, so a shape nobody anticipated is reported rather than
+    silently discarded.
+    """
+    unconverted = []
+    while True:
+        i = text.find("style={{")
+        if i == -1:
+            break
+        j, depth = i + len("style={{"), 1  # just past the inner {
+        while j < len(text) and depth:
+            if text[j] == "{": depth += 1
+            elif text[j] == "}": depth -= 1
+            j += 1
+        body = text[i + len("style={{"): j - 1]
+        props = []
+        for decl in _split_top_level(body):
+            key, _, value = decl.partition(":")
+            key, value = key.strip(), value.strip()
+            if key in DROPPED_CSS:
+                continue
+            if key == "opacity":
+                props.append(f"opacity={{{value}}}")
+            elif key == "transform":
+                prop = _translate_prop(value)
+                if prop:
+                    props.append(prop)
+                else:
+                    unconverted.append(decl)
+            else:
+                unconverted.append(decl)
+        # `}}` closes the expression; step past the outer brace too.
+        end = j + 1 if j < len(text) and text[j] == "}" else j
+        text = text[:i] + " ".join(props) + text[end:]
+    return text, unconverted
+
+
+def narrow_text_children(text):
+    """Narrow `children: React.ReactNode` where the children are text.
+
+    Only when the component actually puts them inside a <TSpan>. Some helpers
+    take React elements and render them straight into the SVG tree, where
+    ReactNode is the correct type; narrowing those broke a working scene.
+    """
+    if re.search(r"<TSpan[^>]*>\{children\}</TSpan>", text):
+        text = text.replace("children: React.ReactNode;", f"children: {TEXT_CHILD};")
+    return text
+
+
 def apply_post_fixes(text, name):
-    """Corrections that survive a re-run. Returns (text, still_unfixed)."""
+    """Corrections that survive a re-run.
+
+    Returns (text, unconverted_style_declarations).
+    """
     for old, new in POST_FIXES:
         text = text.replace(old, new)
     if name == "math-kit":
@@ -114,8 +227,9 @@ def apply_post_fixes(text, name):
         text = re.sub(r"\bCircle\[\]", "CircleSpec[]", text)
     for old, new in STYLE_FIXES.get(name, []):
         text = text.replace(old, new)
-    # Report only styles this script does not already know how to convert.
-    return text, bool(re.search(r"\bstyle=\{\{", text))
+    text = narrow_text_children(text)
+    text, unconverted = convert_inline_style(text)
+    return text, unconverted
 
 
 def convert(text, name):
@@ -225,9 +339,8 @@ def main():
             continue
         out, problems = convert(open(path).read(), n)
         out, unfixed_style = apply_post_fixes(out, n)
-        if unfixed_style:
-            problems.append("inline style={{...}} this script cannot convert — "
-                            "add it to STYLE_FIXES")
+        for decl in unfixed_style:
+            problems.append(f"inline style declaration not understood: {decl}")
         open(os.path.join(APP_SCENES, n + ".tsx"), "w").write(out)
         converted += 1
         if problems:

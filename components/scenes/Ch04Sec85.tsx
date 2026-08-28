@@ -1,0 +1,151 @@
+/**
+ * Ch04 · Section 85 — "Vertical Circular Motion: the formula set"
+ * Canvas 1080×620 · safe x36–1044, y30..596. Spec: SCENE_AUTHORING.md.
+ *
+ * Beats (en [0, 12.03, 36.86, 61.7, 73.9, 74.9, 75.9, 76.9, 95.33]):
+ *  0 title
+ *  1 band1: the two key tensions — T_bottom, T_top
+ *  2 band2: general angle θ — T and v² anywhere on the loop
+ *  3 band3: energy link v²_bottom = v²_top + 4gr
+ *  4 band4: string/track critical speeds
+ *  5 band5: rigid rod/tube critical speeds
+ *  6 band6: universal check T_bottom−T_top=6mg
+ *  7 band7: leaving a smooth sphere
+ *  8 red margin: only two equations generate everything
+ *
+ * Layout plan (Kalam bl−1.3s..+0.5s · Anek bl−0.78s..+0.31s):
+ *  title cx540 bl 52 · bands x60..1020, each h40:
+ *  b1 y78..118 hdr bl92 · form bl112 · b2 y124..164 hdr bl138 · form bl158
+ *  b3 y170..210 hdr bl184 · form bl204 · b4 y216..256 hdr bl230 · form bl250
+ *  b5 y262..302 hdr bl276 · form bl296 · b6 y308..348 hdr bl322 · form bl342
+ *  b7 y354..394 hdr bl368 · form bl388
+ *  b8 | bar x66 y430..500 · lines st x84 bl 450 / 476
+ */
+
+import React from "react";
+import { SceneProps, useBeat, delayFor, Fade, Draw, T, INK, MUTED, AMBER, GREEN, RED,
+  Scene,
+} from '@/components/scenes/kit';
+
+function band(y: number, h: number) {
+  return `M 72 ${y} h 936 q 12 0 12 12 v ${h - 24} q 0 12 -12 12 h -936 q -12 0 -12 -12 v -${
+    h - 24
+  } q 0 -12 12 -12`;
+}
+
+export default function Ch04Sec85({ currentTime, reveals, language }: SceneProps) {
+  const beat = useBeat(currentTime, reveals);
+  const en = language === "english";
+  const t = (e: string, h: string) => (en ? e : h);
+  const dl = (k: number, d: number) => delayFor(beat, k, d);
+
+  const hdr = (k: number, y: number, txt: string) => (
+    <Fade on={beat >= k} delay={dl(k, 1)}>
+      <T x={84} y={y} size={11} fill={MUTED} script anchor="start">
+        {txt}
+      </T>
+    </Fade>
+  );
+
+  return (
+    <Scene>
+      {/* beat 0 */}
+      <Fade on={beat >= 0} delay={dl(0, 0.4)}>
+        <T x={540} y={52} size={19} fill={INK} script>
+          {t(
+            "every vertical-circle relation, on one board",
+            "har vertical-circle relation, ek board par"
+          )}
+        </T>
+      </Fade>
+
+      {/* beat 1 — the two key tensions */}
+      <Draw on={beat >= 1} delay={dl(1, 0.5)} d={band(78, 40)} stroke={GREEN} sw={2} dur={0.5} />
+      {hdr(1, 92, t("the two key tensions", "do mukhya tensions"))}
+      <Fade on={beat >= 1} delay={dl(1, 1.6)}>
+        <T x={540} y={112} size={13} fill={INK} weight={700}>
+          T_bottom = mv²_bottom⁄r + mg&nbsp;&nbsp;·&nbsp;&nbsp;T_top = mv²_top⁄r − mg
+        </T>
+      </Fade>
+
+      {/* beat 2 — general angle */}
+      <Draw on={beat >= 2} delay={dl(2, 0.5)} d={band(124, 40)} stroke={AMBER} sw={2} dur={0.5} />
+      {hdr(2, 138, t("any point on the loop", "loop par koi bhi point"))}
+      <Fade on={beat >= 2} delay={dl(2, 1.6)}>
+        <T x={540} y={158} size={12} fill={INK} weight={700}>
+          T = mv²⁄r + mg·cosθ&nbsp;&nbsp;·&nbsp;&nbsp;v² = v²_bottom − 2gr(1−cosθ)
+        </T>
+      </Fade>
+
+      {/* beat 3 — energy link */}
+      <Draw on={beat >= 3} delay={dl(3, 0.5)} d={band(170, 40)} stroke={GREEN} sw={2} dur={0.5} />
+      {hdr(3, 184, t("top ↔ bottom", "top ↔ bottom"))}
+      <Fade on={beat >= 3} delay={dl(3, 1.6)}>
+        <T x={540} y={204} size={14} fill={INK} weight={700}>
+          v²_bottom = v²_top + 4gr
+        </T>
+      </Fade>
+
+      {/* beat 4 — string/track */}
+      <Draw on={beat >= 4} delay={dl(4, 0.5)} d={band(216, 40)} stroke={AMBER} sw={2} dur={0.5} />
+      {hdr(4, 230, t("critical speeds — pulls only", "critical speeds — sirf kheenchti"))}
+      <Fade on={beat >= 4} delay={dl(4, 1.6)}>
+        <T x={540} y={250} size={13} fill={INK} weight={700}>
+          {t(
+            "string/track: v_top=√gr · v_mid=√3gr · v_bottom=√5gr",
+            "string/track: v_top=√gr · v_mid=√3gr · v_bottom=√5gr"
+          )}
+        </T>
+      </Fade>
+
+      {/* beat 5 — rigid rod/tube */}
+      <Draw on={beat >= 5} delay={dl(5, 0.5)} d={band(262, 40)} stroke={AMBER} sw={2} dur={0.5} />
+      {hdr(5, 276, t("critical speeds — pushes too", "critical speeds — dhakelta bhi"))}
+      <Fade on={beat >= 5} delay={dl(5, 1.6)}>
+        <T x={540} y={296} size={14} fill={INK} weight={700}>
+          {t("rigid rod/tube: v_top = 0 · v_bottom = 2√gr", "rigid rod/tube: v_top = 0 · v_bottom = 2√gr")}
+        </T>
+      </Fade>
+
+      {/* beat 6 — the universal check */}
+      <Draw on={beat >= 6} delay={dl(6, 0.5)} d={band(308, 40)} stroke={GREEN} sw={2} dur={0.5} />
+      {hdr(6, 322, t("the universal check", "universal check"))}
+      <Fade on={beat >= 6} delay={dl(6, 1.6)}>
+        <T x={540} y={342} size={14} fill={INK} weight={700}>
+          {t("always (any speed): T_bottom − T_top = 6mg", "hamesha (kisi bhi speed): T_bottom − T_top = 6mg")}
+        </T>
+      </Fade>
+
+      {/* beat 7 — leaving a sphere */}
+      <Draw on={beat >= 7} delay={dl(7, 0.5)} d={band(354, 40)} stroke={AMBER} sw={2} dur={0.5} />
+      {hdr(7, 368, t("the outside cousin", "bahar waala rishtedaar"))}
+      <Fade on={beat >= 7} delay={dl(7, 1.6)}>
+        <T x={540} y={388} size={14} fill={INK} weight={700}>
+          {t(
+            "leaving a smooth sphere: cosθ = 2⁄3 · v = √(2gR⁄3)",
+            "smooth sphere chhodna: cosθ = 2⁄3 · v = √(2gR⁄3)"
+          )}
+        </T>
+      </Fade>
+
+      {/* beat 8 — only two equations */}
+      <Draw on={beat >= 8} delay={dl(8, 0.6)} d="M 66 430 v 70" stroke={RED} sw={3.4} dur={0.5} />
+      <Fade on={beat >= 8} delay={dl(8, 1.6)}>
+        <T x={84} y={450} size={14} fill={RED} script anchor="start">
+          {t(
+            "only TWO equations generate all of this",
+            "sirf DO equations ye sab bana deti hain"
+          )}
+        </T>
+      </Fade>
+      <Fade on={beat >= 8} delay={dl(8, 7)}>
+        <T x={84} y={476} size={14} fill={GREEN} script anchor="start">
+          {t(
+            "Newton toward the centre · energy conservation between two points",
+            "Newton centre ki taraf · do points ke beech energy conservation"
+          )}
+        </T>
+      </Fade>
+    </Scene>
+  );
+}
