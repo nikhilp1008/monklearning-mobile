@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Animated, {
   Easing,
+  FadeIn,
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
@@ -303,6 +304,31 @@ export default function LessonPlayerScreen() {
       return entry;
     });
   }, [sections]);
+
+  /** The group the playing section belongs to. */
+  const currentGroup = useMemo(
+    () =>
+      subtopicGroups.findIndex(
+        (g) => currentSegment >= g.first && currentSegment < g.first + g.sections.length
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [subtopicGroups, currentSegment]
+  );
+
+  /**
+   * One topic open at a time, the playing one by default.
+   *
+   * A chapter is seven topics of fifteen sections. Listing all 92 flat meant
+   * scrolling past six topics you are not in to reach the one you are. Opening
+   * follows the lesson when it crosses into a new topic, and a tap opens
+   * another without the playhead yanking it back, because this only re-runs
+   * when the CURRENT group changes.
+   */
+  const [openGroup, setOpenGroup] = useState<number | null>(null);
+  useEffect(() => {
+    setOpenGroup(currentGroup >= 0 ? currentGroup : 0);
+  }, [currentGroup]);
+
   const [ccOn, setCcOn] = useState(true);
   const [indicatorVisible, setIndicatorVisible] = useState(false);
   const [indicatorTop, setIndicatorTop] = useState(0);
@@ -597,29 +623,50 @@ export default function LessonPlayerScreen() {
               style={styles.drawerList}
               contentContainerStyle={styles.drawerListContent}
               showsVerticalScrollIndicator>
-              {subtopicGroups.map((group) => (
-                <View key={`${group.subtopic}-${group.first}`}>
-                  {/* The subtopic is the unit a student is actually looking
-                      for; 92 flat titles are not navigable. */}
-                  <Text style={styles.topicGroupHeading} numberOfLines={2}>
-                    {group.subtopic}
-                  </Text>
-                  {group.sections.map((entry, n) => {
-                    const i = group.first + n;
-                    return (
-                      <TopicRow
-                        key={entry.id}
-                        name={entry.title}
-                        status={
-                          i < currentSegment ? 'done' : i === currentSegment ? 'current' : 'upcoming'
-                        }
-                        styles={styles}
-                        onPress={() => jumpToTopic(i)}
-                      />
-                    );
-                  })}
-                </View>
-              ))}
+              {subtopicGroups.map((group, gi) => {
+                const open = openGroup === gi;
+                return (
+                  <View key={`${group.subtopic}-${group.first}`} style={styles.group}>
+                    {/* The topic is the heading. It was the quietest thing on
+                        the panel while its sections shouted, which is the
+                        hierarchy upside down. */}
+                    <Pressable
+                      style={styles.groupRow}
+                      onPress={() => setOpenGroup(open ? null : gi)}>
+                      <Text
+                        style={[styles.groupName, gi === currentGroup && styles.groupNameActive]}
+                        numberOfLines={2}>
+                        {group.subtopic}
+                      </Text>
+                      <Text style={styles.groupCount}>{group.sections.length}</Text>
+                      <Chevron open={open} />
+                    </Pressable>
+
+                    {open && (
+                      <Animated.View entering={FadeIn.duration(140)}>
+                        {group.sections.map((entry, n) => {
+                          const i = group.first + n;
+                          return (
+                            <TopicRow
+                              key={entry.id}
+                              name={entry.title}
+                              status={
+                                i < currentSegment
+                                  ? 'done'
+                                  : i === currentSegment
+                                    ? 'current'
+                                    : 'upcoming'
+                              }
+                              styles={styles}
+                              onPress={() => jumpToTopic(i)}
+                            />
+                          );
+                        })}
+                      </Animated.View>
+                    )}
+                  </View>
+                );
+              })}
             </ScrollView>
 
             <View style={styles.drawerFooter}>
@@ -657,6 +704,29 @@ function SegmentTrack({
     <View style={styles.segTrack}>
       <View style={[styles.segFill, { width: `${widthPct}%`, backgroundColor: color }]} />
     </View>
+  );
+}
+
+/** The disclosure mark. Rotates rather than swapping glyphs, so the open and
+ *  shut states are the same object. */
+function Chevron({ open }: { open: boolean }) {
+  const turn = useSharedValue(open ? 1 : 0);
+  useEffect(() => {
+    turn.value = withTiming(open ? 1 : 0, { duration: 180, easing: Easing.out(Easing.quad) });
+  }, [open, turn]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 90}deg` }] }));
+  return (
+    <Animated.View style={style}>
+      <Svg viewBox="0 0 16 16" width={12} height={12} fill="none">
+        <Path
+          d="M6 3.5 10.5 8 6 12.5"
+          stroke={INK_FAINT}
+          strokeWidth={1.9}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -1308,17 +1378,34 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(8),
       gap: scale(3),
     },
-    /** The subtopic a run of sections belongs to. Quiet, because it labels the
-     *  rows rather than competing with them. */
-    topicGroupHeading: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(0.7),
-      textTransform: 'uppercase',
+    group: {
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.06)',
+    },
+    /** The topic. The heading of its own list, and the thing a student is
+     *  actually looking for. */
+    groupRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(9),
+      paddingVertical: verticalScale(11),
+      paddingHorizontal: scale(12),
+    },
+    groupName: {
+      flex: 1,
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(12.5),
+      lineHeight: scale(16),
+      color: colors.ink,
+    },
+    /** The topic being taught. Amber says "you are here" without a badge. */
+    groupNameActive: {
+      color: colors.amberText,
+    },
+    groupCount: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: scale(10.5),
       color: colors.quiet,
-      paddingHorizontal: scale(10),
-      paddingTop: verticalScale(10),
-      paddingBottom: verticalScale(4),
     },
     drawerFooter: {
       paddingTop: verticalScale(8),
@@ -1334,33 +1421,35 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
     },
     topicRow: {
-      // No glyph column any more, so the title starts at the padding.
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(11),
-      borderRadius: scale(10),
+      // Indented under its topic, so the nesting is visible without a rule.
+      paddingVertical: verticalScale(7),
+      paddingLeft: scale(20),
+      paddingRight: scale(12),
       backgroundColor: 'transparent',
     },
+    /** A wash, not a slab. Solid ink turned the playing section into the
+     *  loudest thing on a panel whose job is to be scanned. */
     topicRowCurrent: {
-      backgroundColor: colors.ink,
+      backgroundColor: colors.tint,
     },
     // Finished sections recede rather than being ticked.
     topicNameDone: {
       fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(12.5),
-      lineHeight: scale(16.5),
-      color: colors.faint,
+      fontSize: scale(11.5),
+      lineHeight: scale(15),
+      color: colors.quiet,
     },
     topicNameCurrent: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(12.5),
-      lineHeight: scale(16.5),
-      color: '#FFFFFF',
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(11.5),
+      lineHeight: scale(15),
+      color: colors.amberText,
     },
     topicNameUpcoming: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12.5),
-      lineHeight: scale(16.5),
-      color: colors.ink,
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(11.5),
+      lineHeight: scale(15),
+      color: colors.slate,
     },
   });
 }
