@@ -26,9 +26,7 @@ import {
   BOARD_LEFT,
   BOARD_TOP,
   Blink,
-  GREEN,
   GREEN_INK,
-  INK_GHOST,
   CaptionStrip,
   DARK_CHROME,
   DEEP_AMBER,
@@ -580,7 +578,8 @@ export default function LessonPlayerScreen() {
           <Animated.View entering={SlideInRight.duration(280)} style={styles.drawer}>
             <View style={styles.drawerHeader}>
               <View style={styles.drawerHeaderText}>
-                <Text style={styles.drawerOverline}>In this chapter</Text>
+                {/* The chapter's name alone. "In this chapter" sat above it
+                    saying what the panel plainly is. */}
                 <Text style={styles.drawerTitle}>{chapterTitle}</Text>
               </View>
               <Pressable style={styles.drawerCloseBtn} onPress={closeDrawer}>
@@ -672,32 +671,33 @@ function TopicRow({
   styles: Styles;
   onPress: () => void;
 }) {
-  const mark = status === 'done' ? '✓' : status === 'current' ? '●' : '○';
-  const markColor = status === 'done' ? GREEN : status === 'current' ? AMBER : INK_GHOST;
-  const nameStyle =
-    status === 'done'
-      ? styles.topicNameDone
-      : status === 'current'
-        ? styles.topicNameCurrent
-        : styles.topicNameUpcoming;
+  /**
+   * State is the row, not a badge on it.
+   *
+   * This used to carry a ✓/●/○ glyph, an amber "Now playing" line under the
+   * title, and a tinted card with a border — four separate things all saying
+   * the same one thing, in a 272pt column where the title itself was being
+   * truncated for want of room. The playing section is now simply the dark
+   * one, finished sections recede, and the rest sit plainly in between.
+   */
   return (
     <Pressable
-      style={[styles.topicRow, status === 'current' && styles.topicRowCurrent]}
+      style={[
+        styles.topicRow,
+        status === 'current' && styles.topicRowCurrent,
+      ]}
       onPress={onPress}>
-      <Text style={[styles.topicMark, { color: markColor }]}>{mark}</Text>
-      <View style={styles.topicTextCol}>
-        {/* Two lines. At 272pt wide, one line cut "A measurement is a number
-            and a unit" to "…number and a…", which is not a name a student can
-            pick out of a list. Wrapping keeps every title whole; nothing is
-            summarised away. */}
-        <Text style={nameStyle} numberOfLines={2}>
-          {name}
-        </Text>
-        {/* the source markup always renders this line (empty when not current) so every
-            row reserves the same height — omitting it entirely would make the current
-            row taller than its siblings */}
-        <Text style={styles.topicSub}>{status === 'current' ? 'Now playing' : ''}</Text>
-      </View>
+      <Text
+        style={
+          status === 'current'
+            ? styles.topicNameCurrent
+            : status === 'done'
+              ? styles.topicNameDone
+              : styles.topicNameUpcoming
+        }
+        numberOfLines={2}>
+        {name}
+      </Text>
     </Pressable>
   );
 }
@@ -1255,7 +1255,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       right: 0,
       bottom: 0,
       width: scale(272),
-      backgroundColor: 'rgba(252,250,244,.98)',
+      // White, not the reader's warm paper: this is a control panel over the
+      // page, and reading it as a separate surface is the point.
+      backgroundColor: '#FFFFFF',
       borderLeftWidth: 1,
       borderLeftColor: colors.hairline,
       flexDirection: 'column',
@@ -1276,13 +1278,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     drawerHeaderText: {
       flex: 1,
       minWidth: 0,
-    },
-    drawerOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(1.33),
-      textTransform: 'uppercase',
-      color: colors.faint,
     },
     drawerTitle: {
       fontFamily: 'AnekLatin_700Bold',
@@ -1339,50 +1334,33 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
     },
     topicRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
+      // No glyph column any more, so the title starts at the padding.
       paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(10),
-      borderRadius: scale(12),
-      borderWidth: scale(1.4),
-      borderColor: 'transparent',
+      paddingHorizontal: scale(11),
+      borderRadius: scale(10),
       backgroundColor: 'transparent',
     },
     topicRowCurrent: {
-      backgroundColor: '#FCF4E0',
-      borderColor: 'rgba(238,163,31,.55)',
+      backgroundColor: colors.ink,
     },
-    topicMark: {
-      width: scale(18),
-      flexShrink: 0,
-      textAlign: 'center',
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(12),
-    },
-    topicTextCol: {
-      flex: 1,
-      minWidth: 0,
-    },
+    // Finished sections recede rather than being ticked.
     topicNameDone: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(12.5),
-      color: colors.slate,
+      lineHeight: scale(16.5),
+      color: colors.faint,
     },
     topicNameCurrent: {
       fontFamily: 'AnekLatin_800ExtraBold',
       fontSize: scale(12.5),
-      color: colors.ink,
+      lineHeight: scale(16.5),
+      color: '#FFFFFF',
     },
     topicNameUpcoming: {
       fontFamily: 'AnekLatin_600SemiBold',
       fontSize: scale(12.5),
-      color: colors.faint,
-    },
-    topicSub: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      color: colors.amberText,
+      lineHeight: scale(16.5),
+      color: colors.ink,
     },
   });
 }
