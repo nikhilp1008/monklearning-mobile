@@ -361,15 +361,21 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
  * surface. `remedy` is a stable enum, so the sentence a student reads can live
  * with the screen that shows it. The server's own message is still the
  * fallback for a remedy we do not recognise.
+ *
+ * Every line says what WE could not do, never what the photo lacked. A reader
+ * can miss a question that is plainly there, so "no question in that shot" is
+ * a claim we cannot support and it puts the fault on the student for something
+ * that may be entirely ours. The hint that follows offers a retake without
+ * asserting the first one was bad.
  */
 const FAILURE_COPY: Record<string, { title: string; body: string }> = {
   retake: {
-    title: 'No question in that shot',
-    body: 'Get the whole question in frame, hold steady, and keep the page well lit.',
+    title: 'We couldn’t read that one',
+    body: 'It may just be the shot. A closer or better-lit photo usually does it.',
   },
   not_photo: {
-    title: 'This one needs its figure',
-    body: 'There is a diagram here that cannot be read from the text alone.',
+    title: 'We couldn’t work from this one',
+    body: 'It leans on a figure we could not read alongside the text.',
   },
   our_side: {
     title: 'That was on our end',
@@ -466,7 +472,7 @@ export function failureCopy(
 ): { title: string; body: string } {
   return (
     FAILURE_COPY[remedy ?? ''] ?? {
-      title: 'Couldn’t read that one',
+      title: 'We couldn’t read that one',
       body: serverMessage,
     }
   );
