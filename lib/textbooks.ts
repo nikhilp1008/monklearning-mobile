@@ -312,6 +312,9 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'mathematics|12|integrals': () => import('@/content/textbooks/math-12-07-integrals'),
   'mathematics|12|application of integrals': () =>
     import('@/content/textbooks/math-12-08-integrals-applications'),
+  'mathematics|12|probability': () => import('@/content/textbooks/math-12-13-probability'),
+  'mathematics|12|differential equations': () =>
+    import('@/content/textbooks/math-12-09-differential-equations'),
   'mathematics|12|vector algebra': () =>
     import('@/content/textbooks/math-12-10-vector-algebra'),
   'mathematics|12|three dimensional geometry': () =>
