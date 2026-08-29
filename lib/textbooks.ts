@@ -296,6 +296,15 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-12-limits'),
   'mathematics|11|statistics': () => import('@/content/textbooks/math-11-13-statistics'),
   'mathematics|11|probability': () => import('@/content/textbooks/math-11-14-probability'),
+
+  // Class 12. Keys carry the class level, so "Relations and Functions" here
+  // and in Class 11 are different chapters and cannot collide.
+  'mathematics|12|relations and functions': () =>
+    import('@/content/textbooks/math-12-01-relations'),
+  'mathematics|12|inverse trigonometric functions': () =>
+    import('@/content/textbooks/math-12-02-inverse-trig'),
+  'mathematics|12|matrices': () => import('@/content/textbooks/math-12-03-matrices'),
+  'mathematics|12|determinants': () => import('@/content/textbooks/math-12-04-determinants'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
