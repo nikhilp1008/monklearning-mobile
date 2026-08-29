@@ -208,7 +208,7 @@ export function Axes3D({ frame, width }: { frame: DiagramFrame; width: number })
       {axis(P(0, 3.2, 0), 'y')}
       {axis(P(0, 0, 3.2), 'z')}
 
-      {a.box && (
+      {a.point && a.box && (
         <Path
           d={`M${pt(P0)} L${pt(P(px, 0, 0))} L${pt(Pxy)} L${pt(P(0, py, 0))} Z`}
           fill={TINT}
@@ -216,7 +216,7 @@ export function Axes3D({ frame, width }: { frame: DiagramFrame; width: number })
           strokeWidth={1}
         />
       )}
-      {a.projections !== false && (
+      {a.point && a.projections !== false && (
         <G>
           <Line x1={Pxy[0]} y1={Pxy[1]} x2={Pp[0]} y2={Pp[1]} stroke={AMBER} strokeWidth={1.4} strokeDasharray="3 3" />
           <Line x1={P0[0]} y1={P0[1]} x2={Pxy[0]} y2={Pxy[1]} stroke={SOFT} strokeWidth={1.2} strokeDasharray="3 3" />
@@ -224,11 +224,99 @@ export function Axes3D({ frame, width }: { frame: DiagramFrame; width: number })
         </G>
       )}
 
-      <Line x1={P0[0]} y1={P0[1]} x2={Pp[0]} y2={Pp[1]} stroke={AMBER} strokeWidth={2} />
-      <Circle cx={Pp[0]} cy={Pp[1]} r={4.6} fill={INK} />
-      <SvgText x={Pp[0] + 8} y={Pp[1] - 7} fontSize={11} fill={INK} fontFamily={SERIF}>
-        {a.label ?? `(${px}, ${py}, ${pz})`}
-      </SvgText>
+      {/* Planes first: they are the surface everything else sits on or
+          crosses. Drawn as the triangle the plane cuts from the three axes,
+          which is how x/a + y/b + z/c = 1 is introduced and avoids inventing an
+          extent the plane does not have. An axis it runs parallel to has no
+          intercept, so that corner falls back to a fixed reach. */}
+      {a.planes?.map((pl, i) => {
+        const [nx, ny, nz] = pl.normal;
+        const k = pl.d ?? 2;
+        const reach = 2.6;
+        const A = P(nx ? k / nx : reach, 0, 0);
+        const B = P(0, ny ? k / ny : reach, 0);
+        const C = P(0, 0, nz ? k / nz : reach);
+        return (
+          <G key={`pl${i}`}>
+            <Path
+              d={`M${pt(A)} L${pt(B)} L${pt(C)} Z`}
+              fill={pl.soft ? 'rgba(28,26,22,.06)' : TINT}
+              stroke={pl.soft ? SOFT : AMBER}
+              strokeWidth={1.3}
+              strokeLinejoin="round"
+            />
+            {pl.label ? (
+              <SvgText x={B[0] + 5} y={B[1] - 5} fontSize={10.5} fill={SOFT} fontFamily={SERIF}>
+                {pl.label}
+              </SvgText>
+            ) : null}
+          </G>
+        );
+      })}
+
+      {/* Lines, drawn both ways from their point: a line has no ends. */}
+      {a.lines?.map((ln, i) => {
+        const [lx, ly, lz] = ln.through;
+        const [dx, dy, dz] = ln.dir;
+        const t = 2.4;
+        const S1 = P(lx - dx * t, ly - dy * t, lz - dz * t);
+        const S2 = P(lx + dx * t, ly + dy * t, lz + dz * t);
+        return (
+          <G key={`ln${i}`}>
+            <Line
+              x1={S1[0]}
+              y1={S1[1]}
+              x2={S2[0]}
+              y2={S2[1]}
+              stroke={ln.soft ? SOFT : INK}
+              strokeWidth={ln.soft ? 1.4 : 1.9}
+              strokeDasharray={ln.dash ? '5 4' : undefined}
+              strokeLinecap="round"
+            />
+            {ln.label ? (
+              <SvgText x={S2[0] + 5} y={S2[1] - 5} fontSize={10.5} fill={INK} fontFamily={SERIF}>
+                {ln.label}
+              </SvgText>
+            ) : null}
+          </G>
+        );
+      })}
+
+      {/* Vectors: an arrow from the origin unless given a start. */}
+      {a.vectors?.map((v, i) => {
+        const F = P(...(v.from ?? ([0, 0, 0] as [number, number, number])));
+        const T = P(...v.to);
+        return (
+          <G key={`v${i}`}>
+            <Line
+              x1={F[0]}
+              y1={F[1]}
+              x2={T[0]}
+              y2={T[1]}
+              stroke={v.soft ? SOFT : AMBER}
+              strokeWidth={v.soft ? 1.5 : 2.2}
+              strokeLinecap="round"
+            />
+            <Circle cx={T[0]} cy={T[1]} r={3.6} fill={v.soft ? SOFT : AMBER} />
+            {v.label ? (
+              <SvgText x={T[0] + 7} y={T[1] - 6} fontSize={10.5} fill={INK} fontFamily={SERIF}>
+                {v.label}
+              </SvgText>
+            ) : null}
+          </G>
+        );
+      })}
+
+      {/* The point is optional now: a frame may be only lines and planes. */}
+      {a.point && (
+        <G>
+          <Line x1={P0[0]} y1={P0[1]} x2={Pp[0]} y2={Pp[1]} stroke={AMBER} strokeWidth={2} />
+          <Circle cx={Pp[0]} cy={Pp[1]} r={4.6} fill={INK} />
+          <SvgText x={Pp[0] + 8} y={Pp[1] - 7} fontSize={11} fill={INK} fontFamily={SERIF}>
+            {a.label ?? `(${px}, ${py}, ${pz})`}
+          </SvgText>
+        </G>
+      )}
       <Rect x={P0[0] - 2.5} y={P0[1] - 2.5} width={5} height={5} fill={INK} />
       <SvgText x={P0[0] - 12} y={P0[1] + 13} fontSize={10} fill={SOFT} fontFamily={SERIF}>
         O

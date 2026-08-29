@@ -71,6 +71,24 @@ export interface DiagramFrame {
   labels?: { x: number; y: number; text: string; soft?: boolean }[];
   /** Shaded band between two x values, or above/below a line. */
   bands?: { x0?: number; x1?: number; y0?: number; y1?: number }[];
+  /**
+   * A filled region under a curve, or between two, over an x-range.
+   *
+   * The figure Class 12 leans on hardest: "area under" and "area between"
+   * appear twenty-one times each in the reference, and a `band` cannot draw
+   * either, because a band is a rectangle and the boundary here is a curve.
+   * `under` fills down to the x-axis; give `and` to fill between two curves.
+   */
+  areas?: { under: PlotCurve; and?: PlotCurve; from: number; to: number; soft?: boolean }[];
+  /**
+   * A filled polygon, given its corners in plot units.
+   *
+   * A feasible region is named forty-eight times in the reference and its
+   * corner points thirty-three, and it is a polygon, not a stack of bands. The
+   * Class 11 Inequalities chapter had to approximate one with a staircase of
+   * rectangles; this draws it.
+   */
+  polygons?: { points: [number, number][]; label?: string; corners?: boolean; soft?: boolean }[];
   /** `numberline` only: intervals on ℝ, with bracket ends. */
   intervals?: { from: number; to: number; openLeft?: boolean; openRight?: boolean; soft?: boolean; label?: string }[];
   /** `unitcircle` only: the angle to sweep, in degrees. */
@@ -118,6 +136,19 @@ export interface DiagramFrame {
     projections?: boolean;
     /** The cuboid from the origin to the point. */
     box?: boolean;
+    /**
+     * Arrows from the origin, or between two points. Vector Algebra draws
+     * projections and parallelograms; a single labelled dot cannot.
+     */
+    vectors?: { to: [number, number, number]; from?: [number, number, number]; label?: string; soft?: boolean }[];
+    /**
+     * A line through a point along a direction, drawn both ways. Three
+     * Dimensional Geometry is 73 pages of lines and planes: "plane" appears
+     * 623 times, "skew" 29, "shortest distance" 36.
+     */
+    lines?: { through: [number, number, number]; dir: [number, number, number]; label?: string; soft?: boolean; dash?: boolean }[];
+    /** A plane, drawn as the quadrilateral its normal cuts out near the origin. */
+    planes?: { normal: [number, number, number]; d?: number; label?: string; soft?: boolean }[];
   };
 }
 

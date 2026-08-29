@@ -24,6 +24,8 @@ const AMBER = '#EEA31F';
 const SOFT = '#B5B0A4';
 const RULE = 'rgba(28,26,22,.18)';
 const BAND = 'rgba(238,163,31,.16)';
+const FILL = 'rgba(238,163,31,.22)';
+const FILL_SOFT = 'rgba(28,26,22,.08)';
 const SERIF = 'Georgia';
 
 /** Samples per figure width. Enough that a sine reads as smooth at 300pt. */
@@ -207,6 +209,46 @@ export function Plot({
             fill={BAND}
             rx={isLine ? 9 : 2}
           />
+        );
+      })}
+
+      {/* A region under a curve, or between two. Sampled at the plot's own
+          resolution so the boundary is the curve itself, not a chord. */}
+      {frame.areas?.map((a, i) => {
+        const step = (a.to - a.from) / SAMPLES;
+        const top: string[] = [];
+        const bottom: string[] = [];
+        for (let k = 0; k <= SAMPLES; k++) {
+          const x = a.from + step * k;
+          const yTop = evalCurve(a.under, x);
+          const yBot = a.and ? evalCurve(a.and, x) : 0;
+          if (yTop == null || yBot == null) continue;
+          top.push(`${X(x).toFixed(2)},${Y(yTop).toFixed(2)}`);
+          bottom.push(`${X(x).toFixed(2)},${Y(yBot).toFixed(2)}`);
+        }
+        if (top.length < 2) return null;
+        const d = `M${top.join('L')}L${bottom.reverse().join('L')}Z`;
+        return <Path key={`a${i}`} d={d} fill={a.soft ? FILL_SOFT : FILL} />;
+      })}
+
+      {/* A feasible region and its corners. */}
+      {frame.polygons?.map((poly, i) => {
+        if (poly.points.length < 3) return null;
+        const d = `M${poly.points.map(([px, py]) => `${X(px).toFixed(2)},${Y(py).toFixed(2)}`).join('L')}Z`;
+        return (
+          <G key={`g${i}`}>
+            <Path
+              d={d}
+              fill={poly.soft ? FILL_SOFT : FILL}
+              stroke={poly.soft ? SOFT : AMBER}
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {poly.corners !== false &&
+              poly.points.map(([px, py], k) => (
+                <Circle key={`c${k}`} cx={X(px)} cy={Y(py)} r={3.4} fill={INK} />
+              ))}
+          </G>
         );
       })}
 
