@@ -6374,9 +6374,125 @@ book's own errata, applied rather than reproduced. **This rate is worth acting
 on: the answer keys deserve a separate review rather than relying on each
 chapter's author to catch them.**
 
+## Lessons play, and Snap gets a crop
+
+### Lessons were never missing, only invisible
+
+The co-founder's `ddae68d` found 6,166 sections already in Supabase covering
+106 of 107 chapters, every one with board content, both narrations and reveal
+timings. The tab could not see them because `/drona/catalogue` returns names
+only. **A PROGRESS entry here asserted "no lesson has been recorded"; that was
+wrong and it was ours** — a claim taken on trust and then written into a code
+comment as fact.
+
+**A chapter opens only when all of it plays.** The webpage's gate is
+`sectionCount > 0`, which asks whether a lesson was recorded; ours asks whether
+one is finished. Two things are genuinely missing: Chemistry Class 11 "Some
+Basic Concepts" has `board_content = []` on all 59 of its sections, so it is a
+voice over a blank page; and 18 sections across eight Mathematics chapters have
+`segments_english` null, so the board reveals in silence. 97 of 106 pass; those
+nine are back to SOON. The check costs two small queries returning the ~77
+broken rows, and tests only the two conditions that actually occur — a filter
+that can never fire is one that will quietly rot.
+
+Whole-chapter rather than per-section on purpose: dropping bad sections quietly
+would leave "Section 12 of 44" skipping from 11 to 13. The eight Mathematics
+chapters need two sections of narration each, which is a findable fix, and
+holding them back is what makes it visible.
+
+### The scene port, and a defect class worth guarding
+
+The webpage had **578 Class 11 Physics scenes built, imported, and never keyed**
+in its registry, so `getScene()` returned null and twelve chapters silently fell
+back to plain board text. Our port predated the fix, so we had the same hole.
+Re-running it took us from 1,988 scenes across 38 chapters to **2,647 across
+47** — Physics Class 11 alone from 396 to 974.
+
+Three fixes went into `scripts/port-scenes.py` rather than the generated files,
+because a hand edit to generated output is undone by the next run: inline CSS
+is converted generally now (opacity to a prop, translateX/Y to the x/y
+shorthand, transitions dropped since the kit's Fade and Draw own animation),
+`baselineShift` becomes a TSpan `dy`, and `children: React.ReactNode` narrows
+to what react-native-svg's text tree accepts. That last one is scoped to
+components that actually render children inside a `<TSpan>` — applied blanket it
+broke a working scene whose helper takes elements.
+
+`scripts/validate-scenes.py` now checks every scene's gates against real reveal
+counts. `useBeat` returns the index of the latest reveal whose time has passed,
+so a block gated on `beat >= reveals.length` never renders, silently. All 2,647
+pass. Getting the check right took two corrections: the first pass flagged
+twenty scenes, all false, because the matches were inside doc comments
+describing the bug the webpage had just fixed; the second flagged one, also
+false, because `dur={beat > 7 ? 0.3 : 1}` is an animation duration where an
+always-false test is a cosmetic default.
+
+### The Topics panel
+
+Four rounds, each fixing what the last got wrong, and worth recording because
+three of the four were mistakes rather than refinements.
+
+The list was a plain `View`. Units & Measurements has 92 sections, about
+4,970pt of rows in a drawer roughly 390pt tall, so 87 were laid out past the
+bottom and clipped — which is why the topics "were not clickable": every row
+had a handler and only five could be touched. Titles were cut to one line at
+272pt wide. Both fixed, and `groupBySubtopic` — which already existed in
+`lib/lessons.ts`, written for this, never called — now groups the rows.
+
+Then the hierarchy was inverted: the topic was 9.5pt uppercase faint grey while
+its sections were bold ink. **The topic is the heading**; it reads as one now.
+And the playing section has been a solid ink slab and an amber wash before
+landing on a white card raised off a neutral panel — depth rather than hue, and
+no colour anywhere in the list.
+
+It is an accordion: one topic open at a time, the playing one by default,
+following the lesson when it crosses into a new topic. For a 76-section chapter
+that is 7 headers plus 14 rows instead of 76, a 72% reduction.
+
+### Snap: streaming, a crop, and a screen that is not a scanner
+
+**It streams.** `POST /doubts/stream` was already forwarding `questions_read`
+straight after transcription and the webpage was already using it; mobile called
+the plain route, so from the handoff at 7s to the answer at 30-45s a student saw
+a skeleton with no question text. `XMLHttpRequest`, not `fetch`: RN's `fetch` has
+no streaming body, and `expo/fetch` has one but cannot upload RN's
+`{uri, name, type}` form part. Verified end to end — question on screen at 12s,
+six-step solution at ~36s, in place. The plain POST stays as the fallback, but a
+failure the SERVER described is never retried on it: that is a real answer about
+this photo, and asking twice bills the student's quota twice.
+
+**A crop screen**, which needed `expo-image-manipulator` and therefore a native
+rebuild. `npx expo run:ios` reported exit code 0 while its own `pod install` had
+failed — CocoaPods' error reporter crashed formatting the real error
+(`Encoding::CompatibilityError` on ASCII-8BIT) and swallowed it; `LANG=en_US.UTF-8`
+fixed it. Three defects found only by using the screen: the stage clipped its own
+handles so a corner on the image edge rendered as a dot; brackets hung outside
+the corner instead of straddling it; and nothing dragged at all, because the
+gestures were rebuilt every render and `GestureDetector` was handed a new object
+mid-drag. Long-lived gestures read the live rect through refs.
+
+**The scan happens on paper now**, the shot held as a card the shape of the
+photo with the light passing over it, rather than a dark full-bleed scanner with
+outlines drawn over a dimmed image. The five stage phrases are unchanged;
+only their presentation moved.
+
+**It also crashed the app.** Picking a photo aborted the process with no redbox
+and nothing in the JS logs, because the fault was not in JS: an exception thrown
+inside a Reanimated worklet terminates the process. `useAnimatedStyle`'s body
+called `scale(8)`, and a captured JS function does not exist on the UI runtime.
+`tsc` and eslint both pass on that; the only evidence is a native crash report.
+
+**A photo with no answer no longer opens a Solution screen to admit it.** The
+handoff waits for `questions_read` to report a legible question, and the failure
+is shown over the photo. The failure screen is the scan screen resolved, and its
+words are ours: the API writes "Monk could not find a question in that photo",
+which names a product nobody here is called. Every line now says what WE could
+not do, never what the photo lacked — a reader can miss a question that is
+plainly there, so "no question in that shot" is a claim we cannot support and it
+blames the student for a failure that may be entirely ours.
+
 ## Still open
 
-Current as of 2026-08-27. Grouped by who is blocked.
+Current as of 2026-08-28. Grouped by who is blocked.
 
 ### Needs a decision from the user
 
@@ -6392,6 +6508,21 @@ Current as of 2026-08-27. Grouped by who is blocked.
   a student drops a single bad question rather than the whole photo. What is
   still open is server-side, not here: the delete is hard, so the undo window
   is a local timer rather than a soft delete the API could reverse.
+- **One question per snap, or three?** The API caps at `MAX_QUESTIONS = 3`, the
+  Home tile says "Up to 3 questions, solved step by step", and the Solution
+  screen shows Q1/Q2 chips when a photo yields more than one. The user believed
+  that design had been removed; what was removed was the Library's *grouped*
+  card, not multi-question itself. If one-per-snap is wanted it is three changes
+  together: drop the chips, cap the request, and rewrite the Home tile.
+- **"Monk" is in the API's student-facing copy**, five places in `app/snap.py`
+  ("Monk could not find a question in that photo", "Monk read the first N", and
+  others). Mobile routes around it by keying its own copy on `remedy`; the
+  webpage still prints it.
+- **Molecules are named, not drawn** — see below; the honest fix is a
+  server-side render.
+- **Nine chapters are recorded but not finished**, and are gated to SOON:
+  Chemistry Class 11 "Some Basic Concepts" needs board content for all 59
+  sections; eight Mathematics chapters need two sections of narration each.
 - **Basic Mathematics has no source.** It is chapter 1 of Class 11 Maths in
   our catalogue, and the Drona reference book starts at Sets, so it is the one
   chapter of fourteen that could not be written. Its row stays SOON. Either a
