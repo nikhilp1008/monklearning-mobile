@@ -4,23 +4,31 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  SolutionQuestion,
-  SolutionScreen,
-  SolutionScreenSkeleton,
-} from '@/components/solution-screen';
+import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { Remedy, SnappedQuestion } from '@/lib/doubts';
+import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
 import { latexToText } from '@/lib/latex-text';
-import { parseSolutionSteps } from '@/lib/solution-steps';
+import { REMEDY_COPY, SolutionView, solutionView } from '@/lib/solution-view';
 
-const REMEDY_COPY: Record<Remedy, string> = {
-  retake: 'Try snapping it again — steadier light or a closer frame usually fixes this.',
-  not_photo: 'This looks like it needs a figure or diagram Drona can’t read from text alone.',
-  our_side: 'This one was on our end, not your photo. Give it another try in a moment.',
-};
+/**
+ * The day's count, shown only once the whole page has come back solved.
+ *
+ * The server's own number, not one derived here: it charges a question the
+ * moment it is answered, and only it knows what was already spent today. A
+ * page with anything unsolved on it is not the moment to talk about quota.
+ */
+function quotaNote(response: SnapResponse | null): string | null {
+  if (!response) return null;
+  const used = response.questions_used_today;
+  const limit = response.daily_limit;
+  if (used == null || limit == null) return null;
+  const everySolved =
+    response.questions.length > 0 && response.questions.every((q) => q.status === 'solved');
+  if (!everySolved) return null;
+  return `${used} of ${limit} questions used today`;
+}
 
 export default function SnapSolvedScreen() {
   const { scale, verticalScale } = useScale();
@@ -37,22 +45,14 @@ export default function SnapSolvedScreen() {
   // still running is deliberately left alone — see clearFinishedSnapJob.
   useEffect(() => clearFinishedSnapJob, []);
 
-  const solve = (q: SnappedQuestion, i: number): SolutionQuestion => ({
-    id: `Q${i + 1}`,
-    text: latexToText(q.stem ?? q.question_text ?? 'Could not read this question.'),
-    steps: parseSolutionSteps(q.steps, q.explanation),
-    answer: q.answer ? latexToText(q.answer) : null,
-    failureNote:
-      q.status === 'solved'
-        ? null
-        : (q.failure_reason ?? null) ||
-          REMEDY_COPY[(q.remedy as Remedy) ?? 'our_side'] ||
-          null,
-  });
+  // One mapper for both screens, so Snap and the Library's doubt detail cannot
+  // drift apart again — which is how both came to drop the MCQ options and the
+  // key idea, and to hide the working on an `unsure`.
+  const solve = (q: SnappedQuestion, i: number): SolutionView =>
+    solutionView(q, `Q${i + 1}`);
 
-  const questions: SolutionQuestion[] = useMemo(
+  const questions: SolutionView[] = useMemo(
     () => (response?.questions ?? []).map(solve),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [response]
   );
 
@@ -65,7 +65,7 @@ export default function SnapSolvedScreen() {
    * question fills in as its answer lands; the ones still working keep the
    * step placeholder.
    */
-  const reading: SolutionQuestion[] = useMemo(() => {
+  const reading: SolutionView[] = useMemo(() => {
     if (job.status !== 'solving') return [];
     const done = new Map(job.solved.map((q) => [q.question_index, q]));
     return job.read.map((r, i) => {
@@ -73,13 +73,15 @@ export default function SnapSolvedScreen() {
       if (answered) return solve(answered, i);
       return {
         id: `Q${i + 1}`,
+        doubtId: null,
+        chapter: r.chapter ?? null,
         text: latexToText(r.stem ?? r.question_text ?? 'Could not read this question.'),
+        options: r.options?.map((o) => ({ label: o.label, text: latexToText(o.text) })) ?? null,
         steps: [],
         answer: null,
         pending: true,
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job]);
 
   if (job.status === 'solving') {
@@ -101,6 +103,9 @@ export default function SnapSolvedScreen() {
           index={Math.min(index, reading.length - 1)}
           onSelect={setIndex}
           onBack={() => router.back()}
+          // "We could only read 2 of the 3 questions on this page" belongs to
+          // the photo, and nothing was telling the student it had happened.
+          notice={job.note ?? null}
         />
       </>
     );
@@ -114,7 +119,12 @@ export default function SnapSolvedScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Couldn&apos;t solve this one</Text>
             <Text style={styles.emptyBody}>
-              {job.failure.remedy ? REMEDY_COPY[job.failure.remedy] : job.failure.message}
+              {/* Quota is not a remedy — nothing about the photo or a retry
+                  changes it, and the server's message carries the count. */}
+              {job.failure.stage === 'quota'
+                ? job.failure.message
+                : ((job.failure.remedy ? REMEDY_COPY[job.failure.remedy] : null) ??
+                  job.failure.message)}
             </Text>
             <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
               <Text style={styles.ctaButtonText}>Try another photo</Text>
@@ -153,16 +163,25 @@ export default function SnapSolvedScreen() {
         // Seeds a Drona session from the doubt itself, the same thing the web
         // client does from its solution screen — so the action has a real
         // destination rather than being decorative.
+        notice={response.note ?? null}
+        footerNote={quotaNote(response)}
         onFollowUp={() =>
           router.push({
             pathname: '/entering-classroom',
             params: {
-              chapterTitle: response.questions[index]?.chapter ?? 'this doubt',
+              chapterTitle: questions[index]?.chapter ?? 'this doubt',
               initialUtterance: questions[index].text,
             },
           })
         }
-        onReport={() => router.push('/report-sheet')}
+        // The id of the question being looked at, which report-sheet requires
+        // to send anything at all — without it its Send button stays disabled.
+        onReport={() =>
+          router.push({
+            pathname: '/report-sheet',
+            params: { doubtId: questions[index]?.doubtId ?? '' },
+          })
+        }
       />
     </>
   );

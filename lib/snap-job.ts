@@ -51,6 +51,13 @@ export type SnapJob =
       read: ReadQuestion[];
       /** Questions already answered, so the screen can fill in as they land. */
       solved: SnapResponse['questions'];
+      /**
+       * The server's word about the photo as a whole — set when more questions
+       * were visible than could be read. It arrives with the first frame, long
+       * before any answer, and a student who photographed five questions and
+       * is getting three deserves to be told so while they wait.
+       */
+      note: string | null;
     }
   | { status: 'solved'; photoUri: string; response: SnapResponse }
   | { status: 'failed'; photoUri: string; failure: SnapFailure };
@@ -87,7 +94,14 @@ export function startSnapJob(photo: DoubtPhoto): void {
   controller?.abort();
   const mine = ++generation;
   controller = new AbortController();
-  emit({ status: 'solving', photoUri: photo.uri, streaming: true, read: [], solved: [] });
+  emit({
+    status: 'solving',
+    photoUri: photo.uri,
+    streaming: true,
+    read: [],
+    solved: [],
+    note: null,
+  });
 
   /** Only meaningful while this job is the current one. */
   const patch = (fn: (j: Extract<SnapJob, { status: 'solving' }>) => SnapJob) => {
@@ -108,8 +122,15 @@ export function startSnapJob(photo: DoubtPhoto): void {
   snapDoubtStreaming(
     photo,
     {
+      onMeta: (meta) => patch((j) => ({ ...j, note: meta.note ?? null })),
       onQuestionsRead: (read) => patch((j) => ({ ...j, read })),
-      onQuestion: (q) => patch((j) => ({ ...j, solved: [...j.solved, q] })),
+      // Sorted, not appended: answers arrive as each solve finishes, so a
+      // fast Q3 can land before Q1 and the page would show them out of order.
+      onQuestion: (q) =>
+        patch((j) => ({
+          ...j,
+          solved: [...j.solved, q].sort((a, b) => a.question_index - b.question_index),
+        })),
     },
     controller.signal
   )

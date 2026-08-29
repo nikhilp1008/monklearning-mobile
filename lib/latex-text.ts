@@ -73,11 +73,20 @@ const SPACING: Record<string, string> = {
   '!': '',
 };
 
+/**
+ * The number sets, which `\mathbb{…}` is almost only ever used for in this
+ * content. Treating it as a transparent wrapper would print a bare "Z", which
+ * is not the same claim as ℤ.
+ */
+const BLACKBOARD: Record<string, string> = {
+  R: 'ℝ', Z: 'ℤ', N: 'ℕ', Q: 'ℚ', C: 'ℂ', P: 'ℙ', H: 'ℍ', E: '𝔼',
+};
+
 /** Wrappers whose braces vanish and whose contents render as-is. */
 const TRANSPARENT_WRAPPERS = new Set([
   'text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit',
   'mathsf', 'mathtt', 'operatorname', 'left', 'right', 'displaystyle',
-  'mbox', 'hspace', 'ensuremath',
+  'mbox', 'hspace', 'ensuremath', 'mathcal', 'mathfrak', 'boldsymbol',
 ]);
 
 /** Glyphs that already sit raised on the line, so `^` around them would be
@@ -190,6 +199,15 @@ export function convertMath(src: string): string {
         continue;
       }
 
+      if (name === 'mathbb') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        const inner = convertMath(group.body);
+        out += BLACKBOARD[inner] ?? inner;
+        continue;
+      }
+
       if (TRANSPARENT_WRAPPERS.has(name)) {
         while (src[i] === ' ') i++;
         // \left( / \right] carry a delimiter rather than a braced group.
@@ -282,7 +300,36 @@ const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-])/g;
  */
 const DOUBLED_CARET = /\^\s*\\wedge\s*/g;
 
-function convertBareScripts(text: string): string {
+/** Any `\command` at all — the signal that a run is markup, not prose. */
+const BARE_COMMAND = /\\[a-zA-Z]+/;
+
+/**
+ * A `_` doing prose duty rather than maths — `snake_case`, a filename. Only
+ * relevant on the bare path, where a whole sentence goes through the
+ * converter; inside `$…$` every underscore really is a subscript.
+ */
+const PROSE_UNDERSCORE = /_(?![{0-9+\-])/g;
+const UNDERSCORE_HOLD = '\u0000US\u0000';
+
+/**
+ * Text that arrived with no `$…$` around it.
+ *
+ * Two different things get missed without this. Super/subscripts written bare
+ * — "the dimensions of B are M T^{-2} A^{-1}" — which is why this pass has
+ * always existed. And whole fields that are pure LaTeX with no delimiters at
+ * all, which is how the solver returns `answer`: a student was shown
+ * `\left[\frac{7\pi}{6}+2\pi n,\ …\right]` verbatim in the Final answer box,
+ * markup and all.
+ *
+ * A run carrying a command is treated as maths outright, because that is what
+ * it is. Everything else keeps the narrow old behaviour, so ordinary prose is
+ * never handed to a maths parser on spec.
+ */
+function convertBareText(text: string): string {
+  if (BARE_COMMAND.test(text)) {
+    const held = text.replace(PROSE_UNDERSCORE, UNDERSCORE_HOLD);
+    return convertMath(held).split(UNDERSCORE_HOLD).join('_');
+  }
   return text.replace(BARE_SCRIPT, (token) => convertMath(token));
 }
 
@@ -326,6 +373,14 @@ export function latexToText(raw: string): string {
     .trim();
 
   let out = '';
+  // Text outside any delimiter, held back so the bare pass sees it whole and
+  // never re-reads a segment this function has already converted.
+  let plain = '';
+  const flush = () => {
+    if (!plain) return;
+    out += convertBareText(plain);
+    plain = '';
+  };
   let i = 0;
   while (i < normalized.length) {
     const ch = normalized[i];
@@ -334,9 +389,10 @@ export function latexToText(raw: string): string {
       const close = normalized[i + 1] === '(' ? '\\)' : '\\]';
       const end = normalized.indexOf(close, i + 2);
       if (end === -1) {
-        out += normalized.slice(i);
+        plain += normalized.slice(i);
         break;
       }
+      flush();
       out += convertMath(normalized.slice(i + 2, end));
       i = end + 2;
       continue;
@@ -348,16 +404,18 @@ export function latexToText(raw: string): string {
       const end = normalized.indexOf(delim, start);
       if (end === -1) {
         // Unbalanced `$` — a literal dollar sign (a price), not math.
-        out += ch;
+        plain += ch;
         i += 1;
         continue;
       }
+      flush();
       out += convertMath(normalized.slice(start, end));
       i = end + delim.length;
       continue;
     }
-    out += ch;
+    plain += ch;
     i += 1;
   }
-  return convertBareScripts(out);
+  flush();
+  return out;
 }

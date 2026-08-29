@@ -24,6 +24,7 @@ import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
 import { TextbooksPage } from '@/components/textbook/textbooks-page';
 import { friendlyLoadError } from '@/lib/api';
+import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
@@ -848,7 +849,7 @@ export default function LibraryScreen() {
                           with the words the student actually wrote down. */}
                       <View style={styles.doubtRule} />
                       <Text style={styles.doubtQuestion} numberOfLines={3}>
-                        {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
+                        {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
                       </Text>
                     </PressableScale>
                     </Erasable>

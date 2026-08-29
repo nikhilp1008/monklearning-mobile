@@ -39,7 +39,13 @@ export interface SnapStreamHandlers {
   onMeta?: (meta: { question_count: number; note?: string | null }) => void;
   /** The transcribed questions, with no answers yet. */
   onQuestionsRead?: (questions: ReadQuestion[]) => void;
-  /** One finished question. Arrives once per question, in order. */
+  /**
+   * One finished question. Arrives once per question, in COMPLETION order —
+   * not page order. Since the API's `perf(snap): deliver each answer when it
+   * finishes`, the solves run concurrently and a fast Q3 can land while Q1 is
+   * still going, so anything displaying these must key on `question_index`
+   * rather than on arrival.
+   */
   onQuestion?: (question: SnappedQuestion) => void;
 }
 
@@ -199,7 +205,9 @@ export function snapDoubtStreaming(
         finish(() =>
           resolve({
             ...(meta as object),
-            questions,
+            // Back into page order. They arrived as each solve finished, which
+            // is not the order they are printed on the paper.
+            questions: questions.slice().sort((a, b) => a.question_index - b.question_index),
           } as SnapResponse)
         );
       };
