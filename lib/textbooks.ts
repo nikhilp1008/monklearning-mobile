@@ -312,6 +312,16 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'mathematics|12|integrals': () => import('@/content/textbooks/math-12-07-integrals'),
   'mathematics|12|application of integrals': () =>
     import('@/content/textbooks/math-12-08-integrals-applications'),
+  'mathematics|12|vector algebra': () =>
+    import('@/content/textbooks/math-12-10-vector-algebra'),
+  'mathematics|12|three dimensional geometry': () =>
+    import('@/content/textbooks/math-12-11-three-d-geometry'),
+  // Written and registered, but no row renders for a JEE or NEET student: the
+  // server's `?exam=` filter drops this chapter as board-only, which is why
+  // the app lists twelve Class 12 chapters against the table's thirteen. It
+  // appears the moment an exam scope carries it.
+  'mathematics|12|linear programming': () =>
+    import('@/content/textbooks/math-12-12-linear-programming'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

@@ -179,8 +179,25 @@ export function Axes3D({ frame, width }: { frame: DiagramFrame; width: number })
   const a = frame.axes3d ?? {};
   const height = Math.round(width * 0.78);
   const cx = width * 0.4;
-  const cy = height * 0.62;
   const u = Math.min(width, height) * 0.2;
+
+  /*
+   * The origin sits low enough that the z-axis and its label clear the top.
+   *
+   * `cy` used to be a flat 0.62 of the height, which put the z tip at y = -4.8
+   * on a 308pt card: the axis was drawn past the top edge and the "z" label,
+   * five pixels above that, was never visible at all. True of every axes3d
+   * figure ever authored, Class 11's included.
+   *
+   * The tip labels are a fixed pixel size while `u` scales with the card, so a
+   * narrow card cannot hold the full reach; there the axes shorten rather than
+   * run off the canvas. On a phone-width card REACH survives intact.
+   */
+  const TIP = 14;
+  const FOOT = 8;
+  const REACH = 3.2;
+  const reach = Math.min(REACH, (height - TIP - FOOT) / (u * 1.42));
+  const cy = TIP + reach * u;
 
   // Isometric: x comes forward-left, y goes right, z goes up.
   const P = (x: number, y: number, z: number): [number, number] => [
@@ -204,9 +221,9 @@ export function Axes3D({ frame, width }: { frame: DiagramFrame; width: number })
 
   return (
     <Svg width={width} height={height}>
-      {axis(P(3.2, 0, 0), 'x')}
-      {axis(P(0, 3.2, 0), 'y')}
-      {axis(P(0, 0, 3.2), 'z')}
+      {axis(P(reach, 0, 0), 'x')}
+      {axis(P(0, reach, 0), 'y')}
+      {axis(P(0, 0, reach), 'z')}
 
       {a.point && a.box && (
         <Path
