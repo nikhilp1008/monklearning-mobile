@@ -55,6 +55,9 @@ const SYMBOLS: Record<string, string> = {
   prime: '′', angle: '∠', perp: '⊥', parallel: '∥', therefore: '∴',
   because: '∵', sum: '∑', prod: '∏', int: '∫', oint: '∮',
   in: '∈', notin: '∉', subset: '⊂', cup: '∪', cap: '∩', emptyset: '∅',
+  // Both seen live in a solved doubt, rendering as the bare words
+  // "setminus" and "varnothing" in the middle of set notation.
+  varnothing: '∅', setminus: '∖', supset: '⊃', subseteq: '⊆', supseteq: '⊇',
   forall: '∀', exists: '∃', hbar: 'ℏ', ell: 'ℓ', Re: 'ℜ', Im: 'ℑ',
   ldots: '…', dots: '…', cdots: '⋯', quad: ' ', qquad: '  ',
   lambdabar: 'ƛ', vec: '', hat: '', bar: '', dot: '',
@@ -320,6 +323,11 @@ function unwrapSmiles(text: string): string {
 export function latexToText(raw: string): string {
   const normalized = unwrapSmiles(raw)
     .replace(DOUBLED_CARET, '^')
+    // LaTeX escapes for literal punctuation. These sit in ordinary prose
+    // rather than inside $…$, so the math converter never saw them and a
+    // student read "reduce the volume by 2\% is:". `$` is deliberately not
+    // in the set: unescaping it would manufacture a math delimiter.
+    .replace(/\\([%&#_])/g, '$1')
     .replace(/-\n/g, '')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')

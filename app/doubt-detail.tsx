@@ -95,7 +95,7 @@ export default function DoubtDetailScreen() {
             : (detail.failure_reason ?? 'This one couldn’t be solved from the photo.'),
         withheldNote:
           detail.status === 'unsure'
-            ? (detail.failure_reason ??
+            ? (latexToText(detail.failure_reason ?? '') ||
               'The working below is sound, but the final answer could not be confirmed, so it is not being shown.')
             : null,
       })),

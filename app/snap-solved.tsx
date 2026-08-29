@@ -53,7 +53,7 @@ export default function SnapSolvedScreen() {
           null,
     withheldNote:
       q.status === 'unsure'
-        ? (q.failure_reason ??
+        ? (latexToText(q.failure_reason ?? '') ||
           'The working below is sound, but the final answer could not be confirmed, so it is not being shown.')
         : null,
   });

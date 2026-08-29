@@ -23,6 +23,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
 import { TextbooksPage } from '@/components/textbook/textbooks-page';
+import { latexToText } from '@/lib/latex-text';
 import { friendlyLoadError } from '@/lib/api';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -848,7 +849,12 @@ export default function LibraryScreen() {
                           with the words the student actually wrote down. */}
                       <View style={styles.doubtRule} />
                       <Text style={styles.doubtQuestion} numberOfLines={3}>
-                        {doubt.stem ?? doubt.question_text ?? '(photo doubt)'}
+                        {/* Same conversion the solution screen runs. Without it the
+                            card shows the transcriber's raw LaTeX -- "$$v=3
+                            t^{\wedge} 2-12 t+9(\mathrm{~m} / \mathrm{s})$$" --
+                            which is the least readable form of the one line a
+                            student uses to find their doubt again. */}
+                        {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
                       </Text>
                     </PressableScale>
                     </Erasable>
