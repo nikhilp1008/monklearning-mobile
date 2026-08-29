@@ -145,7 +145,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={s.card}>
           <View style={st.formulaHead}>
-            <Text style={[kicker(scale), st.grow]}>{block.kicker}</Text>
+            <Text style={[kicker(scale), st.headLabel]}>{block.kicker}</Text>
             {!!block.tag && <Text style={[kicker(scale), st.tag]}>{block.tag}</Text>}
           </View>
           <Markup html={block.main} size={scale(20)} style={[mathText(scale, 20), st.formulaMain]} />
@@ -236,7 +236,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
               <View style={st.swipeCard}>
                 <View style={st.formulaHead}>
-                  <Text style={[kicker(scale), st.grow]}>
+                  <Text style={[kicker(scale), st.headLabel]}>
                     Solved example · {i + 1} of {block.items.length}
                   </Text>
                   <Text style={[kicker(scale, 9.5), st.tag]}>{ex.tag}</Text>
@@ -345,7 +345,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
               <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
                   <View style={st.formulaHead}>
-                    <Text style={[kicker(scale), st.grow]}>
+                    <Text style={[kicker(scale), st.headLabel]}>
                       Practice · {i + 1} of {block.items.length}
                     </Text>
                     <Text style={[kicker(scale, 9.5), st.tag]}>Try first</Text>
@@ -483,8 +483,25 @@ function makeStyles(scale: (n: number) => number) {
       lineHeight: scale(13.5 * 1.5),
       color: colors.slate,
     },
-    formulaHead: { flexDirection: 'row', alignItems: 'flex-start', gap: scale(10) },
-    tag: { color: colors.quiet, letterSpacing: scale(0.6) },
+    // Wraps rather than squeezing. Both children carry real text -- a label
+    // and a gloss -- and across the corpus they run to 105 characters
+    // combined. `flex: 1` on the label gave it a flex basis of 0, so the tag
+    // claimed its full content width first and the label was left breaking
+    // mid-word down a column two characters wide. Now neither has a zero
+    // basis, so they share the line when they fit and the tag drops to its
+    // own line when they do not.
+    formulaHead: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'flex-start',
+      columnGap: scale(10),
+      rowGap: scale(3),
+    },
+    // Shrinks to share the line, but never to a zero basis the way `grow` did.
+    headLabel: { flexShrink: 1 },
+    // `marginLeft: auto` keeps a short tag against the right edge on a shared
+    // line; a long one fills its own line and the auto margin does nothing.
+    tag: { color: colors.quiet, letterSpacing: scale(0.6), flexShrink: 1, marginLeft: 'auto' },
     formulaMain: { textAlign: 'center', paddingTop: scale(16), paddingBottom: scale(14) },
     formulaLegend: { gap: scale(4), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)', paddingTop: scale(10) },
     legendLine: {
