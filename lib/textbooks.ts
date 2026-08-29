@@ -305,6 +305,10 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-12-02-inverse-trig'),
   'mathematics|12|matrices': () => import('@/content/textbooks/math-12-03-matrices'),
   'mathematics|12|determinants': () => import('@/content/textbooks/math-12-04-determinants'),
+  'mathematics|12|applications of derivatives': () =>
+    import('@/content/textbooks/math-12-06-derivatives-applications'),
+  'mathematics|12|application of integrals': () =>
+    import('@/content/textbooks/math-12-08-integrals-applications'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

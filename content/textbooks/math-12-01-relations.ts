@@ -616,7 +616,7 @@ export const ch12Relations: Chapter = {
           "main": "f′ of one sign ⇒ one-one · odd degree ⇒ onto ℝ",
           "legend": [
             "even degree, |<i>x</i>|, even powers and sin, cos are <b>many-one</b>: the ± symmetry or the periodicity kills injectivity on sight",
-            "pigeonhole sanity check: if <i>n</i>(<i>A</i>) &gt; <i>n</i>(<i>B</i>) no one-one map exists; if <i>n</i>(<i>A</i>) &lt; <i>n</i>(<i>B</i>) no onto map exists"
+            "pigeonhole sanity check: if <i>n</i>(<i>A</i>) > <i>n</i>(<i>B</i>) no one-one map exists; if <i>n</i>(<i>A</i>) < <i>n</i>(<i>B</i>) no onto map exists"
           ],
           "note": "Identity is always bijective. A constant map is many-one, and into whenever the codomain has more than one element. Inclusion of A ⊆ B is injective, and into unless A = B."
         },
@@ -625,7 +625,7 @@ export const ch12Relations: Chapter = {
           "title": "Testing one-one, three routes",
           "steps": [
             "<b>Algebraic.</b> Assume <i>f</i>(<i>x</i><sub>1</sub>) = <i>f</i>(<i>x</i><sub>2</sub>) and try to force <i>x</i><sub>1</sub> = <i>x</i><sub>2</sub>. If a step only gives <i>x</i><sub>1</sub><sup>2</sup> = <i>x</i><sub>2</sub><sup>2</sup>, that admits <i>x</i><sub>1</sub> = −<i>x</i><sub>2</sub> and the function is many-one. This is the definition applied directly, and it is what CBSE wants written out.",
-            "<b>Calculus, and this is the fastest.</b> If <i>f</i>′(<i>x</i>) &gt; 0 everywhere, or <i>f</i>′(<i>x</i>) &lt; 0 everywhere, then <i>f</i> is strictly monotonic and therefore one-one. Done, with no algebra. For a bounded perturbation like 2<i>x</i> + sin <i>x</i>, bound <i>f</i>′ instead of solving anything.",
+            "<b>Calculus, and this is the fastest.</b> If <i>f</i>′(<i>x</i>) > 0 everywhere, or <i>f</i>′(<i>x</i>) < 0 everywhere, then <i>f</i> is strictly monotonic and therefore one-one. Done, with no algebra. For a bounded perturbation like 2<i>x</i> + sin <i>x</i>, bound <i>f</i>′ instead of solving anything.",
             "<b>Graphical.</b> The horizontal line test. Reach for it when the function is a standard shape you can draw in two seconds.",
             "<b>To disprove, produce one collision.</b> <i>f</i>(2) = <i>f</i>(−2), or <i>f</i>(0) = <i>f</i>(√3) for <i>x</i><sup>3</sup> − 3<i>x</i>. A single explicit pair settles many-one, and it is faster than any general argument."
           ]
@@ -695,7 +695,7 @@ export const ch12Relations: Chapter = {
           "q": "Classify <i>f</i> : ℝ → ℝ, <i>f</i>(<i>x</i>) = 2<i>x</i> + sin <i>x</i>, as one-one or many-one and onto or into.",
           "steps": [
             "Differentiate: <i>f</i>′(<i>x</i>) = 2 + cos <i>x</i>. Since −1 ≤ cos <i>x</i> ≤ 1, we get 1 ≤ <i>f</i>′(<i>x</i>) ≤ 3.",
-            "So <i>f</i>′ &gt; 0 everywhere: <i>f</i> is strictly increasing, hence one-one. Bounding beats solving here.",
+            "So <i>f</i>′ > 0 everywhere: <i>f</i> is strictly increasing, hence one-one. Bounding beats solving here.",
             "As <i>x</i> → +∞ the term 2<i>x</i> dominates the bounded sin <i>x</i>, so <i>f</i>(<i>x</i>) → +∞; likewise <i>f</i>(<i>x</i>) → −∞ as <i>x</i> → −∞.",
             "<i>f</i> is continuous, so by the intermediate value theorem every real value is attained: onto."
           ],
@@ -1022,7 +1022,7 @@ export const ch12Relations: Chapter = {
           "t": "proc",
           "title": "Counting with a constraint attached",
           "steps": [
-            "<b>Check feasibility before anything else.</b> No one-one map exists when <i>n</i>(<i>A</i>) &gt; <i>n</i>(<i>B</i>); no onto map exists when <i>n</i>(<i>A</i>) &lt; <i>n</i>(<i>B</i>). If the question is infeasible the answer is 0 and you are done in five seconds.",
+            "<b>Check feasibility before anything else.</b> No one-one map exists when <i>n</i>(<i>A</i>) > <i>n</i>(<i>B</i>); no onto map exists when <i>n</i>(<i>A</i>) < <i>n</i>(<i>B</i>). If the question is infeasible the answer is 0 and you are done in five seconds.",
             "<b>Fix the constrained part by choosing, not by arranging.</b> “Exactly three elements map to <i>y</i><sub>2</sub>” means choose <b>which</b> three, in <sup>7</sup><i>C</i><sub>3</sub> ways. They are an unordered set of preimages, so no factorial multiplies them.",
             "<b>Count the remainder freely, then subtract the misses.</b> With <i>y</i><sub>2</sub> already covered, the leftover elements must still hit the remaining targets, so apply the onto count to <b>them</b> alone.",
             "<b>Multiply the two stages.</b> The choice and the completion are independent, so the answers multiply. Sanity check the size: the answer must sit between the number of bijections and the number of all functions."
@@ -1190,7 +1190,7 @@ export const ch12Relations: Chapter = {
           "items": [
             "Using <i>m</i><sup>n</sup> for one-one maps. All functions are <b><i>m</i><sup>n</sup></b>; one-one maps are <b><sup>m</sup><i>P<sub>n</sub></i></b>. The falling product is the whole difference, and the exam offers both as options every time.",
             "Swapping base and exponent. The <b>domain size is the exponent</b>. Read which set the arrow starts from before you write anything, especially when a question defines maps in both directions, as the 2018 α and β item does.",
-            "Ignoring feasibility. There is <b>no</b> one-one map when <i>n</i>(<i>A</i>) &gt; <i>n</i>(<i>B</i>) and <b>no</b> onto map when <i>n</i>(<i>A</i>) &lt; <i>n</i>(<i>B</i>). The answer is 0, and the option list will not contain a hint that it is.",
+            "Ignoring feasibility. There is <b>no</b> one-one map when <i>n</i>(<i>A</i>) > <i>n</i>(<i>B</i>) and <b>no</b> onto map when <i>n</i>(<i>A</i>) < <i>n</i>(<i>B</i>). The answer is 0, and the option list will not contain a hint that it is.",
             "Multiplying the chosen preimage set by a factorial. “Exactly three elements map to <i>y</i><sub>2</sub>” asks which three, so it is <sup>7</sup>C<sub>3</sub>, not <sup>7</sup>P<sub>3</sub>: the three land on the <b>same</b> target and their order is meaningless.",
             "Grinding inclusion and exclusion when the sets have equal size. Onto between two <i>n</i>-element sets means <b>bijective</b>, so the answer is <i>n</i>! and the alternating sum is a waste of two minutes."
           ]
@@ -1380,11 +1380,11 @@ export const ch12Relations: Chapter = {
         },
         {
           "t": "p",
-          "html": "Now the converses, and they are <b>false</b>, which is precisely why JEE asks about them. <b><i>g</i> ∘ <i>f</i> injective does not force <i>g</i> injective.</b> Take <i>f</i>(<i>x</i>) = <i>e</i><sup>x</sup> on ℝ, and let <i>g</i>(<i>t</i>) = <i>t</i> for <i>t</i> &gt; 0 while <i>g</i>(<i>t</i>) = 1 − <i>t</i> for <i>t</i> ≤ 0. Then <i>g</i> ∘ <i>f</i> = <i>e</i><sup>x</sup>, which is injective, but <i>g</i>(0) = 1 = <i>g</i>(1), so <i>g</i> is not. The misbehaviour of <i>g</i> happens entirely <b>off the range of <i>f</i></b>, where the composite cannot see it."
+          "html": "Now the converses, and they are <b>false</b>, which is precisely why JEE asks about them. <b><i>g</i> ∘ <i>f</i> injective does not force <i>g</i> injective.</b> Take <i>f</i>(<i>x</i>) = <i>e</i><sup>x</sup> on ℝ, and let <i>g</i>(<i>t</i>) = <i>t</i> for <i>t</i> > 0 while <i>g</i>(<i>t</i>) = 1 − <i>t</i> for <i>t</i> ≤ 0. Then <i>g</i> ∘ <i>f</i> = <i>e</i><sup>x</sup>, which is injective, but <i>g</i>(0) = 1 = <i>g</i>(1), so <i>g</i> is not. The misbehaviour of <i>g</i> happens entirely <b>off the range of <i>f</i></b>, where the composite cannot see it."
         },
         {
           "t": "p",
-          "html": "Similarly <b><i>g</i> ∘ <i>f</i> surjective does not force <i>f</i> surjective</b>: with the same <i>f</i>(<i>x</i>) = <i>e</i><sup>x</sup>, which misses every negative number, and <i>g</i>(<i>t</i>) = ln <i>t</i> for <i>t</i> &gt; 0 and <i>g</i>(<i>t</i>) = 0 otherwise, the composite is <i>g</i>(<i>f</i>(<i>x</i>)) = <i>x</i>, onto all of ℝ, while <i>f</i> is not onto. Here is the repair, and it is examinable in its own right: <i>g</i> ∘ <i>f</i> injective <b>does</b> force <i>g</i> to be injective <b>on the range of <i>f</i></b>. That phrase is what makes the statement true, and the counterexample works only because <i>g</i> misbehaves at inputs <i>f</i> never produces."
+          "html": "Similarly <b><i>g</i> ∘ <i>f</i> surjective does not force <i>f</i> surjective</b>: with the same <i>f</i>(<i>x</i>) = <i>e</i><sup>x</sup>, which misses every negative number, and <i>g</i>(<i>t</i>) = ln <i>t</i> for <i>t</i> > 0 and <i>g</i>(<i>t</i>) = 0 otherwise, the composite is <i>g</i>(<i>f</i>(<i>x</i>)) = <i>x</i>, onto all of ℝ, while <i>f</i> is not onto. Here is the repair, and it is examinable in its own right: <i>g</i> ∘ <i>f</i> injective <b>does</b> force <i>g</i> to be injective <b>on the range of <i>f</i></b>. That phrase is what makes the statement true, and the counterexample works only because <i>g</i> misbehaves at inputs <i>f</i> never produces."
         },
         {
           "t": "proc",
@@ -1439,7 +1439,7 @@ export const ch12Relations: Chapter = {
           "steps": [
             "Read innermost first: <i>g</i> ∘ <i>g</i> ∘ <i>f</i> sends <i>x</i> to sin(sin <i>x</i><sup>2</sup>). Call that <i>u</i>.",
             "The left side applies <i>f</i> to it, so the equation is <i>u</i><sup>2</sup> = <i>u</i>, giving <i>u</i> = 0 or <i>u</i> = 1.",
-            "<i>u</i> = 1 would need sin <i>x</i><sup>2</sup> = π/2 &gt; 1, impossible. So sin(sin <i>x</i><sup>2</sup>) = 0, that is sin <i>x</i><sup>2</sup> = <i>n</i>π.",
+            "<i>u</i> = 1 would need sin <i>x</i><sup>2</sup> = π/2 > 1, impossible. So sin(sin <i>x</i><sup>2</sup>) = 0, that is sin <i>x</i><sup>2</sup> = <i>n</i>π.",
             "But |sin <i>x</i><sup>2</sup>| ≤ 1, so only <i>n</i> = 0 survives: <i>x</i><sup>2</sup> = <i>m</i>π for <i>m</i> = 0, 1, 2, …, hence <i>x</i> = ±√(<i>m</i>π)."
           ],
           "ans": "x = ±√(mπ), m = 0, 1, 2, … The boundedness of sine kills every branch but one"
@@ -1461,7 +1461,7 @@ export const ch12Relations: Chapter = {
             },
             {
               "q": "[JEE Main] Construct <i>f</i> and <i>g</i> with <i>g</i> ∘ <i>f</i> onto but <i>f</i> not onto.",
-              "a": "<i>f</i>(<i>x</i>) = <i>e</i><sup>x</sup> from ℝ to ℝ misses every negative; <i>g</i>(<i>t</i>) = ln <i>t</i> for <i>t</i> &gt; 0 and 0 otherwise. Then <i>g</i> ∘ <i>f</i> = <i>x</i>, onto ℝ."
+              "a": "<i>f</i>(<i>x</i>) = <i>e</i><sup>x</sup> from ℝ to ℝ misses every negative; <i>g</i>(<i>t</i>) = ln <i>t</i> for <i>t</i> > 0 and 0 otherwise. Then <i>g</i> ∘ <i>f</i> = <i>x</i>, onto ℝ."
             },
             {
               "q": "[JEE Advanced] Find <i>f</i> and <i>g</i> with <i>g</i>(<i>f</i>(<i>x</i>)) = |sin <i>x</i>| and <i>f</i>(<i>g</i>(<i>x</i>)) = sin<sup>2</sup>√<i>x</i>.",
@@ -1497,7 +1497,7 @@ export const ch12Relations: Chapter = {
           "opts": [
             {
               "label": "g is injective",
-              "nudge": "False, and the standard counterexample is worth memorising: <i>f</i> = <i>e</i><sup>x</sup> with <i>g</i>(<i>t</i>) = <i>t</i> for <i>t</i> &gt; 0 and 1 − <i>t</i> otherwise. <i>g</i> misbehaves off the range of <i>f</i>."
+              "nudge": "False, and the standard counterexample is worth memorising: <i>f</i> = <i>e</i><sup>x</sup> with <i>g</i>(<i>t</i>) = <i>t</i> for <i>t</i> > 0 and 1 − <i>t</i> otherwise. <i>g</i> misbehaves off the range of <i>f</i>."
             },
             { "label": "f is injective", "nudge": null },
             {
@@ -1803,7 +1803,7 @@ export const ch12Relations: Chapter = {
           "steps": [
             "Set <i>y</i> = <i>x</i> + 1/<i>x</i> and clear the fraction: <i>x</i><sup>2</sup> − <i>yx</i> + 1 = 0.",
             "Solve: <i>x</i> = (<i>y</i> ± √(<i>y</i><sup>2</sup> − 4))/2. Two roots, and only one is admissible.",
-            "The roots multiply to 1, so the minus root equals 2/(<i>y</i> + √(<i>y</i><sup>2</sup> − 4)), which is less than 1 for <i>y</i> &gt; 2 and violates <i>x</i> ≥ 1.",
+            "The roots multiply to 1, so the minus root equals 2/(<i>y</i> + √(<i>y</i><sup>2</sup> − 4)), which is less than 1 for <i>y</i> > 2 and violates <i>x</i> ≥ 1.",
             "So the plus root is forced: <i>f</i><sup>−1</sup>(<i>x</i>) = (<i>x</i> + √(<i>x</i><sup>2</sup> − 4))/2 on [2, ∞)."
           ],
           "ans": "(x + √(x² − 4))/2. The discarded minus root is the distractor every time"
@@ -1841,7 +1841,7 @@ export const ch12Relations: Chapter = {
             },
             {
               "q": "[JEE Advanced] Show <i>f</i>(<i>x</i>) = <i>x</i>/(1 + |<i>x</i>|) is a bijection ℝ → (−1, 1) and find <i>f</i><sup>−1</sup>.",
-              "a": "For <i>x</i> ≥ 0, <i>y</i> = <i>x</i>/(1 + <i>x</i>) gives <i>x</i> = <i>y</i>/(1 − <i>y</i>); for <i>x</i> &lt; 0, <i>x</i> = <i>y</i>/(1 + <i>y</i>). Both are <i>f</i><sup>−1</sup>(<i>x</i>) = <i>x</i>/(1 − |<i>x</i>|) on (−1, 1). It is continuous and strictly increasing with limits ±1, hence onto."
+              "a": "For <i>x</i> ≥ 0, <i>y</i> = <i>x</i>/(1 + <i>x</i>) gives <i>x</i> = <i>y</i>/(1 − <i>y</i>); for <i>x</i> < 0, <i>x</i> = <i>y</i>/(1 + <i>y</i>). Both are <i>f</i><sup>−1</sup>(<i>x</i>) = <i>x</i>/(1 − |<i>x</i>|) on (−1, 1). It is continuous and strictly increasing with limits ±1, hence onto."
             }
           ]
         },
@@ -2018,7 +2018,7 @@ export const ch12Relations: Chapter = {
           "steps": [
             "<b>Compute <i>f</i><sup>2</sup>, then <i>f</i><sup>3</sup>, and stop the moment you hit <i>x</i>.</b> For a linear fractional map this takes two lines each and the order is almost never more than 4, so brute force is the right method.",
             "<b>Simplify hard at each step.</b> Clear the compound fraction by multiplying numerator and denominator by the inner denominator; the cancellations are what make the next step readable.",
-            "<b>Divide the exponent by the order.</b> Write <i>n</i> = <i>qk</i> + <i>r</i> with 0 ≤ <i>r</i> &lt; <i>k</i>, and the answer is <i>f</i><sup>r</sup>, which you have already computed.",
+            "<b>Divide the exponent by the order.</b> Write <i>n</i> = <i>qk</i> + <i>r</i> with 0 ≤ <i>r</i> < <i>k</i>, and the answer is <i>f</i><sup>r</sup>, which you have already computed.",
             "<b>If the question gives a value rather than a formula, run the orbit.</b> Compute <i>f</i>(<i>x</i><sub>0</sub>), <i>f</i><sup>2</sup>(<i>x</i><sub>0</sub>), … until a value repeats; the length of that cycle is what the exponent reduces against.",
             "<b>Check on one concrete number.</b> A claimed order of 4 should send some chosen input round a genuine 4-cycle. It costs four arithmetic steps and it catches an algebra slip immediately."
           ]

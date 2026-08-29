@@ -77,6 +77,13 @@ for (const f of files) {
   // the first pass flagged the finished Sets chapter for them.
   const emojiRe = /[\u{2600}-\u{2712}\u{2718}-\u{27BF}\u{1F300}-\u{1FAFF}]/u;
   if (emojiRe.test(json)) problems.push('contains emoji');
+  // The markup renderer parses five tags and decodes nothing else, so an
+  // HTML entity reaches the student as its literal characters: `&gt;` shows
+  // up as four glyphs in the middle of an inequality. Two chapter authors
+  // caught this by hand in a shipped file; the gate is cheaper.
+  const entities = [...new Set(json.match(/&(?:gt|lt|amp|nbsp|quot|#\d+);/g) ?? [])];
+  if (entities.length) problems.push(`HTML entities render literally: ${entities.join(', ')}`);
+
   let m; const badTags = new Set();
   while ((m = TAG.exec(json))) if (!ALLOWED_TAGS.has(m[1].toLowerCase())) badTags.add(m[1]);
   if (badTags.size) problems.push(`disallowed tags: ${[...badTags].join(', ')}`);
