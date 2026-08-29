@@ -1091,9 +1091,9 @@ export const ch12Integrals: Chapter = {
           "tag": "JEE MAIN PATTERN",
           "q": "Evaluate ∫<i>x</i>/[(<i>x</i> − 1)<sup>2</sup>(<i>x</i> + 1)] d<i>x</i>.",
           "steps": [
-            "Repeated factor, so three terms: <i>A</i>/(<i>x</i> − 1) + <i>B</i>/(<i>x</i> − 1)<sup>2</sup> + <i>C</i>/(<i>x</i> + 1).",
-            "Clear: <i>x</i> = <i>A</i>(<i>x</i> − 1)(<i>x</i> + 1) + <i>B</i>(<i>x</i> + 1) + <i>C</i>(<i>x</i> − 1)<sup>2</sup>.",
-            "Put <i>x</i> = 1: 1 = 2<i>B</i>, so <i>B</i> = 1/2. Put <i>x</i> = −1: −1 = 4<i>C</i>, so <i>C</i> = −1/4. Compare <i>x</i><sup>2</sup> coefficients: 0 = <i>A</i> + <i>C</i>, so <i>A</i> = 1/4.",
+            "Repeated factor, so three terms: <i>A</i>/(<i>x</i> − 1) + <i>B</i>/(<i>x</i> − 1)<sup>2</sup> + <i>K</i>/(<i>x</i> + 1). The third letter is <i>K</i> and not <i>C</i> on purpose: <i>C</i> is already spoken for as the constant of integration.",
+            "Clear: <i>x</i> = <i>A</i>(<i>x</i> − 1)(<i>x</i> + 1) + <i>B</i>(<i>x</i> + 1) + <i>K</i>(<i>x</i> − 1)<sup>2</sup>.",
+            "Put <i>x</i> = 1: 1 = 2<i>B</i>, so <i>B</i> = 1/2. Put <i>x</i> = −1: −1 = 4<i>K</i>, so <i>K</i> = −1/4. Compare <i>x</i><sup>2</sup> coefficients: 0 = <i>A</i> + <i>K</i>, so <i>A</i> = 1/4.",
             "Integrate: (1/4) ln|<i>x</i> − 1| + (1/2)·(−1/(<i>x</i> − 1)) − (1/4) ln|<i>x</i> + 1|."
           ],
           "ans": "(1/4) ln|(<i>x</i> − 1)/(<i>x</i> + 1)| − 1/[2(<i>x</i> − 1)] + <i>C</i>. Note the middle term is <b>not</b> a log: a squared factor in the denominator integrates to a power."
@@ -1115,8 +1115,8 @@ export const ch12Integrals: Chapter = {
           "opts": [
             { "label": "<i>A</i>/(<i>x</i> − 2) + <i>B</i>/(<i>x</i> + 3)", "nudge": "This treats the squared factor as though it appeared once. A factor raised to the power 2 contributes <b>two</b> terms, and dropping one makes the identity unsolvable." },
             { "label": "<i>A</i>/(<i>x</i> − 2)<sup>2</sup> + <i>B</i>/(<i>x</i> + 3)", "nudge": "The other half of the same mistake: the squared term is there but the plain (<i>x</i> − 2) term is missing. You need both." },
-            { "label": "<i>A</i>/(<i>x</i> − 2) + <i>B</i>/(<i>x</i> − 2)<sup>2</sup> + <i>C</i>/(<i>x</i> + 3)", "nudge": null },
-            { "label": "(<i>Ax</i> + <i>B</i>)/(<i>x</i> − 2)<sup>2</sup> + <i>C</i>/(<i>x</i> + 3)", "nudge": "A linear numerator is for an <b>irreducible quadratic</b> factor. (<i>x</i> − 2)<sup>2</sup> is a repeated linear factor, and it takes constants." }
+            { "label": "<i>A</i>/(<i>x</i> − 2) + <i>B</i>/(<i>x</i> − 2)<sup>2</sup> + <i>K</i>/(<i>x</i> + 3)", "nudge": null },
+            { "label": "(<i>Ax</i> + <i>B</i>)/(<i>x</i> − 2)<sup>2</sup> + <i>K</i>/(<i>x</i> + 3)", "nudge": "A linear numerator is for an <b>irreducible quadratic</b> factor. (<i>x</i> − 2)<sup>2</sup> is a repeated linear factor, and it takes constants." }
           ],
           "correct": 2,
           "solution": "A repeated linear factor raised to <i>k</i> contributes one term at each power from 1 to <i>k</i>, each with a constant numerator, plus one term for every other factor."
@@ -1146,7 +1146,7 @@ export const ch12Integrals: Chapter = {
             },
             {
               "q": "Evaluate ∫d<i>x</i>/[(<i>x</i> + 1)<sup>2</sup><i>x</i>].",
-              "a": "ln|<i>x</i>/(<i>x</i> + 1)| + 1/(<i>x</i> + 1) + <i>C</i>. Template <i>A</i>/<i>x</i> + <i>B</i>/(<i>x</i> + 1) + <i>C</i>/(<i>x</i> + 1)<sup>2</sup> gives <i>A</i> = 1, <i>C</i> = −1 and then <i>B</i> = −1 from the <i>x</i><sup>2</sup> coefficient."
+              "a": "ln|<i>x</i>/(<i>x</i> + 1)| + 1/(<i>x</i> + 1) + <i>C</i>. Template <i>A</i>/<i>x</i> + <i>B</i>/(<i>x</i> + 1) + <i>K</i>/(<i>x</i> + 1)<sup>2</sup> gives <i>A</i> = 1, <i>K</i> = −1 and then <i>B</i> = −1 from the <i>x</i><sup>2</sup> coefficient. The squared term integrates to +1/(<i>x</i> + 1), not to a log."
             },
             {
               "q": "Evaluate ∫<i>x</i><sup>2</sup>/(<i>x</i><sup>2</sup> + 4) d<i>x</i>.",
@@ -1596,7 +1596,7 @@ export const ch12Integrals: Chapter = {
               "curves": [{ "c": "poly", "coeffs": [0, 0, 0.5] }],
               "areas": [{ "under": { "c": "poly", "coeffs": [0, 0, 0.5] }, "from": 0, "to": 2, "soft": true }],
               "bands": [{ "x0": 2, "x1": 2.4, "y0": 0, "y1": 2 }],
-              "labels": [{ "x": 2.5, "y": 3.1, "text": "height f(2), width dx" }]
+              "labels": [{ "x": 2.2, "y": 3.1, "text": "height f(2), width dx" }]
             }
           ]
         },
@@ -2106,7 +2106,7 @@ export const ch12Integrals: Chapter = {
             },
             {
               "q": "Evaluate ∫(1/4→4) ln <i>x</i>/(1 + <i>x</i><sup>2</sup>) d<i>x</i>.",
-              "a": "0. The reciprocal substitution <i>x</i> = 1/<i>t</i> maps this interval onto itself and sends ln <i>x</i> to −ln <i>t</i> while d<i>x</i>/(1 + <i>x</i><sup>2</sup>) is unchanged, so <i>I</i> = −<i>I</i>. Any interval of the form <i>p</i> to 1/<i>p</i> is worth testing this way."
+              "a": "0. The reciprocal substitution <i>x</i> = 1/<i>t</i> maps this interval onto itself, swapping the ends. It sends ln <i>x</i> to −ln <i>t</i>, and the minus that d<i>x</i> = −d<i>t</i>/<i>t</i><sup>2</sup> introduces is cancelled by the reversal of the limits, so d<i>x</i>/(1 + <i>x</i><sup>2</sup>) comes back as d<i>t</i>/(1 + <i>t</i><sup>2</sup>). That gives <i>I</i> = −<i>I</i>. Any interval of the form <i>p</i> to 1/<i>p</i> is worth testing this way."
             }
           ]
         },

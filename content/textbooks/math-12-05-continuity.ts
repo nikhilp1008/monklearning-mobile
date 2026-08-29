@@ -1679,7 +1679,7 @@ export const ch12Continuity: Chapter = {
           "kicker": "DERIVATION · THE MASTER FORMULA FOR f TO THE POWER g, TAP A LINE",
           "steps": [
             {
-              "eq": "y = [f(x)]^{g(x)}, with f(x) > 0",
+              "eq": "y = [f(x)]<sup>g(x)</sup>, with f(x) > 0",
               "why": "The positivity is not a technicality you can skip: the logarithm of a non-positive number does not exist, so the whole method needs a positive base. If the base can go negative, work with its modulus or restrict the domain and say so."
             },
             {
@@ -1691,7 +1691,7 @@ export const ch12Continuity: Chapter = {
               "why": "Differentiate both sides. The left uses the chain rule on ln y, which is where the 1/y comes from. The right uses the product rule on g times ln f, and the chain rule again on ln f, which is where the f′/f comes from."
             },
             {
-              "eq": "dy/dx = [f]^{g} [ g′ ln f + g f′/f ]",
+              "eq": "dy/dx = [f]<sup>g</sup> [ g′ ln f + g f′/f ]",
               "why": "Multiply through by y and substitute the original expression back for y. Read the answer as two pieces: the first is what you would get with the base frozen, the exponential-rule piece, and the second is what you would get with the exponent frozen, the power-rule piece. The truth is their sum, and each half on its own is a standard wrong option."
             }
           ]
@@ -1705,7 +1705,7 @@ export const ch12Continuity: Chapter = {
             "first term is the <b>exponential piece</b>, base frozen: differentiate as if <i>u</i> were a constant, which brings down ln <i>u</i>",
             "second term is the <b>power piece</b>, exponent frozen: differentiate as if <i>v</i> were a constant, which gives the ordinary power rule"
           ],
-          "note": "Worth memorising as a sum of two familiar answers rather than as a formula: d/dx x^x is x^x ln x plus x·x^{x−1} = x^x, so x^x(1 + ln x). Each half alone is a distractor in every MCQ on this."
+          "note": "Worth memorising as a sum of two familiar answers rather than as a formula: d/dx <i>x</i><sup>x</sup> is <i>x</i><sup>x</sup> ln <i>x</i> plus <i>x</i>·<i>x</i><sup>x−1</sup> = <i>x</i><sup>x</sup>, so <i>x</i><sup>x</sup>(1 + ln <i>x</i>). Each half alone is a distractor in every MCQ on this."
         },
         {
           "t": "proc",
@@ -1728,7 +1728,7 @@ export const ch12Continuity: Chapter = {
             "Multiply by <i>y</i> and substitute back.",
             "Cross-check with the shortcut: exponential piece <i>x</i><sup>sin x</sup> ln <i>x</i> · cos <i>x</i>, power piece sin <i>x</i> · <i>x</i><sup>sin x−1</sup> · 1. Their sum is the same thing."
           ],
-          "ans": "dy/dx = x^{sin x} (cos x ln x + (sin x)/x)"
+          "ans": "dy/dx = <i>x</i><sup>sin x</sup> (cos <i>x</i> ln <i>x</i> + (sin <i>x</i>)/<i>x</i>)"
         },
         {
           "t": "ex",
@@ -1740,7 +1740,7 @@ export const ch12Continuity: Chapter = {
             "Simplify the second term, which is where this problem is won: cot <i>x</i> · sec<sup>2</sup><i>x</i>/tan <i>x</i> = cot<sup>2</sup><i>x</i> sec<sup>2</sup><i>x</i> = (cos<sup>2</sup><i>x</i>/sin<sup>2</sup><i>x</i>)(1/cos<sup>2</sup><i>x</i>) = csc<sup>2</sup><i>x</i>.",
             "Both terms now carry csc<sup>2</sup><i>x</i>, so factor it out and multiply by <i>y</i>."
           ],
-          "ans": "y′ = (tan x)^{cot x} csc²x (1 − ln tan x)"
+          "ans": "y′ = (tan <i>x</i>)<sup>cot x</sup> csc<sup>2</sup><i>x</i> (1 − ln tan <i>x</i>)"
         },
         {
           "t": "ex",
@@ -1896,7 +1896,7 @@ export const ch12Continuity: Chapter = {
               "nudge": "Assumes <i>x</i><sup>x</sup> differentiates to itself the way <i>e</i><sup>x</sup> does. Only <i>e</i><sup>x</sup> has that property, and nothing else."
             }
           ],
-          "solution": "Take logs: ln y = x ln x, so y′/y = ln x + 1 and y′ = x^x(1 + ln x). Read it as the sum of two familiar answers: x^x ln x with the base frozen, plus x·x^{x−1} = x^x with the exponent frozen. The two half-answers are always offered."
+          "solution": "Take logs: ln y = x ln x, so y′/y = ln x + 1 and y′ = <i>x</i><sup>x</sup>(1 + ln <i>x</i>). Read it as the sum of two familiar answers: <i>x</i><sup>x</sup> ln <i>x</i> with the base frozen, plus <i>x</i>·<i>x</i><sup>x−1</sup> = <i>x</i><sup>x</sup> with the exponent frozen. The two half-answers are always offered."
         },
         {
           "t": "mcq",
