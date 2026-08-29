@@ -88,10 +88,16 @@ export default function DoubtDetailScreen() {
         ),
         steps: parseSolutionSteps(detail.steps, detail.explanation),
         answer: detail.answer ? latexToText(detail.answer) : null,
+        // Same split as snap-solved: an 'unsure' question keeps its working.
         failureNote:
-          detail.status === 'solved'
+          detail.status === 'solved' || detail.status === 'unsure'
             ? null
             : (detail.failure_reason ?? 'This one couldn’t be solved from the photo.'),
+        withheldNote:
+          detail.status === 'unsure'
+            ? (detail.failure_reason ??
+              'The working below is sound, but the final answer could not be confirmed, so it is not being shown.')
+            : null,
       })),
     [details, params.title]
   );

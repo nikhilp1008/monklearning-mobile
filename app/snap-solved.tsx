@@ -42,12 +42,20 @@ export default function SnapSolvedScreen() {
     text: latexToText(q.stem ?? q.question_text ?? 'Could not read this question.'),
     steps: parseSolutionSteps(q.steps, q.explanation),
     answer: q.answer ? latexToText(q.answer) : null,
+    // 'unsure' is not a failure. The server solved it, kept the steps, and
+    // withheld only the final answer -- and stopped billing for it. It gets
+    // the withheld banner above the working, not a note replacing it.
     failureNote:
-      q.status === 'solved'
+      q.status === 'solved' || q.status === 'unsure'
         ? null
         : (q.failure_reason ?? null) ||
           REMEDY_COPY[(q.remedy as Remedy) ?? 'our_side'] ||
           null,
+    withheldNote:
+      q.status === 'unsure'
+        ? (q.failure_reason ??
+          'The working below is sound, but the final answer could not be confirmed, so it is not being shown.')
+        : null,
   });
 
   const questions: SolutionQuestion[] = useMemo(

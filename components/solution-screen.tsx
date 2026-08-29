@@ -46,6 +46,16 @@ export type SolutionQuestion = {
   pending?: boolean;
   /** Shown in place of the working when this question could not be solved. */
   failureNote?: string | null;
+  /**
+   * The answer was withheld, but the working stands.
+   *
+   * Rendered ABOVE the steps rather than instead of them. `unsure` used to
+   * arrive here as a `failureNote`, which dropped the steps on the floor --
+   * so a student read "check the working below" with no working below, which
+   * is the one thing that note promises. The server keeps the steps on
+   * purpose for exactly this status, and no longer bills for it.
+   */
+  withheldNote?: string | null;
 };
 
 type SolutionScreenProps = {
@@ -169,6 +179,12 @@ export function SolutionScreen({
             </View>
           ) : (
             <View style={styles.stepsBlock}>
+              {!!question.withheldNote && (
+                <View style={styles.withheldCard}>
+                  <Text style={styles.withheldLabel}>ANSWER WITHHELD</Text>
+                  <Text style={styles.withheldText}>{question.withheldNote}</Text>
+                </View>
+              )}
               <SolutionSteps
                 steps={question.steps}
                 answer={question.answer}
@@ -326,6 +342,31 @@ function createStyles() {
     },
     failureBlock: {
       marginTop: 24,
+    },
+    // Amber, not red: the working is sound and worth reading, only the final
+    // answer is missing. Red would tell a student to discard the whole card.
+    withheldCard: {
+      marginTop: 20,
+      marginBottom: 4,
+      backgroundColor: 'rgba(154,106,18,.07)',
+      borderWidth: 1,
+      borderColor: 'rgba(154,106,18,.25)',
+      borderRadius: 12,
+      paddingVertical: 11,
+      paddingHorizontal: 13,
+    },
+    withheldLabel: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: 9,
+      letterSpacing: 1.1,
+      color: '#9A6A12',
+      marginBottom: 4,
+    },
+    withheldText: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: 14,
+      lineHeight: 14 * 1.55,
+      color: INK_70,
     },
     failureText: {
       fontFamily: 'AnekLatin_400Regular',
