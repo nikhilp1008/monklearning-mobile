@@ -64,6 +64,8 @@ export type SolutionQuestion = {
   text: string;
   steps: ParsedStep[];
   answer: string | null;
+  /** The answer before conversion, so a fraction in it can be stacked. */
+  answerRaw?: string | null;
   /**
    * The question has been read but not yet solved. Its text is real; its
    * working is still coming, so the steps area shows the placeholder instead
@@ -295,6 +297,7 @@ export function SolutionScreen({
               <SolutionSteps
                 steps={question.steps}
                 answer={question.answer}
+                answerRaw={question.answerRaw}
                 footer={
                   <Text style={styles.meta}>
                     {question.steps.length} step{question.steps.length === 1 ? '' : 's'}

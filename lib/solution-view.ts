@@ -69,6 +69,9 @@ export function solutionView(
     answerLabels: unsure ? null : (source.option_labels ?? null),
     steps: parseSolutionSteps(source.steps, source.explanation),
     answer: source.answer ? latexToText(source.answer) : null,
+    // Kept unconverted so the screen can stack a fraction in the answer; the
+    // converted `answer` above is what plain-text callers still use.
+    answerRaw: source.answer ?? null,
     keyIdea: source.key_idea ? latexToText(source.key_idea) : null,
     caution: unsure
       ? (source.failure_reason

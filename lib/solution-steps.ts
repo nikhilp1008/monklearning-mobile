@@ -1,6 +1,16 @@
 import { latexToText } from '@/lib/latex-text';
 
-export type SolutionLine = { kind: 'text' | 'math'; text: string };
+export type SolutionLine = {
+  kind: 'text' | 'math';
+  /** Converted to Unicode — what a plain `<Text>` shows. */
+  text: string;
+  /**
+   * The line before conversion, kept so a renderer that can stack a fraction
+   * has the `\frac{…}{…}` to stack. `text` has already flattened it to `a/b`,
+   * which cannot be un-flattened afterwards.
+   */
+  raw: string;
+};
 /** Named to avoid colliding with lib/doubts.ts's `SolutionStep`, which is the
  *  API's raw `{n, text}` shape rather than this rendered one. */
 export type ParsedStep = { title: string; lines: SolutionLine[] };
@@ -55,10 +65,14 @@ export function parseSolutionStep(raw: string): ParsedStep {
     // at undelimited text was worse than not trying: "Let $|A| = n$" contains a
     // relational operator and would have been torn out of its sentence.
     if (WHOLE_LINE_MATH.test(candidate)) {
-      return { kind: 'math', text: latexToText(candidate).replace(/[.:]$/, '') };
+      return {
+        kind: 'math',
+        text: latexToText(candidate).replace(/[.:]$/, ''),
+        raw: candidate.replace(/[.:]\s*$/, ''),
+      };
     }
     // Inline maths stays inline, converted to Unicode with the prose around it.
-    return { kind: 'text', text: latexToText(candidate) };
+    return { kind: 'text', text: latexToText(candidate), raw: candidate };
   });
 
   // A heading only when the opening sentence is genuinely short enough to read
@@ -73,7 +87,8 @@ export function parseSolutionStep(raw: string): ParsedStep {
     if (first && first.length <= MAX_TITLE_CHARS) {
       title = first;
       const remainder = sentences.slice(1).join(' ');
-      if (remainder) lines[0] = { kind: 'text', text: remainder };
+      // The remainder is already converted, so it is its own raw.
+      if (remainder) lines[0] = { kind: 'text', text: remainder, raw: remainder };
       else lines.shift();
     }
   }

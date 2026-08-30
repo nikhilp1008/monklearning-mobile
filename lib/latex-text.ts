@@ -137,9 +137,37 @@ function isAtomic(text: string): boolean {
   return !/[+\-−=<>\s]/.test(text.trim());
 }
 
+/**
+ * Marks a fraction inside an otherwise-plain string, for callers that can draw
+ * one properly.
+ *
+ * Unicode can only really spell a fraction when both halves are digits (¹⁄₂),
+ * and everything else has to fall back to a linear `a/b` — `h/mv`, spelled in
+ * super- and subscripts, came out as the unreadable "ʰ⁄ₘᵥ". A stacked
+ * numerator over denominator needs a view, not a character, so `latexToText`
+ * cannot express it and `latexToSegments` exists to hand the pieces to
+ * `MathLine`. These are control characters no real content contains.
+ */
+const FRAC_OPEN = '\u0011';
+const FRAC_SEP = '\u0012';
+const FRAC_CLOSE = '\u0013';
+
+/**
+ * Set only for the duration of one synchronous `latexToSegments` call, which
+ * is why a module-level flag is safe here: nothing awaits in between, so no
+ * second conversion can observe it.
+ */
+let markFractions = false;
+
 function renderFraction(rawNum: string, rawDen: string): string {
   const num = convertMath(rawNum);
   const den = convertMath(rawDen);
+  if (markFractions) {
+    // A fraction inside a fraction is left linear: stacking it would make a
+    // three-deck tower out of one line of working.
+    const flat = (part: string) => part.split(FRAC_OPEN).join('(').split(FRAC_SEP).join(')/(').split(FRAC_CLOSE).join(')');
+    return `${FRAC_OPEN}${flat(num)}${FRAC_SEP}${flat(den)}${FRAC_CLOSE}`;
+  }
   // ¹⁄₂ reads as a real fraction for *numbers* only. Letters have patchy
   // super/subscript coverage in Unicode and render as an unreadable jumble
   // (h/mv became "ʰ⁄ₘᵥ"), so anything non-numeric uses the linear form.
@@ -149,6 +177,48 @@ function renderFraction(rawNum: string, rawDen: string): string {
   const left = isAtomic(num) ? num : `(${num})`;
   const right = isAtomic(den) ? den : `(${den})`;
   return `${left}/${right}`;
+}
+
+/** One run of a converted line: ordinary text, or a fraction to stack. */
+export type MathSegment =
+  | { kind: 'text'; text: string }
+  | { kind: 'fraction'; numerator: string; denominator: string };
+
+/**
+ * The same conversion `latexToText` does, but with fractions kept as pieces
+ * rather than flattened into `a/b`.
+ *
+ * Everything that renders a solution goes through this; anything that needs a
+ * plain string — a Library card, the search haystack, the utterance that seeds
+ * a Drona session — keeps using `latexToText`.
+ */
+export function latexToSegments(raw: string): MathSegment[] {
+  markFractions = true;
+  let marked: string;
+  try {
+    marked = latexToText(raw);
+  } finally {
+    markFractions = false;
+  }
+
+  const segments: MathSegment[] = [];
+  let rest = marked;
+  for (;;) {
+    const open = rest.indexOf(FRAC_OPEN);
+    if (open === -1) break;
+    const sep = rest.indexOf(FRAC_SEP, open);
+    const close = rest.indexOf(FRAC_CLOSE, sep);
+    if (sep === -1 || close === -1) break;
+    if (open > 0) segments.push({ kind: 'text', text: rest.slice(0, open) });
+    segments.push({
+      kind: 'fraction',
+      numerator: rest.slice(open + 1, sep),
+      denominator: rest.slice(sep + 1, close),
+    });
+    rest = rest.slice(close + 1);
+  }
+  if (rest) segments.push({ kind: 'text', text: rest });
+  return segments;
 }
 
 /** Converts the body of one math segment (already stripped of its `$`). */

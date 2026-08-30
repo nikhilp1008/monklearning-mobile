@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { MathLine } from '@/components/math-line';
 import { ParsedStep } from '@/lib/solution-steps';
 
 /**
@@ -61,6 +62,8 @@ type SolutionStepsProps = {
   /** Closes the rail with a ✓ marker. Omit when the answer is already obvious
    *  from the screen around it — a picked MCQ option, say. */
   answer?: string | null;
+  /** The answer before conversion, so its fraction can be stacked. */
+  answerRaw?: string | null;
   answerLabel?: string;
   size?: SolutionStepsSize;
   /** Trailing line under the final answer, e.g. a step count. */
@@ -70,11 +73,15 @@ type SolutionStepsProps = {
 export function SolutionSteps({
   steps,
   answer,
+  answerRaw,
   answerLabel = 'Final answer',
   size = 'full',
   footer,
 }: SolutionStepsProps) {
   const styles = useMemo(() => createStyles(size), [size]);
+  // The same metrics createStyles uses, needed here because a stacked fraction
+  // has to be sized against the type it sits in.
+  const m = METRICS[size];
 
   return (
     <View style={styles.steps}>
@@ -91,12 +98,21 @@ export function SolutionSteps({
               // Hugs its own text rather than stretching to a full-width bar —
               // the design calls this out as the earlier mistake.
               <View key={j} style={styles.mathWrap}>
-                <Text style={styles.mathText}>{line.text}</Text>
+                <MathLine
+                  text={line.raw ?? line.text}
+                  style={styles.mathText}
+                  fontSize={m.math}
+                  color={INK}
+                />
               </View>
             ) : (
-              <Text key={j} style={styles.proseText}>
-                {line.text}
-              </Text>
+              <MathLine
+                key={j}
+                text={line.raw ?? line.text}
+                style={styles.proseText}
+                fontSize={m.prose}
+                color={INK_70}
+              />
             )
           )}
         </View>
@@ -109,7 +125,12 @@ export function SolutionSteps({
           </View>
           <Text style={styles.finalLabel}>{answerLabel}</Text>
           <View style={styles.answerWrap}>
-            <Text style={styles.answerText}>{answer}</Text>
+            <MathLine
+              text={answerRaw ?? answer}
+              style={styles.answerText}
+              fontSize={m.answer}
+              color={GREEN_INK}
+            />
           </View>
           {footer}
         </View>
