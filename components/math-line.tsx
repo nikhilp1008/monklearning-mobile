@@ -36,7 +36,9 @@ type MathLineProps = {
 
 export function MathLine({ text, style, fontSize, color, mathStyle }: MathLineProps) {
   const segments = useMemo(() => latexToSegments(text), [text]);
-  const hasFraction = segments.some((s) => s.kind === 'fraction');
+  const hasFraction = segments.some(
+    (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup'
+  );
   const hasMath = !!mathStyle && segments.some((s) => s.kind === 'math');
   const styles = useMemo(() => createStyles(fontSize, color), [fontSize, color]);
 
@@ -58,6 +60,22 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
               styles={styles}
               style={[style, mathStyle]}
             />,
+          ];
+        }
+        if (segment.kind === 'sub' || segment.kind === 'sup') {
+          // Drawn rather than spelled: there is no subscript `y` in Unicode,
+          // so it is set small and shifted off the baseline.
+          return [
+            <Text
+              key={`s${i}`}
+              style={[
+                style,
+                mathStyle,
+                styles.script,
+                segment.kind === 'sub' ? styles.scriptDown : styles.scriptUp,
+              ]}>
+              {segment.text}
+            </Text>,
           ];
         }
         const voice = segment.kind === 'math' ? [style, mathStyle] : [style];
@@ -106,6 +124,19 @@ function createStyles(fontSize: number, color: string) {
       // The row centres its children, so the line-height that would space a
       // paragraph is not what spaces this one — see `row`'s alignItems.
       lineHeight: fontSize * 1.6,
+    },
+    script: {
+      fontSize: fontSize * 0.68,
+      lineHeight: fontSize * 1.6,
+    },
+    // Small transforms rather than a baseline shift, which React Native has
+    // no property for. Tuned against the Unicode subscripts beside them so a
+    // drawn `y` sits where a spelled `ₓ` does.
+    scriptDown: {
+      transform: [{ translateY: fontSize * 0.2 }],
+    },
+    scriptUp: {
+      transform: [{ translateY: -fontSize * 0.3 }],
     },
     fraction: {
       alignItems: 'center',

@@ -162,6 +162,19 @@ const FRAC_CLOSE = '\u0013';
  */
 const MATH_OPEN = '\u0014';
 const MATH_CLOSE = '\u0015';
+/**
+ * A script Unicode cannot spell.
+ *
+ * The subscript alphabet stops at `a e h i j k l m n o p r s t u v x` — there
+ * is no subscript `y`, `b`, `c`, `d`, `f`, `g`, `q`, `w` or `z`. So `v_x` came
+ * out as `vₓ` and `v_y` fell back to a literal `v_y` in the same sentence:
+ * one formula, two spellings, decided by which letters happen to exist in a
+ * character table. Marked here and drawn small-and-lowered by `MathLine`, the
+ * same way a fraction Unicode cannot spell is drawn rather than flattened.
+ */
+const SUB_OPEN = '\u0016';
+const SUP_OPEN = '\u0017';
+const SCRIPT_CLOSE = '\u0018';
 
 /**
  * Set only for the duration of one synchronous `latexToSegments` call, which
@@ -196,6 +209,9 @@ export type MathSegment =
   | { kind: 'text'; text: string }
   /** Came from maths — set in the maths voice wherever it appears. */
   | { kind: 'math'; text: string }
+  /** A sub- or superscript with no Unicode character to spell it. */
+  | { kind: 'sub'; text: string }
+  | { kind: 'sup'; text: string }
   | { kind: 'fraction'; numerator: string; denominator: string };
 
 /**
@@ -236,6 +252,20 @@ export function latexToSegments(raw: string): MathSegment[] {
       inMath = Math.max(0, inMath - 1);
       continue;
     }
+    if (ch === SUB_OPEN || ch === SUP_OPEN) {
+      const close = marked.indexOf(SCRIPT_CLOSE, i);
+      if (close === -1) {
+        buffer += ch;
+        continue;
+      }
+      flush();
+      segments.push({
+        kind: ch === SUB_OPEN ? 'sub' : 'sup',
+        text: strip(marked.slice(i + 1, close)),
+      });
+      i = close;
+      continue;
+    }
     if (ch === FRAC_OPEN) {
       const sep = marked.indexOf(FRAC_SEP, i);
       const close = marked.indexOf(FRAC_CLOSE, sep);
@@ -263,7 +293,10 @@ export function latexToSegments(raw: string): MathSegment[] {
 function strip(text: string): string {
   return text
     .split(MATH_OPEN).join('')
-    .split(MATH_CLOSE).join('');
+    .split(MATH_CLOSE).join('')
+    .split(SUB_OPEN).join('')
+    .split(SUP_OPEN).join('')
+    .split(SCRIPT_CLOSE).join('');
 }
 
 /** Converts the body of one math segment (already stripped of its `$`). */
@@ -366,8 +399,17 @@ export function convertMath(src: string): string {
         continue;
       }
       const mapped = mapAll(inner, table);
-      // Unmappable exponents keep the caret so meaning isn't silently lost.
-      out += mapped ?? `${ch}${inner.length > 1 ? `(${inner})` : inner}`;
+      if (mapped) {
+        out += mapped;
+        continue;
+      }
+      if (markSegments) {
+        // No character exists for it, so it is drawn instead of spelled.
+        out += `${ch === '^' ? SUP_OPEN : SUB_OPEN}${inner}${SCRIPT_CLOSE}`;
+        continue;
+      }
+      // Plain-string callers keep the caret so meaning isn't silently lost.
+      out += `${ch}${inner.length > 1 ? `(${inner})` : inner}`;
       continue;
     }
 
@@ -398,11 +440,18 @@ export function convertMath(src: string): string {
  * literal `T^{-2}`. Each token is handed to convertMath on its own, which is
  * the same code path a delimited one takes.
  *
- * Only braced groups and digit/sign arguments convert. Letters are left alone
- * on purpose: `x_i` is worth less than the risk of mangling an ordinary
- * underscore in prose.
+ * Braced groups and digit/sign arguments convert, and so does a SINGLE letter
+ * with nothing word-like after it. Letters used to be excluded entirely, on
+ * the grounds that `x_i` was worth less than the risk of mangling an ordinary
+ * underscore in prose — but the solver writes one step as "$v_x = u_x + a_x t$
+ * and v_y = u_y + a_y t", half delimited and half not, and the bare half
+ * printed a literal `v_y` beside a properly subscripted `vₓ`. One formula, two
+ * spellings, in one sentence.
+ *
+ * The "nothing word-like after it" is what keeps prose safe: `v_y=` is a
+ * subscript, `snake_case` is not, because its `c` is followed by more word.
  */
-const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-])/g;
+const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
 
 /**
  * `t^\wedge 2` — Mathpix transcribing a caret twice.
@@ -419,11 +468,20 @@ const DOUBLED_CARET = /\^\s*\\wedge\s*/g;
 const BARE_COMMAND = /\\[a-zA-Z]+/;
 
 /**
- * A `_` doing prose duty rather than maths — `snake_case`, a filename. Only
- * relevant on the bare path, where a whole sentence goes through the
- * converter; inside `$…$` every underscore really is a subscript.
+ * A `_` doing prose duty rather than maths — `snake_case`, a filename.
+ *
+ * Only relevant on the bare path, where a whole sentence goes through the
+ * converter; inside `$…$` every underscore really is a subscript. The first
+ * version protected anything followed by a letter, which was too broad: the
+ * solver writes one step as "$v_x = u_x + a_x t$ and v_y = u_y + a_y t",
+ * half delimited and half not, and the protected half printed as a literal
+ * `v_y` beside a properly subscripted `vₓ` — one formula, two spellings, in
+ * one sentence.
+ *
+ * A subscript is a SINGLE character with nothing word-like after it: `v_y=`
+ * subscripts, `snake_case` does not, because the `c` is followed by more word.
  */
-const PROSE_UNDERSCORE = /_(?![{0-9+\-])/g;
+const PROSE_UNDERSCORE = /_(?!\{|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
 const UNDERSCORE_HOLD = '\u0000US\u0000';
 
 /**
