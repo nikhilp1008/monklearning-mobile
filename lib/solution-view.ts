@@ -38,6 +38,7 @@ export type SolvedSource = {
   key_idea: string | null;
   status: DoubtStatus;
   failure_reason: string | null;
+  figure_urls?: string[] | null;
   legibility_note?: string | null;
   chapter?: string | null;
   concept?: string | null;
@@ -70,6 +71,10 @@ export function solutionView(
     // Unconverted, so the screen can stack a fraction in the question the way
     // it stacks one in the working.
     textRaw: text ?? null,
+    // The figures the question was printed with. A student reading "the
+    // apparent depth of the coin is ___" is being asked about a beaker, and
+    // until now could not see it.
+    figureUrls: source.figure_urls ?? null,
     // Options go over UNCONVERTED too: `MathLine` does the conversion, and it
     // is the only thing that renders them. Converting here first would flatten
     // `\frac{16}{9}R` to `16R/9` before anything could stack it.

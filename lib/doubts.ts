@@ -73,6 +73,13 @@ export interface DoubtDetail extends Omit<DoubtSummary, 'scrap'> {
   explanation?: string | null;
   /** Short-lived presigned R2 URL, or null when one could not be produced. */
   image_url: string | null;
+  /**
+   * The figures this question was PRINTED with — the beaker, the graph, the
+   * pair of wires — in reading order. Short-lived signed URLs. Empty when the
+   * question had none, or when it had figures that became its options and are
+   * carried there instead.
+   */
+  figure_urls?: string[] | null;
   reported: boolean;
 }
 
@@ -135,6 +142,8 @@ export interface SnappedQuestion {
   key_idea: string | null;
   status: DoubtStatus;
   failure_reason: string | null;
+  /** The figures this question was printed with, as short-lived signed URLs. */
+  figure_urls?: string[] | null;
 }
 
 export interface SnapResponse {

@@ -114,6 +114,8 @@ export type SolutionQuestion = {
   options?: DoubtOption[] | null;
   /** The question before conversion, so its fractions stack like the steps'. */
   textRaw?: string | null;
+  /** The figures the question was printed with, in reading order. */
+  figureUrls?: string[] | null;
   /** The label(s) the answer landed on, so the right choice can be marked. */
   answerLabels?: string[] | null;
   /** The one-line takeaway, in the app's handwriting. */
@@ -326,6 +328,25 @@ export function SolutionScreen({
                   {expanded ? 'Show less' : 'Show full question'}
                 </Text>
               </Pressable>
+            )}
+
+            {/* The figure belongs to the question in the plainest sense: the
+                question refers to it. "As shown in the figure" is unanswerable
+                without it, and the written description the solver worked from
+                is a summary of the thing rather than the thing. */}
+            {!!question.figureUrls?.length && (
+              <View style={styles.figures}>
+                {question.figureUrls.map((url) => (
+                  <Image
+                    key={url}
+                    source={{ uri: url }}
+                    style={styles.figure}
+                    contentFit="contain"
+                    transition={120}
+                    accessibilityLabel="Figure from the question"
+                  />
+                ))}
+              </View>
             )}
 
             {/* Inside the pin, above the rule. The choices are part of what was
@@ -646,6 +667,18 @@ function createStyles() {
     optionBody: {
       flex: 1,
       gap: 8,
+    },
+    figures: {
+      marginTop: 14,
+      gap: 10,
+    },
+    figure: {
+      width: '100%',
+      // Taller than an option's thumbnail: this one IS the question, and a
+      // beaker or a circuit has to be readable rather than recognisable.
+      height: 190,
+      borderRadius: 8,
+      backgroundColor: PAPER,
     },
     optionFigure: {
       width: '100%',
