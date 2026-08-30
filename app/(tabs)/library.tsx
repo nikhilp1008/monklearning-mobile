@@ -121,7 +121,7 @@ export default function LibraryScreen() {
     | { kind: 'sample'; index: number; item: DemoNoteCard }
     | { kind: 'note'; index: number; item: NoteSummary }
     | { kind: 'doubtSample'; index: number; item: DemoDoubtCard }
-    | { kind: 'doubtGroup'; index: number; items: DoubtSummary[] }
+    | { kind: 'doubt'; index: number; item: DoubtSummary }
     | null
   >(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -315,23 +315,17 @@ export default function LibraryScreen() {
     [armUndo, sampleDoubts]
   );
 
-  /**
-   * Erasing a grouped card erases every question on that photo.
-   *
-   * The card is the photo, so a rubbed-out card cannot leave two of its three
-   * questions behind — and a student who wants one gone can switch to its
-   * subject, where the cards are questions again.
-   */
-  const removeDoubtGroup = useCallback(
-    (questions: DoubtSummary[]) => {
-      if (questions.length === 0) return;
-      const ids = new Set(questions.map((q) => q.id));
-      const index = doubts.findIndex((d) => ids.has(d.id));
+  const removeDoubt = useCallback(
+    (id: string) => {
+      const index = doubts.findIndex((d) => d.id === id);
       if (index < 0) return;
-      armUndo({ kind: 'doubtGroup', index, items: questions }, () => {
-        for (const q of questions) deleteDoubt(q.id).catch(() => {});
+      armUndo({ kind: 'doubt', index, item: doubts[index] }, () => {
+        // DELETE /doubts/{id} drops one question, and the photo only when no
+        // other question still uses it — which is why these are one card per
+        // question. Runs only once undo is no longer on offer.
+        deleteDoubt(id).catch(() => {});
       });
-      setDoubts((prev) => prev.filter((d) => !ids.has(d.id)));
+      setDoubts((prev) => prev.filter((d) => d.id !== id));
     },
     [armUndo, doubts]
   );
@@ -356,12 +350,15 @@ export default function LibraryScreen() {
           next.splice(state.index, 0, state.item);
           return next;
         });
-      } else if (state.kind === 'doubtGroup') {
+      } else if (state.kind === 'doubt') {
         setDoubts((prev) => {
           const next = prev.slice();
-          next.splice(state.index, 0, ...state.items);
+          next.splice(state.index, 0, state.item);
           return next;
         });
+        // Same gap as notes: the row is already deleted server-side and
+        // nothing re-creates it, so the next refetch drops it again. Flagged
+        // for the backend — undo needs a soft delete to be honest.
       } else {
         setNotes((prev) => {
           const next = prev.slice();
@@ -399,41 +396,6 @@ export default function LibraryScreen() {
             .some((field) => field!.toLowerCase().includes(q)))
     );
   }, [doubts, doubtsFilter, doubtsQuery]);
-
-  /**
-   * Under All, one card per PHOTO; under a subject, one per question.
-   *
-   * A photo can carry a Physics question and a Chemistry one, which is why
-   * these are stored and filtered one question at a time. But "All" is not
-   * asking a question about subject — it is the whole shelf — and there the
-   * unit the student remembers is the photo they took. Asking three questions
-   * at once and getting three separate cards back makes one act look like
-   * three. The subject chips are where the split earns its keep, and they
-   * still get it.
-   */
-  const doubtGroups = useMemo(() => {
-    if (doubtsFilter !== 'All') {
-      return visibleDoubts.map((d) => ({ key: d.id, questions: [d] }));
-    }
-    const order: string[] = [];
-    const bySubmission = new Map<string, DoubtSummary[]>();
-    for (const doubt of visibleDoubts) {
-      // A row with no submission_id stands alone rather than joining a group
-      // of everything that also lacks one.
-      const key = doubt.submission_id || doubt.id;
-      if (!bySubmission.has(key)) {
-        bySubmission.set(key, []);
-        order.push(key);
-      }
-      bySubmission.get(key)!.push(doubt);
-    }
-    return order.map((key) => ({
-      key,
-      questions: (bySubmission.get(key) ?? []).slice().sort(
-        (a, b) => a.question_index - b.question_index
-      ),
-    }));
-  }, [visibleDoubts, doubtsFilter]);
 
   /**
    * The filter row offers only subjects the student actually has content in
@@ -853,14 +815,11 @@ export default function LibraryScreen() {
                 </View>
               ) : (
                 <View style={styles.doubtsList}>
-                  {doubtGroups.map((group) => {
-                    const lead = group.questions[0];
-                    const count = group.questions.length;
-                    return (
+                  {visibleDoubts.map((doubt) => (
                     <Erasable
-                      key={group.key}
+                      key={doubt.id}
                       enabled={eraseMode}
-                      onRemove={() => removeDoubtGroup(group.questions)}>
+                      onRemove={() => removeDoubt(doubt.id)}>
                     <PressableScale
                       style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}
                       disabled={eraseMode}
@@ -868,14 +827,11 @@ export default function LibraryScreen() {
                         router.push({
                           pathname: '/doubt-detail',
                           params: {
-                            // Every question on the photo, so the detail screen
-                            // shows them as Q1/Q2/Q3 the way snap-solved did
-                            // the moment they were taken.
-                            id: group.questions.map((q) => q.id).join(','),
-                            title: lead.stem ?? lead.question_text ?? '',
-                            subject: lead.subject ?? '',
-                            chapter: lead.chapter ?? lead.concept ?? '',
-                            time: `snapped ${formatRelativeTime(lead.created_at)}`,
+                            id: doubt.id,
+                            title: doubt.stem ?? doubt.question_text ?? '',
+                            subject: doubt.subject ?? '',
+                            chapter: doubt.chapter ?? doubt.concept ?? '',
+                            time: `snapped ${formatRelativeTime(doubt.created_at)}`,
                           },
                         })
                       }>
@@ -893,18 +849,11 @@ export default function LibraryScreen() {
                           with the words the student actually wrote down. */}
                       <View style={styles.doubtRule} />
                       <Text style={styles.doubtQuestion} numberOfLines={3}>
-                        {latexToText(lead.stem ?? lead.question_text ?? '(photo doubt)')}
+                        {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
                       </Text>
-                      {/* Only when the photo held more than one. A count of
-                          "1 question" is a label for something the card is
-                          already showing. */}
-                      {count > 1 && (
-                        <Text style={styles.doubtCount}>{count} questions on this photo</Text>
-                      )}
                     </PressableScale>
                     </Erasable>
-                    );
-                  })}
+                  ))}
                 </View>
               )}
               {undoState && <UndoRow onUndo={undoRemoval} />}
@@ -1353,13 +1302,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(15),
       lineHeight: scale(22.5),
       color: colors.ink,
-    },
-    // Quiet: it is a fact about the card, not part of the question.
-    doubtCount: {
-      marginTop: verticalScale(8),
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
     },
     doubtsSampleNote: {
       fontFamily: 'AnekLatin_400Regular',
