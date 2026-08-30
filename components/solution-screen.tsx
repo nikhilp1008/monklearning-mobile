@@ -140,6 +140,19 @@ type SolutionScreenProps = {
   footerNote?: string | null;
 };
 
+/**
+ * True when an option's words are nothing but a transcribed structure.
+ *
+ * Mathpix turns a drawn molecule into SMILES, which the converter prints as
+ * "structure: C1CCNC1". Beside the actual ring that is noise; on its own it is
+ * at least a signal that something was there. So it is dropped only when the
+ * picture is showing, and only when the structure is ALL the option says — an
+ * option reading "CH₃ attached to structure: C1CC1" keeps its words.
+ */
+function isStructureOnly(text: string): boolean {
+  return /^\s*structure(:.*)?\s*$/i.test(text ?? '');
+}
+
 /** The graph paper the design lays everything on: 26px squares at 4% ink. */
 function GridPaper() {
   const { width, height } = useWindowDimensions();
@@ -353,17 +366,24 @@ export function SolutionScreen({
                             accessibilityLabel={option.text}
                           />
                         )}
-                        <MathLine
-                          text={option.text}
-                          style={[
-                            styles.optionText,
-                            chosen && styles.optionTextChosen,
-                            !!option.image_url && styles.optionCaption,
-                          ]}
-                          mathStyle={styles.inlineMath}
-                          fontSize={option.image_url ? 13 : 15}
-                          color={chosen ? GREEN_INK : INK_70}
-                        />
+                        {/* A SMILES string is a caption for nobody: "structure:
+                            C1CCNC1" tells a student less than the ring already
+                            above it does. Where the picture is showing, that
+                            text is dropped; where it is not, it is all they
+                            have and it stays. */}
+                        {!(option.image_url && isStructureOnly(option.text)) && (
+                          <MathLine
+                            text={option.text}
+                            style={[
+                              styles.optionText,
+                              chosen && styles.optionTextChosen,
+                              !!option.image_url && styles.optionCaption,
+                            ]}
+                            mathStyle={styles.inlineMath}
+                            fontSize={option.image_url ? 13 : 15}
+                            color={chosen ? GREEN_INK : INK_70}
+                          />
+                        )}
                       </View>
                     </View>
                   );
