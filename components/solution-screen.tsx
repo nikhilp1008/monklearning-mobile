@@ -152,7 +152,16 @@ type SolutionScreenProps = {
  * option reading "CH₃ attached to structure: C1CC1" keeps its words.
  */
 function isStructureOnly(text: string): boolean {
-  return /^\s*structure(:.*)?\s*$/i.test(text ?? '');
+  const value = (text ?? '').trim();
+  // Both spellings. Options now travel UNCONVERTED so MathLine can stack a
+  // fraction in them, so what arrives is the raw `<smiles>…</smiles>` — the
+  // converted "structure: C1CCNC1" only appears where something has already
+  // been through `latexToText`. Testing one and not the other is why the
+  // caption was still showing under the picture.
+  return (
+    /^(<smiles>[^<]*<\/smiles>\s*)+$/i.test(value) ||
+    /^structure(:.*)?$/i.test(value)
+  );
 }
 
 /** The graph paper the design lays everything on: 26px squares at 4% ink. */
