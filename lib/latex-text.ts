@@ -151,18 +151,29 @@ function isAtomic(text: string): boolean {
 const FRAC_OPEN = '\u0011';
 const FRAC_SEP = '\u0012';
 const FRAC_CLOSE = '\u0013';
+/**
+ * Marks a run that came from maths — `$…$`, `\(…\)`, or a bare `\command`.
+ *
+ * Once converted to Unicode, `2π n` is indistinguishable from prose, so a
+ * formula was set in the prose weight when it sat inside a sentence and in the
+ * maths weight when it happened to occupy a line of its own. Same formula, two
+ * appearances, decided by where it fell. Keeping the boundary lets one voice
+ * cover both.
+ */
+const MATH_OPEN = '\u0014';
+const MATH_CLOSE = '\u0015';
 
 /**
  * Set only for the duration of one synchronous `latexToSegments` call, which
  * is why a module-level flag is safe here: nothing awaits in between, so no
  * second conversion can observe it.
  */
-let markFractions = false;
+let markSegments = false;
 
 function renderFraction(rawNum: string, rawDen: string): string {
   const num = convertMath(rawNum);
   const den = convertMath(rawDen);
-  if (markFractions) {
+  if (markSegments) {
     // A fraction inside a fraction is left linear: stacking it would make a
     // three-deck tower out of one line of working.
     const flat = (part: string) => part.split(FRAC_OPEN).join('(').split(FRAC_SEP).join(')/(').split(FRAC_CLOSE).join(')');
@@ -179,9 +190,12 @@ function renderFraction(rawNum: string, rawDen: string): string {
   return `${left}/${right}`;
 }
 
-/** One run of a converted line: ordinary text, or a fraction to stack. */
+/** One run of a converted line. */
 export type MathSegment =
+  /** Prose. */
   | { kind: 'text'; text: string }
+  /** Came from maths — set in the maths voice wherever it appears. */
+  | { kind: 'math'; text: string }
   | { kind: 'fraction'; numerator: string; denominator: string };
 
 /**
@@ -193,32 +207,63 @@ export type MathSegment =
  * a Drona session — keeps using `latexToText`.
  */
 export function latexToSegments(raw: string): MathSegment[] {
-  markFractions = true;
+  markSegments = true;
   let marked: string;
   try {
     marked = latexToText(raw);
   } finally {
-    markFractions = false;
+    markSegments = false;
   }
 
   const segments: MathSegment[] = [];
-  let rest = marked;
-  for (;;) {
-    const open = rest.indexOf(FRAC_OPEN);
-    if (open === -1) break;
-    const sep = rest.indexOf(FRAC_SEP, open);
-    const close = rest.indexOf(FRAC_CLOSE, sep);
-    if (sep === -1 || close === -1) break;
-    if (open > 0) segments.push({ kind: 'text', text: rest.slice(0, open) });
-    segments.push({
-      kind: 'fraction',
-      numerator: rest.slice(open + 1, sep),
-      denominator: rest.slice(sep + 1, close),
-    });
-    rest = rest.slice(close + 1);
+  let buffer = '';
+  let inMath = 0;
+  const flush = () => {
+    if (!buffer) return;
+    segments.push({ kind: inMath > 0 ? 'math' : 'text', text: buffer });
+    buffer = '';
+  };
+
+  for (let i = 0; i < marked.length; i += 1) {
+    const ch = marked[i];
+    if (ch === MATH_OPEN) {
+      flush();
+      inMath += 1;
+      continue;
+    }
+    if (ch === MATH_CLOSE) {
+      flush();
+      inMath = Math.max(0, inMath - 1);
+      continue;
+    }
+    if (ch === FRAC_OPEN) {
+      const sep = marked.indexOf(FRAC_SEP, i);
+      const close = marked.indexOf(FRAC_CLOSE, sep);
+      if (sep === -1 || close === -1) {
+        buffer += ch;
+        continue;
+      }
+      flush();
+      segments.push({
+        kind: 'fraction',
+        numerator: strip(marked.slice(i + 1, sep)),
+        denominator: strip(marked.slice(sep + 1, close)),
+      });
+      i = close;
+      continue;
+    }
+    buffer += ch;
   }
-  if (rest) segments.push({ kind: 'text', text: rest });
+  flush();
   return segments;
+}
+
+/** A fraction's halves are rendered as plain text, so any marker that rode
+ *  along inside them would show up as a control character. */
+function strip(text: string): string {
+  return text
+    .split(MATH_OPEN).join('')
+    .split(MATH_CLOSE).join('');
 }
 
 /** Converts the body of one math segment (already stripped of its `$`). */
@@ -395,10 +440,14 @@ const UNDERSCORE_HOLD = '\u0000US\u0000';
  * it is. Everything else keeps the narrow old behaviour, so ordinary prose is
  * never handed to a maths parser on spec.
  */
+function wrapMath(converted: string): string {
+  return markSegments ? `${MATH_OPEN}${converted}${MATH_CLOSE}` : converted;
+}
+
 function convertBareText(text: string): string {
   if (BARE_COMMAND.test(text)) {
     const held = text.replace(PROSE_UNDERSCORE, UNDERSCORE_HOLD);
-    return convertMath(held).split(UNDERSCORE_HOLD).join('_');
+    return wrapMath(convertMath(held).split(UNDERSCORE_HOLD).join('_'));
   }
   return text.replace(BARE_SCRIPT, (token) => convertMath(token));
 }
@@ -463,7 +512,7 @@ export function latexToText(raw: string): string {
         break;
       }
       flush();
-      out += convertMath(normalized.slice(i + 2, end));
+      out += wrapMath(convertMath(normalized.slice(i + 2, end)));
       i = end + 2;
       continue;
     }
@@ -479,7 +528,7 @@ export function latexToText(raw: string): string {
         continue;
       }
       flush();
-      out += convertMath(normalized.slice(start, end));
+      out += wrapMath(convertMath(normalized.slice(start, end)));
       i = end + delim.length;
       continue;
     }

@@ -15,6 +15,13 @@ import { MathSegment, latexToSegments } from '@/lib/latex-text';
  * The row wraps by word rather than by segment: a flex row breaks between its
  * children, so prose handed over whole would wrap only where a fraction
  * happened to sit. Each word is therefore its own child.
+ *
+ * Maths is set in one voice wherever it falls. Converted to Unicode, `2π n` is
+ * indistinguishable from prose, so a formula used to take the prose weight
+ * inside a sentence and the maths weight on a line of its own — the same
+ * formula looking like two different things depending on where it landed. A
+ * number, a unit and a formula are the parts of a step a student scans for, so
+ * they are the parts that get the weight.
  */
 
 type MathLineProps = {
@@ -23,30 +30,43 @@ type MathLineProps = {
   /** Needed to size the stacked halves and their rule against the type. */
   fontSize: number;
   color: string;
+  /** Applied to every maths run — inline or on its own line. */
+  mathStyle?: StyleProp<TextStyle>;
 };
 
-export function MathLine({ text, style, fontSize, color }: MathLineProps) {
+export function MathLine({ text, style, fontSize, color, mathStyle }: MathLineProps) {
   const segments = useMemo(() => latexToSegments(text), [text]);
   const hasFraction = segments.some((s) => s.kind === 'fraction');
+  const hasMath = !!mathStyle && segments.some((s) => s.kind === 'math');
   const styles = useMemo(() => createStyles(fontSize, color), [fontSize, color]);
 
-  // Nothing to stack: one Text, so line-height, wrapping and selection behave
-  // exactly as they did before this component existed.
-  if (!hasFraction) {
+  // Nothing to stack and nothing to set apart: one Text, so line-height,
+  // wrapping and selection behave exactly as they did before this component
+  // existed.
+  if (!hasFraction && !hasMath) {
     return <Text style={style}>{segments.map((s) => (s as { text: string }).text).join('')}</Text>;
   }
 
   return (
     <View style={styles.row}>
-      {segments.flatMap((segment, i) =>
-        segment.kind === 'fraction'
-          ? [<Fraction key={`f${i}`} segment={segment} styles={styles} style={style} />]
-          : words(segment.text).map((word, j) => (
-              <Text key={`t${i}-${j}`} style={[style, styles.word]}>
-                {word}
-              </Text>
-            ))
-      )}
+      {segments.flatMap((segment, i) => {
+        if (segment.kind === 'fraction') {
+          return [
+            <Fraction
+              key={`f${i}`}
+              segment={segment}
+              styles={styles}
+              style={[style, mathStyle]}
+            />,
+          ];
+        }
+        const voice = segment.kind === 'math' ? [style, mathStyle] : [style];
+        return words(segment.text).map((word, j) => (
+          <Text key={`t${i}-${j}`} style={[voice, styles.word]}>
+            {word}
+          </Text>
+        ));
+      })}
     </View>
   );
 }

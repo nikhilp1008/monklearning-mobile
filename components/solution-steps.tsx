@@ -101,6 +101,7 @@ export function SolutionSteps({
                 <MathLine
                   text={line.raw ?? line.text}
                   style={styles.mathText}
+                  mathStyle={styles.mathText}
                   fontSize={m.math}
                   color={INK}
                 />
@@ -110,6 +111,7 @@ export function SolutionSteps({
                 key={j}
                 text={line.raw ?? line.text}
                 style={styles.proseText}
+                mathStyle={styles.inlineMath}
                 fontSize={m.prose}
                 color={INK_70}
               />
@@ -203,6 +205,18 @@ function createStyles(size: SolutionStepsSize) {
       fontSize: m.prose,
       lineHeight: m.prose * 1.6,
       color: INK_70,
+    },
+    /**
+     * A formula, a quantity or a unit sitting inside a sentence.
+     *
+     * The same weight the whole-line maths uses, and darker than the prose
+     * around it — these are what a student scans a step for, and until now
+     * they took the prose weight inline and the maths weight on their own
+     * line, which made one formula look like two different things.
+     */
+    inlineMath: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      color: INK,
     },
     mathWrap: {
       alignSelf: 'flex-start',

@@ -236,6 +236,7 @@ export function SolutionScreen({
               <MathLine
                 text={question.textRaw ?? question.text}
                 style={styles.questionText}
+                mathStyle={styles.inlineMath}
                 fontSize={QUESTION_SIZE}
                 color={INK}
               />
@@ -291,6 +292,7 @@ export function SolutionScreen({
                       <MathLine
                         text={option.text}
                         style={[styles.optionText, chosen && styles.optionTextChosen]}
+                        mathStyle={styles.inlineMath}
                         fontSize={15}
                         color={chosen ? GREEN_INK : INK_70}
                       />
@@ -483,6 +485,12 @@ function createStyles() {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: QUESTION_SIZE,
       lineHeight: QUESTION_LINE,
+      color: INK,
+    },
+    // The same maths voice the rail uses, so a formula reads the same whether
+    // it is in the question, an option, or the working.
+    inlineMath: {
+      fontFamily: 'AnekLatin_600SemiBold',
       color: INK,
     },
     questionProbe: {
