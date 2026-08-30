@@ -204,7 +204,13 @@ export function SolutionScreen({
           ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
-          stickyHeaderIndices={[0]}
+          // Pinned only while it is small enough to be worth pinning. The
+          // question holds its place so you can read step five and still see
+          // what was asked — but with four options above the rule the block
+          // runs to about a third of the screen, and holding that over the
+          // working costs more than it gives. An MCQ's answer is stored as the
+          // option's own text, so the final line still reads on its own.
+          stickyHeaderIndices={question.options?.length ? undefined : [0]}
           showsVerticalScrollIndicator={false}>
           {/* Pinned and opaque, so the grid never runs under it and the
               question stays readable while the working scrolls beneath. */}
@@ -243,6 +249,30 @@ export function SolutionScreen({
                 </Text>
               </Pressable>
             )}
+
+            {/* Inside the pin, above the rule. The choices are part of what was
+                asked, not part of the answer — the rule is what separates the
+                question from the working, so options sit on the question's
+                side of it. An MCQ's answer is stored as the option's own text,
+                so without them printed here "(C)" and the answer line are two
+                halves of a sentence the student can only read one of. */}
+            {!!question.options?.length && (
+              <View style={styles.options}>
+                {question.options.map((option) => {
+                  const chosen = !!question.answerLabels?.includes(option.label);
+                  return (
+                    <View key={option.label} style={[styles.option, chosen && styles.optionChosen]}>
+                      <Text style={[styles.optionLabel, chosen && styles.optionLabelChosen]}>
+                        {option.label}
+                      </Text>
+                      <Text style={[styles.optionText, chosen && styles.optionTextChosen]}>
+                        {option.text}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
 
           {/* Not inside the pin: it must not be sticky, and it is about the
@@ -253,26 +283,6 @@ export function SolutionScreen({
             </View>
           )}
 
-          {/* An MCQ's answer is stored as the option's own text, so without the
-              choices printed here "(C)" and the answer line are two halves of a
-              sentence the student can only read one of. */}
-          {!!question.options?.length && (
-            <View style={styles.options}>
-              {question.options.map((option) => {
-                const chosen = !!question.answerLabels?.includes(option.label);
-                return (
-                  <View key={option.label} style={[styles.option, chosen && styles.optionChosen]}>
-                    <Text style={[styles.optionLabel, chosen && styles.optionLabelChosen]}>
-                      {option.label}
-                    </Text>
-                    <Text style={[styles.optionText, chosen && styles.optionTextChosen]}>
-                      {option.text}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
 
           {!!question.caution && (
             <View style={styles.caution}>
