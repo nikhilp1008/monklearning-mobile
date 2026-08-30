@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } fr
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { MathLine } from '@/components/math-line';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
 import { DoubtOption } from '@/lib/doubts';
@@ -40,9 +41,13 @@ const GREEN_INK = '#14663A';
 const GREEN_WASH = 'rgba(28,155,87,0.11)';
 const AMBER_WASH = 'rgba(238,163,31,0.11)';
 const AMBER_INK = '#7A5310';
-// constants/brand.js's `red` — the app's handwritten red-pen accent, which is
-// what a key idea has been written in since solution-explain.tsx.
-const RED_PEN = '#DD4433';
+// The key idea used to be written in the app's red pen (constants/brand.js's
+// `red`). On a page that already carries a green answer and an amber maths
+// wash, a third accent colour at the foot of it was one voice too many — and
+// red reads as a correction, which is the opposite of what a takeaway is. It
+// keeps the handwriting, which is what marks it as an aside, and drops the
+// colour.
+const KEY_IDEA_INK = INK_70;
 const QUESTION_SIZE = 16;
 const QUESTION_LINE = QUESTION_SIZE * 1.6;
 /**
@@ -76,6 +81,8 @@ export type SolutionQuestion = {
   failureNote?: string | null;
   /** Every printed choice, for an MCQ. Shown under the question. */
   options?: DoubtOption[] | null;
+  /** The question before conversion, so its fractions stack like the steps'. */
+  textRaw?: string | null;
   /** The label(s) the answer landed on, so the right choice can be marked. */
   answerLabels?: string[] | null;
   /** The one-line takeaway, in the app's handwriting. */
@@ -158,6 +165,7 @@ export function SolutionScreen({
    *  more of it to ask for. */
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
+  const hasStackableFraction = !!question.textRaw && /\\[dt]?frac/.test(question.textRaw);
   // A different question is a different length: never carry one's answer over.
   useEffect(() => {
     setExpanded(false);
@@ -218,11 +226,26 @@ export function SolutionScreen({
             {/* React Native's own truncation rather than a clipping wrapper: a
                 `maxHeight` + `overflow: hidden` View around this text stops it
                 wrapping at all, and `numberOfLines` gives the ellipsis free. */}
-            <Text
-              style={styles.questionText}
-              numberOfLines={expanded ? undefined : QUESTION_MAX_LINES}>
-              {question.text}
-            </Text>
+            {/* MathLine, like the steps and the answer. A fraction in the
+                QUESTION was the last one still coming out as `a/b` while the
+                working below it stacked, so one page disagreed with itself.
+                `numberOfLines` only applies on the plain path — a stacked
+                fraction is a view and cannot be line-clamped — so a question
+                carrying one shows in full. */}
+            {hasStackableFraction ? (
+              <MathLine
+                text={question.textRaw ?? question.text}
+                style={styles.questionText}
+                fontSize={QUESTION_SIZE}
+                color={INK}
+              />
+            ) : (
+              <Text
+                style={styles.questionText}
+                numberOfLines={expanded ? undefined : QUESTION_MAX_LINES}>
+                {question.text}
+              </Text>
+            )}
             {/* Knowing whether anything was cut takes a second copy:
                 `onTextLayout` reports the text's full layout rather than the
                 lines it drew. This one is laid out untruncated and off the
@@ -265,9 +288,12 @@ export function SolutionScreen({
                       <Text style={[styles.optionLabel, chosen && styles.optionLabelChosen]}>
                         {option.label}
                       </Text>
-                      <Text style={[styles.optionText, chosen && styles.optionTextChosen]}>
-                        {option.text}
-                      </Text>
+                      <MathLine
+                        text={option.text}
+                        style={[styles.optionText, chosen && styles.optionTextChosen]}
+                        fontSize={15}
+                        color={chosen ? GREEN_INK : INK_70}
+                      />
                     </View>
                   );
                 })}
@@ -544,7 +570,7 @@ function createStyles() {
       fontFamily: 'Kalam_700Bold',
       fontSize: 15,
       lineHeight: 15 * 1.5,
-      color: RED_PEN,
+      color: KEY_IDEA_INK,
     },
     stepsBlock: {
       marginTop: 24,

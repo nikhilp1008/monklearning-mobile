@@ -62,8 +62,13 @@ export function solutionView(
     // Everything the student reads goes through latexToText, so no screen ever
     // prints `$(\mathrm{P} \cup \mathrm{Q})$` at them.
     text: latexToText(text ?? 'Could not read this question.'),
-    options:
-      source.options?.map((o) => ({ label: o.label, text: latexToText(o.text) })) ?? null,
+    // Unconverted, so the screen can stack a fraction in the question the way
+    // it stacks one in the working.
+    textRaw: text ?? null,
+    // Options go over UNCONVERTED too: `MathLine` does the conversion, and it
+    // is the only thing that renders them. Converting here first would flatten
+    // `\frac{16}{9}R` to `16R/9` before anything could stack it.
+    options: source.options?.map((o) => ({ label: o.label, text: o.text })) ?? null,
     // The label the answer landed on, so the right choice can be marked. Never
     // set on an `unsure` question — that is the whole point of it.
     answerLabels: unsure ? null : (source.option_labels ?? null),

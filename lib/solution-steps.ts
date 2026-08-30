@@ -84,9 +84,14 @@ export function parseSolutionStep(raw: string): ParsedStep {
   if (lines[0]?.kind === 'text') {
     const sentences = splitSentences(lines[0].text);
     const first = sentences[0]?.replace(/[.:]$/, '') ?? '';
-    if (first && first.length <= MAX_TITLE_CHARS) {
+    const remainder = sentences.slice(1).join(' ');
+    // A title needs something to be the title OF. The solver often writes a
+    // step as one short sentence, and promoting that left the step as nothing
+    // but a heading — so a page of short steps came out as a wall of bold with
+    // no body anywhere, which reads as shouting rather than as structure.
+    const hasBodyBelow = !!remainder || lines.length > 1;
+    if (first && first.length <= MAX_TITLE_CHARS && hasBodyBelow) {
       title = first;
-      const remainder = sentences.slice(1).join(' ');
       // The remainder is already converted, so it is its own raw.
       if (remainder) lines[0] = { kind: 'text', text: remainder, raw: remainder };
       else lines.shift();
