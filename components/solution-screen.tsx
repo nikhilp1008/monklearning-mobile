@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -298,11 +299,29 @@ export function SolutionScreen({
                           only because a stacked fraction is a View with a real
                           intrinsic width. */}
                       <View style={styles.optionBody}>
+                        {/* When the choice IS a picture — four circuits, four
+                            graphs — the picture is the option. The written
+                            description stays underneath: it is what the solver
+                            reasoned from and what a screen reader reads, and
+                            it is the only thing left if the URL has expired. */}
+                        {!!option.image_url && (
+                          <Image
+                            source={{ uri: option.image_url }}
+                            style={styles.optionFigure}
+                            contentFit="contain"
+                            transition={120}
+                            accessibilityLabel={option.text}
+                          />
+                        )}
                         <MathLine
                           text={option.text}
-                          style={[styles.optionText, chosen && styles.optionTextChosen]}
+                          style={[
+                            styles.optionText,
+                            chosen && styles.optionTextChosen,
+                            !!option.image_url && styles.optionCaption,
+                          ]}
                           mathStyle={styles.inlineMath}
-                          fontSize={15}
+                          fontSize={option.image_url ? 13 : 15}
                           color={chosen ? GREEN_INK : INK_70}
                         />
                       </View>
@@ -562,6 +581,21 @@ function createStyles() {
     },
     optionBody: {
       flex: 1,
+      gap: 8,
+    },
+    optionFigure: {
+      width: '100%',
+      // Tall enough to read a circuit, short enough that four of them still
+      // fit on one screen with the question above.
+      height: 132,
+      borderRadius: 6,
+      backgroundColor: PAPER,
+    },
+    // Under a picture the words are a caption, not the choice itself.
+    optionCaption: {
+      fontSize: 13,
+      lineHeight: 13 * 1.5,
+      color: INK_50,
     },
     optionText: {
       fontFamily: 'AnekLatin_400Regular',

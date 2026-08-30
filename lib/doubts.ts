@@ -21,6 +21,13 @@ export interface DoubtOption {
   /** "A", "B", … */
   label: string;
   text: string;
+  /**
+   * Set when the choice was a PICTURE rather than words — four circuits, four
+   * graphs. The API crops it off the page and hands back a short-lived URL;
+   * `text` is still the written description of it, and is what a screen reader
+   * and the solver both work from.
+   */
+  image_url?: string | null;
 }
 
 /** What the student can actually DO about a refusal. */
