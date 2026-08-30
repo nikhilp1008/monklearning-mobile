@@ -10,7 +10,8 @@ import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
 import { latexToText } from '@/lib/latex-text';
-import { REMEDY_COPY, SolutionView, solutionView } from '@/lib/solution-view';
+import { withTeacherName } from '@/lib/preferences';
+import { SolutionView, remedyCopy, solutionView } from '@/lib/solution-view';
 
 /**
  * The day's count, shown only once the whole page has come back solved.
@@ -123,9 +124,9 @@ export default function SnapSolvedScreen() {
               {/* Quota is not a remedy — nothing about the photo or a retry
                   changes it, and the server's message carries the count. */}
               {job.failure.stage === 'quota'
-                ? job.failure.message
-                : ((job.failure.remedy ? REMEDY_COPY[job.failure.remedy] : null) ??
-                  job.failure.message)}
+                ? withTeacherName(job.failure.message)
+                : ((job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
+                  withTeacherName(job.failure.message))}
             </Text>
             <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
               <Text style={styles.ctaButtonText}>Try another photo</Text>

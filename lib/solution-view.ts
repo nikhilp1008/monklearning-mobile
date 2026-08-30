@@ -1,6 +1,7 @@
 import type { SolutionQuestion } from '@/components/solution-screen';
 import { DoubtOption, DoubtStatus, Remedy, SolutionStep } from '@/lib/doubts';
 import { latexToText } from '@/lib/latex-text';
+import { teacherNameNow, withTeacherName } from '@/lib/preferences';
 import { parseSolutionSteps } from '@/lib/solution-steps';
 
 /**
@@ -14,11 +15,15 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
  * `SolutionSteps` is one place for drawing one.
  */
 
-export const REMEDY_COPY: Record<Remedy, string> = {
-  retake: 'Try snapping it again — steadier light or a closer frame usually fixes this.',
-  not_photo: 'This looks like it needs a figure or diagram Drona can’t read from text alone.',
-  our_side: 'This one was on our end, not your photo. Give it another try in a moment.',
-};
+/** Written fresh each time so it follows the student's teacher. */
+export function remedyCopy(): Record<Remedy, string> {
+  const teacher = teacherNameNow();
+  return {
+    retake: 'Try snapping it again — steadier light or a closer frame usually fixes this.',
+    not_photo: `This looks like it needs a figure or diagram ${teacher} can’t read from text alone.`,
+    our_side: 'This one was on our end, not your photo. Give it another try in a moment.',
+  };
+}
 
 /** The fields a freshly snapped question and a saved doubt have in common. */
 export type SolvedSource = {
@@ -78,16 +83,20 @@ export function solutionView(
     // converted `answer` above is what plain-text callers still use.
     answerRaw: source.answer ?? null,
     keyIdea: source.key_idea ? latexToText(source.key_idea) : null,
+    // The server writes "Monk" into these because it does not know which
+    // teacher this student picked. They picked one.
     caution: unsure
       ? (source.failure_reason
-          ? latexToText(source.failure_reason)
-          : 'Drona could not stand behind an answer here — read the working and check it yourself.')
+          ? withTeacherName(latexToText(source.failure_reason))
+          : `${teacherNameNow()} could not stand behind an answer here — read the working and check it yourself.`)
       : null,
     failureNote: refused
-      ? latexToText(
-          (source.failure_reason ?? source.legibility_note ?? null) ||
-            REMEDY_COPY[source.remedy ?? 'our_side'] ||
-            ''
+      ? withTeacherName(
+          latexToText(
+            (source.failure_reason ?? source.legibility_note ?? null) ||
+              remedyCopy()[source.remedy ?? 'our_side'] ||
+              ''
+          )
         ) || null
       : null,
   };
