@@ -289,13 +289,23 @@ export function SolutionScreen({
                       <Text style={[styles.optionLabel, chosen && styles.optionLabelChosen]}>
                         {option.label}
                       </Text>
-                      <MathLine
-                        text={option.text}
-                        style={[styles.optionText, chosen && styles.optionTextChosen]}
-                        mathStyle={styles.inlineMath}
-                        fontSize={15}
-                        color={chosen ? GREEN_INK : INK_70}
-                      />
+                      {/* The `flex: 1` that makes an option fill the row goes
+                          on this wrapper, never on the text itself. MathLine
+                          lays a line out as a row of words, and a word given
+                          `flex: 1` has a flex-basis of zero — so the row
+                          measured zero wide and options 2, 3 and 4 rendered as
+                          empty boxes with only their labels. Option 1 survived
+                          only because a stacked fraction is a View with a real
+                          intrinsic width. */}
+                      <View style={styles.optionBody}>
+                        <MathLine
+                          text={option.text}
+                          style={[styles.optionText, chosen && styles.optionTextChosen]}
+                          mathStyle={styles.inlineMath}
+                          fontSize={15}
+                          color={chosen ? GREEN_INK : INK_70}
+                        />
+                      </View>
                     </View>
                   );
                 })}
@@ -550,8 +560,10 @@ function createStyles() {
     optionLabelChosen: {
       color: GREEN_INK,
     },
-    optionText: {
+    optionBody: {
       flex: 1,
+    },
+    optionText: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.6,
