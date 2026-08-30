@@ -63,6 +63,36 @@ const QUESTION_LINE = QUESTION_SIZE * 1.6;
  * two or three — while a passage is clipped to a readable opening.
  */
 const QUESTION_MAX_LINES = 5;
+
+/**
+ * What the line under a working question says while its answer is coming.
+ *
+ * One line held for the whole solve reads as a stalled screen, so it moves.
+ * Every one of these is true of the only thing we actually know here — that
+ * this question is being solved and its answer has not arrived — which is why
+ * there is nothing about reading the photo or checking an answer among them.
+ * The stream does send `thinking` and `step` events, and with those the copy
+ * could name the real phase; this client does not consume them yet, so the
+ * copy stays honest about the one state it can see.
+ *
+ * Rotation is positional rather than random: random repeats, and the same
+ * phrase twice in a row is exactly what makes a screen look stuck.
+ */
+const PENDING_COPY = [
+  'working it out…',
+  'thinking it through…',
+  'finding the method…',
+  'setting it up…',
+  'working through it…',
+  'choosing an approach…',
+  'putting it in order…',
+  'getting it down…',
+  'still going…',
+  'nearly there…',
+] as const;
+
+/** How long each line holds before the next. */
+const PENDING_ROTATE_MS = 2500;
 const QUESTION_MAX_HEIGHT = Math.round(QUESTION_LINE * QUESTION_MAX_LINES);
 
 export type SolutionQuestion = {
@@ -166,6 +196,16 @@ export function SolutionScreen({
    *  more of it to ask for. */
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
+
+  // Advances only while something is actually pending, so a finished page is
+  // not re-rendering on a timer it has no use for.
+  const anyPending = questions.some((q) => q.pending);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!anyPending) return;
+    const id = setInterval(() => setTick((n) => n + 1), PENDING_ROTATE_MS);
+    return () => clearInterval(id);
+  }, [anyPending]);
   const hasStackableFraction = !!question.textRaw && /\\[dt]?frac/.test(question.textRaw);
   // A different question is a different length: never carry one's answer over.
   useEffect(() => {
@@ -353,7 +393,11 @@ export function SolutionScreen({
             // used to show, now scoped to the half that is genuinely unknown.
             <View style={styles.stepsBlock}>
               <StepsPlaceholder />
-              <Text style={styles.meta}>working it out…</Text>
+              {/* Offset by the question so two pending panels never say the
+                  same thing at the same moment. */}
+              <Text style={styles.meta}>
+                {PENDING_COPY[(tick + index) % PENDING_COPY.length]}
+              </Text>
             </View>
           ) : question.failureNote ? (
             <View style={styles.failureBlock}>
