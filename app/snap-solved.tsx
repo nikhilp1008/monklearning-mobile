@@ -78,7 +78,7 @@ export default function SnapSolvedScreen() {
         chapter: r.chapter ?? null,
         text: latexToText(r.stem ?? r.question_text ?? 'Could not read this question.'),
         textRaw: r.stem ?? r.question_text ?? null,
-        options: r.options?.map((o) => ({ label: o.label, text: o.text })) ?? null,
+        options: r.options?.map((o) => ({ ...o, label: o.label, text: o.text })) ?? null,
         steps: [],
         answer: null,
         pending: true,

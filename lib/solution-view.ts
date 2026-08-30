@@ -78,7 +78,12 @@ export function solutionView(
     // Options go over UNCONVERTED too: `MathLine` does the conversion, and it
     // is the only thing that renders them. Converting here first would flatten
     // `\frac{16}{9}R` to `16R/9` before anything could stack it.
-    options: source.options?.map((o) => ({ label: o.label, text: o.text })) ?? null,
+    //
+    // Spread rather than rebuilt from two fields. Rebuilding dropped
+    // `image_url`, so an option whose choice is a drawn molecule arrived with
+    // its picture and rendered "structure: C1CCNC1" anyway — the server had
+    // done its half and the mapper threw it away.
+    options: source.options?.map((o) => ({ ...o, label: o.label, text: o.text })) ?? null,
     // The label the answer landed on, so the right choice can be marked. Never
     // set on an `unsure` question — that is the whole point of it.
     answerLabels: unsure ? null : (source.option_labels ?? null),
