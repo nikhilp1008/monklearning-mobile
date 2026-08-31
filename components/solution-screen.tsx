@@ -442,12 +442,16 @@ export function SolutionScreen({
             // is the only part still waiting. Same placeholder the whole screen
             // used to show, now scoped to the half that is genuinely unknown.
             <View style={styles.stepsBlock}>
-              <StepsPlaceholder />
-              {/* Offset by the question so two pending panels never say the
+              {/* Above the placeholder, not below it. This line is the only
+                  thing on the page that CHANGES while a solve runs, and under
+                  four rows of placeholder it sat below the fold — the one part
+                  worth watching was the one part you had to scroll for.
+                  Offset by the question so two pending panels never say the
                   same thing at the same moment. */}
-              <Text style={styles.meta}>
+              <Text style={[styles.meta, styles.pendingNow]}>
                 {PENDING_COPY[(tick + index) % PENDING_COPY.length]}
               </Text>
+              <StepsPlaceholder />
             </View>
           ) : question.failureNote ? (
             <View style={styles.failureBlock}>
@@ -734,6 +738,12 @@ function createStyles() {
     },
     stepsBlock: {
       marginTop: 24,
+    },
+    // Sits where the first step's text will, so the placeholder underneath is
+    // not pushed off its own rail.
+    pendingNow: {
+      marginBottom: 18,
+      paddingLeft: 44,
     },
     meta: {
       fontFamily: 'AnekLatin_600SemiBold',
