@@ -45,6 +45,14 @@ export interface DronaVoiceHandlers {
   onTranscriptPartial?: (text: string) => void;
   onTranscriptFinal?: (text: string, confidence?: number) => void;
   onMeta?: (meta: DronaMeta) => void;
+  /**
+   * The first frame of a turn has landed — board events or audio, whichever
+   * came first. Real content now exists on the client, seconds before it is
+   * spoken: `board_events` arrives ahead of its audio and is buffered until
+   * each line's clip plays. The loading card uses this to stop guessing and
+   * say the lesson is being written.
+   */
+  onTurnStarted?: () => void;
   onTurnComplete?: () => void;
   onTurnError?: (message: string) => void;
   onSttTooShort?: (message: string) => void;
@@ -55,6 +63,15 @@ export interface DronaVoiceHandlers {
 }
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 8000, 8000];
+/** Backstop for a turn whose audio never drains — a clip that fails to load,
+ *  or a TTS gap that leaves the queue stalled. Without it, gating the flush on
+ *  drain would trade "the checkpoint mounts too early" for the much worse "the
+ *  checkpoint never mounts at all". Generous: it is a safety net, not a pace. */
+const DRAIN_WATCHDOG_MS = 20000;
+/** Matches web's TURN_ERROR_RECOVERY_MS. A `turn_error` with no recovery means
+ *  `turn_complete` is never coming, so whatever the turn was holding has to be
+ *  released or the student sits on a dead board. */
+const TURN_ERROR_RECOVERY_MS = 15000;
 /** TTS sample rate — live-verified server-side (filler-cache fallback byte
  *  math). Bit depth/channels are the standard inference (16-bit mono), not
  *  independently confirmed. */
@@ -132,6 +149,11 @@ export class DronaVoiceClient {
       if (meta?.boardEvent) this.handlers.onBoardReveal?.(meta.boardEvent);
       this.chunkMeta.delete(id);
     };
+
+    // The turn's audio has actually finished playing — see `flushHeldTurn`.
+    this.playback.onQueueDrained = () => {
+      if (this.awaitingDrain) this.flushHeldTurn();
+    };
   }
 
   connect() {
@@ -165,6 +187,9 @@ export class DronaVoiceClient {
   disconnect() {
     this.manualDisconnect = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
+    this.drainWatchdog = null;
+    this.clearTurnErrorRecovery();
     this.playback.destroy();
     this.ws?.close();
     this.ws = null;
@@ -298,14 +323,18 @@ export class DronaVoiceClient {
         break;
       }
       case 'board_events':
+        if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
+        this.clearTurnErrorRecovery();
         this.bufferBoardEvents((msg.events as BoardEvent[]) ?? []);
         break;
       case 'board_replay':
         this.handlers.onBoardReplay?.((msg.events as BoardEvent[]) ?? []);
         break;
       case 'audio_chunk':
+        if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
+        this.clearTurnErrorRecovery();
         this.handleAudioChunk(msg);
         break;
       case 'transcript_partial':
@@ -324,16 +353,43 @@ export class DronaVoiceClient {
         this.handlers.onAnswerResult?.(msg as unknown as DronaAnswerResult);
         break;
       case 'turn_complete':
-        this.turnInFlight = false;
-        this.flushPendingBoardEvents();
-        if (this.pendingState) {
-          this.handlers.onState?.(this.pendingState);
-          this.pendingState = null;
+        /**
+         * ARRIVED is not HEARD. This frame means the server finished *sending*
+         * the turn; on a queue buffered several sentences ahead the student is
+         * still listening to the middle of it. Flushing here put the answer
+         * chips up while Drona was mid-explanation — and worse, wrote the
+         * question into the caption strip only for the sentences still queued
+         * behind it to overwrite it a moment later, leaving chips on screen
+         * with no question above them.
+         *
+         * So wait for the audio itself. Web solves the same problem by
+         * computing the remaining playback time (`armTurnCompleteWait`); the
+         * queue here already knows when it runs dry, which is the same answer
+         * without the arithmetic.
+         */
+        if (this.playback.idle) {
+          // Nothing to wait for: a checkpoint delivered as a silent chunk, or
+          // a turn whose audio already finished playing.
+          this.flushHeldTurn();
+        } else {
+          this.awaitingDrain = true;
+          if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
+          this.drainWatchdog = setTimeout(() => {
+            this.drainWatchdog = null;
+            if (this.awaitingDrain) this.flushHeldTurn();
+          }, DRAIN_WATCHDOG_MS);
         }
-        this.handlers.onTurnComplete?.();
         break;
       case 'turn_error':
         this.handlers.onTurnError?.(String(msg.message ?? 'Something went wrong.'));
+        // A turn that errors and never recovers never sends `turn_complete`
+        // either, so anything held for it would be held forever. Give the
+        // retry a window, then release regardless.
+        if (this.turnErrorRecoveryTimer) clearTimeout(this.turnErrorRecoveryTimer);
+        this.turnErrorRecoveryTimer = setTimeout(() => {
+          this.turnErrorRecoveryTimer = null;
+          if (this.turnInFlight || this.pendingState) this.flushHeldTurn();
+        }, TURN_ERROR_RECOVERY_MS);
         break;
       case 'stt_too_short':
         this.handlers.onSttTooShort?.(String(msg.message ?? 'That was too short to hear.'));
@@ -360,6 +416,42 @@ export class DronaVoiceClient {
    * `bargeIn`, which is the case `turn_complete` never covers.
    */
   private turnInFlight = false;
+
+  /** A `turn_complete` has arrived but its audio is still playing; the held
+   *  question mounts when the playback queue runs dry. */
+  private awaitingDrain = false;
+  private drainWatchdog: ReturnType<typeof setTimeout> | null = null;
+  private turnErrorRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private clearTurnErrorRecovery() {
+    if (!this.turnErrorRecoveryTimer) return;
+    clearTimeout(this.turnErrorRecoveryTimer);
+    this.turnErrorRecoveryTimer = null;
+  }
+
+  /**
+   * Ends a turn: reveals anything its audio never reached, mounts the question
+   * it was holding, and tells the screen the turn is over.
+   *
+   * Order matters. `onState` carries the question text and its chips, and the
+   * screen writes that text to the caption strip — so it has to be the LAST
+   * caption written for the turn, which is exactly what gating on drain buys.
+   */
+  private flushHeldTurn() {
+    this.awaitingDrain = false;
+    if (this.drainWatchdog) {
+      clearTimeout(this.drainWatchdog);
+      this.drainWatchdog = null;
+    }
+    this.clearTurnErrorRecovery();
+    this.turnInFlight = false;
+    this.flushPendingBoardEvents();
+    if (this.pendingState) {
+      this.handlers.onState?.(this.pendingState);
+      this.pendingState = null;
+    }
+    this.handlers.onTurnComplete?.();
+  }
 
   /** Board items for the whole turn arrive ahead of their audio — held here,
    *  not shown yet, until each item's paired audio_chunk starts playing. */
@@ -463,6 +555,15 @@ export class DronaVoiceClient {
     this.turnInFlight = false;
     this.pendingState = null;
     this.pendingBoardEvents = [];
+    // The abandoned turn's drain is no longer a signal to mount anything —
+    // `playback.clear()` does not fire onQueueDrained, but the watchdog would
+    // still be armed and would flush an empty turn on top of the next one.
+    this.awaitingDrain = false;
+    if (this.drainWatchdog) {
+      clearTimeout(this.drainWatchdog);
+      this.drainWatchdog = null;
+    }
+    this.clearTurnErrorRecovery();
   }
 
   /** Raw 16kHz/16-bit/mono PCM, headerless — matches the format
