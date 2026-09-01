@@ -64,6 +64,8 @@ type SolutionStepsProps = {
   answer?: string | null;
   /** The answer before conversion, so its fraction can be stacked. */
   answerRaw?: string | null;
+  /** For a choice question, the label(s) the answer landed on — ["C"]. */
+  answerLabels?: string[] | null;
   answerLabel?: string;
   size?: SolutionStepsSize;
   /** Trailing line under the final answer, e.g. a step count. */
@@ -74,6 +76,7 @@ export function SolutionSteps({
   steps,
   answer,
   answerRaw,
+  answerLabels,
   answerLabel = 'Final answer',
   size = 'full',
   footer,
@@ -127,6 +130,14 @@ export function SolutionSteps({
           </View>
           <Text style={styles.finalLabel}>{answerLabel}</Text>
           <View style={styles.answerWrap}>
+            {/* The option it landed on, beside the answer itself. The API
+                stores a choice question's answer as the option's TEXT, which
+                reads well on its own but leaves the student matching it back
+                to the paper by eye — the letter is what they actually check
+                against. */}
+            {!!answerLabels?.length && (
+              <Text style={styles.answerPick}>({answerLabels.join(', ')})</Text>
+            )}
             <MathLine
               text={answerRaw ?? answer}
               style={styles.answerText}
@@ -240,7 +251,15 @@ function createStyles(size: SolutionStepsSize) {
       letterSpacing: -0.02 * m.title,
       color: GREEN,
     },
+    answerPick: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: m.answer,
+      color: GREEN_INK,
+    },
     answerWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
       alignSelf: 'flex-start',
       maxWidth: '100%',
       paddingVertical: size === 'full' ? 8 : 6,
