@@ -203,6 +203,30 @@ function renderFraction(rawNum: string, rawDen: string): string {
   return `${left}/${right}`;
 }
 
+/**
+ * Whether a linear fraction needs wrapping because another factor follows it.
+ *
+ * `renderFraction` decides its own parentheses from `isAtomic`, which can only
+ * see the fraction's two halves. It cannot see what comes after — so
+ * `-\dfrac{e\vec{E}}{m}\tau` rendered as `-eE/mτ`, which reads as eE over mτ
+ * and means (eE/m)·τ. Live on a drift-velocity board, so not hypothetical.
+ *
+ * Only the linear form needs this. Under `markSegments` the fraction is drawn
+ * as a fraction, where a following factor cannot be misread into the
+ * denominator, so that path is left exactly as it is.
+ *
+ * Guarded narrowly otherwise: to a factor sitting directly against the closing
+ * brace with no space between. `a/b + c` and `a/b = c` are unambiguous and stay
+ * bare, and so does anything separated by a space, where the spacing already
+ * does the reading. The numeric ¹⁄₂ form is a single glyph and cannot be
+ * re-parsed, so it is left alone too.
+ */
+function fractionNeedsGuard(rendered: string, src: string, next: number): boolean {
+  if (markSegments) return false;
+  if (!rendered.includes('/')) return false;
+  return /[A-Za-z0-9\\(]/.test(src[next] ?? '');
+}
+
 /** One run of a converted line. */
 export type MathSegment =
   /** Prose. */
@@ -334,7 +358,8 @@ export function convertMath(src: string): string {
         while (src[i] === ' ') i++;
         const denGroup = readGroup(src, i);
         i = denGroup.next;
-        out += renderFraction(numGroup.body, denGroup.body);
+        const fraction = renderFraction(numGroup.body, denGroup.body);
+        out += fractionNeedsGuard(fraction, src, i) ? `(${fraction})` : fraction;
         continue;
       }
 
