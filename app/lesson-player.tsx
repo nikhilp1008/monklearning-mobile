@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   Easing,
@@ -21,6 +22,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Line, Path, Rect, SvgXml, Text as SvgText } from 'react-native-svg';
 
+import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import type {
+  ResolutionTier,
+  WidgetPayload,
+  WidgetServices,
+  WidgetTheme,
+} from '@/lib/widgets/types';
 import {
   AMBER,
   AMBER_WASH,
@@ -55,6 +63,10 @@ import {
   groupBySubtopic,
 } from '@/lib/lessons';
 
+/** Clearance to the right of every board line, shared by `boardContent`'s
+ *  padding and the box a widget is allowed to draw into. */
+const BOARD_RIGHT_PAD = 40;
+
 type Segment = { text: string; bold?: boolean };
 type BoardBlock =
   | { kind: 'kalamHeading'; text: string }
@@ -64,6 +76,9 @@ type BoardBlock =
   /** A real authored figure from `lesson_sections.board_content` — the same
    *  SVG markup the webpage draws, rendered by react-native-svg. */
   | { kind: 'svg'; svg: string; caption?: string }
+  /** A registry widget: the model chose it and filled its params, and
+   *  `BoardWidget` draws it deterministically. See lib/widgets/. */
+  | { kind: 'widget'; payload: WidgetPayload; tier: ResolutionTier; caption?: string }
   | {
       kind: 'kalamNote';
       text: string;
@@ -104,7 +119,18 @@ function toBoardBlock(event: BoardEvent): BoardBlock | null {
             maxWidth: 560,
           }
         : null;
+    case 'widget':
     case 'diagram':
+      // A payload beats markup wherever both exist: the registry draws the
+      // real curve, an SVG string draws an approximation of it.
+      if (event.payload) {
+        return {
+          kind: 'widget',
+          payload: event.payload,
+          tier: event.tier ?? 'precomputed',
+          caption: event.caption,
+        };
+      }
       return event.svg
         ? { kind: 'svg', svg: event.svg, caption: event.caption }
         : event.caption
@@ -125,6 +151,9 @@ function blockLength(block: BoardBlock): number {
   if (block.kind === 'body') return block.segments.reduce((n, s) => n + s.text.length, 0);
   if (block.kind === 'svg') return 0;
   if (block.kind === 'diagram') return 0;
+  // A widget is drawn, not written — it has no characters to type out, and it
+  // animates on its own cue track rather than on the reveal clock.
+  if (block.kind === 'widget') return 0;
   return block.text.length;
 }
 
@@ -214,6 +243,28 @@ export default function LessonPlayerScreen() {
    * and into `blocks` are not the same list once anything is dropped.
    */
   const blocks = useMemo(() => {
+    // TEMP FIXTURE — M1 gate only. Remove before merge.
+    const FIXTURE: { at: number; block: BoardBlock }[] = [
+      {
+        at: 0,
+        block: {
+          kind: 'widget',
+          tier: 'precomputed',
+          caption: 'Projectile at 45 degrees, 22 m/s',
+          payload: {
+            widget: 'projectile_motion',
+            version: 1,
+            params: { launch_angle_deg: 45, initial_speed_ms: 22, gravity_ms2: 9.81, body: 'earth' },
+            annotate: ['range', 'apex'],
+            cues: [
+              { at: 2, patch: { launch_angle_deg: 20 }, tween: 900, caption: 'Shallower' },
+              { at: 6, patch: { launch_angle_deg: 70 }, tween: 900, caption: 'Steeper' },
+            ],
+          },
+        },
+      },
+    ];
+    if (process.env.EXPO_PUBLIC_WIDGET_FIXTURE === '1') return FIXTURE;
     if (!section) return [] as { block: BoardBlock; at: number }[];
     const out: { block: BoardBlock; at: number }[] = [];
     section.events.forEach((event, i) => {
@@ -288,6 +339,77 @@ export default function LessonPlayerScreen() {
   // Chrome auto-hide / follow-scroll (adapted from live-classroom.tsx)
   const [chromeVisible, setChromeVisible] = useState(true);
   const [boardHeight, setBoardHeight] = useState(390);
+  const { width: windowWidth } = useWindowDimensions();
+
+  /**
+   * The board box a widget draws into, mirroring `boardContent`'s own padding.
+   * Widgets are given an explicit box and must lay out for landscape — they
+   * never pick their own viewBox.
+   */
+  const widgetBox = useMemo(
+    () => ({
+      width: Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_PAD),
+      height: Math.max(0, boardHeight * 0.72),
+    }),
+    [windowWidth, boardHeight]
+  );
+
+  /**
+   * The board's own ink, so a diagram is not in a different hand than the
+   * writing around it. `fontFamily` must be one of the app's loaded families.
+   */
+  const widgetTheme = useMemo<WidgetTheme>(
+    () => ({
+      ink: INK,
+      inkMuted: INK_MUTED,
+      rule: HAIRLINE,
+      accent: DEEP_AMBER,
+      surface: colors.paper,
+      fontFamily: 'AnekLatin_400Regular',
+      // iOS system mono, the same choice the mock-test timers make rather than
+      // shipping another family for digits.
+      monoFontFamily: 'Menlo',
+    }),
+    []
+  );
+
+  /**
+   * Injected capabilities. Only `molecule_3d` needs `resolveStructure`, and it
+   * is not in the registry yet, so this rejects rather than pretending. It must
+   * never reach the network when it is implemented: cache-first and offline by
+   * contract, because a live lesson has to render with the radio off.
+   */
+  const widgetServices = useMemo<WidgetServices>(
+    () => ({
+      resolveStructure: async (ref: string) => {
+        throw new Error(`No structure cache yet for ${ref}`);
+      },
+    }),
+    []
+  );
+
+  /**
+   * A tier-3 render is a measurement, not a failure — it is the queue that
+   * decides which widget gets built next. Logged locally until `board_gaps`
+   * exists (migration 0021 is not run yet); this is where that POST goes.
+   */
+  const onWidgetGap = useCallback((reason: string, detail: unknown) => {
+    console.warn('[board-gap]', reason, detail);
+  }, []);
+
+  /** One memoised bundle: a new object each render would remount every widget
+   *  on the board and restart its cue track. */
+  const widgetHost = useMemo<WidgetHost>(
+    () => ({
+      player,
+      width: widgetBox.width,
+      height: widgetBox.height,
+      theme: widgetTheme,
+      services: widgetServices,
+      onGap: onWidgetGap,
+    }),
+    [player, widgetBox.width, widgetBox.height, widgetTheme, widgetServices, onWidgetGap]
+  );
   const [following, setFollowing] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerScrollRef = useRef<ScrollView>(null);
@@ -490,6 +612,7 @@ export default function LessonPlayerScreen() {
                 styles={styles}
                 scale={scale}
                 verticalScale={verticalScale}
+                widgetHost={widgetHost}
               />
             ))}
             {!SceneForSection && revealedBlockCount < blocks.length && (
@@ -500,6 +623,7 @@ export default function LessonPlayerScreen() {
                 styles={styles}
                 scale={scale}
                 verticalScale={verticalScale}
+                widgetHost={widgetHost}
               />
             )}
             {state.kind === 'loading' && (
@@ -772,19 +896,48 @@ function TopicRow({
   );
 }
 
+/** Everything `BoardWidget` needs, bundled so the block renderer takes one
+ *  prop rather than six. */
+export type WidgetHost = {
+  player: import('expo-audio').AudioPlayer | null;
+  width: number;
+  height: number;
+  theme: WidgetTheme;
+  services: WidgetServices;
+  onGap: (reason: string, detail: unknown) => void;
+};
+
 function BoardBlockView({
   block,
   chars,
   styles,
   scale,
   verticalScale,
+  widgetHost,
 }: {
   block: BoardBlock;
   chars: number;
   styles: Styles;
   scale: (n: number) => number;
   verticalScale: (n: number) => number;
+  widgetHost: WidgetHost;
 }) {
+  if (block.kind === 'widget') {
+    return (
+      <View style={styles.widgetWrap}>
+        <BoardWidget
+          event={{ seq: 0, payload: block.payload, tier: block.tier }}
+          player={widgetHost.player}
+          width={widgetHost.width}
+          height={widgetHost.height}
+          theme={widgetHost.theme}
+          services={widgetHost.services}
+          onGap={widgetHost.onGap}
+        />
+        {block.caption ? <Text style={styles.boardCaption}>{block.caption}</Text> : null}
+      </View>
+    );
+  }
   if (block.kind === 'kalamHeading') {
     return <Text style={styles.boardHeading}>{block.text.slice(0, chars)}</Text>;
   }
@@ -1056,12 +1209,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // so tapping empty paper tucks the chrome just like tapping a line.
       flexGrow: 1,
       paddingTop: BOARD_TOP,
-      paddingRight: 40,
+      paddingRight: BOARD_RIGHT_PAD,
       paddingBottom: 104,
       paddingLeft: BOARD_LEFT,
     },
     boardTapTarget: {
       flex: 1,
+    },
+    widgetWrap: {
+      paddingVertical: verticalScale(8),
+      alignItems: 'flex-start',
+    },
+    boardCaption: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: INK_MUTED,
+      marginTop: verticalScale(4),
     },
     boardHeading: {
       fontFamily: 'Kalam_700Bold',

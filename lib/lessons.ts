@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import type { ResolutionTier, WidgetPayload } from '@/lib/widgets/types';
 
 /**
  * Recorded lessons, read straight from Supabase the way the webpage's
@@ -28,13 +29,24 @@ export type Language = 'english' | 'hinglish';
 export type BoardEvent = {
   seq?: number;
   /** Open on purpose: unknown kinds degrade to their text rather than vanish. */
-  type: 'heading' | 'text' | 'formula' | 'note' | 'diagram' | (string & {});
+  type: 'heading' | 'text' | 'formula' | 'note' | 'diagram' | 'widget' | (string & {});
   text?: string;
   latex?: string;
   /** Raw SVG markup, rendered by react-native-svg's SvgXml. */
   svg?: string;
   caption?: string;
   emphasis?: 'high' | 'key' | 'normal' | (string & {});
+  /**
+   * A registry widget and its parameters, baked in at content-build time.
+   *
+   * The board's preferred form for anything the registry can draw: the model
+   * selects a widget and fills its params, and never emits geometry. `svg`
+   * remains the fallback for figures no renderer covers — see
+   * `lib/widgets/BoardWidget.tsx` for the tier split.
+   */
+  payload?: WidgetPayload;
+  /** Which tier produced this event. Absent means precomputed. */
+  tier?: ResolutionTier;
 };
 
 export type Caption = { seq?: number; text: string };
