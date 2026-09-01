@@ -65,6 +65,7 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
+import { latexToText } from '@/lib/latex-text';
 import { supabase } from '@/lib/supabase';
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
@@ -137,6 +138,16 @@ export default function LiveClassroomScreen() {
 
   const [micDenied, setMicDenied] = useState(false);
   const [checkOptions, setCheckOptions] = useState<string[]>([]);
+  /**
+   * The question the chips answer, held separately from `caption`.
+   *
+   * Chips without it are answers to a question nobody asked: only the
+   * fallback UNDERSTANDING_CHIPS read on their own, while a real quiz turn
+   * sends bare content ("5 N·m" / "10 N·m" / "Zero"). The server enforces the
+   * same rule from its side, retrying any turn that offers options without
+   * voicing a question.
+   */
+  const [questionText, setQuestionText] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
@@ -207,16 +218,32 @@ export default function LiveClassroomScreen() {
         // state frame does not, and assigning `[]` there wiped the chips the
         // student was meant to answer.
         if (state.check_options) setCheckOptions(state.check_options);
-        if (state.question_text) setCaption(state.question_text);
+        if (state.question_text) {
+          setQuestionText(state.question_text);
+          // Safe to be the last caption of the turn now: the client holds this
+          // frame until the turn's audio has drained, so no queued sentence is
+          // left to overwrite it.
+          setCaption(state.question_text);
+        }
       },
       onBoardReveal: (event) => setBoard((prev) => [...prev, event]),
       onBoardReplay: (events) => setBoard(events),
-      onCaptionReveal: setCaption,
+      // Drona is no longer thinking once she is visibly talking. This used to
+      // hang on `onTurnComplete`, which is now deliberately deferred until the
+      // turn's audio has drained — leaving it there would have pinned "Drona is
+      // thinking" across her entire spoken reply.
+      onCaptionReveal: (text: string) => {
+        setIsThinking(false);
+        setCaption(text);
+      },
       onTranscriptPartial: (text) => setLiveTranscript(text),
       onTranscriptFinal: (text) => {
         setLiveTranscript('');
         // Speaking an answer counts the same as tapping a chip.
-        if (text.trim()) setCheckOptions([]);
+        if (text.trim()) {
+          setCheckOptions([]);
+          setQuestionText(null);
+        }
       },
       onSttTooShort: () => setCaption("Didn't catch that — hold the button a little longer."),
       onAnswerResult: (result) => {
@@ -224,6 +251,8 @@ export default function LiveClassroomScreen() {
         if (answerVerdictTimerRef.current) clearTimeout(answerVerdictTimerRef.current);
         answerVerdictTimerRef.current = setTimeout(() => setAnswerVerdict(null), 5000);
       },
+      // Backstop only — a turn that produced neither a caption nor a board line
+      // still has to release the status row.
       onTurnComplete: () => setIsThinking(false),
       onTurnError: () => setCaption('Drona hit a snag — one moment…'),
       // The lesson itself finished — go to the summary rather than leaving the
@@ -705,7 +734,7 @@ export default function LiveClassroomScreen() {
             frame's check_options were parsed and then discarded, so a student
             was told "Your turn" with nothing on screen to answer with — the
             class simply stalled. Mirrors web's AskSheet. */}
-        {checkOptions.length > 0 && !handRaised && (
+        {checkOptions.length > 0 && questionText && !handRaised && (
           <Animated.View entering={FadeIn.duration(200)} style={styles.askSheet}>
             {checkOptions.map((option) => (
               <Pressable
@@ -714,6 +743,7 @@ export default function LiveClassroomScreen() {
                 onPress={() => {
                   clientRef.current?.sendAnswer(option);
                   setCheckOptions([]);
+                  setQuestionText(null);
                   setIsThinking(true);
                 }}>
                 <Text style={styles.askChipText}>{option}</Text>
@@ -725,7 +755,15 @@ export default function LiveClassroomScreen() {
 
       {/* One strip, two states — the caption line and Listening are mutually
           exclusive, so the bottom edge always has exactly one owner. */}
-      <CaptionStrip open={captions || handRaised} listening={handRaised} text={caption} />
+      {/* The strip also opens for a checkpoint regardless of the CC toggle:
+          chips are answers, and answers with the question hidden are the exact
+          thing this screen is not allowed to show. It closes again on its own
+          the moment the question is answered. */}
+      <CaptionStrip
+        open={captions || handRaised || checkOptions.length > 0}
+        listening={handRaised}
+        text={caption}
+      />
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
           under the thumb wherever the caption strip happens to be. */}
@@ -864,7 +902,23 @@ export default function LiveClassroomScreen() {
 }
 
 function BoardBlockView({ event, styles }: { event: BoardEvent; styles: Styles }) {
-  const text = event.type === 'formula' ? event.latex ?? '' : event.text ?? '';
+  const raw = event.type === 'formula' ? event.latex ?? '' : event.text ?? '';
+  /**
+   * The board was the one surface in the app painting its source.
+   *
+   * `formula` events carry bare LaTeX with no `$…$` around it, and this
+   * component rendered that string straight into a <Text> — so a class on
+   * drift velocity wrote `\vec{v}_d = \vec{a}\tau = -\dfrac{e\vec{E}}{m}\tau`
+   * on the whiteboard, markup and all. Exactly the undelimited-field case
+   * `convertBareText` was written for when the solver's Final answer box had
+   * the same bug. Every other call site — practice, library, solutions,
+   * textbooks — already goes through this converter.
+   *
+   * Applied to prose lines too, not only formulas: `latexToText` leaves text
+   * carrying no commands alone, and it picks up bare scripts the board was
+   * also missing (`10^5 m/s` reads as 10⁵ m/s now).
+   */
+  const text = useMemo(() => latexToText(raw), [raw]);
   if (event.type === 'heading') {
     return <Text style={styles.boardHeading}>{text}</Text>;
   }
