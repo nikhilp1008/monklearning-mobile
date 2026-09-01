@@ -401,16 +401,29 @@ export function SolutionScreen({
                             above it does. Where the picture is showing, that
                             text is dropped; where it is not, it is all they
                             have and it stays. */}
-                        {!(option.image_url && isStructureOnly(option.text)) && (
+                        {option.image_url ? (
+                          // Capped rather than laid out in full: with four
+                          // pictures and four paragraphs the options ran to
+                          // roughly four screens, and a single swipe skipped
+                          // from the first option to the final answer. The
+                          // picture is the option; the words are a gloss on it.
+                          !isStructureOnly(option.text) && (
+                            <Text
+                              style={[
+                                styles.optionText,
+                                styles.optionCaption,
+                                chosen && styles.optionTextChosen,
+                              ]}
+                              numberOfLines={2}>
+                              {option.text}
+                            </Text>
+                          )
+                        ) : (
                           <MathLine
                             text={option.text}
-                            style={[
-                              styles.optionText,
-                              chosen && styles.optionTextChosen,
-                              !!option.image_url && styles.optionCaption,
-                            ]}
+                            style={[styles.optionText, chosen && styles.optionTextChosen]}
                             mathStyle={styles.inlineMath}
-                            fontSize={option.image_url ? 13 : 15}
+                            fontSize={15}
                             color={chosen ? GREEN_INK : INK_70}
                           />
                         )}
@@ -463,6 +476,7 @@ export function SolutionScreen({
                 steps={question.steps}
                 answer={question.answer}
                 answerRaw={question.answerRaw}
+                answerLabels={question.answerLabels}
                 footer={
                   <Text style={styles.meta}>
                     {question.steps.length} step{question.steps.length === 1 ? '' : 's'}
@@ -695,9 +709,10 @@ function createStyles() {
     },
     optionFigure: {
       width: '100%',
-      // Tall enough to read a circuit, short enough that four of them still
-      // fit on one screen with the question above.
-      height: 132,
+      // Tall enough to read a circuit, short enough that four of them and the
+      // question fit about one screen — the whole point being that you can
+      // step through the options rather than overshoot them.
+      height: 104,
       borderRadius: 6,
       backgroundColor: PAPER,
     },
