@@ -1,12 +1,6 @@
 import type { WidgetId, WidgetModule } from './types';
 import { projectileMotion } from './projectile-motion';
-// molecule-3d is deliberately NOT imported yet. Its module does
-// `require('../../../assets/molecule-host.html')`, which Metro resolves
-// statically — so importing it before `scripts/build-molecule-host.mjs` has
-// generated that asset fails the whole app bundle, not just the widget. The
-// file is in the tree and unreferenced, which costs nothing; re-enable it here
-// once the asset exists (needs `3dmol@2.5.5`, which is not installed).
-// import { molecule3d } from './molecule-3d';
+import { molecule3d } from './molecule-3d';
 
 /**
  * The registry is the closed set of things Drona can draw.
@@ -16,9 +10,14 @@ import { projectileMotion } from './projectile-motion';
  * the model can never name a widget the client cannot render.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const REGISTRY: Readonly<Partial<Record<WidgetId, WidgetModule<any>>>> = {
+export const REGISTRY = {
   projectile_motion: projectileMotion,
-};
+  molecule_3d: molecule3d,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} satisfies Record<string, WidgetModule<any>>;
+
+/** The closed set, derived — never hand-maintained. */
+export type RegisteredWidgetId = keyof typeof REGISTRY;
 
 export function lookup(id: string, version: number): WidgetModule<object> | null {
   const mod = (REGISTRY as Record<string, WidgetModule<object> | undefined>)[id];
@@ -28,10 +27,8 @@ export function lookup(id: string, version: number): WidgetModule<object> | null
   return mod;
 }
 
-export const REGISTRY_MANIFEST = Object.values(REGISTRY)
-  .filter((m): m is WidgetModule<any> => Boolean(m))
-  .map((m) => ({
-    id: m.id,
-    version: m.version,
-    animatable: m.animatable,
-  }));
+export const REGISTRY_MANIFEST = Object.values(REGISTRY).map((m) => ({
+  id: m.id,
+  version: m.version,
+  animatable: m.animatable,
+}));

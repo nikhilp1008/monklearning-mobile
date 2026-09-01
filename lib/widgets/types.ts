@@ -15,7 +15,12 @@
 import type { SharedValue } from 'react-native-reanimated';
 import type { ComponentType } from 'react';
 
-export type WidgetId = 'projectile_motion' | 'molecule_3d';
+/**
+ * The module contract is open; the REGISTRY is what closes the set.
+ * `RegisteredWidgetId` in registry.ts is derived from the registry object, so
+ * adding an entry there widens the type automatically — no hand-edit here.
+ */
+export type WidgetId = string;
 
 /** Emitted by the model, or baked into a lesson at content-build time. */
 export interface WidgetPayload<P extends object = Record<string, unknown>> {
