@@ -1014,7 +1014,11 @@ export default function LiveClassroomScreen() {
           of a route change. */}
       {cardVisible && (
         <Animated.View
-          style={StyleSheet.absoluteFill}
+          // Last in the tree is not enough on its own: `EdgeTab` sets
+          // zIndex 5, which floated it over the card at the right edge.
+          // Nothing else on this screen sets one, so this only has to clear
+          // that.
+          style={[StyleSheet.absoluteFill, styles.enteringCardOverlay]}
           exiting={FadeOut.duration(320)}
           pointerEvents="auto">
           <EnteringCardScreen
@@ -1269,6 +1273,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // keeps the writing sitting ON the rules instead of drifting between them.
     boardTapTarget: {
       flex: 1,
+    },
+    enteringCardOverlay: {
+      zIndex: 20,
     },
     boardHeading: {
       fontFamily: 'Kalam_700Bold',
