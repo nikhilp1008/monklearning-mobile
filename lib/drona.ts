@@ -101,3 +101,27 @@ export async function getCatalogue(): Promise<CatalogueSubject[]> {
   // Dropping it here keeps that from becoming a tab with nothing behind it.
   return subjects.filter((s) => s.chapters.length > 0);
 }
+
+/**
+ * Which subject a chapter belongs to, or null if it cannot be told.
+ *
+ * Reads the catalogue that is already cached for this session rather than
+ * asking for anything: every caller reaches this well after a picker has
+ * loaded the same tree. Used only to choose which set of loading copy a class
+ * gets (`constants/classroom-status.ts`), so null is an ordinary answer, not a
+ * failure — a class opened from a snapped doubt or the doubt of the day has no
+ * `chapterId` to look up at all, and falls back to generic copy.
+ *
+ * Never throws for the same reason: a subject label is not worth failing a
+ * class start over.
+ */
+export async function subjectForChapter(chapterId: string): Promise<string | null> {
+  if (!chapterId) return null;
+  try {
+    const catalogue = await getCatalogue();
+    const group = catalogue.find((s) => s.chapters.some((c) => c.id === chapterId));
+    return group?.subject ?? null;
+  } catch {
+    return null;
+  }
+}

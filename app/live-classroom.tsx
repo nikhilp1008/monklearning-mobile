@@ -16,6 +16,7 @@ import {
 import Animated, {
   Easing,
   FadeIn,
+  FadeOut,
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
@@ -67,6 +68,13 @@ import {
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
+import { EnteringCardScreen } from '@/components/entering-card';
+import {
+  LONG_WAIT_TEXT,
+  statusLinesFor,
+  toStatusSubject,
+} from '@/constants/classroom-status';
+import { useStagedStatus } from '@/hooks/use-staged-status';
 import { latexToText } from '@/lib/latex-text';
 import { supabase } from '@/lib/supabase';
 
@@ -75,6 +83,16 @@ import { supabase } from '@/lib/supabase';
  *  sits on top of the writing. Shared by `boardContent`'s padding and the
  *  width a diagram is allowed to draw into. */
 const BOARD_RIGHT_GUTTER = 116;
+
+/**
+ * How long the loading card may cover the board before giving up.
+ *
+ * A first turn is plausibly 5-20s, so this sits past the honest cases and
+ * catches only the ones where nothing is coming. Deliberately not tied to the
+ * socket state: the failure this exists for is a socket that opened and then
+ * produced nothing.
+ */
+const CARD_CEILING_MS = 30000;
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 /** Half the rail's own height, so it can be centred with a transform. */
@@ -129,7 +147,12 @@ try {
 
 export default function LiveClassroomScreen() {
   const isLandscape = useLandscapeLock();
-  const params = useLocalSearchParams<{ sessionId?: string; chapterTitle?: string; subtopic?: string }>();
+  const params = useLocalSearchParams<{
+    sessionId?: string;
+    chapterTitle?: string;
+    subtopic?: string;
+    subject?: string;
+  }>();
   const sessionId = params.sessionId ?? '';
   const chapterTitle = params.chapterTitle || 'this chapter';
   const { scale, verticalScale } = useLandscapeScale();
@@ -143,6 +166,27 @@ export default function LiveClassroomScreen() {
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+
+  /**
+   * The loading card, carried over from `entering-classroom`.
+   *
+   * The board used to mount blank behind `Writing…` for the whole LLM + TTS
+   * latency of turn one — 5-20s of ruled paper with nothing on it, longer on a
+   * cold socket. The card stays up over it instead, and only leaves when Drona
+   * genuinely starts: the first revealed board line or caption, which fires
+   * when the first clip actually begins playing.
+   */
+  const [cardVisible, setCardVisible] = useState(true);
+  /** `joining` until the turn's first frame lands, then `writing`. */
+  const [cardPhase, setCardPhase] = useState<'joining' | 'writing'>('joining');
+  const dismissCard = useCallback(() => setCardVisible(false), []);
+  const cardSubject = useMemo(() => toStatusSubject(params.subject), [params.subject]);
+  const { text: cardLine, longWait } = useStagedStatus({
+    lines: statusLinesFor(cardPhase, cardSubject),
+    longWaitMs: 20000,
+    active: cardVisible,
+    resetKey: cardPhase,
+  });
 
   const [micDenied, setMicDenied] = useState(false);
   const [checkOptions, setCheckOptions] = useState<string[]>([]);
@@ -234,13 +278,24 @@ export default function LiveClassroomScreen() {
           setCaption(state.question_text);
         }
       },
-      onBoardReveal: (event) => setBoard((prev) => [...prev, event]),
+      // The turn's first frame — board events or audio, whichever landed
+      // first. Real content exists on the client now, seconds before it is
+      // spoken, so the card can stop guessing and say so.
+      onTurnStarted: () => setCardPhase('writing'),
+      onBoardReveal: (event) => {
+        // Drona is actually speaking: this fires when the first clip starts
+        // playing. That is the handoff — the card goes, the board takes over.
+        dismissCard();
+        setIsThinking(false);
+        setBoard((prev) => [...prev, event]);
+      },
       onBoardReplay: (events) => setBoard(events),
       // Drona is no longer thinking once she is visibly talking. This used to
       // hang on `onTurnComplete`, which is now deliberately deferred until the
       // turn's audio has drained — leaving it there would have pinned "Drona is
       // thinking" across her entire spoken reply.
       onCaptionReveal: (text: string) => {
+        dismissCard();
         setIsThinking(false);
         setCaption(text);
       },
@@ -262,13 +317,21 @@ export default function LiveClassroomScreen() {
       // Backstop only — a turn that produced neither a caption nor a board line
       // still has to release the status row.
       onTurnComplete: () => setIsThinking(false),
-      onTurnError: () => setCaption('Drona hit a snag — one moment…'),
+      // A card over a board that is never going to fill is worse than the
+      // board's own error affordances, so every failure drops it.
+      onTurnError: () => {
+        dismissCard();
+        setCaption('Drona hit a snag — one moment…');
+      },
       // The lesson itself finished — go to the summary rather than leaving the
       // student on a silent board wondering whether it broke.
       onSessionEnded: () => {
         if (!cancelled) void endClassRef.current?.();
       },
-      onError: (message) => setCaption(message),
+      onError: (message) => {
+        dismissCard();
+        setCaption(message);
+      },
     };
 
     let client: DronaVoiceClient;
@@ -322,6 +385,26 @@ export default function LiveClassroomScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
+
+  /**
+   * The card must never outlive the truth.
+   *
+   * `whenReady` rejects into an empty catch if the socket never opens, so the
+   * kickoff utterance is never sent and the board can sit at `board.length ===
+   * 0` indefinitely. Uncovered that is a blinking cursor; under a card it would
+   * be an animation claiming a lesson is coming that is not. Give the first
+   * turn a generous ceiling and then get out of the way — the board's own
+   * `Writing…` and error states are honest about knowing nothing.
+   */
+  useEffect(() => {
+    if (!cardVisible) return;
+    const id = setTimeout(dismissCard, CARD_CEILING_MS);
+    return () => clearTimeout(id);
+  }, [cardVisible, dismissCard]);
+
+  useEffect(() => {
+    if (connectError) dismissCard();
+  }, [connectError, dismissCard]);
 
   // --- Board follow-scroll / chrome auto-hide (unchanged from the original UI) ---
   const [chromeVisible, setChromeVisible] = useState(true);
@@ -922,6 +1005,23 @@ export default function LiveClassroomScreen() {
             </View>
           </Animated.View>
         </>
+      )}
+
+      {/* Last child, so it covers everything: the board, the chrome, the rail.
+          Same card `entering-classroom` was showing a moment ago, over the same
+          dark ground — with `animation: 'fade'` on this route the student sees
+          one surface that never went away, rather than two loaders either side
+          of a route change. */}
+      {cardVisible && (
+        <Animated.View
+          style={StyleSheet.absoluteFill}
+          exiting={FadeOut.duration(320)}
+          pointerEvents="auto">
+          <EnteringCardScreen
+            chapterTitle={params.subtopic || chapterTitle}
+            statusText={longWait ? LONG_WAIT_TEXT : cardLine}
+          />
+        </Animated.View>
       )}
     </View>
   );

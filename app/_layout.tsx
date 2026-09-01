@@ -176,7 +176,14 @@ export default function RootLayout() {
             name="entering-classroom"
             options={{ headerShown: false, animation: 'fade' }}
           />
-          <Stack.Screen name="live-classroom" options={{ headerShown: false }} />
+          {/* Fades, not slides. The loading card is rendered by both
+              `entering-classroom` and this screen so the student sees one
+              continuous surface across the route change; the default push
+              animation would slide the second copy in over the first. */}
+          <Stack.Screen
+            name="live-classroom"
+            options={{ headerShown: false, animation: 'fade' }}
+          />
           <Stack.Screen name="session-summary" options={{ headerShown: false }} />
           <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
