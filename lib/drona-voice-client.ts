@@ -3,10 +3,15 @@ import { base64ToBytes } from '@/lib/audio-pcm';
 
 export interface BoardEvent {
   seq: number;
-  type: 'text' | 'heading' | 'note' | 'formula' | string;
+  type: 'text' | 'heading' | 'note' | 'formula' | 'diagram' | string;
   text?: string;
   latex?: string;
   emphasis?: boolean;
+  /** `diagram` events only: complete, self-contained, server-validated SVG.
+   *  See `components/board-diagram.tsx` for what the host owes it. */
+  svg?: string;
+  /** `diagram` events only: an optional one-line gloss under the figure. */
+  caption?: string;
 }
 
 export interface DronaState {

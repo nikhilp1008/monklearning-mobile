@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   Easing,
@@ -65,8 +66,15 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
+import { BoardDiagram } from '@/components/board-diagram';
 import { latexToText } from '@/lib/latex-text';
 import { supabase } from '@/lib/supabase';
+
+
+/** Clearance kept to the right of every board line so the thumb rail never
+ *  sits on top of the writing. Shared by `boardContent`'s padding and the
+ *  width a diagram is allowed to draw into. */
+const BOARD_RIGHT_GUTTER = 116;
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 /** Half the rail's own height, so it can be centred with a transform. */
@@ -320,6 +328,24 @@ export default function LiveClassroomScreen() {
   // The caption strip is a real toggle now (CC on the rail), per the handoff.
   const [captions, setCaptions] = useState(true);
   const [boardHeight, setBoardHeight] = useState(390);
+  const { width: windowWidth } = useWindowDimensions();
+  /**
+   * How much of the visible board one figure may occupy.
+   *
+   * Not a style choice so much as a reading one: a diagram is an aside to the
+   * line of argument on the board, so the lines above and below it have to stay
+   * on screen with it. Height is what binds on a landscape board — see the
+   * sizing note in `board-diagram.tsx`.
+   */
+  const diagramBox = useMemo(
+    () => ({
+      // Mirrors `boardContent`'s own padding: the notch gutter on the left, the
+      // thumb-rail clearance on the right.
+      availableWidth: Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER),
+      maxHeight: boardHeight * 0.72,
+    }),
+    [windowWidth, boardHeight]
+  );
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   /**
@@ -661,7 +687,7 @@ export default function LiveClassroomScreen() {
             ) : (
               board.map((event, i) => (
                 <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
-                  <BoardBlockView event={event} styles={styles} />
+                  <BoardBlockView event={event} styles={styles} diagramBox={diagramBox} />
                 </Animated.View>
               ))
             )}
@@ -901,8 +927,17 @@ export default function LiveClassroomScreen() {
   );
 }
 
-function BoardBlockView({ event, styles }: { event: BoardEvent; styles: Styles }) {
-  const raw = event.type === 'formula' ? event.latex ?? '' : event.text ?? '';
+function BoardBlockView({
+  event,
+  styles,
+  diagramBox,
+}: {
+  event: BoardEvent;
+  styles: Styles;
+  diagramBox: { availableWidth: number; maxHeight: number };
+}) {
+  const raw =
+    event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
   /**
    * The board was the one surface in the app painting its source.
    *
@@ -919,6 +954,19 @@ function BoardBlockView({ event, styles }: { event: BoardEvent; styles: Styles }
    * also missing (`10^5 m/s` reads as 10⁵ m/s now).
    */
   const text = useMemo(() => latexToText(raw), [raw]);
+  // A figure, not a line of writing — it owns its own sizing and never goes
+  // near the LaTeX converter.
+  if (event.type === 'diagram') {
+    if (!event.svg) return null;
+    return (
+      <BoardDiagram
+        svg={event.svg}
+        caption={event.caption}
+        availableWidth={diagramBox.availableWidth}
+        maxHeight={diagramBox.maxHeight}
+      />
+    );
+  }
   if (event.type === 'heading') {
     return <Text style={styles.boardHeading}>{text}</Text>;
   }
@@ -1113,7 +1161,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // so tapping empty paper tucks the chrome just like tapping a line.
       flexGrow: 1,
       paddingTop: BOARD_TOP,
-      paddingRight: 116,
+      paddingRight: BOARD_RIGHT_GUTTER,
       paddingBottom: BOARD_TOP,
       paddingLeft: BOARD_LEFT,
     },
