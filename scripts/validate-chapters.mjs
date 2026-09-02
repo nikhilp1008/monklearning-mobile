@@ -8,15 +8,27 @@
 // have drifted out of alignment, a `kind` the reader does not implement (which
 // renders as nothing, silently).
 //
-// ALLOWED_KINDS must mirror DIAGRAM_KINDS in components/textbook/diagrams.tsx.
-// It has already fallen behind once, when three kinds were added to the reader
-// and not here, and it then reported every new figure as rendering nothing.
+// The kind list is READ from the reader rather than copied. It fell behind
+// once, when three kinds were added to components/textbook/diagrams.tsx and
+// not here, and this file then reported every new figure as rendering nothing.
+// A duplicated list drifts; a derived one cannot.
 import { readFileSync, readdirSync } from 'node:fs';
 
 const ALLOWED_BLOCKS = new Set(['hook','p','think','def','defgrid','formula','proc','deriv','diagram','ex','mcq','practice','mistakes','protip','snapshot']);
-// Mirrors DIAGRAM_KINDS in components/textbook/diagrams.tsx. `tree`, `pascal`
-// and `axes3d` were added to the reader after this file was first written.
-const ALLOWED_KINDS = new Set(['numsys','lattice','venn2','venn3','family','grid','plot','numberline','unitcircle','tree','pascal','axes3d']);
+const ALLOWED_KINDS = (() => {
+  const src = readFileSync('components/textbook/diagrams.tsx', 'utf8');
+  const block = src.match(/export const DIAGRAM_KINDS[^=]*=\s*\[([\s\S]*?)\]/);
+  if (!block) {
+    console.error('validate-chapters: could not read DIAGRAM_KINDS from the reader.');
+    process.exit(2);
+  }
+  const kinds = [...block[1].matchAll(/'([a-z0-9]+)'/g)].map((m) => m[1]);
+  if (!kinds.length) {
+    console.error('validate-chapters: DIAGRAM_KINDS parsed as empty.');
+    process.exit(2);
+  }
+  return new Set(kinds);
+})();
 const TAG = /<\/?([a-z]+)[^>]*>/gi;
 const ALLOWED_TAGS = new Set(['b','i','sup','sub','br']);
 

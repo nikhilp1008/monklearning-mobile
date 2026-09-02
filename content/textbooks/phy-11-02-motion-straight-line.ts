@@ -252,6 +252,139 @@ export const phy11MotionStraightLine: Chapter = {
         },
         { "t": "snapshot", "rows": [{ "f": "plots", "note": "pts, ticks, axis titles, exp offset" }], "aids": ["scaffold"] }
       ]
+    },
+    {
+      "n": "05",
+      "title": "The Four Physics Kinds",
+      "blocks": [
+        {
+          "t": "diagram",
+          "kind": "circuit",
+          "kicker": "Circuit",
+          "chips": ["series", "parallel"],
+          "captions": [
+            "Two resistors and a cell around one loop, with the current marked.",
+            "Two resistors in parallel between the same pair of nodes."
+          ],
+          "frames": [
+            {
+              "circuit": {
+                "grid": [6, 4],
+                "wires": [
+                  { "from": [1, 1], "to": [5, 1] },
+                  { "from": [5, 1], "to": [5, 3] },
+                  { "from": [5, 3], "to": [1, 3] },
+                  { "from": [1, 3], "to": [1, 1] }
+                ],
+                "parts": [
+                  { "at": [1, 1], "to": [3, 1], "kind": "R", "label": "R₁" },
+                  { "at": [3, 1], "to": [5, 1], "kind": "R", "label": "R₂" },
+                  { "at": [1, 3], "to": [3, 3], "kind": "cell", "label": "ε" }
+                ],
+                "currents": [{ "at": [3.6, 1], "to": [4.4, 1], "label": "I" }]
+              }
+            },
+            {
+              "circuit": {
+                "grid": [6, 4],
+                "wires": [
+                  { "from": [1, 2], "to": [2, 2] },
+                  { "from": [2, 1], "to": [2, 3] },
+                  { "from": [4, 1], "to": [4, 3] },
+                  { "from": [4, 2], "to": [5, 2] },
+                  { "from": [2, 1], "to": [4, 1] },
+                  { "from": [2, 3], "to": [4, 3] }
+                ],
+                "parts": [
+                  { "at": [2, 1], "to": [4, 1], "kind": "R", "label": "R₁" },
+                  { "at": [2, 3], "to": [4, 3], "kind": "R", "label": "R₂" }
+                ],
+                "nodes": [
+                  { "at": [2, 2], "label": "A", "junction": true },
+                  { "at": [4, 2], "label": "B", "junction": true }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "t": "diagram",
+          "kind": "optics",
+          "kicker": "Ray diagram",
+          "chips": ["beyond 2F", "between F and 2F", "inside F"],
+          "captions": [
+            "Object beyond 2F: the image is real, inverted and diminished.",
+            "Object between F and 2F: real, inverted, magnified.",
+            "Object inside F: the image is virtual, upright and magnified."
+          ],
+          "frames": [
+            { "optics": { "element": "convexLens", "f": 2, "object": { "u": -6, "h": 1.4 } } },
+            { "optics": { "element": "convexLens", "f": 2, "object": { "u": -3, "h": 1.4 } } },
+            { "optics": { "element": "convexLens", "f": 2, "object": { "u": -1.2, "h": 1.4 } } }
+          ]
+        },
+        {
+          "t": "diagram",
+          "kind": "levels",
+          "kicker": "Energy levels",
+          "chips": ["hydrogen", "bands"],
+          "captions": [
+            "The hydrogen ladder at −1/n², which is why the levels crowd upward.",
+            "A conductor, a semiconductor and an insulator are one figure."
+          ],
+          "frames": [
+            {
+              "levels": {
+                "scale": "inverseSquare",
+                "rows": [
+                  { "at": 1, "label": "n = 1", "right": "−13.6 eV" },
+                  { "at": 2, "label": "n = 2", "right": "−3.40 eV" },
+                  { "at": 3, "label": "n = 3", "right": "−1.51 eV" },
+                  { "at": 4, "label": "n = 4", "right": "−0.85 eV" }
+                ],
+                "jumps": [
+                  { "from": 3, "to": 2, "label": "Hα" },
+                  { "from": 4, "to": 2, "label": "Hβ" }
+                ]
+              }
+            },
+            {
+              "levels": {
+                "rows": [],
+                "bands": [
+                  { "from": 0, "to": 2, "label": "valence" },
+                  { "from": 3.2, "to": 5, "label": "conduction" }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "t": "diagram",
+          "kind": "flow",
+          "kicker": "Schematic",
+          "chips": ["heat engine"],
+          "captions": ["A source, a sink, and the work taken out between them."],
+          "frames": [
+            {
+              "flow": {
+                "boxes": [
+                  { "id": "hot", "col": 0, "row": 0, "text": "source\nT₁" },
+                  { "id": "eng", "col": 1, "row": 0, "text": "engine", "shape": "round" },
+                  { "id": "cold", "col": 2, "row": 0, "text": "sink\nT₂" },
+                  { "id": "w", "col": 1, "row": 1, "text": "W", "shape": "diamond" }
+                ],
+                "links": [
+                  { "from": "hot", "to": "eng", "label": "Q₁" },
+                  { "from": "eng", "to": "cold", "label": "Q₂" },
+                  { "from": "eng", "to": "w" }
+                ]
+              }
+            }
+          ]
+        },
+        { "t": "snapshot", "rows": [{ "f": "kinds", "note": "circuit, optics, levels, flow" }], "aids": ["scaffold"] }
+      ]
     }
   ]
 };

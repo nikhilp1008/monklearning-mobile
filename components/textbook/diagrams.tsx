@@ -25,7 +25,15 @@ import Svg, {
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import type { DiagramFrame } from '@/lib/textbooks';
-import { Axes3D, CountingTree, PascalTriangle } from '@/components/textbook/figures';
+import {
+  Axes3D,
+  CircuitDiagram,
+  CountingTree,
+  EnergyLevels,
+  FlowChart,
+  PascalTriangle,
+  RayDiagram,
+} from '@/components/textbook/figures';
 import { Plot, UnitCircle } from '@/components/textbook/plot';
 import { useScale } from '@/constants/scale';
 
@@ -86,6 +94,16 @@ export const DIAGRAM_KINDS: readonly string[] = [
   'tree',
   'pascal',
   'axes3d',
+  // Physics. Each of these has its own coordinate model or needs a solve step,
+  // which is the test for earning a kind rather than living on DiagramFrame:
+  // a circuit routes on a grid, a ray diagram solves the lens equation, an
+  // energy ladder places its own rows. Everything else physics needs -- arrows,
+  // arcs, polylines, glyphs, mechanics bodies -- went on the frame instead and
+  // is available to `plot`.
+  'flow',
+  'levels',
+  'circuit',
+  'optics',
 ];
 
 interface KindConfig {
@@ -230,6 +248,18 @@ export function TextbookDiagram({
         )}
         {kind === 'axes3d' && frames?.[sel] && (
           <Axes3D frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'flow' && frames?.[sel] && (
+          <FlowChart frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'levels' && frames?.[sel] && (
+          <EnergyLevels frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'circuit' && frames?.[sel] && (
+          <CircuitDiagram frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'optics' && frames?.[sel] && (
+          <RayDiagram frame={frames[sel]} width={figureWidth} />
         )}
       </View>
       <View style={styles.chipRow}>

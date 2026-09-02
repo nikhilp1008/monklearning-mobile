@@ -175,6 +175,87 @@ export interface FigureBody {
   tone?: Tone;
 }
 
+/**
+ * A box-and-arrow schematic on a small grid.
+ *
+ * Both books reason in flow charts and reservoir schematics: the zeroth law
+ * as three boxes through a diathermic wall, an engine drawing Q1 and rejecting
+ * Q2, the eight-box map of current electricity. A Linear Programming figure
+ * was already dropped for want of one.
+ */
+export interface FigureFlow {
+  boxes: {
+    id: string;
+    col: number;
+    row: number;
+    text: string;
+    shape?: 'box' | 'round' | 'diamond';
+    tone?: Tone;
+  }[];
+  links: { from: string; to: string; label?: string; dash?: boolean; tone?: Tone }[];
+}
+
+/**
+ * Horizontal energy levels with transitions between them.
+ *
+ * The same primitive draws the hydrogen ladder, its emission series, and the
+ * conductor / semiconductor / insulator band pictures: a band is a level with
+ * thickness. `scale: 'inverseSquare'` places rows at −1/n², which is what
+ * makes the hydrogen levels crowd towards the top the way they really do.
+ */
+export interface FigureLevels {
+  rows: { at: number; label?: string; right?: string; dash?: boolean; tone?: Tone }[];
+  jumps?: { from: number; to: number; label?: string; tone?: Tone }[];
+  bands?: { from: number; to: number; label?: string; fill?: 'wash' | 'hatch' }[];
+  scale?: 'linear' | 'inverseSquare';
+}
+
+/**
+ * A circuit on an integer grid, so an author never computes a pixel.
+ *
+ * The source's own briefs are rectilinear -- "three resistors in a line
+ * between A and B", "series R along the top, shunt R down to the bottom rail"
+ * -- which is exactly a grid netlist. Wires are orthogonal runs; a part sits
+ * on the segment between two grid nodes and is drawn with its own symbol.
+ */
+export interface FigureCircuit {
+  grid?: [number, number];
+  wires?: { from: [number, number]; to: [number, number] }[];
+  parts?: {
+    at: [number, number];
+    to: [number, number];
+    kind: 'R' | 'C' | 'L' | 'cell' | 'battery' | 'lamp' | 'switch' | 'A' | 'V' | 'G' | 'diode';
+    label?: string;
+    tone?: Tone;
+  }[];
+  nodes?: { at: [number, number]; label?: string; junction?: boolean }[];
+  currents?: { at: [number, number]; to: [number, number]; label?: string }[];
+}
+
+/**
+ * A ray diagram whose image position the RENDERER solves.
+ *
+ * The one place real physics lives in the reader, and deliberately so. An
+ * author gives the element, its focal length and where the object stands; the
+ * mirror formula 1/v + 1/u = 1/f and the lens formula 1/v − 1/u = 1/f decide
+ * the rest. A confidently wrong ray diagram is worse than no diagram, and an
+ * author hand-placing an image will eventually place it wrongly.
+ *
+ * Distances follow the Cartesian convention: measured from the pole or optical
+ * centre, against the incident light negative. So a real object is u < 0.
+ */
+export interface FigureOptics {
+  element: 'convexLens' | 'concaveLens' | 'concaveMirror' | 'convexMirror';
+  /** Signed focal length, Cartesian. Convex lens and concave mirror are +. */
+  f: number;
+  /** Object distance (negative for a real object) and height. */
+  object?: { u: number; h: number; label?: string };
+  /** Draw the two standard construction rays. Default true. */
+  rays?: boolean;
+  /** Mark F and 2F on both sides. Default true. */
+  marks?: boolean;
+}
+
 /** One drawing, matched by index to one chip. */
 export interface DiagramFrame {
   /** Visible window. Defaults suit a unit-scale figure. */
@@ -250,6 +331,15 @@ export interface DiagramFrame {
 
   /** height / width. Default .72, or .34 for a numberline. */
   aspect?: number;
+
+  /** `flow` only. */
+  flow?: FigureFlow;
+  /** `levels` only. */
+  levels?: FigureLevels;
+  /** `circuit` only. */
+  circuit?: FigureCircuit;
+  /** `optics` only. */
+  optics?: FigureOptics;
 
   /**
    * `tree` only: a counting tree, drawn left to right.

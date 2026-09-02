@@ -341,3 +341,553 @@ export function Axes3D({ frame, width }: { frame: DiagramFrame; width: number })
     </Svg>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Physics kinds                                                       */
+/* ------------------------------------------------------------------ */
+
+const PAPER = '#FFFFFF';
+const GREEN = '#1C9B57';
+const RED = '#DD4433';
+const TONE_MAP: Record<string, string> = {
+  ink: INK,
+  amber: AMBER,
+  soft: SOFT,
+  green: GREEN,
+  red: RED,
+};
+const tint = (t: string | undefined, fallback: string) => (t && TONE_MAP[t]) || fallback;
+
+/** A label with the page knocked out behind it. Same trick as plot.tsx. */
+function Halo({
+  x,
+  y,
+  size,
+  fill,
+  anchor = 'middle',
+  children,
+}: {
+  x: number;
+  y: number;
+  size: number;
+  fill: string;
+  anchor?: 'start' | 'middle' | 'end';
+  children: string;
+}) {
+  const shared = { x, y, fontSize: size, fontFamily: SERIF, textAnchor: anchor };
+  return (
+    <G>
+      <SvgText {...shared} fill="none" stroke={PAPER} strokeWidth={3.4} strokeLinejoin="round">
+        {children}
+      </SvgText>
+      <SvgText {...shared} fill={fill}>
+        {children}
+      </SvgText>
+    </G>
+  );
+}
+
+function head(x1: number, y1: number, x2: number, y2: number, h = 6.5): string {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  return (
+    `M ${x2 - h * Math.cos(a - 0.46)} ${y2 - h * Math.sin(a - 0.46)} ` +
+    `L ${x2} ${y2} L ${x2 - h * Math.cos(a + 0.46)} ${y2 - h * Math.sin(a + 0.46)}`
+  );
+}
+
+/**
+ * Box-and-arrow schematics.
+ *
+ * Laid out on the author's own grid: they say which column and row a box sits
+ * in and the renderer sizes and connects them. Links leave and enter at the
+ * nearest edge, so an arrow never starts inside the box it comes from.
+ */
+export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number }) {
+  const f = frame.flow;
+  const height = Math.round(width * (frame.aspect ?? 0.62));
+  if (!f?.boxes?.length) return <Svg width={width} height={height} />;
+  const cols = Math.max(...f.boxes.map((b) => b.col)) + 1;
+  const rows = Math.max(...f.boxes.map((b) => b.row)) + 1;
+  const cw = width / cols;
+  const rh = height / rows;
+  const bw = Math.min(cw * 0.82, 116);
+  const bh = Math.min(rh * 0.56, 46);
+  const at = (b: { col: number; row: number }) => [
+    (b.col + 0.5) * cw,
+    (b.row + 0.5) * rh,
+  ];
+  const byId = new Map(f.boxes.map((b) => [b.id, b]));
+
+  return (
+    <Svg width={width} height={height}>
+      {f.links?.map((l, i) => {
+        const a = byId.get(l.from);
+        const b = byId.get(l.to);
+        if (!a || !b) return null;
+        const [ax, ay] = at(a);
+        const [bx, by] = at(b);
+        const dx = bx - ax;
+        const dy = by - ay;
+        const len = Math.hypot(dx, dy) || 1;
+        // Leave and enter at the box edge, not the centre.
+        const pad = Math.abs(dx) > Math.abs(dy) ? bw / 2 + 3 : bh / 2 + 3;
+        const sx = ax + (dx / len) * pad;
+        const sy = ay + (dy / len) * pad;
+        const ex = bx - (dx / len) * pad;
+        const ey = by - (dy / len) * pad;
+        const tone = tint(l.tone, SOFT);
+        return (
+          <G key={`fl${i}`}>
+            <Line
+              x1={sx}
+              y1={sy}
+              x2={ex}
+              y2={ey}
+              stroke={tone}
+              strokeWidth={1.3}
+              strokeDasharray={l.dash ? '5 4' : undefined}
+            />
+            <Path d={head(sx, sy, ex, ey)} fill="none" stroke={tone} strokeWidth={1.3} />
+            {!!l.label && (
+              <Halo x={(sx + ex) / 2} y={(sy + ey) / 2 - 6} size={9.5} fill={tone}>
+                {l.label}
+              </Halo>
+            )}
+          </G>
+        );
+      })}
+      {f.boxes.map((b, i) => {
+        const [cx, cy] = at(b);
+        const tone = tint(b.tone, INK);
+        const half = [bw / 2, bh / 2];
+        const d =
+          b.shape === 'diamond'
+            ? `M ${cx} ${cy - half[1]} L ${cx + half[0]} ${cy} L ${cx} ${cy + half[1]} L ${cx - half[0]} ${cy} Z`
+            : '';
+        return (
+          <G key={`fb${i}`}>
+            {b.shape === 'diamond' ? (
+              <Path d={d} fill={PAPER} stroke={tone} strokeWidth={1.4} />
+            ) : (
+              <Rect
+                x={cx - half[0]}
+                y={cy - half[1]}
+                width={bw}
+                height={bh}
+                rx={b.shape === 'round' ? bh / 2 : 8}
+                fill={PAPER}
+                stroke={tone}
+                strokeWidth={1.4}
+              />
+            )}
+            {b.text.split('\n').map((line, k, all) => (
+              <SvgText
+                key={k}
+                x={cx}
+                y={cy + 4 - ((all.length - 1) * 12) / 2 + k * 12}
+                fontSize={10}
+                fill={INK}
+                fontFamily={SERIF}
+                textAnchor="middle">
+                {line}
+              </SvgText>
+            ))}
+          </G>
+        );
+      })}
+    </Svg>
+  );
+}
+
+/**
+ * Energy levels, transitions, and bands.
+ *
+ * A band is a level with thickness, so the hydrogen ladder and the
+ * conductor / semiconductor / insulator pictures are the same figure.
+ */
+export function EnergyLevels({ frame, width }: { frame: DiagramFrame; width: number }) {
+  const L = frame.levels;
+  const height = Math.round(width * (frame.aspect ?? 0.78));
+  if (!L?.rows?.length) return <Svg width={width} height={height} />;
+  const place = (n: number) => (L.scale === 'inverseSquare' ? -1 / (n * n) : n);
+  const vals = [
+    ...L.rows.map((r) => place(r.at)),
+    ...(L.bands ?? []).flatMap((b) => [place(b.from), place(b.to)]),
+  ];
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const span = hi - lo || 1;
+  const padT = 16;
+  const padB = 16;
+  const x0 = 46;
+  const x1 = width - 58;
+  const Y = (n: number) => padT + (1 - (place(n) - lo) / span) * (height - padT - padB);
+
+  return (
+    <Svg width={width} height={height}>
+      {L.bands?.map((b, i) => (
+        <Rect
+          key={`bd${i}`}
+          x={x0}
+          y={Math.min(Y(b.from), Y(b.to))}
+          width={x1 - x0}
+          height={Math.abs(Y(b.to) - Y(b.from))}
+          fill={b.fill === 'hatch' ? 'none' : 'rgba(238,163,31,.18)'}
+          stroke={RULE}
+          strokeWidth={1}
+        />
+      ))}
+      {L.jumps?.map((j, i) => {
+        const tone = tint(j.tone, AMBER);
+        const jx = x0 + (x1 - x0) * (0.28 + (i % 5) * 0.14);
+        return (
+          <G key={`jp${i}`}>
+            <Line x1={jx} y1={Y(j.from)} x2={jx} y2={Y(j.to)} stroke={tone} strokeWidth={1.4} />
+            <Path
+              d={head(jx, Y(j.from), jx, Y(j.to))}
+              fill="none"
+              stroke={tone}
+              strokeWidth={1.4}
+            />
+            {!!j.label && (
+              <Halo x={jx + 12} y={(Y(j.from) + Y(j.to)) / 2} size={9.5} fill={tone} anchor="start">
+                {j.label}
+              </Halo>
+            )}
+          </G>
+        );
+      })}
+      {L.rows.map((r, i) => (
+        <G key={`rw${i}`}>
+          <Line
+            x1={x0}
+            y1={Y(r.at)}
+            x2={x1}
+            y2={Y(r.at)}
+            stroke={tint(r.tone, INK)}
+            strokeWidth={1.4}
+            strokeDasharray={r.dash ? '5 4' : undefined}
+          />
+          {!!r.label && (
+            <Halo x={x0 - 6} y={Y(r.at) + 3.5} size={10} fill={INK} anchor="end">
+              {r.label}
+            </Halo>
+          )}
+          {!!r.right && (
+            <Halo x={x1 + 5} y={Y(r.at) + 3.5} size={9.5} fill={SOFT} anchor="start">
+              {r.right}
+            </Halo>
+          )}
+        </G>
+      ))}
+    </Svg>
+  );
+}
+
+/** Component glyphs, drawn along the segment between two grid nodes. */
+function partGlyph(
+  kind: string,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { d: string; extra?: 'circle' | 'lamp'; r?: number } {
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+  const L = Math.min(len * 0.5, 26);
+  const a = [mx - ux * (L / 2), my - uy * (L / 2)];
+  const b = [mx + ux * (L / 2), my + uy * (L / 2)];
+  const lead = `M ${x1} ${y1} L ${a[0]} ${a[1]} M ${b[0]} ${b[1]} L ${x2} ${y2}`;
+
+  if (kind === 'R') {
+    // A zig-zag: the international symbol is a box, but a phone at 316pt
+    // reads the zig-zag faster and Indian boards print it.
+    const n = 6;
+    const amp = 4.5;
+    let d = `${lead} M ${a[0]} ${a[1]}`;
+    for (let k = 1; k <= n; k++) {
+      const t = k / (n + 1);
+      const sgn = k % 2 ? 1 : -1;
+      d += ` L ${a[0] + ux * L * t + px * amp * sgn} ${a[1] + uy * L * t + py * amp * sgn}`;
+    }
+    return { d: `${d} L ${b[0]} ${b[1]}` };
+  }
+  if (kind === 'C') {
+    const g = 3.2;
+    const w = 7;
+    return {
+      d:
+        `M ${x1} ${y1} L ${mx - ux * g} ${my - uy * g} M ${x2} ${y2} L ${mx + ux * g} ${my + uy * g} ` +
+        `M ${mx - ux * g + px * w} ${my - uy * g + py * w} L ${mx - ux * g - px * w} ${my - uy * g - py * w} ` +
+        `M ${mx + ux * g + px * w} ${my + uy * g + py * w} L ${mx + ux * g - px * w} ${my + uy * g - py * w}`,
+    };
+  }
+  if (kind === 'cell' || kind === 'battery') {
+    const g = 3;
+    const lng = 8;
+    const shrt = 4.5;
+    let d =
+      `M ${x1} ${y1} L ${mx - ux * g} ${my - uy * g} M ${x2} ${y2} L ${mx + ux * g} ${my + uy * g} ` +
+      `M ${mx - ux * g + px * lng} ${my - uy * g + py * lng} L ${mx - ux * g - px * lng} ${my - uy * g - py * lng} ` +
+      `M ${mx + ux * g + px * shrt} ${my + uy * g + py * shrt} L ${mx + ux * g - px * shrt} ${my + uy * g - py * shrt}`;
+    if (kind === 'battery') {
+      d +=
+        ` M ${mx - ux * g * 3 + px * lng} ${my - uy * g * 3 + py * lng} L ${mx - ux * g * 3 - px * lng} ${my - uy * g * 3 - py * lng}` +
+        ` M ${mx + ux * g * 3 + px * shrt} ${my + uy * g * 3 + py * shrt} L ${mx + ux * g * 3 - px * shrt} ${my + uy * g * 3 - py * shrt}`;
+    }
+    return { d };
+  }
+  if (kind === 'L') {
+    const n = 4;
+    let d = `${lead} M ${a[0]} ${a[1]}`;
+    for (let k = 0; k < n; k++) {
+      const t0 = k / n;
+      const t1 = (k + 1) / n;
+      d +=
+        ` Q ${a[0] + ux * L * ((t0 + t1) / 2) + px * 7} ${a[1] + uy * L * ((t0 + t1) / 2) + py * 7},` +
+        ` ${a[0] + ux * L * t1} ${a[1] + uy * L * t1}`;
+    }
+    return { d };
+  }
+  if (kind === 'switch') {
+    return {
+      d: `${lead} M ${a[0]} ${a[1]} L ${b[0] + px * 7} ${b[1] + py * 7}`,
+    };
+  }
+  if (kind === 'diode') {
+    const w = 6;
+    return {
+      d:
+        `${lead} M ${a[0] + px * w} ${a[1] + py * w} L ${a[0] - px * w} ${a[1] - py * w} L ${b[0]} ${b[1]} Z ` +
+        `M ${b[0] + px * w} ${b[1] + py * w} L ${b[0] - px * w} ${b[1] - py * w}`,
+    };
+  }
+  // A, V, G, lamp: a circle on the run.
+  return { d: lead, extra: kind === 'lamp' ? 'lamp' : 'circle', r: 9 };
+}
+
+/**
+ * A circuit on an integer grid.
+ *
+ * The author gives node coordinates and what sits between them; nothing here
+ * asks them to compute a pixel or route a wire. Wire runs are orthogonal
+ * because the source's own briefs are ("series R along the top rail").
+ */
+export function CircuitDiagram({ frame, width }: { frame: DiagramFrame; width: number }) {
+  const c = frame.circuit;
+  const [gw, gh] = c?.grid ?? [6, 4];
+  const height = Math.round(width * (frame.aspect ?? (gh / gw) * 0.9));
+  if (!c) return <Svg width={width} height={height} />;
+  const pad = 22;
+  const X = (n: number) => pad + (n / gw) * (width - pad * 2);
+  const Y = (n: number) => pad + (n / gh) * (height - pad * 2);
+
+  return (
+    <Svg width={width} height={height}>
+      {c.wires?.map((w, i) => (
+        <Line
+          key={`wr${i}`}
+          x1={X(w.from[0])}
+          y1={Y(w.from[1])}
+          x2={X(w.to[0])}
+          y2={Y(w.to[1])}
+          stroke={INK}
+          strokeWidth={1.4}
+        />
+      ))}
+      {c.parts?.map((p, i) => {
+        const x1 = X(p.at[0]);
+        const y1 = Y(p.at[1]);
+        const x2 = X(p.to[0]);
+        const y2 = Y(p.to[1]);
+        const g = partGlyph(p.kind, x1, y1, x2, y2);
+        const tone = tint(p.tone, INK);
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const horizontal = Math.abs(x2 - x1) > Math.abs(y2 - y1);
+        return (
+          <G key={`pt${i}`}>
+            <Path d={g.d} fill="none" stroke={tone} strokeWidth={1.4} />
+            {g.extra && (
+              <>
+                <Circle cx={mx} cy={my} r={g.r} fill={PAPER} stroke={tone} strokeWidth={1.4} />
+                {g.extra === 'circle' && (
+                  <SvgText
+                    x={mx}
+                    y={my + 4}
+                    fontSize={10}
+                    fill={tone}
+                    fontFamily={SERIF}
+                    textAnchor="middle">
+                    {p.kind}
+                  </SvgText>
+                )}
+                {g.extra === 'lamp' && (
+                  <Path
+                    d={`M ${mx - 6} ${my - 6} L ${mx + 6} ${my + 6} M ${mx + 6} ${my - 6} L ${mx - 6} ${my + 6}`}
+                    stroke={tone}
+                    strokeWidth={1.2}
+                  />
+                )}
+              </>
+            )}
+            {!!p.label && (
+              <Halo
+                x={horizontal ? mx : mx + 14}
+                y={horizontal ? my - 14 : my + 3.5}
+                size={10}
+                fill={tone}
+                anchor={horizontal ? 'middle' : 'start'}>
+                {p.label}
+              </Halo>
+            )}
+          </G>
+        );
+      })}
+      {c.currents?.map((cu, i) => {
+        const x1 = X(cu.at[0]);
+        const y1 = Y(cu.at[1]);
+        const x2 = X(cu.to[0]);
+        const y2 = Y(cu.to[1]);
+        return (
+          <G key={`cu${i}`}>
+            <Path d={head(x1, y1, x2, y2, 6)} fill="none" stroke={AMBER} strokeWidth={1.6} />
+            {!!cu.label && (
+              <Halo x={x2 + 10} y={y2 - 7} size={10} fill={AMBER} anchor="start">
+                {cu.label}
+              </Halo>
+            )}
+          </G>
+        );
+      })}
+      {c.nodes?.map((n, i) => (
+        <G key={`nd${i}`}>
+          {n.junction && <Circle cx={X(n.at[0])} cy={Y(n.at[1])} r={3} fill={INK} />}
+          {!!n.label && (
+            <Halo x={X(n.at[0]) - 8} y={Y(n.at[1]) - 8} size={10} fill={INK} anchor="end">
+              {n.label}
+            </Halo>
+          )}
+        </G>
+      ))}
+    </Svg>
+  );
+}
+
+/**
+ * A ray diagram, with the image position solved rather than authored.
+ *
+ * Cartesian convention throughout: distances from the pole or optical centre,
+ * against the incident light negative. A real object is u < 0. The mirror
+ * formula is 1/v + 1/u = 1/f, the lens formula 1/v − 1/u = 1/f, and the two
+ * differ by exactly that sign, which is where most wrong answers come from.
+ */
+export function RayDiagram({ frame, width }: { frame: DiagramFrame; width: number }) {
+  const o = frame.optics;
+  const height = Math.round(width * (frame.aspect ?? 0.62));
+  if (!o) return <Svg width={width} height={height} />;
+  const mirror = o.element === 'concaveMirror' || o.element === 'convexMirror';
+  const f = o.f;
+  const u = o.object?.u ?? -3 * Math.abs(f);
+  const ho = o.object?.h ?? 1;
+
+  // Solve for the image. A mirror adds; a lens subtracts.
+  let v: number | null = null;
+  const denom = mirror ? 1 / f - 1 / u : 1 / f + 1 / u;
+  if (Math.abs(denom) > 1e-9) v = 1 / denom;
+  const m = v == null ? 0 : mirror ? -v / u : v / u;
+  const hi = m * ho;
+
+  const span = Math.max(Math.abs(u), Math.abs(v ?? 0), Math.abs(2 * f)) * 1.25;
+  const cx = width / 2;
+  const cy = height * 0.56;
+  const sx = (width / 2 - 16) / span;
+  const sy = Math.min(sx, (height * 0.34) / Math.max(Math.abs(ho), Math.abs(hi), 1));
+  const X = (n: number) => cx + n * sx;
+  const Y = (n: number) => cy - n * sy;
+
+  const rays = o.rays ?? true;
+  const marks = o.marks ?? true;
+  const top = [X(u), Y(ho)];
+
+  return (
+    <Svg width={width} height={height}>
+      {/* Principal axis */}
+      <Line x1={8} y1={cy} x2={width - 8} y2={cy} stroke={RULE} strokeWidth={1} />
+
+      {/* The element */}
+      {mirror ? (
+        <Path
+          d={`M ${X(0)} ${cy - 34} Q ${X(0) + (o.element === 'concaveMirror' ? -14 : 14)} ${cy}, ${X(0)} ${cy + 34}`}
+          fill="none"
+          stroke={INK}
+          strokeWidth={1.8}
+        />
+      ) : (
+        <Path
+          d={
+            o.element === 'convexLens'
+              ? `M ${X(0)} ${cy - 34} Q ${X(0) + 11} ${cy}, ${X(0)} ${cy + 34} Q ${X(0) - 11} ${cy}, ${X(0)} ${cy - 34} Z`
+              : `M ${X(0) - 7} ${cy - 34} Q ${X(0) + 5} ${cy}, ${X(0) - 7} ${cy + 34} L ${X(0) + 7} ${cy + 34} Q ${X(0) - 5} ${cy}, ${X(0) + 7} ${cy - 34} Z`
+          }
+          fill="rgba(238,163,31,.14)"
+          stroke={INK}
+          strokeWidth={1.5}
+        />
+      )}
+
+      {marks && (
+        <G>
+          {[f, -f, 2 * f, -2 * f].map((n, i) => (
+            <G key={`fm${i}`}>
+              <Line x1={X(n)} y1={cy - 4} x2={X(n)} y2={cy + 4} stroke={SOFT} strokeWidth={1.2} />
+              <Halo x={X(n)} y={cy + 16} size={9.5} fill={SOFT}>
+                {Math.abs(n) > Math.abs(f) * 1.5 ? '2F' : 'F'}
+              </Halo>
+            </G>
+          ))}
+        </G>
+      )}
+
+      {/* Object */}
+      <G>
+        <Line x1={X(u)} y1={cy} x2={top[0]} y2={top[1]} stroke={INK} strokeWidth={1.6} />
+        <Path d={head(X(u), cy, top[0], top[1], 6)} fill="none" stroke={INK} strokeWidth={1.6} />
+      </G>
+
+      {/* Image: dashed when virtual (same side as the object for a lens). */}
+      {v != null && (
+        <G>
+          <Line
+            x1={X(v)}
+            y1={cy}
+            x2={X(v)}
+            y2={Y(hi)}
+            stroke={GREEN}
+            strokeWidth={1.6}
+            strokeDasharray={(mirror ? v > 0 : v < 0) ? '5 4' : undefined}
+          />
+          <Path d={head(X(v), cy, X(v), Y(hi), 6)} fill="none" stroke={GREEN} strokeWidth={1.6} />
+        </G>
+      )}
+
+      {/* The two standard construction rays. */}
+      {rays && v != null && (
+        <G>
+          {/* Parallel in, through F out. */}
+          <Line x1={top[0]} y1={top[1]} x2={X(0)} y2={top[1]} stroke={AMBER} strokeWidth={1.2} />
+          <Line x1={X(0)} y1={top[1]} x2={X(v)} y2={Y(hi)} stroke={AMBER} strokeWidth={1.2} />
+          {/* Through the centre or pole, undeviated. */}
+          <Line x1={top[0]} y1={top[1]} x2={X(v)} y2={Y(hi)} stroke={AMBER} strokeWidth={1.2} />
+        </G>
+      )}
+    </Svg>
+  );
+}
