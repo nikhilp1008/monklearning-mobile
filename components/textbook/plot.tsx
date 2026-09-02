@@ -27,6 +27,57 @@ const BAND = 'rgba(238,163,31,.16)';
 const FILL = 'rgba(238,163,31,.22)';
 const FILL_SOFT = 'rgba(28,26,22,.08)';
 const SERIF = 'Georgia';
+const PAPER = '#FFFFFF';
+
+/**
+ * A label with the page colour knocked out behind it.
+ *
+ * A physics figure is dense: a force arrow crosses the body it acts on, an
+ * incline crosses the ground, and a weight arrow ends on the surface it
+ * presses into. Wherever a label lands, something is already drawn there. The
+ * first draft put "mg" on the ground line and hid the block's own "m" under
+ * two arrows.
+ *
+ * Drawing the glyphs twice, once as a fat paper-coloured stroke and once
+ * normally, punches a small hole in whatever is behind them. It is the
+ * standard cartographic fix and it costs one extra text node.
+ */
+function HaloText({
+  x,
+  y,
+  size,
+  fill,
+  anchor = 'middle',
+  italic,
+  children,
+}: {
+  x: number;
+  y: number;
+  size: number;
+  fill: string;
+  anchor?: 'start' | 'middle' | 'end';
+  italic?: boolean;
+  children: string;
+}) {
+  const shared = {
+    x,
+    y,
+    fontSize: size,
+    fontFamily: SERIF,
+    textAnchor: anchor,
+    fontStyle: italic ? ('italic' as const) : undefined,
+  };
+  return (
+    <G>
+      <SvgText {...shared} fill="none" stroke={PAPER} strokeWidth={3.4} strokeLinejoin="round">
+        {children}
+      </SvgText>
+      <SvgText {...shared} fill={fill}>
+        {children}
+      </SvgText>
+    </G>
+  );
+}
 
 /** Samples per figure width. Enough that a sine reads as smooth at 300pt. */
 const SAMPLES = 240;
@@ -728,17 +779,6 @@ export function Plot({
                   />
                 );
               })}
-            {!!b.label && (
-              <SvgText
-                x={cx}
-                y={cy + 4}
-                fontSize={11}
-                fill={INK}
-                fontFamily={SERIF}
-                textAnchor="middle">
-                {b.label}
-              </SvgText>
-            )}
           </G>
         );
       })}
@@ -775,15 +815,13 @@ export function Plot({
               />
             )}
             {!!a.label && (
-              <SvgText
-                x={cx + (r + 11) * Math.cos(mid)}
-                y={cy - (r + 11) * Math.sin(mid) + 3.5}
-                fontSize={11}
-                fill={tone}
-                fontFamily={SERIF}
-                textAnchor="middle">
+              <HaloText
+                x={cx + (r + 12) * Math.cos(mid)}
+                y={cy - (r + 12) * Math.sin(mid) + 3.5}
+                size={11}
+                fill={tone}>
                 {a.label}
-              </SvgText>
+              </HaloText>
             )}
           </G>
         );
@@ -802,17 +840,19 @@ export function Plot({
         // Label placement runs along and across the shaft, never straight up.
         // A vertical mg arrow with a naive "11px higher" label puts the text
         // on top of its own line, which is where the first draft put it.
+        // Always beside the shaft, never along it. Placing a label beyond the
+        // tip puts it on whatever the arrow points AT -- a weight arrow ends
+        // on the ground, so "mg" landed on the ground line. `at` chooses how
+        // far along the shaft to sit; the offset is always perpendicular.
         const at = a.at ?? 'above';
         const len = Math.hypot(x2 - x1, y2 - y1) || 1;
         const ux = (x2 - x1) / len;
         const uy = (y2 - y1) / len;
-        const off = at === 'below' ? -12 : 12;
-        // start/end sit just beyond the endpoint, clear of the head;
-        // above/below/mid sit beside the midpoint.
-        const mx =
-          at === 'start' ? x1 - ux * 13 : at === 'end' ? x2 + ux * 13 : (x1 + x2) / 2 - uy * off;
-        const my =
-          at === 'start' ? y1 - uy * 13 : at === 'end' ? y2 + uy * 13 : (y1 + y2) / 2 + ux * off;
+        // Screen y grows downward, so 'above' is a NEGATIVE offset.
+        const off = at === 'below' ? 12 : -12;
+        const t = at === 'start' ? 0.14 : at === 'end' ? 0.86 : 0.5;
+        const mx = x1 + (x2 - x1) * t - uy * off;
+        const my = y1 + (y2 - y1) * t + ux * off;
         return (
           <G key={`aw${i}`}>
             <Line
@@ -831,14 +871,9 @@ export function Plot({
               <Path d={headD(x2, y2, x1, y1, H)} fill="none" stroke={tone} strokeWidth={1.5} />
             )}
             {!!a.label && (
-              <SvgText x={mx} y={my + 3.5}
-                fontSize={11}
-                fill={tone}
-                fontFamily={SERIF}
-                fontStyle={a.math ? 'italic' : undefined}
-                textAnchor="middle">
+              <HaloText x={mx} y={my + 3.5} size={11} fill={tone} italic={a.math}>
                 {a.label}
-              </SvgText>
+              </HaloText>
             )}
           </G>
         );
@@ -886,17 +921,34 @@ export function Plot({
               <Line x1={cx} y1={cy - 4} x2={cx} y2={cy + 4} stroke={tone} strokeWidth={1.3} />
             )}
             {!!m.label && (
-              <SvgText
-                x={cx + 9}
-                y={cy - 6}
-                fontSize={11}
-                fill={INK}
-                fontFamily={SERIF}
-                textAnchor="start">
+              <HaloText x={cx + 9} y={cy - 6} size={11} fill={INK} anchor="start">
                 {m.label}
-              </SvgText>
+              </HaloText>
             )}
           </G>
+        );
+      })}
+
+      {/* Body and region labels go LAST.
+          A block's mass label is inside the block, and the forces acting on it
+          are drawn from its centre, so the arrows crossed the label and won.
+          Painting these after everything else, with a halo, means the name of
+          a thing is never buried under the forces on it. */}
+      {frame.bodies?.map((b, i) =>
+        b.label ? (
+          <HaloText key={`bl${i}`} x={X(b.at[0])} y={Y(b.at[1]) + 4} size={11} fill={INK}>
+            {b.label}
+          </HaloText>
+        ) : null
+      )}
+      {frame.polys?.map((pl, i) => {
+        if (!pl.label) return null;
+        const cx = pl.pts.reduce((a, q) => a + X(q[0]), 0) / pl.pts.length;
+        const cy = pl.pts.reduce((a, q) => a + Y(q[1]), 0) / pl.pts.length;
+        return (
+          <HaloText key={`pl${i}`} x={cx} y={cy + 4} size={11} fill={paint(pl.tone, INK)}>
+            {pl.label}
+          </HaloText>
         );
       })}
     </Svg>
