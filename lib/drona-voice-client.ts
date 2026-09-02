@@ -12,6 +12,14 @@ export interface BoardEvent {
   svg?: string;
   /** `diagram` events only: an optional one-line gloss under the figure. */
   caption?: string;
+  /**
+   * A registry widget and its parameters. Takes precedence over `svg` when
+   * both are present — the registry draws the real curve, an `svg` string
+   * draws an approximation of it. See `lib/widgets/BoardWidget.tsx` for the
+   * tier split this implements (`tier` names which one produced this event).
+   */
+  payload?: import('@/lib/widgets/types').WidgetPayload;
+  tier?: import('@/lib/widgets/types').ResolutionTier;
 }
 
 export interface DronaState {

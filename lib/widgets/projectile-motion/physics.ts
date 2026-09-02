@@ -21,6 +21,11 @@ export interface Derived {
   apexHeight: number;
   flightTime: number;
   apexX: number;
+  /** Structurally, `Derived` IS a `Record<string, number>` — this is what
+   *  lets `derive` serve directly as `WidgetModule.computeDerived` with no
+   *  wrapper, so there is only one function computing these values, not two
+   *  that could drift. */
+  [key: string]: number;
 }
 
 const DEG = Math.PI / 180;

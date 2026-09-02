@@ -34,13 +34,38 @@ export interface WidgetPayload<P extends object = Record<string, unknown>> {
 }
 
 export interface Cue {
-  /** Position on the section's audio track, in SECONDS (expo-audio units). */
-  at: number;
-  /** Partial params applied at `at`. Numeric keys in `animatable` are tweened. */
+  /**
+   * The `seq` of the board event this cue applies at — a sentence in the SAME
+   * turn as the widget, later than it, whose narration is describing the
+   * change this cue makes.
+   *
+   * NOT a timestamp. Live sessions have no clock to anchor one to: the server
+   * never sends an `at` in seconds, only board events in reveal order, each
+   * paired with the audio_chunk that reveals it (see
+   * lib/drona-voice-client.ts). A cue therefore cannot fire early or late —
+   * it fires when its named sentence is spoken, by construction, which is
+   * strictly more robust than a written-in-advance second count that TTS
+   * pacing could contradict. See docs/cue-timing.md for the pre-recorded
+   * case this was built to avoid; live sessions do not have that problem.
+   *
+   * Selection: the active cue is the one with the greatest `seq` that is
+   * `<= activeSeq` (the highest board-event seq revealed so far in the
+   * turn) — mirrors the old `at <= t` rule, just discrete instead of
+   * continuous.
+   */
+  seq: number;
+  /** Partial params applied at `seq`. Numeric keys in `animatable` are tweened. */
   patch: Readonly<Record<string, number | string | boolean>>;
   /** Tween duration in ms. 0 or omitted = snap. */
   tween?: number;
-  /** Caption shown on the board while this cue is the active one. */
+  /**
+   * Caption shown on the board while this cue is active. May reference a
+   * widget's derived quantities as `{{token}}` — see `WidgetModule.derived`.
+   * MUST NEVER be sent as speech text: this is a display-only field, and a
+   * literal `{{range}}` spoken by TTS would read the braces aloud. The
+   * server keeps this out of the narration channel; the client only ever
+   * renders the interpolated result, never the raw template.
+   */
   caption?: string;
 }
 
@@ -90,6 +115,30 @@ export interface WidgetModule<P extends object> {
    * SharedValue in `motion`. Keys NOT listed here snap and re-render.
    */
   animatable: readonly Extract<keyof P, string>[];
+  /**
+   * Named numeric quantities a caption may reference by {{token}}, computed from
+   * `params` via `computeDerived` — never typed into a caption directly. This is
+   * what makes "the range grows" and "the range shrinks" structurally incapable
+   * of disagreeing with the number on the board: there is only one number, and
+   * both the readout and the caption read it from here.
+   *
+   * See docs/narration-diagram-alignment.md Rule 2. Every key here must appear
+   * in `computeDerived`'s output, and vice versa — `derived` self-consistency is
+   * asserted in lib/widgets/__tests__, not just documented.
+   */
+  derived: readonly string[];
+  /** Computes the values named in `derived`, from the same params the widget
+   *  renders from — never from `motion`, which can be mid-tween. */
+  computeDerived(params: P): Record<string, number>;
+  /**
+   * English words that name each derived quantity, for the direction lint (Rule
+   * 3): "the range grows" needs to know "range" means `derived` key `range`.
+   * A direction word with no entry it can match is a build-time WARNING that
+   * prints the caption, never a silent pass — an alias map that quietly checks
+   * nothing is worse than no lint, the same failure mode
+   * docs/render-verification.md documents for the text-prop reader.
+   */
+  derivedAliases: Readonly<Record<string, readonly string[]>>;
   /**
    * Total, throwing-free validation. Clamps in-range values, rejects the rest.
    * This is the only place a malformed model payload can be stopped.

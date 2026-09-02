@@ -246,6 +246,19 @@ export const projectileMotion: WidgetModule<ProjectileParams> = {
     body: 'earth',
   },
   animatable: ['launch_angle_deg'],
+  // The exact shape derive() returns — asserted in
+  // lib/widgets/__tests__/derived-consistency.test.ts so the two cannot drift.
+  derived: ['range', 'apexHeight', 'flightTime', 'apexX'],
+  computeDerived: derive,
+  // The words a caption might use for each quantity, for the direction lint
+  // (docs/narration-diagram-alignment.md Rule 3). "further"/"closer" cover
+  // range read as a horizontal distance; "higher"/"lower" cover apex height.
+  derivedAliases: {
+    range: ['range', 'distance', 'how far', 'further', 'closer', 'farther'],
+    apexHeight: ['height', 'apex', 'peak', 'how high', 'higher', 'lower'],
+    flightTime: ['time', 'flight time', 'in the air', 'longer', 'shorter'],
+    apexX: ['apex x', 'horizontal distance to the apex'],
+  },
   validate,
   Component: ProjectileMotion,
 };

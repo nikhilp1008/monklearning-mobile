@@ -187,6 +187,13 @@ export const molecule3d: WidgetModule<MoleculeParams> = {
   },
   // Nothing tweens: 3D state lives inside the WebView, driven by postMessage.
   animatable: [],
+  // No numeric quantities to name in a caption — a molecule's identity is the
+  // whole payload (structure_ref), not a computed value. Also correctly
+  // exempt from the render harness entirely; see SKIP in
+  // lib/widgets/__tests__/render-trees.test.tsx.
+  derived: [],
+  computeDerived: () => ({}),
+  derivedAliases: {},
   validate,
   Component: Molecule3D,
 };

@@ -1,36 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  useSharedValue,
-  withTiming,
-  Easing,
-  type SharedValue,
-} from 'react-native-reanimated';
-import type { AudioPlayer } from 'expo-audio';
+import { useSharedValue, withTiming, Easing, type SharedValue } from 'react-native-reanimated';
 
 import type { Cue, WidgetModule } from './types';
 
 /**
- * Drives a widget's params from the narration timeline.
+ * Drives a widget's params from the live board's reveal order.
  *
- * Sync source is `player.currentTime` (expo-audio, SECONDS), read on a JS rAF
- * loop. We deliberately do NOT drive cues from `useAudioPlayerStatus`:
- *   - its default updateInterval is 500ms, far too coarse to land a cue on a word;
- *   - lowering it to ~50ms costs a React re-render per tick for the whole board;
- *   - it is documented as unreliable on Android (expo/expo#40129).
- * Reading `player.currentTime` directly costs no re-render, and the tween itself
- * runs on the UI thread through Reanimated, so the board never waits on JS.
+ * There is no clock to poll here — a live session has no section audio track
+ * and no `player.currentTime` (see lib/drona-voice-client.ts: BoardEvent
+ * carries no timestamp of any kind). What it has instead is a strictly
+ * ordered stream of board events, each revealed exactly when the audio_chunk
+ * pairing it to a sentence starts playing (AudioPlaybackQueue.onItemStart).
  *
- * Pause, seek and scrub are handled for free: cue selection is a pure function
- * of playback position, so scrubbing backwards re-applies the correct cue.
+ * So cue selection is driven by `activeSeq` — the highest board-event `seq`
+ * revealed so far in the turn — rather than by wall-clock or narration-clock
+ * position. The active cue is the one with the greatest `Cue.seq` that is
+ * `<= activeSeq`. This is not an approximation of the old audio-driven
+ * design; it is strictly more robust than it, because a cue cannot fire
+ * ahead of or behind its sentence — it fires WITH it, by construction. See
+ * `Cue.seq`'s doc comment in ./types for the full reasoning, and
+ * docs/cue-timing.md for the pre-recorded-lesson problem this sidesteps
+ * entirely rather than solving.
  */
 export function useCueTrack<P extends object>(
   module: WidgetModule<P>,
   basePar: P,
   cues: readonly Cue[] | undefined,
-  player: AudioPlayer | null
+  activeSeq: number | null
 ): {
   params: P;
   motion: Record<string, SharedValue<number>>;
+  /** The active cue's caption, with every {{token}} already interpolated from
+   *  `module.computeDerived(params)`. Never the raw template — an unknown
+   *  token drops the whole caption rather than rendering the braces; see
+   *  interpolateCaption below. */
   caption: string | null;
 } {
   const [params, setParams] = useState<P>(basePar);
@@ -72,58 +75,98 @@ export function useCueTrack<P extends object>(
   }, [basePar]);
 
   useEffect(() => {
-    if (!player || !cues || cues.length === 0) return;
+    if (!cues || cues.length === 0 || activeSeq == null) return;
 
-    const ordered = [...cues].sort((a, b) => a.at - b.at);
-    let frame = 0;
+    const ordered = [...cues].sort((a, b) => a.seq - b.seq);
+    let next = -1;
+    for (let i = 0; i < ordered.length; i++) {
+      if (ordered[i].seq <= activeSeq) next = i;
+      else break;
+    }
 
-    const tick = () => {
-      const t = player.currentTime; // seconds
-      let next = -1;
-      for (let i = 0; i < ordered.length; i++) {
-        if (ordered[i].at <= t) next = i;
-        else break;
+    if (next === activeIndex.current) return;
+    activeIndex.current = next;
+    const cue = next >= 0 ? ordered[next] : null;
+
+    if (!cue) {
+      setParams(basePar);
+      setCaption(null);
+      for (const [key, sv] of motionEntries) {
+        sv.value = Number(basePar[key as keyof P] ?? 0);
       }
+      return;
+    }
 
-      if (next !== activeIndex.current) {
-        activeIndex.current = next;
-        const cue = next >= 0 ? ordered[next] : null;
+    const merged = { ...basePar, ...(cue.patch as Partial<P>) };
+    const checked = module.validate(merged);
+    if (!checked.ok) {
+      if (__DEV__) console.warn('[drona/widgets] cue patch rejected', checked.errors);
+      return;
+    }
 
-        if (cue) {
-          const merged = { ...basePar, ...(cue.patch as Partial<P>) };
-          const checked = module.validate(merged);
-          if (checked.ok) {
-            const target = checked.params;
-            setParams(target);
-            setCaption(cue.caption ?? null);
-            for (const [key, sv] of motionEntries) {
-              const to = Number(target[key as keyof P] ?? 0);
-              sv.value =
-                cue.tween && cue.tween > 0
-                  ? withTiming(to, {
-                      duration: cue.tween,
-                      easing: Easing.inOut(Easing.quad),
-                    })
-                  : to;
-            }
-          } else if (__DEV__) {
-            console.warn('[drona/widgets] cue patch rejected', checked.errors);
-          }
-        } else {
-          setParams(basePar);
-          setCaption(null);
-          for (const [key, sv] of motionEntries) {
-            sv.value = Number(basePar[key as keyof P] ?? 0);
-          }
-        }
-      }
-      frame = requestAnimationFrame(tick);
-    };
-
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    const target = checked.params;
+    setParams(target);
+    setCaption(interpolateCaption(cue.caption, module, target));
+    for (const [key, sv] of motionEntries) {
+      const to = Number(target[key as keyof P] ?? 0);
+      sv.value =
+        cue.tween && cue.tween > 0
+          ? withTiming(to, { duration: cue.tween, easing: Easing.inOut(Easing.quad) })
+          : to;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, cues, basePar, module]);
+  }, [activeSeq, cues, basePar, module]);
 
   return { params, motion, caption };
+}
+
+const TOKEN = /\{\{(\w+)\}\}/g;
+
+/**
+ * Fills `{{token}}` from `module.computeDerived(params)` — the same function
+ * the widget's own readout uses, so the words and the number cannot disagree
+ * about a value (docs/narration-diagram-alignment.md Rule 2).
+ *
+ * An unknown token drops the WHOLE caption rather than rendering the raw
+ * template or a blank in its place — a literal "{{range}}" on screen is worse
+ * than no caption, and a half-filled sentence reads as more broken than a
+ * missing one. This is the client half of the rule; the server validates
+ * tokens before a live doubt's payload ever reaches here (see
+ * docs/narration-diagram-alignment.md's runtime-token section) — this is
+ * defence in depth, not the primary gate.
+ */
+function interpolateCaption<P extends object>(
+  caption: string | undefined,
+  module: WidgetModule<P>,
+  params: P
+): string | null {
+  if (!caption) return null;
+  if (!TOKEN.test(caption)) return caption;
+  TOKEN.lastIndex = 0;
+
+  const values = module.computeDerived(params);
+  let missing = false;
+  const filled = caption.replace(TOKEN, (_match, key: string) => {
+    if (!(key in values)) {
+      missing = true;
+      return '';
+    }
+    return formatDerived(values[key]);
+  });
+  if (missing) {
+    if (__DEV__) {
+      console.warn(
+        `[drona/widgets] ${module.id}: caption references an unknown token — dropping the caption`,
+        caption
+      );
+    }
+    return null;
+  }
+  return filled;
+}
+
+/** One decimal place, trimmed — "49.3", not "49.34000000000001" or "49.0". */
+function formatDerived(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }

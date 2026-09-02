@@ -68,6 +68,8 @@ import {
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
+import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
 import { EnteringCardScreen } from '@/components/entering-card';
 import {
   LONG_WAIT_TEXT,
@@ -429,6 +431,76 @@ export default function LiveClassroomScreen() {
     }),
     [windowWidth, boardHeight]
   );
+  /**
+   * The board's own ink, so a widget diagram is not in a different hand than
+   * the writing around it. `fontFamily` must be one of the app's loaded
+   * families — mirrors the theme built for the (reverted) lesson-player M1
+   * wiring, since the requirement is the same wherever a widget renders.
+   */
+  const widgetTheme = useMemo<WidgetTheme>(
+    () => ({
+      ink: INK,
+      inkMuted: INK_MUTED,
+      rule: HAIRLINE,
+      accent: DEEP_AMBER,
+      surface: colors.paper,
+      fontFamily: 'AnekLatin_400Regular',
+      monoFontFamily: 'Menlo',
+    }),
+    []
+  );
+
+  /**
+   * Only `molecule_3d` needs `resolveStructure`, and it is not built against
+   * live doubts yet, so this rejects rather than pretending. It must never
+   * reach the network when implemented — cache-first and offline by
+   * contract, because a live class has to render with the radio off.
+   */
+  const widgetServices = useMemo<WidgetServices>(
+    () => ({
+      resolveStructure: async (ref: string) => {
+        throw new Error(`No structure cache yet for ${ref}`);
+      },
+    }),
+    []
+  );
+
+  /** A tier-3 render is a measurement, not a failure — it feeds the queue
+   *  that decides which widget gets built next. Logged locally until
+   *  0021_board_widgets.sql is run and board_gaps exists. */
+  const onWidgetGap = useCallback((reason: string, detail: unknown) => {
+    console.warn('[board-gap]', reason, detail);
+  }, []);
+
+  /**
+   * The clock a live session actually has: not seconds, but how far the
+   * board has gotten in the server's own reveal order. `board` is appended
+   * to strictly in reveal sequence (`onBoardReveal`), so the last entry's
+   * `seq` is "how far we've gotten" — see `Cue.seq` in lib/widgets/types.ts.
+   */
+  const activeSeq = board.length > 0 ? board[board.length - 1].seq : null;
+
+  /** The active cue's caption, already {{token}}-interpolated. Takes
+   *  precedence over the narration caption in the strip below while a cue is
+   *  live — it is the more specific thing at that moment, same call as the
+   *  (reverted) lesson-player wiring made. */
+  const [widgetCaption, setWidgetCaption] = useState<string | null>(null);
+  const onWidgetCaption = useCallback((c: string | null) => setWidgetCaption(c), []);
+
+  /** Everything a `BoardWidget` needs beyond its own payload and its share of
+   *  the board box (`diagramBox`) — kept separate from `diagramBox` because
+   *  `BoardDiagram` (the tier-3 fallback) has no use for any of it. */
+  const widgetHost = useMemo(
+    () => ({
+      activeSeq,
+      theme: widgetTheme,
+      services: widgetServices,
+      onGap: onWidgetGap,
+      onCaption: onWidgetCaption,
+    }),
+    [activeSeq, widgetTheme, widgetServices, onWidgetGap, onWidgetCaption]
+  );
+
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   /**
@@ -770,7 +842,12 @@ export default function LiveClassroomScreen() {
             ) : (
               board.map((event, i) => (
                 <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
-                  <BoardBlockView event={event} styles={styles} diagramBox={diagramBox} />
+                  <BoardBlockView
+                    event={event}
+                    styles={styles}
+                    diagramBox={diagramBox}
+                    widgetHost={widgetHost}
+                  />
                 </Animated.View>
               ))
             )}
@@ -871,7 +948,7 @@ export default function LiveClassroomScreen() {
       <CaptionStrip
         open={captions || handRaised || checkOptions.length > 0}
         listening={handRaised}
-        text={caption}
+        text={widgetCaption ?? caption}
       />
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
@@ -1035,10 +1112,18 @@ function BoardBlockView({
   event,
   styles,
   diagramBox,
+  widgetHost,
 }: {
   event: BoardEvent;
   styles: Styles;
   diagramBox: { availableWidth: number; maxHeight: number };
+  widgetHost: {
+    activeSeq: number | null;
+    theme: WidgetTheme;
+    services: WidgetServices;
+    onGap: (reason: string, detail: unknown) => void;
+    onCaption: (caption: string | null) => void;
+  };
 }) {
   const raw =
     event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
@@ -1061,6 +1146,23 @@ function BoardBlockView({
   // A figure, not a line of writing — it owns its own sizing and never goes
   // near the LaTeX converter.
   if (event.type === 'diagram') {
+    // A payload beats markup wherever both exist: the registry draws the
+    // real curve from live parameters, an `svg` string draws an
+    // approximation the model produced by hand.
+    if (event.payload) {
+      return (
+        <BoardWidget
+          event={{ seq: event.seq, payload: event.payload, tier: event.tier ?? 'precomputed' }}
+          activeSeq={widgetHost.activeSeq}
+          width={diagramBox.availableWidth}
+          height={diagramBox.maxHeight}
+          theme={widgetHost.theme}
+          services={widgetHost.services}
+          onGap={widgetHost.onGap}
+          onCaption={widgetHost.onCaption}
+        />
+      );
+    }
     if (!event.svg) return null;
     return (
       <BoardDiagram
