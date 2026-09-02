@@ -160,7 +160,9 @@ type LoadState =
   | { kind: 'error' };
 
 export default function LessonPlayerScreen() {
-  const isLandscape = useLandscapeLock();
+  // Pinned: the board holds one landscape direction, so it does not flip
+  // under a student who shifts position mid-lesson.
+  const isLandscape = useLandscapeLock(true);
   const params = useLocalSearchParams<{
     chapterId?: string;
     chapterTitle?: string;

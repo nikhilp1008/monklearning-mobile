@@ -2,11 +2,34 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { TabBar } from '@/components/tab-bar';
+import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { useSharedAuthState } from '@/lib/auth';
 
 // The whole app is a light "paper" aesthetic, regardless of system light/dark
 // setting — override the root's theme-following `style="auto"`.
 export default function TabLayout() {
+  /**
+   * The tabs are the app's portrait ground, and they say so.
+   *
+   * Three screens lock landscape — the lesson player and the two classroom
+   * screens — and the only thing that ever put the app back was the unmount
+   * grace timer inside the lock. That covers a back-navigation and nothing
+   * else: quit the app from a lesson, or come back to it after the OS has
+   * killed it, and the tabs mount with the device still rotated and nobody
+   * asking otherwise, so Lessons renders sideways until you enter and leave a
+   * lesson again.
+   *
+   * Declaring it here is what the lock's own design asks for — every screen
+   * states the orientation it wants — and it makes the restore deterministic
+   * rather than a race against a timer.
+   *
+   * The paint is deliberately NOT held until the rotation lands, unlike the
+   * end-of-class summary. That screen is entered directly from landscape, so a
+   * frame of wide layout would be visible; here the tabs are usually already
+   * portrait and gating the first paint would put a blank screen in front of
+   * every cold start to save a frame almost nobody sees.
+   */
+  usePortraitLock();
   const authState = useSharedAuthState();
 
   /**
