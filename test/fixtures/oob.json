@@ -1,0 +1,11 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": { "d": "M 76 372 C 2300 -1295 4500 -800 6743 300" },
+      "children": null
+    }
+  ]
+}

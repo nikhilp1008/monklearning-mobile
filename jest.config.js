@@ -24,6 +24,12 @@ module.exports = {
   setupFiles: ['react-native-reanimated/mock'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '\\.html$': '<rootDir>/jest/html-asset-mock.js',
+    '^react-native-webview$': '<rootDir>/jest/react-native-webview-mock.js',
   },
-  testPathIgnorePatterns: ['/node_modules/', '/ios/'],
+  // test-utils.ts is a shared helper (renderWidgetTree, scaffoldingDiffs, the
+  // fixed theme/services), not a test — but Jest's default testMatch picks up
+  // ANY .ts directly under a __tests__ directory regardless of filename, and
+  // a helper with no test() calls fails as "must contain at least one test".
+  testPathIgnorePatterns: ['/node_modules/', '/ios/', 'lib/widgets/__tests__/test-utils\\.ts$'],
 };
