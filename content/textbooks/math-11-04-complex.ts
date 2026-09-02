@@ -104,7 +104,7 @@ export const ch04Complex: Chapter = {
           "t": "formula",
           "kicker": "THE NUMBER SYSTEM, ONE LAST TIME",
           "tag": "ℂ closes it",
-          "main": "ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
+          "main": "ℕ ⊂ W ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
           "legend": [
             "each step was forced by an equation the previous system could not solve",
             "ℤ solved x + 5 = 2 · ℚ solved 2x = 1 · ℝ solved x² = 2 · ℂ solves x² = −1"
@@ -401,7 +401,7 @@ export const ch04Complex: Chapter = {
               "note": "(1 + i)² = 2i · (1 − i)² = −2i"
             },
             {
-              "f": "ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
+              "f": "ℕ ⊂ W ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
               "note": "order is lost at the last step"
             }
           ],

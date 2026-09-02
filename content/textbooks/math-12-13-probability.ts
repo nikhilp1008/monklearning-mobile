@@ -1981,7 +1981,7 @@ export const ch12Probability: Chapter = {
             { "label": "11/16", "nudge": "This is the complement, <i>P</i>(<i>X</i> ≤ 2). Taking the complement is often the right instinct, but here the direct sum has only two terms and is shorter." }
           ],
           "correct": 1,
-          "solution": "P(X ≥ 3) = P(3) + P(4) = [4C3 + 4C4](1/2)^4 = (4 + 1)/16 = 5/16. With p = 1/2 every term shares the same (1/2)^4, so the whole question reduces to adding two binomial coefficients."
+          "solution": "P(X ≥ 3) = P(3) + P(4) = [4C3 + 4C4](1/2)<sup>4</sup> = (4 + 1)/16 = 5/16. With p = 1/2 every term shares the same (1/2)<sup>4</sup>, so the whole question reduces to adding two binomial coefficients."
         },
         {
           "t": "mcq",
