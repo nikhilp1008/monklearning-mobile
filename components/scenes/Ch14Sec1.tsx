@@ -99,7 +99,8 @@ export default function Ch14Sec1({ currentTime, reveals, language }: SceneProps)
             <Bob
               key={i}
               active={beat === 0}
-              delay={i * 90}
+              elapsed={currentTime - (reveals[0] ?? 0)}
+              delay={i * 0.09}
               settled={beat > 0 ? SETTLED[i] : 0}>
               <Circle cx={x} cy={400} r={6} fill={INK} />
             </Bob>

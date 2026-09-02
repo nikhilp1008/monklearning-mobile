@@ -4,8 +4,6 @@ import Animated, {
   useAnimatedProps,
   useSharedValue,
   withDelay,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { G, Path, Rect, Text as SvgText } from 'react-native-svg';
@@ -285,45 +283,44 @@ export function Draw({
  * final stop, which is where the beat leaves it.
  */
 export function StepAcross({
-  active,
+  elapsed,
   stops,
-  hold = 530,
-  travel = 400,
+  hold = 0.55,
+  travel = 0.4,
   children,
 }: {
-  active: boolean;
+  /** Seconds since the beat began; negative or absent means "not yet". */
+  elapsed: number;
   stops: number[];
+  /** Seconds resting at each stop, and seconds spent sliding between them. */
   hold?: number;
   travel?: number;
   children: React.ReactNode;
 }) {
-  const x = useSharedValue(active ? stops[0] : stops[stops.length - 1]);
+  const last = stops[stops.length - 1];
+  let x = last;
 
-  useEffect(() => {
-    if (!active) {
-      x.value = withTiming(stops[stops.length - 1], { duration: 300 });
-      return;
+  if (elapsed >= 0) {
+    const leg = hold + travel;
+    const step = Math.floor(elapsed / leg);
+    if (step >= stops.length - 1) {
+      x = last;
+    } else {
+      const into = elapsed - step * leg;
+      const from = stops[step];
+      const to = stops[step + 1];
+      // Rest, then ease across to the next stop.
+      const p = into <= hold ? 0 : Math.min(1, (into - hold) / travel);
+      x = from + (to - from) * easeInOut(p);
     }
-    x.value = stops[0];
-    // Each step waits at its stop, then slides to the next — the stick being
-    // laid down, read, lifted and laid down again.
-    const rest = stops.slice(1).map((stop) =>
-      withDelay(
-        hold,
-        withTiming(stop, { duration: travel, easing: Easing.inOut(Easing.ease) })
-      )
-    );
-    if (rest.length > 0) {
-      // withSequence takes its steps as arguments, not an array.
-      x.value = withSequence(rest[0], ...rest.slice(1));
-    }
-    // `stops` is a literal in the scene; depending on its identity would
-    // restart the walk on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, hold, travel]);
+  }
 
-  const animatedProps = useAnimatedProps(() => ({ x: x.value }));
-  return <AnimatedG animatedProps={animatedProps}>{children}</AnimatedG>;
+  return <G x={x}>{children}</G>;
+}
+
+/** The `ease-in-out` the webpage's keyframes use, as a plain function. */
+function easeInOut(p: number): number {
+  return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
 }
 
 /**
@@ -336,42 +333,33 @@ export function StepAcross({
  */
 export function Bob({
   active,
+  elapsed,
   amplitude = 22,
-  period = 1300,
+  period = 1.3,
   delay = 0,
   settled = 0,
   children,
 }: {
   active: boolean;
+  /** Seconds since the beat began. */
+  elapsed: number;
   amplitude?: number;
+  /** Seconds per full up-and-down. */
   period?: number;
-  /** Stagger, in ms — what makes the ripple travel. */
+  /** Stagger, in seconds — what makes the ripple appear to travel. */
   delay?: number;
   /** Where to rest once the bobbing stops. */
   settled?: number;
   children: React.ReactNode;
 }) {
-  const y = useSharedValue(settled);
-
-  useEffect(() => {
-    if (!active) {
-      y.value = withTiming(settled, { duration: 600, easing: Easing.out(Easing.ease) });
-      return;
-    }
-    y.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(-amplitude, { duration: period / 2, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: period / 2, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1
-      )
-    );
-  }, [active, amplitude, period, delay, settled, y]);
-
-  const animatedProps = useAnimatedProps(() => ({ y: y.value }));
-  return <AnimatedG animatedProps={animatedProps}>{children}</AnimatedG>;
+  let y = settled;
+  if (active) {
+    const since = elapsed - delay;
+    // The webpage's keyframe exactly: 0 at both ends of the cycle, -amplitude
+    // at the halfway point.
+    y = since <= 0 ? 0 : (-amplitude * (1 - Math.cos((2 * Math.PI * since) / period))) / 2;
+  }
+  return <G y={y}>{children}</G>;
 }
 
 /** Straight arrow with a drawn head, as a single Draw path. */

@@ -185,7 +185,9 @@ export default function Ch01Sec1({ currentTime, reveals, language }: SceneProps)
       <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1}>
         {/* The web walks the stick with the `sc-stick` keyframes: four stops
             over 3.8s, laid down and picked up again. This is that walk. */}
-        <StepAcross active={beat === 3} stops={[0, 160, 320, 480]}>
+        <StepAcross
+          elapsed={beat === 3 ? currentTime - (reveals[3] ?? 0) : -1}
+          stops={[0, 160, 320, 480]}>
           <Rect
             x={TX}
             y={STICK_Y}

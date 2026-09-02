@@ -102,7 +102,9 @@ STYLE_FIXES = {
         """      <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1}>
         {/* The web walks the stick with the `sc-stick` keyframes: four stops
             over 3.8s, laid down and picked up again. This is that walk. */}
-        <StepAcross active={beat === 3} stops={[0, 160, 320, 480]}>""",
+        <StepAcross
+          elapsed={beat === 3 ? currentTime - (reveals[3] ?? 0) : -1}
+          stops={[0, 160, 320, 480]}>""",
     ), (
         """        </G>
       </G>
@@ -125,7 +127,8 @@ STYLE_FIXES = {
             <Bob
               key={i}
               active={beat === 0}
-              delay={i * 90}
+              elapsed={currentTime - (reveals[0] ?? 0)}
+              delay={i * 0.09}
               settled={beat > 0 ? SETTLED[i] : 0}>
               <Circle cx={x} cy={400} r={6} fill={INK} />
             </Bob>""",
