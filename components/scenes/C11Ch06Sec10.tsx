@@ -99,37 +99,37 @@ export default function C11Ch06Sec10({ currentTime, reveals, language }: ScenePr
 
       {/* beat 5 — substitute and evaluate */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
-        <SvgText x={540} y={300} textAnchor="middle" fontSize={15} fill={MUTED} fontFamily="var(--font-anek-latin), sans-serif">
-          Kc = [NH₃]<TSpan dy={-7} fontSize="0.62em">2</TSpan>
+        <SvgText x={540} y={300} textAnchor="middle" fontSize={15} fill={MUTED} fontFamily='AnekLatin_600SemiBold'>
+          Kc = [NH₃]<TSpan dy={-7} fontSize={9.3}>2</TSpan>
           <TSpan dy={7}> / ([N₂][H₂]</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">3</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>3</TSpan>
           <TSpan dy={7}>)</TSpan>
         </SvgText>
       </Fade>
       <Fade on={beat >= 5} delay={dl(5, 1.1)}>
-        <SvgText x={540} y={335} textAnchor="middle" fontSize={19} fontWeight={700} fill={INK} fontFamily="var(--font-anek-latin), sans-serif">
-          = (0.40)<TSpan dy={-8} fontSize="0.6em">2</TSpan>
+        <SvgText x={540} y={335} textAnchor="middle" fontSize={19} fontWeight={700} fill={INK} fontFamily='AnekLatin_700Bold'>
+          = (0.40)<TSpan dy={-8} fontSize={11.4}>2</TSpan>
           <TSpan dy={8}> / (0.50 × 1.0</TSpan>
-          <TSpan dy={-8} fontSize="0.6em">3</TSpan>
+          <TSpan dy={-8} fontSize={11.4}>3</TSpan>
           <TSpan dy={8}>) = 0.32</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 6 — units */}
       <Fade on={beat >= 6} delay={dl(6, 0.4)}>
-        <SvgText x={540} y={375} textAnchor="middle" fontSize={16} fill={INK} fontFamily="var(--font-anek-latin), sans-serif">
-          Δn = 2 − 4 = −2  ⇒  units = mol<TSpan dy={-8} fontSize="0.6em">−2</TSpan>
+        <SvgText x={540} y={375} textAnchor="middle" fontSize={16} fill={INK} fontFamily='AnekLatin_600SemiBold'>
+          Δn = 2 − 4 = −2  ⇒  units = mol<TSpan dy={-8} fontSize={9.6}>−2</TSpan>
           <TSpan dy={8}> L</TSpan>
-          <TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          <TSpan dy={-8} fontSize={9.6}>2</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 7 — final answer, ringed */}
       <Fade on={beat >= 7} delay={dl(7, 0.4)}>
-        <SvgText x={540} y={440} textAnchor="middle" fontSize={26} fontWeight={800} fill={GREEN} fontFamily="var(--font-anek-latin), sans-serif">
-          Kc = 0.32 mol<TSpan dy={-11} fontSize="0.6em">−2</TSpan>
+        <SvgText x={540} y={440} textAnchor="middle" fontSize={26} fontWeight={800} fill={GREEN} fontFamily='AnekLatin_800ExtraBold'>
+          Kc = 0.32 mol<TSpan dy={-11} fontSize={15.6}>−2</TSpan>
           <TSpan dy={11}> L</TSpan>
-          <TSpan dy={-11} fontSize="0.6em">2</TSpan>
+          <TSpan dy={-11} fontSize={15.6}>2</TSpan>
         </SvgText>
       </Fade>
       <Draw

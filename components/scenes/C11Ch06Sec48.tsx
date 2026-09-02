@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, Chip, ringD, INK, MUTED, 
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec48({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -56,9 +56,9 @@ export default function C11Ch06Sec48({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 1} delay={dl(1, 0.4)}>
         <Rect x={330} y={105} width={420} height={42} rx={12} fill={CREAM} stroke={AMBER} strokeWidth={1.8} />
         <SvgText x={540} y={132} textAnchor="middle" fontSize={17} fontWeight={700} fill={INK} fontFamily={ANEK}>
-          Kw = [H⁺][OH⁻] = 1.0×10<TSpan dy={-8} fontSize="0.6em">−14</TSpan>
+          Kw = [H⁺][OH⁻] = 1.0×10<TSpan dy={-8} fontSize={10.2}>−14</TSpan>
           <TSpan dy={8}> M</TSpan>
-          <TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          <TSpan dy={-8} fontSize={10.2}>2</TSpan>
           <TSpan dy={8}> (298 K)</TSpan>
         </SvgText>
       </Fade>
@@ -89,7 +89,7 @@ export default function C11Ch06Sec48({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={270} textAnchor="middle" fontSize={15} fill={AMBER_DARK} fontFamily={ANEK}>
           {t("pure water: [H⁺]=[OH⁻]=10", "pure water: [H⁺]=[OH⁻]=10")}
-          <TSpan dy={-7} fontSize="0.62em">−7</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−7</TSpan>
           <TSpan dy={7}> {t("⇒ pH = 7 (neutral)", "⇒ pH = 7 (neutral)")}</TSpan>
         </SvgText>
       </Fade>
@@ -116,7 +116,7 @@ export default function C11Ch06Sec48({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 6} delay={dl(6, 0.4)}>
         <SvgText x={540} y={365} textAnchor="middle" fontSize={13} fill={MUTED} fontFamily={ANEK}>
           {t("Kw: units M", "Kw: units M")}
-          <TSpan dy={-6} fontSize="0.62em">2</TSpan>
+          <TSpan dy={-6} fontSize={8.1}>2</TSpan>
           <TSpan dy={6}>; {t("pH and pOH: dimensionless", "pH aur pOH: dimensionless")}</TSpan>
         </SvgText>
       </Fade>

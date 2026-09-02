@@ -36,7 +36,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, INK, MUTED, AMBER_DARK, R
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec71({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -73,13 +73,13 @@ export default function C11Ch06Sec71({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 1} delay={dl(1, 0.6)}>
         <SvgText x={60} y={122} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          Kc = [C]<TSpan dy={-7} fontSize="0.62em">c</TSpan>
+          Kc = [C]<TSpan dy={-7} fontSize={9.3}>c</TSpan>
           <TSpan dy={7}>[D]</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">d</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>d</TSpan>
           <TSpan dy={7}> / [A]</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">a</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>a</TSpan>
           <TSpan dy={7}>[B]</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">b</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>b</TSpan>
         </SvgText>
       </Fade>
 
@@ -91,7 +91,7 @@ export default function C11Ch06Sec71({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 2} delay={dl(2, 0.6)}>
         <SvgText x={60} y={214} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          Kp = Kc(RT)<TSpan dy={-7} fontSize="0.62em">Δn</TSpan>
+          Kp = Kc(RT)<TSpan dy={-7} fontSize={9.3}>Δn</TSpan>
         </SvgText>
       </Fade>
       <Fade on={beat >= 2} delay={dl(2, 1)}>
@@ -113,7 +113,7 @@ export default function C11Ch06Sec71({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 3} delay={dl(3, 1)}>
         <SvgText x={60} y={324} textAnchor="start" fontSize={11} fill={MUTED} fontFamily={ANEK}>
-          K = e<TSpan dy={-6} fontSize="0.62em">(−ΔG°/RT)</TSpan>
+          K = e<TSpan dy={-6} fontSize={6.8}>(−ΔG°/RT)</TSpan>
         </SvgText>
       </Fade>
 
@@ -156,7 +156,7 @@ export default function C11Ch06Sec71({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 6} delay={dl(6, 0.6)}>
         <SvgText x={564} y={122} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          Kw = [H⁺][OH⁻] = 10<TSpan dy={-7} fontSize="0.62em">−14</TSpan>
+          Kw = [H⁺][OH⁻] = 10<TSpan dy={-7} fontSize={9.3}>−14</TSpan>
         </SvgText>
       </Fade>
       <Fade on={beat >= 6} delay={dl(6, 1)}>

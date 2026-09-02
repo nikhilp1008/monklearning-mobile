@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec69({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -60,7 +60,7 @@ export default function C11Ch06Sec69({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 1} delay={dl(1, 0.9)}>
         <SvgText x={60} y={124} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          Ksp(AgCl) = 1.8×10<TSpan dy={-7} fontSize="0.62em">−10</TSpan>
+          Ksp(AgCl) = 1.8×10<TSpan dy={-7} fontSize={9.3}>−10</TSpan>
           <TSpan dy={7}>; s in pure water AND 0.10 M NaCl?</TSpan>
         </SvgText>
       </Fade>
@@ -68,11 +68,11 @@ export default function C11Ch06Sec69({ currentTime, reveals, language }: ScenePr
       {/* beat 2 — pure water */}
       <Fade on={beat >= 2} delay={dl(2, 0.4)}>
         <SvgText x={540} y={158} textAnchor="middle" fontSize={15} fill={INK} fontFamily={ANEK}>
-          pure water: Ksp = s<TSpan dy={-7} fontSize="0.62em">2</TSpan>
+          pure water: Ksp = s<TSpan dy={-7} fontSize={9.3}>2</TSpan>
           <TSpan dy={7}> ⇒ s = √(1.8×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−10</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−10</TSpan>
           <TSpan dy={7}>) = 1.34×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−5</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−5</TSpan>
           <TSpan dy={7}> M</TSpan>
         </SvgText>
       </Fade>
@@ -90,9 +90,9 @@ export default function C11Ch06Sec69({ currentTime, reveals, language }: ScenePr
       {/* beat 4 — the new solubility */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={224} textAnchor="middle" fontSize={15} fill={INK} fontFamily={ANEK}>
-          s′ = Ksp/[Cl⁻] = 1.8×10<TSpan dy={-7} fontSize="0.62em">−10</TSpan>
+          s′ = Ksp/[Cl⁻] = 1.8×10<TSpan dy={-7} fontSize={9.3}>−10</TSpan>
           <TSpan dy={7}>/0.10 = 1.8×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−9</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−9</TSpan>
           <TSpan dy={7}> M</TSpan>
         </SvgText>
       </Fade>

@@ -4,6 +4,8 @@ import Animated, {
   useAnimatedProps,
   useSharedValue,
   withDelay,
+  withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { G, Path, Rect, Text as SvgText } from 'react-native-svg';
@@ -268,6 +270,108 @@ export function Draw({
       animatedProps={animatedProps}
     />
   );
+}
+
+/**
+ * A group that walks sideways through a series of held positions.
+ *
+ * The webpage does this with a keyframed CSS animation (`sc-stick`): a metre
+ * stick is laid down, held, picked up and laid down again, four times, to
+ * measure a table. Dropping it left the stick sitting still and then jumping to
+ * the end — on the one beat whose entire point is the repeated laying-down.
+ *
+ * `stops` are the x offsets to rest at, `hold` how long to sit at each before
+ * moving, and `travel` how long a move takes. Not active means parked at the
+ * final stop, which is where the beat leaves it.
+ */
+export function StepAcross({
+  active,
+  stops,
+  hold = 530,
+  travel = 400,
+  children,
+}: {
+  active: boolean;
+  stops: number[];
+  hold?: number;
+  travel?: number;
+  children: React.ReactNode;
+}) {
+  const x = useSharedValue(active ? stops[0] : stops[stops.length - 1]);
+
+  useEffect(() => {
+    if (!active) {
+      x.value = withTiming(stops[stops.length - 1], { duration: 300 });
+      return;
+    }
+    x.value = stops[0];
+    // Each step waits at its stop, then slides to the next — the stick being
+    // laid down, read, lifted and laid down again.
+    const rest = stops.slice(1).map((stop) =>
+      withDelay(
+        hold,
+        withTiming(stop, { duration: travel, easing: Easing.inOut(Easing.ease) })
+      )
+    );
+    if (rest.length > 0) {
+      // withSequence takes its steps as arguments, not an array.
+      x.value = withSequence(rest[0], ...rest.slice(1));
+    }
+    // `stops` is a literal in the scene; depending on its identity would
+    // restart the walk on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, hold, travel]);
+
+  const animatedProps = useAnimatedProps(() => ({ x: x.value }));
+  return <AnimatedG animatedProps={animatedProps}>{children}</AnimatedG>;
+}
+
+/**
+ * A group that bobs up and down forever, then settles.
+ *
+ * The webpage runs one CSS keyframe per particle with a staggered delay, so a
+ * ripple appears to travel along a row of dots while each dot only moves up and
+ * down — which is the whole thesis of the scene it belongs to. Losing it left a
+ * static row illustrating nothing.
+ */
+export function Bob({
+  active,
+  amplitude = 22,
+  period = 1300,
+  delay = 0,
+  settled = 0,
+  children,
+}: {
+  active: boolean;
+  amplitude?: number;
+  period?: number;
+  /** Stagger, in ms — what makes the ripple travel. */
+  delay?: number;
+  /** Where to rest once the bobbing stops. */
+  settled?: number;
+  children: React.ReactNode;
+}) {
+  const y = useSharedValue(settled);
+
+  useEffect(() => {
+    if (!active) {
+      y.value = withTiming(settled, { duration: 600, easing: Easing.out(Easing.ease) });
+      return;
+    }
+    y.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(-amplitude, { duration: period / 2, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: period / 2, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1
+      )
+    );
+  }, [active, amplitude, period, delay, settled, y]);
+
+  const animatedProps = useAnimatedProps(() => ({ y: y.value }));
+  return <AnimatedG animatedProps={animatedProps}>{children}</AnimatedG>;
 }
 
 /** Straight arrow with a drawn head, as a single Draw path. */

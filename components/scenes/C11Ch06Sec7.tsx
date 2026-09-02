@@ -37,15 +37,15 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, INK, MUTED, AMBER, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 /** [X]^exp [Y]^exp — bracket-notation fraction row (concentration form). */
 function BracketPair({ x, y, s1, e1, s2, e2 }: { x: number; y: number; s1: string; e1: string; s2: string; e2: string }) {
   return (
     <SvgText x={x} y={y} textAnchor="middle" fontSize={20} fontWeight={600} fill={INK} fontFamily={ANEK}>
-      [{s1}]<TSpan dy={-9} fontSize="0.6em">{e1}</TSpan>
+      [{s1}]<TSpan dy={-9} fontSize={12.0}>{e1}</TSpan>
       <TSpan dy={9}> [{s2}]</TSpan>
-      <TSpan dy={-9} fontSize="0.6em">{e2}</TSpan>
+      <TSpan dy={-9} fontSize={12.0}>{e2}</TSpan>
     </SvgText>
   );
 }
@@ -54,9 +54,9 @@ function BracketPair({ x, y, s1, e1, s2, e2 }: { x: number; y: number; s1: strin
 function PressurePair({ x, y, s1, e1, s2, e2 }: { x: number; y: number; s1: string; e1: string; s2: string; e2: string }) {
   return (
     <SvgText x={x} y={y} textAnchor="middle" fontSize={18} fontWeight={600} fill={INK} fontFamily={ANEK}>
-      p({s1})<TSpan dy={-8} fontSize="0.6em">{e1}</TSpan>
+      p({s1})<TSpan dy={-8} fontSize={10.8}>{e1}</TSpan>
       <TSpan dy={8}> p({s2})</TSpan>
-      <TSpan dy={-8} fontSize="0.6em">{e2}</TSpan>
+      <TSpan dy={-8} fontSize={10.8}>{e2}</TSpan>
     </SvgText>
   );
 }

@@ -59,7 +59,7 @@ export default function B11Ch01Sec23({ currentTime, reveals, language }: ScenePr
         <Draw on={true} d="M 140 140 h 320 v 160 h -320 z" stroke={GREEN} sw={2.2} dur={0.7} />
       </Fade>
       <Fade on={beat >= 1 && beat < 4} delay={dl(1, 1)}>
-        <SvgText x={300} y={169} textAnchor="middle" fontStyle="italic" fontWeight={700} fontSize={16} fill={GREEN} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={300} y={169} textAnchor="middle" fontStyle="italic" fontWeight={700} fontSize={16} fill={GREEN} fontFamily='AnekLatin_700Bold'>
           Corvus
         </SvgText>
       </Fade>
@@ -93,7 +93,7 @@ export default function B11Ch01Sec23({ currentTime, reveals, language }: ScenePr
         <Draw on={true} d="M 620 140 h 320 v 160 h -320 z" stroke={AMBER_DARK} sw={2.2} dur={0.7} />
       </Fade>
       <Fade on={beat >= 1 && beat < 4} delay={dl(1, 1.3)}>
-        <SvgText x={780} y={169} textAnchor="middle" fontStyle="italic" fontWeight={700} fontSize={16} fill={AMBER_DARK} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={780} y={169} textAnchor="middle" fontStyle="italic" fontWeight={700} fontSize={16} fill={AMBER_DARK} fontFamily='AnekLatin_700Bold'>
           Pavo
         </SvgText>
       </Fade>

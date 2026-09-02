@@ -1,0 +1,14 @@
+[
+  {
+    "id": "projectile_motion",
+    "version": 1,
+    "animatable": [
+      "launch_angle_deg"
+    ]
+  },
+  {
+    "id": "molecule_3d",
+    "version": 1,
+    "animatable": []
+  }
+]

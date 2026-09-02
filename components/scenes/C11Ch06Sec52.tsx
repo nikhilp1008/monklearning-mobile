@@ -29,7 +29,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, crossD, ringD, INK, AMBER
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec52({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -61,7 +61,7 @@ export default function C11Ch06Sec52({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 1} delay={dl(1, 0.9)}>
         <SvgText x={60} y={124} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          pH of 1.0×10<TSpan dy={-7} fontSize="0.62em">−8</TSpan>
+          pH of 1.0×10<TSpan dy={-7} fontSize={9.3}>−8</TSpan>
           <TSpan dy={7}> M HCl</TSpan>
         </SvgText>
       </Fade>
@@ -72,7 +72,7 @@ export default function C11Ch06Sec52({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 2} delay={dl(2, 0.8)}>
         <SvgText x={540} y={167} textAnchor="middle" fontSize={15} fill={RED} fontFamily={ANEK}>
-          pH = −log(10<TSpan dy={-7} fontSize="0.62em">−8</TSpan>
+          pH = −log(10<TSpan dy={-7} fontSize={9.3}>−8</TSpan>
           <TSpan dy={7}>) = 8 … {t("but pH 8 is BASIC!", "par pH 8 BASIC hai!")}</TSpan>
         </SvgText>
       </Fade>
@@ -89,7 +89,7 @@ export default function C11Ch06Sec52({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 3} delay={dl(3, 1.1)}>
         <SvgText x={540} y={210} textAnchor="middle" fontSize={14} fill={AMBER_DARK} fontFamily={ANEK}>
           {t("water's own [H⁺] ≈ 10", "water ka apna [H⁺] ≈ 10")}
-          <TSpan dy={-6} fontSize="0.62em">−7</TSpan>
+          <TSpan dy={-6} fontSize={8.7}>−7</TSpan>
           <TSpan dy={6}> {t("dominates here!", "yahaan dominate karta!")}</TSpan>
         </SvgText>
       </Fade>
@@ -97,20 +97,20 @@ export default function C11Ch06Sec52({ currentTime, reveals, language }: ScenePr
       {/* beat 4 — the quadratic */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={245} textAnchor="middle" fontSize={16} fill={INK} fontFamily={ANEK}>
-          [H⁺]<TSpan dy={-7} fontSize="0.62em">2</TSpan>
+          [H⁺]<TSpan dy={-7} fontSize={9.9}>2</TSpan>
           <TSpan dy={7}> − 10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−8</TSpan>
+          <TSpan dy={-7} fontSize={9.9}>−8</TSpan>
           <TSpan dy={7}>[H⁺] − 10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−14</TSpan>
+          <TSpan dy={-7} fontSize={9.9}>−14</TSpan>
           <TSpan dy={7}> = 0  ⇒  [H⁺] = 1.05×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−7</TSpan>
+          <TSpan dy={-7} fontSize={9.9}>−7</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 5 — the answer */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
         <SvgText x={540} y={290} textAnchor="middle" fontSize={20} fontWeight={800} fill={GREEN} fontFamily={ANEK}>
-          pH = −log(1.05×10<TSpan dy={-9} fontSize="0.6em">−7</TSpan>
+          pH = −log(1.05×10<TSpan dy={-9} fontSize={12.0}>−7</TSpan>
           <TSpan dy={9}>) ≈ 6.98</TSpan>
         </SvgText>
       </Fade>
@@ -130,7 +130,7 @@ export default function C11Ch06Sec52({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 6} delay={dl(6, 0.8)}>
         <SvgText x={540} y={381} textAnchor="middle" fontSize={15} fill={GREEN_DARK} fontFamily={ANEK}>
           {t("dilute acid < 10", "dilute acid < 10")}
-          <TSpan dy={-7} fontSize="0.62em">−6</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−6</TSpan>
           <TSpan dy={7}> M ⇒ {t("include water's H⁺", "water ka H⁺ include karo")}</TSpan>
         </SvgText>
       </Fade>

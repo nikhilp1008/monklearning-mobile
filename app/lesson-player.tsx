@@ -283,6 +283,18 @@ export default function LessonPlayerScreen() {
     [chapterId, section?.position]
   );
 
+  /**
+   * Nothing is on the board until the teacher starts talking.
+   *
+   * The scene kit already gates its own elements this way — `useBeat` returns
+   * -1 until the playhead passes the first reveal — but roughly 1,600 scenes
+   * author their heading as always-on, and the board_content path draws its
+   * first block at t=0. Both meant a lesson opened onto a part-written board.
+   * Deriving this from the playhead rather than a flag also resets it for
+   * free: a new section starts at 0, so it starts blank too.
+   */
+  const started = currentTime > 0;
+
   const segProgress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
 
   // Chrome auto-hide / follow-scroll (adapted from live-classroom.tsx)
@@ -467,12 +479,14 @@ export default function LessonPlayerScreen() {
           onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
           showsVerticalScrollIndicator={false}>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
-            {section && <Text style={styles.sectionHeading}>{section.title}</Text>}
+            {started && section && (
+              <Text style={styles.sectionHeading}>{section.title}</Text>
+            )}
             {/* A hand-authored scene, when this section has one: the same
                 choreographed board the webpage draws, driven by the same
                 playhead. Sections without one fall through to their
                 board_content events below — the webpage's own fallback. */}
-            {SceneForSection ? (
+            {started && SceneForSection ? (
               <View style={styles.sceneWrap}>
                 <SceneForSection
                   currentTime={currentTime}
@@ -481,7 +495,8 @@ export default function LessonPlayerScreen() {
                 />
               </View>
             ) : null}
-            {!SceneForSection &&
+            {started &&
+              !SceneForSection &&
               blocks.slice(0, revealedBlockCount).map(({ block }, i) => (
               <BoardBlockView
                 key={i}
@@ -492,7 +507,7 @@ export default function LessonPlayerScreen() {
                 verticalScale={verticalScale}
               />
             ))}
-            {!SceneForSection && revealedBlockCount < blocks.length && (
+            {started && !SceneForSection && revealedBlockCount < blocks.length && (
               <BoardBlockView
                 key={revealedBlockCount}
                 block={blocks[revealedBlockCount].block}
