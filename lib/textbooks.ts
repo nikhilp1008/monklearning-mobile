@@ -55,7 +55,125 @@ export type PlotCurve =
       dash?: boolean;
       soft?: boolean;
     }
-  | { c: 'abs' | 'exp' | 'log' | 'sqrt' | 'recip'; a?: number; dash?: boolean; soft?: boolean };
+  /**
+   * y = d + a·f(k(x − x0)).
+   *
+   * `k`, `x0` and `d` default to 1, 0 and 0, which is exactly the old
+   * one-scale-factor behaviour. They exist because Newton's cooling law is
+   * 25 + 75e^(−kt), and a Differential Equations figure was dropped for want
+   * of the offset.
+   */
+  | {
+      c: 'abs' | 'exp' | 'log' | 'sqrt' | 'recip';
+      a?: number;
+      k?: number;
+      x0?: number;
+      d?: number;
+      dash?: boolean;
+      soft?: boolean;
+    }
+  /**
+   * A point list, drawn straight or smoothed through the points.
+   *
+   * The closed vocabulary above names curves it can evaluate. A stress-strain
+   * curve, a hysteresis loop, a diode's I-V characteristic and a
+   * binding-energy-per-nucleon curve are not any named function, and every one
+   * of them is a figure physics asks for. Two chapters already fake this with
+   * `segments` polylines.
+   */
+  | { c: 'pts'; pts: [number, number][]; smooth?: boolean; dash?: boolean; soft?: boolean }
+  /** y = a·x^p. Adiabats are PV^γ; `recip` only covers the isotherm. */
+  | { c: 'power'; a?: number; p: number; dash?: boolean; soft?: boolean };
+
+/**
+ * What an element MEANS, not what colour it is.
+ *
+ * A closed role vocabulary rather than raw colour, for the same reason
+ * `PlotCurve` is a closed vocabulary: content stays declarative and the reader
+ * decides how a role is painted. Every value maps to a token already in the
+ * brand.
+ *
+ * Every figure must survive the greyscale test: a charge sign is a + or − mark
+ * and a field through the page is ⊗ or ⊙, never a colour alone. Tone
+ * reinforces meaning that the shape already carries.
+ */
+export type Tone = 'ink' | 'amber' | 'soft' | 'green' | 'red';
+
+/** An arrow with a real head. `segments` draws a dot at the tip instead. */
+export interface FigureArrow {
+  from: [number, number];
+  to: [number, number];
+  /** Default 'end'. */
+  head?: 'end' | 'start' | 'both' | 'none';
+  dash?: boolean;
+  tone?: Tone;
+  label?: string;
+  /** Where the label sits relative to the shaft. Default 'above'. */
+  at?: 'above' | 'below' | 'start' | 'end' | 'mid';
+  /** Set the label in the serif maths face. */
+  math?: boolean;
+}
+
+/** An angle mark. Physics writes θ on a slope in almost every mechanics figure. */
+export interface FigureArc {
+  at: [number, number];
+  r: number;
+  /** Degrees, anticlockwise positive, measured from the +x axis. */
+  from: number;
+  to: number;
+  /** Draw a square corner instead of an arc. */
+  right?: boolean;
+  label?: string;
+  tone?: Tone;
+  dash?: boolean;
+}
+
+/** An open or closed polyline, optionally smoothed and filled. */
+export interface FigurePoly {
+  pts: [number, number][];
+  smooth?: boolean;
+  close?: boolean;
+  /** `hatch` is 45 degree ink hairlines, for ground and fixed supports. */
+  fill?: 'none' | 'wash' | 'hatch';
+  tone?: Tone;
+  dash?: boolean;
+  label?: string;
+}
+
+/**
+ * A glyph at a point.
+ *
+ * `into` and `outof` are the crossed and dotted circles for a field through
+ * the page, and `plus`/`minus` are charge signs. These carry meaning by SHAPE
+ * so a figure still reads with colour removed.
+ */
+export interface FigureMark {
+  x: number;
+  y: number;
+  glyph: 'dot' | 'open' | 'plus' | 'minus' | 'into' | 'outof' | 'cross' | 'square' | 'tick';
+  label?: string;
+  tone?: Tone;
+}
+
+/**
+ * Mechanics furniture, as a closed set.
+ *
+ * Closed on purpose: a block, an incline and a pulley appear in hundreds of
+ * problems, and an author should not be positioning the hatching on a ground
+ * line by hand. Adding a kind requires a named source figure that needs it.
+ */
+export interface FigureBody {
+  kind: 'block' | 'ground' | 'wall' | 'incline' | 'pulley' | 'spring' | 'rope';
+  at: [number, number];
+  w?: number;
+  h?: number;
+  /** Degrees anticlockwise. An incline is a rotated ground. */
+  rot?: number;
+  /** Far end, for `spring` and `rope`. */
+  to?: [number, number];
+  label?: string;
+  tone?: Tone;
+}
 
 /** One drawing, matched by index to one chip. */
 export interface DiagramFrame {
@@ -97,6 +215,41 @@ export interface DiagramFrame {
   show?: ('sin' | 'cos' | 'tan')[];
   /** Axis tick labels in multiples of π, for trig plots. */
   piTicks?: boolean;
+
+  /**
+   * Which axes to draw. Default 'auto' is exactly today's behaviour.
+   *
+   * A free-body diagram is not a graph: it lives in a coordinate space but has
+   * no meaningful axes, and drawing a cross through the middle of a block on
+   * an incline is noise. 'none' turns them off.
+   */
+  axes?: 'auto' | 'none' | 'cross' | 'box';
+  /** Axis titles, e.g. "t (s)" and "v (m/s)". */
+  axisX?: string;
+  axisY?: string;
+  /**
+   * Numeric ticks. `every` spaces them; `at` places them exactly; `labels`
+   * overrides the printed text so a tick can read "2F" or "λ/2".
+   *
+   * Until now the only tick systems were integers on `numberline` and
+   * multiples of π, so a v-t graph in seconds got a bare rule with no numbers.
+   */
+  ticksX?: { every?: number; at?: number[]; labels?: string[] };
+  ticksY?: { every?: number; at?: number[]; labels?: string[] };
+
+  /** Arrows with real heads: force, field, velocity, current. */
+  arrows?: FigureArrow[];
+  /** Angle marks. */
+  arcs?: FigureArc[];
+  /** Polylines and filled regions the curve vocabulary cannot name. */
+  polys?: FigurePoly[];
+  /** Charge signs, into/out-of-page markers, labelled dots. */
+  marks?: FigureMark[];
+  /** Blocks, inclines, pulleys, springs, ground. */
+  bodies?: FigureBody[];
+
+  /** height / width. Default .72, or .34 for a numberline. */
+  aspect?: number;
 
   /**
    * `tree` only: a counting tree, drawn left to right.
@@ -296,6 +449,13 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-12-limits'),
   'mathematics|11|statistics': () => import('@/content/textbooks/math-11-13-statistics'),
   'mathematics|11|probability': () => import('@/content/textbooks/math-11-14-probability'),
+
+  // Physics. Keys are the CATALOGUE's titles, read from the chapters table on
+  // 2026-09-02, not the book's: the book calls chapter 6 "System of Particles
+  // and Rotational Motion" where the catalogue says "Rotational Motion", and a
+  // guessed title renders no row at all.
+  'physics|11|motion in a straight line': () =>
+    import('@/content/textbooks/phy-11-02-motion-straight-line'),
 
   // Class 12. Keys carry the class level, so "Relations and Functions" here
   // and in Class 11 are different chapters and cannot collide.
