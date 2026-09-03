@@ -102,6 +102,8 @@ for (const f of files) {
   catch (e) { console.log(`${f}: NOT PLAIN JSON (${e.message.slice(0,60)}) - skipped`); continue; }
 
   const problems = [];
+  if (!/export default\s+\w+;/.test(src))
+    problems.push('no default export -- the registry imports the default, so this fails only once registered');
   const topics = ch.topics ?? [];
   if (topics.length < 4 || topics.length > 6) problems.push(`${topics.length} topics (want 4-6)`);
 
