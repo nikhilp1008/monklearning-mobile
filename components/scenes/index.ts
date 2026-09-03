@@ -2640,6 +2640,7 @@ import P12Ch07Sec10 from '@/components/scenes/P12Ch07Sec10';
 import P12Ch07Sec11 from '@/components/scenes/P12Ch07Sec11';
 import P12Ch07Sec12 from '@/components/scenes/P12Ch07Sec12';
 import P12Ch07Sec13 from '@/components/scenes/P12Ch07Sec13';
+import P12Ch07Sec14 from '@/components/scenes/P12Ch07Sec14';
 import P12Ch07Sec2 from '@/components/scenes/P12Ch07Sec2';
 import P12Ch07Sec3 from '@/components/scenes/P12Ch07Sec3';
 import P12Ch07Sec4 from '@/components/scenes/P12Ch07Sec4';
@@ -3527,6 +3528,7 @@ const REGISTRY: Record<string, ComponentType<SceneProps>> = {
   [`${P12CH07}:11`]: P12Ch07Sec11,
   [`${P12CH07}:12`]: P12Ch07Sec12,
   [`${P12CH07}:13`]: P12Ch07Sec13,
+  [`${P12CH07}:14`]: P12Ch07Sec14,
   [`${C11CH01}:1`]: C11Ch01Sec1,
   [`${C11CH01}:2`]: C11Ch01Sec2,
   [`${C11CH01}:3`]: C11Ch01Sec3,
