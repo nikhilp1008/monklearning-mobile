@@ -300,6 +300,16 @@ export default function LiveClassroomScreen() {
         dismissCard();
         setIsThinking(false);
         setCaption(text);
+        // A cue caption describes the figure at the moment it changes, so it
+        // outranks the narration line for that sentence — but only for that
+        // sentence. It is cleared here rather than by the widget because a
+        // board item never unmounts (the board is a ScrollView of every event
+        // in the turn), so the widget's own cleanup never runs and the strip
+        // would stay pinned to a diagram's caption for the rest of the class
+        // while the audio moved on. Ordering is safe: this runs in
+        // `onItemStart` immediately before `onBoardReveal`, so a cue firing on
+        // the same sentence still writes after this and wins.
+        setWidgetCaption(null);
       },
       onTranscriptPartial: (text) => setLiveTranscript(text),
       onTranscriptFinal: (text) => {
@@ -1392,12 +1402,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: RHYTHM,
       color: INK,
     },
+    // No maxWidth. There used to be a 560 cap here and on boardKalamNote,
+    // which is a sane reading measure for a portrait column and the wrong one
+    // for this board: the content box is windowWidth - BOARD_LEFT(56) -
+    // BOARD_RIGHT_GUTTER(116), which on an iPhone 17 landscape is 702pt, so
+    // the cap left 142pt of every wrapped line empty and the board read as
+    // three-quarters full. The box itself is now the measure — it is already
+    // bounded by the notch gutter on one side and the thumb-rail clearance on
+    // the other. If lines ever feel too long to track on a wider device, cap
+    // it again against the measured board width rather than a fixed 560.
     boardBody: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: 13.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
-      maxWidth: 560,
     },
     boardBodyBold: {
       fontFamily: 'AnekLatin_700Bold',
@@ -1407,7 +1425,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Kalam_700Bold',
       fontSize: 14.5,
       lineHeight: RHYTHM,
-      maxWidth: 560,
       transform: [{ rotate: '-0.4deg' }],
     },
     writingRow: {

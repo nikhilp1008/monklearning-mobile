@@ -11,7 +11,16 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, G, Line, RadialGradient, Stop } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  Line,
+  Path,
+  RadialGradient,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { useLandscapeScale } from '@/constants/scale';
@@ -143,6 +152,12 @@ function Dot({ progress, delay }: { progress: SharedValue<number>; delay: number
  * outer ring one way, the inner ring slower and the other way, the dot still
  * at the centre. Both rotations are continuous, so there is no seam to loop
  * across, and a protractor turning is what the instrument does anyway.
+ *
+ * The red arcs and the two angle labels are back, but as PRINTED SCALE rather
+ * than as animation: fully drawn on every frame, static, with the rings
+ * turning over them. Only their construction was the problem — a reading that
+ * assembles itself and then wipes has to restart, and the restart is the
+ * stutter. A reading that is simply there does not.
  */
 function ProtractorLoader({ size }: { size: number }) {
   const outer = useSharedValue(0);
@@ -237,6 +252,41 @@ function ProtractorLoader({ size }: { size: number }) {
           />
         </Svg>
       </Animated.View>
+
+      {/* The measurement the instrument is making: two red arcs and the angles
+          they subtend. These are the annotations the earlier loader drew and
+          then erased on every 6.5s loop, which is what made it stutter. They
+          are painted WHOLE and held here instead — printed on the bezel the
+          way a real protractor's scale is, while the rings turn over them. So
+          the reading is back without the restart that removed it.
+
+          `overflow: 'visible'` because the -90 label starts at x=102 and its
+          glyphs run past the 120-unit viewBox; clipped, it loses its degree
+          sign. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 120 120" style={{ overflow: 'visible' }}>
+          <Path
+            d="M112,60 A52,52 0 0 0 60,8"
+            fill="none"
+            stroke={colors.red}
+            strokeWidth={1.4}
+            opacity={0.9}
+          />
+          <Path
+            d="M88,60 A28,28 0 0 0 84.25,46"
+            fill="none"
+            stroke={colors.red}
+            strokeWidth={1.4}
+            opacity={0.9}
+          />
+          <SvgText x={102} y={22} fontFamily="Kalam_400Regular" fontSize={9} fill={colors.marigold}>
+            −90°
+          </SvgText>
+          <SvgText x={94} y={48} fontFamily="Kalam_400Regular" fontSize={9} fill={colors.marigold}>
+            −30°
+          </SvgText>
+        </Svg>
+      </View>
 
       {/* The dot the mark was missing. Always here, never animated. */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
