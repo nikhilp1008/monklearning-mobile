@@ -1369,14 +1369,14 @@ export const ch11ThreeD: Chapter = {
                 { "from": [2, 0], "to": [1, 2.6], "dash": true }
               ]
             },
-            {
+            { "aspect": 0.987,
               "x": [-4, 4],
               "y": [-4, 4],
               "curves": [{ "c": "circle", "r": 2.8 }],
               "points": [{ "x": 0, "y": 0, "label": "C", "at": "sw" }],
               "segments": [{ "from": [0, 0], "to": [1.98, 1.98], "dash": true, "label": "r" }]
             },
-            {
+            { "aspect": 0.987,
               "x": [-4, 4],
               "y": [-4, 4],
               "curves": [{ "c": "circle", "r": 2.4 }],

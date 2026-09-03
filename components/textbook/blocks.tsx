@@ -123,7 +123,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={st.plainBlock}>
           <Text style={kicker(scale)}>Definition</Text>
-          <Text style={st.defTerm}>{block.term}</Text>
+          <Markup html={block.term} size={scale(15)} style={st.defTerm} />
           <Markup html={block.html} size={scale(15)} style={[s.blockBody, st.defBody]} />
         </View>
       );
@@ -197,7 +197,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                   />
                   <Chevron open={open} scale={scale} />
                 </Pressable>
-                {open && <Text style={st.derivWhy}>{step.why}</Text>}
+                {open && <Markup html={step.why} size={scale(13.5)} style={st.derivWhy} />}
               </View>
             );
           })}
@@ -405,14 +405,12 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             {block.rows.map((row, i) => (
               <View key={i} style={st.snapRow}>
                 <Markup html={row.f} size={scale(14.5)} style={mathText(scale, 14.5)} />
-                <Text style={st.snapNote}>{row.note}</Text>
+                <Markup html={row.note} size={scale(13)} style={st.snapNote} />
               </View>
             ))}
             <View style={st.snapAids}>
               {block.aids.map((aid, i) => (
-                <Text key={i} style={[s.hand, st.snapAid]}>
-                  {aid}
-                </Text>
+                <Markup key={i} html={aid} size={scale(14)} style={[s.hand, st.snapAid]} />
               ))}
             </View>
           </View>

@@ -1115,7 +1115,7 @@ export const ch12Continuity: Chapter = {
             "The same formula at (5, 0), where y = 0 and −x/y has no value. This is not a failure of the method. The tangent there genuinely is vertical, so there is no finite slope to report, and the algebra is telling you so rather than hiding it. Near such a point the relation does not define y as a function of x at all, which is the one hypothesis implicit differentiation needs."
           ],
           "frames": [
-            {
+            { "aspect": 0.987,
               "x": [-6.5, 6.5],
               "y": [-6.5, 6.5],
               "curves": [{ "c": "circle", "r": 5 }],
@@ -1126,7 +1126,7 @@ export const ch12Continuity: Chapter = {
               "points": [{ "x": 3, "y": 4, "label": "(3, 4)" }],
               "labels": [{ "x": -3.2, "y": 5.6, "text": "slope −x/y = −3/4", "soft": true }]
             },
-            {
+            { "aspect": 0.987,
               "x": [-6.5, 6.5],
               "y": [-6.5, 6.5],
               "curves": [{ "c": "circle", "r": 5 }],

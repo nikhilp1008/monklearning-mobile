@@ -154,6 +154,32 @@ for (const file of files) {
             lines.push([X(pl.pts[i][0]), Y(pl.pts[i][1]), X(pl.pts[i + 1][0]), Y(pl.pts[i + 1][1])]);
 
         const at = `topic ${ti + 1} "${(b.kicker ?? '').slice(0, 26)}" frame ${fi + 1}`;
+        // A circle is plotted through X() and Y() independently, so it is only
+        // round when both axes carry the same pixels-per-unit. On mismatched
+        // axes it renders as an ellipse, and an arc marking an angle on it
+        // misses the line it points at. Mathematically honest, visually wrong
+        // for a physical scene, and invisible until someone looks at a phone.
+        // Arcs are exempt: an arc takes its radius from X alone and is then
+        // drawn with cos/sin in screen space, so it stays round whatever the
+        // axes do. Only a `circle` CURVE is plotted point-by-point through
+        // both X and Y, and only that one turns into an ellipse.
+        if ((fr.curves ?? []).some((c) => c.c === 'circle')) {
+          const isL = b.kind === 'numberline';
+          const fh = Math.round(W * (fr.aspect ?? (isL ? 0.34 : 0.72)));
+          const [cx0, cx1] = fr.x ?? (isL ? [-5, 5] : [-Math.PI, Math.PI]);
+          const [cy0, cy1] = fr.y ?? [-1.6, 1.6];
+          const qL = fr.ticksY ? 26 : 10, qT = fr.axisY ? 15 : 8;
+          const qB = isL ? 20 : fr.piTicks ? 22 : fr.axisX ? 34 : fr.ticksX ? 21 : 8;
+          const ppx = (W - qL - 10) / (cx1 - cx0);
+          const ppy = (fh - qT - qB) / (cy1 - cy0);
+          const skew = Math.max(ppx, ppy) / Math.min(ppx, ppy);
+          // The aspect that would equalise them, so the fix is arithmetic
+          // rather than trial and error.
+          const want = (((W - qL - 10) * (cy1 - cy0)) / (cx1 - cx0) + qT + qB) / W;
+          if (skew > 1.08)
+            found.push(`${at}: circle on axes scaled ${skew.toFixed(2)} to 1 -- it renders as an ellipse (aspect ${want.toFixed(3)} would make it round)`);
+        }
+
         for (let i = 0; i < labels.length; i++) {
           for (let j = i + 1; j < labels.length; j++)
             if (hit(labels[i], labels[j]))

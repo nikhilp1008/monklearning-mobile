@@ -164,6 +164,12 @@ for (const f of files) {
             }
           }
         });
+        // A chip is an uppercase, letter-spaced pill rendered as bare text, so
+        // it is the one authored field where a tag still reaches the student as
+        // literal characters. Everything else now goes through Markup.
+        for (const c of b.chips ?? [])
+          if (/<\/?(b|i|sup|sub|br)\s*\/?>/i.test(c))
+            problems.push(`topic ${ti+1}: chip "${c.slice(0, 24)}" carries markup, which renders literally`);
         if (b.chips && b.captions && b.chips.length !== b.captions.length) problems.push(`topic ${ti+1}: ${b.chips.length} chips vs ${b.captions.length} captions`);
         if (b.chips && b.frames && b.chips.length !== b.frames.length) problems.push(`topic ${ti+1}: ${b.chips.length} chips vs ${b.frames.length} frames`);
       }

@@ -148,8 +148,8 @@
  *      part of D used below, in a single Topic 02 `mistakes` line. The free-rod
  *      collision formula is not taught anywhere in this chapter.
  *
- * Everything else checks out. All 24 worked examples, all 30 practice items
- * and all 24 MCQ keys across the seven sub-topics were re-solved from the
+ * Everything else checks out. All 28 worked examples, all 35 practice items
+ * and all 28 MCQ keys across the seven sub-topics were re-solved from the
  * problem statements: the CoM composite and integration results, both axis
  * theorems and every standard moment of inertia, the ladder's cot(theta)/2,
  * the beam reactions 66.7 N and 133.3 N, the bullet-in-rod 3mv/(L(M+3m)), the
@@ -249,8 +249,8 @@
  *     the radian is dimensionless, so alpha reduces to [T^-2].)
  *   - K_rot = (1/2)I omega^2: [M L^2][T^-2] = [M L^2 T^-2], a joule. ✓
  *   - K = L^2/(2I): [M^2 L^4 T^-2]/[M L^2] = [M L^2 T^-2]. ✓
- *   - Angular impulse J = tau t: [M L^2 T^-2][T] = [M L^2 T^-1] = [L]. ✓ Same
- *     dimensions as angular momentum, as an impulse must be.
+ *   - Angular impulse J = tau t: [M L^2 T^-2][T] = [M L^2 T^-1]. ✓ Exactly the
+ *     dimensions of angular momentum, as an impulse must be.
  *   - Both equilibrium conditions: sum(F) = 0 is [M L T^-2], sum(tau) = 0 is
  *     [M L^2 T^-2]. They are DIFFERENT dimensions, which is the cleanest
  *     argument that one cannot substitute for the other.
@@ -304,8 +304,8 @@
  *
  * SEAMS: what is quoted as already known, and from which file. The cross
  * product is NOT one of them. math-12-10-vector-algebra.ts teaches it (its
- * Topic 04, "The Cross Product and What Its Length Means", including the
- * determinant form and the parallelogram-area reading), but that is a Class 12
+ * Topic 04, "The Cross Product: Area and the Perpendicular Direction",
+ * determinant form and parallelogram area included), but that is a Class 12
  * Mathematics chapter and a Class 11 Physics student has not met it, which is
  * exactly why the source gives the vector product seven pages of its own.
  * Topic 02 therefore builds it from scratch, in physics terms, and the maths
@@ -1176,19 +1176,19 @@ export const phy11RotationalMotion: Chapter = {
           ],
           "frames": [
             {
-              "x": [-0.8, 5], "y": [-0.6, 5.2], "axes": "none",
-              "bodies": [{ "kind": "ground", "at": [2.1, -0.15], "w": 4.6, "h": 0.3 }],
+              "x": [-0.8, 5.0], "y": [-0.5, 3.65], "axes": "none",
+              "bodies": [{ "kind": "ground", "at": [2.1, -0.15], "w": 4.8, "h": 0.3 }],
               "segments": [
-                { "from": [0, 0], "to": [0, 4.6] },
-                { "from": [0, 4.0], "to": [3.2, 0] }
+                { "from": [0, 0], "to": [0, 3.5] },
+                { "from": [0, 3.2], "to": [3.2, 0] }
               ],
               "arrows": [
-                { "from": [0, 4.0], "to": [0.9, 4.0], "tone": "amber", "label": "Nw" },
-                { "from": [1.6, 2.0], "to": [1.6, 0.8], "tone": "ink", "label": "W" },
-                { "from": [3.2, 0], "to": [3.2, 1.2], "tone": "amber", "label": "Nf" },
+                { "from": [0, 3.2], "to": [0.9, 3.2], "tone": "amber", "label": "Nw" },
+                { "from": [1.6, 1.6], "to": [1.6, 0.65], "tone": "ink", "label": "W" },
+                { "from": [3.2, 0], "to": [3.2, 1.0], "tone": "amber", "label": "Nf" },
                 { "from": [3.2, 0], "to": [2.3, 0], "tone": "amber", "label": "f", "at": "below" }
               ],
-              "arcs": [{ "at": [3.2, 0], "r": 0.8, "from": 128.7, "to": 180, "label": "θ" }]
+              "arcs": [{ "at": [3.2, 0], "r": 0.8, "from": 135, "to": 180, "label": "θ" }]
             }
           ]
         },

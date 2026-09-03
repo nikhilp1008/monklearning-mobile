@@ -22,6 +22,7 @@ import Svg, {
   type TextProps as SvgTextProps,
 } from 'react-native-svg';
 
+import { Markup } from '@/components/textbook/markup';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import type { DiagramFrame } from '@/lib/textbooks';
@@ -280,7 +281,10 @@ export function TextbookDiagram({
           </PressableScale>
         ))}
       </View>
-      <Text style={styles.caption}>{config.captions[sel]}</Text>
+      {/* Through Markup, not a bare Text. A caption is prose about a figure
+          and wants a superscript as much as any paragraph does; rendered raw,
+          its tags reached the student as literal characters. */}
+      <Markup html={config.captions[sel] ?? ''} size={scale(13.5)} style={styles.caption} />
     </View>
   );
 }

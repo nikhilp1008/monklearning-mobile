@@ -276,6 +276,35 @@
  * panels inside one frame: at 316pt a half-frame is 150pt and unreadable, and
  * comparing by tapping beats squinting. The same treatment gives the Topic 01
  * range chart four chips and the three designed pairs two chips each.
+ *
+ * FIVE FIELDS THE READER DOES NOT RUN THROUGH `Markup`, which the next author
+ * should know before writing a subscript. Read off components/textbook: a
+ * `deriv` step's `why` (blocks.tsx line 200), a `snapshot` row's `note` (408)
+ * and its `aids` (410), a `def`'s `term` (126), and a diagram's `chips` and
+ * `captions` (diagrams.tsx 273 and 283) are all plain `<Text>`. Every other
+ * text field goes through `Markup`. So a `<sub>` or a `<sup>` in one of those
+ * five reaches the student as five literal characters, and so does an
+ * underscore standing in for a subscript. Auditing the whole corpus found 103
+ * such instances across eight chapters, including eight in the finished pilot
+ * (phy-11-02, e.g. the third `why` of its equations-of-motion derivation ends
+ * "turns the triangle into ½at<sup>2</sup>", which a student reads verbatim).
+ * Nothing in this file is one: every one of those five fields here is written
+ * as plain prose, with the figure's own arrow labels reused in the captions
+ * (vb, vr, ac, at) rather than a subscript that cannot render. That is also
+ * why some captions read "the vertical part has been spent" where a marked-up
+ * field would have said v with a subscript y.
+ *
+ * DIAGRAM FRAMES ARE NOT ISOMETRIC, which matters for every angle mark. The
+ * renderer scales x and y independently to fill the frame, so an arc whose
+ * `from`/`to` are computed from plot coordinates lands somewhere else on
+ * screen. Every arc below was computed in SCREEN degrees from the frame's own
+ * two scale factors, not from the plot-unit slope: the Topic 01 resolution
+ * chip reads 28° rather than the 35° its components suggest, Figure 3.2's two
+ * angles read 39° and 53°, Figure 3.4's launch reads 61°, and Figure 3.5's
+ * upstream heading reads 107°. For the same reason Figure 3.7's normal force
+ * is specified as a screen-perpendicular to the drawn road surface, which is
+ * NOT the plot-unit perpendicular; drawing the latter tilts N by ten degrees
+ * and quietly breaks the figure the whole banking derivation rests on.
  */
 import type { Chapter } from '@/lib/textbooks';
 
@@ -719,7 +748,7 @@ export const phy11MotionPlane: Chapter = {
             {
               "x": [-0.5, 6], "y": [-0.8, 4], "axes": "none", "aspect": 0.66,
               "arrows": [
-                { "from": [0, 0], "to": [5, 0], "tone": "ink", "label": "A", "at": "below" },
+                { "from": [0, 0], "to": [5, 0], "tone": "ink", "label": "A", "at": "end" },
                 { "from": [0, 0], "to": [2.6, 2.4], "tone": "ink", "label": "B" },
                 { "from": [0, -0.35], "to": [2.6, -0.35], "head": "both", "tone": "amber", "label": "B cos θ", "at": "below" }
               ],
@@ -735,7 +764,7 @@ export const phy11MotionPlane: Chapter = {
               "polys": [
                 { "pts": [[0, 0], [4, 0], [5.6, 2.4], [1.6, 2.4]], "close": true, "fill": "wash", "tone": "amber", "label": "area" }
               ],
-              "marks": [{ "x": 4.6, "y": 1, "glyph": "outof", "label": "A × B" }],
+              "marks": [{ "x": 3.8, "y": 1.2, "glyph": "outof", "label": "A × B" }],
               "arcs": [{ "at": [0, 0], "r": 0.9, "from": 0, "to": 53, "label": "θ" }]
             }
           ]
@@ -985,23 +1014,23 @@ export const phy11MotionPlane: Chapter = {
             {
               "x": [0, 10], "y": [0, 7],
               "axisX": "x (m)", "axisY": "y (m)",
-              "curves": [{ "c": "pts", "pts": [[0.5, 0.4], [2, 2], [3.5, 3.3], [5, 4.3], [7, 5.2], [8.5, 5.5]], "smooth": true }],
+              "curves": [{ "c": "pts", "pts": [[0.2, 3], [1.5, 4.2], [3.5, 5.9], [6, 6.5], [8.5, 5.6]], "smooth": true }],
               "points": [
-                { "x": 2, "y": 2, "label": "A", "at": "sw" },
-                { "x": 7, "y": 5.2, "label": "B", "at": "se" }
+                { "x": 1.5, "y": 4.2, "label": "A", "at": "se" },
+                { "x": 8.5, "y": 5.6, "label": "B", "at": "se" }
               ],
               "arrows": [
-                { "from": [0, 0], "to": [2, 2], "tone": "soft", "label": "r₀" },
-                { "from": [0, 0], "to": [7, 5.2], "tone": "soft", "label": "r" },
-                { "from": [2, 2], "to": [7, 5.2], "tone": "amber", "label": "Δr", "at": "below" },
-                { "from": [2, 2], "to": [3.2, 3.16], "tone": "ink", "label": "v₀", "at": "end" },
-                { "from": [7, 5.2], "to": [8.4, 5.68], "tone": "ink", "label": "v" }
+                { "from": [0, 0], "to": [1.5, 4.2], "tone": "soft", "label": "r₀" },
+                { "from": [0, 0], "to": [8.5, 5.6], "tone": "soft", "label": "r", "at": "below" },
+                { "from": [1.5, 4.2], "to": [8.5, 5.6], "tone": "amber", "label": "Δr" },
+                { "from": [1.5, 4.2], "to": [2.7, 5.25], "tone": "ink", "label": "v₀", "at": "end" },
+                { "from": [8.5, 5.6], "to": [9.6, 5.2], "tone": "ink", "label": "v" }
               ],
               "segments": [
-                { "from": [2, 2], "to": [2, 0], "dash": true, "soft": true },
-                { "from": [7, 5.2], "to": [7, 0], "dash": true, "soft": true },
-                { "from": [2, 2], "to": [0, 2], "dash": true, "soft": true },
-                { "from": [7, 5.2], "to": [0, 5.2], "dash": true, "soft": true }
+                { "from": [1.5, 4.2], "to": [1.5, 0], "dash": true, "soft": true },
+                { "from": [8.5, 5.6], "to": [8.5, 0], "dash": true, "soft": true },
+                { "from": [1.5, 4.2], "to": [0, 4.2], "dash": true, "soft": true },
+                { "from": [8.5, 5.6], "to": [0, 5.6], "dash": true, "soft": true }
               ]
             }
           ]
@@ -1261,7 +1290,7 @@ export const phy11MotionPlane: Chapter = {
           "steps": [
             {
               "eq": "set the origin at the launch point, up positive, so <i>u<sub>x</sub></i> = <i>u</i> cos θ, <i>u<sub>y</sub></i> = <i>u</i> sin θ, <i>a<sub>x</sub></i> = 0, <i>a<sub>y</sub></i> = −<i>g</i>",
-              "why": "Everything below is these four numbers fed into the two independent channels. Note a_x = 0 is the entire reason the horizontal speed is a constant."
+              "why": "Everything below is these four numbers fed into the two independent channels. Note that the horizontal acceleration is zero, and that is the entire reason the horizontal speed stays constant."
             },
             {
               "eq": "landing means <i>y</i> = 0 again: <i>t</i>(<i>u</i> sin θ − ½<i>gt</i>) = 0, so <i>T</i> = 2<i>u</i> sin θ/<i>g</i>",
@@ -1287,7 +1316,7 @@ export const phy11MotionPlane: Chapter = {
           "kicker": "FIGURE 3.4 · THE ARCH, WITH EVERY QUANTITY ON IT",
           "chips": ["launch, apex and landing"],
           "captions": [
-            "The launch velocity u splits into u cos θ across, which never changes for the whole flight, and u sin θ up, which gravity erodes. At the apex the vertical part has been spent, v_y = 0, so the velocity there is horizontal and equal to u cos θ, never zero. H is the maximum height and R the range back at launch level. The landing velocity mirrors the launch: same speed, same angle, reflected below the horizontal."
+            "The launch velocity u splits into u cos θ across, which never changes for the whole flight, and u sin θ up, which gravity erodes. At the apex the vertical part has been spent, so the velocity there is horizontal and equal to u cos θ, never zero. H is the maximum height and R the range back at launch level. The landing velocity mirrors the launch: same speed, same angle, reflected below the horizontal."
           ],
           "frames": [
             {
@@ -1557,8 +1586,8 @@ export const phy11MotionPlane: Chapter = {
           "kicker": "FIGURE 3.5 · TWO WAYS TO CROSS A RIVER",
           "chips": ["minimum time", "zero drift"],
           "captions": [
-            "Aim the boat straight across. The full v_b covers the width, so this is the quickest possible crossing, t = d/v_b. But the current acts the whole time and the boat lands downstream of the target by v_r t. Speed over the ground is √(v_b² + v_r²), faster than the boat can manage in still water, and entirely wasted on going the wrong way.",
-            "Aim upstream at angle θ so that v_b sin θ exactly cancels the current. Now the net velocity points straight across and the boat lands directly opposite. Only v_b cos θ = √(v_b² − v_r²) is left to cover the width, so this crossing always takes longer. It is possible only when v_b > v_r."
+            "Aim the boat straight across. The full vb covers the width, so this is the quickest possible crossing, t = d/vb. But the current acts the whole time and the boat lands downstream of the target by vr t. Speed over the ground is √(vb² + vr²), faster than the boat can manage in still water, and entirely wasted on going the wrong way.",
+            "Aim upstream at angle θ so that vb sin θ exactly cancels the current. Now the net velocity points straight across and the boat lands directly opposite. Only vb cos θ = √(vb² − vr²) is left to cover the width, so this crossing always takes longer. It is possible only when vb exceeds vr."
           ],
           "frames": [
             {
@@ -1568,7 +1597,7 @@ export const phy11MotionPlane: Chapter = {
                 { "from": [0.3, 5], "to": [9.7, 5] }
               ],
               "arrows": [
-                { "from": [1.0, 2.75], "to": [2.4, 2.75], "tone": "soft", "label": "vr" },
+                { "from": [5.5, 2.75], "to": [6.9, 2.75], "tone": "soft", "label": "vr" },
                 { "from": [5.5, 1.4], "to": [6.9, 1.4], "tone": "soft" },
                 { "from": [5.5, 4.1], "to": [6.9, 4.1], "tone": "soft" },
                 { "from": [2, 0.5], "to": [2, 3.5], "tone": "ink", "label": "vb", "at": "mid" },
@@ -1608,7 +1637,7 @@ export const phy11MotionPlane: Chapter = {
           "chips": ["standing still", "walking forward"],
           "captions": [
             "Stand still and the rain that falls vertically arrives vertically. Hold the umbrella straight up and you stay dry.",
-            "Start walking and the picture changes, not because the rain changed but because you did. In your own frame you are at rest and the ground rushes backward, so add the reverse of your velocity to the rain's. The apparent rain v_rm slants toward your face, and the umbrella must tilt forward by tan α = v_m/v_r. Walk faster and the tilt grows."
+            "Start walking and the picture changes, not because the rain changed but because you did. In your own frame you are at rest and the ground rushes backward, so add the reverse of your velocity to the rain's. The apparent rain vrm slants toward your face, and the umbrella must tilt forward by tan α = vm/vr. Walk faster and the tilt grows."
           ],
           "frames": [
             {
@@ -1627,15 +1656,15 @@ export const phy11MotionPlane: Chapter = {
               "x": [0, 8], "y": [0, 6], "axes": "none", "aspect": 0.75,
               "bodies": [
                 { "kind": "ground", "at": [4, 0.4], "w": 7, "h": 0.3 },
-                { "kind": "block", "at": [5, 1.2], "w": 0.6, "h": 1.4, "label": "you" }
+                { "kind": "block", "at": [5.5, 1.2], "w": 0.6, "h": 1.4, "label": "you" }
               ],
               "arrows": [
-                { "from": [2, 5], "to": [2, 2], "tone": "soft", "label": "vr", "at": "mid" },
-                { "from": [2, 2], "to": [0.8, 2], "tone": "soft", "label": "−vm", "at": "below" },
-                { "from": [2, 5], "to": [0.8, 2], "tone": "amber", "label": "vrm", "at": "mid" },
-                { "from": [5, 1.9], "to": [6.4, 1.9], "tone": "ink", "label": "vm" }
+                { "from": [2.6, 5], "to": [2.6, 2], "tone": "soft", "label": "vr", "at": "mid" },
+                { "from": [2.6, 2], "to": [0.8, 2], "tone": "soft", "label": "−vm", "at": "below" },
+                { "from": [2.6, 5], "to": [0.8, 2], "tone": "amber", "label": "vrm", "at": "mid" },
+                { "from": [5.5, 1.9], "to": [6.9, 1.9], "tone": "ink", "label": "vm" }
               ],
-              "arcs": [{ "at": [2, 5], "r": 1.0, "from": 248.2, "to": 270, "label": "α" }]
+              "arcs": [{ "at": [2.6, 5], "r": 0.8, "from": 238.9, "to": 270, "label": "α" }]
             }
           ]
         },
@@ -1763,9 +1792,9 @@ export const phy11MotionPlane: Chapter = {
         {
           "t": "snapshot",
           "rows": [
-            { "f": "v<sub>AB</sub> = v<sub>A</sub> − v<sub>B</sub> = −v<sub>BA</sub>", "note": "a full vector subtraction; chain frames with v<sub>Ag</sub> = v<sub>Ab</sub> + v<sub>bg</sub>" },
+            { "f": "v<sub>AB</sub> = v<sub>A</sub> − v<sub>B</sub> = −v<sub>BA</sub>", "note": "a full vector subtraction; chain the frames as vAg = vAb + vbg" },
             { "f": "straight across: t = d/v<sub>b</sub>, drift = v<sub>r</sub>d/v<sub>b</sub>", "note": "the fastest crossing, and the current costs you distance not time" },
-            { "f": "land opposite: sin θ = v<sub>r</sub>/v<sub>b</sub>, t = d/√(v<sub>b</sub><sup>2</sup> − v<sub>r</sub><sup>2</sup>)", "note": "always slower, and only possible when v<sub>b</sub> > v<sub>r</sub>" },
+            { "f": "land opposite: sin θ = v<sub>r</sub>/v<sub>b</sub>, t = d/√(v<sub>b</sub><sup>2</sup> − v<sub>r</sub><sup>2</sup>)", "note": "always slower, and only possible when the boat outruns the current" },
             { "f": "umbrella along v<sub>r</sub> − v<sub>m</sub>, tan α = v<sub>m</sub>/v<sub>r</sub>", "note": "forward from the vertical, walking speed over rain speed" },
             { "f": "closest approach s = |r<sub>0</sub> × v|/|v|", "note": "perpendicular distance to the relative-velocity line, no calculus needed" }
           ],
@@ -1878,7 +1907,7 @@ export const phy11MotionPlane: Chapter = {
           "chips": ["the circle", "the velocity triangle"],
           "captions": [
             "The particle runs from P to Q, and the radii OP and OQ subtend the small angle Δθ at the centre. Both speeds equal v; only the direction has changed. Because the velocity is tangent at each point, it has turned through exactly the same Δθ as the radius.",
-            "Now lift v₁ and v₂ off the circle and draw them tail to tail. Equal lengths with Δθ between them make an isosceles triangle whose third side is Δv = v₂ − v₁, of length v Δθ for a small angle. Notice where that third side points: toward O. Divide by Δt and take the limit and you have a_c = vω = v²/r, aimed at the centre."
+            "Now lift v₁ and v₂ off the circle and draw them tail to tail. Equal lengths with Δθ between them make an isosceles triangle whose third side is Δv = v₂ − v₁, of length v Δθ for a small angle. Notice where that third side points: toward O. Divide by Δt and take the limit and you have ac = vω = v²/r, aimed at the centre."
           ],
           "frames": [
             {
@@ -1907,7 +1936,7 @@ export const phy11MotionPlane: Chapter = {
                 { "from": [0.412, 1.2], "to": [0.412, -0.2], "tone": "amber", "label": "Δv", "at": "mid" }
               ],
               "arcs": [{ "at": [-0.8, 0.5], "r": 0.45, "from": -30, "to": 30, "label": "Δθ" }],
-              "labels": [{ "x": 0.9, "y": -0.9, "text": "toward O", "soft": true }]
+              "labels": [{ "x": 0.412, "y": -0.45, "text": "toward O", "soft": true }]
             }
           ]
         },
@@ -1915,10 +1944,10 @@ export const phy11MotionPlane: Chapter = {
           "t": "diagram",
           "kind": "plot",
           "kicker": "FIGURE · ONE ACCELERATION OR TWO",
-          "chips": ["uniform: only a_c", "non-uniform: a_t as well"],
+          "chips": ["uniform: one acceleration", "non-uniform: two"],
           "captions": [
-            "Uniform circular motion. The speed never changes, so nothing acts along the direction of travel. The only acceleration is a_c, aimed squarely at the centre, and the velocity stays exactly perpendicular to it.",
-            "Now let the speed change too. A tangential acceleration a_t appears along the velocity, doing the speeding up, while a_c keeps pointing inward, doing the turning. The two are perpendicular, so the net acceleration is √(a_t² + a_c²), tilted forward from the radius. Once the particle is fast the centripetal part dominates and the net acceleration points almost straight at the centre."
+            "Uniform circular motion. The speed never changes, so nothing acts along the direction of travel. The only acceleration is ac, aimed squarely at the centre, and the velocity stays exactly perpendicular to it.",
+            "Now let the speed change too. A tangential acceleration at appears along the velocity, doing the speeding up, while ac keeps pointing inward, doing the turning. The two are perpendicular, so the net acceleration is √(at² + ac²), tilted forward from the radius. Once the particle is fast the centripetal part dominates and the net acceleration points almost straight at the centre."
           ],
           "frames": [
             {
@@ -1928,7 +1957,7 @@ export const phy11MotionPlane: Chapter = {
                 { "from": [0.866, 0.5], "to": [0.516, 1.106], "tone": "ink", "label": "v", "at": "end" },
                 { "from": [0.866, 0.5], "to": [0.216, 0.125], "tone": "amber", "label": "ac", "at": "end" }
               ],
-              "marks": [{ "x": 0, "y": 0, "glyph": "dot", "label": "O" }]
+              "points": [{ "x": 0, "y": 0, "label": "O", "at": "sw" }]
             },
             {
               "x": [-1.6, 1.6], "y": [-1.6, 1.6], "axes": "none", "aspect": 1.0,
@@ -1939,7 +1968,7 @@ export const phy11MotionPlane: Chapter = {
                 { "from": [0.866, 0.5], "to": [-0.059, 0.601], "tone": "amber", "label": "a", "at": "mid" }
               ],
               "arcs": [{ "at": [0.866, 0.5], "r": 0.18, "from": 210, "to": 120, "right": true, "tone": "soft" }],
-              "marks": [{ "x": 0, "y": 0, "glyph": "dot", "label": "O" }]
+              "points": [{ "x": 0, "y": 0, "label": "O", "at": "sw" }]
             }
           ]
         },
@@ -2104,9 +2133,9 @@ export const phy11MotionPlane: Chapter = {
           "t": "snapshot",
           "rows": [
             { "f": "s = rθ · v = ωr · a<sub>t</sub> = αr", "note": "radians only, never degrees, or every one of these fails" },
-            { "f": "a<sub>c</sub> = v<sup>2</sup>/r = ω<sup>2</sup>r = vω, toward the centre", "note": "F<sub>c</sub> = mv<sup>2</sup>/r; both go as v², so double the speed and quadruple the force" },
+            { "f": "a<sub>c</sub> = v<sup>2</sup>/r = ω<sup>2</sup>r = vω, toward the centre", "note": "the force Fc = mv²/r goes the same way, so double the speed and quadruple it" },
             { "f": "ω = ω<sub>0</sub> + αt · θ = ω<sub>0</sub>t + ½αt<sup>2</sup> · ω<sup>2</sup> = ω<sub>0</sub><sup>2</sup> + 2αθ", "note": "constant α only; set α = 0 and they collapse to θ = ωt" },
-            { "f": "non-uniform: a = √(a<sub>t</sub><sup>2</sup> + a<sub>c</sub><sup>2</sup>)", "note": "a<sub>t</sub> changes the speed, a<sub>c</sub> changes the direction, and they are perpendicular" },
+            { "f": "non-uniform: a = √(a<sub>t</sub><sup>2</sup> + a<sub>c</sub><sup>2</sup>)", "note": "at changes the speed, ac changes the direction, and they are perpendicular" },
             { "f": "flat road v<sub>max</sub> = √(μrg) · banked tan θ = v<sup>2</sup>/rg", "note": "mass cancels from both; centrifugal force belongs to no ground-frame diagram" }
           ],
           "aids": [

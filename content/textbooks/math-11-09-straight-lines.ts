@@ -1820,7 +1820,7 @@ export const ch09StraightLines: Chapter = {
                 { "from": [2, -2], "to": [1.5, 6.5], "dash": true }
               ]
             },
-            {
+            { "aspect": 1.065,
               "x": [-4.5, 7.5],
               "y": [-4, 9],
               "curves": [{ "c": "circle", "cx": 2, "cy": 3, "r": 5 }],

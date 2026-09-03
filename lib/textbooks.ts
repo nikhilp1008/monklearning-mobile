@@ -576,6 +576,10 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // guessed title renders no row at all.
   'physics|11|motion in a straight line': () =>
     import('@/content/textbooks/phy-11-02-motion-straight-line'),
+  'physics|11|motion in a plane': () =>
+    import('@/content/textbooks/phy-11-03-motion-plane'),
+  'physics|11|rotational motion': () =>
+    import('@/content/textbooks/phy-11-06-rotational-motion'),
   'physics|11|laws of motion': () =>
     import('@/content/textbooks/phy-11-04-laws-of-motion'),
   // Catalogue says "Work, Energy & Power"; chapterKey turns & into "and".
