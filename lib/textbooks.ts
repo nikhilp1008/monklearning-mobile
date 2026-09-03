@@ -616,6 +616,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'physics|11|motion in a straight line': () =>
     import('@/content/textbooks/phy-11-02-motion-straight-line'),
   'physics|11|gravitation': () => import('@/content/textbooks/phy-11-07-gravitation'),
+  'physics|12|atoms': () => import('@/content/textbooks/phy-12-12-atoms'),
   'physics|12|ray optics and optical instruments': () =>
     import('@/content/textbooks/phy-12-09-ray-optics'),
   'physics|12|wave optics': () => import('@/content/textbooks/phy-12-10-wave-optics'),
