@@ -26,6 +26,14 @@ const RULE = 'rgba(28,26,22,.18)';
 const BAND = 'rgba(238,163,31,.16)';
 const FILL = 'rgba(238,163,31,.22)';
 const FILL_SOFT = 'rgba(28,26,22,.08)';
+/** Region fills, one per tone role. Same hues as the strokes, at wash weight. */
+const WASH: Record<string, string> = {
+  ink: 'rgba(28,26,22,.10)',
+  amber: 'rgba(238,163,31,.22)',
+  soft: 'rgba(181,176,164,.18)',
+  green: 'rgba(28,155,87,.16)',
+  red: 'rgba(221,68,51,.14)',
+};
 const SERIF = 'Georgia';
 const PAPER = '#FFFFFF';
 
@@ -670,7 +678,13 @@ export function Plot({
         const stroke = paint(pl.tone, INK);
         return (
           <G key={`py${i}`}>
-            {pl.fill === 'wash' && <Path d={d} fill={FILL} stroke="none" />}
+            {pl.fill === 'wash' && (
+              // Honour `tone` on the fill, not just the stroke. The first
+              // physics chapter shaded a v-t graph's positive area green and
+              // its negative area red, and both came out amber: a figure whose
+              // whole point was the sign was drawn with the sign invisible.
+              <Path d={d} fill={WASH[pl.tone ?? 'amber'] ?? FILL} stroke="none" />
+            )}
             {pl.fill === 'hatch' &&
               px.length > 1 &&
               (() => {
