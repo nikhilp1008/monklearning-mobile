@@ -908,35 +908,47 @@ function createStyles(scale: Scale) {
       paddingHorizontal: scale(4),
       paddingVertical: scale(11),
     },
+    /*
+     * A figure can carry six chips, and a chapter carries thirty figures, so
+     * this row is one of the most repeated objects in the reader. Filling the
+     * selected one solid ink made a hard black slab appear and disappear under
+     * every diagram as a student scrolled, which is a lot of weight for what
+     * is only "you are looking at this one".
+     *
+     * It is the same amber the figures already use for the quantity under
+     * discussion, at wash strength. The selected chip lights up rather than
+     * inverting: the row stays quiet, the state is still unmistakable, and the
+     * label keeps ink-on-light contrast instead of flipping to reversed text.
+     */
     chip: {
       height: scale(30),
       paddingHorizontal: scale(12),
       borderRadius: scale(99),
       borderWidth: 1,
       borderColor: CHIP_BORDER,
-      backgroundColor: CARD,
+      backgroundColor: 'transparent',
       alignItems: 'center',
       justifyContent: 'center',
     },
     chipOn: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
+      backgroundColor: 'rgba(238,163,31,.18)',
+      borderColor: 'rgba(238,163,31,.65)',
     },
     chipWordText: {
       fontFamily: 'AnekLatin_800ExtraBold',
       fontSize: scale(10),
       letterSpacing: scale(1.1),
       textTransform: 'uppercase',
-      color: colors.ink,
+      color: colors.faint,
     },
     chipMathText: {
       fontFamily: SERIF,
       fontStyle: 'italic',
       fontSize: scale(13),
-      color: colors.ink,
+      color: colors.faint,
     },
     chipTextOn: {
-      color: colors.paper,
+      color: colors.ink,
     },
 
     caption: {

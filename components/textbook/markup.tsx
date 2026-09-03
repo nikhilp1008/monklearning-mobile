@@ -186,7 +186,13 @@ function render(nodes: Node[], size: number, keyPrefix: string) {
     if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
 
     if (node.name === 'sup' || node.name === 'sub') {
-      const raised = toUnicode(plainText(node.children), node.name === 'sup' ? SUPERS : SUBS);
+      const run = plainText(node.children);
+      // Unicode raised letters are drawn by whichever font on the device
+      // happens to carry each one, and they do not share a baseline or a
+      // weight. One or two characters reads fine; "initial" as seven of them
+      // comes out visibly staggered, which is worse than the styled fallback.
+      // So map short runs, and let longer ones go through as scaled text.
+      const raised = run.length <= 2 ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
       // Raised glyphs need no size change; they are already small and in the
       // right place. Shrinking them again would make them unreadable.
       if (raised) return <Fragment key={key}>{raised}</Fragment>;
