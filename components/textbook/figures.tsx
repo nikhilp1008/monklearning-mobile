@@ -700,6 +700,30 @@ export function CircuitDiagram({ frame, width }: { frame: DiagramFrame; width: n
 
   return (
     <Svg width={width} height={height}>
+      {/* Behind the circuit, so a dashed boundary never crosses a component. */}
+      {c.regions?.map((r, i) => {
+        const rx = Math.min(X(r.from[0]), X(r.to[0]));
+        const ry = Math.min(Y(r.from[1]), Y(r.to[1]));
+        const rw = Math.abs(X(r.to[0]) - X(r.from[0]));
+        const rh = Math.abs(Y(r.to[1]) - Y(r.from[1]));
+        const tone = tint(r.tone, SOFT);
+        return (
+          <G key={`rg${i}`}>
+            <Path
+              d={`M ${rx} ${ry} h ${rw} v ${rh} h ${-rw} Z`}
+              fill="none"
+              stroke={tone}
+              strokeWidth={1.1}
+              strokeDasharray="5,4"
+            />
+            {!!r.label && (
+              <Halo x={rx + 4} y={ry - 5} size={9.5} fill={tone} anchor="start">
+                {r.label}
+              </Halo>
+            )}
+          </G>
+        );
+      })}
       {c.wires?.map((w, i) => (
         <Line
           key={`wr${i}`}
@@ -747,16 +771,27 @@ export function CircuitDiagram({ frame, width }: { frame: DiagramFrame; width: n
                 )}
               </>
             )}
-            {!!p.label && (
-              <Halo
-                x={horizontal ? mx : mx + 14}
-                y={horizontal ? my - 14 : my + 3.5}
-                size={10}
-                fill={tone}
-                anchor={horizontal ? 'middle' : 'start'}>
-                {p.label}
-              </Halo>
-            )}
+            {!!p.label &&
+              (() => {
+                // Default: above a horizontal part, right of a vertical one.
+                // Four parallel branches put four labels in a row and the
+                // right-hand one walked off the canvas, so a part can now
+                // choose its side.
+                const side = p.side ?? (horizontal ? 'above' : 'right');
+                const lx = side === 'right' ? mx + 14 : side === 'left' ? mx - 14 : mx;
+                const ly =
+                  side === 'above' ? my - 14 : side === 'below' ? my + 16 : my + 3.5;
+                return (
+                  <Halo
+                    x={lx}
+                    y={ly}
+                    size={10}
+                    fill={tone}
+                    anchor={side === 'right' ? 'start' : side === 'left' ? 'end' : 'middle'}>
+                    {p.label}
+                  </Halo>
+                );
+              })()}
           </G>
         );
       })}
@@ -785,6 +820,68 @@ export function CircuitDiagram({ frame, width }: { frame: DiagramFrame; width: n
             </Halo>
           )}
         </G>
+      ))}
+      {/* Frame-level marks, in GRID units. Plate charge signs live here: the
+          tone rules say a sign must be carried by shape rather than colour,
+          and a part label cannot hold one. */}
+      {frame.marks?.map((m, i) => {
+        const cx = X(m.x);
+        const cy = Y(m.y);
+        const tone = tint(m.tone, INK);
+        const r = 5;
+        return (
+          <G key={`cm${i}`}>
+            {m.glyph === 'plus' && (
+              <Path
+                d={`M ${cx - r} ${cy} h ${r * 2} M ${cx} ${cy - r} v ${r * 2}`}
+                stroke={tone}
+                strokeWidth={1.5}
+              />
+            )}
+            {m.glyph === 'minus' && (
+              <Path d={`M ${cx - r} ${cy} h ${r * 2}`} stroke={tone} strokeWidth={1.5} />
+            )}
+            {m.glyph === 'dot' && <Circle cx={cx} cy={cy} r={3} fill={tone} />}
+            {m.glyph === 'open' && (
+              <Circle cx={cx} cy={cy} r={3.4} fill={PAPER} stroke={tone} strokeWidth={1.4} />
+            )}
+            {m.glyph === 'cross' && (
+              <Path
+                d={`M ${cx - r} ${cy - r} l ${r * 2} ${r * 2} M ${cx + r} ${cy - r} l ${-r * 2} ${r * 2}`}
+                stroke={tone}
+                strokeWidth={1.4}
+              />
+            )}
+            {m.glyph === 'into' && (
+              <G>
+                <Circle cx={cx} cy={cy} r={r} fill="none" stroke={tone} strokeWidth={1.3} />
+                <Path
+                  d={`M ${cx - 3.4} ${cy - 3.4} l 6.8 6.8 M ${cx + 3.4} ${cy - 3.4} l -6.8 6.8`}
+                  stroke={tone}
+                  strokeWidth={1.3}
+                />
+              </G>
+            )}
+            {m.glyph === 'outof' && (
+              <G>
+                <Circle cx={cx} cy={cy} r={r} fill="none" stroke={tone} strokeWidth={1.3} />
+                <Circle cx={cx} cy={cy} r={1.7} fill={tone} />
+              </G>
+            )}
+            {!!m.label && (
+              <Halo x={cx + 8} y={cy - 6} size={10} fill={tone} anchor="start">
+                {m.label}
+              </Halo>
+            )}
+          </G>
+        );
+      })}
+      {/* Frame-level free text, in GRID units. A meter bridge needs "l" and
+          "100 - l" written under two spans, which no part or node owns. */}
+      {frame.labels?.map((l, i) => (
+        <Halo key={`cl${i}`} x={X(l.x)} y={Y(l.y)} size={10} fill={INK} anchor="middle">
+          {l.text}
+        </Halo>
       ))}
     </Svg>
   );

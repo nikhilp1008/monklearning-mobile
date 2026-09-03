@@ -227,9 +227,26 @@ export interface FigureCircuit {
     kind: 'R' | 'C' | 'L' | 'cell' | 'battery' | 'lamp' | 'switch' | 'A' | 'V' | 'G' | 'diode';
     label?: string;
     tone?: Tone;
+    /**
+     * Which side the label sits on. Defaults to above a horizontal part and
+     * right of a vertical one, which collides once four branches sit side by
+     * side -- the case that made this necessary.
+     */
+    side?: 'above' | 'below' | 'left' | 'right';
   }[];
   nodes?: { at: [number, number]; label?: string; junction?: boolean }[];
   currents?: { at: [number, number]; to: [number, number]; label?: string }[];
+  /**
+   * A dashed box drawn around part of the circuit, for the cases where the
+   * box IS the physics: a real cell as an EMF plus its internal resistance,
+   * or the black box a question asks you to replace.
+   */
+  regions?: {
+    from: [number, number];
+    to: [number, number];
+    label?: string;
+    tone?: Tone;
+  }[];
 }
 
 /**
@@ -366,7 +383,15 @@ export interface DiagramFrame {
   flow?: FigureFlow;
   /** `levels` only. */
   levels?: FigureLevels;
-  /** `circuit` only. */
+  /**
+   * `circuit` only.
+   *
+   * `labels` and `marks` on this frame ALSO reach the circuit renderer, read
+   * in grid units rather than plot units. Two chapters needed them and found
+   * them silently ignored: a capacitor cannot carry both its capacitance and
+   * its voltage from one part label, and plate charge signs have nowhere to
+   * live at all.
+   */
   circuit?: FigureCircuit;
   /** `optics` only. */
   optics?: FigureOptics;
