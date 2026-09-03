@@ -14,6 +14,23 @@
 // A duplicated list drifts; a derived one cannot.
 import { readFileSync, readdirSync } from 'node:fs';
 
+// A note that cost a near-miss, recorded so nobody repeats the inference.
+//
+// Georgia -- the serif face every figure label and math run is set in -- is
+// MISSING most of the symbols this corpus uses: no arrow, no member-of, no
+// blackboard R, no proportional-to. Over four thousand such characters ship
+// today. That looks alarming and is not: iOS falls back to another installed
+// font per glyph, and all of them render correctly on device. Verified by
+// looking at Sets on a phone, where the notation table draws in, not-in,
+// if-and-only-if and the empty set perfectly.
+//
+// So "absent from Georgia" is NOT a reason to reject a character, and a gate
+// built on the font's cmap would raise four thousand false alarms.
+//
+// The Mathematical Alphanumeric block below IS different, and is rejected
+// below on evidence rather than on font tables: those code points have no
+// fallback anywhere on the device and draw as blank boxes.
+
 const ALLOWED_BLOCKS = new Set(['hook','p','think','def','defgrid','formula','proc','deriv','diagram','ex','mcq','practice','mistakes','protip','snapshot']);
 const ALLOWED_KINDS = (() => {
   const src = readFileSync('components/textbook/diagrams.tsx', 'utf8');
