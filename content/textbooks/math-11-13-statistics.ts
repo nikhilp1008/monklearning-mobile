@@ -277,7 +277,7 @@ export const ch13Statistics: Chapter = {
                 { "x": 20, "y": 37 },
                 { "x": 24, "y": 53 }
               ],
-              "labels": [{ "x": 15.5, "y": 67, "text": "S(a) = sum of the six distances", "soft": true }]
+              "labels": [{ "x": 15.5, "y": 67, "text": "S(a) = total distance", "soft": true }]
             },
             {
               "x": [4, 27],

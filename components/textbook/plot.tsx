@@ -543,18 +543,37 @@ export function Plot({
             strokeLinecap="round"
           />
           {sg.arrow && (
-            <Circle cx={X(sg.to[0])} cy={Y(sg.to[1])} r={3.2} fill={sg.soft ? SOFT : AMBER} />
+            // A real head, same as `arrows`. This path was left drawing a dot
+            // when the arrowhead landed, so 46 authored maths arrows and every
+            // segment arrow in the corpus were still tipped with a circle.
+            <Path
+              d={headD(X(sg.from[0]), Y(sg.from[1]), X(sg.to[0]), Y(sg.to[1]), 7)}
+              fill="none"
+              stroke={sg.soft ? SOFT : AMBER}
+              strokeWidth={2}
+            />
           )}
-          {sg.label ? (
-            <SvgText
-              x={(X(sg.from[0]) + X(sg.to[0])) / 2 + 6}
-              y={(Y(sg.from[1]) + Y(sg.to[1])) / 2 - 4}
-              fontSize={10.5}
-              fill={INK}
-              fontFamily={SERIF}>
-              {sg.label}
-            </SvgText>
-          ) : null}
+          {sg.label
+            ? (() => {
+                // Beside the line, not on it. The old placement was the
+                // midpoint nudged six pixels right, which for any line that
+                // is not horizontal is still the line.
+                const ax = X(sg.from[0]);
+                const ay = Y(sg.from[1]);
+                const bx = X(sg.to[0]);
+                const by = Y(sg.to[1]);
+                const len = Math.hypot(bx - ax, by - ay) || 1;
+                return (
+                  <HaloText
+                    x={(ax + bx) / 2 - ((by - ay) / len) * 12}
+                    y={(ay + by) / 2 + ((bx - ax) / len) * 12 + 3.5}
+                    size={10.5}
+                    fill={INK}>
+                    {sg.label}
+                  </HaloText>
+                );
+              })()
+            : null}
         </G>
       ))}
 

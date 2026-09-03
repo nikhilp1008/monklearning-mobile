@@ -2351,7 +2351,7 @@ export const ch12Limits: Chapter = {
                 { "x": 8, "y": 0 }
               ],
               "labels": [
-                { "x": 4.2, "y": 1, "text": "function limit gives sequence limit", "soft": true },
+                { "x": 4.2, "y": 1, "text": "function limit wins", "soft": true },
                 { "x": 4.2, "y": -1, "text": "never the reverse", "soft": true }
               ]
             }

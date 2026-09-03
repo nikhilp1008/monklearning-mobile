@@ -117,6 +117,32 @@ for (const f of files) {
           if (OWN_SPACE.has(b.kind) && ['flow','levels','circuit','optics'].includes(b.kind) && !fr[b.kind]) {
             problems.push(`${where}: kind is "${b.kind}" but the frame has no ${b.kind} block`);
           }
+          // A label inside a figure is a tag, not a sentence. At 316pt an
+          // 11px serif runs about 6px per character, so 16 characters is
+          // already a quarter of the width; the first physics chapter put
+          // "slope = instantaneous velocity" on a tangent and it crossed the
+          // curve, the chord and two other labels. The explanation belongs in
+          // the caption, which is prose and has room.
+          // Two budgets, because two different things place the text.
+          // `labels` are free-floating: the author picks the coordinate and
+          // can see the gap they are putting it in, so they get room for a
+          // short annotation. Everything else is auto-placed relative to a
+          // shaft or a glyph and cannot dodge anything, so it must be a tag.
+          for (const [key, max] of [
+            ['arrows', 16], ['segments', 16], ['arcs', 16],
+            ['marks', 16], ['bodies', 16], ['polys', 16],
+            ['labels', 28],
+          ]) {
+            for (const it of fr[key] ?? []) {
+              const lab = it.label ?? it.text;
+              if (typeof lab === 'string' && lab.length > max) {
+                problems.push(
+                  `${where}: ${key} label is ${lab.length} chars, max ${max} ` +
+                  `-- put the sentence in the caption ("${lab.slice(0, 28)}...")`
+                );
+              }
+            }
+          }
           fr.arrows?.forEach((a, ai) => {
             if (a.from?.[0] === a.to?.[0] && a.from?.[1] === a.to?.[1]) {
               problems.push(`${where}: arrow ${ai+1} has zero length, so it renders as a dot`);

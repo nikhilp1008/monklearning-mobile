@@ -2186,7 +2186,7 @@ export const ch12DerivativesApplications: Chapter = {
                 {
                   "x": 0,
                   "y": -1.35,
-                  "text": "f ″(0) = 0, and f ′ never flips"
+                  "text": "f ″(0) = 0, no flip"
                 }
               ]
             },
@@ -2221,7 +2221,7 @@ export const ch12DerivativesApplications: Chapter = {
                 {
                   "x": 0,
                   "y": -1.35,
-                  "text": "f ″(0) = 0, and still a minimum"
+                  "text": "f ″(0) = 0, still min"
                 }
               ]
             }

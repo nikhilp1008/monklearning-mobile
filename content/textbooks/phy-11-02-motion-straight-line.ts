@@ -265,8 +265,8 @@ export const phy11MotionStraightLine: Chapter = {
                 { "x": 6, "y": 7.35, "label": "B" }
               ],
               "segments": [
-                { "from": [2, 4.24], "to": [6, 7.35], "label": "slope = average velocity" },
-                { "from": [0.4, 2.54], "to": [3.8, 6.15], "label": "slope = instantaneous velocity" },
+                { "from": [2, 4.24], "to": [6, 7.35], "label": "average" },
+                { "from": [0.4, 2.54], "to": [3.8, 6.15], "label": "instantaneous" },
                 { "from": [2, 4.24], "to": [6, 4.24], "dash": true, "soft": true }
               ],
               "arrows": [
@@ -1045,12 +1045,12 @@ export const phy11MotionStraightLine: Chapter = {
               "bodies": [{ "kind": "ground", "at": [5, 0], "w": 6, "h": 0.3 }],
               "arrows": [
                 { "from": [5, 0], "to": [5, 1.8], "tone": "ink", "label": "u = 25 m/s", "at": "end" },
-                { "from": [7, 0], "to": [7, 10], "head": "both", "tone": "amber", "label": "100 m, closing at 25 m/s" }
+                { "from": [7, 0], "to": [7, 10], "head": "both", "tone": "amber", "label": "closing" }
               ],
               "marks": [
                 { "x": 5, "y": 0, "glyph": "dot", "label": "ball 1" },
-                { "x": 5, "y": 10, "glyph": "dot", "label": "ball 2, released from rest" },
-                { "x": 5, "y": 2, "glyph": "cross", "label": "meet: t = 4 s, height 20 m" }
+                { "x": 5, "y": 10, "glyph": "dot", "label": "ball 2" },
+                { "x": 5, "y": 2, "glyph": "cross", "label": "they meet" }
               ],
               "labels": [
                 { "x": 3, "y": 0, "text": "0 m" },
