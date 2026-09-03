@@ -263,7 +263,21 @@ export interface DiagramFrame {
   y?: [number, number];
   curves?: PlotCurve[];
   /** Dots, with optional labels. `open` draws a hollow point. */
-  points?: { x: number; y: number; label?: string; open?: boolean; soft?: boolean }[];
+  /**
+   * Dots, with optional labels. `open` draws a hollow point.
+   *
+   * `at` picks which corner the label sits in. It defaults to the old
+   * north-east, which is wrong whenever a line LEAVES the point in that
+   * direction -- a chord drawn from A put A's own label on the chord.
+   */
+  points?: {
+    x: number;
+    y: number;
+    label?: string;
+    open?: boolean;
+    soft?: boolean;
+    at?: 'ne' | 'nw' | 'se' | 'sw';
+  }[];
   /** Straight segments, for radii, projections, chords, vectors. */
   segments?: { from: [number, number]; to: [number, number]; dash?: boolean; soft?: boolean; arrow?: boolean; label?: string }[];
   /** Free-floating text at a point in plot units. */

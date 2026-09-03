@@ -261,7 +261,7 @@ export const phy11MotionStraightLine: Chapter = {
               "ticksY": { "at": [4.24, 7.35], "labels": ["x₁", "x₂"] },
               "curves": [{ "c": "sqrt", "a": 3 }],
               "points": [
-                { "x": 2, "y": 4.24, "label": "A" },
+                { "x": 2, "y": 4.24, "label": "A", "at": "nw" },
                 { "x": 6, "y": 7.35, "label": "B" }
               ],
               "segments": [
@@ -270,7 +270,7 @@ export const phy11MotionStraightLine: Chapter = {
                 { "from": [2, 4.24], "to": [6, 4.24], "dash": true, "soft": true }
               ],
               "arrows": [
-                { "from": [6, 4.24], "to": [6, 7.35], "tone": "amber", "label": "Δx", "at": "end" },
+                { "from": [6, 4.24], "to": [6, 7.35], "tone": "amber", "label": "Δx", "at": "start" },
                 { "from": [2, -0.9], "to": [6, -0.9], "head": "both", "tone": "amber", "label": "Δt" }
               ]
             }
@@ -1044,7 +1044,7 @@ export const phy11MotionStraightLine: Chapter = {
               "segments": [{ "from": [5, 0], "to": [5, 10], "soft": true }],
               "bodies": [{ "kind": "ground", "at": [5, 0], "w": 6, "h": 0.3 }],
               "arrows": [
-                { "from": [5, 0], "to": [5, 1.8], "tone": "ink", "label": "u = 25 m/s", "at": "end" },
+                { "from": [4.2, 0], "to": [4.2, 1.8], "tone": "ink", "label": "u = 25 m/s", "at": "end" },
                 { "from": [7, 0], "to": [7, 10], "head": "both", "tone": "amber", "label": "closing" }
               ],
               "marks": [

@@ -578,28 +578,33 @@ export function Plot({
       ))}
 
       {/* Points */}
-      {frame.points?.map((p, i) => (
-        <G key={`pt${i}`}>
-          <Circle
-            cx={X(p.x)}
-            cy={Y(p.y)}
-            r={4.2}
-            fill={p.open ? '#FFFFFF' : p.soft ? SOFT : INK}
-            stroke={p.soft ? SOFT : INK}
-            strokeWidth={1.8}
-          />
-          {p.label ? (
-            <SvgText
-              x={X(p.x) + 7}
-              y={Y(p.y) - 6}
-              fontSize={11}
-              fill={INK}
-              fontFamily={SERIF}>
-              {p.label}
-            </SvgText>
-          ) : null}
-        </G>
-      ))}
+      {frame.points?.map((p, i) => {
+        const at = p.at ?? 'ne';
+        const dx = at === 'nw' || at === 'sw' ? -7 : 7;
+        const dy = at === 'se' || at === 'sw' ? 14 : -6;
+        return (
+          <G key={`p${i}`}>
+            <Circle
+              cx={X(p.x)}
+              cy={Y(p.y)}
+              r={4.2}
+              fill={p.open ? '#FFFFFF' : p.soft ? SOFT : INK}
+              stroke={p.open ? (p.soft ? SOFT : INK) : 'none'}
+              strokeWidth={1.6}
+            />
+            {!!p.label && (
+              <HaloText
+                x={X(p.x) + dx}
+                y={Y(p.y) + dy}
+                size={11}
+                fill={INK}
+                anchor={dx < 0 ? 'end' : 'start'}>
+                {p.label}
+              </HaloText>
+            )}
+          </G>
+        );
+      })}
 
       {/* Free labels */}
       {frame.labels?.map((l, i) => (
