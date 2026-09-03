@@ -263,7 +263,21 @@ export interface FigureCircuit {
  */
 export interface FigureOptics {
   element: 'convexLens' | 'concaveLens' | 'concaveMirror' | 'convexMirror';
-  /** Signed focal length, Cartesian. Convex lens and concave mirror are +. */
+  /**
+   * Signed focal length, Cartesian.
+   *
+   * A convex lens is POSITIVE and a concave mirror is NEGATIVE. This comment
+   * used to say a concave mirror was positive, which is wrong and was caught
+   * by the first chapter to use this kind: fed a positive f, the solver draws
+   * an erect virtual image for an object beyond the centre of curvature, which
+   * is the opposite of what a concave mirror does.
+   *
+   * The convention behind it: incident light travels in +x, and distances
+   * measured against it are negative. A concave mirror's focus sits on the
+   * incoming side, so its f is negative -- and by the same rule a REAL image
+   * is negative-v for a mirror and positive-v for a lens, which is worth
+   * stating because the two look contradictory until you see they are one rule.
+   */
   f: number;
   /** Object distance (negative for a real object) and height. */
   object?: { u: number; h: number; label?: string };
@@ -602,6 +616,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'physics|11|motion in a straight line': () =>
     import('@/content/textbooks/phy-11-02-motion-straight-line'),
   'physics|11|gravitation': () => import('@/content/textbooks/phy-11-07-gravitation'),
+  'physics|12|ray optics and optical instruments': () =>
+    import('@/content/textbooks/phy-12-09-ray-optics'),
   'physics|12|wave optics': () => import('@/content/textbooks/phy-12-10-wave-optics'),
   'physics|12|dual nature of radiation and matter': () =>
     import('@/content/textbooks/phy-12-11-dual-nature'),
