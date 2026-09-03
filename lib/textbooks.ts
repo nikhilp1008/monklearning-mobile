@@ -576,6 +576,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // guessed title renders no row at all.
   'physics|11|motion in a straight line': () =>
     import('@/content/textbooks/phy-11-02-motion-straight-line'),
+  'physics|11|mechanical properties of solids': () =>
+    import('@/content/textbooks/phy-11-08-mech-solids'),
   'physics|11|motion in a plane': () =>
     import('@/content/textbooks/phy-11-03-motion-plane'),
   'physics|11|rotational motion': () =>

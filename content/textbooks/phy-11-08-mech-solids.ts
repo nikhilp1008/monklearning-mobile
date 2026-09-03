@@ -22,8 +22,8 @@
  * combinations material, B and F into Topic 05's thermal-stress and Searle
  * material, E into Topic 05's atomic-origin material. No `formula`,
  * `defgrid`, `deriv` or `proc` block below is sourced from the addendum.
- * 54 pages is the shortest chapter in this wave; at 131 blocks over five
- * topics (26.2 per topic) the density matches phy-11-02's own (23.4) and
+ * 54 pages is the shortest chapter in this wave; at 132 blocks over five
+ * topics (26.4 per topic) the density matches phy-11-02's own (23.4) and
  * math-12-01-relations.ts's (23.5) without padding.
  *
  * ERRATA REVIEWED (source pages 977 to 981, all seven listed chapters read in
@@ -1340,7 +1340,7 @@ export const phy11MechSolids: Chapter = {
         },
         {
           "t": "think",
-          "html": "so is rubber more elastic than steel? in everyday language, obviously, and in one honest sense too: rubber can be stretched to several times its length and still recover fully, where steel would have snapped long ago. but physics defines elasticity by the restoring force per unit strain, which is young's modulus, and for the same strain steel develops vastly larger internal stress. by that definition steel wins. rubber is an <b>elastomer</b>: huge recoverable strains, essentially no region of proportionality at all, so hooke's law never really applies to it, and a loading path that its unloading path refuses to retrace."
+          "html": "so is rubber more elastic than steel? in everyday language, obviously, and in one honest sense too: rubber can be stretched to several times its length and still recover fully, where steel would have snapped long ago. but physics defines elasticity by the restoring force per unit strain, which is young's modulus, and for the same strain steel develops vastly larger internal stress. by that definition steel wins. rubber is an elastomer: huge recoverable strains, essentially no region of proportionality at all, so hooke's law never really applies to it, and a loading path that its unloading path refuses to retrace."
         },
         {
           "t": "p",
@@ -1691,10 +1691,11 @@ export const phy11MechSolids: Chapter = {
               ],
               "polys": [
                 { "pts": [[1.2, 4.2], [3.0, 3.85], [5.0, 3.6], [7.0, 3.85], [8.8, 4.2], [8.8, 3.4], [7.0, 3.05], [5.0, 2.8], [3.0, 3.05], [1.2, 3.4]], "close": true, "smooth": true, "tone": "ink" },
-                { "pts": [[1.2, 3.8], [3.0, 3.45], [5.0, 3.2], [7.0, 3.45], [8.8, 3.8]], "smooth": true, "dash": true, "tone": "soft", "label": "neutral layer" }
+                { "pts": [[1.2, 3.8], [3.0, 3.45], [5.0, 3.2], [7.0, 3.45], [8.8, 3.8]], "smooth": true, "dash": true, "tone": "soft" }
               ],
               "arrows": [
-                { "from": [5.0, 6.2], "to": [5.0, 4.6], "tone": "amber", "label": "W", "at": "start" }
+                { "from": [5.0, 6.2], "to": [5.0, 4.6], "tone": "amber", "label": "W", "at": "start" },
+                { "from": [8.9, 2.3], "to": [7.6, 3.56], "tone": "soft", "label": "neutral layer", "at": "start" }
               ],
               "labels": [
                 { "x": 2.9, "y": 5.2, "text": "top fibres squeezed" },
@@ -1886,8 +1887,8 @@ export const phy11MechSolids: Chapter = {
           "solution": "Bending stress is greatest far from the neutral axis and nearly zero at it, so concentrating material in the top and bottom flanges maximises the geometrical moment of inertia per unit weight."
         },
         {
-          "q": "The maximum height of a mountain on a planet depends on the rock's breaking stress σ, its density ρ and the surface gravity <i>g</i> as:",
           "t": "mcq",
+          "q": "The maximum height of a mountain on a planet depends on the rock's breaking stress σ, its density ρ and the surface gravity <i>g</i> as:",
           "opts": [
             { "label": "σ/(ρg)", "nudge": null },
             { "label": "ρg/σ", "nudge": "The reciprocal, and it has the wrong dimensions: [M L<sup>−2</sup> T<sup>−2</sup>]/[M L<sup>−1</sup> T<sup>−2</sup>] = 1/[L], which is a per-metre, not a height." },
