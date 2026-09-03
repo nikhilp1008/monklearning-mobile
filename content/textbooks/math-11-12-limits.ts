@@ -155,7 +155,7 @@ export const ch12Limits: Chapter = {
               ],
               "points": [
                 { "x": 1, "y": 1, "label": "LHL = 1", "open": true },
-                { "x": 1, "y": 3, "label": "RHL = 3", "open": true }
+                { "x": 1, "y": 3, "label": "RHL = 3", "open": true, "at": "nw" }
               ]
             },
             {
@@ -1342,7 +1342,7 @@ export const ch12Limits: Chapter = {
                 { "x": 1.2, "y": 1.44, "label": "Q" }
               ],
               "segments": [
-                { "from": [1, 1], "to": [1.2, 1], "dash": true, "soft": true, "label": "h" },
+                { "from": [1, 1], "to": [1.2, 1], "dash": true, "soft": true, "label": "h", "at": "below" },
                 { "from": [1.2, 1], "to": [1.2, 1.44], "dash": true, "soft": true }
               ]
             },

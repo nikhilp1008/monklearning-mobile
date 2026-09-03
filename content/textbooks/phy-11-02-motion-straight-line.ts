@@ -261,7 +261,7 @@ export const phy11MotionStraightLine: Chapter = {
               "ticksY": { "at": [4.24, 7.35], "labels": ["x₁", "x₂"] },
               "curves": [{ "c": "sqrt", "a": 3 }],
               "points": [
-                { "x": 2, "y": 4.24, "label": "A", "at": "nw" },
+                { "x": 2, "y": 4.24, "label": "A", "at": "se" },
                 { "x": 6, "y": 7.35, "label": "B" }
               ],
               "segments": [

@@ -294,7 +294,7 @@ export const ch13Statistics: Chapter = {
               ],
               "points": [
                 { "x": 13, "y": 29, "label": "13" },
-                { "x": 16, "y": 29, "label": "16" }
+                { "x": 16, "y": 29, "label": "16", "at": "se" }
               ],
               "labels": [{ "x": 14.5, "y": 66, "text": "S = 29 all along here", "soft": true }]
             },
@@ -312,7 +312,7 @@ export const ch13Statistics: Chapter = {
               "points": [
                 { "x": 7, "y": 32 },
                 { "x": 11, "y": 20 },
-                { "x": 13, "y": 18, "label": "median 13" },
+                { "x": 13, "y": 18, "label": "median 13", "at": "se" },
                 { "x": 16, "y": 21 },
                 { "x": 20, "y": 33 }
               ],

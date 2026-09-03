@@ -512,7 +512,7 @@ export const ch12Determinants: Chapter = {
                 { "from": [0, 0], "to": [1, 2], "arrow": true }
               ],
               "labels": [
-                { "x": 4.2, "y": 2.7, "text": "row 1 + row 2" },
+                { "x": 4.2, "y": 4.1, "text": "row 1 + row 2"  },
                 { "x": 2.2, "y": 2.4, "text": "area still 5" }
               ]
             },
@@ -836,7 +836,7 @@ export const ch12Determinants: Chapter = {
                 { "x": 2, "y": 3, "label": "(2, 3)" },
                 { "x": 3, "y": 5, "label": "(3, 5)" }
               ],
-              "labels": [{ "x": 3.6, "y": 3.2, "text": "no height, so no area" }]
+              "labels": [{ "x": 3.6, "y": 4.8, "text": "no height, so no area"  }]
             },
             {
               "x": [-5, 9],

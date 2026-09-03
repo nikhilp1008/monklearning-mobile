@@ -563,10 +563,13 @@ export function Plot({
                 const bx = X(sg.to[0]);
                 const by = Y(sg.to[1]);
                 const len = Math.hypot(bx - ax, by - ay) || 1;
+                const at = sg.at ?? 'above';
+                const off = at === 'below' ? 12 : -12;
+                const k = at === 'start' ? 0.18 : at === 'end' ? 0.82 : 0.5;
                 return (
                   <HaloText
-                    x={(ax + bx) / 2 - ((by - ay) / len) * 12}
-                    y={(ay + by) / 2 + ((bx - ax) / len) * 12 + 3.5}
+                    x={ax + (bx - ax) * k - ((by - ay) / len) * off}
+                    y={ay + (by - ay) * k + ((bx - ax) / len) * off + 3.5}
                     size={10.5}
                     fill={INK}>
                     {sg.label}

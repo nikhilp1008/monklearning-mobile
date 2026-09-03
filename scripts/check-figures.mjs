@@ -88,7 +88,10 @@ for (const file of files) {
           lines.push([ax, ay, bx, by]);
           if (sg.label) {
             const L = Math.hypot(bx - ax, by - ay) || 1;
-            labels.push(box((ax + bx) / 2 - ((by - ay) / L) * 12, (ay + by) / 2 + ((bx - ax) / L) * 12, sg.label, 10.5));
+            const sat = sg.at ?? 'above';
+            const soff = sat === 'below' ? 12 : -12;
+            const sk = sat === 'start' ? 0.18 : sat === 'end' ? 0.82 : 0.5;
+            labels.push(box(ax + (bx - ax) * sk - ((by - ay) / L) * soff, ay + (by - ay) * sk + ((bx - ax) / L) * soff, sg.label, 10.5));
           }
         }
         for (const a of fr.arrows ?? []) {
@@ -115,13 +118,30 @@ for (const file of files) {
           for (let j = i + 1; j < labels.length; j++)
             if (hit(labels[i], labels[j]))
               found.push(`${at}: labels overlap -- "${labels[i].text}" / "${labels[j].text}"`);
-          // A label sitting ON a line it does not name reads as struck through.
-          const c = { x: labels[i].x + labels[i].w / 2, y: labels[i].y + labels[i].h / 2 };
-          for (const [ax, ay, bx, by] of lines)
-            if (distToSeg(c.x, c.y, ax, ay, bx, by) < labels[i].h * 0.55) {
-              found.push(`${at}: label "${labels[i].text}" lies on a drawn line`);
+          // A line CROSSING a label is fine: every label carries a halo that
+          // knocks the page colour out behind it, so the line simply stops and
+          // resumes. A line running ALONG a label is not fine -- that is a
+          // strike-through, and no halo saves it. So measure how far the line
+          // travels under the box rather than how near it passes.
+          const L = labels[i];
+          // A one or two character label is barely wider than its own halo,
+          // which already knocks the line out behind it, so a line through "A"
+          // leaves "A" perfectly legible. Strike-through only reads as damage
+          // once the label is long enough for the line to run its length.
+          for (const [ax, ay, bx, by] of L.text.length >= 3 ? lines : []) {
+            const steps = 40;
+            let under = 0;
+            for (let k = 0; k <= steps; k++) {
+              const t = k / steps;
+              const px = ax + (bx - ax) * t, py = ay + (by - ay) * t;
+              if (px >= L.x && px <= L.x + L.w && py >= L.y && py <= L.y + L.h) under++;
+            }
+            const span = (under / (steps + 1)) * Math.hypot(bx - ax, by - ay);
+            if (span > L.w * 0.6) {
+              found.push(`${at}: label "${L.text}" is struck through by a line`);
               break;
             }
+          }
         }
         // Two long strokes running almost together read as one thick line.
         for (let i = 0; i < strokes.length; i++)
@@ -129,6 +149,21 @@ for (const file of files) {
             const [a1, b1, c1, d1] = strokes[i], [a2, b2, c2, d2] = strokes[j];
             const len = Math.min(Math.hypot(c1 - a1, d1 - b1), Math.hypot(c2 - a2, d2 - b2));
             if (len < 40) continue;
+            // Segments that share an endpoint are consecutive pieces of ONE
+            // path, and a polyline approximating a curve is built entirely
+            // from near-collinear neighbours. Comparing those to each other
+            // flags every smooth curve in the corpus as a duplicate stroke.
+            const shares = [[a1, b1], [c1, d1]].some(([px, py]) =>
+              [[a2, b2], [c2, d2]].some(([qx, qy]) => Math.hypot(px - qx, py - qy) < 1.5)
+            );
+            if (shares) continue;
+            // Two strokes that share an endpoint are close near it by
+            // construction -- a fan of radii, two tangents from one point.
+            // That is the figure's content, not a defect.
+            const ends = [[a1, b1], [c1, d1]];
+            const other = [[a2, b2], [c2, d2]];
+            if (ends.some(([px, py]) => other.some(([qx, qy]) => Math.hypot(px - qx, py - qy) < 4)))
+              continue;
             const samples = Array.from({ length: 9 }, (_, k) => k / 8).map((t) => [
               a2 + (c2 - a2) * t,
               b2 + (d2 - b2) * t,

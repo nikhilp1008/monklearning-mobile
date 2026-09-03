@@ -1074,7 +1074,7 @@ export const ch11ThreeD: Chapter = {
                 { "x": 0, "y": 0, "label": "A" },
                 { "x": 6, "y": 0, "label": "B" },
                 { "x": 3, "y": 6, "label": "C" },
-                { "x": 3, "y": 2, "label": "G(3, 2)" }
+                { "x": 3, "y": 2, "label": "G", "at": "se" }
               ],
               "segments": [
                 { "from": [0, 0], "to": [6, 0], "soft": true },
@@ -1091,7 +1091,7 @@ export const ch11ThreeD: Chapter = {
               "points": [
                 { "x": 0, "y": 0, "label": "A" },
                 { "x": 4.5, "y": 3, "label": "D" },
-                { "x": 3, "y": 2, "label": "G" }
+                { "x": 3, "y": 2, "label": "G", "at": "se" }
               ],
               "segments": [
                 { "from": [0, 0], "to": [6, 0], "soft": true },
@@ -1373,7 +1373,7 @@ export const ch11ThreeD: Chapter = {
               "x": [-4, 4],
               "y": [-4, 4],
               "curves": [{ "c": "circle", "r": 2.8 }],
-              "points": [{ "x": 0, "y": 0, "label": "C" }],
+              "points": [{ "x": 0, "y": 0, "label": "C", "at": "sw" }],
               "segments": [{ "from": [0, 0], "to": [1.98, 1.98], "dash": true, "label": "r" }]
             },
             {
@@ -1401,7 +1401,7 @@ export const ch11ThreeD: Chapter = {
               "curves": [{ "c": "ellipse", "a": 6, "b": 3.32 }],
               "points": [
                 { "x": 5, "y": 0, "label": "A" },
-                { "x": -5, "y": 0, "label": "B" },
+                { "x": -5, "y": 0, "label": "B", "at": "sw" },
                 { "x": 2.4, "y": 3.04, "label": "P" }
               ],
               "segments": [

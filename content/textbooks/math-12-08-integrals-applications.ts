@@ -1573,7 +1573,7 @@ export const ch12IntegralsApplications: Chapter = {
                 { "from": [0, 0], "to": [3, 0], "dash": true, "label": "c = 3" },
                 { "from": [3, 0], "to": [3, 4], "dash": true, "soft": true }
               ],
-              "points": [{ "x": 0, "y": 0, "label": "C" }],
+              "points": [{ "x": 0, "y": 0, "label": "C", "at": "sw" }],
               "labels": [{ "x": 4.4, "y": 2.1, "text": "4", "soft": true }]
             },
             {

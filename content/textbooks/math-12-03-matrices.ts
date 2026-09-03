@@ -1434,15 +1434,13 @@ export const ch12Matrices: Chapter = {
               "y": [-1.2, 3.2],
               "curves": [{ "c": "line", "m": 1, "k": 0, "dash": true }],
               "points": [
-                { "x": 0, "y": 0, "label": "O" },
+                { "x": 0, "y": 0, "label": "O", "at": "sw" },
                 { "x": 1, "y": 1 },
                 { "x": 2, "y": 2 },
                 { "x": 2.6, "y": 2.6 }
               ],
               "segments": [
-                { "from": [1, 1], "to": [0.14, 0.14], "arrow": true, "soft": true },
-                { "from": [2, 2], "to": [0.2, 0.2], "arrow": true, "soft": true },
-                { "from": [2.6, 2.6], "to": [0.26, 0.26], "arrow": true, "soft": true }
+                { "from": [2.6, 2.6], "to": [0.12, 0.12], "arrow": true, "soft": true }
               ],
               "labels": [{ "x": 1.9, "y": 0.5, "text": "all of y = x lands on O" }]
             }

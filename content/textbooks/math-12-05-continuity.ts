@@ -624,8 +624,8 @@ export const ch12Continuity: Chapter = {
                 { "from": [1.5, 2.25], "to": [1.75, 3.0625] },
                 { "from": [1.75, 3.0625], "to": [2, 4] },
                 { "from": [2, 4], "to": [3.3, 7.9] },
-                { "from": [1.5, 2], "to": [2.4, 5.6], "dash": true, "soft": true },
-                { "from": [1.5, 2.5], "to": [2.6, 5.8], "dash": true, "soft": true }
+                { "from": [1.2, 0.8], "to": [2.8, 7.2], "dash": true, "soft": true },
+                { "from": [1.2, 1.6], "to": [2.8, 6.4], "dash": true, "soft": true }
               ],
               "points": [{ "x": 2, "y": 4 }],
               "labels": [
@@ -1784,7 +1784,7 @@ export const ch12Continuity: Chapter = {
               "y": [-6.5, 6.5],
               "curves": [{ "c": "parabola", "a": 1, "horizontal": true }],
               "segments": [{ "from": [-0.8, 0.2], "to": [4, 5] }],
-              "points": [{ "x": 1, "y": 2, "label": "t = 1" }],
+              "points": [{ "x": 1, "y": 2, "label": "t = 1", "at": "se" }],
               "labels": [{ "x": 5.6, "y": -4.6, "text": "slope = 1/t", "soft": true }]
             },
             {

@@ -3510,11 +3510,7 @@ export const ch12DerivativesApplications: Chapter = {
                   "y": 2,
                   "label": "b"
                 },
-                {
-                  "x": 1.1547,
-                  "y": -1.9245,
-                  "label": "c"
-                }
+                { "x": 1.1547, "y": -1.9245, "label": "c", "at": "se" }
               ]
             }
           ]

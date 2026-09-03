@@ -2171,8 +2171,8 @@ export const ch09StraightLines: Chapter = {
               "curves": [{ "c": "line", "m": -1, "k": 1 }],
               "points": [
                 { "x": 2, "y": 3, "label": "P" },
-                { "x": 0, "y": 1, "label": "Q" },
-                { "x": -2, "y": -1, "label": "P′(−2, −1)" }
+                { "x": 0, "y": 1, "label": "Q", "at": "se" },
+                { "x": -2, "y": -1, "label": "P′(−2, −1)", "at": "sw" }
               ],
               "segments": [
                 { "from": [2, 3], "to": [0, 1], "dash": true, "label": "t" },

@@ -1926,7 +1926,7 @@ export const ch12DifferentialEquations: Chapter = {
               "segments": [
                 { "from": [0.5, 0], "to": [1.45, 1.9] },
                 { "from": [1, 1], "to": [1, 0], "dash": true, "soft": true },
-                { "from": [0.5, 0], "to": [1, 0], "label": "subtangent" }
+                { "from": [0.5, 0], "to": [1, 0], "label": "subtangent", "at": "below" }
               ],
               "points": [
                 { "x": 1, "y": 1, "label": "P" },

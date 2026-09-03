@@ -552,7 +552,7 @@ export const ch12VectorAlgebra: Chapter = {
               "segments": [
                 { "from": [0, 0], "to": [2.4, 0.6], "arrow": true, "soft": true, "label": "a" },
                 { "from": [0, 0], "to": [0.8, 1.8], "arrow": true, "soft": true, "label": "b" },
-                { "from": [0.8, 1.8], "to": [2.4, 0.6], "arrow": true, "label": "a − b" }
+                { "from": [0.8, 1.8], "to": [2.4, 0.6], "arrow": true, "label": "a − b", "at": "end" }
               ],
               "points": [{ "x": 0, "y": 0, "label": "O" }]
             }
@@ -1076,8 +1076,8 @@ export const ch12VectorAlgebra: Chapter = {
               "y": [-0.6, 3.3],
               "polygons": [{ "points": [[0, 0], [2.6, 0.4], [3.2, 2.2], [0.6, 1.8]], "corners": false, "soft": true }],
               "segments": [
-                { "from": [0, 0], "to": [3.2, 2.2], "arrow": true, "label": "a + b" },
-                { "from": [0.6, 1.8], "to": [2.6, 0.4], "arrow": true, "label": "a − b" }
+                { "from": [0, 0], "to": [3.2, 2.2], "arrow": true, "label": "a + b", "at": "start" },
+                { "from": [0.6, 1.8], "to": [2.6, 0.4], "arrow": true, "label": "a − b", "at": "end" }
               ]
             },
             {
@@ -1085,8 +1085,8 @@ export const ch12VectorAlgebra: Chapter = {
               "y": [-0.6, 3.3],
               "polygons": [{ "points": [[0, 0], [2.4, 0], [2.4, 1.8], [0, 1.8]], "corners": false, "soft": true }],
               "segments": [
-                { "from": [0, 0], "to": [2.4, 1.8], "arrow": true, "label": "a + b" },
-                { "from": [0, 1.8], "to": [2.4, 0], "arrow": true, "label": "a − b" }
+                { "from": [0, 0], "to": [2.4, 1.8], "arrow": true, "label": "a + b", "at": "start" },
+                { "from": [0, 1.8], "to": [2.4, 0], "arrow": true, "label": "a − b", "at": "end" }
               ]
             },
             {
@@ -1094,8 +1094,8 @@ export const ch12VectorAlgebra: Chapter = {
               "y": [-0.6, 3.3],
               "polygons": [{ "points": [[0, 0], [2.2, 0.6], [2.8, 2.8], [0.6, 2.2]], "corners": false, "soft": true }],
               "segments": [
-                { "from": [0, 0], "to": [2.8, 2.8], "arrow": true, "label": "a + b" },
-                { "from": [0.6, 2.2], "to": [2.2, 0.6], "arrow": true, "label": "a − b" }
+                { "from": [0, 0], "to": [2.8, 2.8], "arrow": true, "label": "a + b", "at": "start" },
+                { "from": [0.6, 2.2], "to": [2.2, 0.6], "arrow": true, "label": "a − b", "at": "end" }
               ]
             }
           ]

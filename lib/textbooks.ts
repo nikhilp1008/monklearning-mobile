@@ -279,7 +279,23 @@ export interface DiagramFrame {
     at?: 'ne' | 'nw' | 'se' | 'sw';
   }[];
   /** Straight segments, for radii, projections, chords, vectors. */
-  segments?: { from: [number, number]; to: [number, number]; dash?: boolean; soft?: boolean; arrow?: boolean; label?: string }[];
+  /**
+   * Straight segments, for radii, projections, chords, vectors.
+   *
+   * `at` slides the label along the segment, exactly as on `arrows`. Without
+   * it every label sat at the midpoint, so the two diagonals of a
+   * parallelogram -- which cross AT their midpoints -- put both labels in the
+   * same place.
+   */
+  segments?: {
+    from: [number, number];
+    to: [number, number];
+    dash?: boolean;
+    soft?: boolean;
+    arrow?: boolean;
+    label?: string;
+    at?: 'above' | 'below' | 'start' | 'end' | 'mid';
+  }[];
   /** Free-floating text at a point in plot units. */
   labels?: { x: number; y: number; text: string; soft?: boolean }[];
   /** Shaded band between two x values, or above/below a line. */
