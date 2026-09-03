@@ -1,0 +1,21 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": { "d": "M 60 380 C 300 60 600 60 840 380" },
+      "children": null
+    },
+    {
+      "type": "RNSVGCircle",
+      "props": { "cx": 400, "cy": 200, "r": 13 },
+      "children": null
+    },
+    {
+      "type": "RNSVGCircle",
+      "props": { "cx": 415, "cy": 200, "r": 13 },
+      "children": null
+    }
+  ]
+}

@@ -21,6 +21,17 @@
  *   writeFileSync('tree.json', JSON.stringify(tree));
  *
  * Exit 0 = renders acceptably. Exit 1 = at least one ERROR.
+ *
+ * Assertions 6-8 (font floor, stroke floor, glyph spacing) are the small-screen
+ * gate from CLAUDE.md's frame rule. Run this file against a tree rendered at a
+ * REAL small board box, not an arbitrary one — this app's classroom is
+ * landscape-only, and the smallest real box (iPhone SE, after the board's own
+ * gutters) is 495x270, computed in CLAUDE.md's "Board sizes to check against".
+ * Assertions 1-5 matter most at the LARGE end (curve off-canvas, degenerate
+ * coverage); 6-8 matter most at the SMALL end (a chrome constant that quietly
+ * scaled with the frame). Running only at --w 900 --h 430 would never catch
+ * assertion 6-8 failures, because most scaling bugs stay inside a safe range at
+ * that size and only misbehave once the frame shrinks.
  */
 import { readFileSync } from 'node:fs';
 
@@ -171,6 +182,59 @@ for (const e of els)
     if (k === 'children') continue;
     scan(v, `${e.type}.${k}`, errors);
   }
+
+// 6. every font-size reaching the tree is at least 11 — CLAUDE.md's frame rule.
+// Below 11 a label stops being comfortably legible on a handset; the failure
+// mode this catches is a font size computed as a FRACTION of view width/height
+// (a chrome constant that scales) rather than held at a fixed device point
+// value. Reads through the same font()/first() shape assertion 4 already
+// trusts, since react-native-svg nests fontSize under `font: {}`.
+const FONT_FLOOR = 11;
+for (const t of els.filter(e => isText(e.type))) {
+  const size = num(fontOf(t.props).fontSize);
+  if (isFinite(size) && size < FONT_FLOOR) {
+    const label = textContent(t) || '(unlabelled)';
+    errors.push(`"${label}" renders at ${size}px — below the ${FONT_FLOOR}px floor`);
+  }
+}
+
+// 7. stroke weights are at least 1.2 — same rule, for lines rather than type.
+// Only elements that actually declare a stroke are checked; a purely filled
+// shape has no "stroke weight" to have gotten wrong.
+const STROKE_FLOOR = 1.2;
+for (const e of els) {
+  if (e.props.stroke == null) continue;
+  const width = num(e.props.strokeWidth);
+  if (isFinite(width) && width < STROKE_FLOOR) {
+    errors.push(`${e.type} strokeWidth=${width} — below the ${STROKE_FLOOR} floor`);
+  }
+}
+
+// 8. no two glyphs of the SAME radius sit closer than 2*r + 4.
+// "Glyph" is not a distinct element type react-native-svg exposes, so this
+// compares same-radius circles only — a repeated marker (charges, nodes) is
+// exactly the density case docs/CLAUDE.md's frame rule describes, and a
+// widget's one-off markers (an origin dot, an apex marker) naturally have
+// no other circle at the same radius to collide with, so they never trip
+// this by construction.
+const GLYPH_GAP = 4;
+const circles = els
+  .filter(e => e.type === 'RNSVGCircle' || e.type === 'Circle')
+  .map(e => ({ cx: num(e.props.cx), cy: num(e.props.cy), r: num(e.props.r) }))
+  .filter(c => [c.cx, c.cy, c.r].every(isFinite) && c.r > 0);
+for (let i = 0; i < circles.length; i++) {
+  for (let j = i + 1; j < circles.length; j++) {
+    const a = circles[i], b = circles[j];
+    if (Math.abs(a.r - b.r) > 0.5) continue; // not the same glyph kind
+    const dist = Math.hypot(a.cx - b.cx, a.cy - b.cy);
+    const minDist = 2 * a.r + GLYPH_GAP;
+    if (dist < minDist) {
+      errors.push(
+        `two r=${a.r} glyphs are ${dist.toFixed(1)}px apart — below the 2r+${GLYPH_GAP}=${minDist.toFixed(1)} floor`
+      );
+    }
+  }
+}
 
 /* ---------- report ---------- */
 console.log(`\n  ${path}  ·  board ${W}x${H}  ·  ${els.length} elements, ${drawn.length} drawn, ${texts.length} labels\n`);

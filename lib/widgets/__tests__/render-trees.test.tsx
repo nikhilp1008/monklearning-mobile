@@ -20,7 +20,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { REGISTRY } from '../registry';
-import { renderWidgetTree, scaffoldingDiffs } from './test-utils';
+import { renderWidgetTree, renderWidgetTreeAt, scaffoldingDiffs } from './test-utils';
 
 /**
  * Widgets this harness cannot verify, and why. `molecule_3d` renders a
@@ -35,6 +35,27 @@ const SKIP: Record<string, string> = {
 };
 
 const outDir = resolve(__dirname, '../../../build/trees');
+
+/**
+ * TWO small boards, both on record, deliberately — not because either is
+ * known-correct:
+ *
+ *   REAL_SMALL   495x270  derived from THIS app's actual live-classroom
+ *                         layout code (BOARD_LEFT=56, BOARD_RIGHT_GUTTER=116,
+ *                         boardHeight*0.72) against a real iPhone SE landscape
+ *                         window (667x375pt). This is what the shipped
+ *                         classroom will actually hand a widget today.
+ *   SPEC_SMALL   343x236  the number small-screen-rendering-rules.md is
+ *                         written against — the classroom is landscape-only,
+ *                         so this does not correspond to any portrait slot in
+ *                         this app, but it is the doc's own reference number
+ *                         and checking it is cheap.
+ *
+ * If these two disagree about what "the small case" is, that is a real,
+ * useful discrepancy to have on record rather than silently picking one.
+ */
+const REAL_SMALL = { width: 495, height: 270 };
+const SPEC_SMALL = { width: 343, height: 236 };
 
 test('every registry entry is either verified below or explicitly skipped', () => {
   const covered = new Set(['projectile_motion', ...Object.keys(SKIP)]);
@@ -60,6 +81,26 @@ describe('projectile_motion', () => {
     // react-test-renderer, useAnimatedProps's result never lands on the
     // element and this string would not appear at all.
     expect(JSON.stringify(tree)).toContain('"d":');
+  });
+
+  test.each([
+    ['real-small', REAL_SMALL],
+    ['spec-small', SPEC_SMALL],
+  ])('renders at the %s board box (%o) and writes that tree too', (name, box) => {
+    const smallTree = renderWidgetTreeAt(
+      mod,
+      params,
+      { launch_angle_deg: params.launch_angle_deg },
+      box.width,
+      box.height
+    );
+    expect(smallTree).not.toBeNull();
+
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(
+      resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+      JSON.stringify(smallTree, null, 1)
+    );
   });
 
   test('scaffolding does not move while launch_angle_deg tweens (CLAUDE.md §3)', () => {

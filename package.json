@@ -15,7 +15,8 @@
     "regenerate-golden": "node scripts/regenerate-golden.mjs",
     "verify:render": "node scripts/verify-tree-dir.mjs build/trees",
     "verify:plans": "node scripts/verify-plans.mjs",
-    "verify": "npm run export-registry && npm test && npm run verify:render && npm run verify:plans"
+    "verify": "npm run export-registry && npm test && npm run verify:fixtures && npm run verify:render && npm run verify:plans",
+    "verify:fixtures": "node scripts/verify-fixtures.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/anek-devanagari": "^0.4.1",

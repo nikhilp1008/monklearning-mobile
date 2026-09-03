@@ -15,9 +15,46 @@ import {
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-/** Board geometry, landscape. Fractions of the given box. */
-const PAD = { left: 0.085, right: 0.03, top: 0.08, bottom: 0.16 } as const;
+/**
+ * Board geometry, landscape. Fractions of the given box.
+ *
+ * `bottom` is proportional on purpose — it is a layout margin, not a chrome
+ * constant, so scaling with the box is correct here (see
+ * docs/small-screen-rendering-rules.md — that rule is about font/stroke/glyph
+ * sizes staying fixed, not about every fraction in a widget). But a
+ * proportional margin still has to be large enough to hold the FIXED chrome
+ * stacked inside it: the axis title sits at `ground + TICK_LABEL_SIZE * 3.1`,
+ * a fixed 37.2pt below the axis regardless of board size, plus its own
+ * ~4pt of descender room. At `bottom: 0.16` that fit at H=430 and H=270 but
+ * not H=236 (spec-small, 343x236) — 0.16*236=37.76pt of margin against a
+ * ~41.2pt requirement, found by rendering at that board size and running the
+ * render harness's off-board-label check. 0.19 clears both real board
+ * heights (236 and 270) with room to spare.
+ */
+const PAD = { left: 0.085, right: 0.03, top: 0.08, bottom: 0.19 } as const;
 const SAMPLES = 72;
+
+/**
+ * Chrome constants — device points, and NEVER a function of width/height.
+ * See CLAUDE.md's frame rule and docs/small-screen-rendering-rules.md.
+ *
+ * This widget used to compute one shared `tickFont` as
+ * `Math.max(9, Math.min(13, width * 0.014))` and derive every other text size
+ * and label offset from it by multiplication. That formula never actually
+ * operated on a real device: 343/361/495/734 (every board size this app's
+ * classroom renders into) all land under the clamp's 9px floor or just above
+ * it, and only an unreachable ~900px+ width reaches the 13px ceiling. It was
+ * a hardcoded 9 wearing a responsive costume — worth stating plainly, since
+ * this file is the reference implementation every other widget is meant to
+ * pattern-match. Three independent fixed sizes, chosen by rendering the real
+ * SE board box (343x236) and comparing candidates directly rather than by
+ * picking values that merely clear the render harness's 11px/1.2 floors —
+ * those are floors, not targets.
+ */
+const TICK_LABEL_SIZE = 12;
+const AXIS_TITLE_SIZE = 12;
+const READOUT_SIZE = 14;
+const GRIDLINE_STROKE = 1.5;
 
 const BODIES: Record<ProjectileParams['body'], number> = {
   moon: 1.62,
@@ -105,7 +142,6 @@ function ProjectileMotion({
   }, [width, height, params.initial_speed_ms, params.gravity_ms2]);
 
   const d = useMemo(() => derive(params), [params]);
-  const tickFont = Math.max(9, Math.min(13, width * 0.014));
 
   const pathProps = useAnimatedProps(() => ({
     d: trajectoryPath(
@@ -152,13 +188,13 @@ function ProjectileMotion({
               x2={frame.left + x * frame.pxPerM}
               y2={frame.ground}
               stroke={theme.rule}
-              strokeWidth={1}
+              strokeWidth={GRIDLINE_STROKE}
             />
             <SvgText
               x={frame.left + x * frame.pxPerM}
-              y={frame.ground + tickFont * 1.6}
+              y={frame.ground + TICK_LABEL_SIZE * 1.6}
               fill={theme.inkMuted}
-              fontSize={tickFont}
+              fontSize={TICK_LABEL_SIZE}
               fontFamily={theme.monoFontFamily}
               textAnchor="middle"
             >
@@ -174,13 +210,13 @@ function ProjectileMotion({
               x2={frame.right}
               y2={frame.ground - y * frame.pxPerM}
               stroke={theme.rule}
-              strokeWidth={1}
+              strokeWidth={GRIDLINE_STROKE}
             />
             <SvgText
-              x={frame.left - tickFont * 0.6}
-              y={frame.ground - y * frame.pxPerM + tickFont * 0.35}
+              x={frame.left - TICK_LABEL_SIZE * 0.6}
+              y={frame.ground - y * frame.pxPerM + TICK_LABEL_SIZE * 0.35}
               fill={theme.inkMuted}
-              fontSize={tickFont}
+              fontSize={TICK_LABEL_SIZE}
               fontFamily={theme.monoFontFamily}
               textAnchor="end"
             >
@@ -213,9 +249,9 @@ function ProjectileMotion({
 
       <SvgText
         x={frame.right}
-        y={frame.ground + tickFont * 3.1}
+        y={frame.ground + TICK_LABEL_SIZE * 3.1}
         fill={theme.inkMuted}
-        fontSize={tickFont * 0.92}
+        fontSize={AXIS_TITLE_SIZE}
         fontFamily={theme.monoFontFamily}
         textAnchor="end"
       >
@@ -223,9 +259,9 @@ function ProjectileMotion({
       </SvgText>
       <SvgText
         x={frame.left}
-        y={frame.top - tickFont * 0.4}
+        y={frame.top - TICK_LABEL_SIZE * 0.4}
         fill={theme.ink}
-        fontSize={tickFont * 1.15}
+        fontSize={READOUT_SIZE}
         fontFamily={theme.monoFontFamily}
       >
         {`R ${d.range.toFixed(1)} m    H ${d.apexHeight.toFixed(1)} m    t ${d.flightTime.toFixed(2)} s`}

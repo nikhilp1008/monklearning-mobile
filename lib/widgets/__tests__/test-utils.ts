@@ -72,11 +72,24 @@ export function renderWidgetTree<P extends object>(
   params: P,
   motionValues: Record<string, number> = {}
 ): unknown {
+  return renderWidgetTreeAt(mod, params, motionValues, BOARD_WIDTH, BOARD_HEIGHT);
+}
+
+/** Same as `renderWidgetTree`, at an explicit box — for the frame rule's
+ *  small-screen assertions, which need a REAL small board (495x270, this
+ *  app's iPhone SE case) rather than the 900x430 the main gate uses. */
+export function renderWidgetTreeAt<P extends object>(
+  mod: WidgetModule<P>,
+  params: P,
+  motionValues: Record<string, number>,
+  width: number,
+  height: number
+): unknown {
   const props: WidgetRenderProps<P> = {
     params,
     motion: motionFor(mod.animatable, motionValues),
-    width: BOARD_WIDTH,
-    height: BOARD_HEIGHT,
+    width,
+    height,
     theme: TEST_THEME,
     services: TEST_SERVICES,
   };

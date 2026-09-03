@@ -29,12 +29,28 @@ if (files.length === 0) {
   process.exit(1);
 }
 
+/**
+ * Two small-board suffixes (lib/widgets/__tests__/render-trees.test.tsx),
+ * checked at the box they were rendered at, not the 900x430 default —
+ * assertions 6-8 (font floor, stroke floor, glyph spacing) are exactly the
+ * ones that only misbehave once the frame actually shrinks. See that test
+ * file for why there are two: 495x270 is this app's real classroom box,
+ * 343x236 is small-screen-rendering-rules.md's own reference number.
+ */
+const BOARD_BY_SUFFIX = [
+  { suffix: '.real-small.json', args: ['--w', '495', '--h', '270'] },
+  { suffix: '.spec-small.json', args: ['--w', '343', '--h', '236'] },
+];
+
 let failed = 0;
 for (const file of files) {
-  const result = spawnSync('node', [resolve(root, 'scripts/verify-render.mjs'), join(dir, file)], {
-    cwd: root,
-    stdio: 'inherit',
-  });
+  const match = BOARD_BY_SUFFIX.find((b) => file.endsWith(b.suffix));
+  const extraArgs = match ? match.args : [];
+  const result = spawnSync(
+    'node',
+    [resolve(root, 'scripts/verify-render.mjs'), join(dir, file), ...extraArgs],
+    { cwd: root, stdio: 'inherit' }
+  );
   if (result.status !== 0) failed++;
 }
 

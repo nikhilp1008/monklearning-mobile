@@ -216,11 +216,21 @@ chemically wrong. Small molecules are generated server-side with RDKit
 being generated, because nothing generated is right at that size.
 
 ### Landscape, and the app's own fonts
-The classroom is landscape-locked via `hooks/use-landscape-lock.ts`. Widgets
-receive an explicit `width`/`height` box and must lay out for landscape. Do not
-hardcode a viewBox. Text inside SVG uses `theme.fontFamily` / `theme.monoFontFamily`,
-which resolve to the app's loaded families (Anek Latin, Kalam) — a diagram in a
-different typeface than the board around it reads as a bug.
+The classroom is landscape-locked via `hooks/use-landscape-lock.ts`, and there is
+no portrait board slot anywhere in this runtime today — do not design against a
+portrait number. Widgets receive an explicit `width`/`height` box and must lay
+out for landscape. Do not hardcode a viewBox. Text inside SVG uses
+`theme.fontFamily` / `theme.monoFontFamily`, which resolve to the app's loaded
+families (Anek Latin, Kalam) — a diagram in a different typeface than the board
+around it reads as a bug.
+
+docs/small-screen-rendering-rules.md covers the other thing every widget must
+get right: a widget takes the MEASURED width/height it is given and computes
+geometry from it, never a hardcoded canvas scaled down. World constants scale;
+chrome constants (font size, glyph radius, stroke weight) never do — and the
+reference implementation in this very directory shipped that exact bug, which
+is the doc's own worked example. Read it before writing layout math for a new
+widget.
 
 ### Sliders are out of scope right now
 The product decision is narration-driven variation first. Widgets must not render
