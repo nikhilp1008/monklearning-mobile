@@ -411,7 +411,11 @@ export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number
   const cw = width / cols;
   const rh = height / rows;
   const bw = Math.min(cw * 0.82, 116);
-  const bh = Math.min(rh * 0.56, 46);
+  const LINE = 12;
+  // Height per box, from its OWN line count. A fixed height meant a
+  // three-line box spilled its text through the border, top and bottom.
+  const boxH = (b: { text: string; shape?: string }) =>
+    Math.max(26, b.text.split('\n').length * LINE + 12) * (b.shape === 'diamond' ? 1.5 : 1);
   const at = (b: { col: number; row: number }) => [
     (b.col + 0.5) * cw,
     (b.row + 0.5) * rh,
@@ -430,7 +434,10 @@ export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number
         const dy = by - ay;
         const len = Math.hypot(dx, dy) || 1;
         // Leave and enter at the box edge, not the centre.
-        const pad = Math.abs(dx) > Math.abs(dy) ? bw / 2 + 3 : bh / 2 + 3;
+        const pad =
+          Math.abs(dx) > Math.abs(dy)
+            ? (bw / 2) * (a.shape === 'diamond' ? 1.25 : 1) + 4
+            : boxH(a) / 2 + 4;
         const sx = ax + (dx / len) * pad;
         const sy = ay + (dy / len) * pad;
         const ex = bx - (dx / len) * pad;
@@ -459,7 +466,9 @@ export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number
       {f.boxes.map((b, i) => {
         const [cx, cy] = at(b);
         const tone = tint(b.tone, INK);
-        const half = [bw / 2, bh / 2];
+        // A diamond's usable width tapers to nothing at its points, so it
+        // needs more room than a rectangle holding the same words.
+        const half = [(bw / 2) * (b.shape === 'diamond' ? 1.25 : 1), boxH(b) / 2];
         const d =
           b.shape === 'diamond'
             ? `M ${cx} ${cy - half[1]} L ${cx + half[0]} ${cy} L ${cx} ${cy + half[1]} L ${cx - half[0]} ${cy} Z`
@@ -472,9 +481,9 @@ export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number
               <Rect
                 x={cx - half[0]}
                 y={cy - half[1]}
-                width={bw}
-                height={bh}
-                rx={b.shape === 'round' ? bh / 2 : 8}
+                width={half[0] * 2}
+                height={half[1] * 2}
+                rx={b.shape === 'round' ? Math.min(half[1], 14) : 8}
                 fill={PAPER}
                 stroke={tone}
                 strokeWidth={1.4}
@@ -484,7 +493,7 @@ export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number
               <SvgText
                 key={k}
                 x={cx}
-                y={cy + 4 - ((all.length - 1) * 12) / 2 + k * 12}
+                y={cy + 4 - ((all.length - 1) * LINE) / 2 + k * LINE}
                 fontSize={10}
                 fill={INK}
                 fontFamily={SERIF}

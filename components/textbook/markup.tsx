@@ -105,14 +105,24 @@ const SUPERS: Record<string, string> = {
   '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷',
   '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', '−': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
   n: 'ⁿ', i: 'ⁱ', a: 'ᵃ', b: 'ᵇ', c: 'ᶜ', d: 'ᵈ', e: 'ᵉ', k: 'ᵏ', m: 'ᵐ',
-  r: 'ʳ', s: 'ˢ', t: 'ᵗ', x: 'ˣ', y: 'ʸ', j: 'ʲ', p: 'ᵖ', ' ': ' ',
+  r: 'ʳ', s: 'ˢ', t: 'ᵗ', x: 'ˣ', y: 'ʸ', j: 'ʲ', p: 'ᵖ',
+  // Present in Unicode all along, absent from this table, so every run that
+  // used one fell back to same-size text on the SAME baseline. Physics wants
+  // them: kg m s⁻², e⁻, and the f/g/h that show up in exponents.
+  f: 'ᶠ', g: 'ᵍ', h: 'ʰ', l: 'ˡ', o: 'ᵒ', u: 'ᵘ', v: 'ᵛ', w: 'ʷ', z: 'ᶻ',
+  ' ': ' ',
 };
 
 const SUBS: Record<string, string> = {
   '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇',
   '8': '₈', '9': '₉', '+': '₊', '-': '₋', '−': '₋', '=': '₌', '(': '₍', ')': '₎',
   a: 'ₐ', e: 'ₑ', i: 'ᵢ', j: 'ⱼ', k: 'ₖ', m: 'ₘ', n: 'ₙ', o: 'ₒ', p: 'ₚ',
-  r: 'ᵣ', s: 'ₛ', t: 'ₜ', u: 'ᵤ', v: 'ᵥ', x: 'ₓ', ' ': ' ',
+  r: 'ᵣ', s: 'ₛ', t: 'ₜ', u: 'ᵤ', v: 'ᵥ', x: 'ₓ',
+  // Same story. Unicode has no subscript CAPITALS at any code point, so a
+  // run like v<sub>AB</sub> can never map and must fall back; content should
+  // avoid it. These two can, and were simply missing.
+  h: 'ₕ', l: 'ₗ',
+  ' ': ' ',
 };
 
 /** The whole run, or null when even one character has no raised form. */
@@ -155,9 +165,17 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number): TextStyle {
       return { fontFamily: 'AnekLatin_700Bold' };
     case 'i':
       return { fontFamily: SERIF, fontStyle: 'italic' };
+    // Unicode has no subscript capitals and no subscript f or g, so a run
+    // like v<sub>AB</sub> can never map and always lands here. Until now this
+    // returned a size change ONLY, which put the run on the same baseline: a
+    // fallback subscript and a fallback superscript were indistinguishable,
+    // and v<sub>AB</sub> read as "vAB". React Native cannot translate nested
+    // text, but lineHeight moves it within the line box, which is enough to
+    // tell one from the other.
     case 'sup':
+      return { fontSize: size * 0.72, lineHeight: size * 0.78 };
     case 'sub':
-      return { fontSize: size * 0.72 };
+      return { fontSize: size * 0.72, lineHeight: size * 1.55 };
   }
 }
 
