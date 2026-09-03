@@ -67,6 +67,37 @@ for (const file of files) {
   ch.topics?.forEach((t, ti) =>
     t.blocks?.forEach((b) => {
       if (b.t !== 'diagram' || !b.frames) return;
+      if (b.kind === 'flow') {
+        // Grid layout: a box is as tall as its own line count, and a cell is
+        // the frame height divided by the row count. Text that outgrows either
+        // spills through the border, which is what the renderer's own comment
+        // says it was changed to stop.
+        b.frames.forEach((fr, fi) => {
+          const boxes = fr.flow?.boxes ?? [];
+          if (!boxes.length) return;
+          const cols = Math.max(...boxes.map((x) => x.col)) + 1;
+          const rows = Math.max(...boxes.map((x) => x.row)) + 1;
+          const height = Math.round(W * (fr.aspect ?? 0.62));
+          const cw = W / cols, rh = height / rows;
+          const bw = Math.min(cw * 0.82, 116);
+          const at = `topic ${ti + 1} "${(b.kicker ?? '').slice(0, 26)}" frame ${fi + 1}`;
+          for (const bx of boxes) {
+            const raw = String(bx.text ?? '');
+            const lines = raw.split('\n');
+            // Flow box text is 10px, not the 11px the plot labels use.
+            const h = Math.max(26, lines.length * 12 + 12) * (bx.shape === 'diamond' ? 1.5 : 1);
+            if (h > rh - 2)
+              found.push(`${at}: flow box "${lines[0].slice(0, 20)}" needs ${Math.round(h)}px in a ${Math.round(rh)}px row`);
+            const worst = lines.reduce((a, l) => (l.length > a.length ? l : a), '');
+            const wide = worst.length * 10 * CH;
+            if (wide > bw - 4)
+              found.push(`${at}: flow line "${worst.slice(0, 24)}" needs ${Math.round(wide)}px in a ${Math.round(bw)}px box`);
+            if (/<[a-z/]/i.test(raw))
+              found.push(`${at}: flow box "${lines[0].slice(0, 20)}" contains markup, which renders literally`);
+          }
+        });
+        return;
+      }
       if (!['plot', 'numberline'].includes(b.kind)) return;   // others own their space
       b.frames.forEach((fr, fi) => {
         const { X, Y } = geom(fr, b.kind);
@@ -82,6 +113,15 @@ for (const file of files) {
         for (const l of fr.labels ?? []) labels.push(box(X(l.x), Y(l.y), l.text, 11));
         for (const m of fr.marks ?? []) if (m.label) labels.push(box(X(m.x) + 9, Y(m.y) - 6, m.label, 11, 'start'));
         for (const bd of fr.bodies ?? []) if (bd.label) labels.push(box(X(bd.at[0]), Y(bd.at[1]) + 4, bd.label, 11));
+        // A poly's label sits at the centroid of its points. Collected here so
+        // a shaded region's name is checked against everything else, which the
+        // first chapter to use them pointed out was missing.
+        for (const pl of fr.polys ?? [])
+          if (pl.label && pl.pts?.length) {
+            const cx = pl.pts.reduce((a, q) => a + X(q[0]), 0) / pl.pts.length;
+            const cy = pl.pts.reduce((a, q) => a + Y(q[1]), 0) / pl.pts.length;
+            labels.push(box(cx, cy + 4, pl.label, 11));
+          }
 
         for (const sg of fr.segments ?? []) {
           const ax = X(sg.from[0]), ay = Y(sg.from[1]), bx = X(sg.to[0]), by = Y(sg.to[1]);

@@ -576,6 +576,11 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // guessed title renders no row at all.
   'physics|11|motion in a straight line': () =>
     import('@/content/textbooks/phy-11-02-motion-straight-line'),
+  'physics|11|laws of motion': () =>
+    import('@/content/textbooks/phy-11-04-laws-of-motion'),
+  // Catalogue says "Work, Energy & Power"; chapterKey turns & into "and".
+  'physics|11|work energy and power': () =>
+    import('@/content/textbooks/phy-11-05-work-energy-power'),
 
   // Class 12. Keys carry the class level, so "Relations and Functions" here
   // and in Class 11 are different chapters and cannot collide.

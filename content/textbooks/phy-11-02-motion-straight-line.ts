@@ -1267,6 +1267,7 @@ export const phy11MotionStraightLine: Chapter = {
           ],
           "frames": [
             {
+              "aspect": 0.98,
               "flow": {
                 "boxes": [
                   { "id": "root", "col": 0, "row": 2, "text": "what does\na depend on?", "shape": "diamond" },
