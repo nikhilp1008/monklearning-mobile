@@ -58,7 +58,7 @@ const REAL_SMALL = { width: 495, height: 270 };
 const SPEC_SMALL = { width: 343, height: 236 };
 
 test('every registry entry is either verified below or explicitly skipped', () => {
-  const covered = new Set(['projectile_motion', ...Object.keys(SKIP)]);
+  const covered = new Set(['projectile_motion', 'field_lines', ...Object.keys(SKIP)]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
   expect(missing).toEqual([]);
 });
@@ -107,6 +107,53 @@ describe('projectile_motion', () => {
     const treeShallow = renderWidgetTree(mod, params, { launch_angle_deg: 30 });
     const treeSteep = renderWidgetTree(mod, params, { launch_angle_deg: 65 });
     expect(scaffoldingDiffs(treeShallow, treeSteep)).toEqual([]);
+  });
+});
+
+/**
+ * `field_lines` has no animatable params (see index.tsx's `animatable: []`),
+ * so there is no params/motion invariance to test the way projectile_motion's
+ * is tested above — every cue-driven change here snaps and re-renders, so
+ * `params` alone determines everything, always. What still needs checking is
+ * the thing docs/small-screen-rendering-rules.md's own worked example is
+ * about for this exact widget: the seed-ring-collapses-on-a-small-board bug,
+ * which is why all four configurations are rendered at both small board
+ * sizes, not just the default one.
+ */
+describe('field_lines', () => {
+  const mod = REGISTRY.field_lines!;
+  const configurations = ['point', 'dipole', 'like_charges', 'parallel_plates'] as const;
+
+  test.each(configurations)('renders %s at defaults and writes its tree', (configuration) => {
+    const params = { ...mod.defaults, configuration };
+    const tree = renderWidgetTree(mod, params);
+    expect(tree).not.toBeNull();
+
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(
+      resolve(outDir, `${mod.id}@${mod.version}.${configuration}.json`),
+      JSON.stringify(tree, null, 1)
+    );
+
+    expect(JSON.stringify(tree)).toContain('"d":');
+  });
+
+  describe.each(configurations)('%s at small board sizes', (configuration) => {
+    const params = { ...mod.defaults, configuration };
+
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (name, box) => {
+      const tree = renderWidgetTreeAt(mod, params, {}, box.width, box.height);
+      expect(tree).not.toBeNull();
+
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${configuration}.${name}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
   });
 });
 

@@ -285,6 +285,9 @@ lib/widgets/
   projectile-motion/
     physics.ts                 worklet-safe closed-form maths, no rendering
     index.tsx                  react-native-svg component + validate + module
+  field-lines/
+    physics.ts                 superposition + line tracing, no animatable params
+    index.tsx                  react-native-svg component + validate + module
   molecule-3d/
     index.tsx                  WebView host + postMessage bridge + validate
 assets/

@@ -90,8 +90,9 @@ for a specific diagram.
 `projectile-motion/index.tsx` — the file this document and `CLAUDE.md` both
 tell you to pattern-match — shipped exactly the defect class this rule warns
 about, in its own author's words: *"Both those bugs are mine — I wrote that
-file."* Two bugs, found by the render harness's small-screen assertions, not
-by inspection:
+file."* Three bugs, found by the render harness's small-screen assertions, not
+by inspection — the first two are the same defect class this rule already
+names; the third is a gap in the rule itself, fixed further down.
 
 **1. A font size computed as a fraction of view width, clamped 9–13:**
 
@@ -138,6 +139,23 @@ candidates directly — not by picking whatever clears the checker's floors.
 floor has zero margin against the next rounding difference, font substitution,
 or reviewer's second-guess. `12`/`1.5` were chosen because they read
 comfortably past both floors, not because they are the minimum that passes.
+
+**3. A container sized as a fraction of the frame, holding chrome that doesn't
+scale.** `PAD.bottom` was `0.16 * height` — the axis title inside that padding
+is fixed chrome (`AXIS_TITLE_SIZE`, at a fixed offset from the ground line),
+not something that scales with the board. At `spec-small` (236pt tall) `0.16`
+gives 37.76pt of padding against ~41.2pt of fixed content the padding must
+hold — the container shrinks while its contents don't, and the title clips.
+
+**The rule, stated in full:** a container that holds fixed chrome is sized
+from that chrome, not from a fraction of the frame. `PAD.bottom = 0.16 *
+height` is a bug wherever the thing inside it is a fixed 12pt label plus a
+fixed offset — measure what the container must hold, in device points, and
+size the container to hold it. A percentage of the frame is only correct for
+padding whose contents also scale with the frame; fixed-chrome padding never
+does. The fix here was `PAD.bottom: 0.19`, chosen the same way as the chrome
+constants above — by rendering at both small-board sizes and confirming the
+title clears at each, not by finding the minimum that clears one.
 
 ## Every assertion needs a fixture that fails it
 

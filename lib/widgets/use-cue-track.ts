@@ -120,6 +120,126 @@ export function useCueTrack<P extends object>(
   return { params, motion, caption };
 }
 
+/**
+ * A cue for a REAL seekable local track — a synthesized narration file with
+ * known, measured segment boundaries — as opposed to `Cue`, which is keyed to
+ * a live board event's reveal order and has no timestamp at all. Deliberately
+ * a separate type rather than an optional field bolted onto `Cue`: `Cue` is
+ * the live/precomputed payload contract, and this has no reason to exist in
+ * that contract unless the pre-recorded feel-test this was built for (see
+ * dev-widget-preview.tsx) leads to the precompute pipeline actually being
+ * built — CLAUDE.md's own cue-sync section names this exact fork ("a second
+ * cue-selection strategy alongside this one") without committing to it.
+ */
+export interface TimedCue {
+  /** Milliseconds into the track — measured from the synthesized audio's own
+   *  PCM byte count, never estimated from word count or reading speed. */
+  atMs: number;
+  patch: Readonly<Record<string, number | string | boolean>>;
+  tween?: number;
+  caption?: string;
+}
+
+/**
+ * `useCueTrack`'s counterpart for a real seekable track: selects on
+ * `atMs <= currentTimeMs` instead of `seq <= activeSeq`. Same patch/validate/
+ * tween logic, duplicated rather than shared — the two selectors' inputs are
+ * different enough (a monotonic ms clock vs. a discrete reveal-order integer)
+ * that forcing one implementation to serve both would obscure which cue model
+ * a given line of code belongs to, for a function this short.
+ *
+ * `currentTimeMs` must come from a rAF loop reading `player.currentTime`
+ * directly (CLAUDE.md's own rule 2: `useAudioPlayerStatus`'s polling is too
+ * coarse and unreliable on Android for cue-accurate sync) — not from
+ * `useAudioPlayerStatus`.
+ */
+export function useCueTrackByTime<P extends object>(
+  module: WidgetModule<P>,
+  basePar: P,
+  cues: readonly TimedCue[] | undefined,
+  currentTimeMs: number | null
+): {
+  params: P;
+  motion: Record<string, SharedValue<number>>;
+  caption: string | null;
+} {
+  const [params, setParams] = useState<P>(basePar);
+  const [caption, setCaption] = useState<string | null>(null);
+  const activeIndex = useRef<number>(-1);
+
+  const sv0 = useSharedValue<number>(0);
+  const sv1 = useSharedValue<number>(0);
+  const sv2 = useSharedValue<number>(0);
+  const sv3 = useSharedValue<number>(0);
+  const pool = [sv0, sv1, sv2, sv3];
+
+  if (__DEV__ && module.animatable.length > pool.length) {
+    throw new Error(
+      `[drona/widgets] ${module.id} declares ${module.animatable.length} animatable params; max is ${pool.length}`
+    );
+  }
+
+  const motionEntries = module.animatable
+    .slice(0, pool.length)
+    .map((key, i) => [key, pool[i]] as const);
+  const motion = Object.fromEntries(motionEntries) as Record<string, SharedValue<number>>;
+
+  useEffect(() => {
+    setParams(basePar);
+    setCaption(null);
+    activeIndex.current = -1;
+    for (const [key, sv] of motionEntries) {
+      sv.value = Number(basePar[key as keyof P] ?? 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basePar]);
+
+  useEffect(() => {
+    if (!cues || cues.length === 0 || currentTimeMs == null) return;
+
+    const ordered = [...cues].sort((a, b) => a.atMs - b.atMs);
+    let next = -1;
+    for (let i = 0; i < ordered.length; i++) {
+      if (ordered[i].atMs <= currentTimeMs) next = i;
+      else break;
+    }
+
+    if (next === activeIndex.current) return;
+    activeIndex.current = next;
+    const cue = next >= 0 ? ordered[next] : null;
+
+    if (!cue) {
+      setParams(basePar);
+      setCaption(null);
+      for (const [key, sv] of motionEntries) {
+        sv.value = Number(basePar[key as keyof P] ?? 0);
+      }
+      return;
+    }
+
+    const merged = { ...basePar, ...(cue.patch as Partial<P>) };
+    const checked = module.validate(merged);
+    if (!checked.ok) {
+      if (__DEV__) console.warn('[drona/widgets] cue patch rejected', checked.errors);
+      return;
+    }
+
+    const target = checked.params;
+    setParams(target);
+    setCaption(interpolateCaption(cue.caption, module, target));
+    for (const [key, sv] of motionEntries) {
+      const to = Number(target[key as keyof P] ?? 0);
+      sv.value =
+        cue.tween && cue.tween > 0
+          ? withTiming(to, { duration: cue.tween, easing: Easing.inOut(Easing.quad) })
+          : to;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTimeMs, cues, basePar, module]);
+
+  return { params, motion, caption };
+}
+
 const TOKEN = /\{\{(\w+)\}\}/g;
 
 /**

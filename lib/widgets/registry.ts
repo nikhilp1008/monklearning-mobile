@@ -1,6 +1,7 @@
 import type { WidgetId, WidgetModule } from './types';
 import { projectileMotion } from './projectile-motion';
 import { molecule3d } from './molecule-3d';
+import { fieldLines } from './field-lines';
 
 /**
  * The registry is the closed set of things Drona can draw.
@@ -13,6 +14,7 @@ import { molecule3d } from './molecule-3d';
 export const REGISTRY = {
   projectile_motion: projectileMotion,
   molecule_3d: molecule3d,
+  field_lines: fieldLines,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<string, WidgetModule<any>>;
 
