@@ -72,9 +72,29 @@ export const ARROW_LEN = 7;
 export const ARROW_HALF_W = 3;
 
 /**
- * Arrowhead as a closed path, pointing along `dir` (+1 down, -1 up) for a
- * vertical arrow. Kept here so six widgets do not each write the triangle.
+ * Arrowheads as closed paths, from the one ARROW_LEN/ARROW_HALF_W pair.
+ *
+ * `dirArrowHead` points along an arbitrary angle and is CENTRED on (x,y) —
+ * it was field_lines' file-local `arrowPath`, promoted here the moment a
+ * third widget needed the same triangle. That is the condition this file was
+ * extracted to satisfy, and a duplicated arrowhead is literally drift item 3
+ * in the header above.
+ *
+ * `vArrowHead` is the axis-vertical case, TIP-anchored at (x, tipY) because
+ * a vertical arrow is nearly always drawn to a known endpoint.
  */
+export function dirArrowHead(x: number, y: number, angleRad: number): string {
+  const hx = Math.cos(angleRad) * ARROW_LEN * 0.5;
+  const hy = Math.sin(angleRad) * ARROW_LEN * 0.5;
+  const nx = -Math.sin(angleRad) * ARROW_HALF_W;
+  const ny = Math.cos(angleRad) * ARROW_HALF_W;
+  return (
+    `M${(x + hx).toFixed(2)} ${(y + hy).toFixed(2)}` +
+    `L${(x - hx + nx).toFixed(2)} ${(y - hy + ny).toFixed(2)}` +
+    `L${(x - hx - nx).toFixed(2)} ${(y - hy - ny).toFixed(2)}Z`
+  );
+}
+
 export function vArrowHead(x: number, tipY: number, dir: 1 | -1): string {
   return (
     `M${x} ${tipY}` +

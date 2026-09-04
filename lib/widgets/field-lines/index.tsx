@@ -2,8 +2,8 @@ import React, { useMemo } from 'react';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import {
-  ARROW_HALF_W, ARROW_LEN, EMPHASIS_STROKE, GLYPH_R, HAIRLINE_STROKE, LABEL_SIZE,
-  LINE_STROKE, MARKER_R, READOUT_BAND, READOUT_SIZE,
+  EMPHASIS_STROKE, GLYPH_R, HAIRLINE_STROKE, LABEL_SIZE,
+  LINE_STROKE, MARKER_R, READOUT_BAND, READOUT_SIZE, dirArrowHead,
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
@@ -105,19 +105,6 @@ function validate(raw: unknown): ValidationResult<FieldLinesParams> {
 
 /* ----------------------------------------------------------------- component */
 
-function arrowPath(x: number, y: number, angle: number): string {
-  const tipX = x + Math.cos(angle) * ARROW_LEN * 0.5;
-  const tipY = y + Math.sin(angle) * ARROW_LEN * 0.5;
-  const backX = x - Math.cos(angle) * ARROW_LEN * 0.5;
-  const backY = y - Math.sin(angle) * ARROW_LEN * 0.5;
-  const nx = -Math.sin(angle) * ARROW_HALF_W;
-  const ny = Math.cos(angle) * ARROW_HALF_W;
-  return (
-    `M${tipX.toFixed(2)} ${tipY.toFixed(2)}` +
-    `L${(backX + nx).toFixed(2)} ${(backY + ny).toFixed(2)}` +
-    `L${(backX - nx).toFixed(2)} ${(backY - ny).toFixed(2)}Z`
-  );
-}
 
 function formatField(v: number): string {
   if (v === 0) return '0';
@@ -237,7 +224,7 @@ function FieldLines({ params, width, height, theme }: WidgetRenderProps<FieldLin
             strokeLinecap="round"
           />
           {params.show_arrows && line.arrow && (
-            <Path d={arrowPath(line.arrow.x, line.arrow.y, line.arrow.angle)} fill={theme.accent} />
+            <Path d={dirArrowHead(line.arrow.x, line.arrow.y, line.arrow.angle)} fill={theme.accent} />
           )}
         </G>
       ))}
