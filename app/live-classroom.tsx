@@ -78,6 +78,7 @@ import {
 } from '@/constants/classroom-status';
 import { useStagedStatus } from '@/hooks/use-staged-status';
 import { latexToText } from '@/lib/latex-text';
+import { spokenMathToNotation } from '@/lib/spoken-math';
 import { supabase } from '@/lib/supabase';
 
 
@@ -496,6 +497,15 @@ export default function LiveClassroomScreen() {
    *  (reverted) lesson-player wiring made. */
   const [widgetCaption, setWidgetCaption] = useState<string | null>(null);
   const onWidgetCaption = useCallback((c: string | null) => setWidgetCaption(c), []);
+
+  /** What the strip actually shows: the cue caption if one is live, otherwise
+   *  the narration line, with its spelled-out maths rendered as notation.
+   *  Memoised because it runs on every render of a screen that re-renders on
+   *  the audio clock. */
+  const captionText = useMemo(
+    () => spokenMathToNotation(widgetCaption ?? caption),
+    [widgetCaption, caption]
+  );
 
   /** Everything a `BoardWidget` needs beyond its own payload and its share of
    *  the board box (`diagramBox`) — kept separate from `diagramBox` because
@@ -955,10 +965,16 @@ export default function LiveClassroomScreen() {
           chips are answers, and answers with the question hidden are the exact
           thing this screen is not allowed to show. It closes again on its own
           the moment the question is answered. */}
+      {/* Notation, not dictation. `speech` is authored for TTS and may not
+          contain LaTeX (the engine reads the delimiters aloud), so it spells
+          maths out — "3.2 times 10 to the power minus 19". That is right for
+          the ear and wrong for the eye sitting under a board that renders
+          1.6 × 10⁻¹⁹ C properly. Converted at the point of display only; the
+          audio and the stored caption are untouched. */}
       <CaptionStrip
         open={captions || handRaised || checkOptions.length > 0}
         listening={handRaised}
-        text={widgetCaption ?? caption}
+        text={captionText}
       />
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits

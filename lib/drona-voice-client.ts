@@ -639,9 +639,19 @@ export class DronaVoiceClient {
 
   pausePlayback() {
     this.playback.pause();
+    // The drain watchdog measures time without progress, and a pause is
+    // exactly that — so on a pause of any real length it would fire and mount
+    // the checkpoint over a lesson the student had deliberately stopped. Held
+    // down for the duration; `resumePlayback` starts the count again from
+    // zero, which is the right reading: the student has heard nothing new.
+    if (this.drainWatchdog) {
+      clearTimeout(this.drainWatchdog);
+      this.drainWatchdog = null;
+    }
   }
 
   resumePlayback() {
     this.playback.resume();
+    if (this.awaitingDrain) this.armDrainWatchdog();
   }
 }
