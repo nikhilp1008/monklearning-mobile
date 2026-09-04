@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
+import {
+  ARROW_LEN, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE, PAD_EDGE, PAD_SIDE,
+  READOUT_BAND, READOUT_SIZE, TICK_R, bandFor, fitReadout, maxChars, vArrowHead,
+} from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   anomalies,
@@ -18,19 +22,18 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
  * Chrome constants — device points, never a function of width/height.
  * docs/small-screen-rendering-rules.md.
  */
-const CELL_SIZE = 12;
-const HEADER_SIZE = 12;
-const READOUT_SIZE = 14;
-const RULE_STROKE = 1.5;
-const ARROW_STROKE = 1.6;
-const ANOMALY_R = 3;
+const CELL_SIZE = LABEL_SIZE;
+const HEADER_SIZE = LABEL_SIZE;
+const RULE_STROKE = HAIRLINE_STROKE;
+const ARROW_STROKE = LINE_STROKE;
+const ANOMALY_R = TICK_R;
 
 /** Containers sized from the chrome they hold, not from a fraction of the
  *  frame — the rule added after projectile-motion's PAD.bottom. */
-const PAD_TOP = READOUT_SIZE * 1.6 + 6;
-const HEADER_H = HEADER_SIZE * 1.6;
-const PAD_BOTTOM = 10;
-const PAD_SIDE = 12;
+const PAD_TOP = READOUT_BAND;
+const HEADER_H = bandFor(HEADER_SIZE, 0);
+const PAD_BOTTOM = PAD_EDGE;
+
 /** Width reserved for the trend arrow and anomaly dots, right of the grid. */
 const GUTTER_W = 22;
 
@@ -176,20 +179,20 @@ function DataTableTrend({
    * gives up its characters first.
    */
   const readout = useMemo(() => {
-    const maxChars = Math.max(8, Math.floor((frame.right - frame.left) / (READOUT_SIZE * 0.58)));
+    const w = frame.right - frame.left;
     if (params.cell_kind !== 'numeric') {
-      return (params.caption || 'comparison').slice(0, maxChars);
+      return (params.caption || 'comparison').slice(0, maxChars(w, READOUT_SIZE));
     }
     const sign = d.netChange > 0 ? '+' : '';
     const unit = params.unit ? ` ${params.unit}` : '';
     const breaks = d.anomalyCount > 0
       ? `   ${d.anomalyCount} break${d.anomalyCount > 1 ? 's' : ''}`
       : '';
-    let value = `${sign}${formatCell(d.netChange)}${unit}${breaks}`;
-    if (value.length > maxChars) value = `${sign}${formatCell(d.netChange)}${unit}`;
-    const room = maxChars - value.length - 3;
-    const cap = room > 4 ? `${params.caption.slice(0, room)}   ` : '';
-    return `${cap}${value}`.slice(0, maxChars);
+    return fitReadout(
+      params.caption,
+      `${sign}${formatCell(d.netChange)}${unit}${breaks}`,
+      w
+    );
   }, [params, d, frame.left, frame.right]);
 
   const rowCentreY = (i: number) => frame.headerY + frame.rowH * (i + 0.5);
@@ -317,11 +320,7 @@ function DataTableTrend({
             stroke={theme.accent} strokeWidth={ARROW_STROKE}
           />
           <Path
-            d={
-              `M${arrowX} ${headY}` +
-              `L${arrowX - 4} ${headY + 7 * headDir}` +
-              `L${arrowX + 4} ${headY + 7 * headDir}Z`
-            }
+            d={vArrowHead(arrowX, headY, headDir)}
             fill={theme.accent}
           />
         </G>

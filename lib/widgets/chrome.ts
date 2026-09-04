@@ -1,0 +1,178 @@
+/**
+ * Shared board chrome — the constants and helpers every widget draws with.
+ *
+ * WHY THIS FILE EXISTS. Six more widgets are being built against this
+ * contract. Six independently chosen type scales is how a board stops looking
+ * like one system, and three widgets had already drifted before this was
+ * extracted (see DRIFT FOUND below). A new widget should import from here and
+ * only define a constant of its own when it is genuinely about that widget's
+ * subject matter.
+ *
+ * THE ONE RULE, from docs/small-screen-rendering-rules.md:
+ *
+ *   World constants scale with the board. Chrome constants never do.
+ *
+ * Everything in this file is CHROME, expressed in device points, and must not
+ * be multiplied by a board dimension. A 12pt label is 12pt on a 343-wide board
+ * and 12pt on a 900-wide one — that is the whole point. What legitimately
+ * varies with the box is how much chrome FITS, which is what `maxChars` and
+ * `fitToWidth` are for.
+ *
+ * DRIFT FOUND when this was extracted from field_lines, xy_plot and
+ * data_table_trend. Each of these changed a rendered tree, and each was a
+ * genuine inconsistency rather than a deliberate choice:
+ *
+ *   1. Emphasis stroke was 2.4 in field_lines (capacitor plates) and 2.6 in
+ *      xy_plot (the curve). Same role — the primary drawn object. Unified to
+ *      2.6, the more legible of the two at 343pt.
+ *   2. field_lines drew its two annotation markers at a bare `strokeWidth={1.4}`
+ *      — an unnamed literal, and BELOW the 1.5 hairline everything else treats
+ *      as the thinnest safe line. Raised to HAIRLINE_STROKE.
+ *   3. Arrowhead half-width was 3 in field_lines and 4 in data_table_trend,
+ *      with the same 7pt length. Unified to 3.
+ *   4. `PAD_SIDE` meant a FRACTION (0.06) in field_lines and DEVICE POINTS (12)
+ *      in data_table_trend. Same name, different units, one import away from a
+ *      silent 50x error. The fraction is a world quantity and stays local to
+ *      field_lines under a name that says so; PAD_SIDE here is points.
+ *   5. The readout band `READOUT_SIZE * 1.6 + 6` appeared three times under two
+ *      names (`PAD_TOP`, `TOP_MARGIN_PX`). Now `READOUT_BAND`.
+ */
+
+/* ------------------------------------------------------------------ type */
+
+/** Tick labels, axis titles, table cells, charge labels, annotations. */
+export const LABEL_SIZE = 12;
+/** The single derived-value line along the top of the board. */
+export const READOUT_SIZE = 14;
+
+/** Below this, text is not reliably legible at arm's length on a phone. */
+export const MIN_FONT_SIZE = 11;
+
+/* ---------------------------------------------------------------- stroke */
+
+/** Gridlines, table rules, construction lines — the thinnest safe line. */
+export const HAIRLINE_STROKE = 1.5;
+/** Axes, field lines, arrows, markers — the default drawn line. */
+export const LINE_STROKE = 1.6;
+/** The primary object the diagram is ABOUT. One per board, usually. */
+export const EMPHASIS_STROKE = 2.6;
+
+/* ---------------------------------------------------------------- glyphs */
+
+/** A charge, a body, a labelled entity the student reads as an object. */
+export const GLYPH_R = 10;
+/** An annotation ring calling out a location. */
+export const MARKER_R = 5;
+/** One observation in a dataset. */
+export const DOT_R = 4;
+/** A minor indicator — an anomaly flag, a tick dot. */
+export const TICK_R = 3;
+
+export const ARROW_LEN = 7;
+export const ARROW_HALF_W = 3;
+
+/**
+ * Arrowhead as a closed path, pointing along `dir` (+1 down, -1 up) for a
+ * vertical arrow. Kept here so six widgets do not each write the triangle.
+ */
+export function vArrowHead(x: number, tipY: number, dir: 1 | -1): string {
+  return (
+    `M${x} ${tipY}` +
+    `L${x - ARROW_HALF_W} ${tipY + ARROW_LEN * dir}` +
+    `L${x + ARROW_HALF_W} ${tipY + ARROW_LEN * dir}Z`
+  );
+}
+
+/* --------------------------------------------------------------- spacing */
+
+/** Default breathing room between a container and the chrome inside it. */
+export const PAD_SIDE = 12;
+export const PAD_EDGE = 10;
+
+/**
+ * A horizontal band tall enough to hold one line of text at `fontSize`.
+ *
+ * This is the "container sized from the chrome it holds" rule as a function.
+ * A band computed as a FRACTION of board height is the bug this replaces: it
+ * over-reserves at 900pt and clips the text at 236pt.
+ */
+export function bandFor(fontSize: number, pad = 6): number {
+  return fontSize * 1.6 + pad;
+}
+
+/** The reserved strip at the top of every board for its readout line. */
+export const READOUT_BAND = bandFor(READOUT_SIZE);
+
+/* ------------------------------------------------------------- text fit */
+
+/**
+ * Average glyph width as a fraction of font size.
+ *
+ * This is deliberately the SAME model scripts/verify-render.mjs uses for its
+ * label-overlap assertion. If the two ever diverge, a widget can lay text out
+ * to a width the checker disagrees with and either fail spuriously or, worse,
+ * pass while overlapping on a device.
+ */
+export const CHAR_W = 0.58;
+
+export function textWidth(text: string, fontSize: number): number {
+  return text.length * fontSize * CHAR_W;
+}
+
+export function maxChars(width: number, fontSize: number): number {
+  return Math.max(0, Math.floor(width / (fontSize * CHAR_W)));
+}
+
+/**
+ * Fit a readout into `width`, keeping the part that carries the number.
+ *
+ * The font stays fixed — it is chrome. What varies with the box is how many
+ * characters fit, and treating a readout string as width-independent is what
+ * ran data_table_trend's caption off the board at 495x270 and 343x236 while it
+ * looked fine at 900x430. Shrinking the font instead would be the other bug.
+ *
+ * `value` is never dropped; `caption` gives up its characters first.
+ */
+export function fitReadout(
+  caption: string,
+  value: string,
+  width: number,
+  fontSize: number = READOUT_SIZE
+): string {
+  const cap = maxChars(width, fontSize);
+  if (cap <= 0) return '';
+  const v = value.length > cap ? value.slice(0, cap) : value;
+  const room = cap - v.length - 3;
+  const prefix = room > 4 ? `${caption.slice(0, room)}   ` : '';
+  return `${prefix}${v}`.slice(0, cap);
+}
+
+/* -------------------------------------------------------------- labels */
+
+/**
+ * Where an annotation label goes.
+ *
+ * NOT at the point it describes. field_lines learned this the expensive way:
+ * a label pinned to a neutral point sits exactly where a charge glyph's own
+ * "+" already is, and verify-render treats overlapping text as a hard error.
+ * Corner-pinning is collision-proof by construction, needs no halo, and no
+ * paint-order trickery — which is why there is no halo helper in this file.
+ *
+ * Use a halo only when a label MUST sit on top of dense ink (a value on a
+ * shaded region), and then draw the same text twice: once thick in the
+ * background colour, once normally on top.
+ */
+export type LabelCorner = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
+
+export function cornerAnchor(
+  corner: LabelCorner,
+  box: { left: number; right: number; top: number; bottom: number },
+  fontSize: number = LABEL_SIZE
+): { x: number; y: number; textAnchor: 'start' | 'end' } {
+  const bottom = corner.startsWith('bottom');
+  return {
+    x: corner.endsWith('left') ? box.left : box.right,
+    y: bottom ? box.bottom - 4 : box.top + fontSize,
+    textAnchor: corner.endsWith('left') ? 'start' : 'end',
+  };
+}

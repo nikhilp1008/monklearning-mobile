@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 
+import {
+  ARROW_HALF_W, ARROW_LEN, EMPHASIS_STROKE, GLYPH_R, HAIRLINE_STROKE, LABEL_SIZE,
+  LINE_STROKE, MARKER_R, READOUT_BAND, READOUT_SIZE,
+} from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   chargesFor,
@@ -19,14 +23,13 @@ import {
  * Chrome constants — device points, never a function of width/height. See
  * docs/small-screen-rendering-rules.md.
  */
-const CHARGE_GLYPH_R = 10;
-const CHARGE_LABEL_SIZE = 12;
-const ANNOTATION_LABEL_SIZE = 12;
-const ANNOTATION_MARKER_R = 5;
-const FIELD_LINE_STROKE = 1.6;
-const PLATE_STROKE = 2.4;
-const ARROW_LEN = 7;
-const ARROW_HALF_W = 3;
+const CHARGE_GLYPH_R = GLYPH_R;
+const CHARGE_LABEL_SIZE = LABEL_SIZE;
+const ANNOTATION_LABEL_SIZE = LABEL_SIZE;
+const ANNOTATION_MARKER_R = MARKER_R;
+const FIELD_LINE_STROKE = LINE_STROKE;
+// Was 2.4 while xy_plot's curve — the same role — was 2.6. Unified in chrome.ts.
+const PLATE_STROKE = EMPHASIS_STROKE;
 /** Gap, in device points, between a charge's glyph edge and where its field
  *  lines are seeded. Converted to world metres via `/ pxPerM` at render time —
  *  NOT authored as a world constant. This is the exact bug
@@ -34,10 +37,12 @@ const ARROW_HALF_W = 3;
  *  fixed-metre seed ring collapses to nothing on a small board because a
  *  world constant was standing in for what should have been a chrome offset. */
 const SEED_GAP = 4;
-const READOUT_SIZE = 14;
 
-const PAD_SIDE = 0.06;
-const PAD_BOTTOM = 0.06;
+
+/** FRACTION of board width — a world quantity, not chrome. */
+const PAD_SIDE_FRAC = 0.06;
+/** FRACTION of board height — a world quantity, not chrome. */
+const PAD_BOTTOM_FRAC = 0.06;
 /**
  * The top margin holds ONLY the fixed-size readout text — nothing in it
  * scales with the board — so it is sized from that chrome, not from a
@@ -45,7 +50,7 @@ const PAD_BOTTOM = 0.06;
  * container-sizing rule (added after `projectile-motion`'s PAD.bottom shipped
  * the opposite mistake: a fraction holding fixed content).
  */
-const TOP_MARGIN_PX = READOUT_SIZE * 1.6 + 6;
+const TOP_MARGIN_PX = READOUT_BAND;
 
 const CONFIGURATIONS = ['point', 'dipole', 'like_charges', 'parallel_plates'] as const;
 const ANNOTATIONS = ['neutral_point', 'termination'] as const;
@@ -135,10 +140,10 @@ function FieldLines({ params, width, height, theme }: WidgetRenderProps<FieldLin
    * correct even if it did.)
    */
   const frame = useMemo(() => {
-    const left = width * PAD_SIDE;
-    const right = width * (1 - PAD_SIDE);
+    const left = width * PAD_SIDE_FRAC;
+    const right = width * (1 - PAD_SIDE_FRAC);
     const top = TOP_MARGIN_PX;
-    const bottom = height * (1 - PAD_BOTTOM);
+    const bottom = height * (1 - PAD_BOTTOM_FRAC);
     const plotW = right - left;
     const plotH = bottom - top;
     const cx = (left + right) / 2;
@@ -285,7 +290,7 @@ function FieldLines({ params, width, height, theme }: WidgetRenderProps<FieldLin
           r={ANNOTATION_MARKER_R}
           fill="none"
           stroke={theme.ink}
-          strokeWidth={1.4}
+          strokeWidth={HAIRLINE_STROKE}
         />
       )}
       {showTermination && termination && (
@@ -295,7 +300,7 @@ function FieldLines({ params, width, height, theme }: WidgetRenderProps<FieldLin
           r={ANNOTATION_MARKER_R}
           fill="none"
           stroke={theme.ink}
-          strokeWidth={1.4}
+          strokeWidth={HAIRLINE_STROKE}
         />
       )}
       {/* Annotation labels sit at a fixed corner, independent of the marker's

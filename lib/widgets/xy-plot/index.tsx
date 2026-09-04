@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
+import {
+  DOT_R, EMPHASIS_STROKE, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE,
+  READOUT_BAND, READOUT_SIZE,
+} from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   areaPath,
@@ -22,14 +26,12 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
  * docs/small-screen-rendering-rules.md. Chosen to sit clear of the render
  * harness's 11px / 1.2 floors rather than on them.
  */
-const TICK_LABEL_SIZE = 12;
-const AXIS_TITLE_SIZE = 12;
-const READOUT_SIZE = 14;
-const GRIDLINE_STROKE = 1.5;
-const AXIS_STROKE = 1.6;
-const CURVE_STROKE = 2.6;
-const MARKER_STROKE = 1.6;
-const DOT_R = 4;
+const TICK_LABEL_SIZE = LABEL_SIZE;
+const AXIS_TITLE_SIZE = LABEL_SIZE;
+const GRIDLINE_STROKE = HAIRLINE_STROKE;
+const AXIS_STROKE = LINE_STROKE;
+const CURVE_STROKE = EMPHASIS_STROKE;
+const MARKER_STROKE = LINE_STROKE;
 const SAMPLES = 96;
 
 /**
@@ -42,7 +44,7 @@ const SAMPLES = 96;
 const PAD_LEFT = TICK_LABEL_SIZE * 3.2 + 8;
 const PAD_RIGHT = 14;
 /** Holds the readout line, which is fixed-size text. */
-const PAD_TOP = READOUT_SIZE * 1.6 + 6;
+const PAD_TOP = READOUT_BAND;
 /** Holds an x-tick label, then the axis title, both fixed-size, plus descender. */
 const PAD_BOTTOM = TICK_LABEL_SIZE * 3.1 + 6;
 
