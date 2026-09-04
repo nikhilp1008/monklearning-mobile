@@ -19,6 +19,8 @@ import { useLandscapeLock } from '@/hooks/use-landscape-lock';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import { fieldLines } from '@/lib/widgets/field-lines';
 import type { FieldLinesParams } from '@/lib/widgets/field-lines';
+import { xyPlot } from '@/lib/widgets/xy-plot';
+import type { XyPlotParams } from '@/lib/widgets/xy-plot';
 import { useCueTrackByTime, type TimedCue } from '@/lib/widgets/use-cue-track';
 import type { WidgetTheme } from '@/lib/widgets/types';
 
@@ -123,7 +125,7 @@ function narrationTextAt(currentTimeMs: number): string {
   return text;
 }
 
-type Mode = 'manual' | 'narration' | 'classroom';
+type Mode = 'manual' | 'narration' | 'classroom' | 'xy_plot';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -151,10 +153,17 @@ export default function DevWidgetPreviewScreen() {
         >
           <Text style={[styles.pillText, mode === 'classroom' && styles.pillTextActive]}>classroom</Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('xy_plot')}
+          style={[styles.pill, mode === 'xy_plot' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'xy_plot' && styles.pillTextActive]}>xy_plot</Text>
+        </Pressable>
       </View>
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
+      {mode === 'xy_plot' && <XyPlotPreview />}
     </View>
   );
 }
@@ -413,6 +422,97 @@ function ClassroomPreview() {
         >
           <Text style={styles.pillText}>restart</Text>
         </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * xy_plot example payloads — one per real syllabus use, so correctness is
+ * checkable here without a lesson existing. Each caption states the value the
+ * readout must show; if the board disagrees with the caption, the widget is
+ * wrong. The integrals are asserted in lib/widgets/__tests__/physics.test.ts.
+ */
+const XY_CASES: { label: string; expect: string; params: XyPlotParams }[] = [
+  {
+    label: 'Maths 12 Ch8 · area under y = x²',
+    expect: 'area 2.67  (= 8/3)',
+    params: { ...xyPlot.defaults, mode: 'area', curve: 'parabola', a: 1, b: 0, c: 0,
+      x_min: 0, x_max: 3, shade_from: 0, shade_to: 2, x_label: 'x', y_label: 'y' },
+  },
+  {
+    label: 'Maths 12 Ch8 · ∫₀^π sin x dx',
+    expect: 'area 2',
+    params: { ...xyPlot.defaults, mode: 'area', curve: 'sine', a: 1, b: 1, c: 0,
+      x_min: 0, x_max: 6.283, shade_from: 0, shade_to: 3.1416, x_label: 'x', y_label: 'sin x' },
+  },
+  {
+    label: 'Maths 12 Ch8 · area under y = x',
+    expect: 'area 8',
+    params: { ...xyPlot.defaults, mode: 'area', curve: 'line', a: 1, b: 0, c: 0,
+      x_min: 0, x_max: 5, shade_from: 0, shade_to: 4, x_label: 'x', y_label: 'y' },
+  },
+  {
+    label: 'Maths 11 Ch13 · statistics',
+    expect: 'mean 5   median 4.50   sd 2',
+    params: { ...xyPlot.defaults, mode: 'data', values: [2, 4, 4, 4, 5, 5, 7, 9],
+      x_label: 'observation', y_label: 'value' },
+  },
+  {
+    label: 'curve only · y = e^x',
+    expect: 'no readout value — plain curve',
+    params: { ...xyPlot.defaults, mode: 'curve', curve: 'exponential', a: 1, b: 1, c: 0,
+      x_min: 0, x_max: 3, x_label: 'x', y_label: 'e^x' },
+  },
+];
+
+function XyPlotPreview() {
+  const box = useDiagramBox();
+  // This tab carries two extra header rows the other tabs do not, so the
+  // shared 0.72-of-window height overflows and the widget's own readout
+  // collides with the caption above it. Dev-preview chrome only — the widget
+  // is verified at the REAL board boxes by scripts/verify-render.mjs.
+  const diagramBox = { availableWidth: box.availableWidth, maxHeight: box.maxHeight - 70 };
+  const theme = useDevTheme();
+  const [i, setI] = useState(0);
+  const kase = XY_CASES[i];
+
+  const event = useMemo(
+    () => ({ seq: 0, tier: 'precomputed' as const,
+      // WidgetPayload's params default to Record<string, unknown> — the wire
+      // shape. Cast at that boundary rather than putting an index signature on
+      // XyPlotParams, which would weaken the widget's own type everywhere.
+      payload: { widget: 'xy_plot', version: 1,
+        params: kase.params as unknown as Record<string, unknown> } }),
+    [kase]
+  );
+
+  return (
+    <View style={styles.body}>
+      <View style={styles.controlsContent}>
+        <Pressable onPress={() => setI((v) => (v + 1) % XY_CASES.length)} style={[styles.pill, styles.pillActive]}>
+          <Text style={styles.pillTextActive}>next case</Text>
+        </Pressable>
+        <Text style={styles.readout}>{i + 1}/{XY_CASES.length}</Text>
+      </View>
+      <View style={[styles.controlsContent, { paddingTop: 0 }]}>
+        <Text style={styles.pillText} numberOfLines={1}>
+          {kase.label}  ·  expect: {kase.expect}
+        </Text>
+      </View>
+
+      <View style={styles.boardArea}>
+        <View style={{ width: diagramBox.availableWidth, height: diagramBox.maxHeight }}>
+          <BoardWidget
+            event={event}
+            activeSeq={0}
+            width={diagramBox.availableWidth}
+            height={diagramBox.maxHeight}
+            theme={theme}
+            services={DEV_SERVICES}
+            onGap={(reason, detail) => console.warn('[dev-widget-preview][board-gap]', reason, detail)}
+          />
+        </View>
       </View>
     </View>
   );

@@ -58,7 +58,7 @@ const REAL_SMALL = { width: 495, height: 270 };
 const SPEC_SMALL = { width: 343, height: 236 };
 
 test('every registry entry is either verified below or explicitly skipped', () => {
-  const covered = new Set(['projectile_motion', 'field_lines', ...Object.keys(SKIP)]);
+  const covered = new Set(['projectile_motion', 'field_lines', 'xy_plot', 'data_table_trend', ...Object.keys(SKIP)]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
   expect(missing).toEqual([]);
 });
@@ -154,6 +154,184 @@ describe('field_lines', () => {
         JSON.stringify(tree, null, 1)
       );
     });
+  });
+});
+
+/**
+ * xy_plot is a plotting substrate with modes, so "does it render" has to be
+ * asked once per mode — `curve`, `area` and `data` build genuinely different
+ * trees from the same component. The area mode is also the only one with an
+ * animatable param, so it carries the params/motion invariant check.
+ */
+describe('xy_plot', () => {
+  const mod = REGISTRY.xy_plot!;
+
+  const CASES = {
+    // Maths 12 Ch8, the chapter this widget unlocks: area under y = x^2.
+    area: { ...mod.defaults },
+    // Maths 11 Ch13: the standard dataset, mean 5 / median 4.5 / sd 2.
+    data: {
+      ...mod.defaults,
+      mode: 'data' as const,
+      values: [2, 4, 4, 4, 5, 5, 7, 9],
+      x_label: 'observation',
+      y_label: 'value',
+    },
+    // A plain curve with no shading — y = sin x over a full period.
+    curve: {
+      ...mod.defaults,
+      mode: 'curve' as const,
+      curve: 'sine' as const,
+      a: 1, b: 1, c: 0,
+      x_min: 0, x_max: 6.28,
+    },
+  };
+
+  test.each(Object.keys(CASES) as (keyof typeof CASES)[])(
+    'renders %s at defaults and writes its tree',
+    (name) => {
+      const params = CASES[name];
+      const tree = renderWidgetTree(mod, params, { shade_to: params.shade_to });
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+      const json = JSON.stringify(tree);
+      if (name === 'data') {
+        // No path in this mode, and that is correct — a dot plot is lines and
+        // circles. Assert what it SHOULD draw rather than relaxing the check:
+        // one marker per observation, and the mean rule that reads off them.
+        expect(json).toContain('RNSVGCircle');
+        expect(json).toContain('mean 5');
+      } else {
+        // The one risk the harness exists to catch: under a bare
+        // react-test-renderer the animated `d` never lands on the element.
+        expect(json).toContain('"d":');
+      }
+    }
+  );
+
+  describe.each(Object.keys(CASES) as (keyof typeof CASES)[])('%s at small boards', (name) => {
+    const params = CASES[name];
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(
+        mod, params, { shade_to: params.shade_to }, box.width, box.height
+      );
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('axes and ticks do not move while shade_to sweeps (CLAUDE.md §3)', () => {
+    // The whole reason the coefficients are not animatable: the y-range is a
+    // function of the curve, so only the shaded width may change.
+    const narrow = renderWidgetTree(mod, CASES.area, { shade_to: 0.5 });
+    const wide = renderWidgetTree(mod, CASES.area, { shade_to: 3 });
+    expect(scaffoldingDiffs(narrow, wide)).toEqual([]);
+  });
+});
+
+/**
+ * data_table_trend's risk is not "does it draw" but "do two labels collide" —
+ * verify-render treats ANY text overlap as a hard error, and a table is almost
+ * entirely text. The worst case is the widest legal payload (8 rows x 4
+ * numeric columns) at the smallest board, so that is rendered explicitly
+ * rather than only the default.
+ */
+describe('data_table_trend', () => {
+  const mod = REGISTRY.data_table_trend!;
+
+  const CASES = {
+    // The default: NCERT period-2 ionisation enthalpy, 8 rows x 1 col.
+    numeric: { ...mod.defaults },
+    // Widest legal numeric payload — the label-collision worst case.
+    widest: {
+      ...mod.defaults,
+      col_labels: ['IE1', 'IE2', 'r', 'EN'],
+      values: [
+        520, 7298, 152, 0.98,  899, 1757, 112, 1.57,  801, 2427, 85, 2.04,
+        1086, 2353, 77, 2.55,  1402, 2856, 75, 3.04,  1314, 3388, 73, 3.44,
+        1681, 3374, 72, 3.98,  2081, 3952, 71, 0,
+      ],
+      caption: 'Period 2 trends',
+    },
+    // Categorical: a comparison matrix, no trend, 3 columns.
+    categorical: {
+      ...mod.defaults,
+      cell_kind: 'categorical' as const,
+      row_labels: ['A', 'B', 'AB', 'O'],
+      col_labels: ['Ag', 'Ab', 'Give'],
+      values: [],
+      text_values: [
+        'A', 'anti-B', 'A,AB',  'B', 'anti-A', 'B,AB',
+        'A,B', 'none', 'AB',    'none', 'both', 'all',
+      ],
+      trend_col: -1,
+      unit: '',
+      caption: 'ABO blood groups',
+    },
+  };
+
+  test.each(Object.keys(CASES) as (keyof typeof CASES)[])(
+    'renders %s and writes its tree',
+    (name) => {
+      const params = CASES[name];
+      const tree = renderWidgetTree(mod, params, { highlight_row: params.highlight_row });
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+      // Every row label must reach the tree — a silently dropped row is the
+      // failure a "did it render" check would miss.
+      for (const label of params.row_labels) {
+        expect(JSON.stringify(tree)).toContain(`"content":"${label}"`);
+      }
+    }
+  );
+
+  describe.each(Object.keys(CASES) as (keyof typeof CASES)[])('%s at small boards', (name) => {
+    const params = CASES[name];
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(
+        mod, params, { highlight_row: params.highlight_row }, box.width, box.height
+      );
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('the grid does not move while highlight_row sweeps (CLAUDE.md §3)', () => {
+    // The band is a Rect and may move; every Line and Text here is
+    // scaffolding and may not. This also pins the always-render rule — a
+    // conditionally mounted band would change the element count.
+    const a = renderWidgetTree(mod, CASES.numeric, { highlight_row: 0 });
+    const b = renderWidgetTree(mod, CASES.numeric, { highlight_row: 7 });
+    expect(scaffoldingDiffs(a, b)).toEqual([]);
+  });
+
+  test('an unhighlighted board still renders the band, parked invisible', () => {
+    // motionFor defaults a missing key to 0, which is a valid row — so -1 is
+    // the sentinel and the Rect must exist either way.
+    const tree = renderWidgetTree(mod, CASES.numeric, { highlight_row: -1 });
+    expect(JSON.stringify(tree)).toContain('RNSVGRect');
   });
 });
 

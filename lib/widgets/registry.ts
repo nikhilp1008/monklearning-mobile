@@ -2,6 +2,8 @@ import type { WidgetId, WidgetModule } from './types';
 import { projectileMotion } from './projectile-motion';
 import { molecule3d } from './molecule-3d';
 import { fieldLines } from './field-lines';
+import { xyPlot } from './xy-plot';
+import { dataTableTrend } from './data-table-trend';
 
 /**
  * The registry is the closed set of things Drona can draw.
@@ -15,6 +17,8 @@ export const REGISTRY = {
   projectile_motion: projectileMotion,
   molecule_3d: molecule3d,
   field_lines: fieldLines,
+  xy_plot: xyPlot,
+  data_table_trend: dataTableTrend,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<string, WidgetModule<any>>;
 
