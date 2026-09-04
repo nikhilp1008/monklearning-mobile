@@ -618,6 +618,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'physics|11|gravitation': () => import('@/content/textbooks/phy-11-07-gravitation'),
   'physics|12|atoms': () => import('@/content/textbooks/phy-12-12-atoms'),
   'physics|12|nuclei': () => import('@/content/textbooks/phy-12-13-nuclei'),
+  'physics|12|semiconductor electronics': () =>
+    import('@/content/textbooks/phy-12-14-semiconductors'),
   'physics|12|ray optics and optical instruments': () =>
     import('@/content/textbooks/phy-12-09-ray-optics'),
   'physics|12|wave optics': () => import('@/content/textbooks/phy-12-10-wave-optics'),
