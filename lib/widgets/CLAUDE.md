@@ -145,6 +145,26 @@ but *never* of launch angle — because angle is the parameter cues move most, a
 an axis that rescales mid-tween makes two trajectories visually incomparable,
 which destroys the one thing the animation exists to teach.
 
+**A widget whose moving geometry is LABEL-TERMINATED is snap-only.** If a
+param moves something that ends in a `<Text>` — an atom label on a bond, a
+force symbol on an arrow, a substituent on a Newman projection — it cannot be
+animated, because `SCAFFOLDING_TYPES` in `__tests__/test-utils.ts` includes
+`Text`/`TSpan` and `scaffoldingDiffs` reports any motion-driven change to them
+as a params/motion violation. That check is right: a bond that swings while
+its label stays put is a wrong diagram, not a slightly-off one.
+
+The consequence is that whole widget families are legitimately snap-only —
+`molecule_struct`, Newman projections, and most structural formulae. Those
+ship with `animatable: []` and drive change through successive board events
+with different `params` instead, which re-render freely. This is not a
+limitation to design around; it is the contract preventing a class of wrong
+diagram.
+
+(Written down 2026-09-05. It had been reasoned from `SCAFFOLDING_TYPES` and
+applied in three widget specs, but never actually stated here — and was then
+cited in a brief as though it were. Section 8 exists because of exactly that
+habit.)
+
 Maximum 4 animatable params per widget (`useCueTrack` allocates a fixed pool;
 hooks cannot be called in a loop over data). A widget needing five simultaneously
 tweening numbers is two widgets.
