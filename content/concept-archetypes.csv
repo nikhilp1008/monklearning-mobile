@@ -1,0 +1,1155 @@
+subject,class_level,chapter_order,concept,exams,archetype,build_class
+physics,11,1,Systems of Units and SI Units,b,apparatus,illustration
+physics,11,1,"Measurement of Length, Mass and Time",b,apparatus,illustration
+physics,11,1,Measuring Instruments: Vernier Callipers and Screw Gauge,b,circuit,widget
+physics,11,1,Errors in Measurement,b,apparatus,illustration
+physics,11,1,Propagation of Errors,b,apparatus,illustration
+physics,11,1,Significant Figures,b,none_symbolic,none
+physics,11,1,Dimensions and Dimensional Formulae,b,none_symbolic,none
+physics,11,1,Dimensional Analysis and Its Applications,b,none_symbolic,none
+physics,11,2,Kinematic Quantities,b,motion_path,widget
+physics,11,2,Average and Instantaneous Quantities,b,none_symbolic,none
+physics,11,2,Graphical Analysis,b,xy_plot,widget
+physics,11,2,Equations of Motion,b,motion_path,widget
+physics,11,2,Free Fall,b,motion_path,widget
+physics,11,2,Relative Velocity,b,motion_path,widget
+physics,11,2,Motion with Variable Acceleration,b,xy_plot,widget
+physics,11,3,Vector Algebra and Resolution,b,geometry_3d,widget
+physics,11,3,Vector Products (Dot and Cross),b,geometry_3d,widget
+physics,11,3,Motion in Two Dimensions,b,motion_path,widget
+physics,11,3,Relative Velocity in a Plane,b,motion_path,widget
+physics,11,3,Projectile Motion,b,motion_path,widget
+physics,11,3,Circular Motion Kinematics,b,motion_path,widget
+physics,11,3,Circular Motion Dynamics,b,motion_path,widget
+physics,11,4,Newton's Laws and Impulse,b,motion_path,widget
+physics,11,4,Common Forces in Mechanics and Free-Body Diagrams,b,free_body_forces,widget
+physics,11,4,Concurrent Forces and Equilibrium,b,free_body_forces,widget
+physics,11,4,"Connected Bodies, Pulleys and Constraint Relations",b,free_body_forces,widget
+physics,11,4,Momentum Conservation,b,motion_path,widget
+physics,11,4,Friction,b,free_body_forces,widget
+physics,11,4,Circular Motion Dynamics (Banking),b,motion_path,widget
+physics,11,4,Vertical Circular Motion,b,motion_path,widget
+physics,11,4,Non-Inertial Frames and Pseudo Forces,b,free_body_forces,widget
+physics,11,5,Work Done by a Force,b,free_body_forces,widget
+physics,11,5,Kinetic Energy,b,free_body_forces,widget
+physics,11,5,Work-Energy Theorem,b,free_body_forces,widget
+physics,11,5,Conservative and Non-Conservative Forces,b,free_body_forces,widget
+physics,11,5,Potential Energy,b,free_body_forces,widget
+physics,11,5,Conservation of Mechanical Energy,b,free_body_forces,widget
+physics,11,5,Various Forms of Energy and Law of Conservation of Energy,b,free_body_forces,widget
+physics,11,5,Power,b,free_body_forces,widget
+physics,11,5,Collisions,b,motion_path,widget
+physics,11,5,Motion in a Vertical Circle,b,geometry_plane,widget
+physics,11,6,Rigid Bodies and Types of Motion,b,motion_path,widget
+physics,11,6,Center of Mass,b,motion_path,widget
+physics,11,6,Motion of Center of Mass and Linear Momentum,b,motion_path,widget
+physics,11,6,Vector Product of Two Vectors,b,geometry_3d,widget
+physics,11,6,Rotational Kinematics,b,motion_path,widget
+physics,11,6,Torque and Angular Momentum,b,motion_path,widget
+physics,11,6,Equilibrium of Rigid Bodies,b,motion_path,widget
+physics,11,6,Moment of Inertia,b,motion_path,widget
+physics,11,6,Rotational Dynamics,b,motion_path,widget
+physics,11,6,Rolling Motion,b,motion_path,widget
+physics,11,6,Angular Impulse and Collisions with Rigid Bodies,j,motion_path,widget
+physics,11,7,Newton's Law of Gravitation,b,free_body_forces,widget
+physics,11,7,The Gravitational Constant and Two-Body Systems,j,free_body_forces,widget
+physics,11,7,Acceleration due to Gravity and Its Variation,b,free_body_forces,widget
+physics,11,7,Gravitational Field Intensity,b,free_body_forces,widget
+physics,11,7,Gravitational Potential,b,free_body_forces,widget
+physics,11,7,Gravitational Potential Energy,b,free_body_forces,widget
+physics,11,7,Escape Velocity,b,motion_path,widget
+physics,11,7,Kepler's Laws of Planetary Motion,b,motion_path,widget
+physics,11,7,Satellite Motion and Orbital Mechanics,b,motion_path,widget
+physics,11,7,Weightlessness,b,motion_path,widget
+physics,11,8,"Stress, Strain and Hooke's Law",b,free_body_forces,widget
+physics,11,8,Stress-Strain Curve and Yielding,b,free_body_forces,widget
+physics,11,8,Young's Modulus,b,free_body_forces,widget
+physics,11,8,Bulk Modulus and Compressibility,b,free_body_forces,widget
+physics,11,8,Shear Modulus,b,free_body_forces,widget
+physics,11,8,Poisson's Ratio,b,free_body_forces,widget
+physics,11,8,Relations Among Elastic Constants,b,free_body_forces,widget
+physics,11,8,Elastic Potential Energy,b,free_body_forces,widget
+physics,11,8,Thermal Stress and Thermal Expansion,b,free_body_forces,widget
+physics,11,8,Applications of Elastic Behaviour,b,free_body_forces,widget
+physics,11,9,Fluid Pressure and Pascal's Law,b,free_body_forces,widget
+physics,11,9,Buoyancy and Floatation,b,free_body_forces,widget
+physics,11,9,Fluids in Accelerated and Rotating Frames,j,free_body_forces,widget
+physics,11,9,Equation of Continuity,b,free_body_forces,widget
+physics,11,9,"Turbulent Flow, Critical Velocity and Reynolds Number",b,free_body_forces,widget
+physics,11,9,Bernoulli's Theorem,b,free_body_forces,widget
+physics,11,9,Viscosity and Newton's Law of Viscosity,b,free_body_forces,widget
+physics,11,9,Poiseuille's Law and Viscous Flow Resistance,j,free_body_forces,widget
+physics,11,9,Stokes' Law and Terminal Velocity,b,free_body_forces,widget
+physics,11,9,Surface Tension,b,free_body_forces,widget
+physics,11,9,Capillarity,b,free_body_forces,widget
+physics,11,10,Temperature and Thermometry,b,xy_plot,widget
+physics,11,10,Ideal Gas Equation and Absolute Temperature,b,thermo_pv,widget
+physics,11,10,Thermal Expansion,b,xy_plot,widget
+physics,11,10,Calorimetry and Specific Heat,b,xy_plot,widget
+physics,11,10,Change of State and Latent Heat,b,xy_plot,widget
+physics,11,10,Heat Conduction and Thermal Conductivity,b,xy_plot,widget
+physics,11,10,Convection,b,xy_plot,widget
+physics,11,10,Radiation and Stefan's Law,b,xy_plot,widget
+physics,11,10,Newton's Law of Cooling,b,free_body_forces,widget
+physics,11,10,Blackbody Radiation and Wien's Displacement Law,b,xy_plot,widget
+physics,11,11,Zeroth Law and Thermal Equilibrium,b,thermo_pv,widget
+physics,11,11,Thermodynamic Variables and State Functions,b,thermo_pv,widget
+physics,11,11,Ideal Gas Law,b,thermo_pv,widget
+physics,11,11,First Law of Thermodynamics,b,thermo_pv,widget
+physics,11,11,Specific Heat Capacity and Mayer's Relation,b,thermo_pv,widget
+physics,11,11,Thermodynamic Processes,b,thermo_pv,widget
+physics,11,11,"Heat Engines, Refrigerators and Heat Pumps",b,thermo_pv,widget
+physics,11,11,Second Law of Thermodynamics and Reversibility,b,thermo_pv,widget
+physics,11,11,Carnot Engine and Carnot's Theorem,b,thermo_pv,widget
+physics,11,11,Entropy and the Quantified Second Law,j,thermo_pv,widget
+physics,11,12,Kinetic Theory: Assumptions and Molecular Nature,b,xy_plot,widget
+physics,11,12,Ideal Gas and Gas Laws,b,thermo_pv,widget
+physics,11,12,Kinetic Theory and Gas Pressure,b,xy_plot,widget
+physics,11,12,RMS Speed and Maxwell Distribution,b,field_lines,widget
+physics,11,12,Degrees of Freedom and Equipartition of Energy,b,xy_plot,widget
+physics,11,12,Internal Energy and Specific Heat Capacities,b,thermo_pv,widget
+physics,11,12,Mean Free Path,b,motion_path,widget
+physics,11,13,SHM Kinematics and Equations,b,wave_form,widget
+physics,11,13,Reference Circle and Phasor Representation,b,geometry_plane,widget
+physics,11,13,SHM Energy,b,wave_form,widget
+physics,11,13,Spring-Mass Systems,b,wave_form,widget
+physics,11,13,Simple Pendulum,b,wave_form,widget
+physics,11,13,Physical and Torsional Pendulum,j,wave_form,widget
+physics,11,13,SHM in Fluid Systems,j,wave_form,widget
+physics,11,13,Superposition of SHMs,j,wave_form,widget
+physics,11,13,Damped and Forced Oscillations,b,wave_form,widget
+physics,11,14,Wave Characteristics and Speed,b,wave_form,widget
+physics,11,14,Progressive Wave Equation,b,wave_form,widget
+physics,11,14,Interference of Waves,b,wave_form,widget
+physics,11,14,Standing Waves in Strings,b,wave_form,widget
+physics,11,14,Standing Waves in Air Columns and Acoustics,b,wave_form,widget
+physics,11,14,Beats,b,wave_form,widget
+physics,11,14,Doppler Effect,b,wave_form,widget
+physics,11,14,Mach Cone and Sonic Boom,j,wave_form,widget
+physics,12,1,"Electric Charge: Properties, Quantisation and Charging",b,field_lines,widget
+physics,12,1,Coulomb's Law and Electric Forces,b,field_lines,widget
+physics,12,1,Equilibrium of Charges,b,field_lines,widget
+physics,12,1,Electric Field,b,field_lines,widget
+physics,12,1,Electric Field Lines,b,field_lines,widget
+physics,12,1,Motion of a Charged Particle in a Uniform Electric Field,b,field_lines,widget
+physics,12,1,Electric Flux,b,field_lines,widget
+physics,12,1,Electric Dipole and Its Field,b,field_lines,widget
+physics,12,1,Torque and Potential Energy of a Dipole in a Uniform Electric Field,b,field_lines,widget
+physics,12,1,Electric Field due to Continuous Charge Distribution,b,field_lines,widget
+physics,12,1,Gauss's Law and Its Applications,b,field_lines,widget
+physics,12,2,Electrostatic Potential and Potential Difference,b,field_lines,widget
+physics,12,2,Equipotential Surfaces and Electric Field Relation,b,field_lines,widget
+physics,12,2,Electrostatic Potential Energy of Charge System,b,field_lines,widget
+physics,12,2,Electric Dipole in External Field,b,field_lines,widget
+physics,12,2,Electrostatics of Conductors,b,field_lines,widget
+physics,12,2,Capacitance of Conductors,b,circuit,widget
+physics,12,2,Dielectric Effects on Capacitance,b,circuit,widget
+physics,12,2,Combination of Capacitors,b,circuit,widget
+physics,12,2,Energy Stored in a Capacitor,b,circuit,widget
+physics,12,2,Charge Sharing and Common Potential,b,field_lines,widget
+physics,12,3,Electric Current and Drift Velocity,b,circuit,widget
+physics,12,3,Ohm's Law and Resistance,b,circuit,widget
+physics,12,3,Resistivity and Temperature Dependence,b,circuit,widget
+physics,12,3,Series and Parallel Combination of Resistors,b,circuit,widget
+physics,12,3,Electrical Energy and Power,b,circuit,widget
+physics,12,3,"EMF, Terminal Voltage and Internal Resistance",b,circuit,widget
+physics,12,3,Combination of Cells,b,circuit,widget
+physics,12,3,Kirchhoff's Laws and Network Analysis,b,circuit,widget
+physics,12,3,Wheatstone Bridge,b,circuit,widget
+physics,12,3,Measuring Instruments,b,circuit,widget
+physics,12,3,Complex Network Reduction,j,circuit,widget
+physics,12,3,Capacitor Charging and Discharging in RC Circuits,j,circuit,widget
+physics,12,4,Magnetic Force on a Moving Charge,b,field_lines,widget
+physics,12,4,Motion of Charged Particles in a Magnetic Field,b,field_lines,widget
+physics,12,4,Magnetic Field and Biot-Savart Law,b,field_lines,widget
+physics,12,4,Ampere's Circuital Law and Its Applications,b,circuit,widget
+physics,12,4,Force on a Current-Carrying Conductor in a Magnetic Field,b,field_lines,widget
+physics,12,4,Force Between Two Parallel Current-Carrying Conductors,b,field_lines,widget
+physics,12,4,Torque on a Current Loop,b,field_lines,widget
+physics,12,4,Magnetic Dipole Moment of a Current Loop,b,field_lines,widget
+physics,12,4,Magnetic Dipole Moment of a Revolving Electron (Bohr Magneton),b,field_lines,widget
+physics,12,4,Moving Coil Galvanometer and Its Conversion,b,circuit,widget
+physics,12,5,Bar Magnet and Magnetic Dipole Moment,b,field_lines,widget
+physics,12,5,Magnetic Field Lines and Gauss's Law,b,field_lines,widget
+physics,12,5,Bar Magnet as Equivalent Solenoid,b,field_lines,widget
+physics,12,5,Torque on a Magnetic Dipole,b,field_lines,widget
+physics,12,5,Potential Energy and Work Done on a Magnetic Dipole,b,field_lines,widget
+physics,12,5,Earth's Magnetism,b,field_lines,widget
+physics,12,5,"Magnetization, Magnetic Intensity, Susceptibility and Permeability",b,field_lines,widget
+physics,12,5,"Diamagnetic, Paramagnetic and Ferromagnetic Materials",b,field_lines,widget
+physics,12,5,Curie's Law and Temperature Dependence,b,field_lines,widget
+physics,12,5,Hysteresis and Permanent Magnets,b,field_lines,widget
+physics,12,6,Magnetic Flux and Flux Linkage,b,field_lines,widget
+physics,12,6,Faraday's Law of Induction,b,field_lines,widget
+physics,12,6,Lenz's Law and Direction of Induced Current,b,field_lines,widget
+physics,12,6,Motional EMF and Electromagnetic Force/Power,b,field_lines,widget
+physics,12,6,Charge Flow and Heat in Induced Circuits,b,circuit,widget
+physics,12,6,Induced Electric Field due to Changing Magnetic Flux,j,field_lines,widget
+physics,12,6,Eddy Currents and Electromagnetic Damping,b,circuit,widget
+physics,12,6,Self-Inductance and Magnetic Energy,b,circuit,widget
+physics,12,6,Mutual Inductance,b,circuit,widget
+physics,12,6,AC Generator and Rotating Coil EMF,b,circuit,widget
+physics,12,6,Growth and Decay of Current in an LR Circuit,j,circuit,widget
+physics,12,7,Average and RMS Values of AC,b,circuit,widget
+physics,12,7,AC through Pure Resistor,b,circuit,widget
+physics,12,7,Phasors and Phase Relationships,b,wave_form,widget
+physics,12,7,AC through Pure Inductor,b,circuit,widget
+physics,12,7,AC through Pure Capacitor,b,circuit,widget
+physics,12,7,Series LR Circuit,b,circuit,widget
+physics,12,7,Series RC Circuit,b,circuit,widget
+physics,12,7,Series LCR Circuit: Impedance and Phase,b,circuit,widget
+physics,12,7,Resonance and Q-Factor,b,wave_form,widget
+physics,12,7,Power in AC Circuits and Power Factor,b,circuit,widget
+physics,12,7,LC Oscillations,b,wave_form,widget
+physics,12,7,Transformers,b,circuit,widget
+physics,12,8,Displacement Current and Maxwell's Equations,b,field_lines,widget
+physics,12,8,Sources and Experimental Discovery of Electromagnetic Waves,b,wave_form,widget
+physics,12,8,Nature and Properties of Electromagnetic Waves,b,wave_form,widget
+physics,12,8,"Energy, Momentum and Radiation Pressure of Electromagnetic Waves",b,wave_form,widget
+physics,12,8,Electromagnetic Spectrum and Applications,b,wave_form,widget
+physics,12,9,Ray Optics Fundamentals,b,ray_optics,widget
+physics,12,9,Reflection by Plane Mirrors,b,ray_optics,widget
+physics,12,9,Reflection by Spherical Mirrors,b,ray_optics,widget
+physics,12,9,Refraction at Plane Surfaces,b,ray_optics,widget
+physics,12,9,Total Internal Reflection,b,ray_optics,widget
+physics,12,9,Refraction at Spherical Surfaces,b,ray_optics,widget
+physics,12,9,Lens Maker's Formula,b,ray_optics,widget
+physics,12,9,Thin Lens Formula and Magnification,b,ray_optics,widget
+physics,12,9,Power of a Lens and Combination of Lenses,b,ray_optics,widget
+physics,12,9,Prism and Angular Deviation,b,ray_optics,widget
+physics,12,9,Dispersion and Achromatic Combination,b,ray_optics,widget
+physics,12,9,Optical Instruments,b,ray_optics,widget
+physics,12,9,Combination of Mirrors and Lenses,j,ray_optics,widget
+physics,12,10,Wavefront and Huygens' Principle,b,wave_form,widget
+physics,12,10,Coherent Sources and Interference Conditions,b,wave_form,widget
+physics,12,10,Interference of Light and Young's Double-Slit Experiment,b,wave_form,widget
+physics,12,10,Optical Path and Fringe Shift in YDSE,b,wave_form,widget
+physics,12,10,Thin-Film Interference,b,wave_form,widget
+physics,12,10,Diffraction of Light,b,wave_form,widget
+physics,12,10,Polarisation of Light,b,wave_form,widget
+physics,12,10,Doppler Effect of Light,j,wave_form,widget
+physics,12,11,Electron Emission Mechanisms,b,energy_level,widget
+physics,12,11,Photoelectric Effect: Experimental Laws and Observations,b,xy_plot,widget
+physics,12,11,Einstein's Photoelectric Equation and Work Function,b,xy_plot,widget
+physics,12,11,Photon Energy and Momentum,b,xy_plot,widget
+physics,12,11,Photoelectric Effect Graphs,b,xy_plot,widget
+physics,12,11,Photon Flux and Radiation Intensity,b,xy_plot,widget
+physics,12,11,Wave-Particle Duality,b,wave_form,widget
+physics,12,11,Matter Waves and de Broglie Wavelength,b,wave_form,widget
+physics,12,11,de Broglie Wavelength of Accelerated Charged Particles,b,wave_form,widget
+physics,12,11,Davisson-Germer Experiment,b,energy_level,widget
+physics,12,12,Alpha-particle Scattering and Rutherford's Nuclear Model,b,motion_path,widget
+physics,12,12,Bohr's Model and Energy Levels,b,energy_level,widget
+physics,12,12,Hydrogen Spectrum and Spectral Series,b,energy_level,widget
+physics,12,12,Ionization and Excitation Energy,b,energy_level,widget
+physics,12,12,Atomic Collisions and Excitation,b,motion_path,widget
+physics,12,12,de Broglie's Explanation of Bohr's Quantisation,b,energy_level,widget
+physics,12,12,Limitations of Bohr's Model,b,energy_level,widget
+physics,12,12,X-ray Production,j,energy_level,widget
+physics,12,12,Moseley's Law and X-ray Spectra,j,energy_level,widget
+physics,12,13,Composition and Size of Nucleus,b,energy_level,widget
+physics,12,13,Mass-Energy Equivalence,b,energy_level,widget
+physics,12,13,Mass Defect and Nuclear Binding Energy,b,energy_level,widget
+physics,12,13,Binding Energy Curve and Nuclear Force,b,xy_plot,widget
+physics,12,13,Radioactive Decay Law and Half-Life,b,xy_plot,widget
+physics,12,13,Radioactive Decay Modes,b,xy_plot,widget
+physics,12,13,Nuclear Fission,b,energy_level,widget
+physics,12,13,Nuclear Fusion,b,energy_level,widget
+physics,12,14,Energy Bands and Classification of Solids,b,circuit,widget
+physics,12,14,Intrinsic and Extrinsic Semiconductors,b,circuit,widget
+physics,12,14,p-n Junction Formation and Depletion Region,b,circuit,widget
+physics,12,14,V-I Characteristics and Biasing of p-n Junction Diode,b,circuit,widget
+physics,12,14,Rectifier Circuits (Half-Wave and Full-Wave),b,wave_form,widget
+physics,12,14,Zener Diode and Voltage Regulation,b,circuit,widget
+physics,12,14,"LED, Photodiode and Solar Cell",b,circuit,widget
+physics,12,14,"Basic Logic Gates: OR, AND, NOT",b,circuit,widget
+physics,12,14,NAND and NOR as Universal Gates,b,circuit,widget
+physics,12,14,Boolean Expressions and Combinational Logic Circuits,b,circuit,widget
+chemistry,11,1,Nature of Matter: Classification of Pure Substances and Mixtures,b,data_table_trend,widget
+chemistry,11,1,SI Units and Dimensional Analysis,b,none_symbolic,none
+chemistry,11,1,Significant Figures and Uncertainty in Measurement,b,none_symbolic,none
+chemistry,11,1,Laws of Chemical Combination,b,none_symbolic,none
+chemistry,11,1,Dalton's Atomic Theory,b,none_symbolic,none
+chemistry,11,1,"Atomic Mass, Average Atomic Mass and Isotopic Abundance",b,none_symbolic,none
+chemistry,11,1,"Mole Concept: Mass, Mole, Particle and Gas-Volume Interconversion",b,none_symbolic,none
+chemistry,11,1,Empirical and Molecular Formula from Percentage Composition,b,none_symbolic,none
+chemistry,11,1,Stoichiometric Calculations and Limiting Reagent,b,none_symbolic,none
+chemistry,11,1,Percentage Yield and Theoretical Yield,b,none_symbolic,none
+chemistry,11,1,"Concentration Terms: Molarity, Molality, Mole Fraction and ppm",b,none_symbolic,none
+chemistry,11,1,Dilution and Mixing of Solutions,b,apparatus,illustration
+chemistry,11,1,"Volumetric Analysis: Normality, Equivalent Weight and Titration Calculations",b,apparatus,illustration
+chemistry,11,2,Discovery and Properties of Subatomic Particles,b,energy_level,widget
+chemistry,11,2,"Atomic Number, Mass Number, Isotopes and Isobars",b,energy_level,widget
+chemistry,11,2,Early Atomic Models: Thomson and Rutherford,b,energy_level,widget
+chemistry,11,2,Electromagnetic Radiation and Planck's Quantum Theory,b,energy_level,widget
+chemistry,11,2,Photoelectric Effect,b,xy_plot,widget
+chemistry,11,2,Hydrogen Spectrum and Spectral Series,b,energy_level,widget
+chemistry,11,2,Bohr's Model of the Hydrogen Atom,b,energy_level,widget
+chemistry,11,2,de Broglie Wavelength and Wave-Particle Duality,b,wave_form,widget
+chemistry,11,2,Heisenberg Uncertainty Principle,b,energy_level,widget
+chemistry,11,2,Quantum Numbers and Orbital Designation,b,motion_path,widget
+chemistry,11,2,Shapes and Nodes of Atomic Orbitals,b,motion_path,widget
+chemistry,11,2,Electronic Configuration of Atoms and Ions,b,energy_level,widget
+chemistry,11,3,"Early Attempts at Classification: Dobereiner, Newlands and Mendeleev",b,data_table_trend,widget
+chemistry,11,3,Modern Periodic Law and Structure of the Periodic Table,b,data_table_trend,widget
+chemistry,11,3,Nomenclature of Elements with Atomic Number Greater than 100,b,none_symbolic,none
+chemistry,11,3,Position and Block of an Element from Electronic Configuration,b,energy_level,widget
+chemistry,11,3,Effective Nuclear Charge and Shielding Effect,b,field_lines,widget
+chemistry,11,3,Atomic and Ionic Radii,b,data_table_trend,widget
+chemistry,11,3,Ionization Enthalpy: Trends and Anomalies,b,data_table_trend,widget
+chemistry,11,3,Electron Gain Enthalpy and Electron Affinity,b,data_table_trend,widget
+chemistry,11,3,Electronegativity and Ionic Character,b,data_table_trend,widget
+chemistry,11,3,Periodic Trends in Valency and Oxidation States,b,data_table_trend,widget
+chemistry,11,3,"Metallic Character, Reactivity and Nature of Oxides",b,data_table_trend,widget
+chemistry,11,3,Anomalous Behaviour of Second-Period Elements and Diagonal Relationship,b,data_table_trend,widget
+chemistry,11,4,"Lewis Structures, Octet Rule and Formal Charge",b,field_lines,widget
+chemistry,11,4,"Ionic Bond Formation, Lattice Enthalpy and Born-Haber Cycle",b,molecule_struct,widget
+chemistry,11,4,"Bond Parameters: Bond Length, Bond Angle and Bond Enthalpy",b,molecule_struct,widget
+chemistry,11,4,Resonance and Resonance Energy,b,wave_form,widget
+chemistry,11,4,Coordinate (Dative) Bond Formation,b,molecule_struct,widget
+chemistry,11,4,Dipole Moment and Molecular Polarity,b,field_lines,widget
+chemistry,11,4,Fajans' Rules and Covalent Character of Ionic Bonds,b,molecule_struct,widget
+chemistry,11,4,VSEPR Theory and Molecular Geometry,b,molecule_struct,widget
+chemistry,11,4,Hybridization and Valence Bond Theory,b,molecule_struct,widget
+chemistry,11,4,Back Bonding and Anomalous Bond Angles,j,molecule_struct,widget
+chemistry,11,4,"Molecular Orbital Theory: MO Diagrams, Bond Order and Magnetic Behaviour",b,motion_path,widget
+chemistry,11,4,Hydrogen Bonding,b,molecule_struct,widget
+chemistry,11,4,Intermolecular Forces and Physical Properties,b,molecule_struct,widget
+chemistry,11,4,Metallic Bonding and the Electron Sea Model,b,molecule_struct,widget
+chemistry,11,5,"State Functions, Path Functions and Extensive/Intensive Properties",b,thermo_pv,widget
+chemistry,11,5,"First Law of Thermodynamics: Internal Energy, Work and Heat",b,thermo_pv,widget
+chemistry,11,5,"Thermodynamic Processes: Isothermal, Adiabatic, Isobaric and Isochoric",b,thermo_pv,widget
+chemistry,11,5,Enthalpy Change and the Relationship Between Delta-H and Delta-U,b,thermo_pv,widget
+chemistry,11,5,"Heat Capacity, Specific Heat and the Cp-Cv Relationship",b,thermo_pv,widget
+chemistry,11,5,Calorimetry and Measurement of Heat Changes,b,xy_plot,widget
+chemistry,11,5,"Standard Enthalpies of Formation, Combustion and Neutralisation",b,REVIEW,review
+chemistry,11,5,Hess's Law and Enthalpy of Reaction Calculations,b,thermo_pv,widget
+chemistry,11,5,Bond Enthalpy and Lattice Enthalpy Calculations,b,thermo_pv,widget
+chemistry,11,5,Entropy Change and the Second Law of Thermodynamics,b,thermo_pv,widget
+chemistry,11,5,Third Law of Thermodynamics and Absolute Entropy,b,thermo_pv,widget
+chemistry,11,5,Gibbs Free Energy and Spontaneity,b,thermo_pv,widget
+chemistry,11,5,"Enthalpies of Phase Transition, Atomisation, Hydration and Solution",b,REVIEW,review
+chemistry,11,6,Physical Equilibria and Characteristics of the Equilibrium State,b,process_cycle,widget
+chemistry,11,6,"Equilibrium Constant: Kc, Kp and Their Relationship",b,data_table_trend,widget
+chemistry,11,6,Reaction Quotient and Predicting the Direction of Reaction,b,data_table_trend,widget
+chemistry,11,6,Le Chatelier's Principle and Factors Affecting Equilibrium,b,data_table_trend,widget
+chemistry,11,6,Relation Between Gibbs Energy and the Equilibrium Constant,b,data_table_trend,widget
+chemistry,11,6,"Acid-Base Concepts: Arrhenius, Bronsted-Lowry and Lewis",b,xy_plot,widget
+chemistry,11,6,Ionic Product of Water and Autoionization,b,data_table_trend,widget
+chemistry,11,6,"pH, pOH and Strength of Acids and Bases",b,data_table_trend,widget
+chemistry,11,6,"Ionization Constants (Ka, Kb) and Ostwald's Dilution Law",b,data_table_trend,widget
+chemistry,11,6,Common Ion Effect,b,data_table_trend,widget
+chemistry,11,6,Salt Hydrolysis and pH of Salt Solutions,b,data_table_trend,widget
+chemistry,11,6,Buffer Solutions and the Henderson-Hasselbalch Equation,b,data_table_trend,widget
+chemistry,11,6,Acid-Base Titration Curves and Indicators,b,xy_plot,widget
+chemistry,11,6,Solubility Product and Precipitation,b,data_table_trend,widget
+chemistry,11,7,Classical and Electronic Concepts of Oxidation and Reduction,b,none_symbolic,none
+chemistry,11,7,Oxidation Number: Rules and Calculation,b,data_table_trend,widget
+chemistry,11,7,Stock Notation and Naming Compounds by Oxidation Number,b,none_symbolic,none
+chemistry,11,7,Identifying Oxidising and Reducing Agents,b,data_table_trend,widget
+chemistry,11,7,"Types of Redox Reactions: Combination, Decomposition and Displacement",b,reaction_mechanism,widget
+chemistry,11,7,Disproportionation and Comproportionation Reactions,b,reaction_mechanism,widget
+chemistry,11,7,Balancing Redox Equations: Oxidation-Number and Half-Reaction Methods,b,reaction_mechanism,widget
+chemistry,11,7,"Redox Titrations, Equivalent Mass and n-Factor Calculations",b,apparatus,illustration
+chemistry,11,7,"Redox Couples, Electrode Potential and Electrochemical Cells",b,data_table_trend,widget
+chemistry,11,7,Reactivity Series and Metal Displacement Reactions,b,data_table_trend,widget
+chemistry,11,7,Redox Reactions in Everyday Life and Industry,b,data_table_trend,widget
+chemistry,11,8,Classification of Organic Compounds and Functional Groups,b,molecule_struct,widget
+chemistry,11,8,"Hybridization, Shape and Bond Parameters in Organic Molecules",b,molecule_struct,widget
+chemistry,11,8,IUPAC Nomenclature of Organic Compounds,b,none_symbolic,none
+chemistry,11,8,"Structural Isomerism: Chain, Position, Functional, Metamerism and Tautomerism",b,molecule_struct,widget
+chemistry,11,8,Geometrical Isomerism: Cis-Trans and E-Z Configuration,b,molecule_struct,widget
+chemistry,11,8,"Optical Isomerism: Chirality, Optical Activity and R/S Configuration",b,molecule_struct,widget
+chemistry,11,8,Types of Organic Reactions and Fundamentals of Reaction Mechanisms,b,reaction_mechanism,widget
+chemistry,11,8,"Inductive, Resonance, Hyperconjugation and Electromeric Effects",b,wave_form,widget
+chemistry,11,8,"Stability of Reaction Intermediates: Carbocations, Carbanions and Free Radicals",b,molecule_struct,widget
+chemistry,11,8,Acidity and Basicity of Organic Compounds,b,data_table_trend,widget
+chemistry,11,8,"Purification of Organic Compounds: Crystallisation, Distillation and Chromatography",b,apparatus,illustration
+chemistry,11,8,Qualitative Analysis: Detection of Elements by Lassaigne's Test,b,apparatus,illustration
+chemistry,11,8,Quantitative Analysis and Determination of Empirical Formula,b,apparatus,illustration
+chemistry,11,8,"Diastereomers, Meso Compounds and Molecules with Two Stereocentres",b,molecule_struct,widget
+chemistry,11,9,"Classification, General Formulae and Nomenclature of Hydrocarbons",b,none_symbolic,none
+chemistry,11,9,"Preparation of Alkanes: Wurtz, Kolbe, Decarboxylation and Hydrogenation",b,reaction_mechanism,widget
+chemistry,11,9,Conformational Analysis of Alkanes (Newman Projections),b,molecule_struct,widget
+chemistry,11,9,Free Radical Halogenation and Reactions of Alkanes,b,reaction_mechanism,widget
+chemistry,11,9,Preparation of Alkenes and Elimination Reactions (Saytzeff Rule),b,reaction_mechanism,widget
+chemistry,11,9,Electrophilic Addition Reactions of Alkenes (Markovnikov and Peroxide Effect),b,reaction_mechanism,widget
+chemistry,11,9,Preparation of Alkynes and Alkane-Alkene-Alkyne Interconversion,b,reaction_mechanism,widget
+chemistry,11,9,Reactions and Acidity of Terminal Alkynes,b,data_table_trend,widget
+chemistry,11,9,Oxidation and Ozonolysis of Alkenes and Alkynes,b,reaction_mechanism,widget
+chemistry,11,9,Aromaticity and Huckel's Rule,b,molecule_struct,widget
+chemistry,11,9,Electrophilic Substitution in Benzene and Directive Influence of Substituents,b,reaction_mechanism,widget
+chemistry,11,9,Carcinogenicity and Toxicity of Polynuclear Aromatic Hydrocarbons,b,data_table_trend,widget
+chemistry,11,9,Polymerisation of Alkenes and Cyclic Polymerisation of Alkynes,b,reaction_mechanism,widget
+chemistry,12,1,Types of Solutions,b,none_symbolic,none
+chemistry,12,1,Concentration Terms and Their Interconversion,b,none_symbolic,none
+chemistry,12,1,Solubility of Solids in Liquids and Effect of Temperature,b,xy_plot,widget
+chemistry,12,1,Henry's Law and Solubility of Gases,b,xy_plot,widget
+chemistry,12,1,Relative Lowering of Vapour Pressure and Raoult's Law,b,xy_plot,widget
+chemistry,12,1,Vapour Pressure of Binary Liquid Mixtures and Vapour-Phase Composition,b,xy_plot,widget
+chemistry,12,1,Ideal and Non-ideal Solutions and Azeotropes,b,xy_plot,widget
+chemistry,12,1,Elevation of Boiling Point,b,xy_plot,widget
+chemistry,12,1,Depression of Freezing Point,b,xy_plot,widget
+chemistry,12,1,Osmotic Pressure and Osmosis,b,xy_plot,widget
+chemistry,12,1,Reverse Osmosis and Water Purification,b,apparatus,illustration
+chemistry,12,1,"Van't Hoff Factor, Association and Dissociation",b,xy_plot,widget
+chemistry,12,2,Galvanic Cells and Cell Representation,b,apparatus,illustration
+chemistry,12,2,Standard Electrode Potential and Feasibility of Redox Reactions,b,data_table_trend,widget
+chemistry,12,2,Nernst Equation and Cell Potential Calculations,b,apparatus,illustration
+chemistry,12,2,Concentration Cells,b,apparatus,illustration
+chemistry,12,2,"EMF, Gibbs Energy and Equilibrium Constant",b,data_table_trend,widget
+chemistry,12,2,"Conductivity, Cell Constant and Conductance Measurement",b,xy_plot,widget
+chemistry,12,2,Molar Conductivity and Its Variation with Dilution,b,xy_plot,widget
+chemistry,12,2,Kohlrausch's Law and Limiting Molar Conductivity,b,xy_plot,widget
+chemistry,12,2,Degree of Dissociation of Weak Electrolytes from Conductance,b,xy_plot,widget
+chemistry,12,2,Conductometric Titration and Solubility from Conductance,b,xy_plot,widget
+chemistry,12,2,Electrolysis and Faraday's Laws,b,field_lines,widget
+chemistry,12,2,Batteries and Fuel Cells,b,apparatus,illustration
+chemistry,12,2,Corrosion and Its Prevention,b,apparatus,illustration
+chemistry,12,3,Rate of Reaction and Rate Expressions from Stoichiometry,b,xy_plot,widget
+chemistry,12,3,"Rate Law, Order and Molecularity",b,xy_plot,widget
+chemistry,12,3,Zero Order Reactions,b,xy_plot,widget
+chemistry,12,3,First Order Kinetics and Half-Life,b,xy_plot,widget
+chemistry,12,3,Pseudo First Order Reactions,b,xy_plot,widget
+chemistry,12,3,Determination of Order from Experimental Data,b,xy_plot,widget
+chemistry,12,3,Radioactive Decay Kinetics,b,xy_plot,widget
+chemistry,12,3,Arrhenius Equation and Temperature Dependence of Rate,b,xy_plot,widget
+chemistry,12,3,Collision Theory and Activation Energy,b,motion_path,widget
+chemistry,12,3,Effect of Catalyst on Reaction Rate,b,xy_plot,widget
+chemistry,12,3,Reaction Mechanism and Rate-Determining Step,b,reaction_mechanism,widget
+chemistry,12,3,Homogeneous and Heterogeneous Catalysis,j,data_table_trend,widget
+chemistry,12,4,Electronic Configuration of Transition Elements,b,energy_level,widget
+chemistry,12,4,"Atomic Radii, Density and Melting Point Trends",b,data_table_trend,widget
+chemistry,12,4,Variable Oxidation States and Their Stability,b,data_table_trend,widget
+chemistry,12,4,Standard Electrode Potentials and Redox Behaviour of Transition Metals,b,data_table_trend,widget
+chemistry,12,4,Magnetic Moment and Magnetic Behaviour of Transition Ions,b,energy_level,widget
+chemistry,12,4,Colour of Transition Metal Ions,b,energy_level,widget
+chemistry,12,4,Complex Formation and Qualitative Tests for Transition Metal Ions,b,data_table_trend,widget
+chemistry,12,4,"Catalytic Activity, Alloys and Interstitial Compounds",b,data_table_trend,widget
+chemistry,12,4,"Potassium Dichromate: Preparation, Structure and Reactions",b,molecule_struct,widget
+chemistry,12,4,"Potassium Permanganate: Preparation, Structure and Reactions",b,molecule_struct,widget
+chemistry,12,4,"Lanthanoids: Configuration, Oxidation States and Properties",b,data_table_trend,widget
+chemistry,12,4,Lanthanoid Contraction and Its Consequences,b,data_table_trend,widget
+chemistry,12,4,Actinoids and Their Comparison with Lanthanoids,b,data_table_trend,widget
+chemistry,12,4,Ionisation Enthalpy Trends in the Transition Series,b,data_table_trend,widget
+chemistry,12,5,Werner's Theory and the Coordination Sphere,b,molecule_struct,widget
+chemistry,12,5,"Ligands, Denticity and Chelation",b,molecule_struct,widget
+chemistry,12,5,"Oxidation State, Coordination Number and EAN",b,none_symbolic,none
+chemistry,12,5,IUPAC Nomenclature of Coordination Compounds,b,none_symbolic,none
+chemistry,12,5,Structural Isomerism in Coordination Compounds,b,molecule_struct,widget
+chemistry,12,5,Geometrical and Optical Isomerism in Complexes,b,molecule_struct,widget
+chemistry,12,5,Valence Bond Theory and Hybridisation of Complexes,b,molecule_struct,widget
+chemistry,12,5,Crystal Field Theory and d-Orbital Splitting,b,motion_path,widget
+chemistry,12,5,Magnetic Behaviour and Spin-Only Magnetic Moment,b,energy_level,widget
+chemistry,12,5,Colour of Complexes and d-d Transitions,b,energy_level,widget
+chemistry,12,5,Stability of Complexes and Stability Constants,b,data_table_trend,widget
+chemistry,12,5,Metal Carbonyls and Synergic Bonding,b,molecule_struct,widget
+chemistry,12,5,Applications of Coordination Compounds,b,data_table_trend,widget
+chemistry,12,6,Nomenclature and Classification of Halogen Compounds,b,none_symbolic,none
+chemistry,12,6,Physical Properties of Haloalkanes and Haloarenes,b,molecule_struct,widget
+chemistry,12,6,Preparation of Haloalkanes,b,reaction_mechanism,widget
+chemistry,12,6,SN1 and SN2 Mechanisms,b,reaction_mechanism,widget
+chemistry,12,6,Stereochemistry of Nucleophilic Substitution,b,reaction_mechanism,widget
+chemistry,12,6,Reactivity Order of Alkyl and Aryl Halides,b,data_table_trend,widget
+chemistry,12,6,Elimination Reactions and Saytzeff Rule,b,reaction_mechanism,widget
+chemistry,12,6,"Reactions with Metals: Grignard, Wurtz and Fittig",b,reaction_mechanism,widget
+chemistry,12,6,Preparation of Haloarenes,b,reaction_mechanism,widget
+chemistry,12,6,Nucleophilic Substitution in Haloarenes,b,reaction_mechanism,widget
+chemistry,12,6,Electrophilic Substitution in Haloarenes,b,reaction_mechanism,widget
+chemistry,12,6,Polyhalogen Compounds,b,molecule_struct,widget
+chemistry,12,6,Multi-step Conversions and Reaction Map,b,reaction_mechanism,widget
+chemistry,12,7,"Nomenclature and Classification of Alcohols, Phenols and Ethers",b,none_symbolic,none
+chemistry,12,7,Physical Properties and Hydrogen Bonding Trends,b,molecule_struct,widget
+chemistry,12,7,Preparation of Alcohols from Alkenes and Carbonyl Compounds,b,reaction_mechanism,widget
+chemistry,12,7,Preparation of Phenols,b,reaction_mechanism,widget
+chemistry,12,7,Acidity of Alcohols and Phenols,b,data_table_trend,widget
+chemistry,12,7,Chemical Reactions of Alcohols,b,reaction_mechanism,widget
+chemistry,12,7,Dehydration of Alcohols and Carbocation Rearrangement,b,reaction_mechanism,widget
+chemistry,12,7,Electrophilic Substitution and Named Reactions of Phenols,b,reaction_mechanism,widget
+chemistry,12,7,Williamson Ether Synthesis,b,reaction_mechanism,widget
+chemistry,12,7,Reactions of Ethers: C-O Cleavage and Ring Substitution,b,reaction_mechanism,widget
+chemistry,12,7,Distinguishing Tests for Alcohols and Phenols,b,data_table_trend,widget
+chemistry,12,7,Commercially Important Alcohols,b,molecule_struct,widget
+chemistry,12,7,Oxidation and Reduction of Phenols,b,reaction_mechanism,widget
+chemistry,12,8,Nomenclature and Structure of Carbonyl Compounds,b,none_symbolic,none
+chemistry,12,8,Physical Properties and Hydrogen Bonding in Carbonyl Compounds,b,molecule_struct,widget
+chemistry,12,8,Preparation of Aldehydes and Ketones,b,reaction_mechanism,widget
+chemistry,12,8,Nucleophilic Addition Reactions of Aldehydes and Ketones,b,reaction_mechanism,widget
+chemistry,12,8,Reactions of Carbonyl Compounds with Ammonia Derivatives,b,reaction_mechanism,widget
+chemistry,12,8,Oxidation and Reduction of Aldehydes and Ketones,b,reaction_mechanism,widget
+chemistry,12,8,Aldol Condensation,b,reaction_mechanism,widget
+chemistry,12,8,Cannizzaro Reaction,b,reaction_mechanism,widget
+chemistry,12,8,Preparation of Carboxylic Acids,b,reaction_mechanism,widget
+chemistry,12,8,Acidity of Carboxylic Acids and Substituent Effects,b,data_table_trend,widget
+chemistry,12,8,Reactions of Carboxylic Acids,b,reaction_mechanism,widget
+chemistry,12,8,Alpha-Halogenation and Hell-Volhard-Zelinsky Reaction,b,reaction_mechanism,widget
+chemistry,12,8,"Distinguishing Tests for Aldehydes, Ketones and Acids",b,data_table_trend,widget
+chemistry,12,8,Multi-step Conversions and Reaction Maps,b,reaction_mechanism,widget
+chemistry,12,8,Haloform Reaction,b,reaction_mechanism,widget
+chemistry,12,9,Nomenclature and Classification of Amines,b,none_symbolic,none
+chemistry,12,9,Physical Properties and Hydrogen Bonding in Amines,b,molecule_struct,widget
+chemistry,12,9,Basicity and Comparison of Amine Strength,b,data_table_trend,widget
+chemistry,12,9,Preparation of Amines by Reduction and Ammonolysis,b,reaction_mechanism,widget
+chemistry,12,9,Gabriel Phthalimide and Hofmann Bromamide Synthesis,b,reaction_mechanism,widget
+chemistry,12,9,Acylation and Alkylation of Amines,b,reaction_mechanism,widget
+chemistry,12,9,Electrophilic Substitution in Aromatic Amines,b,reaction_mechanism,widget
+chemistry,12,9,Hofmann Elimination of Quaternary Ammonium Salts,b,reaction_mechanism,widget
+chemistry,12,9,Preparation and Structure of Diazonium Salts,b,labelled_figure,illustration
+chemistry,12,9,"Reactions of Diazonium Salts: Sandmeyer, Gattermann and Coupling",b,reaction_mechanism,widget
+chemistry,12,9,"Distinguishing Tests for Primary, Secondary and Tertiary Amines",b,data_table_trend,widget
+chemistry,12,10,Structure and Classification of Carbohydrates,b,molecule_struct,widget
+chemistry,12,10,Glucose and Fructose: Structure and Reactions,b,molecule_struct,widget
+chemistry,12,10,"Anomers, Epimers and Mutarotation",b,molecule_struct,widget
+chemistry,12,10,Disaccharides and Glycosidic Linkage,b,molecule_struct,widget
+chemistry,12,10,"Polysaccharides: Starch, Cellulose and Glycogen",b,molecule_struct,widget
+chemistry,12,10,"Amino Acids: Structure, Classification and Zwitterions",b,molecule_struct,widget
+chemistry,12,10,Peptide Bond and Protein Structure,b,molecule_struct,widget
+chemistry,12,10,Enzymes and Enzyme Catalysis,b,molecule_struct,widget
+chemistry,12,10,Vitamins: Classification and Deficiency Diseases,b,molecule_struct,widget
+chemistry,12,10,Nucleic Acids: DNA and RNA Structure,b,molecule_struct,widget
+chemistry,12,10,Hormones and Their Functions,b,data_table_trend,widget
+mathematics,11,0,"Logarithms: Definition, Properties and Change of Base",j,none_symbolic,none
+mathematics,11,1,Sets and Their Representations,j,none_symbolic,none
+mathematics,11,1,"Types of Sets: Empty, Finite, Infinite and Equal Sets",j,none_symbolic,none
+mathematics,11,1,"Subsets, Power Set and Universal Set",j,none_symbolic,none
+mathematics,11,1,Intervals as Subsets of the Real Line,j,none_symbolic,none
+mathematics,11,1,"Set Operations: Union, Intersection and Difference",j,venn_tree,widget
+mathematics,11,1,Symmetric Difference of Sets,j,none_symbolic,none
+mathematics,11,1,Complement of a Set and De Morgan's Laws,j,none_symbolic,none
+mathematics,11,1,Laws of Algebra of Sets and Set Identities,j,none_symbolic,none
+mathematics,11,1,Cardinality Formulas for Unions of Sets,j,none_symbolic,none
+mathematics,11,1,Word Problems Using Venn Diagrams,j,venn_tree,widget
+mathematics,11,2,Cartesian Product of Sets and Ordered Pairs,j,none_symbolic,none
+mathematics,11,2,"Relations: Definition, Domain, Range and Representation",j,none_symbolic,none
+mathematics,11,2,Domain and Range of Real Functions,j,none_symbolic,none
+mathematics,11,2,Standard Real Functions and Their Graphs,j,xy_plot,widget
+mathematics,11,2,Algebra of Real Functions,j,none_symbolic,none
+mathematics,11,2,Even and Odd Functions,j,none_symbolic,none
+mathematics,11,2,Periodic Functions and Their Periods,j,none_symbolic,none
+mathematics,11,2,Number of Relations and Functions Between Finite Sets,j,none_symbolic,none
+mathematics,11,2,Functional Equations,j,none_symbolic,none
+mathematics,11,3,"Measurement of Angles: Degrees, Radians and Arc Length",j,unit_circle_trig,widget
+mathematics,11,3,"Trigonometric Functions: Domain, Range and Signs in Quadrants",j,unit_circle_trig,widget
+mathematics,11,3,"Standard Values, Even-Odd Nature and Allied Angles",j,none_symbolic,none
+mathematics,11,3,Graphs and Periodicity of Trigonometric Functions,j,xy_plot,widget
+mathematics,11,3,Compound Angle Formulas and Trigonometric Identities,j,none_symbolic,none
+mathematics,11,3,Multiple and Sub-Multiple Angle Formulas,j,none_symbolic,none
+mathematics,11,3,Transformation Formulas: Sum to Product and Product to Sum,j,none_symbolic,none
+mathematics,11,3,Conditional Trigonometric Identities,j,none_symbolic,none
+mathematics,11,3,Trigonometric Equations: Principal and General Solutions,j,unit_circle_trig,widget
+mathematics,11,3,Maximum and Minimum Values of Trigonometric Expressions,j,none_symbolic,none
+mathematics,11,3,Summation of Trigonometric Series,j,none_symbolic,none
+mathematics,11,4,Algebra of Complex Numbers and Powers of i,j,none_symbolic,none
+mathematics,11,4,Modulus and Conjugate: Properties and Manipulation,j,none_symbolic,none
+mathematics,11,4,Square Root of a Complex Number,j,none_symbolic,none
+mathematics,11,4,Quadratic and Polynomial Equations with Complex Roots,j,none_symbolic,none
+mathematics,11,4,Argument and Polar Form in the Argand Plane,j,argand,widget
+mathematics,11,4,De Moivre's Theorem and Euler Form,j,none_symbolic,none
+mathematics,11,4,Cube Roots and nth Roots of Unity,j,none_symbolic,none
+mathematics,11,4,Triangle Inequality and Extreme Values of Modulus,j,none_symbolic,none
+mathematics,11,4,Loci and Regions in the Argand Plane,j,argand,widget
+mathematics,11,4,Rotation Theorem and Triangle Geometry in the Argand Plane,j,argand,widget
+mathematics,11,4,Summation of Trigonometric Series using Complex Numbers,j,none_symbolic,none
+mathematics,11,4,Nature of Roots and the Discriminant,j,none_symbolic,none
+mathematics,11,4,Relations Between Roots and Coefficients and Symmetric Functions of Roots,j,none_symbolic,none
+mathematics,11,4,Formation of Quadratic Equations and Condition for a Common Root,j,none_symbolic,none
+mathematics,11,5,Solving Linear Inequalities in One Variable,j,none_symbolic,none
+mathematics,11,5,Integral Solutions of Inequalities,j,none_symbolic,none
+mathematics,11,5,Word Problems on Linear Inequalities,j,none_symbolic,none
+mathematics,11,5,Graphical Solution of Linear Inequalities in Two Variables,j,geometry_plane,widget
+mathematics,11,5,Systems of Linear Inequalities and Feasible Regions,j,geometry_plane,widget
+mathematics,11,5,Inequalities Involving Modulus,j,none_symbolic,none
+mathematics,11,5,Polynomial and Rational Inequalities by the Wavy Curve Method,j,xy_plot,widget
+mathematics,11,5,Inequalities with Irrational (Square Root) Expressions,j,none_symbolic,none
+mathematics,11,5,Exponential and Logarithmic Inequalities,j,none_symbolic,none
+mathematics,11,6,Fundamental Principle of Counting,j,none_symbolic,none
+mathematics,11,6,Factorial Notation and Its Properties,j,none_symbolic,none
+mathematics,11,6,Permutations of Distinct Objects,j,none_symbolic,none
+mathematics,11,6,Permutations with Repetition and Identical Objects,j,none_symbolic,none
+mathematics,11,6,Arrangements with Restrictions and the Gap Method,j,none_symbolic,none
+mathematics,11,6,Circular Permutations,j,none_symbolic,none
+mathematics,11,6,Combinations and Selections,j,none_symbolic,none
+mathematics,11,6,Division into Groups and Distribution of Identical Objects,j,none_symbolic,none
+mathematics,11,6,"Geometrical Counting: Lines, Triangles and Diagonals",j,geometry_plane,widget
+mathematics,11,6,Counting Divisors and Number-Theoretic Selections,j,none_symbolic,none
+mathematics,11,6,Counting Functions and Mappings Between Finite Sets,j,none_symbolic,none
+mathematics,11,6,Inclusion-Exclusion Principle and Derangements,j,none_symbolic,none
+mathematics,11,6,Sum of Numbers Formed by Given Digits,j,none_symbolic,none
+mathematics,11,6,Rank of a Word in Dictionary Order,j,none_symbolic,none
+mathematics,11,7,Binomial Expansion and Pascal's Triangle,j,none_symbolic,none
+mathematics,11,7,"General, Middle and Independent Terms",j,none_symbolic,none
+mathematics,11,7,Greatest Term and Greatest Binomial Coefficient,j,none_symbolic,none
+mathematics,11,7,Coefficient of a Term in a Product of Expansions,j,none_symbolic,none
+mathematics,11,7,Binomial Coefficient Identities and Summation of Series,j,none_symbolic,none
+mathematics,11,7,Differentiation and Integration of Binomial Series,j,none_symbolic,none
+mathematics,11,7,Multinomial Theorem,j,none_symbolic,none
+mathematics,11,7,Binomial Theorem for Any Index and Approximations,j,none_symbolic,none
+mathematics,11,7,"Divisibility, Remainders and Last Digits",j,none_symbolic,none
+mathematics,11,7,Integral and Fractional Parts of Irrational Binomials,j,none_symbolic,none
+mathematics,11,8,Sequences: General Term and Recursive Definitions,j,none_symbolic,none
+mathematics,11,8,Sigma Notation and Algebra of Summations,j,none_symbolic,none
+mathematics,11,8,Arithmetic Progression: nth Term and Sum of n Terms,j,none_symbolic,none
+mathematics,11,8,Arithmetic Mean and Insertion of Arithmetic Means,j,none_symbolic,none
+mathematics,11,8,"Geometric Progression: nth Term, Sum and Infinite GP",j,none_symbolic,none
+mathematics,11,8,"Geometric Mean, Insertion of GMs and GP Inequalities",j,none_symbolic,none
+mathematics,11,8,Harmonic Progression and Harmonic Mean,j,none_symbolic,none
+mathematics,11,8,"AM, GM, HM Relations and the AM-GM Inequality",j,none_symbolic,none
+mathematics,11,8,"Sum of Special Series: Sigma n, Sigma n^2 and Sigma n^3",j,none_symbolic,none
+mathematics,11,8,Arithmetico-Geometric Progression,j,none_symbolic,none
+mathematics,11,8,Telescoping Series and the Method of Differences,j,none_symbolic,none
+mathematics,11,8,Applications and Word Problems on Progressions,j,none_symbolic,none
+mathematics,11,9,"Distance, Section Formula and Area of a Triangle in the Plane",j,geometry_plane,widget
+mathematics,11,9,Slope of a Line and Angle Between Two Lines,j,geometry_plane,widget
+mathematics,11,9,Equations of a Straight Line in Various Forms,j,geometry_plane,widget
+mathematics,11,9,Distance of a Point from a Line and Between Parallel Lines,j,geometry_plane,widget
+mathematics,11,9,Position of a Point Relative to a Line,j,geometry_plane,widget
+mathematics,11,9,"Point of Intersection, Concurrency and Family of Lines",j,geometry_plane,widget
+mathematics,11,9,"Foot of Perpendicular, Image and Reflection of a Point",j,geometry_plane,widget
+mathematics,11,9,Angle Bisectors of Two Lines,j,geometry_plane,widget
+mathematics,11,9,Locus and Its Equation,j,geometry_plane,widget
+mathematics,11,9,"Special Points of a Triangle: Centroid, Incentre, Circumcentre and Orthocentre",j,geometry_plane,widget
+mathematics,11,9,Pair of Straight Lines,j,geometry_plane,widget
+mathematics,11,9,Shifting of Origin and Rotation of Axes,j,geometry_plane,widget
+mathematics,11,10,Focus-Directrix Definition and Identification of a Conic,j,geometry_plane,widget
+mathematics,11,10,"The Circle: Standard and General Equations, Centre and Radius",j,geometry_plane,widget
+mathematics,11,10,"Tangents, Normals and Chord of Contact for a Circle",j,geometry_plane,widget
+mathematics,11,10,"Family of Circles, Radical Axis and Orthogonal Circles",j,geometry_plane,widget
+mathematics,11,10,"The Parabola: Standard Forms, Focus, Directrix and Latus Rectum",j,geometry_plane,widget
+mathematics,11,10,"Tangents, Normals and Chords of a Parabola",j,geometry_plane,widget
+mathematics,11,10,"The Ellipse: Standard Equation, Foci and Eccentricity",j,geometry_plane,widget
+mathematics,11,10,"Tangents, Normals and Chords of an Ellipse",j,geometry_plane,widget
+mathematics,11,10,"The Hyperbola: Standard Equation, Foci and Eccentricity",j,geometry_plane,widget
+mathematics,11,10,"Tangents, Normals and Chords of a Hyperbola",j,geometry_plane,widget
+mathematics,11,10,"Asymptotes, Conjugate and Rectangular Hyperbola",j,geometry_plane,widget
+mathematics,11,10,Relative Position of Two Circles and Common Tangents,j,geometry_plane,widget
+mathematics,11,11,"Coordinate Axes, Planes and Octants",j,geometry_3d,widget
+mathematics,11,11,Distance Formula in Three Dimensions,j,geometry_3d,widget
+mathematics,11,11,Distance of a Point from the Coordinate Axes and Planes,j,geometry_3d,widget
+mathematics,11,11,Collinearity of Three Points in Space,j,geometry_3d,widget
+mathematics,11,11,Classifying Triangles and Quadrilaterals from Given Vertices,j,geometry_3d,widget
+mathematics,11,11,Section Formula: Internal and External Division,j,geometry_3d,widget
+mathematics,11,11,Midpoint and Centroid of Triangles and Tetrahedra,j,geometry_3d,widget
+mathematics,11,11,Image and Foot of Perpendicular on the Coordinate Planes,j,geometry_3d,widget
+mathematics,11,11,Locus of a Point in Space,j,geometry_plane,widget
+mathematics,11,12,"Left-Hand, Right-Hand Limits and Existence of a Limit",j,none_symbolic,none
+mathematics,11,12,Evaluating Limits by Factorisation and Rationalisation,j,none_symbolic,none
+mathematics,11,12,Limits of Greatest Integer and Modulus Functions,j,none_symbolic,none
+mathematics,11,12,Sandwich Theorem,j,none_symbolic,none
+mathematics,11,12,"Standard Trigonometric, Exponential and Logarithmic Limits",j,none_symbolic,none
+mathematics,11,12,Limits at Infinity and Limits of Rational Functions,j,none_symbolic,none
+mathematics,11,12,Indeterminate Form 1^infinity and Exponential Limits,j,none_symbolic,none
+mathematics,11,12,L'Hopital's Rule for Indeterminate Forms,j,none_symbolic,none
+mathematics,11,12,Derivative from First Principles,j,none_symbolic,none
+mathematics,11,12,Derivative as Slope of a Tangent and Rate of Change,j,xy_plot,widget
+mathematics,11,12,Product and Quotient Rules of Differentiation,j,none_symbolic,none
+mathematics,11,12,Derivatives of Trigonometric Functions,j,none_symbolic,none
+mathematics,11,13,"Mean, Median and Mode",j,xy_plot,widget
+mathematics,11,13,Range and Quartile Deviation,j,xy_plot,widget
+mathematics,11,13,Mean Deviation about the Mean and the Median,j,xy_plot,widget
+mathematics,11,13,Variance and Standard Deviation,j,xy_plot,widget
+mathematics,11,13,Mean and Variance of the First n Natural Numbers,j,xy_plot,widget
+mathematics,11,13,Effect of Change of Origin and Scale on Mean and Variance,j,xy_plot,widget
+mathematics,11,13,Combined Mean and Combined Variance of Two or More Groups,j,xy_plot,widget
+mathematics,11,13,Correcting Mean and Variance for Wrong or Missing Observations,j,xy_plot,widget
+mathematics,11,13,Coefficient of Variation and Comparison of Consistency,j,xy_plot,widget
+mathematics,11,14,"Random Experiments, Sample Space and Events",j,venn_tree,widget
+mathematics,11,14,Mutually Exclusive and Exhaustive Events,j,venn_tree,widget
+mathematics,11,14,Axiomatic Probability and Its Properties,j,venn_tree,widget
+mathematics,11,14,Complementary Events and At Least One Problems,j,venn_tree,widget
+mathematics,11,14,Addition Theorem for the Union of Events,j,venn_tree,widget
+mathematics,11,14,"Combinatorial Probability with Dice, Coins, Cards and Selections",j,venn_tree,widget
+mathematics,11,14,Odds in Favour and Odds Against,j,venn_tree,widget
+mathematics,12,1,"Types of Relations: Reflexive, Symmetric and Transitive",j,none_symbolic,none
+mathematics,12,1,Equivalence Relations and Equivalence Classes,j,none_symbolic,none
+mathematics,12,1,"One-One, Onto and Bijective Functions",j,none_symbolic,none
+mathematics,12,1,Composition of Functions,j,none_symbolic,none
+mathematics,12,1,Inverse of a Function,j,none_symbolic,none
+mathematics,12,2,Domain and Range of Inverse Trigonometric Functions,j,none_symbolic,none
+mathematics,12,2,Principal Values and Principal Value Branches,j,none_symbolic,none
+mathematics,12,2,Graphs of Inverse Trigonometric Functions,j,xy_plot,widget
+mathematics,12,2,Reciprocal Relations Between Inverse Trigonometric Functions,j,none_symbolic,none
+mathematics,12,2,Complementary and Negative-Argument Identities,j,none_symbolic,none
+mathematics,12,2,Evaluating Composites of Trigonometric and Inverse Trigonometric Functions,j,none_symbolic,none
+mathematics,12,2,Sum and Difference Formulae for tan Inverse,j,none_symbolic,none
+mathematics,12,2,Sum and Difference Formulae for sin Inverse and cos Inverse,j,none_symbolic,none
+mathematics,12,2,Multiple-Angle Formulae and Their Validity Conditions,j,none_symbolic,none
+mathematics,12,2,Substitution Techniques for Simplifying Inverse Trigonometric Expressions,j,none_symbolic,none
+mathematics,12,2,Solving Equations Involving Inverse Trigonometric Functions,j,none_symbolic,none
+mathematics,12,2,Summation of Inverse Trigonometric Series,j,none_symbolic,none
+mathematics,12,3,"Order, Types and Representation of Matrices",j,none_symbolic,none
+mathematics,12,3,"Addition, Subtraction, Scalar Multiplication and Equality of Matrices",j,none_symbolic,none
+mathematics,12,3,Matrix Multiplication and Its Properties,j,none_symbolic,none
+mathematics,12,3,Trace of a Matrix,j,none_symbolic,none
+mathematics,12,3,Powers of a Matrix and Matrix Polynomials,j,none_symbolic,none
+mathematics,12,3,Transpose of a Matrix and Its Properties,j,none_symbolic,none
+mathematics,12,3,Symmetric and Skew-Symmetric Matrices,j,none_symbolic,none
+mathematics,12,3,Invertible Matrices and Uniqueness of the Inverse,j,none_symbolic,none
+mathematics,12,3,Inverse by Elementary Row Operations,j,none_symbolic,none
+mathematics,12,3,"Idempotent, Involutory, Nilpotent and Orthogonal Matrices",j,none_symbolic,none
+mathematics,12,3,Solving Matrix Equations for an Unknown Matrix,j,none_symbolic,none
+mathematics,12,3,Counting Matrices with Given Properties,j,none_symbolic,none
+mathematics,12,4,Evaluation and Expansion of Determinants,j,none_symbolic,none
+mathematics,12,4,Properties of Determinants and Row-Column Simplification,j,none_symbolic,none
+mathematics,12,4,Multiplication of Two Determinants,j,none_symbolic,none
+mathematics,12,4,"Determinants of Powers, Products and Special Matrices",j,none_symbolic,none
+mathematics,12,4,"Minors, Cofactors and the Adjoint",j,none_symbolic,none
+mathematics,12,4,Inverse of a Matrix Using the Adjoint,j,none_symbolic,none
+mathematics,12,4,Area of a Triangle and Collinearity Using Determinants,j,none_symbolic,none
+mathematics,12,4,Equation of a Line in Determinant Form,j,none_symbolic,none
+mathematics,12,4,Solving Linear Systems by Cramer's Rule and Matrix Inversion,j,none_symbolic,none
+mathematics,12,4,Consistency of Non-Homogeneous Systems,j,none_symbolic,none
+mathematics,12,4,Homogeneous Systems and Non-Trivial Solutions,j,none_symbolic,none
+mathematics,12,4,Differentiation of Determinant-Valued Functions,j,none_symbolic,none
+mathematics,12,5,Continuity at a Point and on an Interval,j,xy_plot,widget
+mathematics,12,5,Differentiability and Existence of the Derivative,j,xy_plot,widget
+mathematics,12,5,Continuity and Differentiability of Piecewise and Modulus Functions,j,xy_plot,widget
+mathematics,12,5,Standard Derivatives with the Product and Quotient Rules,j,none_symbolic,none
+mathematics,12,5,Chain Rule and Derivatives of Composite Functions,j,none_symbolic,none
+mathematics,12,5,Derivatives of Inverse Trigonometric Functions,j,none_symbolic,none
+mathematics,12,5,Implicit Differentiation,j,none_symbolic,none
+mathematics,12,5,Logarithmic Differentiation,j,none_symbolic,none
+mathematics,12,5,Parametric Differentiation,j,none_symbolic,none
+mathematics,12,5,Differentiation of One Function with Respect to Another,j,none_symbolic,none
+mathematics,12,5,Second and Higher Order Derivatives,j,none_symbolic,none
+mathematics,12,5,Rolle's Theorem and Lagrange's Mean Value Theorem,j,xy_plot,widget
+mathematics,12,5,Continuity of Composite Functions and the Intermediate Value Property,j,xy_plot,widget
+mathematics,12,6,Rate of Change and Related Rates,j,xy_plot,widget
+mathematics,12,6,Tangents and Normals to a Curve,j,xy_plot,widget
+mathematics,12,6,Angle of Intersection of Two Curves,j,xy_plot,widget
+mathematics,12,6,Approximations and Errors Using Differentials,j,none_symbolic,none
+mathematics,12,6,Increasing and Decreasing Functions,j,xy_plot,widget
+mathematics,12,6,Maxima and Minima Using the Derivative Tests,j,xy_plot,widget
+mathematics,12,6,Absolute Maximum and Minimum on a Closed Interval,j,xy_plot,widget
+mathematics,12,6,Applied Optimization Problems,j,xy_plot,widget
+mathematics,12,6,"Concavity, Inflection Points and Curve Sketching",j,xy_plot,widget
+mathematics,12,6,Proving Inequalities Using Monotonicity,j,none_symbolic,none
+mathematics,12,6,Number of Roots of an Equation Using Derivatives,j,none_symbolic,none
+mathematics,12,7,Indefinite Integrals of Standard Forms,j,none_symbolic,none
+mathematics,12,7,Integration by Substitution,j,none_symbolic,none
+mathematics,12,7,Integration Using Trigonometric Identities,j,none_symbolic,none
+mathematics,12,7,Integrals with Quadratic Denominators and Radicals,j,none_symbolic,none
+mathematics,12,7,Integration by Partial Fractions,j,none_symbolic,none
+mathematics,12,7,Integration by Parts,j,none_symbolic,none
+mathematics,12,7,Integration of Rational Functions of sin x and cos x,j,none_symbolic,none
+mathematics,12,7,Definite Integral as the Limit of a Sum,j,none_symbolic,none
+mathematics,12,7,Definite Integrals and the Fundamental Theorem of Calculus,j,none_symbolic,none
+mathematics,12,7,Definite Integration by Substitution,j,none_symbolic,none
+mathematics,12,7,Properties of Definite Integrals and Symmetry,j,none_symbolic,none
+mathematics,12,7,"Definite Integrals of Modulus, Greatest Integer and Periodic Functions",j,none_symbolic,none
+mathematics,12,7,Definite Integrals with Variable Limits and Leibniz Rule,j,none_symbolic,none
+mathematics,12,8,Area Under a Simple Curve Bounded by the Axes,j,xy_plot,widget
+mathematics,12,8,Area by Integration Along the y-axis,j,xy_plot,widget
+mathematics,12,8,Area Bounded by a Parabola and a Line,j,xy_plot,widget
+mathematics,12,8,Area Between Two Intersecting Curves,j,xy_plot,widget
+mathematics,12,8,Area of Regions Bounded by Circles and Ellipses,j,xy_plot,widget
+mathematics,12,8,Area Bounded by a Curve and Its Tangent or Normal,j,xy_plot,widget
+mathematics,12,8,Area Between a Function and Its Inverse,j,xy_plot,widget
+mathematics,12,8,Area of Regions Involving Modulus and Piecewise-Defined Functions,j,xy_plot,widget
+mathematics,12,8,Areas Involving Greatest Integer and Fractional Part Functions,j,xy_plot,widget
+mathematics,12,8,Area of Regions Described by Inequalities,j,xy_plot,widget
+mathematics,12,9,Order and Degree of a Differential Equation,j,none_symbolic,none
+mathematics,12,9,General and Particular Solutions and Their Verification,j,none_symbolic,none
+mathematics,12,9,Formation of Differential Equations by Eliminating Arbitrary Constants,j,none_symbolic,none
+mathematics,12,9,Variable Separable Differential Equations,j,none_symbolic,none
+mathematics,12,9,Equations Reducible to Variable Separable Form,j,none_symbolic,none
+mathematics,12,9,Homogeneous Differential Equations,j,none_symbolic,none
+mathematics,12,9,Equations Reducible to Homogeneous Form,j,none_symbolic,none
+mathematics,12,9,Linear Differential Equations and the Integrating Factor,j,none_symbolic,none
+mathematics,12,9,Linear Equations in x and Bernoulli-Type Reduction,j,none_symbolic,none
+mathematics,12,9,Exact Differential Equations,j,none_symbolic,none
+mathematics,12,9,"Applications: Growth, Decay and Curve Geometry",j,process_cycle,widget
+mathematics,12,10,Types of Vectors and Vector Addition,j,geometry_3d,widget
+mathematics,12,10,"Components, Direction Cosines and Unit Vectors",j,geometry_3d,widget
+mathematics,12,10,"Position Vectors, Section Formula and Collinearity",j,geometry_3d,widget
+mathematics,12,10,Scalar (Dot) Product and Its Properties,j,geometry_3d,widget
+mathematics,12,10,Projection of a Vector and Angle Between Two Vectors,j,geometry_3d,widget
+mathematics,12,10,Vector (Cross) Product and Its Properties,j,geometry_3d,widget
+mathematics,12,10,Area of Triangles and Parallelograms Using Cross Product,j,geometry_3d,widget
+mathematics,12,10,Scalar Triple Product and Volume of a Parallelepiped,j,geometry_3d,widget
+mathematics,12,10,Coplanarity of Vectors Using the Scalar Triple Product,j,geometry_3d,widget
+mathematics,12,10,Vector Triple Product,j,geometry_3d,widget
+mathematics,12,10,Linear Dependence and Independence of Vectors,j,geometry_3d,widget
+mathematics,12,10,"Vector Applications: Work, Moment and Geometric Proofs",j,geometry_3d,widget
+mathematics,12,11,"Coordinates in Space: Distance, Section Formula and Projections",j,geometry_3d,widget
+mathematics,12,11,Direction Cosines and Direction Ratios,j,geometry_3d,widget
+mathematics,12,11,Equation of a Line in Vector and Cartesian Form,j,geometry_3d,widget
+mathematics,12,11,Angle Between Two Lines,j,geometry_3d,widget
+mathematics,12,11,"Perpendicular Distance, Foot and Image of a Point with Respect to a Line",j,geometry_3d,widget
+mathematics,12,11,Shortest Distance Between Two Skew Lines,j,geometry_3d,widget
+mathematics,12,11,Intersection and Coplanarity of Two Lines,j,geometry_3d,widget
+mathematics,12,11,Equation of a Plane in Various Forms,j,geometry_3d,widget
+mathematics,12,11,Distance of a Point from a Plane,j,geometry_3d,widget
+mathematics,12,11,Angle Between Two Planes and Between a Line and a Plane,j,geometry_3d,widget
+mathematics,12,11,Point of Intersection of a Line and a Plane,j,geometry_3d,widget
+mathematics,12,11,Foot of Perpendicular and Image of a Point in a Plane,j,geometry_3d,widget
+mathematics,12,11,Family of Planes Through the Line of Intersection,j,geometry_3d,widget
+mathematics,12,12,Mathematical Formulation of a Linear Programming Problem,d,geometry_plane,widget
+mathematics,12,12,Graphing Constraints and the Feasible Region,d,geometry_plane,widget
+mathematics,12,12,Corner Point Method for Optimal Solutions,d,geometry_plane,widget
+mathematics,12,12,Bounded and Unbounded Feasible Regions,d,geometry_plane,widget
+mathematics,12,12,Multiple Optimal Solutions,d,geometry_plane,widget
+mathematics,12,12,Infeasible Problems and Empty Feasible Regions,d,geometry_plane,widget
+mathematics,12,12,Manufacturing and Diet Allocation Problems,d,geometry_plane,widget
+mathematics,12,12,Transportation and Blending Problems,d,geometry_plane,widget
+mathematics,12,13,Probability of Events Defined by Equations and Inequalities,j,xy_plot,widget
+mathematics,12,13,Conditional Probability,j,venn_tree,widget
+mathematics,12,13,Independent Events and the Multiplication Theorem,j,venn_tree,widget
+mathematics,12,13,Total Probability Theorem,j,venn_tree,widget
+mathematics,12,13,Bayes' Theorem,j,venn_tree,widget
+mathematics,12,13,Random Variables and Probability Distributions,j,xy_plot,widget
+mathematics,12,13,Mean and Variance of a Random Variable,j,xy_plot,widget
+mathematics,12,13,Bernoulli Trials and the Binomial Distribution,j,xy_plot,widget
+mathematics,12,13,Mean and Variance of the Binomial Distribution,j,xy_plot,widget
+biology,11,1,Characteristics of Living Organisms,n,none_symbolic,none
+biology,11,1,Biodiversity and the Need for Classification,n,data_table_trend,widget
+biology,11,1,"Taxonomy, Systematics and Classification: Scope and Definitions",n,data_table_trend,widget
+biology,11,1,Binomial Nomenclature: Rules and Conventions,n,none_symbolic,none
+biology,11,1,Concept of Species and Taxon,n,none_symbolic,none
+biology,11,1,Taxonomic Hierarchy: Categories from Kingdom to Species,n,labelled_figure,illustration
+biology,11,1,"Taxonomic Aids: Herbarium, Botanical Garden, Museum and Zoological Park",n,process_cycle,widget
+biology,11,1,"Taxonomic Keys, Flora, Manuals and Monographs",n,none_symbolic,none
+biology,11,2,"Classification Systems: Two-Kingdom, Five-Kingdom and Three Domains",n,data_table_trend,widget
+biology,11,2,Kingdom Monera: Bacterial Forms and Nutritional Types,n,labelled_figure,illustration
+biology,11,2,Archaebacteria: Groups and Extreme Habitats,n,labelled_figure,illustration
+biology,11,2,Cyanobacteria and Nitrogen-fixing Bacteria,n,process_cycle,widget
+biology,11,2,Kingdom Protista: Major Groups and Their Features,n,labelled_figure,illustration
+biology,11,2,"Fungal Structure, Nutrition and Modes of Reproduction",n,labelled_figure,illustration
+biology,11,2,Kingdom Fungi: Classification into Four Classes,n,data_table_trend,widget
+biology,11,2,Kingdoms Plantae and Animalia: Defining Features,n,labelled_figure,illustration
+biology,11,2,Lichens and Mycorrhizal Associations,n,labelled_figure,illustration
+biology,11,2,"Viruses: Structure, Composition and Diseases",n,labelled_figure,illustration
+biology,11,2,Viroids and Prions,n,labelled_figure,illustration
+biology,11,3,"Classification Systems: Artificial, Natural and Phylogenetic",n,data_table_trend,widget
+biology,11,3,"Numerical, Cyto- and Chemotaxonomy",n,none_symbolic,none
+biology,11,3,Alternation of Generations and Life Cycle Patterns,n,process_cycle,widget
+biology,11,3,"Algae: Chlorophyceae, Phaeophyceae and Rhodophyceae",n,labelled_figure,illustration
+biology,11,3,Economic Importance of Algae and Their Products,n,labelled_figure,illustration
+biology,11,3,Bryophytes: Liverworts and Mosses,n,labelled_figure,illustration
+biology,11,3,"Pteridophytes: Classes, Structure and Life Cycle",n,process_cycle,widget
+biology,11,3,Heterospory and the Origin of the Seed Habit,n,data_table_trend,widget
+biology,11,3,"Gymnosperms: Characteristics, Structure and Examples",n,labelled_figure,illustration
+biology,11,3,"Angiosperms: Dicots, Monocots and Double Fertilisation",n,process_cycle,widget
+biology,11,4,"Basis of Classification: Levels of Organisation, Symmetry and Germ Layers",n,data_table_trend,widget
+biology,11,4,"Coelom: Acoelomate, Pseudocoelomate and Coelomate Organisation",n,labelled_figure,illustration
+biology,11,4,Phylum Porifera,n,labelled_figure,illustration
+biology,11,4,Phylum Coelenterata and Ctenophora,n,labelled_figure,illustration
+biology,11,4,Phylum Platyhelminthes,n,labelled_figure,illustration
+biology,11,4,Phylum Aschelminthes (Nematoda),n,labelled_figure,illustration
+biology,11,4,Phylum Annelida,n,labelled_figure,illustration
+biology,11,4,Phylum Arthropoda,n,labelled_figure,illustration
+biology,11,4,Phylum Mollusca,n,labelled_figure,illustration
+biology,11,4,Phylum Echinodermata and Hemichordata,n,labelled_figure,illustration
+biology,11,4,Phylum Chordata: General Characters and Subphyla,n,labelled_figure,illustration
+biology,11,4,"Class Cyclostomata, Chondrichthyes and Osteichthyes",n,labelled_figure,illustration
+biology,11,4,Class Amphibia and Reptilia,n,labelled_figure,illustration
+biology,11,4,Class Aves and Mammalia,n,labelled_figure,illustration
+biology,11,5,"Root System: Types, Regions and Modifications",n,labelled_figure,illustration
+biology,11,5,Stem: Modifications and Functions,n,labelled_figure,illustration
+biology,11,5,"Leaf: Types, Venation, Phyllotaxy and Modifications",n,labelled_figure,illustration
+biology,11,5,Inflorescence: Racemose and Cymose,n,labelled_figure,illustration
+biology,11,5,"The Flower: Floral Parts, Symmetry and Ovary Position",n,labelled_figure,illustration
+biology,11,5,Aestivation and Placentation Types,n,labelled_figure,illustration
+biology,11,5,Stamen and Carpel Fusion: Cohesion and Adhesion,n,labelled_figure,illustration
+biology,11,5,"Fruit: Types, Pericarp and False Fruits",n,labelled_figure,illustration
+biology,11,5,Seed Structure in Dicots and Monocots,n,labelled_figure,illustration
+biology,11,5,Semi-technical Description: Floral Diagram and Floral Formula,n,labelled_figure,illustration
+biology,11,5,Family Solanaceae: Floral Characters and Floral Formula,n,labelled_figure,illustration
+biology,11,5,"Families Malvaceae, Cruciferae, Leguminosae, Compositae and Graminae",n,labelled_figure,illustration
+biology,11,6,"Meristems: Types, Location and Function",n,labelled_figure,illustration
+biology,11,6,"Simple Permanent Tissues: Parenchyma, Collenchyma and Sclerenchyma",n,labelled_figure,illustration
+biology,11,6,Xylem: Structure and Conducting Elements,n,labelled_figure,illustration
+biology,11,6,Phloem: Structure and Conducting Elements,n,labelled_figure,illustration
+biology,11,6,"Epidermal Tissue System: Epidermis, Stomata and Trichomes",n,labelled_figure,illustration
+biology,11,6,Anatomy of Dicot and Monocot Root,n,labelled_figure,illustration
+biology,11,6,Anatomy of Dicot and Monocot Stem,n,labelled_figure,illustration
+biology,11,6,Anatomy of Dorsiventral and Isobilateral Leaf,n,labelled_figure,illustration
+biology,11,6,Secondary Growth in Dicot Stem: Vascular Cambium,n,labelled_figure,illustration
+biology,11,6,"Cork Cambium, Periderm and Lenticels",n,labelled_figure,illustration
+biology,11,6,"Annual Rings, Heartwood and Sapwood",n,labelled_figure,illustration
+biology,11,7,"Epithelial Tissue: Types, Location and Cell Junctions",n,labelled_figure,illustration
+biology,11,7,Connective Tissue: Types and Matrix,n,labelled_figure,illustration
+biology,11,7,"Muscular Tissue: Skeletal, Smooth and Cardiac",n,labelled_figure,illustration
+biology,11,7,Neural Tissue: Neurons and Neuroglia,n,labelled_figure,illustration
+biology,11,7,Earthworm: Morphology and Digestive System,n,labelled_figure,illustration
+biology,11,7,"Earthworm: Circulatory, Excretory and Reproductive Systems",n,labelled_figure,illustration
+biology,11,7,Cockroach: Morphology and Digestive System,n,labelled_figure,illustration
+biology,11,7,"Cockroach: Circulatory, Respiratory and Excretory Systems",n,labelled_figure,illustration
+biology,11,7,Cockroach: Nervous System and Reproduction,n,labelled_figure,illustration
+biology,11,7,Frog: External Morphology and Digestive System,n,labelled_figure,illustration
+biology,11,7,Frog: Circulatory and Respiratory Systems,n,labelled_figure,illustration
+biology,11,7,"Frog: Excretory, Nervous and Reproductive Systems",n,labelled_figure,illustration
+biology,11,8,Cell Theory and Overview of Cell Types,n,labelled_figure,illustration
+biology,11,8,"Prokaryotic Cell: Cell Envelope, Mesosome, Nucleoid and Plasmid",n,labelled_figure,illustration
+biology,11,8,Cell Wall: Structure and Composition,n,labelled_figure,illustration
+biology,11,8,Cell Membrane: Fluid Mosaic Model and Transport,n,labelled_figure,illustration
+biology,11,8,"Endomembrane System: ER, Golgi Complex and Lysosomes",n,labelled_figure,illustration
+biology,11,8,"Vacuoles, Microbodies and Cell Inclusions",n,labelled_figure,illustration
+biology,11,8,Mitochondria and Plastids: Structure and Semi-autonomy,n,labelled_figure,illustration
+biology,11,8,Ribosomes in Prokaryotes and Eukaryotes,n,labelled_figure,illustration
+biology,11,8,Cytoskeleton: Microtubules and Microfilaments,n,labelled_figure,illustration
+biology,11,8,Cilia and Flagella: Axoneme Organisation,n,labelled_figure,illustration
+biology,11,8,Centrosome and Centrioles,n,labelled_figure,illustration
+biology,11,8,"Nucleus: Nuclear Envelope, Nucleolus and Chromatin",n,labelled_figure,illustration
+biology,11,8,Chromosome Types by Centromere Position,n,labelled_figure,illustration
+biology,11,9,Chemical Analysis: Acid-Soluble Pool and Biomacromolecules,n,data_table_trend,widget
+biology,11,9,Primary and Secondary Metabolites,n,data_table_trend,widget
+biology,11,9,"Carbohydrates: Mono-, Di- and Polysaccharides",n,molecule_struct,widget
+biology,11,9,Lipids: Classification and Properties,n,data_table_trend,widget
+biology,11,9,Amino Acids: Structure and Classification,n,molecule_struct,widget
+biology,11,9,Protein Structure: Primary to Quaternary Levels,n,molecule_struct,widget
+biology,11,9,Nucleic Acids: Nucleotide Structure and Types of RNA,n,molecule_struct,widget
+biology,11,9,"Metabolism, Metabolic Pathways and the Living State",n,process_cycle,widget
+biology,11,9,Enzyme Action and the Enzyme-Substrate Complex,n,xy_plot,widget
+biology,11,9,Factors Affecting Enzyme Activity and Enzyme Inhibition,n,xy_plot,widget
+biology,11,9,"Enzyme Classification, Cofactors and Coenzymes",n,data_table_trend,widget
+biology,11,10,"Interphase: G1, S, G2 and G0 Phases",n,process_cycle,widget
+biology,11,10,Phases of Mitosis: Prophase to Telophase,n,process_cycle,widget
+biology,11,10,Cytokinesis in Plant and Animal Cells,n,process_cycle,widget
+biology,11,10,Prophase I: Substages and Crossing Over,n,process_cycle,widget
+biology,11,10,Meiosis I: Metaphase I to Telophase I,n,process_cycle,widget
+biology,11,10,Meiosis II: Events and Outcomes,n,process_cycle,widget
+biology,11,10,Mitosis vs Meiosis: Comparison of Events and Products,n,process_cycle,widget
+biology,11,10,DNA Content and Chromosome Number Across Divisions,n,process_cycle,widget
+biology,11,10,Significance of Mitosis and Meiosis,n,process_cycle,widget
+biology,11,11,Early Experiments in Photosynthesis,n,labelled_figure,illustration
+biology,11,11,Chloroplast Structure and Sites of the Two Reactions,n,labelled_figure,illustration
+biology,11,11,"Photosynthetic Pigments, Absorption and Action Spectra",n,xy_plot,widget
+biology,11,11,"Light Reaction: Photosystems, Z-Scheme and Electron Transport",n,process_cycle,widget
+biology,11,11,Cyclic and Non-Cyclic Photophosphorylation,n,process_cycle,widget
+biology,11,11,Chemiosmotic Hypothesis and ATP Synthesis,n,process_cycle,widget
+biology,11,11,"Calvin Cycle: Carboxylation, Reduction and Regeneration",n,process_cycle,widget
+biology,11,11,Photorespiration and RuBisCO Specificity,n,process_cycle,widget
+biology,11,11,C4 Pathway and Kranz Anatomy,n,process_cycle,widget
+biology,11,11,Factors Affecting Photosynthesis and Blackman's Law of Limiting Factors,n,xy_plot,widget
+biology,11,12,Gaseous Exchange in Plants,n,process_cycle,widget
+biology,11,12,"Glycolysis: Steps, Enzymes and Net Yield",n,process_cycle,widget
+biology,11,12,Fermentation: Alcoholic and Lactic Acid Pathways,n,process_cycle,widget
+biology,11,12,Link Reaction: Oxidative Decarboxylation of Pyruvate,n,process_cycle,widget
+biology,11,12,Krebs Cycle: Reactions and Products,n,process_cycle,widget
+biology,11,12,Electron Transport System and Oxidative Phosphorylation,n,process_cycle,widget
+biology,11,12,Respiratory Balance Sheet: Aerobic vs Anaerobic ATP Yield,n,xy_plot,widget
+biology,11,12,Amphibolic Nature of Respiratory Pathways,n,process_cycle,widget
+biology,11,12,Respiratory Quotient of Different Substrates,n,xy_plot,widget
+biology,11,13,Seed Germination and Conditions for Growth,n,process_cycle,widget
+biology,11,13,Phases of Growth and Growth Rate,n,xy_plot,widget
+biology,11,13,"Differentiation, Dedifferentiation and Redifferentiation",n,process_cycle,widget
+biology,11,13,"Development, Plasticity and Heterophylly",n,process_cycle,widget
+biology,11,13,"Auxins: Discovery, Effects and Applications",n,data_table_trend,widget
+biology,11,13,Gibberellins: Effects and Applications,n,data_table_trend,widget
+biology,11,13,Cytokinins: Effects and Applications,n,data_table_trend,widget
+biology,11,13,Ethylene: Effects and Applications,n,data_table_trend,widget
+biology,11,13,Abscisic Acid: Effects and Stress Responses,n,free_body_forces,widget
+biology,11,13,Photoperiodism and Classification of Plants by Day Length,n,data_table_trend,widget
+biology,11,13,Vernalisation,n,data_table_trend,widget
+biology,11,14,Respiratory Organs Across Animal Groups,n,labelled_figure,illustration
+biology,11,14,Human Respiratory System: Structure of the Respiratory Tract,n,labelled_figure,illustration
+biology,11,14,Mechanism of Breathing: Inspiration and Expiration,n,reaction_mechanism,widget
+biology,11,14,Pulmonary Volumes and Capacities,n,labelled_figure,illustration
+biology,11,14,Exchange of Gases: Partial Pressures and the Diffusion Membrane,n,process_cycle,widget
+biology,11,14,Transport of Oxygen and the Oxygen Dissociation Curve,n,process_cycle,widget
+biology,11,14,Transport of Carbon Dioxide and the Chloride Shift,n,process_cycle,widget
+biology,11,14,Regulation of Respiration,n,process_cycle,widget
+biology,11,14,Respiratory Disorders,n,data_table_trend,widget
+biology,11,15,Plasma Composition and Plasma Proteins,n,labelled_figure,illustration
+biology,11,15,"Formed Elements: RBC, WBC and Platelets",n,labelled_figure,illustration
+biology,11,15,Blood Groups: ABO and Rh Incompatibility,n,data_table_trend,widget
+biology,11,15,Blood Coagulation and Clotting Factors,n,process_cycle,widget
+biology,11,15,Lymph: Composition and Functions,n,labelled_figure,illustration
+biology,11,15,Structure of the Human Heart and Its Chambers,n,labelled_figure,illustration
+biology,11,15,Double Circulation and Portal Systems,n,process_cycle,widget
+biology,11,15,Conducting System of the Heart,n,process_cycle,widget
+biology,11,15,"Cardiac Cycle: Phases, Volumes and Heart Sounds",n,process_cycle,widget
+biology,11,15,Cardiac Output and Regulation of Cardiac Activity,n,process_cycle,widget
+biology,11,15,Electrocardiogram (ECG) and Its Waves,n,wave_form,widget
+biology,11,15,Disorders of the Circulatory System,n,data_table_trend,widget
+biology,11,16,Nitrogenous Wastes and Modes of Excretion,n,process_cycle,widget
+biology,11,16,Excretory Organs in Invertebrates,n,labelled_figure,illustration
+biology,11,16,Structure of the Human Kidney and Urinary Tract,n,labelled_figure,illustration
+biology,11,16,Nephron Structure and Types,n,labelled_figure,illustration
+biology,11,16,Glomerular Filtration and Glomerular Filtration Rate,n,process_cycle,widget
+biology,11,16,Tubular Reabsorption and Secretion Along the Nephron,n,process_cycle,widget
+biology,11,16,Counter-Current Mechanism and Concentration of Urine,n,reaction_mechanism,widget
+biology,11,16,"Hormonal Regulation of Kidney Function: RAAS, ADH and ANF",n,process_cycle,widget
+biology,11,16,Micturition and Composition of Urine,n,process_cycle,widget
+biology,11,16,"Accessory Excretory Roles of Lungs, Liver and Skin",n,labelled_figure,illustration
+biology,11,16,Kidney Disorders and Haemodialysis,n,apparatus,illustration
+biology,11,17,"Types of Movement: Amoeboid, Ciliary and Muscular",n,labelled_figure,illustration
+biology,11,17,Structure of Skeletal Muscle Fibre and the Sarcomere,n,labelled_figure,illustration
+biology,11,17,"Muscle Proteins: Actin, Myosin and Regulatory Proteins",n,labelled_figure,illustration
+biology,11,17,Neuromuscular Junction and Excitation-Contraction Coupling,n,process_cycle,widget
+biology,11,17,Sliding Filament Theory of Muscle Contraction,n,process_cycle,widget
+biology,11,17,Red and White Muscle Fibres,n,labelled_figure,illustration
+biology,11,17,"Axial Skeleton: Skull, Vertebral Column, Ribs and Sternum",n,labelled_figure,illustration
+biology,11,17,Appendicular Skeleton: Girdles and Limb Bones,n,labelled_figure,illustration
+biology,11,17,"Types of Joints: Fibrous, Cartilaginous and Synovial",n,labelled_figure,illustration
+biology,11,17,Disorders of the Muscular and Skeletal System,n,labelled_figure,illustration
+biology,11,18,Organisation of the Neural System in Animals,n,labelled_figure,illustration
+biology,11,18,Neuron Structure and Types,n,labelled_figure,illustration
+biology,11,18,Generation and Conduction of the Nerve Impulse,n,motion_path,widget
+biology,11,18,Synaptic Transmission and Neurotransmitters,n,process_cycle,widget
+biology,11,18,"Meninges, Ventricles and Cerebrospinal Fluid",n,labelled_figure,illustration
+biology,11,18,Human Brain: Forebrain Structure and Functions,n,labelled_figure,illustration
+biology,11,18,Human Brain: Midbrain and Hindbrain,n,labelled_figure,illustration
+biology,11,18,Spinal Cord: Structure and Functions,n,labelled_figure,illustration
+biology,11,18,Reflex Action and the Reflex Arc,n,process_cycle,widget
+biology,11,18,Peripheral Nervous System: Cranial and Spinal Nerves,n,labelled_figure,illustration
+biology,11,18,Autonomic Nervous System: Sympathetic and Parasympathetic,n,labelled_figure,illustration
+biology,11,19,Neural vs Endocrine Coordination and Chemical Nature of Hormones,n,REVIEW,review
+biology,11,19,Mechanism of Hormone Action and Receptor Types,n,reaction_mechanism,widget
+biology,11,19,Feedback Regulation of Hormone Secretion,n,process_cycle,widget
+biology,11,19,Hypothalamic Releasing and Inhibiting Hormones,n,REVIEW,review
+biology,11,19,Pituitary Gland: Hormones and Their Actions,n,REVIEW,review
+biology,11,19,Pineal Gland and Melatonin,n,REVIEW,review
+biology,11,19,"Thyroid Hormones: Synthesis, Actions and Disorders",n,data_table_trend,widget
+biology,11,19,Parathyroid Hormone and Calcium Homeostasis,n,REVIEW,review
+biology,11,19,Thymus and Thymosins,n,REVIEW,review
+biology,11,19,Adrenal Cortex and Adrenal Medulla Hormones,n,REVIEW,review
+biology,11,19,Pancreatic Hormones and Blood Glucose Regulation,n,REVIEW,review
+biology,11,19,Gonadal Hormones and Their Functions,n,data_table_trend,widget
+biology,11,19,"Hormones of the Heart, Kidney and Gastrointestinal Tract",n,labelled_figure,illustration
+biology,11,19,Hypo- and Hyperactivity Disorders of the Endocrine Glands,n,data_table_trend,widget
+biology,12,1,Anther Structure and Microsporogenesis,n,process_cycle,widget
+biology,12,1,Pollen Grain Structure and Male Gametophyte,n,process_cycle,widget
+biology,12,1,Ovule (Megasporangium) Structure and Types,n,labelled_figure,illustration
+biology,12,1,Megasporogenesis and Embryo Sac Development,n,process_cycle,widget
+biology,12,1,Pollination: Types and Agents,n,process_cycle,widget
+biology,12,1,Outbreeding Devices and Self-Incompatibility,n,process_cycle,widget
+biology,12,1,Pollen-Pistil Interaction and Pollen Tube Growth,n,process_cycle,widget
+biology,12,1,Artificial Hybridisation: Emasculation and Bagging,n,molecule_struct,widget
+biology,12,1,Double Fertilisation and Triple Fusion,n,process_cycle,widget
+biology,12,1,Endosperm Development and Types,n,process_cycle,widget
+biology,12,1,Embryogeny: Dicot and Monocot Embryo Development,n,process_cycle,widget
+biology,12,1,"Seed and Fruit Formation (Parthenocarpy, Seed Structure)",n,process_cycle,widget
+biology,12,1,Apomixis and Polyembryony,n,process_cycle,widget
+biology,12,2,"Male Reproductive System: Testis, Ducts and Accessory Glands",n,labelled_figure,illustration
+biology,12,2,"Female Reproductive System: Ovary, Oviduct, Uterus and Mammary Gland",n,labelled_figure,illustration
+biology,12,2,Gametogenesis: Spermatogenesis and Oogenesis,n,process_cycle,widget
+biology,12,2,Structure of Sperm and Ovum,n,molecule_struct,widget
+biology,12,2,Menstrual Cycle and Its Hormonal Regulation,n,process_cycle,widget
+biology,12,2,Fertilisation and Zygote Formation,n,process_cycle,widget
+biology,12,2,"Cleavage, Blastocyst Formation and Implantation",n,process_cycle,widget
+biology,12,2,"Placenta: Structure, Functions and Hormones",n,labelled_figure,illustration
+biology,12,2,Embryonic Development: Germ Layers and Organogenesis,n,process_cycle,widget
+biology,12,2,Parturition and Its Hormonal Control,n,process_cycle,widget
+biology,12,2,Lactation and Colostrum,n,process_cycle,widget
+biology,12,3,"Reproductive Health Programmes and Strategies (RCH, Family Planning)",n,labelled_figure,illustration
+biology,12,3,Adolescent Sexual Health and Sex Education,n,REVIEW,review
+biology,12,3,Population Explosion and Population Stabilisation Measures,n,REVIEW,review
+biology,12,3,Natural and Barrier Methods of Contraception,n,REVIEW,review
+biology,12,3,"Hormonal Contraceptives, IUDs and Emergency Contraception",n,REVIEW,review
+biology,12,3,Sterilisation: Vasectomy and Tubectomy,n,REVIEW,review
+biology,12,3,Medical Termination of Pregnancy (MTP),n,REVIEW,review
+biology,12,3,Amniocentesis and Prenatal Sex-Determination Misuse,n,apparatus,illustration
+biology,12,3,Sexually Transmitted Infections,n,REVIEW,review
+biology,12,3,"Infertility and Assisted Reproductive Technologies (IVF, ZIFT, GIFT, ICSI)",n,REVIEW,review
+biology,12,4,"Mendel's Laws: Monohybrid, Dihybrid and Test Cross",n,molecule_struct,widget
+biology,12,4,"Deviations from Mendelism: Incomplete Dominance, Codominance and Multiple Allelism",n,genetics_cross,widget
+biology,12,4,Gene Interaction and Epistasis,n,genetics_cross,widget
+biology,12,4,Polygenic Inheritance,n,genetics_cross,widget
+biology,12,4,Pleiotropy,n,genetics_cross,widget
+biology,12,4,Chromosomal Theory of Inheritance and Morgan's Drosophila Experiments,n,genetics_cross,widget
+biology,12,4,Linkage and Recombination,n,genetics_cross,widget
+biology,12,4,"Sex Determination in Humans, Insects and Birds",n,genetics_cross,widget
+biology,12,4,"Mutation: Types, Mutagens and Chromosomal Aberrations",n,genetics_cross,widget
+biology,12,4,Pedigree Analysis,n,genetics_cross,widget
+biology,12,4,"Mendelian Genetic Disorders (Haemophilia, Colour Blindness, Sickle-Cell Anaemia, Thalassaemia)",n,genetics_cross,widget
+biology,12,4,"Chromosomal Disorders: Down, Turner and Klinefelter Syndromes",n,genetics_cross,widget
+biology,12,5,Structure of DNA: Double Helix and Chargaff's Rules,n,molecule_struct,widget
+biology,12,5,"Types and Structure of RNA (mRNA, tRNA, rRNA)",n,labelled_figure,illustration
+biology,12,5,"DNA Packaging: Nucleosome, Chromatin and Histones",n,process_cycle,widget
+biology,12,5,Search for Genetic Material: Griffith's Transformation and Avery-MacLeod-McCarty,n,apparatus,illustration
+biology,12,5,Hershey-Chase Experiment,n,apparatus,illustration
+biology,12,5,RNA World and Properties of Genetic Material,n,REVIEW,review
+biology,12,5,Meselson-Stahl Experiment,n,apparatus,illustration
+biology,12,5,DNA Replication: Semiconservative Mechanism and Enzymes,n,reaction_mechanism,widget
+biology,12,5,Transcription in Prokaryotes and Eukaryotes,n,process_cycle,widget
+biology,12,5,Genetic Code and Its Properties,n,process_cycle,widget
+biology,12,5,"Translation: Ribosomes, tRNA and Protein Synthesis",n,process_cycle,widget
+biology,12,5,lac Operon and Regulation of Gene Expression,n,process_cycle,widget
+biology,12,5,"Human Genome Project: Goals, Methods and Findings",n,process_cycle,widget
+biology,12,5,DNA Fingerprinting and VNTR Polymorphism,n,process_cycle,widget
+biology,12,6,Origin of Life: Oparin-Haldane Theory and Miller-Urey Experiment,n,apparatus,illustration
+biology,12,6,"Evidences of Evolution: Homology, Analogy, Fossils and Embryology",n,process_cycle,widget
+biology,12,6,Geological Time Scale and Evolution of Life Forms,n,process_cycle,widget
+biology,12,6,Adaptive Radiation,n,process_cycle,widget
+biology,12,6,Darwinism and Natural Selection,n,process_cycle,widget
+biology,12,6,"Mechanisms of Evolution: Mutation, Gene Flow, Genetic Drift and Founder Effect",n,reaction_mechanism,widget
+biology,12,6,"Types of Natural Selection: Stabilising, Directional and Disruptive",n,process_cycle,widget
+biology,12,6,Lamarckism and the Modern Synthetic Theory,n,process_cycle,widget
+biology,12,6,Hardy-Weinberg Principle and Genetic Equilibrium,n,genetics_cross,widget
+biology,12,6,Anthropogenic Evolution: Industrial Melanism and Drug/Pesticide Resistance,n,process_cycle,widget
+biology,12,6,Speciation and Reproductive Isolation,n,process_cycle,widget
+biology,12,6,Human Evolution: Hominid Fossils and Timeline,n,process_cycle,widget
+biology,12,7,"Concept of Health, Disease and Public Health Measures",n,REVIEW,review
+biology,12,7,"Common Infectious Diseases: Bacterial, Viral, Fungal, Protozoan and Helminthic",n,labelled_figure,illustration
+biology,12,7,Malaria and the Life Cycle of Plasmodium,n,process_cycle,widget
+biology,12,7,Immunity: Innate and Acquired,n,process_cycle,widget
+biology,12,7,Lymphoid Organs: Primary and Secondary,n,labelled_figure,illustration
+biology,12,7,Antibodies: Structure and Classes of Immunoglobulins,n,process_cycle,widget
+biology,12,7,"Vaccination, Immunisation and Active vs Passive Immunity",n,process_cycle,widget
+biology,12,7,"Allergies, Autoimmunity and Immune Disorders",n,process_cycle,widget
+biology,12,7,"AIDS: HIV Structure, Transmission and Replication Cycle",n,process_cycle,widget
+biology,12,7,"Cancer: Causes, Types, Detection and Treatment",n,process_cycle,widget
+biology,12,7,"Drug Abuse: Opioids, Cannabinoids and Coca Alkaloids",n,REVIEW,review
+biology,12,7,Alcohol and Tobacco Abuse: Effects and Prevention,n,REVIEW,review
+biology,12,8,Diversity and Habitats of Microbes,n,REVIEW,review
+biology,12,8,"Microbes in Household Products (Curd, Dough, Cheese, Toddy)",n,apparatus,illustration
+biology,12,8,Fermented Beverages: Brewing and Distillation,n,apparatus,illustration
+biology,12,8,Antibiotics and Their Microbial Production,n,apparatus,illustration
+biology,12,8,"Industrial Chemicals, Enzymes and Bioactive Molecules from Microbes",n,apparatus,illustration
+biology,12,8,"Sewage Treatment: Primary, Secondary and BOD",n,apparatus,illustration
+biology,12,8,Biogas Production and Methanogens,n,apparatus,illustration
+biology,12,8,Biocontrol Agents in Pest and Disease Management,n,REVIEW,review
+biology,12,8,"Biofertilisers: Rhizobium, Mycorrhiza and Cyanobacteria",n,process_cycle,widget
+biology,12,9,Principles of Biotechnology: Genetic Engineering and Bioprocess Engineering,n,process_cycle,widget
+biology,12,9,"Restriction Enzymes: Nomenclature, Recognition Sites and Sticky Ends",n,none_symbolic,none
+biology,12,9,"Cloning Vectors: pBR322, Origin of Replication and Selectable Markers",n,geometry_3d,widget
+biology,12,9,Insertional Inactivation and Selection of Recombinants,n,process_cycle,widget
+biology,12,9,Vectors for Plant and Animal Cells: Ti Plasmid and Retroviruses,n,geometry_3d,widget
+biology,12,9,Steps in Recombinant DNA Technology (Gene Cloning Sequence),n,process_cycle,widget
+biology,12,9,Isolation of DNA from Cells (Lysis and Purification),n,apparatus,illustration
+biology,12,9,Gel Electrophoresis and Elution of DNA Fragments,n,apparatus,illustration
+biology,12,9,"PCR: Principle, Steps and Applications",n,apparatus,illustration
+biology,12,9,"Introducing Recombinant DNA into Host Cells (Competent Cells, Gene Gun, Microinjection)",n,apparatus,illustration
+biology,12,9,Bioreactors and Downstream Processing,n,apparatus,illustration
+biology,12,10,Genetically Modified Crops and Their Benefits,n,process_cycle,widget
+biology,12,10,Bt Cotton and Bt Toxin (cry Genes),n,process_cycle,widget
+biology,12,10,RNA Interference and Nematode-Resistant Plants,n,wave_form,widget
+biology,12,10,Recombinant Human Insulin (Humulin) Production,n,process_cycle,widget
+biology,12,10,Recombinant Vaccines and Therapeutic Proteins,n,process_cycle,widget
+biology,12,10,Gene Therapy and ADA Deficiency Treatment,n,process_cycle,widget
+biology,12,10,"Molecular Diagnosis: PCR, ELISA and DNA Probes",n,apparatus,illustration
+biology,12,10,Transgenic Animals and Their Applications,n,process_cycle,widget
+biology,12,10,Biopiracy and Patent Issues,n,REVIEW,review
+biology,12,10,"Biosafety, GEAC and Ethical Concerns of GMOs",n,REVIEW,review
+biology,12,11,Levels of Ecological Organisation (Organism to Biome),n,labelled_figure,illustration
+biology,12,11,Ecological Niche and Habitat,n,labelled_figure,illustration
+biology,12,11,"Major Abiotic Factors: Temperature, Water, Light and Soil",n,REVIEW,review
+biology,12,11,Responses to Abiotic Stress and Adaptations,n,free_body_forces,widget
+biology,12,11,"Population Attributes: Density, Natality, Mortality, Sex Ratio and Age Pyramids",n,xy_plot,widget
+biology,12,11,Population Growth: Exponential and Logistic Models,n,process_cycle,widget
+biology,12,11,Life History Variation and Reproductive Strategies,n,REVIEW,review
+biology,12,11,"Competition, Competitive Exclusion and Resource Partitioning",n,REVIEW,review
+biology,12,11,Predation and Prey Defences,n,REVIEW,review
+biology,12,11,Parasitism and Brood Parasitism,n,REVIEW,review
+biology,12,11,Mutualism and Commensalism,n,REVIEW,review
+biology,12,12,"Ecosystem Structure: Components, Stratification and Functions",n,REVIEW,review
+biology,12,12,"Productivity: GPP, NPP and Secondary Productivity",n,process_cycle,widget
+biology,12,12,Decomposition and Its Steps,n,process_cycle,widget
+biology,12,12,"Food Chains, Food Webs and Trophic Levels",n,process_cycle,widget
+biology,12,12,Energy Flow and the Ten Per Cent Law,n,process_cycle,widget
+biology,12,12,Ecological Pyramids and Their Limitations,n,process_cycle,widget
+biology,12,12,"Ecological Succession: Primary, Secondary, Hydrarch and Xerarch",n,process_cycle,widget
+biology,12,12,Carbon Cycle,n,process_cycle,widget
+biology,12,12,Phosphorus Cycle,n,process_cycle,widget
+biology,12,12,Ecosystem Services and Their Economic Valuation,n,REVIEW,review
+biology,12,13,"Levels and Magnitude of Biodiversity (Genetic, Species and Ecological)",n,xy_plot,widget
+biology,12,13,Patterns of Biodiversity: Latitudinal Gradient and Species-Area Relationship,n,xy_plot,widget
+biology,12,13,India's Biodiversity: Megadiversity and Endemism,n,REVIEW,review
+biology,12,13,Species Diversity and Ecosystem Stability (Rivet Popper Hypothesis),n,xy_plot,widget
+biology,12,13,Loss of Biodiversity and the Evil Quartet,n,REVIEW,review
+biology,12,13,Extinction and the IUCN Red List,n,xy_plot,widget
+biology,12,13,"Reasons for Conserving Biodiversity: Narrowly Utilitarian, Broadly Utilitarian and Ethical",n,REVIEW,review
+biology,12,13,"In-situ Conservation: Biosphere Reserves, National Parks, Sanctuaries and Sacred Groves",n,REVIEW,review
+biology,12,13,Biodiversity Hotspots and Global Conservation Efforts,n,xy_plot,widget
+biology,12,13,"Ex-situ Conservation: Zoos, Botanical Gardens, Cryopreservation and Seed Banks",n,REVIEW,review

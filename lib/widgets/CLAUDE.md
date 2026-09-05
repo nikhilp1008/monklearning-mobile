@@ -114,9 +114,10 @@ array — rather than on a rAF-polled clock. This is not a workaround for
 missing timing data; it is **strictly more robust** than a seconds model: a
 cue fires WITH its sentence, by construction, so it cannot fire early or late
 the way a written-in-advance `at: 2.4` could if TTS pacing disagreed with the
-estimate. See `docs/cue-timing.md` for the pre-recorded-lesson problem this
-sidesteps entirely, and `Cue.seq`'s own doc comment in `lib/widgets/types.ts`
-for the full reasoning.
+estimate. See `Cue.seq`'s own doc comment in `lib/widgets/types.ts` for the full
+reasoning. (A `docs/cue-timing.md` was cited here for the pre-recorded-lesson
+problem this sidesteps; it was never written — see the note at the end of this
+file.)
 
 Pause still works (the queue simply stops; no clip starts, no cue fires). Seek
 and backward scrub do not exist in a live session and are not attempted —
@@ -171,6 +172,28 @@ tier 2 safe to expose to arbitrary student questions.
 
 Never `JSON.parse` a payload straight into a widget. Never trust `params` because
 it came from our own API.
+
+**The schema's legal range must be a SUBSET of what renders correctly.**
+`validate()` and `scripts/verify-render.mjs` are two halves of one contract: the
+first says what a payload may contain, the second says what may reach a student's
+board. If `validate()` admits a payload the gate rejects, the widget is broken
+even though every test passes — the defect just waits for a lesson to generate
+that value.
+
+This is not hypothetical. `projectile_motion` shipped accepting
+`launch_angle_deg: 1`, which puts the apex marker 4.8px from the origin dot at
+343x236 — under the gate's 12px glyph floor, at every board size. Found by
+sweeping the whole legal range against the gate rather than by testing the
+default.
+
+**When the two disagree, narrow the schema. Never widen the gate.** Widening it
+to admit a payload converts a diagram that is wrong on a phone into a diagram
+that is wrong on a phone and passes CI. And when you narrow, measure the new
+bound at the SMALLEST board — a floor derived at 900x430 is not a floor.
+
+The corollary for a new widget: after writing `validate()`, render its extreme
+legal values — every enum, both ends of every numeric range — through the gate
+at all three board sizes. The middle of the range is the case that already works.
 
 ### Exactly one WebView, and only for 3D
 `react-native-webview` was removed from this app for good reason: the old KaTeX
@@ -248,24 +271,37 @@ lesson plan declares the visual slot before any prose is generated.
 `scripts/validate-lesson-plan.mjs` fails the build on an empty `required` slot or
 a widget the client registry cannot render.
 
-Full rules, the two-pass plan/generate contract, and the segment-count bands are
-in `docs/visual-grammar.md`. Read it before changing anything about how lessons
-are planned or generated.
+Full rules, the two-pass plan/generate contract and the segment-count bands were
+to live in `docs/visual-grammar.md`, which was never written. Until it is,
+the enforced rules are the ones in `scripts/validate-lesson-plan.mjs` — read that
+script before changing how lessons are planned or generated.
 
 For the ~149 figures no renderer can generate — labelled anatomy, floral diagrams,
-dissections — see `docs/asset-pipeline.md`. It is licence-gated: **never fetch an
-image from the open web**, ingest only from the allowlist, and capture licence,
-source and attribution as non-null columns at ingest. NCERT figures are all-rights-
-reserved and must never be reproduced, traced or redrawn from.
+dissections. The pipeline is licence-gated: **never fetch an image from the open
+web**, ingest only from the allowlist, and capture licence, source and attribution
+as non-null columns at ingest. NCERT figures are all-rights-reserved and must never
+be reproduced, traced or redrawn from.
 
-`docs/narration-diagram-alignment.md` covers the one thing no validator checks: whether
-the words and the picture agree. Read it before writing any generation prompt — the rule
-that numbers in captions are `{{derived}}` tokens rather than typed values is what makes a
-whole class of mismatch impossible.
+The rule that decides usability, measured across all 149 figures (2026-09-04):
+**authorship, not fame.** Art drawn by the Wikipedia community is share-alike
+(CC BY-SA or GFDL) and therefore unusable; art dropped by an institution
+(OpenStax/CNX, NIH BioArt, Berkshire CC0, CDC PHIL) is CC BY or PD and usable.
+Note that openstax.org now serves CC BY-NC-SA site-wide, but CC grants are
+irrevocable, so its older Commons mirrors remain CC BY — verify and record the
+licence AT THE MIRRORED FILE, never from the current site, and never re-source a
+crisper copy from openstax.org. A `docs/asset-pipeline.md` was cited here and
+never written.
 
-`docs/asset-flow.md` traces one figure through both moments — precompute binding and
-live doubt resolution. The invariant: **nothing is created during a live session**;
-precompute creates and binds, a live session only selects from what already exists.
+The one thing no validator checks is whether the words and the picture agree. The
+rule that makes a whole class of mismatch impossible: **numbers in captions are
+`{{derived}}` tokens, never typed values** — so a caption cannot disagree with the
+diagram it describes. `lib/widgets/alignment-lint.ts` enforces what can be
+enforced. (`docs/narration-diagram-alignment.md` was cited here and never written.)
+
+The invariant across precompute binding and live doubt resolution: **nothing is
+created during a live session**; precompute creates and binds, a live session only
+selects from what already exists. (`docs/asset-flow.md` was cited here and never
+written.)
 
 ---
 
@@ -275,8 +311,9 @@ precompute creates and binds, a live session only selects from what already exis
 content/
   concept-types.seed.json      concept_type -> diagram policy + eligible widgets
 docs/
-  visual-grammar.md            when a concept needs a diagram, and how it is enforced
-  widget-prompt-template.md    fill-in-the-blank brief for building one widget
+  small-screen-rendering-rules.md   THE ONLY DOC HERE. The frame rule. Read it.
+                                    (see section 8 for the six that were cited
+                                     by this file but never written)
 lib/widgets/
   types.ts                     the contract — read this first
   registry.ts                  the closed set of drawable things
@@ -330,8 +367,10 @@ off-canvas, with colliding labels, or empty.
 `scripts/verify-render.mjs` asserts over the rendered component tree (via
 `react-test-renderer`, no device needed): something was drawn, ink covers enough of the
 board, nothing outside the bounds, no label overlaps another, no `NaN` in any prop. Run it
-on every payload in CI. See `docs/render-verification.md` for what it cannot catch and how
-to sample for human review.
+on every payload in CI. What it cannot catch: whether the diagram is the RIGHT
+diagram, and whether it agrees with the narration — those need the stratified
+human sample, reviewed with the audio playing.
+(`docs/render-verification.md` was cited here and never written.)
 
 ---
 
@@ -363,3 +402,27 @@ playback and `@siteed/audio-studio` for capture are deliberately separate — a
 shared session routes Drona to the earpiece); change orientation handling outside
 the classroom; add a state-management library; or "clean up" `react-native-webview`
 out of `package.json` — as of this runtime it is load-bearing again.
+
+---
+
+## 8. Docs this file used to cite that do not exist
+
+Verified 2026-09-04 with `git log --all --diff-filter=A`: **never committed on any
+branch.**
+
+```
+docs/asset-pipeline.md             docs/asset-flow.md
+docs/visual-grammar.md             docs/cue-timing.md
+docs/narration-diagram-alignment.md  docs/render-verification.md
+docs/widget-prompt-template.md
+```
+
+`docs/small-screen-rendering-rules.md` is the only doc in `docs/` and is real.
+
+Their load-bearing rules have been inlined above rather than left as dangling
+pointers, because **a contract citing documents that do not exist is worse than no
+contract** — it reads as though the rules were written down and reviewed when they
+were neither. If any of these is written later, inline the pointer again and delete
+the corresponding paragraph here.
+
+Do not add a citation to a document you have not confirmed exists.

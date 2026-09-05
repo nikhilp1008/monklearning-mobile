@@ -100,7 +100,18 @@ function validate(raw: unknown): ValidationResult<ProjectileParams> {
   return {
     ok: true,
     params: {
-      launch_angle_deg: clamp(angle as number, 1, 89),
+      // Floor is 3, not 1, and the reason is a rule not a tuning:
+      // THE SCHEMA'S LEGAL RANGE MUST BE A SUBSET OF WHAT RENDERS CORRECTLY.
+      // At 1 degree apexX is 0.86 m, so the apex marker lands 4.8px from the
+      // origin dot at 343x236 and 9.6px at 900x430 — both under verify-render's
+      // 2r+4=12px glyph floor. validate() accepted a payload the gate then
+      // rejected. Measured by sweeping every angle at all three board sizes:
+      // 1 fails everywhere, 2 still fails at 343x236, 3 is clean at all of them.
+      // The fix is to narrow the schema, NEVER to widen the gate.
+      // The top of the range is fine: at 89 degrees apexX is the same as at 1
+      // (sin 178 = sin 2), but apexHeight is near-maximal, so the marker is far
+      // from the origin. Only the low end degenerates.
+      launch_angle_deg: clamp(angle as number, 3, 89),
       initial_speed_ms: clamp(speed as number, 1, 200),
       gravity_ms2: clamp(gravity as number, 0.1, 100),
       body: body as ProjectileParams['body'],

@@ -335,6 +335,58 @@ describe('data_table_trend', () => {
   });
 });
 
+/**
+ * The schema's legal range must be a subset of what renders correctly.
+ *
+ * This is a regression test for a real defect: validate() accepted
+ * launch_angle_deg = 1, and the resulting tree failed verify-render's glyph
+ * floor at every board size, because at 1 degree the apex marker sits 4.8px
+ * from the origin dot. The correct fix was to narrow validate(), not to relax
+ * the checker — so this test pins the floor rather than the symptom.
+ */
+describe('projectile_motion angle floor', () => {
+  const mod = REGISTRY.projectile_motion!;
+
+  test('validate() clamps a degenerate angle up to the renderable floor', () => {
+    const r = mod.validate({ ...mod.defaults, launch_angle_deg: 1 });
+    expect(r.ok).toBe(true);
+    expect((r as { ok: true; params: { launch_angle_deg: number } }).params.launch_angle_deg).toBe(3);
+  });
+
+  test('every angle validate() admits keeps the apex clear of the origin dot', () => {
+    // 2r + GLYPH_GAP for the r=4 origin dot, the floor verify-render applies.
+    const FLOOR = 12;
+    for (const a of [1, 2, 3, 5, 15, 45, 65, 89, 95]) {
+      const r = mod.validate({ ...mod.defaults, launch_angle_deg: a });
+      if (!r.ok) continue;
+      const p = (r as { ok: true; params: { launch_angle_deg: number } }).params;
+      for (const box of [SPEC_SMALL, REAL_SMALL, { width: 900, height: 430 }]) {
+        const tree = renderWidgetTreeAt(
+          mod, p as never, { launch_angle_deg: p.launch_angle_deg }, box.width, box.height
+        );
+        const circles: { cx: number; cy: number; r: number }[] = [];
+        const walk = (n: unknown): void => {
+          if (!n || typeof n !== 'object') return;
+          const e = n as { type?: string; props?: Record<string, number>; children?: unknown[] };
+          if ((e.type === 'RNSVGCircle' || e.type === 'Circle') && e.props) {
+            circles.push({ cx: +e.props.cx, cy: +e.props.cy, r: +e.props.r });
+          }
+          (e.children ?? []).forEach(walk);
+        };
+        walk(tree);
+        for (let i = 0; i < circles.length; i++) {
+          for (let j = i + 1; j < circles.length; j++) {
+            const [x, y] = [circles[i], circles[j]];
+            if (Math.abs(x.r - y.r) > 0.5) continue; // verify-render's own skip rule
+            const d = Math.hypot(x.cx - y.cx, x.cy - y.cy);
+            expect(d).toBeGreaterThanOrEqual(FLOOR);
+          }
+        }
+      }
+    }
+  });
+});
+
 for (const [id, reason] of Object.entries(SKIP)) {
   test.skip(`${id}: ${reason}`, () => {});
 }
