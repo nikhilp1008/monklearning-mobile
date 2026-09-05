@@ -67,7 +67,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     text: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       lineHeight: scale(20),
       letterSpacing: scale(-0.02 * 15),
@@ -81,7 +81,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       backgroundColor: 'rgba(255,255,255,.85)',
     },
     metaText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.amberText,
     },

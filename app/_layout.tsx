@@ -15,6 +15,15 @@ import {
   AnekLatin_700Bold,
   AnekLatin_800ExtraBold,
 } from '@expo-google-fonts/anek-latin';
+// Onest is the website's typeface (monklearning.com sets it on `body`).
+// Home is the first screen moved onto it; the rest of the app is still on
+// Anek Latin, so both families load until the migration finishes.
+import {
+  Onest_400Regular,
+  Onest_600SemiBold,
+  Onest_700Bold,
+  Onest_800ExtraBold,
+} from '@expo-google-fonts/onest';
 // The classroom caption line only — the design gives the Hinglish captions
 // their own family, and it is the one place in the app that uses it.
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
@@ -56,6 +65,10 @@ export default function RootLayout() {
     AnekLatin_600SemiBold,
     AnekLatin_700Bold,
     AnekLatin_800ExtraBold,
+    Onest_400Regular,
+    Onest_600SemiBold,
+    Onest_700Bold,
+    Onest_800ExtraBold,
     AnekDevanagari_500Medium,
     Kalam_400Regular,
     Kalam_700Bold,
