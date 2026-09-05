@@ -171,7 +171,12 @@
  *   phone, which is precisely the case the schema must refuse rather than the
  *   render thin.
  *
- * MAX_CENTRE_CHARS = 3 at CENTRE_SIZE 16: half-width 3*16*0.58/2 = 13.92, and
+ * MAX_CENTRE_CHARS = 3 is the DECLARED ceiling, measured conservatively; the
+ *   effective one is 2, because the longest symbol in ELEMENTS is two
+ *   characters and validate() refuses anything not in that table. Recorded
+ *   because a cap nothing can reach is worth knowing about rather than
+ *   silently trusting. At CENTRE_SIZE 16 a 3-char centre has half-width
+ *   3*16*0.58/2 = 13.92, and
  *   the angle annotation sits at ANGLE_LABEL_R = 47 along the arc bisector. The
  *   binding pair is the seesaw/TBP bisector at 180 degrees, where the angle
  *   label shares the centre atom's y exactly:
@@ -256,7 +261,17 @@ export interface MoleculeStructParams {
   ligands: readonly string[];
   /** Length === bond_pairs. 1 = single, 2 = double, 3 = triple. */
   bond_orders: readonly number[];
-  /** Length === bond_pairs. */
+  /**
+   * Length === bond_pairs.
+   *
+   * EVERY LIGAND ENTRY IS ONE ELECTRON DOMAIN, whatever its style. A hydrogen
+   * bond or a dative bond drawn as a ligand therefore counts toward
+   * steric_number and moves the reported shape — because it occupies a site on
+   * the board, and the widget reports the geometry of what it drew. That is
+   * the honest reading, and it means a payload must not add an H-bond partner
+   * to a molecule whose own shape is the teaching point: draw [F-H...F]- with
+   * the H as the centre, not water with a fourth site bolted on.
+   */
   bond_styles: readonly BondStyle[];
   /** Overall charge on the species, -4..4. */
   charge: number;
@@ -638,7 +653,22 @@ export function formalChargeSum(p: MoleculeStructParams): number | null {
   return sum;
 }
 
+/**
+ * Formal charge on the centre: V - (non-bonding electrons) - (bonding
+ * electrons)/2, i.e. every bond split evenly regardless of which atom brought
+ * the pair. That even split is the DEFINITION, so a dative bond is counted the
+ * same as any other and H3O+ still comes out at +1.
+ *
+ * ZERO IN COORDINATION MODE, and that is a statement rather than a fallback.
+ * Formal charge is a Lewis-structure bookkeeping device for main-group atoms;
+ * applied to a d-block centre it returns a number nobody uses and NCERT never
+ * asks for — Ni(CO)4 would report +6 on the nickel. The coordination-chemistry
+ * equivalent of the question is `oxidation_state`, which splits every bond
+ * HETEROLYTICALLY to the ligand instead, and that is the number the readout
+ * shows in that mode.
+ */
 export function formalChargeCentre(p: MoleculeStructParams): number {
+  if (p.mode === 'coordination') return 0;
   const el = ELEMENTS[p.centre];
   if (!el) return 0;
   let bonding = 0;

@@ -839,6 +839,225 @@ function ProcessFlowPreview() {
   );
 }
 
+/**
+ * molecule_struct example payloads — the six reference values from
+ * lib/widgets/molecule-struct/vsepr-math.ts's header, plus the two cases that
+ * exist to fail a naive implementation. Each `expect` states what the readout
+ * must show; if the board disagrees with the string, the widget is wrong. The
+ * chemistry behind every number is asserted in
+ * lib/widgets/__tests__/physics.test.ts.
+ *
+ * THE ONE THING TO LOOK AT FIRST is methane: four bonds drawn 90 DEGREES APART
+ * on the page, annotated 109.5°. Those are deliberately different numbers —
+ * 109.5 cannot be drawn in a plane, and a widget that "fixed" the drawing by
+ * measuring it would be reporting a projection as a physical angle.
+ *
+ * molecule_struct is not in the REGISTRY yet, so these go through
+ * `moleculeStruct.validate()` and straight into the module's own Component
+ * rather than through BoardWidget — which is the better test anyway, since it
+ * puts validate() on the path a real payload takes.
+ */
+const MOL_CASES: { label: string; expect: string; params: MoleculeStructParams }[] = [
+  {
+    label: 'CH4 · NCERT Cl.11 Unit 4 Table 4.6 · the drawn/reported split',
+    expect: 'sp3   tetrahedral   109.5°  —  bonds DRAWN 90° apart on the page',
+    params: { ...moleculeStruct.defaults },
+  },
+  {
+    label: 'NH3 · the middle point of NCERT’s own 109.5 / 107 / 104.5 series',
+    expect: 'sp3   trigonal pyramidal   107°   (= 109.5 − 1×2.5), one lone pair on top',
+    params: {
+      mode: 'electron_domain', centre: 'N', bond_pairs: 3, lone_pairs: 1,
+      ligands: ['H', 'H', 'H'], bond_orders: [1, 1, 1],
+      bond_styles: ['plain', 'wedge', 'dash'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Ammonia', highlight_site: -1,
+    },
+  },
+  {
+    label: 'H2O · the third point — and the −2.5 constant is READ OFF, not tuned',
+    expect: 'sp3   bent   104.5°   (= 109.5 − 2×2.5), two lone-pair dot pairs above',
+    params: {
+      mode: 'electron_domain', centre: 'O', bond_pairs: 2, lone_pairs: 2,
+      ligands: ['H', 'H'], bond_orders: [1, 1], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Water', highlight_site: -1,
+    },
+  },
+  {
+    label: 'PCl5 · the fixture that proves secondary_angle_deg is real',
+    expect: 'sp3d   trigonal bipyramidal   120° / 90°   — TWO angles, not one',
+    params: {
+      mode: 'electron_domain', centre: 'P', bond_pairs: 5, lone_pairs: 0,
+      ligands: ['Cl', 'Cl', 'Cl', 'Cl', 'Cl'], bond_orders: [1, 1, 1, 1, 1],
+      bond_styles: ['plain', 'plain', 'plain', 'wedge', 'dash'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Phosphorus(V) chloride', highlight_site: 3,
+    },
+  },
+  {
+    label: 'O3 · NCERT’s own formal-charge worked example',
+    expect: 'sp2   bent   117.5°   · centre +1, terminals 0 and −1, sum 0',
+    params: {
+      mode: 'electron_domain', centre: 'O', bond_pairs: 2, lone_pairs: 1,
+      ligands: ['O', 'O'], bond_orders: [2, 1], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Ozone', highlight_site: 1,
+    },
+  },
+  {
+    label: 'XeF2 · THE COUNTER-FIXTURE · a naive rule gives ~172.5 and is wrong',
+    expect: 'sp3d   linear   180°   — three EQUATORIAL lone pairs, bonds trans',
+    params: {
+      mode: 'electron_domain', centre: 'Xe', bond_pairs: 2, lone_pairs: 3,
+      ligands: ['F', 'F'], bond_orders: [1, 1], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: false,
+      label: 'Xenon difluoride', highlight_site: -1,
+    },
+  },
+  {
+    label: 'CO2 · the ink fixture · two collinear bonds have a zero-height bbox',
+    expect: 'sp   linear   180°   — the arc is FORCED on, or coverage is 0%',
+    params: {
+      mode: 'electron_domain', centre: 'C', bond_pairs: 2, lone_pairs: 0,
+      ligands: ['O', 'O'], bond_orders: [2, 2], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: false,
+      label: 'Carbon dioxide', highlight_site: -1,
+    },
+  },
+  {
+    label: 'K4[Fe(CN)6] · NCERT Cl.12 Unit 5 · coordination mode',
+    expect: 'ox +2   CN 6   EAN 36   · six dative bonds inside brackets, 4− outside',
+    params: {
+      mode: 'coordination', centre: 'Fe', bond_pairs: 6, lone_pairs: 0,
+      ligands: ['CN', 'CN', 'CN', 'CN', 'CN', 'CN'],
+      bond_orders: [1, 1, 1, 1, 1, 1],
+      bond_styles: ['dative', 'dative', 'dative', 'dative', 'dative', 'dative'],
+      charge: -4, bracket: true, show_lone_pairs: false, show_angle: false,
+      label: 'Hexacyanoferrate(II)', highlight_site: 2,
+    },
+  },
+  {
+    label: 'Ni(CO)4 · the EAN cross-check · same 36 from a different triple',
+    expect: 'ox 0   CN 4   EAN 36   (28 − 0 + 8, not 26 − 2 + 12)',
+    params: {
+      mode: 'coordination', centre: 'Ni', bond_pairs: 4, lone_pairs: 0,
+      ligands: ['CO', 'CO', 'CO', 'CO'], bond_orders: [1, 1, 1, 1],
+      bond_styles: ['dative', 'dative', 'dative', 'dative'],
+      charge: 0, bracket: false, show_lone_pairs: false, show_angle: false,
+      label: 'Nickel tetracarbonyl', highlight_site: -1,
+    },
+  },
+  {
+    label: '[F−H···F]− · interaction mode · the SMALLEST site radius (72.4 at 343)',
+    expect: 'linear   180°   · one plain and one DOTTED bond, legend row at the foot',
+    params: {
+      mode: 'interaction', centre: 'H', bond_pairs: 2, lone_pairs: 0,
+      ligands: ['F', 'F'], bond_orders: [1, 1],
+      bond_styles: ['plain', 'hbond'],
+      charge: -1, bracket: true, show_lone_pairs: true, show_angle: false,
+      label: 'Bifluoride ion', highlight_site: 1,
+    },
+  },
+  {
+    label: 'H3O+ · interaction mode · a DATIVE bond, and all three numbers right',
+    expect: 'trigonal pyramidal   107°   · formal charge +1 on the O, arrow on bond 3',
+    params: {
+      mode: 'interaction', centre: 'O', bond_pairs: 3, lone_pairs: 1,
+      ligands: ['H', 'H', 'H'], bond_orders: [1, 1, 1],
+      bond_styles: ['plain', 'plain', 'dative'],
+      charge: 1, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Hydronium ion', highlight_site: 2,
+    },
+  },
+];
+
+/**
+ * Renders `moleculeStruct.Component` DIRECTLY rather than through
+ * `BoardWidget`. BoardWidget dispatches through `lib/widgets/registry.ts`, and
+ * molecule_struct is not registered yet — registry wiring is a separate serial
+ * step. Swap this for a `BoardWidget` + payload once it lands, the way the
+ * xy_plot tab does.
+ */
+function MoleculeStructPreview() {
+  const box = useDiagramBox();
+  const diagramBox = { availableWidth: box.availableWidth, maxHeight: box.maxHeight - 70 };
+  const theme = useDevTheme();
+  const [i, setI] = useState(0);
+  const kase = MOL_CASES[i];
+
+  /**
+   * The one animatable param. "ring next" walks it so the marker can be
+   * watched travelling the site ring — which is the whole justification for
+   * `highlight_site` being animatable at all, and the thing a still tree
+   * cannot show. -1 is the "none" sentinel, because 0 is a valid site.
+   */
+  const siteSv = useSharedValue(-1);
+  const [site, setSite] = useState(-1);
+  const motion = useMemo(() => ({ highlight_site: siteSv }), [siteSv]);
+
+  const result = useMemo(() => moleculeStruct.validate(kase.params), [kase]);
+  const derived = useMemo(
+    () => (result.ok ? moleculeStruct.computeDerived(result.params) : null),
+    [result]
+  );
+
+  return (
+    <View style={styles.body}>
+      <View style={styles.controlsContent}>
+        <Pressable
+          onPress={() => {
+            setI((v) => (v + 1) % MOL_CASES.length);
+            siteSv.value = -1;
+            setSite(-1);
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>next case</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            const n = result.ok ? result.params.bond_pairs : 0;
+            const next = site + 1 >= n ? -1 : site + 1;
+            setSite(next);
+            siteSv.value = next < 0 ? -1 : withTiming(next, { duration: 700 });
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>ring next site</Text>
+        </Pressable>
+        <Text style={styles.readout}>{i + 1}/{MOL_CASES.length}</Text>
+        <Text style={styles.readout}>s{site}</Text>
+        {derived ? (
+          <Text style={styles.readout}>SN {derived.steric_number}</Text>
+        ) : null}
+      </View>
+      <View style={[styles.controlsContent, { paddingTop: 0 }]}>
+        <Text style={styles.pillText} numberOfLines={1}>
+          {kase.label}  ·  expect: {kase.expect}
+        </Text>
+      </View>
+
+      <View style={styles.boardArea}>
+        <View style={{ width: diagramBox.availableWidth, height: diagramBox.maxHeight }}>
+          {result.ok ? (
+            <moleculeStruct.Component
+              params={{ ...result.params, highlight_site: site }}
+              motion={motion}
+              width={diagramBox.availableWidth}
+              height={diagramBox.maxHeight}
+              theme={theme}
+              services={DEV_SERVICES}
+            />
+          ) : (
+            <Text style={styles.captionText}>validate(): {result.errors.join(' | ')}</Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   body: { flex: 1 },

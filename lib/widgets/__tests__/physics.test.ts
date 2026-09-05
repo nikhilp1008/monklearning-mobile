@@ -941,6 +941,39 @@ describe('molecule_struct — reference values (NCERT Cl.11 Unit 4, Cl.12 Unit 5
     expect(same.steric_number).toBe(6);
   });
 
+  test('formal charge is a LEWIS quantity — zero for a coordination centre', () => {
+    // The even-split formula applied to Ni(CO)4 returns 10 - 0 - 4 = +6, a
+    // number nobody uses and NCERT never asks for. Coordination mode reports
+    // oxidation_state instead, which splits every bond to the ligand.
+    const nico4 = species('Ni', ['CO', 'CO', 'CO', 'CO'], 0, undefined, { mode: 'coordination' });
+    expect(deriveMolecule(nico4).formal_charge_centre).toBe(0);
+    expect(deriveMolecule(nico4).oxidation_state).toBe(0);
+
+    // A dative bond is still split evenly, because that IS the definition —
+    // so H3O+ comes out at +1 on the oxygen, which is the textbook answer.
+    const h3o = species('O', ['H', 'H', 'H'], 1, undefined, {
+      mode: 'interaction', charge: 1,
+      bond_styles: ['plain', 'plain', 'dative'] as BondStyle[],
+    });
+    const dh = deriveMolecule(h3o);
+    expect(dh.formal_charge_centre).toBe(1);          // 6 - 2 - 3
+    expect(dh.bond_angle_deg).toBe(107);
+    expect(formalChargeSum(h3o)).toBe(h3o.charge);
+
+    // Bifluoride: EVERY ligand entry is an electron domain whatever its style,
+    // so [F-H...F]- reads as steric number 2 and 180 degrees — which is what
+    // it is. A hydrogen bond bolted onto water would move water's own shape,
+    // which is why the payload puts the H at the centre.
+    const hf2 = species('H', ['F', 'F'], 0, undefined, {
+      mode: 'interaction', charge: -1,
+      bond_styles: ['plain', 'hbond'] as BondStyle[],
+    });
+    const dhf = deriveMolecule(hf2);
+    expect([dhf.steric_number, dhf.bond_angle_deg]).toEqual([2, 180]);
+    expect(dhf.formal_charge_centre).toBe(-1);        // 1 - 0 - 2
+    expect(formalChargeSum(hf2)).toBe(hf2.charge);
+  });
+
   test('6. THE COUNTER-FIXTURE — XeF2 is LINEAR at 180, not bent at ~172.5', () => {
     const p = species('Xe', ['F', 'F'], 3);
     const d = deriveMolecule(p);

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
-import { FollowUpSheet } from '@/components/follow-up-sheet';
+import { FollowUp } from '@/components/follow-up';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
@@ -187,7 +187,7 @@ export default function SnapSolvedScreen() {
         }
       />
       {asking && !!questions[index]?.doubtId && (
-        <FollowUpSheet
+        <FollowUp
           doubtId={questions[index].doubtId!}
           questionText={questions[index].text}
           onClose={() => setAsking(false)}

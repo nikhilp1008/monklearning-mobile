@@ -950,14 +950,26 @@ describe('molecule_struct', () => {
       label: 'Nickel tetracarbonyl', highlight_site: 0,
     },
 
-    // INTERACTION — the mode with the smallest site radius, exercised at the
-    // widest labels it admits so the legend row's cost is actually paid.
-    hbond: {
+    // INTERACTION — the mode with the smallest site radius. Bifluoride,
+    // [F-H...F]-: the strongest hydrogen bond there is, and genuinely LINEAR
+    // at 180, so it is an ink fixture in the mode with the least room. Note
+    // the centre is the HYDROGEN: every ligand entry is an electron domain, so
+    // an H-bond partner bolted onto water would move water's reported shape.
+    hf2: {
+      mode: 'interaction', centre: 'H', bond_pairs: 2, lone_pairs: 0,
+      ligands: ['F', 'F'], bond_orders: [1, 1],
+      bond_styles: ['plain', 'hbond'],
+      charge: -1, bracket: true, show_lone_pairs: true, show_angle: false,
+      label: 'Bifluoride ion', highlight_site: 1,
+    },
+    // A dative bond, in the mode that names it: H3O+ is trigonal pyramidal at
+    // 107 with a formal charge of +1 on the oxygen — all three numbers right.
+    h3o: {
       mode: 'interaction', centre: 'O', bond_pairs: 3, lone_pairs: 1,
-      ligands: ['H', 'H', 'HOH2'], bond_orders: [1, 1, 1],
-      bond_styles: ['plain', 'plain', 'hbond'],
-      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
-      label: 'Water, H-bonded', highlight_site: 2,
+      ligands: ['H', 'H', 'H'], bond_orders: [1, 1, 1],
+      bond_styles: ['plain', 'plain', 'dative'],
+      charge: 1, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Hydronium ion', highlight_site: 2,
     },
     // Six 4-char ligands in interaction mode: the binding corner of the whole
     // schema, where dx = 36.2 against the 31.84 two 4-char boxes need.

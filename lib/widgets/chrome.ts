@@ -135,8 +135,53 @@ export const READOUT_BAND = bandFor(READOUT_SIZE);
  */
 export const CHAR_W = 0.58;
 
+/**
+ * Devanagari width guardrail. **UNMEASURED — this is not a measurement.**
+ *
+ * Nobody has measured Anek Devanagari's advance widths at 12pt. `CHAR_W`
+ * (0.58) was fitted to Latin, and against Devanagari it is wrong in BOTH
+ * directions at once on JavaScript `String.length` (UTF-16 code units):
+ *
+ *   OVER-counts  below/above-base matras have zero advance width. `मूल` is
+ *                three code units and about two advance widths; `क्ष` is
+ *                three code units and renders as one conjunct ligature.
+ *   UNDER-counts Devanagari base glyphs at 12pt are wider than the Latin
+ *                average 0.58 was fitted to, and the shirorekha runs the
+ *                full advance.
+ *
+ * The errors partly cancel, unpredictably, per string — so the fix is NOT a
+ * retuned constant, and 0.75 is not one. It is a deliberate OVER-estimate,
+ * chosen because the two failure directions are not symmetric: under-estimating
+ * width makes scripts/verify-render.mjs UNDER-report collisions, so it passes
+ * CI and overlaps on a device; over-estimating fails loudly in CI and costs
+ * only a shorter term. Over-estimating is the safe way to be wrong.
+ *
+ * The real fix is a measured per-glyph advance table, checked in with a
+ * fixture that fails against the Latin model. Until someone measures it, do
+ * not describe this number as measured anywhere, and do not "tune" it —
+ * a tuned guardrail is a measurement nobody took.
+ *
+ * Like `CHAR_W`, this is deliberately the SAME constant scripts/verify-render.mjs
+ * uses. If the two diverge, a widget can lay text out to a width the checker
+ * disagrees with and either fail spuriously or, worse, pass while overlapping.
+ */
+export const CHAR_W_DEVA = 0.75;
+
+/** Devanagari block, U+0900–U+097F. */
+const DEVANAGARI_RE = /[\u0900-\u097F]/;
+
+/** True if `text` contains any Devanagari — the trigger for the guardrail above. */
+export function hasDevanagari(text: string): boolean {
+  return DEVANAGARI_RE.test(text);
+}
+
+/** The per-code-unit width fraction this string is measured with. */
+export function charWidthFor(text: string): number {
+  return hasDevanagari(text) ? CHAR_W_DEVA : CHAR_W;
+}
+
 export function textWidth(text: string, fontSize: number): number {
-  return text.length * fontSize * CHAR_W;
+  return text.length * fontSize * charWidthFor(text);
 }
 
 export function maxChars(width: number, fontSize: number): number {
