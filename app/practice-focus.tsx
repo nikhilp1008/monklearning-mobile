@@ -39,6 +39,25 @@ export default function PracticeFocusScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  /**
+   * Chapters grouped by class, the way the redesign lists them -- a flat run
+   * of twenty-odd names has no landmark to scroll against.
+   *
+   * A null `class_level` means the chapter belongs to both classes (the same
+   * reading every other screen takes), so those sit in a leading untitled
+   * group rather than being claimed by one class or printed twice.
+   */
+  const chapterGroups = useMemo(() => {
+    if (!chapters) return null;
+    const of = (level: number | null) =>
+      chapters.filter((c) => (level === null ? c.class_level == null : c.class_level === level));
+    return [
+      { key: 'both', label: null, items: of(null) },
+      { key: 'c11', label: 'Class 11', items: of(11) },
+      { key: 'c12', label: 'Class 12', items: of(12) },
+    ].filter((g) => g.items.length > 0);
+  }, [chapters]);
+
   const appliedChapterId = focus.mode === 'chapter' && focus.subject === subjectQuery ? focus.chapterId : null;
   const [pendingChapterId, setPendingChapterId] = useState<string | null>(appliedChapterId);
   const [playToken, setPlayToken] = useState(0);
@@ -181,25 +200,31 @@ export default function PracticeFocusScreen() {
               <Text style={styles.chapterErrorText}>{loadError}</Text>
             ) : (
               <View style={styles.chapterList}>
-                {chapters?.map((chapter) => {
-                  const isSelected = pendingChapterId === chapter.id;
-                  return (
-                    <WashSelectRow
-                      key={chapter.id}
-                      selected={isSelected}
-                      playToken={playToken}
-                      onPress={() => {
-                        setPendingChapterId(chapter.id);
-                        setPlayToken((n) => n + 1);
-                      }}
-                      style={styles.chapterRow}
-                      selectedStyle={styles.chapterRowSelected}>
-                      <Text style={[styles.chapterTitle, isSelected && styles.chapterTitleSelected]}>
-                        {chapter.name}
-                      </Text>
-                    </WashSelectRow>
-                  );
-                })}
+                {chapterGroups?.map((group) => (
+                  <View key={group.key}>
+                    {group.label && <Text style={styles.classLabel}>{group.label}</Text>}
+                    {group.items.map((chapter) => {
+                      const isSelected = pendingChapterId === chapter.id;
+                      return (
+                        <WashSelectRow
+                          key={chapter.id}
+                          selected={isSelected}
+                          playToken={playToken}
+                          onPress={() => {
+                            setPendingChapterId(chapter.id);
+                            setPlayToken((n) => n + 1);
+                          }}
+                          style={styles.chapterRow}
+                          selectedStyle={styles.chapterRowSelected}>
+                          <Text
+                            style={[styles.chapterTitle, isSelected && styles.chapterTitleSelected]}>
+                            {chapter.name}
+                          </Text>
+                        </WashSelectRow>
+                      );
+                    })}
+                  </View>
+                ))}
               </View>
             )}
           </ScrollView>
@@ -335,6 +360,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.red,
       transform: [{ rotate: '-1deg' }],
     },
+    classLabel: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: scale(11),
+      letterSpacing: scale(1.5),
+      textTransform: 'uppercase',
+      color: colors.faint,
+      marginTop: verticalScale(20),
+      marginBottom: verticalScale(4),
+    },
     chapterErrorText: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: scale(13),
@@ -378,9 +412,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
-      height: verticalScale(50),
+      height: verticalScale(52),
       borderRadius: scale(99),
-      backgroundColor: colors.ink,
+      backgroundColor: '#241A08',
       marginTop: verticalScale(16),
       marginBottom: verticalScale(10),
       shadowColor: colors.ink,
@@ -393,9 +427,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       opacity: 0.5,
     },
     applyButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(15),
-      color: colors.paper,
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(16),
+      color: '#FFF7E6',
     },
   });
 }
