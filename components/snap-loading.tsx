@@ -229,9 +229,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingTop: verticalScale(6),
     },
     kicker: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.3),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.98),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -243,7 +243,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       justifyContent: 'center',
     },
     closeGlyph: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.slate,
     },
@@ -253,7 +253,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       minHeight: verticalScale(74),
     },
     stage: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(25),
       lineHeight: scale(31),
       letterSpacing: -scale(0.5),
@@ -295,7 +295,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       gap: verticalScale(14),
     },
     eta: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(19),
       color: colors.slate,
@@ -316,7 +316,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       backgroundColor: colors.ink,
     },
     primaryText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(15),
       color: colors.paper,
     },
@@ -333,7 +333,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderColor: colors.ink,
     },
     secondaryText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
     },
@@ -345,7 +345,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       backgroundColor: 'rgba(28,26,22,.05)',
     },
     cancelText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
     },

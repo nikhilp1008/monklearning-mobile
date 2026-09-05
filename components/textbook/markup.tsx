@@ -162,7 +162,7 @@ function plainText(nodes: Node[]): string {
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number): TextStyle {
   switch (name) {
     case 'b':
-      return { fontFamily: 'AnekLatin_700Bold' };
+      return { fontFamily: 'Onest_700Bold' };
     case 'i':
       return { fontFamily: SERIF, fontStyle: 'italic' };
     // Unicode has no subscript capitals and no subscript f or g, so a run

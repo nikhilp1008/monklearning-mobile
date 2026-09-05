@@ -49,7 +49,7 @@ const HOUSE_PALETTE: readonly (readonly [string, string])[] = [
 ];
 
 /** The board's own body face, so a label reads as part of the same hand. */
-const DIAGRAM_FONT = 'AnekLatin_400Regular';
+const DIAGRAM_FONT = 'Onest_400Regular';
 
 const VIEW_BOX = /viewBox\s*=\s*["']\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*["']/;
 
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   caption: {
-    fontFamily: 'AnekLatin_400Regular',
+    fontFamily: 'Onest_400Regular',
     fontSize: 12.5,
     lineHeight: 18,
     color: INK_MUTED,

@@ -574,7 +574,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     title: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 21,
       letterSpacing: -0.03 * 21,
       color: INK,
@@ -600,7 +600,7 @@ function createStyles() {
       borderColor: INK,
     },
     chipText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 14,
       color: INK_50,
     },
@@ -623,7 +623,7 @@ function createStyles() {
       borderBottomColor: INK,
     },
     questionText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: QUESTION_SIZE,
       lineHeight: QUESTION_LINE,
       color: INK,
@@ -631,7 +631,7 @@ function createStyles() {
     // The same maths voice the rail uses, so a formula reads the same whether
     // it is in the question, an option, or the working.
     inlineMath: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       color: INK,
     },
     questionProbe: {
@@ -643,7 +643,7 @@ function createStyles() {
     },
     questionToggle: {
       paddingTop: 8,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 13,
       color: INK_50,
     },
@@ -659,7 +659,7 @@ function createStyles() {
       backgroundColor: AMBER_WASH,
     },
     noticeText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       lineHeight: 13 * 1.5,
       color: AMBER_INK,
@@ -683,7 +683,7 @@ function createStyles() {
       backgroundColor: GREEN_WASH,
     },
     optionLabel: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 14,
       lineHeight: 15 * 1.6,
       color: INK_50,
@@ -723,7 +723,7 @@ function createStyles() {
       color: INK_50,
     },
     optionText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.6,
       color: INK_70,
@@ -738,7 +738,7 @@ function createStyles() {
       borderLeftColor: AMBER_INK,
     },
     cautionText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.6,
       color: INK_70,
@@ -761,7 +761,7 @@ function createStyles() {
       paddingLeft: 44,
     },
     meta: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: INK_30,
     },
@@ -771,7 +771,7 @@ function createStyles() {
     // Amber, not red: the working is sound and worth reading, only the final
     // answer is missing. Red would tell a student to discard the whole card.
     failureText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 16,
       lineHeight: 16 * 1.6,
       color: INK_70,
@@ -798,7 +798,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     primaryText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 16,
       color: PAPER,
     },

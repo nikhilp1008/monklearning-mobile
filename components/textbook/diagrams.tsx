@@ -939,7 +939,7 @@ function createStyles(scale: Scale) {
       borderColor: 'rgba(238,163,31,.65)',
     },
     chipWordText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(10),
       letterSpacing: scale(1.1),
       textTransform: 'uppercase',
@@ -956,7 +956,7 @@ function createStyles(scale: Scale) {
     },
 
     caption: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(21),
       color: colors.slate,

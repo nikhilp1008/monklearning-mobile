@@ -1225,12 +1225,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(60),
     },
     errorTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(20),
       color: colors.ink,
     },
     errorBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',
@@ -1243,7 +1243,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     errorButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.paper,
     },
@@ -1285,20 +1285,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       transform: [{ rotate: '-0.4deg' }],
     },
     boardEquation: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 17,
       lineHeight: RHYTHM,
       color: INK,
     },
     boardBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 13.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
       maxWidth: 560,
     },
     boardBodyBold: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: INK,
     },
     boardKalamNote: {
@@ -1349,7 +1349,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: AMBER,
     },
     topChapterText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 13,
       color: INK,
     },
@@ -1369,7 +1369,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: AMBER,
     },
     topLiveText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 10,
       letterSpacing: 0.12 * 10,
       textTransform: 'uppercase',
@@ -1385,7 +1385,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
     },
     topReportText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: INK_MUTED,
     },
@@ -1406,7 +1406,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     topEndText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: '#fff',
     },
@@ -1431,12 +1431,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 6,
     },
     liveChipArrow: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: AMBER,
     },
     liveChipText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: '#EFEBDD',
     },
@@ -1487,7 +1487,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: 54,
       marginTop: -4,
       textAlign: 'center',
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 8.5,
       letterSpacing: 0.1 * 8.5,
       textTransform: 'uppercase',
@@ -1515,7 +1515,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'transparent',
     },
     railCcText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 9.5,
       letterSpacing: 0.06 * 9.5,
       color: DEEP_AMBER,
@@ -1543,12 +1543,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 6,
     },
     micDeniedTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.ink,
     },
     micDeniedBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       lineHeight: scale(17),
       color: colors.slate,
@@ -1566,7 +1566,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(12),
     },
     micDeniedGhostText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12.5),
       color: colors.slate,
     },
@@ -1577,7 +1577,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(16),
     },
     micDeniedPrimaryText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12.5),
       color: colors.paper,
     },
@@ -1605,7 +1605,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 4,
     },
     askChipText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.ink,
     },
@@ -1621,12 +1621,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(18),
     },
     toastCheck: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       color: colors.marigold,
       fontSize: scale(12.5),
     },
     toastText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12.5),
       color: '#EFEBDD',
     },
@@ -1666,7 +1666,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rdrawerTitle: {
       flex: 1,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(15.5),
       color: colors.ink,
     },
@@ -1681,7 +1681,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     rdrawerCloseText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
@@ -1704,23 +1704,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(221,68,51,.4)',
     },
     rquoteLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.9),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.68),
       textTransform: 'uppercase',
       color: '#C53A2B',
     },
     rquoteText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11.5),
       lineHeight: scale(16.7),
       color: colors.ink,
       marginTop: verticalScale(3),
     },
     rwhatsWrong: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(1.33),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.55),
+      letterSpacing: scale(1.0),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -1742,12 +1742,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.ink,
     },
     rchipText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11.5),
       color: colors.slate,
     },
     rchipTextSelected: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.paper,
     },
     rextraRow: {
@@ -1768,12 +1768,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingVertical: verticalScale(10),
     },
     rscreenshotText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
     rscreenshotOptional: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(10.5),
       color: colors.faint,
     },
@@ -1785,7 +1785,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(12),
       paddingVertical: verticalScale(10),
       paddingHorizontal: scale(12),
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(12),
       color: colors.ink,
     },
@@ -1797,7 +1797,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rfooterHint: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(10.5),
       lineHeight: scale(14.7),
       color: colors.faint,
@@ -1811,7 +1811,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     rsendButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.paper,
     },

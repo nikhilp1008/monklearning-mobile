@@ -282,7 +282,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(19),
       letterSpacing: scale(-0.38),
       color: colors.ink,
@@ -316,7 +316,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
     },
     classPillText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
@@ -338,7 +338,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.marigold,
     },
     subjectTab: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.faint,
     },
@@ -360,13 +360,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     searchPlaceholder: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.faint,
     },
     searchCount: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -384,7 +384,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(40),
     },
     errorText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',
@@ -423,12 +423,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     chapterTitle: {
       flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
     chapterMeta: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -459,7 +459,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
     },
     footerHint: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       color: colors.faint,
     },

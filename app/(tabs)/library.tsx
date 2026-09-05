@@ -993,7 +993,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(130),
     },
     heading: {
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(24),
       letterSpacing: scale(-0.6),
       color: colors.ink,
@@ -1034,12 +1034,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     segmentText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.slate,
     },
     segmentTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     searchBar: {
@@ -1056,7 +1056,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     searchInput: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.ink,
       paddingVertical: 0,
@@ -1068,9 +1068,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(16),
     },
     sessionsOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.9),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -1082,9 +1082,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(10),
     },
     previewBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.5),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.38),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -1147,17 +1147,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     filterPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
     filterPillTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.paper,
     },
     filterCount: {
       marginLeft: 'auto',
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -1221,9 +1221,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
     },
     noteSubjectText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.81),
       textTransform: 'uppercase',
     },
     noteTime: {
@@ -1232,13 +1232,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
     },
     noteTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
       marginTop: verticalScale(7),
     },
     noteBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       lineHeight: scale(17.4),
       color: colors.slate,
@@ -1251,14 +1251,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(20),
     },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',
     },
     // DEMO_ — the line above the stand-in note card.
     sampleNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19),
       color: colors.slate,
@@ -1297,27 +1297,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(221,68,51,.4)',
     },
     doubtQuestion: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(22.5),
       color: colors.ink,
     },
     doubtsSampleNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19),
       color: colors.faint,
       marginBottom: verticalScale(4),
     },
     sessionsIntro: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(21),
       color: colors.slate,
       marginTop: verticalScale(12),
     },
     sessionsIntroBold: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     sessionsList: {
@@ -1349,24 +1349,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     sessionTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
     },
     sessionSubline: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
     urgentBadgeText: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       color: '#C53A2B',
     },
     neutralBadgeText: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
       color: colors.faint,
     },
@@ -1377,7 +1377,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(5),
     },
     savedBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       color: '#157A45',
     },

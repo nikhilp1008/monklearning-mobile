@@ -11,10 +11,11 @@ import { SERIF } from '@/components/textbook/markup';
  * sits one swipe from Notes and Doubts in the Library, so a foreign detail is
  * visible side by side with the thing it disagrees with.
  *
- *  1. **Kickers are Anek, not monospace.** The handoff sets every small
- *     uppercase label in `ui-monospace`. This app's kicker has always been
- *     AnekLatin_800ExtraBold with wide tracking, which is what `SESSIONS` and
- *     the subject label on a note card already use. Monospace beside those
+ *  1. **Kickers are the app's own face, not monospace.** The handoff sets
+ *     every small uppercase label in `ui-monospace`. This app's kicker is
+ *     the UI face at ExtraBold with wide tracking -- Onest_800ExtraBold
+ *     since the move off Anek Latin -- which is what `SESSIONS` and the
+ *     subject label on a note card already use. Monospace beside those
  *     reads as a different product.
  *  2. **Borders are `rgba(28,26,22,…)`, not `rgba(28,25,20,…)`.** The app uses
  *     the former in roughly ninety places, and it is the correct derivation of
@@ -44,7 +45,7 @@ export const CARD_GAP = 12;
 
 export function kicker(scale: (n: number) => number, size = 10): TextStyle {
   return {
-    fontFamily: 'AnekLatin_800ExtraBold',
+    fontFamily: 'Onest_800ExtraBold',
     fontSize: scale(size),
     letterSpacing: scale(size * 0.11),
     textTransform: 'uppercase',
@@ -79,13 +80,13 @@ export function makeBlockStyles(scale: (n: number) => number) {
       overflow: 'hidden',
     },
     body: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(16.5),
       lineHeight: scale(16.5 * 1.66),
       color: colors.ink,
     },
     blockBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14.5),
       lineHeight: scale(14.5 * 1.55),
       color: colors.slate,

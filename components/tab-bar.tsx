@@ -218,12 +218,12 @@ function createStyles(
       opacity: 0.5,
     },
     label: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       color: colors.faint,
     },
     labelActive: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       color: colors.ink,
     },
   });

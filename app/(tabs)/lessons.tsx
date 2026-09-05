@@ -342,7 +342,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'space-between',
     },
     heading: {
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(24),
       letterSpacing: scale(-0.6),
       color: colors.ink,
@@ -359,7 +359,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     examPillText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11),
       color: colors.slate,
     },
@@ -387,16 +387,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
     },
     classPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
     classPillTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     chaptersCount: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -420,12 +420,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     subjectPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
     subjectPillTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.paper,
     },
     listWrap: {
@@ -459,28 +459,28 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     rowTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
     topicsCount: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
     // Same affordance the drona chapter list ends its rows with, so a chapter
     // that opens looks the same wherever a student meets one.
     rowArrow: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.faint,
     },
     // The same tag the Textbooks chapter list uses for a chapter that is not
     // written yet, so "not ready" looks the same wherever a student meets it.
     soon: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(0.8),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.55),
+      letterSpacing: scale(0.6),
       textTransform: 'uppercase',
       color: colors.quiet,
     },
@@ -490,7 +490,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(12),
     },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -506,7 +506,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(14),
     },
     retryButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.paper,
     },

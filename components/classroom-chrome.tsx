@@ -395,7 +395,7 @@ const capStyles = StyleSheet.create({
   },
   badge: {
     flexShrink: 0,
-    fontFamily: 'AnekLatin_800ExtraBold',
+    fontFamily: 'Onest_800ExtraBold',
     fontSize: 9.5,
     letterSpacing: 0.14 * 9.5,
     color: DEEP_AMBER,
@@ -419,7 +419,7 @@ const capStyles = StyleSheet.create({
     marginLeft: -6,
   },
   listenText: {
-    fontFamily: 'AnekLatin_700Bold',
+    fontFamily: 'Onest_700Bold',
     fontSize: 13.5,
     color: INK,
   },

@@ -286,7 +286,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     title: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(26),
       letterSpacing: scale(-0.65),
       lineHeight: scale(29),
@@ -300,7 +300,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(8),
     },
     subtitle: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
     },
@@ -318,7 +318,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     rowLabel: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       color: colors.ink,
     },
@@ -341,9 +341,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       transform: [{ rotate: '-1deg' }],
     },
     classLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(11),
-      letterSpacing: scale(1.54),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.9),
+      letterSpacing: scale(1.16),
       textTransform: 'uppercase',
       color: colors.faint,
       marginTop: verticalScale(28),
@@ -363,7 +363,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(6),
     },
     chapterErrorText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       paddingVertical: verticalScale(16),
@@ -386,7 +386,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#241A08',
     },
     applyButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(16),
       color: '#FFF7E6',
     },

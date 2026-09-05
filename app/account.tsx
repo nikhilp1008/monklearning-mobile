@@ -228,16 +228,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(8),
     },
     fieldLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(1.14),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.55),
+      letterSpacing: scale(0.85),
       color: colors.faint,
       marginBottom: verticalScale(7),
     },
     optionalTag: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(8.5),
-      letterSpacing: scale(0.85),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(7.65),
+      letterSpacing: scale(0.64),
       color: colors.faint,
       marginBottom: verticalScale(7),
       paddingVertical: verticalScale(2),
@@ -253,7 +253,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(10),
     },
     value: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15.5),
       color: colors.ink,
     },
@@ -262,7 +262,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     input: {
       flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15.5),
       color: colors.ink,
       padding: 0,
@@ -270,7 +270,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // A word, not a button. The row is the tap target.
     changeText: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12.5),
       color: colors.amberText,
     },
@@ -294,23 +294,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     optionText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.slate,
     },
     optionTextOn: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.paper,
     },
     subjectTag: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(11),
-      letterSpacing: scale(0.66),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(9.9),
+      letterSpacing: scale(0.49),
       color: colors.faint,
     },
     fieldNote: {
       marginTop: verticalScale(8),
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(13 * 1.5),
       color: colors.faint,
@@ -322,7 +322,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
     },
     verifiedText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11.5),
       color: VERIFIED_GREEN,
     },
@@ -335,7 +335,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
 
     verifyButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.paper,
     },
@@ -368,7 +368,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(221,68,51,.06)',
     },
     boxDigit: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(20),
       color: colors.ink,
     },
@@ -380,13 +380,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       opacity: 0,
     },
     otpHint: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11.5),
       color: colors.faint,
       marginTop: verticalScale(8),
     },
     otpResend: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.amberText,
     },
 

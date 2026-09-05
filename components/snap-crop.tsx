@@ -423,7 +423,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       alignItems: 'center',
       justifyContent: 'center',
     },
-    closeGlyph: { fontFamily: 'AnekLatin_600SemiBold', fontSize: scale(15), color: '#FFFFFF' },
+    closeGlyph: { fontFamily: 'Onest_600SemiBold', fontSize: scale(15), color: '#FFFFFF' },
     // No overflow clip: a crop corner sits ON the image edge, so half of its
     // touch target and half of its bracket are outside the stage by design.
     // Clipping them turned every bracket into a dot.
@@ -509,6 +509,6 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       alignItems: 'center',
       backgroundColor: '#FFFFFF',
     },
-    ctaText: { fontFamily: 'AnekLatin_700Bold', fontSize: scale(16), color: colors.ink },
+    ctaText: { fontFamily: 'Onest_700Bold', fontSize: scale(16), color: colors.ink },
   });
 }

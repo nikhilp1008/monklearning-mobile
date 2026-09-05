@@ -352,14 +352,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     headerOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.26),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.95),
       textTransform: 'uppercase',
       color: colors.faint,
     },
     headerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(21),
       letterSpacing: scale(-0.42),
       color: colors.ink,
@@ -367,7 +367,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     headerHint: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -385,14 +385,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(16),
     },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',
       paddingHorizontal: scale(20),
     },
     retryText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.marigold,
     },
@@ -427,13 +427,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     topicCardText: {
       flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       lineHeight: scale(17.55),
       color: colors.ink,
     },
     topicCardTextSelected: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
     },
     freetalkRow: {
       flexDirection: 'row',
@@ -449,12 +449,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     freetalkText: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
     },
     freetalkBold: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
       textDecorationLine: 'underline',
       textDecorationColor: 'rgba(238,163,31,.6)',
@@ -464,9 +464,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(16),
     },
     talksOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.26),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.95),
       textTransform: 'uppercase',
       color: colors.faint,
       marginBottom: verticalScale(9),
@@ -489,13 +489,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     talkTitle: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13.5),
       color: colors.ink,
     },
     talkWhen: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -530,7 +530,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // Shrinks rather than overflowing when the topic name is long; the
       // arrow beside it keeps its space instead of being pushed out.
       flexShrink: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.paper,
     },

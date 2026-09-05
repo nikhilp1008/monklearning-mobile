@@ -265,14 +265,14 @@ const hairline = (alpha: number) => `rgba(28,26,22,${alpha})`;
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     summary: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(22.5),
       color: colors.slate,
       marginTop: verticalScale(4),
     },
     summaryStrong: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     map: {
@@ -316,7 +316,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     legendText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.slate,
     },
@@ -330,14 +330,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderBottomColor: hairline(0.12),
     },
     classHead: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(11),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.9),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.ink,
     },
     classCount: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -385,20 +385,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     chapterName: {
       flexShrink: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14.5),
       lineHeight: scale(20),
       color: colors.ink,
     },
     heavyTag: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.6),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.45),
       textTransform: 'uppercase',
       color: colors.amberText,
     },
     hint: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11.5),
       marginTop: verticalScale(2),
     },
@@ -419,9 +419,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(28,155,87,.09)',
     },
     detailLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(0.8),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.55),
+      letterSpacing: scale(0.6),
       textTransform: 'uppercase',
       color: colors.amberText,
     },
@@ -429,14 +429,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: '#157A45',
     },
     detailItem: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       lineHeight: scale(20),
       color: colors.ink,
       marginTop: verticalScale(3),
     },
     detailNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       lineHeight: scale(18),
       color: colors.slate,
@@ -452,16 +452,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(18),
     },
     noteCardText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.amberText,
     },
     noteCardStrong: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
     },
     archivedIntro: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -479,13 +479,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     archivedName: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.faint,
       textDecorationLine: 'line-through',
     },
     archivedClass: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
       letterSpacing: scale(0.4),
       textTransform: 'uppercase',

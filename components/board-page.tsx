@@ -443,7 +443,7 @@ function createStyles() {
     },
     back: { width: 32, height: 32, marginLeft: -6, alignItems: 'center', justifyContent: 'center' },
     kicker: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 11,
       letterSpacing: 0.14 * 11,
       color: RED,
@@ -452,7 +452,7 @@ function createStyles() {
 
     head: { paddingHorizontal: GUTTER, paddingTop: 12, paddingBottom: 14 },
     topic: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 29,
       letterSpacing: -0.04 * 29,
       lineHeight: 29 * 1.06,
@@ -460,7 +460,7 @@ function createStyles() {
     },
     subject: {
       marginTop: 8,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: '#9C988C',
     },
@@ -484,7 +484,7 @@ function createStyles() {
       backgroundColor: 'rgba(28,155,87,0.07)',
     },
     clockNum: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 26,
       letterSpacing: -0.04 * 26,
       color: RED,
@@ -492,7 +492,7 @@ function createStyles() {
     clockNumSaved: { color: GREEN },
     clockCopy: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 14,
       lineHeight: 14 * 1.4,
       color: INK_70,
@@ -511,7 +511,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     chipSelected: { backgroundColor: INK, borderColor: INK },
-    chipText: { fontFamily: 'AnekLatin_700Bold', fontSize: 13, color: INK_50 },
+    chipText: { fontFamily: 'Onest_700Bold', fontSize: 13, color: INK_50 },
     chipTextSelected: { color: PAPER },
 
     scroll: { flex: 1, minHeight: 0 },
@@ -521,14 +521,14 @@ function createStyles() {
 
     label: {
       marginBottom: -2,
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 11,
       letterSpacing: 0.14 * 11,
       color: AMBER,
     },
 
     text: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 16,
       lineHeight: 16 * 1.62,
       color: INK_70,
@@ -544,19 +544,19 @@ function createStyles() {
       color: RED,
     },
     caption: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.55,
       color: INK_50,
     },
     foot: {
       marginTop: 8,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: INK_30,
     },
     note: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.55,
       color: INK_50,
@@ -572,19 +572,19 @@ function createStyles() {
     },
     mathWrapResult: { paddingVertical: 8, paddingHorizontal: 13 },
     math: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 17,
       lineHeight: 17 * 1.6,
       color: INK,
     },
-    mathResult: { fontFamily: 'AnekLatin_700Bold', fontSize: 19 },
+    mathResult: { fontFamily: 'Onest_700Bold', fontSize: 19 },
 
     problemWrap: { alignSelf: 'stretch' },
     problem: {
       paddingBottom: 14,
       borderBottomWidth: 1,
       borderBottomColor: HAIR,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 16,
       lineHeight: 16 * 1.6,
       color: INK,
@@ -606,7 +606,7 @@ function createStyles() {
       borderRadius: 6,
       backgroundColor: 'rgba(28,155,87,0.11)',
     },
-    answerText: { fontFamily: 'AnekLatin_700Bold', fontSize: 19, color: GREEN_INK },
+    answerText: { fontFamily: 'Onest_700Bold', fontSize: 19, color: GREEN_INK },
     qa: { alignSelf: 'stretch', gap: 16 },
     q: {
       marginBottom: 7,
@@ -639,11 +639,11 @@ function createStyles() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    numText: { fontFamily: 'AnekLatin_700Bold', fontSize: 11, color: '#57534B' },
+    numText: { fontFamily: 'Onest_700Bold', fontSize: 11, color: '#57534B' },
     stepTitle: {
       alignSelf: 'stretch',
       paddingTop: 2,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 18,
       letterSpacing: -0.02 * 18,
       color: INK,
@@ -658,7 +658,7 @@ function createStyles() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    primaryText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 16, color: PAPER },
+    primaryText: { fontFamily: 'Onest_600SemiBold', fontSize: 16, color: PAPER },
   });
 }
 

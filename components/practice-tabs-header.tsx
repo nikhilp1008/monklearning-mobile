@@ -41,7 +41,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minHeight: verticalScale(38),
     },
     heading: {
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(24),
       letterSpacing: scale(-0.6),
       color: colors.ink,

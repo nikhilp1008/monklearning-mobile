@@ -119,7 +119,7 @@ export function useSettingsStyles() {
     () =>
       StyleSheet.create({
         eyebrow: {
-          fontFamily: 'AnekLatin_800ExtraBold',
+          fontFamily: 'Onest_800ExtraBold',
           fontSize: scale(12),
           letterSpacing: scale(0.13 * 12),
           textTransform: 'uppercase',
@@ -130,20 +130,20 @@ export function useSettingsStyles() {
           marginTop: verticalScale(24),
         },
         sectionTitle: {
-          fontFamily: 'AnekLatin_700Bold',
+          fontFamily: 'Onest_700Bold',
           fontSize: scale(16),
           letterSpacing: scale(-0.02 * 16),
           color: colors.ink,
         },
         sectionBody: {
-          fontFamily: 'AnekLatin_400Regular',
+          fontFamily: 'Onest_400Regular',
           fontSize: scale(14),
           lineHeight: scale(14 * 1.55),
           color: colors.slate,
           marginTop: verticalScale(7),
         },
         link: {
-          fontFamily: 'AnekLatin_700Bold',
+          fontFamily: 'Onest_700Bold',
           color: colors.ink,
           textDecorationLine: 'underline',
           textDecorationColor: 'rgba(238,163,31,.6)',
@@ -163,12 +163,12 @@ export function useSettingsStyles() {
           paddingHorizontal: scale(13.5),
         },
         chipText: {
-          fontFamily: 'AnekLatin_600SemiBold',
+          fontFamily: 'Onest_600SemiBold',
           fontSize: scale(13.5),
           color: colors.ink,
         },
         footer: {
-          fontFamily: 'AnekLatin_400Regular',
+          fontFamily: 'Onest_400Regular',
           fontSize: scale(12),
           color: colors.faint,
           textAlign: 'center',
@@ -225,7 +225,7 @@ function createShellStyles(
     headerTitle: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(17),
       color: colors.ink,
     },

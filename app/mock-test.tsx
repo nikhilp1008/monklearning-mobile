@@ -211,7 +211,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     exitButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
@@ -241,7 +241,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     submitButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.paper,
     },
@@ -277,12 +277,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 2,
     },
     subjectPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
     subjectPillTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     content: {
@@ -297,9 +297,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginBottom: verticalScale(8),
     },
     metaText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -312,7 +312,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(9),
     },
     markingPillText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11),
       color: '#9A6A12',
     },
@@ -337,7 +337,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(221,68,51,.4)',
     },
     questionBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(23.25),
       color: colors.ink,
@@ -378,7 +378,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     optionBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.ink,
     },
@@ -387,12 +387,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     optionText: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.ink,
     },
     optionTextSelected: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
     },
     markRow: {
       flexDirection: 'row',
@@ -401,7 +401,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(12),
     },
     markRowText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
@@ -431,7 +431,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     prevButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.ink,
     },
@@ -461,7 +461,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(1),
     },
     paletteButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.ink,
     },
@@ -479,7 +479,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 4,
     },
     nextButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.paper,
     },

@@ -84,14 +84,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingRight: scale(17),
     },
     label: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(10.5),
       letterSpacing: scale(0.14 * 10.5),
       color: AMBER,
     },
     headline: {
       marginTop: verticalScale(7),
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(18),
       letterSpacing: scale(-0.03 * 18),
       lineHeight: scale(18 * 1.25),
@@ -99,7 +99,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     detail: {
       marginTop: verticalScale(5),
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(14 * 1.45),
       color: INK_50,

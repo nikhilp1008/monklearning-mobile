@@ -216,13 +216,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderRadius: scale(99),
     },
     classPillText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
     classPillTextActive: { color: colors.ink },
     title: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(33),
       letterSpacing: scale(-0.99),
       color: colors.ink,
@@ -246,13 +246,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     rowNumber: {
       width: scale(26),
       textAlign: 'right',
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(16),
       color: colors.quiet,
     },
     rowTitle: {
       flex: 1,
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(17),
       color: colors.ink,
     },
@@ -262,7 +262,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     state: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: scale(24) },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.slate,
       textAlign: 'center',

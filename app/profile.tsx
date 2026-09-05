@@ -542,14 +542,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
 
     // Identity — handoff 34px, eased to 27 per the user.
     name: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(27),
       letterSpacing: scale(-0.035 * 27),
       lineHeight: scale(27 * 1.05),
       color: colors.ink,
     },
     nameSub: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14.5),
       color: colors.slate,
       marginTop: verticalScale(6),
@@ -566,7 +566,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderBottomColor: 'rgba(28,26,22,.14)',
     },
     examLeaderLabel: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       color: colors.faint,
     },
@@ -577,13 +577,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderBottomColor: 'rgba(28,26,22,.26)',
     },
     examLeaderValue: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(15.5),
       color: colors.ink,
     },
 
     sectionLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(12),
       letterSpacing: scale(0.13 * 12),
       color: colors.faint,
@@ -607,18 +607,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     teacherNameIdle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(19),
       letterSpacing: scale(-0.02 * 19),
       color: colors.faint,
     },
     teacherTraitIdle: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       color: INK_30,
     },
     chooseText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13.5),
       color: INK_30,
     },
@@ -641,13 +641,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     teacherName: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(19),
       letterSpacing: scale(-0.02 * 19),
       color: colors.ink,
     },
     teacherTrait: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       color: colors.slate,
     },
@@ -674,7 +674,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     langLabelIdle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.slate,
     },
@@ -694,12 +694,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     langLabel: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(16),
       color: colors.ink,
     },
     langNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(13.5 * 1.45),
       color: colors.faint,
@@ -723,7 +723,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.red,
     },
     examLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(12),
       letterSpacing: scale(0.13 * 12),
       color: colors.red,
@@ -739,17 +739,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(13),
     },
     manageText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13.5),
       color: colors.ink,
     },
     manageChevron: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.ink,
     },
     examName: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(23.5),
       letterSpacing: scale(-0.03 * 23.5),
       color: colors.ink,
@@ -769,7 +769,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(13.5),
     },
     chipText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13.5),
       color: colors.ink,
     },
@@ -788,12 +788,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderBottomColor: 'rgba(28,26,22,.12)',
     },
     linkLabel: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.ink,
     },
     linkChevron: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14.5),
       color: INK_30,
     },
@@ -820,14 +820,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(181),
     },
     rateEyebrow: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(12),
       letterSpacing: scale(0.14 * 12),
       color: AMBER_MUTED,
       textAlign: 'center',
     },
     rateHeadline: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(27),
       letterSpacing: scale(-0.038 * 27),
       lineHeight: scale(27 * 1.06),
@@ -836,7 +836,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(9),
     },
     rateSub: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15.5),
       color: 'rgba(251,249,242,.62)',
       textAlign: 'center',
@@ -866,7 +866,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
     },
     rateButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(17),
       color: colors.ink,
     },
@@ -887,7 +887,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: 'rgba(221,68,51,.4)',
     },
     logOutText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.red,
     },

@@ -152,7 +152,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(10),
     },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',

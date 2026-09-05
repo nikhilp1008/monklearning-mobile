@@ -310,12 +310,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.marigold,
     },
     chapterChipText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: '#EFEBDD',
     },
     heading: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(27),
       letterSpacing: scale(-0.54),
       color: '#EFEBDD',
@@ -326,7 +326,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(12),
     },
     statusText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: '#C7C1B3',
     },
@@ -335,7 +335,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(12),
     },
     footerHint: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: '#938D80',
     },

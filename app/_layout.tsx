@@ -20,6 +20,7 @@ import {
 // Anek Latin, so both families load until the migration finishes.
 import {
   Onest_400Regular,
+  Onest_500Medium,
   Onest_600SemiBold,
   Onest_700Bold,
   Onest_800ExtraBold,
@@ -66,6 +67,7 @@ export default function RootLayout() {
     AnekLatin_700Bold,
     AnekLatin_800ExtraBold,
     Onest_400Regular,
+    Onest_500Medium,
     Onest_600SemiBold,
     Onest_700Bold,
     Onest_800ExtraBold,

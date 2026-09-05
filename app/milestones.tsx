@@ -135,7 +135,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     lead: {
       marginTop: verticalScale(6),
       marginBottom: verticalScale(22),
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(14 * 1.55),
       color: colors.slate,
@@ -169,7 +169,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderBottomColor: colors.ruledLine,
     },
     sectionLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(10.5),
       letterSpacing: scale(0.14 * 10.5),
       textTransform: 'uppercase',
@@ -206,20 +206,20 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingVertical: verticalScale(11),
     },
     title: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       letterSpacing: scale(-0.02 * 16),
       color: colors.ink,
     },
     caption: {
       marginTop: verticalScale(2),
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.faint,
     },
 
     empty: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(15 * 1.55),
       color: colors.slate,
@@ -234,14 +234,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       backgroundColor: colors.ink,
     },
     ctaText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: '#fff',
     },
 
     foot: {
       marginTop: verticalScale(16),
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12.5),
       lineHeight: scale(12.5 * 1.5),
       color: colors.faint,

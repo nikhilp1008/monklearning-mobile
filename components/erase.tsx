@@ -470,7 +470,7 @@ const toolStyles = StyleSheet.create({
     borderColor: INK,
   },
   label: {
-    fontFamily: 'AnekLatin_700Bold',
+    fontFamily: 'Onest_700Bold',
     fontSize: 12,
     color: INK_MUTED,
   },
@@ -515,13 +515,13 @@ const lineStyles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   done: {
-    fontFamily: 'AnekLatin_800ExtraBold',
+    fontFamily: 'Onest_800ExtraBold',
     fontSize: 11,
     letterSpacing: 0.08 * 11,
     color: INK,
   },
   undo: {
-    fontFamily: 'AnekLatin_800ExtraBold',
+    fontFamily: 'Onest_800ExtraBold',
     fontSize: 11.5,
     letterSpacing: 0.06 * 11.5,
     color: DEEP_AMBER,

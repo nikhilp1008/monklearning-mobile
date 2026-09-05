@@ -132,7 +132,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     tilePressed: { transform: [{ scale: 0.97 }] },
     tileName: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(21),
       letterSpacing: scale(-0.46),
       color: colors.ink,

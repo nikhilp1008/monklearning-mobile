@@ -206,12 +206,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(10),
     },
     emptyTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(19),
       color: colors.ink,
     },
     emptyBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(20),
       color: colors.slate,
@@ -225,7 +225,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     ctaButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.paper,
     },
