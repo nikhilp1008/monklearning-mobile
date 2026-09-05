@@ -49,6 +49,12 @@ const SYMBOLS: Record<string, string> = {
   // Arrows
   rightarrow: '→', to: '→', leftarrow: '←', leftrightarrow: '↔',
   Rightarrow: '⇒', Leftarrow: '⇐', Leftrightarrow: '⇔', longrightarrow: '⟶',
+  // Negated relations. Their ABSENCE is worse than a missing symbol: a board
+  // line reading "Same Class nRightarrow Same Order" is noise, and a reader
+  // skimming it can take the opposite of what it says. Measured on the
+  // biology corpus, \nRightarrow was one of only two commands that leaked.
+  nRightarrow: '⇏', nrightarrow: '↛', nLeftarrow: '⇍', nleftrightarrow: '↮',
+  notequiv: '≢', nsubset: '⊄', nsubseteq: '⊈', nmid: '∤',
   uparrow: '↑', downarrow: '↓',
   // Misc
   infty: '∞', partial: '∂', nabla: '∇', degree: '°', circ: '°',
@@ -80,6 +86,13 @@ const SPACING: Record<string, string> = {
  */
 const BLACKBOARD: Record<string, string> = {
   R: 'ℝ', Z: 'ℤ', N: 'ℕ', Q: 'ℚ', C: 'ℂ', P: 'ℙ', H: 'ℍ', E: '𝔼',
+};
+
+/** Arrows whose braced argument labels the arrow rather than replacing it.
+ *  `\xrightarrow{Ni}` is "→(Ni)", not "Ni" and certainly not "xrightarrowNi",
+ *  which is what leaked before this existed. */
+const LABELLED_ARROWS: Record<string, string> = {
+  xrightarrow: '→', xleftarrow: '←', xrightleftharpoons: '⇌',
 };
 
 /** Wrappers whose braces vanish and whose contents render as-is. */
@@ -453,7 +466,21 @@ export function convertMath(src: string): string {
     i += 1;
   }
 
-  return out;
+  const result = out;
+  // A command that survives the transform reaches a student's board as its own
+  // name -- "Same Class nRightarrow Same Order". That is the same defect shape
+  // as _latex_to_speech silently deleting \int: an unhandled token producing
+  // plausible-looking wrong output. Saying so in dev is what makes the gap
+  // findable; measured on the biology corpus, 2 of 11 commands leaked.
+  if (__DEV__) {
+    const leak = result.match(/\b(?:[a-z]+arrow|[nN]?[Rr]ightarrow|equiv|subset|quad|mathbf|text[a-z]*)\b/);
+    if (leak) {
+      console.warn(
+        `[latexToText] possible unhandled command "${leak[0]}" survived into output: ${result.slice(0, 80)}`,
+      );
+    }
+  }
+  return result;
 }
 
 /**
@@ -568,6 +595,11 @@ function unwrapSmiles(text: string): string {
  */
 export function latexToText(raw: string): string {
   const normalized = unwrapSmiles(raw)
+    .replace(
+      /\\(xrightarrow|xleftarrow|xrightleftharpoons)\s*\{([^{}]*)\}/g,
+      (_m, cmd: string, label: string) =>
+        label.trim() ? `${LABELLED_ARROWS[cmd]}(${label.trim()})` : LABELLED_ARROWS[cmd],
+    )
     .replace(DOUBLED_CARET, '^')
     .replace(/-\n/g, '')
     .replace(/\n/g, ' ')
