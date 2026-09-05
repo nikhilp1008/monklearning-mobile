@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { MathText } from '@/components/math-text';
 import { PracticeTabsHeader } from '@/components/practice-tabs-header';
@@ -30,7 +30,6 @@ import {
 import { examSubjects, getCatalogue } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
-import { ProgressChapter, getCachedProgress, getProgress } from '@/lib/progress';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -57,13 +56,9 @@ const SUBJECT_QUERY: Record<string, string> = {
 export default function PracticeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [activeSegment, setActiveSegment] = useState<'unlimited' | 'mock'>('unlimited');
   // The mock gate reads the same /progress payload Progress renders — the
   // chapters it asks the student to clear are their real needs_revision
   // chapters, not an invented list.
-  const [reviseChapters, setReviseChapters] = useState<ProgressChapter[]>(() =>
-    weakChaptersFrom(getCachedProgress())
-  );
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chem', 'Maths']);
   const [activeSubject, setActiveSubject] = useState<string>('Physics');
 
@@ -147,25 +142,10 @@ export default function PracticeScreen() {
   }, [activeSubject]);
 
   useEffect(() => {
-    if (activeSegment !== 'unlimited') return;
     loadQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSegment, activeSubject, focus.mode, focus.chapterId]);
+  }, [activeSubject, focus.mode, focus.chapterId]);
 
-  useEffect(() => {
-    if (activeSegment !== 'mock') return;
-    let cancelled = false;
-    getProgress()
-      .then((data) => {
-        if (!cancelled) setReviseChapters(weakChaptersFrom(data));
-      })
-      .catch(() => {
-        // The cached seed (possibly empty) stands; the copy handles both.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSegment]);
 
   /**
    * Fetches the question after this one while the student is still reading the
@@ -284,83 +264,26 @@ export default function PracticeScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
           <PracticeTabsHeader
-            activeSegment={activeSegment}
-            onPressUnlimited={() => setActiveSegment('unlimited')}
-            onPressMock={() => setActiveSegment('mock')}
+            action={
+              <Pressable
+                style={styles.chapterChip}
+                onPress={() =>
+                  router.push({
+                    pathname: '/practice-focus',
+                    params: {
+                      subject: SUBJECT_QUERY[activeSubject],
+                      subjectLabel: activeSubject,
+                    },
+                  })
+                }>
+                <Text style={styles.chapterChipText} numberOfLines={1}>
+                  {chapterChipLabel}
+                </Text>
+                <ChevronDownIcon size={scale(10)} />
+              </Pressable>
+            }
           />
 
-          {activeSegment === 'mock' ? (
-            <>
-              <View style={styles.lockedHeaderRow}>
-                <View style={styles.lockedIconChip}>
-                  <MockGlyphIcon size={scale(21)} color={colors.ink} />
-                </View>
-                <View style={styles.lockedTextBlock}>
-                  <Text style={styles.lockedOverline}>Mock test</Text>
-                  <Text style={styles.lockedTitle}>Locked for now</Text>
-                </View>
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>Preview</Text>
-                </View>
-              </View>
-
-              <View style={styles.dronaCallCard}>
-                <Text style={styles.dronaCallOverline}>Drona&apos;s call</Text>
-                <Text style={styles.dronaCallBody}>
-                  {reviseChapters.length > 0
-                    ? `"${reviseChapters.length} chapter${
-                        reviseChapters.length === 1 ? ' is' : 's are'
-                      } flagged 'needs revision' — weak spots cost real marks in a full paper. Clear them and I'll open the mock."`
-                    : '"Build your base in Practice first — the mock opens once your weak spots are cleared."'}
-                </Text>
-              </View>
-
-              {reviseChapters.length > 0 && (
-                <>
-                  <Text style={styles.unlockOverline}>Clear these to unlock</Text>
-                  <View style={styles.unlockList}>
-                    {reviseChapters.map((item, index) => (
-                      <View
-                        key={item.chapter_id}
-                        style={[
-                          styles.unlockRow,
-                          index < reviseChapters.length - 1 && styles.unlockRowDivider,
-                        ]}>
-                        <View style={styles.unlockDot} />
-                        <Text style={styles.unlockTitle} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        <Pressable
-                          style={styles.unlockActionButton}
-                          onPress={() =>
-                            router.push({
-                              pathname: '/entering-classroom',
-                              params: { chapterId: item.chapter_id, chapterTitle: item.name },
-                            })
-                          }>
-                          <Text style={styles.unlockActionText}>Learn</Text>
-                        </Pressable>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              )}
-
-              <View style={styles.unlockInfoCard}>
-                <Text style={styles.unlockInfoOverline}>When it unlocks</Text>
-                <Text style={styles.unlockInfoBody}>
-                  A full JEE-pattern paper:{' '}
-                  <Text style={styles.unlockInfoBold}>3 subjects × 45 questions</Text>,{' '}
-                  <Text style={styles.unlockInfoBold}>3 hours</Text>, +4 / −1 marking.
-                </Text>
-              </View>
-
-              <Pressable onPress={() => router.push('/mock-ready')}>
-                <Text style={styles.previewLink}>Preview the mock (demo)</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
           <View style={styles.filterRow}>
             <SlidingToggle
               options={subjects}
@@ -372,17 +295,6 @@ export default function PracticeScreen() {
               textStyle={styles.subjectPillText}
               textActiveStyle={styles.subjectPillTextActive}
             />
-            <Pressable
-              style={styles.chapterChip}
-              onPress={() =>
-                router.push({
-                  pathname: '/practice-focus',
-                  params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
-                })
-              }>
-              <Text style={styles.chapterChipText}>{chapterChipLabel}</Text>
-              <ChevronDownIcon size={scale(10)} />
-            </Pressable>
           </View>
 
           {loading && !question ? (
@@ -566,8 +478,6 @@ export default function PracticeScreen() {
           )}
             </>
           ) : null}
-            </>
-          )}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -575,24 +485,6 @@ export default function PracticeScreen() {
 }
 
 /** The real needs_revision chapters from /progress, worst mastery first. */
-function weakChaptersFrom(data: ReturnType<typeof getCachedProgress>): ProgressChapter[] {
-  if (!data) return [];
-  return data.subjects
-    .flatMap((s) => s.chapters)
-    .filter((ch) => ch.state === 'needs_revision')
-    .sort((a, b) => a.mastery - b.mastery)
-    .slice(0, 3);
-}
-
-function MockGlyphIcon({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Rect x={5} y={11} width={14} height={9} rx={2} stroke={color} strokeWidth={1.9} />
-      <Path d="M8 11V8a4 4 0 0 1 8 0v3" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
 function ChevronDownIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
@@ -679,17 +571,22 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(130),
     },
     filterRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
       marginTop: verticalScale(14),
     },
+    // Full width now that the focus chip has moved up beside the title. The
+    // two used to share one row and neither had the space it wanted: three
+    // subjects squeezed into a pill and a chapter name that had to truncate.
     subjectTrack: {
       padding: scale(3),
       backgroundColor: 'rgba(28,26,22,.055)',
       borderRadius: scale(99),
     },
+    // Each subject takes an equal third of the track. Sized to their text they
+    // sat bunched at the left with a stretch of empty grey after Maths, and the
+    // tap targets were as narrow as the words.
     subjectPill: {
+      flex: 1,
+      alignItems: 'center',
       paddingVertical: verticalScale(6),
       paddingHorizontal: scale(12),
       borderRadius: scale(99),
@@ -727,6 +624,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(12),
       color: '#9A6A12',
+      maxWidth: scale(150),
     },
     lockedHeaderRow: {
       flexDirection: 'row',

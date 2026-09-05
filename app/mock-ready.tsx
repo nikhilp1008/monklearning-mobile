@@ -19,11 +19,7 @@ export default function MockReadyScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          <PracticeTabsHeader
-            activeSegment="mock"
-            onPressUnlimited={() => router.back()}
-            onPressMock={() => {}}
-          />
+          <PracticeTabsHeader />
 
           <View style={styles.headerRow}>
             <View style={styles.iconChip}>

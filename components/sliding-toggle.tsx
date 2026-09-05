@@ -59,11 +59,19 @@ export function SlidingToggle<T extends string>({
 
   const handlePillLayout = (option: T) => (event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
+    const previous = layouts.get(option);
     layouts.set(option, { x, width });
-    if (option === value && !ready) {
+    if (option !== value) return;
+    // Re-seat the thumb on ANY layout change of the selected pill, not just
+    // the first. A pill that sizes to its text measures once and never moves,
+    // but a flex pill is measured before flex resolves and again after -- and
+    // the old code kept the first number, leaving the thumb the wrong width
+    // and parked left of the label it was supposed to sit behind.
+    const moved = !previous || previous.x !== x || previous.width !== width;
+    if (!ready || moved) {
       translateX.setValue(x);
       setThumbWidth(width);
-      setReady(true);
+      if (!ready) setReady(true);
     }
   };
 
