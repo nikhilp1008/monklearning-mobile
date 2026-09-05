@@ -31,7 +31,7 @@ function HomeIcon({ active, size }: TabIconProps) {
   );
 }
 
-function LessonsIcon({ active, size }: TabIconProps) {
+function TextbooksIcon({ active, size }: TabIconProps) {
   const bookPath =
     'M12 6.4C10.1 4.7 7.3 4.1 4 4.5v13c3.3-.4 6.1.2 8 1.9 1.9-1.7 4.7-2.3 8-1.9v-13c-3.3-.4-6.1.2-8 1.9z';
   if (active) {
@@ -112,7 +112,7 @@ function LibraryIcon({ active, size }: TabIconProps) {
 
 const TAB_META: Record<string, { label: string; Icon: (props: TabIconProps) => React.ReactElement }> = {
   index: { label: 'Home', Icon: HomeIcon },
-  lessons: { label: 'Lessons', Icon: LessonsIcon },
+  textbooks: { label: 'Textbooks', Icon: TextbooksIcon },
   progress: { label: 'Progress', Icon: ProgressIcon },
   library: { label: 'Library', Icon: LibraryIcon },
 };

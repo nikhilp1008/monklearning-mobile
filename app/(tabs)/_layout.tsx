@@ -31,7 +31,10 @@ export default function TabLayout() {
       <StatusBar style="dark" />
       <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
-        <Tabs.Screen name="lessons" options={{ title: 'Lessons' }} />
+        <Tabs.Screen name="textbooks" options={{ title: 'Textbooks' }} />
+        {/* Lessons is on hold, not deleted -- the screen stays routable so the
+            work survives, but nothing in the bar points at it. */}
+        <Tabs.Screen name="lessons" options={{ href: null }} />
         <Tabs.Screen name="drona" options={{ href: null }} />
         <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
         <Tabs.Screen name="library" options={{ title: 'Library' }} />

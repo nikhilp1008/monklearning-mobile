@@ -537,8 +537,11 @@ function runObservationAction(action: ObservationAction | undefined) {
     case 'drona':
       router.push('/drona');
       return;
-    case 'lessons':
-      router.push('/lessons');
+    case 'textbooks':
+      // Deliberately the subject grid, not that subject's chapter list: the
+      // card fires for a subject nobody has opened, and for one whose
+      // textbook is not written yet that would land on a wall of SOON.
+      router.push('/textbooks');
       return;
     case 'class':
       router.push({

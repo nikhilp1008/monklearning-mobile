@@ -8,11 +8,10 @@ import { getProfile } from '@/lib/profile';
 import { textbookSubjects } from '@/lib/textbooks';
 
 /**
- * The Textbooks segment of the Library: pick a subject.
+ * The body of the Textbooks tab: pick a subject.
  *
- * No page title. The handoff draws this as a standalone screen headed
- * "Textbooks" in 32pt, but here the word is already the segment tab above it,
- * and repeating it would push the tiles down the page to say nothing new.
+ * No page title of its own — the screen that mounts this heads itself, and
+ * repeating the word would push the tiles down the page to say nothing new.
  *
  * Tiles follow the student's exam, so a JEE student sees three and never
  * Biology, a NEET student sees three and never Mathematics, and a student

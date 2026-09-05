@@ -22,7 +22,6 @@ import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
-import { TextbooksPage } from '@/components/textbook/textbooks-page';
 import { latexToText } from '@/lib/latex-text';
 import { friendlyLoadError } from '@/lib/api';
 import { colors } from '@/constants/brand';
@@ -44,16 +43,15 @@ import {
 } from '@/lib/demo-board';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
-type Segment = 'notes' | 'doubts' | 'textbooks' | 'sessions';
+type Segment = 'notes' | 'doubts' | 'sessions';
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths' | 'Biology';
 
-// Textbooks sits beside Doubts rather than at the end: a student is here to
-// read or to look something up, and the two reading surfaces belong together.
-const SEGMENTS: Segment[] = ['notes', 'doubts', 'textbooks', 'sessions'];
+// Textbooks used to sit beside Doubts here. It is a tab of its own now, so
+// what is left in Library is the student's own material plus Sessions.
+const SEGMENTS: Segment[] = ['notes', 'doubts', 'sessions'];
 const SEGMENT_LABELS: Record<Segment, string> = {
   notes: 'Notes',
   doubts: 'Doubts',
-  textbooks: 'Textbooks',
   sessions: 'Sessions',
 };
 const FILTERABLE_SUBJECTS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths', 'Biology'];
@@ -863,10 +861,6 @@ export default function LibraryScreen() {
               )}
               {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
-          </View>
-
-          <View style={{ width: windowWidth }}>
-            <TextbooksPage scale={scale} verticalScale={verticalScale} />
           </View>
 
           <View style={{ width: windowWidth }}>
