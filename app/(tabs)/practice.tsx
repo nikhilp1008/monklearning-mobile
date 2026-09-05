@@ -85,8 +85,9 @@ export default function PracticeScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   /** Questions shown this sitting. Practice is endless, so this counts the
-   *  session rather than a fixed paper -- it is a place marker, not an index. */
-  const [seen, setSeen] = useState(1);
+   *  session rather than a fixed paper -- it is a place marker, not an index.
+   *  Starts at 0 because the mount effect's own load is what makes it 1. */
+  const [seen, setSeen] = useState(0);
 
   const revealed = answerResult !== null;
 
@@ -261,6 +262,18 @@ export default function PracticeScreen() {
 
   const optionEntries = question?.options ? Object.entries(question.options).sort(([a], [b]) => a.localeCompare(b)) : [];
 
+  /** Submit is live once there is something to submit, and never mid-flight. */
+  const canSubmit =
+    !!question &&
+    !revealed &&
+    !submitting &&
+    !loading &&
+    (question.question_type === 'numerical'
+      ? // submitNumeric bails on NaN, so gate on parseability -- a keyboard the
+        // user can paste into would otherwise offer a Submit that does nothing.
+        !Number.isNaN(parseFloat(numericInput))
+      : selectedOption !== null);
+
   const chapterChipLabel =
     focus.mode === 'chapter' && focus.chapterName
       ? focus.chapterName
@@ -320,8 +333,8 @@ export default function PracticeScreen() {
             <View style={styles.questionCard}>
               <Text style={styles.questionOverline}>Couldn&apos;t load a question</Text>
               <Text style={styles.questionBody}>{loadError}</Text>
-              <Pressable style={styles.revealButton} onPress={loadQuestion}>
-                <Text style={styles.revealButtonText}>Try again</Text>
+              <Pressable style={styles.outlineButton} onPress={loadQuestion}>
+                <Text style={styles.outlineButtonText}>Try again</Text>
               </Pressable>
             </View>
           ) : question ? (
@@ -353,18 +366,6 @@ export default function PracticeScreen() {
                 placeholder="Your answer"
                 placeholderTextColor={colors.faint}
               />
-              {!revealed && (
-                <Pressable
-                  style={[styles.revealButton, !numericInput.trim() && styles.revealButtonDisabled]}
-                  disabled={!numericInput.trim() || submitting || loading}
-                  onPress={submitNumeric}>
-                  {submitting ? (
-                    <ActivityIndicator size="small" color={colors.ink} />
-                  ) : (
-                    <Text style={styles.revealButtonText}>Submit</Text>
-                  )}
-                </Pressable>
-              )}
             </View>
           ) : (
           <View style={styles.optionsList}>
@@ -377,16 +378,22 @@ export default function PracticeScreen() {
               // a tap changed nothing at all and the screen looked frozen.
               // The choice is now acknowledged instantly and the others recede,
               // so the wait reads as "checking" rather than "broken".
+              // Chosen, but not yet committed. A tap used to grade instantly,
+              // which punished the ordinary act of changing your mind: pick A,
+              // think again, and it was already marked. Choosing is now free
+              // and Submit is the only thing that commits.
+              const isChosen = !revealed && selectedOption === key;
               const isPending = submitting && selectedOption === key;
               const isDimmed = submitting && selectedOption !== key;
               return (
                 <Pressable
                   key={key}
                   disabled={revealed || submitting || loading}
-                  onPress={() => submitAnswerFor(key)}
+                  onPress={() => setSelectedOption(key)}
                   style={[
                     styles.optionRow,
                     revealed && styles.optionRowRevealed,
+                    isChosen && styles.optionRowPending,
                     isPending && styles.optionRowPending,
                     isDimmed && styles.optionRowDimmed,
                     isYourWrongPick && styles.optionRowWrong,
@@ -395,14 +402,14 @@ export default function PracticeScreen() {
                   <View
                     style={[
                       styles.optionBadge,
-                      isPending && styles.optionBadgePending,
+                      (isChosen || isPending) && styles.optionBadgePending,
                       isYourWrongPick && styles.optionBadgeWrong,
                       isCorrectReveal && styles.optionBadgeCorrect,
                     ]}>
                     <Text
                       style={[
                         styles.optionBadgeText,
-                        (isPending || isYourWrongPick || isCorrectReveal) &&
+                        (isChosen || isPending || isYourWrongPick || isCorrectReveal) &&
                           styles.optionBadgeTextOnColor,
                       ]}>
                       {key.toUpperCase()}
@@ -416,7 +423,6 @@ export default function PracticeScreen() {
                     fontWeight={isPending || isYourWrongPick || isCorrectReveal ? '700' : '400'}
                     style={styles.optionText}
                   />
-                  {isPending && <ActivityIndicator size="small" color={colors.ink} />}
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
                   {isCorrectReveal && <Text style={styles.optionTagCorrect}>CORRECT</Text>}
                 </Pressable>
@@ -428,25 +434,34 @@ export default function PracticeScreen() {
           {!revealed ? (
             <>
               <View style={styles.actionRow}>
-                {/* Reveal grades the question with no choice attached, which
-                    the API already allows: both choice fields are optional and
-                    is_correct defaults to false. So giving up is recorded as
-                    not-correct and feeds mastery the same way a wrong answer
-                    does, which is the honest reading of asking for the answer. */}
                 <Pressable
-                  style={styles.revealOutlineButton}
-                  disabled={submitting}
-                  onPress={() => submitAnswerFor(undefined)}>
-                  <Text style={styles.revealOutlineText}>Reveal answer</Text>
+                  style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+                  disabled={!canSubmit}
+                  onPress={() =>
+                    question.question_type === 'numerical'
+                      ? submitNumeric()
+                      : submitAnswerFor(selectedOption ?? undefined)
+                  }>
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={colors.paper} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.submitButtonText,
+                        !canSubmit && styles.submitButtonTextDisabled,
+                      ]}>
+                      Submit
+                    </Text>
+                  )}
                 </Pressable>
+                <View style={styles.actionSpacer} />
                 <Pressable onPress={loadQuestion} hitSlop={10}>
                   <Text style={styles.nextInlineText}>Skip →</Text>
                 </Pressable>
-                <View style={styles.actionSpacer} />
-                {/* Still no Report control. /practice has next, answer, stats
-                    and explain and nothing else -- a report here would have
-                    nowhere to post, and a button that silently does nothing is
-                    worse than an absent one. The row leaves its place. */}
+                {/* Still no Report control. /practice serves next, answer,
+                    stats and explain and nothing else -- a report here would
+                    have nowhere to post, and a button that silently does
+                    nothing is worse than an absent one. */}
               </View>
 
               <View style={styles.stuckCard}>
@@ -996,24 +1011,32 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(16),
     },
     actionSpacer: { flex: 1 },
-    // Outlined rather than filled: revealing is the fallback, not the thing
-    // the page wants you to do, and a solid button here would outrank the
-    // options themselves.
-    revealOutlineButton: {
-      height: verticalScale(40),
-      paddingHorizontal: scale(18),
+    // Filled, because committing an answer IS the action of the page. It sits
+    // left where the reading ends; Skip is pushed to the far edge so the two
+    // are never mistaken for a pair.
+    submitButton: {
+      minWidth: scale(116),
+      height: verticalScale(44),
+      paddingHorizontal: scale(22),
       borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.18)',
+      backgroundColor: colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    revealOutlineText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13.5),
-      color: colors.ink,
+    submitButtonDisabled: {
+      backgroundColor: 'transparent',
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.16)',
     },
-    revealButton: {
+    submitButtonTextDisabled: {
+      color: colors.faint,
+    },
+    submitButtonText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(14.5),
+      color: colors.paper,
+    },
+    outlineButton: {
       height: verticalScale(44),
       paddingHorizontal: scale(18),
       borderRadius: scale(99),
@@ -1023,10 +1046,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    revealButtonDisabled: {
-      opacity: 0.5,
-    },
-    revealButtonText: {
+    outlineButtonText: {
       fontFamily: 'AnekLatin_700Bold',
       fontSize: scale(13),
       color: colors.ink,
