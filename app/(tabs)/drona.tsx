@@ -282,9 +282,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     headerTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.38),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
     },
     tabsRow: {

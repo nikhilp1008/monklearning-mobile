@@ -222,11 +222,20 @@ function createShellStyles(
       paddingBottom: verticalScale(10),
       backgroundColor: '#fff',
     },
+    /**
+     * The app's page-title tier, the same one Library, Textbooks, Progress,
+     * Practice and Focus mode use. It was 17/Bold — a nav-bar title, which
+     * read as a different system from every tab screen, and on Milestones sat
+     * barely above the body text it was introducing. Measured: even the
+     * longest title here, "Personal information", is 233pt in 308pt of space,
+     * so nothing truncates at this size.
+     */
     headerTitle: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(17),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
     },
     headerHairline: {

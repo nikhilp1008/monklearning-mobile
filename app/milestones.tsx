@@ -170,8 +170,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     sectionLabel: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.5),
-      letterSpacing: scale(0.14 * 10.5),
+      fontSize: scale(9.45),
+      letterSpacing: scale(0.105 * 9.45),
       textTransform: 'uppercase',
       color: colors.marigold,
     },

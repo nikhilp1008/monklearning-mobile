@@ -102,8 +102,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     titleCurrent: { fontFamily: 'Onest_700Bold' },
     reading: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(0.8),
+      fontSize: scale(8.55),
+      letterSpacing: scale(0.6),
       textTransform: 'uppercase',
       color: colors.amberText,
     },

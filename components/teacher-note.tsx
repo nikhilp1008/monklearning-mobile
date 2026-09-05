@@ -85,8 +85,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     label: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.5),
-      letterSpacing: scale(0.14 * 10.5),
+      fontSize: scale(9.45),
+      letterSpacing: scale(0.105 * 9.45),
       color: AMBER,
     },
     headline: {

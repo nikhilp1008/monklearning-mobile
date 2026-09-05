@@ -940,8 +940,8 @@ function createStyles(scale: Scale) {
     },
     chipWordText: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.1),
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.83),
       textTransform: 'uppercase',
       color: colors.faint,
     },

@@ -584,8 +584,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
 
     sectionLabel: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(12),
-      letterSpacing: scale(0.13 * 12),
+      fontSize: scale(10.8),
+      letterSpacing: scale(0.0975 * 10.8),
       color: colors.faint,
     },
 
@@ -724,8 +724,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     examLabel: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(12),
-      letterSpacing: scale(0.13 * 12),
+      fontSize: scale(10.8),
+      letterSpacing: scale(0.0975 * 10.8),
       color: colors.red,
     },
     managePill: {
@@ -821,8 +821,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rateEyebrow: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(12),
-      letterSpacing: scale(0.14 * 12),
+      fontSize: scale(10.8),
+      letterSpacing: scale(0.105 * 10.8),
       color: AMBER_MUTED,
       textAlign: 'center',
     },
