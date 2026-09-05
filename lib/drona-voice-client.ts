@@ -99,8 +99,11 @@ const DRAIN_WATCHDOG_MS = 20000;
  *  released or the student sits on a dead board. */
 const TURN_ERROR_RECOVERY_MS = 15000;
 /** TTS sample rate — live-verified server-side (filler-cache fallback byte
- *  math). Bit depth/channels are the standard inference (16-bit mono), not
- *  independently confirmed. */
+ *  math). 16-bit mono is now confirmed too, not merely inferred: the batch
+ *  pipeline (synth_rumik.py) refuses to encode any Rumik WAV that is not
+ *  16-bit, single-channel, 24kHz, and the server's own progressive flush is
+ *  sized at 48000 bytes = 24000 * 2 * 1 per second. The server's
+ *  `duration_ms` field on audio_chunk is computed from that same geometry. */
 const TTS_SAMPLE_RATE = 24000;
 
 /**
@@ -149,13 +152,35 @@ export class DronaVoiceClient {
    *  backoff would advance twice per drop and burn its budget early. */
   private reconnectScheduled = false;
 
-  /** Playback id -> {speech, board_event} for chunks currently queued/playing,
-   *  so the playback queue's onItemStart can look up what to reveal. */
-  private chunkMeta = new Map<string, { speech?: string; boardEvent?: BoardEvent | null }>();
+  /** Playback id -> {speech, board_event, duration_ms} for chunks currently
+   *  queued/playing, so the playback queue's onItemStart can look up what to
+   *  reveal — and, for `durationMs`, how long the clip it just started runs. */
+  private chunkMeta = new Map<
+    string,
+    { speech?: string; boardEvent?: BoardEvent | null; durationMs?: number }
+  >();
   /** Monotonic suffix so continuation parts sharing one sentence_id get
    *  distinct playback ids — they otherwise collide on the queue's
    *  `drona-tts-${id}.wav` cache path and overwrite each other mid-sentence. */
   private chunkSeq = 0;
+
+  private currentChunkDurationMs: number | null = null;
+  /**
+   * Measured playback length of the clip that most recently started playing,
+   * in milliseconds, or null when the server did not send one (a pre-
+   * `duration_ms` build, or a silent checkpoint caption with no audio).
+   *
+   * Server-measured from the synthesized PCM byte count, the same arithmetic
+   * the batch pipeline uses — never estimated from word count or reading
+   * speed, which is exactly the input `useCueTrackByTime`'s `TimedCue.atMs`
+   * documents itself as needing.
+   *
+   * Read-only and currently unconsumed: `useCueTrack`'s seq-based selection is
+   * untouched, and wiring a real time track is a separate change.
+   */
+  get playingChunkDurationMs(): number | null {
+    return this.currentChunkDurationMs;
+  }
 
   constructor(
     sessionId: string,
@@ -178,6 +203,9 @@ export class DronaVoiceClient {
       const meta = this.chunkMeta.get(id);
       if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
       if (meta?.boardEvent) this.handlers.onBoardReveal?.(meta.boardEvent);
+      // Survives the delete below so `playingChunkDurationMs` can be read
+      // after the reveal fires. Nothing consumes it yet — see the getter.
+      this.currentChunkDurationMs = meta?.durationMs ?? null;
       this.chunkMeta.delete(id);
     };
 
@@ -514,6 +542,15 @@ export class DronaVoiceClient {
     const audioBase64 = String(msg.audio ?? '');
     const boardEvent = (msg.board_event as BoardEvent | null) ?? null;
     const speech = msg.speech as string | undefined;
+    // Measured playback length of THIS frame's PCM, computed server-side from
+    // the synthesized byte count (len(pcm) / (24000 * 2) * 1000) — never
+    // estimated from the caption's word count. Optional: a server built before
+    // the field existed simply omits it, and everything below still works.
+    const rawDuration = msg.duration_ms;
+    const durationMs =
+      typeof rawDuration === 'number' && Number.isFinite(rawDuration) && rawDuration >= 0
+        ? rawDuration
+        : undefined;
 
     if (boardEvent) {
       this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => e.seq !== boardEvent.seq);
@@ -531,7 +568,7 @@ export class DronaVoiceClient {
     if (!sentenceId) return;
 
     const playbackId = `${sentenceId}-${this.chunkSeq++}`;
-    this.chunkMeta.set(playbackId, { speech, boardEvent });
+    this.chunkMeta.set(playbackId, { speech, boardEvent, durationMs });
 
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
@@ -582,6 +619,7 @@ export class DronaVoiceClient {
   bargeIn() {
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.currentChunkDurationMs = null;
     this.playback.clear();
   }
 
@@ -625,6 +663,7 @@ export class DronaVoiceClient {
   interrupt(playbackPosition: number, cutoffText: string) {
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.currentChunkDurationMs = null;
     this.playback.clear();
     this.sendJson({ type: 'interrupt', playback_position: playbackPosition, cutoff_text: cutoffText });
   }
