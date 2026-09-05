@@ -14,9 +14,9 @@ import { SERIF } from '@/components/textbook/markup';
  *  1. **Kickers are the app's own face, not monospace.** The handoff sets
  *     every small uppercase label in `ui-monospace`. This app's kicker is
  *     the UI face at ExtraBold with wide tracking -- Onest_800ExtraBold
- *     since the move off Anek Latin -- which is what `SESSIONS` and the
- *     subject label on a note card already use. Monospace beside those
- *     reads as a different product.
+ *     since the move off Anek Latin -- which is what the subject label on a
+ *     note card and every section overline already use. Monospace beside
+ *     those reads as a different product.
  *  2. **Borders are `rgba(28,26,22,…)`, not `rgba(28,25,20,…)`.** The app uses
  *     the former in roughly ninety places, and it is the correct derivation of
  *     the shared ink `#1C1A16`. The handoff's own borders do not match the

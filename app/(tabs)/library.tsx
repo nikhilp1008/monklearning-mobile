@@ -18,7 +18,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
-import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
@@ -37,22 +36,20 @@ import {
 import {
   DEMO_DOUBT_CARDS,
   DEMO_NOTE_CARDS,
-  DEMO_SESSION_ID,
   DemoDoubtCard,
   DemoNoteCard,
 } from '@/lib/demo-board';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
-type Segment = 'notes' | 'doubts' | 'sessions';
+type Segment = 'notes' | 'doubts';
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths' | 'Biology';
 
-// Textbooks used to sit beside Doubts here. It is a tab of its own now, so
-// what is left in Library is the student's own material plus Sessions.
-const SEGMENTS: Segment[] = ['notes', 'doubts', 'sessions'];
+// Textbooks moved to a tab of its own; Sessions is gone entirely. What is
+// left is the two things that are genuinely the student's own.
+const SEGMENTS: Segment[] = ['notes', 'doubts'];
 const SEGMENT_LABELS: Record<Segment, string> = {
   notes: 'Notes',
   doubts: 'Doubts',
-  sessions: 'Sessions',
 };
 const FILTERABLE_SUBJECTS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths', 'Biology'];
 const DEFAULT_FILTERS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths'];
@@ -72,25 +69,6 @@ const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
   mathematics: { dot: '#EEA31F', label: '#9A6A12' },
   biology: { dot: '#1C9B57', label: '#157A45' },
 };
-
-type Session = {
-  title: string;
-  subject: 'Physics' | 'Chemistry' | 'Maths';
-  subline: string;
-  badge: { kind: 'urgent' | 'neutral' | 'saved'; text: string };
-};
-
-// DEMO_ — there is no endpoint that lists past sessions yet, so one sample
-// stands in to make the session page reviewable. Delete with lib/demo-board.ts
-// once /drona/sessions exists.
-const SESSIONS: Session[] = [
-  {
-    title: 'Rotational Motion · torque',
-    subject: 'Physics',
-    subline: 'Sample · tap to see a backed-up board',
-    badge: { kind: 'neutral', text: '6 days left' },
-  },
-];
 
 export default function LibraryScreen() {
   const { scale, verticalScale } = useScale();
@@ -233,9 +211,9 @@ export default function LibraryScreen() {
   useEffect(() => fetchNotes(), [fetchNotes]);
 
   // Library is a tab screen that stays mounted — without this, snapping a
-  // doubt (or saving a session as a note) and returning here wouldn't show it
-  // until something else forced a refetch, contradicting the "find it in
-  // Library any time" promise made on both snap-solved and session-board.
+  // doubt and returning here wouldn't show it until something else forced a
+  // refetch, contradicting the "find it in Library any time" promise
+  // snap-solved makes.
   useFocusEffect(
     useCallback(() => {
       const cancelDoubts = fetchDoubts();
@@ -263,8 +241,8 @@ export default function LibraryScreen() {
     });
   }, []);
 
-  /** Only Notes and Doubts can be erased; Sessions is a preview with nothing
-   *  of the student's own in it. */
+  /** Both segments can be erased — everything left in Library is the
+   *  student's own. */
   const canErase =
     activeSegment === 'notes'
       ? hasErasableNotes
@@ -455,7 +433,7 @@ export default function LibraryScreen() {
 
   // Tracks each segment button's x/width so the sliding indicator below can
   // interpolate to its exact position instead of guessing at equal thirds —
-  // "Notes"/"Doubts"/"Sessions" aren't the same width.
+  // "Notes" and "Doubts" aren't the same width.
   const [segmentLayouts, setSegmentLayouts] = useState<{ x: number; width: number }[]>(
     SEGMENTS.map(() => ({ x: 0, width: 0 }))
   );
@@ -863,68 +841,6 @@ export default function LibraryScreen() {
             </ScrollView>
           </View>
 
-          <View style={{ width: windowWidth }}>
-            <ScrollView
-              contentContainerStyle={styles.pageContent}
-              showsVerticalScrollIndicator={false}>
-              <View style={styles.sessionsHeaderRow}>
-                <Text style={styles.sessionsOverline}>Recent classes</Text>
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>Preview</Text>
-                </View>
-              </View>
-              <Text style={styles.sessionsIntro}>
-                Every class you take will be backed up here for{' '}
-                <Text style={styles.sessionsIntroBold}>7 days</Text> — keep the ones you want as
-                notes, the rest quietly expire. The sample below shows how a backed-up class
-                opens.
-              </Text>
-
-              <View style={styles.sessionsList}>
-                {SESSIONS.map((session, index) => (
-                  <PressableScale
-                    key={index}
-                    style={[
-                      styles.sessionCard,
-                      session.badge.kind === 'urgent' && styles.sessionCardUrgent,
-                    ]}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/session-board',
-                        params: {
-                          title: session.title,
-                          subject: session.subject,
-                          chapter: session.title.includes(' · ')
-                            ? session.title.split(' · ')[0]
-                            : session.title,
-                          sessionId: DEMO_SESSION_ID,
-                          daysLeft: '6',
-                        },
-                      })
-                    }>
-                    <View style={styles.sessionTextBlock}>
-                      <Text style={styles.sessionTitle} numberOfLines={1} ellipsizeMode="tail">
-                        {session.title}
-                      </Text>
-                      <Text style={styles.sessionSubline}>{session.subline}</Text>
-                    </View>
-                    {session.badge.kind === 'urgent' && (
-                      <Text style={styles.urgentBadgeText}>{session.badge.text}</Text>
-                    )}
-                    {session.badge.kind === 'neutral' && (
-                      <Text style={styles.neutralBadgeText}>{session.badge.text}</Text>
-                    )}
-                    {session.badge.kind === 'saved' && (
-                      <View style={styles.savedBadge}>
-                        <CheckIcon size={scale(9)} color="#157A45" />
-                        <Text style={styles.savedBadgeText}>{session.badge.text}</Text>
-                      </View>
-                    )}
-                  </PressableScale>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -1060,33 +976,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(14),
       color: colors.ink,
       paddingVertical: 0,
-    },
-    sessionsHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(16),
-    },
-    sessionsOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(0.9),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    previewBadge: {
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(10),
-    },
-    previewBadgeText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(0.38),
-      textTransform: 'uppercase',
-      color: colors.faint,
     },
     doubtsSearchRow: {
       flexDirection: 'row',
@@ -1308,55 +1197,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(19),
       color: colors.faint,
       marginBottom: verticalScale(4),
-    },
-    sessionsIntro: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
-      color: colors.slate,
-      marginTop: verticalScale(12),
-    },
-    sessionsIntroBold: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-    },
-    sessionsList: {
-      flexDirection: 'column',
-      gap: verticalScale(12),
-      marginTop: verticalScale(24),
-    },
-    sessionCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(15),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(3),
-      elevation: 2,
-    },
-    sessionCardUrgent: {
-      borderColor: 'rgba(221,68,51,.35)',
-    },
-    sessionTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    sessionTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    sessionSubline: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
     },
     urgentBadgeText: {
       flexShrink: 0,

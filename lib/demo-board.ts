@@ -1,10 +1,10 @@
 import { BoardContent } from '@/lib/board-sections';
 
 /**
- * TEMPORARY REVIEW CONTENT — delete once real notes and sessions exist.
+ * TEMPORARY REVIEW CONTENT — delete once real notes exist.
  *
  * The torque class from notes-sessions/board-page.js, verbatim, so the Notes
- * and Sessions pages can be judged on a phone before there is anything real to
+ * page can be judged on a phone before there is anything real to
  * put in them. Nothing here comes from or reaches the backend: the Library
  * shows these only while the live lists are empty, and both detail screens
  * recognise the ids below and render this instead of fetching.
@@ -13,7 +13,6 @@ import { BoardContent } from '@/lib/board-sections';
  */
 
 export const DEMO_NOTE_ID = 'demo-note-torque';
-export const DEMO_SESSION_ID = 'demo-session-torque';
 
 export const DEMO_BOARD: BoardContent = {
   topic: 'Rotational Motion · torque',

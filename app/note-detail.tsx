@@ -92,7 +92,6 @@ export default function NoteDetailScreen() {
       <StatusBar style="dark" />
       <BoardPage
         board={board}
-        mode="note"
         onBack={() => router.back()}
         emptyNote="Nothing was written to the board in this class."
       />

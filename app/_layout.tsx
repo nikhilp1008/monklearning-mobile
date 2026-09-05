@@ -247,7 +247,6 @@ export default function RootLayout() {
           <Stack.Screen name="exam-scope-subject" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
           <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />
-          <Stack.Screen name="session-board" options={{ headerShown: false }} />
           <Stack.Screen
             name="plan-sheet"
             options={{
