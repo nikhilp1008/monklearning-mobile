@@ -656,7 +656,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     heading: {
       fontFamily: 'Onest_500Medium',
       fontSize: scale(24),
-      letterSpacing: scale(-0.36),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
     },
     subtitle: {

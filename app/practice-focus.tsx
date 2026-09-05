@@ -286,9 +286,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(26),
-      letterSpacing: scale(-0.65),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
       lineHeight: scale(29),
       color: colors.ink,
     },

@@ -302,7 +302,7 @@ export default function PracticeScreen() {
             onPress={() => setMenuOpen((open) => !open)}
             hitSlop={8}
             style={styles.subjectButton}>
-            <Text style={styles.heading}>{activeSubject}</Text>
+            <Text style={styles.headingSubject}>{activeSubject}</Text>
             <View style={menuOpen ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(13)} />
             </View>
@@ -382,8 +382,8 @@ export default function PracticeScreen() {
             </Text>
             <MathText
               text={question.question_text ?? ''}
-              fontSize={scale(17)}
-              lineHeight={scale(25.5)}
+              fontSize={scale(15)}
+              lineHeight={scale(23)}
               color={colors.ink}
               fontWeight="500"
               style={styles.questionBody}
@@ -500,20 +500,6 @@ export default function PracticeScreen() {
                     have nowhere to post, and a button that silently does
                     nothing is worse than an absent one. */}
               </View>
-
-              <View style={styles.stuckCard}>
-                <View style={styles.stuckTextBlock}>
-                  <Text style={styles.stuckTitle}>Stuck or curious?</Text>
-                  <Text style={styles.stuckSubtitle}>
-                    Any question here can become a full spoken lesson.
-                  </Text>
-                </View>
-                <Pressable
-                  style={styles.learnButton}
-                  onPress={() => goLearnChapter(question.chapter_name)}>
-                  <Text style={styles.learnButtonText}>Learn this →</Text>
-                </Pressable>
-              </View>
             </>
           ) : (
             <>
@@ -616,8 +602,8 @@ function ChevronDownIcon({ size }: { size: number }) {
 
 // Mimics the loaded question-card + option-row layout so the ~5-10s real
 /**
- * The whole page while a question is in flight — card, options, the action row
- * and the "Stuck or curious?" block below it.
+ * The whole page while a question is in flight — card, options and the action
+ * row.
  *
  * It used to stop after the options, which is why the top of the screen looked
  * like it was loading and the bottom looked broken. A placeholder has to reach
@@ -654,14 +640,6 @@ function QuestionSkeleton({
 
       <View style={styles.actionRow}>
         <Skeleton delay={480} style={styles.skeletonSkip} />
-      </View>
-
-      <View style={styles.stuckCard}>
-        <View style={styles.stuckTextBlock}>
-          <Skeleton delay={540} style={styles.skeletonStuckTitle} />
-          <Skeleton delay={600} style={styles.skeletonStuckSub} />
-        </View>
-        <Skeleton delay={600} style={styles.skeletonLearnButton} />
       </View>
     </>
   );
@@ -703,9 +681,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       zIndex: 8,
     },
     heading: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
+      lineHeight: scale(29),
+      color: colors.ink,
+    },
+    /** The subject keeps the weight -- it is the part that changes. */
+    headingSubject: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(26),
-      letterSpacing: scale(-0.65),
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
       lineHeight: scale(29),
       color: colors.ink,
     },
@@ -983,20 +969,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: scale(46),
       height: verticalScale(11),
     },
-    skeletonStuckTitle: {
-      width: '58%',
-      height: verticalScale(13),
-    },
-    skeletonStuckSub: {
-      width: '88%',
-      height: verticalScale(10),
-      marginTop: verticalScale(7),
-    },
-    skeletonLearnButton: {
-      width: scale(94),
-      height: verticalScale(38),
-      borderRadius: scale(99),
-    },
     // The question is the page, not a widget on it. Ruled paper, an ink
     // border, a drop shadow and a red margin rule all competed with the one
     // thing a student is here to read, and the 34pt left inset the rule
@@ -1199,52 +1171,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.slate,
-    },
-    stuckCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(16),
-      marginTop: verticalScale(12),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    stuckTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    stuckTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.ink,
-    },
-    stuckSubtitle: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11),
-      color: colors.slate,
-      marginTop: verticalScale(1),
-    },
-    learnButton: {
-      flexShrink: 0,
-      height: verticalScale(38),
-      paddingHorizontal: scale(15),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    learnButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.paper,
     },
     explainSection: {
       marginTop: verticalScale(22),

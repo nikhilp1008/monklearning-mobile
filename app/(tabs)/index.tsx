@@ -7,7 +7,6 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
-import { RuledPaper } from '@/components/ruled-paper';
 import { NoticedCard } from '@/components/noticed-card';
 import { Skeleton } from '@/components/skeleton';
 import { ICON_CHIP, MilestonesIcon, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
@@ -49,7 +48,7 @@ const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
  */
 
 /**
- * Editorial prompts for the "doubt of the day" card — hand-written, rotated
+ * Editorial prompts for the "doubt of the day" section — hand-written, rotated
  * by day-of-year so the card genuinely changes daily. Tapping one hands the
  * question itself to Drona as the opening utterance, so the class starts on
  * exactly this doubt instead of a blank "what do you want to learn?".
@@ -261,7 +260,7 @@ export default function HomeScreen() {
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
-                <Text style={styles.tileTitle}>Snap it out</Text>
+                <Text style={styles.tileTitle}>Snap and Solve</Text>
                 <Text style={styles.tileSubtitle}>Up to 3 questions, solved step by step</Text>
               </PressableScale>
 
@@ -274,8 +273,14 @@ export default function HomeScreen() {
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
-                <Text style={styles.tileTitle}>Practice unlimited</Text>
-                <Text style={styles.tileSubtitle}>Endless questions, one at a time</Text>
+                <Text style={styles.tileTitle}>Practice Questions</Text>
+                {/* 150 a day. NOTE: monklearning.com currently publishes 75
+                    ("50 doubt snaps and 75 practice questions a day") in three
+                    places, so the site needs the same number or the two
+                    disagree on one entitlement. Neither figure is enforced
+                    anywhere yet -- /practice/* returns no daily/quota field,
+                    unlike Snap, which has daily_limit and used_today. */}
+                <Text style={styles.tileSubtitle}>150 a day, across all subjects</Text>
               </PressableScale>
             </View>
           </View>
@@ -375,7 +380,7 @@ export default function HomeScreen() {
           </View>
 
           <PressableScale
-            style={styles.doubtCard}
+            style={styles.doubtSection}
             onPress={() =>
               router.push({
                 pathname: '/entering-classroom',
@@ -388,18 +393,11 @@ export default function HomeScreen() {
                 },
               })
             }>
-            <View style={styles.doubtRuledClip}>
-              <RuledPaper step={verticalScale(24)} color={hairline(0.06)} count={12} />
-            </View>
-            <View style={styles.doubtRule} />
-            <View style={styles.doubtHeaderRow}>
-              <Text style={styles.doubtLabel}>doubt of the day</Text>
-              <Text style={styles.doubtTag}>{dailyDoubt.tag}</Text>
-            </View>
+            <Text style={styles.doubtOverline}>Doubt of the day</Text>
             <Text style={styles.doubtQuestion}>{dailyDoubt.question}</Text>
             <View style={styles.doubtCtaRow}>
               <Text style={styles.doubtCtaText}>Learn this with Drona</Text>
-              <ArrowRightIcon color={colors.red} size={scale(13)} />
+              <ArrowRightIcon color={colors.amberText} size={scale(13)} />
             </View>
           </PressableScale>
 
@@ -884,65 +882,46 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_600SemiBold',
       color: colors.ink,
     },
-    doubtCard: {
-      position: 'relative',
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.14),
-      borderRadius: scale(16),
-      paddingTop: verticalScale(16),
-      paddingRight: scale(16),
-      paddingBottom: verticalScale(16),
-      paddingLeft: scale(40),
-    },
-    doubtRuledClip: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: scale(15),
-      overflow: 'hidden',
-    },
-    doubtRule: {
-      position: 'absolute',
-      top: verticalScale(12),
-      bottom: verticalScale(12),
-      left: scale(26),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
-    },
-    doubtHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    doubtLabel: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14),
-      color: colors.red,
-      transform: [{ rotate: '-0.6deg' }],
-    },
-    doubtTag: {
+    doubtOverline: {
       fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(9),
-      letterSpacing: scale(0.68),
+      letterSpacing: scale(0.9),
       textTransform: 'uppercase',
-      color: '#C53A2B',
+      color: colors.faint,
+    },
+    /**
+     * A section, not a card.
+     *
+     * It used to be a bordered box with ruled paper, a red margin rule and a
+     * 40pt left inset for that rule — which put its text 41pt inside every
+     * other section on this page, since the rest start at the 24pt gutter.
+     * The indent was the misalignment; the box was what required it. Now it
+     * is separated the way Today's plan and Exam scope are, by a hairline.
+     */
+    doubtSection: {
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(28,26,22,.1)',
+      paddingTop: verticalScale(18),
+      marginTop: verticalScale(20),
     },
     doubtQuestion: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(16),
+      lineHeight: scale(23.5),
+      letterSpacing: scale(-0.08),
       color: colors.ink,
-      marginTop: verticalScale(8),
+      marginTop: verticalScale(7),
     },
     doubtCtaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
-      marginTop: verticalScale(12),
+      gap: scale(6),
+      marginTop: verticalScale(11),
     },
     doubtCtaText: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
-      color: colors.ink,
+      color: colors.amberText,
     },
     sectionHeaderRow: {
       flexDirection: 'row',
