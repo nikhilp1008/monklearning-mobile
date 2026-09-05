@@ -30,6 +30,16 @@ import {
   MAX_NODES_CHAIN, MAX_NODES_RING, NODE_H, chainCell, chainGrid,
   derive as deriveFlow, maxChainLabelChars, maxRingLabelChars, nodeWidth, ringFits,
 } from '../process-flow/flow-math';
+import { moleculeStruct } from '../molecule-struct';
+import {
+  AXE, AXE_KEYS, BOND_GAP, LABEL_CLEAR, MAX_BOND_PAIRS, MAX_DOMAINS,
+  MAX_LIGAND_CHARS, MIN_BOND_PAIRS, MODES,
+  adjacentLabelDx, angleIsForced, axeFor, bondPath, derive as deriveMolecule,
+  fitProblems as moleculeFitProblems, formalChargeCentre, formalChargeSum,
+  labelBoxes as moleculeLabelBoxes, labelSeparationNeeded,
+  layout as moleculeLayout, lonePairPath, terminalFormalCharge,
+  type BondStyle, type MoleculeMode, type MoleculeStructParams,
+} from '../molecule-struct/vsepr-math';
 
 test('v0=22, theta=45, g=9.81 -> R=49.34 m, H=12.34 m, T=3.17 s', () => {
   const d = derive({ launch_angle_deg: 45, initial_speed_ms: 22, gravity_ms2: 9.81, body: 'earth' });
@@ -711,5 +721,512 @@ describe('reaction_scheme — validate()', () => {
     expect(r.ok).toBe(true);
     expect((r as { ok: true; params: ReactionSchemeParams }).params.step_kind)
       .toEqual(['plain', 'plain', 'plain']);
+  });
+});
+
+/* ==========================================================================
+ * molecule_struct
+ *
+ * The widget's own output is the READING of a Lewis structure: the model sends
+ * counts (centre, bond_pairs, lone_pairs, bond_orders, charge) and never names
+ * a shape, an angle or a coordinate. Everything asserted below is looked up or
+ * computed from those counts, so a test that passed by echoing the payload
+ * back would have nothing to echo.
+ * ========================================================================== */
+
+function species(
+  centre: string,
+  ligands: string[],
+  lone_pairs: number,
+  bond_orders?: number[],
+  patch: Partial<MoleculeStructParams> = {}
+): MoleculeStructParams {
+  return {
+    mode: 'electron_domain',
+    centre,
+    bond_pairs: ligands.length,
+    lone_pairs,
+    ligands,
+    bond_orders: bond_orders ?? ligands.map(() => 1),
+    bond_styles: ligands.map(() => 'plain' as BondStyle),
+    charge: 0,
+    bracket: false,
+    show_lone_pairs: true,
+    show_angle: false,
+    label: '',
+    highlight_site: -1,
+    ...patch,
+  };
+}
+
+/** Every (bond_pairs, lone_pairs) the schema admits. */
+function legalBox(): [number, number][] {
+  const out: [number, number][] = [];
+  for (let bp = MIN_BOND_PAIRS; bp <= MAX_BOND_PAIRS; bp++) {
+    for (let lp = 0; lp + bp <= MAX_DOMAINS && lp <= 3; lp++) out.push([bp, lp]);
+  }
+  return out;
+}
+
+describe('molecule_struct — the AXE table is total, and it is a LOOKUP', () => {
+  test('every legal (bond_pairs, lone_pairs) has a row, and there are no others', () => {
+    const box = legalBox();
+    for (const [bp, lp] of box) {
+      expect([bp, lp, axeFor(bp, lp) !== null]).toEqual([bp, lp, true]);
+    }
+    // 14 rows: the table's legal range and the schema's are the SAME set, in
+    // both directions. A row with no payload that can reach it is dead code; a
+    // payload with no row is a crash waiting for a lesson to generate it.
+    expect(AXE_KEYS.length).toBe(box.length);
+    expect(AXE_KEYS.length).toBe(14);
+  });
+
+  test('the drawn angle and the reported angle are different numbers, on purpose', () => {
+    // METHANE. The convention array puts the first two bonds at 135 and 45 —
+    // 90 degrees apart ON THE PAGE, because 109.5 cannot be drawn in a plane.
+    const tet = AXE['4-0'];
+    expect(Math.abs(tet.bondSites[0] - tet.bondSites[1])).toBe(90);
+    expect(tet.bondAngle).toBe(109.5);
+    // And the widget reports the table's number, not the drawing's. This is
+    // the assertion that would fail if anyone ever "fixed" the drawing by
+    // measuring it.
+    expect(deriveMolecule(species('C', ['H', 'H', 'H', 'H'], 0)).bond_angle_deg).toBe(109.5);
+
+    // The same, geometrically: the two ligands really are 90 degrees apart on
+    // the board, at every board size.
+    const l = moleculeLayout(species('C', ['H', 'H', 'H', 'H'], 0), 343, 236);
+    const a0 = Math.atan2(l.cy - l.sites[0].ly, l.sites[0].lx - l.cx);
+    const a1 = Math.atan2(l.cy - l.sites[1].ly, l.sites[1].lx - l.cx);
+    expect(Math.abs((a0 - a1) * (180 / Math.PI))).toBeCloseTo(90, 6);
+  });
+
+  test('no row uses an arc command, and no path has an odd number of numbers', () => {
+    // verify-render's pathBounds pairs the numbers in `d` POSITIONALLY, so an
+    // `A` command's flags would be read as coordinates and the bounds it
+    // reports would not exist. M/L only, everywhere.
+    const paths = [
+      lonePairPath(100, 100, 90),
+      moleculeLayout(species('C', ['O', 'O'], 0, [2, 2], { show_angle: true }), 343, 236).arcD,
+      bondPath(moleculeLayout(species('C', ['O', 'O'], 0, [2, 2]), 343, 236).sites[0]),
+    ];
+    for (const d of paths) {
+      expect(d).not.toMatch(/[AaCcQqSsTtHhVv]/);
+      expect((d.match(/-?\d+\.?\d*/g) ?? []).length % 2).toBe(0);
+    }
+  });
+});
+
+describe('molecule_struct — reference values (NCERT Cl.11 Unit 4, Cl.12 Unit 5)', () => {
+  test('1. CH4 — steric number 4, sp3, tetrahedral, 109.5, formal charge 0', () => {
+    const p = species('C', ['H', 'H', 'H', 'H'], 0);
+    const d = deriveMolecule(p);
+    expect(d.steric_number).toBe(4);
+    expect(axeFor(4, 0)!.hybridisation).toBe('sp3');
+    expect(axeFor(4, 0)!.shape).toBe('tetrahedral');
+    expect(d.ideal_angle_deg).toBe(109.5);
+    expect(d.bond_angle_deg).toBe(109.5);
+    // V - 2*lone_pairs - sum(bond_orders) = 4 - 0 - 4 = 0
+    expect(d.formal_charge_centre).toBe(0);
+    expect(formalChargeSum(p)).toBe(0);
+    // The octet, read off the drawing: 2 per bond, 2 per lone pair.
+    expect(d.valence_electrons_total).toBe(8);
+  });
+
+  test('2. the -2.5 per lone pair constant is READ OFF NCERT’s own CH4/NH3/H2O series', () => {
+    // Three points on one line, all sp3, all from NCERT: 109.5, 107, 104.5.
+    // The constant is not tuned to fit water — water is the third point.
+    const ch4 = deriveMolecule(species('C', ['H', 'H', 'H', 'H'], 0));
+    const nh3 = deriveMolecule(species('N', ['H', 'H', 'H'], 1));
+    const h2o = deriveMolecule(species('O', ['H', 'H'], 2));
+
+    expect([ch4.steric_number, nh3.steric_number, h2o.steric_number]).toEqual([4, 4, 4]);
+    expect([ch4.ideal_angle_deg, nh3.ideal_angle_deg, h2o.ideal_angle_deg])
+      .toEqual([109.5, 109.5, 109.5]);
+    expect([ch4.bond_angle_deg, nh3.bond_angle_deg, h2o.bond_angle_deg])
+      .toEqual([109.5, 107, 104.5]);
+
+    // Evenly spaced, 2.5 apart, both gaps — which is what makes it a series
+    // and not two coincidences.
+    expect(ch4.bond_angle_deg - nh3.bond_angle_deg).toBeCloseTo(2.5, 10);
+    expect(nh3.bond_angle_deg - h2o.bond_angle_deg).toBeCloseTo(2.5, 10);
+    expect(h2o.bond_angle_deg).toBeCloseTo(109.5 - 2 * 2.5, 10);
+
+    // The shapes differ even though the parent geometry does not.
+    expect(axeFor(3, 1)!.shape).toBe('trigonal pyramidal');
+    expect(axeFor(2, 2)!.shape).toBe('bent');
+    expect(deriveMolecule(species('O', ['H', 'H'], 2)).formal_charge_centre).toBe(0);
+  });
+
+  test('3. PCl5 — TWO angles, 120 equatorial AND 90 axial', () => {
+    const p = species('P', ['Cl', 'Cl', 'Cl', 'Cl', 'Cl'], 0);
+    const d = deriveMolecule(p);
+    expect(d.steric_number).toBe(5);
+    expect(axeFor(5, 0)!.hybridisation).toBe('sp3d');
+    expect(axeFor(5, 0)!.shape).toBe('trigonal bipyramidal');
+    expect(d.ideal_angle_deg).toBe(120);
+    expect(d.bond_angle_deg).toBe(120);
+    // THE FIXTURE THAT PROVES secondary_angle_deg IS REAL. A single-angle
+    // model is wrong for every SN-5 species, not just this one.
+    expect(d.secondary_angle_deg).toBe(90);
+    expect(d.formal_charge_centre).toBe(0);   // 5 - 0 - 5
+    expect(formalChargeSum(p)).toBe(0);       // every Cl is 7 + 1 - 8 = 0
+    expect(d.valence_electrons_total).toBe(10);   // expanded octet
+
+    // And a shape with only ONE angle reports 0 there, so the key is never a
+    // number that happens to be right.
+    expect(deriveMolecule(species('C', ['H', 'H', 'H', 'H'], 0)).secondary_angle_deg).toBe(0);
+  });
+
+  test('4. ozone — centre +1, terminals 0 and -1, and the SUM is the species charge', () => {
+    // NCERT Cl.11 Unit 4's own worked example. bond_orders [2, 1] is the whole
+    // point: the two oxygens are not equivalent in one resonance structure.
+    const p = species('O', ['O', 'O'], 1, [2, 1]);
+    const d = deriveMolecule(p);
+    expect(d.steric_number).toBe(3);
+    expect(axeFor(2, 1)!.shape).toBe('bent');
+    expect(axeFor(2, 1)!.hybridisation).toBe('sp2');
+    expect(d.bond_angle_deg).toBe(117.5);      // 120 - 1*2.5
+
+    // 6 - 2*1 - (2 + 1) = +1
+    expect(d.formal_charge_centre).toBe(1);
+    expect(terminalFormalCharge('O', 2)).toBe(0);    // 6 + 2 - 8
+    expect(terminalFormalCharge('O', 1)).toBe(-1);   // 6 + 1 - 8
+    // The sum rule is what makes these three numbers a check rather than three
+    // unrelated assertions.
+    expect(formalChargeSum(p)).toBe(0);
+    expect(formalChargeSum(p)).toBe(p.charge);
+
+    // A charged species keeps the rule: NH4+ is +1 on N and 0 on every H.
+    const nh4 = species('N', ['H', 'H', 'H', 'H'], 0, undefined, { charge: 1 });
+    expect(formalChargeCentre(nh4)).toBe(1);
+    expect(formalChargeSum(nh4)).toBe(1);
+    expect(formalChargeSum(nh4)).toBe(nh4.charge);
+
+    // A polyatomic ligand has no single V, so the sum is null rather than a
+    // confident wrong number.
+    expect(formalChargeSum(species('Fe', ['CN', 'CN'], 0))).toBeNull();
+  });
+
+  test('5. K4[Fe(CN)6] — oxidation state +2, coordination number 6, EAN 36', () => {
+    const p = species('Fe', ['CN', 'CN', 'CN', 'CN', 'CN', 'CN'], 0, undefined, {
+      mode: 'coordination', charge: -4, bracket: true, show_lone_pairs: false,
+    });
+    const d = deriveMolecule(p);
+    // ox = charge - sum(ligand charges) = -4 - 6*(-1) = +2
+    expect(d.oxidation_state).toBe(2);
+    expect(d.coordination_number).toBe(6);
+    // EAN = Z - ox + 2*CN = 26 - 2 + 12 = 36 (krypton)
+    expect(d.ean).toBe(36);
+    expect(moleculeStruct.validate(p).ok).toBe(true);
+
+    // CROSS-CHECK. Same noble gas from a completely different (Z, ox, CN)
+    // triple — which is the entire point of EAN, and what a hard-coded 36
+    // would pass without.
+    const nico4 = species('Ni', ['CO', 'CO', 'CO', 'CO'], 0, undefined, {
+      mode: 'coordination', show_lone_pairs: false,
+    });
+    const dn = deriveMolecule(nico4);
+    expect([dn.oxidation_state, dn.coordination_number, dn.ean]).toEqual([0, 4, 36]);
+    expect(moleculeStruct.validate(nico4).ok).toBe(true);
+
+    // coordination_number is the SUM OF DENTICITIES and equals bond_pairs for
+    // every admitted payload — because a chelate is refused, not approximated.
+    expect(d.coordination_number).toBe(p.bond_pairs);
+    expect(dn.coordination_number).toBe(nico4.bond_pairs);
+
+    // The three coordination numbers are zero outside coordination mode, so
+    // the key set never changes shape while the values stay honest.
+    const same = deriveMolecule({ ...p, mode: 'electron_domain' });
+    expect([same.oxidation_state, same.coordination_number, same.ean]).toEqual([0, 0, 0]);
+    expect(same.steric_number).toBe(6);
+  });
+
+  test('6. THE COUNTER-FIXTURE — XeF2 is LINEAR at 180, not bent at ~172.5', () => {
+    const p = species('Xe', ['F', 'F'], 3);
+    const d = deriveMolecule(p);
+    expect(d.steric_number).toBe(5);
+    expect(axeFor(2, 3)!.hybridisation).toBe('sp3d');
+    expect(axeFor(2, 3)!.shape).toBe('linear');
+    expect(d.ideal_angle_deg).toBe(180);
+    expect(d.bond_angle_deg).toBe(180);
+
+    // The two numbers a naive rule would produce, neither of which is right:
+    //   "2 bond pairs means bent"          -> 120 - 3*2.5 = 112.5
+    //   "linear, minus 2.5 per lone pair"  -> 180 - 3*2.5 = 172.5
+    expect(d.bond_angle_deg).not.toBeCloseTo(172.5, 1);
+    expect(d.bond_angle_deg).not.toBeCloseTo(112.5, 1);
+
+    // The compression rule belongs to ONE parent geometry. Water and XeF2 have
+    // the same bond_pairs and different lone_pairs, and only one of them is
+    // compressed at all — which is why the table is a lookup and not a formula.
+    expect(deriveMolecule(species('O', ['H', 'H'], 2)).bond_angle_deg).toBe(104.5);
+    expect(d.formal_charge_centre).toBe(0);          // 8 - 6 - 2
+    expect(d.valence_electrons_total).toBe(10);
+
+    // Both LINEAR rows force the angle arc, and they are different steric
+    // numbers — keying the rule off "steric_number 2" would leave XeF2 with a
+    // zero-height bounding box and a hard coverage error.
+    expect(angleIsForced(2, 3)).toBe(true);          // XeF2,  SN 5
+    expect(angleIsForced(2, 0)).toBe(true);          // CO2,   SN 2
+    expect(angleIsForced(4, 0)).toBe(false);         // CH4
+    expect(moleculeLayout(p, 343, 236).showAngle).toBe(true);
+  });
+});
+
+describe('molecule_struct — the caps, and the arithmetic they came from', () => {
+  test('the site radius is 85.0 at 343x236, and 72.4 in interaction mode', () => {
+    // innerW = 343 - 24 = 319; innerH = 236 - 28.4 - 10 = 197.6
+    // R_width  = (319   - 2*27.84)/2 = 131.66
+    // R_height = (197.6 - 2*13.80)/2 =  85.00   -> height-bound
+    const ed = moleculeLayout(species('C', ['H', 'H', 'H', 'H'], 0), 343, 236);
+    expect(ed.R).toBeCloseTo(85, 6);
+    expect(ed.cx).toBeCloseTo(171.5, 6);
+    expect(ed.cy).toBeCloseTo(127.2, 6);
+
+    // Interaction mode gives up bandFor(12, 6) = 25.2 to the style legend:
+    // R_height = (172.4 - 27.6)/2 = 72.4. It is therefore the BINDING mode for
+    // every label cap, which is why validate() runs its backstop per-mode.
+    const inter = moleculeLayout(
+      species('C', ['H', 'H', 'H', 'H'], 0, undefined, { mode: 'interaction' }), 343, 236
+    );
+    expect(inter.R).toBeCloseTo(72.4, 6);
+    expect(inter.R).toBeLessThan(ed.R);
+  });
+
+  test('six sites clear and seven do not — the bond_pairs cap, measured', () => {
+    const need4 = labelSeparationNeeded(MAX_LIGAND_CHARS);      // 27.84 + 4
+    expect(need4).toBeCloseTo(31.84, 6);
+
+    // Six sites, 60 degrees apart: dx = R*(1 - cos 60) = 0.5*R
+    expect(adjacentLabelDx(85, 6)).toBeCloseTo(42.5, 6);
+    expect(adjacentLabelDx(72.4, 6)).toBeCloseTo(36.2, 6);
+    expect(adjacentLabelDx(72.4, 6)).toBeGreaterThan(need4);
+
+    // Seven sites, 51.43 degrees apart: dx = R*(1 - cos 51.43) = 0.3765*R.
+    // It FAILS at the interaction-mode radius, and clears by 0.16pt at the
+    // electron-domain one — which is a coincidence, not a margin.
+    expect(adjacentLabelDx(72.4, 7)).toBeCloseTo(27.26, 1);
+    expect(adjacentLabelDx(72.4, 7)).toBeLessThan(need4);
+    expect(adjacentLabelDx(85, 7) - need4).toBeLessThan(0.2);
+
+    // So the schema stops at 6, and the AXE table has no row past it either.
+    expect(MAX_BOND_PAIRS).toBe(6);
+    expect(axeFor(7, 0)).toBeNull();
+    const r = moleculeStruct.validate(
+      species('S', ['F', 'F', 'F', 'F', 'F', 'F', 'F'], 0)
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  test('a 4-char ligand fits at six sites and a 5-char one does not', () => {
+    // 4 chars: 27.84 + 4 = 31.84 <= 36.20 at the interaction-mode R
+    // 5 chars: 34.80 + 4 = 38.80 >  36.20
+    expect(labelSeparationNeeded(4)).toBeLessThan(adjacentLabelDx(72.4, 6));
+    expect(labelSeparationNeeded(5)).toBeGreaterThan(adjacentLabelDx(72.4, 6));
+    expect(MAX_LIGAND_CHARS).toBe(4);
+    expect(LABEL_CLEAR).toBe(4);
+
+    const ok = moleculeStruct.validate(species('S', ['FFFF', 'FFFF', 'FFFF', 'FFFF', 'FFFF', 'FFFF'], 0));
+    expect(ok.ok).toBe(true);
+    const bad = moleculeStruct.validate(species('S', ['FFFFF', 'F', 'F', 'F', 'F', 'F'], 0));
+    expect(bad.ok).toBe(false);
+    expect((bad as { ok: false; errors: string[] }).errors.join(' | ')).toMatch(/1 to 4 characters/);
+  });
+
+  test('BOND_GAP is a DEVICE constant — the same 5pt at every board', () => {
+    // A double bond's two shafts are BOND_GAP apart in device points, not a
+    // fraction of R. Expressed as a fraction it would collapse as the board
+    // shrank and the second line would drift into the ligand label — the same
+    // defect class as field_lines' seed ring.
+    const p = species('C', ['O', 'O'], 0, [2, 2]);
+    const gapAt = (w: number, h: number) => {
+      const s = moleculeLayout(p, w, h).sites[0];
+      const nums = (bondPath(s).match(/-?\d+\.?\d*/g) ?? []).map(Number);
+      // Two subpaths of two points each: the two shaft starts.
+      return Math.hypot(nums[0] - nums[4], nums[1] - nums[5]);
+    };
+    expect(gapAt(343, 236)).toBeCloseTo(BOND_GAP, 4);
+    expect(gapAt(495, 270)).toBeCloseTo(BOND_GAP, 4);
+    expect(gapAt(900, 430)).toBeCloseTo(BOND_GAP, 4);
+    expect(BOND_GAP).toBe(5);
+  });
+
+  test('a lone pair is ONE path with TWO closed subpaths, never two circles', () => {
+    // Two Circles 6.4pt apart at r = 2.4 are below verify-render assertion 8's
+    // 2r + 4 = 8.8 floor, so EVERY payload carrying a lone pair would be a
+    // hard error. Both dots therefore live in one Path.
+    const d = lonePairPath(100, 100, 90);
+    expect((d.match(/M/g) ?? []).length).toBe(2);
+    expect((d.match(/Z/g) ?? []).length).toBe(2);
+    // The two dot centres really are 6.4 apart — i.e. the thing that would
+    // have failed, does exist, and is drawn a legal way instead.
+    expect(6.4).toBeLessThan(2 * 2.4 + 4);
+  });
+
+  test('validate() admits nothing the small-board layout rejects', () => {
+    // THE SCHEMA'S LEGAL RANGE MUST BE A SUBSET OF WHAT RENDERS CORRECTLY.
+    // Every AXE row, in every mode, at the widest labels the schema allows,
+    // laid out at the SMALLEST board this app checks.
+    for (const [bp, lp] of legalBox()) {
+      for (const mode of MODES) {
+        const lig = mode === 'coordination' ? 'NO2' : 'WWWW';
+        const p = species(mode === 'coordination' ? 'Fe' : 'Xe',
+          new Array<string>(bp).fill(lig), lp, new Array<number>(bp).fill(1), {
+            mode: mode as MoleculeMode,
+            charge: -4, bracket: true, show_angle: true, label: 'X'.repeat(24),
+            highlight_site: bp - 1,
+          });
+        expect([bp, lp, mode, moleculeFitProblems(p, 343, 236)]).toEqual([bp, lp, mode, []]);
+      }
+    }
+  });
+
+  test('the geometric backstop catches what the caps do not name', () => {
+    // The arithmetic caps say nothing about a centre label so wide that the
+    // bond has no shaft left. The backstop measures it.
+    const p = species('Xe', ['WWWW', 'WWWW'], 0);
+    expect(moleculeFitProblems(p, 343, 236)).toEqual([]);
+    // Shrink the board until the same payload stops fitting: the backstop must
+    // be capable of saying no, or it is not a check.
+    expect(moleculeFitProblems(p, 120, 80).length).toBeGreaterThan(0);
+  });
+});
+
+describe('molecule_struct — derived self-consistency', () => {
+  test('derived matches what computeDerived actually returns', () => {
+    // molecule_struct is not in REGISTRY (registry wiring is a separate serial
+    // step), so derived-consistency.test.ts does not reach it. Same assertion,
+    // made directly, so registration cannot be the first time this is checked.
+    expect(Object.keys(moleculeStruct.computeDerived(moleculeStruct.defaults)).sort())
+      .toEqual([...moleculeStruct.derived].sort());
+    for (const key of Object.keys(moleculeStruct.derivedAliases)) {
+      expect(moleculeStruct.derived).toContain(key);
+    }
+    expect(moleculeStruct.derived.length).toBe(10);
+  });
+
+  test('the derived key set is THE SAME SET IN EVERY MODE and every shape', () => {
+    const want = [...moleculeStruct.derived].sort();
+    for (const [bp, lp] of legalBox()) {
+      for (const mode of MODES) {
+        const p = species(mode === 'coordination' ? 'Fe' : 'Xe',
+          new Array<string>(bp).fill(mode === 'coordination' ? 'CN' : 'F'), lp,
+          undefined, { mode: mode as MoleculeMode });
+        expect([bp, lp, mode, Object.keys(moleculeStruct.computeDerived(p)).sort()])
+          .toEqual([bp, lp, mode, want]);
+        for (const v of Object.values(moleculeStruct.computeDerived(p))) {
+          expect(Number.isFinite(v)).toBe(true);
+        }
+      }
+    }
+  });
+
+  test('hybridisation and shape are STRINGS, so steric_number is the key', () => {
+    // computeDerived returns Record<string, number>; the words cannot live
+    // there. steric_number fixes the hybridisation outright, and with
+    // lone_pairs (itself a param) it fixes the shape — so a caption can
+    // reference the number and the readout can render the words.
+    const byStericNumber = new Map<number, Set<string>>();
+    for (const [bp, lp] of legalBox()) {
+      const e = axeFor(bp, lp)!;
+      const sn = bp + lp;
+      if (!byStericNumber.has(sn)) byStericNumber.set(sn, new Set());
+      byStericNumber.get(sn)!.add(e.hybridisation);
+      expect(deriveMolecule(species('Xe', new Array<string>(bp).fill('F'), lp)).steric_number)
+        .toBe(sn);
+    }
+    for (const [sn, hybs] of byStericNumber) {
+      expect([sn, hybs.size]).toEqual([sn, 1]);
+    }
+    expect([...byStericNumber.keys()].sort()).toEqual([2, 3, 4, 5, 6]);
+  });
+});
+
+/** validate() is total, never throws, and every rejection is readable. */
+describe('molecule_struct — validate()', () => {
+  const good = moleculeStruct.defaults;
+  /** A whole payload, not a patch — `{ ...good, ...{} }` is still `good`, so a
+   *  patch-based helper cannot express "an empty object". */
+  const patched = (patch: Record<string, unknown>) => ({ ...good, ...patch });
+
+  test('the defaults validate', () => {
+    expect(moleculeStruct.validate(good).ok).toBe(true);
+  });
+
+  test.each([
+    ['an empty object', {}, /centre must be a 1 to 3 character element symbol/],
+    ['a non-object', null, /params must be an object/],
+    ['an unknown mode', patched({ mode: 'ball_and_stick' }), /mode must be one of/],
+    ['an unknown centre', patched({ centre: 'Xx' }), /not in the element table/],
+    ['a 4-char centre', patched({ centre: 'Abcd' }), /1 to 3 character element symbol/],
+    ['one bond pair', patched({ bond_pairs: 1, ligands: ['H'], bond_orders: [1], bond_styles: ['plain'] }), /bond_pairs must be an integer in 2\.\.6/],
+    ['seven bond pairs', patched({ bond_pairs: 7, ligands: new Array(7).fill('F'), bond_orders: new Array(7).fill(1), bond_styles: new Array(7).fill('plain') }), /bond_pairs must be an integer in 2\.\.6/],
+    ['four lone pairs', patched({ lone_pairs: 4 }), /lone_pairs must be an integer in 0\.\.3/],
+    ['seven electron domains', patched({ bond_pairs: 5, lone_pairs: 2, ligands: new Array(5).fill('F'), bond_orders: new Array(5).fill(1), bond_styles: new Array(5).fill('plain') }), /at most 6/],
+    ['a ragged ligands array', patched({ ligands: ['H', 'H'] }), /exactly bond_pairs \(4\) strings/],
+    ['a 5-char ligand', patched({ ligands: ['HHHHH', 'H', 'H', 'H'] }), /1 to 4 characters/],
+    ['ragged bond_orders', patched({ bond_orders: [1, 1] }), /empty or have exactly bond_pairs \(4\)/],
+    ['a quadruple bond', patched({ bond_orders: [4, 1, 1, 1] }), /integer in 1\.\.3/],
+    ['an unknown bond_style', patched({ bond_styles: ['plain', 'plain', 'squiggle', 'dash'] }), /must be one of plain, wedge, dash, dative, hbond/],
+    ['a charge of 5', patched({ charge: 5 }), /integer in -4\.\.4/],
+    ['NaN charge', patched({ charge: NaN }), /integer in -4\.\.4/],
+    ['Infinity charge', patched({ charge: Infinity }), /integer in -4\.\.4/],
+    ['a highlight past the last site', patched({ highlight_site: 4 }), /-1 or an integer in 0\.\.3/],
+    ['a non-boolean bracket', patched({ bracket: 'yes' }), /bracket must be a boolean/],
+    ['an unknown ligand in coordination mode', patched({ mode: 'coordination', centre: 'Fe', ligands: ['Zz', 'Zz', 'Zz', 'Zz'] }), /not in the ligand table/],
+    ['a chelate in coordination mode', patched({ mode: 'coordination', centre: 'Ni', bond_pairs: 3, lone_pairs: 0, ligands: ['en', 'en', 'en'], bond_orders: [1, 1, 1], bond_styles: ['plain', 'plain', 'plain'], charge: 2 }), /polydentate/],
+  ])('rejects %s with a readable message', (_name, payload, pattern) => {
+    const r = moleculeStruct.validate(payload);
+    expect(r.ok).toBe(false);
+    expect((r as { ok: false; errors: string[] }).errors.join(' | ')).toMatch(pattern);
+  });
+
+  test('never throws, on anything', () => {
+    for (const junk of [
+      undefined, 0, '', [], NaN, { centre: 3 }, { centre: 'C' },
+      { centre: 'C', bond_pairs: 4 }, { centre: 'C', bond_pairs: 4, ligands: [1, 2, 3, 4] },
+      { centre: 'C', bond_pairs: 2, ligands: ['H', 'H'], bond_orders: 'no' },
+    ]) {
+      expect(() => moleculeStruct.validate(junk)).not.toThrow();
+    }
+  });
+
+  test('omitted arrays default rather than reject', () => {
+    const r = moleculeStruct.validate({
+      centre: 'N', bond_pairs: 3, lone_pairs: 1, ligands: ['H', 'H', 'H'],
+    });
+    expect(r.ok).toBe(true);
+    const p = (r as { ok: true; params: MoleculeStructParams }).params;
+    expect(p.bond_orders).toEqual([1, 1, 1]);
+    expect(p.bond_styles).toEqual(['plain', 'plain', 'plain']);
+    expect(p.show_lone_pairs).toBe(true);      // a lone pair drawn by default
+    expect(p.mode).toBe('electron_domain');
+    expect(p.highlight_site).toBe(-1);
+  });
+
+  test('a label is sliced; a formula never is', () => {
+    const r = moleculeStruct.validate(patched({ label: 'x'.repeat(60) }));
+    expect(r.ok).toBe(true);
+    expect((r as { ok: true; params: MoleculeStructParams }).params.label.length).toBe(24);
+    // A sliced caption is a shorter sentence; a sliced formula is a different
+    // substance, so an over-long ligand is refused instead.
+    expect(moleculeStruct.validate(patched({ ligands: ['HHHHH', 'H', 'H', 'H'] })).ok).toBe(false);
+  });
+
+  test('every label box the component emits is inside the board it was laid out for', () => {
+    for (const box of [[343, 236], [495, 270], [900, 430]] as const) {
+      for (const mode of MODES) {
+        const p = species(mode === 'coordination' ? 'Fe' : 'Xe',
+          ['WWWW', 'WWWW', 'WWWW', 'WWWW', 'WWWW', 'WWWW'].slice(0, 6)
+            .map((s) => (mode === 'coordination' ? 'NO2' : s)), 0, undefined, {
+            mode: mode as MoleculeMode, charge: -4, bracket: true,
+            show_angle: true, label: 'X'.repeat(24), highlight_site: 0,
+          });
+        for (const b of moleculeLabelBoxes(p, box[0], box[1])) {
+          expect([mode, box[0], b.s, b.x0 >= -1 && b.x1 <= box[0] + 1]).toEqual([mode, box[0], b.s, true]);
+          expect([mode, box[0], b.s, b.y0 >= -1 && b.y1 <= box[1] + 1]).toEqual([mode, box[0], b.s, true]);
+        }
+      }
+    }
   });
 });

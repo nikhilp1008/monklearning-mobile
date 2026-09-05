@@ -1,0 +1,228 @@
+{
+  "topic": "Rotational Motion",
+  "concept": "Conservation of Angular Momentum",
+  "voice": {
+    "provider": "rumik silk",
+    "endpoint": "https://silk-api.rumik.ai",
+    "model": "mulberry",
+    "sample_rate": 24000,
+    "presets": {
+      "drona": "Lucas",
+      "veda": "Ira"
+    }
+  },
+  "teachers": {
+    "drona": "Drona",
+    "veda": "Vedha"
+  },
+  "languages": [
+    "hinglish",
+    "english"
+  ],
+  "board": [
+    {
+      "seq": 1,
+      "type": "heading",
+      "html": "<h5 style=\"font-family:'Kalam',cursive;font-weight:700;font-size:17px;line-height:26px;color:#DD4433;margin-bottom:0;transform:rotate(-.4deg)\">angular momentum — why the skater speeds up</h5>"
+    },
+    {
+      "seq": 2,
+      "type": "text",
+      "html": "<p style=\"font-size:13.5px;line-height:26px;color:#57534B;max-width:560px;margin-bottom:0\">Arms stretched out, she spins slowly. She pulls them in and speeds up — and <b style=\"color:#1C1A16\">nobody pushed her</b>.</p>"
+    },
+    {
+      "seq": 3,
+      "type": "formula",
+      "html": "<p style=\"font-weight:800;font-size:17px;line-height:26px;margin-bottom:0\">L = I ω</p>"
+    },
+    {
+      "seq": 4,
+      "type": "diagram",
+      "html": "<svg viewBox=\"0 0 340 170\" width=\"330\" height=\"156\" fill=\"none\" style=\"display:block;margin-bottom:0\">\n  <text x=\"8\" y=\"14\" font-family=\"Kalam\" font-size=\"11\" fill=\"#9C988C\">skater · top view</text>\n\n  <path d=\"M63 48 A24 24 0 0 1 107 48\" stroke=\"#DD4433\" stroke-width=\"2\" stroke-linecap=\"round\"></path>\n  <path d=\"M101 41 L108 48 L101 55\" stroke=\"#DD4433\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>\n  <text x=\"113\" y=\"45\" font-family=\"Kalam\" font-size=\"14\" font-weight=\"700\" fill=\"#DD4433\">ω</text>\n  <line x1=\"45\" y1=\"76\" x2=\"125\" y2=\"76\" stroke=\"#1C1A16\" stroke-width=\"3.5\" stroke-linecap=\"round\"></line>\n  <circle cx=\"45\" cy=\"76\" r=\"4.5\" fill=\"#1C1A16\"></circle>\n  <circle cx=\"125\" cy=\"76\" r=\"4.5\" fill=\"#1C1A16\"></circle>\n  <circle cx=\"85\" cy=\"76\" r=\"10\" fill=\"#EEA31F\" stroke=\"#1C1A16\" stroke-width=\"2\"></circle>\n  <text x=\"105\" y=\"95\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"13\" font-weight=\"700\" fill=\"#1C9B57\">r</text>\n  <line x1=\"85\" y1=\"101\" x2=\"125\" y2=\"101\" stroke=\"#1C9B57\" stroke-width=\"1.6\" stroke-dasharray=\"4 5\"></line>\n  <line x1=\"85\" y1=\"97\" x2=\"85\" y2=\"105\" stroke=\"#1C9B57\" stroke-width=\"1.4\"></line>\n  <line x1=\"125\" y1=\"97\" x2=\"125\" y2=\"105\" stroke=\"#1C9B57\" stroke-width=\"1.4\"></line>\n  <text x=\"85\" y=\"126\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"11\" fill=\"#9C988C\">arms out</text>\n  <text x=\"85\" y=\"141\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"11.5\" font-weight=\"700\" fill=\"#57534B\">I big · ω small</text>\n\n  <line x1=\"152\" y1=\"76\" x2=\"196\" y2=\"76\" stroke=\"#9C988C\" stroke-width=\"1.4\" stroke-dasharray=\"4 5\"></line>\n  <path d=\"M190 71 L197 76 L190 81\" stroke=\"#9C988C\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>\n  <text x=\"174\" y=\"66\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"10.5\" fill=\"#9C988C\">pull arms in</text>\n\n  <path d=\"M226 52 A26 26 0 0 1 278 52\" stroke=\"#DD4433\" stroke-width=\"1.2\" stroke-dasharray=\"3 4\" opacity=\".6\"></path>\n  <path d=\"M234 50 A17 17 0 0 1 268 50\" stroke=\"#DD4433\" stroke-width=\"2.6\" stroke-linecap=\"round\"></path>\n  <path d=\"M262 42 L269 49 L262 56\" stroke=\"#DD4433\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path>\n  <text x=\"284\" y=\"45\" font-family=\"Kalam\" font-size=\"14\" font-weight=\"700\" fill=\"#DD4433\">ω</text>\n  <line x1=\"233\" y1=\"76\" x2=\"267\" y2=\"76\" stroke=\"#1C1A16\" stroke-width=\"3.5\" stroke-linecap=\"round\"></line>\n  <circle cx=\"233\" cy=\"76\" r=\"4.5\" fill=\"#1C1A16\"></circle>\n  <circle cx=\"267\" cy=\"76\" r=\"4.5\" fill=\"#1C1A16\"></circle>\n  <circle cx=\"250\" cy=\"76\" r=\"10\" fill=\"#EEA31F\" stroke=\"#1C1A16\" stroke-width=\"2\"></circle>\n  <text x=\"258\" y=\"95\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"13\" font-weight=\"700\" fill=\"#1C9B57\">r</text>\n  <line x1=\"250\" y1=\"101\" x2=\"267\" y2=\"101\" stroke=\"#1C9B57\" stroke-width=\"1.6\" stroke-dasharray=\"4 5\"></line>\n  <line x1=\"250\" y1=\"97\" x2=\"250\" y2=\"105\" stroke=\"#1C9B57\" stroke-width=\"1.4\"></line>\n  <line x1=\"267\" y1=\"97\" x2=\"267\" y2=\"105\" stroke=\"#1C9B57\" stroke-width=\"1.4\"></line>\n  <text x=\"250\" y=\"126\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"11\" fill=\"#9C988C\">arms in</text>\n  <text x=\"250\" y=\"141\" text-anchor=\"middle\" font-family=\"Kalam\" font-size=\"11.5\" font-weight=\"700\" fill=\"#57534B\">I small · ω big</text>\n</svg>"
+    },
+    {
+      "seq": 5,
+      "type": "formula",
+      "html": "<p style=\"font-weight:800;font-size:15.5px;line-height:26px;margin-bottom:0\">I = Σ m r<sup>2</sup></p>"
+    },
+    {
+      "seq": 6,
+      "type": "text",
+      "html": "<p style=\"font-size:13.5px;line-height:26px;color:#57534B;max-width:560px;margin-bottom:0\">Bring the mass inward and r drops. It is <b style=\"color:#1C1A16\">squared</b>, so I drops much faster than r does.</p>"
+    },
+    {
+      "seq": 7,
+      "type": "note",
+      "html": "<p style=\"font-family:'Kalam',cursive;font-weight:700;font-size:15px;line-height:26px;color:#157A45;margin-bottom:0;transform:rotate(-.3deg)\">no torque from outside ⇒ L cannot change:</p>"
+    },
+    {
+      "seq": 8,
+      "type": "formula",
+      "html": "<p style=\"font-weight:800;font-size:17px;line-height:26px;margin-bottom:0\">I<sub>1</sub>ω<sub>1</sub> = I<sub>2</sub>ω<sub>2</sub></p>"
+    },
+    {
+      "seq": 9,
+      "type": "text",
+      "html": "<p style=\"font-size:13.5px;line-height:26px;color:#57534B;max-width:560px;margin-bottom:0\">Arms out: I<sub>1</sub> = 4 kg·m<sup>2</sup>, ω<sub>1</sub> = 2 rev/s. Arms in: I<sub>2</sub> = 1.2 kg·m<sup>2</sup>.</p>"
+    },
+    {
+      "seq": 10,
+      "type": "formula",
+      "html": "<p style=\"font-weight:800;font-size:15.5px;line-height:26px;margin-bottom:0\">ω<sub>2</sub> = (4 × 2) / 1.2 = <span style=\"background:rgba(238,163,31,.28);border-radius:4px;padding:0 5px\">6.7 rev/s</span></p>"
+    },
+    {
+      "seq": 11,
+      "type": "note",
+      "html": "<p style=\"font-family:'Kalam',cursive;font-weight:700;font-size:14.5px;line-height:26px;color:#DD4433;max-width:560px;margin-bottom:0;transform:rotate(-.4deg)\">remember: L needs an outside torque to change — but K = L²/2I goes UP. Her muscles did that work.</p>"
+    },
+    {
+      "seq": 12,
+      "type": "note",
+      "html": "<p style=\"font-family:'Kalam',cursive;font-weight:700;font-size:15px;line-height:26px;color:#157A45;margin-bottom:0;transform:rotate(-.3deg)\">that's the whole concept — skater, diver, or a collapsing star: same equation.</p>"
+    }
+  ],
+  "variants": {
+    "drona-hinglish": {
+      "cues": [
+        0.5,
+        7.217,
+        14.244,
+        20.897,
+        25.698,
+        32.051,
+        39.758,
+        45.19,
+        50.181,
+        57.697,
+        70.662,
+        82.817
+      ],
+      "duration": 96.401,
+      "captions": [
+        "Dekho, ek ice skater. Arms faila ke ghoom rahi hai — dheere dheere. Main isse hi shuru karta hoon.",
+        "Ab woh arms andar kheenchti hai, aur speed apne aap badh jaati hai. Koi push nahi kiya.",
+        "Iske peeche jo quantity hai, uska naam hai angular momentum. L equals eye omega.",
+        "Eye hai moment of inertia, aur omega hai spinning speed.",
+        "Aur ab main board pe likhta hoon: eye equals summation em ar squared.",
+        "Mass ko andar laao, ar chhota ho jaata hai. Aur woh squared hai, isliye eye bahut tezi se girta hai.",
+        "Ab dhyaan do — bahar se koi torque nahi lag raha. Toh L badal hi nahi sakta.",
+        "Matlab eye one omega one equals eye two omega two.",
+        "Chalo ek number lagate hain. Arms out pe eye one hai chaar, aur omega one hai do revolutions per second.",
+        "Arms andar, eye two ho gaya one point two. Toh omega two equals chaar into do, divided by one point two — six point seven revolutions per second.",
+        "Aur yeh yaad rakhna — L badalne ke liye bahar se torque chahiye. Arms andar kheenchna torque nahi hai. Lekin kinetic energy badh jaati hai, kyunki woh kaam uske muscles ne kiya.",
+        "Aur bas, yeh poora concept hai. Angular momentum conserved rehta hai, toh omega ko badalna hi padta hai. Ab iska koi bhi version aa jaye — skater, diver, ya collapsing star — aap solve kar loge."
+      ]
+    },
+    "veda-hinglish": {
+      "cues": [
+        0.5,
+        8.455,
+        14.708,
+        22.154,
+        27.07,
+        34.845,
+        42.557,
+        48.058,
+        54.804,
+        63.101,
+        77.889,
+        91.078
+      ],
+      "duration": 107.836,
+      "captions": [
+        "Dekho, ek ice skater. Arms faila ke ghoom rahi hai — dheere dheere. Main isse hi shuru karti hoon.",
+        "Ab woh arms andar kheenchti hai, aur speed apne aap badh jaati hai. Koi push nahi kiya.",
+        "Iske peeche jo quantity hai, uska naam hai angular momentum. L equals eye omega.",
+        "Eye hai moment of inertia, aur omega hai spinning speed.",
+        "Aur ab main board pe likhti hoon: eye equals summation em ar squared.",
+        "Mass ko andar laao, ar chhota ho jaata hai. Aur woh squared hai, isliye eye bahut tezi se girta hai.",
+        "Ab dhyaan do — bahar se koi torque nahi lag raha. Toh L badal hi nahi sakta.",
+        "Matlab eye one omega one equals eye two omega two.",
+        "Chalo ek number lagate hain. Arms out pe eye one hai chaar, aur omega one hai do revolutions per second.",
+        "Arms andar, eye two ho gaya one point two. Toh omega two equals chaar into do, divided by one point two — six point seven revolutions per second.",
+        "Aur yeh yaad rakhna — L badalne ke liye bahar se torque chahiye. Arms andar kheenchna torque nahi hai. Lekin kinetic energy badh jaati hai, kyunki woh kaam uske muscles ne kiya.",
+        "Aur bas, yeh poora concept hai. Angular momentum conserved rehta hai, toh omega ko badalna hi padta hai. Ab iska koi bhi version aa jaye — skater, diver, ya collapsing star — aap solve kar loge."
+      ]
+    },
+    "drona-english": {
+      "cues": [
+        0.5,
+        8.476,
+        14.302,
+        21.42,
+        26.608,
+        32.105,
+        40.453,
+        47.797,
+        53.626,
+        59.975,
+        71.468,
+        82.051
+      ],
+      "duration": 96.709,
+      "captions": [
+        "Look at an ice skater, spinning with her arms stretched out — slowly.",
+        "Now she pulls her arms in, and she speeds up on her own. Nobody pushed her.",
+        "The quantity behind this is called angular momentum. L equals eye omega.",
+        "Eye is the moment of inertia, and omega is how fast she is spinning.",
+        "And eye equals the sum of em ar squared.",
+        "Bring the mass inward and ar gets smaller. And it is squared, so eye falls much faster than ar does.",
+        "Now pay attention — there is no torque acting from outside. So L simply cannot change.",
+        "Which means eye one omega one equals eye two omega two.",
+        "Let us put a number on it. Arms out, eye one is four, and omega one is two revolutions per second.",
+        "Arms in, and eye two becomes one point two. So omega two equals four times two, divided by one point two — six point seven revolutions per second.",
+        "And remember this — changing L needs a torque from outside. Pulling your arms in is not a torque. But the kinetic energy does go up, because her muscles did that work.",
+        "And that is the whole concept. Angular momentum is conserved, so omega has no choice but to obey. Whichever version they give you — a skater, a diver, or a collapsing star — you can solve it now."
+      ]
+    },
+    "veda-english": {
+      "cues": [
+        0.5,
+        10.095,
+        15.959,
+        23.437,
+        28.916,
+        34.158,
+        42.161,
+        49.228,
+        56.277,
+        63.77,
+        75.446,
+        86.797
+      ],
+      "duration": 101.991,
+      "captions": [
+        "Look at an ice skater, spinning with her arms stretched out — slowly.",
+        "Now she pulls her arms in, and she speeds up on her own. Nobody pushed her.",
+        "The quantity behind this is called angular momentum. L equals eye omega.",
+        "Eye is the moment of inertia, and omega is how fast she is spinning.",
+        "And eye equals the sum of em ar squared.",
+        "Bring the mass inward and ar gets smaller. And it is squared, so eye falls much faster than ar does.",
+        "Now pay attention — there is no torque acting from outside. So L simply cannot change.",
+        "Which means eye one omega one equals eye two omega two.",
+        "Let us put a number on it. Arms out, eye one is four, and omega one is two revolutions per second.",
+        "Arms in, and eye two becomes one point two. So omega two equals four times two, divided by one point two — six point seven revolutions per second.",
+        "And remember this — changing L needs a torque from outside. Pulling your arms in is not a torque. But the kinetic energy does go up, because her muscles did that work.",
+        "And that is the whole concept. Angular momentum is conserved, so omega has no choice but to obey. Whichever version they give you — a skater, a diver, or a collapsing star — you can solve it now."
+      ]
+    }
+  },
+  "samples": {
+    "drona-hinglish": {
+      "duration": 18.65,
+      "text": "Hello! Main Drona hoon, aapka teacher. J E E ho ya NEET — jo aapko chahiye, wahi main padhaunga: basics se, board pe, step by step. Aur mujhe intezaar nahi ho raha. Kyunki aaj ki mushkil, kal ki manzil hai."
+    },
+    "veda-hinglish": {
+      "duration": 16.99,
+      "text": "Hi! Main Vedha hoon, aapki teacher. J E E ho ya NEET — jo aapko chahiye, wahi main padhaungi: basics se, board pe, step by step. Aur mujhe intezaar nahi ho raha. Kyunki aaj ki mushkil, kal ki manzil hai."
+    },
+    "drona-english": {
+      "duration": 14.91,
+      "text": "Hey! I am Drona, your teacher. J E E or NEET — whichever you need, that is what I teach you. Basics first, on the board, step by step. And what looks impossible today? Soon you will be explaining it back to me."
+    },
+    "veda-english": {
+      "duration": 17.48,
+      "text": "Hi! I am Vedha, your teacher. J E E or NEET — whichever you need, that is what I teach you. Basics first, on the board, step by step. And what feels impossible today? Soon you will be explaining it back to me."
+    }
+  }
+}

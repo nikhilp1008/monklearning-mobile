@@ -24,6 +24,11 @@ import { processFlow } from '../process-flow';
 import { renderWidgetTree, renderWidgetTreeAt, scaffoldingDiffs } from './test-utils';
 import { reactionScheme } from '../reaction-scheme';
 import { labelBoxes, type ReactionSchemeParams } from '../reaction-scheme/scheme-graph';
+import { moleculeStruct } from '../molecule-struct';
+import {
+  labelBoxes as moleculeLabelBoxes, type BondStyle, type MoleculeMode,
+  type MoleculeStructParams,
+} from '../molecule-struct/vsepr-math';
 
 /**
  * Widgets this harness cannot verify, and why. `molecule_3d` renders a
@@ -67,6 +72,8 @@ test('every registry entry is either verified below or explicitly skipped', () =
     // it in is a separate serial step. Listing it here keeps this guard
     // honest the moment it lands rather than the commit after.
     'process_flow',
+    // molecule_struct, likewise: verified below, registry wiring is separate.
+    'molecule_struct',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
@@ -831,6 +838,316 @@ describe('reaction_scheme', () => {
             const hit = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
             expect([params.caption, box.width, a.s, b.s, hit])
               .toEqual([params.caption, box.width, a.s, b.s, false]);
+          }
+        }
+      }
+    }
+  });
+});
+
+/**
+ * molecule_struct is verified here BEFORE it is registered — registry wiring
+ * is a separate serial step, so `REGISTRY.molecule_struct` does not exist yet
+ * and the module is imported directly. Everything else is the same harness.
+ *
+ * THREE MODES x THREE BOARDS, and the modes are not cosmetic: `interaction`
+ * gives up a legend row and therefore lays out at a SMALLER site radius (72.4
+ * vs 85.0 at 343x236), so a payload that fits in electron_domain mode is not
+ * thereby known to fit in interaction mode. That is the whole reason
+ * validate() runs its geometric backstop per-mode rather than once.
+ *
+ * Two risks, and the cases below are chosen for them rather than for variety.
+ *
+ * FIRST, INK. verify-render's boundsOf understands Path/Circle/Line/Rect and
+ * NOT text, and a molecule is mostly text. CO2 and XeF2 drawn as two collinear
+ * bonds have a bounding box roughly 150x0 — 0% coverage, a hard error. The
+ * `co2` and `xef2` cases are those exact payloads, kept as regression fixtures
+ * for the two things that fix them: the forced angle arc (which gives the
+ * MOLECULE 2D extent) and the two bracketing band rules (which give the TREE
+ * its coverage). They are different steric numbers — 2 and 5 — and the same
+ * drawn geometry, which is why `angleIsForced` keys off the shape.
+ *
+ * SECOND, LONE PAIRS. Every payload with a lone pair would be a hard error on
+ * assertion 8 if the two dots were <Circle>s: 6.4pt apart at r = 2.4 is below
+ * the 2r + 4 = 8.8 floor. `h2o`, `nh3`, `xef2` and `clf3` all carry lone pairs,
+ * so the one-Path-per-pair decision is regression-tested by the gate itself
+ * rather than only by the unit assertion in physics.test.ts.
+ */
+describe('molecule_struct', () => {
+  const mod = moleculeStruct;
+
+  const CASES: Record<string, MoleculeStructParams> = {
+    // ELECTRON DOMAIN — NCERT Cl.11 Unit 4, Table 4.6's first row. Drawn 90
+    // degrees apart, annotated 109.5. The wedge/dash pair is what makes the
+    // 2D drawing read as a tetrahedron at all.
+    ch4: { ...mod.defaults },
+
+    // THE INK FIXTURE, steric number 2. Two collinear bonds and nothing else.
+    co2: {
+      mode: 'electron_domain', centre: 'C', bond_pairs: 2, lone_pairs: 0,
+      ligands: ['O', 'O'], bond_orders: [2, 2], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: false,
+      label: 'Carbon dioxide', highlight_site: -1,
+    },
+
+    // THE COUNTER-FIXTURE, and the second ink fixture: steric number 5, three
+    // lone pairs, still linear at 180.
+    xef2: {
+      mode: 'electron_domain', centre: 'Xe', bond_pairs: 2, lone_pairs: 3,
+      ligands: ['F', 'F'], bond_orders: [1, 1], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: false,
+      label: 'Xenon difluoride', highlight_site: 0,
+    },
+
+    // The lone-pair series NCERT reads the -2.5 constant off.
+    nh3: {
+      mode: 'electron_domain', centre: 'N', bond_pairs: 3, lone_pairs: 1,
+      ligands: ['H', 'H', 'H'], bond_orders: [1, 1, 1],
+      bond_styles: ['plain', 'wedge', 'dash'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Ammonia', highlight_site: 1,
+    },
+    h2o: {
+      mode: 'electron_domain', centre: 'O', bond_pairs: 2, lone_pairs: 2,
+      ligands: ['H', 'H'], bond_orders: [1, 1], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Water', highlight_site: -1,
+    },
+
+    // The SN-5 pair: both angles, and the shape a single-angle model gets
+    // wrong. Also the widest non-coordination payload, at 5 sites.
+    pcl5: {
+      mode: 'electron_domain', centre: 'P', bond_pairs: 5, lone_pairs: 0,
+      ligands: ['Cl', 'Cl', 'Cl', 'Cl', 'Cl'], bond_orders: [1, 1, 1, 1, 1],
+      bond_styles: ['plain', 'plain', 'plain', 'wedge', 'dash'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Phosphorus(V) chloride', highlight_site: 3,
+    },
+    clf3: {
+      mode: 'electron_domain', centre: 'Cl', bond_pairs: 3, lone_pairs: 2,
+      ligands: ['F', 'F', 'F'], bond_orders: [1, 1, 1],
+      bond_styles: ['plain', 'plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Chlorine trifluoride', highlight_site: -1,
+    },
+
+    // COORDINATION — NCERT Cl.12 Unit 5. Six sites, the site cap, and the
+    // widest board the schema admits: bracket, charge, and dative bonds.
+    fecn6: {
+      mode: 'coordination', centre: 'Fe', bond_pairs: 6, lone_pairs: 0,
+      ligands: ['CN', 'CN', 'CN', 'CN', 'CN', 'CN'],
+      bond_orders: [1, 1, 1, 1, 1, 1],
+      bond_styles: ['dative', 'dative', 'dative', 'dative', 'dative', 'dative'],
+      charge: -4, bracket: true, show_lone_pairs: false, show_angle: false,
+      label: 'Hexacyanoferrate(II)', highlight_site: 2,
+    },
+    // The EAN cross-check: same 36 from a different (Z, ox, CN) triple.
+    nico4: {
+      mode: 'coordination', centre: 'Ni', bond_pairs: 4, lone_pairs: 0,
+      ligands: ['CO', 'CO', 'CO', 'CO'], bond_orders: [1, 1, 1, 1],
+      bond_styles: ['dative', 'dative', 'dative', 'dative'],
+      charge: 0, bracket: false, show_lone_pairs: false, show_angle: false,
+      label: 'Nickel tetracarbonyl', highlight_site: 0,
+    },
+
+    // INTERACTION — the mode with the smallest site radius, exercised at the
+    // widest labels it admits so the legend row's cost is actually paid.
+    hbond: {
+      mode: 'interaction', centre: 'O', bond_pairs: 3, lone_pairs: 1,
+      ligands: ['H', 'H', 'HOH2'], bond_orders: [1, 1, 1],
+      bond_styles: ['plain', 'plain', 'hbond'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Water, H-bonded', highlight_site: 2,
+    },
+    // Six 4-char ligands in interaction mode: the binding corner of the whole
+    // schema, where dx = 36.2 against the 31.84 two 4-char boxes need.
+    interWide: {
+      mode: 'interaction', centre: 'Xe', bond_pairs: 6, lone_pairs: 0,
+      ligands: ['OMe2', 'OMe2', 'OMe2', 'OMe2', 'OMe2', 'OMe2'],
+      bond_orders: [1, 1, 1, 1, 1, 1],
+      bond_styles: ['plain', 'wedge', 'dash', 'dative', 'hbond', 'plain'],
+      charge: 4, bracket: true, show_lone_pairs: false, show_angle: true,
+      label: 'Every bond style at once', highlight_site: 5,
+    },
+  };
+
+  test('every case is a payload validate() would actually admit', () => {
+    // The schema's legal range must be a SUBSET of what renders correctly — so
+    // the trees below have to come from inside the schema, not beside it.
+    for (const [name, params] of Object.entries(CASES)) {
+      const r = mod.validate(params);
+      expect([name, r.ok]).toEqual([name, true]);
+    }
+  });
+
+  test('all three modes are exercised', () => {
+    // A harness that only ever rendered electron_domain would never lay
+    // anything out at the interaction-mode radius, which is the smaller one.
+    const modes = new Set<MoleculeMode>(Object.values(CASES).map((p) => p.mode));
+    expect([...modes].sort()).toEqual(['coordination', 'electron_domain', 'interaction']);
+  });
+
+  test.each(Object.keys(CASES))('renders %s and writes its tree', (name) => {
+    const params = CASES[name];
+    const tree = renderWidgetTree(mod, params, { highlight_site: params.highlight_site });
+    expect(tree).not.toBeNull();
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(
+      resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+      JSON.stringify(tree, null, 1)
+    );
+    const json = JSON.stringify(tree);
+    // Bonds, band rules and the marker are the three things that must exist:
+    // a tree missing any of them is a diagram with nothing for the coverage
+    // assertion to measure, or a marker that was conditionally unmounted.
+    expect(json).toContain('"d":');
+    expect(json).toContain('RNSVGLine');
+    expect(json).toContain('RNSVGCircle');
+    // Every ligand and the centre must reach the tree — a silently dropped
+    // label is the failure a bare "did it render" check would miss.
+    expect(json).toContain(`"content":"${params.centre}"`);
+    for (const lig of params.ligands) expect(json).toContain(`"content":"${lig}"`);
+  });
+
+  describe.each(Object.keys(CASES))('%s at small boards', (name) => {
+    const params = CASES[name];
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(
+        mod, params, { highlight_site: params.highlight_site }, box.width, box.height
+      );
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('the structure does not move while highlight_site travels (CLAUDE.md §3)', () => {
+    // THE ANIMATABLE JUSTIFICATION, as a check rather than an argument. The
+    // marker is a Circle and may move; every Line and Text here — band rules,
+    // bonds' labels, the centre atom, the readout — is scaffolding and may
+    // not. If a ligand label ever rode the moving end, this widget would be
+    // label-terminated and therefore snap-only, like the rest of the
+    // structural-formula family.
+    for (const name of Object.keys(CASES)) {
+      const a = renderWidgetTree(mod, CASES[name], { highlight_site: 0 });
+      const b = renderWidgetTree(mod, CASES[name], {
+        highlight_site: CASES[name].bond_pairs - 1,
+      });
+      expect([name, scaffoldingDiffs(a, b)]).toEqual([name, []]);
+      // Fractional too: a cue tweens through the values between two sites.
+      const mid = renderWidgetTree(mod, CASES[name], { highlight_site: 0.5 });
+      expect([name, scaffoldingDiffs(a, mid)]).toEqual([name, []]);
+    }
+  });
+
+  test('an unhighlighted board still renders the marker, parked invisible', () => {
+    // motionFor defaults a missing key to 0, and 0 is a VALID site index — so
+    // -1 is the sentinel and the Circle must exist either way. Mounting it
+    // conditionally would change the element count between two motion values,
+    // which scaffoldingDiffs reports as a params/motion violation.
+    const count = (n: unknown): number => {
+      if (!n || typeof n !== 'object') return 0;
+      if (Array.isArray(n)) return n.reduce((a: number, x) => a + count(x), 0);
+      const e = n as { children?: unknown };
+      return 1 + count(e.children);
+    };
+    const off = renderWidgetTree(mod, { ...CASES.ch4, highlight_site: -1 }, {});
+    expect(JSON.stringify(off)).toContain('"fillOpacity":0');
+    const on = renderWidgetTree(mod, { ...CASES.ch4, highlight_site: 1 }, { highlight_site: 1 });
+    expect(count(off)).toBe(count(on));
+    expect(JSON.stringify(on)).toContain('"fillOpacity":0.85');
+  });
+
+  test('highlight_site 0 is a drawable state, not a NaN', () => {
+    // motionFor defaults an unsupplied key to 0, so 0 has to render.
+    for (const name of Object.keys(CASES)) {
+      const tree = renderWidgetTree(mod, CASES[name], { highlight_site: 0 });
+      expect([name, /NaN|Infinity/.test(JSON.stringify(tree))]).toEqual([name, false]);
+    }
+  });
+
+  test('THE CIRCLE INVENTORY: exactly one Circle per render, at MARKER_R', () => {
+    // verify-render assertion 8 fails any two circles of the SAME radius closer
+    // than 2r + 4. A lone pair drawn as two <Circle>s at r = 2.4 and 6.4pt
+    // apart is 8.8 vs 6.4 — every payload with a lone pair would be a hard
+    // error. Both dots therefore live in ONE <Path>, and this widget's entire
+    // Circle inventory is the single travelling marker. With one circle in the
+    // tree, assertion 8 has no pair to compare and cannot fire — which is a
+    // structural guarantee, not a tuned clearance.
+    for (const name of Object.keys(CASES)) {
+      for (const box of [{ width: 900, height: 430 }, SPEC_SMALL]) {
+        const tree = renderWidgetTreeAt(
+          mod, CASES[name], { highlight_site: 0 }, box.width, box.height
+        );
+        const circles = (JSON.stringify(tree).match(/RNSVGCircle/g) ?? []).length;
+        expect([name, box.width, circles]).toEqual([name, box.width, 1]);
+      }
+    }
+  });
+
+  test('derived matches what computeDerived actually returns', () => {
+    // derived-consistency.test.ts iterates the REGISTRY, which molecule_struct
+    // is not in yet. Same assertion, made directly, so registration cannot be
+    // the first time this is checked.
+    expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());
+    for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
+  });
+
+  /**
+   * THE SCHEMA'S LEGAL RANGE MUST BE A SUBSET OF WHAT RENDERS CORRECTLY, and
+   * the extreme values are CORNERS rather than endpoints. The corners of this
+   * schema's box are (mode) x (electron domains) x (ligand width) x (bracket +
+   * charge + angle), and each is crossed with all three board sizes — asserting
+   * what verify-render's assertion 4 asserts, because a payload that collides
+   * at 343x236 must never be admitted in the first place.
+   */
+  test('every corner of the legal box lays out without a label collision', () => {
+    const corners: MoleculeStructParams[] = [];
+    for (const mode of ['electron_domain', 'coordination', 'interaction'] as MoleculeMode[]) {
+      for (const bp of [2, 6]) {
+        for (const lp of bp === 2 ? [0, 3] : [0]) {
+          for (const wide of [false, true]) {
+            const lig = mode === 'coordination' ? (wide ? 'NO2' : 'CN') : (wide ? 'WWWW' : 'W');
+            corners.push({
+              mode,
+              centre: wide ? 'Xe' : 'C',
+              bond_pairs: bp,
+              lone_pairs: lp,
+              ligands: new Array<string>(bp).fill(lig),
+              bond_orders: new Array<number>(bp).fill(wide ? 3 : 1),
+              bond_styles: new Array<BondStyle>(bp).fill(wide ? 'dative' : 'plain'),
+              charge: wide ? -4 : 0,
+              bracket: wide,
+              show_lone_pairs: true,
+              show_angle: wide,
+              label: wide ? 'X'.repeat(24) : '',
+              highlight_site: bp - 1,
+            });
+          }
+        }
+      }
+    }
+
+    for (const params of corners) {
+      const name = `${params.mode}/${params.bond_pairs}+${params.lone_pairs}/${params.ligands[0]}`;
+      // coordination mode needs a transition-metal centre with a real Z.
+      const p = params.mode === 'coordination' ? { ...params, centre: 'Fe' } : params;
+      const r = mod.validate(p);
+      expect([name, r.ok]).toEqual([name, true]);
+      for (const box of [SPEC_SMALL, REAL_SMALL, { width: 900, height: 430 }]) {
+        const boxes = moleculeLabelBoxes(p, box.width, box.height);
+        for (let i = 0; i < boxes.length; i++) {
+          for (let j = i + 1; j < boxes.length; j++) {
+            const a = boxes[i];
+            const b = boxes[j];
+            const hit = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+            expect([name, box.width, a.s, b.s, hit]).toEqual([name, box.width, a.s, b.s, false]);
           }
         }
       }

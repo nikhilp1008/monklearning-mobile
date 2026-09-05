@@ -26,6 +26,8 @@ import { reactionScheme } from '@/lib/widgets/reaction-scheme';
 import type { ReactionSchemeParams } from '@/lib/widgets/reaction-scheme';
 import { processFlow } from '@/lib/widgets/process-flow';
 import type { ProcessFlowParams } from '@/lib/widgets/process-flow';
+import { moleculeStruct } from '@/lib/widgets/molecule-struct';
+import type { MoleculeStructParams } from '@/lib/widgets/molecule-struct';
 import { useCueTrackByTime, type TimedCue } from '@/lib/widgets/use-cue-track';
 import type { WidgetTheme } from '@/lib/widgets/types';
 
@@ -130,7 +132,14 @@ function narrationTextAt(currentTimeMs: number): string {
   return text;
 }
 
-type Mode = 'manual' | 'narration' | 'classroom' | 'xy_plot' | 'reaction_scheme' | 'process_flow';
+type Mode =
+  | 'manual'
+  | 'narration'
+  | 'classroom'
+  | 'xy_plot'
+  | 'reaction_scheme'
+  | 'process_flow'
+  | 'molecule_struct';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -180,6 +189,14 @@ export default function DevWidgetPreviewScreen() {
             process_flow
           </Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('molecule_struct')}
+          style={[styles.pill, mode === 'molecule_struct' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'molecule_struct' && styles.pillTextActive]}>
+            molecule_struct
+          </Text>
+        </Pressable>
       </View>
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
@@ -187,6 +204,7 @@ export default function DevWidgetPreviewScreen() {
       {mode === 'xy_plot' && <XyPlotPreview />}
       {mode === 'reaction_scheme' && <ReactionSchemePreview />}
       {mode === 'process_flow' && <ProcessFlowPreview />}
+      {mode === 'molecule_struct' && <MoleculeStructPreview />}
     </View>
   );
 }
@@ -826,6 +844,7 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   modeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     padding: 10,
     borderBottomWidth: 1,

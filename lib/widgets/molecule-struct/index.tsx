@@ -1,0 +1,535 @@
+import React, { useMemo } from 'react';
+import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Animated, { useAnimatedProps } from 'react-native-reanimated';
+
+import {
+  EMPHASIS_STROKE, HAIRLINE_STROKE, LINE_STROKE, MARKER_R, PAD_SIDE,
+  READOUT_BAND, READOUT_SIZE, dirArrowHead,
+} from '../chrome';
+import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
+import {
+  ANGLE_SIZE, BASELINE_DY, BOND_STYLES, CENTRE_BASELINE_DY, CENTRE_SIZE,
+  CHARGE_SIZE, ELEMENTS, LEGEND_SIZE, LIGAND_SIZE, LIGANDS, MAX_BOND_ORDER,
+  MAX_BOND_PAIRS, MAX_CENTRE_CHARS, MAX_CHARGE, MAX_DOMAINS, MAX_LABEL_CHARS,
+  MAX_LIGAND_CHARS, MAX_LONE_PAIRS, MIN_BOND_PAIRS, MODES, REF_H, REF_W,
+  axeFor, bondPath, bracketPaths, derive, dottedPath, fitProblems, hashPath,
+  layout, legendText, readoutText, wedgePath,
+  type BondStyle, type MoleculeMode, type MoleculeStructParams,
+} from './vsepr-math';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/**
+ * Chrome constants — device points, NEVER a function of width/height
+ * (docs/small-screen-rendering-rules.md). The one quantity that varies with the
+ * board is the site radius R, computed from the MEASURED box in
+ * vsepr-math.ts's `layout()`.
+ */
+const BOND_STROKE = LINE_STROKE;
+const HASH_STROKE = HAIRLINE_STROKE;
+const ARC_STROKE = HAIRLINE_STROKE;
+const RULE_STROKE = HAIRLINE_STROKE;
+const BRACKET_STROKE = EMPHASIS_STROKE;
+
+/* ------------------------------------------------------------------ validate */
+
+const isStr = (v: unknown): v is string => typeof v === 'string';
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const isInt = (v: unknown): v is number => finite(v) && Number.isInteger(v);
+
+/**
+ * Total, throwing-free validation. Written before the component, because it
+ * defines the payload contract the model is prompted against.
+ *
+ * The last thing it does is the one that matters most: it lays the species out
+ * at REF_W x REF_H — the SMALLEST board this app checks — IN THE PAYLOAD'S OWN
+ * MODE, and refuses anything whose labels would collide or run off. Interaction
+ * mode gives up a legend row and therefore has the smallest site radius
+ * (72.4 vs 85.0 at 343x236), so "does it fit" genuinely differs by mode and
+ * checking one mode would not cover the others. That is CLAUDE.md §3's "the
+ * schema's legal range must be a SUBSET of what renders correctly", enforced
+ * constructively rather than trusted to a cap.
+ *
+ * Element symbols and ligand names are REJECTED when unknown or too long, never
+ * sliced. A sliced caption is a shorter sentence; a sliced formula is a
+ * different substance.
+ */
+function validate(raw: unknown): ValidationResult<MoleculeStructParams> {
+  const errors: string[] = [];
+  if (typeof raw !== 'object' || raw === null) {
+    return { ok: false, errors: ['params must be an object'] };
+  }
+  const r = raw as Record<string, unknown>;
+
+  const mode = r.mode ?? 'electron_domain';
+  if (!isStr(mode) || !(MODES as readonly string[]).includes(mode)) {
+    errors.push(`mode must be one of ${MODES.join(', ')}`);
+  }
+
+  const centre = r.centre;
+  if (!isStr(centre) || centre.trim().length < 1 || centre.trim().length > MAX_CENTRE_CHARS) {
+    errors.push(`centre must be a 1 to ${MAX_CENTRE_CHARS} character element symbol`);
+  } else if (!ELEMENTS[centre.trim()]) {
+    errors.push(
+      `centre "${centre.trim()}" is not in the element table — formal charge, ` +
+      'oxidation state and EAN all need its valence-electron count and atomic number'
+    );
+  }
+
+  const bp = r.bond_pairs;
+  if (!isInt(bp) || bp < MIN_BOND_PAIRS || bp > MAX_BOND_PAIRS) {
+    errors.push(
+      `bond_pairs must be an integer in ${MIN_BOND_PAIRS}..${MAX_BOND_PAIRS} — ` +
+      `seven sites are ${(360 / 7).toFixed(1)}° apart and their labels collide at ${REF_W}x${REF_H}`
+    );
+  }
+  const lp = r.lone_pairs ?? 0;
+  if (!isInt(lp) || lp < 0 || lp > MAX_LONE_PAIRS) {
+    errors.push(`lone_pairs must be an integer in 0..${MAX_LONE_PAIRS}`);
+  }
+  if (isInt(bp) && isInt(lp) && bp + lp > MAX_DOMAINS) {
+    errors.push(
+      `bond_pairs + lone_pairs must be at most ${MAX_DOMAINS} — ` +
+      "NCERT's VSEPR table covers 2 to 6 electron domains"
+    );
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  const n = bp as number;
+
+  const ligands = r.ligands;
+  if (!Array.isArray(ligands) || ligands.length !== n || ligands.some((s) => !isStr(s))) {
+    errors.push(`ligands must be an array of exactly bond_pairs (${n}) strings`);
+  } else if (ligands.some((s: string) => s.trim().length < 1 || s.trim().length > MAX_LIGAND_CHARS)) {
+    errors.push(
+      `every ligand must be 1 to ${MAX_LIGAND_CHARS} characters — a 5-char label at six ` +
+      `sites needs 38.8pt of separation and interaction mode gives 36.2pt at ${REF_W}x${REF_H}`
+    );
+  }
+
+  const rawOrders = r.bond_orders ?? [];
+  if (!Array.isArray(rawOrders)) {
+    errors.push('bond_orders must be an array');
+  } else if (rawOrders.length > 0 && rawOrders.length !== n) {
+    errors.push(`bond_orders must be empty or have exactly bond_pairs (${n}) entries`);
+  } else if (rawOrders.some((v) => !isInt(v) || v < 1 || v > MAX_BOND_ORDER)) {
+    errors.push(`every bond_order must be an integer in 1..${MAX_BOND_ORDER}`);
+  }
+
+  const rawStyles = r.bond_styles ?? [];
+  if (!Array.isArray(rawStyles)) {
+    errors.push('bond_styles must be an array');
+  } else if (rawStyles.length > 0 && rawStyles.length !== n) {
+    errors.push(`bond_styles must be empty or have exactly bond_pairs (${n}) entries`);
+  } else if (rawStyles.some((s) => !isStr(s) || !(BOND_STYLES as readonly string[]).includes(s))) {
+    errors.push(`every bond_style must be one of ${BOND_STYLES.join(', ')}`);
+  }
+
+  const charge = r.charge ?? 0;
+  if (!isInt(charge) || charge < -MAX_CHARGE || charge > MAX_CHARGE) {
+    errors.push(`charge must be an integer in -${MAX_CHARGE}..${MAX_CHARGE}`);
+  }
+
+  const hl = r.highlight_site ?? -1;
+  if (!(isInt(hl) && (hl === -1 || (hl >= 0 && hl < n)))) {
+    errors.push(`highlight_site must be -1 or an integer in 0..${n - 1}`);
+  }
+
+  for (const key of ['bracket', 'show_lone_pairs', 'show_angle'] as const) {
+    if (r[key] !== undefined && typeof r[key] !== 'boolean') {
+      errors.push(`${key} must be a boolean`);
+    }
+  }
+  if (r.label !== undefined && !isStr(r.label)) errors.push('label must be a string');
+
+  if (errors.length > 0) return { ok: false, errors };
+
+  const params: MoleculeStructParams = {
+    mode: mode as MoleculeMode,
+    centre: (centre as string).trim(),
+    bond_pairs: n,
+    lone_pairs: lp as number,
+    ligands: (ligands as string[]).map((s) => s.trim()),
+    bond_orders:
+      (rawOrders as number[]).length > 0 ? (rawOrders as number[]) : new Array<number>(n).fill(1),
+    bond_styles:
+      (rawStyles as BondStyle[]).length > 0
+        ? (rawStyles as BondStyle[])
+        : new Array<BondStyle>(n).fill('plain'),
+    charge: charge as number,
+    bracket: r.bracket === true,
+    show_lone_pairs: r.show_lone_pairs !== false,
+    show_angle: r.show_angle === true,
+    label: isStr(r.label) ? r.label.slice(0, MAX_LABEL_CHARS) : '',
+    highlight_site: hl as number,
+  };
+
+  // The AXE table is the geometry. A payload it has no row for cannot be drawn
+  // at all, so this is checked before anything measures anything.
+  if (!axeFor(params.bond_pairs, params.lone_pairs)) {
+    return {
+      ok: false,
+      errors: [
+        `no VSEPR geometry for ${params.bond_pairs} bond pairs and ${params.lone_pairs} lone pairs`,
+      ],
+    };
+  }
+
+  // Coordination mode reports oxidation state, coordination number and EAN, and
+  // all three are wrong without the ligand's own charge and denticity. An
+  // unknown ligand is refused HERE rather than defaulted to neutral-monodentate,
+  // which would report ox -4 for [Fe(CN)6]4- instead of +2.
+  if (params.mode === 'coordination') {
+    const unknown = params.ligands.filter((l) => !LIGANDS[l]);
+    if (unknown.length > 0) {
+      return {
+        ok: false,
+        errors: [
+          `coordination mode needs the charge and denticity of every ligand; ` +
+          `${unknown.join(', ')} ${unknown.length === 1 ? 'is' : 'are'} not in the ligand table`,
+        ],
+      };
+    }
+    // A chelate occupies ONE drawn site while donating two pairs, so
+    // bond_pairs would disagree with the electron-domain count and every
+    // geometry number on the board would be wrong; closing its ring also needs
+    // a bond between two ligand sites, which is a backbone walk this widget
+    // does not do. Refused rather than drawn approximately.
+    const chelating = params.ligands.filter((l) => (LIGANDS[l]?.denticity ?? 1) > 1);
+    if (chelating.length > 0) {
+      return {
+        ok: false,
+        errors: [
+          `${chelating.join(', ')} ${chelating.length === 1 ? 'is' : 'are'} polydentate; ` +
+          'this widget draws one site per ligand and cannot close a chelate ring — ' +
+          'enter the donor atoms as separate ligands',
+        ],
+      };
+    }
+  }
+
+  const problems = fitProblems(params, REF_W, REF_H);
+  if (problems.length > 0) return { ok: false, errors: problems };
+
+  return { ok: true, params };
+}
+
+/* ----------------------------------------------------------------- component */
+
+function MoleculeStruct({
+  params, motion, width, height, theme,
+}: WidgetRenderProps<MoleculeStructParams>) {
+  const site = motion.highlight_site;
+
+  /* Scaffolding: every position from params and the measured box only. */
+  const frame = useMemo(() => layout(params, width, height), [params, width, height]);
+  const entry = useMemo(
+    () => axeFor(params.bond_pairs, params.lone_pairs),
+    [params.bond_pairs, params.lone_pairs]
+  );
+  const readout = useMemo(() => readoutText(params, width), [params, width]);
+  const legend = useMemo(() => legendText(params, width), [params, width]);
+  const brackets = useMemo(() => bracketPaths(frame.bracket), [frame.bracket]);
+
+  const hasHighlight = params.highlight_site >= 0 && params.highlight_site < params.bond_pairs;
+
+  /**
+   * THE ONE ANIMATABLE PARAM, and the only thing in this tree that moves.
+   *
+   * WHY IT SURVIVES THE SNAP-ONLY RULE (CLAUDE.md §3). Everything else this
+   * widget could animate moves a <Text>: a bond that swings carries its ligand
+   * label with it, a shape change relabels every site, a lone pair appearing
+   * changes the readout. `SCAFFOLDING_TYPES` includes Text/TSpan and
+   * `scaffoldingDiffs` reports any motion-driven change to one as a
+   * params/motion violation — correctly, because a bond that swings while its
+   * label stays put is a wrong diagram, not a slightly-off one. So the whole
+   * structural-formula family ships snap-only, and this widget's single
+   * exception is an ANNOTATION that terminates in nothing: one Circle of radius
+   * MARKER_R travelling the site ring. Circle is not in SCAFFOLDING_TYPES, no
+   * label rides it, and the diagram underneath is drawn at full extent from
+   * `params` on every frame.
+   *
+   * IT ALWAYS RENDERS. Mounting it conditionally would change the element count
+   * between two motion values, which `scaffoldingDiffs` reports as a violation;
+   * and `motionFor` defaults an unsupplied key to 0, which is a VALID site
+   * index — so -1 is the "none" sentinel and 0 has to be a drawable state. It
+   * is: site 0, parked at fillOpacity 0.
+   */
+  const angles = useMemo(
+    () => (entry ? entry.bondSites.slice(0, params.bond_pairs) : [0]),
+    [entry, params.bond_pairs]
+  );
+  const { cx, cy, markerR } = frame;
+  const nSites = angles.length;
+  const markerProps = useAnimatedProps(() => {
+    const raw = site.value;
+    const t = Math.min(nSites - 1, Math.max(0, raw));
+    const i0 = Math.floor(t);
+    const i1 = Math.min(nSites - 1, i0 + 1);
+    const f = t - i0;
+    // Shortest-arc interpolation: the convention array is not monotonic (the
+    // tetrahedral row runs 135, 45, 225, 315), so a plain lerp would send the
+    // marker the long way round.
+    let delta = angles[i1] - angles[i0];
+    while (delta > 180) delta -= 360;
+    while (delta < -180) delta += 360;
+    const a = (angles[i0] + delta * f) * (Math.PI / 180);
+    return {
+      cx: cx + Math.cos(a) * markerR,
+      cy: cy - Math.sin(a) * markerR,
+      fillOpacity: raw >= 0 && hasHighlight ? 0.85 : 0,
+    };
+  });
+
+  const bondColour = (i: number) =>
+    i === params.highlight_site ? theme.accent : theme.ink;
+
+  return (
+    <Svg width={width} height={height}>
+      {/*
+        TWO full-width hairline rules bracketing the species band. Not
+        decoration — the same fix reaction_scheme and data_table_trend use for
+        the same reason. verify-render's boundsOf understands
+        Path/Circle/Line/Rect and NOT text, and a molecule is mostly text: CO2
+        drawn as two collinear bonds has a bounding box roughly 150x0, i.e. 0%
+        coverage and a hard error on assertion 2. The rules give the tree real
+        vertical extent — 77.9% at 343x236.
+      */}
+      <Line
+        x1={PAD_SIDE} y1={frame.bandTop} x2={width - PAD_SIDE} y2={frame.bandTop}
+        stroke={theme.rule} strokeWidth={RULE_STROKE}
+      />
+      <Line
+        x1={PAD_SIDE} y1={frame.bandBottom} x2={width - PAD_SIDE} y2={frame.bandBottom}
+        stroke={theme.rule} strokeWidth={RULE_STROKE}
+      />
+
+      {/* The brackets of a complex ion. Two polyline Paths, M/L only. */}
+      {params.bracket && (
+        <G>
+          <Path d={brackets[0]} stroke={theme.ink} strokeWidth={BRACKET_STROKE} fill="none" />
+          <Path d={brackets[1]} stroke={theme.ink} strokeWidth={BRACKET_STROKE} fill="none" />
+        </G>
+      )}
+
+      {/* The angle arc. Drawn between the DRAWN directions of two sites and
+          labelled with the PHYSICAL angle from the AXE table — deliberately
+          two different numbers. See vsepr-math.ts's header. */}
+      {frame.showAngle && (
+        <G>
+          <Path d={frame.arcD} stroke={theme.inkMuted} strokeWidth={ARC_STROKE} fill="none" />
+          <SvgText
+            x={frame.angleX}
+            y={frame.angleY + BASELINE_DY}
+            fill={theme.inkMuted}
+            fontSize={ANGLE_SIZE}
+            fontFamily={theme.monoFontFamily}
+            textAnchor="middle"
+          >
+            {frame.angleLabel}
+          </SvgText>
+        </G>
+      )}
+
+      {/* Bonds. One G per site: the shaft, plus a head for a dative bond. */}
+      {frame.sites.map((s) => {
+        const colour = bondColour(s.index);
+        if (s.style === 'wedge') {
+          return <Path key={`b${s.index}`} d={wedgePath(s)} fill={colour} />;
+        }
+        if (s.style === 'dash') {
+          return (
+            <Path
+              key={`b${s.index}`}
+              d={hashPath(s)}
+              stroke={colour}
+              strokeWidth={HASH_STROKE}
+              strokeLinecap="round"
+              fill="none"
+            />
+          );
+        }
+        if (s.style === 'hbond') {
+          return (
+            <Path
+              key={`b${s.index}`}
+              d={dottedPath(s)}
+              stroke={theme.inkMuted}
+              strokeWidth={BOND_STROKE}
+              strokeLinecap="round"
+              fill="none"
+            />
+          );
+        }
+        if (s.style === 'dative') {
+          return (
+            <G key={`b${s.index}`}>
+              <Path
+                d={bondPath(s)}
+                stroke={colour}
+                strokeWidth={BOND_STROKE}
+                strokeLinecap="round"
+                fill="none"
+              />
+              <Path
+                d={dirArrowHead(
+                  (s.x0 + s.x1) / 2,
+                  (s.y0 + s.y1) / 2,
+                  Math.atan2(s.y1 - s.y0, s.x1 - s.x0)
+                )}
+                fill={colour}
+              />
+            </G>
+          );
+        }
+        return (
+          <Path
+            key={`b${s.index}`}
+            d={bondPath(s)}
+            stroke={colour}
+            strokeWidth={BOND_STROKE}
+            strokeLinecap="round"
+            fill="none"
+          />
+        );
+      })}
+
+      {/*
+        Lone pairs. BOTH dots of a pair are ONE Path with two closed polygon
+        subpaths — never two <Circle>s. Two circles 6.4pt apart at r=2.4 are
+        below verify-render's 2r+4 = 8.8 floor, so every payload with a lone
+        pair would be a hard error: NH3, H2O, SO2, XeF2, ozone, every amine and
+        every alcohol. This widget's whole Circle inventory is the ONE highlight
+        marker below.
+      */}
+      {frame.lonePairs.map((l) => (
+        <Path key={`lp${l.angleDeg}`} d={l.d} fill={theme.ink} />
+      ))}
+
+      {/* The travelling marker. Always mounted; parked by fillOpacity. */}
+      <AnimatedCircle animatedProps={markerProps} r={MARKER_R} fill={theme.accent} />
+
+      {/* Ligand labels, at exactly radius R. */}
+      {frame.sites.map((s) => (
+        <SvgText
+          key={`l${s.index}`}
+          x={s.lx}
+          y={s.ly + BASELINE_DY}
+          fill={s.index === params.highlight_site ? theme.accent : theme.ink}
+          fontSize={LIGAND_SIZE}
+          fontFamily={theme.fontFamily}
+          textAnchor="middle"
+        >
+          {s.label}
+        </SvgText>
+      ))}
+
+      {/* The central atom — the subject of the diagram, so it is larger. */}
+      <SvgText
+        x={frame.cx}
+        y={frame.cy + CENTRE_BASELINE_DY}
+        fill={theme.ink}
+        fontSize={CENTRE_SIZE}
+        fontFamily={theme.fontFamily}
+        textAnchor="middle"
+      >
+        {params.centre}
+      </SvgText>
+
+      {/* The charge, at the top-right of the bracket box whether or not the
+          bracket is drawn — the one placement that cannot land on a lone
+          pair's dots. */}
+      {frame.chargeText !== '' && (
+        <SvgText
+          x={frame.chargeX}
+          y={frame.chargeY}
+          fill={theme.ink}
+          fontSize={CHARGE_SIZE}
+          fontFamily={theme.fontFamily}
+        >
+          {frame.chargeText}
+        </SvgText>
+      )}
+
+      <SvgText
+        x={PAD_SIDE}
+        y={READOUT_BAND - READOUT_SIZE * 0.5}
+        fill={theme.ink}
+        fontSize={READOUT_SIZE}
+        fontFamily={theme.monoFontFamily}
+      >
+        {readout}
+      </SvgText>
+
+      {legend !== '' && (
+        <SvgText
+          x={PAD_SIDE}
+          y={frame.legendY}
+          fill={theme.inkMuted}
+          fontSize={LEGEND_SIZE}
+          fontFamily={theme.monoFontFamily}
+        >
+          {legend}
+        </SvgText>
+      )}
+    </Svg>
+  );
+}
+
+/* -------------------------------------------------------------------- module */
+
+export const moleculeStruct: WidgetModule<MoleculeStructParams> = {
+  id: 'molecule_struct',
+  version: 1,
+  /**
+   * NCERT Class 11 Unit 4, Table 4.6's own first row: methane. The default
+   * payload is the one that makes the drawn-vs-reported distinction visible —
+   * four bonds drawn 90° apart on the page, annotated 109.5°.
+   */
+  defaults: {
+    mode: 'electron_domain',
+    centre: 'C',
+    bond_pairs: 4,
+    lone_pairs: 0,
+    ligands: ['H', 'H', 'H', 'H'],
+    bond_orders: [1, 1, 1, 1],
+    bond_styles: ['plain', 'plain', 'wedge', 'dash'],
+    charge: 0,
+    bracket: false,
+    show_lone_pairs: true,
+    show_angle: true,
+    label: 'Methane',
+    highlight_site: -1,
+  },
+  /**
+   * Exactly one, and it moves exactly one Circle. See the component for the
+   * full argument against the snap-only rule; the short version is that
+   * everything else this widget could animate is LABEL-TERMINATED, and the
+   * marker is not.
+   */
+  animatable: ['highlight_site'],
+  derived: [
+    'steric_number', 'ideal_angle_deg', 'bond_angle_deg', 'secondary_angle_deg',
+    'formal_charge_centre', 'oxidation_state', 'coordination_number', 'ean',
+    'ligand_count', 'valence_electrons_total',
+  ],
+  computeDerived: derive,
+  derivedAliases: {
+    steric_number: ['electron domains', 'steric number', 'domains', 'electron pairs'],
+    ideal_angle_deg: ['ideal angle', 'parent angle', 'undistorted angle'],
+    bond_angle_deg: ['bond angle', 'the angle', 'angle between the bonds'],
+    secondary_angle_deg: ['axial angle', 'the other angle', 'second angle'],
+    formal_charge_centre: ['formal charge', 'charge on the central atom'],
+    oxidation_state: ['oxidation state', 'oxidation number', 'the metal state'],
+    coordination_number: ['coordination number', 'donor atoms', 'how many donors'],
+    ean: ['effective atomic number', 'EAN', 'noble gas count'],
+    ligand_count: ['ligands', 'how many ligands', 'attached groups'],
+    valence_electrons_total: [
+      'valence electrons', 'electrons around the centre', 'expanded octet', 'the octet',
+    ],
+  },
+  validate,
+  Component: MoleculeStruct,
+};
+
+export type { MoleculeStructParams, MoleculeMode, BondStyle };

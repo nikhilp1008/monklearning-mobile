@@ -1,193 +1,277 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { RecordingPresets, createAudioPlayer, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
-import { MathLine } from '@/components/math-line';
-import { FollowUpTurn, askAboutDoubt } from '@/lib/doubt-followup';
+import { SolutionSteps } from '@/components/solution-steps';
+import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUp } from '@/lib/doubt-followup';
+import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
- * Asking about the solution without leaving it.
+ * Asking about the solution, out loud, without leaving it.
  *
- * A follow-up is a question about the working directly above, so sending the
- * student to a different screen to ask it means losing the thing they are
- * asking about. This sits over the solution instead, and the solution is still
- * there when it closes.
+ * It listens the moment it opens. A student who has just pressed "ask a
+ * follow-up" has a question in their head right now, and a text box asks them
+ * to type it instead — which is a different, slower thing, and turns a tutor
+ * into a chatbot.
  *
- * The exchange lives here and nowhere else. It is not saved, by decision: it
- * belongs to this sitting with this solution, and keeping it would mean a
- * table and a retention rule for a conversation nobody asked to keep.
+ * The answer arrives as the same numbered steps the solution above uses, and is
+ * read aloud in the teacher the student chose. The steps are useful in silence,
+ * so the speech is fetched separately and its absence costs nothing.
  */
 
 const INK = '#1C1A16';
-const INK_70 = '#4A463D';
 const INK_50 = '#8A8478';
 const PAPER = '#FFFFFF';
 const HAIR = 'rgba(28,26,22,0.12)';
-const WASH = 'rgba(28,26,22,0.045)';
+const LISTENING = '#C53A2B';
+
+type Phase = 'listening' | 'thinking' | 'answered' | 'failed';
 
 type FollowUpSheetProps = {
   doubtId: string;
-  /** Shown above the conversation so it is clear what is being asked about. */
   questionText: string;
   onClose: () => void;
 };
 
 export function FollowUpSheet({ doubtId, questionText, onClose }: FollowUpSheetProps) {
-  // In POINTS, not a percentage. A percentage maxHeight resolves against the
-  // parent's height, and a KeyboardAvoidingView that is only as tall as its
-  // content has none to resolve against — so the sheet collapsed to nothing
-  // while the scrim behind it showed, which reads as a broken tap.
   const { height } = useWindowDimensions();
   const styles = useMemo(() => createStyles(height), [height]);
-  const [turns, setTurns] = useState<FollowUpTurn[]>([]);
-  const [draft, setDraft] = useState('');
-  /** The reply as it arrives, before it becomes a finished turn. */
-  const [streaming, setStreaming] = useState<string | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+
+  const [phase, setPhase] = useState<Phase>('listening');
+  const [heard, setHeard] = useState<string | null>(null);
+  const [steps, setSteps] = useState<FollowUpStep[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
+  const [seconds, setSeconds] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const turnsRef = useRef<FollowUpTurn[]>([]);
+  const startedRef = useRef(false);
 
-  // Leaving mid-reply stops it. Nothing is stored, so an answer nobody is
-  // reading is only costing tokens.
-  useEffect(() => () => abortRef.current?.abort(), []);
+  /** Everything stops when the sheet goes: nothing here is saved. */
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      playerRef.current?.remove();
+      recorder.stop().catch(() => {});
+    },
+    [recorder]
+  );
 
-  const busy = streaming !== null;
+  // A held recording with no visible clock feels broken within about three
+  // seconds, so the seconds are shown from the first one.
+  useEffect(() => {
+    if (phase !== 'listening') return;
+    const id = setInterval(() => setSeconds((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
-  async function send(question: string) {
-    const asked = question.trim();
-    if (!asked || busy) return;
-    setDraft('');
+  const listen = useCallback(async () => {
     setError(null);
-    const asOf = [...turns, { role: 'user' as const, content: asked }];
-    setTurns(asOf);
-    setStreaming('');
-    abortRef.current?.abort();
+    setHeard(null);
+    setSteps([]);
+    setSeconds(0);
+    setPhase('listening');
+    try {
+      const granted = await requestRecordingPermissionsAsync();
+      if (!granted.granted) {
+        setError('Monk needs the microphone to hear your question. Turn it on in Settings.');
+        setPhase('failed');
+        return;
+      }
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch {
+      setError('Could not start listening. Try again.');
+      setPhase('failed');
+    }
+  }, [recorder]);
+
+  // Listening starts with the sheet, once — React's dev-mode double-invoke
+  // would otherwise open two recorders and leave one running.
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    listen();
+  }, [listen]);
+
+  async function askWhatWasHeard() {
+    let uri: string | null = null;
+    try {
+      await recorder.stop();
+      uri = recorder.uri ?? null;
+    } catch {
+      // Fall through: an unstoppable recorder still has whatever it captured.
+    }
+    if (!uri) {
+      setError('Nothing was recorded. Try again.');
+      setPhase('failed');
+      return;
+    }
+
+    setPhase('thinking');
     const controller = new AbortController();
     abortRef.current = controller;
+    const arrived: FollowUpStep[] = [];
+    let spoken = '';
+    let asked = '';
 
-    let reply = '';
     try {
-      await askAboutDoubt(
+      await askAboutDoubtAloud(
         doubtId,
-        asked,
-        // The turns BEFORE this question — the server appends it itself.
-        turns,
+        uri,
+        turnsRef.current,
         {
-          onToken: (text) => {
-            reply += text;
-            setStreaming(reply);
+          onTranscript: (text) => {
+            asked = text;
+            setHeard(text);
+          },
+          onStep: (step) => {
+            arrived.push(step);
+            setSteps([...arrived]);
+            setPhase('answered');
+          },
+          onSpoken: (text) => {
+            spoken = text;
           },
         },
         controller.signal
       );
       if (controller.signal.aborted) return;
-      setTurns([...asOf, { role: 'assistant', content: reply }]);
+      setPhase('answered');
+      turnsRef.current = [
+        ...turnsRef.current,
+        { role: 'user', content: asked },
+        { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
+      ];
+      if (spoken) void play(spoken, controller);
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'That did not go through.');
-      // The question stays on screen — retyping it would be the second
-      // annoyance after the failure.
-    } finally {
-      if (!controller.signal.aborted) setStreaming(null);
+      setPhase('failed');
     }
   }
+
+  async function play(spoken: string, controller: AbortController) {
+    try {
+      const uri = await speakFollowUp(doubtId, spoken);
+      if (controller.signal.aborted || !uri) return;
+      playerRef.current?.remove();
+      const player = createAudioPlayer({ uri });
+      playerRef.current = player;
+      player.play();
+    } catch {
+      // The steps are on screen and readable. Speech that will not synthesize
+      // is a missing extra, not a failed answer.
+    }
+  }
+
+  const rail = useMemo(
+    () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
+    [steps]
+  );
 
   return (
     <View style={styles.root}>
       <Pressable style={styles.scrim} onPress={onClose} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.sheetWrap}>
-        <View style={styles.sheet}>
-          <SafeAreaView edges={['bottom']} style={styles.flex}>
-            <View style={styles.handle} />
-            <View style={styles.header}>
-              <Text style={styles.title}>Ask about this</Text>
-              <Pressable onPress={onClose} hitSlop={10}>
-                <Text style={styles.close}>Done</Text>
-              </Pressable>
-            </View>
-            <Text style={styles.about} numberOfLines={2}>
-              {questionText}
+      <View style={styles.sheet}>
+        <SafeAreaView edges={['bottom']} style={styles.flex}>
+          <View style={styles.handle} />
+          <View style={styles.header}>
+            <Text style={styles.title}>
+              {phase === 'listening' ? 'Listening…' : 'Ask about this'}
             </Text>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <Text style={styles.close}>Done</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.about} numberOfLines={2}>
+            {questionText}
+          </Text>
 
-            <ScrollView
-              ref={scrollRef}
-              style={styles.thread}
-              contentContainerStyle={styles.threadContent}
-              onContentSizeChange={() =>
-                scrollRef.current?.scrollToEnd({ animated: true })
-              }
-              keyboardShouldPersistTaps="handled">
-              {turns.length === 0 && streaming === null && (
-                <Text style={styles.empty}>
-                  Ask anything about the working above — where a step came from, why a
-                  formula applies, what to revise.
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            keyboardShouldPersistTaps="handled">
+            {!!heard && <Text style={styles.heard}>“{heard}”</Text>}
+
+            {phase === 'listening' && (
+              <View style={styles.listening}>
+                <View style={styles.pulse}>
+                  <MicIcon />
+                </View>
+                <Text style={styles.listeningHint}>
+                  Ask your question out loud — where a step came from, why a formula
+                  applies. Tap done speaking when you finish.
                 </Text>
-              )}
-              {turns.map((turn, i) =>
-                turn.role === 'user' ? (
-                  <View key={i} style={styles.asked}>
-                    <Text style={styles.askedText}>{turn.content}</Text>
-                  </View>
-                ) : (
-                  <MathLine
-                    key={i}
-                    text={turn.content}
-                    style={styles.replyText}
-                    fontSize={15}
-                    color={INK}
-                  />
-                )
-              )}
-              {streaming !== null &&
-                (streaming ? (
-                  <MathLine
-                    text={streaming}
-                    style={styles.replyText}
-                    fontSize={15}
-                    color={INK}
-                  />
-                ) : (
-                  <ActivityIndicator style={styles.thinking} color={INK_50} />
-                ))}
-              {!!error && <Text style={styles.error}>{error}</Text>}
-            </ScrollView>
+                <Text style={styles.clock}>{seconds}s</Text>
+              </View>
+            )}
 
-            <View style={styles.composer}>
-              <TextInput
-                style={styles.input}
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Ask a follow-up…"
-                placeholderTextColor={INK_50}
-                multiline
-                returnKeyType="send"
-                onSubmitEditing={() => send(draft)}
-                editable={!busy}
-              />
-              <Pressable
-                style={[styles.send, (!draft.trim() || busy) && styles.sendOff]}
-                disabled={!draft.trim() || busy}
-                onPress={() => send(draft)}>
-                <Text style={styles.sendText}>Ask</Text>
+            {phase === 'thinking' && !heard && (
+              <ActivityIndicator style={styles.thinking} color={INK_50} />
+            )}
+            {phase === 'thinking' && !!heard && (
+              <Text style={styles.working}>Working it out…</Text>
+            )}
+
+            {rail.length > 0 && (
+              <View style={styles.answer}>
+                <SolutionSteps steps={rail} size="compact" />
+              </View>
+            )}
+
+            {!!error && <Text style={styles.error}>{error}</Text>}
+          </ScrollView>
+
+          <View style={styles.actions}>
+            {phase === 'listening' ? (
+              <Pressable style={styles.primary} onPress={askWhatWasHeard}>
+                <Text style={styles.primaryText}>Done speaking</Text>
               </Pressable>
-            </View>
-          </SafeAreaView>
-        </View>
-      </KeyboardAvoidingView>
+            ) : (
+              <Pressable
+                style={[styles.primary, phase === 'thinking' && styles.primaryOff]}
+                disabled={phase === 'thinking'}
+                onPress={listen}>
+                <Text style={styles.primaryText}>
+                  {phase === 'failed' ? 'Try again' : 'Ask another'}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        </SafeAreaView>
+      </View>
     </View>
+  );
+}
+
+function MicIcon() {
+  return (
+    <Svg viewBox="0 0 24 24" width={26} height={26} fill="none">
+      <Path
+        d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"
+        stroke={PAPER}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 11a7 7 0 0 0 14 0M12 18v3"
+        stroke={PAPER}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+    </Svg>
   );
 }
 
@@ -196,16 +280,11 @@ function createStyles(height: number) {
     root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
     flex: { flex: 1 },
     scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,12,9,0.35)' },
-    sheetWrap: { width: '100%' },
     sheet: {
       backgroundColor: PAPER,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingHorizontal: 20,
-      // A definite height, not a ceiling. `maxHeight` alone leaves the sheet
-      // sized by its children, and inside a KeyboardAvoidingView that has no
-      // height of its own that resolved to nothing — so the scrim painted over
-      // the solution and the sheet itself was invisible.
       height: Math.round(height * 0.62),
     },
     handle: {
@@ -234,61 +313,44 @@ function createStyles(height: number) {
       borderBottomWidth: 1,
       borderBottomColor: HAIR,
     },
-    // Grows with the conversation up to the sheet's own ceiling, rather than
-    // claiming the whole sheet while it is still empty.
-    // Takes the room the header and composer do not.
-    thread: { flex: 1 },
-    threadContent: { paddingVertical: 16, gap: 16 },
-    empty: {
+    body: { flex: 1 },
+    bodyContent: { paddingVertical: 16, gap: 16 },
+    heard: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      fontSize: 16,
+      lineHeight: 24,
+      color: INK,
+    },
+    listening: { alignItems: 'center', gap: 12, paddingVertical: 18 },
+    pulse: {
+      width: 62,
+      height: 62,
+      borderRadius: 31,
+      backgroundColor: LISTENING,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    listeningHint: {
       fontFamily: 'AnekLatin_400Regular',
       fontSize: 14,
       lineHeight: 21,
       color: INK_50,
+      textAlign: 'center',
     },
-    asked: {
-      alignSelf: 'flex-end',
-      maxWidth: '86%',
-      backgroundColor: WASH,
-      borderRadius: 12,
-      paddingVertical: 9,
-      paddingHorizontal: 13,
-    },
-    askedText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 15, color: INK },
-    replyText: {
-      alignSelf: 'stretch',
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: 15,
-      lineHeight: 15 * 1.6,
-      color: INK_70,
-    },
+    clock: { fontFamily: 'AnekLatin_700Bold', fontSize: 13, color: LISTENING },
     thinking: { alignSelf: 'flex-start' },
-    error: { fontFamily: 'AnekLatin_400Regular', fontSize: 14, color: '#C53A2B' },
-    composer: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: 10,
-      paddingTop: 10,
-      paddingBottom: 10,
-      borderTopWidth: 1,
-      borderTopColor: HAIR,
-    },
-    input: {
-      flex: 1,
-      maxHeight: 110,
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: 15,
-      color: INK,
-      paddingVertical: 10,
-    },
-    send: {
-      height: 40,
-      paddingHorizontal: 18,
-      borderRadius: 12,
+    working: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 14, color: INK_50 },
+    answer: { paddingTop: 4 },
+    error: { fontFamily: 'AnekLatin_400Regular', fontSize: 14, color: LISTENING },
+    actions: { paddingTop: 10, paddingBottom: 10 },
+    primary: {
+      height: 52,
+      borderRadius: 14,
       backgroundColor: INK,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    sendOff: { opacity: 0.35 },
-    sendText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 15, color: PAPER },
+    primaryOff: { opacity: 0.35 },
+    primaryText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 16, color: PAPER },
   });
 }
