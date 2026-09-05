@@ -22,8 +22,8 @@ import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
-import { latexToText } from '@/lib/latex-text';
 import { friendlyLoadError } from '@/lib/api';
+import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {

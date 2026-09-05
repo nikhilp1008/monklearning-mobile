@@ -423,11 +423,11 @@ export default function M12Ch01Sec37({ currentTime, reveals, language }: ScenePr
         <T x={730} y={522} size={17} fill={INK} weight={800} anchor="start">logₐ x   =</T>
       </Fade>
       <Fade on={beat >= 7} delay={dl(7, 1.8)}>
-        <T x={872} y={510} size={15} fill={GREEN_DARK} weight={800}>log<TSpan dy="0.32em" fontSize="0.7em">b</TSpan> x</T>
+        <T x={872} y={510} size={15} fill={GREEN_DARK} weight={800}>log<TSpan dy={4.8} fontSize={10.5}>b</TSpan> x</T>
       </Fade>
       <Draw on={beat >= 7} delay={dl(7, 2.2)} d="M 838 521 H 906" stroke={GREEN_DARK} sw={2.2} dur={0.35} />
       <Fade on={beat >= 7} delay={dl(7, 2.6)}>
-        <T x={872} y={542} size={15} fill={GREEN_DARK} weight={800}>log<TSpan dy="0.32em" fontSize="0.7em">b</TSpan> a</T>
+        <T x={872} y={542} size={15} fill={GREEN_DARK} weight={800}>log<TSpan dy={4.8} fontSize={10.5}>b</TSpan> a</T>
       </Fade>
       <Fade on={beat >= 7} delay={dl(7, 4)}>
         <T x={730} y={566} size={18} fill={INK} weight={800} anchor="start">a</T>

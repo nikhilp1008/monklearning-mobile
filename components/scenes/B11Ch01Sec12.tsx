@@ -105,7 +105,7 @@ export default function B11Ch01Sec12({ currentTime, reveals, language }: ScenePr
           fontWeight={800}
           fontStyle={italic ? "italic" : "normal"}
           fill={AMBER_DARK}
-          fontFamily="var(--font-anek-latin), sans-serif"
+          fontFamily='AnekLatin_800ExtraBold'
         >
           Mangifera
         </SvgText>
@@ -117,7 +117,7 @@ export default function B11Ch01Sec12({ currentTime, reveals, language }: ScenePr
           fontWeight={800}
           fontStyle={italic ? "italic" : "normal"}
           fill={GREEN}
-          fontFamily="var(--font-anek-latin), sans-serif"
+          fontFamily='AnekLatin_800ExtraBold'
         >
           indica
         </SvgText>
@@ -232,7 +232,7 @@ export default function B11Ch01Sec12({ currentTime, reveals, language }: ScenePr
           fontSize={28}
           fontWeight={700}
           fill={RED}
-          fontFamily="var(--font-anek-latin), sans-serif"
+          fontFamily='AnekLatin_700Bold'
         >
           Linn.
         </SvgText>

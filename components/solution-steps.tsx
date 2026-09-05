@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { MathLine } from '@/components/math-line';
 import { ParsedStep } from '@/lib/solution-steps';
 
 /**
@@ -61,6 +62,10 @@ type SolutionStepsProps = {
   /** Closes the rail with a ✓ marker. Omit when the answer is already obvious
    *  from the screen around it — a picked MCQ option, say. */
   answer?: string | null;
+  /** The answer before conversion, so its fraction can be stacked. */
+  answerRaw?: string | null;
+  /** For a choice question, the label(s) the answer landed on — ["C"]. */
+  answerLabels?: string[] | null;
   answerLabel?: string;
   size?: SolutionStepsSize;
   /** Trailing line under the final answer, e.g. a step count. */
@@ -70,11 +75,16 @@ type SolutionStepsProps = {
 export function SolutionSteps({
   steps,
   answer,
+  answerRaw,
+  answerLabels,
   answerLabel = 'Final answer',
   size = 'full',
   footer,
 }: SolutionStepsProps) {
   const styles = useMemo(() => createStyles(size), [size]);
+  // The same metrics createStyles uses, needed here because a stacked fraction
+  // has to be sized against the type it sits in.
+  const m = METRICS[size];
 
   return (
     <View style={styles.steps}>
@@ -91,12 +101,23 @@ export function SolutionSteps({
               // Hugs its own text rather than stretching to a full-width bar —
               // the design calls this out as the earlier mistake.
               <View key={j} style={styles.mathWrap}>
-                <Text style={styles.mathText}>{line.text}</Text>
+                <MathLine
+                  text={line.raw ?? line.text}
+                  style={styles.mathText}
+                  mathStyle={styles.mathText}
+                  fontSize={m.math}
+                  color={INK}
+                />
               </View>
             ) : (
-              <Text key={j} style={styles.proseText}>
-                {line.text}
-              </Text>
+              <MathLine
+                key={j}
+                text={line.raw ?? line.text}
+                style={styles.proseText}
+                mathStyle={styles.inlineMath}
+                fontSize={m.prose}
+                color={INK_70}
+              />
             )
           )}
         </View>
@@ -109,7 +130,20 @@ export function SolutionSteps({
           </View>
           <Text style={styles.finalLabel}>{answerLabel}</Text>
           <View style={styles.answerWrap}>
-            <Text style={styles.answerText}>{answer}</Text>
+            {/* The option it landed on, beside the answer itself. The API
+                stores a choice question's answer as the option's TEXT, which
+                reads well on its own but leaves the student matching it back
+                to the paper by eye — the letter is what they actually check
+                against. */}
+            {!!answerLabels?.length && (
+              <Text style={styles.answerPick}>({answerLabels.join(', ')})</Text>
+            )}
+            <MathLine
+              text={answerRaw ?? answer}
+              style={styles.answerText}
+              fontSize={m.answer}
+              color={GREEN_INK}
+            />
           </View>
           {footer}
         </View>
@@ -183,6 +217,18 @@ function createStyles(size: SolutionStepsSize) {
       lineHeight: m.prose * 1.6,
       color: INK_70,
     },
+    /**
+     * A formula, a quantity or a unit sitting inside a sentence.
+     *
+     * The same weight the whole-line maths uses, and darker than the prose
+     * around it — these are what a student scans a step for, and until now
+     * they took the prose weight inline and the maths weight on their own
+     * line, which made one formula look like two different things.
+     */
+    inlineMath: {
+      fontFamily: 'AnekLatin_600SemiBold',
+      color: INK,
+    },
     mathWrap: {
       alignSelf: 'flex-start',
       maxWidth: '100%',
@@ -205,7 +251,15 @@ function createStyles(size: SolutionStepsSize) {
       letterSpacing: -0.02 * m.title,
       color: GREEN,
     },
+    answerPick: {
+      fontFamily: 'AnekLatin_800ExtraBold',
+      fontSize: m.answer,
+      color: GREEN_INK,
+    },
     answerWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
       alignSelf: 'flex-start',
       maxWidth: '100%',
       paddingVertical: size === 'full' ? 8 : 6,

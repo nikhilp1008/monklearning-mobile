@@ -6490,6 +6490,153 @@ not do, never what the photo lacked — a reader can miss a question that is
 plainly there, so "no question in that shot" is a claim we cannot support and it
 blames the student for a failure that may be entirely ours.
 
+## The classroom round, and the day it was lost
+
+Everything in this section was built, verified on the simulator, and then
+**vanished from the working tree** — never committed, and a series of
+`pull --ff-only` fast-forwards moved HEAD from `cff0a1b` to `271b2d0` over the
+Snap work. It was not in the stash either. Rebuilt against the new HEAD and
+committed this time, one commit per idea. The lesson is the boring one: work
+that only exists in the working tree does not exist.
+
+### Mount a checkpoint when it is heard, not when it is sent
+
+Reported from the phone: the chips came up, the question did not — *"I just saw
+the answers."* The chips were never the problem. `turn_complete` says the server
+finished *sending*; `AudioPlaybackQueue.onItemStart` writes each sentence to the
+caption when its clip *starts playing*. On a queue buffered several sentences
+ahead those are 10-20s apart, so the order on screen was: chips mount → question
+written to the caption → the still-queued sentences overwrite it. Three answer
+chips above a line from the middle of the explanation.
+
+The gate is the drain now. `playback.onQueueDrained` had existed and fired since
+the queue was written and had never been assigned to anything. Web computes the
+remaining playback time by hand (`armTurnCompleteWait`); the queue already knows
+when it runs dry.
+
+Three ways out, because a gate needs them or "too early" becomes "never":
+`DRAIN_WATCHDOG_MS` (20s) for a stalled queue, `TURN_ERROR_RECOVERY_MS` (15s)
+mirroring web for a turn that errors and never sends `turn_complete`, and
+`dropHeldTurn` disarming the watchdog — `playback.clear()` does not fire
+`onQueueDrained`, so a barge-in would leave it armed to flush an abandoned turn
+onto the next one.
+
+Caught on the way: `onTurnComplete` was the only thing clearing `isThinking`, so
+deferring it would have pinned "Drona is thinking" across her whole reply. It
+clears on the first caption or board line now.
+
+### No chips without the question they answer
+
+Only the fallback `UNDERSTANDING_CHIPS` read on their own. A real quiz turn
+sends bare content — `Right direction` / `Left direction` / `Upward direction`,
+`Double ho jayegi` / `Aadhi ho jayegi` / `Wahi rahegi`, both seen live — which
+is meaningless without the question. Web refuses to mount its sheet without
+`questionText` and the server retries any turn that offers options without
+voicing a question; this is the same rule client-side.
+
+The caption strip takes two lines, which costs no layout: the content box is 44
+tall (`CAPTION_HEIGHT` 54 less its 10 of `paddingBottom`) and two lines at
+`lineHeight: 20` is 40. And CC cannot hide it — the strip opens for a checkpoint
+whether or not captions are on. Gating on `questionText` covers a server that
+sends no question; this covers one the student switched off.
+
+### The board stops painting its own source
+
+`formula` events carry bare LaTeX with no delimiters, rendered straight into a
+`<Text>`, so a class on drift velocity wrote
+`\vec{v}_d = \vec{a}\tau = -\dfrac{e\vec{E}}{m}\tau` on the whiteboard,
+markup and all. Every other surface already went through `latexToText`; the
+board was the one that did not.
+
+That exposed a second thing: `renderFraction` picks its parentheses from
+`isAtomic`, which cannot see what follows, so `-\dfrac{e\vec{E}}{m}\tau` became
+`-eE/mτ` — reads as eE over mτ, means (eE/m)·τ. Now guarded, narrowly: only a
+factor sitting directly against the closing brace, only on the linear path.
+`a/b + c`, `a/b = c`, `¹⁄₂`, `KE = ¹⁄₂mv²` and `λ = h/mv` are all unchanged, and
+the `markSegments` path — where upstream draws a fraction as a fraction — is
+untouched.
+
+### Board diagrams
+
+Figures arrive as one more board event carrying complete, server-validated SVG,
+on the same path as everything else, so the whole feature is a renderer:
+`components/board-diagram.tsx`. It does the three things the API handoff asks —
+remap the nine neutral colours to the house palette, supply the font the markup
+deliberately omits, scale preserving aspect — and nothing else. No sanitising
+pass of our own (the validator already ran, and an over-eager filter silently
+stripping a `<g>` is the exact failure it exists to prevent) and no re-layout.
+
+**The sizing constraint inverts on mobile.** The handoff's maths is written for a
+portrait column ~300px and warns about labels shrinking. Our board is landscape:
+`windowWidth − BOARD_LEFT − BOARD_RIGHT_GUTTER` ≈ 702pt, and a 340×240 canvas at
+that width would stand 496pt tall on a 402pt screen. So height binds and width
+follows — 72% of the visible board, landing near 354pt, above the ~300px floor.
+Worth passing back: label size on this board depends only on viewBox *height*,
+so the canvas could widen to roughly 2:1 at the same height for free horizontal
+room, which is what the label-beside-shape rule needs.
+
+Verified live on Class 11 Physics → Units & Measurements: the Vernier callipers
+figure drew with the ruled page showing through it, vernier scale in deep amber,
+least count in green, alignment arrow in red, labels in Anek Latin, unclipped.
+
+## The loading card holds until Drona speaks
+
+Starting a class showed two static loaders back to back across a route change:
+"Drona is picking up the chalk…" for the whole `session/start` + `scope` chain,
+then blank ruled paper reading `Writing…` for the entire LLM + TTS latency of
+turn one. `lib/drona-prewarm.ts` had already named it — *"dead air the student
+spends watching 'Drona is picking up the chalk'"*.
+
+One card spans both now (`components/entering-card.tsx`, rendered by
+`entering-classroom` and overlaid by `live-classroom`), and every phase change is
+an observed event:
+
+| phase | signal |
+|---|---|
+| opening | `session/start` in flight |
+| planning | the `scope` call — the one phase the client cannot see inside |
+| joining | `plan_ready` returned, socket open |
+| writing | the turn's first frame (`onTurnStarted`) |
+| handoff | first revealed board line or caption — Drona is speaking |
+
+`board_events` arrives ahead of its audio, which is what makes `writing` honest
+rather than decorative — it is the classroom's analogue of snap's
+`questions_read`.
+
+Only `planning` rotates, because `POST /session/{id}/scope` is one blocking call
+whose four stages (`db_reads` → `llm_scoping` → `plan` → `done`) are invisible
+until it returns. `hooks/use-staged-status.ts` clamps forward and never loops,
+following `snap-loading`'s rule that *"looping reads as a hang"*, with a 20s
+escalation line. Subject copy comes from `subjectForChapter` off the cached
+catalogue; the generic set is load-bearing, not a gap — a class opened from a
+doubt has no `chapterId` at all.
+
+**The card must never outlive the truth.** `whenReady` rejects into an empty
+catch if the socket never opens, so the board can sit empty indefinitely — a
+blinking cursor uncovered, but under a card an animation claiming a lesson that
+is not coming. It drops on `connectError`, `turn_error`, any socket error, and a
+30s ceiling past the honest 5-20s first turn.
+
+Two things the build needed that reading did not predict: `live-classroom` had
+no `animation` set, so it slid in while `entering-classroom` faded and the card
+visibly jumped; and `EdgeTab` sets `zIndex: 5`, so being last in the tree was not
+enough to cover it.
+
+Verified on the simulator, twice through: opening → planning (physics copy,
+clamped) → joining → the card fading as the first board line and Drona's first
+words arrive together. No blank board at any point.
+
+### Still worth passing to the API team
+
+- A label drawn on a shape: "Main scale" sat on the main-scale rectangle. Already
+  acted on server-side — `labels_over_shapes()` now exists in
+  `diagram_author.py`, and the spec rule is a leader line.
+- **A retraction.** A "scope takes 2.5 minutes" figure went out from here and was
+  wrong: the waits used to pace it silently failed (`timeout` is not on this
+  shell), so nothing was actually measured. The API added stage timing partly on
+  the strength of it. Observed since, scoping has run well under a minute.
+
+
 ## Still open
 
 Current as of 2026-08-28. Grouped by who is blocked.

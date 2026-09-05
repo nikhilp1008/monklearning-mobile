@@ -99,14 +99,14 @@ export default function C11Ch06Sec9({ currentTime, reveals, language }: ScenePro
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <Chip x={430} y={235} w={220} h={36} fill={CREAM} stroke={GREEN} textFill={GREEN_DARK} size={17} script={false}>
           <>
-            K&apos; = K<TSpan dy={-8} fontSize="0.62em">n</TSpan>
+            K&apos; = K<TSpan dy={-8} fontSize={10.5}>n</TSpan>
           </>
         </Chip>
       </Fade>
       <Fade on={beat >= 4} delay={dl(4, 1)}>
         <Chip x={430} y={278} w={220} h={36} fill={CREAM} stroke={GREEN} textFill={GREEN_DARK} size={17} script={false}>
           <>
-            K&apos; = K<TSpan dy={-8} fontSize="0.62em">1/n</TSpan>
+            K&apos; = K<TSpan dy={-8} fontSize={10.5}>1/n</TSpan>
           </>
         </Chip>
       </Fade>

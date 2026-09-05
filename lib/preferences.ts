@@ -40,7 +40,50 @@ export async function getTeacherName(): Promise<string> {
   return teacherName(await getTeacherPreference());
 }
 
+/**
+ * The teacher's name without waiting for storage.
+ *
+ * Rendering cannot await: a solution screen paints the moment its data lands,
+ * and the name has to be in the copy at that instant or the student reads
+ * "Monk" and then watches it change under them. The preference is one small
+ * string that only changes when they choose a different teacher, so it is held
+ * here and refreshed whenever it is read or set. Before the first read it is
+ * the same default `getTeacherPreference` returns.
+ */
+let cachedTeacher: TeacherId = 'drona';
+
+export function teacherNameNow(): string {
+  return teacherName(cachedTeacher);
+}
+
+/** Primes the cache. Called once at startup, and on every explicit read. */
+export async function primeTeacherName(): Promise<string> {
+  cachedTeacher = await getTeacherPreference();
+  return teacherName(cachedTeacher);
+}
+
+/**
+ * Puts the student's teacher into copy the SERVER wrote.
+ *
+ * The API says "Monk" — "Monk worked this out as …", "Monk could not find a
+ * question in that photo" — because it does not know which teacher this
+ * student picked. They picked one, and every other surface in the app has
+ * called it by name since onboarding, so a refusal that suddenly says "Monk"
+ * reads as a different product talking.
+ *
+ * `\bMonk\b` deliberately: it leaves "MonkLearning" alone, since the brand is
+ * not the teacher.
+ */
+export function withTeacherName(text: string): string;
+export function withTeacherName(text: null | undefined): null;
+export function withTeacherName(text: string | null | undefined): string | null;
+export function withTeacherName(text: string | null | undefined): string | null {
+  if (!text) return null;
+  return text.replace(/\bMonk\b/g, teacherNameNow());
+}
+
 export async function setTeacherPreference(teacher: TeacherId): Promise<void> {
+  cachedTeacher = teacher;
   await AsyncStorage.setItem(TEACHER_KEY, teacher);
 }
 

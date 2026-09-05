@@ -47,6 +47,13 @@ export class AudioPlaybackQueue {
   onItemStart?: (id: string) => void;
   onQueueDrained?: () => void;
 
+  /** Nothing playing and nothing waiting to play. The checkpoint flush gates
+   *  on this: `turn_complete` says the server finished SENDING, which on a
+   *  buffered queue is several sentences before the student finished HEARING. */
+  get idle() {
+    return !this.playing && this.queue.length === 0;
+  }
+
   constructor() {
     // `keepAudioSessionActive` defaults to false, which makes expo-audio
     // deactivate the whole AVAudioSession after every clip finishes and

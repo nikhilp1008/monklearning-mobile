@@ -76,11 +76,23 @@ const SPACING: Record<string, string> = {
   '!': '',
 };
 
+/**
+ * The number sets, which `\mathbb{…}` is almost only ever used for in this
+ * content. Treating it as a transparent wrapper would print a bare "Z", which
+ * is not the same claim as ℤ.
+ */
+const BLACKBOARD: Record<string, string> = {
+  R: 'ℝ', Z: 'ℤ', N: 'ℕ', Q: 'ℚ', C: 'ℂ', P: 'ℙ', H: 'ℍ', E: '𝔼',
+};
+
 /** Wrappers whose braces vanish and whose contents render as-is. */
 const TRANSPARENT_WRAPPERS = new Set([
   'text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit',
   'mathsf', 'mathtt', 'operatorname', 'left', 'right', 'displaystyle',
-  'mbox', 'hspace', 'ensuremath',
+  'mbox', 'hspace', 'ensuremath', 'mathcal', 'mathfrak', 'boldsymbol',
+  // A boxed result is already the emphasised thing on a board, so the box
+  // itself carries nothing the layout does not.
+  'boxed',
 ]);
 
 /** Glyphs that already sit raised on the line, so `^` around them would be
@@ -131,9 +143,61 @@ function isAtomic(text: string): boolean {
   return !/[+\-−=<>\s]/.test(text.trim());
 }
 
+/**
+ * Marks a fraction inside an otherwise-plain string, for callers that can draw
+ * one properly.
+ *
+ * Unicode can only really spell a fraction when both halves are digits (¹⁄₂),
+ * and everything else has to fall back to a linear `a/b` — `h/mv`, spelled in
+ * super- and subscripts, came out as the unreadable "ʰ⁄ₘᵥ". A stacked
+ * numerator over denominator needs a view, not a character, so `latexToText`
+ * cannot express it and `latexToSegments` exists to hand the pieces to
+ * `MathLine`. These are control characters no real content contains.
+ */
+const FRAC_OPEN = '\u0011';
+const FRAC_SEP = '\u0012';
+const FRAC_CLOSE = '\u0013';
+/**
+ * Marks a run that came from maths — `$…$`, `\(…\)`, or a bare `\command`.
+ *
+ * Once converted to Unicode, `2π n` is indistinguishable from prose, so a
+ * formula was set in the prose weight when it sat inside a sentence and in the
+ * maths weight when it happened to occupy a line of its own. Same formula, two
+ * appearances, decided by where it fell. Keeping the boundary lets one voice
+ * cover both.
+ */
+const MATH_OPEN = '\u0014';
+const MATH_CLOSE = '\u0015';
+/**
+ * A script Unicode cannot spell.
+ *
+ * The subscript alphabet stops at `a e h i j k l m n o p r s t u v x` — there
+ * is no subscript `y`, `b`, `c`, `d`, `f`, `g`, `q`, `w` or `z`. So `v_x` came
+ * out as `vₓ` and `v_y` fell back to a literal `v_y` in the same sentence:
+ * one formula, two spellings, decided by which letters happen to exist in a
+ * character table. Marked here and drawn small-and-lowered by `MathLine`, the
+ * same way a fraction Unicode cannot spell is drawn rather than flattened.
+ */
+const SUB_OPEN = '\u0016';
+const SUP_OPEN = '\u0017';
+const SCRIPT_CLOSE = '\u0018';
+
+/**
+ * Set only for the duration of one synchronous `latexToSegments` call, which
+ * is why a module-level flag is safe here: nothing awaits in between, so no
+ * second conversion can observe it.
+ */
+let markSegments = false;
+
 function renderFraction(rawNum: string, rawDen: string): string {
   const num = convertMath(rawNum);
   const den = convertMath(rawDen);
+  if (markSegments) {
+    // A fraction inside a fraction is left linear: stacking it would make a
+    // three-deck tower out of one line of working.
+    const flat = (part: string) => part.split(FRAC_OPEN).join('(').split(FRAC_SEP).join(')/(').split(FRAC_CLOSE).join(')');
+    return `${FRAC_OPEN}${flat(num)}${FRAC_SEP}${flat(den)}${FRAC_CLOSE}`;
+  }
   // ¹⁄₂ reads as a real fraction for *numbers* only. Letters have patchy
   // super/subscript coverage in Unicode and render as an unreadable jumble
   // (h/mv became "ʰ⁄ₘᵥ"), so anything non-numeric uses the linear form.
@@ -143,6 +207,126 @@ function renderFraction(rawNum: string, rawDen: string): string {
   const left = isAtomic(num) ? num : `(${num})`;
   const right = isAtomic(den) ? den : `(${den})`;
   return `${left}/${right}`;
+}
+
+/**
+ * Whether a linear fraction needs wrapping because another factor follows it.
+ *
+ * `renderFraction` decides its own parentheses from `isAtomic`, which can only
+ * see the fraction's two halves. It cannot see what comes after — so
+ * `-\dfrac{e\vec{E}}{m}\tau` rendered as `-eE/mτ`, which reads as eE over mτ
+ * and means (eE/m)·τ. Live on a drift-velocity board, so not hypothetical.
+ *
+ * Only the linear form needs this. Under `markSegments` the fraction is drawn
+ * as a fraction, where a following factor cannot be misread into the
+ * denominator, so that path is left exactly as it is.
+ *
+ * Guarded narrowly otherwise: to a factor sitting directly against the closing
+ * brace with no space between. `a/b + c` and `a/b = c` are unambiguous and stay
+ * bare, and so does anything separated by a space, where the spacing already
+ * does the reading. The numeric ¹⁄₂ form is a single glyph and cannot be
+ * re-parsed, so it is left alone too.
+ */
+function fractionNeedsGuard(rendered: string, src: string, next: number): boolean {
+  if (markSegments) return false;
+  if (!rendered.includes('/')) return false;
+  return /[A-Za-z0-9\\(]/.test(src[next] ?? '');
+}
+
+/** One run of a converted line. */
+export type MathSegment =
+  /** Prose. */
+  | { kind: 'text'; text: string }
+  /** Came from maths — set in the maths voice wherever it appears. */
+  | { kind: 'math'; text: string }
+  /** A sub- or superscript with no Unicode character to spell it. */
+  | { kind: 'sub'; text: string }
+  | { kind: 'sup'; text: string }
+  | { kind: 'fraction'; numerator: string; denominator: string };
+
+/**
+ * The same conversion `latexToText` does, but with fractions kept as pieces
+ * rather than flattened into `a/b`.
+ *
+ * Everything that renders a solution goes through this; anything that needs a
+ * plain string — a Library card, the search haystack, the utterance that seeds
+ * a Drona session — keeps using `latexToText`.
+ */
+export function latexToSegments(raw: string): MathSegment[] {
+  markSegments = true;
+  let marked: string;
+  try {
+    marked = latexToText(raw);
+  } finally {
+    markSegments = false;
+  }
+
+  const segments: MathSegment[] = [];
+  let buffer = '';
+  let inMath = 0;
+  const flush = () => {
+    if (!buffer) return;
+    segments.push({ kind: inMath > 0 ? 'math' : 'text', text: buffer });
+    buffer = '';
+  };
+
+  for (let i = 0; i < marked.length; i += 1) {
+    const ch = marked[i];
+    if (ch === MATH_OPEN) {
+      flush();
+      inMath += 1;
+      continue;
+    }
+    if (ch === MATH_CLOSE) {
+      flush();
+      inMath = Math.max(0, inMath - 1);
+      continue;
+    }
+    if (ch === SUB_OPEN || ch === SUP_OPEN) {
+      const close = marked.indexOf(SCRIPT_CLOSE, i);
+      if (close === -1) {
+        buffer += ch;
+        continue;
+      }
+      flush();
+      segments.push({
+        kind: ch === SUB_OPEN ? 'sub' : 'sup',
+        text: strip(marked.slice(i + 1, close)),
+      });
+      i = close;
+      continue;
+    }
+    if (ch === FRAC_OPEN) {
+      const sep = marked.indexOf(FRAC_SEP, i);
+      const close = marked.indexOf(FRAC_CLOSE, sep);
+      if (sep === -1 || close === -1) {
+        buffer += ch;
+        continue;
+      }
+      flush();
+      segments.push({
+        kind: 'fraction',
+        numerator: strip(marked.slice(i + 1, sep)),
+        denominator: strip(marked.slice(sep + 1, close)),
+      });
+      i = close;
+      continue;
+    }
+    buffer += ch;
+  }
+  flush();
+  return segments;
+}
+
+/** A fraction's halves are rendered as plain text, so any marker that rode
+ *  along inside them would show up as a control character. */
+function strip(text: string): string {
+  return text
+    .split(MATH_OPEN).join('')
+    .split(MATH_CLOSE).join('')
+    .split(SUB_OPEN).join('')
+    .split(SUP_OPEN).join('')
+    .split(SCRIPT_CLOSE).join('');
 }
 
 /** Converts the body of one math segment (already stripped of its `$`). */
@@ -180,7 +364,90 @@ export function convertMath(src: string): string {
         while (src[i] === ' ') i++;
         const denGroup = readGroup(src, i);
         i = denGroup.next;
-        out += renderFraction(numGroup.body, denGroup.body);
+        const fraction = renderFraction(numGroup.body, denGroup.body);
+        out += fractionNeedsGuard(fraction, src, i) ? `(${fraction})` : fraction;
+        continue;
+      }
+
+      /**
+       * `\xrightarrow{condition}` — an arrow carrying the step's justification
+       * above it, used all through the Class 12 derivations ("…= 0
+       * \xrightarrow{I_g = 0} I₁P = I₂R"). Nothing can sit above a glyph in
+       * linear text, so the condition follows the arrow in brackets, which is
+       * how it would be read aloud.
+       */
+      /**
+       * `\begin{vmatrix} … \end{vmatrix}` — the cross-product determinants.
+       * A matrix cannot be stacked in a single line of text, so it degrades to
+       * the linear form it would be dictated in: rows separated by semicolons
+       * inside the delimiter the environment names. Readable beats absent, and
+       * absent is what leaking "begin" into the middle of an equation is.
+       */
+      if (name === 'begin') {
+        while (src[i] === ' ') i++;
+        const env = readGroup(src, i);
+        i = env.next;
+        const kind = env.body.trim().replace(/\*$/, '');
+        const close = `\\end{${env.body.trim()}}`;
+        const at = src.indexOf(close, i);
+        const body = at === -1 ? src.slice(i) : src.slice(i, at);
+        i = at === -1 ? src.length : at + close.length;
+
+        const rows = body
+          .split(/\\\\/)
+          .map((row) =>
+            row
+              .split('&')
+              .map((cell) => convertMath(cell).trim())
+              .filter(Boolean)
+              .join('  ')
+          )
+          .map((row) => row.trim())
+          .filter(Boolean);
+        const inner = rows.join(' ; ');
+        const WRAP: Record<string, [string, string]> = {
+          vmatrix: ['|', '|'],
+          Vmatrix: ['‖', '‖'],
+          pmatrix: ['(', ')'],
+          bmatrix: ['[', ']'],
+          Bmatrix: ['{', '}'],
+          cases: ['{', ''],
+        };
+        const [open, shut] = WRAP[kind] ?? ['', ''];
+        out += `${open}${inner}${shut}`;
+        continue;
+      }
+
+      if (name === 'xrightarrow' || name === 'xleftarrow') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        const label = convertMath(group.body).trim();
+        const arrow = name === 'xrightarrow' ? '→' : '←';
+        out += label ? ` ${arrow}[${label}] ` : ` ${arrow} `;
+        continue;
+      }
+
+      /**
+       * `\underbrace{expr}_{label}` — a brace under part of an equation naming
+       * what it is ("hν (energy in) = φ₀ (exit fee) + K_max (KE out)"). The
+       * label becomes a parenthetical, so the naming survives even though the
+       * brace cannot be drawn.
+       */
+      if (name === 'underbrace' || name === 'overbrace') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        const body = convertMath(group.body);
+        let label = '';
+        while (src[i] === ' ') i++;
+        if (src[i] === '_' || src[i] === '^') {
+          i++;
+          const tag = readGroup(src, i);
+          i = tag.next;
+          label = convertMath(tag.body).trim();
+        }
+        out += label ? `${body} (${label})` : body;
         continue;
       }
 
@@ -190,6 +457,15 @@ export function convertMath(src: string): string {
         i = group.next;
         const inner = convertMath(group.body);
         out += isAtomic(inner) ? `√${inner}` : `√(${inner})`;
+        continue;
+      }
+
+      if (name === 'mathbb') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        const inner = convertMath(group.body);
+        out += BLACKBOARD[inner] ?? inner;
         continue;
       }
 
@@ -236,8 +512,17 @@ export function convertMath(src: string): string {
         continue;
       }
       const mapped = mapAll(inner, table);
-      // Unmappable exponents keep the caret so meaning isn't silently lost.
-      out += mapped ?? `${ch}${inner.length > 1 ? `(${inner})` : inner}`;
+      if (mapped) {
+        out += mapped;
+        continue;
+      }
+      if (markSegments) {
+        // No character exists for it, so it is drawn instead of spelled.
+        out += `${ch === '^' ? SUP_OPEN : SUB_OPEN}${inner}${SCRIPT_CLOSE}`;
+        continue;
+      }
+      // Plain-string callers keep the caret so meaning isn't silently lost.
+      out += `${ch}${inner.length > 1 ? `(${inner})` : inner}`;
       continue;
     }
 
@@ -268,11 +553,18 @@ export function convertMath(src: string): string {
  * literal `T^{-2}`. Each token is handed to convertMath on its own, which is
  * the same code path a delimited one takes.
  *
- * Only braced groups and digit/sign arguments convert. Letters are left alone
- * on purpose: `x_i` is worth less than the risk of mangling an ordinary
- * underscore in prose.
+ * Braced groups and digit/sign arguments convert, and so does a SINGLE letter
+ * with nothing word-like after it. Letters used to be excluded entirely, on
+ * the grounds that `x_i` was worth less than the risk of mangling an ordinary
+ * underscore in prose — but the solver writes one step as "$v_x = u_x + a_x t$
+ * and v_y = u_y + a_y t", half delimited and half not, and the bare half
+ * printed a literal `v_y` beside a properly subscripted `vₓ`. One formula, two
+ * spellings, in one sentence.
+ *
+ * The "nothing word-like after it" is what keeps prose safe: `v_y=` is a
+ * subscript, `snake_case` is not, because its `c` is followed by more word.
  */
-const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-])/g;
+const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
 
 /**
  * `t^\wedge 2` — Mathpix transcribing a caret twice.
@@ -285,7 +577,49 @@ const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-])/g;
  */
 const DOUBLED_CARET = /\^\s*\\wedge\s*/g;
 
-function convertBareScripts(text: string): string {
+/** Any `\command` at all — the signal that a run is markup, not prose. */
+const BARE_COMMAND = /\\[a-zA-Z]+/;
+
+/**
+ * A `_` doing prose duty rather than maths — `snake_case`, a filename.
+ *
+ * Only relevant on the bare path, where a whole sentence goes through the
+ * converter; inside `$…$` every underscore really is a subscript. The first
+ * version protected anything followed by a letter, which was too broad: the
+ * solver writes one step as "$v_x = u_x + a_x t$ and v_y = u_y + a_y t",
+ * half delimited and half not, and the protected half printed as a literal
+ * `v_y` beside a properly subscripted `vₓ` — one formula, two spellings, in
+ * one sentence.
+ *
+ * A subscript is a SINGLE character with nothing word-like after it: `v_y=`
+ * subscripts, `snake_case` does not, because the `c` is followed by more word.
+ */
+const PROSE_UNDERSCORE = /_(?!\{|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
+const UNDERSCORE_HOLD = '\u0000US\u0000';
+
+/**
+ * Text that arrived with no `$…$` around it.
+ *
+ * Two different things get missed without this. Super/subscripts written bare
+ * — "the dimensions of B are M T^{-2} A^{-1}" — which is why this pass has
+ * always existed. And whole fields that are pure LaTeX with no delimiters at
+ * all, which is how the solver returns `answer`: a student was shown
+ * `\left[\frac{7\pi}{6}+2\pi n,\ …\right]` verbatim in the Final answer box,
+ * markup and all.
+ *
+ * A run carrying a command is treated as maths outright, because that is what
+ * it is. Everything else keeps the narrow old behaviour, so ordinary prose is
+ * never handed to a maths parser on spec.
+ */
+function wrapMath(converted: string): string {
+  return markSegments ? `${MATH_OPEN}${converted}${MATH_CLOSE}` : converted;
+}
+
+function convertBareText(text: string): string {
+  if (BARE_COMMAND.test(text)) {
+    const held = text.replace(PROSE_UNDERSCORE, UNDERSCORE_HOLD);
+    return wrapMath(convertMath(held).split(UNDERSCORE_HOLD).join('_'));
+  }
   return text.replace(BARE_SCRIPT, (token) => convertMath(token));
 }
 
@@ -334,6 +668,14 @@ export function latexToText(raw: string): string {
     .trim();
 
   let out = '';
+  // Text outside any delimiter, held back so the bare pass sees it whole and
+  // never re-reads a segment this function has already converted.
+  let plain = '';
+  const flush = () => {
+    if (!plain) return;
+    out += convertBareText(plain);
+    plain = '';
+  };
   let i = 0;
   while (i < normalized.length) {
     const ch = normalized[i];
@@ -342,10 +684,11 @@ export function latexToText(raw: string): string {
       const close = normalized[i + 1] === '(' ? '\\)' : '\\]';
       const end = normalized.indexOf(close, i + 2);
       if (end === -1) {
-        out += normalized.slice(i);
+        plain += normalized.slice(i);
         break;
       }
-      out += convertMath(normalized.slice(i + 2, end));
+      flush();
+      out += wrapMath(convertMath(normalized.slice(i + 2, end)));
       i = end + 2;
       continue;
     }
@@ -356,16 +699,18 @@ export function latexToText(raw: string): string {
       const end = normalized.indexOf(delim, start);
       if (end === -1) {
         // Unbalanced `$` — a literal dollar sign (a price), not math.
-        out += ch;
+        plain += ch;
         i += 1;
         continue;
       }
-      out += convertMath(normalized.slice(start, end));
+      flush();
+      out += wrapMath(convertMath(normalized.slice(start, end)));
       i = end + delim.length;
       continue;
     }
-    out += ch;
+    plain += ch;
     i += 1;
   }
-  return convertBareScripts(out);
+  flush();
+  return out;
 }

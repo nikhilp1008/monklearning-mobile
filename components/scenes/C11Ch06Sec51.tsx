@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, AMBER_DARK, G
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec51({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -74,7 +74,7 @@ export default function C11Ch06Sec51({ currentTime, reveals, language }: ScenePr
       {/* beat 3 — [H+] */}
       <Fade on={beat >= 3} delay={dl(3, 0.4)}>
         <SvgText x={540} y={195} textAnchor="middle" fontSize={17} fontWeight={700} fill={INK} fontFamily={ANEK}>
-          [H⁺] = 2×0.005 = 0.010 = 1.0×10<TSpan dy={-8} fontSize="0.6em">−2</TSpan>
+          [H⁺] = 2×0.005 = 0.010 = 1.0×10<TSpan dy={-8} fontSize={10.2}>−2</TSpan>
           <TSpan dy={8}> M</TSpan>
         </SvgText>
       </Fade>
@@ -82,7 +82,7 @@ export default function C11Ch06Sec51({ currentTime, reveals, language }: ScenePr
       {/* beat 4 — pH */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={232} textAnchor="middle" fontSize={17} fontWeight={700} fill={INK} fontFamily={ANEK}>
-          pH = −log(1.0×10<TSpan dy={-8} fontSize="0.6em">−2</TSpan>
+          pH = −log(1.0×10<TSpan dy={-8} fontSize={10.2}>−2</TSpan>
           <TSpan dy={8}>) = 2.0</TSpan>
         </SvgText>
       </Fade>

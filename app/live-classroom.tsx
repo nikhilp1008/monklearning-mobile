@@ -11,10 +11,12 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
+  FadeOut,
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
@@ -65,7 +67,32 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
+import { BoardDiagram } from '@/components/board-diagram';
+import { EnteringCardScreen } from '@/components/entering-card';
+import {
+  LONG_WAIT_TEXT,
+  statusLinesFor,
+  toStatusSubject,
+} from '@/constants/classroom-status';
+import { useStagedStatus } from '@/hooks/use-staged-status';
+import { latexToText } from '@/lib/latex-text';
 import { supabase } from '@/lib/supabase';
+
+
+/** Clearance kept to the right of every board line so the thumb rail never
+ *  sits on top of the writing. Shared by `boardContent`'s padding and the
+ *  width a diagram is allowed to draw into. */
+const BOARD_RIGHT_GUTTER = 116;
+
+/**
+ * How long the loading card may cover the board before giving up.
+ *
+ * A first turn is plausibly 5-20s, so this sits past the honest cases and
+ * catches only the ones where nothing is coming. Deliberately not tied to the
+ * socket state: the failure this exists for is a socket that opened and then
+ * produced nothing.
+ */
+const CARD_CEILING_MS = 30000;
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 /** Half the rail's own height, so it can be centred with a transform. */
@@ -120,7 +147,12 @@ try {
 
 export default function LiveClassroomScreen() {
   const isLandscape = useLandscapeLock();
-  const params = useLocalSearchParams<{ sessionId?: string; chapterTitle?: string; subtopic?: string }>();
+  const params = useLocalSearchParams<{
+    sessionId?: string;
+    chapterTitle?: string;
+    subtopic?: string;
+    subject?: string;
+  }>();
   const sessionId = params.sessionId ?? '';
   const chapterTitle = params.chapterTitle || 'this chapter';
   const { scale, verticalScale } = useLandscapeScale();
@@ -135,8 +167,39 @@ export default function LiveClassroomScreen() {
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
+  /**
+   * The loading card, carried over from `entering-classroom`.
+   *
+   * The board used to mount blank behind `Writing…` for the whole LLM + TTS
+   * latency of turn one — 5-20s of ruled paper with nothing on it, longer on a
+   * cold socket. The card stays up over it instead, and only leaves when Drona
+   * genuinely starts: the first revealed board line or caption, which fires
+   * when the first clip actually begins playing.
+   */
+  const [cardVisible, setCardVisible] = useState(true);
+  /** `joining` until the turn's first frame lands, then `writing`. */
+  const [cardPhase, setCardPhase] = useState<'joining' | 'writing'>('joining');
+  const dismissCard = useCallback(() => setCardVisible(false), []);
+  const cardSubject = useMemo(() => toStatusSubject(params.subject), [params.subject]);
+  const { text: cardLine, longWait } = useStagedStatus({
+    lines: statusLinesFor(cardPhase, cardSubject),
+    longWaitMs: 20000,
+    active: cardVisible,
+    resetKey: cardPhase,
+  });
+
   const [micDenied, setMicDenied] = useState(false);
   const [checkOptions, setCheckOptions] = useState<string[]>([]);
+  /**
+   * The question the chips answer, held separately from `caption`.
+   *
+   * Chips without it are answers to a question nobody asked: only the
+   * fallback UNDERSTANDING_CHIPS read on their own, while a real quiz turn
+   * sends bare content ("5 N·m" / "10 N·m" / "Zero"). The server enforces the
+   * same rule from its side, retrying any turn that offers options without
+   * voicing a question.
+   */
+  const [questionText, setQuestionText] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
@@ -207,16 +270,43 @@ export default function LiveClassroomScreen() {
         // state frame does not, and assigning `[]` there wiped the chips the
         // student was meant to answer.
         if (state.check_options) setCheckOptions(state.check_options);
-        if (state.question_text) setCaption(state.question_text);
+        if (state.question_text) {
+          setQuestionText(state.question_text);
+          // Safe to be the last caption of the turn now: the client holds this
+          // frame until the turn's audio has drained, so no queued sentence is
+          // left to overwrite it.
+          setCaption(state.question_text);
+        }
       },
-      onBoardReveal: (event) => setBoard((prev) => [...prev, event]),
+      // The turn's first frame — board events or audio, whichever landed
+      // first. Real content exists on the client now, seconds before it is
+      // spoken, so the card can stop guessing and say so.
+      onTurnStarted: () => setCardPhase('writing'),
+      onBoardReveal: (event) => {
+        // Drona is actually speaking: this fires when the first clip starts
+        // playing. That is the handoff — the card goes, the board takes over.
+        dismissCard();
+        setIsThinking(false);
+        setBoard((prev) => [...prev, event]);
+      },
       onBoardReplay: (events) => setBoard(events),
-      onCaptionReveal: setCaption,
+      // Drona is no longer thinking once she is visibly talking. This used to
+      // hang on `onTurnComplete`, which is now deliberately deferred until the
+      // turn's audio has drained — leaving it there would have pinned "Drona is
+      // thinking" across her entire spoken reply.
+      onCaptionReveal: (text: string) => {
+        dismissCard();
+        setIsThinking(false);
+        setCaption(text);
+      },
       onTranscriptPartial: (text) => setLiveTranscript(text),
       onTranscriptFinal: (text) => {
         setLiveTranscript('');
         // Speaking an answer counts the same as tapping a chip.
-        if (text.trim()) setCheckOptions([]);
+        if (text.trim()) {
+          setCheckOptions([]);
+          setQuestionText(null);
+        }
       },
       onSttTooShort: () => setCaption("Didn't catch that — hold the button a little longer."),
       onAnswerResult: (result) => {
@@ -224,14 +314,24 @@ export default function LiveClassroomScreen() {
         if (answerVerdictTimerRef.current) clearTimeout(answerVerdictTimerRef.current);
         answerVerdictTimerRef.current = setTimeout(() => setAnswerVerdict(null), 5000);
       },
+      // Backstop only — a turn that produced neither a caption nor a board line
+      // still has to release the status row.
       onTurnComplete: () => setIsThinking(false),
-      onTurnError: () => setCaption('Drona hit a snag — one moment…'),
+      // A card over a board that is never going to fill is worse than the
+      // board's own error affordances, so every failure drops it.
+      onTurnError: () => {
+        dismissCard();
+        setCaption('Drona hit a snag — one moment…');
+      },
       // The lesson itself finished — go to the summary rather than leaving the
       // student on a silent board wondering whether it broke.
       onSessionEnded: () => {
         if (!cancelled) void endClassRef.current?.();
       },
-      onError: (message) => setCaption(message),
+      onError: (message) => {
+        dismissCard();
+        setCaption(message);
+      },
     };
 
     let client: DronaVoiceClient;
@@ -286,11 +386,49 @@ export default function LiveClassroomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  /**
+   * The card must never outlive the truth.
+   *
+   * `whenReady` rejects into an empty catch if the socket never opens, so the
+   * kickoff utterance is never sent and the board can sit at `board.length ===
+   * 0` indefinitely. Uncovered that is a blinking cursor; under a card it would
+   * be an animation claiming a lesson is coming that is not. Give the first
+   * turn a generous ceiling and then get out of the way — the board's own
+   * `Writing…` and error states are honest about knowing nothing.
+   */
+  useEffect(() => {
+    if (!cardVisible) return;
+    const id = setTimeout(dismissCard, CARD_CEILING_MS);
+    return () => clearTimeout(id);
+  }, [cardVisible, dismissCard]);
+
+  useEffect(() => {
+    if (connectError) dismissCard();
+  }, [connectError, dismissCard]);
+
   // --- Board follow-scroll / chrome auto-hide (unchanged from the original UI) ---
   const [chromeVisible, setChromeVisible] = useState(true);
   // The caption strip is a real toggle now (CC on the rail), per the handoff.
   const [captions, setCaptions] = useState(true);
   const [boardHeight, setBoardHeight] = useState(390);
+  const { width: windowWidth } = useWindowDimensions();
+  /**
+   * How much of the visible board one figure may occupy.
+   *
+   * Not a style choice so much as a reading one: a diagram is an aside to the
+   * line of argument on the board, so the lines above and below it have to stay
+   * on screen with it. Height is what binds on a landscape board — see the
+   * sizing note in `board-diagram.tsx`.
+   */
+  const diagramBox = useMemo(
+    () => ({
+      // Mirrors `boardContent`'s own padding: the notch gutter on the left, the
+      // thumb-rail clearance on the right.
+      availableWidth: Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER),
+      maxHeight: boardHeight * 0.72,
+    }),
+    [windowWidth, boardHeight]
+  );
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   /**
@@ -632,7 +770,7 @@ export default function LiveClassroomScreen() {
             ) : (
               board.map((event, i) => (
                 <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
-                  <BoardBlockView event={event} styles={styles} />
+                  <BoardBlockView event={event} styles={styles} diagramBox={diagramBox} />
                 </Animated.View>
               ))
             )}
@@ -705,7 +843,7 @@ export default function LiveClassroomScreen() {
             frame's check_options were parsed and then discarded, so a student
             was told "Your turn" with nothing on screen to answer with — the
             class simply stalled. Mirrors web's AskSheet. */}
-        {checkOptions.length > 0 && !handRaised && (
+        {checkOptions.length > 0 && questionText && !handRaised && (
           <Animated.View entering={FadeIn.duration(200)} style={styles.askSheet}>
             {checkOptions.map((option) => (
               <Pressable
@@ -714,6 +852,7 @@ export default function LiveClassroomScreen() {
                 onPress={() => {
                   clientRef.current?.sendAnswer(option);
                   setCheckOptions([]);
+                  setQuestionText(null);
                   setIsThinking(true);
                 }}>
                 <Text style={styles.askChipText}>{option}</Text>
@@ -725,7 +864,15 @@ export default function LiveClassroomScreen() {
 
       {/* One strip, two states — the caption line and Listening are mutually
           exclusive, so the bottom edge always has exactly one owner. */}
-      <CaptionStrip open={captions || handRaised} listening={handRaised} text={caption} />
+      {/* The strip also opens for a checkpoint regardless of the CC toggle:
+          chips are answers, and answers with the question hidden are the exact
+          thing this screen is not allowed to show. It closes again on its own
+          the moment the question is answered. */}
+      <CaptionStrip
+        open={captions || handRaised || checkOptions.length > 0}
+        listening={handRaised}
+        text={caption}
+      />
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
           under the thumb wherever the caption strip happens to be. */}
@@ -859,12 +1006,71 @@ export default function LiveClassroomScreen() {
           </Animated.View>
         </>
       )}
+
+      {/* Last child, so it covers everything: the board, the chrome, the rail.
+          Same card `entering-classroom` was showing a moment ago, over the same
+          dark ground — with `animation: 'fade'` on this route the student sees
+          one surface that never went away, rather than two loaders either side
+          of a route change. */}
+      {cardVisible && (
+        <Animated.View
+          // Last in the tree is not enough on its own: `EdgeTab` sets
+          // zIndex 5, which floated it over the card at the right edge.
+          // Nothing else on this screen sets one, so this only has to clear
+          // that.
+          style={[StyleSheet.absoluteFill, styles.enteringCardOverlay]}
+          exiting={FadeOut.duration(320)}
+          pointerEvents="auto">
+          <EnteringCardScreen
+            chapterTitle={params.subtopic || chapterTitle}
+            statusText={longWait ? LONG_WAIT_TEXT : cardLine}
+          />
+        </Animated.View>
+      )}
     </View>
   );
 }
 
-function BoardBlockView({ event, styles }: { event: BoardEvent; styles: Styles }) {
-  const text = event.type === 'formula' ? event.latex ?? '' : event.text ?? '';
+function BoardBlockView({
+  event,
+  styles,
+  diagramBox,
+}: {
+  event: BoardEvent;
+  styles: Styles;
+  diagramBox: { availableWidth: number; maxHeight: number };
+}) {
+  const raw =
+    event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
+  /**
+   * The board was the one surface in the app painting its source.
+   *
+   * `formula` events carry bare LaTeX with no `$…$` around it, and this
+   * component rendered that string straight into a <Text> — so a class on
+   * drift velocity wrote `\vec{v}_d = \vec{a}\tau = -\dfrac{e\vec{E}}{m}\tau`
+   * on the whiteboard, markup and all. Exactly the undelimited-field case
+   * `convertBareText` was written for when the solver's Final answer box had
+   * the same bug. Every other call site — practice, library, solutions,
+   * textbooks — already goes through this converter.
+   *
+   * Applied to prose lines too, not only formulas: `latexToText` leaves text
+   * carrying no commands alone, and it picks up bare scripts the board was
+   * also missing (`10^5 m/s` reads as 10⁵ m/s now).
+   */
+  const text = useMemo(() => latexToText(raw), [raw]);
+  // A figure, not a line of writing — it owns its own sizing and never goes
+  // near the LaTeX converter.
+  if (event.type === 'diagram') {
+    if (!event.svg) return null;
+    return (
+      <BoardDiagram
+        svg={event.svg}
+        caption={event.caption}
+        availableWidth={diagramBox.availableWidth}
+        maxHeight={diagramBox.maxHeight}
+      />
+    );
+  }
   if (event.type === 'heading') {
     return <Text style={styles.boardHeading}>{text}</Text>;
   }
@@ -1059,7 +1265,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // so tapping empty paper tucks the chrome just like tapping a line.
       flexGrow: 1,
       paddingTop: BOARD_TOP,
-      paddingRight: 116,
+      paddingRight: BOARD_RIGHT_GUTTER,
       paddingBottom: BOARD_TOP,
       paddingLeft: BOARD_LEFT,
     },
@@ -1067,6 +1273,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // keeps the writing sitting ON the rules instead of drifting between them.
     boardTapTarget: {
       flex: 1,
+    },
+    enteringCardOverlay: {
+      zIndex: 20,
     },
     boardHeading: {
       fontFamily: 'Kalam_700Bold',

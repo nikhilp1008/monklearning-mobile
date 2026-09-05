@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, GREEN, GREEN_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec68({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -60,7 +60,7 @@ export default function C11Ch06Sec68({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 1} delay={dl(1, 0.9)}>
         <SvgText x={60} y={124} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          0.10 M NaOAc, Ka(HOAc) = 1.8×10<TSpan dy={-7} fontSize="0.62em">−5</TSpan>
+          0.10 M NaOAc, Ka(HOAc) = 1.8×10<TSpan dy={-7} fontSize={9.3}>−5</TSpan>
           <TSpan dy={7}>, find pH</TSpan>
         </SvgText>
       </Fade>
@@ -78,20 +78,20 @@ export default function C11Ch06Sec68({ currentTime, reveals, language }: ScenePr
       {/* beat 3 — Kh */}
       <Fade on={beat >= 3} delay={dl(3, 0.4)}>
         <SvgText x={540} y={190} textAnchor="middle" fontSize={15} fill={INK} fontFamily={ANEK}>
-          Kh = Kw/Ka = 10<TSpan dy={-7} fontSize="0.62em">−14</TSpan>
+          Kh = Kw/Ka = 10<TSpan dy={-7} fontSize={9.3}>−14</TSpan>
           <TSpan dy={7}>/1.8×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−5</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−5</TSpan>
           <TSpan dy={7}> = 5.6×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−10</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−10</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 4 — [OH-] */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={225} textAnchor="middle" fontSize={15} fill={INK} fontFamily={ANEK}>
-          [OH⁻] = √(Khc) = √(5.6×10<TSpan dy={-7} fontSize="0.62em">−11</TSpan>
+          [OH⁻] = √(Khc) = √(5.6×10<TSpan dy={-7} fontSize={9.3}>−11</TSpan>
           <TSpan dy={7}>) = 7.5×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−6</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−6</TSpan>
           <TSpan dy={7}> M</TSpan>
         </SvgText>
       </Fade>

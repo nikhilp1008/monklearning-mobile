@@ -4,16 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  SolutionQuestion,
-  SolutionScreen,
-  SolutionScreenSkeleton,
-} from '@/components/solution-screen';
+import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtDetail, getDoubt } from '@/lib/doubts';
-import { latexToText } from '@/lib/latex-text';
-import { parseSolutionSteps } from '@/lib/solution-steps';
+import { SolutionView, solutionView } from '@/lib/solution-view';
 
 export default function DoubtDetailScreen() {
   const params = useLocalSearchParams<{
@@ -76,29 +71,14 @@ export default function DoubtDetailScreen() {
 
   // One chip per question on the photo, so a saved doubt reads exactly as it
   // did on snap-solved. SolutionScreen hides the chip row when there is one.
-  const questions: SolutionQuestion[] = useMemo(
+  // The same mapper Snap reads a solution through, so a saved doubt shows the
+  // options, the key idea and an `unsure`'s working exactly as it did the
+  // moment it was snapped.
+  const questions: SolutionView[] = useMemo(
     () =>
-      details.map((detail, i) => ({
-        id: `Q${i + 1}`,
-        // Run through latexToText like everywhere else: the raw stem carries
-        // `$(\mathrm{P} \cup \mathrm{Q})$`, which this screen used to print
-        // verbatim at the student.
-        text: latexToText(
-          detail.stem ?? detail.question_text ?? (i === 0 ? params.title : null) ?? 'This doubt'
-        ),
-        steps: parseSolutionSteps(detail.steps, detail.explanation),
-        answer: detail.answer ? latexToText(detail.answer) : null,
-        // Same split as snap-solved: an 'unsure' question keeps its working.
-        failureNote:
-          detail.status === 'solved' || detail.status === 'unsure'
-            ? null
-            : (detail.failure_reason ?? 'This one couldn’t be solved from the photo.'),
-        withheldNote:
-          detail.status === 'unsure'
-            ? (latexToText(detail.failure_reason ?? '') ||
-              'The working below is sound, but the final answer could not be confirmed, so it is not being shown.')
-            : null,
-      })),
+      details.map((detail, i) =>
+        solutionView(detail, `Q${i + 1}`, i === 0 ? (params.title ?? null) : null)
+      ),
     [details, params.title]
   );
 
@@ -139,7 +119,7 @@ export default function DoubtDetailScreen() {
             pathname: '/entering-classroom',
             params: {
               // The question the student is looking at, not always the first.
-              chapterTitle: current?.chapter ?? current?.concept ?? 'this doubt',
+              chapterTitle: questions[index]?.chapter ?? 'this doubt',
               initialUtterance: questions[index]?.text ?? '',
             },
           })

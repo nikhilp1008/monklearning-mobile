@@ -313,7 +313,12 @@ export function CaptionStrip({
 
         <Animated.View style={[capStyles.face, captionFace]}>
           <Text style={capStyles.badge}>CC</Text>
-          <Text style={capStyles.text} numberOfLines={1}>
+          {/* Two lines, not one. A checkpoint question is the one caption the
+              student has to READ rather than just hear, and clipping it mid
+              sentence left answer chips on screen with no question above them.
+              Costs no layout: the strip's content box is 44 tall (54 less the
+              10 of paddingBottom) and two lines at lineHeight 20 is 40. */}
+          <Text style={capStyles.text} numberOfLines={2}>
             {text}
           </Text>
           <Blink style={capStyles.caret} />

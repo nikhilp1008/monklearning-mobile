@@ -88,8 +88,8 @@ export default function C11Ch06Sec8({ currentTime, reveals, language }: ScenePro
 
       {/* beat 4 — the bridge, ringed */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
-        <SvgText x={540} y={280} textAnchor="middle" fontSize={28} fontWeight={800} fill={GREEN} fontFamily="var(--font-anek-latin), sans-serif">
-          Kp = Kc (RT)<TSpan dy={-11} fontSize="0.6em">Δn</TSpan>
+        <SvgText x={540} y={280} textAnchor="middle" fontSize={28} fontWeight={800} fill={GREEN} fontFamily='AnekLatin_800ExtraBold'>
+          Kp = Kc (RT)<TSpan dy={-11} fontSize={16.8}>Δn</TSpan>
         </SvgText>
       </Fade>
       <Draw
@@ -133,14 +133,14 @@ export default function C11Ch06Sec8({ currentTime, reveals, language }: ScenePro
       <Fade on={beat >= 7} delay={dl(7, 0.4)}>
         <Chip x={305} y={420} w={230} h={44} fill={CREAM} stroke={GREEN} textFill={GREEN_DARK} size={16} script={false}>
           <>
-            [Kc] = (mol/L)<TSpan dy={-7} fontSize="0.62em">Δn</TSpan>
+            [Kc] = (mol/L)<TSpan dy={-7} fontSize={9.9}>Δn</TSpan>
           </>
         </Chip>
       </Fade>
       <Fade on={beat >= 7} delay={dl(7, 1)}>
         <Chip x={565} y={420} w={210} h={44} fill={CREAM} stroke={AMBER_DARK} textFill={INK} size={16} script={false}>
           <>
-            [Kp] = (atm)<TSpan dy={-7} fontSize="0.62em">Δn</TSpan>
+            [Kp] = (atm)<TSpan dy={-7} fontSize={9.9}>Δn</TSpan>
           </>
         </Chip>
       </Fade>

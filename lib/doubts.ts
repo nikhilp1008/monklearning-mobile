@@ -6,7 +6,29 @@ export interface SolutionStep {
   text: string;
 }
 
+/**
+ * `unsure` is not a failure. The solver reached an answer it could not stand
+ * behind — it disagreed with the answer printed on the page, landed on
+ * something that is not among the options, or came out differently across
+ * repeated solves — so the API withholds the answer and keeps the working.
+ * `failure_reason` carries the explanation to show the student. Treating it
+ * like `failed` hides the part the API kept on purpose; see `solutionView`.
+ */
 export type DoubtStatus = 'solved' | 'failed' | 'illegible' | 'unsure';
+
+/** One printed choice of an MCQ, as the API composes it. */
+export interface DoubtOption {
+  /** "A", "B", … */
+  label: string;
+  text: string;
+  /**
+   * Set when the choice was a PICTURE rather than words — four circuits, four
+   * graphs. The API crops it off the page and hands back a short-lived URL;
+   * `text` is still the written description of it, and is what a screen reader
+   * and the solver both work from.
+   */
+  image_url?: string | null;
+}
 
 /** What the student can actually DO about a refusal. */
 export type Remedy = 'retake' | 'not_photo' | 'our_side';
@@ -29,14 +51,16 @@ export interface DoubtSummary {
   /** Short display title for the doubt. */
   concept: string | null;
   question_type: string | null;
-  /** Parallel to `option_labels` for MCQ questions — options[i] is the text for option_labels[i]. Empty for numerical questions. */
-  options?: string[] | null;
+  /** Every printed choice of an MCQ, in order. Empty for numerical questions. */
+  options?: DoubtOption[] | null;
   legible: boolean;
   legibility_note: string | null;
   answer: string | null;
   key_idea: string | null;
   status: DoubtStatus;
   failure_reason: string | null;
+  /** The label(s) of the option the answer landed on — `["C"]`, not the whole
+   *  A/B/C/D list. Empty for a numerical question, and for an `unsure` one. */
   option_labels?: string[] | null;
   created_at: string;
   scrap: string;
@@ -49,6 +73,13 @@ export interface DoubtDetail extends Omit<DoubtSummary, 'scrap'> {
   explanation?: string | null;
   /** Short-lived presigned R2 URL, or null when one could not be produced. */
   image_url: string | null;
+  /**
+   * The figures this question was PRINTED with — the beaker, the graph, the
+   * pair of wires — in reading order. Short-lived signed URLs. Empty when the
+   * question had none, or when it had figures that became its options and are
+   * carried there instead.
+   */
+  figure_urls?: string[] | null;
   reported: boolean;
 }
 
@@ -86,8 +117,11 @@ export interface SnappedQuestion {
   id: string;
   question_index: number;
   question_type?: string | null;
-  /** Parallel to `option_labels` for MCQ questions. Empty for numerical. */
-  options?: string[] | null;
+  /** Every printed choice of an MCQ, in order. Empty for numerical. */
+  options?: DoubtOption[] | null;
+  /** The label(s) the answer landed on — `["C"]`, not the whole list. For a
+   *  choice question `answer` is the option's *text*, so it reads as one of
+   *  the printed choices on its own. */
   option_labels?: string[] | null;
   remedy?: Remedy;
   retake_helps?: boolean;
@@ -108,6 +142,8 @@ export interface SnappedQuestion {
   key_idea: string | null;
   status: DoubtStatus;
   failure_reason: string | null;
+  /** The figures this question was printed with, as short-lived signed URLs. */
+  figure_urls?: string[] | null;
 }
 
 export interface SnapResponse {
