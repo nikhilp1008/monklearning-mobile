@@ -20,7 +20,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { REGISTRY } from '../registry';
+import { processFlow } from '../process-flow';
 import { renderWidgetTree, renderWidgetTreeAt, scaffoldingDiffs } from './test-utils';
+import { reactionScheme } from '../reaction-scheme';
+import { labelBoxes, type ReactionSchemeParams } from '../reaction-scheme/scheme-graph';
 
 /**
  * Widgets this harness cannot verify, and why. `molecule_3d` renders a
@@ -58,7 +61,14 @@ const REAL_SMALL = { width: 495, height: 270 };
 const SPEC_SMALL = { width: 343, height: 236 };
 
 test('every registry entry is either verified below or explicitly skipped', () => {
-  const covered = new Set(['projectile_motion', 'field_lines', 'xy_plot', 'data_table_trend', ...Object.keys(SKIP)]);
+  const covered = new Set([
+    'projectile_motion', 'field_lines', 'xy_plot', 'data_table_trend',
+    // process_flow is verified below but is NOT in the registry yet — wiring
+    // it in is a separate serial step. Listing it here keeps this guard
+    // honest the moment it lands rather than the commit after.
+    'process_flow',
+    ...Object.keys(SKIP),
+  ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
   expect(missing).toEqual([]);
 });
@@ -424,3 +434,406 @@ describe('projectile_motion angle floor', () => {
 for (const [id, reason] of Object.entries(SKIP)) {
   test.skip(`${id}: ${reason}`, () => {});
 }
+
+/**
+ * process_flow is verified here BEFORE it is registered — registry wiring is a
+ * separate serial step, so `REGISTRY.process_flow` does not exist yet and the
+ * module is imported directly. Everything else is the same harness.
+ *
+ * Its risk is the same one data_table_trend has and worse: a pathway is mostly
+ * text, and verify-render treats ANY overlap of two labels as a hard error.
+ * The worst cases are the WIDEST legal payload at the SMALLEST board, once per
+ * layout — a pointy-top ring at its maximum node count, a serpentine chain at
+ * its maximum node count, and the chain that closes (which gives up a lane to
+ * its return edge and so lays out in a narrower grid than the other two).
+ */
+describe('process_flow', () => {
+  const mod = processFlow;
+
+  const CASES = {
+    // NCERT Cl.11 Bio Ch.14 — the closed ring, at the ring's maximum n.
+    ring: { ...mod.defaults },
+    // Same chapter — 10 nodes is the chain's maximum, and it does NOT close.
+    chain: {
+      ...mod.defaults,
+      layout: 'chain' as const,
+      nodes: ['Glucose', 'G-6-P', 'F-6-P', 'F-1,6-bP', 'DHAP', 'G-3-P',
+              '1,3-BPG', '3-PGA', '2-PGA', 'PEP'],
+      closes: false,
+      caption: 'Glycolysis',
+    },
+    // NCERT Cl.11 Bio Ch.13 — a chain that DOES close. The concept this widget
+    // exists as one widget for: the open run and the return edge, one board.
+    chain_closed: {
+      ...mod.defaults,
+      layout: 'chain' as const,
+      nodes: ['PS I', 'Ferredoxin', 'Cyt b6f', 'Plastocyanin'],
+      closes: true,
+      caption: 'Cyclic photophosphorylation',
+    },
+    // A branch point — the only payload where out-degree exceeds one.
+    branch: {
+      ...mod.defaults,
+      layout: 'chain' as const,
+      nodes: ['Glucose', 'Pyruvate', 'Acetyl-CoA', 'Krebs cycle'],
+      closes: false,
+      branch_at: 1,
+      caption: 'Fate of pyruvate',
+    },
+  };
+
+  test('every case is a payload validate() would actually admit', () => {
+    // The schema's legal range must be a subset of what renders correctly — so
+    // the trees below have to come from inside the schema, not beside it.
+    for (const [name, params] of Object.entries(CASES)) {
+      const r = mod.validate(params);
+      expect([name, r.ok]).toEqual([name, true]);
+    }
+  });
+
+  test.each(Object.keys(CASES) as (keyof typeof CASES)[])(
+    'renders %s and writes its tree',
+    (name) => {
+      const params = CASES[name];
+      const tree = renderWidgetTree(mod, params, { active_node: params.active_node });
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+      const json = JSON.stringify(tree);
+      // Edges are Paths and node plates are Rects — a tree missing either is
+      // a diagram with no ink for verify-render's coverage assertion to see.
+      expect(json).toContain('"d":');
+      expect(json).toContain('RNSVGRect');
+      // Every node label must reach the tree; a silently dropped step is the
+      // failure a bare "did it render" check would miss.
+      for (const label of params.nodes) {
+        expect(json).toContain(`"content":"${label}"`);
+      }
+    }
+  );
+
+  describe.each(Object.keys(CASES) as (keyof typeof CASES)[])('%s at small boards', (name) => {
+    const params = CASES[name];
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(
+        mod, params, { active_node: params.active_node }, box.width, box.height
+      );
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('the pathway does not move while active_node walks it (CLAUDE.md §3)', () => {
+    // The highlight is a Rect and may move; every Text here is scaffolding and
+    // may not. If a label ever rode on the highlight this would fail, which is
+    // the check that keeps `animatable: ['active_node']` honest rather than
+    // asserted in a comment.
+    const a = renderWidgetTree(mod, CASES.ring, { active_node: 0 });
+    const b = renderWidgetTree(mod, CASES.ring, { active_node: 5.5 });
+    expect(scaffoldingDiffs(a, b)).toEqual([]);
+
+    const c = renderWidgetTree(mod, CASES.chain, { active_node: 1 });
+    const d = renderWidgetTree(mod, CASES.chain, { active_node: 8.25 });
+    expect(scaffoldingDiffs(c, d)).toEqual([]);
+  });
+
+  test('an unhighlighted board still renders the plate, parked invisible', () => {
+    // motionFor defaults a missing key to 0, which is a valid node — so -1 is
+    // the sentinel and the Rect must exist either way, parked AT node 0 rather
+    // than at the origin, where it would enlarge the measured ink box.
+    const tree = renderWidgetTree(mod, CASES.ring, { active_node: -1 });
+    expect(JSON.stringify(tree)).toContain('"fillOpacity":0');
+  });
+
+  test('derived matches what computeDerived actually returns', () => {
+    // derived-consistency.test.ts iterates the REGISTRY, which process_flow is
+    // not in yet. Same assertion, made directly, so registration cannot be the
+    // first time this is checked.
+    expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());
+    for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
+  });
+
+  test('validate() rejects the six shapes it has to reject, readably', () => {
+    const bad: [string, unknown][] = [
+      ['not an object', 42],
+      ['empty object', {}],
+      ['wrong layout', { layout: 'spiral', nodes: ['a', 'b', 'c'] }],
+      ['too few nodes', { layout: 'ring', nodes: ['a', 'b'] }],
+      ['too many ring nodes', { layout: 'ring', nodes: Array(9).fill('a') }],
+      ['too many chain nodes', { layout: 'chain', nodes: Array(11).fill('a') }],
+      ['non-string node', { layout: 'ring', nodes: ['a', 'b', 7] }],
+      ['empty label', { layout: 'ring', nodes: ['a', '  ', 'c'] }],
+      ['NaN branch', { layout: 'ring', nodes: ['a','b','c'], branch_at: NaN }],
+      ['Infinity active', { layout: 'ring', nodes: ['a','b','c'], active_node: Infinity }],
+      ['fractional index', { layout: 'ring', nodes: ['a','b','c'], active_node: 1.5 }],
+      ['out-of-range index', { layout: 'ring', nodes: ['a','b','c'], branch_at: 3 }],
+    ];
+    for (const [name, payload] of bad) {
+      const r = mod.validate(payload);
+      expect([name, r.ok]).toEqual([name, false]);
+      expect([name, (r as { ok: false; errors: string[] }).errors.length > 0])
+        .toEqual([name, true]);
+    }
+  });
+
+  test('validate() truncates every label to what its layout can render', () => {
+    const r = mod.validate({
+      layout: 'ring',
+      nodes: ['Phosphoenolpyruvate', 'Glyceraldehyde-3-P', 'Dihydroxyacetone',
+              'Fructose-1,6-bis', 'Oxaloacetic acid', 'Alpha-ketoglutarate',
+              'Succinyl-coenzyme', 'Isocitric acid'],
+    });
+    expect(r.ok).toBe(true);
+    const p = (r as { ok: true; params: { nodes: readonly string[] } }).params;
+    // n = 8 -> 16 characters, the boundary flow-math.ts derives at 343x236.
+    for (const s of p.nodes) expect(s.length).toBeLessThanOrEqual(16);
+    expect(p.nodes[0]).toBe('Phosphoenolpyruv');
+  });
+});
+
+/**
+ * reaction_scheme is verified here BEFORE it is registered — registry wiring
+ * is a separate serial step, so `REGISTRY.reaction_scheme` does not exist yet
+ * and the module is imported directly. Everything else is the same harness.
+ *
+ * Two risks, and the cases below are chosen for them rather than for variety.
+ *
+ * FIRST, INK. A scheme is species TEXT joined by arrows, and verify-render's
+ * boundsOf understands Path/Circle/Line/Rect but NOT text — so the smallest
+ * legal payload (2 species, 1 step) draws one horizontal arrow whose bounding
+ * box is roughly 300x0: ~0% coverage, a hard error, and only 4.3% even once
+ * the chip plates are counted. The `wurtz` case is that exact payload, kept
+ * as a regression fixture for the two bracketing rules that fix it.
+ *
+ * SECOND, COLLISIONS. Three shapes fall out of one ranking rule and each puts
+ * the labels somewhere different: a chain lays every label on one y (so the
+ * arrow gaps have to hold the reagents), a fan HALVES the reagent pitch to
+ * rowPitch/2, and a converge does the same in mirror. All three are rendered
+ * at all three boards.
+ */
+describe('reaction_scheme', () => {
+  const mod = reactionScheme;
+
+  const CASES: Record<'chain' | 'fan' | 'converge' | 'wurtz', ReactionSchemeParams> = {
+    // CHAIN — NCERT Cl.11 "Hydrocarbons". ranks 0,1,2,3; rows 1, which is the
+    // NaN trap (rowPitch = band/(rows-1)) and the commonest payload there is.
+    chain: { ...mod.defaults },
+
+    // FAN — NCERT Cl.12 "Amines". ranks 0,1,1,1,1,1; rows 5, the cap. This is
+    // the widest fan that fits, so it is the binding case for the reagent
+    // pitch of rowPitch/2 = 21.98 against the 17.8 two boxes need.
+    fan: {
+      species: ['C6H5N2Cl', 'C6H5Cl', 'C6H5Br', 'C6H5CN', 'C6H5OH', 'C6H6'],
+      step_from: [0, 0, 0, 0, 0],
+      step_to: [1, 2, 3, 4, 5],
+      step_reagent: ['CuCl/HCl', 'CuBr/HBr', 'CuCN/KCN', 'H2O,warm', 'H3PO2'],
+      step_kind: ['plain', 'plain', 'plain', 'major', 'minor'],
+      highlight_step: 0,
+      step_progress: 1,
+      caption: 'Benzenediazonium chloride',
+    },
+
+    // CONVERGE — NCERT Cl.12 "Alcohols, Phenols and Ethers": three routes to
+    // the same product. ranks 0,0,0,1 with no `layout` param anywhere: the
+    // same longest-path-from-a-source rule produces it.
+    converge: {
+      species: ['C2H4', 'C2H5Br', 'CH3CHO', 'C2H5OH'],
+      step_from: [0, 1, 2],
+      step_to: [3, 3, 3],
+      step_reagent: ['H2O/H+', 'aq.KOH', 'H2/Ni'],
+      step_kind: ['plain', 'plain', 'plain'],
+      highlight_step: 1,
+      step_progress: 1,
+      caption: 'Three routes to ethanol',
+    },
+
+    // The ink-coverage regression fixture. NCERT Cl.12 "Haloalkanes and
+    // Haloarenes": the smallest scheme the schema admits.
+    wurtz: {
+      species: ['C2H5Br', 'C4H10'],
+      step_from: [0],
+      step_to: [1],
+      step_reagent: ['Na, dry ether'.slice(0, 12)],
+      step_kind: ['major'],
+      highlight_step: 0,
+      step_progress: 1,
+      caption: 'Wurtz reaction',
+    },
+  };
+
+  test('every case is a payload validate() would actually admit', () => {
+    // The schema's legal range must be a SUBSET of what renders correctly — so
+    // the trees below have to come from inside the schema, not beside it.
+    for (const [name, params] of Object.entries(CASES)) {
+      const r = mod.validate(params);
+      expect([name, r.ok]).toEqual([name, true]);
+    }
+  });
+
+  test.each(Object.keys(CASES) as (keyof typeof CASES)[])(
+    'renders %s and writes its tree',
+    (name) => {
+      const params = CASES[name];
+      const tree = renderWidgetTree(mod, params, { step_progress: params.step_progress });
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+      const json = JSON.stringify(tree);
+      // Arrows and the tracer are Paths; chips and reagent plates are Rects.
+      // A tree missing either is a diagram with no ink for the coverage
+      // assertion to measure.
+      expect(json).toContain('"d":');
+      expect(json).toContain('RNSVGRect');
+      // Every species must reach the tree — a silently dropped node is the
+      // failure a bare "did it render" check would miss.
+      for (const label of params.species) {
+        expect(json).toContain(`"content":"${label}"`);
+      }
+      for (const reagent of params.step_reagent) {
+        expect(json).toContain(`"content":"${reagent}"`);
+      }
+    }
+  );
+
+  describe.each(Object.keys(CASES) as (keyof typeof CASES)[])('%s at small boards', (name) => {
+    const params = CASES[name];
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(
+        mod, params, { step_progress: params.step_progress }, box.width, box.height
+      );
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('the scheme does not move while step_progress traces (CLAUDE.md §3)', () => {
+    // The tracer is a Path and may move; every Line and Text here is
+    // scaffolding and may not. This is the check that keeps
+    // `animatable: ['step_progress']` honest rather than merely argued: if a
+    // reagent label ever rode the moving end, the widget would be
+    // label-terminated and therefore snap-only.
+    for (const name of Object.keys(CASES) as (keyof typeof CASES)[]) {
+      const a = renderWidgetTree(mod, CASES[name], { step_progress: 0 });
+      const b = renderWidgetTree(mod, CASES[name], { step_progress: 1 });
+      expect([name, scaffoldingDiffs(a, b)]).toEqual([name, []]);
+    }
+  });
+
+  test('an unhighlighted board still renders the tracer, parked invisible', () => {
+    // motionFor defaults a missing key to 0, and 0 is a valid step index — so
+    // -1 is the sentinel and the Path must exist either way. Mounting it
+    // conditionally would change the element count between two motion values,
+    // which scaffoldingDiffs reports as a params/motion violation.
+    const count = (n: unknown): number => {
+      if (!n || typeof n !== 'object') return 0;
+      if (Array.isArray(n)) return n.reduce((a: number, x) => a + count(x), 0);
+      const e = n as { children?: unknown };
+      return 1 + count(e.children);
+    };
+    const off = renderWidgetTree(mod, { ...CASES.chain, highlight_step: -1 }, {});
+    expect(JSON.stringify(off)).toContain('"strokeOpacity":0');
+    // Same element count, highlighted or not — the tracer is parked by
+    // opacity, never unmounted. (scaffoldingDiffs is the wrong tool here: the
+    // two trees differ in PARAMS, which is allowed to change a label's fill.)
+    const on = renderWidgetTree(mod, CASES.chain, {});
+    expect(count(off)).toBe(count(on));
+  });
+
+  test('progress 0 is a drawable state, not a NaN', () => {
+    // motionFor defaults an unsupplied key to 0, so 0 has to render.
+    const tree = renderWidgetTree(mod, CASES.chain, { step_progress: 0 });
+    expect(JSON.stringify(tree)).not.toMatch(/NaN|Infinity/);
+  });
+
+  test('derived matches what computeDerived actually returns', () => {
+    // derived-consistency.test.ts iterates the REGISTRY, which reaction_scheme
+    // is not in yet. Same assertion, made directly, so registration cannot be
+    // the first time this is checked.
+    expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());
+    for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
+  });
+
+  /**
+   * THE SCHEMA'S LEGAL RANGE MUST BE A SUBSET OF WHAT RENDERS CORRECTLY, and
+   * the extreme values are CORNERS rather than endpoints. The corners of this
+   * schema's box are (rank count) x (species width) x (reagent width) x
+   * (rows), and each corner is crossed with all three board sizes below —
+   * asserting the thing verify-render's assertion 4 asserts, since a payload
+   * that collides at 343x236 must never be admitted in the first place.
+   */
+  test('every corner of the legal box lays out without a label collision', () => {
+    const corners: ReactionSchemeParams[] = [
+      // widest chain the budget admits: 7 one-char ranks
+      {
+        species: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+        step_from: [0, 1, 2, 3, 4, 5], step_to: [1, 2, 3, 4, 5, 6],
+        step_reagent: ['', '', '', '', '', ''],
+        step_kind: ['plain', 'plain', 'plain', 'plain', 'plain', 'plain'],
+        highlight_step: 5, step_progress: 1, caption: 'seven ranks',
+      },
+      // widest species the budget admits at 3 ranks
+      {
+        species: ['CH3CH2CH3', 'CH3CHBrCH', 'CH3CHOHCH'],
+        step_from: [0, 1], step_to: [1, 2],
+        step_reagent: ['Br2', 'aq.KOH'],
+        step_kind: ['plain', 'major'],
+        highlight_step: 0, step_progress: 0.5, caption: 'ten-char species',
+      },
+      // widest reagent, at the two ranks that leave room for it
+      {
+        species: ['C6H5CH3', 'C6H5COOH'],
+        step_from: [0], step_to: [1],
+        step_reagent: ['KMnO4/KOH,H'],
+        step_kind: ['major'],
+        highlight_step: 0, step_progress: 1, caption: 'twelve-char reagent',
+      },
+      // the row cap, both ways round
+      { ...CASES.fan },
+      {
+        species: ['A', 'B', 'C', 'D', 'E', 'Z'],
+        step_from: [0, 1, 2, 3, 4], step_to: [5, 5, 5, 5, 5],
+        step_reagent: ['p', 'q', 'r', 's', 't'],
+        step_kind: ['plain', 'plain', 'plain', 'plain', 'plain'],
+        highlight_step: 4, step_progress: 1, caption: 'five converging',
+      },
+    ];
+
+    for (const params of corners) {
+      const r = mod.validate(params);
+      expect([params.caption, r.ok]).toEqual([params.caption, true]);
+      for (const box of [SPEC_SMALL, REAL_SMALL, { width: 900, height: 430 }]) {
+        // Every label box, in verify-render's own model.
+        const boxes = labelBoxes(params, box.width, box.height);
+        for (let i = 0; i < boxes.length; i++) {
+          for (let j = i + 1; j < boxes.length; j++) {
+            const a = boxes[i];
+            const b = boxes[j];
+            const hit = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+            expect([params.caption, box.width, a.s, b.s, hit])
+              .toEqual([params.caption, box.width, a.s, b.s, false]);
+          }
+        }
+      }
+    }
+  });
+});

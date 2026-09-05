@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer } from 'expo-audio';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
 
 import {
   BOARD_LEFT,
@@ -21,6 +22,10 @@ import { fieldLines } from '@/lib/widgets/field-lines';
 import type { FieldLinesParams } from '@/lib/widgets/field-lines';
 import { xyPlot } from '@/lib/widgets/xy-plot';
 import type { XyPlotParams } from '@/lib/widgets/xy-plot';
+import { reactionScheme } from '@/lib/widgets/reaction-scheme';
+import type { ReactionSchemeParams } from '@/lib/widgets/reaction-scheme';
+import { processFlow } from '@/lib/widgets/process-flow';
+import type { ProcessFlowParams } from '@/lib/widgets/process-flow';
 import { useCueTrackByTime, type TimedCue } from '@/lib/widgets/use-cue-track';
 import type { WidgetTheme } from '@/lib/widgets/types';
 
@@ -125,7 +130,7 @@ function narrationTextAt(currentTimeMs: number): string {
   return text;
 }
 
-type Mode = 'manual' | 'narration' | 'classroom' | 'xy_plot';
+type Mode = 'manual' | 'narration' | 'classroom' | 'xy_plot' | 'reaction_scheme' | 'process_flow';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -159,11 +164,29 @@ export default function DevWidgetPreviewScreen() {
         >
           <Text style={[styles.pillText, mode === 'xy_plot' && styles.pillTextActive]}>xy_plot</Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('reaction_scheme')}
+          style={[styles.pill, mode === 'reaction_scheme' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'reaction_scheme' && styles.pillTextActive]}>
+            reaction_scheme
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setMode('process_flow')}
+          style={[styles.pill, mode === 'process_flow' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'process_flow' && styles.pillTextActive]}>
+            process_flow
+          </Text>
+        </Pressable>
       </View>
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
       {mode === 'xy_plot' && <XyPlotPreview />}
+      {mode === 'reaction_scheme' && <ReactionSchemePreview />}
+      {mode === 'process_flow' && <ProcessFlowPreview />}
     </View>
   );
 }
@@ -511,6 +534,286 @@ function XyPlotPreview() {
             theme={theme}
             services={DEV_SERVICES}
             onGap={(reason, detail) => console.warn('[dev-widget-preview][board-gap]', reason, detail)}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * reaction_scheme example payloads — one per shape the ranking rule produces,
+ * so correctness is checkable here without a lesson existing. Each `expect`
+ * states what the readout must show; if the board disagrees with the string,
+ * the widget is wrong. The chemistry behind every number is asserted in
+ * lib/widgets/__tests__/physics.test.ts, and the arithmetic is written out in
+ * lib/widgets/reaction-scheme/scheme-graph.ts's header.
+ *
+ * reaction_scheme is not in the REGISTRY yet, so these go through
+ * `reactionScheme.validate()` and straight into the module's own Component
+ * rather than through BoardWidget — which is the better test anyway, since it
+ * puts validate() on the path a real payload takes.
+ */
+const RXN_CASES: { label: string; expect: string; params: ReactionSchemeParams }[] = [
+  {
+    label: 'chain · NCERT Cl.11 Hydrocarbons · ethane to benzene',
+    expect: '3 steps   ΔC +4   M 78.11   (pathSteps 3, unsatEnd 4)',
+    params: { ...reactionScheme.defaults },
+  },
+  {
+    label: 'fan · NCERT Cl.12 Amines · benzenediazonium chloride',
+    expect: '5 steps   5 ways   M 112.56   (pathSteps 1, NOT 5)',
+    params: {
+      species: ['C6H5N2Cl', 'C6H5Cl', 'C6H5Br', 'C6H5CN', 'C6H5OH', 'C6H6'],
+      step_from: [0, 0, 0, 0, 0],
+      step_to: [1, 2, 3, 4, 5],
+      step_reagent: ['CuCl/HCl', 'CuBr/HBr', 'CuCN/KCN', 'H2O,warm', 'H3PO2'],
+      step_kind: ['plain', 'plain', 'plain', 'major', 'minor'],
+      highlight_step: 0,
+      step_progress: 1,
+      caption: 'Benzenediazonium chloride',
+    },
+  },
+  {
+    label: 'converge · NCERT Cl.12 Alcohols · three routes to ethanol',
+    expect: '3 steps   M 46.07   (ranks 0,0,0,1 — no layout param)',
+    params: {
+      species: ['C2H4', 'C2H5Br', 'CH3CHO', 'C2H5OH'],
+      step_from: [0, 1, 2],
+      step_to: [3, 3, 3],
+      step_reagent: ['H2O/H+', 'aq.KOH', 'H2/Ni'],
+      step_kind: ['plain', 'plain', 'plain'],
+      highlight_step: 1,
+      step_progress: 1,
+      caption: 'Three routes to ethanol',
+    },
+  },
+  {
+    label: 'Wurtz · NCERT Cl.12 Haloalkanes · the chain doubles',
+    expect: '1 step   ΔC +2   M 58.12',
+    params: {
+      species: ['C2H5Br', 'C4H10'],
+      step_from: [0],
+      step_to: [1],
+      step_reagent: ['Na, ether'],
+      step_kind: ['major'],
+      highlight_step: 0,
+      step_progress: 1,
+      caption: 'Wurtz reaction',
+    },
+  },
+  {
+    label: 'decarboxylation · NCERT Cl.11 Hydrocarbons · one carbon off',
+    expect: '1 step   ΔC -1   M 16.04   (carbonDelta is SIGNED)',
+    params: {
+      species: ['CH3COONa', 'CH4'],
+      step_from: [0],
+      step_to: [1],
+      step_reagent: ['NaOH/CaO'],
+      step_kind: ['major'],
+      highlight_step: 0,
+      step_progress: 1,
+      caption: 'Decarboxylation',
+    },
+  },
+];
+
+function ReactionSchemePreview() {
+  const box = useDiagramBox();
+  // This tab carries two extra header rows the other tabs do not, exactly as
+  // the xy_plot tab does. Dev-preview chrome only — the widget is verified at
+  // the REAL board boxes by scripts/verify-render.mjs.
+  const diagramBox = { availableWidth: box.availableWidth, maxHeight: box.maxHeight - 70 };
+  const theme = useDevTheme();
+  const [i, setI] = useState(0);
+  const kase = RXN_CASES[i];
+
+  /** The one animatable param. Driven by hand here; by a cue in a real class. */
+  const stepProgress = useSharedValue(1);
+  const motion = useMemo(() => ({ step_progress: stepProgress }), [stepProgress]);
+
+  const result = useMemo(() => reactionScheme.validate(kase.params), [kase]);
+
+  return (
+    <View style={styles.body}>
+      <View style={styles.controlsContent}>
+        <Pressable
+          onPress={() => setI((v) => (v + 1) % RXN_CASES.length)}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>next case</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            stepProgress.value = 0;
+            stepProgress.value = withTiming(1, { duration: 1100 });
+          }}
+          style={styles.pill}
+        >
+          <Text style={styles.pillText}>trace step</Text>
+        </Pressable>
+        <Text style={styles.readout}>{i + 1}/{RXN_CASES.length}</Text>
+      </View>
+      <View style={[styles.controlsContent, { paddingTop: 0 }]}>
+        <Text style={styles.pillText} numberOfLines={1}>
+          {kase.label}  ·  expect: {kase.expect}
+        </Text>
+      </View>
+
+      <View style={styles.boardArea}>
+        <View style={{ width: diagramBox.availableWidth, height: diagramBox.maxHeight }}>
+          {result.ok ? (
+            <reactionScheme.Component
+              params={result.params}
+              motion={motion}
+              width={diagramBox.availableWidth}
+              height={diagramBox.maxHeight}
+              theme={theme}
+              services={DEV_SERVICES}
+            />
+          ) : (
+            <Text style={styles.captionText}>validate(): {result.errors.join(' | ')}</Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * process_flow example payloads — one per real NCERT use, so correctness is
+ * checkable here without a lesson existing. Each caption states what the board
+ * must show; if the picture disagrees with the caption, the widget is wrong.
+ * The structural numbers behind the readout are asserted in
+ * lib/widgets/__tests__/physics.test.ts.
+ *
+ * The fourth and fifth are the pair this widget exists as ONE widget for:
+ * cyclic and non-cyclic photophosphorylation are the same shape of payload and
+ * must draw differently — a chain that closes, and a chain that does not.
+ */
+const FLOW_CASES: { label: string; expect: string; params: ProcessFlowParams }[] = [
+  {
+    label: 'Bio 11 Ch14 · citric acid (Krebs) cycle',
+    expect: '8 boxes on a pointy-top ring · readout "8 steps · closed loop"',
+    params: { ...processFlow.defaults },
+  },
+  {
+    label: 'Bio 11 Ch14 · glycolysis (EMP pathway)',
+    expect: '10 boxes serpentine over 2+ rows, no return edge · "9 steps · open"',
+    params: {
+      layout: 'chain',
+      nodes: ['Glucose', 'G-6-P', 'F-6-P', 'F-1,6-bP', 'DHAP', 'G-3-P',
+              '1,3-BPG', '3-PGA', '2-PGA', 'PEP'],
+      closes: false, branch_at: -1, active_node: -1, caption: 'Glycolysis',
+    },
+  },
+  {
+    label: 'Bio 11 Ch13 · Calvin cycle',
+    expect: '3 boxes, ring closes · "3 steps · closed loop"',
+    params: {
+      layout: 'ring',
+      nodes: ['Carboxylation', 'Reduction', 'Regeneration'],
+      closes: true, branch_at: -1, active_node: -1, caption: 'Calvin cycle',
+    },
+  },
+  {
+    label: 'Bio 11 Ch13 · CYCLIC photophosphorylation',
+    expect: 'chain PLUS a return edge round the left lane · "4 steps · closed loop"',
+    params: {
+      layout: 'chain',
+      nodes: ['PS I', 'Ferredoxin', 'Cyt b6f', 'Plastocyanin'],
+      closes: true, branch_at: -1, active_node: -1, caption: 'Cyclic photophos.',
+    },
+  },
+  {
+    label: 'Bio 11 Ch13 · NON-cyclic photophosphorylation',
+    expect: 'same shape, NO return edge · "6 steps · open"',
+    params: {
+      layout: 'chain',
+      nodes: ['PS II', 'PQ', 'Cyt b6f', 'PC', 'PS I', 'Ferredoxin', 'NADP+'],
+      closes: false, branch_at: -1, active_node: -1, caption: 'Non-cyclic photophos.',
+    },
+  },
+  {
+    label: 'Bio 11 Ch14 · fate of pyruvate (branch point)',
+    expect: 'an amber spur leaves the Pyruvate box · "3 steps · open · 1 branch"',
+    params: {
+      layout: 'chain',
+      nodes: ['Glucose', 'Pyruvate', 'Acetyl-CoA', 'Krebs cycle'],
+      closes: false, branch_at: 1, active_node: -1, caption: 'Fate of pyruvate',
+    },
+  },
+];
+
+/**
+ * Renders `processFlow.Component` DIRECTLY rather than through `BoardWidget`.
+ * BoardWidget dispatches through `lib/widgets/registry.ts`, and process_flow is
+ * not registered yet — registry wiring is a separate serial step. Swap this for
+ * a `BoardWidget` + payload once it lands, the way the xy_plot tab does.
+ */
+function ProcessFlowPreview() {
+  const box = useDiagramBox();
+  const diagramBox = { availableWidth: box.availableWidth, maxHeight: box.maxHeight - 70 };
+  const theme = useDevTheme();
+  const [i, setI] = useState(0);
+  const kase = FLOW_CASES[i];
+
+  // The one animatable param. "walk" steps it so the highlight plate can be
+  // watched travelling the pathway — which is the whole justification for
+  // `active_node` being animatable at all, and the thing a still tree cannot
+  // show.
+  const active = useSharedValue(-1);
+  const [activeStep, setActiveStep] = useState(-1);
+  const motion = useMemo(() => ({ active_node: active }), [active]);
+
+  const validated = useMemo(() => {
+    const r = processFlow.validate(kase.params as unknown as Record<string, unknown>);
+    return r.ok ? r.params : processFlow.defaults;
+  }, [kase]);
+
+  return (
+    <View style={styles.body}>
+      <View style={styles.controlsContent}>
+        <Pressable
+          onPress={() => {
+            setI((v) => (v + 1) % FLOW_CASES.length);
+            active.value = -1;
+            setActiveStep(-1);
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>next case</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            const next = activeStep + 1 >= validated.nodes.length ? -1 : activeStep + 1;
+            active.value = next;
+            setActiveStep(next);
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>walk</Text>
+        </Pressable>
+        <Text style={styles.readout}>
+          {i + 1}/{FLOW_CASES.length}
+        </Text>
+        <Text style={styles.readout}>n{activeStep}</Text>
+      </View>
+      <View style={[styles.controlsContent, { paddingTop: 0 }]}>
+        <Text style={styles.pillText} numberOfLines={1}>
+          {kase.label}  ·  expect: {kase.expect}
+        </Text>
+      </View>
+
+      <View style={styles.boardArea}>
+        <View style={{ width: diagramBox.availableWidth, height: diagramBox.maxHeight }}>
+          <processFlow.Component
+            params={validated}
+            motion={motion}
+            width={diagramBox.availableWidth}
+            height={diagramBox.maxHeight}
+            theme={theme}
+            services={DEV_SERVICES}
           />
         </View>
       </View>
