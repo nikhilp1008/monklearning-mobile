@@ -178,9 +178,16 @@ export function fitReadout(
  * Corner-pinning is collision-proof by construction, needs no halo, and no
  * paint-order trickery — which is why there is no halo helper in this file.
  *
- * Use a halo only when a label MUST sit on top of dense ink (a value on a
- * shaded region), and then draw the same text twice: once thick in the
- * background colour, once normally on top.
+ * DO NOT HALO BY DRAWING THE TEXT TWICE. That advice was here and it was
+ * wrong: verify-render's overlap test is
+ *     a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1
+ * and for two IDENTICAL boxes every term is true, so a halo drawn as the same
+ * string at the same x/y fails assertion 4 against itself —
+ * `labels collide: "Labrum" and "Labrum"`. Verified empirically 2026-09-05.
+ *
+ * When a label MUST sit on dense ink, draw a filled `Rect` plate behind it
+ * instead: fill only, no stroke, so it stays clear of the 1.2 stroke floor,
+ * and it is ONE element rather than a second copy of the text.
  */
 export type LabelCorner = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
 
