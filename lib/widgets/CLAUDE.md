@@ -191,9 +191,34 @@ to admit a payload converts a diagram that is wrong on a phone into a diagram
 that is wrong on a phone and passes CI. And when you narrow, measure the new
 bound at the SMALLEST board — a floor derived at 900x430 is not a floor.
 
-The corollary for a new widget: after writing `validate()`, render its extreme
-legal values — every enum, both ends of every numeric range — through the gate
-at all three board sizes. The middle of the range is the case that already works.
+**The extreme legal values are CORNERS, not endpoints.** A schema with N
+numeric params has 2^N corners, and defects hide in the combinations, not on
+the axes. Two params means four renders through the gate, not two. Sweep one
+param at a time and you will miss every bug that needs two things to be extreme
+at once.
+
+This is not a theoretical worry — it is how the next three defects in
+`projectile_motion` were found, after the angle sweep had already been done and
+had already come back clean:
+
+  - `tickStep` returned 1 for a 0.04 m span, so NO gridline fell inside the
+    plot and ink coverage collapsed to 0.7%. Needs low speed AND high gravity.
+  - `tickStep` returned its hard-coded 2000 fallback for a 25000 m span,
+    giving 12 intervals where the function promises 7. Seven five-digit labels
+    ran off a 343pt board. Needs high speed AND low gravity.
+  - `PAD.left = 0.085` is a 29pt gutter at 343pt, narrower than the 34.8pt
+    y-tick label it must hold, so labels hung off the left edge. Needs high
+    speed AND low gravity AND the smallest board — a three-way corner.
+
+Note the shape of the last one: it is the container rule (a container that
+holds fixed chrome is sized from that chrome, not from a fraction of the
+frame), still live in the very widget
+`docs/small-screen-rendering-rules.md` uses as its worked example. A rule
+written down is not a rule applied.
+
+So: enumerate the corners of the legal box, cross them with all three board
+sizes, and put the result through the gate. The middle of the range is the case
+that already works.
 
 ### Exactly one WebView, and only for 3D
 `react-native-webview` was removed from this app for good reason: the old KaTeX

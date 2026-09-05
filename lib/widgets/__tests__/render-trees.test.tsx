@@ -353,6 +353,40 @@ describe('projectile_motion angle floor', () => {
     expect((r as { ok: true; params: { launch_angle_deg: number } }).params.launch_angle_deg).toBe(3);
   });
 
+  /**
+   * CORNERS, not endpoints. A one-param sweep over angle passed cleanly and
+   * still missed three defects, each needing two or three params extreme at
+   * once: tickStep with no gridline inside a 0.04 m span, tickStep's 2000
+   * fallback giving 12 intervals on a 25000 m span, and a fractional PAD.left
+   * too narrow for a five-digit y label.
+   *
+   * The apex position is speed- and gravity-INVARIANT by construction —
+   * metresToPx fits to v^2/g, so pxPerM is proportional to g/v^2, and the
+   * v^2/g in apexX cancels it exactly. That is asserted below rather than
+   * assumed, because it is what lets the angle floor be a pure angle
+   * constraint instead of a joint (angle, speed, gravity) one.
+   */
+  test('the apex lands on the same pixel at every speed and gravity', () => {
+    const at = (v: number, g: number) => {
+      const r = mod.validate({ ...mod.defaults, launch_angle_deg: 3, initial_speed_ms: v, gravity_ms2: g });
+      const p = (r as { ok: true; params: { launch_angle_deg: number } }).params;
+      const tree = renderWidgetTreeAt(mod, p as never, { launch_angle_deg: 3 }, 900, 430);
+      const found: string[] = [];
+      const walk = (n: unknown): void => {
+        if (!n || typeof n !== 'object') return;
+        const e = n as { type?: string; props?: Record<string, number>; children?: unknown[] };
+        if ((e.type === 'RNSVGCircle' || e.type === 'Circle') && e.props) {
+          found.push(`${Number(e.props.cx).toFixed(2)},${Number(e.props.cy).toFixed(2)}`);
+        }
+        (e.children ?? []).forEach(walk);
+      };
+      walk(tree);
+      return found.join(' ');
+    };
+    expect(at(1, 1.6)).toBe(at(200, 24.8));
+    expect(at(22, 9.81)).toBe(at(200, 1.6));
+  });
+
   test('every angle validate() admits keeps the apex clear of the origin dot', () => {
     // 2r + GLYPH_GAP for the r=4 origin dot, the floor verify-render applies.
     const FLOOR = 12;

@@ -63,14 +63,33 @@ export function metresToPx(
   return Math.min(plotW / (maxRange * 1.1), plotH / (maxApex * 1.14));
 }
 
-/** Nice axis step for a world span, so tick labels stay round numbers. */
+/**
+ * Nice axis step for a world span, so tick labels stay round numbers.
+ *
+ * Generated on the 1-2-5 decade ladder rather than read from a fixed table.
+ * The table this replaced ran [1 .. 1000] with a hard `return 2000` fallback,
+ * and both ends were reachable from legal payloads:
+ *
+ *   span 0.04 m  (speed 1, gravity 24.8) -> returned 1, so NO gridline fell
+ *     inside the plot at all. Ink coverage collapsed to 0.7% and the render
+ *     gate called the board degenerate.
+ *   span 25000 m (speed 200, gravity 1.6) -> returned 2000, giving 12+
+ *     intervals where this function promises at most 7. Seven five-digit
+ *     labels ran off a 343pt board and eleven pairs collided.
+ *
+ * Neither appears in a one-parameter sweep: both need a CORNER of the legal
+ * (angle, speed, gravity) box. The ladder has no ends, so no span can fall
+ * off it.
+ */
 export function tickStep(worldSpan: number): number {
   'worklet';
-  const steps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
-  for (let i = 0; i < steps.length; i++) {
-    if (worldSpan / steps[i] <= 7) return steps[i];
-  }
-  return 2000;
+  if (!(worldSpan > 0) || !Number.isFinite(worldSpan)) return 1;
+  // Smallest 1-2-5 step giving at most 7 intervals.
+  const raw = worldSpan / 7;
+  const decade = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / decade;
+  const mult = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return mult * decade;
 }
 
 /**

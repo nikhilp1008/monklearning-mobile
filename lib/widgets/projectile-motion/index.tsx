@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
+import { textWidth } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   derive,
@@ -31,7 +32,36 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
  * render harness's off-board-label check. 0.19 clears both real board
  * heights (236 and 270) with room to spare.
  */
-const PAD = { left: 0.085, right: 0.03, top: 0.08, bottom: 0.19 } as const;
+/**
+ * LEFT is gone: it held text, so it is now sized from that text at render time
+ * (see `frame`). It used to be 0.085, which at 343pt is a 29pt gutter for a
+ * y-tick label that can be 34.8pt wide ("10000" at 12pt) — so the label hung
+ * off the left edge. That is the container-rule bug
+ * docs/small-screen-rendering-rules.md uses as its own worked example, still
+ * live in the widget the doc was written about. Only reachable at a CORNER of
+ * the legal box: it needs a large speed AND a small gravity to make the y
+ * values five digits.
+ *
+ * `bottom: 0.19` is the SAME bug and is deliberately left alone here. It holds
+ * a tick label and an axis title, so it should be sized from them too — but
+ * fixing it moves the ground line on every payload including the default,
+ * which changes the golden. That belongs in its own commit with its own golden
+ * review, not bundled into a defect fix where no reviewer could tell which
+ * change caused which diff.
+ */
+const PAD = { right: 0.03, top: 0.08, bottom: 0.19 } as const;
+
+/**
+ * Tick label text. `String(0.1 * 3)` is "0.30000000000000004", which is both
+ * unreadable and 19 characters wide — it overflowed and collided the moment
+ * tickStep gained sub-unit steps. Decimals come from the step's magnitude, so
+ * a step of 0.01 prints 2 places and a step of 5000 prints none.
+ */
+function fmtTick(v: number, step: number): string {
+  'worklet';
+  const dp = step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step)));
+  return v.toFixed(dp);
+}
 const SAMPLES = 72;
 
 /**
@@ -52,6 +82,8 @@ const SAMPLES = 72;
  * those are floors, not targets.
  */
 const TICK_LABEL_SIZE = 12;
+/** Gap between the plot edge and a y-tick label. */
+const TICK_GAP = TICK_LABEL_SIZE * 0.6;
 const AXIS_TITLE_SIZE = 12;
 const READOUT_SIZE = 14;
 const GRIDLINE_STROKE = 1.5;
@@ -135,10 +167,31 @@ function ProjectileMotion({
    * angle — so axes and gridlines hold still while the trajectory sweeps.
    */
   const frame = useMemo(() => {
-    const left = width * PAD.left;
     const right = width * (1 - PAD.right);
     const top = height * PAD.top;
     const ground = height * (1 - PAD.bottom);
+
+    /**
+     * Two passes, because the left gutter depends on the widest y-tick label,
+     * which depends on the step, which depends on the plot width, which
+     * depends on the gutter. One iteration converges: pass 1 uses a provisional
+     * gutter only to LEARN the step, pass 2 sizes the gutter from the labels
+     * that step actually produces. Deterministic, and no fixed point is needed
+     * because the step is a coarse function of the width.
+     */
+    const measure = (leftGuess: number) => {
+      const plotW0 = right - leftGuess;
+      const plotH0 = ground - top;
+      const px = metresToPx(params.initial_speed_ms, params.gravity_ms2, plotW0, plotH0);
+      return { step: tickStep(plotW0 / px), px, plotH0 };
+    };
+    const provisional = measure(width * 0.085);
+    let widest = 0;
+    for (let y = provisional.step; y * provisional.px < provisional.plotH0; y += provisional.step) {
+      widest = Math.max(widest, textWidth(fmtTick(y, provisional.step), TICK_LABEL_SIZE));
+    }
+    const left = Math.min(width * 0.4, Math.max(width * 0.085, widest + TICK_GAP + 2));
+
     const plotW = right - left;
     const plotH = ground - top;
     const pxPerM = metresToPx(params.initial_speed_ms, params.gravity_ms2, plotW, plotH);
@@ -149,7 +202,7 @@ function ProjectileMotion({
     const yTicks: number[] = [];
     for (let y = step; y * pxPerM < plotH; y += step) yTicks.push(y);
 
-    return { left, right, top, ground, plotW, plotH, pxPerM, xTicks, yTicks };
+    return { left, right, top, ground, plotW, plotH, pxPerM, xTicks, yTicks, step };
   }, [width, height, params.initial_speed_ms, params.gravity_ms2]);
 
   const d = useMemo(() => derive(params), [params]);
@@ -209,7 +262,7 @@ function ProjectileMotion({
               fontFamily={theme.monoFontFamily}
               textAnchor="middle"
             >
-              {String(x)}
+              {fmtTick(x, frame.step)}
             </SvgText>
           </G>
         ))}
@@ -224,14 +277,14 @@ function ProjectileMotion({
               strokeWidth={GRIDLINE_STROKE}
             />
             <SvgText
-              x={frame.left - TICK_LABEL_SIZE * 0.6}
+              x={frame.left - TICK_GAP}
               y={frame.ground - y * frame.pxPerM + TICK_LABEL_SIZE * 0.35}
               fill={theme.inkMuted}
               fontSize={TICK_LABEL_SIZE}
               fontFamily={theme.monoFontFamily}
               textAnchor="end"
             >
-              {String(y)}
+              {fmtTick(y, frame.step)}
             </SvgText>
           </G>
         ))}
