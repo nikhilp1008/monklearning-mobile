@@ -14,7 +14,6 @@ import Svg, { Path } from 'react-native-svg';
 
 import { MathText } from '@/components/math-text';
 import { PracticeTabsHeader } from '@/components/practice-tabs-header';
-import { RuledPaper } from '@/components/ruled-paper';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { SolutionSteps } from '@/components/solution-steps';
@@ -85,6 +84,9 @@ export default function PracticeScreen() {
   const [numericInput, setNumericInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
+  /** Questions shown this sitting. Practice is endless, so this counts the
+   *  session rather than a fixed paper -- it is a place marker, not an index. */
+  const [seen, setSeen] = useState(1);
 
   const revealed = answerResult !== null;
 
@@ -183,6 +185,7 @@ export default function PracticeScreen() {
     if (ready && prefetchSubjectRef.current === activeSubject) {
       prefetchedRef.current = null;
       setQuestion(ready);
+      setSeen((n) => n + 1);
       setLoading(false);
       return;
     }
@@ -204,6 +207,7 @@ export default function PracticeScreen() {
         setQuestion(null);
       } else {
         setQuestion(result);
+        setSeen((n) => n + 1);
       }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
@@ -212,12 +216,20 @@ export default function PracticeScreen() {
     }
   }
 
-  async function selectOption(key: string) {
+  /**
+   * Grade the current question. `key` is the option chosen, or undefined when
+   * the student asked to be shown the answer instead of picking one.
+   */
+  async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
-    setSelectedOption(key);
+    setSelectedOption(key ?? null);
     setSubmitting(true);
     try {
-      const result = await submitAnswer({ question_id: question.question_id, chosen_option: key });
+      const result = await submitAnswer(
+        key === undefined
+          ? { question_id: question.question_id }
+          : { question_id: question.question_id, chosen_option: key }
+      );
       setAnswerResult(result);
       // The student now has a solution to read — use that time to fetch what
       // comes next, so Next feels instant.
@@ -314,19 +326,20 @@ export default function PracticeScreen() {
             </View>
           ) : question ? (
             <>
-          <View style={styles.questionCard}>
-            <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
-            <View style={styles.questionRule} />
-            <Text style={styles.questionOverline}>
-              {[question.concept, question.chapter_name].filter(Boolean).join(' · ') || 'Practice'}
+          <View style={styles.questionBlock}>
+            <Text style={styles.questionMeta}>
+              <Text style={styles.questionNumber}>Q{seen}</Text>
+              {'  '}
+              {[activeSubject, question.chapter_name].filter(Boolean).join(' · ')}
             </Text>
             <MathText
               text={question.question_text ?? ''}
-              fontSize={scale(15)}
-              lineHeight={scale(22.5)}
+              fontSize={scale(16)}
+              lineHeight={scale(25)}
               color={colors.ink}
               style={styles.questionBody}
             />
+            <View style={styles.questionDivider} />
           </View>
 
           {question.question_type === 'numerical' ? (
@@ -370,7 +383,7 @@ export default function PracticeScreen() {
                 <Pressable
                   key={key}
                   disabled={revealed || submitting || loading}
-                  onPress={() => selectOption(key)}
+                  onPress={() => submitAnswerFor(key)}
                   style={[
                     styles.optionRow,
                     revealed && styles.optionRowRevealed,
@@ -415,12 +428,25 @@ export default function PracticeScreen() {
           {!revealed ? (
             <>
               <View style={styles.actionRow}>
+                {/* Reveal grades the question with no choice attached, which
+                    the API already allows: both choice fields are optional and
+                    is_correct defaults to false. So giving up is recorded as
+                    not-correct and feeds mastery the same way a wrong answer
+                    does, which is the honest reading of asking for the answer. */}
+                <Pressable
+                  style={styles.revealOutlineButton}
+                  disabled={submitting}
+                  onPress={() => submitAnswerFor(undefined)}>
+                  <Text style={styles.revealOutlineText}>Reveal answer</Text>
+                </Pressable>
                 <Pressable onPress={loadQuestion} hitSlop={10}>
                   <Text style={styles.nextInlineText}>Skip →</Text>
                 </Pressable>
-                {/* No Report control: the report endpoint only accepts doubt
-                    ids today, so a practice-question report could never
-                    submit. It returns with a /practice report endpoint. */}
+                <View style={styles.actionSpacer} />
+                {/* Still no Report control. /practice has next, answer, stats
+                    and explain and nothing else -- a report here would have
+                    nowhere to post, and a button that silently does nothing is
+                    worse than an absent one. The row leaves its place. */}
               </View>
 
               <View style={styles.stuckCard}>
@@ -520,13 +546,12 @@ function QuestionSkeleton({
 }) {
   return (
     <>
-      <View style={styles.questionCard}>
-        <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
-        <View style={styles.questionRule} />
+      <View style={styles.questionBlock}>
         <Skeleton delay={0} style={styles.skeletonOverline} />
         <Skeleton delay={60} style={styles.skeletonBodyLine} />
         <Skeleton delay={120} style={styles.skeletonBodyLineFull} />
         <Skeleton delay={180} style={styles.skeletonBodyLineShort} />
+        <View style={styles.questionDivider} />
       </View>
 
       <View style={styles.optionsList}>
@@ -573,22 +598,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     filterRow: {
       marginTop: verticalScale(14),
     },
-    // Full width now that the focus chip has moved up beside the title. The
-    // two used to share one row and neither had the space it wanted: three
-    // subjects squeezed into a pill and a chapter name that had to truncate.
+    // Sized to its three labels rather than stretched across the row. The
+    // focus chip sits up beside the title now, so nothing needs the width and
+    // a full-bleed track just left a stretch of empty grey after Maths.
     subjectTrack: {
+      alignSelf: 'flex-start',
       padding: scale(3),
       backgroundColor: 'rgba(28,26,22,.055)',
       borderRadius: scale(99),
     },
-    // Each subject takes an equal third of the track. Sized to their text they
-    // sat bunched at the left with a stretch of empty grey after Maths, and the
-    // tap targets were as narrow as the words.
     subjectPill: {
-      flex: 1,
       alignItems: 'center',
       paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(12),
+      paddingHorizontal: scale(14),
       borderRadius: scale(99),
     },
     subjectThumb: {
@@ -823,31 +845,39 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(38),
       borderRadius: scale(99),
     },
+    // The question is the page, not a widget on it. Ruled paper, an ink
+    // border, a drop shadow and a red margin rule all competed with the one
+    // thing a student is here to read, and the 34pt left inset the rule
+    // needed pushed every line inward for no reason.
+    questionBlock: {
+      marginTop: verticalScale(18),
+    },
+    questionMeta: {
+      fontFamily: 'AnekLatin_400Regular',
+      fontSize: scale(13),
+      color: colors.faint,
+    },
+    questionNumber: {
+      fontFamily: 'AnekLatin_700Bold',
+      color: colors.ink,
+    },
+    questionBody: {
+      marginTop: verticalScale(10),
+    },
+    questionDivider: {
+      height: 1,
+      backgroundColor: 'rgba(28,26,22,.10)',
+      marginTop: verticalScale(16),
+    },
+    // Kept for the two states that are still a card: an empty pool and a
+    // load failure, where a bordered box is the right shape for a message.
     questionCard: {
-      position: 'relative',
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.1)',
       borderRadius: scale(13),
-      paddingTop: verticalScale(14),
-      paddingRight: scale(15),
-      paddingBottom: verticalScale(13),
-      paddingLeft: scale(34),
+      padding: scale(15),
       marginTop: verticalScale(14),
-      overflow: 'hidden',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    questionRule: {
-      position: 'absolute',
-      top: verticalScale(11),
-      bottom: verticalScale(11),
-      left: scale(22),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
     },
     questionOverline: {
       fontFamily: 'AnekLatin_800ExtraBold',
@@ -855,9 +885,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       letterSpacing: scale(0.9),
       textTransform: 'uppercase',
       color: '#C53A2B',
-    },
-    questionBody: {
-      marginTop: verticalScale(5),
     },
     optionsList: {
       flexDirection: 'column',
@@ -965,8 +992,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     actionRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(10),
-      marginTop: verticalScale(14),
+      gap: scale(14),
+      marginTop: verticalScale(16),
+    },
+    actionSpacer: { flex: 1 },
+    // Outlined rather than filled: revealing is the fallback, not the thing
+    // the page wants you to do, and a solid button here would outrank the
+    // options themselves.
+    revealOutlineButton: {
+      height: verticalScale(40),
+      paddingHorizontal: scale(18),
+      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    revealOutlineText: {
+      fontFamily: 'AnekLatin_700Bold',
+      fontSize: scale(13.5),
+      color: colors.ink,
     },
     revealButton: {
       height: verticalScale(44),
