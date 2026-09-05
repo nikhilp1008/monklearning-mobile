@@ -283,7 +283,19 @@ export function SolutionScreen({
           // runs to about a third of the screen, and holding that over the
           // working costs more than it gives. An MCQ's answer is stored as the
           // option's own text, so the final line still reads on its own.
-          stickyHeaderIndices={question.options?.length ? undefined : [0]}
+          // Pinned only while the block is small enough to be worth pinning.
+          // A figure is part of the question — "as shown in the figure" is
+          // unanswerable without it — so it lives in this block, and pinning
+          // it froze the diagram at the top of the screen with only the steps
+          // moving underneath. The one thing the student most wants to look at
+          // while reading the working was the one thing they could not scroll.
+          //
+          // Same reasoning as the options row below it: hold the question
+          // there when it is a line or two of text, let it scroll when it
+          // carries a picture.
+          stickyHeaderIndices={
+            question.options?.length || question.figureUrls?.length ? undefined : [0]
+          }
           showsVerticalScrollIndicator={false}>
           {/* Pinned and opaque, so the grid never runs under it and the
               question stays readable while the working scrolls beneath. */}
