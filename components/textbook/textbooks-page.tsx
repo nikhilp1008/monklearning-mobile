@@ -3,12 +3,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/brand';
-import { SUBJECT_TILES, SubjectIcon } from '@/components/textbook/subjects';
+import { DotGrid, SUBJECT_TILES, SubjectArt } from '@/components/textbook/subjects';
 import { getProfile } from '@/lib/profile';
-import { textbookSubjects } from '@/lib/textbooks';
+import { readyChapterCount, textbookSubjects } from '@/lib/textbooks';
 
 /**
  * The body of the Textbooks tab: pick a subject.
+ *
+ * Each tile is a book. The radius is asymmetric and a coloured bar runs down
+ * the left edge, so the card reads as something with a spine; the panel
+ * inside is ruled with a dot grid like squared paper; and every subject gets
+ * a drawing of its own rather than a glyph on a coloured square.
+ *
+ * The count under each drawing is the number of chapters actually written,
+ * from the registry — not the syllabus length. Physics and Maths are complete
+ * at 28 and 27; Chemistry and Biology have none yet and say so, rather than
+ * promising a number that opens onto a screen of SOON.
  *
  * No page title of its own — the screen that mounts this heads itself, and
  * repeating the word would push the tiles down the page to say nothing new.
@@ -46,7 +56,7 @@ export function TextbooksPage({
     const measured = event.nativeEvent.layout.width;
     setRowWidth((current) => (Math.abs(current - measured) > 0.5 ? measured : current));
   };
-  const tileWidth = rowWidth > 0 ? Math.floor((rowWidth - scale(14)) / 2) : undefined;
+  const tileWidth = rowWidth > 0 ? Math.floor((rowWidth - scale(16)) / 2) : undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +103,7 @@ export function TextbooksPage({
             // Hidden until measured, so a first frame at the wrong width is
             // never visible.
             if (!tileWidth) return <View key={subject} style={styles.filler} />;
+            const ready = readyChapterCount(subject);
             return (
               <Pressable
                 key={subject}
@@ -102,8 +113,20 @@ export function TextbooksPage({
                   { width: tileWidth, backgroundColor: tile.background, borderColor: tile.border },
                   pressed && styles.tilePressed,
                 ]}>
-                <SubjectIcon subject={subject} size={scale(34)} tile={tile} />
-                <Text style={styles.tileName}>{tile.label}</Text>
+                {/* The spine. React Native has no inset shadow, so the
+                    handoff's `box-shadow: inset 6px 0 0` is a real bar. */}
+                <View style={[styles.spine, { backgroundColor: tile.spine }]} />
+                <View style={[styles.panel, { borderColor: tile.border }]}>
+                  <DotGrid subject={subject} tile={tile} />
+                  <Text style={[styles.name, { color: tile.ink }]} numberOfLines={1}>
+                    {tile.label}
+                  </Text>
+                  <View style={styles.spacer} />
+                  <SubjectArt subject={subject} size={scale(104)} tile={tile} />
+                  <Text style={[styles.count, { color: tile.ink }]}>
+                    {ready > 0 ? `${ready} chapters` : 'coming soon'}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -116,26 +139,63 @@ export function TextbooksPage({
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
     grid: {
-      gap: scale(14),
+      gap: scale(16),
       paddingHorizontal: scale(20),
       paddingTop: verticalScale(14),
     },
-    row: { flexDirection: 'row', gap: scale(14) },
+    row: { flexDirection: 'row', gap: scale(16) },
     filler: { flex: 1 },
     tile: {
       // Width is set inline from the measured row; see `tileWidth`.
-      height: verticalScale(190),
-      borderRadius: scale(18),
+      height: verticalScale(250),
+      // Asymmetric: rounded on the spine side, square on the fore-edge, which
+      // is what makes it read as a book rather than a card.
+      borderTopLeftRadius: scale(14),
+      borderBottomLeftRadius: scale(14),
+      borderTopRightRadius: scale(6),
+      borderBottomRightRadius: scale(6),
       borderWidth: 1,
-      padding: scale(18),
-      justifyContent: 'space-between',
+      padding: scale(8),
+      overflow: 'hidden',
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(10) },
+      shadowOpacity: 0.16,
+      shadowRadius: scale(14),
+      elevation: 3,
     },
     tilePressed: { transform: [{ scale: 0.97 }] },
-    tileName: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(21),
-      letterSpacing: scale(-0.46),
-      color: colors.ink,
+    spine: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: scale(6),
+    },
+    panel: {
+      flex: 1,
+      borderWidth: 1,
+      borderTopLeftRadius: scale(9),
+      borderBottomLeftRadius: scale(9),
+      borderTopRightRadius: scale(3),
+      borderBottomRightRadius: scale(3),
+      alignItems: 'center',
+      paddingTop: verticalScale(16),
+      paddingBottom: verticalScale(14),
+      paddingHorizontal: scale(10),
+      overflow: 'hidden',
+    },
+    name: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(22),
+      letterSpacing: scale(-0.44),
+      lineHeight: scale(23),
+      marginTop: verticalScale(8),
+    },
+    spacer: { flex: 1 },
+    count: {
+      fontFamily: 'Kalam_400Regular',
+      fontSize: scale(12),
+      marginTop: verticalScale(6),
     },
   });
 }

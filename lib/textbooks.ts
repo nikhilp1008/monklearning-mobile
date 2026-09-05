@@ -732,3 +732,16 @@ export async function loadChapter(
 export function textbookSubjects(exam: ExamKey): string[] {
   return examSubjects(exam);
 }
+
+/**
+ * How many chapters of a subject are actually written and readable.
+ *
+ * Counted from the registry, not from the catalogue: the catalogue lists the
+ * whole syllabus, and for Chemistry and Biology none of it is written yet.
+ * A card promising "19 chapters" that opens onto nineteen SOON rows is a
+ * worse first impression than one that says the truth.
+ */
+export function readyChapterCount(subject: string): number {
+  const prefix = `${subject.trim().toLowerCase()}|`;
+  return Object.keys(CHAPTERS).filter((k) => k.startsWith(prefix)).length;
+}
