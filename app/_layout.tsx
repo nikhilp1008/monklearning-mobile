@@ -184,8 +184,10 @@ export default function RootLayout() {
             name="practice-focus"
             options={{
               headerShown: false,
-              presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // A full screen sliding in from the right, per the redesign
+              // bundle -- it was a transparent bottom sheet, and the bundle
+              // draws it as a page with its own back chevron.
+              animation: 'slide_from_right',
             }}
           />
           <Stack.Screen name="mock-ready" options={{ headerShown: false }} />
