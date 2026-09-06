@@ -33,11 +33,13 @@ const RING_LOCATIONS = [0, 0.194, 0.361, 0.5, 0.778, 1] as const;
 // `bloom` — inner face, opacity 0→1 + scale .985→1, .55s.
 const BLOOM_MS = 550;
 const BLOOM_EASING = Easing.bezier(0.2, 0.75, 0.2, 1);
-const BLOOM_COLORS = [
-  'rgba(238,163,31,0.26)',
-  'rgba(238,163,31,0.06)',
-  'rgba(255,255,255,0)',
-] as const;
+const BLOOM_ALPHAS = [0.26, 0.06] as const;
+const bloomColors = (strength: number) =>
+  [
+    `rgba(238,163,31,${(BLOOM_ALPHAS[0] * strength).toFixed(3)})`,
+    `rgba(238,163,31,${(BLOOM_ALPHAS[1] * strength).toFixed(3)})`,
+    'rgba(255,255,255,0)',
+  ] as const;
 
 /**
  * The rotating edge. Sized from its own layout to the diagonal, so the square
@@ -84,14 +86,22 @@ export function RingSweep({ radius }: { radius: number }) {
   );
 }
 
-/** The inner face carrying the amber bloom, entering with `bloom`. */
+/**
+ * The inner face carrying the amber bloom, entering with `bloom`.
+ *
+ * `strength` scales the wash. Profile leaves it at 1, where the bloom sits
+ * inside a rotating ring that is already carrying the selection. The topic
+ * pills have no ring, so the bloom has to do that work alone and runs hotter.
+ */
 export function BloomFace({
   style,
   direction,
+  strength = 1,
   children,
 }: {
   style: object;
   direction: 'left' | 'bottom';
+  strength?: number;
   children: React.ReactNode;
 }) {
   const progress = useSharedValue(0);
@@ -110,7 +120,7 @@ export function BloomFace({
   return (
     <Animated.View style={[style, animated]}>
       <LinearGradient
-        colors={[...BLOOM_COLORS]}
+        colors={[...bloomColors(strength)]}
         locations={isLeft ? [0, 0.48, 0.78] : [0, 0.55, 0.82]}
         start={isLeft ? { x: 0, y: 0.5 } : { x: 0.5, y: 1 }}
         end={isLeft ? { x: 1, y: 0.5 } : { x: 0.5, y: 0 }}

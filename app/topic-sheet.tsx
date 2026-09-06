@@ -7,7 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { BloomFace, RingSweep } from '@/components/gradient-select';
+import { BloomFace } from '@/components/gradient-select';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
@@ -139,10 +139,14 @@ export default function TopicSheetScreen() {
                         key={topic}
                         onPress={() => select(topic)}
                         style={wide ? styles.rowOuterSelected : styles.pillOuterSelected}>
-                        <RingSweep radius={scale(wide ? 16 : 99)} />
+                        {/* No rotating sweep here. On a grid of eleven pills a
+                            turning line drew the eye away from the name it was
+                            marking; the bloom carries the selection on its own,
+                            turned up to compensate, inside a marigold edge. */}
                         <BloomFace
                           style={wide ? styles.rowFace : styles.pillFace}
-                          direction="bottom">
+                          direction="bottom"
+                          strength={2.1}>
                           <Text style={styles.topicTextSelected}>{topic}</Text>
                         </BloomFace>
                       </Pressable>
@@ -282,15 +286,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     pillOuterSelected: {
-      position: 'relative',
       borderRadius: scale(99),
-      padding: scale(2),
+      borderWidth: scale(1.6),
+      borderColor: colors.marigold,
       overflow: 'hidden',
       backgroundColor: '#fff',
     },
     pillFace: {
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(12),
+      paddingVertical: verticalScale(7.4),
+      paddingHorizontal: scale(12.4),
       borderRadius: scale(99),
       overflow: 'hidden',
       backgroundColor: '#fff',
@@ -308,16 +312,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     rowOuterSelected: {
-      position: 'relative',
       width: '100%',
       borderRadius: scale(16),
-      padding: scale(2),
+      borderWidth: scale(1.6),
+      borderColor: colors.marigold,
       overflow: 'hidden',
       backgroundColor: '#fff',
     },
     rowFace: {
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(12),
+      paddingVertical: verticalScale(8.4),
+      paddingHorizontal: scale(12.4),
       borderRadius: scale(14),
       overflow: 'hidden',
       backgroundColor: '#fff',
