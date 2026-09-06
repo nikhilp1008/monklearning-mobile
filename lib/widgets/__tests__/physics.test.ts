@@ -83,22 +83,38 @@ test('complementary angles (25 / 65) share a range', () => {
  * same way projectile_motion's are above.
  */
 test('point, charge_uc=10, at 0.10 m -> E = 8.988e6 N/C', () => {
-  const d = deriveFieldLines({ configuration: 'point', charge_uc: 10, show_arrows: true, annotate: null });
+  const d = deriveFieldLines({
+    configuration: 'point', charge_uc: 10, show_arrows: true, annotate: null,
+    // v2 keys, at the values validate() gives a v1 payload that omits them.
+    surface_scale: 1, enclosed: true, caption: '',
+  });
   expect(d.fieldMagnitude).toBeCloseTo(8.988e6, -2);
 });
 
 test('dipole, charge_uc=10, 0.20 m separation, at the midpoint -> E = 1.798e7 N/C (fields add)', () => {
-  const d = deriveFieldLines({ configuration: 'dipole', charge_uc: 10, show_arrows: true, annotate: null });
+  const d = deriveFieldLines({
+    configuration: 'dipole', charge_uc: 10, show_arrows: true, annotate: null,
+    // v2 keys, at the values validate() gives a v1 payload that omits them.
+    surface_scale: 1, enclosed: true, caption: '',
+  });
   expect(d.fieldMagnitude).toBeCloseTo(1.798e7, -4);
 });
 
 test('like_charges, charge_uc=10, 0.20 m separation, at the midpoint -> E = 0 exactly (fields cancel)', () => {
-  const d = deriveFieldLines({ configuration: 'like_charges', charge_uc: 10, show_arrows: true, annotate: null });
+  const d = deriveFieldLines({
+    configuration: 'like_charges', charge_uc: 10, show_arrows: true, annotate: null,
+    // v2 keys, at the values validate() gives a v1 payload that omits them.
+    surface_scale: 1, enclosed: true, caption: '',
+  });
   expect(d.fieldMagnitude).toBe(0);
 });
 
 test('parallel_plates, charge_uc=10 (sigma=10 uC/m^2) -> E = sigma/eps0 = 1.129e6 N/C', () => {
-  const d = deriveFieldLines({ configuration: 'parallel_plates', charge_uc: 10, show_arrows: true, annotate: null });
+  const d = deriveFieldLines({
+    configuration: 'parallel_plates', charge_uc: 10, show_arrows: true, annotate: null,
+    // v2 keys, at the values validate() gives a v1 payload that omits them.
+    surface_scale: 1, enclosed: true, caption: '',
+  });
   expect(d.fieldMagnitude).toBeCloseTo(1.129e6, -3);
 });
 

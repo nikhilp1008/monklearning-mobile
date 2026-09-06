@@ -1,0 +1,108 @@
+/**
+ * BACKWARD COMPATIBILITY, ASSERTED — not assumed.
+ *
+ * These four trees were rendered by field_lines@1, BEFORE Gaussian surfaces
+ * and equipotential contours existed, and frozen here byte for byte: the four
+ * configurations v1 could draw (`point`, `dipole`, `like_charges`,
+ * `parallel_plates`) at charge_uc 10, on the same 900x430 board
+ * __tests__/render-trees.test.tsx uses.
+ *
+ * Each is fed in as a RAW v1 PAYLOAD — an object with no `surface_scale`, no
+ * `enclosed` and no `caption`, the shape the model emitted before this change
+ * — put through v2's `validate()` and rendered by v2's component. This is the
+ * property `registry.lookup()` depends on: it refuses only
+ * `version > mod.version`, so every field_lines@1 payload already precomputed
+ * into a lesson still resolves to THIS module and must still draw what it drew.
+ *
+ * That is a stronger claim than "the tests still pass": the v2 suite was
+ * written by the same hand as the v2 code and could agree with it about a
+ * regression. These bytes could not — they predate it. In particular they are
+ * what proves the v1 readout survived being routed through `chrome.fitReadout`
+ * (v1 wrote its readout raw), including its four-space separator, which
+ * `fitReadout` leaves alone only because a caption of '' contributes nothing.
+ *
+ * If a react-native-svg or Reanimated bump legitimately moves the tree, these
+ * must be regenerated DELIBERATELY and the diff reviewed, exactly as
+ * ../../projectile-motion/__golden__/golden.test.tsx says of its own.
+ *
+ * A WIDER CHECK WAS RUN ONCE AND IS NOT CHECKED IN, because it needs a second
+ * copy of the v1 source in the tree and that is worse to keep than to repeat.
+ * The actual v1 module was recovered with `git show HEAD:...` into a sibling
+ * directory (so its `../chrome` import still resolved), and BOTH modules were
+ * rendered side by side over
+ *
+ *     4 configurations x 6 charge_uc values (4,7,10,13,16,20)
+ *       x 3 annotate values x 2 show_arrows x 3 board sizes  =  432 trees
+ *
+ * every one of which came out `toEqual`, along with `computeDerived`'s
+ * fieldMagnitude and lineCount. The four frozen trees below are the part of
+ * that worth keeping in CI; the 432-tree run is what actually established that
+ * v1 identity holds at the two SMALL boards as well, which no golden here
+ * covers. Repeat it the same way if the v1 contract is ever in doubt.
+ */
+import { fieldLines } from '..';
+import { renderWidgetTree } from '../../__tests__/test-utils';
+import type { FieldLinesParams } from '../physics';
+
+import v1Point from './v1-point.json';
+import v1Dipole from './v1-dipole.json';
+import v1LikeCharges from './v1-like_charges.json';
+import v1ParallelPlates from './v1-parallel_plates.json';
+
+/** The v1 payload shape: none of the three v2 keys appears anywhere in it. */
+const V1_BASE = { charge_uc: 10, show_arrows: true, annotate: null };
+
+const CASES: { name: string; raw: Record<string, unknown>; golden: unknown }[] = [
+  { name: 'point', raw: { ...V1_BASE, configuration: 'point' }, golden: v1Point },
+  { name: 'dipole', raw: { ...V1_BASE, configuration: 'dipole' }, golden: v1Dipole },
+  { name: 'like_charges', raw: { ...V1_BASE, configuration: 'like_charges' }, golden: v1LikeCharges },
+  {
+    name: 'parallel_plates',
+    raw: { ...V1_BASE, configuration: 'parallel_plates' },
+    golden: v1ParallelPlates,
+  },
+];
+
+test.each(CASES)('a v1 $name payload renders exactly what field_lines@1 rendered', ({ raw, golden }) => {
+  expect('surface_scale' in raw).toBe(false);
+  expect('enclosed' in raw).toBe(false);
+  expect('caption' in raw).toBe(false);
+
+  const result = fieldLines.validate(raw);
+  expect(result.ok).toBe(true);
+  const params = (result as { ok: true; params: FieldLinesParams }).params;
+  // Every new key took its v1-equivalent default, and none of them may reach
+  // the tree in a v1 configuration.
+  expect(params.surface_scale).toBe(1);
+  expect(params.enclosed).toBe(true);
+  expect(params.caption).toBe('');
+
+  expect(renderWidgetTree(fieldLines, params)).toEqual(golden);
+});
+
+/**
+ * The other half of the compatibility claim: `surface_scale` is INERT outside
+ * the three Gaussian configurations. Swept across the whole legal range, not
+ * sampled at the ends — an inert param that is inert only at 0.6 and 1.4 is
+ * not inert.
+ */
+test.each(CASES)('$name ignores surface_scale across its whole legal range', ({ raw, golden }) => {
+  for (const surface_scale of [0.6, 0.75, 0.9, 1, 1.15, 1.3, 1.4]) {
+    const result = fieldLines.validate({ ...raw, surface_scale });
+    expect(result.ok).toBe(true);
+    const params = (result as { ok: true; params: FieldLinesParams }).params;
+    expect(params.surface_scale).toBe(surface_scale);
+    expect(renderWidgetTree(fieldLines, params)).toEqual(golden);
+  }
+});
+
+/** `enclosed` is inert outside the Gaussian configurations for the same
+ *  reason, and is checked the same way rather than argued for in a comment. */
+test.each(CASES)('$name ignores enclosed', ({ raw, golden }) => {
+  for (const enclosed of [true, false]) {
+    const result = fieldLines.validate({ ...raw, enclosed });
+    expect(result.ok).toBe(true);
+    expect(renderWidgetTree(fieldLines, (result as { ok: true; params: FieldLinesParams }).params))
+      .toEqual(golden);
+  }
+});

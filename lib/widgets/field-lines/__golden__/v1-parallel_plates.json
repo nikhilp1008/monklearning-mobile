@@ -1,0 +1,586 @@
+{
+ "type": "RNSVGSvgView",
+ "props": {
+  "width": 900,
+  "height": 430,
+  "focusable": false,
+  "style": [
+   {
+    "backgroundColor": "transparent",
+    "borderWidth": 0
+   },
+   {
+    "width": 900,
+    "height": 430,
+    "flex": 0
+   }
+  ],
+  "bbWidth": 900,
+  "bbHeight": 430
+ },
+ "children": [
+  {
+   "type": "RNSVGGroup",
+   "props": {
+    "fill": {
+     "type": 0,
+     "payload": 4278190080
+    }
+   },
+   "children": [
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 103.56L555.69 103.56"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 103.56L446.50 106.56L446.50 100.56Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 128.61L555.69 128.61"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 128.61L446.50 131.61L446.50 125.61Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 153.67L555.69 153.67"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 153.67L446.50 156.67L446.50 150.67Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 178.72L555.69 178.72"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 178.72L446.50 181.72L446.50 175.72Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 203.77L555.69 203.77"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 203.77L446.50 206.77L446.50 200.77Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 228.83L555.69 228.83"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 228.83L446.50 231.83L446.50 225.83Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 253.88L555.69 253.88"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 253.88L446.50 256.88L446.50 250.88Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 278.93L555.69 278.93"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 278.93L446.50 281.93L446.50 275.93Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 303.99L555.69 303.99"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 303.99L446.50 306.99L446.50 300.99Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": null,
+        "stroke": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "strokeWidth": 1.6,
+        "strokeLinecap": 1,
+        "propList": [
+         "fill",
+         "stroke",
+         "strokeWidth",
+         "strokeLinecap"
+        ],
+        "d": "M344.31 329.04L555.69 329.04"
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGPath",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4288309778
+        },
+        "propList": [
+         "fill"
+        ],
+        "d": "M453.50 329.04L446.50 332.04L446.50 326.04Z"
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGLine",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        },
+        "stroke": {
+         "type": 0,
+         "payload": 4280031766
+        },
+        "strokeWidth": 2.6,
+        "propList": [
+         "stroke",
+         "strokeWidth"
+        ],
+        "x1": 344.30625,
+        "y1": 28.400000000000002,
+        "x2": 344.30625,
+        "y2": 404.2
+       },
+       "children": null
+      },
+      {
+       "type": "RNSVGLine",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        },
+        "stroke": {
+         "type": 0,
+         "payload": 4280031766
+        },
+        "strokeWidth": 2.6,
+        "propList": [
+         "stroke",
+         "strokeWidth"
+        ],
+        "x1": 555.69375,
+        "y1": 28.400000000000002,
+        "x2": 555.69375,
+        "y2": 404.2
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGText",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4280031766
+      },
+      "propList": [
+       "fill"
+      ],
+      "content": null,
+      "font": {
+       "fontSize": 14,
+       "fontFamily": "Menlo"
+      },
+      "x": [
+       54
+      ],
+      "y": [
+       21.400000000000002
+      ],
+      "dx": [],
+      "dy": [],
+      "rotate": []
+     },
+     "children": [
+      {
+       "type": "RNSVGTSpan",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        },
+        "content": "E 1.13e6 N/C    lines 10",
+        "font": {},
+        "x": [],
+        "y": [],
+        "dx": [],
+        "dy": [],
+        "rotate": []
+       },
+       "children": null
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
