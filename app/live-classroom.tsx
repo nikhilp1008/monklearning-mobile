@@ -80,6 +80,7 @@ import {
 } from '@/constants/classroom-status';
 import { useStagedStatus } from '@/hooks/use-staged-status';
 import { latexToText } from '@/lib/latex-text';
+import { MicStatus, probeMicAvailability } from '@/lib/mic-availability';
 import { spokenMathToNotation } from '@/lib/spoken-math';
 import { supabase } from '@/lib/supabase';
 
@@ -137,9 +138,26 @@ interface AudioRecorderLike {
  * feature instead of crashing on app open.
  */
 let useAudioRecorder: () => AudioRecorderLike;
+/** Whether the native module is there at all — the first input to the mic probe. */
+let audioStudioLoaded = false;
+/**
+ * The RAW native device enumeration.
+ *
+ * Deliberately NOT `audioDeviceManager.getAvailableDevices()`, which is the
+ * obvious-looking call. That wrapper catches its own native failure and returns
+ * a fabricated `DEFAULT_DEVICE` — `isAvailable: true`, a full `sampleRates`
+ * list — so a probe that failed comes back indistinguishable from a healthy
+ * built-in mic. Going straight to the module keeps a failure a failure; see
+ * `lib/mic-availability.ts`.
+ */
+let listInputDevices: () => Promise<unknown> = () =>
+  Promise.reject(new Error('audio-studio not loaded'));
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  useAudioRecorder = require('@siteed/audio-studio').useAudioRecorder;
+  const audioStudio = require('@siteed/audio-studio');
+  useAudioRecorder = audioStudio.useAudioRecorder;
+  listInputDevices = () => audioStudio.AudioStudioModule.getAvailableInputDevices({ refresh: true });
+  audioStudioLoaded = true;
 } catch (err) {
   console.error('[live-classroom] @siteed/audio-studio failed to load:', err);
   useAudioRecorder = function useUnavailableAudioRecorder(): AudioRecorderLike {
@@ -194,6 +212,12 @@ export default function LiveClassroomScreen() {
   });
 
   const [micDenied, setMicDenied] = useState(false);
+  /**
+   * Whether speaking is on, and if not, why. Drives the rail's own appearance
+   * so the student can see that the button is off without pressing it, and
+   * picks the wording of the card when they do.
+   */
+  const [micStatus, setMicStatus] = useState<MicStatus>('checking');
   const [checkOptions, setCheckOptions] = useState<string[]>([]);
   /**
    * The question the chips answer, held separately from `caption`.
@@ -692,14 +716,34 @@ export default function LiveClassroomScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const existing = await getRecordingPermissionsAsync();
-      let granted = existing.granted;
-      if (!granted && existing.canAskAgain) {
-        granted = (await requestRecordingPermissionsAsync()).granted;
-      }
+      /**
+       * Everything about whether the mic can be opened is settled HERE, before
+       * `startRecording` is called, because the failure this guards against is
+       * not catchable once the call is made.
+       *
+       * `startRecording` reaches `AVAudioEngine.inputNode`, and on a device
+       * with no reachable audio input that getter aborts the process:
+       * `AURemoteIO::Cleanup()` → `_CheckRPCError` → `abort()`, SIGABRT, on
+       * audio-studio's own `net.siteed.audiostudio.lifecycle` queue. An
+       * `abort()` does not unwind, so the `try` below cannot see it, and it is
+       * not even on this thread. There is no recovery — only avoidance.
+       *
+       * So the probe answers two questions with APIs that never construct an
+       * engine input node: does the student allow it, and is there anything to
+       * record from. Anything it could not find out counts as "no".
+       */
+      const mic = await probeMicAvailability({
+        moduleLoaded: audioStudioLoaded,
+        getPermission: getRecordingPermissionsAsync,
+        requestPermission: requestRecordingPermissionsAsync,
+        listInputDevices,
+      });
       if (cancelled) return;
-      if (!granted) {
-        // Not an error state yet — the button explains itself when pressed.
+      if (mic.status !== 'available') {
+        // Not fatal, and not silent: the rail dims and says "Mic off", and the
+        // card explains it on press. Drona keeps teaching either way.
+        console.warn(`[live-classroom] voice questions disabled (${mic.status}): ${mic.reason}`);
+        setMicStatus(mic.status);
         return;
       }
       try {
@@ -728,9 +772,16 @@ export default function LiveClassroomScreen() {
             }
           },
         });
-        if (!cancelled) micReadyRef.current = true;
-      } catch {
-        // Leave `micReadyRef` false; the button reports it on press.
+        if (cancelled) return;
+        micReadyRef.current = true;
+        setMicStatus('available');
+      } catch (err) {
+        // A REJECTED start — a format the engine refused, a session another
+        // app is holding. Survivable, unlike the abort the probe above exists
+        // to dodge. Leave `micReadyRef` false and say so on the rail.
+        if (cancelled) return;
+        console.warn('[live-classroom] recorder refused to start:', err);
+        setMicStatus('unavailable');
       }
     })();
     return () => {
@@ -777,6 +828,15 @@ export default function LiveClassroomScreen() {
   // without taking it as a dependency and re-arming on every render.
   const doneListeningRef = useRef<() => void>(doneListening);
   doneListeningRef.current = doneListening;
+
+  /**
+   * Speaking is known to be off — as distinct from `checking`, where the probe
+   * has not answered yet and dimming the button would be guessing. `checking`
+   * is normally sub-second and always resolves (the probe has its own
+   * timeout), so the button is only ever briefly non-committal.
+   */
+  const voiceOff = micStatus !== 'available' && micStatus !== 'checking';
+  const micNotice = micNoticeFor(micStatus);
 
   const togglePause = () => {
     setPaused((p) => {
@@ -1014,21 +1074,38 @@ export default function LiveClassroomScreen() {
         <View style={styles.railDivider} />
 
         {/* Press and hold to speak; release to hand the board back. No
-            confirm step, no "done" button, no modal. */}
+            confirm step, no "done" button, no modal.
+
+            When there is no mic to open, the button stays here and stays
+            pressable — it is the only place the student would look — but it
+            wears the off state (dimmed plate, struck-through mic, "Mic off")
+            so the answer is visible before the press, and pressing it opens
+            the card that says why rather than doing nothing. */}
         <Pressable
-          style={[styles.talkButton, handRaised && styles.talkButtonOn]}
+          style={[
+            styles.talkButton,
+            handRaised && styles.talkButtonOn,
+            voiceOff && styles.talkButtonOff,
+          ]}
           onPressIn={raiseHand}
           onPressOut={doneListening}>
           {handRaised && <TalkGlow />}
           {handRaised && <TalkPulse />}
           {handRaised ? (
             <LevelBars color={INK} heights={[9, 17, 12]} />
+          ) : voiceOff ? (
+            <MicOffIcon size={18} color={colors.paper} />
           ) : (
             <MicIcon size={18} color={colors.paper} />
           )}
         </Pressable>
-        <Text style={[styles.talkLabel, handRaised && styles.talkLabelOn]}>
-          {handRaised ? 'Speaking' : 'Interrupt'}
+        <Text
+          style={[
+            styles.talkLabel,
+            handRaised && styles.talkLabelOn,
+            voiceOff && styles.talkLabelOff,
+          ]}>
+          {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
         </Text>
 
         <View style={styles.railDivider} />
@@ -1044,27 +1121,36 @@ export default function LiveClassroomScreen() {
 
       <EdgeTab visible={!chromeVisible} onPress={showChrome} />
 
-      {/* Mic denied: say so plainly and offer the one action that fixes it.
+      {/* Mic off: say plainly WHICH way it is off, and offer Settings only when
+          Settings is actually the fix. A student who has no input at all, or
+          whose device cannot reach its audio hardware, is not helped by being
+          sent to a permission toggle that is already on — that is the kind of
+          dead-end instruction that reads as the app blaming them.
           Drona keeps teaching behind this — only speaking is unavailable. */}
       {micDenied && (
         <Animated.View entering={FadeIn.duration(200)} style={styles.micDeniedCard}>
-          <Text style={styles.micDeniedTitle}>Microphone is off</Text>
-          <Text style={styles.micDeniedBody}>
-            Drona needs your mic to hear you. Turn it on in Settings — the class keeps going
-            either way.
-          </Text>
+          <Text style={styles.micDeniedTitle}>{micNotice.title}</Text>
+          <Text style={styles.micDeniedBody}>{micNotice.body}</Text>
           <View style={styles.micDeniedRow}>
-            <Pressable style={styles.micDeniedGhost} onPress={() => setMicDenied(false)}>
-              <Text style={styles.micDeniedGhostText}>Not now</Text>
-            </Pressable>
-            <Pressable
-              style={styles.micDeniedPrimary}
-              onPress={() => {
-                setMicDenied(false);
-                Linking.openSettings();
-              }}>
-              <Text style={styles.micDeniedPrimaryText}>Open Settings</Text>
-            </Pressable>
+            {micNotice.settingsFixesIt ? (
+              <>
+                <Pressable style={styles.micDeniedGhost} onPress={() => setMicDenied(false)}>
+                  <Text style={styles.micDeniedGhostText}>Not now</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.micDeniedPrimary}
+                  onPress={() => {
+                    setMicDenied(false);
+                    Linking.openSettings();
+                  }}>
+                  <Text style={styles.micDeniedPrimaryText}>Open Settings</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable style={styles.micDeniedPrimary} onPress={() => setMicDenied(false)}>
+                <Text style={styles.micDeniedPrimaryText}>Got it</Text>
+              </Pressable>
+            )}
           </View>
         </Animated.View>
       )}
@@ -1245,6 +1331,45 @@ function BoardBlockView({
   );
 }
 
+/**
+ * What the card says, per reason speaking is off.
+ *
+ * `settingsFixesIt` is the load-bearing field: only a refused permission is
+ * fixable from Settings. Offering that button for "there is no microphone" or
+ * "this device cannot reach its audio hardware" sends the student to a toggle
+ * that is already on, and they come back to the same dead button none the
+ * wiser.
+ */
+function micNoticeFor(status: MicStatus): {
+  title: string;
+  body: string;
+  settingsFixesIt: boolean;
+} {
+  switch (status) {
+    case 'denied':
+      return {
+        title: 'Microphone is off',
+        body: 'Drona needs your mic to hear you. Turn it on in Settings — the class keeps going either way.',
+        settingsFixesIt: true,
+      };
+    case 'no-input':
+      return {
+        title: 'No microphone found',
+        body: "There's no microphone for Drona to listen through, so speaking is off. The class keeps going — answer with the chips instead.",
+        settingsFixesIt: false,
+      };
+    // 'unavailable', and 'checking'/'available' defensively: the card only opens
+    // from a press that already failed, so a stale status still needs wording
+    // that is true.
+    default:
+      return {
+        title: 'Speaking is unavailable',
+        body: "Drona can't reach the microphone on this device right now, so speaking is off. Everything else in the class works as normal.",
+        settingsFixesIt: false,
+      };
+  }
+}
+
 function MicIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -1257,6 +1382,28 @@ function MicIcon({ size, color }: { size: number; color: string }) {
       />
       <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
       <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * The same mic, struck through — the off state of the Interrupt button. Drawn
+ * rather than swapped for a different glyph so the button reads as the same
+ * control in two states, not two controls.
+ */
+function MicOffIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"
+        stroke={color}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path d="M4 3l16 18" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -1649,6 +1796,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     talkButtonOn: {
       backgroundColor: AMBER,
     },
+    /** Off, not missing: same plate, drained of the shadow that makes it read
+     *  as a live control. */
+    talkButtonOff: {
+      backgroundColor: INK_MUTED,
+      opacity: 0.55,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
     // Pinned to 54 so the plate cannot resize when the label changes.
     talkLabel: {
       width: 54,
@@ -1662,6 +1817,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     talkLabelOn: {
       color: DEEP_AMBER,
+    },
+    talkLabelOff: {
+      color: INK_FAINT,
     },
     railButton: {
       width: 30,
