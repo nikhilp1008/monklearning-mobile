@@ -696,8 +696,13 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                       enabled={eraseMode}
                       onRemove={() => removeDoubtSample(card.id)}>
                       <View style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}>
-                        <View style={styles.doubtRule} />
-                        <Text style={styles.doubtQuestion} numberOfLines={3}>
+                        <DoubtCardHead
+                          styles={styles}
+                          subject={card.subject}
+                          chapter={card.chapter}
+                          time={card.time}
+                        />
+                        <Text style={styles.doubtQuestion} numberOfLines={2}>
                           {card.question}
                         </Text>
                       </View>
@@ -734,20 +739,25 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                           },
                         })
                       }>
-                      {/* A doubt is not a note, and briefly it looked like one
-                          — subject dot, timestamp, bold topic, body line. But
-                          a note is something taught and titled, while a doubt
-                          is a question the student asked. So the question is
-                          the whole card, and the red margin rule is the same
-                          one the doubt of the day carries on Home: the app
-                          already had a mark for "this is a doubt".
+                      {/* A doubt is still not a note: there is no title here,
+                          because the student did not write one and the app
+                          will not invent one. What the card gained is the
+                          metadata a doubt already carries — subject, chapter
+                          and when it was snapped — which is what makes a list
+                          of them scannable instead of a wall of transcribed
+                          maths.
 
-                          No subject tag, no time, and no topic name invented
-                          above the question — the filter and search do the
-                          finding, and a manufactured heading only competes
-                          with the words the student actually wrote down. */}
-                      <View style={styles.doubtRule} />
-                      <Text style={styles.doubtQuestion} numberOfLines={3}>
+                          The red margin rule is gone. It was justified as
+                          echoing the doubt-of-the-day card on Home, and that
+                          card no longer exists, so the mark echoed nothing. */}
+                      <DoubtCardHead
+                        styles={styles}
+                        subject={doubt.subject}
+                        chapter={doubt.chapter ?? doubt.concept}
+                        time={formatRelativeTime(doubt.created_at)}
+                        label={doubt.subject_label}
+                      />
+                      <Text style={styles.doubtQuestion} numberOfLines={2}>
                         {/* Same conversion the solution screen runs. Without it the
                             card shows the transcriber's raw LaTeX -- "$$v=3
                             t^{\wedge} 2-12 t+9(\mathrm{~m} / \mathrm{s})$$" --
@@ -764,6 +774,55 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
             </ScrollView>
           )}
       </SafeAreaView>
+    </View>
+  );
+}
+
+/**
+ * Subject, chapter and age — the line above every doubt.
+ *
+ * Mirrors the note card's top row deliberately: the two lists sit one tab
+ * apart, and a student should not have to learn two ways of reading a card.
+ * The subject dot takes the app-wide accent, so Physics is the same red here
+ * as it is on a note and on a textbook.
+ */
+function DoubtCardHead({
+  styles,
+  subject,
+  chapter,
+  time,
+  label,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  subject: string | null;
+  chapter: string | null;
+  time: string;
+  label?: string | null;
+}) {
+  const accent = SUBJECT_ACCENT[(subject ?? '').toLowerCase()] ?? {
+    dot: colors.faint,
+    label: colors.slate,
+  };
+  const name = label ?? subject;
+  // The API's chapter casing is whatever the transcriber wrote — "kinematics"
+  // next to "Straight lines" next to "Complex Numbers" in one list. Only the
+  // first letter is forced, so a properly capitalised name is left alone and
+  // a lowercase one stops looking like a mistake.
+  const chapterLabel = chapter ? chapter.charAt(0).toUpperCase() + chapter.slice(1) : null;
+  return (
+    <View style={styles.doubtTopRow}>
+      <View style={styles.doubtMetaRow}>
+        <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
+        {!!name && (
+          <Text style={[styles.doubtSubjectText, { color: accent.label }]}>{name}</Text>
+        )}
+        {!!chapterLabel && (
+          <Text style={styles.doubtChapterText} numberOfLines={1}>
+            {chapterLabel}
+          </Text>
+        )}
+      </View>
+      <Text style={styles.noteTime}>{time}</Text>
     </View>
   );
 }
@@ -1053,14 +1112,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(24),
     },
     doubtCard: {
-      position: 'relative',
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: hairline(0.16),
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
-      paddingLeft: scale(30),
-      paddingRight: scale(16),
+      paddingHorizontal: scale(16),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(1) },
       shadowOpacity: 0.06,
@@ -1070,20 +1127,40 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // The same red margin rule the doubt of the day carries on Home. It is
     // what tells a glance this list is questions, not notes, and it does the
     // job the subject tag and topic heading were doing badly.
-    doubtRule: {
-      position: 'absolute',
-      top: verticalScale(14),
-      bottom: verticalScale(14),
-      left: scale(16),
-      width: scale(1.4),
-      borderRadius: scale(1),
-      backgroundColor: 'rgba(221,68,51,.4)',
+    doubtTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: scale(10),
+    },
+    doubtMetaRow: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(6),
+    },
+    doubtSubjectText: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.81),
+      textTransform: 'uppercase',
+      flexShrink: 0,
+    },
+    /** The chapter, in sentence case rather than caps — two shouted labels on
+     *  one line would compete, and the subject is the one being scanned. */
+    doubtChapterText: {
+      flexShrink: 1,
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(11.5),
+      color: colors.faint,
     },
     doubtQuestion: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
+      fontSize: scale(14),
+      lineHeight: scale(20),
       color: colors.ink,
+      marginTop: verticalScale(7),
     },
     doubtsSampleNote: {
       fontFamily: 'Onest_400Regular',

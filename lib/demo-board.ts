@@ -195,6 +195,11 @@ export interface DemoDoubtCard {
   id: string;
   /** The question itself, as `stem` gives it on a real doubt. */
   question: string;
+  /** The rest of what a real doubt carries, so the sample card is the same
+   *  shape as the real one rather than a reduced version of it. */
+  subject: string;
+  chapter: string;
+  time: string;
 }
 
 export const DEMO_DOUBT_CARDS: DemoDoubtCard[] = [
@@ -202,10 +207,16 @@ export const DEMO_DOUBT_CARDS: DemoDoubtCard[] = [
     id: 'demo-doubt-1',
     question:
       'A solid cylinder of mass M and radius R rolls without slipping down an incline of angle θ. Find its acceleration.',
+    subject: 'physics',
+    chapter: 'Rotational Motion',
+    time: '2 days ago',
   },
   {
     id: 'demo-doubt-2',
     question:
       'For a first-order reaction, 75% completion takes 60 minutes. What is the half-life?',
+    subject: 'chemistry',
+    chapter: 'Chemical Kinetics',
+    time: '2 days ago',
   },
 ];
