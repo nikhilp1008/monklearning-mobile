@@ -108,21 +108,3 @@ export function PracticeIcon({
     </Svg>
   );
 }
-
-export function MilestonesIcon({
-  size = 22,
-  color = colors.ink,
-  accent = AMBER_ACCENT,
-  strokeWidth = STROKE,
-}: MonkIconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <G stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M8.4 3.2 11 9.6" />
-        <Path d="M15.6 3.2 13 9.6" />
-        <Circle cx={12} cy={15.4} r={5.8} />
-      </G>
-      <Circle cx={12} cy={15.4} r={2.2} fill={accent} />
-    </Svg>
-  );
-}

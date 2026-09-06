@@ -242,7 +242,6 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
-          <Stack.Screen name="milestones" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope-subject" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
@@ -273,7 +272,7 @@ export default function RootLayout() {
           native UI it doesn't control: the keyboard, action sheets, the photo
           picker and system alerts.
 
-          Fifteen screens (every tab, plus account/terms/milestones and the
+          Fifteen screens (every tab, plus account/terms and the
           rest) declare no StatusBar of their own and inherit this one, so it
           is the only thing standing between them and whatever style the last
           screen happened to set. */}

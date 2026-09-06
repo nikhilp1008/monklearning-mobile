@@ -55,12 +55,15 @@ export default function TabLayout() {
       <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="textbooks" options={{ title: 'Textbooks' }} />
+        <Tabs.Screen name="doubts" options={{ title: 'Doubts' }} />
+        <Tabs.Screen name="notes" options={{ title: 'Notes' }} />
         {/* Lessons is on hold, not deleted -- the screen stays routable so the
             work survives, but nothing in the bar points at it. */}
         <Tabs.Screen name="lessons" options={{ href: null }} />
         <Tabs.Screen name="drona" options={{ href: null }} />
-        <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
-        <Tabs.Screen name="library" options={{ title: 'Library' }} />
+        {/* Progress moved to Home's header. It is a place you check, not a
+            place you work, so it no longer takes a quarter of the bar. */}
+        <Tabs.Screen name="progress" options={{ href: null }} />
         <Tabs.Screen name="practice" options={{ href: null }} />
       </Tabs>
     </>

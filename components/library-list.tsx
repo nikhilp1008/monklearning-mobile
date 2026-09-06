@@ -3,16 +3,11 @@ import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
-  LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -41,16 +36,8 @@ import {
 } from '@/lib/demo-board';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
-type Segment = 'notes' | 'doubts';
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths' | 'Biology';
 
-// Textbooks moved to a tab of its own; Sessions is gone entirely. What is
-// left is the two things that are genuinely the student's own.
-const SEGMENTS: Segment[] = ['notes', 'doubts'];
-const SEGMENT_LABELS: Record<Segment, string> = {
-  notes: 'Notes',
-  doubts: 'Doubts',
-};
 const FILTERABLE_SUBJECTS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths', 'Biology'];
 const DEFAULT_FILTERS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths'];
 const SUBJECT_FILTER_LABEL: Record<string, SubjectFilter> = {
@@ -70,11 +57,18 @@ const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
   biology: { dot: '#1C9B57', label: '#157A45' },
 };
 
-export default function LibraryScreen() {
+/**
+ * Notes and Doubts — one list, mounted twice.
+ *
+ * These were two segments of a Library tab. They are tabs of their own now,
+ * so the pager, the segment row and its sliding indicator are gone; what is
+ * left is the same list with a `kind` deciding which half it shows. Two
+ * copies of five hundred lines would have drifted apart the first time either
+ * was touched.
+ */
+export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const { width: windowWidth } = useWindowDimensions();
-  const [activeSegment, setActiveSegment] = useState<Segment>('notes');
   const [notesFilter, setNotesFilter] = useState<SubjectFilter>('All');
   /**
    * The doubts filter holds the stored subject KEY ("mathematics"), not the
@@ -85,7 +79,6 @@ export default function LibraryScreen() {
   const [doubtChips, setDoubtChips] = useState<DoubtSubjectChip[]>([]);
   const [notesQuery, setNotesQuery] = useState('');
   const [doubtsQuery, setDoubtsQuery] = useState('');
-  const pagerRef = useRef<ScrollView>(null);
 
   // --- Erase to remove ---------------------------------------------------
   // The mode belongs to the list you are looking at: Notes and Doubts each
@@ -244,9 +237,9 @@ export default function LibraryScreen() {
   /** Both segments can be erased — everything left in Library is the
    *  student's own. */
   const canErase =
-    activeSegment === 'notes'
+    kind === 'notes'
       ? hasErasableNotes
-      : activeSegment === 'doubts'
+      : kind === 'doubts'
         ? hasErasableDoubts
         : false;
 
@@ -434,46 +427,11 @@ export default function LibraryScreen() {
   // Tracks each segment button's x/width so the sliding indicator below can
   // interpolate to its exact position instead of guessing at equal thirds —
   // "Notes" and "Doubts" aren't the same width.
-  const [segmentLayouts, setSegmentLayouts] = useState<{ x: number; width: number }[]>(
-    SEGMENTS.map(() => ({ x: 0, width: 0 }))
-  );
-  const scrollX = useRef(new Animated.Value(0)).current;
 
-  const handleSegmentLayout = (index: number) => (event: LayoutChangeEvent) => {
-    const { x, width } = event.nativeEvent.layout;
-    setSegmentLayouts((prev) => {
-      const next = [...prev];
-      next[index] = { x, width };
-      return next;
-    });
-  };
 
-  const goToSegment = (segment: Segment) => {
-    setActiveSegment(segment);
-    setEraseMode(false);
-    pagerRef.current?.scrollTo({ x: SEGMENTS.indexOf(segment) * windowWidth, animated: true });
-  };
 
-  const handlePagerScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { useNativeDriver: false }
-  );
 
-  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
-    const segment = SEGMENTS[index] ?? 'notes';
-    setActiveSegment(segment);
-    setEraseMode(false);
-  };
 
-  const indicatorLeft = scrollX.interpolate({
-    inputRange: SEGMENTS.map((_, index) => index * windowWidth),
-    outputRange: segmentLayouts.map((layout) => layout.x),
-  });
-  const indicatorWidth = scrollX.interpolate({
-    inputRange: SEGMENTS.map((_, index) => index * windowWidth),
-    outputRange: segmentLayouts.map((layout) => layout.width),
-  });
 
   return (
     <View style={styles.screen}>
@@ -492,49 +450,14 @@ export default function LibraryScreen() {
       )}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerFixed}>
-          <Text style={styles.heading}>Library</Text>
-          <View style={[styles.segmentRow, eraseMode && styles.segmentRowErasing]}>
-            {SEGMENTS.map((segment, index) => (
-              <PressableScale
-                key={segment}
-                style={styles.segment}
-                onLayout={handleSegmentLayout(index)}
-                onPress={() => goToSegment(segment)}>
-                <Text
-                  style={[
-                    styles.segmentText,
-                    activeSegment === segment && styles.segmentTextActive,
-                  ]}>
-                  {SEGMENT_LABELS[segment]}
-                </Text>
-              </PressableScale>
-            ))}
-            <Animated.View
-              style={[
-                styles.segmentIndicator,
-                { left: indicatorLeft, width: indicatorWidth },
-              ]}
-            />
-            {/* The eraser lives at the right end of the tab row, and only on
-                Notes — session backups expire on their own, so nothing there
-                is the student's to delete. */}
-            <View style={styles.segmentSpacer} />
-            {canErase && (
-              <EraseTool active={eraseMode} onPress={toggleErase} />
-            )}
+          <View style={styles.headerRow}>
+            <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Doubts'}</Text>
+            {canErase && <EraseTool active={eraseMode} onPress={toggleErase} />}
           </View>
+          {eraseMode && <EraseModeLine onDone={toggleErase} />}
         </View>
 
-        <ScrollView
-          ref={pagerRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={handlePagerScroll}
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          scrollEventThrottle={16}
-          style={styles.pager}>
-          <View style={{ width: windowWidth }}>
+          {kind === 'notes' && (
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
@@ -677,9 +600,9 @@ export default function LibraryScreen() {
 
               {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
-          </View>
+          )}
 
-          <View style={{ width: windowWidth }}>
+          {kind === 'doubts' && (
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
@@ -839,9 +762,7 @@ export default function LibraryScreen() {
               )}
               {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
-          </View>
-
-        </ScrollView>
+          )}
       </SafeAreaView>
     </View>
   );
@@ -897,12 +818,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: scale(12),
+      minHeight: verticalScale(40),
+    },
     headerFixed: {
       paddingTop: verticalScale(12),
       paddingHorizontal: scale(20),
-    },
-    pager: {
-      flex: 1,
     },
     pageContent: {
       paddingHorizontal: scale(20),
@@ -913,18 +838,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(24),
       letterSpacing: scale(-0.6),
       color: colors.ink,
-    },
-    segmentRow: {
-      position: 'relative',
-      flexDirection: 'row',
-      gap: scale(18),
-      borderBottomWidth: 1,
-      borderBottomColor: colors.hairline,
-      paddingHorizontal: scale(2),
-      marginTop: verticalScale(16),
-    },
-    segment: {
-      paddingVertical: verticalScale(8),
     },
     // Pushes the eraser to the right end of the tab row.
     segmentSpacer: {
@@ -939,25 +852,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // Erase mode only: the tabs give up their underline while the mode line
     // below the filters does the separating.
-    segmentRowErasing: {
-      borderBottomColor: 'transparent',
-    },
-    segmentIndicator: {
-      position: 'absolute',
-      bottom: 0,
-      height: scale(2),
-      borderRadius: scale(1),
-      backgroundColor: colors.ink,
-    },
-    segmentText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      color: colors.slate,
-    },
-    segmentTextActive: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-    },
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',

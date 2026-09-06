@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -16,7 +16,6 @@ import {
   getCachedProgress,
   getProgress,
 } from '@/lib/progress';
-import { countMilestones } from '@/lib/milestones';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -94,7 +93,6 @@ export default function ProgressScreen() {
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
   const [showAllChapters, setShowAllChapters] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [milestones, setMilestones] = useState({ total: 0, unseen: 0 });
 
   useFocusEffect(
     useCallback(() => {
@@ -113,17 +111,6 @@ export default function ProgressScreen() {
       };
     }, [])
   );
-
-  useEffect(() => {
-    if (state.kind !== 'ready') return;
-    let cancelled = false;
-    countMilestones(state.data).then((next) => {
-      if (!cancelled) setMilestones(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [state]);
 
   const retry = () => {
     setState({ kind: 'loading' });
@@ -501,7 +488,7 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {data && (ledgerHasAnything || milestones.total > 0) && (
+          {data && ledgerHasAnything && (
             <View>
               <View style={styles.sectionTitleRow}>
                 <View style={styles.sectionTitleDash} />
@@ -526,24 +513,6 @@ export default function ProgressScreen() {
                 </View>
               </View>
 
-              {/* The collection sits directly under the tallies because it is
-                  the same story told the other way round: the ledger counts,
-                  this names. */}
-              {milestones.total > 0 && (
-                <PressableScale
-                  style={styles.milestoneRow}
-                  onPress={() => router.push('/milestones')}>
-                  <View style={styles.milestoneText}>
-                    <Text style={styles.milestoneTitle}>Milestones</Text>
-                    <Text style={styles.milestoneMeta}>
-                      {milestones.total} kept
-                      {milestones.unseen > 0 ? ` · ${milestones.unseen} new` : ''}
-                    </Text>
-                  </View>
-                  {milestones.unseen > 0 && <View style={styles.milestoneDot} />}
-                  <ArrowIcon color={colors.ink} size={scale(13)} />
-                </PressableScale>
-              )}
             </View>
           )}
         </ScrollView>
@@ -1089,36 +1058,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     ledgerItem: {
       flex: 1,
       alignItems: 'flex-start',
-    },
-    milestoneRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: verticalScale(15),
-      borderBottomWidth: 1,
-      borderBottomColor: hairline(0.1),
-    },
-    milestoneText: {
-      flex: 1,
-      minWidth: 0,
-    },
-    milestoneTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      letterSpacing: scale(-0.02 * 16),
-      color: colors.ink,
-    },
-    milestoneMeta: {
-      marginTop: verticalScale(1),
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.faint,
-    },
-    milestoneDot: {
-      width: scale(7),
-      height: scale(7),
-      borderRadius: scale(3.5),
-      backgroundColor: colors.marigold,
     },
     ledgerValue: {
       fontFamily: 'Onest_600SemiBold',

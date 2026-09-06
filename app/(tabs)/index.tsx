@@ -9,10 +9,9 @@ import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { NoticedCard } from '@/components/noticed-card';
 import { Skeleton } from '@/components/skeleton';
-import { ICON_CHIP, MilestonesIcon, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
+import { ICON_CHIP, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { countMilestones } from '@/lib/milestones';
 import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
 import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
@@ -120,7 +119,6 @@ export default function HomeScreen() {
   });
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [noticed, setNoticed] = useState<Observation | null>(null);
-  const [milestones, setMilestones] = useState({ total: 0, unseen: 0 });
   const doneCount = planItems.filter((item) => item.done).length;
   const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
@@ -148,11 +146,6 @@ export default function HomeScreen() {
           // and the numbers and the sentence about them can never disagree.
           classesTaken().then((classes) => {
             if (!cancelled) setNoticed(observe(p, classes));
-          });
-          // Same payload again for the header. Refetched on focus, so returning
-          // from the milestones page clears the dot without a manual refresh.
-          countMilestones(p).then((next) => {
-            if (!cancelled) setMilestones(next);
           });
         })
         .catch(() => {
@@ -206,14 +199,17 @@ export default function HomeScreen() {
               leading to an empty page teaches a student to ignore it, and that
               first impression is hard to undo. Appearing on the day they earn
               their first is a small reward in itself. */}
-          {milestones.total > 0 && (
-            <PressableScale
-              style={styles.headerButton}
-              onPress={() => router.push('/milestones')}>
-              <MilestonesIcon size={scale(20)} />
-              {milestones.unseen > 0 && <View style={styles.headerDot} />}
-            </PressableScale>
-          )}
+          {/* Progress lives here now, not in the tab bar. It is a place you
+              check, not a place you work, so it belongs beside the avatar
+              rather than taking a quarter of the bar. Always present — unlike
+              the milestones button it replaces, which appeared only once one
+              had been earned. */}
+          <PressableScale
+            style={styles.headerButton}
+            accessibilityLabel="Progress"
+            onPress={() => router.push('/progress')}>
+            <ProgressGlyph size={scale(20)} />
+          </PressableScale>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -408,7 +404,7 @@ export default function HomeScreen() {
                   <View style={styles.sectionTitleDash} />
                   <Text style={styles.sectionTitle}>Recent notes</Text>
                 </View>
-                <PressableScale hitSlop={12} onPress={() => router.push('/library')}>
+                <PressableScale hitSlop={12} onPress={() => router.push('/notes')}>
                   <Text style={styles.viewAll}>View all →</Text>
                 </PressableScale>
               </View>
@@ -549,6 +545,23 @@ function runObservationAction(action: ObservationAction | undefined) {
   }
 }
 
+/** The bars from the old Progress tab, at header size. Same shape, so the
+ *  control is recognisable in its new home. */
+function ProgressGlyph({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path d="M4.5 19h15" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
+      <Path
+        d="M8 19v-4.5M12 19v-8M16 19V7.5"
+        stroke={colors.ink}
+        strokeWidth={1.75}
+        strokeLinecap="round"
+      />
+      <Circle cx={16} cy={4.6} r={1.8} fill={colors.marigold} />
+    </Svg>
+  );
+}
+
 function CheckIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -595,17 +608,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // Sits on the button's edge, the way an unread mark does — the one
     // ambient signal in the app, and it points at something earned rather
     // than at a reason to come back.
-    headerDot: {
-      position: 'absolute',
-      top: scale(1),
-      right: scale(1),
-      width: scale(9),
-      height: scale(9),
-      borderRadius: scale(4.5),
-      borderWidth: scale(1.5),
-      borderColor: '#fff',
-      backgroundColor: colors.marigold,
-    },
     headerInitial: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(16),
