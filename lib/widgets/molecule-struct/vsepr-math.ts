@@ -52,6 +52,144 @@
  * table, not the one the pixels happen to make.
  *
  * ===========================================================================
+ * `angle_override` — THE NAMED EXCEPTION, AND WHY IT IS AN OBJECT
+ * ===========================================================================
+ *
+ * The AXE table is keyed on (bond_pairs, lone_pairs), so ONE row serves every
+ * species with that domain count. AX2E1 serves ozone (NCERT 117) and SO2
+ * (~119) alike and reports the idealised 117.5 for both. That is the VSEPR
+ * model behaving as taught, and the row is not touched.
+ *
+ * What a payload may add is the measurement, when it knows the species:
+ *
+ *     angle_override: { bond: 117 }                 O3
+ *     angle_override: { bond: 119 }                 SO2
+ *     angle_override: { bond: 107 }                 NH3   (== the table)
+ *     angle_override: { bond: 104.5 }               H2O   (== the table)
+ *     angle_override: { bond: 101.6, secondary: 87.4 }    SF4
+ *
+ * AN OBJECT, NOT A NUMBER, and the reason is the SN-5 and SN-6 rows. Seven of
+ * the fourteen rows have TWO distinct angles and the readout prints both on
+ * one line — `sp3d   trigonal bipyramidal   120° / 90°`. A scalar override
+ * could correct only the first of the two, leaving the second idealised under
+ * a single provenance word describing both. So on a row that has a second
+ * angle the override must supply BOTH, and on a row that has none `secondary`
+ * is refused: the line is then all-measured or all-derived, never half of
+ * each. That is the entire argument for the shape.
+ *
+ * AN OVERRIDE THAT AGREES IS INERT. `overridden` below is computed by
+ * comparing the resulting NUMBERS against the table, never by asking whether
+ * the key was present — so NH3 107 and H2O 104.5, which are exactly what the
+ * -2.5 series already produces, render byte-identically to the same payload
+ * with no override at all: same readout string, same arc label, same boxes.
+ * The provenance word describes the NUMBER on the board, not the payload that
+ * produced it, and 107 is the VSEPR value whoever typed it. An override that
+ * silently shifted a value it was supposed to match — or that flipped the
+ * readout's provenance without changing a digit — is the defect this
+ * parameter exists to avoid, so it is asserted at the RENDERED TREE in
+ * molecule-struct/__tests__/angle-override.test.tsx rather than at the
+ * arithmetic, where `override ?? table` would make it true by construction.
+ *
+ * WHAT validate() REFUSES, and why each refusal is a real payload:
+ *
+ *   a bare number             `angle_override: 117` — cannot express the two
+ *                             angles of a TBP, so the form is refused rather
+ *                             than half-honoured.
+ *   an unknown key            `{ bond_angle: 117 }` — a typo that would
+ *                             otherwise do nothing at all, silently.
+ *   out of domain             below MIN_OVERRIDE_ANGLE or above 180: not a
+ *                             bond angle at a single VSEPR centre.
+ *   too far from its row      more than MAX_ANGLE_DEVIATION from the value
+ *                             the row derives. A named exception is an
+ *                             exception TO ITS ROW; a 40° gap means the
+ *                             payload picked the wrong (bond_pairs,
+ *                             lone_pairs), and reporting that is more useful
+ *                             than drawing it.
+ *   contradicts the DRAWING   the sharp one. The angle arc is drawn between
+ *                             two specific sites of `bondSites` and labelled
+ *                             with the reported angle, so the drawing makes a
+ *                             qualitative claim the number must not
+ *                             contradict: 2-0 and 2-3 draw their two bonds
+ *                             COLLINEAR, and on those rows the only legal
+ *                             override is exactly 180 — `{ bond: 104.5 }` on
+ *                             XeF2 is refused. Every other row is drawn bent
+ *                             and refuses 180.
+ *
+ *                             This does NOT derive the reported angle from
+ *                             the drawing — nothing here ever does, in either
+ *                             direction (see the section above). It is a
+ *                             consistency VETO between two independently
+ *                             authored columns: `drawnIsStraight` reads
+ *                             `arc`, `bondAngle` is read from NCERT, and
+ *                             physics.test.ts asserts the two agree across
+ *                             all fourteen rows. A number that disagrees with
+ *                             the picture the student is looking at is wrong
+ *                             whichever of the two is at fault.
+ *
+ *   in coordination mode      that mode's readout is `ox / CN / EAN` and
+ *                             prints no angle, so an override there would
+ *                             move the arc label with no line on the board to
+ *                             attribute it — a measured number with no
+ *                             provenance beside it, which is exactly what
+ *                             this parameter exists to prevent. Use
+ *                             electron_domain or interaction, which print the
+ *                             angle and its provenance together.
+ *
+ * ===========================================================================
+ * THE READOUT SAYS WHERE ITS ANGLE CAME FROM — AND THE LINE IS FITTED
+ * ===========================================================================
+ *
+ * `VSEPR ideal` unless overridden; `measured` when it is. Without it a student
+ * reads 117.5 off a board and has no way to know it is a model output rather
+ * than a measurement, which is the whole complaint that produced this
+ * parameter.
+ *
+ * IT DOES NOT FIT. The readout is one fitted line, `chrome.fitReadout`
+ * truncates it, and at 343x236 the budget is
+ *     maxChars(343 - 2*12, 14, latin) = floor(319 / (14*0.58)) = floor(39.28)
+ *                                     = 39 characters
+ * (at 495x270 it is floor(471/8.12) = 58, and at 900x430 floor(876/8.12) =
+ * 107). The longest value string the table can already produce is
+ *     `sp3d   trigonal bipyramidal   120° / 90°`  = 40 characters
+ * which OVERFLOWS 39 TODAY: the checked-in pcl5.spec-small tree reads
+ * `... 120° / 90` with the degree sign sliced off. Adding `   VSEPR ideal`
+ * (14 more) to that line would slice the angle itself.
+ *
+ * So the line is built as a LADDER of rungs and the first that fits is used —
+ * the provenance tag is never what gives, because it is the thing this change
+ * exists to show:
+ *
+ *   1  hyb   shape   angles   TAG          `sp3   tetrahedral   109.5°   VSEPR ideal`
+ *   2        shape   angles   TAG          the hybridisation goes first
+ *   3        shape   angles   SHORT        `VSEPR` for `VSEPR ideal`
+ *   4                angles   SHORT        the shape goes last
+ *
+ * THE HYBRIDISATION GOES FIRST because it is the one token on the line that is
+ * exactly recoverable from another one — steric_number fixes it outright
+ * (physics.test.ts asserts that: one hybridisation per steric number, no
+ * exceptions) — and because `interaction` mode already ships without it, so
+ * dropping it is a state this widget has always been able to be in.
+ *
+ * `measured` (8) is never abbreviated: it is already three characters shorter
+ * than `VSEPR ideal` (11), so rung 3 has nothing to shorten on an overridden
+ * line and collapses into rung 2.
+ *
+ * WHAT THAT COSTS, at 343x236 (39 chars), value strings only:
+ *   every row but three keeps `shape   angles   VSEPR ideal` or better
+ *   5-1 square pyramidal   `square pyramidal   89° / 180°`   29 + 14 = 43 > 39
+ *                          -> rung 3, 29 + 8 = 37             short tag
+ *   4-2 square planar      `square planar   90° / 180°`      26 + 14 = 40 > 39
+ *                          -> rung 3, 26 + 8 = 34             short tag
+ *   5-0 trigonal bipyr.    `trigonal bipyramidal   120° / 90°`
+ *                          33 + 14 = 47 and 33 + 8 = 41, both > 39
+ *                          -> rung 4, `120° / 90°   VSEPR` = 18   shape lost
+ * and rung 4 fits at 343 for EVERY row, because the widest angle pair the
+ * table holds is `87.5° / 175°` = 12 and 12 + 3 + 5 = 20 <= 39. The tag is
+ * therefore never dropped at any board size this app checks — which is the
+ * property that matters, since a line that silently loses its provenance on a
+ * small phone is worse than one that never had it.
+ *
+ * ===========================================================================
  * REFERENCE VALUES — computed by hand, cited, then asserted in
  * lib/widgets/__tests__/physics.test.ts.
  * ===========================================================================
@@ -92,10 +230,13 @@
  *      117 and SO2 as ~119, and this table is keyed on (bond_pairs,
  *      lone_pairs) alone, so it CANNOT tell the two apart -- one row
  *      serves both. The formal-charge citation below is exact; the
- *      angle is a model output and is quoted as such. A per-species
- *      angle override is the only real fix and is deliberately not
- *      built: it would make the table a species lookup rather than a
- *      VSEPR derivation, which is a different widget.
+ *      angle is a model output and is quoted as such. THE ROW STAYS AT
+ *      117.5: VSEPR cannot separate O3 from SO2, which is a property of
+ *      the model NCERT teaches, not a defect in the table. A payload
+ *      that KNOWS which species it is drawing may supply the measured
+ *      angle through `angle_override` -- see the next section -- and the
+ *      readout then stops calling it a VSEPR value. The table is never
+ *      edited to fit one species.
  *        formal charge, centre  = 6 - 2*1 - (2+1) = +1
  *        formal charge, =O      = 6 + 2 - 8       =  0
  *        formal charge, -O      = 6 + 1 - 8       = -1
@@ -292,6 +433,28 @@ export interface MoleculeStructParams {
   label: string;
   /** Which site the marker rings. -1 = none. THE ONE ANIMATABLE PARAM. */
   highlight_site: number;
+  /**
+   * The MEASURED angles of a named exception, for a payload that knows which
+   * species it is drawing. Absent on every VSEPR-derived payload, and inert
+   * when it agrees with the table. See the header section on it — including
+   * why it is an object rather than a number, and the five things validate()
+   * refuses.
+   */
+  angle_override?: AngleOverride;
+}
+
+/**
+ * A named exception's measured angles.
+ *
+ * `secondary` is REQUIRED on a row whose shape has a second distinct angle
+ * (every SN-5 and SN-6 row) and REFUSED on a row that has none, so the
+ * readout's one provenance word is true of every number on the line.
+ */
+export interface AngleOverride {
+  /** The angle the arc is drawn on and the readout prints first. */
+  bond: number;
+  /** The second distinct angle — axial-equatorial, or a trans pair. */
+  secondary?: number;
 }
 
 /**
@@ -337,6 +500,38 @@ export const MAX_CENTRE_CHARS = 3;
 export const MAX_LABEL_CHARS = 24;
 export const MAX_CHARGE = 4;
 export const MAX_BOND_ORDER = 3;
+
+/**
+ * The domain of `angle_override`, in degrees.
+ *
+ * MIN_OVERRIDE_ANGLE 60 is the DOMAIN, not a measurement: below it you are no
+ * longer describing two bonds meeting at one VSEPR centre but a strained ring,
+ * which this widget does not draw (it draws one centre and its ligands, see
+ * the header). The narrowest angle the table itself holds is 87.5.
+ *
+ * MAX_ANGLE_DEVIATION 20 is a deliberate OVER-estimate, in the same spirit as
+ * chrome.ts's CHAR_W_DEVA, and it is calibrated rather than tuned: the widest
+ * gaps between a real NCERT-level species and the idealised value of its own
+ * row are SbH3 91.7 vs 107 (15.3), AsH3 91.8 vs 107 (15.2) and SF4 101.6 vs
+ * 117 (15.4). 20 clears all of them with margin. It is a SANITY bound and
+ * nothing more — adjacent rows of this table are 2.5 apart, so no window of
+ * any size could tell a genuine exception from a mis-keyed row. What it does
+ * catch is the payload that named the wrong (bond_pairs, lone_pairs) by a
+ * whole geometry, where reporting the row is far more useful than drawing a
+ * number 40 degrees from the shape on the board.
+ */
+export const MIN_OVERRIDE_ANGLE = 60;
+export const MAX_ANGLE_DEVIATION = 20;
+
+/**
+ * The provenance words. `VSEPR ideal` unless overridden; `measured` when it
+ * is. The short forms exist for the small board — see the readout ladder in
+ * the header for the arithmetic, and note `measured` has no short form
+ * because at 8 characters it is already shorter than `VSEPR ideal`.
+ */
+export const TAG_IDEAL = 'VSEPR ideal';
+export const TAG_IDEAL_SHORT = 'VSEPR';
+export const TAG_MEASURED = 'measured';
 
 /** The board every cap above is measured at, and the board validate() runs
  *  its geometric backstop at. Not the biggest board — the smallest one. */
@@ -612,6 +807,36 @@ export function axeFor(bondPairs: number, lonePairs: number): AxeEntry | null {
   return AXE[KEY(bondPairs, lonePairs)] ?? null;
 }
 
+/* ------------------------------------------------- the drawn-geometry veto */
+
+/**
+ * The angular separation, ON THE PAGE, of the two drawn bonds the angle arc
+ * spans — i.e. the pair the angle label sits between, and therefore the pair
+ * the reported angle is a claim ABOUT.
+ *
+ * `arc` is [start, sweep] and both of its endpoints are members of `bondSites`
+ * in all fourteen rows (asserted in physics.test.ts — the premise this veto
+ * rests on is checked, not assumed), so the sweep IS the drawn separation.
+ */
+export function drawnArcSeparation(e: AxeEntry): number {
+  const sweep = ((e.arc[1] % 360) + 360) % 360;
+  return sweep > 180 ? 360 - sweep : sweep;
+}
+
+/**
+ * True when the two bonds the arc spans are drawn COLLINEAR — the 2-0 and 2-3
+ * rows, CO2 and XeF2.
+ *
+ * Read off `arc`, which is a drawing convention, and deliberately NOT off
+ * `bondAngle`, which is NCERT's. The two columns are authored independently
+ * and physics.test.ts asserts they agree on all fourteen rows; this function
+ * is what lets validate() refuse an override that would put a number on the
+ * board contradicting the picture beside it.
+ */
+export function drawnIsStraight(e: AxeEntry): boolean {
+  return Math.abs(drawnArcSeparation(e) - 180) < 1e-9;
+}
+
 /** TRAP 2. A linear shape drawn without its angle arc has a zero-height
  *  bounding box. Keyed off the SHAPE, not the steric number, because both
  *  CO2 (SN 2) and XeF2 (SN 5) are drawn collinear. */
@@ -693,6 +918,113 @@ export function formalChargeCentre(p: MoleculeStructParams): number {
   return el.V - 2 * p.lone_pairs - bonding;
 }
 
+/**
+ * The two angles this payload actually reports, and whether they are still the
+ * table's.
+ *
+ * `overridden` COMPARES THE NUMBERS against the row; it is not
+ * `angle_override !== undefined`. That is what makes an override inert when it
+ * agrees: NH3 107 and H2O 104.5 are exactly what the -2.5 series already
+ * produces, so the readout keeps saying `VSEPR ideal` and every rendered
+ * element is unchanged. The provenance word describes the NUMBER on the board,
+ * not the payload that produced it — 107 is the VSEPR value whoever typed it.
+ *
+ * Nothing here reads `bondSites`: the reported angle is never computed from
+ * the drawing (see the header). `drawnIsStraight` is used only by validate(),
+ * to veto.
+ */
+export function effectiveAngles(
+  p: MoleculeStructParams
+): { bond: number; secondary: number; overridden: boolean } {
+  const entry = axeFor(p.bond_pairs, p.lone_pairs);
+  if (!entry) return { bond: 0, secondary: 0, overridden: false };
+  const o = p.angle_override;
+  const bond = o ? o.bond : entry.bondAngle;
+  const secondary = o && o.secondary !== undefined ? o.secondary : entry.secondaryAngle;
+  return {
+    bond,
+    secondary,
+    overridden: bond !== entry.bondAngle || secondary !== entry.secondaryAngle,
+  };
+}
+
+/**
+ * Every reason this override cannot stand against this row. Empty means it is
+ * accepted — including when it agrees with the table, which is a no-op and
+ * must stay one.
+ *
+ * The five refusals and the reasoning behind each are in the header. The
+ * structural checks (is it an object, are the numbers finite, is there an
+ * unknown key) happen in validate() before this is reached, because they do
+ * not need a row.
+ */
+export function angleOverrideProblems(entry: AxeEntry, o: AngleOverride): string[] {
+  const problems: string[] = [];
+
+  const inDomain = (name: string, v: number, table: number): boolean => {
+    if (v < MIN_OVERRIDE_ANGLE || v > 180) {
+      problems.push(
+        `angle_override.${name} must be ${MIN_OVERRIDE_ANGLE} to 180 degrees — ` +
+        `${v} is not an angle two bonds can make at one centre`
+      );
+      return false;
+    }
+    if (Math.abs(v - table) > MAX_ANGLE_DEVIATION) {
+      problems.push(
+        `angle_override.${name} ${v}° is ${Math.abs(v - table).toFixed(1)}° from the ${table}° ` +
+        `this row derives, more than the ${MAX_ANGLE_DEVIATION}° any named exception is — ` +
+        'check that bond_pairs and lone_pairs name the row you meant'
+      );
+      return false;
+    }
+    return true;
+  };
+
+  /*
+   * THE DRAWN-GEOMETRY VETO, and it runs BEFORE the numeric checks on purpose.
+   * `{ bond: 180 }` on ozone is both 62.5° from its row AND a straight angle
+   * on a bent picture; the second is the sharper diagnosis and the one that
+   * tells a payload author what is actually wrong, so it is the one reported.
+   */
+  const straight = drawnIsStraight(entry);
+  let vetoed = false;
+  if (straight && o.bond !== 180) {
+    vetoed = true;
+    problems.push(
+      `angle_override.bond ${o.bond}° contradicts the drawing: this row draws its two ` +
+      `bonds collinear (${entry.shape}, sites at ${entry.bondSites.join(' and ')} degrees ` +
+      'on the page), so the only angle it can be labelled with is 180'
+    );
+  } else if (!straight && o.bond === 180) {
+    vetoed = true;
+    problems.push(
+      'angle_override.bond 180° contradicts the drawing: this row is drawn bent ' +
+      `(${entry.shape}, the arc spans ${drawnArcSeparation(entry)}° on the page), ` +
+      'so a straight angle would label a picture that is not straight'
+    );
+  }
+  if (!vetoed) inDomain('bond', o.bond, entry.bondAngle);
+
+  if (entry.secondaryAngle > 0) {
+    if (o.secondary === undefined) {
+      problems.push(
+        `this shape (${entry.shape}) has TWO distinct angles and the readout prints both, ` +
+        `so angle_override must supply secondary as well — leaving it out would put a ` +
+        `measured ${o.bond}° and the derived ${entry.secondaryAngle}° on one line under one word`
+      );
+    } else {
+      inDomain('secondary', o.secondary, entry.secondaryAngle);
+    }
+  } else if (o.secondary !== undefined) {
+    problems.push(
+      `this shape (${entry.shape}) has only one angle, so angle_override.secondary has ` +
+      'nothing to override — remove it'
+    );
+  }
+
+  return problems;
+}
+
 export function derive(p: MoleculeStructParams): MoleculeDerived {
   const entry = axeFor(p.bond_pairs, p.lone_pairs);
   const isCoord = p.mode === 'coordination';
@@ -713,11 +1045,17 @@ export function derive(p: MoleculeStructParams): MoleculeDerived {
   const oxidation = isCoord && allKnown ? p.charge - ligandCharge : 0;
   const z = ELEMENTS[p.centre]?.Z ?? 0;
 
+  // The angles the BOARD shows, so a {{bond_angle_deg}} caption cannot
+  // disagree with the readout beside it. `ideal_angle_deg` is untouched by an
+  // override — it is the parent geometry's angle and stays addressable, which
+  // is what lets a caption contrast the two.
+  const a = effectiveAngles(p);
+
   return {
     steric_number: p.bond_pairs + p.lone_pairs,
     ideal_angle_deg: entry ? entry.idealAngle : 0,
-    bond_angle_deg: entry ? entry.bondAngle : 0,
-    secondary_angle_deg: entry ? entry.secondaryAngle : 0,
+    bond_angle_deg: entry ? a.bond : 0,
+    secondary_angle_deg: entry ? a.secondary : 0,
     formal_charge_centre: formalChargeCentre(p),
     oxidation_state: oxidation,
     coordination_number: isCoord ? coordination : 0,
@@ -737,23 +1075,66 @@ export function derive(p: MoleculeStructParams): MoleculeDerived {
  * `labelBoxes` measures the string the board will actually show — the backstop
  * would otherwise be checking a payload the component does not render.
  */
-export function readoutValue(p: MoleculeStructParams): string {
+const SEP = '   ';
+
+/**
+ * The value half of the readout, fitted to a character budget.
+ *
+ * `cap` defaults to unbounded, which returns the WIDEST rung — the form the
+ * line takes when there is room for all of it.
+ *
+ * The ladder and the arithmetic behind its order are in the header. In short:
+ * the provenance tag never gives, the hybridisation gives first (it is exactly
+ * recoverable from steric_number, and interaction mode has always shipped
+ * without it), the shape gives last, and rung 4 fits at 343x236 for every row
+ * in the table.
+ *
+ * Coordination mode reports ox / CN / EAN and prints no angle, so it carries
+ * no provenance tag — and validate() refuses an override in that mode for the
+ * same reason.
+ */
+export function readoutValue(
+  p: MoleculeStructParams, cap: number = Number.POSITIVE_INFINITY
+): string {
   const d = derive(p);
   const entry = axeFor(p.bond_pairs, p.lone_pairs);
   if (!entry) return '';
   if (p.mode === 'coordination') {
     return `ox ${formatSigned(d.oxidation_state)}   CN ${d.coordination_number}   EAN ${d.ean}`;
   }
+  const { overridden } = effectiveAngles(p);
   const angle = formatAngle(d.bond_angle_deg);
   const second = d.secondary_angle_deg > 0 ? ` / ${formatAngle(d.secondary_angle_deg)}` : '';
-  if (p.mode === 'interaction') {
-    return `${entry.shape}   ${angle}${second}`;
+  const angles = `${angle}${second}`;
+  const tag = overridden ? TAG_MEASURED : TAG_IDEAL;
+  const short = overridden ? TAG_MEASURED : TAG_IDEAL_SHORT;
+  const hyb = p.mode === 'interaction' ? '' : entry.hybridisation;
+
+  const rungs: string[][] = [
+    [hyb, entry.shape, angles, tag],
+    [entry.shape, angles, tag],
+    [entry.shape, angles, short],
+    [angles, short],
+  ];
+  let line = '';
+  for (const rung of rungs) {
+    line = rung.filter((part) => part !== '').join(SEP);
+    if (line.length <= cap) return line;
   }
-  return `${entry.hybridisation}   ${entry.shape}   ${angle}${second}`;
+  // Nothing fits: return the shortest rung and let fitReadout slice it, which
+  // is the same thing that happened before the tag existed. Unreachable at
+  // every board size this app checks — see the header's rung-4 arithmetic.
+  return line;
 }
 
 export function readoutText(p: MoleculeStructParams, width: number): string {
-  return fitReadout(p.label, readoutValue(p), width - 2 * PAD_SIDE, READOUT_SIZE);
+  const inner = width - 2 * PAD_SIDE;
+  // The budget fitReadout will use. Measured against the label plus the widest
+  // rung: `charWidthFor` keys off SCRIPT, every rung is Latin, and the label is
+  // the same string in all four — so the cap does not depend on which rung the
+  // ladder picks, and the two cannot disagree.
+  const cap = maxChars(inner, READOUT_SIZE, p.label + readoutValue(p));
+  return fitReadout(p.label, readoutValue(p, cap), inner, READOUT_SIZE);
 }
 
 const STYLE_WORDS: Readonly<Record<BondStyle, string>> = {
@@ -1051,7 +1432,10 @@ export function layout(
   const showAngle = p.show_angle || angleIsForced(p.bond_pairs, p.lone_pairs);
   const [arcFrom, arcSweep] = entry.arc;
   const bisect = (arcFrom + arcSweep / 2) * DEG;
-  const angleLabel = formatAngle(entry.bondAngle);
+  // The arc is labelled with what the readout reports — one number on the
+  // board, not two. Still never the DRAWN separation: `arcSweep` is not read
+  // here, and validate()'s veto is what keeps the two from contradicting.
+  const angleLabel = formatAngle(effectiveAngles(p).bond);
   const angleX = cx + Math.cos(bisect) * ANGLE_LABEL_R;
   const angleY = cy - Math.sin(bisect) * ANGLE_LABEL_R;
 

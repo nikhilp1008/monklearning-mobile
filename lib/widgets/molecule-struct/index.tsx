@@ -12,9 +12,9 @@ import {
   CHARGE_SIZE, ELEMENTS, LEGEND_SIZE, LIGAND_SIZE, LIGANDS, MAX_BOND_ORDER,
   MAX_BOND_PAIRS, MAX_CENTRE_CHARS, MAX_CHARGE, MAX_DOMAINS, MAX_LABEL_CHARS,
   MAX_LIGAND_CHARS, MAX_LONE_PAIRS, MIN_BOND_PAIRS, MODES, REF_H, REF_W,
-  axeFor, bondPath, bracketPaths, derive, dottedPath, fitProblems, hashPath,
-  layout, legendText, readoutText, wedgePath,
-  type BondStyle, type MoleculeMode, type MoleculeStructParams,
+  angleOverrideProblems, axeFor, bondPath, bracketPaths, derive, dottedPath,
+  fitProblems, hashPath, layout, legendText, readoutText, wedgePath,
+  type AngleOverride, type BondStyle, type MoleculeMode, type MoleculeStructParams,
 } from './vsepr-math';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -142,6 +142,46 @@ function validate(raw: unknown): ValidationResult<MoleculeStructParams> {
   }
   if (r.label !== undefined && !isStr(r.label)) errors.push('label must be a string');
 
+  /**
+   * `angle_override`, structurally. The row-dependent half — domain, distance
+   * from the row, and the drawn-geometry veto — is `angleOverrideProblems`
+   * below, once the AXE row is known.
+   *
+   * A BARE NUMBER IS REFUSED RATHER THAN READ AS `bond`. Seven of the fourteen
+   * rows print two angles on one line, and a scalar could only correct the
+   * first of them; accepting `angle_override: 117` as sugar would silently
+   * half-honour it on exactly those rows. An UNKNOWN KEY is refused for the
+   * mirror-image reason: `{ bond_angle: 117 }` would otherwise be a typo that
+   * changes nothing at all, quietly.
+   */
+  let override: AngleOverride | undefined;
+  const rawOverride = r.angle_override;
+  if (rawOverride !== undefined) {
+    if (typeof rawOverride !== 'object' || rawOverride === null || Array.isArray(rawOverride)) {
+      errors.push(
+        'angle_override must be an object like { bond: 117 } — a bare number cannot express ' +
+        'the two distinct angles of a trigonal bipyramid or an octahedron'
+      );
+    } else {
+      const o = rawOverride as Record<string, unknown>;
+      const unknownKeys = Object.keys(o).filter((k) => k !== 'bond' && k !== 'secondary');
+      if (unknownKeys.length > 0) {
+        errors.push(
+          `angle_override has no ${unknownKeys.join(', ')} key — it takes bond and secondary`
+        );
+      }
+      if (!finite(o.bond)) {
+        errors.push('angle_override.bond must be a finite number of degrees');
+      }
+      if (o.secondary !== undefined && !finite(o.secondary)) {
+        errors.push('angle_override.secondary must be a finite number of degrees');
+      }
+      if (finite(o.bond)) {
+        override = finite(o.secondary) ? { bond: o.bond, secondary: o.secondary } : { bond: o.bond };
+      }
+    }
+  }
+
   if (errors.length > 0) return { ok: false, errors };
 
   const params: MoleculeStructParams = {
@@ -162,6 +202,9 @@ function validate(raw: unknown): ValidationResult<MoleculeStructParams> {
     show_angle: r.show_angle === true,
     label: isStr(r.label) ? r.label.slice(0, MAX_LABEL_CHARS) : '',
     highlight_site: hl as number,
+    // Set only when supplied, so a payload without one is the SAME object it
+    // was before this parameter existed.
+    ...(override ? { angle_override: override } : {}),
   };
 
   // The AXE table is the geometry. A payload it has no row for cannot be drawn
@@ -173,6 +216,35 @@ function validate(raw: unknown): ValidationResult<MoleculeStructParams> {
         `no VSEPR geometry for ${params.bond_pairs} bond pairs and ${params.lone_pairs} lone pairs`,
       ],
     };
+  }
+
+  // The override, against the row it overrides. Refused where it cannot be
+  // shown honestly, never clamped: a clamped angle is a measurement nobody
+  // took, which is the whole failure this parameter exists to avoid.
+  //
+  // The MODE is checked first. Coordination mode's readout is `ox / CN / EAN`
+  // and prints no angle at all, so an override there would move the arc label
+  // with no line on the board to attribute it — a measured number with no
+  // provenance beside it, which is exactly what this parameter exists to
+  // prevent. Refusing on the mode before looking at the row also keeps the
+  // message useful: a six-site complex would otherwise first be told to
+  // supply a `secondary` for an override that was never going to be shown.
+  if (params.angle_override && params.mode === 'coordination') {
+    return {
+      ok: false,
+      errors: [
+        'coordination mode reports oxidation state, coordination number and EAN and ' +
+        'prints no angle, so there is no line for angle_override to be attributed on — ' +
+        'use electron_domain or interaction mode, which show the angle and where it came from',
+      ],
+    };
+  }
+  if (params.angle_override) {
+    const problems = angleOverrideProblems(
+      axeFor(params.bond_pairs, params.lone_pairs)!,
+      params.angle_override
+    );
+    if (problems.length > 0) return { ok: false, errors: problems };
   }
 
   // Coordination mode reports oxidation state, coordination number and EAN, and
@@ -480,7 +552,16 @@ function MoleculeStruct({
 
 export const moleculeStruct: WidgetModule<MoleculeStructParams> = {
   id: 'molecule_struct',
-  version: 1,
+  /**
+   * 2 — `params` gained the optional `angle_override` key (and the readout
+   * gained the provenance word that goes with it). The addition is
+   * backward-compatible in both directions that matter: a v1 payload has no
+   * such key, validates to exactly the same params object it did before, and
+   * still resolves, because `registry.lookup` refuses only `version >
+   * mod.version`. What changes for a v1 payload is the readout STRING, which
+   * now names where its angle came from — deliberately, and on every board.
+   */
+  version: 2,
   /**
    * NCERT Class 11 Unit 4, Table 4.6's own first row: methane. The default
    * payload is the one that makes the drawn-vs-reported distinction visible —
@@ -532,4 +613,4 @@ export const moleculeStruct: WidgetModule<MoleculeStructParams> = {
   Component: MoleculeStruct,
 };
 
-export type { MoleculeStructParams, MoleculeMode, BondStyle };
+export type { MoleculeStructParams, MoleculeMode, BondStyle, AngleOverride };
