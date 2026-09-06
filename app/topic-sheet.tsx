@@ -147,7 +147,7 @@ export default function TopicSheetScreen() {
                           style={wide ? styles.rowFace : styles.pillFace}
                           direction="bottom"
                           strength={2.1}>
-                          <Text style={styles.topicTextSelected}>{topic}</Text>
+                          <Text style={styles.topicText}>{topic}</Text>
                         </BloomFace>
                       </Pressable>
                     );
@@ -287,14 +287,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     pillOuterSelected: {
       borderRadius: scale(99),
-      borderWidth: scale(1.6),
+      borderWidth: 1,
       borderColor: colors.marigold,
       overflow: 'hidden',
       backgroundColor: '#fff',
     },
+    /** Identical padding to `pillIdle`, so selecting never resizes a pill and
+     *  the row cannot re-flow under the tap. */
     pillFace: {
-      paddingVertical: verticalScale(7.4),
-      paddingHorizontal: scale(12.4),
+      paddingVertical: verticalScale(9),
+      paddingHorizontal: scale(14),
       borderRadius: scale(99),
       overflow: 'hidden',
       backgroundColor: '#fff',
@@ -314,26 +316,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     rowOuterSelected: {
       width: '100%',
       borderRadius: scale(16),
-      borderWidth: scale(1.6),
+      borderWidth: 1,
       borderColor: colors.marigold,
       overflow: 'hidden',
       backgroundColor: '#fff',
     },
     rowFace: {
-      paddingVertical: verticalScale(8.4),
-      paddingHorizontal: scale(12.4),
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(14),
       borderRadius: scale(14),
       overflow: 'hidden',
       backgroundColor: '#fff',
     },
     topicText: {
       fontFamily: 'Onest_500Medium',
-      fontSize: scale(14),
-      lineHeight: scale(19),
-      color: colors.ink,
-    },
-    topicTextSelected: {
-      fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       lineHeight: scale(19),
       color: colors.ink,
