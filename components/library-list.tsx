@@ -214,13 +214,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   // Same rule as the notes samples: they stand in only while nothing real
   // exists, and never instead of a filtered-empty result — "no Chemistry
   // doubts yet" is a true answer and samples would contradict it.
-  /** Questions per snap, so a photo that held several can say so. Every
-   *  doubt off one photo shares its `submission_id`. */
-  const perSubmission = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const d of doubts) counts.set(d.submission_id, (counts.get(d.submission_id) ?? 0) + 1);
-    return counts;
-  }, [doubts]);
 
   const showingDoubtSamples = doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
   const hasErasableDoubts = showingDoubtSamples ? sampleDoubts.length > 0 : doubts.length > 0;
@@ -474,7 +467,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
               {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
 
               {notesLoading ? (
-                <CardSkeletonList styles={styles} count={4} />
+                <ListSkeleton styles={styles} kind="notes" count={5} />
               ) : notesError ? (
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>{notesError}</Text>
@@ -590,7 +583,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
 
               {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
               {doubtsLoading ? (
-                <CardSkeletonList styles={styles} count={4} />
+                <ListSkeleton styles={styles} kind="doubts" count={5} />
               ) : doubtsError ? (
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>{doubtsError}</Text>
@@ -673,16 +666,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             the day the field lands. */}
                         <View style={styles.doubtThumb}>
                           <PagePlaceholder subject={doubt.subject} />
-                          {/* "2 Q" — this photo held more than one question.
-                              Counted from the list itself by submission_id,
-                              which every doubt off one snap shares. */}
-                          {(perSubmission.get(doubt.submission_id) ?? 1) > 1 && (
-                            <View style={styles.doubtCountBadge}>
-                              <Text style={styles.doubtCountText}>
-                                {perSubmission.get(doubt.submission_id)} Q
-                              </Text>
-                            </View>
-                          )}
                         </View>
                         <View style={styles.doubtRowBody}>
                           <View style={styles.doubtRowMeta}>
@@ -774,27 +757,45 @@ function SearchIcon({ size }: { size: number }) {
 const hairline = (alpha: number) => `rgba(28,26,22,${alpha})`;
 
 /**
- * Notes and Doubts are the same card at the same size, so one placeholder
- * serves both: the subject line and timestamp on top, then the title and a
- * line of body.
+ * The waiting state, in the shape of the thing being waited for.
+ *
+ * Notes and Doubts used to be the same card, so one placeholder served both.
+ * Under export-8a they are different objects — a stack of text lines against
+ * a photo beside a question — so a single shape is now a placeholder for
+ * neither, and the list visibly changed layout as it loaded.
  */
-function CardSkeletonList({
+function ListSkeleton({
   styles,
+  kind,
   count,
 }: {
   styles: ReturnType<typeof createStyles>;
+  kind: 'notes' | 'doubts';
   count: number;
 }) {
-  return (
-    <View style={styles.notesList}>
-      {Array.from({ length: count }, (_, i) => (
-        <View key={i} style={styles.noteCard}>
-          <View style={styles.noteTopRow}>
-            <Skeleton delay={stagger(i)} style={styles.skeletonSubject} />
-            <Skeleton delay={stagger(i)} style={styles.skeletonTime} />
+  if (kind === 'notes') {
+    return (
+      <View style={styles.notesRows}>
+        {Array.from({ length: count }, (_, i) => (
+          <View key={i} style={styles.noteRow}>
+            <Skeleton delay={stagger(i)} style={styles.skelNoteTitle} />
+            <Skeleton delay={stagger(i) + 30} style={styles.skelNoteMeta} />
+            <Skeleton delay={stagger(i) + 60} style={styles.skelNoteMetaShort} />
           </View>
-          <Skeleton delay={stagger(i) + 30} style={styles.skeletonCardTitle} />
-          <Skeleton delay={stagger(i) + 60} style={styles.skeletonCardBody} />
+        ))}
+      </View>
+    );
+  }
+  return (
+    <View style={styles.doubtsRows}>
+      {Array.from({ length: count }, (_, i) => (
+        <View key={i} style={styles.doubtRow}>
+          <Skeleton delay={stagger(i)} style={styles.skelThumb} />
+          <View style={styles.doubtRowBody}>
+            <Skeleton delay={stagger(i) + 30} style={styles.skelDoubtMeta} />
+            <Skeleton delay={stagger(i) + 60} style={styles.skelDoubtLine} />
+            <Skeleton delay={stagger(i) + 90} style={styles.skelDoubtLineShort} />
+          </View>
         </View>
       ))}
     </View>
@@ -890,26 +891,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: '100%',
       height: '100%',
     },
-    doubtCountBadge: {
-      position: 'absolute',
-      left: scale(6),
-      bottom: verticalScale(6),
-      paddingHorizontal: scale(7),
-      paddingVertical: verticalScale(3),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(255,255,255,.92)',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.12,
-      shadowRadius: 3,
-      elevation: 2,
-    },
-    doubtCountText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(10.5),
-      letterSpacing: scale(0.1),
-      color: colors.ink,
-    },
     doubtRowBody: {
       flex: 1,
       minWidth: 0,
@@ -933,6 +914,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: '#9C988C',
       flexShrink: 0,
     },
+    // Placeholders sized to the row they stand in for, so nothing shifts
+    // when the real content arrives.
+    skelNoteTitle: { width: '86%', height: verticalScale(17), borderRadius: scale(5) },
+    skelNoteMeta: { width: '40%', height: verticalScale(11), borderRadius: scale(4) },
+    skelNoteMetaShort: { width: '56%', height: verticalScale(11), borderRadius: scale(4) },
+    skelThumb: {
+      width: scale(84),
+      height: scale(84),
+      flexShrink: 0,
+      borderRadius: scale(14),
+    },
+    skelDoubtMeta: { width: '52%', height: verticalScale(11), borderRadius: scale(4) },
+    skelDoubtLine: { width: '100%', height: verticalScale(14), borderRadius: scale(4) },
+    skelDoubtLineShort: { width: '72%', height: verticalScale(14), borderRadius: scale(4) },
     doubtRowQuestion: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
@@ -967,29 +962,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
       backgroundColor: '#EEA31F',
     },
-    notesList: {
-      flexDirection: 'column',
-      gap: verticalScale(12),
-      marginTop: verticalScale(24),
-    },
-    skeletonSubject: {
-      width: scale(66),
-      height: verticalScale(9),
-    },
-    skeletonTime: {
-      width: scale(40),
-      height: verticalScale(9),
-    },
-    skeletonCardTitle: {
-      width: '82%',
-      height: verticalScale(14),
-      marginTop: verticalScale(9),
-    },
-    skeletonCardBody: {
-      width: '58%',
-      height: verticalScale(11),
-      marginTop: verticalScale(8),
-    },
     noteCard: {
       backgroundColor: '#fff',
       borderWidth: 1,
@@ -1009,11 +981,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: 'rgba(28,26,22,.16)',
       shadowOpacity: 0.06,
       shadowRadius: 5,
-    },
-    noteTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
     },
     stateBlock: {
       alignItems: 'center',
