@@ -596,9 +596,23 @@ function unwrapSmiles(text: string): string {
 export function latexToText(raw: string): string {
   const normalized = unwrapSmiles(raw)
     .replace(
-      /\\(xrightarrow|xleftarrow|xrightleftharpoons)\s*\{([^{}]*)\}/g,
-      (_m, cmd: string, label: string) =>
-        label.trim() ? `${LABELLED_ARROWS[cmd]}(${label.trim()})` : LABELLED_ARROWS[cmd],
+      // The OPTIONAL [below] argument is why this has a `(?:\[…\])?` in it.
+      // LaTeX writes `\xrightarrow[below]{above}`, and the previous pattern
+      // demanded `{` immediately after the command name -- so a real board
+      // line, `6CO2 + 6H2O \xrightarrow[]{sunlight} C6H12O6 + 6O2`, matched
+      // nothing and shipped to a student as
+      //     6CO₂ + 6H₂O xrightarrow[]sunlight C₆H₁₂O₆ + 6O₂
+      // Seen on a live device during a carbon-cycle class. Same family as the
+      // \ce{} leak: a command with an argument shape nobody anticipated does
+      // not degrade, it prints its own name.
+      /\\(xrightarrow|xleftarrow|xrightleftharpoons)\s*(?:\[([^\]]*)\])?\s*\{([^{}]*)\}/g,
+      (_m, cmd: string, below: string | undefined, above: string) => {
+        const arrow = LABELLED_ARROWS[cmd];
+        const a = (above || '').trim();
+        const b = (below || '').trim();
+        if (a && b) return `${arrow}(${a}/${b})`;
+        return a || b ? `${arrow}(${a || b})` : arrow;
+      },
     )
     .replace(DOUBLED_CARET, '^')
     .replace(/-\n/g, '')

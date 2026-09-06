@@ -41,3 +41,40 @@ describe('latexToText — commands the corpus emits', () => {
     ).toBe('Species → Genus → Family');
   });
 });
+
+
+/**
+ * `\xrightarrow` with LaTeX's OPTIONAL [below] argument.
+ *
+ * Found on a live device, mid-lesson, on the carbon cycle. The board read
+ *
+ *     6CO₂ + 6H₂O xrightarrow[]sunlight C₆H₁₂O₆ + 6O₂
+ *
+ * because the handler demanded `{` immediately after the command name and
+ * `\xrightarrow[]{sunlight}` therefore matched nothing. An unmatched command
+ * does not degrade quietly -- it prints its own name to a student.
+ *
+ * Same family as the `\ce{}` leak. The lesson each time is that the failure
+ * mode of this converter is LOUD AND WRONG, so a command shape nobody
+ * anticipated is a board defect, not a cosmetic one.
+ */
+describe('xrightarrow with an optional [below] argument', () => {
+  const cases: [string, string][] = [
+    ['6CO_2 + 6H_2O \\xrightarrow[]{sunlight} C_6H_{12}O_6 + 6O_2', 'sunlight'],
+    ['A \\xrightarrow{Ni} B', 'Ni'],
+    ['A \\xrightarrow[heat]{cat} B', 'cat'],
+    ['A \\xrightarrow[heat]{} B', 'heat'],
+  ];
+  for (const [src, must] of cases) {
+    test(src, () => {
+      const out = latexToText(src);
+      expect(out).not.toMatch(/xrightarrow/);
+      expect(out).toContain('→');
+      expect(out).toContain(must);
+    });
+  }
+
+  test('both labels are kept when both are given', () => {
+    expect(latexToText('A \\xrightarrow[heat]{cat} B')).toContain('→(cat/heat)');
+  });
+});
