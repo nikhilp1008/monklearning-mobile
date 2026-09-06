@@ -237,7 +237,12 @@ export default function HomeScreen() {
                   style={StyleSheet.absoluteFillObject}
                 />
                 <View style={styles.dronaCtaInner}>
-                  <Text style={styles.dronaCtaText}>Choose a topic</Text>
+                  {/* "Chapter", not "topic": this opens ChapterSelectorScreen,
+                      which lists chapters, searches "a chapter" and counts
+                      chapters. Topics are one level deeper, on the sheet a
+                      chapter opens. The body copy directly above already says
+                      "Pick a chapter", so the button was contradicting it. */}
+                  <Text style={styles.dronaCtaText}>Select chapter</Text>
                   <ArrowRightIcon color={colors.ink} size={scale(14)} />
                 </View>
               </PressableScale>
