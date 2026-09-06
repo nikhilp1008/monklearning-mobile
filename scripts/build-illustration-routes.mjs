@@ -14,7 +14,24 @@
  *   illustration  the Gemini work order already covers it (joined by
  *                 asset_slug against illustration-manifest.csv)
  *   widget:<id>   the runtime will draw it from a registry widget
- *   svg           needs a hand-authored schematic SVG   <-- the batch
+ *   svg           served by TIER 3 at runtime -- NOT hand-authored
+ *
+ * STATUS OF route=svg, decided 2026-09-05. These 100 rows are NOT a backlog
+ * of drawings anybody owes. The plan to hand-author them was made when tier 3
+ * -- the runtime SVG fallback -- passed its gate at 50%, under the 60% bar,
+ * i.e. when it was not a usable fallback at all.
+ *
+ * It now passes at 97% first-attempt, measured over two chapters on live
+ * content: biology 11 ch1, 16 diagrams and 0 rejections; maths 12 ch8, 50
+ * diagrams and 2 rejections. A tier-3 schematic is authored per CONCEPT
+ * against the segment's actual objective, so it is better matched than one
+ * drawing reused across a chapter, and there is no brief to write and no
+ * asset to store. (What closed the gap was not the layout repair but a
+ * trailing-prose bug in the fence stripper -- see diagram_author.py.)
+ *
+ * The column is still worth generating: it records WHY each concept is not an
+ * illustration and not a widget, and it is how a future widget's coverage gets
+ * measured against the corpus. Read it as a routing record, not a work order.
  *
  * WHY THE WIDGET TEST IS `v2_confidence == "high"` AND NOT `archetype_v2 in
  * REGISTRY`, which is the whole point of this script:
