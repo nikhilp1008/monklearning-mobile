@@ -10,12 +10,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
 import { friendlyLoadError } from '@/lib/api';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
@@ -48,15 +47,6 @@ const SUBJECT_FILTER_LABEL: Record<string, SubjectFilter> = {
   biology: 'Biology',
 };
 
-// Subject -> accent color, since /notes doesn't return one — same three
-// brand accents used for the subject dot/label across the app.
-const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
-  physics: { dot: '#DD4433', label: '#C53A2B' },
-  chemistry: { dot: '#1C9B57', label: '#157A45' },
-  mathematics: { dot: '#EEA31F', label: '#9A6A12' },
-  biology: { dot: '#1C9B57', label: '#157A45' },
-};
-
 /**
  * Notes and Doubts — one list, mounted twice.
  *
@@ -69,13 +59,13 @@ const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
 export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [notesFilter, setNotesFilter] = useState<SubjectFilter>('All');
+  const notesFilter: SubjectFilter = 'All';
   /**
    * The doubts filter holds the stored subject KEY ("mathematics"), not the
    * label — the chip prints `label` ("Math"). Notes keep the label-based
    * `SubjectFilter` because /notes has no chip endpoint to read from.
    */
-  const [doubtsFilter, setDoubtsFilter] = useState<string>('All');
+  const doubtsFilter = 'All';
   const [doubtChips, setDoubtChips] = useState<DoubtSubjectChip[]>([]);
   const [notesQuery, setNotesQuery] = useState('');
   const [doubtsQuery, setDoubtsQuery] = useState('');
@@ -224,6 +214,14 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   // Same rule as the notes samples: they stand in only while nothing real
   // exists, and never instead of a filtered-empty result — "no Chemistry
   // doubts yet" is a true answer and samples would contradict it.
+  /** Questions per snap, so a photo that held several can say so. Every
+   *  doubt off one photo shares its `submission_id`. */
+  const perSubmission = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of doubts) counts.set(d.submission_id, (counts.get(d.submission_id) ?? 0) + 1);
+    return counts;
+  }, [doubts]);
+
   const showingDoubtSamples = doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
   const hasErasableDoubts = showingDoubtSamples ? sampleDoubts.length > 0 : doubts.length > 0;
 
@@ -382,7 +380,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     return ['All', ...(ordered.length ? ordered : DEFAULT_FILTERS)];
   }, []);
 
-  const notesFilters = useMemo(() => filtersFor(notes.map((n) => n.subject)), [filtersFor, notes]);
   /**
    * Doubts chips come from the server, notes chips are still derived.
    *
@@ -461,42 +458,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
-              <View style={styles.searchBar}>
+              <View style={styles.searchLine}>
                 <SearchIcon size={scale(15)} />
                 <TextInput
                   style={styles.searchInput}
                   value={notesQuery}
                   onChangeText={setNotesQuery}
-                  placeholder="Search by concept or chapter…"
-                  placeholderTextColor={colors.faint}
+                  placeholder="Search your notes…"
+                  placeholderTextColor="#9C988C"
                   autoCorrect={false}
                   returnKeyType="search"
                 />
-              </View>
-
-              <View style={styles.filterRow}>
-                {notesFilters.map((filter) => (
-                  <PressableScale key={filter} onPress={() => setNotesFilter(filter)}>
-                    <View
-                      style={[
-                        styles.filterPill,
-                        notesFilter === filter && styles.filterPillActive,
-                      ]}>
-                      <Text
-                        style={[
-                          styles.filterPillText,
-                          notesFilter === filter && styles.filterPillTextActive,
-                        ]}>
-                        {filter}
-                      </Text>
-                    </View>
-                  </PressableScale>
-                ))}
-                <Text style={styles.filterCount}>
-                  {showingSamples
-                    ? `${sampleNotes.length} sample${sampleNotes.length === 1 ? '' : 's'}`
-                    : `${visibleNotes.length} note${visibleNotes.length === 1 ? '' : 's'}`}
-                </Text>
               </View>
 
               {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
@@ -513,7 +485,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // Cards only: they don't open a note page, and erasing one
                 // removes it from this list and nothing else.
                 showingSamples ? (
-                  <View style={styles.notesList}>
+                  <View style={styles.notesRows}>
                     <Text style={styles.sampleNote}>
                       Nothing saved yet — these sample cards are here so you can try the eraser.
                     </Text>
@@ -522,20 +494,12 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                         key={card.id}
                         enabled={eraseMode}
                         onRemove={() => removeSample(card.id)}>
-                        <View style={[styles.noteCard, eraseMode && styles.noteCardErasing]}>
-                          <View style={styles.noteTopRow}>
-                            <View style={styles.noteSubjectRow}>
-                              <View style={[styles.noteDot, { backgroundColor: card.dot }]} />
-                              <Text style={[styles.noteSubjectText, { color: card.tint }]}>
-                                {card.subject}
-                              </Text>
-                            </View>
-                            <Text style={styles.noteTime}>{card.time}</Text>
-                          </View>
-                          <Text style={styles.noteTitle} numberOfLines={2}>
-                            {card.title}
+                        <View style={[styles.noteRow, eraseMode && styles.noteCardErasing]}>
+                          <Text style={styles.noteRowTitle}>{card.title}</Text>
+                          <Text style={styles.noteRowMeta}>
+                            {card.subject} · {card.time}
                           </Text>
-                          <Text style={styles.noteBody}>{card.body}</Text>
+                          <Text style={styles.noteRowMeta}>{card.body}</Text>
                         </View>
                       </Erasable>
                     ))}
@@ -552,19 +516,14 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   </View>
                 )
               ) : (
-                <View style={styles.notesList}>
-                  {visibleNotes.map((note) => {
-                    const accent = SUBJECT_ACCENT[(note.subject ?? '').toLowerCase()] ?? {
-                      dot: colors.faint,
-                      label: colors.slate,
-                    };
-                    return (
-                      <Erasable
-                        key={note.id}
-                        enabled={eraseMode}
-                        onRemove={() => removeNote(note.id)}>
+                <View style={styles.notesRows}>
+                  {visibleNotes.map((note) => (
+                    <Erasable
+                      key={note.id}
+                      enabled={eraseMode}
+                      onRemove={() => removeNote(note.id)}>
                       <PressableScale
-                        style={[styles.noteCard, eraseMode && styles.noteCardErasing]}
+                        style={[styles.noteRow, eraseMode && styles.noteCardErasing]}
                         disabled={eraseMode}
                         onPress={() =>
                           router.push({
@@ -578,23 +537,28 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             },
                           })
                         }>
-                        <View style={styles.noteTopRow}>
-                          <View style={styles.noteSubjectRow}>
-                            <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
-                            <Text style={[styles.noteSubjectText, { color: accent.label }]}>
-                              {note.subject ?? 'General'}
-                            </Text>
-                          </View>
-                          <Text style={styles.noteTime}>{formatRelativeTime(note.created_at)}</Text>
-                        </View>
-                        <Text style={styles.noteTitle} numberOfLines={2}>
+                        <Text style={styles.noteRowTitle}>
                           {note.concept ?? note.chapter ?? 'Untitled note'}
                         </Text>
-                        <Text style={styles.noteBody}>{note.preview}</Text>
+                        <Text style={styles.noteRowMeta}>
+                          {[note.subject, formatRelativeTime(note.created_at)]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Text>
+                        {/* export-8a's third line reads "8 key points · 3
+                            formulas · 1 diagram". The API does not break the
+                            board down by type — /notes returns `preview`, its
+                            own one-line summary ("12 board items · 3 of 5
+                            parts"), and the breakdown only exists on a note's
+                            detail, one fetch per row. So the server's own line
+                            fills the slot rather than a count we would have to
+                            invent. */}
+                        {!!note.preview && (
+                          <Text style={styles.noteRowMeta}>{note.preview}</Text>
+                        )}
                       </PressableScale>
-                      </Erasable>
-                    );
-                  })}
+                    </Erasable>
+                  ))}
                 </View>
               )}
 
@@ -606,71 +570,22 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
-              <View style={styles.doubtsSearchRow}>
-                <View style={styles.doubtsSearchBar}>
-                  <SearchIcon size={scale(15)} />
-                  <TextInput
-                    style={styles.searchInput}
-                    value={doubtsQuery}
-                    onChangeText={setDoubtsQuery}
-                    placeholder="Search your doubts…"
-                    placeholderTextColor={colors.faint}
-                    autoCorrect={false}
-                    returnKeyType="search"
-                  />
-                </View>
-                <PressableScale
-                  style={styles.cameraButton}
-                  onPress={() => router.push('/snap-capture')}>
-                  {/* Home's chip exactly — same white ground, same hairline,
-                      same radius, same ink strokes. It was an ink-filled
-                      circle with the strokes inverted, which made the same
-                      action read as two unrelated controls between the two
-                      screens. The square against the search field's pill is
-                      what keeps it reading as a button. */}
-                  <SnapADoubtIcon size={scale(ICON_CHIP.icon)} />
+              <View style={styles.searchLine}>
+                <SearchIcon size={scale(15)} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={doubtsQuery}
+                  onChangeText={setDoubtsQuery}
+                  placeholder="Search your doubts…"
+                  placeholderTextColor="#9C988C"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                />
+                {/* The camera sits inside the line rather than in a box beside
+                    it -- export-8a gives the row no chrome of its own. */}
+                <PressableScale hitSlop={10} onPress={() => router.push('/snap-capture')}>
+                  <CameraIcon size={scale(19)} />
                 </PressableScale>
-              </View>
-
-              <View style={styles.filterRow}>
-                <PressableScale onPress={() => setDoubtsFilter('All')}>
-                  <View style={[styles.filterPill, doubtsFilter === 'All' && styles.filterPillActive]}>
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        doubtsFilter === 'All' && styles.filterPillTextActive,
-                      ]}>
-                      All
-                    </Text>
-                  </View>
-                </PressableScale>
-                {doubtsFilters.map((chip) => (
-                  <PressableScale key={chip.key} onPress={() => setDoubtsFilter(chip.key)}>
-                    <View
-                      style={[
-                        styles.filterPill,
-                        doubtsFilter === chip.key && styles.filterPillActive,
-                      ]}>
-                      <Text
-                        style={[
-                          styles.filterPillText,
-                          doubtsFilter === chip.key && styles.filterPillTextActive,
-                        ]}>
-                        {chip.label}
-                      </Text>
-                      {/* Off their exam, but they snapped it, so it is theirs
-                          to find. A dot rather than a word: the chip row is
-                          already the widest thing on the page, and the label
-                          is what has to stay readable. */}
-                      {!chip.on_syllabus && <View style={styles.filterPillOffSyllabus} />}
-                    </View>
-                  </PressableScale>
-                ))}
-                <Text style={styles.filterCount}>
-                  {showingDoubtSamples
-                    ? `${DEMO_DOUBT_CARDS.length} sample${DEMO_DOUBT_CARDS.length === 1 ? '' : 's'}`
-                    : `${visibleDoubts.length} doubt${visibleDoubts.length === 1 ? '' : 's'}`}
-                </Text>
               </View>
 
               {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
@@ -685,7 +600,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // is snapped. Both came off one photo and carry different
                 // subjects, which is the case that makes one card per question
                 // the right unit.
-                <View style={styles.doubtsList}>
+                <View style={styles.doubtsRows}>
                   <Text style={styles.doubtsSampleNote}>
                     Nothing snapped yet — these two came off one photo, and each stands alone so
                     you can find and erase them separately.
@@ -695,16 +610,21 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                       key={card.id}
                       enabled={eraseMode}
                       onRemove={() => removeDoubtSample(card.id)}>
-                      <View style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}>
-                        <DoubtCardHead
-                          styles={styles}
-                          subject={card.subject}
-                          chapter={card.chapter}
-                          time={card.time}
-                        />
-                        <Text style={styles.doubtQuestion} numberOfLines={2}>
-                          {card.question}
-                        </Text>
+                      <View style={[styles.doubtRow, eraseMode && styles.noteCardErasing]}>
+                        <View style={styles.doubtThumb}>
+                          <PagePlaceholder subject={card.subject} />
+                        </View>
+                        <View style={styles.doubtRowBody}>
+                          <View style={styles.doubtRowMeta}>
+                            <Text style={styles.doubtRowSubject} numberOfLines={1}>
+                              {card.chapter}
+                            </Text>
+                            <Text style={styles.doubtRowTime}>{card.time}</Text>
+                          </View>
+                          <Text style={styles.doubtRowQuestion} numberOfLines={2}>
+                            {card.question}
+                          </Text>
+                        </View>
                       </View>
                     </Erasable>
                   ))}
@@ -718,54 +638,66 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   </Text>
                 </View>
               ) : (
-                <View style={styles.doubtsList}>
+                <View style={styles.doubtsRows}>
                   {visibleDoubts.map((doubt) => (
                     <Erasable
                       key={doubt.id}
                       enabled={eraseMode}
                       onRemove={() => removeDoubt(doubt.id)}>
-                    <PressableScale
-                      style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}
-                      disabled={eraseMode}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/doubt-detail',
-                          params: {
-                            id: doubt.id,
-                            title: doubt.stem ?? doubt.question_text ?? '',
-                            subject: doubt.subject ?? '',
-                            chapter: doubt.chapter ?? doubt.concept ?? '',
-                            time: `snapped ${formatRelativeTime(doubt.created_at)}`,
-                          },
-                        })
-                      }>
-                      {/* A doubt is still not a note: there is no title here,
-                          because the student did not write one and the app
-                          will not invent one. What the card gained is the
-                          metadata a doubt already carries — subject, chapter
-                          and when it was snapped — which is what makes a list
-                          of them scannable instead of a wall of transcribed
-                          maths.
+                      <PressableScale
+                        style={[styles.doubtRow, eraseMode && styles.noteCardErasing]}
+                        disabled={eraseMode}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/doubt-detail',
+                            params: {
+                              id: doubt.id,
+                              title: doubt.stem ?? doubt.question_text ?? '',
+                              subject: doubt.subject ?? '',
+                              chapter: doubt.chapter ?? doubt.concept ?? '',
+                              time: `snapped ${formatRelativeTime(doubt.created_at)}`,
+                            },
+                          })
+                        }>
+                        {/* The 84pt thumbnail.
+                            export-8a ships this as a CSS placeholder and says
+                            so: "swap the 84x84 div for an <img>". It cannot be
+                            swapped yet — the list endpoint returns
+                            DoubtSummary, which has no photo. `image_url` exists
+                            only on DoubtDetail, one fetch per row, so filling
+                            this needs `image_url` added to GET /doubts.
 
-                          The red margin rule is gone. It was justified as
-                          echoing the doubt-of-the-day card on Home, and that
-                          card no longer exists, so the mark echoed nothing. */}
-                      <DoubtCardHead
-                        styles={styles}
-                        subject={doubt.subject}
-                        chapter={doubt.chapter ?? doubt.concept}
-                        time={formatRelativeTime(doubt.created_at)}
-                        label={doubt.subject_label}
-                      />
-                      <Text style={styles.doubtQuestion} numberOfLines={2}>
-                        {/* Same conversion the solution screen runs. Without it the
-                            card shows the transcriber's raw LaTeX -- "$$v=3
-                            t^{\wedge} 2-12 t+9(\mathrm{~m} / \mathrm{s})$$" --
-                            which is the least readable form of the one line a
-                            student uses to find their doubt again. */}
-                        {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
-                      </Text>
-                    </PressableScale>
+                            Until then it is the mock's own placeholder: a warm
+                            page with faint rules, which is what a snapped
+                            question actually looks like. Add the <Image> here
+                            the day the field lands. */}
+                        <View style={styles.doubtThumb}>
+                          <PagePlaceholder subject={doubt.subject} />
+                          {/* "2 Q" — this photo held more than one question.
+                              Counted from the list itself by submission_id,
+                              which every doubt off one snap shares. */}
+                          {(perSubmission.get(doubt.submission_id) ?? 1) > 1 && (
+                            <View style={styles.doubtCountBadge}>
+                              <Text style={styles.doubtCountText}>
+                                {perSubmission.get(doubt.submission_id)} Q
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.doubtRowBody}>
+                          <View style={styles.doubtRowMeta}>
+                            <Text style={styles.doubtRowSubject} numberOfLines={1}>
+                              {doubt.subject_label ?? doubt.subject ?? 'Doubt'}
+                            </Text>
+                            <Text style={styles.doubtRowTime}>
+                              {formatRelativeTime(doubt.created_at)}
+                            </Text>
+                          </View>
+                          <Text style={styles.doubtRowQuestion} numberOfLines={2}>
+                            {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
+                          </Text>
+                        </View>
+                      </PressableScale>
                     </Erasable>
                   ))}
                 </View>
@@ -779,51 +711,52 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
 }
 
 /**
- * Subject, chapter and age — the line above every doubt.
- *
- * Mirrors the note card's top row deliberately: the two lists sit one tab
- * apart, and a student should not have to learn two ways of reading a card.
- * The subject dot takes the app-wide accent, so Physics is the same red here
- * as it is on a note and on a textbook.
+ * The thumbnail stand-in: a page with faint rules, exactly what export-8a
+ * draws. The rule spacing and tilt vary by subject so a column of them does
+ * not read as one repeated tile — the mock varies them per row for the same
+ * reason.
  */
-function DoubtCardHead({
-  styles,
-  subject,
-  chapter,
-  time,
-  label,
-}: {
-  styles: ReturnType<typeof createStyles>;
-  subject: string | null;
-  chapter: string | null;
-  time: string;
-  label?: string | null;
-}) {
-  const accent = SUBJECT_ACCENT[(subject ?? '').toLowerCase()] ?? {
-    dot: colors.faint,
-    label: colors.slate,
-  };
-  const name = label ?? subject;
-  // The API's chapter casing is whatever the transcriber wrote — "kinematics"
-  // next to "Straight lines" next to "Complex Numbers" in one list. Only the
-  // first letter is forced, so a properly capitalised name is left alone and
-  // a lowercase one stops looking like a mistake.
-  const chapterLabel = chapter ? chapter.charAt(0).toUpperCase() + chapter.slice(1) : null;
+function PagePlaceholder({ subject }: { subject: string | null }) {
+  const seed = (subject ?? '').length % 4;
+  const step = [14, 11, 9, 13][seed];
+  const tone = ['rgba(28,26,22,.16)', 'rgba(28,26,22,.13)', 'rgba(28,26,22,.12)', 'rgba(28,26,22,.15)'][seed];
+  const ground = ['#F1EDE3', '#EDE9E0', '#E9E6DF', '#F3EFE6'][seed];
+  const rules = [];
+  for (let y = step; y < 84; y += step) rules.push(y);
   return (
-    <View style={styles.doubtTopRow}>
-      <View style={styles.doubtMetaRow}>
-        <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
-        {!!name && (
-          <Text style={[styles.doubtSubjectText, { color: accent.label }]}>{name}</Text>
-        )}
-        {!!chapterLabel && (
-          <Text style={styles.doubtChapterText} numberOfLines={1}>
-            {chapterLabel}
-          </Text>
-        )}
-      </View>
-      <Text style={styles.noteTime}>{time}</Text>
-    </View>
+    <Svg width="100%" height="100%" viewBox="0 0 84 84">
+      <Rect x={0} y={0} width={84} height={84} fill={ground} />
+      {rules.map((y) => (
+        <Path key={y} d={`M6 ${y}H78`} stroke={tone} strokeWidth={1.2} />
+      ))}
+    </Svg>
+  );
+}
+
+/** The snap camera, from export-8a's search line. */
+function CameraIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3"
+        stroke={colors.ink}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Rect
+        x={2.8}
+        y={6.4}
+        width={18.4}
+        height={13.5}
+        rx={3.2}
+        stroke={colors.ink}
+        strokeWidth={1.7}
+        strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={13.2} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
+      <Circle cx={17.6} cy={9.6} r={1.1} fill={colors.marigold} />
+    </Svg>
   );
 }
 
@@ -886,16 +819,124 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     headerFixed: {
       paddingTop: verticalScale(12),
-      paddingHorizontal: scale(20),
+      paddingHorizontal: scale(24),
     },
     pageContent: {
-      paddingHorizontal: scale(20),
+      paddingTop: verticalScale(16),
+      paddingHorizontal: scale(24),
       paddingBottom: verticalScale(130),
     },
+    /** export-8a's title: 28/700 at -0.028em. Larger and heavier than the
+     *  24/Medium the other tabs use — see the note in the commit. */
     heading: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(28),
+      letterSpacing: scale(-0.78),
+      lineHeight: scale(29.4),
+      color: colors.ink,
+    },
+    /** A bare line, not a pill: 44pt tall on a single hairline. */
+    searchLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(9),
+      height: verticalScale(44),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.12)',
+    },
+    // --- notes rows: no card, no rule, 30pt apart ---
+    notesRows: {
+      gap: verticalScale(30),
+      paddingTop: verticalScale(24),
+    },
+    noteRow: {
+      gap: verticalScale(6),
+    },
+    noteRowTitle: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(17),
+      lineHeight: scale(24),
+      letterSpacing: scale(-0.17),
+      color: colors.ink,
+    },
+    noteRowMeta: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: '#8A857A',
+    },
+    // --- doubts rows: 84pt photo beside the question, 24pt apart ---
+    doubtsRows: {
+      gap: verticalScale(24),
+      paddingTop: verticalScale(20),
+    },
+    doubtRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(14),
+    },
+    doubtThumb: {
+      position: 'relative',
+      width: scale(84),
+      height: scale(84),
+      flexShrink: 0,
+      borderRadius: scale(14),
+      overflow: 'hidden',
+      backgroundColor: '#F1EDE3',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.08)',
+    },
+    doubtThumbImage: {
+      width: '100%',
+      height: '100%',
+    },
+    doubtCountBadge: {
+      position: 'absolute',
+      left: scale(6),
+      bottom: verticalScale(6),
+      paddingHorizontal: scale(7),
+      paddingVertical: verticalScale(3),
+      borderRadius: scale(99),
+      backgroundColor: 'rgba(255,255,255,.92)',
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.12,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    doubtCountText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(10.5),
+      letterSpacing: scale(0.1),
+      color: colors.ink,
+    },
+    doubtRowBody: {
+      flex: 1,
+      minWidth: 0,
+      gap: verticalScale(6),
+    },
+    doubtRowMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(7),
+    },
+    doubtRowSubject: {
+      flex: 1,
+      minWidth: 0,
       fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
+      fontSize: scale(12),
+      color: '#9C988C',
+    },
+    doubtRowTime: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      color: '#9C988C',
+      flexShrink: 0,
+    },
+    doubtRowQuestion: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.ink,
     },
     // Pushes the eraser to the right end of the tab row.
@@ -911,70 +952,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // Erase mode only: the tabs give up their underline while the mode line
     // below the filters does the separating.
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(9),
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(15),
-      marginTop: verticalScale(12),
-    },
     searchInput: {
       flex: 1,
       fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.ink,
       paddingVertical: 0,
-    },
-    doubtsSearchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      marginTop: verticalScale(12),
-    },
-    doubtsSearchBar: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(9),
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(15),
-    },
-    cameraButton: {
-      width: scale(ICON_CHIP.size),
-      height: scale(ICON_CHIP.size),
-      flexShrink: 0,
-      borderRadius: scale(ICON_CHIP.radius),
-      backgroundColor: ICON_CHIP.background,
-      borderWidth: 1,
-      borderColor: ICON_CHIP.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    filterRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(7),
-      marginTop: verticalScale(12),
-    },
-    filterPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(5),
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(13),
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      backgroundColor: '#fff',
     },
     /** Marks a chip that is not on this student's exam. Amber, because it is
      *  a note and not a warning — nothing here is wrong or refused. */
@@ -983,25 +966,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: scale(5),
       borderRadius: scale(99),
       backgroundColor: '#EEA31F',
-    },
-    filterPillActive: {
-      borderWidth: 0,
-      backgroundColor: colors.ink,
-    },
-    filterPillText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    filterPillTextActive: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.paper,
-    },
-    filterCount: {
-      marginLeft: 'auto',
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
     },
     notesList: {
       flexDirection: 'column',
@@ -1051,41 +1015,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    noteSubjectRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-    },
-    noteDot: {
-      width: scale(6),
-      height: scale(6),
-      borderRadius: scale(3),
-      flexShrink: 0,
-    },
-    noteSubjectText: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.81),
-      textTransform: 'uppercase',
-    },
-    noteTime: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
-    noteTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
-      marginTop: verticalScale(7),
-    },
-    noteBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      lineHeight: scale(17.4),
-      color: colors.slate,
-      marginTop: verticalScale(3),
-    },
     stateBlock: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -1106,62 +1035,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
       marginBottom: verticalScale(4),
     },
-    doubtsList: {
-      flexDirection: 'column',
-      gap: verticalScale(12),
-      marginTop: verticalScale(24),
-    },
-    doubtCard: {
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(3),
-      elevation: 2,
-    },
     // The same red margin rule the doubt of the day carries on Home. It is
     // what tells a glance this list is questions, not notes, and it does the
     // job the subject tag and topic heading were doing badly.
-    doubtTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: scale(10),
-    },
-    doubtMetaRow: {
-      flex: 1,
-      minWidth: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-    },
-    doubtSubjectText: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.81),
-      textTransform: 'uppercase',
-      flexShrink: 0,
-    },
     /** The chapter, in sentence case rather than caps — two shouted labels on
      *  one line would compete, and the subject is the one being scanned. */
-    doubtChapterText: {
-      flexShrink: 1,
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(11.5),
-      color: colors.faint,
-    },
-    doubtQuestion: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(20),
-      color: colors.ink,
-      marginTop: verticalScale(7),
-    },
     doubtsSampleNote: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),

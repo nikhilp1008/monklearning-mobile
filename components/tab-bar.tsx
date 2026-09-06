@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
@@ -13,109 +13,88 @@ type TabIconProps = { active: boolean; size: number };
 
 // Filled for active, outline for inactive — a single silhouette per icon,
 // rendered two ways rather than just recolored, per the redesign's icon spec.
+/**
+ * The bar, redrawn to export-8a.
+ *
+ * One rule across all four: 24px artwork on a 1.6 stroke, outlined in a muted
+ * grey when inactive and filled solid ink when active. No marigold dot any
+ * more -- the fill IS the active state, and a second signal beside it was
+ * doing the same job twice.
+ */
+const OFF = '#8A857A';
+
 function HomeIcon({ active, size }: TabIconProps) {
-  const housePath = 'M4.5 10.4 12 3.8l7.5 6.6V18a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2z';
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d={housePath} fill={colors.ink} />
-        <Circle cx={12} cy={14.4} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
+  const c = active ? colors.ink : OFF;
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={housePath} stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={12} cy={14.4} r={1.7} fill={colors.faint} />
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Path
+        d="M4.75 10.6 12 4.75l7.25 5.85V18.4a1.85 1.85 0 0 1-1.85 1.85H6.6a1.85 1.85 0 0 1-1.85-1.85z"
+        fill={active ? colors.ink : 'none'}
+        stroke={c}
+        strokeWidth={1.6}
+      />
+      <Path
+        d="M9.75 20.25v-5.1a2.25 2.25 0 0 1 4.5 0v5.1"
+        stroke={active ? colors.paper : c}
+        strokeWidth={1.6}
+      />
     </Svg>
   );
 }
 
 function TextbooksIcon({ active, size }: TabIconProps) {
-  const bookPath =
-    'M12 6.4C10.1 4.7 7.3 4.1 4 4.5v13c3.3-.4 6.1.2 8 1.9 1.9-1.7 4.7-2.3 8-1.9v-13c-3.3-.4-6.1.2-8 1.9z';
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d={bookPath} fill={colors.ink} />
-        <Circle cx={12} cy={12.9} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
+  const c = active ? colors.ink : OFF;
+  const fill = active ? colors.ink : 'none';
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={bookPath} stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M12 6.4v13" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
-      <Circle cx={12} cy={12.9} r={1.7} fill={colors.faint} />
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={5} y={4.4} width={12} height={4.6} rx={1.6} fill={fill} stroke={c} strokeWidth={1.6} />
+      <Rect x={7} y={9.9} width={12.5} height={4.6} rx={1.6} fill={fill} stroke={c} strokeWidth={1.6} />
+      <Rect x={4.4} y={15.4} width={13.4} height={4.6} rx={1.6} fill={fill} stroke={c} strokeWidth={1.6} />
     </Svg>
   );
 }
 
-/**
- * Doubts — a question mark inside a snapped frame.
- *
- * A doubt is always a photographed question, so the frame is the corner marks
- * of a viewfinder rather than a speech bubble, which would have read as chat.
- * The marigold dot sits where every other icon in this bar carries it.
- */
 function DoubtsIcon({ active, size }: TabIconProps) {
-  const frame =
-    'M4.2 8.6V6.4a2.2 2.2 0 0 1 2.2-2.2h2.2M15.4 4.2h2.2a2.2 2.2 0 0 1 2.2 2.2v2.2M19.8 15.4v2.2a2.2 2.2 0 0 1-2.2 2.2h-2.2M8.6 19.8H6.4a2.2 2.2 0 0 1-2.2-2.2v-2.2';
-  const mark = 'M9.9 9.7a2.2 2.2 0 1 1 2.6 2.5v1.2';
+  const c = active ? colors.ink : OFF;
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={frame} stroke={colors.ink} strokeWidth={active ? 2.4 : 1.75} strokeLinecap="round" />
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Path
-        d={mark}
-        stroke={colors.ink}
-        strokeWidth={active ? 2.2 : 1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M8.3 6.3 9.5 4.5h5l1.2 1.8h1.8A2.5 2.5 0 0 1 20 8.8v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.8v-8a2.5 2.5 0 0 1 2.5-2.5z"
+        fill={active ? colors.ink : 'none'}
+        stroke={c}
+        strokeWidth={1.6}
       />
-      <Circle cx={12.4} cy={16.4} r={active ? 1.6 : 1.4} fill={active ? colors.marigold : colors.faint} />
+      <Circle
+        cx={12}
+        cy={12.8}
+        r={3.3}
+        fill={active ? colors.ink : 'none'}
+        stroke={active ? colors.paper : c}
+        strokeWidth={1.6}
+      />
     </Svg>
   );
 }
 
-/**
- * Notes — a ruled page with its corner turned.
- *
- * Deliberately not a book: Textbooks already owns that shape, one tab away.
- * The rules are what separate it from a plain document, and they echo the
- * ruled paper a note is actually rendered on.
- */
 function NotesIcon({ active, size }: TabIconProps) {
-  const page = 'M5.6 3.4h7.6l5.2 5.2v12a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V5.4a2 2 0 0 1 2-2z';
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d={page} fill={colors.ink} />
-        <Path
-          d="M7.4 12.6h7M7.4 16h4.4"
-          stroke={colors.paper}
-          strokeWidth={1.6}
-          strokeLinecap="round"
-        />
-        <Circle cx={16.4} cy={17.4} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
+  const c = active ? colors.ink : OFF;
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={page} stroke={colors.ink} strokeWidth={1.75} strokeLinejoin="round" />
-      <Path
-        d="M13.2 3.4v5.2h5.2"
-        stroke={colors.ink}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect
+        x={5}
+        y={3.75}
+        width={14}
+        height={16.5}
+        rx={2.2}
+        fill={active ? colors.ink : 'none'}
+        stroke={c}
+        strokeWidth={1.6}
       />
-      <Path d="M7.4 12.6h7M7.4 16h4.4" stroke={colors.ink} strokeWidth={1.6} strokeLinecap="round" />
-      <Circle cx={16.4} cy={17.4} r={1.4} fill={colors.faint} />
+      <Path d="M9 3.75v16.5" stroke={active ? colors.paper : c} strokeWidth={1.6} />
+      <Path d="M12.2 9h3.6M12.2 12.5h3.6" stroke={active ? colors.paper : c} strokeWidth={1.6} />
     </Svg>
   );
 }
-
 
 const TAB_META: Record<string, { label: string; Icon: (props: TabIconProps) => React.ReactElement }> = {
   index: { label: 'Home', Icon: HomeIcon },
@@ -166,7 +145,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 accessibilityRole="tab"
                 accessibilityLabel={label}
                 style={[styles.item, !isFocused && styles.itemInactive]}>
-                <Icon active={isFocused} size={scale(23)} />
+                <Icon active={isFocused} size={scale(24)} />
                 <Text style={[styles.label, isFocused && styles.labelActive]}>{label}</Text>
               </PressableScale>
             );
@@ -182,7 +161,7 @@ function createStyles(
   verticalScale: (size: number) => number,
   bottomInset: number
 ) {
-  const barHeight = verticalScale(56) + bottomInset;
+  const barHeight = verticalScale(64) + bottomInset;
 
   return StyleSheet.create({
     fade: {
@@ -198,8 +177,13 @@ function createStyles(
       right: 0,
       bottom: 0,
       backgroundColor: '#FFFFFF',
-      borderTopWidth: 1.5,
-      borderTopColor: 'rgba(28,26,22,.16)',
+      // A lift instead of a rule: export-8a floats the bar over the list on a
+      // soft upward shadow rather than cutting it off with a hairline.
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(-10) },
+      shadowOpacity: 0.07,
+      shadowRadius: scale(30),
+      elevation: 12,
       paddingHorizontal: scale(12),
       // Split out of the row's own height rather than added on top, so the
       // total bar height (and the `fade` gradient pinned above it) stays
@@ -213,24 +197,26 @@ function createStyles(
     },
     row: {
       flexDirection: 'row',
-      height: verticalScale(50),
+      height: verticalScale(64),
       alignItems: 'center',
     },
     item: {
       flex: 1,
       alignItems: 'center',
-      gap: scale(3),
+      justifyContent: 'center',
+      gap: scale(4),
     },
-    itemInactive: {
-      opacity: 0.5,
-    },
+    // No dimming: the icon's fill carries the active state on its own, so
+    // fading the inactive tabs would say the same thing twice.
+    itemInactive: {},
     label: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(10),
-      color: colors.faint,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(10.5),
+      letterSpacing: scale(0.1),
+      color: '#8A857A',
     },
     labelActive: {
-      fontFamily: 'Onest_800ExtraBold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
   });
