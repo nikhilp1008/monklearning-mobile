@@ -3,10 +3,13 @@ import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TextStyle,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,6 +49,20 @@ const SUBJECT_FILTER_LABEL: Record<string, SubjectFilter> = {
   maths: 'Maths',
   biology: 'Biology',
 };
+
+/**
+ * What the search line cycles through. The subjects are the point: with the
+ * filter chips gone, this is what tells a student that typing "physics"
+ * narrows the list.
+ */
+const NOTE_HINTS = [
+  'Search your notes…',
+  'Search Physics…',
+  'Search Chemistry…',
+  'Search Maths…',
+  'Search Biology…',
+];
+const DOUBT_HINTS = NOTE_HINTS.map((h) => h.replace('your notes', 'your doubts'));
 
 /**
  * Notes and Doubts — one list, mounted twice.
@@ -453,15 +470,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
               showsVerticalScrollIndicator={false}>
               <View style={styles.searchLine}>
                 <SearchIcon size={scale(15)} />
-                <TextInput
-                  style={styles.searchInput}
-                  value={notesQuery}
-                  onChangeText={setNotesQuery}
-                  placeholder="Search your notes…"
-                  placeholderTextColor="#9C988C"
-                  autoCorrect={false}
-                  returnKeyType="search"
-                />
+                <View style={styles.searchField}>
+                  <TextInput
+                    style={styles.searchInput}
+                    value={notesQuery}
+                    onChangeText={setNotesQuery}
+                    autoCorrect={false}
+                    returnKeyType="search"
+                  />
+                  {!notesQuery && (
+                    <View style={styles.searchHint} pointerEvents="none">
+                      <RotatingHint
+                        hints={NOTE_HINTS}
+                        height={verticalScale(20)}
+                        style={styles.searchHintText}
+                      />
+                    </View>
+                  )}
+                </View>
               </View>
 
               {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
@@ -479,9 +505,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // removes it from this list and nothing else.
                 showingSamples ? (
                   <View style={styles.notesRows}>
-                    <Text style={styles.sampleNote}>
-                      Nothing saved yet — these sample cards are here so you can try the eraser.
-                    </Text>
                     {sampleNotes.map((card) => (
                       <Erasable
                         key={card.id}
@@ -565,15 +588,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
               showsVerticalScrollIndicator={false}>
               <View style={styles.searchLine}>
                 <SearchIcon size={scale(15)} />
-                <TextInput
-                  style={styles.searchInput}
-                  value={doubtsQuery}
-                  onChangeText={setDoubtsQuery}
-                  placeholder="Search your doubts…"
-                  placeholderTextColor="#9C988C"
-                  autoCorrect={false}
-                  returnKeyType="search"
-                />
+                <View style={styles.searchField}>
+                  <TextInput
+                    style={styles.searchInput}
+                    value={doubtsQuery}
+                    onChangeText={setDoubtsQuery}
+                    autoCorrect={false}
+                    returnKeyType="search"
+                  />
+                  {!doubtsQuery && (
+                    <View style={styles.searchHint} pointerEvents="none">
+                      <RotatingHint
+                        hints={DOUBT_HINTS}
+                        height={verticalScale(20)}
+                        style={styles.searchHintText}
+                      />
+                    </View>
+                  )}
+                </View>
                 {/* The camera sits inside the line rather than in a box beside
                     it -- export-8a gives the row no chrome of its own. */}
                 <PressableScale hitSlop={10} onPress={() => router.push('/snap-capture')}>
@@ -713,6 +745,78 @@ function PagePlaceholder({ subject }: { subject: string | null }) {
         <Path key={y} d={`M6 ${y}H78`} stroke={tone} strokeWidth={1.2} />
       ))}
     </Svg>
+  );
+}
+
+/**
+ * The search hint, cycling.
+ *
+ * export-8a does this with a CSS keyframe sliding a column of five lines --
+ * "Search your notes…", then each subject in turn -- holding each for about
+ * two seconds over a twelve-second loop. It is the one thing carrying the
+ * message that typing a subject narrows the list, now that the filter chips
+ * are gone.
+ *
+ * A native TextInput placeholder cannot slide, so this is an overlay that
+ * animates instead, shown only while the field is empty. `pointerEvents` is
+ * off, so a tap lands on the input underneath as though the overlay were not
+ * there.
+ */
+const HINT_HOLD_MS = 1900;
+const HINT_SLIDE_MS = 500;
+
+function RotatingHint({
+  hints,
+  height,
+  style,
+}: {
+  hints: string[];
+  height: number;
+  style: TextStyle;
+}) {
+  const step = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // One extra frame at the end repeating the first line, so the wrap from
+    // last to first slides in the same direction as every other step rather
+    // than snapping backwards.
+    const frames = hints.length;
+    const seq = Array.from({ length: frames }, (_, i) =>
+      Animated.sequence([
+        Animated.delay(HINT_HOLD_MS),
+        Animated.timing(step, {
+          toValue: i + 1,
+          duration: HINT_SLIDE_MS,
+          easing: Easing.bezier(0.7, 0, 0.2, 1),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    const loop = Animated.loop(
+      Animated.sequence([...seq, Animated.timing(step, { toValue: 0, duration: 0, useNativeDriver: true })])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [hints.length, step]);
+
+  const translateY = step.interpolate({
+    inputRange: hints.map((_, i) => i).concat(hints.length),
+    outputRange: hints.map((_, i) => -i * height).concat(-hints.length * height),
+  });
+
+  return (
+    // `flexGrow: 0` matters: this sits in a centred column, and without it
+    // flex stretches the box to the row's full height and two lines show at
+    // once instead of one.
+    <View style={{ height, overflow: 'hidden', flexGrow: 0, alignSelf: 'stretch' }} pointerEvents="none">
+      <Animated.View style={{ transform: [{ translateY }] }}>
+        {[...hints, hints[0]].map((hint, i) => (
+          <Text key={i} style={[style, { height, lineHeight: height }]} numberOfLines={1}>
+            {hint}
+          </Text>
+        ))}
+      </Animated.View>
+    </View>
   );
 }
 
@@ -947,6 +1051,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // Erase mode only: the tabs give up their underline while the mode line
     // below the filters does the separating.
+    searchField: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    searchHint: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+    },
+    searchHintText: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      color: '#9C988C',
+    },
     searchInput: {
       flex: 1,
       fontFamily: 'Onest_400Regular',
@@ -995,13 +1112,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       textAlign: 'center',
     },
     // DEMO_ — the line above the stand-in note card.
-    sampleNote: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19),
-      color: colors.slate,
-      marginBottom: verticalScale(4),
-    },
     // The same red margin rule the doubt of the day carries on Home. It is
     // what tells a glance this list is questions, not notes, and it does the
     // job the subject tag and topic heading were doing badly.
