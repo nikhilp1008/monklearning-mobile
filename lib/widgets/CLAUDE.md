@@ -488,6 +488,24 @@ An independent route means a DIFFERENT derivation: mesh analysis against
 delta-star, an antiderivative against a Riemann sum, a table lookup against a
 formula. If you cannot state what a check could catch, it catches nothing.
 
+### 343x236 binds — EXCEPT where the assertion is a ratio
+
+The standing rule is that the smallest board is the binding case, so a cap
+measured there holds everywhere. That is true of every floor expressed in
+DEVICE POINTS — font 11, stroke 1.2, the 2r+4 glyph gap, label boxes — because
+each is a fixed quantity against a shrinking frame.
+
+**Ink coverage is not one of those.** It is drawn-area over board-area, so a
+scene whose projected aspect cannot fill a 2.09:1 board fails at the WIDEST
+board while passing the narrowest. Measured while building lines-planes-3d: a
+payload `validate()` admitted covered 5.0% of 900x430 -- degenerate by the gate
+-- and passed clean at 343x236. Checking only the small board is what let it
+through.
+
+So: measure a device-point bound at 343x236; measure a RATIO bound at every
+board. Anything phrased "as a fraction of the frame" belongs in the second
+group, and coverage is the one that exists today.
+
 ### Every language the app actually ships
 
 The Devanagari defect existed because neither author tested a second language,
