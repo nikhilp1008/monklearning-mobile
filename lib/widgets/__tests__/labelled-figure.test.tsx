@@ -179,25 +179,25 @@ describe('validate', () => {
   });
 
   test('accepts the placeholder at both languages and both groups', () => {
-    for (const lang of ['en', 'hi'] as Lang[]) {
+    for (const lang of ['english', 'hinglish'] as Lang[]) {
       for (const g of base.groups) {
         expect(mod.validate({ ...base, lang, active_group: g.id }).ok).toBe(true);
       }
     }
   });
 
-  test('a term with only en is invalid — both languages ship from the start', () => {
+  test('a term with only english is invalid — both languages ship from the start', () => {
     const labels = base.labels.map((l, i) =>
-      i === 0 ? ({ ...l, term: { en: l.term.en } } as unknown as LabelRecord) : l
+      i === 0 ? ({ ...l, term: { english: l.term.english } } as unknown as LabelRecord) : l
     );
     const r = bad({ labels });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.join(' ')).toMatch(/en AND hi/);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/english AND hinglish/);
   });
 
   test('an over-cap term is REJECTED, never truncated', () => {
     const labels = base.labels.map((l, i) =>
-      i === 0 ? { ...l, term: { ...l.term, en: 'Rough endoplasmic reticulum' } } : l
+      i === 0 ? { ...l, term: { ...l.term, english: 'Rough endoplasmic reticulum' } } : l
     );
     const r = bad({ labels });
     expect(r.ok).toBe(false);
@@ -206,13 +206,13 @@ describe('validate', () => {
     // board, rendered confidently and wrong.
   });
 
-  test('an over-cap HINDI term fails even when the English one passes', () => {
+  test('an over-cap DEVANAGARI term still fails, though no Devanagari ships today', () => {
     const labels = base.labels.map((l, i) =>
-      i === 0 ? { ...l, term: { en: 'Nucleus', hi: 'क'.repeat(MAX_TERM_DEVA + 1) } } : l
+      i === 0 ? { ...l, term: { english: 'Nucleus', hinglish: 'क'.repeat(MAX_TERM_DEVA + 1) } } : l
     );
     const r = bad({ labels });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.join(' ')).toMatch(/hi term/);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/hinglish term/);
   });
 
   test('a label naming an undeclared group is rejected', () => {
@@ -232,7 +232,7 @@ describe('validate', () => {
     for (let i = 0; i < MAX_LABELS_PER_GROUP; i++) {
       extras.push({
         id: `extra-${i}`,
-        term: { en: `Part ${i}`, hi: `भाग ${i}` },
+        term: { english: `Part ${i}`, hinglish: `भाग ${i}` },
         // Spread far enough apart to clear the 10pt anchor floor, so the ONLY
         // error is the count.
         anchor: { u: 0.05 + i * 0.09, v: 0.9 },
@@ -290,7 +290,7 @@ describe('validate', () => {
 describe('layout', () => {
   test('the font is 12pt at every board size — chrome does not scale', () => {
     for (const b of BOARDS) {
-      const tree = JSON.stringify(renderWidgetTreeAt(mod, paramsFor('en', 'organelles'), {}, b.width, b.height));
+      const tree = JSON.stringify(renderWidgetTreeAt(mod, paramsFor('english', 'organelles'), {}, b.width, b.height));
       expect([b.width, /"fontSize":11(\D|$)/.test(tree)]).toEqual([b.width, false]);
       expect(tree).toContain('"fontSize":12');
     }
@@ -298,7 +298,7 @@ describe('layout', () => {
 
   test('rows are at least ROW apart within a column, at every board and language', () => {
     for (const b of BOARDS) {
-      for (const lang of ['en', 'hi'] as Lang[]) {
+      for (const lang of ['english', 'hinglish'] as Lang[]) {
         for (const g of base.groups) {
           const { labels } = layoutFigure(paramsFor(lang, g.id), b.width, b.height);
           for (const side of ['left', 'right'] as const) {
@@ -316,7 +316,7 @@ describe('layout', () => {
 
   test('no two label boxes overlap — assertion 4, asserted at the schema', () => {
     for (const b of BOARDS) {
-      for (const lang of ['en', 'hi'] as Lang[]) {
+      for (const lang of ['english', 'hinglish'] as Lang[]) {
         for (const g of base.groups) {
           const { labels, strip } = layoutFigure(paramsFor(lang, g.id), b.width, b.height);
           const boxes = labels.map((l) => {
@@ -363,7 +363,7 @@ describe('layout', () => {
     for (let i = 0; i < MAX_LABELS_PER_GROUP; i++) {
       labels.push({
         id: `w${i}`,
-        term: { en: `Part ${i}`, hi: `भाग ${i}` },
+        term: { english: `Part ${i}`, hinglish: `भाग ${i}` },
         anchor: { u: 0.04 + i * 0.1, v: 0.5 },
         side: 'left',
         group: 'organelles',
@@ -450,7 +450,7 @@ describe('BoardWidget: the illustration tier', () => {
 
   test('a board event naming a cached slug renders the figure', () => {
     const { tree, gaps } = renderEvent(
-      { asset_slug: PLACEHOLDER_SLUG, lang: 'en' },
+      { asset_slug: PLACEHOLDER_SLUG, lang: 'english' },
       placeholderFigureResolver
     );
     expect(gaps).toEqual([]);
@@ -461,7 +461,7 @@ describe('BoardWidget: the illustration tier', () => {
 
   test('an UNCACHED slug renders nothing and logs a gap — it never awaits', () => {
     const { tree, gaps } = renderEvent(
-      { asset_slug: 'bio11-ch7-cockroach--morphology', lang: 'en' },
+      { asset_slug: 'bio11-ch7-cockroach--morphology', lang: 'english' },
       placeholderFigureResolver
     );
     expect(tree).toBeNull();
@@ -488,7 +488,7 @@ describe('BoardWidget: the illustration tier', () => {
           payload: {
             widget: 'labelled_figure',
             version: 1,
-            params: { asset_slug: PLACEHOLDER_SLUG, lang: 'en' },
+            params: { asset_slug: PLACEHOLDER_SLUG, lang: 'english' },
             cues: [{ seq: 4, patch: { active_group: 'nucleus' }, caption: 'The nucleus' }],
           },
         }}
@@ -516,7 +516,7 @@ describe('BoardWidget: the illustration tier', () => {
 test('derived matches what computeDerived actually returns', () => {
   expect(Object.keys(mod.computeDerived(base)).sort()).toEqual([...mod.derived].sort());
   for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
-  expect(mod.computeDerived(paramsFor('en', 'nucleus'))).toEqual({
+  expect(mod.computeDerived(paramsFor('english', 'nucleus'))).toEqual({
     label_count: 3, group_index: 2, group_count: 2,
   });
 });
@@ -526,7 +526,7 @@ test('derived matches what computeDerived actually returns', () => {
 describe('render trees for the gate', () => {
   test.each(
     BOARDS.flatMap((b) =>
-      (['en', 'hi'] as Lang[]).flatMap((lang) =>
+      (['english', 'hinglish'] as Lang[]).flatMap((lang) =>
         PLACEHOLDER_FIGURE.groups.map((g) => [b.name || 'full', lang, g.id, b] as const)
       )
     )

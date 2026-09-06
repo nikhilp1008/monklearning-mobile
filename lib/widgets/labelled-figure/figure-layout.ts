@@ -46,7 +46,31 @@ import {
 
 /* ------------------------------------------------------------------ types */
 
-export type Lang = 'en' | 'hi';
+/**
+ * The two languages a session can run in, named EXACTLY as the app names them
+ * (`lib/preferences.ts`: `LanguageId = 'hinglish' | 'english'`).
+ *
+ * This was 'english' | 'hinglish'. Nothing in the app can produce 'hinglish' -- there is no
+ * Hindi mode -- so the second-language branch was unreachable while
+ * `validate()` still REFUSED every record that lacked a `hi` term. All 48
+ * commissioned figures were blocked on a language the product does not have.
+ *
+ * WHAT 'hinglish' IS, because the name misleads: romanised Latin, not
+ * Devanagari. From app/drona/persona.py:
+ *
+ *     "Bahut badhiya! Chalo {subtopic} shuru karte hain."
+ *
+ * There is no Devanagari string anywhere in either repo. The app does load
+ * AnekDevanagari_500Medium and use it for the classroom caption strip
+ * (components/classroom-chrome.tsx:410) -- that family renders Latin too, and
+ * is chosen there for its metrics -- so a Devanagari FACE being present is not
+ * evidence that Devanagari TEXT is ever shown.
+ *
+ * The CHAR_W_DEVA width guardrail stays live regardless. It costs nothing when
+ * no Devanagari appears, and it is the one thing standing between a future
+ * Devanagari term and a label off the board.
+ */
+export type Lang = 'english' | 'hinglish';
 export type Side = 'left' | 'right';
 
 /** Where the art comes from. A bundled asset module id, or a LOCAL file uri
@@ -64,13 +88,13 @@ export type FigureArtSource = number | { uri: string };
  */
 export interface FigureGroup {
   id: string;
-  label: { en: string; hi: string };
+  label: { english: string; hinglish: string };
 }
 
 /** docs/label-layer.md §1.2, plus `group`. */
 export interface LabelRecord {
   id: string;
-  term: { en: string; hi: string };
+  term: { english: string; hinglish: string };
   /** Normalised 0..1 against the art's INTRINSIC size (§1.3). */
   anchor: { u: number; v: number };
   /** Authored: a judgement about which way the structure faces (§1.5). */

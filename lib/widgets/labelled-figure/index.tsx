@@ -44,7 +44,7 @@ export type { LabelledFigureParams } from './figure-layout';
  */
 const DEVANAGARI_FONT = 'AnekDevanagari_500Medium';
 
-const LANGS: readonly Lang[] = ['en', 'hi'];
+const LANGS: readonly Lang[] = ['english', 'hinglish'];
 const SIDES: readonly Side[] = ['left', 'right'];
 
 /* ------------------------------------------------------------------ validate */
@@ -52,7 +52,7 @@ const SIDES: readonly Side[] = ['left', 'right'];
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 const isFrac = (v: unknown): v is number => typeof v === 'number' && isFinite(v) && v >= 0 && v <= 1;
 
-function readTerm(v: unknown, where: string, errors: string[]): { en: string; hi: string } | null {
+function readTerm(v: unknown, where: string, errors: string[]): { english: string; hinglish: string } | null {
   if (typeof v !== 'object' || v === null) {
     errors.push(`${where}: term must be an object with en and hi`);
     return null;
@@ -61,11 +61,11 @@ function readTerm(v: unknown, where: string, errors: string[]): { en: string; hi
   // BOTH languages, from the first record (§1.2). An `en`-only record is
   // invalid at ingest, not "to be translated later" — retrofitting a second
   // language is how a layout budget gets discovered after the fact.
-  if (!isStr(t.en) || !isStr(t.hi)) {
-    errors.push(`${where}: term needs a non-empty en AND hi — both languages ship from the start`);
+  if (!isStr(t.english) || !isStr(t.hinglish)) {
+    errors.push(`${where}: term needs a non-empty english AND hinglish — both languages ship from the start`);
     return null;
   }
-  return { en: t.en.trim(), hi: t.hi.trim() };
+  return { english: t.english.trim(), hinglish: t.hinglish.trim() };
 }
 
 /**
@@ -250,8 +250,8 @@ export function validate(raw: unknown): ValidationResult<LabelledFigureParams> {
     }
   }
 
-  const lang = r.lang === undefined ? 'en' : r.lang;
-  if (!LANGS.includes(lang as Lang)) errors.push(`lang must be 'en' or 'hi'`);
+  const lang = r.lang === undefined ? 'english' : r.lang;
+  if (!LANGS.includes(lang as Lang)) errors.push(`lang must be 'english' or 'hinglish'`);
 
   // An UNKNOWN active_group is an error (the typo class); an ABSENT one is
   // the start of the reveal, which is groups[0] by definition of "ordered".
@@ -287,7 +287,7 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
     [params, width, height]
   );
   const { fit, labels, strip } = layout;
-  const family = params.lang === 'hi' ? DEVANAGARI_FONT : theme.fontFamily;
+  const family = params.lang === 'hinglish' ? DEVANAGARI_FONT : theme.fontFamily;
 
   return (
     <Svg width={width} height={height}>
@@ -399,7 +399,7 @@ export const labelledFigure: WidgetModule<LabelledFigureParams> = {
     art: PLACEHOLDER_FIGURE.art,
     groups: PLACEHOLDER_FIGURE.groups,
     labels: PLACEHOLDER_FIGURE.labels,
-    lang: 'en',
+    lang: 'english',
     active_group: PLACEHOLDER_FIGURE.groups[0].id,
   },
   /* Snap-only, permanently — see the header. */
