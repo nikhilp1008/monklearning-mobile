@@ -1,4 +1,5 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -96,6 +97,17 @@ function NotesIcon({ active, size }: TabIconProps) {
   );
 }
 
+/** The board on its stand — the Live pill's glyph. */
+function LiveIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={3.75} y={4.75} width={16.5} height={11} rx={2} stroke={colors.paper} strokeWidth={1.6} />
+      <Path d="M7.5 9h6M7.5 12h9" stroke={colors.paper} strokeWidth={1.6} />
+      <Path d="M12 15.75v1.5M8.5 20.25l3.5-3 3.5 3" stroke={colors.paper} strokeWidth={1.6} />
+    </Svg>
+  );
+}
+
 const TAB_META: Record<string, { label: string; Icon: (props: TabIconProps) => React.ReactElement }> = {
   index: { label: 'Home', Icon: HomeIcon },
   textbooks: { label: 'Textbooks', Icon: TextbooksIcon },
@@ -111,46 +123,65 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     [scale, verticalScale, insets.bottom]
   );
 
+  /**
+   * The four tabs, in the order the navigator holds them. Live is not one of
+   * them -- it is an action, so it is spliced into the middle rather than
+   * being a fifth route.
+   */
+  const tabs = state.routes
+    .map((route, index) => ({ route, index }))
+    .filter(({ route }) => TAB_META[route.name]);
+
+  const renderTab = ({ route, index }: (typeof tabs)[number]) => {
+    const { Icon, label } = TAB_META[route.name];
+    const isFocused = state.index === index;
+    const onPress = () => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
+    return (
+      <PressableScale
+        key={route.key}
+        onPress={onPress}
+        accessibilityRole="tab"
+        // No labels any more, so the name has to live here or the bar is
+        // four unnamed circles to a screen reader.
+        accessibilityLabel={label}
+        style={styles.circle}>
+        <Icon active={isFocused} size={scale(22)} />
+      </PressableScale>
+    );
+  };
+
   return (
     <>
       <LinearGradient
         pointerEvents="none"
-        colors={[colors.paper, 'rgba(255,253,248,0)']}
-        start={{ x: 0.5, y: 1 }}
-        end={{ x: 0.5, y: 0 }}
+        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.9)', 'rgba(255,255,255,1)']}
+        // Fully opaque by 62%, which is where the buttons begin: at 96% a
+        // line of body text was still legible through the gaps between them.
+        locations={[0, 0.42, 0.62]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={styles.fade}
       />
-      <View style={styles.container}>
-        <View style={styles.row}>
-          {state.routes.map((route, index) => {
-            const meta = TAB_META[route.name];
-            if (!meta) return null;
-            const { Icon, label } = meta;
-            const isFocused = state.index === index;
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            return (
-              <PressableScale
-                key={route.key}
-                onPress={onPress}
-                accessibilityRole="tab"
-                accessibilityLabel={label}
-                style={[styles.item, !isFocused && styles.itemInactive]}>
-                <Icon active={isFocused} size={scale(24)} />
-                <Text style={[styles.label, isFocused && styles.labelActive]}>{label}</Text>
-              </PressableScale>
-            );
-          })}
-        </View>
+      <View style={styles.bar} pointerEvents="box-none">
+        {tabs.slice(0, 2).map(renderTab)}
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel="Start a live class"
+          onPress={() => router.push('/drona')}
+          style={styles.live}>
+          <LiveIcon size={scale(20)} />
+          <Text style={styles.liveText}>Live</Text>
+        </PressableScale>
+        {tabs.slice(2).map(renderTab)}
       </View>
     </>
   );
@@ -161,63 +192,77 @@ function createStyles(
   verticalScale: (size: number) => number,
   bottomInset: number
 ) {
-  const barHeight = verticalScale(64) + bottomInset;
-
   return StyleSheet.create({
+    /**
+     * A 140pt wash, so a list dissolves under the bar instead of being cut off
+     * by it. There is no bar background any more -- the buttons float, and the
+     * gaps between them are see-through, so the wash has to reach solid white
+     * by the time it is behind them. The handoff stops at 96% on an empty
+     * screen; over a real list that left text legible between the circles.
+     */
     fade: {
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: barHeight,
-      height: verticalScale(32),
-    },
-    container: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
       bottom: 0,
-      backgroundColor: '#FFFFFF',
-      // A lift instead of a rule: export-8a floats the bar over the list on a
-      // soft upward shadow rather than cutting it off with a hairline.
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(-10) },
-      shadowOpacity: 0.07,
-      shadowRadius: scale(30),
-      elevation: 12,
-      paddingHorizontal: scale(12),
-      // Split out of the row's own height rather than added on top, so the
-      // total bar height (and the `fade` gradient pinned above it) stays
-      // exactly `barHeight` — this just shifts the icon row down within
-      // that same footprint, off the very top edge, so the safe-area gap
-      // below it (bare on notch-less Android, ~34pt on iPhone) doesn't read
-      // as an orphaned dead zone now that the fake home-indicator bar that
-      // used to sit inside it is gone.
-      paddingTop: verticalScale(6),
-      paddingBottom: bottomInset,
+      height: verticalScale(140),
     },
-    row: {
+    /**
+     * Floating, per export-14d: 20pt from each side, 26pt off the bottom, and
+     * nothing behind it. `box-none` on the view so the gaps between buttons
+     * fall through to whatever is scrolling underneath.
+     */
+    bar: {
+      position: 'absolute',
+      left: scale(20),
+      right: scale(20),
+      // The handoff measures 26 from the frame edge, but its frame has no home
+      // indicator. Sitting the buttons that low put them across the swipe-up
+      // strip, so the inset is the floor.
+      bottom: Math.max(verticalScale(26), bottomInset),
       flexDirection: 'row',
-      height: verticalScale(64),
       alignItems: 'center',
+      justifyContent: 'space-between',
     },
-    item: {
-      flex: 1,
+    circle: {
+      width: scale(56),
+      height: scale(56),
+      borderRadius: scale(28),
+      backgroundColor: '#fff',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: scale(4),
+      // The handoff's second shadow is a 1px ring; React Native takes one
+      // shadow, so the ring is a border.
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.06)',
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(8) },
+      shadowOpacity: 0.14,
+      shadowRadius: scale(22),
+      elevation: 6,
     },
-    // No dimming: the icon's fill carries the active state on its own, so
-    // fading the inactive tabs would say the same thing twice.
-    itemInactive: {},
-    label: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(10.5),
-      letterSpacing: scale(0.1),
-      color: '#8A857A',
+    live: {
+      height: scale(56),
+      paddingLeft: scale(16),
+      paddingRight: scale(20),
+      borderRadius: scale(99),
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
+      backgroundColor: '#2A2621',
+      // The handoff's inset amber rim.
+      borderWidth: 1,
+      borderColor: 'rgba(238,163,31,.8)',
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(8) },
+      shadowOpacity: 0.18,
+      shadowRadius: scale(22),
+      elevation: 8,
     },
-    labelActive: {
+    liveText: {
       fontFamily: 'Onest_700Bold',
-      color: colors.ink,
+      fontSize: scale(15),
+      color: colors.paper,
     },
   });
 }
