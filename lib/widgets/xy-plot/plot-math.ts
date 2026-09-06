@@ -34,10 +34,99 @@
  *     is the whole reason the crossings are solved rather than ignored.
  *   y = x² and y = |x|             = 1/3, and NOT expressible as one payload:
  *     |x| is piecewise, so it takes two (each 1/6). See index.tsx's scope note.
+ *     THAT IS NO LONGER TRUE AT v3 — `pieces` expresses |x| directly, and the
+ *     one-payload answer is asserted at 1/3 in __tests__/piecewise.test.ts.
+ *
+ * v3 ADDS FOUR THINGS TO THIS MODULE, and one to a sibling.
+ *
+ *   1  INTEGRATION ALONG EITHER AXIS. Every geometry function below now works
+ *      in (u, v) rather than (x, y): `u` is the integration variable and `v`
+ *      is the value, and a single `swap` flag decides which PIXEL axis carries
+ *      which. Nothing about the arithmetic changes — ∫f du is the same number
+ *      whichever way the picture is drawn — so this is entirely a projection
+ *      change, which is why it costs one boolean and no new integrals.
+ *      v2 drew "the area bounded by y² = 4ax and its latus rectum" transposed
+ *      and let the axis labels lie about which variable was which (see the
+ *      note on `areaBetween`, which is now historical). At v3 the labels tell
+ *      the truth: `integrate_along: 'y'` puts u on the vertical axis, the
+ *      strips run horizontally, and `x_label`/`y_label` still name the
+ *      horizontal and vertical axes respectively.
+ *
+ *   2  PIECEWISE f. `CurvePiece[]` — (from, to, kind, coefficients) — with
+ *      the crossing search run PER PIECE and the readout summing pieces.
+ *      Modulus is the two-piece case and is exactly why it exists.
+ *
+ *   3  THE EXACT DERIVATIVE, and a tangent or normal built from it.
+ *
+ *   4  A FAMILY of one curve at several values of one coefficient. No new
+ *      maths at all — it is `curvePath` called N times — but it is listed
+ *      because the CAP on N is a maths-adjacent decision (see index.tsx).
+ *
+ * The fifth v3 capability, NAMED CURVES, is deliberately NOT here: see
+ * ./named-curves.ts and its header for why a shape the book prints without a
+ * formula is a different kind of object from everything in this file.
+ *
+ * v3 REFERENCE RESULTS, each derived from NCERT before being compared to any
+ * output of this module:
+ *
+ *   |x| against x² on [−1,1]   ONE payload now: pieces [(−1,0) line a=−1],
+ *     [(0,1) line a=1] against parabola a=1. 1/6 + 1/6 = 1/3.
+ *   ∫₀² |x − 1| dx             pieces [(0,1) line a=−1 c=1], [(1,2) line a=1
+ *     c=−1]. Each triangle is 1/2, so the total is 1 — and the SIGNED
+ *     integral of the same two pieces is also 1, because both pieces are
+ *     above the axis. The case that separates them is below.
+ *   ∫₀² (x − 1) dx             = 0 signed, 1 unsigned. Same breakpoint, and
+ *     the two numbers differ, which is what makes `area` and `area_between`
+ *     genuinely different questions on a piecewise payload.
+ *   d/dx (x²) at x = 3         = 6. The tangent there is y = 6x − 9, and the
+ *     area between x² and that tangent on [3−h, 3+h] is 2h³/3 exactly — an
+ *     identity that does NOT go through the derivative formula, so it is a
+ *     real check on it rather than a restatement.
+ *   y² = 4ax and x = a         8a²/3, now drawn the way the book draws it,
+ *     with y vertical: `integrate_along: 'y'`, u ∈ [−2a, 2a], f(u) = a (the
+ *     latus rectum) against g(u) = u²/4a (the parabola).
  */
 
 export type CurveKind = 'line' | 'parabola' | 'sine' | 'exponential' | 'reciprocal';
-export type PlotMode = 'curve' | 'area' | 'area_between' | 'data';
+export type PlotMode =
+  | 'curve'
+  | 'area'
+  | 'area_between'
+  | 'data'
+  | 'family'
+  | 'named';
+
+/** Which variable is integrated along — and therefore which PIXEL axis it
+ *  gets. `'x'` is the v1/v2 picture: u horizontal, vertical strips. `'y'`
+ *  puts u on the vertical axis and the strips run horizontally. */
+export type IntegrationAxis = 'x' | 'y';
+
+export type TangentKind = 'none' | 'tangent' | 'normal';
+
+/** Which coefficient a `family` payload varies. */
+export type FamilyParam = 'a' | 'b' | 'c';
+
+/**
+ * One piece of a piecewise f: the kind and coefficients that apply on
+ * [from, to].
+ *
+ * Both ends are explicit rather than only `to`. Deriving `from` from the
+ * previous piece's `to` would make non-contiguity UNREPRESENTABLE and
+ * therefore silently impossible to reject — and `validate()` is required to
+ * reject overlapping and non-contiguous pieces, which it cannot do if the
+ * payload has no way to express them. A schema that cannot say the wrong
+ * thing is not the same as a validator that catches it; the model will send
+ * `from` and `to` because it is thinking in intervals, and the two disagreeing
+ * is exactly the mistake worth naming back to it.
+ */
+export interface CurvePiece {
+  from: number;
+  to: number;
+  curve: CurveKind;
+  a: number;
+  b: number;
+  c: number;
+}
 
 /**
  * The curve kinds whose pairwise difference is a polynomial of degree ≤ 2,
@@ -71,10 +160,49 @@ export interface XyPlotParams {
   shade_from: number;
   shade_to: number;
   /** The dataset, `data` mode only. This IS the parameter — a list of
-   *  observations is the subject of the diagram, not drawing coordinates. */
+   *  observations is the subject of the diagram, not drawing coordinates.
+   *
+   *  IT IS A 1-D STATISTICS SAMPLE, NOT (x, y) POINTS. `derive` runs
+   *  mean/median/variance over it and the component draws one bar per
+   *  observation at integer positions. v3's named curves were NOT built on
+   *  top of this key for that reason — see ./named-curves.ts. */
   values: readonly number[];
   x_label: string;
   y_label: string;
+
+  /* ------------------------------------------------------------- v3 keys */
+
+  /** Which variable is integrated along, and therefore which pixel axis
+   *  carries it. `x_min`/`x_max` always bound the INTEGRATION variable,
+   *  whichever axis it is drawn on. */
+  integrate_along: IntegrationAxis;
+
+  /**
+   * A piecewise f. Empty means "f is the single `curve`/`a`/`b`/`c` above",
+   * which is every v1 and v2 payload.
+   *
+   * ONLY f IS EVER PIECEWISE. `curve2` stays a single kind, and `validate()`
+   * says so. ∫|f − g| is symmetric in f and g, so every NCERT question in
+   * reach — |x| against x², a modulus against a line, a piecewise cost
+   * function against the axis — can be written with the piecewise side as f.
+   * Piecewise-against-piecewise would multiply the crossing search by the
+   * product of the two partitions for no syllabus gain, and an untested
+   * closed form is a wrong number waiting for a payload.
+   */
+  pieces: readonly CurvePiece[];
+
+  /** Where the tangent or normal touches. Animatable — sliding it along the
+   *  curve is the whole point of drawing one. Ignored when
+   *  `tangent_kind` is `'none'`. */
+  tangent_at: number;
+  tangent_kind: TangentKind;
+
+  /** `family` mode: the coefficient that varies, and the values it takes. */
+  family_param: FamilyParam;
+  family_values: readonly number[];
+
+  /** `named` mode: which printed shape. '' outside that mode. */
+  named_shape: string;
 }
 
 export interface XyPlotDerived {
@@ -98,6 +226,17 @@ export interface XyPlotDerived {
   median: number;
   variance: number;
   stdDev: number;
+  /**
+   * The slope of the drawn tangent or normal, 0 when `tangent_kind` is
+   * `'none'`. NOT f′ — for a normal it is −1/f′, which is what the line on
+   * the board actually has, and a caption saying "the slope" must mean the
+   * slope of the line the student is looking at.
+   */
+  slope: number;
+  /** Where that line touches the curve. `tangentY` is f(tangent_at), so a
+   *  caption can say "at (2, 4)" without the author typing either number. */
+  tangentX: number;
+  tangentY: number;
   /** Structurally a Record<string, number>, so `derive` can serve directly as
    *  computeDerived with no wrapper — one function, not two that can drift. */
   [key: string]: number;
@@ -148,6 +287,147 @@ export function definiteIntegral(
   to: number
 ): number {
   return antiderivative(kind, a, b, c, to) - antiderivative(kind, a, b, c, from);
+}
+
+/**
+ * f′ at u, exactly. Worklet: the tangent is animatable, so this runs per
+ * frame on the UI thread as `tangent_at` slides.
+ *
+ * Symbolic, not a difference quotient — a numerical derivative at a slid
+ * `tangent_at` would wobble the drawn tangent by the step size, and the
+ * readout would print a slope that is nearly but not exactly 6 for y = x² at
+ * x = 3. `__tests__/tangent.test.ts` checks these against a central
+ * difference, which is a genuinely different derivation and is allowed to be
+ * approximate BECAUSE it is only the check.
+ */
+export function derivCurve(kind: CurveKind, a: number, b: number, c: number, x: number): number {
+  'worklet';
+  switch (kind) {
+    case 'line':
+      return a;
+    case 'parabola':
+      return 2 * a * x + b;
+    case 'sine':
+      return a * b * Math.cos(b * x);
+    case 'exponential':
+      return a * b * Math.exp(b * x);
+    case 'reciprocal':
+      return Math.abs(x) < 1e-9 ? 0 : -a / (x * x);
+  }
+}
+
+/**
+ * The slope of the tangent or the normal at u — the slope of the LINE DRAWN,
+ * not f′.
+ *
+ * A normal at a stationary point is vertical and has no slope. This returns
+ * Infinity there rather than a large finite number; `validate()` refuses that
+ * payload (see index.tsx) so it cannot reach a board, and `fmt` renders it as
+ * an em dash if it ever does.
+ */
+export function lineSlopeAt(
+  kind: CurveKind, a: number, b: number, c: number, x: number, mode: TangentKind
+): number {
+  'worklet';
+  if (mode === 'none') return 0;
+  const m = derivCurve(kind, a, b, c, x);
+  if (mode === 'tangent') return m;
+  return Math.abs(m) < 1e-12 ? Infinity : -1 / m;
+}
+
+/* --------------------------------------------------------------- piecewise */
+
+/**
+ * The piece whose [from, to] contains u, or −1.
+ *
+ * Half-open on the left of every piece after the first, so a breakpoint
+ * belongs to exactly ONE piece and `evalPieces` at a breakpoint is
+ * single-valued. Which side it belongs to is arbitrary and invisible for a
+ * CONTINUOUS piecewise function, which is the only kind `validate()` admits —
+ * it refuses a payload whose pieces disagree at a breakpoint, so this choice
+ * can never change a drawn value.
+ */
+export function pieceAt(pieces: readonly CurvePiece[], u: number): number {
+  'worklet';
+  for (let i = 0; i < pieces.length; i++) {
+    const p = pieces[i];
+    const lo = Math.min(p.from, p.to);
+    const hi = Math.max(p.from, p.to);
+    const span = Math.max(hi - lo, 1);
+    const eps = span * 1e-12;
+    if (u >= lo - eps && u <= hi + eps) return i;
+  }
+  return -1;
+}
+
+/** f(u) for a piecewise f. NaN outside every piece — the curve simply stops,
+ *  and `curvePath` breaks the path there rather than inventing a value. */
+export function evalPieces(pieces: readonly CurvePiece[], u: number): number {
+  'worklet';
+  const i = pieceAt(pieces, u);
+  if (i < 0) return NaN;
+  const p = pieces[i];
+  return evalCurve(p.curve, p.a, p.b, p.c, u);
+}
+
+/**
+ * The breakpoints of `pieces` that fall strictly inside (lo, hi), plus lo and
+ * hi themselves — the cell boundaries every piecewise integral and every
+ * piecewise path is built from.
+ *
+ * ONE function so the arithmetic and the drawing partition the interval
+ * identically. Two spellings of "where do the pieces start" is the same drift
+ * `planFrame` was extracted to avoid, one level down.
+ */
+export function pieceCells(
+  pieces: readonly CurvePiece[], lo: number, hi: number
+): number[] {
+  'worklet';
+  const out: number[] = [lo];
+  const edge = Math.max(Math.abs(hi - lo), 1) * 1e-9;
+  const cuts: number[] = [];
+  for (let i = 0; i < pieces.length; i++) {
+    cuts.push(pieces[i].from);
+    cuts.push(pieces[i].to);
+  }
+  cuts.sort((p, q) => p - q);
+  for (let i = 0; i < cuts.length; i++) {
+    const t = cuts[i];
+    if (t <= lo + edge || t >= hi - edge) continue;
+    if (Math.abs(t - out[out.length - 1]) <= edge) continue;
+    out.push(t);
+  }
+  out.push(hi);
+  return out;
+}
+
+/**
+ * ∫ f du over [from, to] for a piecewise f — SIGNED, exactly.
+ *
+ * The same antiderivatives `definiteIntegral` uses, one cell at a time. A
+ * region of the interval covered by no piece contributes nothing, which is
+ * the honest answer for a function that is not defined there; `validate()`
+ * requires the pieces to tile [x_min, x_max], so that case cannot arise from
+ * an accepted payload.
+ */
+export function definiteIntegralPieces(
+  pieces: readonly CurvePiece[], from: number, to: number
+): number {
+  const sign = to < from ? -1 : 1;
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  if (!(hi - lo > 0)) return 0;
+  const cells = pieceCells(pieces, lo, hi);
+  let total = 0;
+  for (let k = 0; k + 1 < cells.length; k++) {
+    const s = cells[k];
+    const e = cells[k + 1];
+    const i = pieceAt(pieces, (s + e) / 2);
+    if (i < 0) continue;
+    const p = pieces[i];
+    total += definiteIntegral(p.curve, p.a, p.b, p.c, s, e);
+  }
+  return sign * total;
 }
 
 /* ------------------------------------------- the region between two curves */
@@ -309,6 +589,49 @@ export function areaBetween(
   return total;
 }
 
+/**
+ * ∫|f − g| over [from, to] where f is PIECEWISE and g is a single curve —
+ * exactly, and by the same rule as `areaBetween`: split, integrate, sum the
+ * magnitudes.
+ *
+ * TWO LEVELS OF SPLIT, and both are load-bearing:
+ *
+ *   the PIECE boundaries, because f is a different function either side of
+ *     one and the antiderivative changes;
+ *   the CROSSINGS INSIDE each piece, because the sign of f − g changes there
+ *     and the positive and negative parts would cancel — the v2 lesson,
+ *     which does not stop being true because f gained a breakpoint. A
+ *     modulus against a line crosses inside a piece routinely: |x| against
+ *     y = 0.5 crosses at −0.5 and 0.5, one in each piece.
+ *
+ * Returns NaN for a pair whose crossings have no closed form, exactly as
+ * `areaBetween` does. `validate()` refuses those payloads.
+ */
+export function areaBetweenPieces(
+  pieces: readonly CurvePiece[],
+  kindG: CurveKind, a2: number, b2: number, c2: number,
+  from: number, to: number
+): number {
+  for (let i = 0; i < pieces.length; i++) {
+    if (!supportsAreaBetween(pieces[i].curve, kindG)) return NaN;
+  }
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  if (!(hi - lo > 0)) return 0;
+
+  const cells = pieceCells(pieces, lo, hi);
+  let total = 0;
+  for (let k = 0; k + 1 < cells.length; k++) {
+    const s = cells[k];
+    const e = cells[k + 1];
+    const i = pieceAt(pieces, (s + e) / 2);
+    if (i < 0) continue;
+    const p = pieces[i];
+    total += areaBetween(p.curve, p.a, p.b, p.c, kindG, a2, b2, c2, s, e);
+  }
+  return total;
+}
+
 /** Population statistics (÷N, not ÷N−1) — NCERT's convention for a full
  *  dataset, which is what these lessons always present. */
 export function statistics(values: readonly number[]): {
@@ -329,17 +652,104 @@ export function statistics(values: readonly number[]): {
 
 export function derive(p: XyPlotParams): XyPlotDerived {
   const stats = statistics(p.mode === 'data' ? p.values : []);
+  const piecewise = p.pieces.length > 0;
   const area =
     p.mode === 'area'
-      ? definiteIntegral(p.curve, p.a, p.b, p.c, p.shade_from, p.shade_to)
+      ? piecewise
+        ? definiteIntegralPieces(p.pieces, p.shade_from, p.shade_to)
+        : definiteIntegral(p.curve, p.a, p.b, p.c, p.shade_from, p.shade_to)
       : p.mode === 'area_between'
-        ? areaBetween(
-            p.curve, p.a, p.b, p.c,
-            p.curve2, p.a2, p.b2, p.c2,
-            p.shade_from, p.shade_to
-          )
+        ? piecewise
+          ? areaBetweenPieces(
+              p.pieces, p.curve2, p.a2, p.b2, p.c2, p.shade_from, p.shade_to
+            )
+          : areaBetween(
+              p.curve, p.a, p.b, p.c,
+              p.curve2, p.a2, p.b2, p.c2,
+              p.shade_from, p.shade_to
+            )
         : 0;
-  return { area, ...stats };
+
+  /*
+   * The tangent reads its coefficients from the PIECE it touches, not from
+   * the top-level curve, because on a piecewise payload the top-level curve
+   * is not what is drawn there. validate() refuses a tangent_at sitting on a
+   * breakpoint, where the derivative is two-valued.
+   */
+  let slope = 0;
+  let tangentY = 0;
+  if (p.tangent_kind !== 'none' && p.mode !== 'data' && p.mode !== 'named') {
+    const i = piecewise ? pieceAt(p.pieces, p.tangent_at) : -1;
+    const k = piecewise ? (i < 0 ? null : p.pieces[i]) : { curve: p.curve, a: p.a, b: p.b, c: p.c };
+    if (k) {
+      slope = lineSlopeAt(k.curve, k.a, k.b, k.c, p.tangent_at, p.tangent_kind);
+      tangentY = evalCurve(k.curve, k.a, k.b, k.c, p.tangent_at);
+    }
+  }
+  return { area, ...stats, slope, tangentX: p.tangent_at, tangentY };
+}
+
+/**
+ * The y-range of a piecewise f over its own pieces, sampled the same way
+ * `curveRange` samples one curve — and, like it, deliberately not a function
+ * of `shade_to` or `tangent_at`.
+ */
+export function piecesRange(
+  pieces: readonly CurvePiece[], uMin: number, uMax: number, samples: number
+): { yMin: number; yMax: number } {
+  let yMin = Infinity;
+  let yMax = -Infinity;
+  for (let i = 0; i <= samples; i++) {
+    const u = uMin + ((uMax - uMin) * i) / samples;
+    const y = evalPieces(pieces, u);
+    if (!isFinite(y)) continue;
+    if (y < yMin) yMin = y;
+    if (y > yMax) yMax = y;
+  }
+  // The breakpoints themselves, which a uniform sample can step straight over
+  // and which are exactly where a piecewise extremum usually is.
+  for (let i = 0; i < pieces.length; i++) {
+    for (const u of [pieces[i].from, pieces[i].to]) {
+      if (u < Math.min(uMin, uMax) || u > Math.max(uMin, uMax)) continue;
+      const y = evalCurve(pieces[i].curve, pieces[i].a, pieces[i].b, pieces[i].c, u);
+      if (!isFinite(y)) continue;
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
+  }
+  if (!isFinite(yMin) || !isFinite(yMax)) return { yMin: 0, yMax: 1 };
+  if (Math.abs(yMax - yMin) < 1e-9) return { yMin: yMin - 1, yMax: yMax + 1 };
+  return { yMin, yMax };
+}
+
+/** One member of a `family` payload: the base coefficients with `param`
+ *  replaced by `value`. Exported so the renderer and `validate()`'s frame
+ *  planner build the same curves. */
+export function familyMember(
+  p: XyPlotParams, value: number
+): { a: number; b: number; c: number } {
+  const out = { a: p.a, b: p.b, c: p.c };
+  out[p.family_param] = value;
+  return out;
+}
+
+/** The union of every family member's range — what the axis has to hold when
+ *  N curves share it. Not a function of any animatable value; `family` has
+ *  none. */
+export function familyRange(
+  p: XyPlotParams, uMin: number, uMax: number, samples: number
+): { yMin: number; yMax: number } {
+  let yMin = Infinity;
+  let yMax = -Infinity;
+  for (const v of p.family_values) {
+    const m = familyMember(p, v);
+    const r = curveRange(p.curve, m.a, m.b, m.c, uMin, uMax, samples);
+    if (r.yMin < yMin) yMin = r.yMin;
+    if (r.yMax > yMax) yMax = r.yMax;
+  }
+  if (!isFinite(yMin) || !isFinite(yMax)) return { yMin: 0, yMax: 1 };
+  if (Math.abs(yMax - yMin) < 1e-9) return { yMin: yMin - 1, yMax: yMax + 1 };
+  return { yMin, yMax };
 }
 
 /**
@@ -404,6 +814,53 @@ export function tickStep(span: number): number {
   return 2000;
 }
 
+
+/* ------------------------------------------------------------ projection */
+
+/**
+ * ONE POINT, IN THE ONE PROJECTION EVERY PATH BELOW USES.
+ *
+ * Everything in this module works in (u, v): `u` is the integration variable
+ * and `v` is the value. Which PIXEL axis carries which is the only thing
+ * `swap` decides.
+ *
+ *   swap = false   u horizontal, v vertical.   The v1/v2 picture, unchanged.
+ *   swap = true    u VERTICAL, v horizontal.   Strips run horizontally, so
+ *                  "area by integration along the y-axis" is the same
+ *                  integral drawn the way the book draws it.
+ *
+ * Each axis is (origin at its own MINIMUM) + (offset) x (signed scale), and
+ * the sign is what lets one formula serve both orientations. When u is
+ * horizontal `uOrigin` is the left edge and `uScale` is +plotW/span; when u is
+ * vertical `uOrigin` is the BOTTOM edge and `uScale` is −plotH/span, because a
+ * vertical u must increase upward while pixel y increases downward. `vScale`
+ * is the mirror. index.tsx's `planFrame` is the one place those six numbers
+ * are computed.
+ *
+ * WHY "origin at the minimum" AND NOT "origin at v = 0", which is the shorter
+ * spelling and is what this was written as first. The two are algebraically
+ * identical — `vZero − v·s` versus `vBottom + (v − vMin)·(−s)` — and they
+ * differ in the last bit or two of IEEE double. Path coordinates go through
+ * `toFixed(2)` and never notice; a TICK position does not, and the frozen v2
+ * trees carry `y1: 30.969175627240077` where the other spelling produces
+ * `...134`. Nine golden trees failed on that difference alone. So there is
+ * ONE spelling, it is this one, and it is the one the ticks were frozen at.
+ * The lesson generalises: a rearrangement that is exact in algebra is not
+ * exact in floating point, and a byte-frozen tree is the only thing that
+ * notices.
+ */
+function ptStr(
+  u: number, v: number,
+  uMin: number, uOrigin: number, uScale: number,
+  vMin: number, vOrigin: number, vScale: number,
+  swap: boolean
+): string {
+  'worklet';
+  const pa = uOrigin + (u - uMin) * uScale;
+  const pb = vOrigin + (v - vMin) * vScale;
+  return (swap ? pb : pa).toFixed(2) + ' ' + (swap ? pa : pb).toFixed(2);
+}
+
 /** SVG `d` for the curve itself, in board pixels. Worklet-safe: string
  *  concatenation and Math only. */
 export function curvePath(
@@ -411,33 +868,86 @@ export function curvePath(
   a: number,
   b: number,
   c: number,
-  xMin: number,
-  xMax: number,
-  originX: number,
-  originY: number,
-  pxPerX: number,
-  pxPerY: number,
-  samples: number
+  uMin: number,
+  uMax: number,
+  uOrigin: number,
+  uScale: number,
+  vMin: number,
+  vOrigin: number,
+  vScale: number,
+  samples: number,
+  swap: boolean
 ): string {
   'worklet';
   let d = '';
   let started = false;
   for (let i = 0; i <= samples; i++) {
-    const x = xMin + ((xMax - xMin) * i) / samples;
-    const y = evalCurve(kind, a, b, c, x);
-    if (!isFinite(y)) {
+    const u = uMin + ((uMax - uMin) * i) / samples;
+    const v = evalCurve(kind, a, b, c, u);
+    if (!isFinite(v)) {
       started = false;
       continue;
     }
-    const px = originX + (x - xMin) * pxPerX;
-    const py = originY - y * pxPerY;
-    d += (started ? 'L' : 'M') + px.toFixed(2) + ' ' + py.toFixed(2);
+    d += (started ? 'L' : 'M') + ptStr(u, v, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
     started = true;
   }
   return d;
 }
 
-/** SVG `d` for the shaded region between the curve and y=0, from `from` to
+/**
+ * SVG `d` for a PIECEWISE curve.
+ *
+ * Sampled per piece rather than uniformly over the whole domain, so a
+ * breakpoint is always a vertex. A uniform sample steps over breakpoints and
+ * rounds the corner of a modulus into a short diagonal — which is not a
+ * cosmetic loss: the corner IS the thing |x| is drawn to show.
+ *
+ * Still ONE `d`, with a fresh `M` at each piece, so element count never
+ * depends on the piece count in a way `scaffoldingDiffs` could see.
+ */
+export function piecesPath(
+  pieces: readonly CurvePiece[],
+  uMin: number,
+  uOrigin: number,
+  uScale: number,
+  vMin: number,
+  vOrigin: number,
+  vScale: number,
+  samples: number,
+  swap: boolean
+): string {
+  'worklet';
+  if (pieces.length === 0) return '';
+  let total = 0;
+  for (let i = 0; i < pieces.length; i++) total += Math.abs(pieces[i].to - pieces[i].from);
+  if (!(total > 0)) return '';
+
+  let d = '';
+  for (let i = 0; i < pieces.length; i++) {
+    const p = pieces[i];
+    const lo = Math.min(p.from, p.to);
+    const hi = Math.max(p.from, p.to);
+    const width = hi - lo;
+    if (!(width > 0)) continue;
+    // Sample density follows piece width, so a narrow piece still gets a
+    // curve rather than a chord and the total stays near `samples`.
+    const n = Math.max(2, Math.round((samples * width) / total));
+    let started = false;
+    for (let k = 0; k <= n; k++) {
+      const u = lo + (width * k) / n;
+      const v = evalCurve(p.curve, p.a, p.b, p.c, u);
+      if (!isFinite(v)) {
+        started = false;
+        continue;
+      }
+      d += (started ? 'L' : 'M') + ptStr(u, v, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
+      started = true;
+    }
+  }
+  return d;
+}
+
+/** SVG `d` for the shaded region between the curve and v = 0, from `from` to
  *  `to`. Rebuilt on the UI thread as `shade_to` sweeps. */
 export function areaPath(
   kind: CurveKind,
@@ -446,25 +956,77 @@ export function areaPath(
   c: number,
   from: number,
   to: number,
-  xMin: number,
-  originX: number,
-  originY: number,
-  pxPerX: number,
-  pxPerY: number,
-  samples: number
+  uMin: number,
+  uOrigin: number,
+  uScale: number,
+  vMin: number,
+  vOrigin: number,
+  vScale: number,
+  samples: number,
+  swap: boolean
 ): string {
   'worklet';
   const lo = Math.min(from, to);
   const hi = Math.max(from, to);
   if (hi - lo < 1e-9) return '';
-  let d = 'M' + (originX + (lo - xMin) * pxPerX).toFixed(2) + ' ' + originY.toFixed(2);
+  let d = 'M' + ptStr(lo, 0, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
   for (let i = 0; i <= samples; i++) {
-    const x = lo + ((hi - lo) * i) / samples;
-    const y = evalCurve(kind, a, b, c, x);
-    if (!isFinite(y)) continue;
-    d += 'L' + (originX + (x - xMin) * pxPerX).toFixed(2) + ' ' + (originY - y * pxPerY).toFixed(2);
+    const u = lo + ((hi - lo) * i) / samples;
+    const v = evalCurve(kind, a, b, c, u);
+    if (!isFinite(v)) continue;
+    d += 'L' + ptStr(u, v, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
   }
-  d += 'L' + (originX + (hi - xMin) * pxPerX).toFixed(2) + ' ' + originY.toFixed(2) + 'Z';
+  d += 'L' + ptStr(hi, 0, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap) + 'Z';
+  return d;
+}
+
+/**
+ * SVG `d` for the shaded region under a PIECEWISE f, down to v = 0.
+ *
+ * One closed lobe per PIECE, for the same reason `areaBetweenPath` uses one
+ * per sub-interval: a single polygon that runs along f through a breakpoint
+ * where f crosses the axis is a figure-eight whose fill depends on the fill
+ * rule. It also keeps the drawn lobes in one-to-one correspondence with the
+ * cells `definiteIntegralPieces` sums, which is what makes the shape and the
+ * number describe the same region at every value a tween passes through.
+ */
+export function areaPiecesPath(
+  pieces: readonly CurvePiece[],
+  from: number,
+  to: number,
+  uMin: number,
+  uOrigin: number,
+  uScale: number,
+  vMin: number,
+  vOrigin: number,
+  vScale: number,
+  samples: number,
+  swap: boolean
+): string {
+  'worklet';
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  if (hi - lo < 1e-9) return '';
+  const cells = pieceCells(pieces, lo, hi);
+  let d = '';
+  for (let k = 0; k + 1 < cells.length; k++) {
+    const s = cells[k];
+    const e = cells[k + 1];
+    const width = e - s;
+    if (!(width > 1e-12)) continue;
+    const i = pieceAt(pieces, (s + e) / 2);
+    if (i < 0) continue;
+    const p = pieces[i];
+    const n = Math.max(6, Math.round((samples * width) / (hi - lo)));
+    d += 'M' + ptStr(s, 0, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
+    for (let j = 0; j <= n; j++) {
+      const u = s + (width * j) / n;
+      const v = evalCurve(p.curve, p.a, p.b, p.c, u);
+      if (!isFinite(v)) continue;
+      d += 'L' + ptStr(u, v, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
+    }
+    d += 'L' + ptStr(e, 0, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap) + 'Z';
+  }
   return d;
 }
 
@@ -492,10 +1054,11 @@ export function areaBetweenPath(
   kindF: CurveKind, a: number, b: number, c: number,
   kindG: CurveKind, a2: number, b2: number, c2: number,
   from: number, to: number,
-  xMin: number,
-  originX: number, originY: number,
-  pxPerX: number, pxPerY: number,
-  samples: number
+  uMin: number,
+  uOrigin: number, uScale: number,
+  vMin: number, vOrigin: number, vScale: number,
+  samples: number,
+  swap: boolean
 ): string {
   'worklet';
   if (!supportsAreaBetween(kindF, kindG)) return '';
@@ -516,23 +1079,17 @@ export function areaBetweenPath(
       const n = Math.max(6, Math.round((samples * width) / (hi - lo)));
       let started = false;
       for (let i = 0; i <= n; i++) {
-        const x = s + (width * i) / n;
-        const y = evalCurve(kindF, a, b, c, x);
-        if (!isFinite(y)) continue;
-        d +=
-          (started ? 'L' : 'M') +
-          (originX + (x - xMin) * pxPerX).toFixed(2) + ' ' +
-          (originY - y * pxPerY).toFixed(2);
+        const u = s + (width * i) / n;
+        const v = evalCurve(kindF, a, b, c, u);
+        if (!isFinite(v)) continue;
+        d += (started ? 'L' : 'M') + ptStr(u, v, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
         started = true;
       }
       for (let i = n; i >= 0; i--) {
-        const x = s + (width * i) / n;
-        const y = evalCurve(kindG, a2, b2, c2, x);
-        if (!isFinite(y)) continue;
-        d +=
-          (started ? 'L' : 'M') +
-          (originX + (x - xMin) * pxPerX).toFixed(2) + ' ' +
-          (originY - y * pxPerY).toFixed(2);
+        const u = s + (width * i) / n;
+        const v = evalCurve(kindG, a2, b2, c2, u);
+        if (!isFinite(v)) continue;
+        d += (started ? 'L' : 'M') + ptStr(u, v, uMin, uOrigin, uScale, vMin, vOrigin, vScale, swap);
         started = true;
       }
       if (started) d += 'Z';
@@ -540,4 +1097,132 @@ export function areaBetweenPath(
     s = e;
   }
   return d;
+}
+
+/**
+ * SVG `d` for the region between a PIECEWISE f and a single g.
+ *
+ * Split twice — at the piece boundaries and at the crossings inside each
+ * piece — by the same `pieceCells` + `crossingsIn` pair `areaBetweenPieces`
+ * sums over, so the lobes drawn are exactly the terms added up.
+ */
+export function areaBetweenPiecesPath(
+  pieces: readonly CurvePiece[],
+  kindG: CurveKind, a2: number, b2: number, c2: number,
+  from: number, to: number,
+  uMin: number,
+  uOrigin: number, uScale: number,
+  vMin: number, vOrigin: number, vScale: number,
+  samples: number,
+  swap: boolean
+): string {
+  'worklet';
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  if (hi - lo < 1e-9) return '';
+  const cells = pieceCells(pieces, lo, hi);
+  let d = '';
+  for (let k = 0; k + 1 < cells.length; k++) {
+    const s = cells[k];
+    const e = cells[k + 1];
+    if (!(e - s > 1e-12)) continue;
+    const i = pieceAt(pieces, (s + e) / 2);
+    if (i < 0) continue;
+    const p = pieces[i];
+    d += areaBetweenPath(
+      p.curve, p.a, p.b, p.c,
+      kindG, a2, b2, c2,
+      s, e,
+      uMin, uOrigin, uScale, vMin, vOrigin, vScale,
+      // Sample budget shared across the cells by width, so the total stays
+      // near `samples` however many pieces there are.
+      Math.max(6, Math.round((samples * (e - s)) / (hi - lo))),
+      swap
+    );
+  }
+  return d;
+}
+
+/**
+ * SVG `d` for a straight line through (u0, v0) with slope dv/du, CLIPPED to
+ * the plot box — the tangent or the normal.
+ *
+ * Liang–Barsky in pixel space, because the box is a pixel rectangle and the
+ * two axes may be swapped. A vertical line (slope Infinity, which is what a
+ * normal at a stationary point has) is handled by the same code: its pixel
+ * direction is simply (0, ±1), so there is no special case and no division by
+ * a slope anywhere below. That matters because the failure mode of a slope
+ * formula is a line drawn nearly-but-not-quite vertical, which reads as a
+ * wrong diagram rather than as an error.
+ */
+export function straightLinePath(
+  u0: number, v0: number, slope: number,
+  uMin: number,
+  uOrigin: number, uScale: number,
+  vMin: number, vOrigin: number, vScale: number,
+  swap: boolean,
+  left: number, right: number, top: number, bottom: number
+): string {
+  'worklet';
+  const pa = uOrigin + (u0 - uMin) * uScale;
+  const pb = vOrigin + (v0 - vMin) * vScale;
+  const x0 = swap ? pb : pa;
+  const y0 = swap ? pa : pb;
+
+  // Direction in WORLD units, then projected. A unit step in u moves `slope`
+  // in v; a vertical line is a unit step in v and none in u.
+  const vertical = !isFinite(slope);
+  const du = vertical ? 0 : 1;
+  const dv = vertical ? 1 : slope;
+  const da = du * uScale;
+  const db = dv * vScale;
+  const dx = swap ? db : da;
+  const dy = swap ? da : db;
+  if (Math.abs(dx) < 1e-12 && Math.abs(dy) < 1e-12) return '';
+
+  let t0 = -1e9;
+  let t1 = 1e9;
+  const clip = (p: number, q: number): boolean => {
+    if (Math.abs(p) < 1e-12) return q >= 0;
+    const r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+    return true;
+  };
+  if (!clip(-dx, x0 - left)) return '';
+  if (!clip(dx, right - x0)) return '';
+  if (!clip(-dy, y0 - top)) return '';
+  if (!clip(dy, bottom - y0)) return '';
+  if (!(t1 > t0)) return '';
+
+  return (
+    'M' + (x0 + t0 * dx).toFixed(2) + ' ' + (y0 + t0 * dy).toFixed(2) +
+    'L' + (x0 + t1 * dx).toFixed(2) + ' ' + (y0 + t1 * dy).toFixed(2)
+  );
+}
+
+/** Pixel x of a (u, v) point, in the current projection. Used by the marker
+ *  on the tangent point, which is a Circle and needs numbers, not a path. */
+export function pointPx(
+  u: number, v: number,
+  uMin: number, uOrigin: number, uScale: number,
+  vMin: number, vOrigin: number, vScale: number, swap: boolean
+): number {
+  'worklet';
+  return swap ? vOrigin + (v - vMin) * vScale : uOrigin + (u - uMin) * uScale;
+}
+
+/** Pixel y of a (u, v) point, in the current projection. */
+export function pointPy(
+  u: number, v: number,
+  uMin: number, uOrigin: number, uScale: number,
+  vMin: number, vOrigin: number, vScale: number, swap: boolean
+): number {
+  'worklet';
+  return swap ? uOrigin + (u - uMin) * uScale : vOrigin + (v - vMin) * vScale;
 }
