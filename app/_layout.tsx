@@ -19,6 +19,13 @@ import {
 // their own family, and it is the one place in the app that uses it.
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
+import {
+  Onest_400Regular,
+  Onest_500Medium,
+  Onest_600SemiBold,
+  Onest_700Bold,
+  Onest_800ExtraBold,
+} from '@expo-google-fonts/onest';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
@@ -59,6 +66,13 @@ export default function RootLayout() {
     AnekDevanagari_500Medium,
     Kalam_400Regular,
     Kalam_700Bold,
+    // The classroom teaches in Onest. Kalam and AnekLatin stay loaded:
+    // every other screen still uses them.
+    Onest_400Regular,
+    Onest_500Medium,
+    Onest_600SemiBold,
+    Onest_700Bold,
+    Onest_800ExtraBold,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
