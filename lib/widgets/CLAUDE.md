@@ -437,8 +437,9 @@ A widget is not done until all of these hold:
       scrub backwards.
 - [ ] No `fetch`, no CDN reference, no `Date.now()`-driven animation.
 - [ ] Renders with the device in airplane mode.
-- [ ] **A Hindi-caption fixture at 343x236**, in the checked-in trees. See
-      "Every script the app ships" below.
+- [ ] **A Hinglish-caption fixture at 343x236**, in the checked-in trees. See
+      "Every language the app actually ships" below. Hinglish, not Hindi — the
+      product has no Devanagari mode, and this line said Hindi until 2026-09-05.
 - [ ] **Verified by an agent other than its author, BEFORE it is wired into
       `registry.ts`.** See "Someone else verifies it" below.
 - [ ] Every self-check takes an INDEPENDENT route. See "A self-check must
@@ -487,17 +488,53 @@ An independent route means a DIFFERENT derivation: mesh analysis against
 delta-star, an antiderivative against a Riemann sum, a table lookup against a
 formula. If you cannot state what a check could catch, it catches nothing.
 
-### Every script the app ships
+### Every language the app actually ships
 
-The Devanagari defect existed because neither author tested Hindi, and it was
-found twice by luck rather than once by design. Reviewers are not a gate.
+The Devanagari defect existed because neither author tested a second language,
+and it was found twice by luck rather than once by design. Reviewers are not a
+gate.
 
-So: every widget with a readout carries a **Hindi-caption fixture rendered at
-343x236** in the checked-in trees, and the same for any other script the app
-ships. 343x236 is the binding board, and Devanagari is measured at
-`CHAR_W_DEVA` — a deliberate over-estimate, not a measurement — so this is
-where a width model that is wrong by 29% actually fails rather than merely
-being wrong.
+**This section used to say "every script the app ships" and mandate a Hindi
+fixture per widget. That was wrong, and it was wrong in the expensive
+direction: it gated the widgets on a language the product does not have.**
+From `lib/preferences.ts`:
+
+    LanguageId = 'hinglish' | 'english'      // default hinglish
+
+and hinglish is romanised **Latin** — "Chalo shuru karte hain", from the API's
+`persona.py`. No Devanagari string exists in either repo outside test fixtures.
+(The app loads `AnekDevanagari_500Medium` for the classroom caption strip, but
+that family renders Latin too; a Devanagari FACE being loaded is not evidence
+Devanagari TEXT is ever shown. That inference was made once already and is what
+`git show c482452` undoes.)
+
+So a per-widget Hindi fixture asserts a path nothing can reach, while the case
+that actually ships went untested for a year: **the DEFAULT language, at the
+smallest board, with a caption longer than its English equivalent.** Hinglish
+says the same thing in more characters, every time — "Two banks in series" (19)
+becomes "Do bank series mein jude hue hain" (33) — and the readout is
+width-fitted, so length is the whole pressure.
+
+Therefore:
+
+- Every widget with a readout carries a **Hinglish-caption fixture rendered at
+  343x236**, with a realistic caption of realistic length — the kind
+  `persona.py` actually produces, not a short stub. Pair it with an existing
+  English case on the same payload so the two trees differ in the caption and
+  nothing else. If a widget's readout cannot hold a realistic Hinglish caption
+  at 343x236, that is a FINDING to report, not something to shorten until it
+  passes. (`molecule_struct` is one: see below.)
+- **Exactly ONE Devanagari fixture exists**, `test/fixtures/deva-labels-collide.json`,
+  and it stays. It is a guardrail-liveness test: it exits 0 under the flat
+  Latin width model and 1 under `CHAR_W_DEVA`, which is the only thing proving
+  that branch is live rather than dead code that still parses. It costs nothing
+  while nothing reaches it, and Hindi-medium students read Devanagari
+  textbooks, so the day figure labels are authored in Devanagari it is what
+  stands between them and a label off the board. Do not add per-widget
+  Devanagari fixtures on top of it.
+
+343x236 is the binding board. `CHAR_W_DEVA` is a deliberate over-estimate, not
+a measurement — do not tune it, and do not describe it as measured.
 
 ---
 

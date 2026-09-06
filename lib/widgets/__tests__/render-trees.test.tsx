@@ -67,6 +67,34 @@ const outDir = resolve(__dirname, '../../../build/trees');
  */
 const REAL_SMALL = { width: 495, height: 270 };
 const SPEC_SMALL = { width: 343, height: 236 };
+
+/**
+ * THE CASE THAT ACTUALLY SHIPS: A HINGLISH CAPTION AT 343x236.
+ *
+ * Every widget with a readout carries one `hinglish_*` case below, and it is
+ * not decoration. The app has two language modes (lib/preferences.ts):
+ *
+ *     LanguageId = 'hinglish' | 'english'      // DEFAULT hinglish
+ *
+ * so the DEFAULT string on a student's board is Hinglish, and Hinglish is
+ * romanised Latin — "Chalo shuru karte hain", from the API's persona.py, not
+ * Devanagari. Nothing here was ever tested against it, because "another
+ * language" was read as "another script" and the script the product does not
+ * ship got the fixtures instead.
+ *
+ * What makes it a real case is not the alphabet, which the width model already
+ * handles at CHAR_W. It is LENGTH. Hinglish says the same thing in more
+ * characters than English does, every time:
+ *
+ *     "Two banks in series"       19   ->  "Do bank series mein jude hue hain"  33
+ *     "Citric acid cycle"         17   ->  "Citric acid cycle ke aath steps"    31
+ *     "Ethane to benzene"         17   ->  "Ethane se benzene banane ka raasta" 34
+ *
+ * and the readout is width-fitted, so 14 extra characters is exactly the
+ * pressure `chrome.fitReadout` degrades under. Each case pairs with an
+ * existing English one on the SAME payload wherever possible, so the two trees
+ * differ in the caption and nothing else.
+ */
 /** The default box renderWidgetTree uses, named so the corner sweep can pass
  *  all three board sizes through one `test.each`. */
 const BOARD = { width: 900, height: 430 };
@@ -223,6 +251,21 @@ describe('xy_plot', () => {
       x_min: 0, x_max: 6.28,
       x_label: 'displacement along the beam axis xx',
       y_label: 'bending moment about the neutral z',
+    },
+
+    // The default language, on the smallest board. `curve` is the one mode
+    // whose readout is BUILT FROM the axis labels ("<y> vs <x>"), so Hinglish
+    // axis names are this widget's caption pressure — and it is the one
+    // readout widget that does not go through fitReadout at all: it slices,
+    // because a curve readout carries no number to protect.
+    curve_hinglish_labels: {
+      ...mod.defaults,
+      mode: 'curve' as const,
+      curve: 'sine' as const,
+      a: 1, b: 1, c: 0,
+      x_min: 0, x_max: 6.28,
+      x_label: 'samay, second mein',
+      y_label: 'vistaar, metre mein',
     },
 
     /* ---- v2: the region between two curves. NCERT Class 12 Ch8. ---- */
@@ -607,6 +650,13 @@ describe('data_table_trend', () => {
       unit: '',
       caption: 'ABO blood groups',
     },
+    // THE DEFAULT LANGUAGE, at 40 characters — exactly MAX_CAPTION_CHARS, so
+    // this is also the longest caption validate() will pass through unsliced.
+    // Same payload as `numeric`; only the caption differs.
+    hinglish: {
+      ...mod.defaults,
+      caption: 'Dekho, period 2 mein ionisation enthalpy',
+    },
   };
 
   test.each(Object.keys(CASES) as (keyof typeof CASES)[])(
@@ -798,6 +848,12 @@ describe('process_flow', () => {
       branch_at: 1,
       caption: 'Fate of pyruvate',
     },
+    // THE DEFAULT LANGUAGE. Same ring as `ring`, whose English caption is
+    // 'Citric acid cycle' (17) — this is the same sentence at 31.
+    hinglish: {
+      ...mod.defaults,
+      caption: 'Citric acid cycle ke aath steps',
+    },
   };
 
   test('every case is a payload validate() would actually admit', () => {
@@ -942,7 +998,7 @@ describe('process_flow', () => {
 describe('reaction_scheme', () => {
   const mod = reactionScheme;
 
-  const CASES: Record<'chain' | 'fan' | 'converge' | 'wurtz', ReactionSchemeParams> = {
+  const CASES: Record<'chain' | 'fan' | 'converge' | 'wurtz' | 'hinglish', ReactionSchemeParams> = {
     // CHAIN — NCERT Cl.11 "Hydrocarbons". ranks 0,1,2,3; rows 1, which is the
     // NaN trap (rowPitch = band/(rows-1)) and the commonest payload there is.
     chain: { ...mod.defaults },
@@ -986,6 +1042,13 @@ describe('reaction_scheme', () => {
       highlight_step: 0,
       step_progress: 1,
       caption: 'Wurtz reaction',
+    },
+
+    // THE DEFAULT LANGUAGE. The same scheme as `chain`, whose English caption
+    // is 'Ethane to benzene' (17) — this is the same sentence at 34.
+    hinglish: {
+      ...mod.defaults,
+      caption: 'Ethane se benzene banane ka raasta',
     },
   };
 
@@ -1293,6 +1356,19 @@ describe('molecule_struct', () => {
       charge: 4, bracket: true, show_lone_pairs: false, show_angle: true,
       label: 'Every bond style at once', highlight_site: 5,
     },
+
+    // THE DEFAULT LANGUAGE. This widget's `label` IS its caption slot —
+    // readoutText() passes it to fitReadout as one. Same molecule as `h2o`,
+    // whose English label is 'Water' (5); a Hinglish Drona names it in 20.
+    // See the note under the readout assertion below: this widget's VALUE is
+    // long enough that no caption of realistic length survives 343x236, in
+    // either language. The fixture is here to hold that on record.
+    hinglishLabel: {
+      mode: 'electron_domain', centre: 'O', bond_pairs: 2, lone_pairs: 2,
+      ligands: ['H', 'H'], bond_orders: [1, 1], bond_styles: ['plain', 'plain'],
+      charge: 0, bracket: false, show_lone_pairs: true, show_angle: true,
+      label: 'Paani ka bent aakaar', highlight_site: -1,
+    },
   };
 
   test('every case is a payload validate() would actually admit', () => {
@@ -1596,6 +1672,14 @@ describe('circuit_network', () => {
       source_v: 16, internal_r: 1, bridge_null_cm: 50,
       show_current: true, t_frac: 0, bridge_delta: 0,
       caption: 'दो बैंक श्रेणी में जुड़े हैं और यही',
+    },
+
+    // THE DEFAULT LANGUAGE, and the case this widget actually ships. Same
+    // network as `series_parallel`, whose English caption is 'Two banks in
+    // series' (19); this is the same sentence a Hinglish Drona says, at 33.
+    hinglish_caption: {
+      ...mod.defaults,
+      caption: 'Do bank series mein jude hue hain',
     },
 
     // The kinds that only a single reducible path may carry: a switch, and a

@@ -164,6 +164,34 @@ export const CHAR_W = 0.58;
  * Like `CHAR_W`, this is deliberately the SAME constant scripts/verify-render.mjs
  * uses. If the two diverge, a widget can lay text out to a width the checker
  * disagrees with and either fail spuriously or, worse, pass while overlapping.
+ *
+ * NO DEVANAGARI SHIPS TODAY, AND THIS STAYS ANYWAY.
+ *
+ * The app has exactly two language modes, from lib/preferences.ts:
+ *
+ *     LanguageId = 'hinglish' | 'english'      // default hinglish
+ *
+ * and hinglish is romanised LATIN — "Chalo shuru karte hain", from the API's
+ * persona.py. There is no Devanagari string in either repo outside test
+ * fixtures. (The app does load AnekDevanagari_500Medium for the classroom
+ * caption strip, but that family renders Latin too; a Devanagari FACE being
+ * loaded is not evidence Devanagari TEXT is ever shown.) So this constant
+ * guards a path nothing in the product can currently reach.
+ *
+ * It stays because it costs nothing while nothing reaches it, and because the
+ * error class it catches is real and recurring: two independent verifiers hit
+ * the same width bug in one week, from opposite directions (molecule_struct's
+ * label, circuit_network's caption). Hindi-medium students read Devanagari
+ * textbooks, so the day a subject author turns figure labels Devanagari, this
+ * is the only thing between them and a label off the board.
+ *
+ * ONE fixture keeps it honest: test/fixtures/deva-labels-collide.json, which
+ * exits 0 under the flat Latin model and 1 under this one. That fixture is
+ * load-bearing — it is what proves this branch is still LIVE rather than dead
+ * code that happens to compile. Do not add per-widget Devanagari fixtures on
+ * top of it; they would assert a script the product does not ship, and the
+ * realistic untested case is the opposite one — a HINGLISH caption, which is
+ * Latin and systematically LONGER than its English equivalent.
  */
 export const CHAR_W_DEVA = 0.75;
 
@@ -205,6 +233,16 @@ export function maxChars(width: number, fontSize: number, text: string): number 
   return Math.max(0, Math.floor(width / (fontSize * charWidthFor(text))));
 }
 
+/** The gap between a readout's caption and the value it introduces. */
+export const READOUT_SEP = '   ';
+
+/**
+ * Marks a caption that was cut. U+2026, ONE UTF-16 code unit — so both
+ * `textWidth` here and scripts/verify-render.mjs charge it exactly one
+ * character width, the same as the character it replaces.
+ */
+export const READOUT_ELLIPSIS = '\u2026';
+
 /**
  * Fit a readout into `width`, keeping the part that carries the number.
  *
@@ -214,7 +252,101 @@ export function maxChars(width: number, fontSize: number, text: string): number 
  * looked fine at 900x430. Shrinking the font instead would be the other bug.
  *
  * `value` is never dropped; `caption` gives up its characters first.
+ *
+ * THE CAPTION TAPERS. IT DOES NOT FALL OFF A CLIFF.
+ *
+ * This used to read
+ *
+ *     const room = cap - v.length - 3;
+ *     const prefix = room > 4 ? `${caption.slice(0, room)}   ` : '';
+ *
+ * and `room > 4` is a threshold, not a taper: at `room` 5 the caption showed
+ * five characters and at `room` 4 it showed none. One extra character in the
+ * VALUE deleted five characters of caption. Observed live on circuit_network's
+ * metre bridge at 343x236 the day r_eq was corrected for the unbalanced case:
+ * the value went from 31 code units to 32, `room` went 5 -> 4, and
+ *
+ *     - "Metre   Req 4.5 Ω   I 444 mA   X 5.21 Ω"      39 of 39 used
+ *     + "Req 4.48 Ω   I 446 mA   X 5.21 Ω"             32 of 39 used
+ *
+ * The caption did not shrink to fit. It vanished, and left seven character
+ * widths of the board blank while doing it — which is the tell that the
+ * threshold was never about space.
+ *
+ * WHY A TAPER WITH AN ELLIPSIS, AND WHY NO FLOOR AT ALL.
+ *
+ * The four candidate behaviours are a lower floor, a taper, an ellipsis, and
+ * an explicit "below N characters a caption is worse than none" rule. Any
+ * floor N keeps the discontinuity and merely moves it: at `room` = N the
+ * caption still disappears N characters at a time. So the question is whether
+ * a very short caption is worth its space, and the answer turns on a fact
+ * about WHERE that space comes from:
+ *
+ *   the caption is only ever allocated width the VALUE DID NOT NEED.
+ *
+ * `room` is what is left after the whole value and the separator are paid for.
+ * Spending it costs the numbers nothing — the alternative is not a longer
+ * number, it is blank board. So there is no width argument for a floor, only
+ * a legibility one: a bare two-character stub reads as a unit or a variable
+ * ("Me   Req 4.48 Ω" looks like a quantity called Me). That objection is
+ * about AMBIGUITY, not length, and an ellipsis answers it exactly — "Me…"
+ * cannot be read as a symbol, it reads as prose that was cut, which is what
+ * it is. The reader learns the caption was elided instead of being shown a
+ * complete-looking line that is silently missing one.
+ *
+ * So the caption degrades one character at a time, ending at a bare "…", and
+ * only then at "". Every step is a single character, in both directions, and
+ * the value is byte-for-byte unaffected at every step. That is the whole
+ * property the old threshold lacked.
+ *
+ * THE VALUE NEVER LOSES A DIGIT, AND THAT USED TO BE FALSE.
+ *
+ * "the caption gives up its characters first" was only half a contract: it
+ * said what happens while there IS a caption to give up, and said nothing
+ * about the case where the value alone overruns the board. That case did a
+ * bare `value.slice(0, cap)`, mid-term, and it is live in the checked-in
+ * trees. circuit_network's RC and LCR payloads at 343x236:
+ *
+ *     900x430   "RC charging   Req 20 kΩ   Ceq 5 µF   I 600 µA   τ 100 ms"
+ *     343x236   "Req 20 kΩ   Ceq 5 µF   I 600 µA   τ 100"
+ *
+ * The cut landed inside the last term and took the UNIT with it. `τ 100` is
+ * not a shortened `τ 100 ms`; it is 100 seconds, wrong by a factor of 1000,
+ * and it reads as a complete number. Same for LCR's `τ 3.2` (3.2 ms). Nothing
+ * caught it: the string fits the board, so scripts/verify-render.mjs is right
+ * to pass it — the defect is semantic and lives above the gate.
+ *
+ * So the value is cut at TERM boundaries only. A term that will not fit is
+ * dropped whole, and a missing term is visibly missing where a unit-stripped
+ * number is silently wrong. The one remaining `slice` is a single term wider
+ * than the entire board, which no policy can render honestly and which
+ * xy_plot's `labelFitProblems` refuses in validate() rather than truncating.
+ *
+ * NOTE this is deliberately NOT fixed by narrowing the schema, which is
+ * CLAUDE.md's usual instruction. Nothing here disagrees with the gate. The
+ * payload is a real NCERT RC circuit and refusing it would be worse than
+ * drawing it; what was wrong was the renderer's cut, not the schema's range.
  */
+/**
+ * The longest run of whole `READOUT_SEP`-separated terms of `value` that fits
+ * in `cap` code units.
+ *
+ * Falls back to a hard slice ONLY when the first term alone is over budget —
+ * there is no honest rendering of that, and it is the state xy_plot refuses in
+ * validate(). Everywhere else the cut lands on a separator, so no term is ever
+ * shown with part of itself missing.
+ */
+function trimToTerms(value: string, cap: number): string {
+  const parts = value.split(READOUT_SEP);
+  let out = '';
+  for (const part of parts) {
+    const next = out === '' ? part : `${out}${READOUT_SEP}${part}`;
+    if (next.length > cap) break;
+    out = next;
+  }
+  return out === '' ? value.slice(0, cap) : out;
+}
+
 export function fitReadout(
   caption: string,
   value: string,
@@ -226,10 +358,26 @@ export function fitReadout(
   // anywhere makes the gate measure the whole string at CHAR_W_DEVA.
   const cap = maxChars(width, fontSize, caption + value);
   if (cap <= 0) return '';
-  const v = value.length > cap ? value.slice(0, cap) : value;
-  const room = cap - v.length - 3;
-  const prefix = room > 4 ? `${caption.slice(0, room)}   ` : '';
-  return `${prefix}${v}`.slice(0, cap);
+  const v = value.length > cap ? trimToTerms(value, cap) : value;
+
+  // Trimmed because a caption's own surrounding whitespace is not information,
+  // and leading whitespace in particular shifts a start-anchored readout right
+  // by however many spaces it happens to carry. An all-whitespace or empty
+  // caption yields no prefix and no separator — the old code emitted three
+  // leading spaces for `caption: ''`, which every widget defaults to.
+  const head = caption.trim();
+  const room = cap - v.length - READOUT_SEP.length;
+  if (head.length === 0 || room <= 0) return v;
+
+  const shown = room >= head.length
+    ? head
+    // `trimEnd` so a cut landing on a space gives "Metre…", not "Metre …".
+    // It can only shorten `shown`, never lengthen it.
+    : head.slice(0, room - 1).trimEnd() + READOUT_ELLIPSIS;
+
+  // `shown.length <= room` by construction in both branches, so this slice is
+  // provably a no-op. Kept as a backstop, not as the mechanism.
+  return `${shown}${READOUT_SEP}${v}`.slice(0, cap);
 }
 
 /* -------------------------------------------------------------- labels */

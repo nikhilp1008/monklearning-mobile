@@ -171,8 +171,22 @@ function textBox(el) {
    * a widget can lay text out to a width the checker rejects, or worse, pass
    * while overlapping.
    *
+   * NO DEVANAGARI SHIPS TODAY, AND THIS BRANCH STAYS ANYWAY. The app has two
+   * language modes (lib/preferences.ts): 'hinglish' | 'english', and hinglish
+   * is romanised LATIN — "Chalo shuru karte hain". No Devanagari string exists
+   * in either repo outside test fixtures, so nothing the product renders can
+   * reach the 0.75 branch. It is kept as a guardrail for the day Hindi-medium
+   * figure labels are authored in Devanagari, because it costs nothing while
+   * unreached and because two independent verifiers hit this exact width bug
+   * in one week from opposite directions.
+   *
    * Fixture: test/fixtures/deva-labels-collide.json, which exits 0 under the
-   * flat 0.58 model and 1 under this one.
+   * flat 0.58 model and 1 under this one. That ONE fixture is what keeps this
+   * branch honest — it proves the guardrail is live rather than dead code that
+   * still parses. There are deliberately no per-widget Devanagari fixtures on
+   * top of it: they would assert a script the product does not ship. The
+   * reachable, and until now untested, case is a HINGLISH caption — Latin, and
+   * systematically longer than its English equivalent.
    */
   const charW = /[\u0900-\u097F]/.test(s) ? 0.75 : 0.58;
   const w = s.length * size * charW, h = size * 1.15;
