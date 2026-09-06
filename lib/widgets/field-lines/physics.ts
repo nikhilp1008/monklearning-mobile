@@ -179,8 +179,19 @@ export interface FieldLinesParams {
 export interface FieldLinesDerived {
   /** N/C, at a configuration-specific reference point — see the header. */
   fieldMagnitude: number;
-  /** Traced field lines drawn. Zero for the configurations that draw none —
-   *  and that zero is checked against the rendered tree, not asserted here. */
+  /**
+   * Traced field lines drawn IN THE FIGURE — the total, across every source
+   * the renderer seeds from. Zero for the configurations that draw none, and
+   * that zero is checked against the rendered tree, not asserted here.
+   *
+   * IT WAS PER SEEDING SOURCE UNTIL 2026-09-06, and that is the defect this
+   * key exists to not have again. `like_charges` seeds BOTH of its positive
+   * charges, so `charge_uc: 10` puts 20 curves on the board while the readout
+   * printed `lines 10` and `derivedAliases.lineCount` handed the same 10 to
+   * narration — Drona saying "ten field lines" over a board showing twenty.
+   * The per-source number is `lineCount / seedingSourceCount(p)`; nothing
+   * needs it today, and a figure total is what a student can count.
+   */
   lineCount: number;
   /** Charge inside the closed surface, in microcoulombs. 0 for every
    *  configuration that draws no closed surface, and exactly 0 — not
@@ -209,6 +220,23 @@ export interface FieldLinesDerived {
  */
 export const K = 8.988e9;
 export const EPS0 = 8.854e-12;
+
+/**
+ * The legal magnitude of `charge_uc`, in whatever unit its configuration reads
+ * it as. Exported so `validate()`, the dev harness and any sweep read the same
+ * two numbers rather than three copies of `4` and `20`.
+ *
+ * The UPPER bound is the line-density cap: `charge_uc` IS the line count per
+ * source, and 20 is what stays countable at 343x236.
+ *
+ * There is no lower bound of the same kind — 4 is the smallest count that
+ * still reads as a field rather than as four stray strokes. Values below it
+ * are CLAMPED UP, because that only changes the magnitude of a source. Values
+ * at or below ZERO are REJECTED instead, because they change its sign or its
+ * existence, which no clamp may quietly do — see `validate()`.
+ */
+export const CHARGE_UC_MIN = 4;
+export const CHARGE_UC_MAX = 20;
 
 /* ------------------------------------------------------------ v1 constants */
 
@@ -601,31 +629,76 @@ export function enclosedChargeC(p: FieldLinesParams): number {
   }
 }
 
+/**
+ * The configurations that TRACE field lines by stepping the superposed field.
+ *
+ * `equipotential_point` is deliberately absent even though `chargesFor`
+ * returns a charge for it: it draws contours and radial E vectors, never a
+ * traced line. The renderer's own branch says the same thing, and the two are
+ * asserted equal against the rendered tree in __tests__/render-v2.test.tsx —
+ * a count derived from a list the renderer does not consult is exactly the
+ * defect this pair of functions was written to end.
+ */
+const TRACED: ReadonlySet<string> = new Set([
+  'point',
+  'dipole',
+  'like_charges',
+  'gaussian_sphere',
+]);
+
+/**
+ * How many independent sources the renderer seeds a full fan of lines from.
+ *
+ * `like_charges` is 2 — both of its charges are positive and both are seeded —
+ * and that 2 is the whole of the `lines 10` / twenty-curves defect: the count
+ * was computed per source and reported as if it were the figure.
+ * `parallel_plates` seeds no charge at all; it lays one set of rows across the
+ * gap, so it is one source by construction.
+ */
+export function seedingSourceCount(p: FieldLinesParams): number {
+  if (p.configuration === 'parallel_plates') return 1;
+  if (!TRACED.has(p.configuration)) return 0;
+  // Lines originate on positive sources only — the same test the renderer
+  // applies before it seeds (`if (charge.q <= 0) continue`).
+  return chargesFor(p).filter((c) => c.q > 0).length;
+}
+
+/**
+ * Lines seeded per source. `charge_uc` IS the density knob — NCERT's "the
+ * number of lines is proportional to the charge" — and the floor of 1 is the
+ * renderer's own, kept here so both read one function rather than two copies
+ * of `Math.round`. `validate()` clamps to [4, 20], so the floor is inert on
+ * any validated payload and exists for callers that build params by hand.
+ */
+export function linesPerSource(p: FieldLinesParams): number {
+  return Math.max(1, Math.round(p.charge_uc));
+}
+
+/** Traced field lines in the FIGURE: per source, times the sources drawn. */
+export function fieldLineCount(p: FieldLinesParams): number {
+  return linesPerSource(p) * seedingSourceCount(p);
+}
+
 export function deriveFieldLines(p: FieldLinesParams): FieldLinesDerived {
   const q = p.charge_uc * 1e-6;
   const r = surfaceRadiusM(p);
   let fieldMagnitude: number;
-  let lineCount = 0;
   let potentialStepV = 0;
 
   switch (p.configuration) {
     case 'point':
       fieldMagnitude = (K * q) / (REF_DISTANCE_M * REF_DISTANCE_M);
-      lineCount = Math.round(p.charge_uc);
       break;
     case 'dipole': {
       const d = SEPARATION_M / 2;
       fieldMagnitude = 2 * ((K * q) / (d * d));
-      lineCount = Math.round(p.charge_uc);
       break;
     }
     case 'like_charges':
       fieldMagnitude = 0;
-      lineCount = Math.round(p.charge_uc);
       break;
     case 'parallel_plates':
       fieldMagnitude = q / EPS0;
-      lineCount = Math.round(p.charge_uc);
       break;
     case 'gaussian_sphere': {
       // Enclosed: E on the surface, kq/r^2. Not enclosed: the field is not
@@ -634,7 +707,6 @@ export function deriveFieldLines(p: FieldLinesParams): FieldLinesDerived {
       // the one that makes "zero flux, non-zero field" concrete.
       const d = p.enclosed ? r : CHARGE_OUTSIDE_X_M - r;
       fieldMagnitude = (K * q) / (d * d);
-      lineCount = Math.round(p.charge_uc);
       break;
     }
     case 'gaussian_cylinder': {
@@ -662,7 +734,11 @@ export function deriveFieldLines(p: FieldLinesParams): FieldLinesDerived {
   const enclosedC = enclosedChargeC(p);
   return {
     fieldMagnitude,
-    lineCount,
+    // Computed ONCE, from the same two functions the renderer seeds with,
+    // rather than per case: five hand-written `Math.round(p.charge_uc)`
+    // assignments were what let `like_charges` report a per-source count as a
+    // figure total, and a sixth configuration would have inherited it.
+    lineCount: fieldLineCount(p),
     enclosedChargeUc: enclosedC * 1e6,
     flux: enclosedC / EPS0,
     potentialStepV,

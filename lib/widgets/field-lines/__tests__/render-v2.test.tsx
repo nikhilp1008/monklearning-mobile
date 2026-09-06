@@ -23,8 +23,10 @@ import { resolve } from 'node:path';
 
 import { fieldLines } from '..';
 import {
-  EQUI_CONTOURS, EQUI_PLANES, SURFACE_SCALE_MAX, SURFACE_SCALE_MIN,
-  chargesFor, deriveFieldLines, surfaceArrows, type FieldLinesParams,
+  CHARGE_UC_MAX, CHARGE_UC_MIN, EQUI_CONTOURS, EQUI_PLANES,
+  SURFACE_SCALE_MAX, SURFACE_SCALE_MIN,
+  deriveFieldLines, seedingSourceCount, surfaceArrows,
+  type FieldLinesParams,
 } from '../physics';
 import { renderWidgetTree, renderWidgetTreeAt, TEST_THEME } from '../../__tests__/test-utils';
 
@@ -227,40 +229,86 @@ describe('trees for scripts/verify-render.mjs', () => {
 
 describe('the readout describes the tree it is drawn on', () => {
   /**
-   * `lineCount` is PER SEEDING SOURCE, not a total. That is what physics.ts
-   * has always documented ("Field lines drawn per charge") and it is the only
-   * reading that keeps `like_charges` honest — it seeds every one of its two
-   * positive charges, so charge_uc 10 puts 20 curves on the board.
+   * `lineCount` IS THE FIGURE'S TOTAL. Fixed 2026-09-06; it was per seeding
+   * source, and this file pinned that as a finding rather than fixing it.
    *
-   * FINDING, PRE-EXISTING, NOT FIXED HERE. v1's readout prints that number as
-   * `lines 10`, which reads as a total, and on `like_charges` the board
-   * carries 20. `dipole` seeds only its positive charge, so there the same
-   * label IS the total; the string is right for three configurations out of
-   * four and wrong for one. Fixing it means changing the v1 readout string,
-   * which is exactly the byte-identity __golden__ exists to protect and which
-   * the brief for this change requires — so it is reported rather than
-   * silently corrected in a commit about Gaussian surfaces. The relationship
-   * is pinned below so a future fix has to face it deliberately.
+   * The defect it was: `like_charges` seeds both of its positive charges, so
+   * `charge_uc: 10` puts 20 curves on the board while the readout printed
+   * `lines 10` — and `derivedAliases.lineCount` handed the same 10 to
+   * narration, so Drona could say "ten field lines" over twenty of them. The
+   * other three v1 configurations have one seeding source each, so the label
+   * was right for three figures out of four, which is why it survived.
+   *
+   * Asserted against the TREE, with no per-source multiplier left in the
+   * assertion — the multiplier was the bug, and a test that reapplies it
+   * cannot see the bug come back.
    */
-  test.each(ALL_CONFIGS)('%s: lineCount x seeding sources equals the curves drawn', (configuration) => {
-    for (const charge_uc of [4, 20]) {
-      const p = params({ configuration, charge_uc });
-      const seeds = configuration === 'parallel_plates'
-        ? 1
-        : chargesFor(p).filter((c) => c.q > 0).length;
-      const tree = renderWidgetTree(fieldLines, p);
-      expect(fieldLinePaths(tree)).toHaveLength(deriveFieldLines(p).lineCount * seeds);
+  test.each(ALL_CONFIGS)('%s: lineCount is exactly the curves drawn', (configuration) => {
+    for (const charge_uc of [CHARGE_UC_MIN, 10, CHARGE_UC_MAX]) {
+      // `enclosed` moves the sphere's charge off-axis, so it is swept too: the
+      // seeding source is the same one either way and the count must not care.
+      for (const enclosed of [true, false]) {
+        const p = params({ configuration, charge_uc, enclosed });
+        for (const b of BOARDS) {
+          const tree = renderWidgetTreeAt(fieldLines, p, {}, b.width, b.height);
+          expect(fieldLinePaths(tree)).toHaveLength(deriveFieldLines(p).lineCount);
+        }
+      }
     }
   });
 
-  test('like_charges is the one configuration whose readout count is not the total', () => {
+  /**
+   * The counter-check, by an INDEPENDENT route: `seedingSourceCount` is what
+   * `deriveFieldLines` multiplies by, so re-deriving the total from it would
+   * be an identity. Count the SOURCE GLYPHS in the tree instead — the drawn
+   * `+` circles — and divide the curves by them. Two glyphs on the board with
+   * an equal fan on each is what "20 lines" has to mean for like_charges.
+   */
+  test('like_charges draws two fans, and the readout counts both', () => {
     const p = params({ configuration: 'like_charges', charge_uc: 10 });
-    expect(deriveFieldLines(p).lineCount).toBe(10);
-    expect(fieldLinePaths(renderWidgetTree(fieldLines, p))).toHaveLength(20);
-    // Every other seeding configuration agrees with its own readout.
-    for (const configuration of ['point', 'dipole', 'parallel_plates', 'gaussian_sphere'] as const) {
-      const q = params({ configuration, charge_uc: 10 });
-      expect(fieldLinePaths(renderWidgetTree(fieldLines, q))).toHaveLength(deriveFieldLines(q).lineCount);
+    const tree = renderWidgetTree(fieldLines, p);
+    const glyphs = flatten(tree).filter(
+      (n) => n.type === 'RNSVGCircle' && fillPayload(n) === argb(TEST_THEME.accent)
+    );
+    expect(glyphs).toHaveLength(2);
+    const curves = fieldLinePaths(tree).length;
+    expect(curves).toBe(20);
+    expect(curves / glyphs.length).toBe(10);
+    expect(deriveFieldLines(p).lineCount).toBe(curves);
+    // And the number reaches the board, not just the derived map.
+    const readout = textsOf(tree).reduce((a, b) => (a.y < b.y ? a : b)).content;
+    expect(readout).toContain('lines 20');
+  });
+
+  /** Every other seeding configuration has ONE source, so its count did not
+   *  move — the fix is confined to the one figure that was wrong. */
+  test.each(['point', 'dipole', 'parallel_plates', 'gaussian_sphere'] as const)(
+    '%s still reports charge_uc lines, unchanged by the fix',
+    (configuration) => {
+      const p = params({ configuration, charge_uc: 10 });
+      expect(seedingSourceCount(p)).toBe(1);
+      expect(deriveFieldLines(p).lineCount).toBe(10);
+      expect(fieldLinePaths(renderWidgetTree(fieldLines, p))).toHaveLength(10);
+    }
+  );
+
+  /**
+   * The readout carrying the bigger number still fits the smallest board.
+   * `lines 40` is the widest this string ever gets (like_charges at the top of
+   * the legal range), and it must not push the value into `fitReadout`'s
+   * taper — a count that had to be elided to be printed would be a worse
+   * defect than the one being fixed.
+   */
+  test('the v1 readout still fits at 343x236 with the larger count', () => {
+    for (const charge_uc of [CHARGE_UC_MIN, CHARGE_UC_MAX]) {
+      const tree = renderWidgetTreeAt(fieldLines,
+        params({ configuration: 'like_charges', charge_uc }), {}, 343, 236);
+      const readout = textsOf(tree).reduce((a, b) => (a.y < b.y ? a : b)).content;
+      expect(readout).not.toContain('\u2026');
+      expect(readout).toContain(`lines ${charge_uc * 2}`);
+      // The same 0.58 model scripts/verify-render.mjs measures with, at the
+      // readout's own 14pt.
+      expect(readout.length * 14 * 0.58).toBeLessThanOrEqual(343 * 0.88);
     }
   });
 

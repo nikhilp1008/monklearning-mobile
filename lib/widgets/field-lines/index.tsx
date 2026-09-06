@@ -15,12 +15,15 @@ import {
   equipotentialRadiiM,
   gaussianSurfacePolylines,
   isGaussian,
+  linesPerSource,
   neutralPointWorld,
   pathFromWorldPoints,
   sourceUnit,
   surfaceArrows,
   terminationPointWorld,
   traceFieldLine,
+  CHARGE_UC_MAX,
+  CHARGE_UC_MIN,
   PLATE_GAP_M,
   SURFACE_SCALE_MAX,
   SURFACE_SCALE_MIN,
@@ -119,6 +122,37 @@ function validate(raw: unknown): ValidationResult<FieldLinesParams> {
   }
   if (typeof chargeUc !== 'number' || !Number.isFinite(chargeUc)) {
     errors.push('charge_uc must be a finite number');
+  } else if (chargeUc <= 0) {
+    /*
+     * REJECTED, NOT CLAMPED — the one place this validator refuses a number
+     * instead of pulling it into range.
+     *
+     * The clamp below may change a source's MAGNITUDE (2 becomes 4: a denser
+     * fan of the same picture). It may not change its SIGN or its EXISTENCE.
+     * `clamp(-10, 4, 20)` returned +4, so a payload meaning "a −10 µC charge"
+     * drew a +4 µC one with every field line pointing OUT instead of in, and
+     * the readout, the arrowheads and `derivedAliases.fieldMagnitude` all
+     * agreed with each other about the wrong figure. Nothing downstream could
+     * see it: the diagram renders perfectly legibly and passes every
+     * assertion scripts/verify-render.mjs makes.
+     *
+     * A negative charge is not a smaller positive one, and it is not this
+     * widget's to draw either way: `chargesFor` seeds lines on positive
+     * sources only, and the negative charge in the figures that have one
+     * comes from `configuration: 'dipole'`, never from a negative charge_uc.
+     * Zero is refused for the neighbouring reason — it is not a weak source,
+     * it is no source, and clamping it to 4 invents one.
+     */
+    errors.push(
+      chargeUc < 0
+        ? `charge_uc must be a positive magnitude, got ${chargeUc}. A negative charge is ` +
+          `not a smaller positive one: clamping it into [${CHARGE_UC_MIN}, ${CHARGE_UC_MAX}] ` +
+          `would flip the sign of the source and reverse the field direction the figure ` +
+          `teaches. field_lines draws positive sources only — for a negative charge use ` +
+          `configuration 'dipole', which draws one, and pass its magnitude here.`
+        : `charge_uc must be a positive magnitude, got ${chargeUc}. A zero source has no ` +
+          `field at all, and clamping it to ${CHARGE_UC_MIN} would invent one.`
+    );
   }
   if (typeof surfaceScale !== 'number' || !Number.isFinite(surfaceScale)) {
     errors.push('surface_scale must be a finite number');
@@ -144,8 +178,13 @@ function validate(raw: unknown): ValidationResult<FieldLinesParams> {
       // The cap that keeps line density teachable rather than thinned
       // adaptively for a small board — docs/small-screen-rendering-rules.md
       // "what does not survive a small screen". 20 is the ceiling regardless
-      // of board size; it is enforced here, not at render time.
-      charge_uc: clamp(chargeUc as number, 4, 20),
+      // of board size; it is enforced here, not at render time. Both bounds
+      // live in physics.ts so the schema has one spelling — the dev harness
+      // reads the same two numbers rather than a copy of them.
+      //
+      // MAGNITUDE ONLY. Zero and negatives never reach this clamp; they are
+      // refused above.
+      charge_uc: clamp(chargeUc as number, CHARGE_UC_MIN, CHARGE_UC_MAX),
       /*
        * The schema's legal range is a SUBSET of what renders. Both bounds
        * measured at 343x236, where pxPerM = 503.07.
@@ -333,11 +372,38 @@ function readoutValue(p: FieldLinesParams, d: ReturnType<typeof deriveFieldLines
       sourceTerm(p),
     ].join(READOUT_SEP);
   }
-  // v1's exact string, four-space separator and all. Byte identity with what
-  // field_lines@1 rendered is the contract here, and the separator is part of
-  // those bytes; `fitReadout` returns a value unchanged when it fits and a
-  // caption of '' adds nothing, so routing v1 through it is a no-op that
-  // buys v1 configurations the caption they never had.
+  /*
+   * v1's exact string, four-space separator and all — `fitReadout` returns a
+   * value unchanged when it fits and a caption of '' adds nothing, so routing
+   * v1 through it is a no-op that buys v1 configurations the caption they
+   * never had.
+   *
+   * ONE THING IN IT CHANGED, 2026-09-06, and the goldens moved with it:
+   * `lines N` now prints the lines in the FIGURE, where it used to print the
+   * lines per seeding source. Only `like_charges` renders differently — it is
+   * the only configuration with two sources — and it went from `lines 10`,
+   * beside twenty curves, to `lines 20`.
+   *
+   * `lines 20` rather than `10 per charge`, deliberately: `lines` means the
+   * same thing in all four v1 configurations this way, and the total is the
+   * one number a student can check by counting the board. A second grammar
+   * for one configuration would put the readouts of `point` and
+   * `like_charges` in different units of meaning under the same word, which
+   * is the mismatch class CLAUDE.md's `{{derived}}`-token rule exists to make
+   * impossible. `derivedAliases.lineCount` carries the same total to
+   * narration, so Drona cannot say ten over a board showing twenty.
+   *
+   * IT FITS THE SMALLEST BOARD, which is the only board that could refuse it:
+   * `like_charges` has E = 0 exactly, so its whole value half is
+   * "E 0 N/C    lines 20" — 19 code units against a 37-unit budget at 343x236
+   * (`floor(0.88 * 343 / (14 * 0.58))`) — and "lines 40", the widest this
+   * string ever gets at the top of the legal range, is the same 19. The count
+   * therefore never reaches `fitReadout`'s taper, which matters more than the
+   * slack suggests: a count that had to be elided to be printed would be a
+   * worse defect than the one this fixed. Asserted in
+   * __tests__/render-v2.test.tsx off the rendered tree, not left as
+   * arithmetic in a comment.
+   */
   return `E ${formatField(d.fieldMagnitude)} N/C    lines ${d.lineCount}`;
 }
 
@@ -386,7 +452,10 @@ function FieldLines({ params, width, height, theme }: WidgetRenderProps<FieldLin
     // reverse. See the SEED_GAP comment above.
     const seedGapWorld = (CHARGE_GLYPH_R + SEED_GAP) / frame.pxPerM;
     const absorbR = seedGapWorld;
-    const numLines = Math.max(1, Math.round(params.charge_uc));
+    // ONE spelling of the per-source count, shared with `deriveFieldLines`.
+    // The readout's `lines N` is `linesPerSource * seedingSourceCount`, so a
+    // change here cannot leave the number that describes the figure behind.
+    const numLines = linesPerSource(params);
     const lines: SceneLine[] = [];
 
     const toArrow = (mid: readonly [number, number], next: readonly [number, number]) => ({
@@ -796,3 +865,7 @@ export const fieldLines: WidgetModule<FieldLinesParams> = {
 };
 
 export type { FieldLinesConfiguration, FieldLinesParams };
+/** The schema's own bounds, re-exported so a caller outside `lib/widgets/`
+ *  (app/dev-widget-preview.tsx) can stay inside the schema by construction
+ *  instead of by a copied literal that `validate()` now refuses to fix. */
+export { CHARGE_UC_MAX, CHARGE_UC_MIN } from './physics';

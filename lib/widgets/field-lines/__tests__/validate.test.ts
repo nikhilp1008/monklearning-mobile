@@ -10,7 +10,10 @@
  * readable message, and never throwing. That is checked here.
  */
 import { fieldLines } from '..';
-import { SURFACE_SCALE_MAX, SURFACE_SCALE_MIN, type FieldLinesParams } from '../physics';
+import {
+  CHARGE_UC_MAX, CHARGE_UC_MIN, SURFACE_SCALE_MAX, SURFACE_SCALE_MIN,
+  type FieldLinesParams,
+} from '../physics';
 
 const ok = (raw: unknown): FieldLinesParams => {
   const r = fieldLines.validate(raw);
@@ -124,38 +127,16 @@ describe('never throws, on anything', () => {
 });
 
 describe('clamps rather than rejects, inside the schema', () => {
-  test('charge_uc is clamped to [4, 20] at both ends', () => {
-    expect(ok({ ...GOOD, charge_uc: 1e9 }).charge_uc).toBe(20);
-    expect(ok({ ...GOOD, charge_uc: 0 }).charge_uc).toBe(4);
-    expect(ok({ ...GOOD, charge_uc: 4 }).charge_uc).toBe(4);
-    expect(ok({ ...GOOD, charge_uc: 20 }).charge_uc).toBe(20);
-  });
-
   /**
-   * FINDING, PINNED RATHER THAN FIXED. A NEGATIVE charge_uc clamps to +4 —
-   * so a payload meaning "a −10 µC point charge" draws a +4 µC one, with the
-   * field lines pointing OUT instead of in. That is a wrong diagram from a
-   * plausible payload, and it is v1 behaviour: the clamp predates this change
-   * and the widget has only ever drawn positive sources.
-   *
-   * NOT narrowed here, deliberately, and the reasons are worth stating so a
-   * future reader can weigh them rather than repeat them:
-   *
-   *   - it is not the failure CLAUDE.md's "narrow the schema" rule is about.
-   *     That rule is about a payload the GATE rejects; this one renders
-   *     perfectly legibly. It is the semantic class instead — chrome.ts's
-   *     `τ 100` for `τ 100 ms`, a number that reads as complete and is wrong;
-   *   - `app/dev-widget-preview.tsx` has a "charge_uc −2" button that walks
-   *     the value down and relies on the clamp to stop at 4. Rejecting
-   *     negatives would break that screen, which this change may not touch;
-   *   - no precomputed field_lines payload exists anywhere in the corpus, so
-   *     nothing is currently mangled by it.
-   *
-   * Pinned so a future fix has to delete this test on purpose.
+   * MAGNITUDE is clamped. Sign and existence are not — see the describe block
+   * below, which is where `charge_uc: 0` moved to on 2026-09-06.
    */
-  test('a NEGATIVE charge_uc silently becomes +4 — v1 behaviour, reported not fixed', () => {
-    expect(ok({ ...GOOD, charge_uc: -10 }).charge_uc).toBe(4);
-    expect(ok({ ...GOOD, charge_uc: -1e9 }).charge_uc).toBe(4);
+  test('charge_uc is clamped to [4, 20] at both ends', () => {
+    expect(ok({ ...GOOD, charge_uc: 1e9 }).charge_uc).toBe(CHARGE_UC_MAX);
+    expect(ok({ ...GOOD, charge_uc: 0.5 }).charge_uc).toBe(CHARGE_UC_MIN);
+    expect(ok({ ...GOOD, charge_uc: 2 }).charge_uc).toBe(CHARGE_UC_MIN);
+    expect(ok({ ...GOOD, charge_uc: CHARGE_UC_MIN }).charge_uc).toBe(CHARGE_UC_MIN);
+    expect(ok({ ...GOOD, charge_uc: CHARGE_UC_MAX }).charge_uc).toBe(CHARGE_UC_MAX);
   });
 
   test('surface_scale is clamped to its legal range at both ends', () => {
@@ -169,6 +150,55 @@ describe('clamps rather than rejects, inside the schema', () => {
     const long = 'x'.repeat(500);
     expect(ok({ ...GOOD, caption: long }).caption).toHaveLength(120);
     expect(ok({ ...GOOD, caption: 'short' }).caption).toBe('short');
+  });
+});
+
+/**
+ * THE ONE THING THIS VALIDATOR REFUSES RATHER THAN CLAMPS.
+ *
+ * Until 2026-09-06 a negative `charge_uc` went through `clamp(n, 4, 20)` and
+ * came out as +4: a payload meaning "a −10 µC charge" drew a +4 µC one, with
+ * every field line pointing outward instead of inward, and every derived
+ * value — `fieldMagnitude`, `flux`, `lineCount` — agreeing with the wrong
+ * figure. It was pinned by a test in this file that asserted the laundering
+ * as behaviour. That call was overruled: a clamp may change how BIG a source
+ * is, never which way it points or whether it exists.
+ *
+ * The pinning test cited `app/dev-widget-preview.tsx` as depending on the
+ * clamp. It does not, and did not at the time — its "charge_uc −2" button has
+ * always floored at 4 itself (`git show HEAD:app/dev-widget-preview.tsx`).
+ * The screen now reads CHARGE_UC_MIN/MAX rather than copies of them.
+ */
+describe('refuses a sign, where it would clamp a magnitude', () => {
+  test.each([-10, -1e9, -4, -0.001])('charge_uc %p is rejected, not clamped to +4', (charge_uc) => {
+    const e = errs({ ...GOOD, charge_uc });
+    expect(e).toHaveLength(1);
+    expect(e[0]).toContain('positive magnitude');
+    // The message names the PHYSICS, not the bound: a reader who only learns
+    // "must be in [4, 20]" will try -4 next.
+    expect(e[0]).toContain('not a smaller positive one');
+    expect(e[0]).toContain('reverse the field direction');
+    // And it says what to do instead, since the widget can draw a negative
+    // charge — as half of a dipole.
+    expect(e[0]).toContain('dipole');
+  });
+
+  test.each([0, -0])('charge_uc %p is rejected — no source, not a weak one', (charge_uc) => {
+    const e = errs({ ...GOOD, charge_uc });
+    expect(e).toHaveLength(1);
+    expect(e[0]).toContain('positive magnitude');
+    expect(e[0]).toContain('no field at all');
+  });
+
+  test('the sign error does not mask the other errors in the same payload', () => {
+    const e = errs({ configuration: 'nope', charge_uc: -10, enclosed: 1 });
+    expect(e).toHaveLength(3);
+  });
+
+  test('a rejected charge_uc yields no params at all — nothing partial renders', () => {
+    const r = fieldLines.validate({ ...GOOD, charge_uc: -10 });
+    expect(r.ok).toBe(false);
+    expect(r).not.toHaveProperty('params');
   });
 });
 

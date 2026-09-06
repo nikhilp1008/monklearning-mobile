@@ -18,7 +18,7 @@ import {
 import { colors } from '@/constants/brand';
 import { useLandscapeLock } from '@/hooks/use-landscape-lock';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
-import { fieldLines } from '@/lib/widgets/field-lines';
+import { CHARGE_UC_MAX, CHARGE_UC_MIN, fieldLines } from '@/lib/widgets/field-lines';
 import type { FieldLinesParams } from '@/lib/widgets/field-lines';
 import { xyPlot } from '@/lib/widgets/xy-plot';
 import type { XyPlotParams } from '@/lib/widgets/xy-plot';
@@ -335,11 +335,23 @@ function ManualPreview() {
             <Text style={[styles.pillText, configuration === c && styles.pillTextActive]}>{c}</Text>
           </Pressable>
         ))}
-        <Pressable onPress={() => setChargeUc((v) => Math.max(4, v - 2))} style={styles.pill}>
+        {/* Bounded by the SCHEMA's own constants, not by copies of 4 and 20.
+            `validate()` no longer launders an illegal charge_uc into a legal
+            one — a value at or below zero is refused outright — so a harness
+            that walked past a bound would blank the board instead of quietly
+            drawing something else, and a bound that moved in physics.ts would
+            take this screen with it. */}
+        <Pressable
+          onPress={() => setChargeUc((v) => Math.max(CHARGE_UC_MIN, v - 2))}
+          style={styles.pill}
+        >
           <Text style={styles.pillText}>charge_uc −2</Text>
         </Pressable>
         <Text style={styles.readout}>{chargeUc}</Text>
-        <Pressable onPress={() => setChargeUc((v) => Math.min(20, v + 2))} style={styles.pill}>
+        <Pressable
+          onPress={() => setChargeUc((v) => Math.min(CHARGE_UC_MAX, v + 2))}
+          style={styles.pill}
+        >
           <Text style={styles.pillText}>charge_uc +2</Text>
         </Pressable>
         <Pressable onPress={() => setShowArrows((v) => !v)} style={[styles.pill, showArrows && styles.pillActive]}>
