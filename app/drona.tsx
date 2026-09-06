@@ -409,10 +409,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     listContent: {
       flexDirection: 'column',
-      // The tab bar floats over this screen and the footer that used to hold
-      // the list clear of it is gone, so the list clears it itself: bar
-      // height, its safe-area inset, and the fade above them.
-      paddingBottom: verticalScale(112),
+      // Enough to clear the fade and the home indicator. There is no tab bar
+      // over this screen any more.
+      paddingBottom: verticalScale(48),
     },
     /**
      * The textbook chapter row, verbatim -- app/textbook-chapters.tsx's `row`,

@@ -200,6 +200,13 @@ export default function RootLayout() {
             options={{ headerShown: false, animation: 'fade' }}
           />
           <Stack.Screen name="session-summary" options={{ headerShown: false }} />
+          {/* Pushed screens, not tabs. Both used to live in (tabs) behind
+              href:null, which hid them from the bar but still wrapped them in
+              it -- so picking a chapter or answering a question happened under
+              a navigation bar that had nothing to do with either. Each carries
+              its own back button instead. */}
+          <Stack.Screen name="drona" options={{ headerShown: false }} />
+          <Stack.Screen name="practice" options={{ headerShown: false }} />
           <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
           <Stack.Screen

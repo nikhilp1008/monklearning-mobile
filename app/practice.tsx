@@ -296,6 +296,11 @@ export default function PracticeScreen() {
             four. A menu costs one tap and scales. */}
         <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
+          {/* This is a pushed screen with no tab bar under it, so the way out
+              is here. Same 36pt round button the chapter selector uses. */}
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <BackArrowIcon size={scale(16)} />
+          </Pressable>
           <Text style={styles.heading}>Practice</Text>
           <Pressable
             onLayout={(e) => setSubjectAnchor(e.nativeEvent.layout.x)}
@@ -586,6 +591,20 @@ function CheckIcon({ size }: { size: number }) {
   );
 }
 
+function BackArrowIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function ChevronDownIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
@@ -659,7 +678,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     scrollContent: {
       paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(130),
+      paddingBottom: verticalScale(40),
     },
     // The title, and the subject inside it. 26/700 at -0.025em is the
     // redesign's own heading spec -- the same Anek Latin the app already
@@ -670,6 +689,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // Above the scrim, so the title stays legible and a second tap on the
       // subject closes the menu.
       zIndex: 10,
+    },
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      flexShrink: 0,
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: scale(4),
     },
     headerRow: {
       flexDirection: 'row',
