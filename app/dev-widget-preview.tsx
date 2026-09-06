@@ -26,6 +26,8 @@ import { reactionScheme } from '@/lib/widgets/reaction-scheme';
 import type { ReactionSchemeParams } from '@/lib/widgets/reaction-scheme';
 import { processFlow } from '@/lib/widgets/process-flow';
 import type { ProcessFlowParams } from '@/lib/widgets/process-flow';
+import { circuitNetwork } from '@/lib/widgets/circuit-network';
+import type { CircuitNetworkParams } from '@/lib/widgets/circuit-network';
 import { moleculeStruct } from '@/lib/widgets/molecule-struct';
 import type { MoleculeStructParams } from '@/lib/widgets/molecule-struct';
 import { useCueTrackByTime, type TimedCue } from '@/lib/widgets/use-cue-track';
@@ -139,7 +141,8 @@ type Mode =
   | 'xy_plot'
   | 'reaction_scheme'
   | 'process_flow'
-  | 'molecule_struct';
+  | 'molecule_struct'
+  | 'circuit_network';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -197,6 +200,14 @@ export default function DevWidgetPreviewScreen() {
             molecule_struct
           </Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('circuit_network')}
+          style={[styles.pill, mode === 'circuit_network' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'circuit_network' && styles.pillTextActive]}>
+            circuit_network
+          </Text>
+        </Pressable>
       </View>
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
@@ -205,6 +216,7 @@ export default function DevWidgetPreviewScreen() {
       {mode === 'reaction_scheme' && <ReactionSchemePreview />}
       {mode === 'process_flow' && <ProcessFlowPreview />}
       {mode === 'molecule_struct' && <MoleculeStructPreview />}
+      {mode === 'circuit_network' && <CircuitNetworkPreview />}
     </View>
   );
 }
@@ -1052,6 +1064,239 @@ function MoleculeStructPreview() {
           ) : (
             <Text style={styles.captionText}>validate(): {result.errors.join(' | ')}</Text>
           )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * circuit_network example payloads — one per real NCERT use, so correctness is
+ * checkable here without a lesson existing. Each `expect` states what the board
+ * must show; if the picture disagrees with it, the widget is wrong. The five
+ * numeric reference values behind these readouts are asserted in
+ * lib/widgets/__tests__/physics.test.ts and derived by hand in
+ * lib/widgets/circuit-network/circuit-math.ts's header.
+ *
+ * The last two are the pair the `topology` param exists for: the same four
+ * resistors reduce to different equivalents in a series-parallel and in a
+ * ladder, and the drawing is what says which one the question means.
+ */
+const CIRCUIT_CASES: { label: string; expect: string; params: CircuitNetworkParams }[] = [
+  {
+    label: 'Phys 12 Ch3 · two banks in series (ref 1)',
+    expect: 'Req 6 Ω   I 2.29 A   V 13.7 V  (4‖4 = 2, 12‖6 = 4)',
+    params: { ...circuitNetwork.defaults },
+  },
+  {
+    label: 'Phys 12 Ch3 · metre bridge, null at 53.5 cm (ref 2)',
+    expect: 'a diamond with G at its centre · X 5.21 Ω, NOT 6 Ω · "deflect" swings the needle',
+    params: {
+      topology: 'bridge',
+      elements: [
+        { kind: 'resistor', name: 'P', value: 6 },
+        { kind: 'resistor', name: 'Q', value: 4 },
+        { kind: 'resistor', name: 'R', value: 3 },
+        { kind: 'resistor', name: 'S', value: 5 },
+        { kind: 'galvanometer', name: 'G', value: 50 },
+      ],
+      source_v: 2, internal_r: 0, bridge_null_cm: 53.5,
+      show_current: false, t_frac: 0, bridge_delta: 0,
+      caption: 'Metre bridge',
+    },
+  },
+  {
+    label: 'Phys 12 Ch3 · RC charging, τ = 0.1 s (ref 3)',
+    expect: 'a real GAP between the plates, filling as "charge" runs · τ 100 ms',
+    params: {
+      topology: 'series',
+      elements: [
+        { kind: 'resistor', name: 'R', value: 20000 },
+        { kind: 'capacitor', name: 'C', value: 5 },
+      ],
+      source_v: 12, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'RC charging',
+    },
+  },
+  {
+    label: 'Phys 12 Ch2 · three capacitors in series (ref 4)',
+    expect: 'Ceq 923 nF (= 12/13 µF), NOT 9 µF · no Req, no current',
+    params: {
+      topology: 'series',
+      elements: [
+        { kind: 'capacitor', name: 'C1', value: 2 },
+        { kind: 'capacitor', name: 'C2', value: 3 },
+        { kind: 'capacitor', name: 'C3', value: 4 },
+      ],
+      source_v: 12, internal_r: 0, bridge_null_cm: 50,
+      show_current: false, t_frac: 0, bridge_delta: 0,
+      caption: 'Capacitors in series',
+    },
+  },
+  {
+    label: 'Phys 12 Ch7 · series LCR at resonance (ref 5)',
+    expect: 'R, four inductor humps and a plate gap on one rail · Req 40 Ω, Ceq 80 µF',
+    params: {
+      topology: 'series',
+      elements: [
+        { kind: 'resistor', name: 'R', value: 40 },
+        { kind: 'inductor', name: 'L', value: 5000 },
+        { kind: 'capacitor', name: 'C', value: 80 },
+      ],
+      source_v: 230, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Series LCR',
+    },
+  },
+  {
+    label: 'Phys 12 Ch3 · three resistors in parallel',
+    expect: '3 branches between two bus bars · Req 4 Ω (= 3.997, from 4700‖12‖6)',
+    params: {
+      topology: 'parallel',
+      elements: [
+        { kind: 'resistor', name: 'R1', value: 4700 },
+        { kind: 'resistor', name: 'R2', value: 12 },
+        { kind: 'resistor', name: 'R3', value: 6 },
+      ],
+      source_v: 6, internal_r: 0.5, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Three in parallel',
+    },
+  },
+  {
+    label: 'Phys 12 Ch3 · the SAME four resistors as a LADDER',
+    expect: 'Req 10 + (20‖70) = 25.6 Ω — a different answer from the same four values',
+    params: {
+      topology: 'ladder',
+      elements: [
+        { kind: 'resistor', name: 'R1', value: 10 },
+        { kind: 'resistor', name: 'R2', value: 20 },
+        { kind: 'resistor', name: 'R3', value: 30 },
+        { kind: 'resistor', name: 'R4', value: 40 },
+      ],
+      source_v: 12, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Ladder network',
+    },
+  },
+  {
+    label: 'Phys 12 Ch3 · two-mesh (Kirchhoff) network',
+    expect: 'two rectangles sharing a middle branch · Req 10+20+(30‖150) = 55 Ω',
+    params: {
+      topology: 'two_loop',
+      elements: [
+        { kind: 'resistor', name: 'R1', value: 10 },
+        { kind: 'resistor', name: 'R2', value: 20 },
+        { kind: 'resistor', name: 'R3', value: 30 },
+        { kind: 'resistor', name: 'R4', value: 40 },
+        { kind: 'resistor', name: 'R5', value: 50 },
+        { kind: 'resistor', name: 'R6', value: 60 },
+      ],
+      source_v: 24, internal_r: 2, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Two-mesh network',
+    },
+  },
+  {
+    label: 'Phys 12 Ch3 · lamp behind a switch',
+    expect: 'an OPEN switch blade and a crossed lamp circle · Req 4.7 kΩ (switch = 0 Ω)',
+    params: {
+      topology: 'series',
+      elements: [
+        { kind: 'switch', name: 'S', value: 1 },
+        { kind: 'resistor', name: 'R', value: 4700 },
+        { kind: 'lamp', name: 'L1', value: 12 },
+      ],
+      source_v: 6, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Lamp and switch',
+    },
+  },
+];
+
+/**
+ * Renders `circuitNetwork.Component` DIRECTLY rather than through
+ * `BoardWidget`. BoardWidget dispatches through `lib/widgets/registry.ts`, and
+ * circuit_network is not registered yet — registry wiring is a separate serial
+ * step. Swap this for a `BoardWidget` + payload once it lands, the way the
+ * xy_plot tab does.
+ *
+ * The two buttons drive the two animatable params, which is the whole reason
+ * they are animatable and the thing a still tree cannot show: "charge" runs
+ * t_frac 0 -> 1 (the fill grows as 1 − e^(−2.5t), so it is visibly fast then
+ * slow, not linear) and "deflect" swings bridge_delta across its full range.
+ */
+function CircuitNetworkPreview() {
+  const box = useDiagramBox();
+  const diagramBox = { availableWidth: box.availableWidth, maxHeight: box.maxHeight - 70 };
+  const theme = useDevTheme();
+  const [i, setI] = useState(0);
+  const kase = CIRCUIT_CASES[i];
+
+  const tFrac = useSharedValue(0);
+  const bridgeDelta = useSharedValue(0);
+  const motion = useMemo(
+    () => ({ t_frac: tFrac, bridge_delta: bridgeDelta }),
+    [tFrac, bridgeDelta]
+  );
+
+  const validated = useMemo(() => {
+    const r = circuitNetwork.validate(kase.params as unknown as Record<string, unknown>);
+    if (!r.ok) console.warn('[dev-widget-preview][circuit_network]', r.errors);
+    return r.ok ? r.params : circuitNetwork.defaults;
+  }, [kase]);
+
+  return (
+    <View style={styles.body}>
+      <View style={styles.controlsContent}>
+        <Pressable
+          onPress={() => {
+            setI((v) => (v + 1) % CIRCUIT_CASES.length);
+            tFrac.value = 0;
+            bridgeDelta.value = 0;
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>next case</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            tFrac.value = 0;
+            tFrac.value = withTiming(1, { duration: 2200 });
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>charge</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            bridgeDelta.value = withTiming(bridgeDelta.value > 0 ? -0.8 : 0.8, { duration: 900 });
+          }}
+          style={[styles.pill, styles.pillActive]}
+        >
+          <Text style={styles.pillTextActive}>deflect</Text>
+        </Pressable>
+        <Text style={styles.readout}>
+          {i + 1}/{CIRCUIT_CASES.length}
+        </Text>
+      </View>
+      <View style={[styles.controlsContent, { paddingTop: 0 }]}>
+        <Text style={styles.pillText} numberOfLines={1}>
+          {kase.label}  ·  expect: {kase.expect}
+        </Text>
+      </View>
+
+      <View style={styles.boardArea}>
+        <View style={{ width: diagramBox.availableWidth, height: diagramBox.maxHeight }}>
+          <circuitNetwork.Component
+            params={validated}
+            motion={motion}
+            width={diagramBox.availableWidth}
+            height={diagramBox.maxHeight}
+            theme={theme}
+            services={DEV_SERVICES}
+          />
         </View>
       </View>
     </View>

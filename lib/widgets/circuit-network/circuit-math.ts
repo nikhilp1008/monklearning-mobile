@@ -196,6 +196,7 @@
  */
 import {
   CHAR_W,
+  charWidthFor,
   GLYPH_R,
   LABEL_SIZE,
   PAD_EDGE,
@@ -371,8 +372,19 @@ export const CHAR_PT = LABEL_SIZE * CHAR_W;          // 6.96
 export const READOUT_BOX_BOTTOM =
   READOUT_BAND - READOUT_SIZE * 0.5 - READOUT_SIZE * 0.82 + READOUT_SIZE * 1.15;
 
+/**
+ * The width verify-render will measure this string at.
+ *
+ * NOT a flat CHAR_PT. The checker's textBox picks its per-code-unit fraction
+ * PER STRING — 0.75 for anything containing Devanagari, 0.58 otherwise — and a
+ * backstop that measures a name at 0.58 which the gate measures at 0.75 is
+ * modelling a checker that does not exist. `name` is free text the schema
+ * admits in any script, so the two must agree by construction rather than by
+ * the cap happening to leave enough slack. Latin is unchanged: charWidthFor
+ * returns CHAR_W for it.
+ */
 export function textW(s: string): number {
-  return s.length * CHAR_PT;
+  return s.length * LABEL_SIZE * charWidthFor(s);
 }
 
 /* -------------------------------------------------------------- formatting */
@@ -608,9 +620,15 @@ export function derive(p: CircuitNetworkParams): CircuitDerived {
   const power = i_total * i_total * r_eq;
   // c_eq is microfarad; τ is seconds.
   const tau = r_eq * c_eq * 1e-6;
+  // A metre bridge reads a RESISTANCE off a resistance in the standard arm, so
+  // slot 0's RESISTANCE is what R(100−l)/l may be applied to — not its raw
+  // `value`. The schema admits a bridge whose arms are capacitors (no bank
+  // mixes families, so validate() has nothing to object to), and reading 6 µF
+  // as 6 Ω printed "X 5.21 Ω" — a resistance the payload never contained, in
+  // the one derived key a caption is most likely to quote.
   const r_unknown =
     p.topology === 'bridge'
-      ? metreBridgeUnknown(p.elements[0] ? p.elements[0].value : 0, p.bridge_null_cm)
+      ? metreBridgeUnknown(resistanceOf(p.elements[0]), p.bridge_null_cm)
       : 0;
 
   return { r_eq, c_eq, i_total, terminal_v, power, tau, r_unknown };

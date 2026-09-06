@@ -22,6 +22,8 @@ import { resolve } from 'node:path';
 import { REGISTRY } from '../registry';
 import { processFlow } from '../process-flow';
 import { renderWidgetTree, renderWidgetTreeAt, scaffoldingDiffs } from './test-utils';
+import { circuitNetwork } from '../circuit-network';
+import type { CircuitNetworkParams } from '../circuit-network';
 import { reactionScheme } from '../reaction-scheme';
 import { labelBoxes, type ReactionSchemeParams } from '../reaction-scheme/scheme-graph';
 import { moleculeStruct } from '../molecule-struct';
@@ -66,14 +68,16 @@ const REAL_SMALL = { width: 495, height: 270 };
 const SPEC_SMALL = { width: 343, height: 236 };
 
 test('every registry entry is either verified below or explicitly skipped', () => {
+  // All nine are registered as of the wiring commit. The three entries that
+  // used to carry "verified below but NOT in the registry yet" notes are now
+  // plain members; reaction_scheme was verified below all along and simply
+  // never added itself here, which is precisely what this guard is for -- it
+  // failed the moment the registry grew, naming the one widget nobody had
+  // listed. A guard that only fires on the case its author remembered is not
+  // a guard.
   const covered = new Set([
     'projectile_motion', 'field_lines', 'xy_plot', 'data_table_trend',
-    // process_flow is verified below but is NOT in the registry yet — wiring
-    // it in is a separate serial step. Listing it here keeps this guard
-    // honest the moment it lands rather than the commit after.
-    'process_flow',
-    // molecule_struct, likewise: verified below, registry wiring is separate.
-    'molecule_struct',
+    'process_flow', 'reaction_scheme', 'molecule_struct', 'circuit_network',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
@@ -773,9 +777,10 @@ describe('reaction_scheme', () => {
   });
 
   test('derived matches what computeDerived actually returns', () => {
-    // derived-consistency.test.ts iterates the REGISTRY, which reaction_scheme
-    // is not in yet. Same assertion, made directly, so registration cannot be
-    // the first time this is checked.
+    // Written when reaction_scheme was not yet in the REGISTRY that
+    // derived-consistency.test.ts iterates. It is now, so this duplicates that
+    // check -- kept deliberately: it asserts against the module directly, so
+    // it still holds if the widget is ever unregistered.
     expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());
     for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
   });
@@ -1164,5 +1169,248 @@ describe('molecule_struct', () => {
         }
       }
     }
+  });
+});
+
+/**
+ * circuit_network is verified here BEFORE it is registered — registry wiring
+ * is a separate serial step, so `REGISTRY.circuit_network` does not exist yet
+ * and the module is imported directly. Everything else is the same harness.
+ *
+ * The cases are chosen for the three risks this widget actually has, not for
+ * variety:
+ *
+ * FIRST, EVERY TOPOLOGY LAYS OUT DIFFERENTLY. Six named shapes means six
+ * independent collision problems, so all six are rendered at all three boards
+ * rather than the default one — `series_parallel`'s stacked bank labels, the
+ * `bridge` diamond's four diagonal arms, and `two_loop`'s three vertical
+ * branches each place text somewhere no other topology does.
+ *
+ * SECOND, THE GLYPH FLOOR. The source and the galvanometer are both circles at
+ * GLYPH_R, so verify-render assertion 8 demands 24pt between them, and only
+ * `bridge` puts both on one board. That is the case the half-diagonal floor
+ * exists for.
+ *
+ * THIRD, THE PARAMS/MOTION SPLIT, for BOTH animatable params. `t_frac` moves a
+ * charge quad and a current arrow; `bridge_delta` moves a needle. If either
+ * ever dragged a label with it, the widget would be label-terminated and
+ * therefore snap-only — that is what the invariance test below decides, rather
+ * than the module's comment.
+ */
+describe('circuit_network', () => {
+  const mod = circuitNetwork;
+  const R = (name: string, value: number) => ({ kind: 'resistor' as const, name, value });
+
+  const CASES: Record<string, CircuitNetworkParams> = {
+    // Reference 1 — NCERT Cl.12 Ch.3, two banks in series behind a real cell.
+    series_parallel: { ...mod.defaults },
+
+    // Reference 2 — the metre bridge. The ONLY board carrying two GLYPH_R
+    // circles, i.e. the only one assertion 8 can fail on.
+    bridge: {
+      topology: 'bridge',
+      elements: [
+        R('P', 6), R('Q', 4), R('R', 3), R('S', 5),
+        { kind: 'galvanometer', name: 'G', value: 50 },
+      ],
+      source_v: 2, internal_r: 0, bridge_null_cm: 53.5,
+      show_current: false, t_frac: 0, bridge_delta: 0.6,
+      caption: 'Metre bridge',
+    },
+
+    // Reference 3 — RC charging. The case the charge fill exists for.
+    rc: {
+      topology: 'series',
+      elements: [R('R', 20000), { kind: 'capacitor', name: 'C', value: 5 }],
+      source_v: 12, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0.4, bridge_delta: 0,
+      caption: 'RC charging',
+    },
+
+    // Reference 4 — three capacitors in series. r_eq is 0 here, which is the
+    // readout's degenerate branch and a real payload rather than a corner.
+    caps: {
+      topology: 'series',
+      elements: [
+        { kind: 'capacitor', name: 'C1', value: 2 },
+        { kind: 'capacitor', name: 'C2', value: 3 },
+        { kind: 'capacitor', name: 'C3', value: 4 },
+      ],
+      source_v: 12, internal_r: 0, bridge_null_cm: 50,
+      show_current: false, t_frac: 1, bridge_delta: 0,
+      caption: 'Capacitors in series',
+    },
+
+    // Reference 5 — series LCR at NCERT's own resonance values.
+    lcr: {
+      topology: 'series',
+      elements: [
+        R('R', 40),
+        { kind: 'inductor', name: 'L', value: 5000 },
+        { kind: 'capacitor', name: 'C', value: 80 },
+      ],
+      source_v: 230, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Series LCR',
+    },
+
+    // The branch cap, at the widest labels the schema admits.
+    parallel: {
+      topology: 'parallel',
+      elements: [R('R1', 4700), R('R2', 12), R('R3', 6)],
+      source_v: 6, internal_r: 0.5, bridge_null_cm: 50,
+      show_current: true, t_frac: 0.5, bridge_delta: 0,
+      caption: 'Three in parallel',
+    },
+
+    ladder: {
+      topology: 'ladder',
+      elements: [R('R1', 10), R('R2', 20), R('R3', 30), R('R4', 40)],
+      source_v: 12, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0.25, bridge_delta: 0,
+      caption: 'Ladder network',
+    },
+
+    two_loop: {
+      topology: 'two_loop',
+      elements: [R('R1', 10), R('R2', 20), R('R3', 30), R('R4', 40), R('R5', 50), R('R6', 60)],
+      source_v: 24, internal_r: 2, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'Two-mesh network',
+    },
+
+    // A Hindi caption. verify-render measures a string containing ANY
+    // Devanagari at 0.75 per code unit, not the 0.58 chrome's fitReadout
+    // budgets with, so this readout ran off the 343 and 495 boards while
+    // passing at 900. The tree this writes is the fixture for that.
+    hindi_caption: {
+      topology: 'series_parallel',
+      elements: [R('R1', 4), R('R2', 4), R('R3', 12), R('R4', 6)],
+      source_v: 16, internal_r: 1, bridge_null_cm: 50,
+      show_current: true, t_frac: 0, bridge_delta: 0,
+      caption: 'दो बैंक श्रेणी में जुड़े हैं और यही',
+    },
+
+    // The kinds that only a single reducible path may carry: a switch, and a
+    // lamp (whose glyph is deliberately NOT GLYPH_R — see LAMP_R).
+    switched: {
+      topology: 'series',
+      elements: [
+        { kind: 'switch', name: 'S', value: 1 },
+        R('R', 4700),
+        { kind: 'lamp', name: 'L1', value: 12 },
+      ],
+      source_v: 6, internal_r: 0, bridge_null_cm: 50,
+      show_current: true, t_frac: 0.8, bridge_delta: 0,
+      caption: 'Lamp and switch',
+    },
+  };
+
+  test('every case is a payload validate() would actually admit', () => {
+    // The schema's legal range must be a SUBSET of what renders correctly — so
+    // the trees below have to come from inside the schema, not beside it.
+    for (const [name, params] of Object.entries(CASES)) {
+      const r = mod.validate(params);
+      expect([name, r.ok ? [] : r.errors]).toEqual([name, []]);
+    }
+  });
+
+  test.each(Object.keys(CASES))('renders %s and writes its tree', (name) => {
+    const params = CASES[name];
+    const tree = renderWidgetTree(mod, params, {
+      t_frac: params.t_frac,
+      bridge_delta: params.bridge_delta,
+    });
+    expect(tree).not.toBeNull();
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(
+      resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+      JSON.stringify(tree, null, 1)
+    );
+    const json = JSON.stringify(tree);
+    // Wires are Lines, symbols are Paths and Lines, glyphs are Circles. A tree
+    // missing any of the three is a schematic with nothing to read.
+    expect(json).toContain('RNSVGLine');
+    expect(json).toContain('RNSVGCircle');
+    expect(json).toContain('"d":');
+    // Every element must reach the tree by name — a silently dropped slot is
+    // the failure a bare "did it render" check would miss.
+    for (const el of params.elements) {
+      expect(json).toContain(`"content":"${el.name}"`);
+    }
+  });
+
+  describe.each(Object.keys(CASES))('%s at small boards', (name) => {
+    const params = CASES[name];
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(
+        mod,
+        params,
+        { t_frac: params.t_frac, bridge_delta: params.bridge_delta },
+        box.width,
+        box.height
+      );
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('the network does not move while t_frac charges (CLAUDE.md §3)', () => {
+    for (const name of Object.keys(CASES)) {
+      const a = renderWidgetTree(mod, CASES[name], { t_frac: 0 });
+      const b = renderWidgetTree(mod, CASES[name], { t_frac: 1 });
+      expect([name, scaffoldingDiffs(a, b)]).toEqual([name, []]);
+    }
+  });
+
+  test('the bridge does not move while bridge_delta deflects (CLAUDE.md §3)', () => {
+    // The needle is a Path and may move; every Line and Text here is
+    // scaffolding and may not. Checked on EVERY case, not just `bridge`,
+    // because off a bridge the needle is parked by opacity rather than
+    // unmounted — and an unmounted element would change the element count,
+    // which scaffoldingDiffs reports.
+    for (const name of Object.keys(CASES)) {
+      const a = renderWidgetTree(mod, CASES[name], { bridge_delta: -1 });
+      const b = renderWidgetTree(mod, CASES[name], { bridge_delta: 1 });
+      expect([name, scaffoldingDiffs(a, b)]).toEqual([name, []]);
+    }
+  });
+
+  test('both animatable params at 0 is a drawable frame, not a NaN', () => {
+    // motionFor defaults an unsupplied key to 0, so 0 has to render — for a
+    // charge fill that means a zero-height quad with real coordinates rather
+    // than an absent element.
+    for (const name of Object.keys(CASES)) {
+      const tree = renderWidgetTree(mod, CASES[name], {});
+      expect([name, /NaN|Infinity/.test(JSON.stringify(tree))]).toEqual([name, false]);
+    }
+  });
+
+  test('a payload with no capacitor draws nothing at the board origin', () => {
+    // The charge fill is always mounted, which is what keeps the element count
+    // constant across motion values — but parked at (0,0) it stretched
+    // verify-render's ink-coverage bbox to the board's top-left corner
+    // (series_parallel measured 93.6% of a 343x236 board where its ink is
+    // 68.9%), so assertion 2 passed for the wrong reason. It is parked on the
+    // source glyph instead, exactly as the off-bridge needle is.
+    for (const name of ['series_parallel', 'two_loop', 'switched']) {
+      const json = JSON.stringify(renderWidgetTree(mod, CASES[name], {}));
+      expect([name, json.includes('M0.00 0.00L0.00 0.00')]).toEqual([name, false]);
+    }
+  });
+
+  test('derived matches what computeDerived actually returns', () => {
+    // derived-consistency.test.ts iterates the REGISTRY, which circuit_network
+    // is not in yet. Same assertion, made directly, so registration cannot be
+    // the first time this is checked.
+    expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());
+    for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
   });
 });

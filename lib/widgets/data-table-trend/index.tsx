@@ -181,7 +181,8 @@ function DataTableTrend({
   const readout = useMemo(() => {
     const w = frame.right - frame.left;
     if (params.cell_kind !== 'numeric') {
-      return (params.caption || 'comparison').slice(0, maxChars(w, READOUT_SIZE));
+      const cap = params.caption || 'comparison';
+      return cap.slice(0, maxChars(w, READOUT_SIZE, cap));
     }
     const sign = d.netChange > 0 ? '+' : '';
     const unit = params.unit ? ` ${params.unit}` : '';

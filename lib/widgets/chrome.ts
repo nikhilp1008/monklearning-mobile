@@ -184,8 +184,25 @@ export function textWidth(text: string, fontSize: number): number {
   return text.length * fontSize * charWidthFor(text);
 }
 
-export function maxChars(width: number, fontSize: number): number {
-  return Math.max(0, Math.floor(width / (fontSize * CHAR_W)));
+/**
+ * How many code units of `text` fit in `width`.
+ *
+ * `text` IS REQUIRED, and that is the fix for a defect two independent
+ * verifiers found in the same week from opposite directions (molecule_struct's
+ * Hindi label, circuit_network's Hindi caption). This function used to take
+ * only a width and a font size, so it could not see the script and hardcoded
+ * the Latin `CHAR_W`. `textWidth` right above measures the SAME string at
+ * `CHAR_W_DEVA`, and so does scripts/verify-render.mjs. A Devanagari readout
+ * was therefore budgeted 29% more characters than it could hold, sliced to
+ * that budget, and ran off the board -- a hard gate error that `validate()`
+ * cheerfully admitted, on every widget that renders a readout.
+ *
+ * An optional parameter defaulting to Latin would have kept every existing
+ * call site compiling and silently wrong: a check that passes because it was
+ * never told. There are three call sites. They are all updated.
+ */
+export function maxChars(width: number, fontSize: number, text: string): number {
+  return Math.max(0, Math.floor(width / (fontSize * charWidthFor(text))));
 }
 
 /**
@@ -204,7 +221,10 @@ export function fitReadout(
   width: number,
   fontSize: number = READOUT_SIZE
 ): string {
-  const cap = maxChars(width, fontSize);
+  // Budget against the WIDER of the two scripts present. The caption and the
+  // value are concatenated into one line, so one Devanagari code unit
+  // anywhere makes the gate measure the whole string at CHAR_W_DEVA.
+  const cap = maxChars(width, fontSize, caption + value);
   if (cap <= 0) return '';
   const v = value.length > cap ? value.slice(0, cap) : value;
   const room = cap - v.length - 3;

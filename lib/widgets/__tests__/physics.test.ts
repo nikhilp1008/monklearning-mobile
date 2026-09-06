@@ -30,6 +30,14 @@ import {
   MAX_NODES_CHAIN, MAX_NODES_RING, NODE_H, chainCell, chainGrid,
   derive as deriveFlow, maxChainLabelChars, maxRingLabelChars, nodeWidth, ringFits,
 } from '../process-flow/flow-math';
+import { circuitNetwork } from '../circuit-network';
+import {
+  HALF_DIAG_MIN, SLOTS, VALUE_MAX_BY_KIND, VALUE_MIN,
+  bridgeFloorBoxes, capacitorCharge, capacitorEnergy, capacitorVoltage,
+  derive as deriveCircuit, fitProblems as circuitFit, fmtElement, fmtOhms,
+  layout as circuitLayout, qualityFactor, resonantFreq, resonantOmega, textW,
+  type CircuitNetworkParams, type ElementKind,
+} from '../circuit-network/circuit-math';
 import { moleculeStruct } from '../molecule-struct';
 import {
   AXE, AXE_KEYS, BOND_GAP, LABEL_CLEAR, MAX_BOND_PAIRS, MAX_DOMAINS,
@@ -634,9 +642,10 @@ describe('reaction_scheme — reading a scheme', () => {
 });
 
 /**
- * reaction_scheme is not in REGISTRY (see render-trees.test.tsx), so
- * derived-consistency.test.ts does not reach it. The same two invariants,
- * asserted here instead of being lost.
+ * Written when reaction_scheme was not in REGISTRY, so
+ * derived-consistency.test.ts could not reach it. It is registered now and
+ * that suite does reach it; these stay because they assert against the module
+ * directly rather than through the registry.
  */
 describe('reaction_scheme — derived self-consistency', () => {
   test('derived matches what computeDerived actually returns', () => {
@@ -1261,5 +1270,421 @@ describe('molecule_struct — validate()', () => {
         }
       }
     }
+  });
+});
+
+/**
+ * circuit_network — the five reference values its maths module's header states,
+ * turned into assertions. Every one is chosen so that a STUB cannot pass it:
+ * the resistor combination is self-checking through two independent routes,
+ * the metre bridge is deliberately off the 50cm mark, the RC point is
+ * exponential rather than linear, the capacitor series is the one formula
+ * whose three plausible wrong answers are all far away, and the resonance
+ * fixture separates ω₀ from f₀.
+ */
+describe('circuit_network — NCERT reference values', () => {
+  const R = (name: string, value: number) => ({ kind: 'resistor' as const, name, value });
+  const base = {
+    internal_r: 0, bridge_null_cm: 50, show_current: true,
+    t_frac: 0, bridge_delta: 0, caption: '',
+  };
+
+  /** 1. NCERT Cl.12 Physics Part I Ch.3 — combination of resistors, V = ε − I r. */
+  const combo: CircuitNetworkParams = {
+    ...base,
+    topology: 'series_parallel',
+    elements: [R('R1', 4), R('R2', 4), R('R3', 12), R('R4', 6)],
+    source_v: 16,
+    internal_r: 1,
+  };
+
+  test('ref 1: banks {4,4} and {12,6} behind ε 16 V, r 1 Ω', () => {
+    const d = deriveCircuit(combo);
+    expect(d.r_eq).toBeCloseTo(6, 9);                 // 4‖4 = 2, 12‖6 = 4
+    expect(d.i_total).toBeCloseTo(2.285714, 6);       // 16/7
+    expect(d.terminal_v).toBeCloseTo(13.714286, 6);   // 16 − 2.285714
+    expect(d.power).toBeCloseTo(31.346939, 6);        // (256/49)·6
+  });
+
+  test('ref 1 is self-checking: terminal_v also equals i_total × r_eq', () => {
+    // Two independent routes to one number, so a sign slip in ε − I r cannot
+    // pass quietly the way it would against a single hand-typed expectation.
+    const d = deriveCircuit(combo);
+    expect(d.terminal_v).toBeCloseTo(d.i_total * d.r_eq, 9);
+  });
+
+  test('ref 1: the parallel banks are not summed, averaged or ignored', () => {
+    const d = deriveCircuit(combo);
+    expect(d.r_eq).not.toBeCloseTo(26, 1);   // summing every slot
+    expect(d.r_eq).not.toBeCloseTo(6.5, 1);  // averaging
+  });
+
+  /** 2. Metre bridge, same chapter. */
+  const bridge: CircuitNetworkParams = {
+    ...base,
+    topology: 'bridge',
+    elements: [
+      R('P', 6), R('Q', 4), R('R', 3), R('S', 5),
+      { kind: 'galvanometer', name: 'G', value: 50 },
+    ],
+    source_v: 2,
+    bridge_null_cm: 53.5,
+  };
+
+  test('ref 2: R 6 Ω, null at 53.5 cm -> X = 5.214953 Ω', () => {
+    expect(deriveCircuit(bridge).r_unknown).toBeCloseTo(5.214953, 6);
+  });
+
+  test('ref 2 is off the 50 cm mark on purpose', () => {
+    // At exactly 50 cm the answer IS the standard resistance, so a stub that
+    // returns slot 0's value would pass. At 53.5 it returns 6 and is wrong.
+    expect(deriveCircuit(bridge).r_unknown).not.toBeCloseTo(6, 1);
+    expect(deriveCircuit({ ...bridge, bridge_null_cm: 50 }).r_unknown).toBeCloseTo(6, 9);
+  });
+
+  /** 3. RC charging. */
+  const rc: CircuitNetworkParams = {
+    ...base,
+    topology: 'series',
+    elements: [R('R', 20000), { kind: 'capacitor', name: 'C', value: 5 }],
+    source_v: 12,
+  };
+
+  test('ref 3: R 20 kΩ with C 5 µF gives τ = 0.1 s exactly', () => {
+    expect(deriveCircuit(rc).tau).toBeCloseTo(0.1, 12);
+  });
+
+  test('ref 3: V_C is exponential, not linear in t_frac', () => {
+    // The animation window is 2.5 τ, so t_frac 0.4 IS one time constant.
+    expect(capacitorVoltage(rc, 0.4)).toBeCloseTo(7.585447, 6);   // 12(1 − e⁻¹)
+    expect(capacitorVoltage(rc, 1)).toBeCloseTo(11.014980, 6);    // 12(1 − e⁻²·⁵)
+    // A stub linear in t_frac returns 12 × 0.4 = 4.8 here — 58% low, which is
+    // exactly why the assertion is at a FRACTION and not at the endpoints:
+    // 0 and 1 agree for any monotone stub.
+    expect(capacitorVoltage(rc, 0.4)).not.toBeCloseTo(4.8, 1);
+    expect(capacitorVoltage(rc, 0)).toBeCloseTo(0, 9);
+  });
+
+  /** 4. Capacitors in series, NCERT Cl.12 Part I Ch.2. */
+  const caps: CircuitNetworkParams = {
+    ...base,
+    topology: 'series',
+    elements: [
+      { kind: 'capacitor', name: 'C1', value: 2 },
+      { kind: 'capacitor', name: 'C2', value: 3 },
+      { kind: 'capacitor', name: 'C3', value: 4 },
+    ],
+    source_v: 12,
+  };
+
+  test('ref 4: 2, 3 and 4 µF in series give 12/13 µF, Q 11.08 µC, U 66.46 µJ', () => {
+    const d = deriveCircuit(caps);
+    expect(d.c_eq).toBeCloseTo(12 / 13, 9);
+    expect(d.c_eq).toBeCloseTo(0.923077, 6);
+    expect(capacitorCharge(caps)).toBeCloseTo(11.076923, 6);
+    expect(capacitorEnergy(caps)).toBeCloseTo(66.461538, 6);
+  });
+
+  test('ref 4: every plausible wrong formula is visibly wrong', () => {
+    const c = deriveCircuit(caps).c_eq;
+    expect(c).not.toBeCloseTo(9, 1);  // summing (that is the PARALLEL rule)
+    expect(c).not.toBeCloseTo(3, 1);  // averaging
+    // ...and the parallel rule on the same three, for contrast.
+    expect(deriveCircuit({ ...caps, topology: 'parallel', elements: caps.elements.slice(0, 3) }).c_eq)
+      .toBeCloseTo(9, 9);
+  });
+
+  /** 5. Series LCR at NCERT Cl.12 Part I Ch.7's own worked values. */
+  const lcr: CircuitNetworkParams = {
+    ...base,
+    topology: 'series',
+    elements: [
+      R('R', 40),
+      { kind: 'inductor', name: 'L', value: 5000 },   // 5.0 H, in millihenry
+      { kind: 'capacitor', name: 'C', value: 80 },
+    ],
+    source_v: 230,
+  };
+
+  test('ref 5: L 5 H, C 80 µF, R 40 Ω -> ω₀ 50 rad/s, f₀ 7.96 Hz, Q 6.25', () => {
+    expect(resonantOmega(lcr)).toBeCloseTo(50, 9);
+    expect(resonantFreq(lcr)).toBeCloseTo(7.957747, 6);
+    expect(qualityFactor(lcr)).toBeCloseTo(6.25, 9);
+  });
+
+  test('ref 5: f₀ is not ω₀ — the commonest bug in this formula', () => {
+    expect(resonantFreq(lcr)).not.toBeCloseTo(50, 1);
+    expect(resonantOmega(lcr) / resonantFreq(lcr)).toBeCloseTo(2 * Math.PI, 9);
+  });
+});
+
+/**
+ * The caps, each with the payload that sits one notch past it, and the
+ * geometric backstop that catches what no named cap describes.
+ * THE SCHEMA'S LEGAL RANGE MUST BE A SUBSET OF WHAT RENDERS CORRECTLY.
+ */
+describe('circuit_network — caps and the fit', () => {
+  const R = (name: string, value: number) => ({ kind: 'resistor' as const, name, value });
+  const p = (topology: CircuitNetworkParams['topology'], n: number): CircuitNetworkParams => ({
+    topology,
+    elements: Array.from({ length: n }, (_, i) => R(`R${i}`, 4700)),
+    source_v: 12, internal_r: 0, bridge_null_cm: 50,
+    show_current: true, t_frac: 0, bridge_delta: 0, caption: '',
+  });
+
+  test('a series rail holds 4 cells and refuses 5', () => {
+    // 4 × 52pt = 208 of the 291pt rail at 343x236, 83pt spare. Six would be
+    // 312 > 291 and is arithmetically impossible; five fits the pitch but
+    // leaves under one cell of slack, so the cap is 4.
+    expect(SLOTS.series).toEqual({ min: 1, max: 4 });
+    expect(circuitNetwork.validate(p('series', 4)).ok).toBe(true);
+    const r = circuitNetwork.validate(p('series', 5));
+    expect(r.ok).toBe(false);
+    expect((r as { ok: false; errors: string[] }).errors.join(' ')).toMatch(/1 to 4 elements/);
+  });
+
+  test('a parallel bank holds 3 branches and refuses 4', () => {
+    // 3 × 52 branch pitch + 28 of rail ends = 184 ≤ 197.6 of usable height.
+    // 4 would need 236 > 197.6.
+    expect(SLOTS.parallel).toEqual({ min: 2, max: 3 });
+    expect(circuitNetwork.validate(p('parallel', 3)).ok).toBe(true);
+    expect(circuitNetwork.validate(p('parallel', 4)).ok).toBe(false);
+  });
+
+  test('a fixed-slot topology rejects a short payload rather than padding it', () => {
+    // Padding would invent circuit the model did not send.
+    for (const t of ['series_parallel', 'ladder', 'bridge', 'two_loop'] as const) {
+      const short = circuitNetwork.validate(p(t, SLOTS[t].min - 1));
+      expect([t, short.ok]).toEqual([t, false]);
+      expect((short as { ok: false; errors: string[] }).errors.join(' ')).toMatch(/never padded/);
+    }
+  });
+
+  test('every display string fits the 6-character budget across the whole range', () => {
+    // The cap that closes the dense-mesh risk: 6 × 12 × 0.58 = 41.76pt against
+    // a 52pt cell pitch. Swept rather than spot-checked, because the failure is
+    // a UNIT-BOUNDARY one — 0.99956 Ω printed "1000 mΩ" until the thresholds
+    // were moved off the round numbers.
+    for (const kind of Object.keys(VALUE_MAX_BY_KIND) as ElementKind[]) {
+      const max = VALUE_MAX_BY_KIND[kind];
+      for (let i = 0; i <= 4000; i++) {
+        const value = VALUE_MIN * Math.pow(max / VALUE_MIN, i / 4000);
+        const s = fmtElement({ kind, name: 'x', value });
+        expect([kind, value, s, s.length <= 6]).toEqual([kind, value, s, true]);
+      }
+    }
+  });
+
+  test('fmtOhms emits "4.7 kΩ", never "4.700 kΩ"', () => {
+    expect(fmtOhms(4700)).toBe('4.7 kΩ');
+    expect(fmtOhms(20000)).toBe('20 kΩ');
+    expect(fmtOhms(4)).toBe('4 Ω');
+    expect(fmtOhms(1e7)).toBe('10 MΩ');
+  });
+
+  /**
+   * THE ONE GENUINE GLYPH HAZARD. The source and the galvanometer are both
+   * circles at GLYPH_R, so verify-render assertion 8 demands 24pt between
+   * them, and long arm labels are what shrink the diamond that separates them.
+   * The floor is enforced in layout and CHECKED here — an assertion with no
+   * fixture that fails it is an assertion trusted on the strength of having
+   * been written (docs/small-screen-rendering-rules.md).
+   */
+  test('bridge labels clear each other at the 40pt half-diagonal floor', () => {
+    const bridge: CircuitNetworkParams = {
+      ...p('bridge', 5),
+      elements: [
+        R('P', 4700), R('Q', 4700), R('R', 4700), R('S', 4700),
+        { kind: 'galvanometer', name: 'G', value: 4700 },
+      ],
+      bridge_null_cm: 53.5,
+    };
+    const collisions = (hx: number, hy: number) => {
+      const b = bridgeFloorBoxes(bridge, hx, hy);
+      let n = 0;
+      for (let i = 0; i < b.length; i++) {
+        for (let j = i + 1; j < b.length; j++) {
+          if (b[i].x0 < b[j].x1 && b[j].x0 < b[i].x1 && b[i].y0 < b[j].y1 && b[j].y0 < b[i].y1) n++;
+        }
+      }
+      return n;
+    };
+    expect(HALF_DIAG_MIN).toBe(40);
+    expect(collisions(HALF_DIAG_MIN, HALF_DIAG_MIN)).toBe(0);
+    // The fixture that FAILS it: half the floor puts the galvanometer's own
+    // centred label straight through both lower arm labels.
+    expect(collisions(20, 20)).toBeGreaterThan(0);
+    expect(circuitFit(bridge, 343, 236)).toEqual([]);
+  });
+
+  test('the source and the galvanometer keep 24pt apart at every board', () => {
+    const bridge: CircuitNetworkParams = {
+      ...p('bridge', 5),
+      elements: [
+        R('P', 6), R('Q', 4), R('R', 3), R('S', 5),
+        { kind: 'galvanometer', name: 'G', value: 50 },
+      ],
+    };
+    for (const [w, h] of [[343, 236], [495, 270], [900, 430]] as const) {
+      const g = circuitLayout(bridge, w, h).glyphs;
+      const src = g.find((x) => x.what === 'source')!;
+      const gal = g.find((x) => x.what === 'galvanometer')!;
+      expect([w, Math.hypot(src.x - gal.x, src.y - gal.y) >= 24]).toEqual([w, true]);
+    }
+  });
+
+  test('a capacitor leaves a real gap in the wire, not a short across its plates', () => {
+    const rc: CircuitNetworkParams = {
+      ...p('series', 2),
+      elements: [R('R', 20000), { kind: 'capacitor', name: 'C', value: 5 }],
+    };
+    const l = circuitLayout(rc, 343, 236);
+    const cap = l.elements[1];
+    // No wire may pass through the element's own footprint. A rail drawn
+    // straight through a capacitor is a WRONG diagram, not an untidy one.
+    for (const w of l.wires) {
+      const through =
+        Math.abs(w.y0 - cap.cy) < 0.5 && Math.abs(w.y1 - cap.cy) < 0.5 &&
+        Math.min(w.x0, w.x1) < cap.cx - 1 && Math.max(w.x0, w.x1) > cap.cx + 1;
+      expect(through).toBe(false);
+    }
+  });
+
+  test('the derived key set never changes shape, whatever the topology', () => {
+    const shapes: CircuitNetworkParams[] = [
+      p('series', 3), p('parallel', 2), p('series_parallel', 4),
+      p('ladder', 4), p('two_loop', 6),
+      {
+        ...p('bridge', 5),
+        elements: [
+          R('P', 6), R('Q', 4), R('R', 3), R('S', 5),
+          { kind: 'galvanometer', name: 'G', value: 50 },
+        ],
+      },
+    ];
+    for (const s of shapes) {
+      expect(Object.keys(circuitNetwork.computeDerived(s)).sort())
+        .toEqual([...circuitNetwork.derived].sort());
+      // Zeros where inapplicable, never a missing key.
+      for (const k of circuitNetwork.derived) {
+        expect([s.topology, k, Number.isFinite(circuitNetwork.computeDerived(s)[k])])
+          .toEqual([s.topology, k, true]);
+      }
+    }
+  });
+});
+
+/** validate() is total, never throws, and every rejection is readable. */
+describe('circuit_network — validate()', () => {
+  const good = circuitNetwork.defaults;
+  /** A whole payload, not a patch — `{ ...good, ...{} }` is still `good`, so
+   *  a patch-based helper cannot express "an empty object". */
+  const patched = (patch: Record<string, unknown>) => ({ ...good, ...patch });
+  const R = (name: string, value: number) => ({ kind: 'resistor' as const, name, value });
+
+  test('the defaults validate', () => {
+    expect(circuitNetwork.validate(good).ok).toBe(true);
+  });
+
+  test.each([
+    ['an empty object', {}, /topology must be one of/],
+    ['a non-object', null, /params must be an object/],
+    ['an unknown topology', patched({ topology: 'mesh' }), /topology must be one of/],
+    ['elements that are not an array', patched({ elements: 4 }), /elements must be an array/],
+    ['too few elements', patched({ elements: [R('R1', 4)] }), /exactly 4 elements/],
+    ['too many elements', patched({ elements: [R('a', 1), R('b', 1), R('c', 1), R('d', 1), R('e', 1)] }), /exactly 4 elements/],
+    ['a 4-character name', patched({ elements: [R('Rxyz', 4), R('R2', 4), R('R3', 12), R('R4', 6)] }), /1 to 3 characters/],
+    ['an unknown kind', patched({ elements: [{ kind: 'diode', name: 'D', value: 1 }, R('R2', 4), R('R3', 12), R('R4', 6)] }), /kind must be one of/],
+    ['a NaN value', patched({ elements: [R('R1', NaN), R('R2', 4), R('R3', 12), R('R4', 6)] }), /value must be a finite number/],
+    ['an Infinity value', patched({ elements: [R('R1', Infinity), R('R2', 4), R('R3', 12), R('R4', 6)] }), /value must be a finite number/],
+    ['a zero value', patched({ elements: [R('R1', 0), R('R2', 4), R('R3', 12), R('R4', 6)] }), /value must be a finite number/],
+    ['a galvanometer outside a bridge', patched({ elements: [{ kind: 'galvanometer', name: 'G', value: 50 }, R('R2', 4), R('R3', 12), R('R4', 6)] }), /only exists in a bridge/],
+    ['a switch in a ladder', { ...good, topology: 'ladder', elements: [{ kind: 'switch', name: 'S', value: 1 }, R('R2', 4), R('R3', 12), R('R4', 6)] }, /only allowed in series or series_parallel/],
+    ['a capacitor mixed with a resistor in one parallel bank', { ...good, topology: 'parallel', elements: [R('R1', 4), { kind: 'capacitor', name: 'C', value: 5 }] }, /r_eq and c_eq are BOTH meaningless/],
+    ['source_v out of range', patched({ source_v: 900 }), /source_v must be a finite number in 0\.1\.\.500/],
+    ['a NaN source_v', patched({ source_v: NaN }), /source_v must be a finite number/],
+    ['internal_r out of range', patched({ internal_r: 400 }), /internal_r must be a finite number in 0\.\.100/],
+    ['bridge_null_cm out of range', patched({ bridge_null_cm: 100 }), /bridge_null_cm must be a finite number in 1\.\.99/],
+    ['a non-boolean show_current', patched({ show_current: 'yes' }), /show_current must be a boolean/],
+    ['a NaN t_frac', patched({ t_frac: NaN }), /t_frac must be a finite number/],
+    ['an Infinity bridge_delta', patched({ bridge_delta: Infinity }), /bridge_delta must be a finite number/],
+  ])('rejects %s with a readable message', (_name, payload, pattern) => {
+    const r = circuitNetwork.validate(payload);
+    expect(r.ok).toBe(false);
+    expect((r as { ok: false; errors: string[] }).errors.join(' | ')).toMatch(pattern);
+  });
+
+  test('never throws, on anything', () => {
+    for (const junk of [undefined, 0, '', [], NaN, { topology: 3 }, { topology: 'series' },
+      { topology: 'series', elements: [1, 2] }]) {
+      expect(() => circuitNetwork.validate(junk)).not.toThrow();
+    }
+  });
+
+  test('the animation phases are clamped, the physical claims are not', () => {
+    // A phase is a position in a render and may be clamped; a voltage is a
+    // claim about a circuit, and clamping 900 V to 500 would put a number on
+    // the board the lesson never said.
+    const r = circuitNetwork.validate({ ...good, t_frac: 4, bridge_delta: -9 });
+    expect(r.ok).toBe(true);
+    expect((r as { ok: true; params: CircuitNetworkParams }).params.t_frac).toBe(1);
+    expect((r as { ok: true; params: CircuitNetworkParams }).params.bridge_delta).toBe(-1);
+    expect(circuitNetwork.validate({ ...good, source_v: 900 }).ok).toBe(false);
+  });
+
+  test('a bridge needs its galvanometer in slot 4, not on an arm', () => {
+    const arms = [
+      { kind: 'galvanometer' as const, name: 'G', value: 50 },
+      R('Q', 4), R('R', 3), R('S', 5), R('P', 6),
+    ];
+    const r = circuitNetwork.validate({ ...good, topology: 'bridge', elements: arms });
+    expect(r.ok).toBe(false);
+    expect((r as { ok: false; errors: string[] }).errors.join(' ')).toMatch(/slot 4/);
+  });
+});
+
+/**
+ * Corners found by an independent verification pass (2026-09-05), each with the
+ * payload that produced it. Both are cases the schema admits and the reference
+ * fixtures never reach.
+ */
+describe('circuit_network — corner regressions', () => {
+  const R = (name: string, value: number) => ({ kind: 'resistor' as const, name, value });
+
+  test('a bridge whose arms are not resistive reports no metre-bridge answer', () => {
+    // Nothing in validate() objects to it: no parallel bank mixes families, so
+    // the payload is legal. Reading slot 0's raw `value` printed "X 5.21 Ω"
+    // for 6 µF — a resistance the payload never contained, in the derived key
+    // a caption is most likely to quote.
+    const caps: CircuitNetworkParams = {
+      ...circuitNetwork.defaults,
+      topology: 'bridge',
+      bridge_null_cm: 53.5,
+      elements: [
+        { kind: 'capacitor', name: 'C1', value: 6 },
+        { kind: 'capacitor', name: 'C2', value: 3 },
+        { kind: 'capacitor', name: 'C3', value: 3 },
+        { kind: 'capacitor', name: 'C4', value: 3 },
+        { kind: 'galvanometer', name: 'G', value: 50 },
+      ],
+    };
+    expect(circuitNetwork.validate(caps).ok).toBe(true);
+    expect(deriveCircuit(caps).r_unknown).toBe(0);
+    // and the resistive bridge still reads 6 × 46.5 / 53.5
+    const res: CircuitNetworkParams = {
+      ...caps,
+      elements: [R('P', 6), R('Q', 4), R('R', 3), R('S', 5), { kind: 'galvanometer', name: 'G', value: 50 }],
+    };
+    expect(deriveCircuit(res).r_unknown).toBeCloseTo(5.214953, 6);
+  });
+
+  test('the fit model measures a label at the width verify-render will', () => {
+    // scripts/verify-render.mjs picks 0.75 per code unit for a string holding
+    // ANY Devanagari and 0.58 otherwise. A backstop measuring a name the gate
+    // measures wider is modelling a checker that does not exist — `name` is
+    // free text and the schema admits any script.
+    expect(textW('R12')).toBeCloseTo(3 * 12 * 0.58, 9);
+    expect(textW('क्ष')).toBeCloseTo(3 * 12 * 0.75, 9);
+    expect(textW('क्ष')).toBeGreaterThan(textW('R12'));
   });
 });

@@ -87,6 +87,15 @@
  *
  *   4. OZONE, O3, central atom. bond_pairs 2, bond_orders [2,1], lone_pairs 1.
  *        steric_number 3 -> sp2, bent, ideal 120, bond_angle 117.5
+ *      NOTE the angle here is the table's IDEALISED AX2E1 value
+ *      (120 - 1x2.5), not a measured one for ozone. NCERT gives O3 as
+ *      117 and SO2 as ~119, and this table is keyed on (bond_pairs,
+ *      lone_pairs) alone, so it CANNOT tell the two apart -- one row
+ *      serves both. The formal-charge citation below is exact; the
+ *      angle is a model output and is quoted as such. A per-species
+ *      angle override is the only real fix and is deliberately not
+ *      built: it would make the table a species lookup rather than a
+ *      VSEPR derivation, which is a different widget.
  *        formal charge, centre  = 6 - 2*1 - (2+1) = +1
  *        formal charge, =O      = 6 + 2 - 8       =  0
  *        formal charge, -O      = 6 + 1 - 8       = -1
@@ -514,7 +523,9 @@ export const AXE: Readonly<Record<string, AxeEntry>> = {
     idealAngle: 120, bondAngle: 120, secondaryAngle: 0,
     bondSites: [90, 210, 330], loneSites: [], arc: [90, 120],
   },
-  // 120 - 1*2.5. SO2 and ozone; NCERT gives ozone 117.
+  // 120 - 1*2.5, the idealised AX2E1 value. Serves BOTH SO2 (~119) and
+  // ozone (NCERT: 117) because the key is (bond_pairs, lone_pairs) and
+  // cannot separate them. Within 1.5 of each; documented, not hidden.
   [KEY(2, 1)]: {
     shape: 'bent', hybridisation: 'sp2',
     idealAngle: 120, bondAngle: 117.5, secondaryAngle: 0,
@@ -574,7 +585,13 @@ export const AXE: Readonly<Record<string, AxeEntry>> = {
   },
   [KEY(5, 1)]: {
     shape: 'square pyramidal', hybridisation: 'sp3d2',
-    idealAngle: 90, bondAngle: 89, secondaryAngle: 0,
+    // secondaryAngle was 0, meaning "this shape has no second angle". It has
+    // one, and the widget DRAWS it: bondSites 0 and 180 are a trans basal
+    // pair. The board showed a 180 pair the readout refused to name, while
+    // every sibling 6-domain row (6-0, 4-2, 3-3) named theirs. BrF5's basal
+    // F-Br-F trans angle is ~180 (slightly compressed by the lone pair at
+    // 270, same direction as the 90 -> 89 apex-basal entry beside it).
+    idealAngle: 90, bondAngle: 89, secondaryAngle: 180,
     bondSites: [0, 90, 180, 315, 225], loneSites: [270], arc: [0, 90],
   },
   [KEY(4, 2)]: {
@@ -759,8 +776,9 @@ export function legendText(p: MoleculeStructParams, width: number): string {
   for (const s of BOND_STYLES) {
     if (p.bond_styles.includes(s)) seen.push(STYLE_WORDS[s]);
   }
-  const cap = maxChars(width - 2 * PAD_SIDE, LEGEND_SIZE);
-  return seen.join('   ·   ').slice(0, cap);
+  const legend = seen.join('   ·   ');
+  const cap = maxChars(width - 2 * PAD_SIDE, LEGEND_SIZE, legend);
+  return legend.slice(0, cap);
 }
 
 /* ----------------------------------------------------------------- layout */

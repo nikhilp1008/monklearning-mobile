@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { SvgXml } from 'react-native-svg';
 
+import { labelledFigure } from './labelled-figure';
+import type { FigureResolver } from './labelled-figure/figure-resolver';
 import { lookup } from './registry';
 import { useCueTrack } from './use-cue-track';
 import type {
@@ -34,6 +36,16 @@ export interface BoardWidgetProps {
   theme: WidgetTheme;
   /** Injected capabilities; see WidgetServices. */
   services: WidgetServices;
+  /**
+   * Cache-only lookup from `asset_slug` to a figure record, for the
+   * illustration tier. Omitted means "this host has no asset store", and an
+   * illustration board event then renders nothing and logs a gap — which is
+   * the correct behaviour, not a degraded one.
+   *
+   * `FigureResolver.get` is SYNCHRONOUS by contract; there is no await on
+   * this path and no way to introduce one. See ./labelled-figure/figure-resolver.
+   */
+  figures?: FigureResolver;
   onGap?: (reason: string, detail: unknown) => void;
   /** The active cue's caption, already {{token}}-interpolated — render it in
    *  the board's own caption strip, not a new surface. Called with `null`
@@ -61,12 +73,62 @@ export function BoardWidget({
   height,
   theme,
   services,
+  figures,
   onGap,
   onCaption,
 }: BoardWidgetProps) {
   const resolved = useMemo(() => {
     const { payload } = event;
     if (!payload) return null;
+
+    /*
+     * TIER: illustration.
+     *
+     * The payload names an ASSET, not a drawing — `{ asset_slug, lang,
+     * active_group }` — because there is nothing here for a widget to
+     * compute. The art was sourced and the label layer was authored; the
+     * client's whole job is to find the record and draw the labels over it.
+     *
+     * Resolution is a synchronous cache read, deliberately. CLAUDE.md §3:
+     * "A live class must render with the network off." A miss renders nothing
+     * and logs a gap; it never awaits, never shows a spinner on the board,
+     * and never blocks the frame. Resolve before the class (prefetch), select
+     * during it (get) — §3a's "nothing is created during a live session".
+     *
+     * `labelled_figure` is dispatched here rather than through `lookup()`
+     * because it is not a registry widget: the registry is the closed set of
+     * things the MODEL may name and fill parameters for, and the model does
+     * not author label layers — a subject author does, once, offline. Note
+     * that docs/label-layer.md §2 proposes registering it like any other
+     * widget; that is the deviation, and this is the reason for it.
+     */
+    if (payload.widget === labelledFigure.id) {
+      const raw = payload.params as Record<string, unknown>;
+      const slug = typeof raw.asset_slug === 'string' ? raw.asset_slug : null;
+      if (!slug) {
+        onGap?.('invalid_params', { widget: payload.widget, errors: ['asset_slug is required'] });
+        return null;
+      }
+      const record = figures?.get(slug) ?? null;
+      if (!record) {
+        onGap?.('figure_not_cached', { asset_slug: slug });
+        return null;
+      }
+      const checked = labelledFigure.validate({
+        ...record,
+        lang: raw.lang,
+        active_group: raw.active_group,
+      });
+      if (!checked.ok) {
+        onGap?.('invalid_params', { widget: payload.widget, errors: checked.errors });
+        return null;
+      }
+      return {
+        mod: labelledFigure as unknown as import('./types').WidgetModule<object>,
+        params: checked.params as object,
+      };
+    }
+
     const mod = lookup(payload.widget, payload.version);
     if (!mod) {
       onGap?.('unknown_widget', { widget: payload.widget, version: payload.version });
@@ -78,7 +140,7 @@ export function BoardWidget({
       return null;
     }
     return { mod, params: checked.params };
-  }, [event, onGap]);
+  }, [event, figures, onGap]);
 
   if (!resolved) {
     if (event.svg) {

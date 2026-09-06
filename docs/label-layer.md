@@ -3,7 +3,17 @@
 How sourced-but-unlabelled art becomes a teaching figure.
 
 **Status.** Everything in §0 and every arithmetic result below is derived from
-files that exist in this repo today, named inline so you can check it. Every
+files that exist in this repo today, named inline so you can check it.
+
+**BUILT 2026-09-05, and one thing in here is wrong.** The renderer, the
+resolver and the gate change now exist — `lib/widgets/labelled-figure/`,
+`lib/widgets/__tests__/labelled-figure.test.tsx`, the `RNSVGImage` case in
+`scripts/verify-render.mjs` with `test/fixtures/image-off-board.json`, and
+`CHAR_W_DEVA` in `lib/widgets/chrome.ts` with
+`test/fixtures/deva-labels-collide.json`. What did not survive contact is
+**§2.4's 10-label cap**, which the real work order breaks in 28 of 48 figures;
+see the amendment at §2.4a, which is now the contract for the label record.
+Deviations found while building are listed at §7. Every
 file, script, column and tool that does **not** exist yet is marked
 **PROPOSAL**. `lib/widgets/CLAUDE.md` §8 lists six documents that were cited as
 though they were reviewed and were never written. This is the seventh document
@@ -62,6 +72,10 @@ content/figures/<figure_id>.json        provenance + label set          PROPOSAL
     "intrinsic_h": 1200
   },
   "provenance": { /* §4 */ },
+  "groups": [                     // ordered; groups[0] starts the reveal. §2.4a
+    { "id": "digestive", "label": { "en": "Digestive system", "hi": "पाचन तंत्र" } },
+    { "id": "nervous",   "label": { "en": "Nervous system",   "hi": "तंत्रिका तंत्र" } }
+  ],
   "label_set_version": 1,
   "reviewed_by": "r.nandy",       // §3 gate 4 — NOT NULL, no placeholders
   "reviewed_at": "2026-09-05",
@@ -77,6 +91,7 @@ content/figures/<figure_id>.json        provenance + label set          PROPOSAL
   "term": { "en": "Labrum", "hi": "ऊर्ध्वोष्ठ" },
   "anchor": { "u": 0.412, "v": 0.233 },        // normalised 0..1, §1.3
   "side": "left",                              // 'left' | 'right' — REQUIRED
+  "group": "digestive",                        // REQUIRED — see §2.4a
   "v_hint": 0.21,                              // optional; a HINT, see §1.5
   "leader_via": { "u": 0.30, "v": 0.19 }       // optional elbow to route around ink
 }
@@ -257,6 +272,75 @@ This is the same shape as `field_lines`' `charge_uc` cap: where density carries
 meaning, **cap the parameter in the schema, do not thin the render.** A figure
 that genuinely needs 18 labels is two figures, or it is not this board's job.
 
+### 2.4a AMENDMENT — the cap is per GROUP, and 10-per-figure was a wall
+
+Written after building against the real work order
+(`illustration-manifest.csv`, 48 anchored biology plates, all `status=todo`).
+**§2.4 above is wrong about what the cap applies to.** Measured from the file:
+
+```
+labels per figure   min 6   median 11.5   max 28   total 595
+figures over 10     28 of 48  (58%)
+terms over the 22-char Latin cap      9 of 595
+```
+
+So the cap as written rejects the majority of the corpus. And §2.4's escape
+hatch — "a figure that needs 18 labels is two figures" — is not available: the
+manifest binds each figure to ONE anchor plate (cockroach morphology *and*
+digestive system is one 1886 Miall & Denny engraving), so splitting the figure
+means re-sourcing the art.
+
+**The board capacity, measured, which §2.4 under-counted by one row.** A
+column's rows are `12 + (n-1) * 17.8 <= H - 10`, i.e.
+`n = floor((H - 22) / 17.8) + 1`:
+
+| Board | usable band | rows/column | both columns | with the group strip |
+|---|---:|---:|---:|---:|
+| 900x430 | 408.0 | 23 | **46** | 44 |
+| 495x270 | 248.0 | 14 | **28** | 26 |
+| 343x236 | 214.0 | 13 | **26** | 22 |
+
+28 labels is over the geometric ceiling at both small boards. Not tight —
+impossible, at the 11pt font floor. That is what makes this structural rather
+than a number to retune.
+
+**The resolution: a figure declares ordered GROUPS, and one is drawn at a
+time.** `group` is REQUIRED on every label record and `groups` on every figure
+record — now, before the assets are generated, not retrofitted. `<= 10` labels
+per group; a figure carries as many groups as it needs. The board draws the
+active group, plus a strip naming it — "Nervous system · 2/3" — so a subset
+never reads as a complete figure. Group selection runs on the EXISTING cue
+track: a `Cue` patches `active_group` at the `seq` of the sentence that starts
+describing that system, so the labels on screen are the ones being spoken
+about. `animatable` stays `[]` — this widget is label-terminated and therefore
+snap-only (`CLAUDE.md` §3), and a group change is a params re-render, not a
+tween.
+
+**What was rejected.**
+
+- *Numbered callouts with a legend.* Fails its own arithmetic before pedagogy
+  gets a vote: 28 legend rows is 498pt at any board. It also breaks §2.1's
+  premise — an anatomical label points at its structure; a number makes the
+  student do a lookup.
+- *Rendering a subset silently.* Output that looks complete and is not. The
+  strip exists precisely so this is not what happens.
+- *A smaller font.* The 11pt floor is a floor.
+- *Splitting into two figures.* See above — it means re-sourcing the art, and
+  grouping gets the same "one board, fewer labels" result without touching it.
+
+**A useful side effect.** §2.5's anchor-separation rule now applies WITHIN a
+group rather than across the figure, because assertion 8 only compares circles
+that are in the tree together. A 28-anchor plate could not have satisfied a
+whole-figure separation rule at 343pt.
+
+**Still open, and it is an authoring job, not a rendering one.** Nobody has
+grouped the 595 terms. The manifest's own `concept` and `must_show` columns
+already read like group boundaries, but a subject author has to draw them
+(§3.2). And the 9 over-cap terms — "region of meristematic activity" (31),
+"circum-oesophageal connective" (29) — must be shortened in the vocabulary,
+once. `validate()` REJECTS them rather than truncating, loudly, which is the
+intended behaviour: a truncated term is a wrong label rendered confidently.
+
 ### 2.5 Anchor dots, and the constraint they import
 
 **Proposal: draw a `TICK_R = 3` dot at each anchor.** A bare line-end reads as
@@ -286,7 +370,7 @@ for a figure whose only large element is the art:
   approximates the art's, so the figure **passes for the wrong reason**;
 - assertion 3 (out of bounds) — an art placed off-board is not checked at all.
 
-**PROPOSAL:** add `case 'RNSVGImage': case 'Image':` to `boundsOf`, reading
+**BUILT.** `case 'RNSVGImage': case 'Image':` was added to `boundsOf`, reading
 `x/y/width/height` exactly as the `Rect` case does. With it, a 1600×1200 art
 covers 63.7% of a 900×430 board and 91.7% of a 343×236 one — clear of the 5%
 error and 20% warn lines.
@@ -509,7 +593,10 @@ Which direction is dangerous matters. Under-estimating width makes
 overlap on a device. Over-estimating fails loudly and costs only a shorter term.
 So:
 
-**PROPOSAL, and it is unmeasured:** `CHAR_W_DEVA = 0.75` — a deliberate
+**BUILT, AND STILL UNMEASURED:** `CHAR_W_DEVA = 0.75` (`lib/widgets/chrome.ts`,
+and the identical constant in `scripts/verify-render.mjs`'s `textBox`, with
+`test/fixtures/deva-labels-collide.json` proving the checker actually reads
+it) — a deliberate
 over-estimate on code-unit length — used by both the widget and the checker for
 any string containing U+0900–U+097F, yielding the 17-code-unit cap in §2.4.
 Nobody has measured Anek Devanagari's advance widths at 12pt. Until someone
@@ -564,3 +651,31 @@ Stated plainly, because a spec that implies more coverage than it has is how the
    the author's tool against this and gate 4 is the only check.
 
 7. **Devanagari width.** §5.2. Unmeasured, guardrailed, open.
+
+---
+
+## 7. Deviations found while building (2026-09-05)
+
+Beyond §2.4a, which is the big one:
+
+1. **`labelled_figure` is NOT a registry widget.** §2 proposes registering it
+   like any other. It is dispatched by `BoardWidget` as its own tier instead.
+   The registry is the closed set of things the MODEL may name and fill
+   parameters for, and the model does not author label layers — a subject
+   author does, once, offline. The payload names an asset, not a drawing.
+2. **The plate is not `bandFor(LABEL_SIZE)`** (§2.1). That is 25.2pt, taller
+   than `ROW = 17.8`, so two plates in adjacent de-collided rows would overlap
+   and hide each other. Sized from the gate's own text-box model instead
+   (`fontSize * 1.15 + 3 = 16.8`), leaving 1pt of art visible between rows.
+3. **De-collision falls back to the BOARD band** (§2.3). The spec clamps a
+   column to the art's vertical band; for a wide art that band is short — a
+   2000x500 art at 343x236 draws 85.75pt tall — and "shift up by the excess"
+   walks the top label off the board and trips assertion 3. The art band is
+   preferred; the board band is the fallback.
+4. **The art is drawn with `preserveAspectRatio="none"`** over a rect this
+   code letterboxed itself, so the element's `x/y/width/height` ARE the drawn
+   art. That is what makes the new `boundsOf` case correct; letting the
+   element letterbox internally would make it over-report.
+5. **`board-diagram.tsx`'s fitting logic was NOT reused.** Its arithmetic is
+   right but it never computes the OFFSET — it returns a width/height for an
+   `<SvgXml>` and nothing else. The offset is the whole point here.

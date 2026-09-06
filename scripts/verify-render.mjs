@@ -73,7 +73,30 @@ function boundsOf(el) {
       return a.every(isFinite) && b.every(isFinite)
         ? { x0: Math.min(...a), x1: Math.max(...a), y0: Math.min(...b), y1: Math.max(...b) } : null;
     }
-    case 'RNSVGRect': case 'Rect': {
+    case 'RNSVGRect': case 'Rect':
+    /*
+     * An <Image> is geometry. Without this case boundsOf returned null for it,
+     * and a figure whose only large element is the art broke three assertions
+     * at once:
+     *
+     *   1  "renders nothing" — the art does not count as drawn;
+     *   2  ink coverage computed from the label plates and leaders alone.
+     *      Worse than failing: with plates spread across the art the union
+     *      bbox approximates the art's, so the figure PASSES FOR THE WRONG
+     *      REASON;
+     *   3  an art placed off-board was not checked at all.
+     *
+     * Read exactly as Rect does — x/y/width/height, plain numbers in the tree
+     * (verified: react-native-svg 15.12.1 serialises RNSVGImage with those
+     * four as top-level numbers, unlike Text's arrays and nested font). This
+     * is only correct because the widget draws with preserveAspectRatio="none"
+     * over a rect it letterboxed itself; an Image left to letterbox internally
+     * would occupy less than its element box and these bounds would over-report.
+     *
+     * Fixture: test/fixtures/image-off-board.json, which exits 0 without this
+     * case and 1 with it. Same commit, per docs/small-screen-rendering-rules.md.
+     */
+    case 'RNSVGImage': case 'Image': {
       const x = num(p.x), y = num(p.y), w = num(p.width), h = num(p.height);
       return [x, y, w, h].every(isFinite) ? { x0: x, x1: x + w, y0: y, y1: y + h } : null;
     }
@@ -124,8 +147,35 @@ function textBox(el) {
   const s = textContent(el);
   if (!s) return null;
   const size = num(f.fontSize) || 12;
-  // Monospace-ish estimate; deliberately generous so collisions are under- not over-reported.
-  const w = s.length * size * 0.58, h = size * 1.15;
+  /*
+   * Monospace-ish estimate; deliberately generous so collisions are under- not
+   * over-reported.
+   *
+   * 0.58 was fitted to Latin and this model is script-blind — it counts
+   * JavaScript String.length, i.e. UTF-16 code units. For Devanagari that is
+   * wrong in BOTH directions at once: matras have zero advance width (over-
+   * counting), and base glyphs at 12pt are wider than the Latin average
+   * (under-counting). The errors partly cancel, unpredictably, per string, so
+   * no single retuned multiplier is right.
+   *
+   * Which direction is dangerous is not symmetric. Under-estimating width
+   * makes this checker UNDER-report collisions: it passes CI and two labels
+   * overlap on a device. Over-estimating fails loudly and costs a shorter
+   * term. So Devanagari is measured at 0.75 — a deliberate OVER-estimate, a
+   * GUARDRAIL AND NOT A MEASUREMENT. Nobody has measured Anek Devanagari's
+   * advance widths at 12pt; do not describe this number as measured and do
+   * not tune it. The real fix is a per-glyph advance table.
+   *
+   * Kept identical to lib/widgets/chrome.ts's CHAR_W / CHAR_W_DEVA, for the
+   * reason stated there: if the widget and the checker disagree about width,
+   * a widget can lay text out to a width the checker rejects, or worse, pass
+   * while overlapping.
+   *
+   * Fixture: test/fixtures/deva-labels-collide.json, which exits 0 under the
+   * flat 0.58 model and 1 under this one.
+   */
+  const charW = /[\u0900-\u097F]/.test(s) ? 0.75 : 0.58;
+  const w = s.length * size * charW, h = size * 1.15;
   const anchor = f.textAnchor || 'start';
   const x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
   return { x0, x1: x0 + w, y0: y - size * 0.82, y1: y - size * 0.82 + h, s };

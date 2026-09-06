@@ -38,6 +38,17 @@ const EXPECT = {
   'font-too-small': 1, // assertion 6: font floor
   'stroke-too-thin': 1, // assertion 7: stroke floor
   'glyphs-too-close': 1, // assertion 8: glyph spacing
+  // assertion 3, via boundsOf's RNSVGImage case. Verified BOTH ways before
+  // being added: without that case an <Image> contributes no bounds, this
+  // fixture exits 0, and an off-board illustration ships. The Path and the
+  // label are here so assertions 1 and 2 pass on their own — the ONLY reason
+  // this fixture fails is the Image.
+  'image-off-board': 1,
+  // assertion 4, via the Devanagari width guardrail in textBox. Exits 0 under
+  // the flat Latin 0.58 model — the two labels are 2pt apart at that width —
+  // and 1 under CHAR_W_DEVA = 0.75. This is what "the guardrail is live"
+  // means; without a fixture it is a constant nobody proved was read.
+  'deva-labels-collide': 1,
 };
 
 const files = readdirSync(dir).filter((f) => f.endsWith('.json'));

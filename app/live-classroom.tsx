@@ -69,6 +69,8 @@ import {
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
+import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
 import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
 import { EnteringCardScreen } from '@/components/entering-card';
 import {
@@ -510,15 +512,43 @@ export default function LiveClassroomScreen() {
   /** Everything a `BoardWidget` needs beyond its own payload and its share of
    *  the board box (`diagramBox`) — kept separate from `diagramBox` because
    *  `BoardDiagram` (the tier-3 fallback) has no use for any of it. */
+  /**
+   * The illustration tier's asset store.
+   *
+   * `prefetch` runs ONCE, on mount, before any board event can arrive — it is
+   * the only asynchronous step on this path, and it is deliberately not
+   * awaited by anything that renders. During the class `BoardWidget` calls
+   * `figures.get(slug)`, which is synchronous and cache-only: a live class
+   * renders with the radio off (CLAUDE.md §3), and a slug that was not
+   * prefetched costs the student a figure, not a stalled board.
+   *
+   * Today the resolver is the bundled PLACEHOLDER — one generated PNG and a
+   * hand-written label set — because `concept_assets` does not exist and all
+   * 48 rows of illustration-manifest.csv are `status=todo`. When the R2
+   * loader lands, this constant is the only line that changes.
+   */
+  const figures = useMemo<FigureResolver>(() => placeholderFigureResolver, []);
+  useEffect(() => {
+    // Fire-and-forget on purpose: nothing renders off this promise. The
+    // report names the slugs that will miss, BEFORE the class, which is the
+    // only moment that information is actionable.
+    void figures.prefetch(figures.cached()).then((report) => {
+      if (report.missing.length > 0) {
+        console.warn('[figures] not resolvable offline:', report.missing.join(', '));
+      }
+    });
+  }, [figures]);
+
   const widgetHost = useMemo(
     () => ({
       activeSeq,
       theme: widgetTheme,
       services: widgetServices,
+      figures,
       onGap: onWidgetGap,
       onCaption: onWidgetCaption,
     }),
-    [activeSeq, widgetTheme, widgetServices, onWidgetGap, onWidgetCaption]
+    [activeSeq, widgetTheme, widgetServices, figures, onWidgetGap, onWidgetCaption]
   );
 
   const [following, setFollowing] = useState(true);
@@ -1147,6 +1177,7 @@ function BoardBlockView({
     activeSeq: number | null;
     theme: WidgetTheme;
     services: WidgetServices;
+    figures: FigureResolver;
     onGap: (reason: string, detail: unknown) => void;
     onCaption: (caption: string | null) => void;
   };
@@ -1184,6 +1215,7 @@ function BoardBlockView({
           height={diagramBox.maxHeight}
           theme={widgetHost.theme}
           services={widgetHost.services}
+          figures={widgetHost.figures}
           onGap={widgetHost.onGap}
           onCaption={widgetHost.onCaption}
         />
