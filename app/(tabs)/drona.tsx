@@ -3,10 +3,9 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { Skeleton, stagger } from '@/components/skeleton';
-import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, examSubjects, getCatalogue } from '@/lib/drona';
@@ -67,6 +66,9 @@ export default function ChapterSelectorScreen() {
     };
   }, []);
 
+  const [subjectMenu, setSubjectMenu] = useState(false);
+  const [classMenu, setClassMenu] = useState(false);
+
   const listRef = useRef<ScrollView>(null);
 
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
@@ -116,47 +118,82 @@ export default function ChapterSelectorScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* export-5a's header: the subject IS the heading, and both it and the
+            class open a picker. The search bar goes -- with fourteen chapters
+            at most, scanning beats typing, and it was taking a whole row. */}
+        <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
           <Pressable style={styles.backButton} onPress={() => router.push('/')}>
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          <View style={styles.headerTextBlock}>
-            <Text style={styles.headerTitle}>What are we learning?</Text>
+          <Pressable
+            style={styles.subjectPicker}
+            hitSlop={8}
+            onPress={() => setSubjectMenu((open) => !open)}>
+            <Text style={styles.headerTitle}>{activeSubject}</Text>
+            <View style={subjectMenu ? styles.chevronFlipped : undefined}>
+              <ChevronDownIcon size={scale(15)} />
+            </View>
+          </Pressable>
+          <Pressable
+            style={styles.classPicker}
+            hitSlop={8}
+            onPress={() => setClassMenu((open) => !open)}>
+            <Text style={styles.classPickerText}>{activeClass}</Text>
+            <View style={classMenu ? styles.chevronFlipped : undefined}>
+              <ChevronDownIcon size={scale(13)} />
+            </View>
+          </Pressable>
+        </View>
+        {subjectMenu && (
+          <View style={[styles.menu, styles.subjectMenu]}>
+            {subjects.map((name) => (
+              <Pressable
+                key={name}
+                style={styles.menuRow}
+                onPress={() => {
+                  setActiveSubject(name);
+                  setSubjectMenu(false);
+                }}>
+                <Text style={[styles.menuText, name === activeSubject && styles.menuTextOn]}>
+                  {name}
+                </Text>
+                {name === activeSubject && <CheckIcon size={scale(14)} />}
+              </Pressable>
+            ))}
           </View>
+        )}
+        {classMenu && (
+          <View style={[styles.menu, styles.classMenu]}>
+            {CLASSES.map((name) => (
+              <Pressable
+                key={name}
+                style={styles.menuRow}
+                onPress={() => {
+                  setActiveClass(name);
+                  setClassMenu(false);
+                }}>
+                <Text style={[styles.menuText, name === activeClass && styles.menuTextOn]}>
+                  {name}
+                </Text>
+                {name === activeClass && <CheckIcon size={scale(14)} />}
+              </Pressable>
+            ))}
+          </View>
+        )}
+
         </View>
 
-        <View style={styles.tabsRow}>
-          <SlidingToggle
-            options={CLASSES}
-            value={activeClass}
-            onChange={setActiveClass}
-            trackStyle={styles.classToggle}
-            thumbStyle={styles.classThumb}
-            pillStyle={styles.classPill}
-            textStyle={styles.classPillText}
-            textActiveStyle={styles.classPillTextActive}
+        {(subjectMenu || classMenu) && (
+          <Pressable
+            style={styles.menuScrim}
+            accessibilityLabel="Close menu"
+            onPress={() => {
+              setSubjectMenu(false);
+              setClassMenu(false);
+            }}
           />
-          {/* Same slider as the class capsule, anchored to the baseline so the
-              marigold rule travels between subjects instead of jumping. */}
-          <SlidingToggle
-            options={subjects}
-            value={activeSubject}
-            onChange={setActiveSubject}
-            thumbAnchor="bottom"
-            trackStyle={styles.subjectTabs}
-            rowStyle={styles.subjectRow}
-            thumbStyle={styles.subjectUnderline}
-            pillStyle={styles.subjectPill}
-            textStyle={styles.subjectTab}
-            textActiveStyle={styles.subjectTabActive}
-          />
-        </View>
-
-        <View style={styles.searchBar}>
-          <SearchIcon size={scale(15)} />
-          <Text style={styles.searchPlaceholder}>Search a chapter…</Text>
-          <Text style={styles.searchCount}>{chapters.length} chapters</Text>
-        </View>
+        )}
 
         <View style={styles.listWrap}>
           {loading ? (
@@ -204,7 +241,19 @@ export default function ChapterSelectorScreen() {
                     style={styles.chapterRow}>
                     <Text style={styles.chapterNumber}>{chapter.number}</Text>
                     <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                    <Text style={styles.chapterMeta}>{chapter.topicCount} topics →</Text>
+                    {/* The count sits where a textbook row puts SOON: a quiet
+                        trailing note before the chevron, so the two lists read
+                        with the same rhythm. */}
+                    <Text style={styles.chapterMeta}>{chapter.topicCount} topics</Text>
+                    <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
+                      <Path
+                        d="M6 3.5 10.5 8 6 12.5"
+                        stroke={colors.quiet}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -227,6 +276,22 @@ export default function ChapterSelectorScreen() {
   );
 }
 
+function ChevronDownIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path d="m4 6 4 4 4-4" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function CheckIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path d="M5 13l4 4L19 7" stroke={colors.ink} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 function BackArrowIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -241,15 +306,6 @@ function BackArrowIcon({ size }: { size: number }) {
   );
 }
 
-function SearchIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Circle cx={11} cy={11} r={7} stroke={colors.faint} strokeWidth={2} />
-      <Path d="m20 20-3.2-3.2" stroke={colors.faint} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
@@ -258,6 +314,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     safeArea: {
       flex: 1,
+    },
+    headerWrap: {
+      position: 'relative',
+      // Above the scrim, so the subject stays readable and a second tap on it
+      // closes the menu.
+      zIndex: 10,
     },
     headerRow: {
       flexDirection: 'row',
@@ -277,104 +339,59 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    headerTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
+    // export-5a: the subject IS the heading, at the 28/700 Doubts and Notes use.
     headerTitle: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(28),
+      letterSpacing: scale(-0.78),
+      lineHeight: scale(29.4),
       color: colors.ink,
     },
-    tabsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: scale(10),
-      paddingTop: verticalScale(16),
-      paddingHorizontal: scale(20),
+    subjectPicker: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: scale(8) },
+    classPicker: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: scale(5) },
+    classPickerText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(14), color: colors.ink },
+    chevronFlipped: { transform: [{ rotate: '180deg' }] },
+    menuScrim: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(28,25,20,.12)',
+      zIndex: 5,
     },
-    classToggle: {
-      gap: scale(3),
-      padding: scale(3),
-      backgroundColor: 'rgba(28,26,22,.055)',
-      borderRadius: scale(99),
-    },
-    classThumb: {
+    menu: {
+      position: 'absolute',
+      top: '100%',
       backgroundColor: '#fff',
-      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: 'rgba(28,25,20,.12)',
+      borderRadius: scale(16),
+      padding: scale(6),
+      zIndex: 9,
       shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
+      shadowOpacity: 0.22,
+      shadowRadius: scale(20),
+      shadowOffset: { width: 0, height: verticalScale(12) },
+      elevation: 8,
     },
-    classPill: {
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(13),
-      borderRadius: scale(99),
-    },
-    classPillText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    classPillTextActive: {
-      color: colors.ink,
-    },
-    subjectTabs: {
-      flexShrink: 1,
-    },
-    subjectRow: {
-      gap: scale(14),
-    },
-    subjectPill: {
-      paddingBottom: verticalScale(5),
-    },
-    subjectUnderline: {
-      height: 2,
-      borderRadius: 1,
-      backgroundColor: colors.marigold,
-    },
-    subjectTab: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.faint,
-    },
-    subjectTabActive: {
-      color: colors.ink,
-    },
-    searchBar: {
+    subjectMenu: { left: scale(68), width: scale(190) },
+    classMenu: { right: scale(24), width: scale(150) },
+    menuRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(9),
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(15),
-      marginTop: verticalScale(14),
-      marginHorizontal: scale(20),
+      gap: scale(10),
+      paddingVertical: verticalScale(11),
+      paddingHorizontal: scale(12),
+      borderRadius: scale(11),
     },
-    searchPlaceholder: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      color: colors.faint,
-    },
-    searchCount: {
-      flexShrink: 0,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
+    menuText: { flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: scale(15), color: colors.ink },
+    menuTextOn: { fontFamily: 'Onest_700Bold' },
     listWrap: {
       flex: 1,
       minHeight: 0,
-      marginTop: verticalScale(14),
-      marginHorizontal: scale(20),
+      marginTop: verticalScale(28),
+      marginHorizontal: scale(24),
       position: 'relative',
     },
     loadingBlock: {
@@ -395,41 +412,41 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     listContent: {
       flexDirection: 'column',
-      gap: verticalScale(7),
       // Clears the fade mask, so the last chapter can be read and tapped.
       paddingBottom: scale(56),
     },
+    /**
+     * The textbook chapter row, verbatim -- app/textbook-chapters.tsx's `row`,
+     * `rowNumber` and `rowTitle`. These are the same chapters two taps apart
+     * and they were drawn as different objects: a bordered card with a Kalam
+     * numeral here, a flat hairline row with a right-aligned Medium numeral
+     * there.
+     */
     chapterRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(11),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.2)',
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(14),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
+      gap: scale(16),
+      paddingVertical: verticalScale(15.5),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.07)',
     },
     chapterNumber: {
-      width: scale(20),
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(12),
-      color: '#C2BCAF',
+      width: scale(26),
+      textAlign: 'right',
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(16),
+      color: colors.quiet,
     },
     chapterTitle: {
       flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(17),
       color: colors.ink,
     },
     chapterMeta: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
+      flexShrink: 0,
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12),
       color: colors.faint,
     },
     // Sized to the row's real parts: the number, the title, the topic count.
