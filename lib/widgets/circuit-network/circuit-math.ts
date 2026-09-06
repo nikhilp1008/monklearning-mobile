@@ -98,6 +98,25 @@
  *     stub that returns slot 0's value would pass. At 53.5 it returns 6 and
  *     fails by 15%.
  *
+ *  2b. THE UNBALANCED BRIDGE'S r_eq — delta-star, see `bridgeDeltaStar`.
+ *     Same chapter's Wheatstone network, driven off balance so the
+ *     galvanometer branch carries current and therefore matters:
+ *       P 6, Q 4, R 3, S 5, G 50   →  4.481633 Ω   (old formula: 4.5, +0.41%)
+ *       P 6, Q 3, R 4, S 5, G 50   →  4.426096 Ω   (old formula: 4.444, +0.41%)
+ *       P 6, Q 3, R 4, S 5, G 0.5  →  4.244444 Ω   (old formula: 4.444, +4.71%)
+ *     Each derived twice — once by the Δ–Y reduction and once by a
+ *     branch-current (Kirchhoff) solve: five unknown branch currents, two KCL
+ *     equations and three KVL loops, put through Gaussian elimination. That
+ *     route shares no algebra with the Δ–Y one, which is the property this
+ *     widget's previous `terminal_v === i_total * r_eq` self-check lacked —
+ *     `V − i·r ≡ i·R` is an identity and cannot fail however wrong r_eq is,
+ *     which is exactly how this defect stayed green. The old
+ *     `(P+R) ‖ (Q+S)` is the G → ∞ limit of all three, which is why the error
+ *     GROWS as G falls: the branch it deletes is the one carrying the current.
+ *     BALANCED bridges are the regression guard rather than a fixture: at
+ *     P/Q = R/S the new answer must equal the old one to floating point, and
+ *     must not depend on G at all.
+ *
  *  3. RC CHARGING.
  *     NCERT Class 12 Part I, Ch.3 / Ch.2 (RC time constant, V_C = V(1 − e^−t/τ)).
  *       topology series, [resistor 20 kΩ, capacitor 5 µF], ε = 12 V
@@ -519,6 +538,109 @@ export function parListR(values: readonly number[]): number {
 export const serListR = (values: readonly number[]): number =>
   values.reduce((a, v) => a + v, 0);
 
+/**
+ * THE UNBALANCED WHEATSTONE BRIDGE, by the delta-star (Δ–Y) transformation.
+ *
+ * The five arms sit on four nodes — A (N, the supply's + corner), B (S, its −
+ * corner), C (W) and D (E):
+ *
+ *        A                 P: A–C     R: C–B
+ *       / \                Q: A–D     S: D–B
+ *      P   Q               G: C–D, the galvanometer, on the OTHER diagonal
+ *     /     \
+ *    C ——G—— D             r_eq is measured across A–B.
+ *     \     /
+ *      R   S
+ *       \ /
+ *        B
+ *
+ * No two arms are in series and no two are in parallel, so no amount of
+ * series/parallel folding reduces this. THAT is why the widget used to answer
+ * `(P + R) ‖ (Q + S)` — the answer you get by deleting G — and why that answer
+ * is exact ONLY at balance (P/Q = R/S), where no current flows through G and
+ * deleting it changes nothing. Off balance it is simply wrong, and this widget
+ * ANIMATES `bridge_delta`: it draws the deflected needle of an unbalanced
+ * bridge while reporting the balanced bridge's resistance. Measured error of
+ * the old formula against the answer below: 0.41% at P6 Q3 R4 S5 G50, 4.7% at
+ * the same arms with G 0.5, and 5000.005 Ω against a true 0.030 Ω at the
+ * schema's own extremes (P 0.01, Q 10000, R 10000, S 0.01, G 0.01).
+ *
+ * THE TRANSFORMATION. Take the Δ on {A, C, D} — that is arms P (A–C), Q (A–D)
+ * and G (C–D) — and replace it with the Y that is indistinguishable from it at
+ * those three terminals. With Σ = P + Q + G, the standard result is that each
+ * star arm is the product of the two Δ arms MEETING at its terminal, over Σ:
+ *
+ *     A–N:  Rₐ = P·Q / Σ        (P and Q meet at A)
+ *     N–C:  R_c = P·G / Σ       (P and G meet at C)
+ *     N–D:  R_d = Q·G / Σ       (Q and G meet at D)
+ *
+ * The bridge is now a plain ladder — A–N, then two legs back to B — so:
+ *
+ *     r_eq = Rₐ + (R_c + R) ‖ (R_d + S)
+ *
+ * EXACT AT BALANCE, and this is the regression guard on the whole change.
+ * Put P = kQ and R = kS. Then Σ = Q(k+1) + G, and
+ *     R_c + R = k·(QG + S·Σ)/Σ = k·T,   R_d + S = (QG + S·Σ)/Σ = T,
+ * so the parallel pair is kT²/(T(k+1)) = kT/(k+1) and
+ *     r_eq = kQ²/Σ + k(QG + S·Σ)/(Σ(k+1))
+ *          = k[(k+1)Q(Q+S) + G(Q+S)] / (Σ(k+1))
+ *          = k(Q+S)·Σ / (Σ(k+1))  =  k(Q+S)/(k+1),
+ * which is exactly (P+R) ‖ (Q+S) = k(Q+S)²/((k+1)(Q+S)) — and G has cancelled
+ * out, as it must. Asserted numerically in `__tests__/bridge-delta-star.test.ts`
+ * over a sweep of balanced bridges, both ways, to floating point.
+ *
+ * DEGENERATE INPUTS THE SCHEMA ADMITS.
+ *  - G → 0, a galvanometer that is a dead short. Σ is still P + Q, Rₐ becomes
+ *    P ‖ Q and R_c = R_d = 0, giving P‖Q + R‖S — the right answer for C and D
+ *    being one node. Nothing divides by zero. (`validate()` puts a
+ *    galvanometer in slot 4 and floors every value at VALUE_MIN = 0.01, so
+ *    G is never actually 0; the formula does not need it to be non-zero.)
+ *  - G → ∞, an open detector. Rₐ → 0, R_c → P, R_d → Q, so the expression
+ *    collapses BACK to (P+R) ‖ (Q+S). At the schema ceiling G = 10 MΩ with
+ *    6/3/4/5 arms it agrees with the old formula to 7 significant figures
+ *    (4.4444443 against 4.4444444), which is the sense in which the old
+ *    answer was one special case of this one.
+ *  - AN ARM AT EITHER SCHEMA EXTREME. The largest intermediate this can form
+ *    is a product of two 10 MΩ arms, 1e14 — thirteen orders of magnitude
+ *    inside a double's range, so there is no overflow corner to guard and no
+ *    payload the schema admits that has no finite answer. The 32 corners of
+ *    {0.01, 1e7}^5 are swept against the independent branch-current solve in
+ *    the test file rather than argued for here.
+ *  - AN ARM THAT IS NOT RESISTIVE AT ALL — a capacitor or inductor in an arm,
+ *    which `validate()` admits (no parallel bank mixes families). Its
+ *    resistance is 0, i.e. a WIRE, and the transformation handles that
+ *    correctly on its own: P = 0 shorts A to C, and the formula then returns
+ *    R ‖ ((Q‖G) + S), which is the network that is actually drawn.
+ *
+ * `parR` returns 0 whenever a branch is 0 and documents that as "this branch
+ * holds no resistive element". Every number reaching it here is a computed leg
+ * rather than a slot, so 0 means the other thing — a genuine 0 Ω short — but
+ * the two readings give the SAME number, and it is the right one: a short
+ * across the pair is 0 Ω. Both routes to a zero leg check out. R_c + R = 0
+ * needs P = 0 and R = 0, which shorts A to B, and Rₐ = P·Q/Σ is then also 0,
+ * so r_eq is 0 — correct. G = 0 with R = 0 makes C = D = B, and the formula
+ * returns P‖Q + 0 — also correct.
+ */
+export function bridgeDeltaStar(
+  p: number,
+  q: number,
+  r: number,
+  s: number,
+  g: number
+): number {
+  const sigma = p + q + g;
+  // P, Q and G all zero: the whole Δ is one node, A = C = D, and what is left
+  // is R ‖ S. Unreachable through `validate()` (a galvanometer floors G at
+  // VALUE_MIN) and kept so the function is total for any finite input.
+  if (!(sigma > 0)) return parR(r, s);
+
+  const rA = (p * q) / sigma;
+  const rC = (p * g) / sigma;
+  const rD = (q * g) / sigma;
+
+  return rA + parR(rC + r, rD + s);
+}
+
 /** Capacitors in series: 1/C = Σ 1/Cᵢ over the slots that ACTUALLY hold a
  *  capacitor. A slot holding a resistor is a wire in the capacitive reading,
  *  not a zero-farad open, so it is skipped rather than zeroing the answer. */
@@ -547,15 +669,44 @@ function slotValues(p: CircuitNetworkParams): {
 }
 
 /**
+ * The bridge under the series-adds / parallel-reciprocal algebra — resistance,
+ * and inductance, which combines identically. Slot 4 IS part of the answer here
+ * (see `bridgeDeltaStar`), which is the one place the five topologies stop
+ * agreeing about what a slot list means.
+ */
+const bridgeSeriesParallel = (v: readonly number[]): number =>
+  bridgeDeltaStar(v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, v[3] ?? 0, v[4] ?? 0);
+
+/**
+ * The bridge under the CAPACITIVE algebra, where the same Δ–Y transformation
+ * degenerates to the plain parallel form — so this is not the old
+ * approximation left in place, it is the transformation's own answer.
+ *
+ * On impedances the star arms are Z = Z_P Z_Q/(Z_P+Z_Q+Z_G) and so on, which
+ * for capacitors (Z = 1/sC) works out to C_a = Σ/C_g, C_c = Σ/C_q, C_d = Σ/C_p
+ * with Σ = C_P C_Q + C_Q C_G + C_G C_P. Slot 4 must be a GALVANOMETER, so C_G
+ * is always 0: the detector diagonal is an OPEN in the capacitive reading, not
+ * a short. That collapses Σ to C_P C_Q, hence C_a = ∞ (a wire), C_c = C_P and
+ * C_d = C_Q — i.e. exactly (C_P series C_R) parallel (C_Q series C_S).
+ */
+const bridgeCapacitive = (v: readonly number[]): number =>
+  parListC([serListC([v[0] ?? 0, v[2] ?? 0]), serListC([v[1] ?? 0, v[3] ?? 0])]);
+
+/**
  * The equivalent, per topology. Each line is the reduction the drawing shows,
  * with the same combination rule applied under three different algebras
  * (series-adds for R and L, series-reciprocal for C).
+ *
+ * `bridgeOf` is passed in rather than folded into `ser`/`par` because the
+ * bridge is the ONE topology no series/parallel folding reduces, so the two
+ * algebras genuinely need two different reductions there and nowhere else.
  */
 function reduce(
   topology: Topology,
   v: readonly number[],
   ser: (x: readonly number[]) => number,
-  par: (x: readonly number[]) => number
+  par: (x: readonly number[]) => number,
+  bridgeOf: (x: readonly number[]) => number
 ): number {
   const at = (i: number) => v[i] ?? 0;
   switch (topology) {
@@ -569,10 +720,10 @@ function reduce(
     // series1 + (shunt1 ‖ (series2 + shunt2)).
     case 'ladder':
       return ser([at(0), par([at(1), ser([at(2), at(3)])])]);
-    // (P + R) ‖ (Q + S). The galvanometer is on the OTHER diagonal and is not
-    // part of either path, which is why slot 4 never appears here.
+    // NOT (P + R) ‖ (Q + S) — that deletes the galvanometer branch and is
+    // exact only at balance. Delta-star, in `bridgeOf`.
     case 'bridge':
-      return par([ser([at(0), at(2)]), ser([at(1), at(3)])]);
+      return bridgeOf(v);
     // top-left + bottom-left + (middle ‖ (top-right + right + bottom-right)).
     case 'two_loop':
       return ser([at(0), at(1), par([at(2), ser([at(3), at(5), at(4)])])]);
@@ -611,8 +762,8 @@ export function metreBridgeUnknown(knownR: number, nullCm: number): number {
 export function derive(p: CircuitNetworkParams): CircuitDerived {
   const { R, C } = slotValues(p);
 
-  const r_eq = reduce(p.topology, R, serListR, parListR);
-  const c_eq = reduce(p.topology, C, serListC, parListC);
+  const r_eq = reduce(p.topology, R, serListR, parListR, bridgeSeriesParallel);
+  const c_eq = reduce(p.topology, C, serListC, parListC, bridgeCapacitive);
 
   const total = r_eq + p.internal_r;
   const i_total = total > 0 ? p.source_v / total : 0;
@@ -636,10 +787,17 @@ export function derive(p: CircuitNetworkParams): CircuitDerived {
 
 /* ---------------------------------------------- the physics the caption uses */
 
-/** Total inductance, in HENRY, reduced on the same topology. */
+/**
+ * Total inductance, in HENRY, reduced on the same topology — and on the same
+ * algebra as resistance, so the bridge gets the same delta-star. Slot 4 is a
+ * galvanometer, i.e. 0 H, which in an inductance-only reading is a WIRE across
+ * the detector diagonal (the same convention `parListL` already uses, where a
+ * 0 branch shorts its bank out). The transformation says so too: G = 0 gives
+ * Rₐ = P‖Q and R_c = R_d = 0, i.e. (L_P‖L_Q) + (L_R‖L_S).
+ */
 export function equivalentHenry(p: CircuitNetworkParams): number {
   const { L } = slotValues(p);
-  return reduce(p.topology, L, serListL, parListL) * 1e-3;
+  return reduce(p.topology, L, serListL, parListL, bridgeSeriesParallel) * 1e-3;
 }
 
 /**
