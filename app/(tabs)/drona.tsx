@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -42,7 +42,6 @@ function normalizeSubject(name: string) {
 
 export default function ChapterSelectorScreen() {
   const { scale, verticalScale } = useScale();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 12');
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chemistry', 'Maths']);
@@ -269,11 +268,6 @@ export default function ChapterSelectorScreen() {
           )}
         </View>
 
-        {/* The tab bar floats over this screen, so the hint has to be lifted
-            clear of it by hand — it was sitting underneath and never seen. */}
-        <View style={[styles.footer, { paddingBottom: verticalScale(66) + insets.bottom }]}>
-          <Text style={styles.footerHint}>Tap a chapter to pick a topic</Text>
-        </View>
       </SafeAreaView>
     </View>
   );
@@ -415,8 +409,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     listContent: {
       flexDirection: 'column',
-      // Clears the fade mask, so the last chapter can be read and tapped.
-      paddingBottom: scale(56),
+      // The tab bar floats over this screen and the footer that used to hold
+      // the list clear of it is gone, so the list clears it itself: bar
+      // height, its safe-area inset, and the fade above them.
+      paddingBottom: verticalScale(112),
     },
     /**
      * The textbook chapter row, verbatim -- app/textbook-chapters.tsx's `row`,
@@ -481,23 +477,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: scale(52),
       height: verticalScale(10),
     },
+    // Softens the last row against the floating bar. Halved from 56 -- at
+    // that height it was fading rows that were still meant to be read.
     fadeMask: {
       position: 'absolute',
       left: 0,
       right: 0,
       bottom: 0,
-      height: scale(56),
-    },
-    footer: {
-      flexShrink: 0,
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-      alignItems: 'center',
-    },
-    footerHint: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      color: colors.faint,
+      height: scale(28),
     },
   });
 }
