@@ -44,8 +44,16 @@ function HomeIcon({ active, size }: TabIconProps) {
 }
 
 function TextbooksIcon({ active, size }: TabIconProps) {
-  const c = active ? colors.ink : OFF;
   const fill = active ? colors.ink : 'none';
+  /**
+   * Active strokes in paper, not ink.
+   *
+   * The three books sit 0.9 units apart, and a 1.6 stroke reaches 0.8 either
+   * side of its edge — so ink-on-ink closed both gaps and the stack rendered
+   * as one solid blob. Paper strokes are the separation, which is also what
+   * the handoff asks for: solid ink fill, details in #FFFDF8.
+   */
+  const c = active ? colors.paper : OFF;
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Rect x={5} y={4.4} width={12} height={4.6} rx={1.6} fill={fill} stroke={c} strokeWidth={1.6} />
