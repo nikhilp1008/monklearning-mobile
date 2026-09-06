@@ -15,8 +15,10 @@ change.
    rejects the payload
 ```
 
-Path 1 covers **81 concepts**. Everything else takes path 2 or 3, and that is
-the designed behaviour rather than a degraded one.
+Path 1 covers **83 concepts** (was 81 before mathematics 12 was reclassified on
+2026-09-06: +3 maths 12 routes, -1 demoted maths 12 row that should never have
+routed). Everything else takes path 2 or 3, and that is the designed behaviour
+rather than a degraded one.
 
 ## Why not deterministic everywhere
 
@@ -29,9 +31,14 @@ agents' own confidence almost perfectly:
 
 | confidence | agreement | rows in corpus |
 |---|---|---|
-| **high** | **21/21 = 100%** | 143 |
-| med | 18/26 = 69% | 236 |
-| low | 1/3 = 33% | 17 |
+| **high** | **21/21 = 100%** | 226 |
+| med | 18/26 = 69% | 282 |
+| low | 1/3 = 33% | 28 |
+
+The row counts include the mathematics 12 reclassification of 2026-09-06, which
+ran its own blind 50 and reproduced the shape — **high 29/31 = 94%**, med
+13/17 = 76%, low 1/2 = 50%. Two independent measurements now agree that the
+`high` tier holds and the `med` tier does not.
 
 At `high` the column is right every time it was checked. At `med` it is wrong
 about a third of the time — and a deterministic selector that is wrong a third
@@ -82,7 +89,15 @@ verdicts come from chunks that no longer exist.
 
 They are good enough to gate on at `high` — 21/21 is 21/21 whatever the text
 was — but the column should be re-run against the current corpus before path 1
-is widened. Until then, **81 is the number, and it does not grow by argument.**
+is widened. **The number does not grow by argument, only by re-measurement.**
+
+Mathematics 12 is the first slice re-measured that way (2026-09-06, current
+corpus, two independent passes merged at `high` only where both agreed, its own
+blind 50 at 94%). It moved path 1 from 81 to 83 — and it did so by ADDING three
+routes and REMOVING one, because ch9 "Applications: Growth, Decay and Curve
+Geometry" had been routing an `xy_plot` for exponentials the book never plots.
+That is what re-measurement is for; a widening argument would never have found
+it. Every other subject still comes from the replaced corpus.
 
 ## Not covered here
 
