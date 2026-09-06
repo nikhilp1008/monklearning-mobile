@@ -437,6 +437,67 @@ A widget is not done until all of these hold:
       scrub backwards.
 - [ ] No `fetch`, no CDN reference, no `Date.now()`-driven animation.
 - [ ] Renders with the device in airplane mode.
+- [ ] **A Hindi-caption fixture at 343x236**, in the checked-in trees. See
+      "Every script the app ships" below.
+- [ ] **Verified by an agent other than its author, BEFORE it is wired into
+      `registry.ts`.** See "Someone else verifies it" below.
+- [ ] Every self-check takes an INDEPENDENT route. See "A self-check must
+      not be an identity" below.
+
+### Someone else verifies it
+
+An author's own tests encode the author's own model of the widget. Where that
+model is wrong, the tests are wrong in the same direction and agree with the
+code perfectly.
+
+This is not a hypothesis. On 2026-09-05 four widgets were built, each green on
+its author's full sweep, and then verified by agents that had not written them.
+Between them the verifiers found:
+
+- a **shared** defect in `chrome.ts` that TWO of them hit independently, from
+  opposite directions — `maxChars()` budgeted characters at the Latin width
+  while the gate measured Devanagari 29% wider, so a Hindi caption ran off the
+  board on every widget with a readout;
+- `derive()` computing a metre-bridge RESISTANCE from a CAPACITANCE, on a
+  payload `validate()` had no reason to reject, printing `X 5.21 Ω` for 6 µF;
+- an always-mounted quad parked at (0,0) stretching the ink bbox to the board
+  corner, so the coverage assertion passed for the wrong reason — 93.6%
+  reported against 68.9% actual;
+- a shape reporting `secondary_angle 0`, meaning "none", while DRAWING the
+  angle it denied having.
+
+Four wrong-reason passes and one shared bug, none of which the authors' own
+suites caught. The verifier must build its own harness rather than read the
+expected values out of the author's tests — the strongest pass spliced the
+gate's real assertion body into a wrapper and cross-validated it against the
+checked-in trees before trusting it.
+
+### A self-check must not be an identity
+
+A "cross-check" that reaches the same number by rearranging the same equation
+proves only that algebra works. `circuit_network` asserted
+
+    terminal_v === i_total * r_eq
+
+as proof its cell-bank maths was right. Given `i = V/(R+r)`, `V - i*r` IS
+`i*R` identically — it cannot fail, for any input, however wrong the model.
+Swept over 75 parameter combinations the worst deviation was under 1e-9.
+
+An independent route means a DIFFERENT derivation: mesh analysis against
+delta-star, an antiderivative against a Riemann sum, a table lookup against a
+formula. If you cannot state what a check could catch, it catches nothing.
+
+### Every script the app ships
+
+The Devanagari defect existed because neither author tested Hindi, and it was
+found twice by luck rather than once by design. Reviewers are not a gate.
+
+So: every widget with a readout carries a **Hindi-caption fixture rendered at
+343x236** in the checked-in trees, and the same for any other script the app
+ships. 343x236 is the binding board, and Devanagari is measured at
+`CHAR_W_DEVA` — a deliberate over-estimate, not a measurement — so this is
+where a width model that is wrong by 29% actually fails rather than merely
+being wrong.
 
 ---
 
