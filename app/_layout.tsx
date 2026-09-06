@@ -183,8 +183,9 @@ export default function RootLayout() {
             name="topic-sheet"
             options={{
               headerShown: false,
-              presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // A page now, not a sheet over the chapter list -- so it pushes
+              // from the right like every other step in this flow.
+              animation: 'slide_from_right',
             }}
           />
           <Stack.Screen

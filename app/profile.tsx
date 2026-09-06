@@ -23,7 +23,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,6 +40,7 @@ import { signOut } from '@/lib/auth';
 import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
 import { SettingsHeader } from '@/components/settings-page';
 import { EXAMS, YEARS } from '@/constants/onboarding';
+import { BloomFace, RingSweep } from '@/components/gradient-select';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import {
@@ -65,32 +65,12 @@ const CREAM = '#FBF9F2';
 // has no conic-gradient, so this is the sanctioned fallback from the handoff's
 // own implementation note: a rotating gradient sweep clipped by the parent.
 // The ramp below maps the conic's 0/70/130/180/280deg stops onto 0..1.
-const RING_COLORS = [
-  'rgba(238,163,31,0)',
-  'rgba(247,215,121,0.35)',
-  '#EEA31F',
-  'rgba(247,215,121,0.5)',
-  'rgba(238,163,31,0)',
-  'rgba(238,163,31,0)',
-] as const;
-const RING_LOCATIONS = [0, 0.194, 0.361, 0.5, 0.778, 1] as const;
-const SPIN_MS = 3600;
 
-// `bloom` — inner face, opacity 0→1 + scale .985→1, .55s.
-const BLOOM_MS = 550;
-const BLOOM_EASING = Easing.bezier(0.2, 0.75, 0.2, 1);
 // `chipIn` — "your teacher", opacity 0→1 + translateX −10→0, .4s, delay .18s.
 const CHIP_MS = 400;
 const CHIP_DELAY_MS = 180;
 const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
-// The handoff's radial blooms, approximated as linear gradients along the
-// radial's dominant axis — at 0%/50% and 50%/120% the falloff reads the same.
-const BLOOM_COLORS = [
-  'rgba(238,163,31,0.26)',
-  'rgba(238,163,31,0.06)',
-  'rgba(255,255,255,0)',
-] as const;
 
 type TeacherId = 'drona' | 'vedha';
 type LanguageId = 'hinglish' | 'english';
@@ -374,85 +354,6 @@ export default function ProfileScreen() {
   );
 }
 
-/**
- * The rotating amber ring. Sized to the row's own diagonal so the sweep always
- * covers the corners, clipped by the parent's radius, and covered in the middle
- * by the inner face — leaving only the 2pt border showing.
- */
-function RingSweep({ radius }: { radius: number }) {
-  const rotation = useSharedValue(0);
-  const [size, setSize] = useState(0);
-
-  useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: SPIN_MS, easing: Easing.linear }),
-      -1,
-      false
-    );
-  }, [rotation]);
-
-  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
-
-  return (
-    <View
-      pointerEvents="none"
-      onLayout={(e) => {
-        const { width, height } = e.nativeEvent.layout;
-        setSize(Math.ceil(Math.sqrt(width * width + height * height)));
-      }}
-      style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: 'hidden' }, ringStyles.centre]}>
-      {size > 0 && (
-        <Animated.View style={[{ width: size, height: size }, spin]}>
-          <LinearGradient
-            colors={[...RING_COLORS]}
-            locations={[...RING_LOCATIONS]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={ringStyles.fill}
-          />
-        </Animated.View>
-      )}
-    </View>
-  );
-}
-
-/** The inner white face carrying the amber bloom, entering with `bloom`. */
-function BloomFace({
-  style,
-  direction,
-  children,
-}: {
-  style: object;
-  direction: 'left' | 'bottom';
-  children: React.ReactNode;
-}) {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withTiming(1, { duration: BLOOM_MS, easing: BLOOM_EASING });
-  }, [progress]);
-
-  const animated = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ scale: 0.985 + progress.value * 0.015 }],
-  }));
-
-  const isLeft = direction === 'left';
-
-  return (
-    <Animated.View style={[style, animated]}>
-      <LinearGradient
-        colors={[...BLOOM_COLORS]}
-        locations={isLeft ? [0, 0.48, 0.78] : [0, 0.55, 0.82]}
-        start={isLeft ? { x: 0, y: 0.5 } : { x: 0.5, y: 1 }}
-        end={isLeft ? { x: 1, y: 0.5 } : { x: 0.5, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-      {children}
-    </Animated.View>
-  );
-}
-
 /** `chipIn` — the "your teacher" line slides in just after the bloom. */
 function ChipIn({ scale, children }: { scale: (n: number) => number; children: React.ReactNode }) {
   const progress = useSharedValue(0);
@@ -510,10 +411,6 @@ function StarIcon({ size }: { size: number }) {
   );
 }
 
-const ringStyles = StyleSheet.create({
-  centre: { alignItems: 'center', justifyContent: 'center' },
-  fill: { flex: 1 },
-});
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
