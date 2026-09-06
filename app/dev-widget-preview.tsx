@@ -512,6 +512,30 @@ const XY_CASES: { label: string; expect: string; params: XyPlotParams }[] = [
       x_label: 'observation', y_label: 'value' },
   },
   {
+    label: 'Maths 12 Ch8 · between y = x and y = x²',
+    expect: 'area 0.17  (= 1/6)',
+    params: { ...xyPlot.defaults, mode: 'area_between', curve: 'line', a: 1, b: 0, c: 0,
+      curve2: 'parabola', a2: 1, b2: 0, c2: 0,
+      x_min: -0.2, x_max: 1.2, shade_from: 0, shade_to: 1, x_label: 'x', y_label: 'y' },
+  },
+  {
+    // The crossings are at 0 and 1, both inside the shaded span — the case a
+    // single |∫(f−g)| gets wrong (it would say 1.50).
+    label: 'Maths 12 Ch8 · the same pair across BOTH crossings',
+    expect: 'area 1.83  (= 11/6, not 3/2)',
+    params: { ...xyPlot.defaults, mode: 'area_between', curve: 'line', a: 1, b: 0, c: 0,
+      curve2: 'parabola', a2: 1, b2: 0, c2: 0,
+      x_min: -1.2, x_max: 2.2, shade_from: -1, shade_to: 2, x_label: 'x', y_label: 'y' },
+  },
+  {
+    // Transposed on purpose: the horizontal axis carries the textbook's y.
+    label: 'Maths 12 Ch8 · y² = 4ax and its latus rectum (a = 1)',
+    expect: 'area 2.67  (= 8a²/3)',
+    params: { ...xyPlot.defaults, mode: 'area_between', curve: 'line', a: 0, b: 0, c: 1,
+      curve2: 'parabola', a2: 0.25, b2: 0, c2: 0,
+      x_min: -2.4, x_max: 2.4, shade_from: -2, shade_to: 2, x_label: 'y', y_label: 'x' },
+  },
+  {
     label: 'curve only · y = e^x',
     expect: 'no readout value — plain curve',
     params: { ...xyPlot.defaults, mode: 'curve', curve: 'exponential', a: 1, b: 1, c: 0,

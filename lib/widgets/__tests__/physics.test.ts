@@ -11,7 +11,16 @@
  */
 import { derive } from '../projectile-motion/physics';
 import { deriveFieldLines } from '../field-lines/physics';
-import { definiteIntegral, statistics } from '../xy-plot/plot-math';
+import {
+  areaBetween,
+  crossingsIn,
+  definiteIntegral,
+  evalCurve,
+  statistics,
+  supportsAreaBetween,
+  type CurveKind,
+} from '../xy-plot/plot-math';
+import { xyPlot } from '../xy-plot';
 import { derive as deriveTrend, anomalies } from '../data-table-trend/trend-math';
 import { reactionScheme } from '../reaction-scheme';
 import {
@@ -162,6 +171,394 @@ describe('xy_plot — statistics', () => {
     const s = statistics([]);
     expect(Number.isFinite(s.mean)).toBe(true);
     expect(Number.isFinite(s.variance)).toBe(true);
+  });
+});
+
+
+/**
+ * xy_plot v2 — THE AREA BETWEEN TWO CURVES.
+ *
+ * Every expected value below was derived from NCERT Class 12 Ch8 first and
+ * compared afterwards; none was read out of an existing test.
+ *
+ *   1  y = x and y = x² on [0,1]. On (0,1), x > x², so
+ *      ∫₀¹(x − x²)dx = [x²/2 − x³/3]₀¹ = 1/2 − 1/3 = 1/6.
+ *
+ *   2  The parabola y² = 4ax and its latus rectum x = a, which meet at
+ *      (a, ±2a). Integrating in x: ∫₀^a 2·2√(ax) dx = 4√a·(2/3)a^{3/2}
+ *      = 8a²/3. Integrating in y instead — which is how this widget can draw
+ *      it — ∫_{−2a}^{2a}(a − y²/4a) dy = 4a² − (1/4a)(16a³/3) = 8a²/3. The two
+ *      agree, which is the check that the transposed picture is the same
+ *      region and not a different one.
+ *
+ *   3  y = x² and y = |x|, meeting at −1, 0, 1. By symmetry
+ *      2∫₀¹(x − x²)dx = 1/3. This one is a NEGATIVE result for the widget:
+ *      |x| is piecewise and is not in the curve set, so it takes two payloads
+ *      of 1/6 each. Asserted as such rather than quietly omitted.
+ *
+ *   4  The fixture that proves the sign handling is real: y = x against
+ *      y = x² on [−1, 2], where the curves cross at 0 and at 1, both strictly
+ *      inside. ∫|f−g| = 5/6 + 1/6 + 5/6 = 11/6, while |∫(f−g)| = 3/2. A naive
+ *      implementation reports 1.5 for a region whose area is 1.833…, and
+ *      nothing about the picture would tell a student it was wrong.
+ */
+describe('xy_plot — the area between two curves', () => {
+  const LINE = 'line' as CurveKind;
+  const PARA = 'parabola' as CurveKind;
+
+  /** y = x against y = x², the pair every case below is built from. */
+  const xVsXsq = (from: number, to: number) =>
+    areaBetween(LINE, 1, 0, 0, PARA, 1, 0, 0, from, to);
+
+  /**
+   * The WRONG implementation, written out so the fixture has something to
+   * fail against: one integral over the whole span, absolute value at the end.
+   * This is what "the area between two curves is ∫(f−g)" produces if you never
+   * think about the sign changing.
+   */
+  const naive = (from: number, to: number) =>
+    Math.abs(
+      definiteIntegral(LINE, 1, 0, 0, from, to) - definiteIntegral(PARA, 1, 0, 0, from, to)
+    );
+
+  test('y = x and y = x² on [0,1] -> 1/6', () => {
+    expect(xVsXsq(0, 1)).toBeCloseTo(1 / 6, 12);
+  });
+
+  test('the parabola y² = 4ax against its latus rectum -> 8a²/3', () => {
+    // Drawn transposed: the plotted horizontal variable is the textbook's y,
+    // f is the line y = a and g is the parabola u²/4a over [−2a, 2a].
+    for (const a of [0.5, 1, 2, 5]) {
+      expect(areaBetween(LINE, 0, 0, a, PARA, 1 / (4 * a), 0, 0, -2 * a, 2 * a))
+        .toBeCloseTo((8 * a * a) / 3, 10);
+    }
+  });
+
+  test('y = x² and y = |x| is 1/3 — as TWO payloads, because |x| is piecewise', () => {
+    // The right half is y = x; the left half is y = −x. Each is 1/6.
+    const right = areaBetween(LINE, 1, 0, 0, PARA, 1, 0, 0, 0, 1);
+    const left = areaBetween(LINE, -1, 0, 0, PARA, 1, 0, 0, -1, 0);
+    expect(right).toBeCloseTo(1 / 6, 12);
+    expect(left).toBeCloseTo(1 / 6, 12);
+    expect(right + left).toBeCloseTo(1 / 3, 12);
+    // And there is no single payload for it: the modulus is not a curve kind.
+    expect(supportsAreaBetween('line', 'line')).toBe(true);
+    expect(xyPlot.defaults.curve2).toBe('line');
+  });
+
+  /* ---- the crossing fixture, and its proof against the naive version ---- */
+
+  test('two crossings inside [−1,2]: 11/6, where the naive answer is 3/2', () => {
+    expect(xVsXsq(-1, 2)).toBeCloseTo(11 / 6, 12);
+    expect(naive(-1, 2)).toBeCloseTo(3 / 2, 12);
+    // The fixture only proves anything if the two genuinely differ.
+    expect(Math.abs(xVsXsq(-1, 2) - naive(-1, 2))).toBeGreaterThan(0.3);
+  });
+
+  test('one crossing inside [−1,1]: 1, where the naive answer is 2/3', () => {
+    // ∫_{−1}^{0}|x − x²| = 5/6 and ∫₀¹|x − x²| = 1/6, so the area is exactly 1;
+    // the two parts cancel to 2/3 if they are added before the absolute value.
+    expect(xVsXsq(-1, 1)).toBeCloseTo(1, 12);
+    expect(naive(-1, 1)).toBeCloseTo(2 / 3, 12);
+  });
+
+  test('with no interior crossing the two agree — the split is not a fudge', () => {
+    // [0,1] has crossings only at its endpoints, so |∫| is already right.
+    expect(xVsXsq(0, 1)).toBeCloseTo(naive(0, 1), 12);
+  });
+
+  /* ---------------------------- the crossing solver --------------------- */
+
+  test('crossings are the interior roots only, sorted', () => {
+    expect(crossingsIn(LINE, 1, 0, 0, PARA, 1, 0, 0, -1, 2)).toHaveLength(2);
+    const [r0, r1] = crossingsIn(LINE, 1, 0, 0, PARA, 1, 0, 0, -1, 2);
+    expect(r0).toBeCloseTo(0, 12);
+    expect(r1).toBeCloseTo(1, 12);
+  });
+
+  test('a root exactly on an endpoint is not a split point', () => {
+    // 0 and 1 ARE the endpoints here.
+    expect(crossingsIn(LINE, 1, 0, 0, PARA, 1, 0, 0, 0, 1)).toEqual([]);
+  });
+
+  test('a tangency is not returned — f − g touches zero without changing sign', () => {
+    // y = 2x − 1 is the tangent to y = x² at x = 1: x² − 2x + 1 = (x−1)².
+    expect(crossingsIn(PARA, 1, 0, 0, LINE, 2, 0, -1, -2, 4)).toEqual([]);
+    // And the area is then just the single unsigned integral.
+    expect(areaBetween(PARA, 1, 0, 0, LINE, 2, 0, -1, 0, 3)).toBeCloseTo(
+      Math.abs(definiteIntegral(PARA, 1, 0, 0, 0, 3) - definiteIntegral(LINE, 2, 0, -1, 0, 3)),
+      12
+    );
+  });
+
+  test('parallel lines never cross, and identical curves have no root either', () => {
+    expect(crossingsIn(LINE, 2, 0, 1, LINE, 2, 0, 5, -10, 10)).toEqual([]);
+    expect(crossingsIn(LINE, 2, 0, 1, LINE, 2, 0, 1, -10, 10)).toEqual([]);
+  });
+
+  test('a pair with no closed-form crossing returns NaN, never a plausible number', () => {
+    expect(supportsAreaBetween('sine', 'line')).toBe(false);
+    expect(supportsAreaBetween('line', 'exponential')).toBe(false);
+    expect(supportsAreaBetween('reciprocal', 'reciprocal')).toBe(false);
+    expect(Number.isNaN(areaBetween('sine', 1, 1, 0, LINE, 0, 0, 0, 0, Math.PI))).toBe(true);
+  });
+
+  /* ------------- the sweep: exact vs an independent numeric ∫|f−g| ------- */
+
+  /**
+   * Trapezoid on |f − g| — deliberately NOT the method the widget uses. It is
+   * here to check the closed form from outside, the way a second person would.
+   * |f − g| has a kink at each crossing, so this converges slowly; 20000
+   * panels is enough for six decimals on these coefficients.
+   */
+  const numericAbsArea = (
+    kf: CurveKind, a: number, b: number, c: number,
+    kg: CurveKind, a2: number, b2: number, c2: number,
+    from: number, to: number, panels = 20000
+  ) => {
+    const lo = Math.min(from, to);
+    const hi = Math.max(from, to);
+    const h = (hi - lo) / panels;
+    let sum = 0;
+    for (let i = 0; i <= panels; i++) {
+      const x = lo + h * i;
+      const v = Math.abs(evalCurve(kf, a, b, c, x) - evalCurve(kg, a2, b2, c2, x));
+      sum += i === 0 || i === panels ? v / 2 : v;
+    }
+    return sum * h;
+  };
+
+  /**
+   * CLAUDE.md §3's animation rule, as arithmetic: `shade_to` is animatable, so
+   * a cue tween walks it through every FRACTIONAL value between two numbers,
+   * and the readout has to be the area of the region actually drawn at each
+   * one — including the values where a crossing has just been passed. The
+   * naive implementation is wrong on exactly the values past a crossing, so
+   * this sweep is the crossing fixture repeated 41 times.
+   */
+  test('the area is exact at every fractional value shade_to sweeps through', () => {
+    for (let i = 0; i <= 40; i++) {
+      const to = -1 + (3 * i) / 40; // -1 .. 2, straddling both crossings
+      if (to <= -1 + 1e-9) continue;
+      const exact = xVsXsq(-1, to);
+      expect(exact).toBeCloseTo(numericAbsArea(LINE, 1, 0, 0, PARA, 1, 0, 0, -1, to), 5);
+    }
+  });
+
+  test('the area is additive across an arbitrary interior split', () => {
+    // A property the naive version fails: |∫| over two halves does not add up
+    // to |∫| over the whole once the sign changes inside one of them.
+    for (const t of [-0.37, 0, 0.5, 1, 1.618]) {
+      expect(xVsXsq(-1, t) + xVsXsq(t, 2)).toBeCloseTo(xVsXsq(-1, 2), 12);
+    }
+    // The naive version breaks additivity exactly where the sign flips: on
+    // [0,2] the two halves are +1/6 and −5/6, so they cancel to 2/3 in one
+    // integral and add to 1 in two. (Splitting [−1,2] would NOT have shown
+    // this — every sub-integral there is negative, so they happen to add. A
+    // property test that picks the wrong split proves nothing, which is worth
+    // saying out loud: this line failed first time round for that reason.)
+    expect(xVsXsq(0, 1) + xVsXsq(1, 2)).toBeCloseTo(xVsXsq(0, 2), 12);
+    expect(naive(0, 1) + naive(1, 2)).toBeCloseTo(1, 12);
+    expect(naive(0, 2)).toBeCloseTo(2 / 3, 12);
+    expect(naive(0, 1) + naive(1, 2)).not.toBeCloseTo(naive(0, 2), 6);
+  });
+
+  test('the area never decreases as shade_to advances', () => {
+    let prev = 0;
+    for (let i = 1; i <= 60; i++) {
+      const to = -1 + (3 * i) / 60;
+      const v = xVsXsq(-1, to);
+      expect(v).toBeGreaterThanOrEqual(prev - 1e-12);
+      prev = v;
+    }
+  });
+
+  test('against the default second curve (the x axis) it is the UNSIGNED area', () => {
+    // y = x² − 1 on [0,2] crosses the axis at x = 1.
+    //   signed   ∫₀²(x²−1)dx = 8/3 − 2 = 2/3
+    //   unsigned ∫₀²|x²−1|dx = 2/3 + 4/3 = 2
+    expect(definiteIntegral(PARA, 1, 0, -1, 0, 2)).toBeCloseTo(2 / 3, 12);
+    expect(areaBetween(PARA, 1, 0, -1, LINE, 0, 0, 0, 0, 2)).toBeCloseTo(2, 12);
+  });
+
+  test('reversing the two curves does not change the area', () => {
+    expect(areaBetween(PARA, 1, 0, 0, LINE, 1, 0, 0, -1, 2)).toBeCloseTo(11 / 6, 12);
+  });
+
+  test('reversing the limits does not change it either — an area is not signed', () => {
+    expect(xVsXsq(2, -1)).toBeCloseTo(11 / 6, 12);
+  });
+
+  test('an empty interval is zero, not NaN', () => {
+    expect(xVsXsq(0.5, 0.5)).toBe(0);
+  });
+});
+
+
+/**
+ * validate() is total, never throws, and every rejection is readable.
+ *
+ * The two groups below are different kinds of refusal and both matter:
+ *
+ *   CLOSED FORM   a pair whose crossings cannot be solved exactly. The widget
+ *                 declines rather than reporting |∫(f−g)|, which is silently
+ *                 too small whenever they cross inside the interval.
+ *   FITS THE BOARD  a payload whose tick labels do not fit the smallest board.
+ *                 CLAUDE.md §3: the schema's legal range must be a SUBSET of
+ *                 what renders correctly, so when the two disagree the schema
+ *                 narrows. Several of these were legal at v1 and would have
+ *                 failed scripts/verify-render.mjs.
+ */
+describe('xy_plot — validate()', () => {
+  const good = xyPlot.defaults;
+  const patched = (patch: Record<string, unknown>) => ({ ...good, ...patch });
+  const errorsOf = (raw: unknown) => {
+    const r = xyPlot.validate(raw);
+    return r.ok ? [] : [...r.errors];
+  };
+
+  test('the defaults validate', () => {
+    expect(xyPlot.validate(good).ok).toBe(true);
+  });
+
+  test.each([
+    ['a non-object', null, /params must be an object/],
+    ['an empty object', {}, /mode must be one of/],
+    ['an unknown mode', patched({ mode: 'integral' }), /mode must be one of/],
+    ['an unknown curve2', patched({ mode: 'area_between', curve2: 'spiral' }), /curve2 must be one of/],
+    ['NaN in a2', patched({ mode: 'area_between', a2: NaN }), /a2 must be a finite number/],
+    ['Infinity in c2', patched({ mode: 'area_between', c2: Infinity }), /c2 must be a finite number/],
+    ['x_max below x_min', patched({ x_min: 4, x_max: 1 }), /x_max must be greater/],
+
+    // --- the closed-form refusals
+    ['area_between with a sine', patched({ mode: 'area_between', curve: 'sine', b: 1, curve2: 'line' }), /no closed form/],
+    ['area_between with an exponential', patched({ mode: 'area_between', curve2: 'exponential', a2: 1, b2: 1 }), /no closed form/],
+    ['area_between with a reciprocal', patched({ mode: 'area_between', x_min: 1, x_max: 4, curve2: 'reciprocal', a2: 1 }), /no closed form/],
+    ['two transcendental curves', patched({ mode: 'area_between', curve: 'sine', curve2: 'sine' }), /no closed form/],
+
+    // --- the degenerate regions
+    ['two identical curves', patched({ mode: 'area_between', curve: 'line', a: 2, c: 1, curve2: 'line', a2: 2, c2: 1 }), /the same curve/],
+    ['a line written as a flat parabola against itself', patched({ mode: 'area_between', curve: 'line', a: 1, c: 0, curve2: 'parabola', a2: 0, b2: 1, c2: 0 }), /the same curve/],
+
+    // --- the small-board refusals (all of these were legal at v1)
+    ['a y-range wider than the tick gutter', patched({ a: 100, x_min: 0, x_max: 1000 }), /hang off the left edge/],
+    ['a curve that is 1e6 tall', patched({ curve: 'exponential', a: 1, b: 1, x_min: 0, x_max: 20, mode: 'curve' }), /hang off the left edge/],
+    ['a second curve that blows the range up', patched({ mode: 'area_between', x_min: 0, x_max: 100, curve2: 'parabola', a2: 100 }), /hang off the left edge/],
+    ['a dataset with six-figure values', patched({ mode: 'data', values: [100000, 250000, 400000] }), /hang off the left edge/],
+  ])('rejects %s with a readable message', (_name, payload, pattern) => {
+    const r = xyPlot.validate(payload);
+    expect(r.ok).toBe(false);
+    expect((r as { ok: false; errors: readonly string[] }).errors.join(' | ')).toMatch(pattern);
+  });
+
+  /**
+   * use-cue-track.ts validates the MERGED params of every cue patch and drops
+   * the cue if validation fails, so a rule here is a rule about the animation
+   * states a narration may pass through. A zero-width shaded interval is the
+   * state a sweep starts at, so it must be accepted — this is the regression
+   * test for a rejection that was written, and then removed for that reason.
+   */
+  test('a zero-width shaded interval is legal — it is where a sweep starts', () => {
+    const start = patched({
+      mode: 'area_between', curve: 'line', a: 1, c: 0,
+      curve2: 'parabola', a2: 1, b2: 0, c2: 0,
+      x_min: -0.2, x_max: 1.2, shade_from: 0, shade_to: 0,
+    });
+    expect(errorsOf(start)).toEqual([]);
+    const r = xyPlot.validate(start);
+    expect((r as { ok: true; params: { shade_to: number } }).params.shade_to).toBe(0);
+    // ...and the area of nothing is 0, not NaN.
+    expect(xyPlot.computeDerived((r as { ok: true; params: never }).params).area).toBe(0);
+  });
+
+  test('never throws, on anything', () => {
+    for (const junk of [undefined, null, 0, '', [], NaN, { mode: 42 }, { values: 'x' }, { curve2: {} }]) {
+      expect(() => xyPlot.validate(junk)).not.toThrow();
+    }
+  });
+
+  /**
+   * BACKWARD COMPATIBILITY, at the schema. A v1 payload has no curve2/a2/b2/c2
+   * at all; it must still validate, and the defaults it picks up must be the
+   * x axis, so nothing it renders can change.
+   */
+  test('a v1 payload validates and defaults its second curve to the x axis', () => {
+    const v1 = {
+      mode: 'area', curve: 'parabola', a: 1, b: 0, c: 0,
+      x_min: 0, x_max: 3, shade_from: 0, shade_to: 2,
+      values: [], x_label: 'x', y_label: 'y',
+    };
+    const r = xyPlot.validate(v1);
+    expect(r.ok).toBe(true);
+    const p = (r as { ok: true; params: typeof xyPlot.defaults }).params;
+    expect(p.curve2).toBe('line');
+    expect([p.a2, p.b2, p.c2]).toEqual([0, 0, 0]);
+    expect(p.mode).toBe('area');
+  });
+
+  test('the NCERT payloads this widget was extended for are accepted', () => {
+    // y = x and y = x² on [0,1] — 1/6.
+    expect(errorsOf(patched({
+      mode: 'area_between', curve: 'line', a: 1, c: 0,
+      curve2: 'parabola', a2: 1, b2: 0, c2: 0,
+      x_min: -0.2, x_max: 1.2, shade_from: 0, shade_to: 1,
+    }))).toEqual([]);
+    // y² = 4ax against its latus rectum, transposed — 8/3 at a = 1.
+    expect(errorsOf(patched({
+      mode: 'area_between', curve: 'line', a: 0, c: 1,
+      curve2: 'parabola', a2: 0.25, b2: 0, c2: 0,
+      x_min: -2.4, x_max: 2.4, shade_from: -2, shade_to: 2,
+      x_label: 'y', y_label: 'x',
+    }))).toEqual([]);
+    // A parabola and its tangent y = 2x − 1 — the tangency case.
+    expect(errorsOf(patched({
+      mode: 'area_between', curve: 'parabola', a: 1, b: 0, c: 0,
+      curve2: 'line', a2: 2, b2: 0, c2: -1,
+      x_min: -1, x_max: 3, shade_from: 0, shade_to: 3,
+    }))).toEqual([]);
+  });
+
+  test('a large coefficient is legal on a SMALL domain and not on a large one', () => {
+    // The cap that binds is not a number on `a` — it is what (a, domain) does
+    // to the tick labels. a = 100 over [0,10] tops out at y = 1e4, whose
+    // widest label "10000" is 5 chars = 34.8pt in a 40.4pt gutter: legal.
+    expect(errorsOf(patched({ a: 100, x_min: 0, x_max: 10, shade_to: 10 }))).toEqual([]);
+    // The same coefficient over [0,100] reaches 1e6, label "1000000" = 48.7pt.
+    expect(errorsOf(patched({ a: 100, x_min: 0, x_max: 100, shade_to: 100 })).length)
+      .toBeGreaterThan(0);
+  });
+
+  test('a readout whose NUMBERS would be truncated is refused, but a label is trimmed', () => {
+    // A number that does not fit is a wrong number once it is cut, so the
+    // payload is refused...
+    const wide = xyPlot.validate(patched({
+      mode: 'data',
+      values: [-9999.99, 9999.99, -8888.88, 7777.77],
+      x_label: 'observation', y_label: 'value',
+    }));
+    if (wide.ok) {
+      // If it fits, the premise of this test is wrong — say so loudly rather
+      // than passing vacuously.
+      expect(`${wide.params.values.length} values fit unexpectedly`).toBe('should not fit');
+    }
+    expect((wide as { ok: false; errors: readonly string[] }).errors.join(' | '))
+      .toMatch(/too wide to show without truncating/);
+
+    // ...whereas a `curve` readout is two axis labels and no number at all, so
+    // it is allowed to be trimmed to the board instead of refused.
+    expect(errorsOf(patched({
+      mode: 'curve', curve: 'sine', a: 1, b: 1, c: 0, x_min: 0, x_max: 6.28,
+      x_label: 'x'.repeat(40), y_label: 'y'.repeat(40),
+    }))).toEqual([]);
+  });
+
+  test('a domain too narrow for two gridlines is refused', () => {
+    // projectile_motion's tickStep defect in another widget: it draws, and it
+    // reads as a blank box.
+    const r = xyPlot.validate(patched({ x_min: 0, x_max: 0.02, shade_to: 0.02 }));
+    expect(r.ok).toBe(false);
+    expect((r as { ok: false; errors: readonly string[] }).errors.join(' | '))
+      .toMatch(/fewer than two gridlines/);
   });
 });
 

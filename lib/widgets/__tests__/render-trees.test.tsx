@@ -27,6 +27,7 @@ import type { CircuitNetworkParams } from '../circuit-network';
 import { reactionScheme } from '../reaction-scheme';
 import { labelBoxes, type ReactionSchemeParams } from '../reaction-scheme/scheme-graph';
 import { moleculeStruct } from '../molecule-struct';
+import type { XyPlotParams } from '../xy-plot/plot-math';
 import {
   labelBoxes as moleculeLabelBoxes, type BondStyle, type MoleculeMode,
   type MoleculeStructParams,
@@ -66,6 +67,9 @@ const outDir = resolve(__dirname, '../../../build/trees');
  */
 const REAL_SMALL = { width: 495, height: 270 };
 const SPEC_SMALL = { width: 343, height: 236 };
+/** The default box renderWidgetTree uses, named so the corner sweep can pass
+ *  all three board sizes through one `test.each`. */
+const BOARD = { width: 900, height: 430 };
 
 test('every registry entry is either verified below or explicitly skipped', () => {
   // All nine are registered as of the wiring commit. The three entries that
@@ -206,6 +210,86 @@ describe('xy_plot', () => {
       a: 1, b: 1, c: 0,
       x_min: 0, x_max: 6.28,
     },
+
+    // The widest labels the schema allows, on the smallest board. `curve` is
+    // the one mode whose readout carries no number, so it is trimmed to the
+    // box rather than refused — and the trim is a code path, so the gate has
+    // to see it at every board size.
+    curve_long_labels: {
+      ...mod.defaults,
+      mode: 'curve' as const,
+      curve: 'sine' as const,
+      a: 1, b: 1, c: 0,
+      x_min: 0, x_max: 6.28,
+      x_label: 'displacement along the beam axis xx',
+      y_label: 'bending moment about the neutral z',
+    },
+
+    /* ---- v2: the region between two curves. NCERT Class 12 Ch8. ---- */
+
+    // "Area between two intersecting curves": y = x and y = x² on [0,1] = 1/6.
+    area_between: {
+      ...mod.defaults,
+      mode: 'area_between' as const,
+      curve: 'line' as const, a: 1, b: 0, c: 0,
+      curve2: 'parabola' as const, a2: 1, b2: 0, c2: 0,
+      x_min: -0.2, x_max: 1.2, shade_from: 0, shade_to: 1,
+    },
+    // The crossing case, and the reason the crossings are solved at all: the
+    // curves cross at 0 and 1, both INSIDE [−1,2]. 5/6 + 1/6 + 5/6 = 11/6.
+    // |∫(f−g)| over the same span is 3/2, so a readout of 1.50 here would be
+    // the naive implementation and 1.83 is the area of what is drawn.
+    area_between_crossing: {
+      ...mod.defaults,
+      mode: 'area_between' as const,
+      curve: 'line' as const, a: 1, b: 0, c: 0,
+      curve2: 'parabola' as const, a2: 1, b2: 0, c2: 0,
+      x_min: -1.2, x_max: 2.2, shade_from: -1, shade_to: 2,
+    },
+    // "Area bounded by a curve and its tangent": y = x² and y = 2x − 1, which
+    // touch at x = 1 without crossing. ∫₀³|x² − 2x + 1| = ∫₀³(x−1)² = 3.33.
+    area_between_tangent: {
+      ...mod.defaults,
+      mode: 'area_between' as const,
+      curve: 'parabola' as const, a: 1, b: 0, c: 0,
+      curve2: 'line' as const, a2: 2, b2: 0, c2: -1,
+      x_min: -1, x_max: 3, shade_from: 0, shade_to: 3,
+    },
+    // The parabola y² = 4ax against its own latus rectum, 8a²/3 = 2.67 at
+    // a = 1 — drawn TRANSPOSED, the horizontal variable standing for the
+    // textbook's y, because this widget integrates along x only.
+    area_between_latus: {
+      ...mod.defaults,
+      mode: 'area_between' as const,
+      curve: 'line' as const, a: 0, b: 0, c: 1,
+      curve2: 'parabola' as const, a2: 0.25, b2: 0, c2: 0,
+      x_min: -2.4, x_max: 2.4, shade_from: -2, shade_to: 2,
+      x_label: 'y', y_label: 'x',
+    },
+    // Against the default second curve, the x axis: the UNSIGNED area under
+    // y = x² − 1 on [0,2] is 2, where the signed integral `area` mode reports
+    // is 2/3. Two different questions, two different numbers, one widget.
+    area_between_axis: {
+      ...mod.defaults,
+      mode: 'area_between' as const,
+      curve: 'parabola' as const, a: 1, b: 0, c: -1,
+      curve2: 'line' as const, a2: 0, b2: 0, c2: 0,
+      x_min: -0.5, x_max: 2.5, shade_from: 0, shade_to: 2,
+    },
+  };
+
+  /**
+   * What the readout must say for each case — the arithmetic, tied to the
+   * picture. Derived by hand from NCERT Ch8 (see plot-math.ts's header), not
+   * read off a render.
+   */
+  const EXPECTED_READOUT: Partial<Record<keyof typeof CASES, string>> = {
+    area: 'area 2.67',                 // ∫₀² x² dx = 8/3
+    area_between: 'area 0.17',         // 1/6
+    area_between_crossing: 'area 1.83', // 11/6, NOT the naive 3/2
+    area_between_tangent: 'area 3',     // ∫₀³ (x−1)² dx = 3
+    area_between_latus: 'area 2.67',    // 8a²/3 at a = 1
+    area_between_axis: 'area 2',        // ∫₀²|x²−1| dx, where ∫₀²(x²−1) dx = 2/3
   };
 
   test.each(Object.keys(CASES) as (keyof typeof CASES)[])(
@@ -220,6 +304,12 @@ describe('xy_plot', () => {
         JSON.stringify(tree, null, 1)
       );
       const json = JSON.stringify(tree);
+      const expectedReadout = EXPECTED_READOUT[name];
+      if (expectedReadout) {
+        // The readout is the number a student reads off the board, so it is
+        // asserted as a string in the tree rather than trusted to derive().
+        expect(json).toContain(`"content":"${expectedReadout}"`);
+      }
       if (name === 'data') {
         // No path in this mode, and that is correct — a dot plot is lines and
         // circles. Assert what it SHOULD draw rather than relaxing the check:
@@ -259,6 +349,101 @@ describe('xy_plot', () => {
     const wide = renderWidgetTree(mod, CASES.area, { shade_to: 3 });
     expect(scaffoldingDiffs(narrow, wide)).toEqual([]);
   });
+
+  test('axes and ticks do not move while an area_between sweep crosses a crossing', () => {
+    // The harder version of the same invariant. Between these two values the
+    // shaded region gains a whole extra lobe (the curves cross at x = 1), so
+    // the animated path changes shape and not just width — and the element
+    // COUNT must still be identical, because the lobes are sub-paths of one
+    // `d` rather than separate elements. scaffoldingDiffs reports a count
+    // mismatch first, so this asserts both things at once.
+    const before = renderWidgetTree(mod, CASES.area_between_crossing, { shade_to: 0.4 });
+    const after = renderWidgetTree(mod, CASES.area_between_crossing, { shade_to: 1.7 });
+    expect(scaffoldingDiffs(before, after)).toEqual([]);
+  });
+
+  /**
+   * THE PICTURE AND THE NUMBER, CHECKED AGAINST EACH OTHER.
+   *
+   * Everything else here checks the readout string or the maths; this measures
+   * the SHAPE. Shoelace over the shaded path's own sub-polygons gives its area
+   * in px², and px² = world area x (pxPerX·pxPerY) — one constant, whatever
+   * `shade_to` is, because the frame does not move while it sweeps. So if the
+   * ratio of drawn pixels to reported area is the SAME NUMBER at five values
+   * of shade_to that straddle both crossings, the drawing and the arithmetic
+   * are describing the same region at every one of them.
+   *
+   * Deliberately scale-free: the test never computes pxPerX or pxPerY, so it
+   * cannot inherit a mistake from the layout code it is checking.
+   */
+  test('the shaded pixels and the reported area keep a constant ratio across a sweep', () => {
+    /*
+     * Per-lobe absolute area, summed — NOT the absolute value of the sum.
+     * Consecutive lobes wind in opposite directions (f is above g on one side
+     * of a crossing and below it on the other), so summing signed areas makes
+     * them cancel: the same cancellation ∫|f−g| exists to prevent, reappearing
+     * in the checker. Written the wrong way first, and it under-reported by 6%
+     * on the two-lobe case, which is how it got noticed.
+     */
+    const shoelace = (d: string): number => {
+      let total = 0;
+      for (const sub of d.split('M').slice(1)) {
+        const nums = sub.match(/-?\d+\.?\d*/g) ?? [];
+        const pts: [number, number][] = [];
+        for (let i = 0; i + 1 < nums.length; i += 2) pts.push([+nums[i], +nums[i + 1]]);
+        let lobe = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const [x0, y0] = pts[i];
+          const [x1, y1] = pts[(i + 1) % pts.length];
+          lobe += x0 * y1 - x1 * y0;
+        }
+        total += Math.abs(lobe) / 2;
+      }
+      return total;
+    };
+
+    const shadedPath = (tree: unknown): string => {
+      const found: string[] = [];
+      const walk = (n: unknown): void => {
+        if (!n || typeof n !== 'object') return;
+        if (Array.isArray(n)) return n.forEach(walk);
+        const e = n as { type?: string; props?: { d?: string }; children?: unknown };
+        // The shaded region is the only CLOSED path in this widget; f and g
+        // are drawn open.
+        if (e.props?.d && e.props.d.includes('Z')) found.push(e.props.d);
+        walk(e.children);
+      };
+      walk(tree);
+      expect(found).toHaveLength(1);
+      return found[0];
+    };
+
+    const params = CASES.area_between_crossing;
+    const ratios: number[] = [];
+    for (const shadeTo of [-0.6, 0.25, 0.9, 1.4, 2]) {
+      const tree = renderWidgetTree(mod, { ...params, shade_to: shadeTo }, { shade_to: shadeTo });
+      const reported = mod.computeDerived({ ...params, shade_to: shadeTo }).area;
+      expect(reported).toBeGreaterThan(0);
+      ratios.push(shoelace(shadedPath(tree)) / reported);
+    }
+    // Every ratio is the same px-per-unit-area constant. A 0.5% band covers
+    // the polygon's own sampling error against the true curve; a wrong region
+    // is out by tens of percent, not tenths.
+    for (const r of ratios) expect(r / ratios[0]).toBeCloseTo(1, 2);
+  });
+
+  test('the region gains a lobe as the sweep passes a crossing, without gaining an element', () => {
+    // Shading runs from −1, and the curves cross at 0 and at 1. So [−1, 0.4]
+    // is two closed sub-regions and [−1, 1.7] is three. Only the shaded path
+    // is closed — f and g are drawn open — so counting 'Z' in the tree counts
+    // lobes, and the element count is asserted separately by scaffoldingDiffs
+    // above.
+    const twoLobes = JSON.stringify(renderWidgetTree(mod, CASES.area_between_crossing, { shade_to: 0.4 }));
+    const threeLobes = JSON.stringify(renderWidgetTree(mod, CASES.area_between_crossing, { shade_to: 1.7 }));
+    const zCount = (json: string) => (json.match(/Z/g) ?? []).length;
+    expect(zCount(twoLobes)).toBe(2);
+    expect(zCount(threeLobes)).toBe(3);
+  });
 });
 
 /**
@@ -268,6 +453,128 @@ describe('xy_plot', () => {
  * numeric columns) at the smallest board, so that is rendered explicitly
  * rather than only the default.
  */
+/**
+ * xy_plot area_between — THE CORNERS, not the endpoints.
+ *
+ * CLAUDE.md §3: a schema with N numeric params has 2^N corners and the defects
+ * hide in the combinations. Sweeping one param at a time misses every bug that
+ * needs two things extreme at once — which is how projectile_motion's three
+ * post-sweep defects were found, and how the y-tick overflow this widget's
+ * validate() now rejects had been sitting in the v1 schema unnoticed.
+ *
+ * Five binary axes, so 32 payloads: curve kind of f, curve kind of g,
+ * coefficient magnitude (0.01 vs the 100 clamp), domain (narrow vs the ±1000
+ * clamp), and whether the shading covers the whole domain or an inner slice
+ * that puts the crossings in different places. Every accepted one is written
+ * out at ALL THREE board sizes and goes through scripts/verify-render.mjs with
+ * the rest of build/trees — the gate is the assertion, not a copy of it in
+ * here. 343x236 is the binding case and is checked at that box by
+ * verify-tree-dir.mjs's `.spec-small` suffix.
+ *
+ * A rejected corner is a PASS, not a gap: it means validate() and the gate
+ * agree about a payload that cannot be drawn legibly. What would be a failure
+ * is a corner validate() accepts and the gate then rejects, and there is no
+ * assertion for that here because there does not need to be — the gate runs
+ * over what this writes.
+ */
+describe('xy_plot area_between corners', () => {
+  const mod = REGISTRY.xy_plot!;
+
+  const KINDS = ['line', 'parabola'] as const;
+  const MAGS = [0.01, 100];
+  const DOMAINS: [number, number][] = [
+    [-0.5, 0.5],      // narrow
+    [-1000, 1000],    // the x clamp
+  ];
+
+  const corners: { name: string; params: XyPlotParams }[] = [];
+  for (const kf of KINDS) {
+    for (const kg of KINDS) {
+      for (const mag of MAGS) {
+        for (const [xMin, xMax] of DOMAINS) {
+          for (const inner of [false, true]) {
+            const span = xMax - xMin;
+            corners.push({
+              name: [
+                kf === 'line' ? 'L' : 'P',
+                kg === 'line' ? 'L' : 'P',
+                mag === 100 ? 'big' : 'tiny',
+                span > 100 ? 'wide' : 'narrow',
+                inner ? 'inner' : 'full',
+              ].join('-'),
+              params: {
+                ...mod.defaults,
+                mode: 'area_between' as const,
+                curve: kf, a: mag, b: mag / 2, c: 0,
+                curve2: kg, a2: -mag, b2: 0, c2: mag,
+                x_min: xMin, x_max: xMax,
+                shade_from: inner ? xMin + span * 0.25 : xMin,
+                shade_to: inner ? xMax - span * 0.25 : xMax,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  test('there are 32 corners and validate() never throws on any of them', () => {
+    expect(corners).toHaveLength(32);
+    for (const { params } of corners) {
+      expect(() => mod.validate(params)).not.toThrow();
+    }
+  });
+
+  test('the sweep is not vacuous — some corners are accepted and some refused', () => {
+    const results = corners.map((k) => mod.validate(k.params).ok);
+    expect(results.filter(Boolean).length).toBeGreaterThan(4);
+    expect(results.filter((ok) => !ok).length).toBeGreaterThan(0);
+  });
+
+  test('every refusal says something a person can act on', () => {
+    for (const { name, params } of corners) {
+      const r = mod.validate(params);
+      if (r.ok) continue;
+      expect(r.errors.length).toBeGreaterThan(0);
+      for (const e of r.errors) {
+        expect(typeof e).toBe('string');
+        expect(e.length).toBeGreaterThan(20);
+      }
+      expect(`${name}: ${r.errors.join(' | ')}`).toMatch(/edge|gridline|curve|interval|spacing/);
+    }
+  });
+
+  describe.each(corners)('$name', ({ name, params }) => {
+    const result = mod.validate(params);
+
+    test.each([
+      ['', BOARD],
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders through the gate at %s', (label, box) => {
+      if (!result.ok) {
+        // Refused by the schema, so it can never reach a board. Nothing to
+        // render; the assertion is that the refusal happened at all.
+        expect(result.ok).toBe(false);
+        return;
+      }
+      const p = result.params;
+      const tree = renderWidgetTreeAt(mod, p, { shade_to: p.shade_to }, box.width, box.height);
+      expect(tree).not.toBeNull();
+      const json = JSON.stringify(tree);
+      expect(json).not.toContain('NaN');
+      expect(json).toContain('"d":');
+
+      mkdirSync(outDir, { recursive: true });
+      const suffix = label ? `.${label}` : '';
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.corner-${name}${suffix}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+});
+
 describe('data_table_trend', () => {
   const mod = REGISTRY.data_table_trend!;
 
