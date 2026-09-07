@@ -42,10 +42,19 @@ describe('real inline maths still converts', () => {
   });
 });
 
-test('the cost of the rule, stated rather than discovered later', () => {
-  // `$2x + 1$` opens with a digit and is now read as a price. Nothing in this
-  // corpus writes that — formulas arrive in their own `latex` field,
-  // undelimited — but the trade is real and belongs in a fixture rather than
-  // in a comment nobody runs.
-  expect(latexToText('$2x + 1$')).toBe('$2x + 1$');
+test('the cost this rule USED to have, and no longer does', () => {
+  // My original rule was "a `$` followed by a digit is currency", and this
+  // fixture recorded its price: `$2x + 1$` opens with a digit, so it stayed
+  // literal. I called that an acceptable trade because formulas arrive in
+  // their own undelimited `latex` field.
+  //
+  // A survey of all 11,300 servable questions (81e3009) showed the trade was
+  // not acceptable at all — the bank is full of `$2 x+3 y=9$` and `$15d$`, and
+  // a digit-only test ate them. The rule now also requires the span to read
+  // like PROSE: a run of three or more letters. A price body is words; no
+  // price contains an equals sign.
+  //
+  // So this asserts the improvement rather than the old limitation.
+  expect(latexToText('$2x + 1$')).toBe('2x + 1');
+  expect(latexToText('$2 x+3 y=9$')).toBe('2 x+3 y=9');
 });
