@@ -89,9 +89,12 @@
  *   family            one curve at several values of one coefficient.
  *                     `gap_curve_family`.
  *   named             the shapes the book PRINTS rather than defines —
- *                     stress-strain, heating, titration, diode I-V and five
- *                     more. See ./named-curves.ts, which explains at length
- *                     why this is NOT built on `data` mode.
+ *                     stress-strain, heating, titration, diode I-V and SIX
+ *                     more: TEN in total. (This said "five more" and the
+ *                     commit message said nine shapes; `NAMED_SHAPE_IDS`
+ *                     has ten entries, counted rather than reasoned from
+ *                     the sentence.) See ./named-curves.ts, which explains
+ *                     at length why this is NOT built on `data` mode.
  *
  * ONE THING `integrate_along` TURNED OUT TO COVER THAT IT WAS NOT BUILT FOR:
  * A SQUARE ROOT AGAINST A LINE. Along y, y = √x is x = y² — a parabola — and
@@ -103,8 +106,18 @@
  * y = x² against y = √x — see concept 6 above.
  *
  * THE BIGGEST THING STILL MISSING, named so it is not rediscovered as a
- * surprise: `gap_feasible_region`, the largest single gap name in the corpus
- * at 7 concepts, plus `gap_inequality_region` at 2. A linear-programming
+ * surprise: `gap_feasible_region`, the largest single gap name in THIS
+ * WIDGET'S CLUSTER at 7 concepts, plus `gap_inequality_region` at 2.
+ *
+ * (This said "the largest single gap name in the corpus", and counting the
+ * corpus refutes it: `gap_3d_lines_planes` has 17, and `gap_energy_level`
+ * and `gap_argand_diagram` are also on 7. The corpus totals this file's
+ * commit message quotes DO hold exactly — 278 gap_* rows across 146 names
+ * over the merged `content/concept-archetypes.csv` + `content/reclass/*.csv`
+ * — so this was a superlative reached for rather than counted, in the
+ * paragraph about not being surprised later.)
+ *
+ * A linear-programming
  * feasible region is the intersection of three or more half-planes with the
  * first quadrant — a convex POLYGON whose vertices are pairwise line
  * intersections filtered for feasibility, whose area is a shoelace sum, and
@@ -232,13 +245,22 @@ const FAMILY_PARAMS: FamilyParam[] = ['a', 'b', 'c'];
  *
  * MAX_FAMILY = 5. The binding constraint is NOT ink — five curves at
  * EMPHASIS_STROKE 2.6 are 13 pt of a 164.4 pt box — it is the READOUT, which
- * must list every value or the picture cannot be read. Five values at the
- * ±100 coefficient clamp spell `y vs x   a = -100, -100, -100, -100, -100`,
- * 43 code units, 43 × 14 × 0.58 = 349.2 pt against 282.6 pt of board: refused
- * by `labelFitProblems`, which is the real cap and is payload-dependent. Five
- * SMALL values (`a = 0.5, 1, 2, 4, 8`) are 27 units = 219.2 pt and fit. So
- * the count cap and the width check bind in different places and both are
- * needed.
+ * must list every value or the picture cannot be read.
+ *
+ * THE WORKED EXAMPLE HERE USED TO BE THE ±100 CLAMP, AND IT WAS THE WRONG
+ * ONE — measured, not argued: `a = -100, -100, -100, -100, -100` is 32 code
+ * units, 32 × 14 × 0.58 = 259.8 pt against 282.6 pt of board, so it FITS and
+ * `validate()` admits it. (The old note called that string 43 units and
+ * 349.2 pt by measuring the caption with it; `labelFitProblems` deliberately
+ * measures the VALUE ALONE — see its own comment, and `readoutValue` — so
+ * the caption's width was never part of this bound.)
+ *
+ * The width check does bind, just not at the clamp: the widest legal VALUE is
+ * five two-decimal numbers, `a = -99.99, -99.99, -99.99, -99.99, -99.99`, 42
+ * units = 341.0 pt, which is refused. Five short values (`a = 0.5, 1, 2, 4,
+ * 8`) are 21 units = 170.5 pt and fit. So the count cap and the width check
+ * do bind in different places and both are needed — the count cap is what
+ * stops a sixth value, and the width check is what stops five long ones.
  */
 const MAX_PIECES = 6;
 const MAX_FAMILY = 5;
@@ -370,6 +392,60 @@ function planFrame(params: XyPlotParams, width: number, height: number) {
   if (vMin > 0 && vMin < (vMax - vMin) * 0.5) vMin = 0;
   if (vMax < 0 && -vMax < (vMax - vMin) * 0.5) vMax = 0;
 
+  /*
+   * IN `area` MODE v = 0 IS A BOUNDARY OF THE DRAWN REGION, NOT A NICETY.
+   *
+   * `areaPath` (and `areaPiecesPath`) close their polygon ON v = 0 — that is
+   * what "the area under the curve" means — so the shaded shape reaches v = 0
+   * whether or not v = 0 is inside the plotted range. The rule above only
+   * pulls the axis in when it is ALREADY nearly in range, which leaves an
+   * ordinary payload drawing its region off the bottom of the board:
+   *
+   *   { mode: 'area', curve: 'parabola', a: 1, b: 0, c: 20,
+   *     x_min: 0, x_max: 3, shade_from: 0, shade_to: 3 }     area 69
+   *
+   * y runs 20..29, so the range never reaches zero, and the shaded path ran
+   * to y = 994 on a 430pt board — `RNSVGPath out of bounds` at all three
+   * boards, on a payload `validate()` admitted. The readout said `area 69`
+   * over a picture showing a band running off the bottom edge: a number right
+   * for a region the student cannot see, which is the failure the v3 header
+   * calls out for `shade_from` and which was still live one mode away.
+   * `∫₀⁶(5 + sin x)dx` and `∫₀⁴(x + 10)dx` are the same case.
+   *
+   * `area_between` does not need this: BOTH curves are in `curvePairRange`,
+   * and the default `curve2` IS the axis, so a region bounded by v = 0 always
+   * has v = 0 in range already. Only `area`, whose second boundary is
+   * implicit, could lose it.
+   */
+  if (params.mode === 'area' && !isData && named === null) {
+    if (vMin > 0) vMin = 0;
+    if (vMax < 0) vMax = 0;
+  }
+
+  /*
+   * A SPAN THAT IS STILL ZERO HERE MAKES EVERY COORDINATE NaN.
+   *
+   * `curveRange` and its siblings widen a flat range by ±1 — which is a no-op
+   * in double precision once |v| exceeds 2^53, so a curve whose sampled
+   * values are all one huge number comes back with yMin === yMax:
+   *
+   *   { mode: 'curve', curve: 'exponential', a: -100, b: -100, c: -1,
+   *     x_min: -1000, x_max: -0.5, integrate_along: 'y' }
+   *
+   * overflows to −Infinity at every sample but the last, so ONE finite value
+   * (−5.18e23) sets both ends. vSpan 0 makes vScale ±Infinity and every
+   * projected coordinate 0 × Infinity = NaN — `RNSVGLine.x1 is NaN` at all
+   * three boards, again on a payload `validate()` admitted. Widening
+   * RELATIVE to the magnitude is what ±1 was meant to do; the tick labels are
+   * then twenty digits wide and `labelFitProblems` refuses the payload, which
+   * is the answer this always should have given.
+   */
+  if (!(vMax - vMin > 0)) {
+    const w = Math.max(1, Math.abs(vMax) * 1e-9);
+    vMin -= w;
+    vMax += w;
+  }
+
   // The signed scales. Non-swap reproduces v2's originX/pxPerX/originY/pxPerY
   // exactly; swap puts u on the vertical axis increasing UPWARD (hence the
   // negative uScale against a pixel y that increases downward) and v on the
@@ -390,10 +466,48 @@ function planFrame(params: XyPlotParams, width: number, height: number) {
 
   const uStep = tickStep(uSpan);
   const vStep = tickStep(vSpan);
+  /*
+   * COUNT-BOUNDED, and the bound is load-bearing rather than defensive.
+   *
+   * `tickStep` tops out at a hard-coded 2000 (plot-math.ts, the same table
+   * and the same fallback CLAUDE.md records as a found defect in
+   * projectile_motion), so a span it cannot cover in seven intervals asks
+   * these loops for as many entries as the span divided by 2000. An
+   * EXPONENTIAL over a wide domain reaches that immediately and with every
+   * coefficient at an ordinary value:
+   *
+   *   { mode: 'curve', curve: 'exponential', a: 1, b: 1, c: 0,
+   *     x_min: 0, x_max: 26 }        v-span 2.6e11 -> 1.3e8 ticks
+   *   ... x_max: 30                  v-span 1.3e13 -> more slots than an
+   *                                  Array may hold
+   *
+   * so `validate()` spent a second allocating and then THREW
+   * `RangeError: Invalid array length` out of planFrame, breaking CLAUDE.md
+   * §6's "validate() is total and never throws" — and it throws on the path
+   * `use-cue-track` runs for every cue patch, not only on an authored
+   * payload.
+   *
+   * Capping the COUNT rather than widening the step is what keeps the schema
+   * narrow. A v-span this loop would overrun has a twelve-digit first tick in
+   * a 40.4pt gutter, so `labelFitProblems` refuses the payload on exactly the
+   * message it always would — it can now reach that check instead of dying
+   * before it. Nothing the gate admits is affected: `tickStep` promises seven
+   * intervals for every span whose labels fit the gutter at all, so an
+   * admitted payload has at most eight ticks per axis.
+   */
+  const MAX_TICKS = 64;
   const uTicks: number[] = [];
-  for (let t = Math.ceil(uMin / uStep) * uStep; t <= uMax + 1e-9; t += uStep) uTicks.push(t);
+  for (
+    let t = Math.ceil(uMin / uStep) * uStep;
+    t <= uMax + 1e-9 && uTicks.length < MAX_TICKS;
+    t += uStep
+  ) uTicks.push(t);
   const vTicks: number[] = [];
-  for (let t = Math.ceil(vMin / vStep) * vStep; t <= vMax + 1e-9; t += vStep) vTicks.push(t);
+  for (
+    let t = Math.ceil(vMin / vStep) * vStep;
+    t <= vMax + 1e-9 && vTicks.length < MAX_TICKS;
+    t += vStep
+  ) vTicks.push(t);
 
   return {
     left, right, top, bottom, plotW, plotH,
@@ -435,6 +549,44 @@ function fy(f: Frame, u: number, v: number): number {
  */
 const hTickPx = (f: Frame, t: number) => fx(f, t, t);
 const sideTickPy = (f: Frame, t: number) => fy(f, t, t);
+
+/**
+ * BASELINE of a side-tick's label — its gridline, plus the 0.35em that centres
+ * a cap-height glyph on that line, CLAMPED clear of the x-tick row.
+ *
+ * The clamp is the fix for a collision `labelFitProblems` could not see
+ * because it never measured the two tick families against each other: it
+ * checks side labels against the LEFT EDGE and h labels against the RIGHT
+ * EDGE and against each other, and the two rows meet in the bottom-left
+ * CORNER. The first h-tick is centred on `left`, so a label four characters
+ * wide reaches 17pt back into the 40.4pt y-tick gutter; when the bottom-most
+ * side tick lands on the plot's bottom edge the two boxes overlap by 1.8pt
+ * and the gate reports `labels collide`. Reachable from the syllabus, not
+ * only from a corner:
+ *
+ *   { mode: 'area', curve: 'reciprocal', a: 1, c: 0,
+ *     x_min: 0.5, x_max: 2 }        ∫₀.₅² dx/x — `labels collide: "0.50" and
+ *                                   "0"` at ALL THREE boards
+ *
+ * (`x_min` 0.5 makes the first h label `0.50`; y runs 0.5..2, so the v-range
+ * snaps to 0 and the `0` side tick sits exactly on the bottom edge.)
+ *
+ * Refusing that payload is not an option — it is a Class 12 integral — and
+ * moving the h row down would move every frozen golden's x labels. Clamping
+ * the SIDE label instead is provably inert everywhere the boxes already
+ * clear: it only bites within 0.20em of the bottom edge, i.e. only on the
+ * tick that is drawn on the plot's own baseline, where 1.8pt of travel is
+ * invisible against a gridline that is the axis.
+ *
+ * The bound in the box model verify-render.mjs uses (baseline at 0.82em,
+ * height 1.15em, so a box runs baseline − 0.82em .. baseline + 0.33em): the
+ * h row's baseline is `bottom + 1.35em`, so its box starts at `bottom +
+ * 0.53em`, and a side label clears it when its baseline is at most
+ * `bottom + 0.20em`. 0.15em is that bound with a 0.05em margin, so the two
+ * never merely touch.
+ */
+const sideTickLabelY = (f: Frame, t: number) =>
+  Math.min(sideTickPy(f, t) + TICK_LABEL_SIZE * 0.35, f.bottom + TICK_LABEL_SIZE * 0.15);
 
 /**
  * Where a named shape's landmark marker and its label go, in pixels.
@@ -1350,14 +1502,34 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
     };
   });
 
-  /** The point of tangency. A Circle, so it is geometry and may move. */
+  /**
+   * The point of tangency. A Circle, so it is geometry and may move.
+   *
+   * THE "DRAW NOTHING" SENTINEL IS INSIDE THE BOARD, NOT AT (-100, -100).
+   *
+   * `r: 0` already draws nothing, but verify-render.mjs's `boundsOf` reads a
+   * Circle's bounds from cx/cy/r WITHOUT caring that r is zero, so a dot
+   * parked off-board is a hard `RNSVGCircle out of bounds` error at every
+   * board size — the always-mounted-element-parked-off-canvas pattern
+   * CLAUDE.md lists among the four wrong-reason passes found on 2026-09-05,
+   * here failing loudly rather than passing quietly.
+   *
+   * Reachable on a PIECEWISE payload with a tangent, whenever `pieceAt`
+   * misses: `tangent_at` a hair past `x_max` returns −1 and this branch
+   * fires. `validate()` clamps `tangent_at` into the domain and the cue
+   * easing (`Easing.inOut(Easing.quad)` in use-cue-track.ts) does not
+   * overshoot, so nothing in the product reaches it today — which is exactly
+   * why it must not be the thing standing between a rounding hair and a
+   * gate failure. Parked at the plot's top-left corner it is invisible,
+   * in-bounds, and filtered out of the glyph-spacing check by `r > 0`.
+   */
   const tangentDotProps = useAnimatedProps(() => {
-    if (!hasTangent) return { cx: -100, cy: -100, r: 0 };
+    if (!hasTangent) return { cx: frame.left, cy: frame.top, r: 0 };
     const i = params.pieces.length > 0 ? pieceAt(params.pieces, tangentSv.value) : -1;
     const kind = params.pieces.length > 0 ? (i < 0 ? null : params.pieces[i]) : {
       curve: params.curve, a: params.a, b: params.b, c: params.c,
     };
-    if (!kind) return { cx: -100, cy: -100, r: 0 };
+    if (!kind) return { cx: frame.left, cy: frame.top, r: 0 };
     const v0 = evalCurve(kind.curve, kind.a, kind.b, kind.c, tangentSv.value);
     return {
       cx: pointPx(tangentSv.value, v0, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap),
@@ -1430,7 +1602,7 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
               stroke={theme.rule} strokeWidth={GRIDLINE_STROKE}
             />
             <SvgText
-              x={frame.left - 6} y={sideTickPy(frame, t) + TICK_LABEL_SIZE * 0.35}
+              x={frame.left - 6} y={sideTickLabelY(frame, t)}
               fill={theme.inkMuted} fontSize={TICK_LABEL_SIZE}
               fontFamily={theme.monoFontFamily} textAnchor="end"
             >

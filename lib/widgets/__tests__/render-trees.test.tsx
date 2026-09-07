@@ -27,6 +27,8 @@ import type { CircuitNetworkParams } from '../circuit-network';
 import { reactionScheme } from '../reaction-scheme';
 import { labelBoxes, type ReactionSchemeParams } from '../reaction-scheme/scheme-graph';
 import { moleculeStruct } from '../molecule-struct';
+import { linesPlanes3d } from '../lines-planes-3d';
+import { REFERENCE_CASES as LINES_PLANES_CASES } from '../lines-planes-3d/reference-cases';
 import type { XyPlotParams } from '../xy-plot/plot-math';
 import {
   labelBoxes as moleculeLabelBoxes, type BondStyle, type MoleculeMode,
@@ -1799,6 +1801,124 @@ describe('circuit_network', () => {
 
   test('derived matches what computeDerived actually returns', () => {
     // derived-consistency.test.ts iterates the REGISTRY, which circuit_network
+    // is not in yet. Same assertion, made directly, so registration cannot be
+    // the first time this is checked.
+    expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());
+    for (const key of Object.keys(mod.derivedAliases)) expect(mod.derived).toContain(key);
+  });
+});
+
+/**
+ * lines_planes_3d is verified here BEFORE it is registered — registry wiring
+ * is a separate serial step, so `REGISTRY.lines_planes_3d` does not exist yet
+ * and the module is imported directly. Everything else is the same harness.
+ *
+ * Its cases come from `../lines-planes-3d/reference-cases`, the same list its
+ * own maths suite imports, so the two cannot drift.
+ *
+ * The risks this widget actually has, which is what the cases are chosen for:
+ *
+ * FIRST, THE PROJECTION. Every other widget in this harness draws in the plane
+ * it computes in. This one draws a 3-D figure through an orthographic camera,
+ * so a payload that is geometrically perfect can still collapse — a line along
+ * the camera's line of sight projects to a point, a plane perpendicular to it
+ * is edge-on. `validate()` refuses both (see space-math's fitProblems); what
+ * the trees prove is that the ADMITTED ones survive all three boards.
+ *
+ * SECOND, LABEL DENSITY. Up to nine labels sit on the figure itself rather
+ * than in a corner — P, F, P', L, L1, L2, n, X, θ, φ, p1, p2, x, y, z — and
+ * verify-render treats any two overlapping text boxes as a hard error. The
+ * placer is greedy first-fit over eight compass slots; `axes_on` is the case
+ * that loads it, with three extra axis labels no other case has.
+ *
+ * THIRD, NO ANIMATABLE PARAMS AT ALL, and that is load-bearing rather than
+ * lazy: every moving thing here terminates in a Text, and the camera auto-fits
+ * to the scene, so a tween would move the scaffolding twice over. The
+ * params/motion invariance test other widgets run has nothing to vary here,
+ * so the guard below asserts the empty `animatable` directly instead — a
+ * silent regression to a non-empty list is the thing worth catching.
+ */
+describe('lines_planes_3d', () => {
+  const mod = linesPlanes3d;
+  const CASES = LINES_PLANES_CASES;
+
+  test('every case is a payload validate() would actually admit', () => {
+    // The schema's legal range must be a SUBSET of what renders correctly — so
+    // the trees below have to come from inside the schema, not beside it.
+    for (const [name, params] of Object.entries(CASES)) {
+      const r = mod.validate(params);
+      expect([name, r.ok ? [] : r.errors]).toEqual([name, []]);
+    }
+  });
+
+  test.each(Object.keys(CASES))('renders %s and writes its tree', (name) => {
+    const params = CASES[name];
+    const tree = renderWidgetTree(mod, params);
+    expect(tree).not.toBeNull();
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(
+      resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+      JSON.stringify(tree, null, 1)
+    );
+    const json = JSON.stringify(tree);
+    // Lines are the objects, Paths are the faces and arrowheads, Circles are
+    // the marked points. A tree missing any of the three is not this figure.
+    expect(json).toContain('RNSVGLine');
+    expect(json).toContain('RNSVGPath');
+    expect(json).toContain('RNSVGCircle');
+    // The readout must carry the derived numbers, not a typed copy of them.
+    expect(json).toContain('RNSVGText');
+  });
+
+  describe.each(Object.keys(CASES))('%s at small boards', (name) => {
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const tree = renderWidgetTreeAt(mod, CASES[name], {}, box.width, box.height);
+      expect(tree).not.toBeNull();
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        resolve(outDir, `${mod.id}@${mod.version}.${name}.${label}.json`),
+        JSON.stringify(tree, null, 1)
+      );
+    });
+  });
+
+  test('animatable is empty, and that is the contract not an omission', () => {
+    // CLAUDE.md §3: moving geometry that terminates in a label cannot animate,
+    // because SCAFFOLDING_TYPES includes Text/TSpan. Every drawn object here
+    // is label-terminated. Adding an animatable key would also break the
+    // auto-fit, which recomputes the world scale from the scene.
+    expect(mod.animatable).toEqual([]);
+  });
+
+  test('the figure is identical however `motion` is populated', () => {
+    // With no animatable params `motionFor` returns {}, so the widget cannot
+    // read a SharedValue even by accident. Asserted rather than assumed:
+    // a widget that reached into `motion` for an unlisted key would render
+    // differently here, and scaffoldingDiffs would not be run to catch it.
+    for (const name of Object.keys(CASES)) {
+      const a = renderWidgetTree(mod, CASES[name], { anything: 0 });
+      const b = renderWidgetTree(mod, CASES[name], { anything: 1 });
+      expect([name, scaffoldingDiffs(a, b)]).toEqual([name, []]);
+      expect(JSON.stringify(a)).toEqual(JSON.stringify(b));
+    }
+  });
+
+  test('no NaN or Infinity reaches any prop, at any board size', () => {
+    for (const name of Object.keys(CASES)) {
+      for (const box of [BOARD, REAL_SMALL, SPEC_SMALL]) {
+        const json = JSON.stringify(
+          renderWidgetTreeAt(mod, CASES[name], {}, box.width, box.height)
+        );
+        expect([name, box.width, /NaN|Infinity/.test(json)]).toEqual([name, box.width, false]);
+      }
+    }
+  });
+
+  test('derived matches what computeDerived actually returns', () => {
+    // derived-consistency.test.ts iterates the REGISTRY, which lines_planes_3d
     // is not in yet. Same assertion, made directly, so registration cannot be
     // the first time this is checked.
     expect(Object.keys(mod.computeDerived(mod.defaults)).sort()).toEqual([...mod.derived].sort());

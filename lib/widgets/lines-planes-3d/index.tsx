@@ -1,0 +1,490 @@
+import React, { useMemo } from 'react';
+import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+
+import {
+  EMPHASIS_STROKE, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE, PAD_EDGE, PAD_SIDE,
+  READOUT_BAND, READOUT_SIZE, charWidthFor, dirArrowHead, fitReadout,
+} from '../chrome';
+import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
+import {
+  COORD_MAX, DERIVED_KEYS, EPS, MAX_CAPTION_CHARS, MAX_DERIVED_COORD, MODES,
+  PLANE_OFFSET_MAX, SLOTS, VIEW_IDS,
+  computeDerived, cross, dot, fitProblems, layout, len, lineMeetsPlane, polyPath,
+  skewBridge, sub,
+  type FrameChrome, type LinesPlanes3dParams, type Mode, type PlaneSpec, type Vec3,
+  type ViewId,
+} from './space-math';
+
+/**
+ * lines_planes_3d — a point, a line and a plane in space, and the
+ * perpendicular relationships between them.
+ *
+ * SNAP-ONLY, AND NOT BY OMISSION. `animatable` is empty because CLAUDE.md §3's
+ * label-terminated rule leaves no choice: EVERY moving thing in this figure
+ * terminates in a `<Text>`. A line ends in "L1", a foot in "F", an image in
+ * "P'", a plane in "p1", a normal in "n". `SCAFFOLDING_TYPES` in
+ * __tests__/test-utils.ts includes Text/TSpan, so any motion-driven change to
+ * one is reported as a params/motion violation — and it is right to be: a
+ * skew line that swings while "L1" stays put is a wrong diagram, not a
+ * slightly-off one. Worse, the camera AUTO-FITS to the scene, so a tweening
+ * coordinate would rescale the whole board mid-flight, which is the exact
+ * defect the params/motion split exists to prevent. Variation is driven by
+ * successive board events with fresh `params`, which re-render freely.
+ */
+
+/* ------------------------------------------------------------------ chrome */
+
+/** Device points. NEVER multiplied by a board dimension — the frame rule. */
+const AXIS_STROKE = HAIRLINE_STROKE;
+const OBJECT_STROKE = EMPHASIS_STROKE;
+const MEASURE_STROKE = LINE_STROKE;
+const CONSTRUCTION_STROKE = HAIRLINE_STROKE;
+const FACE_STROKE = LINE_STROKE;
+const MARK_STROKE = HAIRLINE_STROKE;
+const DASH_CONSTRUCTION = '4 3';
+const FACE_OPACITY = 0.1;
+
+const FRAME: FrameChrome = {
+  labelSize: LABEL_SIZE,
+  charW: charWidthFor,
+  readoutBand: READOUT_BAND,
+  padSide: PAD_SIDE,
+  padEdge: PAD_EDGE,
+};
+
+/* ---------------------------------------------------------------- validate */
+
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const isStr = (v: unknown): v is string => typeof v === 'string';
+
+function readVec(raw: unknown, path: string, errors: string[]): Vec3 | null {
+  if (!Array.isArray(raw) || raw.length !== 3) {
+    errors.push(`${path} must be an array of exactly three numbers [x, y, z]`);
+    return null;
+  }
+  const out: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const n = raw[i];
+    if (!finite(n)) {
+      errors.push(`${path}[${i}] must be a finite number (got ${JSON.stringify(raw[i])})`);
+      return null;
+    }
+    if (Math.abs(n) > COORD_MAX) {
+      errors.push(`${path}[${i}] is ${n}; coordinates are bounded to ±${COORD_MAX}`);
+      return null;
+    }
+    out.push(n);
+  }
+  return [out[0], out[1], out[2]];
+}
+
+function readLine(raw: unknown, path: string, errors: string[]) {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    errors.push(`${path} must be an object { at: [x,y,z], dir: [a,b,c] }`);
+    return null;
+  }
+  const r = raw as Record<string, unknown>;
+  const at = readVec(r.at, `${path}.at`, errors);
+  const dir = readVec(r.dir, `${path}.dir`, errors);
+  if (!at || !dir) return null;
+  if (len(dir) === 0) {
+    errors.push(
+      `${path}.dir is (0, 0, 0) — direction ratios of zero do not define a line; r = a + λb collapses to the single point a`
+    );
+    return null;
+  }
+  return { at, dir };
+}
+
+function readPlane(raw: unknown, path: string, errors: string[]): PlaneSpec | null {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    errors.push(`${path} must be an object { normal: [a,b,c], d: number } for the plane n·r = d`);
+    return null;
+  }
+  const r = raw as Record<string, unknown>;
+  const normal = readVec(r.normal, `${path}.normal`, errors);
+  if (!finite(r.d)) {
+    errors.push(`${path}.d must be a finite number (the plane is n·r = d, not ax+by+cz+d=0)`);
+    return null;
+  }
+  if (!normal) return null;
+  if (len(normal) === 0) {
+    errors.push(
+      `${path}.normal is (0, 0, 0) — a zero normal does not define a plane; n·r = d becomes 0 = d`
+    );
+    return null;
+  }
+  // The bound is on |d|/|n|, the plane's distance from the origin — NOT on |d|,
+  // which is meaningless on its own because (n, d) and (2n, 2d) are the same
+  // plane. See PLANE_OFFSET_MAX.
+  const offset = Math.abs(r.d) / len(normal);
+  if (!Number.isFinite(offset) || offset > PLANE_OFFSET_MAX) {
+    errors.push(
+      `${path} sits ${offset.toFixed(0)} units from the origin (|d|/|n|); planes are bounded to ${PLANE_OFFSET_MAX}, the same bound as a coordinate`
+    );
+    return null;
+  }
+  return { normal, d: r.d };
+}
+
+/**
+ * Total, throwing-free validation.
+ *
+ * WHAT IT REFUSES, AND WHY EACH REFUSAL IS A REFUSAL RATHER THAN A CLAMP.
+ * Every one of these is a configuration where the picture this widget draws
+ * would ASSERT SOMETHING FALSE, not merely look bad:
+ *
+ *  1. A ZERO DIRECTION OR NORMAL. r = a + λb with b = 0 is the point a, and
+ *     n·r = d with n = 0 is either the whole of space or nothing. There is no
+ *     line and no plane to draw.
+ *
+ *  2. PARALLEL LINES, in `two_lines`. Δ = |b1|²|b2|² − (b1·b2)² = 0, so the
+ *     normal-equation solve has no unique solution: there is no common
+ *     perpendicular, there are infinitely many, and the cross-product formula
+ *     divides by |b1 × b2| = 0. Parallel lines have their OWN formula
+ *     (|b × (a2−a1)|/|b|) and their own picture — a constant gap, drawn at
+ *     any point — and drawing one arbitrary perpendicular would teach the
+ *     student that a shortest segment is unique when it is not.
+ *
+ *  3. A POINT ON THE LINE / IN THE PLANE. The perpendicular has zero length,
+ *     the foot IS the point, and the image IS the point. There is nothing to
+ *     measure, and a diagram showing P, F and P' as three marks on top of one
+ *     another says the opposite of what is true.
+ *
+ *  4. A LINE PARALLEL TO OR LYING IN A PLANE, in `line_plane`. n·b = 0 means
+ *     the line never crosses. The two sub-cases are separated by the master
+ *     reference's own decisive second test (n·a = d ⇒ contained, ≠ ⇒ strictly
+ *     parallel), and the error says WHICH, because "stopping at n·b = 0 and
+ *     declaring the line lies in the plane" is the trap that subtopic names.
+ *
+ *  5. PARALLEL OR COINCIDENT PLANES, in `two_planes`. n1 × n2 = 0: there is no
+ *     crease, so there is no dihedral angle and no line of intersection to
+ *     draw. Coincident planes additionally draw two faces on top of each other.
+ *
+ *  6. THE GEOMETRIC BACKSTOP, `fitProblems` at 343x236 — the schema's legal
+ *     range must be a SUBSET of what renders correctly (CLAUDE.md §3), so a
+ *     payload the render gate would reject must never be admitted here. That
+ *     includes the two failures unique to a projected figure: a line running
+ *     along the camera's line of sight, and a plane seen edge-on.
+ *
+ * `caption` is the only field that is trimmed rather than rejected: it is
+ * display prose, not a claim about the geometry.
+ */
+function validate(raw: unknown): ValidationResult<LinesPlanes3dParams> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return { ok: false, errors: ['params must be an object'] };
+  }
+  const r = raw as Record<string, unknown>;
+  const errors: string[] = [];
+
+  const mode = r.mode;
+  if (!isStr(mode) || !(MODES as readonly string[]).includes(mode)) {
+    return { ok: false, errors: [`mode must be one of ${MODES.join(', ')}`] };
+  }
+  const m = mode as Mode;
+
+  const view = r.view ?? 'standard';
+  if (!isStr(view) || !(VIEW_IDS as readonly string[]).includes(view)) {
+    return { ok: false, errors: [`view must be one of ${VIEW_IDS.join(', ')}`] };
+  }
+  const v = view as ViewId;
+
+  const needs = SLOTS[m];
+  const need = (k: keyof LinesPlanes3dParams) => needs.includes(k);
+
+  const point = need('point')
+    ? readVec(r.point, 'point', errors)
+    : ([0, 0, 0] as Vec3);
+  const line1 = need('line1')
+    ? readLine(r.line1, 'line1', errors)
+    : { at: [0, 0, 0] as Vec3, dir: [1, 0, 0] as Vec3 };
+  const line2 = need('line2')
+    ? readLine(r.line2, 'line2', errors)
+    : { at: [0, 0, 0] as Vec3, dir: [0, 1, 0] as Vec3 };
+  const plane1 = need('plane1')
+    ? readPlane(r.plane1, 'plane1', errors)
+    : { normal: [0, 0, 1] as Vec3, d: 0 };
+  const plane2 = need('plane2')
+    ? readPlane(r.plane2, 'plane2', errors)
+    : { normal: [0, 1, 0] as Vec3, d: 0 };
+
+  for (const [k, ok] of [
+    ['show_image', r.show_image === undefined || typeof r.show_image === 'boolean'],
+    ['show_axes', r.show_axes === undefined || typeof r.show_axes === 'boolean'],
+    ['caption', r.caption === undefined || isStr(r.caption)],
+  ] as const) {
+    if (!ok) errors.push(`${k} has the wrong type`);
+  }
+
+  if (errors.length > 0 || !point || !line1 || !line2 || !plane1 || !plane2) {
+    return { ok: false, errors: errors.length ? errors : ['a required slot could not be read'] };
+  }
+
+  const params: LinesPlanes3dParams = {
+    mode: m,
+    view: v,
+    point,
+    line1,
+    line2,
+    plane1,
+    plane2,
+    show_image: r.show_image !== false,
+    show_axes: r.show_axes !== false,
+    caption: isStr(r.caption) ? r.caption.slice(0, MAX_CAPTION_CHARS) : '',
+  };
+
+  /* --- degeneracies, per mode --- */
+  if (m === 'two_lines') {
+    const b1 = params.line1.dir;
+    const b2 = params.line2.dir;
+    if (len(cross(b1, b2)) <= EPS * len(b1) * len(b2)) {
+      errors.push(
+        'line1 and line2 are parallel (b1 × b2 = 0), so they have NO unique common perpendicular and the shortest-distance formula divides by zero. Parallel lines take the |b × (a2−a1)|/|b| formula and a different picture — this widget will not draw one arbitrary perpendicular out of infinitely many.'
+      );
+    } else {
+      const br = skewBridge(params.line1.at, b1, params.line2.at, b2);
+      if (!br.ok) errors.push('the common perpendicular of line1 and line2 has no unique solution');
+    }
+  }
+  if (m === 'point_line') {
+    const ap = sub(params.point, params.line1.at);
+    const b = params.line1.dir;
+    if (len(cross(ap, b)) <= EPS * len(ap) * len(b)) {
+      errors.push(
+        'point lies ON line1, so the perpendicular has zero length: the foot is the point and the image is the point. There is nothing to measure and nothing to draw.'
+      );
+    }
+  }
+  if (m === 'point_plane') {
+    const n = params.plane1.normal;
+    if (Math.abs(dot(n, params.point) - params.plane1.d) <= EPS * (len(n) * len(params.point) + Math.abs(params.plane1.d) + 1)) {
+      errors.push(
+        'point lies IN plane1 (n·P = d), so the perpendicular distance is zero: P, its foot and its image are the same mark. There is nothing to measure.'
+      );
+    }
+  }
+  if (m === 'line_plane') {
+    const hit = lineMeetsPlane(params.line1.at, params.line1.dir, params.plane1.normal, params.plane1.d);
+    if (hit.kind === 'in-plane') {
+      errors.push(
+        'line1 LIES IN plane1: n·b = 0 and n·a = d, so every point of the line is an intersection point and there is no single point to mark. (n·b = 0 alone only rules out crossing — the point test is what separates "lies in" from "parallel".)'
+      );
+    } else if (hit.kind === 'parallel') {
+      errors.push(
+        'line1 is strictly PARALLEL to plane1: n·b = 0 but n·a ≠ d, so the line never meets the plane and there is no point of intersection to draw.'
+      );
+    }
+  }
+  if (m === 'two_planes') {
+    const n1 = params.plane1.normal;
+    const n2 = params.plane2.normal;
+    if (len(cross(n1, n2)) <= EPS * len(n1) * len(n2)) {
+      const same =
+        Math.abs(params.plane1.d / len(n1) - (dot(n1, n2) > 0 ? 1 : -1) * (params.plane2.d / len(n2))) <=
+        EPS * (Math.abs(params.plane1.d) + Math.abs(params.plane2.d) + 1);
+      errors.push(
+        same
+          ? 'plane1 and plane2 are COINCIDENT — the same plane written twice. There is no dihedral angle and the two faces would be drawn on top of each other.'
+          : 'plane1 and plane2 are PARALLEL (n1 × n2 = 0), so they have no line of intersection and no dihedral angle to mark. Their separation is |d1/|n1| − d2/|n2||, which is a different figure.'
+      );
+    }
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  /*
+   * The DERIVED points, bounded.
+   *
+   * A foot or an image lies in the span of the things it was dropped onto, so
+   * the input bounds already cover it. The point where a line meets a plane
+   * does not: λ = (d − n·a)/(n·b) with a small n·b puts the crossing
+   * arbitrarily far away. Bounding only the inputs is therefore not enough,
+   * and a 20,000-payload sweep found the proof — a crossing at
+   * (-2967348.96, -2430888.51, -2315399.61), from inputs every one of which
+   * was inside ±COORD_MAX.
+   */
+  const der = computeDerived(params);
+  for (const key of ['foot_x', 'foot_y', 'foot_z', 'mate_x', 'mate_y', 'mate_z']) {
+    const value = der[key];
+    if (!Number.isFinite(value) || Math.abs(value) > MAX_DERIVED_COORD) {
+      errors.push(
+        `the figure's own ${key.startsWith('foot') ? 'foot/crossing' : 'second'} point lands at ${key} = ${Number.isFinite(value) ? value.toFixed(0) : value}, past the ±${MAX_DERIVED_COORD} bound on a derived coordinate — the line is very nearly parallel to the plane and they meet far outside the figure`
+      );
+      break;
+    }
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  const problems = fitProblems(params, FRAME);
+  if (problems.length > 0) return { ok: false, errors: problems };
+
+  return { ok: true, params };
+}
+
+/* --------------------------------------------------------------- component */
+
+function LinesPlanes3d({ params, width, height, theme }: WidgetRenderProps<LinesPlanes3dParams>) {
+  const L = useMemo(() => layout(params, width, height, FRAME), [params, width, height]);
+
+  const readout = fitReadout(params.caption, L.readoutValue, width - PAD_SIDE * 2);
+
+  const strokeFor = (kind: string) => {
+    switch (kind) {
+      case 'axis':
+        return { stroke: theme.rule, w: AXIS_STROKE, dash: undefined };
+      case 'measure':
+        return { stroke: theme.accent, w: MEASURE_STROKE, dash: undefined };
+      case 'construction':
+        return { stroke: theme.inkMuted, w: CONSTRUCTION_STROKE, dash: DASH_CONSTRUCTION };
+      default:
+        return { stroke: theme.ink, w: OBJECT_STROKE, dash: undefined };
+    }
+  };
+
+  return (
+    <Svg width={width} height={height}>
+      {/* Faces first, so every line and label sits on top of the translucent
+          plane rather than under it. */}
+      <G>
+        {L.polys.map((q, i) =>
+          q.closed ? (
+            <Path
+              key={`face-${i}`}
+              d={polyPath(q.points, true)}
+              fill={theme.accent}
+              fillOpacity={FACE_OPACITY}
+              stroke={theme.inkMuted}
+              strokeWidth={FACE_STROKE}
+              strokeLinejoin="round"
+            />
+          ) : (
+            <Path
+              key={`mark-${i}`}
+              d={polyPath(q.points, false)}
+              fill="none"
+              stroke={theme.inkMuted}
+              strokeWidth={MARK_STROKE}
+              strokeLinejoin="round"
+            />
+          )
+        )}
+      </G>
+
+      <G>
+        {L.segs.map((g, i) => {
+          const s = strokeFor(g.kind);
+          return (
+            <Line
+              key={`seg-${i}`}
+              x1={g.a.x}
+              y1={g.a.y}
+              x2={g.b.x}
+              y2={g.b.y}
+              stroke={s.stroke}
+              strokeWidth={s.w}
+              strokeDasharray={s.dash}
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </G>
+
+      <G>
+        {L.arrows.map((a, i) => (
+          <Path key={`arrow-${i}`} d={dirArrowHead(a.at.x, a.at.y, a.angle)} fill={theme.inkMuted} />
+        ))}
+      </G>
+
+      <G>
+        {L.markers.map((mk, i) => (
+          <Circle
+            key={`marker-${i}`}
+            cx={mk.at.x}
+            cy={mk.at.y}
+            r={mk.r}
+            fill={mk.r > 4 ? theme.ink : theme.surface}
+            stroke={theme.ink}
+            strokeWidth={LINE_STROKE}
+          />
+        ))}
+      </G>
+
+      <G>
+        {L.labels.map((l, i) => (
+          <SvgText
+            key={`label-${i}`}
+            x={l.x}
+            y={l.y}
+            fontSize={LABEL_SIZE}
+            fontFamily={theme.fontFamily}
+            fill={theme.ink}
+            textAnchor="start"
+          >
+            {l.text}
+          </SvgText>
+        ))}
+      </G>
+
+      {readout.length > 0 ? (
+        <SvgText
+          x={PAD_SIDE}
+          y={READOUT_SIZE * 1.25}
+          fontSize={READOUT_SIZE}
+          fontFamily={theme.monoFontFamily}
+          fill={theme.inkMuted}
+          textAnchor="start"
+        >
+          {readout}
+        </SvgText>
+      ) : null}
+    </Svg>
+  );
+}
+
+/* ------------------------------------------------------------------ module */
+
+export const linesPlanes3d: WidgetModule<LinesPlanes3dParams> = {
+  id: 'lines_planes_3d',
+  version: 1,
+  /**
+   * The master reference's own worked example for the shortest distance
+   * between skew lines (Class 12 Ch 11, Subtopic 02, Example 3):
+   * L1 through (1,2,−1) along (2,1,−2), L2 through (3,−1,1) along (1,2,2).
+   * b1 × b2 = (6,−6,3), |b1 × b2| = 9, (a2−a1)·(b1×b2) = 36, so d = 4 exactly
+   * — an integer answer, which is what makes it a good default to look at.
+   */
+  defaults: {
+    mode: 'two_lines',
+    view: 'standard',
+    point: [0, 0, 0],
+    line1: { at: [1, 2, -1], dir: [2, 1, -2] },
+    line2: { at: [3, -1, 1], dir: [1, 2, 2] },
+    plane1: { normal: [0, 0, 1], d: 0 },
+    plane2: { normal: [0, 1, 0], d: 0 },
+    show_image: true,
+    show_axes: false,
+    caption: 'Shortest distance between two skew lines',
+  },
+  /** Empty, and forced — see this file's header. Every moving thing here is
+   *  label-terminated, and the camera auto-fits, so a tween would move the
+   *  scaffolding twice over. */
+  animatable: [],
+  derived: DERIVED_KEYS,
+  computeDerived,
+  derivedAliases: {
+    angle_deg: ['angle', 'the angle', 'theta', 'inclination', 'between them'],
+    distance: ['distance', 'shortest distance', 'the gap', 'perpendicular distance', 'how far'],
+    foot_x: ['foot x', 'x of the foot'],
+    foot_y: ['foot y', 'y of the foot'],
+    foot_z: ['foot z', 'z of the foot'],
+    // `mate` is the OTHER end of whatever the figure measures. Named neutrally
+    // because it is the image P' in the point modes and the second foot in
+    // two_lines, and a key called `image_x` would read as a lie in the latter.
+    mate_x: ['image x', 'second foot x', 'other end x'],
+    mate_y: ['image y', 'second foot y', 'other end y'],
+    mate_z: ['image z', 'second foot z', 'other end z'],
+  },
+  validate,
+  Component: LinesPlanes3d,
+};
+
+export type { LinesPlanes3dParams, Mode, ViewId };

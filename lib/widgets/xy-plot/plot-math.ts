@@ -804,14 +804,50 @@ export function curvePairRange(
   return { yMin, yMax };
 }
 
-/** Nice axis step so tick labels stay round. Same table as projectile-motion. */
+/**
+ * Nice axis step so tick labels stay round, holding the axis to AT MOST SEVEN
+ * INTERVALS at every span.
+ *
+ * The table below is projectile-motion's, and so was the `return 2000` that
+ * used to sit under it — including its defect. CLAUDE.md records that
+ * fallback as already-found once: "`tickStep` returned its hard-coded 2000
+ * fallback for a 25000 m span, giving 12 intervals where the function
+ * promises 7." Copying the table copied the cliff, and in this widget it is
+ * not cosmetic, because the v axis draws a LABEL per gridline down a plot
+ * only 164.4pt tall at 343x236:
+ *
+ *   { mode: 'curve', curve: 'exponential', a: 1, b: 0.01,
+ *     x_min: 0, x_max: 1000 }
+ *
+ * is y = e^0.01x, an ordinary growth curve. It spans 27,000, which the
+ * fallback stepped in 2000s — fourteen gridlines 11.7pt apart carrying
+ * 13.8pt-tall labels, so `labels collide: "0" and "2000"` at 343x236 and
+ * nowhere else. A device-point floor against a shrinking frame, exactly as
+ * the frame rule predicts, and invisible at 495x270 and 900x430.
+ *
+ * So the ladder CONTINUES by decades instead of stopping: ...1000, 2000,
+ * 2500, 5000, 10000, 20000, 25000, 50000, ... which is the same 1/2/2.5/5
+ * pattern the table already walks. Seven intervals is then a promise rather
+ * than a hope, and eight labels down a 164.4pt plot are 23.5pt apart.
+ *
+ * The decade loop is bounded so a non-finite span (which `planFrame` can
+ * still be handed while `validate()` is deciding whether to refuse) returns
+ * rather than spinning.
+ */
 export function tickStep(span: number): number {
   'worklet';
   const steps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 500, 1000];
   for (let i = 0; i < steps.length; i++) {
     if (span / steps[i] <= 7) return steps[i];
   }
-  return 2000;
+  for (let decade = 1000; decade <= 1e300; decade *= 10) {
+    // 2x, 2.5x, 5x, 10x of the decade — 2000, 2500, 5000, 10000, then 20000…
+    if (span / (decade * 2) <= 7) return decade * 2;
+    if (span / (decade * 2.5) <= 7) return decade * 2.5;
+    if (span / (decade * 5) <= 7) return decade * 5;
+    if (span / (decade * 10) <= 7) return decade * 10;
+  }
+  return 1e300;
 }
 
 

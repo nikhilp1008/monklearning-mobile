@@ -25,13 +25,22 @@
  * same contract `molecule_3d` uses for `pubchem:5957` — and the geometry lives
  * here, written once and reviewable once.
  *
- * WHERE A FORMULA EXISTS, THE POINTS ARE GENERATED FROM IT. Six of the nine
- * shapes below (heating, titration, diode, solar cell, potential energy,
- * resonance, growth) have exact closed forms; their control points are
- * computed from the constants rather than eyeballed, so the landmark that says
- * "equivalence, pH 7" is at pH 7 because the arithmetic put it there. Only
+ * WHERE A FORMULA EXISTS, THE POINTS ARE GENERATED FROM IT. There are TEN
+ * shapes below and EIGHT of them (heating, titration, diode, solar cell,
+ * potential energy, resonance, SHM energy, growth) have exact closed forms;
+ * their control points are computed from the constants rather than eyeballed,
+ * so the landmark that says "equivalence, pH 7" is at pH 7 because the
+ * arithmetic put it there.
+ *
+ * The other two are not one kind. `binding_energy` is a MEASURED DATA TABLE —
+ * B/A has no closed form, and the values are the measured ones, which is why
+ * its own `source` says "plotted as data, because it IS data". Only
  * `stress_strain` is genuinely qualitative — NCERT Fig 9.3 prints no ordinate
  * values — and it says so in its own `source`.
+ *
+ * (This paragraph said "six of the nine" and then listed seven names, against
+ * ten entries in `NAMED_CURVES`. Counted rather than reasoned from the
+ * sentence: `NAMED_SHAPE_IDS.length` is 10.)
  *
  * NO AREA IS EVER REPORTED FOR A NAMED SHAPE, and that is deliberate rather
  * than unfinished. Several of these are polylines through a qualitative shape;
