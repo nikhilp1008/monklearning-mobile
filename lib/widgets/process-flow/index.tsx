@@ -8,7 +8,7 @@ import {
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
-  MAX_NODES_CHAIN, MAX_NODES_RING, MIN_NODES, NODE_H,
+  MAX_CAPTION_CHARS, MAX_NODES_CHAIN, MAX_NODES_RING, MIN_NODES, NODE_H,
   capLabels, chainGrid, chainNodeCentre, derive,
   maxChainLabelChars, maxRingLabelChars, nodeWidth, ringAngle, ringGeometry,
   ringNodeCentre,
@@ -107,7 +107,7 @@ function validate(raw: unknown): ValidationResult<ProcessFlowParams> {
       closes: isRing ? true : r.closes === true,
       branch_at: branch as number,
       active_node: active as number,
-      caption: isStr(r.caption) ? r.caption.slice(0, 40) : '',
+      caption: isStr(r.caption) ? r.caption.slice(0, MAX_CAPTION_CHARS) : '',
     },
   };
 }

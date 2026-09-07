@@ -192,6 +192,11 @@ export const CHAR_PT = LABEL_SIZE * CHAR_W;
 
 /* ------------------------------------------------------------------- caps */
 
+/** The readout caption is CUT to this, with no ellipsis, in `validate()`.
+ *  Named because the payload generator is told this number and a literal 40
+ *  in one file cannot be checked against a prompt in another repo. */
+export const MAX_CAPTION_CHARS = 40;
+
 export const MIN_NODES = 3;
 export const MAX_NODES_RING = 8;
 export const MAX_NODES_CHAIN = 10;
