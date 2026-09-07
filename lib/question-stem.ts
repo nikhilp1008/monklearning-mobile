@@ -172,13 +172,44 @@ function joinDisplayMath(text: string): string {
  *  debris that no `TABLE_SEP` line test can catch, because it is not a line. */
 const INLINE_TABLE_SEP = /\|(?:\s*:?-{2,}:?\s*\|)+/g;
 
+/** A cell holding only a row marker: "A.", "(i)", "I.", "3)". */
+const MARKER_CELL = /^\(?[A-Za-z0-9]{1,3}[).]?$/;
+
+/**
+ * Folds `| A. | Pyruvic acid | I. | Undergoes … |` down to two columns.
+ *
+ * Match-the-following is extracted with each list's MARKER in a column of its
+ * own, so the common shape is four columns, not two. Measured over the bank:
+ * 146 of 270 tables are like this, and four columns cannot fit a phone — each
+ * needs a readable minimum width, so the table scrolled sideways and a student
+ * had to drag to see what List II even said.
+ *
+ * A marker belongs with the thing it marks, so joining the pairs gives the two
+ * columns the question is actually about. Only applied when EVERY row agrees:
+ * one row with real content in a marker column and the table is left alone.
+ */
+function foldMarkerColumns(rows: string[][]): string[][] {
+  if (!rows.length || !rows.every((r) => r.length === 4)) return rows;
+  const foldable = rows.every(
+    (r) => (!r[0] || MARKER_CELL.test(r[0])) && (!r[2] || MARKER_CELL.test(r[2]))
+  );
+  if (!foldable) return rows;
+  return rows.map((r) => [`${r[0]} ${r[1]}`.trim(), `${r[2]} ${r[3]}`.trim()]);
+}
+
 export function parseStem(text: string): StemBlock[] {
   // Splitting on sentence ends generally would shatter ordinary multi-sentence
   // prose into fragments, which is worse than the run-on this fixes.
   const rawLines = joinDisplayMath(text)
-    .replace(INLINE_TABLE_SEP, '|')
     .replace(INLINE_LABEL, '\n$1')
-    .split(/\r?\n/);
+    .split(/\r?\n/)
+    // Strip an alignment run only from a line that also carries content.
+    // Doing it to the whole string first also rewrote the ordinary
+    // separator LINE down to a bare "|", which then matched neither
+    // TABLE_SEP nor TABLE_ROW: it split the run in two, so the header row
+    // fell out of the table and rendered as "| | List I | | List II |" in
+    // prose above it, with the leftover pipe on its own line beneath.
+    .map((line) => (TABLE_SEP.test(line) ? line : line.replace(INLINE_TABLE_SEP, '|')));
 
   // Extraction often strands a marker on its own line:
   //   "A. \nRestriction enzymes \nB. \nPolymerase enzymes"
@@ -222,7 +253,7 @@ export function parseStem(text: string): StemBlock[] {
       }
       // A single stray pipe line is not a table; let it fall through as prose.
       if (rows.length >= 2) {
-        blocks.push({ kind: 'table', body: '', rows, hasHeader });
+        blocks.push({ kind: 'table', body: '', rows: foldMarkerColumns(rows), hasHeader });
         i = j - 1;
         continue;
       }

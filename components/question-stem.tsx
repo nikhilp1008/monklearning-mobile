@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { MathText } from '@/components/math-text';
+import { MathLine } from '@/components/math-line';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { StemBlock, hasStructure, parseStem } from '@/lib/question-stem';
@@ -11,8 +11,8 @@ import { StemBlock, hasStructure, parseStem } from '@/lib/question-stem';
  *
  * The parsing lives in `lib/question-stem.ts` and runs on the RAW text, before
  * `latexToText` — which collapses newlines, and every rule in there reads them.
- * Each block's body still goes through `MathText`, so the maths and chemistry
- * inside a table cell converts exactly as it does in a paragraph.
+ * Each block's body still goes through the maths renderer, so a formula inside
+ * a table cell converts exactly as it does in a paragraph.
  *
  * A stem with no structure renders as one flowing paragraph, which is the
  * ordinary case and must not gain gratuitous vertical gaps.
@@ -32,27 +32,35 @@ export function QuestionStem({
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const blocks = useMemo(() => parseStem(text ?? ''), [text]);
 
+  /**
+   * `MathLine`, not `MathText` — the renderer the solution rail already uses.
+   *
+   * Measured over the bank: 6.7% of stems hold a script Unicode cannot spell
+   * (`ΔH^⊖`, `lim _(x → ∞)`) and 3.8% a fraction it cannot stack, and MathText
+   * flattens both to linear `^`, `_` and `(a)/(b)`. The student was then shown
+   * a drawn fraction in the worked solution and a flat one in the question
+   * that produced it — the same maths, set two ways, on one screen.
+   *
+   * It costs nothing where there is nothing to draw: MathLine returns a single
+   * `<Text>` unless a segment actually needs stacking, so the ~90% of stems
+   * that are prose wrap and space exactly as before.
+   */
   const body = (content: string, size = fontSize) => (
-    <MathText
+    <MathLine
       text={content}
+      style={{
+        fontFamily: 'AnekLatin_500Medium',
+        fontSize: size,
+        lineHeight: size * (lineHeight / fontSize),
+        color: colors.ink,
+      }}
       fontSize={size}
-      lineHeight={size * (lineHeight / fontSize)}
       color={colors.ink}
-      fontWeight="500"
     />
   );
 
   if (!blocks.length || !hasStructure(blocks)) {
-    return (
-      <MathText
-        text={text ?? ''}
-        fontSize={fontSize}
-        lineHeight={lineHeight}
-        color={colors.ink}
-        fontWeight="500"
-        style={style}
-      />
-    );
+    return <View style={style}>{body(text ?? '')}</View>;
   }
 
   return (

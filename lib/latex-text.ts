@@ -152,6 +152,15 @@ const TRANSPARENT_WRAPPERS = new Set([
  *  doubling up — `45^\circ` is just "45°". */
 const ALREADY_RAISED = new Set(['°', '′', '″']);
 
+/** Glyphs that behave like letters rather than operators, so they bind to what
+ *  follows: ΔH is one quantity, `2 × 10⁶` is three terms. Used only to decide
+ *  whether a command's terminator space survives — see `SYMBOLS` below. */
+const LETTER_LIKE = new Set([
+  'α','β','γ','δ','ε','ζ','η','θ','ϑ','ι','κ','λ','μ','ν','ξ','π','ρ','σ','τ',
+  'υ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ','Υ','Φ','Ψ','Ω',
+  'ℏ','ℓ','ℜ','ℑ','∞','∂','∇',
+]);
+
 /** Reads a `{…}` group starting at `i` (which must point at `{`). Returns the
  *  inner text and the index just past the closing brace, brace-balanced so
  *  nested groups like `\frac{\frac{1}{2}}{3}` survive. */
@@ -762,11 +771,23 @@ export function convertMath(src: string): string {
       }
 
       if (name in SYMBOLS) {
-        out += SYMBOLS[name];
+        const glyph = SYMBOLS[name];
+        out += glyph;
         // The space after a command name is LaTeX's name terminator and is
         // dropped by a real renderer — but this output is plain text with no
         // math spacing to compensate, so keeping it is what preserves
         // "θ = 45" instead of running it together as "θ= 45".
+        //
+        // It is dropped in the one case where keeping it is clearly wrong: a
+        // LETTER-like glyph immediately followed by another letter or digit,
+        // which is one symbol rather than two terms. `$\Delta H$` is ΔH, and
+        // enthalpies and entropies are written that way on nearly every
+        // thermodynamics question; it was reading as "Δ H". The letter-like
+        // test is what keeps `2 \times 10^6` spaced — an operator with a gap
+        // on one side only would look worse than either.
+        if (LETTER_LIKE.has(glyph) && src[i] === ' ' && /[A-Za-z0-9]/.test(src[i + 1] ?? '')) {
+          i += 1;
+        }
         continue;
       }
 
