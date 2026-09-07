@@ -137,10 +137,48 @@ function classify(line: string): StemBlock | null {
   return { kind: 'lead', body: raw };
 }
 
+/**
+ * Display maths is usually written across several lines:
+ *
+ *     The order is
+ *     $$
+ *     \mathrm{H_2O} > \mathrm{H_2S}
+ *     $$
+ *
+ * Splitting on newlines first put the opening `$$` alone in one block and the
+ * formula in the next, so neither had a matching delimiter and a bare "$$"
+ * reached the student. `latexToText` never hit this because it collapses
+ * newlines before it looks for delimiters — this parser is the first thing in
+ * the app to read them, so it has to keep such a span whole itself.
+ */
+function joinDisplayMath(text: string): string {
+  let out = '';
+  let open = false;
+  let i = 0;
+  while (i < text.length) {
+    if (text.startsWith('$$', i)) {
+      open = !open;
+      out += '$$';
+      i += 2;
+      continue;
+    }
+    out += open && text[i] === '\n' ? ' ' : text[i];
+    i += 1;
+  }
+  return out;
+}
+
+/** An alignment run written on the same line as its header row — extraction
+ *  debris that no `TABLE_SEP` line test can catch, because it is not a line. */
+const INLINE_TABLE_SEP = /\|(?:\s*:?-{2,}:?\s*\|)+/g;
+
 export function parseStem(text: string): StemBlock[] {
   // Splitting on sentence ends generally would shatter ordinary multi-sentence
   // prose into fragments, which is worse than the run-on this fixes.
-  const rawLines = text.replace(INLINE_LABEL, '\n$1').split(/\r?\n/);
+  const rawLines = joinDisplayMath(text)
+    .replace(INLINE_TABLE_SEP, '|')
+    .replace(INLINE_LABEL, '\n$1')
+    .split(/\r?\n/);
 
   // Extraction often strands a marker on its own line:
   //   "A. \nRestriction enzymes \nB. \nPolymerase enzymes"
@@ -163,6 +201,10 @@ export function parseStem(text: string): StemBlock[] {
 
   const blocks: StemBlock[] = [];
   for (let i = 0; i < lines.length; i += 1) {
+    // An alignment row carries no content in any case, and when its table has
+    // too few data rows to be built the run below falls through — which put a
+    // literal "| :--- | :--- |" in front of five questions in the bank.
+    if (TABLE_SEP.test(lines[i])) continue;
     // Consecutive pipe rows form one table. The whole run is consumed here so
     // the rows never reach `classify`, which would render them as raw text.
     if (TABLE_ROW.test(lines[i]) && !TABLE_SEP.test(lines[i])) {

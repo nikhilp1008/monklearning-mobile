@@ -67,6 +67,32 @@ const SYMBOLS: Record<string, string> = {
   forall: '∀', exists: '∃', hbar: 'ℏ', ell: 'ℓ', Re: 'ℜ', Im: 'ℑ',
   ldots: '…', dots: '…', cdots: '⋯', quad: ' ', qquad: '  ',
   lambdabar: 'ƛ', vec: '', hat: '', bar: '', dot: '',
+  /**
+   * Found by surveying all 11,300 servable rows through this converter and
+   * counting command names that reached the output as words. Every one below
+   * was printing itself: "rightleftharpoons" in the middle of an equilibrium,
+   * "leqslant" in an inequality, "AA" where an Ångström should be.
+   */
+  rightleftharpoons: '⇌', leftrightharpoons: '⇌', rightharpoonup: '⇀',
+  leqslant: '≤', geqslant: '≥', triangle: '△', square: '□', mid: '|',
+  AA: 'Å', angstrom: 'Å', degrees: '°', celsius: '°C',
+  // Layout that carries nothing once the line is linear.
+  hline: '', nonumber: '', noalign: '', centering: '', smallskip: '',
+  big: '', Big: '', bigg: '', Bigg: '', bigl: '', bigr: '', Bigl: '', Bigr: '',
+  biggl: '', biggr: '', Biggl: '', Biggr: '', mathstrut: '', strut: '',
+  // The tail the same survey turned up once the big leaks were closed.
+  langle: '⟨', rangle: '⟩', lvert: '|', rvert: '|', lVert: '‖', rVert: '‖',
+  lfloor: '⌊', rfloor: '⌋', lceil: '⌈', rceil: '⌉',
+  oplus: '⊕', ominus: '⊖', otimes: '⊗', odot: '⊙', sqcap: '⊓', sqcup: '⊔',
+  bigcup: '⋃', bigcap: '⋂', bigoplus: '⨁', bigotimes: '⨂',
+  rightleftarrows: '⇄', leftrightarrows: '⇆', hookrightarrow: '↪',
+  // `{2n \choose n}` is infix, so it cannot take arguments the way \binom
+  // does; " C " at least reads as the binomial it is.
+  choose: ' C ',
+  // Document-level commands that should never have been in a question at all.
+  // They are extraction debris, and printing their names is the worst option.
+  section: '', subsection: '', par: '', item: '',
+  lll: '⋘', ggg: '⋙', cong: '≅', ncong: '≇', asymp: '≍', doteq: '≐',
 };
 
 /**
@@ -113,6 +139,13 @@ const TRANSPARENT_WRAPPERS = new Set([
   // A boxed result is already the emphasised thing on a board, so the box
   // itself carries nothing the layout does not.
   'boxed',
+  // Accents and over-arrows. Nothing can be drawn above a glyph in linear
+  // text, and the alternative was printing "overrightarrow" before the vector
+  // it decorates — same call already made for `\vec` and `\hat`.
+  'overrightarrow', 'overleftarrow', 'overline', 'underline', 'widehat',
+  'widetilde', 'overbracket', 'mathopen', 'mathclose', 'mathbin', 'mathrel',
+  // `\substack{a \\ b}` stacks reagents above an arrow; linear text cannot.
+  'substack',
 ]);
 
 /** Glyphs that already sit raised on the line, so `^` around them would be
@@ -553,6 +586,13 @@ export function convertMath(src: string): string {
         const env = readGroup(src, i);
         i = env.next;
         const kind = env.body.trim().replace(/\*$/, '');
+        // `array` and `tabular` carry a column spec — `\begin{array}{cl}`.
+        // That is layout, not content; left in the body it reached students as
+        // the letters "cl" glued to the first cell.
+        if (kind === 'array' || kind === 'tabular') {
+          while (src[i] === ' ') i++;
+          if (src[i] === '{') i = readGroup(src, i).next;
+        }
         const close = `\\end{${env.body.trim()}}`;
         const at = src.indexOf(close, i);
         const body = at === -1 ? src.slice(i) : src.slice(i, at);
@@ -637,6 +677,49 @@ export function convertMath(src: string): string {
         continue;
       }
 
+      /**
+       * `\underset{under}{base}` and `\stackrel{over}{base}` — an annotation
+       * set above or below something, most often a reaction arrow or a reagent
+       * ("CHCl₃ (excess)"). Both print the annotation as a parenthetical,
+       * which is how it would be read aloud; before this they printed their
+       * own names in front of it.
+       */
+      if (name === 'underset' || name === 'stackrel' || name === 'overset') {
+        while (src[i] === ' ') i++;
+        const annotation = readGroup(src, i);
+        i = annotation.next;
+        while (src[i] === ' ') i++;
+        const base = readGroup(src, i);
+        i = base.next;
+        const note = convertMath(annotation.body).trim();
+        const rendered = convertMath(base.body);
+        // `\underset{\text{(excess)}}{…}` brings its own brackets, and wrapping
+        // again gave "CHCl₃ ((excess))".
+        out += note ? `${rendered} ${isBracketed(note) ? note : `(${note})`}` : rendered;
+        continue;
+      }
+
+      /** `\binom{n}{k}` — a stacked pair no line of text can stack. */
+      if (name === 'binom' || name === 'dbinom' || name === 'tbinom') {
+        while (src[i] === ' ') i++;
+        const top = readGroup(src, i);
+        i = top.next;
+        while (src[i] === ' ') i++;
+        const bottom = readGroup(src, i);
+        i = bottom.next;
+        out += `C(${convertMath(top.body).trim()}, ${convertMath(bottom.body).trim()})`;
+        continue;
+      }
+
+      /** `\pmod{3}` is read "(mod 3)", not "pmod3". */
+      if (name === 'pmod' || name === 'bmod') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        out += ` (mod ${convertMath(group.body).trim()})`;
+        continue;
+      }
+
       if (name === 'sqrt') {
         while (src[i] === ' ') i++;
         const group = readGroup(src, i);
@@ -660,6 +743,13 @@ export function convertMath(src: string): string {
         // \left( / \right] carry a delimiter rather than a braced group.
         if (src[i] && src[i] !== '{') {
           if (name === 'left' || name === 'right') {
+            // The delimiter can be escaped (`\left\{`) or named
+            // (`\left\langle`). Emitting src[i] blindly printed the brace's
+            // own BACKSLASH, so every piecewise definition in the bank opened
+            // with a literal "\cl" — the stray backslash, then the array
+            // column spec below. A backslash is left for the main loop, which
+            // already knows how to read both forms.
+            if (src[i] === '\\') continue;
             if (src[i] !== '.') out += src[i];
             i += 1;
             continue;
@@ -970,8 +1060,24 @@ export function latexToText(raw: string): string {
       // first-character test could only ever protect one of the two.
       //
       // `$$` is left alone: nobody writes a price as `$$33`.
-      const looksLikeMaths = /[\\^_{}]/.test(normalized.slice(start, end));
-      if (!isDisplay && !looksLikeMaths && /[0-9]/.test(normalized[start] ?? '')) {
+      // Surveying all 11,300 servable rows through this converter found 1,264
+      // spans where a real formula kept its dollar signs, because testing only
+      // for LaTeX markup still rejects the plainest maths in the bank:
+      // `$2 x+3 y=9$` as a whole option, `$15d$` mid-sentence, `$3 x+4 y=60$`.
+      //
+      // What actually separates them is PROSE. A price body is words —
+      // "33 trillion vs ~US " — and a formula body is symbols and single
+      // letters. So a span is a price only when it reads like a sentence and
+      // carries no markup; `x`, `y`, `d` are too short to qualify, and
+      // "trillion" is not.
+      // The word has to STAND ALONE, and an `=` settles it on its own. Testing
+      // for any three letters read "abc" out of `$2abc + 5 = 3$` and called an
+      // equation a price; no price has ever contained an equals sign.
+      const inner = normalized.slice(start, end);
+      const looksLikePrice =
+        !/[\\^_{}=]/.test(inner) &&
+        /(?:^|[^A-Za-z0-9])[A-Za-z]{3,}(?:[^A-Za-z0-9]|$)/.test(inner);
+      if (!isDisplay && looksLikePrice && /[0-9]/.test(normalized[start] ?? '')) {
         plain += ch;
         i += 1;
         continue;
