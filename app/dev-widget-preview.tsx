@@ -283,7 +283,7 @@ function useDevTheme(): WidgetTheme {
       rule: HAIRLINE,
       accent: DEEP_AMBER,
       surface: colors.paper,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       monoFontFamily: 'Menlo',
     }),
     []

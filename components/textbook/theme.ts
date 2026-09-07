@@ -92,7 +92,7 @@ export function makeBlockStyles(scale: (n: number) => number) {
       color: colors.slate,
     },
     hand: {
-      fontFamily: 'Kalam_400Regular',
+      fontFamily: 'Onest_400Regular',
       color: colors.slate,
     },
     tintPanel: {

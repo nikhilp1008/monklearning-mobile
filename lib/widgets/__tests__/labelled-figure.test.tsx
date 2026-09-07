@@ -19,11 +19,11 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import { BoardWidget } from '../BoardWidget';
-import { CHAR_W, CHAR_W_DEVA, LABEL_SIZE, PAD_EDGE } from '../chrome';
+import { CHAR_W, DEVA_MAX_CHAR_W, LABEL_SIZE, PAD_EDGE } from '../chrome';
 import { labelledFigure } from '../labelled-figure';
 import {
   LEADER_STUB, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA, MAX_TERM_LATIN, ROW,
-  anchorAt, boardCapacity, fitRect, layoutFigure, rowsPerColumn,
+  anchorAt, boardCapacity, fitRect, layoutFigure, rowsPerColumn, termCapFor,
   type LabelRecord, type LabelledFigureParams, type Lang,
 } from '../labelled-figure/figure-layout';
 import { createFigureResolver } from '../labelled-figure/figure-resolver';
@@ -144,24 +144,62 @@ describe('how many labels a board can actually hold', () => {
 /* ---------------------------------------------------------- the term caps */
 
 describe('term length caps, derived at 343x236', () => {
-  test('22 Latin code units, 17 Devanagari', () => {
-    expect(MAX_TERM_LATIN).toBe(22);
-    expect(MAX_TERM_DEVA).toBe(17);
+  /*
+   * These numbers MOVED when chrome.ts stopped guessing widths.
+   *
+   *   before   Latin 22 (CHAR_W 0.58, fitted to Anek Latin)
+   *            Deva  17 (CHAR_W_DEVA 0.75, explicitly not a measurement)
+   *   after    Latin 20 (Menlo 0.6021 measured, x1.05 margin)
+   *            Deva  11 (the WIDEST codepoint in Anek Devanagari, x1.05)
+   *
+   * Latin lost two units because 0.58 under-charged the family the labels are
+   * actually drawn in. Devanagari lost six because 11 is now the worst case a
+   * Devanagari term can hit rather than an average-shaped guess — and the cap
+   * validate() applies is no longer this constant at all, it is `termCapFor`,
+   * measured from the term itself.
+   */
+  test('20 Latin code units; 11 for the worst-case Devanagari codepoint', () => {
+    expect(MAX_TERM_LATIN).toBe(20);
+    expect(MAX_TERM_DEVA).toBe(11);
   });
 
   test('the derivation is the two-columns-on-one-row budget', () => {
     const budget = 343 - 2 * PAD_EDGE - 2 * LEADER_STUB;
     expect(budget).toBe(307);
-    expect(22 * LABEL_SIZE * CHAR_W * 2 + 36).toBeLessThanOrEqual(343);
-    expect(23 * LABEL_SIZE * CHAR_W * 2 + 36).toBeGreaterThan(343);
-    expect(Math.floor(budget / (2 * LABEL_SIZE * CHAR_W_DEVA))).toBe(17);
+    expect(20 * LABEL_SIZE * CHAR_W * 2 + 36).toBeLessThanOrEqual(343);
+    expect(21 * LABEL_SIZE * CHAR_W * 2 + 36).toBeGreaterThan(343);
+    expect(Math.floor(budget / (2 * LABEL_SIZE * DEVA_MAX_CHAR_W))).toBe(11);
   });
 
-  test('the Devanagari cap is SHORTER because the guardrail over-estimates', () => {
-    // The direction matters: over-estimating fails loudly in CI and costs a
-    // shorter term; under-estimating passes CI and overlaps on a device.
-    expect(CHAR_W_DEVA).toBeGreaterThan(CHAR_W);
+  test('the worst-case Devanagari cap is SHORTER, and a real term sits above it', () => {
+    // Direction still matters: over-estimating fails loudly in CI and costs a
+    // shorter term; under-estimating passes CI and overlaps on a device. What
+    // changed is that the over-estimate is now a measured MAXIMUM rather than
+    // a number nobody measured, so a real term is no longer charged at it —
+    // 'क' is 0.812 em, not the block's widest 1.0245, and gets a cap to match.
+    expect(DEVA_MAX_CHAR_W).toBeGreaterThan(CHAR_W);
     expect(MAX_TERM_DEVA).toBeLessThan(MAX_TERM_LATIN);
+    expect(termCapFor('क'.repeat(8))).toBeGreaterThan(MAX_TERM_DEVA);
+  });
+
+  test('a mixed-script term is capped between its two halves, not at one rate', () => {
+    /*
+     * The case the old `hasDevanagari(text) ? DEVA : LATIN` flag could not
+     * represent: one Devanagari code unit used to re-price every Latin
+     * character beside it, at 0.75 em each.
+     *
+     * Note the direction is the opposite of what that flag assumed. Measured,
+     * `नाभिक` averages 0.4224 em per CODE UNIT — two of its five code units
+     * are matras with no advance at all — against Menlo's 0.60205. So a
+     * Devanagari term gets a LONGER cap than a Latin one, not a shorter one,
+     * and the old guardrail had it backwards by 78%.
+     */
+    const latin = termCapFor('Nucleus');
+    const deva = termCapFor('नाभिक');
+    const mixed = termCapFor('Nucleus नाभिक');
+    expect(deva).toBeGreaterThan(latin);
+    expect(mixed).toBeGreaterThan(latin);
+    expect(mixed).toBeLessThan(deva);
   });
 });
 
@@ -201,14 +239,16 @@ describe('validate', () => {
     );
     const r = bad({ labels });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.join(' ')).toMatch(/over the 22-unit cap/);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/over the 20-unit cap/);
     // The failure mode this prevents: "Rough endoplasmic re" on a student's
     // board, rendered confidently and wrong.
   });
 
   test('an over-cap DEVANAGARI term still fails, though no Devanagari ships today', () => {
     const labels = base.labels.map((l, i) =>
-      i === 0 ? { ...l, term: { english: 'Nucleus', hinglish: 'क'.repeat(MAX_TERM_DEVA + 1) } } : l
+      i === 0
+        ? { ...l, term: { english: 'Nucleus', hinglish: 'क'.repeat(termCapFor('क') + 1) } }
+        : l
     );
     const r = bad({ labels });
     expect(r.ok).toBe(false);

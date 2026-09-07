@@ -1165,7 +1165,7 @@ function BoardBlockView({
     return <Text style={styles.boardEquation}>{text}</Text>;
   }
   if (event.type === 'note') {
-    return <Text style={[styles.boardKalamNote, { color: colors.red }]}>{text}</Text>;
+    return <Text style={[styles.boardHandNote, { color: colors.red }]}>{text}</Text>;
   }
   return (
     <Text style={[styles.boardBody, event.emphasis && styles.boardBodyBold]}>{text}</Text>
@@ -1449,7 +1449,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       color: INK,
     },
-    boardKalamNote: {
+    boardHandNote: {
       fontFamily: 'Onest_700Bold',
       fontSize: 14.5,
       lineHeight: RHYTHM,

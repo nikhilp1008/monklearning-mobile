@@ -25,7 +25,7 @@
  * ../../projectile-motion/__golden__/golden.test.tsx says of its own.
  */
 import { xyPlot } from '..';
-import { renderWidgetTree, renderWidgetTreeAt } from '../../__tests__/test-utils';
+import { assertGolden, renderWidgetTree, renderWidgetTreeAt } from '../../__tests__/test-utils';
 import type { XyPlotParams } from '../plot-math';
 
 import v1Area from './v1-area.json';
@@ -51,12 +51,13 @@ const V1_BASE = {
   values: [] as number[], x_label: 'x', y_label: 'y',
 };
 
-const CASES: { name: string; raw: Record<string, unknown>; golden: unknown }[] = [
-  { name: 'area', raw: { ...V1_BASE }, golden: v1Area },
+const CASES: { name: string; raw: Record<string, unknown>; golden: unknown; file: string }[] = [
+  { name: 'area', raw: { ...V1_BASE }, golden: v1Area, file: 'v1-area.json' },
   {
     name: 'curve',
     raw: { ...V1_BASE, mode: 'curve', curve: 'sine', a: 1, b: 1, c: 0, x_min: 0, x_max: 6.28 },
     golden: v1Curve,
+    file: 'v1-curve.json',
   },
   {
     name: 'data',
@@ -65,10 +66,11 @@ const CASES: { name: string; raw: Record<string, unknown>; golden: unknown }[] =
       x_label: 'observation', y_label: 'value',
     },
     golden: v1Data,
+    file: 'v1-data.json',
   },
 ];
 
-test.each(CASES)('a v1 $name payload renders exactly what xy_plot@1 rendered', ({ raw, golden }) => {
+test.each(CASES)('a v1 $name payload renders exactly what xy_plot@1 rendered', ({ raw, golden, file }) => {
   const result = xyPlot.validate(raw);
   expect(result.ok).toBe(true);
   const params = (result as { ok: true; params: XyPlotParams }).params;
@@ -78,7 +80,7 @@ test.each(CASES)('a v1 $name payload renders exactly what xy_plot@1 rendered', (
   expect([params.a2, params.b2, params.c2]).toEqual([0, 0, 0]);
 
   const tree = renderWidgetTree(xyPlot, params, { shade_to: params.shade_to });
-  expect(tree).toEqual(golden);
+  assertGolden(tree, golden, __dirname, file);
 });
 
 /**
@@ -116,6 +118,8 @@ const V2_CASES: {
   raw: Record<string, unknown>;
   big: unknown;
   small: unknown;
+  bigFile: string;
+  smallFile: string;
 }[] = [
   {
     name: 'area_between',
@@ -126,6 +130,7 @@ const V2_CASES: {
       x_min: -0.2, x_max: 1.2, shade_from: 0, shade_to: 1,
     },
     big: v2AreaBetween, small: v2AreaBetweenSmall,
+    bigFile: 'v2-area-between.json', smallFile: 'v2-area-between.spec-small.json',
   },
   {
     name: 'area_between with two interior crossings',
@@ -136,6 +141,7 @@ const V2_CASES: {
       x_min: -1.2, x_max: 2.2, shade_from: -1, shade_to: 2,
     },
     big: v2Crossing, small: v2CrossingSmall,
+    bigFile: 'v2-area-between-crossing.json', smallFile: 'v2-area-between-crossing.spec-small.json',
   },
   {
     name: 'a parabola against its tangent',
@@ -146,6 +152,7 @@ const V2_CASES: {
       x_min: -1, x_max: 3, shade_from: 0, shade_to: 3,
     },
     big: v2Tangent, small: v2TangentSmall,
+    bigFile: 'v2-area-between-tangent.json', smallFile: 'v2-area-between-tangent.spec-small.json',
   },
   {
     // The picture v3's `integrate_along` exists to replace. It must keep
@@ -160,6 +167,7 @@ const V2_CASES: {
       x_label: 'y', y_label: 'x',
     },
     big: v2Latus, small: v2LatusSmall,
+    bigFile: 'v2-area-between-latus.json', smallFile: 'v2-area-between-latus.spec-small.json',
   },
   {
     name: 'area_between against the x axis',
@@ -170,6 +178,7 @@ const V2_CASES: {
       x_min: -0.5, x_max: 2.5, shade_from: 0, shade_to: 2,
     },
     big: v2Axis, small: v2AxisSmall,
+    bigFile: 'v2-area-between-axis.json', smallFile: 'v2-area-between-axis.spec-small.json',
   },
   {
     // The Hinglish case, frozen. Its readout is built from the axis labels,
@@ -182,10 +191,11 @@ const V2_CASES: {
       x_label: 'samay, second mein', y_label: 'vistaar, metre mein',
     },
     big: v2Hinglish, small: v2HinglishSmall,
+    bigFile: 'v2-curve-hinglish.json', smallFile: 'v2-curve-hinglish.spec-small.json',
   },
 ];
 
-test.each(V2_CASES)('a v2 payload — $name — renders exactly what xy_plot@2 rendered', ({ raw, big, small }) => {
+test.each(V2_CASES)('a v2 payload — $name — renders exactly what xy_plot@2 rendered', ({ raw, big, small, bigFile, smallFile }) => {
   const result = xyPlot.validate(raw);
   expect(result.ok).toBe(true);
   const params = (result as { ok: true; params: XyPlotParams }).params;
@@ -198,6 +208,6 @@ test.each(V2_CASES)('a v2 payload — $name — renders exactly what xy_plot@2 r
   expect(params.named_shape).toBe('');
 
   const motion = { shade_to: params.shade_to, tangent_at: params.tangent_at };
-  expect(renderWidgetTree(xyPlot, params, motion)).toEqual(big);
-  expect(renderWidgetTreeAt(xyPlot, params, motion, 343, 236)).toEqual(small);
+  assertGolden(renderWidgetTree(xyPlot, params, motion), big, __dirname, bigFile);
+  assertGolden(renderWidgetTreeAt(xyPlot, params, motion, 343, 236), small, __dirname, smallFile);
 });

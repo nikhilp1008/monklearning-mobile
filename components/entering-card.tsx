@@ -279,10 +279,10 @@ function ProtractorLoader({ size }: { size: number }) {
             strokeWidth={1.4}
             opacity={0.9}
           />
-          <SvgText x={102} y={22} fontFamily="Kalam_400Regular" fontSize={9} fill={colors.marigold}>
+          <SvgText x={102} y={22} fontFamily="Onest_400Regular" fontSize={9} fill={colors.marigold}>
             −90°
           </SvgText>
-          <SvgText x={94} y={48} fontFamily="Kalam_400Regular" fontSize={9} fill={colors.marigold}>
+          <SvgText x={94} y={48} fontFamily="Onest_400Regular" fontSize={9} fill={colors.marigold}>
             −30°
           </SvgText>
         </Svg>

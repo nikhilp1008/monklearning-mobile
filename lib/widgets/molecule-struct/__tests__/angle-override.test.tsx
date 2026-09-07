@@ -278,11 +278,18 @@ describe('the readout names where its angle came from, at every board', () => {
 
   /**
    * THE LADDER, as the arithmetic in vsepr-math.ts's header states it. At
-   * 343x236 the budget is floor(319 / (14*0.58)) = 39 characters.
+   * 343x236 the budget is floor(319 / (14 * CHAR_W)) = 36 characters.
+   *
+   * It was 39, on a CHAR_W of 0.58 that was fitted to Anek Latin and applied
+   * to every family. The readout is drawn in `theme.monoFontFamily` — Menlo,
+   * whose advance is exactly 0.60205 em because it is monospaced — so the
+   * three characters the ladder appears to have lost were never there. Every
+   * rung below still lands under the real budget, which is the property the
+   * ladder exists for; the last one just lands lower.
    */
-  test('the ladder drops the hybridisation first and the shape last, at 39 chars', () => {
+  test('the ladder drops the hybridisation first and the shape last, at 36 chars', () => {
     const cap343 = maxChars(SPEC_SMALL.width - 2 * PAD_SIDE, READOUT_SIZE, 'latin');
-    expect(cap343).toBe(39);
+    expect(cap343).toBe(36);
 
     // Rung 1 — everything fits: 'sp3   bent   104.5°   VSEPR ideal' = 33.
     expect(readoutValue(WATER, cap343)).toBe('sp3   bent   104.5°   VSEPR ideal');
@@ -290,10 +297,23 @@ describe('the readout names where its angle came from, at every board', () => {
     const ch4 = species({ centre: 'C', ligands: ['H', 'H', 'H', 'H'], lone_pairs: 0 });
     expect(readoutValue(ch4).length).toBe(40);
     expect(readoutValue(ch4, cap343)).toBe('tetrahedral   109.5°   VSEPR ideal');
-    // Rung 3 — square pyramidal is 43 at rung 2, so the tag abbreviates.
+    /*
+     * Rung 4 — and this one MOVED. 'square pyramidal   89° / 180°   VSEPR' is
+     * 37 code units: it fitted the apparent 39-character budget and does not
+     * fit the real 36-character one, so BrF5 now drops the shape name as well
+     * as the tag and reads '89° / 180°   VSEPR' at 343x236.
+     *
+     * REPORTED AS A FINDING, not shortened until it passed. Nothing here is
+     * wrong — the ladder degrades in the order it was designed to, and the
+     * line that used to fit was overflowing the board by ~1.5pt the whole
+     * time — but a student on the smallest board no longer sees the words
+     * "square pyramidal" beside the angles. If that is not acceptable, the
+     * fix is a shorter shape vocabulary or a second readout line, NOT a
+     * wider width model.
+     */
     const brf5 = species({ centre: 'Br', ligands: ['F', 'F', 'F', 'F', 'F'], lone_pairs: 1 });
-    expect(readoutValue(brf5, cap343)).toBe('square pyramidal   89° / 180°   VSEPR');
-    // Rung 4 — trigonal bipyramidal is 41 even abbreviated, so the shape goes.
+    expect(readoutValue(brf5, cap343)).toBe('89° / 180°   VSEPR');
+    // Also rung 4 — trigonal bipyramidal is 41 even abbreviated.
     const pcl5 = species({ centre: 'P', ligands: new Array<string>(5).fill('Cl'), lone_pairs: 0 });
     expect(readoutValue(pcl5, cap343)).toBe('120° / 90°   VSEPR');
     // Every one of those is under budget, which is the point of the ladder.

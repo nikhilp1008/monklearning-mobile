@@ -301,19 +301,26 @@ function surfaceLabel(p: FieldLinesParams): string | null {
         : 'GAUSSIAN SPHERE — CHARGE OUTSIDE, Φ = 0';
     case 'gaussian_cylinder':
       return p.enclosed
-        // 42 units. Was "COAXIAL GAUSSIAN CYLINDER — CAPS CARRY NO FLUX" (46)
+        // 38 units. Was "COAXIAL GAUSSIAN CYLINDER — CAPS CARRY NO FLUX" (46)
         // and rendered as "…CAPS CARRY NO F" at 343x236 — see fitLabel below.
-        ? 'GAUSSIAN CYLINDER — END CAPS CARRY NO FLUX'
+        // Then 42, which fitted the budget chrome.ts APPEARED to give
+        // (floor(303 / (12 x 0.58)) = 43) and not the one Menlo actually
+        // gives (floor(303 / (12 x 0.6021 x 1.05)) = 39). "END" goes.
+        ? 'GAUSSIAN CYLINDER — CAPS CARRY NO FLUX'
         : 'GAUSSIAN CYLINDER — WIRE OUTSIDE, Φ = 0';
     case 'gaussian_pillbox':
       return p.enclosed
         ? 'GAUSSIAN PILLBOX ACROSS THE SHEET'
-        // 42 units. Was "PILLBOX OFF THE SHEET — IN ONE CAP, OUT THE OTHER,
+        // 38 units. Was "PILLBOX OFF THE SHEET — IN ONE CAP, OUT THE OTHER,
         // Φ = 0" (56), which lost "OTHER, Φ = 0" at 343x236 — the entire
-        // claim the figure exists to make.
-        : 'PILLBOX OFF THE SHEET — FLUX IN = FLUX OUT';
+        // claim the figure exists to make. Then 42, against the apparent
+        // 43-unit budget; the real one is 39, so "THE" goes.
+        : 'PILLBOX OFF SHEET — FLUX IN = FLUX OUT';
     case 'equipotential_point':
-      return 'EQUIPOTENTIALS AT EQUAL ΔV — E ⊥ SURFACE';
+      // 38 units, reordered rather than cut: was 40, one over the real
+      // 39-unit budget at 343x236, and the ⊥ claim is the one that must
+      // survive so it moves ahead of the equal-ΔV one.
+      return 'EQUIPOTENTIALS — E ⊥ SURFACE, EQUAL ΔV';
     case 'equipotential_uniform':
       return 'EQUIPOTENTIAL PLANES — E = −ΔV/Δr';
     default:

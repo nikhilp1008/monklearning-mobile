@@ -23,7 +23,7 @@
 import React, { useMemo } from 'react';
 import Svg, { Circle, G, Image as SvgImage, Line, Rect, Text as SvgText } from 'react-native-svg';
 
-import { LABEL_SIZE, READOUT_SIZE } from '../chrome';
+import { LABEL_SIZE, READOUT_SIZE, hasDevanagari } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   ANCHOR_R, LEADER_STROKE, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA, MAX_TERM_LATIN,
@@ -36,11 +36,26 @@ import { PLACEHOLDER_FIGURE } from './placeholder-figure';
 export type { LabelledFigureParams } from './figure-layout';
 
 /**
- * The Devanagari face the app already loads (`app/_layout.tsx:20,59`, used at
- * `components/classroom-chrome.tsx:410`). `theme.fontFamily` is the Latin
- * face; a Hindi label set in it would render as tofu, so the face follows the
- * language rather than the theme. This is the ONE place this widget overrides
- * the theme, and it is a script requirement, not a style choice.
+ * The Devanagari face the app loads (`app/_layout.tsx`, used at
+ * `components/classroom-chrome.tsx:410`). Onest has no Devanagari coverage, so
+ * a Devanagari label set in `theme.fontFamily` would render as tofu.
+ *
+ * THE FACE FOLLOWS THE SCRIPT, NOT THE LANGUAGE. This used to read
+ *
+ *     params.lang === 'hinglish' ? DEVANAGARI_FONT : theme.fontFamily
+ *
+ * which is the hinglish-means-Devanagari conflation this repo has now made
+ * twice (see figure-layout.ts's `Lang` note, and `git show c482452`).
+ * Hinglish is romanised LATIN — the checked-in trees for this widget carried
+ * `Koshika bhitti` and `Jeevadravya jhilli`, ordinary Latin strings, set in
+ * the Devanagari face on every board. Anek Devanagari covers Latin, so it did
+ * not tofu; it just drew the diagram in a different typeface from the board
+ * around it, which CLAUDE.md §3 calls out as reading like a bug.
+ *
+ * Deciding per string also keeps the widget honest with chrome.ts, which now
+ * prices each code unit at the advance of the face that draws it. If the face
+ * were chosen by language and the width by script, the two would disagree on
+ * exactly the mixed-script label both of them exist to get right.
  */
 const DEVANAGARI_FONT = 'AnekDevanagari_500Medium';
 
@@ -287,7 +302,8 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
     [params, width, height]
   );
   const { fit, labels, strip } = layout;
-  const family = params.lang === 'hinglish' ? DEVANAGARI_FONT : theme.fontFamily;
+  const familyFor = (text: string) =>
+    hasDevanagari(text) ? DEVANAGARI_FONT : theme.fontFamily;
 
   return (
     <Svg width={width} height={height}>
@@ -323,7 +339,7 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
             x={strip.x}
             y={strip.y}
             fontSize={READOUT_SIZE}
-            fontFamily={family}
+            fontFamily={familyFor(strip.text)}
             fill={theme.inkMuted}
             textAnchor="start"
           >
@@ -369,7 +385,7 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
             x={l.tx}
             y={l.ty}
             fontSize={LABEL_SIZE}
-            fontFamily={family}
+            fontFamily={familyFor(l.text)}
             fill={theme.ink}
             textAnchor={l.textAnchor}
           >

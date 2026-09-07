@@ -153,7 +153,7 @@ import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {
-  DOT_R, EMPHASIS_STROKE, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE,
+  CHAR_W, DOT_R, EMPHASIS_STROKE, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE,
   MARKER_R, READOUT_BAND, READOUT_SEP, READOUT_SIZE, fitReadout, maxChars, textWidth,
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
@@ -215,7 +215,28 @@ const SAMPLES = 96;
  * so it is measured in the same units the label is.
  */
 const PAD_LEFT = TICK_LABEL_SIZE * 3.2 + 8;
-const PAD_RIGHT = 14;
+/**
+ * The same rule on the right: this container holds HALF of the last x-tick's
+ * label, because that label is centred on a tick sitting at `right`.
+ *
+ * It was a bare 14, and 14 was wrong — not by a rounding error, by a real
+ * overhang that the old width model could not see. `1.20` is four code units
+ * of Menlo (`theme.monoFontFamily`, which is what tick labels are drawn in),
+ * and Menlo's advance is exactly 0.60205 em, so half that label is 14.45pt at
+ * TICK_LABEL_SIZE 12. The rightmost tick label really did hang 0.45pt off the
+ * board on every 343-wide render, and nothing caught it: chrome's flat 0.58
+ * measured the same label at 13.92pt — just inside 14 — and verify-render.mjs
+ * shared the same 0.58, so both halves of the contract agreed on a number the
+ * font disagrees with. Measuring the family exposed it.
+ *
+ * Written as the arithmetic rather than as its result, so it follows the
+ * measured advance in lib/widgets/advance-widths.json instead of needing a
+ * human to notice at the next family change. Four code units because that is
+ * what `fmt` produces for the two-decimal ticks this widget's NCERT payloads
+ * generate; a longer label is refused by `labelFitProblems`, which is the
+ * schema-side half of the same bound.
+ */
+const PAD_RIGHT = (4 * TICK_LABEL_SIZE * CHAR_W) / 2;
 /** Holds the readout line, which is fixed-size text. */
 const PAD_TOP = READOUT_BAND;
 /** Holds an x-tick label, then the axis title, both fixed-size, plus descender. */
@@ -231,7 +252,7 @@ const FAMILY_PARAMS: FamilyParam[] = ['a', 'b', 'c'];
  * CAPS, WITH THE ARITHMETIC THAT SETS THEM. All measured at 343x236, the
  * binding board, where the plot box is
  *
- *   plotW = 343 − PAD_LEFT(46.4) − PAD_RIGHT(14)   = 282.6 pt
+ *   plotW = 343 − PAD_LEFT(46.4) − PAD_RIGHT(15.2) = 281.4 pt
  *   plotH = 236 − PAD_TOP(28.4) − PAD_BOTTOM(43.2) = 164.4 pt
  *
  * MAX_PIECES = 6. Six equal pieces are 47.1 pt of plotW each — comfortably

@@ -9,6 +9,7 @@
  * string literal without the Reanimated Babel plugin running, which is fine
  * here — nothing about these assertions depends on it).
  */
+import { CHAR_W, SAFETY_MARGIN } from '../chrome';
 import { derive } from '../projectile-motion/physics';
 import { deriveFieldLines } from '../field-lines/physics';
 import {
@@ -766,12 +767,26 @@ describe('process_flow — pathway structure', () => {
 describe('process_flow — layout caps', () => {
   const BOARDS = [[343, 236], [495, 270], [900, 430], [680, 283]] as const;
 
+  /*
+   * These budgets DROPPED by one to three characters when chrome.ts stopped
+   * guessing at glyph widths. Node labels are drawn in `theme.monoFontFamily`
+   * — Menlo — whose advance is exactly 0.60205 em, and the old flat CHAR_W of
+   * 0.58 under-charged every one of them by 3.7%. With the 5% margin on top,
+   * a label now costs 9% more than the table used to assume.
+   *
+   *   n        3   4   5   6   7   8      chain
+   *   before  18  18  14  18  11  16         17
+   *   after   17  18  13  17  10  15         16
+   *
+   * n = 4 is unchanged because its budget is set by the vertical stack, not by
+   * the horizontal one, which is the same reason the table is not monotonic.
+   */
   test('the ring label budget is the documented per-n table', () => {
-    expect([3, 4, 5, 6, 7, 8].map(maxRingLabelChars)).toEqual([18, 18, 14, 18, 11, 16]);
+    expect([3, 4, 5, 6, 7, 8].map(maxRingLabelChars)).toEqual([17, 18, 13, 17, 10, 15]);
   });
 
-  test('the chain label budget is 17 — two columns in the narrowest grid', () => {
-    expect(maxChainLabelChars()).toBe(17);
+  test('the chain label budget is 16 — two columns in the narrowest grid', () => {
+    expect(maxChainLabelChars()).toBe(16);
   });
 
   test('a ring at its own cap has no colliding boxes on any board', () => {
@@ -1431,7 +1446,7 @@ describe('molecule_struct — reference values (NCERT Cl.11 Unit 4, Cl.12 Unit 5
 describe('molecule_struct — the caps, and the arithmetic they came from', () => {
   test('the site radius is 85.0 at 343x236, and 72.4 in interaction mode', () => {
     // innerW = 343 - 24 = 319; innerH = 236 - 28.4 - 10 = 197.6
-    // R_width  = (319   - 2*27.84)/2 = 131.66
+    // R_width  = (319   - 2*30.35)/2 = 129.15
     // R_height = (197.6 - 2*13.80)/2 =  85.00   -> height-bound
     const ed = moleculeLayout(species('C', ['H', 'H', 'H', 'H'], 0), 343, 236);
     expect(ed.R).toBeCloseTo(85, 6);
@@ -1449,8 +1464,11 @@ describe('molecule_struct — the caps, and the arithmetic they came from', () =
   });
 
   test('six sites clear and seven do not — the bond_pairs cap, measured', () => {
-    const need4 = labelSeparationNeeded(MAX_LIGAND_CHARS);      // 27.84 + 4
-    expect(need4).toBeCloseTo(31.84, 6);
+    // 4 * 12 * CHAR_W + LABEL_CLEAR. This grew from 31.84 to 34.35 when
+    // chrome.ts started measuring Menlo (0.60205 em, exact — it is
+    // monospaced) instead of assuming 0.58 for every family.
+    const need4 = labelSeparationNeeded(MAX_LIGAND_CHARS);      // 30.35 + 4
+    expect(need4).toBeCloseTo(34.34584, 5);
 
     // Six sites, 60 degrees apart: dx = R*(1 - cos 60) = 0.5*R
     expect(adjacentLabelDx(85, 6)).toBeCloseTo(42.5, 6);
@@ -1458,11 +1476,14 @@ describe('molecule_struct — the caps, and the arithmetic they came from', () =
     expect(adjacentLabelDx(72.4, 6)).toBeGreaterThan(need4);
 
     // Seven sites, 51.43 degrees apart: dx = R*(1 - cos 51.43) = 0.3765*R.
-    // It FAILS at the interaction-mode radius, and clears by 0.16pt at the
-    // electron-domain one — which is a coincidence, not a margin.
+    // It FAILS at BOTH radii now. It used to clear the electron-domain one by
+    // 0.16pt, which this test already called a coincidence rather than a
+    // margin — and the coincidence was an artefact of the width model: 0.58
+    // under-charged a 4-character Menlo label by 2.5pt, fifteen times the
+    // "clearance" it appeared to buy. The measured width removes it.
     expect(adjacentLabelDx(72.4, 7)).toBeCloseTo(27.26, 1);
     expect(adjacentLabelDx(72.4, 7)).toBeLessThan(need4);
-    expect(adjacentLabelDx(85, 7) - need4).toBeLessThan(0.2);
+    expect(adjacentLabelDx(85, 7)).toBeLessThan(need4);
 
     // So the schema stops at 6, and the AXE table has no row past it either.
     expect(MAX_BOND_PAIRS).toBe(6);
@@ -1474,8 +1495,8 @@ describe('molecule_struct — the caps, and the arithmetic they came from', () =
   });
 
   test('a 4-char ligand fits at six sites and a 5-char one does not', () => {
-    // 4 chars: 27.84 + 4 = 31.84 <= 36.20 at the interaction-mode R
-    // 5 chars: 34.80 + 4 = 38.80 >  36.20
+    // 4 chars: 30.35 + 4 = 34.35 <= 36.20 at the interaction-mode R
+    // 5 chars: 37.93 + 4 = 41.93 >  36.20
     expect(labelSeparationNeeded(4)).toBeLessThan(adjacentLabelDx(72.4, 6));
     expect(labelSeparationNeeded(5)).toBeGreaterThan(adjacentLabelDx(72.4, 6));
     expect(MAX_LIGAND_CHARS).toBe(4);
@@ -2092,12 +2113,37 @@ describe('circuit_network — corner regressions', () => {
   });
 
   test('the fit model measures a label at the width verify-render will', () => {
-    // scripts/verify-render.mjs picks 0.75 per code unit for a string holding
-    // ANY Devanagari and 0.58 otherwise. A backstop measuring a name the gate
-    // measures wider is modelling a checker that does not exist — `name` is
-    // free text and the schema admits any script.
-    expect(textW('R12')).toBeCloseTo(3 * 12 * 0.58, 9);
-    expect(textW('क्ष')).toBeCloseTo(3 * 12 * 0.75, 9);
-    expect(textW('क्ष')).toBeGreaterThan(textW('R12'));
+    // A backstop that measures a name at a width the gate disagrees with is
+    // modelling a checker that does not exist — `name` is free text and the
+    // schema admits any script. Both sides now read
+    // lib/widgets/advance-widths.json, so this asserts the ARITHMETIC over
+    // that table rather than a pair of duplicated literals.
+    expect(textW('R12')).toBeCloseTo(3 * 12 * CHAR_W, 9);
+
+    /*
+     * क्ष IS NARROWER THAN R12, AND THE OLD MODEL HAD IT BACKWARDS.
+     *
+     * Three code units: क 0.812 em, ् 0.0 (a virama has no advance of its
+     * own — it fuses the consonants either side into one conjunct), ष 0.602.
+     * Measured from AnekDevanagari_500Medium by
+     * scripts/measure-advance-widths.py.
+     *
+     * The flat CHAR_W_DEVA charged this string 3 x 0.75 = 2.25 em. It is
+     * 1.414 em nominal, and the shaped conjunct is narrower still. That 59%
+     * over-charge is what "a deliberate OVER-estimate, not a measurement"
+     * bought, and the direction was safe — but it was safe by being wrong by
+     * more than half, and it made every Devanagari-bearing caption shorter
+     * than it had to be.
+     */
+    expect(textW('क्ष')).toBeCloseTo(12 * (0.812 + 0 + 0.602) * SAFETY_MARGIN, 6);
+    expect(textW('क्ष')).toBeLessThan(textW('R12'));
+
+    /*
+     * PER SCRIPT WITHIN ONE STRING, which is the property the old
+     * `hasDevanagari(s) ? DEVA : LATIN` flag could not have: one Devanagari
+     * code unit used to re-price every Latin character next to it. If the
+     * parts of a mixed label did not add up, this would fail.
+     */
+    expect(textW('R12क्ष')).toBeCloseTo(textW('R12') + textW('क्ष'), 9);
   });
 });

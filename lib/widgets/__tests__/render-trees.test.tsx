@@ -971,9 +971,12 @@ describe('process_flow', () => {
     });
     expect(r.ok).toBe(true);
     const p = (r as { ok: true; params: { nodes: readonly string[] } }).params;
-    // n = 8 -> 16 characters, the boundary flow-math.ts derives at 343x236.
-    for (const s of p.nodes) expect(s.length).toBeLessThanOrEqual(16);
-    expect(p.nodes[0]).toBe('Phosphoenolpyruv');
+    // n = 8 -> 15 characters, the boundary flow-math.ts derives at 343x236.
+    // It was 16 while chrome.ts assumed 0.58 em per code unit for every
+    // family; node labels are drawn in `theme.monoFontFamily`, and Menlo's
+    // advance is 0.60205 em exactly.
+    for (const s of p.nodes) expect(s.length).toBeLessThanOrEqual(15);
+    expect(p.nodes[0]).toBe('Phosphoenolpyru');
   });
 });
 
@@ -1664,10 +1667,20 @@ describe('circuit_network', () => {
       caption: 'Two-mesh network',
     },
 
-    // A Hindi caption. verify-render measures a string containing ANY
-    // Devanagari at 0.75 per code unit, not the 0.58 chrome's fitReadout
-    // budgets with, so this readout ran off the 343 and 495 boards while
-    // passing at 900. The tree this writes is the fixture for that.
+    /*
+     * A Hindi caption. It is here because the two halves of the width
+     * contract once disagreed about it: verify-render.mjs charged any string
+     * containing Devanagari 0.75 per code unit while chrome's fitReadout
+     * budgeted 0.58, so this readout ran off the 343 and 495 boards while
+     * passing at 900.
+     *
+     * Neither number was measured, and both are gone. chrome.ts and
+     * verify-render.mjs now read one generated table and price Devanagari
+     * from Anek Devanagari's own per-codepoint advances — under which this
+     * caption is NARROWER than the Latin model said, not wider, because four
+     * of its code units are matras with no advance at all. The tree this
+     * writes is still the fixture for the two staying in step.
+     */
     hindi_caption: {
       topology: 'series_parallel',
       elements: [R('R1', 4), R('R2', 4), R('R3', 12), R('R4', 6)],

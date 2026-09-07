@@ -79,7 +79,19 @@ export interface WidgetTheme {
   rule: string;
   accent: string;
   surface: string;
-  /** Must be one of the app's loaded families — 'Anek Latin' or 'Kalam'. */
+  /**
+   * Must be one of the app's loaded families. Since the Onest migration that
+   * means an `Onest_*` weight for Latin, or `AnekDevanagari_500Medium` for
+   * Devanagari — Onest has no coverage there. Anek Latin and Kalam are no
+   * longer loaded at all (app/_layout.tsx), so naming one here silently falls
+   * back to the system face.
+   *
+   * The name matters beyond appearance: `lib/widgets/advance-widths.json`
+   * carries a measured advance width per family, and both chrome.ts and
+   * scripts/verify-render.mjs size text from it. A family absent from that
+   * table is priced at the WIDEST entry, which is conservative rather than
+   * wrong, but it is not the real width.
+   */
   fontFamily: string;
   monoFontFamily: string;
 }

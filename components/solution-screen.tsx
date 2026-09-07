@@ -19,7 +19,7 @@ import { ParsedStep } from '@/lib/solution-steps';
  * parsed question, the parsed question pinned under a rule, a numbered rail of
  * steps, the final answer in a green wash, and sticky actions.
  *
- * Font is the app's Anek Latin rather than the design's Bricolage Grotesque —
+ * Font is the app's Onest rather than the design's Bricolage Grotesque —
  * everything else follows the source. Swapping it is a one-line change if the
  * reference font is wanted instead.
  *
@@ -758,7 +758,7 @@ function createStyles() {
     keyIdea: {
       marginTop: 26,
       paddingLeft: 44,
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 15,
       lineHeight: 15 * 1.5,
       color: KEY_IDEA_INK,

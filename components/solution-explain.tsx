@@ -177,7 +177,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     answerBody: {},
     keyIdeaText: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.red,
       marginTop: verticalScale(12),

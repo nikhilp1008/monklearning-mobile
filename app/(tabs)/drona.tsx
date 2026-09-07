@@ -417,7 +417,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     chapterNumber: {
       width: scale(20),
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: '#C2BCAF',
     },

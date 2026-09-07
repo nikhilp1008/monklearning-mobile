@@ -35,6 +35,68 @@
  */
 import { readFileSync } from 'node:fs';
 
+/* ---------- the width model, shared with lib/widgets/chrome.ts ---------- */
+/*
+ * THE NUMBERS ARE MEASURED. THE MARGIN IS NOT PART OF THEM.
+ *
+ * This file and lib/widgets/chrome.ts used to hold duplicate literals —
+ * 0.58 for Latin and 0.75 for Devanagari — each with a comment asking the
+ * next person to keep them in step. They now read the SAME generated file,
+ * lib/widgets/advance-widths.json, so they cannot drift. That matters more
+ * here than anywhere else in the repo: if a widget lays text out to one
+ * width and this checker measures another, the widget passes CI and overlaps
+ * on a device.
+ *
+ * The JSON is produced by `python3 scripts/measure-advance-widths.py` from
+ * the .ttf files in node_modules — per family, per weight. `safetyMargin` is
+ * 5%, and it is a separate field rather than baked into the widths so that
+ * what is measured and what is insurance stay legible.
+ *
+ * 0.58 was fitted to Anek Latin (0.4955 at 400), which it over-estimated by
+ * 17%; against Onest (0.5697 at 400) it over-estimates by 1.8%, and against
+ * Menlo — theme.monoFontFamily, and the face MOST board text is drawn in —
+ * it UNDER-estimated by 3.7%. Under-estimating is the dangerous direction:
+ * this checker then under-reports collisions.
+ *
+ * PER SCRIPT, WITHIN ONE STRING. The old model picked one width for the whole
+ * label from `does it contain any Devanagari`, so one Devanagari code unit
+ * re-priced every Latin character beside it. Each code unit is now priced by
+ * the face that will draw it: the Devanagari block from Anek Devanagari's own
+ * per-codepoint hmtx table (the only Devanagari face the app loads — Onest
+ * has no coverage there), everything else from the declared family's measured
+ * Latin mean, falling back to the WIDEST family in the table when the family
+ * is unknown or absent, so an unmeasured face over-estimates rather than
+ * under-estimates.
+ */
+const ADVANCE = JSON.parse(
+  readFileSync(new URL('../lib/widgets/advance-widths.json', import.meta.url), 'utf8')
+);
+const SAFETY_MARGIN = ADVANCE.safetyMargin;
+const FALLBACK_FAMILY = ADVANCE.latinFallbackFamily;
+const DEVA_MAX = Math.max(...Object.values(ADVANCE.devanagari));
+
+function latinCharWidth(family) {
+  const measured = ADVANCE.latin[family] ?? ADVANCE.latin[FALLBACK_FAMILY];
+  return measured * SAFETY_MARGIN;
+}
+
+/** Total advance of `text` in em, priced per code unit by script. */
+function advanceEm(text, family) {
+  const latin = latinCharWidth(family);
+  let total = 0;
+  for (let i = 0; i < text.length; i++) {
+    const cp = text.charCodeAt(i);
+    total += cp >= 0x0900 && cp <= 0x097f
+      ? (ADVANCE.devanagari[String(cp)] ?? DEVA_MAX) * SAFETY_MARGIN
+      : latin;
+  }
+  return total;
+}
+
+function textWidth(text, fontSize, family) {
+  return advanceEm(text, family ?? FALLBACK_FAMILY) * fontSize;
+}
+
 const argv = process.argv.slice(2);
 const path = argv.find(a => !a.startsWith('--'));
 const flag = (n, d) => { const i = argv.indexOf('--' + n); return i < 0 ? d : Number(argv[i + 1]); };
@@ -147,49 +209,7 @@ function textBox(el) {
   const s = textContent(el);
   if (!s) return null;
   const size = num(f.fontSize) || 12;
-  /*
-   * Monospace-ish estimate; deliberately generous so collisions are under- not
-   * over-reported.
-   *
-   * 0.58 was fitted to Latin and this model is script-blind — it counts
-   * JavaScript String.length, i.e. UTF-16 code units. For Devanagari that is
-   * wrong in BOTH directions at once: matras have zero advance width (over-
-   * counting), and base glyphs at 12pt are wider than the Latin average
-   * (under-counting). The errors partly cancel, unpredictably, per string, so
-   * no single retuned multiplier is right.
-   *
-   * Which direction is dangerous is not symmetric. Under-estimating width
-   * makes this checker UNDER-report collisions: it passes CI and two labels
-   * overlap on a device. Over-estimating fails loudly and costs a shorter
-   * term. So Devanagari is measured at 0.75 — a deliberate OVER-estimate, a
-   * GUARDRAIL AND NOT A MEASUREMENT. Nobody has measured Anek Devanagari's
-   * advance widths at 12pt; do not describe this number as measured and do
-   * not tune it. The real fix is a per-glyph advance table.
-   *
-   * Kept identical to lib/widgets/chrome.ts's CHAR_W / CHAR_W_DEVA, for the
-   * reason stated there: if the widget and the checker disagree about width,
-   * a widget can lay text out to a width the checker rejects, or worse, pass
-   * while overlapping.
-   *
-   * NO DEVANAGARI SHIPS TODAY, AND THIS BRANCH STAYS ANYWAY. The app has two
-   * language modes (lib/preferences.ts): 'hinglish' | 'english', and hinglish
-   * is romanised LATIN — "Chalo shuru karte hain". No Devanagari string exists
-   * in either repo outside test fixtures, so nothing the product renders can
-   * reach the 0.75 branch. It is kept as a guardrail for the day Hindi-medium
-   * figure labels are authored in Devanagari, because it costs nothing while
-   * unreached and because two independent verifiers hit this exact width bug
-   * in one week from opposite directions.
-   *
-   * Fixture: test/fixtures/deva-labels-collide.json, which exits 0 under the
-   * flat 0.58 model and 1 under this one. That ONE fixture is what keeps this
-   * branch honest — it proves the guardrail is live rather than dead code that
-   * still parses. There are deliberately no per-widget Devanagari fixtures on
-   * top of it: they would assert a script the product does not ship. The
-   * reachable, and until now untested, case is a HINGLISH caption — Latin, and
-   * systematically longer than its English equivalent.
-   */
-  const charW = /[\u0900-\u097F]/.test(s) ? 0.75 : 0.58;
-  const w = s.length * size * charW, h = size * 1.15;
+  const w = textWidth(s, size, f.fontFamily), h = size * 1.15;
   const anchor = f.textAnchor || 'start';
   const x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
   return { x0, x1: x0 + w, y0: y - size * 0.82, y1: y - size * 0.82 + h, s };

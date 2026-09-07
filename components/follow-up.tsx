@@ -300,10 +300,10 @@ function createStyles(height: number) {
       elevation: 6,
     },
     barBody: { flex: 1, gap: 2 },
-    barTitle: { fontFamily: 'AnekLatin_700Bold', fontSize: 14, color: INK },
-    barHint: { fontFamily: 'AnekLatin_400Regular', fontSize: 12.5, color: INK_50 },
+    barTitle: { fontFamily: 'Onest_700Bold', fontSize: 14, color: INK },
+    barHint: { fontFamily: 'Onest_400Regular', fontSize: 12.5, color: INK_50 },
     answer: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 14.5,
       lineHeight: 21,
       color: INK,
@@ -324,7 +324,7 @@ function createStyles(height: number) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    barActionText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 14, color: PAPER },
+    barActionText: { fontFamily: 'Onest_600SemiBold', fontSize: 14, color: PAPER },
     dismiss: { paddingLeft: 2 },
 
     root: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
@@ -350,10 +350,10 @@ function createStyles(height: number) {
       justifyContent: 'space-between',
       paddingTop: 14,
     },
-    title: { fontFamily: 'AnekLatin_700Bold', fontSize: 19, color: INK },
-    close: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 15, color: INK_50 },
+    title: { fontFamily: 'Onest_700Bold', fontSize: 19, color: INK },
+    close: { fontFamily: 'Onest_600SemiBold', fontSize: 15, color: INK_50 },
     heardInSheet: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 15,
       lineHeight: 22,
       color: INK,
@@ -371,6 +371,6 @@ function createStyles(height: number) {
       justifyContent: 'center',
       marginBottom: 10,
     },
-    primaryText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 16, color: PAPER },
+    primaryText: { fontFamily: 'Onest_600SemiBold', fontSize: 16, color: PAPER },
   });
 }

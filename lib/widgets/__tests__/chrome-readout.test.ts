@@ -71,11 +71,23 @@ describe('fitReadout tapers the caption instead of dropping it', () => {
   });
 
   test('the caption degrades through every length down to a bare ellipsis', () => {
-    // Rendered at a width chosen so `room` walks 12 -> 0. The observable is
-    // the caption side of the line at each step.
+    /*
+     * Rendered at a width chosen so `room` walks 12 -> 0. The observable is
+     * the caption side of the line at each step.
+     *
+     * HALF-CHARACTER STEPS, and that is not fussiness. `n * SIZE * CHAR_W`
+     * lands exactly on a `floor()` boundary, and in binary it lands on
+     * whichever side of it the last bit of CHAR_W falls: at CHAR_W 0.632205,
+     * 15 * 14 * CHAR_W / (14 * CHAR_W) evaluates to 14.999999999999998, so a
+     * whole-character sweep silently SKIPS cap 15 and the ladder appears to
+     * jump two steps. Nothing is wrong with the taper — the sweep just never
+     * asked it for that width. Stepping by a half never sits on a boundary,
+     * so every integer cap is visited.
+     */
     const value = 'Req 4.48 Ω';
     const seen: string[] = [];
-    for (let w = 1; w <= 60; w++) {
+    for (let half = 2; half <= 120; half++) {
+      const w = half / 2;
       const line = fitReadout(caption, value, (value.length + w) * READOUT_SIZE * CHAR_W);
       const i = line.indexOf(READOUT_SEP);
       seen.push(i < 0 ? '' : line.slice(0, i));
@@ -143,6 +155,12 @@ describe('fitReadout never shows part of a number', () => {
     );
     expect(line).not.toContain('τ 100 ');
     expect(line.endsWith('τ 100')).toBe(false);
-    expect(line).toBe(`RC c${READOUT_ELLIPSIS}   Req 20 kΩ   Ceq 5 µF   I 600 µA`);
+    // The caption keeps ONE character now rather than four. That is the
+    // taper working, not a regression: the same 319pt of board buys 36 code
+    // units of Menlo at its measured 0.60205 em where it appeared to buy 39
+    // at the assumed 0.58, and the value is paid for first. The property this
+    // test exists for is unchanged — the τ term is dropped WHOLE, so no
+    // number is shown with its unit missing.
+    expect(line).toBe(`R${READOUT_ELLIPSIS}   Req 20 kΩ   Ceq 5 µF   I 600 µA`);
   });
 });

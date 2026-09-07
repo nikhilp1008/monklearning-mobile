@@ -1069,7 +1069,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       textTransform: 'uppercase',
     },
     noteTime: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11),
       color: colors.faint,
     },

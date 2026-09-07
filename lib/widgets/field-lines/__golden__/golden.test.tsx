@@ -64,7 +64,7 @@
  * covers. Repeat it the same way if the v1 contract is ever in doubt.
  */
 import { fieldLines } from '..';
-import { renderWidgetTree } from '../../__tests__/test-utils';
+import { assertGolden, renderWidgetTree } from '../../__tests__/test-utils';
 import type { FieldLinesParams } from '../physics';
 
 import v1Point from './v1-point.json';
@@ -75,18 +75,19 @@ import v1ParallelPlates from './v1-parallel_plates.json';
 /** The v1 payload shape: none of the three v2 keys appears anywhere in it. */
 const V1_BASE = { charge_uc: 10, show_arrows: true, annotate: null };
 
-const CASES: { name: string; raw: Record<string, unknown>; golden: unknown }[] = [
-  { name: 'point', raw: { ...V1_BASE, configuration: 'point' }, golden: v1Point },
-  { name: 'dipole', raw: { ...V1_BASE, configuration: 'dipole' }, golden: v1Dipole },
-  { name: 'like_charges', raw: { ...V1_BASE, configuration: 'like_charges' }, golden: v1LikeCharges },
+const CASES: { name: string; raw: Record<string, unknown>; golden: unknown; file: string }[] = [
+  { name: 'point', raw: { ...V1_BASE, configuration: 'point' }, golden: v1Point, file: 'v1-point.json' },
+  { name: 'dipole', raw: { ...V1_BASE, configuration: 'dipole' }, golden: v1Dipole, file: 'v1-dipole.json' },
+  { name: 'like_charges', raw: { ...V1_BASE, configuration: 'like_charges' }, golden: v1LikeCharges, file: 'v1-like_charges.json' },
   {
     name: 'parallel_plates',
     raw: { ...V1_BASE, configuration: 'parallel_plates' },
     golden: v1ParallelPlates,
+    file: 'v1-parallel_plates.json',
   },
 ];
 
-test.each(CASES)('a v1 $name payload renders exactly what field_lines@1 rendered', ({ raw, golden }) => {
+test.each(CASES)('a v1 $name payload renders exactly what field_lines@1 rendered', ({ raw, golden, file }) => {
   expect('surface_scale' in raw).toBe(false);
   expect('enclosed' in raw).toBe(false);
   expect('caption' in raw).toBe(false);
@@ -100,7 +101,7 @@ test.each(CASES)('a v1 $name payload renders exactly what field_lines@1 rendered
   expect(params.enclosed).toBe(true);
   expect(params.caption).toBe('');
 
-  expect(renderWidgetTree(fieldLines, params)).toEqual(golden);
+  assertGolden(renderWidgetTree(fieldLines, params), golden, __dirname, file);
 });
 
 /**

@@ -40,7 +40,7 @@
  * ---------------------------------------------------------------------------
  */
 import {
-  CHAR_W, CHAR_W_DEVA, LABEL_SIZE, LINE_STROKE, PAD_EDGE, READOUT_BAND,
+  CHAR_W, DEVA_MAX_CHAR_W, LABEL_SIZE, LINE_STROKE, PAD_EDGE, READOUT_BAND,
   READOUT_SIZE, TICK_R, charWidthFor, hasDevanagari, textWidth,
 } from '../chrome';
 
@@ -66,9 +66,11 @@ import {
  * is chosen there for its metrics -- so a Devanagari FACE being present is not
  * evidence that Devanagari TEXT is ever shown.
  *
- * The CHAR_W_DEVA width guardrail stays live regardless. It costs nothing when
- * no Devanagari appears, and it is the one thing standing between a future
- * Devanagari term and a label off the board.
+ * The Devanagari width path stays live regardless. It costs nothing when no
+ * Devanagari appears, and it is the one thing standing between a future
+ * Devanagari term and a label off the board. It is no longer the unmeasured
+ * CHAR_W_DEVA guardrail: chrome.ts now prices Devanagari code unit by code
+ * unit from Anek Devanagari's own advance table.
  */
 export type Lang = 'english' | 'hinglish';
 export type Side = 'left' | 'right';
@@ -177,24 +179,41 @@ export const SMALLEST_BOARD = { width: 343, height: 236 } as const;
  *
  *     2 * (L * LABEL_SIZE * charW) + 2 * PAD_EDGE + 2 * LEADER_STUB <= W
  *
- *   Latin  13.92 * L <= 307  ->  L <= 22.05  ->  22 code units
- *   Deva   18.00 * L <= 307  ->  L <= 17.05  ->  17 code units
+ * THE REAL CAP IS PER STRING, and `termCapFor` below is what validate() uses.
+ * The two constants here are the endpoints of the range it can return, kept
+ * as named reference points rather than as the thing doing the work:
  *
- * The Devanagari number is shorter because `CHAR_W_DEVA` deliberately
- * OVER-estimates — see its UNMEASURED note in chrome.ts. It is a guardrail,
- * not a measurement, and this cap inherits that status.
+ *   MAX_TERM_LATIN  the board's default Latin width (chrome.CHAR_W)
+ *   MAX_TERM_DEVA   the WIDEST single codepoint in Anek Devanagari's block,
+ *                   so no Devanagari term of any composition can need a
+ *                   shorter cap than this
+ *
+ * This used to be one cap per SCRIPT, chosen by `hasDevanagari`, with the
+ * Devanagari one derived from chrome's `CHAR_W_DEVA` — a number whose own doc
+ * comment said in capitals that it was not a measurement. Both are gone.
+ * chrome.ts now prices each code unit from the measured advance of the face
+ * that draws it, so a term's cap can simply be computed from the term, and a
+ * mixed-script term gets a cap that reflects its actual mixture instead of
+ * being charged the Devanagari rate for its Latin half.
  */
 export const MAX_TERM_LATIN = maxTermChars(CHAR_W);
-export const MAX_TERM_DEVA = maxTermChars(CHAR_W_DEVA);
+export const MAX_TERM_DEVA = maxTermChars(DEVA_MAX_CHAR_W);
 
 function maxTermChars(charW: number): number {
   const budget = SMALLEST_BOARD.width - 2 * PAD_EDGE - 2 * LEADER_STUB;
   return Math.floor(budget / (2 * LABEL_SIZE * charW));
 }
 
-/** The cap that applies to a term, chosen by the script it is written in. */
+/**
+ * The cap that applies to THIS term, measured from the term itself.
+ *
+ * `charWidthFor` returns the string's own average advance per code unit under
+ * the measured tables, so this is exact for pure Latin, exact for pure
+ * Devanagari, and correct for a term that mixes the two — which the old
+ * script-flag version could not represent at all.
+ */
 export function termCapFor(text: string): number {
-  return hasDevanagari(text) ? MAX_TERM_DEVA : MAX_TERM_LATIN;
+  return text.length === 0 ? MAX_TERM_LATIN : maxTermChars(charWidthFor(text));
 }
 
 /**

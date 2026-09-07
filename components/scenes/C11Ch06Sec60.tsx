@@ -27,7 +27,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, GREEN_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = 'AnekLatin_600SemiBold';
+const ANEK = 'Onest_600SemiBold';
 
 export default function C11Ch06Sec60({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);

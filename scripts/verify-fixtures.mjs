@@ -3,7 +3,7 @@
  * node scripts/verify-fixtures.mjs
  *
  * Runs every test/fixtures/*.json through verify-render.mjs and asserts the
- * expected exit code. This is what makes the four (now seven) fixtures an
+ * expected exit code. This is what makes the four (now ten) fixtures an
  * enforced regression test rather than files sitting in the repo that
  * someone once ran by hand.
  *
@@ -28,8 +28,20 @@ import { dirname, resolve, join } from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dir = resolve(root, 'test/fixtures');
 
-/** name -> expected exit code. Every assertion in verify-render.mjs must have
- *  at least one entry here that exercises it. */
+/** name -> expected exit code, or [exit, w, h] to pin the fixture to a board.
+ *
+ *  Every assertion in verify-render.mjs must have at least one entry here that
+ *  exercises it.
+ *
+ *  WHY A BOARD BELONGS TO THE FIXTURE. This runner used to spawn the gate with
+ *  no flags, so every fixture was checked at the gate's default 900x430 — while
+ *  docs/small-screen-rendering-rules.md says 343x236 is the board that binds,
+ *  and the Devanagari pair exists precisely to prove a width model on the
+ *  smallest board a student reads. Running them at 900x430 checked the right
+ *  arithmetic on the wrong board; running them by hand once checked the right
+ *  board and left no mechanism behind. The board is now part of what the
+ *  fixture asserts.
+ */
 const EXPECT = {
   good: 0, // nothing wrong — also proves 6/7/8 do NOT fire on a healthy payload
   collide: 1, // assertion 4: two labels overlap
@@ -44,11 +56,43 @@ const EXPECT = {
   // label are here so assertions 1 and 2 pass on their own — the ONLY reason
   // this fixture fails is the Image.
   'image-off-board': 1,
-  // assertion 4, via the Devanagari width guardrail in textBox. Exits 0 under
-  // the flat Latin 0.58 model — the two labels are 2pt apart at that width —
-  // and 1 under CHAR_W_DEVA = 0.75. This is what "the guardrail is live"
-  // means; without a fixture it is a constant nobody proved was read.
-  'deva-labels-collide': 1,
+  /*
+   * assertion 4, via the Devanagari width path in textBox. TWO fixtures now,
+   * and they bracket the width from opposite sides.
+   *
+   * THE PAIR REPLACES A SINGLE FIXTURE WHOSE PREMISE MEASUREMENT DISPROVED.
+   * The old one placed the two labels 85.5pt apart and expected a collision,
+   * because `CHAR_W_DEVA = 0.75` charged the first label 108pt. That constant
+   * said in its own doc comment that it was not a measurement, and it was
+   * not: 'कोशिकाद्रव्य' is twelve code units of which four are matras with no
+   * advance width at all, and Anek Devanagari's own hmtx makes it 67.6pt with
+   * the 5% margin — the two labels do NOT touch. The fixture was asserting a
+   * collision that does not happen on a device, so it could not stay as it
+   * was once the widths were measured.
+   *
+   * What it was FOR still matters and is preserved: proving the Devanagari
+   * path is live rather than dead code that still parses. That needs a case
+   * whose verdict CHANGES if the path dies, and since measured Devanagari is
+   * now NARROWER per code unit than Latin (0.42 em against Menlo's 0.63, not
+   * wider), the direction of that case inverts:
+   *
+   *   deva-labels-collide           labels 55pt apart. 67.6pt of Devanagari
+   *                                 overlaps -> 1. Proves the text is
+   *                                 measured at all.
+   *   deva-latin-width-would-collide
+   *                                 the ORIGINAL 85.5pt geometry, unchanged.
+   *                                 67.6pt clears it -> 0. If the Devanagari
+   *                                 branch died and Latin priced the string,
+   *                                 it would be 91.0pt and collide -> 1.
+   *                                 THIS is the liveness test.
+   *
+   * Verified both ways before being added, per docs/small-screen-rendering-
+   * rules.md: with the branch deleted from a copy of verify-render.mjs, the
+   * second fixture exits 1 instead of 0 and the first is unaffected — which
+   * is exactly why one fixture is not enough here and two are.
+   */
+  'deva-labels-collide': [1, 343, 236],
+  'deva-latin-width-would-collide': [0, 343, 236],
 };
 
 const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
@@ -66,12 +110,16 @@ for (const file of files) {
     failed++;
     continue;
   }
-  const result = spawnSync('node', [resolve(root, 'scripts/verify-render.mjs'), join(dir, file)], {
+  const spec = EXPECT[name];
+  const [want, w, h] = Array.isArray(spec) ? spec : [spec, null, null];
+  const board = w === null ? [] : ['--w', String(w), '--h', String(h)];
+  const result = spawnSync('node', [resolve(root, 'scripts/verify-render.mjs'), join(dir, file), ...board], {
     cwd: root,
     stdio: 'inherit',
   });
-  if (result.status !== EXPECT[name]) {
-    console.error(`FAIL: ${file} exited ${result.status}, expected ${EXPECT[name]}`);
+  if (result.status !== want) {
+    const at = w === null ? '' : ` at ${w}x${h}`;
+    console.error(`FAIL: ${file} exited ${result.status}${at}, expected ${want}`);
     failed++;
   }
 }

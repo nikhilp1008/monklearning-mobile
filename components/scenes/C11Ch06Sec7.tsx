@@ -37,7 +37,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, INK, MUTED, AMBER, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = 'AnekLatin_600SemiBold';
+const ANEK = 'Onest_600SemiBold';
 
 /** [X]^exp [Y]^exp — bracket-notation fraction row (concentration form). */
 function BracketPair({ x, y, s1, e1, s2, e2 }: { x: number; y: number; s1: string; e1: string; s2: string; e2: string }) {

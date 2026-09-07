@@ -335,7 +335,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(28,25,20,.1)',
     },
     dividerText: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.red,
       transform: [{ rotate: '-1deg' }],
