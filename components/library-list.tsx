@@ -505,12 +505,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // removes it from this list and nothing else.
                 showingSamples ? (
                   <View style={styles.notesRows}>
-                    {sampleNotes.map((card) => (
+                    {sampleNotes.map((card, i) => (
                       <Erasable
                         key={card.id}
                         enabled={eraseMode}
                         onRemove={() => removeSample(card.id)}>
-                        <View style={[styles.noteRow, eraseMode && styles.noteCardErasing]}>
+                        <View
+                          style={[
+                            styles.noteRow,
+                            eraseMode && styles.noteCardErasing,
+                            i > 0 && styles.noteRowDivided,
+                          ]}>
                           <Text style={styles.noteRowTitle}>{card.title}</Text>
                           <Text style={styles.noteRowMeta}>
                             {card.subject} · {card.time}
@@ -533,13 +538,18 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 )
               ) : (
                 <View style={styles.notesRows}>
-                  {visibleNotes.map((note) => (
+                  {visibleNotes.map((note, i) => (
                     <Erasable
                       key={note.id}
                       enabled={eraseMode}
                       onRemove={() => removeNote(note.id)}>
                       <PressableScale
-                        style={[styles.noteRow, eraseMode && styles.noteCardErasing]}
+                        style={[
+                          styles.noteRow,
+                          eraseMode && styles.noteCardErasing,
+                          // Last, so it survives noteCardErasing's `borderColor`.
+                          i > 0 && styles.noteRowDivided,
+                        ]}
                         disabled={eraseMode}
                         onPress={() =>
                           router.push({
@@ -951,11 +961,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // --- notes rows: no card, no rule, 30pt apart ---
     notesRows: {
-      gap: verticalScale(30),
       paddingTop: verticalScale(24),
     },
+    /**
+     * The 30pt that used to be the container's `gap` is now 15 below one row
+     * and 15 above the next, so the rule lands optically halfway between two
+     * notes instead of hard against one of them. The rhythm is unchanged.
+     */
     noteRow: {
       gap: verticalScale(6),
+      paddingBottom: verticalScale(15),
+    },
+    /**
+     * Carried by every row except the first, so the list never closes on a
+     * dangling line. hairlineWidth, not 1 -- one device pixel, which on a 3x
+     * screen is a third of a point: the line reads as a seam in the paper
+     * rather than as a border drawn on top of it.
+     */
+    noteRowDivided: {
+      paddingTop: verticalScale(15),
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.hairline,
     },
     noteRowTitle: {
       fontFamily: 'Onest_400Regular',
