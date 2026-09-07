@@ -749,6 +749,27 @@ export function latexToText(raw: string): string {
         i += 1;
         continue;
       }
+      // A PRICE, and the branch above only caught the lonely one.
+      //
+      // "$33 trillion vs $18 trillion" has TWO dollars, so `indexOf` finds a
+      // closing delimiter and everything between them is converted as maths —
+      // which deletes both symbols and puts "33 trillion vs 18 trillion" on the
+      // board. Found on Ecosystem Services, whose whole subject is Costanza's
+      // valuation: the chapter says "US $33 trillion" and "~US $18 trillion" on
+      // nearly every page, so a board about money silently lost the money.
+      //
+      // A digit immediately after the opening `$` decides it. Real inline maths
+      // in this corpus opens with a letter or a command — `$A = \pi r^2$`,
+      // `$\theta$` — never a numeral, and formulas do not arrive delimited at
+      // all: planner_segment.md puts them in their own `latex` field. So this
+      // costs `$2x + 1$`, which nothing writes, and saves every price.
+      //
+      // `$$` is left alone: nobody writes a price as `$$33`.
+      if (!isDisplay && /[0-9]/.test(normalized[start] ?? '')) {
+        plain += ch;
+        i += 1;
+        continue;
+      }
       flush();
       out += wrapMath(convertMath(normalized.slice(start, end)));
       i = end + delim.length;
