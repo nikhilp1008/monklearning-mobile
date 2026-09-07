@@ -731,9 +731,46 @@ describe('validate() refuses exactly the configurations the picture would lie ab
       if (!r.ok) {
         const text = r.errors.join(' ');
         expect(text).toContain('nearly parallel');
-        // It must NOT blame the camera: no view fixes a fixed angle ratio.
-        expect(text).toContain('no view and no board size changes that');
+        // It must NOT blame the camera. What it says about the cameras is now
+        // MEASURED (`no other view opens them either`) rather than asserted —
+        // see the case below for why the assertion could not stay.
+        expect(text).toContain('no other view opens them either');
+        expect(text).not.toMatch(/looking down the crease|try (standard|swing|high)/);
       }
+    }
+
+    /*
+     * WHY THE MESSAGE NO LONGER CLAIMS "no view and no board size changes
+     * that". That sentence was false on both halves, and this is the payload
+     * that falsifies it: θ = 8.5°, UNDER the 8.6° floor, where `swing` still
+     * separates the arms by 10.08px at 343x236 — over the 10px floor — and
+     * validates clean. The old text refused it while denying that any camera
+     * could help, which is the very advice-that-sends-you-nowhere this
+     * widget's refusals exist to avoid. (The board half was false further out
+     * still: at θ = 5° the arms are 15.4px apart at 900x430.)
+     *
+     * MIN_DIHEDRAL_DEG is an upper bound on what any camera can do at the
+     * binding board, and measurement puts it within 1.4% of attained — so the
+     * arms are measured first and θ explains the answer only when nothing
+     * opens them.
+     */
+    const nearFloor = {
+      ...base,
+      mode: 'two_planes' as const,
+      view: 'standard' as const,
+      plane1: { normal: [0, 0, 1] as Vec3, d: 1 },
+      plane2: {
+        normal: [Math.sin((8.5 * Math.PI) / 180), 0, Math.cos((8.5 * Math.PI) / 180)] as Vec3,
+        d: 1,
+      },
+    };
+    expect(computeDerived(nearFloor).angle_deg).toBeLessThan(MIN_DIHEDRAL_DEG);
+    const near = mod.validate(nearFloor);
+    expect(near.ok).toBe(false);
+    if (!near.ok) {
+      // swing is named, and naming it is only allowed because it validates.
+      expect(near.errors.join(' ')).toContain('clean in swing');
+      expect(mod.validate({ ...nearFloor, view: 'swing' as const }).ok).toBe(true);
     }
 
     // A dihedral wide enough to read is admitted, and the boundary sits where
@@ -1309,16 +1346,30 @@ describe('the auto-fit is what makes magnitude irrelevant — asserted, not clai
 
           // Slide each base point a long way along its own direction, in both
           // senses, including magnitudes far larger than the figure itself.
-          for (const t of [-97.3, -12, -0.5, 0.5, 12, 97.3]) {
-            const p1 = {
-              ...p0,
-              line1: slide(p0.line1, t),
-              line2: slide(p0.line2, -t * 1.7),
-            };
+          /*
+           * ONE LINE AT A TIME, AND NOT ONLY BOTH TOGETHER.
+           *
+           * This loop used to slide both bases in the same breath, and that
+           * is why it passed over a live bug for a whole verification round:
+           * `d` is |(a2−a1)·(b1×b2)|/|b1×b2|, and for the coplanar case the
+           * two slides cancelled inside the triple product, so `d` stayed
+           * EXACTLY 0.0 and the `d > 0` test it fed never saw the noise.
+           * Slide line1 alone by 3.7 and `d` becomes 5.4e−16 — the same pair
+           * of lines, a reach of 1.0e−15, a figure of 0.00px, and a REFUSAL.
+           * The freedom is per-line, so the sweep has to be per-line too.
+           */
+          const plans: [string, (q: LinesPlanes3dParams, t: number) => LinesPlanes3dParams][] = [
+            ['both', (q, t) => ({ ...q, line1: slide(q.line1, t), line2: slide(q.line2, -t * 1.7) })],
+            ['line1 only', (q, t) => ({ ...q, line1: slide(q.line1, t) })],
+            ['line2 only', (q, t) => ({ ...q, line2: slide(q.line2, t) })],
+          ];
+          for (const t of [-97.3, -12, -3.7, -0.5, 0.5, 3.7, 12, 97.3]) {
+          for (const [plan, apply] of plans) {
+            const p1 = apply(p0, t);
             const r1 = mod.validate(p1);
             // A slide along the line must never change the VERDICT either.
-            expect([name, view, show_axes, t, r1.ok ? [] : r1.errors]).toEqual([
-              name, view, show_axes, t, [],
+            expect([name, view, show_axes, plan, t, r1.ok ? [] : r1.errors]).toEqual([
+              name, view, show_axes, plan, t, [],
             ]);
             if (!r1.ok) continue;
             const B = layout(r1.params, REF_W, REF_H, FRAME);
@@ -1345,6 +1396,7 @@ describe('the auto-fit is what makes magnitude irrelevant — asserted, not clai
               expect(dB[k]).toBeCloseTo(dA[k], 6);
             }
             compared++;
+          }
           }
         }
       }

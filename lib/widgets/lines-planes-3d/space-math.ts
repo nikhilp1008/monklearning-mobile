@@ -779,14 +779,39 @@ function buildScene(p: LinesPlanes3dParams): Scene {
        * two intersecting lines are fixed up to similarity by θ alone. Any
        * constant works there, and the auto-fit cancels it: the scene is
        * symmetric about the crossing and scaling it changes no pixel.
+       *
+       * "d = 0" IS A RELATIVE TEST, AND `> 0` WAS NOT — the same defect as
+       * `|a2 − a1|` above, one level down. `dist` is
+       * |(a2−a1)·(b1×b2)|/|b1×b2|, so for lines that genuinely meet it lands
+       * on exactly 0.0 only when the arithmetic happens to cancel exactly.
+       * Slide `at` along its own line, or scale `dir` — the two freedoms that
+       * describe the SAME pair of lines — and the cancellation stops being
+       * exact: the reference `intersecting_lines` payload written as
+       * `at: (5.7,−4.7,10.4)` instead of `(2,−1,3)` gives dist = 5.4e−16, so
+       * `reach` became 1.0e−15, the projected extent hit `layout`'s 1e−9
+       * clamp, the figure spanned 0.00px and validate() REFUSED a payload it
+       * admits when the identical lines are written the other way (with
+       * `computeDerived` returning θ 73.2°, d 0 for both). It also took the
+       * bridge branch below, drawing and labelling a "d" of length 1e−16
+       * while the readout printed `d 0` — the contradiction that branch's
+       * else exists to prevent.
+       *
+       * `|a2 − a1|` appears here as a TOLERANCE and not as a length: it never
+       * reaches a drawn coordinate, and it is the right yardstick precisely
+       * because the rounding error in `dist` grows with the magnitudes fed to
+       * the triple product. It is the same relative form as validate()'s own
+       * degeneracy tests (`len(cross(b1,b2)) <= EPS·|b1|·|b2|`). One boolean
+       * now drives both the reach and the bridge, so the two cannot disagree
+       * about whether the lines meet.
        */
-      const reach = br.dist > 0 ? br.dist * 1.9 : 1;
+      const meets = br.dist <= EPS * len(sub(p.line2.at, p.line1.at));
+      const reach = meets ? 1 : br.dist * 1.9;
       drawLine(p.line1, br.lambda, reach);
       drawLine(p.line2, br.mu, reach);
       sc.anchors.push({ text: 'L1', at: add(br.f1, mul(unit(p.line1.dir), -reach * 0.8)) });
       sc.anchors.push({ text: 'L2', at: add(br.f2, mul(unit(p.line2.dir), -reach * 0.8)) });
       sc.markers.push({ at: br.f1, r: FOOT_R });
-      if (br.dist > reach * 1e-6) {
+      if (!meets) {
         sc.segs.push({ a: br.f1, b: br.f2, kind: 'measure' });
         const bridge = sub(br.f2, br.f1);
         rightAngle(br.f1, p.line1.dir, bridge, reach * 0.1);
@@ -1281,13 +1306,40 @@ export function fitProblems(
     break;
   }
 
-  for (const area of L.planeAreas) {
-    if (!(area >= MIN_PLANE_AREA_PX)) {
-      problems.push(
-        `a plane projects to ${area.toFixed(0)}px² at ${REF_W}x${REF_H}, under the ${MIN_PLANE_AREA_PX}px² floor — it is edge-on in view "${p.view}" and reads as a line, not a plane; ${others}${p.show_axes ? ', or show_axes: false' : ''}`
-      );
-      break;
-    }
+  /*
+   * A THIN FACE HAS THE SAME THREE CAUSES A SHORT SEGMENT HAS, and this is the
+   * same measurement, made for the face instead. "Edge-on in view X" was
+   * hard-coded here exactly as it once was for the segment above, and it is
+   * wrong for the same reason: a sweep of 12,000 payloads produced 103 refusals
+   * naming a camera that was not at fault — every one of them a figure whose
+   * face was under the floor in ALL THREE views because `show_axes` had scaled
+   * the fit to the coordinate axes instead. The face is re-measured in the
+   * other two cameras, and the remedy that is named is the one the measurement
+   * supports.
+   */
+  for (let i = 0; i < L.planeAreas.length; i++) {
+    const area = L.planeAreas[i];
+    if (area >= MIN_PLANE_AREA_PX) continue;
+    const opensUp = VIEW_IDS.filter((v) => v !== p.view).filter((v) => {
+      const alt = layout({ ...p, view: v }, REF_W, REF_H, chrome).planeAreas;
+      return i < alt.length && alt[i] >= MIN_PLANE_AREA_PX;
+    });
+    const worth = opensUp.filter((v) => clean.includes(v));
+    const axesOpenIt =
+      p.show_axes &&
+      (layout({ ...p, show_axes: false }, REF_W, REF_H, chrome).planeAreas[i] ?? 0) >=
+        MIN_PLANE_AREA_PX;
+    const head = `a plane projects to ${area.toFixed(0)}px² at ${REF_W}x${REF_H}, under the ${MIN_PLANE_AREA_PX}px² floor`;
+    problems.push(
+      worth.length > 0
+        ? `${head} — it is edge-on in view "${p.view}" and reads as a line, not a plane; it opens up and the whole figure is clean in ${worth.join(' or ')}${axesOpenIt ? ', or show_axes: false' : ''}`
+        : opensUp.length > 0
+          ? `${head} — it is edge-on in view "${p.view}" and reads as a line, not a plane, and the views where it opens up fail for their own reasons${axesOpenIt ? '; show_axes: false opens it in this view' : ', so no camera fixes this payload'}`
+          : axesOpenIt
+            ? `${head} — it reads as a line, not a plane, in ALL THREE views, so the camera is not what flattened it: the coordinate axes are much larger than the plane and the fit has scaled to them; show_axes: false opens it`
+            : `${head} — it reads as a line, not a plane, in ALL THREE views, so this is the geometry and not the camera: no view will fix it, the plane has to sit differently against the rest of the figure`
+    );
+    break;
   }
 
   /*
@@ -1324,16 +1376,53 @@ export function fitProblems(
   }
 
   if (L.dihedralTipsPx) {
-    const sep = Math.hypot(
-      L.dihedralTipsPx.t1.x - L.dihedralTipsPx.t2.x,
-      L.dihedralTipsPx.t1.y - L.dihedralTipsPx.t2.y
-    );
+    const armSep = (lay: Layout) =>
+      lay.dihedralTipsPx
+        ? Math.hypot(
+            lay.dihedralTipsPx.t1.x - lay.dihedralTipsPx.t2.x,
+            lay.dihedralTipsPx.t1.y - lay.dihedralTipsPx.t2.y
+          )
+        : 0;
+    const sep = armSep(L);
     const theta = computeDerived(p).angle_deg;
     if (!(sep >= MIN_ARM_SEPARATION_PX)) {
+      /*
+       * CLOSED ARMS HAVE FOUR CAUSES, AND THE CAMERA IS ONLY ONE OF THEM.
+       *
+       * `view "X" is looking down the crease` was asserted here whenever
+       * θ ≥ MIN_DIHEDRAL_DEG — the same hard-coded blame the short-segment
+       * branch above was written to stop making. A 12,000-payload sweep fired
+       * this branch 220 times and 91 of those named a camera the measurement
+       * ruled out: the arms were under the floor in ALL THREE views (θ = 11.9°
+       * and θ = 16.44° among them), and in 20 of the 91 the cause was
+       * `show_axes` — a remedy this message never offered, so the one change
+       * that would have worked was the one it did not name.
+       *
+       * The θ floor is likewise a LAST resort and not a first test. It is an
+       * upper bound on what any camera can do at the binding board (see
+       * MIN_ARM_SEPARATION_PX), and measurement shows that bound is very
+       * nearly attained: at θ = 8.5° — under the 8.6° floor — `swing` still
+       * separates the arms by 10.08px at 343x236. So the arms are measured
+       * first and θ explains the result only when nothing opens them.
+       */
+      const opensUp = VIEW_IDS.filter((v) => v !== p.view).filter(
+        (v) => armSep(layout({ ...p, view: v }, REF_W, REF_H, chrome)) >= MIN_ARM_SEPARATION_PX
+      );
+      const worth = opensUp.filter((v) => clean.includes(v));
+      const axesOpenIt =
+        p.show_axes &&
+        armSep(layout({ ...p, show_axes: false }, REF_W, REF_H, chrome)) >= MIN_ARM_SEPARATION_PX;
+      const head = `the two faces' arms are ${sep.toFixed(1)}px apart at ${REF_W}x${REF_H}, under the ${MIN_ARM_SEPARATION_PX}px floor — the dihedral is ${fmt(theta, 2)}°`;
       problems.push(
-        theta < MIN_DIHEDRAL_DEG
-          ? `plane1 and plane2 meet at ${fmt(theta, 2)}°, under the ${MIN_DIHEDRAL_DEG}° floor — they are so nearly parallel that the two faces draw on top of each other, which is the same picture the COINCIDENT refusal exists to prevent. Their arms would sit ${sep.toFixed(1)}px apart at ${REF_W}x${REF_H}, under the ${MIN_ARM_SEPARATION_PX}px floor; no view and no board size changes that, because the ratio is fixed by the geometry`
-          : `the two faces' arms are ${sep.toFixed(1)}px apart at ${REF_W}x${REF_H}, under the ${MIN_ARM_SEPARATION_PX}px floor — the dihedral is ${fmt(theta, 2)}° but view "${p.view}" is looking down the crease; ${others}`
+        worth.length > 0
+          ? `${head} but view "${p.view}" is looking down the crease; the arms open up and the whole figure is clean in ${worth.join(' or ')}`
+          : opensUp.length > 0
+            ? `${head} but view "${p.view}" is looking down the crease, and the views where the arms open up fail for their own reasons${axesOpenIt ? '; show_axes: false opens them in this view' : ', so no camera fixes this payload'}`
+            : axesOpenIt
+              ? `${head}, wide enough to draw, and no camera closes it: the coordinate axes are much larger than the faces and the fit has scaled to them; show_axes: false opens the arms`
+              : theta < MIN_DIHEDRAL_DEG
+                ? `plane1 and plane2 meet at ${fmt(theta, 2)}°, under the ${MIN_DIHEDRAL_DEG}° floor — they are so nearly parallel that the two faces draw on top of each other, which is the same picture the COINCIDENT refusal exists to prevent. Their arms sit ${sep.toFixed(1)}px apart at ${REF_W}x${REF_H}, under the ${MIN_ARM_SEPARATION_PX}px floor, and no other view opens them either. A wider board scales the whole figure up and this gap with it, but ${REF_W}x${REF_H} is the board every floor here is measured at, so that is not a way out`
+                : `${head}, wide enough on paper, but the arms are under the floor in ALL THREE views — so this is the geometry and not the camera: the crease has to sit differently against the rest of the figure`
       );
     }
   }
