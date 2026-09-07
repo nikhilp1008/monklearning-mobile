@@ -22,8 +22,8 @@ const SET: LabelSet = {
   schema_version: LABEL_SET_SCHEMA_VERSION,
   reviewed_by: 'raasikh',
   labels: [
-    { id: 'l1', text: { en: 'Nucleus', hi: 'केंद्रक' }, anchor: [0.3, 0.4], side: 'auto' },
-    { id: 'l2', text: { en: 'Vacuole', hi: 'रिक्तिका' }, anchor: [0.8, 0.6], side: 'auto' },
+    { id: 'l1', text: { en: 'Nucleus', hi: 'Kendrak' }, anchor: [0.3, 0.4], side: 'auto' },
+    { id: 'l2', text: { en: 'Vacuole', hi: 'Riktika' }, anchor: [0.8, 0.6], side: 'auto' },
   ],
 };
 
@@ -107,7 +107,7 @@ describe('wire -> renderer', () => {
 
   test('text and anchor are converted, not passed through', () => {
     const rec = toFigureRecord(SET, 'file:///art.png');
-    expect(rec.labels[0].term).toEqual({ english: 'Nucleus', hinglish: 'केंद्रक' });
+    expect(rec.labels[0].term).toEqual({ english: 'Nucleus', hinglish: 'Kendrak' });
     expect(rec.labels[0].anchor).toEqual({ u: 0.3, v: 0.4 });
   });
 

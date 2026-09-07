@@ -39,7 +39,7 @@ export type AuthoredSide = 'l' | 'r' | 't' | 'b' | 'auto';
 
 export interface AuthoredLabel {
   id: string;
-  /** `hi` is Devanagari. See `LANG_KEY` for the one place that mapping lives. */
+  /** `hi` is HINGLISH — romanised Latin, not Devanagari. See `LANG_KEY`. */
   text: { en: string; hi: string };
   /** Normalised 0..1 against the IMAGE, not the board. */
   anchor: [number, number];
@@ -77,17 +77,21 @@ const PLACEHOLDER = new Set(['', 'unknown', 'tbd', 'n/a', 'na', 'todo', '-', 'nu
 /**
  * THE ONE PLACE THE LANGUAGE MAPPING LIVES.
  *
- * The app's `LanguageId` is `'hinglish' | 'english'` — there is no `hindi`
- * member, so nothing in the UI can select Devanagari today. The schema
- * nonetheless carries `hi`, because figure labels are the first content for
- * which Devanagari is actually wanted (Hindi-medium students read Devanagari
- * textbooks) and `lib/widgets/CLAUDE.md` says so in as many words: the one
- * Devanagari fixture exists for "the day figure labels are authored in
- * Devanagari".
+ * `hi` HOLDS HINGLISH — romanised Latin, e.g. "Koshika bhitti", NOT
+ * "कोशिका भित्ति". The key is two letters because it is a wire format; the
+ * language it names is the app's `hinglish`, which is one of exactly two
+ * members of `LanguageId` alongside `english`. There is no Devanagari mode and
+ * no Devanagari label content.
  *
- * That day is why this function is isolated rather than inlined. If `hi` should
- * instead hold romanised Hinglish, this mapping changes and 65 authored files
- * do not.
+ * SO THE PRESSURE ON A LABEL IS LENGTH, NOT SCRIPT. `lib/widgets/CLAUDE.md`
+ * makes the same point about every widget readout: Hinglish says the same thing
+ * in more characters, every time, and the width model is what degrades under
+ * that. `MAX_TERM_LATIN` is the cap that binds here; `MAX_TERM_DEVA` and the
+ * two Devanagari fixtures stay where they are as a guardrail-liveness test for
+ * the width branch, and nothing in a label set reaches them.
+ *
+ * Isolated rather than inlined so that if this ever does change, it changes
+ * here and 65 authored files do not.
  */
 export const LANG_KEY: Record<Lang, keyof AuthoredLabel['text']> = {
   english: 'en',

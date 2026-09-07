@@ -192,7 +192,7 @@ export default function DevLabelEditorScreen() {
             />
             <TextInput
               style={s.input}
-              placeholder="हिन्दी"
+              placeholder="Hinglish (romanised)"
               value={l.text.hi}
               onChangeText={(t) => patch(l.id, { text: { ...l.text, hi: t } })}
             />

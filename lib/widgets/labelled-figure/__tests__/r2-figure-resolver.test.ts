@@ -22,8 +22,8 @@ const GOOD = {
   schema_version: LABEL_SET_SCHEMA_VERSION,
   reviewed_by: 'raasikh',
   labels: [
-    { id: 'l1', text: { en: "Bowman's capsule", hi: 'बोमन संपुट' }, anchor: [0.31, 0.42], side: 'l' },
-    { id: 'l2', text: { en: 'glomerulus', hi: 'केशिकागुच्छ' }, anchor: [0.72, 0.47], side: 'r' },
+    { id: 'l1', text: { en: "Bowman's capsule", hi: 'Bowman samput' }, anchor: [0.31, 0.42], side: 'l' },
+    { id: 'l2', text: { en: 'glomerulus', hi: 'Keshikaguchchh' }, anchor: [0.72, 0.47], side: 'r' },
   ],
   // The §4 provenance block the stored JSON also carries. Nothing here reads
   // it; present so a change that starts reading it in the render path is a
