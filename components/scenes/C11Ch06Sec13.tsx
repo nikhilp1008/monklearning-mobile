@@ -34,7 +34,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, AMBER,
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec13({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -100,7 +100,7 @@ export default function C11Ch06Sec13({ currentTime, reveals, language }: ScenePr
       {/* beat 5 — the K formula */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
         <SvgText x={540} y={272} textAnchor="middle" fontSize={15} fill={MUTED} fontFamily={ANEK}>
-          K = K₁ × (1/K₂)<TSpan dy={-7} fontSize="0.62em">2</TSpan>
+          K = K₁ × (1/K₂)<TSpan dy={-7} fontSize={9.3}>2</TSpan>
         </SvgText>
       </Fade>
       <Fade on={beat >= 5} delay={dl(5, 1)}>
@@ -110,14 +110,14 @@ export default function C11Ch06Sec13({ currentTime, reveals, language }: ScenePr
         <T x={530} y={318} size={20} fill={INK} anchor="middle">K₁</T>
         <Line x1={500} y1={328} x2={570} y2={328} stroke={INK} strokeWidth={1.8} />
         <SvgText x={530} y={354} textAnchor="middle" fontSize={20} fill={INK} fontFamily={ANEK}>
-          K₂<TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          K₂<TSpan dy={-8} fontSize={12.0}>2</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 6 — compute and land */}
       <Fade on={beat >= 6} delay={dl(6, 0.4)}>
         <SvgText x={540} y={390} textAnchor="middle" fontSize={17} fontWeight={700} fill={INK} fontFamily={ANEK}>
-          = 0.50/(0.10)<TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          = 0.50/(0.10)<TSpan dy={-8} fontSize={10.2}>2</TSpan>
           <TSpan dy={8}> = 0.50/0.01 = 50</TSpan>
         </SvgText>
       </Fade>

@@ -16,11 +16,11 @@ type MathTextProps = {
 };
 
 const FONT_BY_WEIGHT: Record<string, string> = {
-  '400': 'AnekLatin_400Regular',
-  '500': 'AnekLatin_500Medium',
-  '600': 'AnekLatin_600SemiBold',
-  '700': 'AnekLatin_700Bold',
-  '800': 'AnekLatin_800ExtraBold',
+  '400': 'Onest_400Regular',
+  '500': 'Onest_500Medium',
+  '600': 'Onest_600SemiBold',
+  '700': 'Onest_700Bold',
+  '800': 'Onest_800ExtraBold',
 };
 
 /**

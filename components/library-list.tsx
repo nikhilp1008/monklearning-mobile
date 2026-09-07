@@ -3,26 +3,19 @@ import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
-  LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
-import { CheckIcon } from '@/components/check-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { ICON_CHIP, SnapADoubtIcon } from '@/components/monk-icons';
-import { TextbooksPage } from '@/components/textbook/textbooks-page';
 import { friendlyLoadError } from '@/lib/api';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
@@ -38,24 +31,13 @@ import {
 import {
   DEMO_DOUBT_CARDS,
   DEMO_NOTE_CARDS,
-  DEMO_SESSION_ID,
   DemoDoubtCard,
   DemoNoteCard,
 } from '@/lib/demo-board';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
-type Segment = 'notes' | 'doubts' | 'textbooks' | 'sessions';
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths' | 'Biology';
 
-// Textbooks sits beside Doubts rather than at the end: a student is here to
-// read or to look something up, and the two reading surfaces belong together.
-const SEGMENTS: Segment[] = ['notes', 'doubts', 'textbooks', 'sessions'];
-const SEGMENT_LABELS: Record<Segment, string> = {
-  notes: 'Notes',
-  doubts: 'Doubts',
-  textbooks: 'Textbooks',
-  sessions: 'Sessions',
-};
 const FILTERABLE_SUBJECTS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths', 'Biology'];
 const DEFAULT_FILTERS: SubjectFilter[] = ['Physics', 'Chemistry', 'Maths'];
 const SUBJECT_FILTER_LABEL: Record<string, SubjectFilter> = {
@@ -75,30 +57,18 @@ const SUBJECT_ACCENT: Record<string, { dot: string; label: string }> = {
   biology: { dot: '#1C9B57', label: '#157A45' },
 };
 
-type Session = {
-  title: string;
-  subject: 'Physics' | 'Chemistry' | 'Maths';
-  subline: string;
-  badge: { kind: 'urgent' | 'neutral' | 'saved'; text: string };
-};
-
-// DEMO_ — there is no endpoint that lists past sessions yet, so one sample
-// stands in to make the session page reviewable. Delete with lib/demo-board.ts
-// once /drona/sessions exists.
-const SESSIONS: Session[] = [
-  {
-    title: 'Rotational Motion · torque',
-    subject: 'Physics',
-    subline: 'Sample · tap to see a backed-up board',
-    badge: { kind: 'neutral', text: '6 days left' },
-  },
-];
-
-export default function LibraryScreen() {
+/**
+ * Notes and Doubts — one list, mounted twice.
+ *
+ * These were two segments of a Library tab. They are tabs of their own now,
+ * so the pager, the segment row and its sliding indicator are gone; what is
+ * left is the same list with a `kind` deciding which half it shows. Two
+ * copies of five hundred lines would have drifted apart the first time either
+ * was touched.
+ */
+export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const { width: windowWidth } = useWindowDimensions();
-  const [activeSegment, setActiveSegment] = useState<Segment>('notes');
   const [notesFilter, setNotesFilter] = useState<SubjectFilter>('All');
   /**
    * The doubts filter holds the stored subject KEY ("mathematics"), not the
@@ -109,7 +79,6 @@ export default function LibraryScreen() {
   const [doubtChips, setDoubtChips] = useState<DoubtSubjectChip[]>([]);
   const [notesQuery, setNotesQuery] = useState('');
   const [doubtsQuery, setDoubtsQuery] = useState('');
-  const pagerRef = useRef<ScrollView>(null);
 
   // --- Erase to remove ---------------------------------------------------
   // The mode belongs to the list you are looking at: Notes and Doubts each
@@ -235,9 +204,9 @@ export default function LibraryScreen() {
   useEffect(() => fetchNotes(), [fetchNotes]);
 
   // Library is a tab screen that stays mounted — without this, snapping a
-  // doubt (or saving a session as a note) and returning here wouldn't show it
-  // until something else forced a refetch, contradicting the "find it in
-  // Library any time" promise made on both snap-solved and session-board.
+  // doubt and returning here wouldn't show it until something else forced a
+  // refetch, contradicting the "find it in Library any time" promise
+  // snap-solved makes.
   useFocusEffect(
     useCallback(() => {
       const cancelDoubts = fetchDoubts();
@@ -265,12 +234,12 @@ export default function LibraryScreen() {
     });
   }, []);
 
-  /** Only Notes and Doubts can be erased; Sessions is a preview with nothing
-   *  of the student's own in it. */
+  /** Both segments can be erased — everything left in Library is the
+   *  student's own. */
   const canErase =
-    activeSegment === 'notes'
+    kind === 'notes'
       ? hasErasableNotes
-      : activeSegment === 'doubts'
+      : kind === 'doubts'
         ? hasErasableDoubts
         : false;
 
@@ -457,47 +426,12 @@ export default function LibraryScreen() {
 
   // Tracks each segment button's x/width so the sliding indicator below can
   // interpolate to its exact position instead of guessing at equal thirds —
-  // "Notes"/"Doubts"/"Sessions" aren't the same width.
-  const [segmentLayouts, setSegmentLayouts] = useState<{ x: number; width: number }[]>(
-    SEGMENTS.map(() => ({ x: 0, width: 0 }))
-  );
-  const scrollX = useRef(new Animated.Value(0)).current;
+  // "Notes" and "Doubts" aren't the same width.
 
-  const handleSegmentLayout = (index: number) => (event: LayoutChangeEvent) => {
-    const { x, width } = event.nativeEvent.layout;
-    setSegmentLayouts((prev) => {
-      const next = [...prev];
-      next[index] = { x, width };
-      return next;
-    });
-  };
 
-  const goToSegment = (segment: Segment) => {
-    setActiveSegment(segment);
-    setEraseMode(false);
-    pagerRef.current?.scrollTo({ x: SEGMENTS.indexOf(segment) * windowWidth, animated: true });
-  };
 
-  const handlePagerScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { useNativeDriver: false }
-  );
 
-  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
-    const segment = SEGMENTS[index] ?? 'notes';
-    setActiveSegment(segment);
-    setEraseMode(false);
-  };
 
-  const indicatorLeft = scrollX.interpolate({
-    inputRange: SEGMENTS.map((_, index) => index * windowWidth),
-    outputRange: segmentLayouts.map((layout) => layout.x),
-  });
-  const indicatorWidth = scrollX.interpolate({
-    inputRange: SEGMENTS.map((_, index) => index * windowWidth),
-    outputRange: segmentLayouts.map((layout) => layout.width),
-  });
 
   return (
     <View style={styles.screen}>
@@ -516,49 +450,14 @@ export default function LibraryScreen() {
       )}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerFixed}>
-          <Text style={styles.heading}>Library</Text>
-          <View style={[styles.segmentRow, eraseMode && styles.segmentRowErasing]}>
-            {SEGMENTS.map((segment, index) => (
-              <PressableScale
-                key={segment}
-                style={styles.segment}
-                onLayout={handleSegmentLayout(index)}
-                onPress={() => goToSegment(segment)}>
-                <Text
-                  style={[
-                    styles.segmentText,
-                    activeSegment === segment && styles.segmentTextActive,
-                  ]}>
-                  {SEGMENT_LABELS[segment]}
-                </Text>
-              </PressableScale>
-            ))}
-            <Animated.View
-              style={[
-                styles.segmentIndicator,
-                { left: indicatorLeft, width: indicatorWidth },
-              ]}
-            />
-            {/* The eraser lives at the right end of the tab row, and only on
-                Notes — session backups expire on their own, so nothing there
-                is the student's to delete. */}
-            <View style={styles.segmentSpacer} />
-            {canErase && (
-              <EraseTool active={eraseMode} onPress={toggleErase} />
-            )}
+          <View style={styles.headerRow}>
+            <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Doubts'}</Text>
+            {canErase && <EraseTool active={eraseMode} onPress={toggleErase} />}
           </View>
+          {eraseMode && <EraseModeLine onDone={toggleErase} />}
         </View>
 
-        <ScrollView
-          ref={pagerRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={handlePagerScroll}
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          scrollEventThrottle={16}
-          style={styles.pager}>
-          <View style={{ width: windowWidth }}>
+          {kind === 'notes' && (
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
@@ -701,9 +600,9 @@ export default function LibraryScreen() {
 
               {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
-          </View>
+          )}
 
-          <View style={{ width: windowWidth }}>
+          {kind === 'doubts' && (
             <ScrollView
               contentContainerStyle={styles.pageContent}
               showsVerticalScrollIndicator={false}>
@@ -797,8 +696,13 @@ export default function LibraryScreen() {
                       enabled={eraseMode}
                       onRemove={() => removeDoubtSample(card.id)}>
                       <View style={[styles.doubtCard, eraseMode && styles.noteCardErasing]}>
-                        <View style={styles.doubtRule} />
-                        <Text style={styles.doubtQuestion} numberOfLines={3}>
+                        <DoubtCardHead
+                          styles={styles}
+                          subject={card.subject}
+                          chapter={card.chapter}
+                          time={card.time}
+                        />
+                        <Text style={styles.doubtQuestion} numberOfLines={2}>
                           {card.question}
                         </Text>
                       </View>
@@ -835,20 +739,30 @@ export default function LibraryScreen() {
                           },
                         })
                       }>
-                      {/* A doubt is not a note, and briefly it looked like one
-                          — subject dot, timestamp, bold topic, body line. But
-                          a note is something taught and titled, while a doubt
-                          is a question the student asked. So the question is
-                          the whole card, and the red margin rule is the same
-                          one the doubt of the day carries on Home: the app
-                          already had a mark for "this is a doubt".
+                      {/* A doubt is still not a note: there is no title here,
+                          because the student did not write one and the app
+                          will not invent one. What the card gained is the
+                          metadata a doubt already carries — subject, chapter
+                          and when it was snapped — which is what makes a list
+                          of them scannable instead of a wall of transcribed
+                          maths.
 
-                          No subject tag, no time, and no topic name invented
-                          above the question — the filter and search do the
-                          finding, and a manufactured heading only competes
-                          with the words the student actually wrote down. */}
-                      <View style={styles.doubtRule} />
-                      <Text style={styles.doubtQuestion} numberOfLines={3}>
+                          The red margin rule is gone. It was justified as
+                          echoing the doubt-of-the-day card on Home, and that
+                          card no longer exists, so the mark echoed nothing. */}
+                      <DoubtCardHead
+                        styles={styles}
+                        subject={doubt.subject}
+                        chapter={doubt.chapter ?? doubt.concept}
+                        time={formatRelativeTime(doubt.created_at)}
+                        label={doubt.subject_label}
+                      />
+                      <Text style={styles.doubtQuestion} numberOfLines={2}>
+                        {/* Same conversion the solution screen runs. Without it the
+                            card shows the transcriber's raw LaTeX -- "$$v=3
+                            t^{\wedge} 2-12 t+9(\mathrm{~m} / \mathrm{s})$$" --
+                            which is the least readable form of the one line a
+                            student uses to find their doubt again. */}
                         {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
                       </Text>
                     </PressableScale>
@@ -858,76 +772,57 @@ export default function LibraryScreen() {
               )}
               {undoState && <UndoRow onUndo={undoRemoval} />}
             </ScrollView>
-          </View>
-
-          <View style={{ width: windowWidth }}>
-            <TextbooksPage scale={scale} verticalScale={verticalScale} />
-          </View>
-
-          <View style={{ width: windowWidth }}>
-            <ScrollView
-              contentContainerStyle={styles.pageContent}
-              showsVerticalScrollIndicator={false}>
-              <View style={styles.sessionsHeaderRow}>
-                <Text style={styles.sessionsOverline}>Recent classes</Text>
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>Preview</Text>
-                </View>
-              </View>
-              <Text style={styles.sessionsIntro}>
-                Every class you take will be backed up here for{' '}
-                <Text style={styles.sessionsIntroBold}>7 days</Text> — keep the ones you want as
-                notes, the rest quietly expire. The sample below shows how a backed-up class
-                opens.
-              </Text>
-
-              <View style={styles.sessionsList}>
-                {SESSIONS.map((session, index) => (
-                  <PressableScale
-                    key={index}
-                    style={[
-                      styles.sessionCard,
-                      session.badge.kind === 'urgent' && styles.sessionCardUrgent,
-                    ]}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/session-board',
-                        params: {
-                          title: session.title,
-                          subject: session.subject,
-                          chapter: session.title.includes(' · ')
-                            ? session.title.split(' · ')[0]
-                            : session.title,
-                          sessionId: DEMO_SESSION_ID,
-                          daysLeft: '6',
-                        },
-                      })
-                    }>
-                    <View style={styles.sessionTextBlock}>
-                      <Text style={styles.sessionTitle} numberOfLines={1} ellipsizeMode="tail">
-                        {session.title}
-                      </Text>
-                      <Text style={styles.sessionSubline}>{session.subline}</Text>
-                    </View>
-                    {session.badge.kind === 'urgent' && (
-                      <Text style={styles.urgentBadgeText}>{session.badge.text}</Text>
-                    )}
-                    {session.badge.kind === 'neutral' && (
-                      <Text style={styles.neutralBadgeText}>{session.badge.text}</Text>
-                    )}
-                    {session.badge.kind === 'saved' && (
-                      <View style={styles.savedBadge}>
-                        <CheckIcon size={scale(9)} color="#157A45" />
-                        <Text style={styles.savedBadgeText}>{session.badge.text}</Text>
-                      </View>
-                    )}
-                  </PressableScale>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        </ScrollView>
+          )}
       </SafeAreaView>
+    </View>
+  );
+}
+
+/**
+ * Subject, chapter and age — the line above every doubt.
+ *
+ * Mirrors the note card's top row deliberately: the two lists sit one tab
+ * apart, and a student should not have to learn two ways of reading a card.
+ * The subject dot takes the app-wide accent, so Physics is the same red here
+ * as it is on a note and on a textbook.
+ */
+function DoubtCardHead({
+  styles,
+  subject,
+  chapter,
+  time,
+  label,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  subject: string | null;
+  chapter: string | null;
+  time: string;
+  label?: string | null;
+}) {
+  const accent = SUBJECT_ACCENT[(subject ?? '').toLowerCase()] ?? {
+    dot: colors.faint,
+    label: colors.slate,
+  };
+  const name = label ?? subject;
+  // The API's chapter casing is whatever the transcriber wrote — "kinematics"
+  // next to "Straight lines" next to "Complex Numbers" in one list. Only the
+  // first letter is forced, so a properly capitalised name is left alone and
+  // a lowercase one stops looking like a mistake.
+  const chapterLabel = chapter ? chapter.charAt(0).toUpperCase() + chapter.slice(1) : null;
+  return (
+    <View style={styles.doubtTopRow}>
+      <View style={styles.doubtMetaRow}>
+        <View style={[styles.noteDot, { backgroundColor: accent.dot }]} />
+        {!!name && (
+          <Text style={[styles.doubtSubjectText, { color: accent.label }]}>{name}</Text>
+        )}
+        {!!chapterLabel && (
+          <Text style={styles.doubtChapterText} numberOfLines={1}>
+            {chapterLabel}
+          </Text>
+        )}
+      </View>
+      <Text style={styles.noteTime}>{time}</Text>
     </View>
   );
 }
@@ -982,34 +877,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: scale(12),
+      minHeight: verticalScale(40),
+    },
     headerFixed: {
       paddingTop: verticalScale(12),
       paddingHorizontal: scale(20),
-    },
-    pager: {
-      flex: 1,
     },
     pageContent: {
       paddingHorizontal: scale(20),
       paddingBottom: verticalScale(130),
     },
     heading: {
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(24),
       letterSpacing: scale(-0.6),
       color: colors.ink,
-    },
-    segmentRow: {
-      position: 'relative',
-      flexDirection: 'row',
-      gap: scale(18),
-      borderBottomWidth: 1,
-      borderBottomColor: colors.hairline,
-      paddingHorizontal: scale(2),
-      marginTop: verticalScale(16),
-    },
-    segment: {
-      paddingVertical: verticalScale(8),
     },
     // Pushes the eraser to the right end of the tab row.
     segmentSpacer: {
@@ -1024,25 +911,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // Erase mode only: the tabs give up their underline while the mode line
     // below the filters does the separating.
-    segmentRowErasing: {
-      borderBottomColor: 'transparent',
-    },
-    segmentIndicator: {
-      position: 'absolute',
-      bottom: 0,
-      height: scale(2),
-      borderRadius: scale(1),
-      backgroundColor: colors.ink,
-    },
-    segmentText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(14),
-      color: colors.slate,
-    },
-    segmentTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
-    },
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1057,37 +925,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     searchInput: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.ink,
       paddingVertical: 0,
-    },
-    sessionsHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(16),
-    },
-    sessionsOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    previewBadge: {
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(10),
-    },
-    previewBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.5),
-      textTransform: 'uppercase',
-      color: colors.faint,
     },
     doubtsSearchRow: {
       flexDirection: 'row',
@@ -1148,17 +989,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     filterPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.slate,
     },
     filterPillTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.paper,
     },
     filterCount: {
       marginLeft: 'auto',
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -1222,9 +1063,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
     },
     noteSubjectText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.08),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.81),
       textTransform: 'uppercase',
     },
     noteTime: {
@@ -1233,13 +1074,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
     },
     noteTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
       marginTop: verticalScale(7),
     },
     noteBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       lineHeight: scale(17.4),
       color: colors.slate,
@@ -1252,14 +1093,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(20),
     },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       textAlign: 'center',
     },
     // DEMO_ — the line above the stand-in note card.
     sampleNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19),
       color: colors.slate,
@@ -1271,14 +1112,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(24),
     },
     doubtCard: {
-      position: 'relative',
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: hairline(0.16),
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
-      paddingLeft: scale(30),
-      paddingRight: scale(16),
+      paddingHorizontal: scale(16),
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(1) },
       shadowOpacity: 0.06,
@@ -1288,86 +1127,57 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // The same red margin rule the doubt of the day carries on Home. It is
     // what tells a glance this list is questions, not notes, and it does the
     // job the subject tag and topic heading were doing badly.
-    doubtRule: {
-      position: 'absolute',
-      top: verticalScale(14),
-      bottom: verticalScale(14),
-      left: scale(16),
-      width: scale(1.4),
-      borderRadius: scale(1),
-      backgroundColor: 'rgba(221,68,51,.4)',
+    doubtTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: scale(10),
+    },
+    doubtMetaRow: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(6),
+    },
+    doubtSubjectText: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.81),
+      textTransform: 'uppercase',
+      flexShrink: 0,
+    },
+    /** The chapter, in sentence case rather than caps — two shouted labels on
+     *  one line would compete, and the subject is the one being scanned. */
+    doubtChapterText: {
+      flexShrink: 1,
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(11.5),
+      color: colors.faint,
     },
     doubtQuestion: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
       color: colors.ink,
+      marginTop: verticalScale(7),
     },
     doubtsSampleNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19),
       color: colors.faint,
       marginBottom: verticalScale(4),
     },
-    sessionsIntro: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
-      color: colors.slate,
-      marginTop: verticalScale(12),
-    },
-    sessionsIntroBold: {
-      fontFamily: 'AnekLatin_700Bold',
-      color: colors.ink,
-    },
-    sessionsList: {
-      flexDirection: 'column',
-      gap: verticalScale(12),
-      marginTop: verticalScale(24),
-    },
-    sessionCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(15),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(3),
-      elevation: 2,
-    },
-    sessionCardUrgent: {
-      borderColor: 'rgba(221,68,51,.35)',
-    },
-    sessionTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    sessionTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    sessionSubline: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
     urgentBadgeText: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       color: '#C53A2B',
     },
     neutralBadgeText: {
       flexShrink: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
       color: colors.faint,
     },
@@ -1378,7 +1188,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(5),
     },
     savedBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       color: '#157A45',
     },

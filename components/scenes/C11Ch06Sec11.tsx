@@ -105,8 +105,8 @@ export default function C11Ch06Sec11({ currentTime, reveals, language }: ScenePr
 
       {/* beat 5 — the shortcut */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
-        <SvgText x={540} y={330} textAnchor="middle" fontSize={18} fill={INK} fontFamily="var(--font-anek-latin), sans-serif">
-          Δn = 2 − 2 = 0  ⇒  (RT)<TSpan dy={-9} fontSize="0.6em">0</TSpan>
+        <SvgText x={540} y={330} textAnchor="middle" fontSize={18} fill={INK} fontFamily='AnekLatin_600SemiBold'>
+          Δn = 2 − 2 = 0  ⇒  (RT)<TSpan dy={-9} fontSize={10.8}>0</TSpan>
           <TSpan dy={9}> = 1</TSpan>
         </SvgText>
       </Fade>

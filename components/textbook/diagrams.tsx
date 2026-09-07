@@ -22,10 +22,19 @@ import Svg, {
   type TextProps as SvgTextProps,
 } from 'react-native-svg';
 
+import { Markup } from '@/components/textbook/markup';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import type { DiagramFrame } from '@/lib/textbooks';
-import { Axes3D, CountingTree, PascalTriangle } from '@/components/textbook/figures';
+import {
+  Axes3D,
+  CircuitDiagram,
+  CountingTree,
+  EnergyLevels,
+  FlowChart,
+  PascalTriangle,
+  RayDiagram,
+} from '@/components/textbook/figures';
 import { Plot, UnitCircle } from '@/components/textbook/plot';
 import { useScale } from '@/constants/scale';
 
@@ -86,6 +95,16 @@ export const DIAGRAM_KINDS: readonly string[] = [
   'tree',
   'pascal',
   'axes3d',
+  // Physics. Each of these has its own coordinate model or needs a solve step,
+  // which is the test for earning a kind rather than living on DiagramFrame:
+  // a circuit routes on a grid, a ray diagram solves the lens equation, an
+  // energy ladder places its own rows. Everything else physics needs -- arrows,
+  // arcs, polylines, glyphs, mechanics bodies -- went on the frame instead and
+  // is available to `plot`.
+  'flow',
+  'levels',
+  'circuit',
+  'optics',
 ];
 
 interface KindConfig {
@@ -231,6 +250,18 @@ export function TextbookDiagram({
         {kind === 'axes3d' && frames?.[sel] && (
           <Axes3D frame={frames[sel]} width={figureWidth} />
         )}
+        {kind === 'flow' && frames?.[sel] && (
+          <FlowChart frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'levels' && frames?.[sel] && (
+          <EnergyLevels frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'circuit' && frames?.[sel] && (
+          <CircuitDiagram frame={frames[sel]} width={figureWidth} />
+        )}
+        {kind === 'optics' && frames?.[sel] && (
+          <RayDiagram frame={frames[sel]} width={figureWidth} />
+        )}
       </View>
       <View style={styles.chipRow}>
         {config.chips.map((label, i) => (
@@ -250,7 +281,10 @@ export function TextbookDiagram({
           </PressableScale>
         ))}
       </View>
-      <Text style={styles.caption}>{config.captions[sel]}</Text>
+      {/* Through Markup, not a bare Text. A caption is prose about a figure
+          and wants a superscript as much as any paragraph does; rendered raw,
+          its tags reached the student as literal characters. */}
+      <Markup html={config.captions[sel] ?? ''} size={scale(13.5)} style={styles.caption} />
     </View>
   );
 }
@@ -878,39 +912,51 @@ function createStyles(scale: Scale) {
       paddingHorizontal: scale(4),
       paddingVertical: scale(11),
     },
+    /*
+     * A figure can carry six chips, and a chapter carries thirty figures, so
+     * this row is one of the most repeated objects in the reader. Filling the
+     * selected one solid ink made a hard black slab appear and disappear under
+     * every diagram as a student scrolled, which is a lot of weight for what
+     * is only "you are looking at this one".
+     *
+     * It is the same amber the figures already use for the quantity under
+     * discussion, at wash strength. The selected chip lights up rather than
+     * inverting: the row stays quiet, the state is still unmistakable, and the
+     * label keeps ink-on-light contrast instead of flipping to reversed text.
+     */
     chip: {
       height: scale(30),
       paddingHorizontal: scale(12),
       borderRadius: scale(99),
       borderWidth: 1,
       borderColor: CHIP_BORDER,
-      backgroundColor: CARD,
+      backgroundColor: 'transparent',
       alignItems: 'center',
       justifyContent: 'center',
     },
     chipOn: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
+      backgroundColor: 'rgba(238,163,31,.18)',
+      borderColor: 'rgba(238,163,31,.65)',
     },
     chipWordText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.1),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.83),
       textTransform: 'uppercase',
-      color: colors.ink,
+      color: colors.faint,
     },
     chipMathText: {
       fontFamily: SERIF,
       fontStyle: 'italic',
       fontSize: scale(13),
-      color: colors.ink,
+      color: colors.faint,
     },
     chipTextOn: {
-      color: colors.paper,
+      color: colors.ink,
     },
 
     caption: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(21),
       color: colors.slate,

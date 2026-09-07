@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { clearMilestoneState } from '@/lib/milestones';
 import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
 import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
@@ -125,7 +124,6 @@ export async function signOut(): Promise<void> {
   await Promise.all([
     clearProfile(),
     clearProofState(),
-    clearMilestoneState(),
     clearTodayPlan(),
     clearPreferences(),
   ]);

@@ -63,6 +63,7 @@ import {
   RED,
   CREAM,
   Scene,
+  StepAcross,
 } from '@/components/scenes/kit';
 
 const TX = 150;
@@ -181,8 +182,12 @@ export default function Ch01Sec1({ currentTime, reveals, language }: SceneProps)
       {/* metre stick: steps across live; parked + dimmed once the beat is past */}
       {/* CSS opacity/transform on the web; react-native-svg takes opacity
           as a prop and `x` as its translate shorthand. */}
-      <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1} x={beat > 3 ? 480 : 0}>
-        <G>
+      <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1}>
+        {/* The web walks the stick with the `sc-stick` keyframes: four stops
+            over 3.8s, laid down and picked up again. This is that walk. */}
+        <StepAcross
+          elapsed={beat === 3 ? currentTime - (reveals[3] ?? 0) : -1}
+          stops={[0, 160, 320, 480]}>
           <Rect
             x={TX}
             y={STICK_Y}
@@ -204,7 +209,7 @@ export default function Ch01Sec1({ currentTime, reveals, language }: SceneProps)
               strokeWidth={1.1}
             />
           ))}
-        </G>
+        </StepAcross>
       </G>
       <Fade on={beat >= 3} delay={dl(3, 1)}>
         <T x={230} y={409} size={15} fill={AMBER_DARK} script>

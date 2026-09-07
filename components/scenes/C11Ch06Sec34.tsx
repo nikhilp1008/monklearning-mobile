@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, Chip, ringD, INK, MUTED, 
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec34({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -83,9 +83,9 @@ export default function C11Ch06Sec34({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={240} textAnchor="middle" fontSize={14} fill={MUTED} fontFamily={ANEK}>
           {t("single-reactant dissociation — reuse: Kp = α", "single-reactant dissociation — reuse karo: Kp = α")}
-          <TSpan dy={-7} fontSize="0.62em">2</TSpan>
+          <TSpan dy={-7} fontSize={8.7}>2</TSpan>
           <TSpan dy={7}>P/(1−α</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">2</TSpan>
+          <TSpan dy={-7} fontSize={8.7}>2</TSpan>
           <TSpan dy={7}>)</TSpan>
         </SvgText>
       </Fade>

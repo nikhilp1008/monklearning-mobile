@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -8,28 +7,25 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
 
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { BoardBlock, BoardContent } from '@/lib/board-sections';
 
 /**
- * Notes and Sessions — the class board as a page, ported from notes-sessions/.
+ * A note — the class board as a page, ported from notes-sessions/.
  *
- * One component, two modes, exactly as the design frames it: same page, same
- * content, same components, with four differences.
- *   1. The kicker — none on a note; "SESSION · DELETES IN N DAYS" in red on a
- *      session, turning green once saved.
- *   2. The clock strip — sessions only.
- *   3. The action bar — sessions only, "Save to notes" then "Talk to Drona
- *      about this".
- *   4. The header — topic and subject only. No dates, no durations, no edit;
- *      dates belong to the list the student came from.
+ * This was one component in two modes, note and session. Sessions are gone:
+ * they duplicated notes without being one, and a student could not tell which
+ * was which. The kicker, the days-left clock and the "Save to notes" action
+ * bar went with them, leaving the note the design describes — topic and
+ * subject only, no dates, no durations, no edit; dates belong to the list the
+ * student came from.
  *
- * Fonts are the app's Anek Latin in place of the design's Bricolage Grotesque.
- * Kalam is unchanged — the design asks for it on the handwritten touches and
- * the app already bundles it.
+ * Fonts are the app's own in place of the design's Bricolage Grotesque. Kalam
+ * is unchanged — the design asks for it on the handwritten touches and the
+ * app already bundles it.
  */
 
 const INK = '#1C1A16';
@@ -54,12 +50,7 @@ const RAIL = 40;
 
 type BoardPageProps = {
   board: BoardContent;
-  mode: 'note' | 'session';
-  daysLeft?: number;
   onBack: () => void;
-  /** Sessions only. Resolve true to flip the page into its saved state. */
-  onSave?: () => Promise<boolean>;
-  onTalkToDrona?: () => void;
   /** Rendered in place of the sections when there is nothing to show. */
   emptyNote?: string;
 };
@@ -202,24 +193,11 @@ function Block({ block, styles }: { block: BoardBlock; styles: Styles }) {
   }
 }
 
-export function BoardPage({
-  board,
-  mode,
-  daysLeft = 7,
-  onBack,
-  onSave,
-  onTalkToDrona,
-  emptyNote,
-}: BoardPageProps) {
-  const insets = useSafeAreaInsets();
+export function BoardPage({ board, onBack, emptyNote }: BoardPageProps) {
   const styles = useMemo(() => createStyles(), []);
   const scrollRef = useRef<ScrollView>(null);
   const [activeChip, setActiveChip] = useState(0);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
   const offsets = useRef<number[]>([]);
-
-  const isSession = mode === 'session';
 
   const jumpTo = (i: number) => {
     setActiveChip(i);
@@ -227,13 +205,6 @@ export function BoardPage({
     if (y != null) scrollRef.current?.scrollTo({ y: Math.max(y - 8, 0), animated: true });
   };
 
-  const handleSave = async () => {
-    if (saved || saving || !onSave) return;
-    setSaving(true);
-    const ok = await onSave().catch(() => false);
-    setSaving(false);
-    if (ok) setSaved(true);
-  };
 
   return (
     <View style={styles.screen}>
@@ -243,29 +214,12 @@ export function BoardPage({
           <Pressable style={styles.back} onPress={onBack} hitSlop={10}>
             <BackChevron />
           </Pressable>
-          {isSession && (
-            <Text style={[styles.kicker, saved && styles.kickerSaved]}>
-              {saved ? 'SAVED TO YOUR NOTES' : `SESSION · DELETES IN ${daysLeft} DAYS`}
-            </Text>
-          )}
         </View>
 
         <View style={styles.head}>
           <Text style={styles.topic}>{board.topic}</Text>
           {!!board.subject && <Text style={styles.subject}>{board.subject}</Text>}
 
-          {isSession && (
-            <View style={[styles.clock, saved && styles.clockSaved]}>
-              <Text style={[styles.clockNum, saved && styles.clockNumSaved]}>
-                {saved ? '∞' : String(daysLeft)}
-              </Text>
-              <Text style={styles.clockCopy}>
-                {saved
-                  ? 'Kept for good. It now lives with your notes.'
-                  : 'days left. Save it and this board stays with your notes.'}
-              </Text>
-            </View>
-          )}
         </View>
 
         {board.sections.length > 1 && (
@@ -296,10 +250,7 @@ export function BoardPage({
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
-          contentContainerStyle={[
-            styles.scrollContent,
-            isSession && styles.scrollContentSession,
-          ]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
           {board.sections.length === 0 ? (
             <Text style={styles.foot}>{emptyNote ?? 'Nothing was written to the board yet.'}</Text>
@@ -321,27 +272,6 @@ export function BoardPage({
         </ScrollView>
       </SafeAreaView>
 
-      {/* Sessions only — a note has no bar and scrolls to its own end. */}
-      {isSession && (
-        <View style={styles.actions} pointerEvents="box-none">
-          <LinearGradient
-            colors={['rgba(255,255,255,0)', PAPER, PAPER]}
-            locations={[0, 0.32, 1]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-            <Pressable
-              style={styles.primary}
-              onPress={saved ? onTalkToDrona : handleSave}
-              disabled={saving}>
-              <Text style={styles.primaryText}>
-                {saved ? 'Talk to Drona about this' : saving ? 'Saving…' : 'Save to notes'}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -442,17 +372,10 @@ function createStyles() {
       paddingTop: 10,
     },
     back: { width: 32, height: 32, marginLeft: -6, alignItems: 'center', justifyContent: 'center' },
-    kicker: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: 11,
-      letterSpacing: 0.14 * 11,
-      color: RED,
-    },
-    kickerSaved: { color: GREEN },
 
     head: { paddingHorizontal: GUTTER, paddingTop: 12, paddingBottom: 14 },
     topic: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 29,
       letterSpacing: -0.04 * 29,
       lineHeight: 29 * 1.06,
@@ -460,43 +383,11 @@ function createStyles() {
     },
     subject: {
       marginTop: 8,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: '#9C988C',
     },
 
-    clock: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginTop: 14,
-      paddingVertical: 12,
-      paddingLeft: 16,
-      paddingRight: 12,
-      borderLeftWidth: 2.5,
-      borderLeftColor: 'rgba(221,68,51,0.3)',
-      borderTopRightRadius: 8,
-      borderBottomRightRadius: 8,
-      backgroundColor: 'rgba(221,68,51,0.05)',
-    },
-    clockSaved: {
-      borderLeftColor: 'rgba(28,155,87,0.4)',
-      backgroundColor: 'rgba(28,155,87,0.07)',
-    },
-    clockNum: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: 26,
-      letterSpacing: -0.04 * 26,
-      color: RED,
-    },
-    clockNumSaved: { color: GREEN },
-    clockCopy: {
-      flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: 14,
-      lineHeight: 14 * 1.4,
-      color: INK_70,
-    },
 
     chipsWrap: { borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,22,0.16)' },
     chips: { gap: 7, paddingHorizontal: GUTTER, paddingBottom: 12 },
@@ -511,24 +402,23 @@ function createStyles() {
       justifyContent: 'center',
     },
     chipSelected: { backgroundColor: INK, borderColor: INK },
-    chipText: { fontFamily: 'AnekLatin_700Bold', fontSize: 13, color: INK_50 },
+    chipText: { fontFamily: 'Onest_700Bold', fontSize: 13, color: INK_50 },
     chipTextSelected: { color: PAPER },
 
     scroll: { flex: 1, minHeight: 0 },
     scrollContent: { paddingHorizontal: GUTTER, paddingTop: 22, paddingBottom: 40, gap: 30 },
-    scrollContentSession: { paddingBottom: 120 },
     section: { gap: 12 },
 
     label: {
       marginBottom: -2,
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 11,
       letterSpacing: 0.14 * 11,
       color: AMBER,
     },
 
     text: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 16,
       lineHeight: 16 * 1.62,
       color: INK_70,
@@ -544,19 +434,19 @@ function createStyles() {
       color: RED,
     },
     caption: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.55,
       color: INK_50,
     },
     foot: {
       marginTop: 8,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: INK_30,
     },
     note: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15,
       lineHeight: 15 * 1.55,
       color: INK_50,
@@ -572,19 +462,19 @@ function createStyles() {
     },
     mathWrapResult: { paddingVertical: 8, paddingHorizontal: 13 },
     math: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 17,
       lineHeight: 17 * 1.6,
       color: INK,
     },
-    mathResult: { fontFamily: 'AnekLatin_700Bold', fontSize: 19 },
+    mathResult: { fontFamily: 'Onest_700Bold', fontSize: 19 },
 
     problemWrap: { alignSelf: 'stretch' },
     problem: {
       paddingBottom: 14,
       borderBottomWidth: 1,
       borderBottomColor: HAIR,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 16,
       lineHeight: 16 * 1.6,
       color: INK,
@@ -606,7 +496,7 @@ function createStyles() {
       borderRadius: 6,
       backgroundColor: 'rgba(28,155,87,0.11)',
     },
-    answerText: { fontFamily: 'AnekLatin_700Bold', fontSize: 19, color: GREEN_INK },
+    answerText: { fontFamily: 'Onest_700Bold', fontSize: 19, color: GREEN_INK },
     qa: { alignSelf: 'stretch', gap: 16 },
     q: {
       marginBottom: 7,
@@ -639,26 +529,16 @@ function createStyles() {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    numText: { fontFamily: 'AnekLatin_700Bold', fontSize: 11, color: '#57534B' },
+    numText: { fontFamily: 'Onest_700Bold', fontSize: 11, color: '#57534B' },
     stepTitle: {
       alignSelf: 'stretch',
       paddingTop: 2,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 18,
       letterSpacing: -0.02 * 18,
       color: INK,
     },
 
-    actions: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    actionsInner: { paddingHorizontal: GUTTER, paddingTop: 16 },
-    primary: {
-      height: 54,
-      borderRadius: 99,
-      backgroundColor: INK,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    primaryText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 16, color: PAPER },
   });
 }
 

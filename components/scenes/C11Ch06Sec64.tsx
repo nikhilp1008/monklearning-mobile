@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, INK, MUTED, AMBER, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 const COLX = [100, 320, 560, 900];
 const ROWY = [135, 170, 205, 240, 275];
 
@@ -81,7 +81,7 @@ export default function C11Ch06Sec64({ currentTime, reveals, language }: ScenePr
       <Fade on={beat >= 2} delay={dl(2, 1.2)}>
         <T x={210} y={193} size={13} fill={INK} anchor="middle">AB (AgCl)</T>
         <SvgText x={440} y={193} textAnchor="middle" fontSize={13} fill={INK} fontFamily={ANEK}>
-          s<TSpan dy={-6} fontSize="0.65em">2</TSpan>
+          s<TSpan dy={-6} fontSize={8.5}>2</TSpan>
         </SvgText>
         <T x={730} y={193} size={13} fill={INK} anchor="middle">√Ksp</T>
       </Fade>
@@ -92,10 +92,10 @@ export default function C11Ch06Sec64({ currentTime, reveals, language }: ScenePr
           {t("A₂B/AB₂ (CaF₂)", "A₂B/AB₂ (CaF₂)")}
         </T>
         <SvgText x={440} y={228} textAnchor="middle" fontSize={13} fill={INK} fontFamily={ANEK}>
-          4s<TSpan dy={-6} fontSize="0.65em">3</TSpan>
+          4s<TSpan dy={-6} fontSize={8.5}>3</TSpan>
         </SvgText>
         <SvgText x={730} y={228} textAnchor="middle" fontSize={13} fill={INK} fontFamily={ANEK}>
-          (Ksp/4)<TSpan dy={-6} fontSize="0.65em">1/3</TSpan>
+          (Ksp/4)<TSpan dy={-6} fontSize={8.5}>1/3</TSpan>
         </SvgText>
       </Fade>
 
@@ -105,10 +105,10 @@ export default function C11Ch06Sec64({ currentTime, reveals, language }: ScenePr
           {t("AB₃ (Fe(OH)₃)", "AB₃ (Fe(OH)₃)")}
         </T>
         <SvgText x={440} y={263} textAnchor="middle" fontSize={13} fill={INK} fontFamily={ANEK}>
-          27s<TSpan dy={-6} fontSize="0.65em">4</TSpan>
+          27s<TSpan dy={-6} fontSize={8.5}>4</TSpan>
         </SvgText>
         <SvgText x={730} y={263} textAnchor="middle" fontSize={13} fill={INK} fontFamily={ANEK}>
-          (Ksp/27)<TSpan dy={-6} fontSize="0.65em">1/4</TSpan>
+          (Ksp/27)<TSpan dy={-6} fontSize={8.5}>1/4</TSpan>
         </SvgText>
       </Fade>
 

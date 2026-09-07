@@ -32,7 +32,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 const COLX = [250, 350, 510, 670, 830];
 const ROWY = [145, 177, 209, 241, 273];
 
@@ -117,12 +117,12 @@ export default function C11Ch06Sec12({ currentTime, reveals, language }: ScenePr
           Kp =
         </T>
         <SvgText x={545} y={372} textAnchor="middle" fontSize={19} fill={INK} fontFamily={ANEK}>
-          α<TSpan dy={-8} fontSize="0.62em">2</TSpan>
+          α<TSpan dy={-8} fontSize={11.8}>2</TSpan>
           <TSpan dy={8}>P</TSpan>
         </SvgText>
         <Line x1={505} y1={382} x2={600} y2={382} stroke={INK} strokeWidth={1.8} />
         <SvgText x={545} y={408} textAnchor="middle" fontSize={19} fill={INK} fontFamily={ANEK}>
-          1−α<TSpan dy={-8} fontSize="0.62em">2</TSpan>
+          1−α<TSpan dy={-8} fontSize={11.8}>2</TSpan>
         </SvgText>
       </Fade>
 
@@ -136,9 +136,9 @@ export default function C11Ch06Sec12({ currentTime, reveals, language }: ScenePr
       {/* beat 6 — compute */}
       <Fade on={beat >= 6} delay={dl(6, 0.4)}>
         <SvgText x={540} y={478} textAnchor="middle" fontSize={17} fontWeight={700} fill={INK} fontFamily={ANEK}>
-          = (0.50)<TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          = (0.50)<TSpan dy={-8} fontSize={10.2}>2</TSpan>
           <TSpan dy={8}>(1.5) / (1−(0.50)</TSpan>
-          <TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          <TSpan dy={-8} fontSize={10.2}>2</TSpan>
           <TSpan dy={8}>) = 0.375/0.75</TSpan>
         </SvgText>
       </Fade>

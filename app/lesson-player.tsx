@@ -160,7 +160,9 @@ type LoadState =
   | { kind: 'error' };
 
 export default function LessonPlayerScreen() {
-  const isLandscape = useLandscapeLock();
+  // Pinned: the board holds one landscape direction, so it does not flip
+  // under a student who shifts position mid-lesson.
+  const isLandscape = useLandscapeLock(true);
   const params = useLocalSearchParams<{
     chapterId?: string;
     chapterTitle?: string;
@@ -282,6 +284,18 @@ export default function LessonPlayerScreen() {
     () => getScene(chapterId, section?.position),
     [chapterId, section?.position]
   );
+
+  /**
+   * Nothing is on the board until the teacher starts talking.
+   *
+   * The scene kit already gates its own elements this way — `useBeat` returns
+   * -1 until the playhead passes the first reveal — but roughly 1,600 scenes
+   * author their heading as always-on, and the board_content path draws its
+   * first block at t=0. Both meant a lesson opened onto a part-written board.
+   * Deriving this from the playhead rather than a flag also resets it for
+   * free: a new section starts at 0, so it starts blank too.
+   */
+  const started = currentTime > 0;
 
   const segProgress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
 
@@ -467,12 +481,14 @@ export default function LessonPlayerScreen() {
           onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
           showsVerticalScrollIndicator={false}>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
-            {section && <Text style={styles.sectionHeading}>{section.title}</Text>}
+            {started && section && (
+              <Text style={styles.sectionHeading}>{section.title}</Text>
+            )}
             {/* A hand-authored scene, when this section has one: the same
                 choreographed board the webpage draws, driven by the same
                 playhead. Sections without one fall through to their
                 board_content events below — the webpage's own fallback. */}
-            {SceneForSection ? (
+            {started && SceneForSection ? (
               <View style={styles.sceneWrap}>
                 <SceneForSection
                   currentTime={currentTime}
@@ -481,7 +497,8 @@ export default function LessonPlayerScreen() {
                 />
               </View>
             ) : null}
-            {!SceneForSection &&
+            {started &&
+              !SceneForSection &&
               blocks.slice(0, revealedBlockCount).map(({ block }, i) => (
               <BoardBlockView
                 key={i}
@@ -492,7 +509,7 @@ export default function LessonPlayerScreen() {
                 verticalScale={verticalScale}
               />
             ))}
-            {!SceneForSection && revealedBlockCount < blocks.length && (
+            {started && !SceneForSection && revealedBlockCount < blocks.length && (
               <BoardBlockView
                 key={revealedBlockCount}
                 block={blocks[revealedBlockCount].block}
@@ -1071,19 +1088,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       transform: [{ rotate: '-0.4deg' }],
     },
     boardEquationLarge: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 17,
       lineHeight: RHYTHM,
       color: INK,
     },
     boardEquationSmall: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 15.5,
       lineHeight: RHYTHM,
       color: INK,
     },
     boardBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 13.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
@@ -1092,7 +1109,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // The section's own title, written at the top of the board the way a
     // teacher writes what today is about before starting on it.
     sectionHeading: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 17,
       lineHeight: RHYTHM,
       letterSpacing: -0.3,
@@ -1113,14 +1130,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginVertical: 8,
     },
     figureCaption: {
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: 11,
       lineHeight: 16,
       color: INK_FAINT,
       maxWidth: 560,
     },
     boardBodyBold: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: INK,
     },
     boardKalamNoteBase: {
@@ -1183,12 +1200,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 1,
     },
     chapterChipTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 14,
       color: INK,
     },
     chapterChipSub: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 11.5,
       color: INK_FAINT,
     },
@@ -1223,12 +1240,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 6,
     },
     backnowArrow: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: AMBER,
     },
     backnowText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: '#EFEBDD',
     },
@@ -1270,7 +1287,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: 7,
     },
     dockTopicsText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12.5,
       color: INK,
     },
@@ -1286,7 +1303,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'transparent',
     },
     dockCcText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 9.5,
       letterSpacing: 0.06 * 9.5,
       color: DEEP_AMBER,
@@ -1351,7 +1368,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     drawerTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(15),
       color: colors.ink,
     },
@@ -1366,7 +1383,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     drawerCloseText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
@@ -1394,7 +1411,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     groupName: {
       flex: 1,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12.5),
       lineHeight: scale(16),
       color: colors.ink,
@@ -1404,10 +1421,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
      * accordion opens to, and the white card sits inside it. Weight alone.
      */
     groupNameActive: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
     },
     groupCount: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10.5),
       color: colors.quiet,
     },
@@ -1419,7 +1436,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopColor: 'rgba(28,26,22,.07)',
     },
     drawerFooterText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
     },
@@ -1451,19 +1468,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // Finished sections recede rather than being ticked.
     topicNameDone: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11.5),
       lineHeight: scale(15),
       color: colors.quiet,
     },
     topicNameCurrent: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11.5),
       lineHeight: scale(15),
       color: colors.ink,
     },
     topicNameUpcoming: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11.5),
       lineHeight: scale(15),
       color: colors.slate,

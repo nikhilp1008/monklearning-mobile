@@ -7,13 +7,11 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
-import { RuledPaper } from '@/components/ruled-paper';
 import { NoticedCard } from '@/components/noticed-card';
 import { Skeleton } from '@/components/skeleton';
-import { ICON_CHIP, MilestonesIcon, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
+import { ICON_CHIP, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { countMilestones } from '@/lib/milestones';
 import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
 import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
@@ -49,7 +47,7 @@ const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
  */
 
 /**
- * Editorial prompts for the "doubt of the day" card — hand-written, rotated
+ * Editorial prompts for the "doubt of the day" section — hand-written, rotated
  * by day-of-year so the card genuinely changes daily. Tapping one hands the
  * question itself to Drona as the opening utterance, so the class starts on
  * exactly this doubt instead of a blank "what do you want to learn?".
@@ -121,7 +119,6 @@ export default function HomeScreen() {
   });
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [noticed, setNoticed] = useState<Observation | null>(null);
-  const [milestones, setMilestones] = useState({ total: 0, unseen: 0 });
   const doneCount = planItems.filter((item) => item.done).length;
   const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
@@ -149,11 +146,6 @@ export default function HomeScreen() {
           // and the numbers and the sentence about them can never disagree.
           classesTaken().then((classes) => {
             if (!cancelled) setNoticed(observe(p, classes));
-          });
-          // Same payload again for the header. Refetched on focus, so returning
-          // from the milestones page clears the dot without a manual refresh.
-          countMilestones(p).then((next) => {
-            if (!cancelled) setMilestones(next);
           });
         })
         .catch(() => {
@@ -207,14 +199,17 @@ export default function HomeScreen() {
               leading to an empty page teaches a student to ignore it, and that
               first impression is hard to undo. Appearing on the day they earn
               their first is a small reward in itself. */}
-          {milestones.total > 0 && (
-            <PressableScale
-              style={styles.headerButton}
-              onPress={() => router.push('/milestones')}>
-              <MilestonesIcon size={scale(20)} />
-              {milestones.unseen > 0 && <View style={styles.headerDot} />}
-            </PressableScale>
-          )}
+          {/* Progress lives here now, not in the tab bar. It is a place you
+              check, not a place you work, so it belongs beside the avatar
+              rather than taking a quarter of the bar. Always present — unlike
+              the milestones button it replaces, which appeared only once one
+              had been earned. */}
+          <PressableScale
+            style={styles.headerButton}
+            accessibilityLabel="Progress"
+            onPress={() => router.push('/progress')}>
+            <ProgressGlyph size={scale(20)} />
+          </PressableScale>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -242,7 +237,12 @@ export default function HomeScreen() {
                   style={StyleSheet.absoluteFillObject}
                 />
                 <View style={styles.dronaCtaInner}>
-                  <Text style={styles.dronaCtaText}>Choose a topic</Text>
+                  {/* "Chapter", not "topic": this opens ChapterSelectorScreen,
+                      which lists chapters, searches "a chapter" and counts
+                      chapters. Topics are one level deeper, on the sheet a
+                      chapter opens. The body copy directly above already says
+                      "Pick a chapter", so the button was contradicting it. */}
+                  <Text style={styles.dronaCtaText}>Select chapter</Text>
                   <ArrowRightIcon color={colors.ink} size={scale(14)} />
                 </View>
               </PressableScale>
@@ -261,7 +261,7 @@ export default function HomeScreen() {
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
-                <Text style={styles.tileTitle}>Snap it out</Text>
+                <Text style={styles.tileTitle}>Snap and Solve</Text>
                 <Text style={styles.tileSubtitle}>Up to 3 questions, solved step by step</Text>
               </PressableScale>
 
@@ -274,8 +274,14 @@ export default function HomeScreen() {
                   </TileChip>
                   <ArrowRightIcon color={colors.faint} size={scale(16)} />
                 </View>
-                <Text style={styles.tileTitle}>Practice unlimited</Text>
-                <Text style={styles.tileSubtitle}>Endless questions, one at a time</Text>
+                <Text style={styles.tileTitle}>Practice Questions</Text>
+                {/* 150 a day. NOTE: monklearning.com currently publishes 75
+                    ("50 doubt snaps and 75 practice questions a day") in three
+                    places, so the site needs the same number or the two
+                    disagree on one entitlement. Neither figure is enforced
+                    anywhere yet -- /practice/* returns no daily/quota field,
+                    unlike Snap, which has daily_limit and used_today. */}
+                <Text style={styles.tileSubtitle}>150 a day, across all subjects</Text>
               </PressableScale>
             </View>
           </View>
@@ -375,7 +381,7 @@ export default function HomeScreen() {
           </View>
 
           <PressableScale
-            style={styles.doubtCard}
+            style={styles.doubtSection}
             onPress={() =>
               router.push({
                 pathname: '/entering-classroom',
@@ -388,18 +394,11 @@ export default function HomeScreen() {
                 },
               })
             }>
-            <View style={styles.doubtRuledClip}>
-              <RuledPaper step={verticalScale(24)} color={hairline(0.06)} count={12} />
-            </View>
-            <View style={styles.doubtRule} />
-            <View style={styles.doubtHeaderRow}>
-              <Text style={styles.doubtLabel}>doubt of the day</Text>
-              <Text style={styles.doubtTag}>{dailyDoubt.tag}</Text>
-            </View>
+            <Text style={styles.doubtOverline}>Doubt of the day</Text>
             <Text style={styles.doubtQuestion}>{dailyDoubt.question}</Text>
             <View style={styles.doubtCtaRow}>
               <Text style={styles.doubtCtaText}>Learn this with Drona</Text>
-              <ArrowRightIcon color={colors.red} size={scale(13)} />
+              <ArrowRightIcon color={colors.amberText} size={scale(13)} />
             </View>
           </PressableScale>
 
@@ -410,7 +409,7 @@ export default function HomeScreen() {
                   <View style={styles.sectionTitleDash} />
                   <Text style={styles.sectionTitle}>Recent notes</Text>
                 </View>
-                <PressableScale hitSlop={12} onPress={() => router.push('/library')}>
+                <PressableScale hitSlop={12} onPress={() => router.push('/notes')}>
                   <Text style={styles.viewAll}>View all →</Text>
                 </PressableScale>
               </View>
@@ -537,8 +536,11 @@ function runObservationAction(action: ObservationAction | undefined) {
     case 'drona':
       router.push('/drona');
       return;
-    case 'lessons':
-      router.push('/lessons');
+    case 'textbooks':
+      // Deliberately the subject grid, not that subject's chapter list: the
+      // card fires for a subject nobody has opened, and for one whose
+      // textbook is not written yet that would land on a wall of SOON.
+      router.push('/textbooks');
       return;
     case 'class':
       router.push({
@@ -546,6 +548,23 @@ function runObservationAction(action: ObservationAction | undefined) {
         params: { chapterId: action.chapterId, chapterTitle: action.chapterTitle },
       });
   }
+}
+
+/** The bars from the old Progress tab, at header size. Same shape, so the
+ *  control is recognisable in its new home. */
+function ProgressGlyph({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path d="M4.5 19h15" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
+      <Path
+        d="M8 19v-4.5M12 19v-8M16 19V7.5"
+        stroke={colors.ink}
+        strokeWidth={1.75}
+        strokeLinecap="round"
+      />
+      <Circle cx={16} cy={4.6} r={1.8} fill={colors.marigold} />
+    </Svg>
+  );
 }
 
 function CheckIcon({ size, color }: { size: number; color: string }) {
@@ -594,19 +613,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // Sits on the button's edge, the way an unread mark does — the one
     // ambient signal in the app, and it points at something earned rather
     // than at a reason to come back.
-    headerDot: {
-      position: 'absolute',
-      top: scale(1),
-      right: scale(1),
-      width: scale(9),
-      height: scale(9),
-      borderRadius: scale(4.5),
-      borderWidth: scale(1.5),
-      borderColor: '#fff',
-      backgroundColor: colors.marigold,
-    },
     headerInitial: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(16),
       color: colors.ink,
     },
@@ -642,7 +650,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // surface. Alpha, not a new colour — a warm hex here would drift brown,
       // and the weight stays bold either way.
       color: hairline(0.8),
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(21),
       letterSpacing: scale(-0.32),
       lineHeight: scale(25.2),
@@ -671,14 +679,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     tileTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(17),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
       letterSpacing: scale(-0.17),
       color: colors.ink,
       marginTop: verticalScale(14),
     },
     tileSubtitle: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12.5),
       lineHeight: scale(17.5),
       color: colors.slate,
@@ -695,18 +703,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     cardTitle: {
       flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(18),
       color: colors.ink,
     },
     cardSubtitle: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       color: colors.slate,
       marginTop: verticalScale(2),
     },
     dronaBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(22.5),
       color: colors.slate,
@@ -735,7 +743,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#FFFDF8',
     },
     dronaCtaText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(15),
       color: colors.ink,
     },
@@ -753,7 +761,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'flex-start',
     },
     statValue: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(18),
       letterSpacing: scale(-0.27),
       color: colors.ink,
@@ -762,9 +770,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: '#157A45',
     },
     statLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.8),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9),
+      letterSpacing: scale(0.6),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -781,7 +789,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     statsEmptyText: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -793,9 +801,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginBottom: verticalScale(4),
     },
     planOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -813,7 +821,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(9),
     },
     planBadgeText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: '#157A45',
     },
@@ -825,7 +833,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(12),
     },
     planAddText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.ink,
     },
@@ -859,87 +867,68 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     planRowTextDone: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       color: colors.faint,
       textDecorationLine: 'line-through',
     },
     planRowText: {
       flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
     },
     planEmptyText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
       paddingVertical: verticalScale(12),
     },
     planEmptyAccent: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       color: colors.ink,
     },
-    doubtCard: {
-      position: 'relative',
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.14),
-      borderRadius: scale(16),
-      paddingTop: verticalScale(16),
-      paddingRight: scale(16),
-      paddingBottom: verticalScale(16),
-      paddingLeft: scale(40),
-    },
-    doubtRuledClip: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: scale(15),
-      overflow: 'hidden',
-    },
-    doubtRule: {
-      position: 'absolute',
-      top: verticalScale(12),
-      bottom: verticalScale(12),
-      left: scale(26),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
-    },
-    doubtHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    doubtLabel: {
-      fontFamily: 'Kalam_700Bold',
-      fontSize: scale(14),
-      color: colors.red,
-      transform: [{ rotate: '-0.6deg' }],
-    },
-    doubtTag: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
+    doubtOverline: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9),
       letterSpacing: scale(0.9),
       textTransform: 'uppercase',
-      color: '#C53A2B',
+      color: colors.faint,
+    },
+    /**
+     * A section, not a card.
+     *
+     * It used to be a bordered box with ruled paper, a red margin rule and a
+     * 40pt left inset for that rule — which put its text 41pt inside every
+     * other section on this page, since the rest start at the 24pt gutter.
+     * The indent was the misalignment; the box was what required it. Now it
+     * is separated the way Today's plan and Exam scope are, by a hairline.
+     */
+    doubtSection: {
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(28,26,22,.1)',
+      paddingTop: verticalScale(18),
+      marginTop: verticalScale(20),
     },
     doubtQuestion: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(16),
+      lineHeight: scale(23.5),
+      letterSpacing: scale(-0.08),
       color: colors.ink,
-      marginTop: verticalScale(8),
+      marginTop: verticalScale(7),
     },
     doubtCtaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
-      marginTop: verticalScale(12),
+      gap: scale(6),
+      marginTop: verticalScale(11),
     },
     doubtCtaText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
-      color: colors.ink,
+      color: colors.amberText,
     },
     sectionHeaderRow: {
       flexDirection: 'row',
@@ -959,14 +948,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.marigold,
     },
     sectionTitle: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(11),
-      letterSpacing: scale(1.54),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.9),
+      letterSpacing: scale(1.16),
       textTransform: 'uppercase',
       color: colors.ink,
     },
     viewAll: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.slate,
     },
@@ -995,14 +984,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(3),
     },
     noteSubject: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.slate,
     },
     noteTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       letterSpacing: scale(-0.225),
       lineHeight: scale(19.5),
@@ -1010,7 +999,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(8),
     },
     noteBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(18.2),
       color: colors.slate,
@@ -1029,27 +1018,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minWidth: 0,
     },
     scopeOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9),
+      letterSpacing: scale(0.9),
       textTransform: 'uppercase',
       color: colors.faint,
     },
     scopeTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
       marginTop: verticalScale(3),
     },
     scopeBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
       marginTop: verticalScale(2),
     },
     noteTime: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.faint,
       marginTop: verticalScale(12),

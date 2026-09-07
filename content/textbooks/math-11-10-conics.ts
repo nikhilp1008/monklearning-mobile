@@ -1426,7 +1426,7 @@ export const ch10Conics: Chapter = {
                 { "from": [2.646, 0], "to": [0, 3], "dash": true, "label": "= a" }
               ],
               "labels": [
-                { "x": 3.2, "y": 0.5, "text": "a", "soft": true },
+                { "x": 3.2, "y": 2.5, "text": "a", "soft": true  },
                 { "x": -0.55, "y": 1.5, "text": "b", "soft": true }
               ]
             },
@@ -1436,7 +1436,7 @@ export const ch10Conics: Chapter = {
               "curves": [{ "c": "ellipse", "a": 4, "b": 3 }],
               "points": [
                 { "x": 2.646, "y": 0, "label": "S" },
-                { "x": -2.646, "y": 0, "label": "S′" },
+                { "x": -2.646, "y": 0, "label": "S′", "at": "sw" },
                 { "x": 2, "y": 2.598, "label": "P" }
               ],
               "segments": [
@@ -1930,7 +1930,7 @@ export const ch10Conics: Chapter = {
               "points": [
                 { "x": 4, "y": 3.747, "label": "P" },
                 { "x": 3.905, "y": 0, "label": "S" },
-                { "x": -3.905, "y": 0, "label": "S′" }
+                { "x": -3.905, "y": 0, "label": "S′", "at": "sw" }
               ],
               "segments": [
                 { "from": [3.905, 0], "to": [4, 3.747], "label": "PS" },

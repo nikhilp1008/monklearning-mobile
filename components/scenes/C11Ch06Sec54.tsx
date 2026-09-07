@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec54({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -74,7 +74,7 @@ export default function C11Ch06Sec54({ currentTime, reveals, language }: ScenePr
       {/* beat 3 — the pH */}
       <Fade on={beat >= 3} delay={dl(3, 0.4)}>
         <SvgText x={540} y={200} textAnchor="middle" fontSize={20} fontWeight={800} fill={GREEN} fontFamily={ANEK}>
-          pKa = −log(1.8×10<TSpan dy={-9} fontSize="0.6em">−5</TSpan>
+          pKa = −log(1.8×10<TSpan dy={-9} fontSize={12.0}>−5</TSpan>
           <TSpan dy={9}>) = 4.74 ⇒ pH = 4.74</TSpan>
         </SvgText>
       </Fade>
@@ -97,9 +97,9 @@ export default function C11Ch06Sec54({ currentTime, reveals, language }: ScenePr
       {/* beat 5 — the ratio */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
         <SvgText x={540} y={292} textAnchor="middle" fontSize={16} fill={INK} fontFamily={ANEK}>
-          1.34×10<TSpan dy={-7} fontSize="0.62em">−3</TSpan>
+          1.34×10<TSpan dy={-7} fontSize={9.9}>−3</TSpan>
           <TSpan dy={7}> / 1.8×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−5</TSpan>
+          <TSpan dy={-7} fontSize={9.9}>−5</TSpan>
           <TSpan dy={7}> ≈ 74</TSpan>
         </SvgText>
       </Fade>

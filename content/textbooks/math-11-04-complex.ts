@@ -104,7 +104,7 @@ export const ch04Complex: Chapter = {
           "t": "formula",
           "kicker": "THE NUMBER SYSTEM, ONE LAST TIME",
           "tag": "ℂ closes it",
-          "main": "ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
+          "main": "ℕ ⊂ W ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
           "legend": [
             "each step was forced by an equation the previous system could not solve",
             "ℤ solved x + 5 = 2 · ℚ solved 2x = 1 · ℝ solved x² = 2 · ℂ solves x² = −1"
@@ -401,7 +401,7 @@ export const ch04Complex: Chapter = {
               "note": "(1 + i)² = 2i · (1 − i)² = −2i"
             },
             {
-              "f": "ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
+              "f": "ℕ ⊂ W ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ",
               "note": "order is lost at the last step"
             }
           ],
@@ -482,7 +482,7 @@ export const ch04Complex: Chapter = {
               "y": [-3.5, 3.5],
               "points": [
                 { "x": 3, "y": 2, "label": "z", "soft": true },
-                { "x": -3, "y": -2, "label": "−z" }
+                { "x": -3, "y": -2, "label": "−z", "at": "sw" }
               ],
               "segments": [{ "from": [3, 2], "to": [-3, -2], "dash": true, "soft": true }],
               "labels": [
@@ -877,7 +877,7 @@ export const ch04Complex: Chapter = {
               "y": [-2.22, 2.22],
               "points": [
                 { "x": 1, "y": 1.732, "label": "z", "soft": true },
-                { "x": 0, "y": 1.732, "label": "r sin θ = √3" }
+                { "x": 0, "y": 1.732, "label": "r sin θ = √3", "at": "nw" }
               ],
               "segments": [
                 { "from": [0, 0], "to": [1, 1.732], "soft": true },
@@ -1030,7 +1030,7 @@ export const ch04Complex: Chapter = {
               "points": [
                 { "x": 1, "y": 0, "label": "1", "soft": true },
                 { "x": -0.5, "y": 0.866, "label": "ω", "soft": true },
-                { "x": -0.5, "y": -0.866, "label": "ω²" }
+                { "x": -0.5, "y": -0.866, "label": "ω²", "at": "sw" }
               ],
               "segments": [
                 { "from": [1, 0], "to": [-0.5, 0.866], "soft": true },
@@ -1045,8 +1045,8 @@ export const ch04Complex: Chapter = {
               "points": [
                 { "x": 1, "y": 0, "label": "1" },
                 { "x": 0, "y": 1, "label": "i" },
-                { "x": -1, "y": 0, "label": "−1" },
-                { "x": 0, "y": -1, "label": "−i" }
+                { "x": -1, "y": 0, "label": "−1", "at": "sw" },
+                { "x": 0, "y": -1, "label": "−i", "at": "se" }
               ],
               "segments": [
                 { "from": [1, 0], "to": [0, 1], "soft": true },

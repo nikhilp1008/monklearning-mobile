@@ -93,6 +93,46 @@ MATH_KIT_FIXES = [
 # translate shorthand; there is no transition property, so the end state is
 # applied directly.
 STYLE_FIXES = {
+    # Two scenes drove a beat with CSS keyframes rather than through the kit,
+    # so conversion dropped the motion and left the beat inert. Both are
+    # restored with kit primitives written for them (StepAcross, Bob).
+    "Ch01Sec1_anim": [(
+        """      <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1} x={beat > 3 ? 480 : 0}>
+        <G>""",
+        """      <G opacity={beat < 3 ? 0 : beat > 3 ? 0.25 : 1}>
+        {/* The web walks the stick with the `sc-stick` keyframes: four stops
+            over 3.8s, laid down and picked up again. This is that walk. */}
+        <StepAcross
+          elapsed={beat === 3 ? currentTime - (reveals[3] ?? 0) : -1}
+          stops={[0, 160, 320, 480]}>""",
+    ), (
+        """        </G>
+      </G>
+      <Fade on={beat >= 3} delay={dl(3, 1)}>""",
+        """        </StepAcross>
+      </G>
+      <Fade on={beat >= 3} delay={dl(3, 1)}>""",
+    )],
+    "Ch14Sec1_anim": [(
+        """            <Circle
+              key={i}
+              cx={x}
+              cy={400}
+              r={6}
+              fill={INK}
+              y={beat > 0 ? SETTLED[i] : 0}
+            />""",
+        """            // Each particle only bobs in place; the per-dot stagger is what
+            // makes a ripple appear to travel, which is the scene's whole point.
+            <Bob
+              key={i}
+              active={beat === 0}
+              elapsed={currentTime - (reveals[0] ?? 0)}
+              delay={i * 0.09}
+              settled={beat > 0 ? SETTLED[i] : 0}>
+              <Circle cx={x} cy={400} r={6} fill={INK} />
+            </Bob>""",
+    )],
     "Ch01Sec1": [(
         """      <G
         style={{
@@ -214,6 +254,95 @@ def narrow_text_children(text):
     return text
 
 
+# `em` is a CSS unit and react-native-svg has no notion of one: `fontSize` is
+# typed as string-or-number and handed to the platform, which reads
+# `"0.62em"` as the number 0.62. An exponent authored at 62% of its line
+# therefore renders at two thirds of a point — present in the tree, invisible
+# on the board. Every formula with a superscript or subscript is affected
+# (`Kc = [NH₃]²`, `e^−ΔG°/RT`), which is most of Equilibrium.
+#
+# `em` means "relative to this element's font size", so it is resolved against
+# the enclosing <SvgText>'s own size, which is the value the author was scaling.
+RELATIVE_UNIT = re.compile(r'\b(fontSize|dy|dx)="([\d.]+)em"')
+# A superscript's base size can come from a raw <SvgText fontSize={n}> or, just
+# as often, from one of the kit's wrappers — <T size={n}> and <Chip size={n}>
+# both render an <SvgText fontSize={size}> that never appears in the scene file.
+# Resolving only the literal case silently fell back to 14 and sized those
+# exponents against the wrong parent.
+TEXT_BLOCKS = (
+    (re.compile(r'<SvgText\b.*?</SvgText>', re.S), r'fontSize=\{([\d.]+)\}'),
+    (re.compile(r'<T\b[^>]*>.*?</T>', re.S), r'size=\{([\d.]+)\}'),
+    (re.compile(r'<Chip\b[^>]*>.*?</Chip>', re.S), r'size=\{([\d.]+)\}'),
+)
+FALLBACK_EM_BASE = 14.0
+
+
+def resolve_relative_units(text):
+    for block_re, size_re in TEXT_BLOCKS:
+        def within(match, size_re=size_re):
+            block = match.group(0)
+            base = re.search(size_re, block)
+            if not base:
+                return block
+            size = float(base.group(1))
+            return RELATIVE_UNIT.sub(
+                lambda a: f'{a.group(1)}={{{round(size * float(a.group(2)), 1)}}}', block)
+        text = block_re.sub(within, text)
+    # Outside a <SvgText> there is no font size to be relative to; a fallback
+    # beats leaving a string the platform will read as a fraction of a point.
+    return RELATIVE_UNIT.sub(
+        lambda a: f'{a.group(1)}={{{round(FALLBACK_EM_BASE * float(a.group(2)), 1)}}}', text)
+
+
+# The webpage names its fonts through CSS custom properties. React Native has
+# no cascade to read them from, so the family silently falls back to the system
+# face instead of the app's Anek/Kalam — a quiet mismatch rather than an error.
+CSS_FONT_VARS = [
+    (re.compile(r'"var\(--font-anek-latin\)[^"]*"'), "'AnekLatin_600SemiBold'"),
+    (re.compile(r'"var\(--font-kalam\)[^"]*"'), "'Kalam_700Bold'"),
+]
+
+
+# React Native picks a face by NAME and ignores fontWeight, so a headline
+# authored at weight 800 alongside the CSS var would quietly render SemiBold.
+# This mirrors kit.tsx's own fontFor().
+WEIGHT_FACE = [(800, "AnekLatin_800ExtraBold"), (700, "AnekLatin_700Bold"),
+               (600, "AnekLatin_600SemiBold"), (500, "AnekLatin_500Medium"),
+               (0, "AnekLatin_400Regular")]
+SVGTEXT_OPEN = re.compile(r'<SvgText\b[^>]*>', re.S)
+
+
+def resolve_css_font_families(text):
+    for pattern, family in CSS_FONT_VARS:
+        text = pattern.sub(family, text)
+
+    def by_weight(match):
+        tag = match.group(0)
+        w = re.search(r'fontWeight=\{(\d+)\}', tag)
+        if not w or "'AnekLatin_600SemiBold'" not in tag:
+            return tag
+        weight = int(w.group(1))
+        face = next(f for lo, f in WEIGHT_FACE if weight >= lo)
+        return tag.replace("'AnekLatin_600SemiBold'", f"'{face}'")
+
+    return SVGTEXT_OPEN.sub(by_weight, text)
+
+
+def ensure_kit_imports(text):
+    """Import any kit primitive a substitution introduced."""
+    for symbol in ("StepAcross", "Bob"):
+        if f"<{symbol}" not in text:
+            continue
+        km = re.search(r"import\s*\{([^}]*)\}\s*from '@/components/scenes/kit';",
+                       text, re.S)
+        if km and not re.search(rf"\b{symbol}\b", km.group(1)):
+            inner = km.group(1)
+            sep = "" if inner.rstrip().endswith(",") else ","
+            text = (text[: km.start(1)] + inner.rstrip() + sep +
+                    f"\n  {symbol},\n" + text[km.end(1):])
+    return text
+
+
 def apply_post_fixes(text, name):
     """Corrections that survive a re-run.
 
@@ -228,7 +357,16 @@ def apply_post_fixes(text, name):
     for old, new in STYLE_FIXES.get(name, []):
         text = text.replace(old, new)
     text = narrow_text_children(text)
+    text = resolve_relative_units(text)
+    text = resolve_css_font_families(text)
     text, unconverted = convert_inline_style(text)
+
+    # The animation restorations match the CONVERTED shape — props, not CSS —
+    # so they have to run after convert_inline_style, and the imports they need
+    # after that again.
+    for old, new in STYLE_FIXES.get(name + "_anim", []):
+        text = text.replace(old, new)
+    text = ensure_kit_imports(text)
     return text, unconverted
 
 
@@ -250,6 +388,27 @@ def convert(text, name):
         text = text[: m.start()] + opening + text[m.end():]
         text = re.sub(r"</svg>", "</Scene>", text)
 
+    # `<style>` has no react-native-svg counterpart and TypeScript does not
+    # catch it (@types/react declares it on JSX.IntrinsicElements), so it slips
+    # through to render as `undefined` and blanks the entire scene. Removing it
+    # loses whatever CSS animation it declared, which is reported below.
+    if re.search(r'<style\b', text):
+        text = re.sub(r'<style\b[^>]*>.*?</style>', "", text, flags=re.S)
+        problems.append("dropped a <style> block — any CSS animation in it is gone")
+
+    # A className can carry a keyframe animation from the webpage's global CSS
+    # (e.g. `sc-stick-go`), and dropping it silently loses a whole beat's
+    # movement. The root <svg>'s own layout classes are absorbed by <Scene>.
+    # Both spellings matter. The literal form is easy to read; the conditional
+    # form (`className={beat === 3 ? "sc-stick-go" : undefined}`) is the one the
+    # scenes actually use to gate an animation on a beat, and it was the form
+    # being dropped without a word — costing a whole beat's movement.
+    named = re.findall(r'className="([^"]*)"', text)
+    named += re.findall(r'className=\{[^{}]*?"([^"]*)"[^{}]*\}', text)
+    carried = [c for c in named if c and not c.startswith("w-full")]
+    if carried:
+        problems.append("dropped className(s) that may carry a CSS animation: "
+                        + ", ".join(sorted(set(carried))[:4]))
     text = re.sub(r'\s+className=(?:"[^"]*"|\{[^{}]*\})', "", text)
 
     used = set()
@@ -268,6 +427,16 @@ def convert(text, name):
         after_react = re.search(r"^import React[^\n]*\n", text, re.M)
         text = (text[: after_react.end()] + line + text[after_react.end():]) if after_react \
             else line + text
+
+    for symbol in ("StepAcross", "Bob"):
+        if f"<{symbol}" in text:
+            km = re.search(r"import\s*\{([^}]*)\}\s*from '@/components/scenes/kit';",
+                           text, re.S)
+            if km and not re.search(rf"\b{symbol}\b", km.group(1)):
+                inner = km.group(1)
+                sep = "" if inner.rstrip().endswith(",") else ","
+                text = (text[: km.start(1)] + inner.rstrip() + sep +
+                        f"\n  {symbol},\n" + text[km.end(1):])
 
     if "<Scene" in text:
         km = re.search(r"import\s*\{([^}]*)\}\s*from '@/components/scenes/kit';", text, re.S)

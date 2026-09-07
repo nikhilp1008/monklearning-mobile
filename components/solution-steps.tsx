@@ -188,7 +188,7 @@ function createStyles(size: SolutionStepsSize) {
       justifyContent: 'center',
     },
     numText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: m.markerText,
       color: '#57534B',
     },
@@ -197,14 +197,14 @@ function createStyles(size: SolutionStepsSize) {
       backgroundColor: GREEN_WASH,
     },
     numFinalText: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: m.markerText + 1,
       color: GREEN,
     },
     stepTitle: {
       alignSelf: 'stretch',
       paddingTop: 4,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: m.title,
       letterSpacing: -0.02 * m.title,
       lineHeight: m.title * 1.3,
@@ -212,7 +212,7 @@ function createStyles(size: SolutionStepsSize) {
     },
     proseText: {
       alignSelf: 'stretch',
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: m.prose,
       lineHeight: m.prose * 1.6,
       color: INK_70,
@@ -226,7 +226,7 @@ function createStyles(size: SolutionStepsSize) {
      * line, which made one formula look like two different things.
      */
     inlineMath: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       color: INK,
     },
     mathWrap: {
@@ -238,7 +238,7 @@ function createStyles(size: SolutionStepsSize) {
       backgroundColor: AMBER_WASH,
     },
     mathText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: m.math,
       lineHeight: m.math * 1.6,
       color: INK,
@@ -246,13 +246,13 @@ function createStyles(size: SolutionStepsSize) {
     finalLabel: {
       alignSelf: 'stretch',
       paddingTop: 4,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: m.title,
       letterSpacing: -0.02 * m.title,
       color: GREEN,
     },
     answerPick: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: m.answer,
       color: GREEN_INK,
     },
@@ -268,12 +268,12 @@ function createStyles(size: SolutionStepsSize) {
       backgroundColor: GREEN_WASH,
     },
     answerText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: m.answer,
       color: GREEN_INK,
     },
     meta: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: INK_30,
     },

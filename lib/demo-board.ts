@@ -1,10 +1,10 @@
 import { BoardContent } from '@/lib/board-sections';
 
 /**
- * TEMPORARY REVIEW CONTENT — delete once real notes and sessions exist.
+ * TEMPORARY REVIEW CONTENT — delete once real notes exist.
  *
  * The torque class from notes-sessions/board-page.js, verbatim, so the Notes
- * and Sessions pages can be judged on a phone before there is anything real to
+ * page can be judged on a phone before there is anything real to
  * put in them. Nothing here comes from or reaches the backend: the Library
  * shows these only while the live lists are empty, and both detail screens
  * recognise the ids below and render this instead of fetching.
@@ -13,7 +13,6 @@ import { BoardContent } from '@/lib/board-sections';
  */
 
 export const DEMO_NOTE_ID = 'demo-note-torque';
-export const DEMO_SESSION_ID = 'demo-session-torque';
 
 export const DEMO_BOARD: BoardContent = {
   topic: 'Rotational Motion · torque',
@@ -196,6 +195,11 @@ export interface DemoDoubtCard {
   id: string;
   /** The question itself, as `stem` gives it on a real doubt. */
   question: string;
+  /** The rest of what a real doubt carries, so the sample card is the same
+   *  shape as the real one rather than a reduced version of it. */
+  subject: string;
+  chapter: string;
+  time: string;
 }
 
 export const DEMO_DOUBT_CARDS: DemoDoubtCard[] = [
@@ -203,10 +207,16 @@ export const DEMO_DOUBT_CARDS: DemoDoubtCard[] = [
     id: 'demo-doubt-1',
     question:
       'A solid cylinder of mass M and radius R rolls without slipping down an incline of angle θ. Find its acceleration.',
+    subject: 'physics',
+    chapter: 'Rotational Motion',
+    time: '2 days ago',
   },
   {
     id: 'demo-doubt-2',
     question:
       'For a first-order reaction, 75% completion takes 60 minutes. What is the half-life?',
+    subject: 'chemistry',
+    chapter: 'Chemical Kinetics',
+    time: '2 days ago',
   },
 ];

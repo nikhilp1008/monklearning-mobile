@@ -119,7 +119,7 @@ export function useSettingsStyles() {
     () =>
       StyleSheet.create({
         eyebrow: {
-          fontFamily: 'AnekLatin_800ExtraBold',
+          fontFamily: 'Onest_800ExtraBold',
           fontSize: scale(12),
           letterSpacing: scale(0.13 * 12),
           textTransform: 'uppercase',
@@ -130,20 +130,20 @@ export function useSettingsStyles() {
           marginTop: verticalScale(24),
         },
         sectionTitle: {
-          fontFamily: 'AnekLatin_700Bold',
+          fontFamily: 'Onest_700Bold',
           fontSize: scale(16),
           letterSpacing: scale(-0.02 * 16),
           color: colors.ink,
         },
         sectionBody: {
-          fontFamily: 'AnekLatin_400Regular',
+          fontFamily: 'Onest_400Regular',
           fontSize: scale(14),
           lineHeight: scale(14 * 1.55),
           color: colors.slate,
           marginTop: verticalScale(7),
         },
         link: {
-          fontFamily: 'AnekLatin_700Bold',
+          fontFamily: 'Onest_700Bold',
           color: colors.ink,
           textDecorationLine: 'underline',
           textDecorationColor: 'rgba(238,163,31,.6)',
@@ -163,12 +163,12 @@ export function useSettingsStyles() {
           paddingHorizontal: scale(13.5),
         },
         chipText: {
-          fontFamily: 'AnekLatin_600SemiBold',
+          fontFamily: 'Onest_600SemiBold',
           fontSize: scale(13.5),
           color: colors.ink,
         },
         footer: {
-          fontFamily: 'AnekLatin_400Regular',
+          fontFamily: 'Onest_400Regular',
           fontSize: scale(12),
           color: colors.faint,
           textAlign: 'center',
@@ -222,11 +222,20 @@ function createShellStyles(
       paddingBottom: verticalScale(10),
       backgroundColor: '#fff',
     },
+    /**
+     * The app's page-title tier, the same one Library, Textbooks, Progress,
+     * Practice and Focus mode use. It was 17/Bold — a nav-bar title, which
+     * read as a different system from every tab screen, and on Milestones sat
+     * barely above the body text it was introducing. Measured: even the
+     * longest title here, "Personal information", is 233pt in 308pt of space,
+     * so nothing truncates at this size.
+     */
     headerTitle: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(17),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
     },
     headerHairline: {

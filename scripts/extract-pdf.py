@@ -251,3 +251,19 @@ if __name__ == '__main__':
     for i in range(a - 1, min(b, len(pages))):
         print(f'\n===== PAGE {i+1} =====')
         print(page_text(pages[i]))
+
+# A blind spot worth knowing about, found by the Class 11 Chapter 1 author.
+#
+# Thirty-five of that chapter's sixty-six pages come out COMPLETELY EMPTY
+# here, silently -- no error, no warning, just a page with nothing on it.
+# Those pages use a content stream this decoder does not handle, and poppler
+# reads all sixty-six without trouble:
+#
+#     pdftoppm -f <page> -l <page> -r 150 -png <file.pdf> /tmp/page
+#
+# The failure is confined to that one chapter: a sweep of all 981 pages of
+# the Class 11 physics book found empty pages ONLY in 8-73, so no other
+# chapter was written from a partial source. But the silence is the danger.
+# An author reading a blank page has no way to tell "this page is empty"
+# from "this page failed to decode", so ALWAYS check for runs of empty pages
+# before trusting a range, and fall back to poppler when you find them.

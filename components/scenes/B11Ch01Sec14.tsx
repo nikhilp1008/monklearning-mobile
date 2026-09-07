@@ -77,10 +77,10 @@ export default function B11Ch01Sec14({ currentTime, reveals, language }: ScenePr
         </T>
       </Fade>
       <Fade on={beat >= 2 && beat < 4} delay={dl(2, 0.7)}>
-        <SvgText x={375} y={222} textAnchor="middle" fontSize={19} fontWeight={700} fontStyle="italic" fill={AMBER_DARK} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={375} y={222} textAnchor="middle" fontSize={19} fontWeight={700} fontStyle="italic" fill={AMBER_DARK} fontFamily='AnekLatin_700Bold'>
           Felis
         </SvgText>
-        <SvgText x={460} y={222} textAnchor="middle" fontSize={19} fontWeight={700} fontStyle="italic" fill={AMBER_DARK} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={460} y={222} textAnchor="middle" fontSize={19} fontWeight={700} fontStyle="italic" fill={AMBER_DARK} fontFamily='AnekLatin_700Bold'>
           catus
         </SvgText>
       </Fade>
@@ -90,10 +90,10 @@ export default function B11Ch01Sec14({ currentTime, reveals, language }: ScenePr
         </T>
       </Fade>
       <Fade on={beat >= 2 && beat < 4} delay={dl(2, 2.1)}>
-        <SvgText x={375} y={260} textAnchor="middle" fontSize={19} fontWeight={700} fill={INK} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={375} y={260} textAnchor="middle" fontSize={19} fontWeight={700} fill={INK} fontFamily='AnekLatin_700Bold'>
           Felis
         </SvgText>
-        <SvgText x={460} y={260} textAnchor="middle" fontSize={19} fontWeight={700} fill={INK} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={460} y={260} textAnchor="middle" fontSize={19} fontWeight={700} fill={INK} fontFamily='AnekLatin_700Bold'>
           catus
         </SvgText>
       </Fade>

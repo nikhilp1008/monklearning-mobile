@@ -10,13 +10,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
+import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathText } from '@/components/math-text';
-import { PracticeTabsHeader } from '@/components/practice-tabs-header';
-import { RuledPaper } from '@/components/ruled-paper';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { SlidingToggle } from '@/components/sliding-toggle';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -30,7 +28,6 @@ import {
 import { examSubjects, getCatalogue } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
-import { ProgressChapter, getCachedProgress, getProgress } from '@/lib/progress';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -57,13 +54,9 @@ const SUBJECT_QUERY: Record<string, string> = {
 export default function PracticeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [activeSegment, setActiveSegment] = useState<'unlimited' | 'mock'>('unlimited');
   // The mock gate reads the same /progress payload Progress renders — the
   // chapters it asks the student to clear are their real needs_revision
   // chapters, not an invented list.
-  const [reviseChapters, setReviseChapters] = useState<ProgressChapter[]>(() =>
-    weakChaptersFrom(getCachedProgress())
-  );
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chem', 'Maths']);
   const [activeSubject, setActiveSubject] = useState<string>('Physics');
 
@@ -90,6 +83,17 @@ export default function PracticeScreen() {
   const [numericInput, setNumericInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
+  /** The subject dropdown, and where to hang it. The menu is anchored under
+   *  the subject word rather than at a fixed offset, because "Physics",
+   *  "Chemistry" and "Maths" are different widths and a constant would only
+   *  line up for one of them. */
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [subjectAnchor, setSubjectAnchor] = useState(0);
+
+  /** Questions shown this sitting. Practice is endless, so this counts the
+   *  session rather than a fixed paper -- it is a place marker, not an index.
+   *  Starts at 0 because the mount effect's own load is what makes it 1. */
+  const [seen, setSeen] = useState(0);
 
   const revealed = answerResult !== null;
 
@@ -147,25 +151,10 @@ export default function PracticeScreen() {
   }, [activeSubject]);
 
   useEffect(() => {
-    if (activeSegment !== 'unlimited') return;
     loadQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSegment, activeSubject, focus.mode, focus.chapterId]);
+  }, [activeSubject, focus.mode, focus.chapterId]);
 
-  useEffect(() => {
-    if (activeSegment !== 'mock') return;
-    let cancelled = false;
-    getProgress()
-      .then((data) => {
-        if (!cancelled) setReviseChapters(weakChaptersFrom(data));
-      })
-      .catch(() => {
-        // The cached seed (possibly empty) stands; the copy handles both.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSegment]);
 
   /**
    * Fetches the question after this one while the student is still reading the
@@ -203,6 +192,7 @@ export default function PracticeScreen() {
     if (ready && prefetchSubjectRef.current === activeSubject) {
       prefetchedRef.current = null;
       setQuestion(ready);
+      setSeen((n) => n + 1);
       setLoading(false);
       return;
     }
@@ -224,6 +214,7 @@ export default function PracticeScreen() {
         setQuestion(null);
       } else {
         setQuestion(result);
+        setSeen((n) => n + 1);
       }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
@@ -232,12 +223,20 @@ export default function PracticeScreen() {
     }
   }
 
-  async function selectOption(key: string) {
+  /**
+   * Grade the current question. `key` is the option chosen, or undefined when
+   * the student asked to be shown the answer instead of picking one.
+   */
+  async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
-    setSelectedOption(key);
+    setSelectedOption(key ?? null);
     setSubmitting(true);
     try {
-      const result = await submitAnswer({ question_id: question.question_id, chosen_option: key });
+      const result = await submitAnswer(
+        key === undefined
+          ? { question_id: question.question_id }
+          : { question_id: question.question_id, chosen_option: key }
+      );
       setAnswerResult(result);
       // The student now has a solution to read — use that time to fetch what
       // comes next, so Next feels instant.
@@ -269,6 +268,18 @@ export default function PracticeScreen() {
 
   const optionEntries = question?.options ? Object.entries(question.options).sort(([a], [b]) => a.localeCompare(b)) : [];
 
+  /** Submit is live once there is something to submit, and never mid-flight. */
+  const canSubmit =
+    !!question &&
+    !revealed &&
+    !submitting &&
+    !loading &&
+    (question.question_type === 'numerical'
+      ? // submitNumeric bails on NaN, so gate on parseability -- a keyboard the
+        // user can paste into would otherwise offer a Submit that does nothing.
+        !Number.isNaN(parseFloat(numericInput))
+      : selectedOption !== null);
+
   const chapterChipLabel =
     focus.mode === 'chapter' && focus.chapterName
       ? focus.chapterName
@@ -279,111 +290,72 @@ export default function PracticeScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        {/* Subject lives in the title now, not in a pill row of its own. The
+            sliding toggle spent a whole line to show three words and could
+            not have held a fourth -- a NEET student sitting Biology made it
+            four. A menu costs one tap and scales. */}
+        <View style={styles.headerWrap}>
+        <View style={styles.headerRow}>
+          <Text style={styles.heading}>Practice</Text>
+          <Pressable
+            onLayout={(e) => setSubjectAnchor(e.nativeEvent.layout.x)}
+            onPress={() => setMenuOpen((open) => !open)}
+            hitSlop={8}
+            style={styles.subjectButton}>
+            <Text style={styles.headingSubject}>{activeSubject}</Text>
+            <View style={menuOpen ? styles.chevronFlipped : undefined}>
+              <ChevronDownIcon size={scale(13)} />
+            </View>
+          </Pressable>
+        </View>
+
+        {menuOpen && (
+          <View style={[styles.menu, { left: subjectAnchor }]}>
+            {subjects.map((name) => {
+              const on = name === activeSubject;
+              return (
+                <Pressable
+                  key={name}
+                  style={styles.menuRow}
+                  onPress={() => {
+                    setActiveSubject(name);
+                    setMenuOpen(false);
+                  }}>
+                  <Text style={[styles.menuRowText, on && styles.menuRowTextOn]}>{name}</Text>
+                  {on && <CheckIcon size={scale(14)} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+        </View>
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
-          <PracticeTabsHeader
-            activeSegment={activeSegment}
-            onPressUnlimited={() => setActiveSegment('unlimited')}
-            onPressMock={() => setActiveSegment('mock')}
-          />
-
-          {activeSegment === 'mock' ? (
-            <>
-              <View style={styles.lockedHeaderRow}>
-                <View style={styles.lockedIconChip}>
-                  <MockGlyphIcon size={scale(21)} color={colors.ink} />
-                </View>
-                <View style={styles.lockedTextBlock}>
-                  <Text style={styles.lockedOverline}>Mock test</Text>
-                  <Text style={styles.lockedTitle}>Locked for now</Text>
-                </View>
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>Preview</Text>
-                </View>
-              </View>
-
-              <View style={styles.dronaCallCard}>
-                <Text style={styles.dronaCallOverline}>Drona&apos;s call</Text>
-                <Text style={styles.dronaCallBody}>
-                  {reviseChapters.length > 0
-                    ? `"${reviseChapters.length} chapter${
-                        reviseChapters.length === 1 ? ' is' : 's are'
-                      } flagged 'needs revision' — weak spots cost real marks in a full paper. Clear them and I'll open the mock."`
-                    : '"Build your base in Practice first — the mock opens once your weak spots are cleared."'}
-                </Text>
-              </View>
-
-              {reviseChapters.length > 0 && (
-                <>
-                  <Text style={styles.unlockOverline}>Clear these to unlock</Text>
-                  <View style={styles.unlockList}>
-                    {reviseChapters.map((item, index) => (
-                      <View
-                        key={item.chapter_id}
-                        style={[
-                          styles.unlockRow,
-                          index < reviseChapters.length - 1 && styles.unlockRowDivider,
-                        ]}>
-                        <View style={styles.unlockDot} />
-                        <Text style={styles.unlockTitle} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        <Pressable
-                          style={styles.unlockActionButton}
-                          onPress={() =>
-                            router.push({
-                              pathname: '/entering-classroom',
-                              params: { chapterId: item.chapter_id, chapterTitle: item.name },
-                            })
-                          }>
-                          <Text style={styles.unlockActionText}>Learn</Text>
-                        </Pressable>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              )}
-
-              <View style={styles.unlockInfoCard}>
-                <Text style={styles.unlockInfoOverline}>When it unlocks</Text>
-                <Text style={styles.unlockInfoBody}>
-                  A full JEE-pattern paper:{' '}
-                  <Text style={styles.unlockInfoBold}>3 subjects × 45 questions</Text>,{' '}
-                  <Text style={styles.unlockInfoBold}>3 hours</Text>, +4 / −1 marking.
-                </Text>
-              </View>
-
-              <Pressable onPress={() => router.push('/mock-ready')}>
-                <Text style={styles.previewLink}>Preview the mock (demo)</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-          <View style={styles.filterRow}>
-            <SlidingToggle
-              options={subjects}
-              value={activeSubject}
-              onChange={setActiveSubject}
-              trackStyle={styles.subjectTrack}
-              thumbStyle={styles.subjectThumb}
-              pillStyle={styles.subjectPill}
-              textStyle={styles.subjectPillText}
-              textActiveStyle={styles.subjectPillTextActive}
-            />
-            <Pressable
-              style={styles.chapterChip}
-              onPress={() =>
-                router.push({
-                  pathname: '/practice-focus',
-                  params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
-                })
-              }>
-              <Text style={styles.chapterChipText}>{chapterChipLabel}</Text>
-              <ChevronDownIcon size={scale(10)} />
-            </Pressable>
-          </View>
+          <Pressable
+            style={styles.focusRow}
+            onPress={() =>
+              router.push({
+                pathname: '/practice-focus',
+                params: {
+                  subject: SUBJECT_QUERY[activeSubject],
+                  subjectLabel: activeSubject,
+                },
+              })
+            }>
+            <View style={styles.focusTextBlock}>
+              <Text style={styles.focusOverline}>FOCUS MODE</Text>
+              <Text style={styles.focusLabel} numberOfLines={1}>
+                {chapterChipLabel}
+              </Text>
+            </View>
+            <View style={styles.focusChange}>
+              <Text style={styles.focusChangeText}>Change</Text>
+              <ChevronRightIcon size={scale(11)} color={colors.amberText} />
+            </View>
+          </Pressable>
 
           {loading && !question ? (
             <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
@@ -396,25 +368,27 @@ export default function PracticeScreen() {
             <View style={styles.questionCard}>
               <Text style={styles.questionOverline}>Couldn&apos;t load a question</Text>
               <Text style={styles.questionBody}>{loadError}</Text>
-              <Pressable style={styles.revealButton} onPress={loadQuestion}>
-                <Text style={styles.revealButtonText}>Try again</Text>
+              <Pressable style={styles.outlineButton} onPress={loadQuestion}>
+                <Text style={styles.outlineButtonText}>Try again</Text>
               </Pressable>
             </View>
           ) : question ? (
             <>
-          <View style={styles.questionCard}>
-            <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
-            <View style={styles.questionRule} />
-            <Text style={styles.questionOverline}>
-              {[question.concept, question.chapter_name].filter(Boolean).join(' · ') || 'Practice'}
+          <View style={styles.questionBlock}>
+            <Text style={styles.questionMeta}>
+              <Text style={styles.questionNumber}>Q{seen}</Text>
+              {'  '}
+              {[activeSubject, question.chapter_name].filter(Boolean).join(' · ')}
             </Text>
             <MathText
               text={question.question_text ?? ''}
               fontSize={scale(15)}
-              lineHeight={scale(22.5)}
+              lineHeight={scale(23)}
               color={colors.ink}
+              fontWeight="500"
               style={styles.questionBody}
             />
+            <View style={styles.questionDivider} />
           </View>
 
           {question.question_type === 'numerical' ? (
@@ -428,18 +402,6 @@ export default function PracticeScreen() {
                 placeholder="Your answer"
                 placeholderTextColor={colors.faint}
               />
-              {!revealed && (
-                <Pressable
-                  style={[styles.revealButton, !numericInput.trim() && styles.revealButtonDisabled]}
-                  disabled={!numericInput.trim() || submitting || loading}
-                  onPress={submitNumeric}>
-                  {submitting ? (
-                    <ActivityIndicator size="small" color={colors.ink} />
-                  ) : (
-                    <Text style={styles.revealButtonText}>Submit</Text>
-                  )}
-                </Pressable>
-              )}
             </View>
           ) : (
           <View style={styles.optionsList}>
@@ -452,16 +414,22 @@ export default function PracticeScreen() {
               // a tap changed nothing at all and the screen looked frozen.
               // The choice is now acknowledged instantly and the others recede,
               // so the wait reads as "checking" rather than "broken".
+              // Chosen, but not yet committed. A tap used to grade instantly,
+              // which punished the ordinary act of changing your mind: pick A,
+              // think again, and it was already marked. Choosing is now free
+              // and Submit is the only thing that commits.
+              const isChosen = !revealed && selectedOption === key;
               const isPending = submitting && selectedOption === key;
               const isDimmed = submitting && selectedOption !== key;
               return (
                 <Pressable
                   key={key}
                   disabled={revealed || submitting || loading}
-                  onPress={() => selectOption(key)}
+                  onPress={() => setSelectedOption(key)}
                   style={[
                     styles.optionRow,
                     revealed && styles.optionRowRevealed,
+                    isChosen && styles.optionRowPending,
                     isPending && styles.optionRowPending,
                     isDimmed && styles.optionRowDimmed,
                     isYourWrongPick && styles.optionRowWrong,
@@ -470,14 +438,14 @@ export default function PracticeScreen() {
                   <View
                     style={[
                       styles.optionBadge,
-                      isPending && styles.optionBadgePending,
+                      (isChosen || isPending) && styles.optionBadgePending,
                       isYourWrongPick && styles.optionBadgeWrong,
                       isCorrectReveal && styles.optionBadgeCorrect,
                     ]}>
                     <Text
                       style={[
                         styles.optionBadgeText,
-                        (isPending || isYourWrongPick || isCorrectReveal) &&
+                        (isChosen || isPending || isYourWrongPick || isCorrectReveal) &&
                           styles.optionBadgeTextOnColor,
                       ]}>
                       {key.toUpperCase()}
@@ -485,13 +453,12 @@ export default function PracticeScreen() {
                   </View>
                   <MathText
                     text={text}
-                    fontSize={scale(14)}
-                    lineHeight={scale(19.6)}
+                    fontSize={scale(15)}
+                    lineHeight={scale(21)}
                     color={colors.ink}
                     fontWeight={isPending || isYourWrongPick || isCorrectReveal ? '700' : '400'}
                     style={styles.optionText}
                   />
-                  {isPending && <ActivityIndicator size="small" color={colors.ink} />}
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
                   {isCorrectReveal && <Text style={styles.optionTagCorrect}>CORRECT</Text>}
                 </Pressable>
@@ -503,26 +470,35 @@ export default function PracticeScreen() {
           {!revealed ? (
             <>
               <View style={styles.actionRow}>
-                <Pressable onPress={loadQuestion} hitSlop={10}>
-                  <Text style={styles.nextInlineText}>Skip →</Text>
-                </Pressable>
-                {/* No Report control: the report endpoint only accepts doubt
-                    ids today, so a practice-question report could never
-                    submit. It returns with a /practice report endpoint. */}
-              </View>
-
-              <View style={styles.stuckCard}>
-                <View style={styles.stuckTextBlock}>
-                  <Text style={styles.stuckTitle}>Stuck or curious?</Text>
-                  <Text style={styles.stuckSubtitle}>
-                    Any question here can become a full spoken lesson.
-                  </Text>
-                </View>
                 <Pressable
-                  style={styles.learnButton}
-                  onPress={() => goLearnChapter(question.chapter_name)}>
-                  <Text style={styles.learnButtonText}>Learn this →</Text>
+                  style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+                  disabled={!canSubmit}
+                  onPress={() =>
+                    question.question_type === 'numerical'
+                      ? submitNumeric()
+                      : submitAnswerFor(selectedOption ?? undefined)
+                  }>
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={colors.paper} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.submitButtonText,
+                        !canSubmit && styles.submitButtonTextDisabled,
+                      ]}>
+                      Submit
+                    </Text>
+                  )}
                 </Pressable>
+                <View style={styles.actionSpacer} />
+                <Pressable onPress={loadQuestion} hitSlop={10} style={styles.skipButton}>
+                  <Text style={styles.nextInlineText}>Skip</Text>
+                  <ArrowRightIcon size={scale(13)} color={colors.slate} />
+                </Pressable>
+                {/* Still no Report control. /practice serves next, answer,
+                    stats and explain and nothing else -- a report here would
+                    have nowhere to post, and a button that silently does
+                    nothing is worse than an absent one. */}
               </View>
             </>
           ) : (
@@ -559,36 +535,53 @@ export default function PracticeScreen() {
                   <Text style={styles.deeperLinkText}>Go deeper with Drona →</Text>
                 </Pressable>
                 <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                  <Text style={styles.nextButtonText}>Next →</Text>
+                  <Text style={styles.nextButtonText}>Next</Text>
+                  <ArrowRightIcon size={scale(14)} color={colors.paper} />
                 </Pressable>
               </View>
             </>
           )}
             </>
           ) : null}
-            </>
-          )}
         </ScrollView>
+
+        {menuOpen && (
+          <Pressable
+            style={styles.menuScrim}
+            accessibilityLabel="Close subject menu"
+            onPress={() => setMenuOpen(false)}
+          />
+        )}
       </SafeAreaView>
     </View>
   );
 }
 
 /** The real needs_revision chapters from /progress, worst mastery first. */
-function weakChaptersFrom(data: ReturnType<typeof getCachedProgress>): ProgressChapter[] {
-  if (!data) return [];
-  return data.subjects
-    .flatMap((s) => s.chapters)
-    .filter((ch) => ch.state === 'needs_revision')
-    .sort((a, b) => a.mastery - b.mastery)
-    .slice(0, 3);
+function ChevronRightIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path
+        d="M6 3.5 10.5 8 6 12.5"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
 }
 
-function MockGlyphIcon({ size, color }: { size: number; color: string }) {
+function CheckIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Rect x={5} y={11} width={14} height={9} rx={2} stroke={color} strokeWidth={1.9} />
-      <Path d="M8 11V8a4 4 0 0 1 8 0v3" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path
+        d="M5 13l4 4L19 7"
+        stroke={colors.ink}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
@@ -609,8 +602,8 @@ function ChevronDownIcon({ size }: { size: number }) {
 
 // Mimics the loaded question-card + option-row layout so the ~5-10s real
 /**
- * The whole page while a question is in flight — card, options, the action row
- * and the "Stuck or curious?" block below it.
+ * The whole page while a question is in flight — card, options and the action
+ * row.
  *
  * It used to stop after the options, which is why the top of the screen looked
  * like it was loading and the bottom looked broken. A placeholder has to reach
@@ -628,13 +621,12 @@ function QuestionSkeleton({
 }) {
   return (
     <>
-      <View style={styles.questionCard}>
-        <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
-        <View style={styles.questionRule} />
+      <View style={styles.questionBlock}>
         <Skeleton delay={0} style={styles.skeletonOverline} />
         <Skeleton delay={60} style={styles.skeletonBodyLine} />
         <Skeleton delay={120} style={styles.skeletonBodyLineFull} />
         <Skeleton delay={180} style={styles.skeletonBodyLineShort} />
+        <View style={styles.questionDivider} />
       </View>
 
       <View style={styles.optionsList}>
@@ -648,14 +640,6 @@ function QuestionSkeleton({
 
       <View style={styles.actionRow}>
         <Skeleton delay={480} style={styles.skeletonSkip} />
-      </View>
-
-      <View style={styles.stuckCard}>
-        <View style={styles.stuckTextBlock}>
-          <Skeleton delay={540} style={styles.skeletonStuckTitle} />
-          <Skeleton delay={600} style={styles.skeletonStuckSub} />
-        </View>
-        <Skeleton delay={600} style={styles.skeletonLearnButton} />
       </View>
     </>
   );
@@ -674,60 +658,134 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     scrollContent: {
-      paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
       paddingBottom: verticalScale(130),
     },
-    filterRow: {
+    // The title, and the subject inside it. 26/700 at -0.025em is the
+    // redesign's own heading spec -- the same Anek Latin the app already
+    // loads, two points larger and a good deal heavier than the 24/Medium
+    // it replaces.
+    headerWrap: {
+      position: 'relative',
+      // Above the scrim, so the title stays legible and a second tap on the
+      // subject closes the menu.
+      zIndex: 10,
+    },
+    headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(8),
-      marginTop: verticalScale(14),
+      paddingTop: verticalScale(10),
+      paddingBottom: verticalScale(4),
+      paddingHorizontal: scale(20),
+      zIndex: 8,
     },
-    subjectTrack: {
-      padding: scale(3),
-      backgroundColor: 'rgba(28,26,22,.055)',
-      borderRadius: scale(99),
-    },
-    subjectPill: {
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(12),
-      borderRadius: scale(99),
-    },
-    subjectThumb: {
-      backgroundColor: '#fff',
-      borderRadius: scale(99),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
-    },
-    subjectPillText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    subjectPillTextActive: {
-      fontFamily: 'AnekLatin_700Bold',
+    heading: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
+      lineHeight: scale(29),
       color: colors.ink,
     },
-    chapterChip: {
+    /** The subject keeps the weight -- it is the part that changes. */
+    headingSubject: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(24),
+      letterSpacing: scale(-0.6),
+      lineHeight: scale(29),
+      color: colors.ink,
+    },
+    subjectButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(6),
-      backgroundColor: '#FCF4E0',
+    },
+    chevronFlipped: {
+      transform: [{ rotate: '180deg' }],
+    },
+    menuScrim: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(28,25,20,.12)',
+      zIndex: 5,
+    },
+    menu: {
+      position: 'absolute',
+      top: '100%',
+      width: scale(210),
+      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.4)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(13),
+      borderColor: 'rgba(28,25,20,.12)',
+      borderRadius: scale(16),
+      padding: scale(6),
+      zIndex: 9,
+      shadowColor: '#1C1A16',
+      shadowOpacity: 0.22,
+      shadowRadius: scale(20),
+      shadowOffset: { width: 0, height: verticalScale(12) },
+      elevation: 8,
     },
-    chapterChipText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: '#9A6A12',
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(10),
+      paddingVertical: verticalScale(11),
+      paddingHorizontal: scale(12),
+      borderRadius: scale(11),
     },
+    menuRowText: {
+      flex: 1,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(15),
+      color: colors.ink,
+    },
+    menuRowTextOn: {
+      fontFamily: 'Onest_700Bold',
+    },
+    // Focus mode reads as a labelled setting rather than a chip, so the
+    // current scope is legible without opening anything.
+    focusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+      paddingTop: verticalScale(16),
+      paddingBottom: verticalScale(14),
+      marginTop: verticalScale(8),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,25,20,.1)',
+    },
+    focusTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    focusOverline: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.9),
+      color: colors.faint,
+    },
+    focusLabel: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      color: colors.slate,
+      marginTop: verticalScale(3),
+    },
+    focusChange: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(5),
+    },
+    focusChangeText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(13),
+      color: colors.amberText,
+    },
+    // Sized to its three labels rather than stretched across the row. The
+    // focus chip sits up beside the title now, so nothing needs the width and
+    // a full-bleed track just left a stretch of empty grey after Maths.
     lockedHeaderRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -748,14 +806,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 1,
     },
     lockedOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.faint,
     },
     lockedTitle: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(18),
       letterSpacing: scale(-0.19),
       color: colors.ink,
@@ -768,9 +826,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(10),
     },
     previewBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.5),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.38),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -784,23 +842,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(14),
     },
     dronaCallOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: '#9A6A12',
       marginBottom: verticalScale(5),
     },
     dronaCallBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(21),
       color: colors.ink,
     },
     unlockOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.faint,
       marginTop: verticalScale(20),
@@ -829,7 +887,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     unlockTitle: {
       flex: 1,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
@@ -842,7 +900,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#fff',
     },
     unlockActionText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.ink,
     },
@@ -854,26 +912,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(10),
     },
     unlockInfoOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.4),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(1.05),
       textTransform: 'uppercase',
       color: colors.faint,
       marginBottom: verticalScale(4),
     },
     unlockInfoBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
     },
     unlockInfoBold: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     previewLink: {
       textAlign: 'center',
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
       textDecorationLine: 'underline',
@@ -911,55 +969,46 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       width: scale(46),
       height: verticalScale(11),
     },
-    skeletonStuckTitle: {
-      width: '58%',
-      height: verticalScale(13),
+    // The question is the page, not a widget on it. Ruled paper, an ink
+    // border, a drop shadow and a red margin rule all competed with the one
+    // thing a student is here to read, and the 34pt left inset the rule
+    // needed pushed every line inward for no reason.
+    questionBlock: {
+      paddingTop: verticalScale(22),
     },
-    skeletonStuckSub: {
-      width: '88%',
-      height: verticalScale(10),
-      marginTop: verticalScale(7),
+    questionMeta: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      color: '#8A857A',
     },
-    skeletonLearnButton: {
-      width: scale(94),
-      height: verticalScale(38),
-      borderRadius: scale(99),
+    questionNumber: {
+      fontFamily: 'Onest_800ExtraBold',
+      color: colors.ink,
     },
+    questionBody: {
+      marginTop: verticalScale(8),
+    },
+    questionDivider: {
+      height: 1,
+      backgroundColor: 'rgba(28,25,20,.1)',
+      marginTop: verticalScale(18),
+    },
+    // Kept for the two states that are still a card: an empty pool and a
+    // load failure, where a bordered box is the right shape for a message.
     questionCard: {
-      position: 'relative',
       backgroundColor: '#fff',
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.1)',
       borderRadius: scale(13),
-      paddingTop: verticalScale(14),
-      paddingRight: scale(15),
-      paddingBottom: verticalScale(13),
-      paddingLeft: scale(34),
+      padding: scale(15),
       marginTop: verticalScale(14),
-      overflow: 'hidden',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    questionRule: {
-      position: 'absolute',
-      top: verticalScale(11),
-      bottom: verticalScale(11),
-      left: scale(22),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
     },
     questionOverline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.9),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.68),
       textTransform: 'uppercase',
       color: '#C53A2B',
-    },
-    questionBody: {
-      marginTop: verticalScale(5),
     },
     optionsList: {
       flexDirection: 'column',
@@ -980,7 +1029,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: scale(1.4),
       borderColor: 'rgba(28,26,22,.16)',
       backgroundColor: '#fff',
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
@@ -989,10 +1038,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       gap: scale(12),
       paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(12),
+      paddingHorizontal: scale(16),
+      borderRadius: scale(14),
       borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.12)',
+      borderColor: 'rgba(28,25,20,.12)',
       backgroundColor: '#fff',
     },
     optionRowRevealed: {
@@ -1024,10 +1073,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.ink,
     },
     optionBadge: {
-      width: scale(26),
-      height: scale(26),
+      width: scale(28),
+      height: scale(28),
       flexShrink: 0,
-      borderRadius: scale(8),
+      borderRadius: scale(9),
       borderWidth: scale(1.4),
       borderColor: 'rgba(28,26,22,.16)',
       alignItems: 'center',
@@ -1042,7 +1091,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: '#1C9B57',
     },
     optionBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.ink,
     },
@@ -1053,24 +1102,57 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     optionTagWrong: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.72),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.54),
       color: '#C53A2B',
     },
     optionTagCorrect: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.72),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.54),
       color: '#157A45',
     },
     actionRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(10),
-      marginTop: verticalScale(14),
+      gap: scale(14),
+      marginTop: verticalScale(16),
     },
-    revealButton: {
+    actionSpacer: { flex: 1 },
+    // Filled, because committing an answer IS the action of the page. It sits
+    // left where the reading ends; Skip is pushed to the far edge so the two
+    // are never mistaken for a pair.
+    skipButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(6),
+      height: verticalScale(40),
+      paddingHorizontal: scale(4),
+    },
+    submitButton: {
+      minWidth: scale(112),
+      height: verticalScale(40),
+      paddingHorizontal: scale(22),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    submitButtonDisabled: {
+      backgroundColor: 'transparent',
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.16)',
+    },
+    submitButtonTextDisabled: {
+      color: colors.faint,
+    },
+    submitButtonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(14.5),
+      color: colors.paper,
+    },
+    outlineButton: {
       height: verticalScale(44),
       paddingHorizontal: scale(18),
       borderRadius: scale(99),
@@ -1080,65 +1162,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    revealButtonDisabled: {
-      opacity: 0.5,
-    },
-    revealButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+    outlineButtonText: {
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.ink,
     },
     nextInlineText: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(13),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(14),
       color: colors.slate,
-      paddingHorizontal: scale(6),
-    },
-    stuckCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(16),
-      marginTop: verticalScale(12),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    stuckTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    stuckTitle: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(13),
-      color: colors.ink,
-    },
-    stuckSubtitle: {
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(11),
-      color: colors.slate,
-      marginTop: verticalScale(1),
-    },
-    learnButton: {
-      flexShrink: 0,
-      height: verticalScale(38),
-      paddingHorizontal: scale(15),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    learnButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(12),
-      color: colors.paper,
     },
     explainSection: {
       marginTop: verticalScale(22),
@@ -1149,14 +1181,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginBottom: verticalScale(16),
     },
     explainEyebrow: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.1),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.83),
       color: colors.faint,
       marginBottom: verticalScale(16),
     },
     explainEmpty: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       color: colors.faint,
     },
@@ -1167,12 +1199,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(24),
     },
     deeperLinkText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.amberText,
     },
     nextButton: {
-      height: verticalScale(46),
+      flexDirection: 'row',
+      gap: scale(8),
+      height: verticalScale(48),
       paddingHorizontal: scale(22),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
@@ -1185,7 +1219,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 4,
     },
     nextButtonText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.paper,
     },

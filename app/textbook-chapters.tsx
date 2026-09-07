@@ -143,13 +143,13 @@ export default function TextbookChaptersScreen() {
                       pressed && ready && styles.rowPressed,
                     ]}>
                     <Text style={styles.rowNumber}>{index + 1}</Text>
-                    <Text style={[styles.rowTitle, ready && styles.rowTitleReady]}>{chapter.name}</Text>
-                    {/* No READY badge. A written chapter is already the only
-                        one at full opacity, in bold, with a chevron and a live
-                        press state, next to rows that are dimmed and inert.
-                        The badge said a fourth time what three signals had
-                        already said, and it would only get louder as more
-                        chapters land. SOON stays: that one is doing real work,
+                    <Text style={styles.rowTitle}>{chapter.name}</Text>
+                    {/* No READY badge, and no bold either. A written chapter
+                        is already the only one at full opacity, with a chevron
+                        and a live press state, next to rows that are dimmed and
+                        inert. Bold was a fourth signal saying what three had
+                        said, and with most of the list now written it made the
+                        page shout. SOON stays: that one is doing real work,
                         explaining why a row cannot be opened. */}
                     {ready ? (
                       <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
@@ -216,13 +216,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderRadius: scale(99),
     },
     classPillText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
     classPillTextActive: { color: colors.ink },
     title: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(33),
       letterSpacing: scale(-0.99),
       color: colors.ink,
@@ -246,24 +246,23 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     rowNumber: {
       width: scale(26),
       textAlign: 'right',
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(16),
       color: colors.quiet,
     },
     rowTitle: {
       flex: 1,
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(17),
       color: colors.ink,
     },
-    rowTitleReady: { fontFamily: 'AnekLatin_700Bold' },
     soonText: {
       ...kicker(scale, 9.5),
       color: colors.quiet,
     },
     state: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: scale(24) },
     stateText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       color: colors.slate,
       textAlign: 'center',

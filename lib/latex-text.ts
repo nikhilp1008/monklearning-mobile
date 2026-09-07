@@ -61,6 +61,9 @@ const SYMBOLS: Record<string, string> = {
   prime: '′', angle: '∠', perp: '⊥', parallel: '∥', therefore: '∴',
   because: '∵', sum: '∑', prod: '∏', int: '∫', oint: '∮',
   in: '∈', notin: '∉', subset: '⊂', cup: '∪', cap: '∩', emptyset: '∅',
+  // Both seen live in a solved doubt, rendering as the bare words
+  // "setminus" and "varnothing" in the middle of set notation.
+  varnothing: '∅', setminus: '∖', supset: '⊃', subseteq: '⊆', supseteq: '⊇',
   forall: '∀', exists: '∃', hbar: 'ℏ', ell: 'ℓ', Re: 'ℜ', Im: 'ℑ',
   ldots: '…', dots: '…', cdots: '⋯', quad: ' ', qquad: '  ',
   lambdabar: 'ƛ', vec: '', hat: '', bar: '', dot: '',
@@ -100,6 +103,9 @@ const TRANSPARENT_WRAPPERS = new Set([
   'text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit',
   'mathsf', 'mathtt', 'operatorname', 'left', 'right', 'displaystyle',
   'mbox', 'hspace', 'ensuremath', 'mathcal', 'mathfrak', 'boldsymbol',
+  // A boxed result is already the emphasised thing on a board, so the box
+  // itself carries nothing the layout does not.
+  'boxed',
 ]);
 
 /** Glyphs that already sit raised on the line, so `^` around them would be
@@ -376,6 +382,88 @@ export function convertMath(src: string): string {
         continue;
       }
 
+      /**
+       * `\xrightarrow{condition}` — an arrow carrying the step's justification
+       * above it, used all through the Class 12 derivations ("…= 0
+       * \xrightarrow{I_g = 0} I₁P = I₂R"). Nothing can sit above a glyph in
+       * linear text, so the condition follows the arrow in brackets, which is
+       * how it would be read aloud.
+       */
+      /**
+       * `\begin{vmatrix} … \end{vmatrix}` — the cross-product determinants.
+       * A matrix cannot be stacked in a single line of text, so it degrades to
+       * the linear form it would be dictated in: rows separated by semicolons
+       * inside the delimiter the environment names. Readable beats absent, and
+       * absent is what leaking "begin" into the middle of an equation is.
+       */
+      if (name === 'begin') {
+        while (src[i] === ' ') i++;
+        const env = readGroup(src, i);
+        i = env.next;
+        const kind = env.body.trim().replace(/\*$/, '');
+        const close = `\\end{${env.body.trim()}}`;
+        const at = src.indexOf(close, i);
+        const body = at === -1 ? src.slice(i) : src.slice(i, at);
+        i = at === -1 ? src.length : at + close.length;
+
+        const rows = body
+          .split(/\\\\/)
+          .map((row) =>
+            row
+              .split('&')
+              .map((cell) => convertMath(cell).trim())
+              .filter(Boolean)
+              .join('  ')
+          )
+          .map((row) => row.trim())
+          .filter(Boolean);
+        const inner = rows.join(' ; ');
+        const WRAP: Record<string, [string, string]> = {
+          vmatrix: ['|', '|'],
+          Vmatrix: ['‖', '‖'],
+          pmatrix: ['(', ')'],
+          bmatrix: ['[', ']'],
+          Bmatrix: ['{', '}'],
+          cases: ['{', ''],
+        };
+        const [open, shut] = WRAP[kind] ?? ['', ''];
+        out += `${open}${inner}${shut}`;
+        continue;
+      }
+
+      if (name === 'xrightarrow' || name === 'xleftarrow') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        const label = convertMath(group.body).trim();
+        const arrow = name === 'xrightarrow' ? '→' : '←';
+        out += label ? ` ${arrow}[${label}] ` : ` ${arrow} `;
+        continue;
+      }
+
+      /**
+       * `\underbrace{expr}_{label}` — a brace under part of an equation naming
+       * what it is ("hν (energy in) = φ₀ (exit fee) + K_max (KE out)"). The
+       * label becomes a parenthetical, so the naming survives even though the
+       * brace cannot be drawn.
+       */
+      if (name === 'underbrace' || name === 'overbrace') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        const body = convertMath(group.body);
+        let label = '';
+        while (src[i] === ' ') i++;
+        if (src[i] === '_' || src[i] === '^') {
+          i++;
+          const tag = readGroup(src, i);
+          i = tag.next;
+          label = convertMath(tag.body).trim();
+        }
+        out += label ? `${body} (${label})` : body;
+        continue;
+      }
+
       if (name === 'sqrt') {
         while (src[i] === ' ') i++;
         const group = readGroup(src, i);
@@ -615,6 +703,11 @@ export function latexToText(raw: string): string {
       },
     )
     .replace(DOUBLED_CARET, '^')
+    // LaTeX escapes for literal punctuation. These sit in ordinary prose
+    // rather than inside $…$, so the math converter never saw them and a
+    // student read "reduce the volume by 2\% is:". `$` is deliberately not
+    // in the set: unescaping it would manufacture a math delimiter.
+    .replace(/\\([%&#_])/g, '$1')
     .replace(/-\n/g, '')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')

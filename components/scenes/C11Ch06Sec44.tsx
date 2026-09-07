@@ -31,7 +31,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, INK, MUTED, AMBER, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec44({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -75,7 +75,7 @@ export default function C11Ch06Sec44({ currentTime, reveals, language }: ScenePr
       {/* beat 3 — the concentrations */}
       <Fade on={beat >= 3} delay={dl(3, 0.4)}>
         <SvgText x={540} y={178} textAnchor="middle" fontSize={19} fontWeight={800} fill={GREEN} fontFamily={ANEK}>
-          [H⁺] = [OH⁻] = 10<TSpan dy={-9} fontSize="0.6em">−7</TSpan>
+          [H⁺] = [OH⁻] = 10<TSpan dy={-9} fontSize={11.4}>−7</TSpan>
           <TSpan dy={9}> M (at 298 K)</TSpan>
         </SvgText>
       </Fade>
@@ -110,7 +110,7 @@ export default function C11Ch06Sec44({ currentTime, reveals, language }: ScenePr
       {/* beat 5 — the origin point */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
         <SvgText x={540} y={300} textAnchor="middle" fontSize={13} fill={AMBER_DARK} fontFamily={ANEK}>
-          10<TSpan dy={-6} fontSize="0.62em">−7</TSpan>
+          10<TSpan dy={-6} fontSize={8.1}>−7</TSpan>
           <TSpan dy={6}> {t("is the origin of the ENTIRE pH scale", "poore pH scale ka origin hai")}</TSpan>
         </SvgText>
       </Fade>
@@ -121,7 +121,7 @@ export default function C11Ch06Sec44({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 6} delay={dl(6, 0.8)}>
         <SvgText x={540} y={350} textAnchor="middle" fontSize={14} fill={RED} fontFamily={ANEK}>
-          Kw = 10<TSpan dy={-7} fontSize="0.62em">−14</TSpan>
+          Kw = 10<TSpan dy={-7} fontSize={8.7}>−14</TSpan>
           <TSpan dy={7}> {t("only at 298 K — neutral pH shifts with T", "sirf 298 K par — neutral pH T ke saath shift")}</TSpan>
         </SvgText>
       </Fade>

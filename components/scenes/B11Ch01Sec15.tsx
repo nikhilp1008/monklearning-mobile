@@ -50,7 +50,7 @@ export default function B11Ch01Sec15({ currentTime, reveals, language }: ScenePr
 
       {/* beat 1 — the three names, side by side */}
       <Fade on={beat >= 1 && beat < 4} delay={dl(1, 0.3)}>
-        <SvgText x={60} y={120} fontStyle="italic" fontWeight={700} fontSize={16} fill={GREEN} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={60} y={120} fontStyle="italic" fontWeight={700} fontSize={16} fill={GREEN} fontFamily='AnekLatin_700Bold'>
           Brassica oleracea
         </SvgText>
         <T x={330} y={120} size={13} fill={MUTED} script={false} anchor="start">
@@ -61,7 +61,7 @@ export default function B11Ch01Sec15({ currentTime, reveals, language }: ScenePr
         <Draw on={true} d="M 60 134 L 950 134" stroke={MUTED} sw={1} dur={0.3} />
       </Fade>
       <Fade on={beat >= 1 && beat < 4} delay={dl(1, 1.4)}>
-        <SvgText x={60} y={150} fontStyle="italic" fontWeight={700} fontSize={16} fill={GREEN} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={60} y={150} fontStyle="italic" fontWeight={700} fontSize={16} fill={GREEN} fontFamily='AnekLatin_700Bold'>
           Brassica oleracea
         </SvgText>
         <T x={330} y={150} size={13} fill={MUTED} script={false} anchor="start">
@@ -72,7 +72,7 @@ export default function B11Ch01Sec15({ currentTime, reveals, language }: ScenePr
         <Draw on={true} d="M 60 164 L 950 164" stroke={MUTED} sw={1} dur={0.3} />
       </Fade>
       <Fade on={beat >= 1 && beat < 4} delay={dl(1, 2.5)}>
-        <SvgText x={60} y={180} fontStyle="italic" fontWeight={700} fontSize={16} fill={AMBER_DARK} fontFamily="var(--font-anek-latin), sans-serif">
+        <SvgText x={60} y={180} fontStyle="italic" fontWeight={700} fontSize={16} fill={AMBER_DARK} fontFamily='AnekLatin_700Bold'>
           Brassica nigra
         </SvgText>
         <T x={330} y={180} size={13} fill={MUTED} script={false} anchor="start">

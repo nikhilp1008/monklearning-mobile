@@ -54,6 +54,7 @@ import {
   GREEN,
   RED,
   Scene,
+  Bob,
 } from '@/components/scenes/kit';
 
 const DOT_X = [120, 225, 330, 435, 540, 645, 750, 855, 960];
@@ -72,9 +73,7 @@ export default function Ch14Sec1({ currentTime, reveals, language }: SceneProps)
 
   return (
     <Scene>
-      <style>{`
-        @keyframes ch14s1wave { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-22px); } }
-      `}</style>
+      
 
       {/* title — always on */}
       <Fade on={true}>
@@ -95,14 +94,16 @@ export default function Ch14Sec1({ currentTime, reveals, language }: SceneProps)
       <Fade on={beat >= 0} delay={dl(0, 0.6)}>
         <>
           {DOT_X.map((x, i) => (
-            <Circle
+            // Each particle only bobs in place; the per-dot stagger is what
+            // makes a ripple appear to travel, which is the scene's whole point.
+            <Bob
               key={i}
-              cx={x}
-              cy={400}
-              r={6}
-              fill={INK}
-              y={beat > 0 ? SETTLED[i] : 0}
-            />
+              active={beat === 0}
+              elapsed={currentTime - (reveals[0] ?? 0)}
+              delay={i * 0.09}
+              settled={beat > 0 ? SETTLED[i] : 0}>
+              <Circle cx={x} cy={400} r={6} fill={INK} />
+            </Bob>
           ))}
         </>
       </Fade>

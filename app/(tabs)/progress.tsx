@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -16,7 +16,6 @@ import {
   getCachedProgress,
   getProgress,
 } from '@/lib/progress';
-import { countMilestones } from '@/lib/milestones';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -94,7 +93,6 @@ export default function ProgressScreen() {
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
   const [showAllChapters, setShowAllChapters] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [milestones, setMilestones] = useState({ total: 0, unseen: 0 });
 
   useFocusEffect(
     useCallback(() => {
@@ -113,17 +111,6 @@ export default function ProgressScreen() {
       };
     }, [])
   );
-
-  useEffect(() => {
-    if (state.kind !== 'ready') return;
-    let cancelled = false;
-    countMilestones(state.data).then((next) => {
-      if (!cancelled) setMilestones(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [state]);
 
   const retry = () => {
     setState({ kind: 'loading' });
@@ -501,7 +488,7 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {data && (ledgerHasAnything || milestones.total > 0) && (
+          {data && ledgerHasAnything && (
             <View>
               <View style={styles.sectionTitleRow}>
                 <View style={styles.sectionTitleDash} />
@@ -526,24 +513,6 @@ export default function ProgressScreen() {
                 </View>
               </View>
 
-              {/* The collection sits directly under the tallies because it is
-                  the same story told the other way round: the ledger counts,
-                  this names. */}
-              {milestones.total > 0 && (
-                <PressableScale
-                  style={styles.milestoneRow}
-                  onPress={() => router.push('/milestones')}>
-                  <View style={styles.milestoneText}>
-                    <Text style={styles.milestoneTitle}>Milestones</Text>
-                    <Text style={styles.milestoneMeta}>
-                      {milestones.total} kept
-                      {milestones.unseen > 0 ? ` · ${milestones.unseen} new` : ''}
-                    </Text>
-                  </View>
-                  {milestones.unseen > 0 && <View style={styles.milestoneDot} />}
-                  <ArrowIcon color={colors.ink} size={scale(13)} />
-                </PressableScale>
-              )}
             </View>
           )}
         </ScrollView>
@@ -654,13 +623,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(32),
     },
     heading: {
-      fontFamily: 'AnekLatin_500Medium',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(24),
-      letterSpacing: scale(-0.36),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
     },
     subtitle: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -679,9 +648,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 2,
     },
     overline: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.9),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -709,7 +678,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.ink,
     },
     infoBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11),
       color: colors.slate,
     },
@@ -725,7 +694,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(10),
     },
     deltaBadgeText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: '#157A45',
     },
@@ -736,19 +705,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(8),
     },
     scoreValue: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(44),
       letterSpacing: scale(-1.1),
       lineHeight: scale(48),
       color: colors.ink,
     },
     scoreMax: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.faint,
     },
     scoreBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -772,7 +741,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(4),
     },
     climbAxisText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
       color: colors.faint,
     },
@@ -786,13 +755,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(16),
     },
     flagText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.amberText,
     },
     flagTextStrong: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
     },
     subjectsRow: {
       flexDirection: 'row',
@@ -817,7 +786,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.ink,
     },
     subjectName: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.ink,
     },
@@ -828,18 +797,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(4),
     },
     subjectScore: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(18),
       letterSpacing: scale(-0.27),
       color: colors.ink,
     },
     subjectScoreMax: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
       color: colors.faint,
     },
     chapterHint: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       lineHeight: scale(18),
       color: colors.faint,
@@ -847,9 +816,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginBottom: verticalScale(4),
     },
     classHeader: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(1.2),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.9),
       textTransform: 'uppercase',
       color: colors.faint,
       marginTop: verticalScale(16),
@@ -866,12 +835,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     chapterName: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       color: colors.ink,
     },
     chapterNameQuiet: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       color: colors.slate,
     },
     stateChip: {
@@ -888,7 +857,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
     },
     stateChipText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       letterSpacing: scale(0.3),
     },
@@ -928,14 +897,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     conceptName: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(18.2),
       color: colors.faint,
     },
     conceptNameTouched: {
       color: colors.slate,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
     },
     showAllButton: {
       flexDirection: 'row',
@@ -948,7 +917,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopColor: hairline(0.07),
     },
     showAllText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.slate,
     },
@@ -960,9 +929,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(10),
     },
     previewBadgeText: {
-      fontFamily: 'AnekLatin_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.5),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.38),
       textTransform: 'uppercase',
       color: colors.faint,
     },
@@ -976,17 +945,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginBottom: verticalScale(6),
     },
     paceSubject: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.ink,
     },
     paceTimes: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11),
       color: colors.faint,
     },
     paceActual: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.slate,
     },
@@ -1008,7 +977,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
     },
     cardFootnote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(11),
       lineHeight: scale(16.5),
       color: colors.faint,
@@ -1027,9 +996,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.marigold,
     },
     sectionTitle: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(11),
-      letterSpacing: scale(1.54),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.9),
+      letterSpacing: scale(1.16),
       textTransform: 'uppercase',
       color: colors.ink,
     },
@@ -1037,12 +1006,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginBottom: verticalScale(12),
     },
     recTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(18),
       color: colors.ink,
     },
     recReason: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -1060,7 +1029,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(12),
     },
     recButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.paper,
     },
@@ -1090,56 +1059,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
       alignItems: 'flex-start',
     },
-    milestoneRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: verticalScale(15),
-      borderBottomWidth: 1,
-      borderBottomColor: hairline(0.1),
-    },
-    milestoneText: {
-      flex: 1,
-      minWidth: 0,
-    },
-    milestoneTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
-      fontSize: scale(16),
-      letterSpacing: scale(-0.02 * 16),
-      color: colors.ink,
-    },
-    milestoneMeta: {
-      marginTop: verticalScale(1),
-      fontFamily: 'AnekLatin_400Regular',
-      fontSize: scale(13),
-      color: colors.faint,
-    },
-    milestoneDot: {
-      width: scale(7),
-      height: scale(7),
-      borderRadius: scale(3.5),
-      backgroundColor: colors.marigold,
-    },
     ledgerValue: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(18),
       letterSpacing: scale(-0.27),
       color: colors.ink,
     },
     ledgerLabel: {
-      fontFamily: 'AnekLatin_800ExtraBold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.8),
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(0.6),
       textTransform: 'uppercase',
       color: colors.faint,
     },
     errorTitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(18),
       color: colors.ink,
     },
     errorBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
@@ -1156,7 +1095,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(12),
     },
     retryButtonText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.paper,
     },

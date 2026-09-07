@@ -28,7 +28,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, crossD, ringD, INK, AMBER
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec67({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -60,7 +60,7 @@ export default function C11Ch06Sec67({ currentTime, reveals, language }: ScenePr
       </Fade>
       <Fade on={beat >= 1} delay={dl(1, 0.9)}>
         <SvgText x={60} y={124} textAnchor="start" fontSize={15} fill={INK} fontFamily={ANEK}>
-          Ksp(Ag₂CrO₄) = 1.1×10<TSpan dy={-7} fontSize="0.62em">−12</TSpan>
+          Ksp(Ag₂CrO₄) = 1.1×10<TSpan dy={-7} fontSize={9.3}>−12</TSpan>
           <TSpan dy={7}>, find s</TSpan>
         </SvgText>
       </Fade>
@@ -86,29 +86,29 @@ export default function C11Ch06Sec67({ currentTime, reveals, language }: ScenePr
       {/* beat 3 — the correct formula */}
       <Fade on={beat >= 3} delay={dl(3, 0.4)}>
         <SvgText x={540} y={218} textAnchor="middle" fontSize={16} fill={INK} fontFamily={ANEK}>
-          Ksp = 4s<TSpan dy={-7} fontSize="0.62em">3</TSpan>
+          Ksp = 4s<TSpan dy={-7} fontSize={9.9}>3</TSpan>
           <TSpan dy={7}> ⇒ s = (Ksp/4)</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">1/3</TSpan>
+          <TSpan dy={-7} fontSize={9.9}>1/3</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 4 — the computation */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
         <SvgText x={540} y={253} textAnchor="middle" fontSize={15} fill={INK} fontFamily={ANEK}>
-          s = (1.1×10<TSpan dy={-7} fontSize="0.62em">−12</TSpan>
+          s = (1.1×10<TSpan dy={-7} fontSize={9.3}>−12</TSpan>
           <TSpan dy={7}>/4)</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">1/3</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>1/3</TSpan>
           <TSpan dy={7}> = (2.75×10</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">−13</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>−13</TSpan>
           <TSpan dy={7}>)</TSpan>
-          <TSpan dy={-7} fontSize="0.62em">1/3</TSpan>
+          <TSpan dy={-7} fontSize={9.3}>1/3</TSpan>
         </SvgText>
       </Fade>
 
       {/* beat 5 — the answer */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
         <SvgText x={540} y={295} textAnchor="middle" fontSize={22} fontWeight={800} fill={GREEN} fontFamily={ANEK}>
-          s ≈ 6.5×10<TSpan dy={-9} fontSize="0.6em">−5</TSpan>
+          s ≈ 6.5×10<TSpan dy={-9} fontSize={13.2}>−5</TSpan>
           <TSpan dy={9}> M</TSpan>
         </SvgText>
       </Fade>

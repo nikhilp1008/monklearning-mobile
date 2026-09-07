@@ -122,12 +122,12 @@ export function NoteContent({ content }: { content: string }) {
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     emptyText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       color: colors.faint,
     },
     heading: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(12),
       letterSpacing: scale(0.6),
       color: colors.amberText,
@@ -174,7 +174,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: 'rgba(28,26,22,.12)',
     },
     dividerText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10.5),
       color: colors.faint,
       textTransform: 'uppercase',

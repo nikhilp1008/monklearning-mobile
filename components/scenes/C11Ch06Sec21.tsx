@@ -30,7 +30,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, Chip, ringD, INK, MUTED, 
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec21({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -95,7 +95,7 @@ export default function C11Ch06Sec21({ currentTime, reveals, language }: ScenePr
       {/* beat 5 — the answer */}
       <Fade on={beat >= 5} delay={dl(5, 0.4)}>
         <SvgText x={540} y={305} textAnchor="middle" fontSize={26} fontWeight={800} fill={GREEN} fontFamily={ANEK}>
-          K = e<TSpan dy={-11} fontSize="0.6em">4.60</TSpan>
+          K = e<TSpan dy={-11} fontSize={15.6}>4.60</TSpan>
           <TSpan dy={11}> ≈ 100</TSpan>
         </SvgText>
       </Fade>

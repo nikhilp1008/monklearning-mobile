@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
@@ -31,7 +31,7 @@ function HomeIcon({ active, size }: TabIconProps) {
   );
 }
 
-function LessonsIcon({ active, size }: TabIconProps) {
+function TextbooksIcon({ active, size }: TabIconProps) {
   const bookPath =
     'M12 6.4C10.1 4.7 7.3 4.1 4 4.5v13c3.3-.4 6.1.2 8 1.9 1.9-1.7 4.7-2.3 8-1.9v-13c-3.3-.4-6.1.2-8 1.9z';
   if (active) {
@@ -51,70 +51,77 @@ function LessonsIcon({ active, size }: TabIconProps) {
   );
 }
 
-function ProgressIcon({ active, size }: TabIconProps) {
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d="M4.5 19h15" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
-        <Rect x={6.9} y={14.5} width={2.2} height={4.5} rx={1.1} fill={colors.ink} />
-        <Rect x={10.9} y={11} width={2.2} height={8} rx={1.1} fill={colors.ink} />
-        <Rect x={14.9} y={7.5} width={2.2} height={11.5} rx={1.1} fill={colors.ink} />
-        <Circle cx={16} cy={4.6} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
+/**
+ * Doubts — a question mark inside a snapped frame.
+ *
+ * A doubt is always a photographed question, so the frame is the corner marks
+ * of a viewfinder rather than a speech bubble, which would have read as chat.
+ * The marigold dot sits where every other icon in this bar carries it.
+ */
+function DoubtsIcon({ active, size }: TabIconProps) {
+  const frame =
+    'M4.2 8.6V6.4a2.2 2.2 0 0 1 2.2-2.2h2.2M15.4 4.2h2.2a2.2 2.2 0 0 1 2.2 2.2v2.2M19.8 15.4v2.2a2.2 2.2 0 0 1-2.2 2.2h-2.2M8.6 19.8H6.4a2.2 2.2 0 0 1-2.2-2.2v-2.2';
+  const mark = 'M9.9 9.7a2.2 2.2 0 1 1 2.6 2.5v1.2';
   return (
-    <Svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      stroke={colors.ink}
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <Path d="M4.5 19h15" />
-      <Path d="M8 19v-4.5M12 19v-8M16 19V7.5" />
-      <Circle cx={16} cy={4.6} r={1.7} fill={colors.faint} stroke="none" />
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path d={frame} stroke={colors.ink} strokeWidth={active ? 2.4 : 1.75} strokeLinecap="round" />
+      <Path
+        d={mark}
+        stroke={colors.ink}
+        strokeWidth={active ? 2.2 : 1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={12.4} cy={16.4} r={active ? 1.6 : 1.4} fill={active ? colors.marigold : colors.faint} />
     </Svg>
   );
 }
 
-function LibraryIcon({ active, size }: TabIconProps) {
+/**
+ * Notes — a ruled page with its corner turned.
+ *
+ * Deliberately not a book: Textbooks already owns that shape, one tab away.
+ * The rules are what separate it from a plain document, and they echo the
+ * ruled paper a note is actually rendered on.
+ */
+function NotesIcon({ active, size }: TabIconProps) {
+  const page = 'M5.6 3.4h7.6l5.2 5.2v12a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V5.4a2 2 0 0 1 2-2z';
   if (active) {
     return (
       <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Rect x={4.75} y={5} width={3.5} height={14} rx={1.2} fill={colors.ink} />
-        <Rect x={10.25} y={5} width={3.5} height={14} rx={1.2} fill={colors.ink} />
-        <Rect x={15.6} y={5.3} width={3.5} height={13.6} rx={1.2} fill={colors.ink} transform="rotate(12 17.35 12.1)" />
-        <Circle cx={12} cy={12} r={1.8} fill={colors.marigold} />
+        <Path d={page} fill={colors.ink} />
+        <Path
+          d="M7.4 12.6h7M7.4 16h4.4"
+          stroke={colors.paper}
+          strokeWidth={1.6}
+          strokeLinecap="round"
+        />
+        <Circle cx={16.4} cy={17.4} r={1.8} fill={colors.marigold} />
       </Svg>
     );
   }
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Rect x={4.75} y={5} width={3.5} height={14} rx={1.2} stroke={colors.ink} strokeWidth={1.75} />
-      <Rect x={10.25} y={5} width={3.5} height={14} rx={1.2} stroke={colors.ink} strokeWidth={1.75} />
-      <Rect
-        x={15.6}
-        y={5.3}
-        width={3.5}
-        height={13.6}
-        rx={1.2}
+      <Path d={page} stroke={colors.ink} strokeWidth={1.75} strokeLinejoin="round" />
+      <Path
+        d="M13.2 3.4v5.2h5.2"
         stroke={colors.ink}
         strokeWidth={1.75}
-        transform="rotate(12 17.35 12.1)"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <Circle cx={12} cy={12} r={1.7} fill={colors.faint} />
+      <Path d="M7.4 12.6h7M7.4 16h4.4" stroke={colors.ink} strokeWidth={1.6} strokeLinecap="round" />
+      <Circle cx={16.4} cy={17.4} r={1.4} fill={colors.faint} />
     </Svg>
   );
 }
 
+
 const TAB_META: Record<string, { label: string; Icon: (props: TabIconProps) => React.ReactElement }> = {
   index: { label: 'Home', Icon: HomeIcon },
-  lessons: { label: 'Lessons', Icon: LessonsIcon },
-  progress: { label: 'Progress', Icon: ProgressIcon },
-  library: { label: 'Library', Icon: LibraryIcon },
+  textbooks: { label: 'Textbooks', Icon: TextbooksIcon },
+  doubts: { label: 'Doubts', Icon: DoubtsIcon },
+  notes: { label: 'Notes', Icon: NotesIcon },
 };
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
@@ -218,12 +225,12 @@ function createStyles(
       opacity: 0.5,
     },
     label: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
       color: colors.faint,
     },
     labelActive: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       color: colors.ink,
     },
   });

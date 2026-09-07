@@ -91,12 +91,12 @@ export default function B11Ch01Sec17({ currentTime, reveals, language }: ScenePr
         </React.Fragment>
       ))}
       <Fade on={beat >= 3} delay={dl(3, 4.2)}>
-        <SvgText x={95} y={340} textAnchor="middle" fontSize={11} fill={RED} fontFamily="var(--font-anek-latin), sans-serif" transform="rotate(-90 95 340)">
+        <SvgText x={95} y={340} textAnchor="middle" fontSize={11} fill={RED} fontFamily='AnekLatin_600SemiBold' transform="rotate(-90 95 340)">
           {t("organisms increase ↑", "organisms increase ↑")}
         </SvgText>
       </Fade>
       <Fade on={beat >= 3} delay={dl(3, 4.5)}>
-        <SvgText x={985} y={340} textAnchor="middle" fontSize={11} fill={GREEN} fontFamily="var(--font-anek-latin), sans-serif" transform="rotate(90 985 340)">
+        <SvgText x={985} y={340} textAnchor="middle" fontSize={11} fill={GREEN} fontFamily='AnekLatin_600SemiBold' transform="rotate(90 985 340)">
           {t("common characters increase ↓", "common characters increase ↓")}
         </SvgText>
       </Fade>

@@ -25,7 +25,7 @@ export type ObservationAction =
   // the screen maps these to literal `router.push` calls and keeps its types.
   | { kind: 'progress' }
   | { kind: 'drona' }
-  | { kind: 'lessons' }
+  | { kind: 'textbooks' }
   | { kind: 'class'; chapterId: string; chapterTitle: string };
 
 export interface Observation {
@@ -131,7 +131,7 @@ export function observe(data: ProgressSummary, classesTaken: number): Observatio
       id: `untouched:${untouched.subject}`,
       text: `${label(untouched.subject)} hasn’t started yet.`,
       meta: `${strong} Strong elsewhere`,
-      action: { kind: 'lessons' },
+      action: { kind: 'textbooks' },
     };
   }
 

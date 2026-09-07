@@ -160,7 +160,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'space-between',
     },
     title: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(17),
       letterSpacing: scale(-0.17),
       color: colors.ink,
@@ -181,7 +181,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.paper,
     },
     subtitle: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.faint,
       marginTop: verticalScale(2),
@@ -215,7 +215,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.ink,
     },
     cellText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(11),
       color: colors.slate,
     },
@@ -263,7 +263,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.ink,
     },
     legendText: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),
       color: colors.slate,
     },

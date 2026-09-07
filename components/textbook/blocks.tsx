@@ -123,7 +123,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={st.plainBlock}>
           <Text style={kicker(scale)}>Definition</Text>
-          <Text style={st.defTerm}>{block.term}</Text>
+          <Markup html={block.term} size={scale(15)} style={st.defTerm} />
           <Markup html={block.html} size={scale(15)} style={[s.blockBody, st.defBody]} />
         </View>
       );
@@ -145,7 +145,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={s.card}>
           <View style={st.formulaHead}>
-            <Text style={[kicker(scale), st.grow]}>{block.kicker}</Text>
+            <Text style={[kicker(scale), st.headLabel]}>{block.kicker}</Text>
             {!!block.tag && <Text style={[kicker(scale), st.tag]}>{block.tag}</Text>}
           </View>
           <Markup html={block.main} size={scale(20)} style={[mathText(scale, 20), st.formulaMain]} />
@@ -197,7 +197,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                   />
                   <Chevron open={open} scale={scale} />
                 </Pressable>
-                {open && <Text style={st.derivWhy}>{step.why}</Text>}
+                {open && <Markup html={step.why} size={scale(13.5)} style={st.derivWhy} />}
               </View>
             );
           })}
@@ -236,7 +236,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
               <View style={st.swipeCard}>
                 <View style={st.formulaHead}>
-                  <Text style={[kicker(scale), st.grow]}>
+                  <Text style={[kicker(scale), st.headLabel]}>
                     Solved example · {i + 1} of {block.items.length}
                   </Text>
                   <Text style={[kicker(scale, 9.5), st.tag]}>{ex.tag}</Text>
@@ -345,7 +345,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
               <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
                   <View style={st.formulaHead}>
-                    <Text style={[kicker(scale), st.grow]}>
+                    <Text style={[kicker(scale), st.headLabel]}>
                       Practice · {i + 1} of {block.items.length}
                     </Text>
                     <Text style={[kicker(scale, 9.5), st.tag]}>Try first</Text>
@@ -405,14 +405,12 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             {block.rows.map((row, i) => (
               <View key={i} style={st.snapRow}>
                 <Markup html={row.f} size={scale(14.5)} style={mathText(scale, 14.5)} />
-                <Text style={st.snapNote}>{row.note}</Text>
+                <Markup html={row.note} size={scale(13)} style={st.snapNote} />
               </View>
             ))}
             <View style={st.snapAids}>
               {block.aids.map((aid, i) => (
-                <Text key={i} style={[s.hand, st.snapAid]}>
-                  {aid}
-                </Text>
+                <Markup key={i} html={aid} size={scale(14)} style={[s.hand, st.snapAid]} />
               ))}
             </View>
           </View>
@@ -454,7 +452,7 @@ function makeStyles(scale: (n: number) => number) {
     },
     thinkText: { fontSize: scale(16), lineHeight: scale(16 * 1.55) },
     defTerm: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(17),
       letterSpacing: scale(-0.26),
       color: colors.ink,
@@ -471,30 +469,47 @@ function makeStyles(scale: (n: number) => number) {
     },
     gridKey: {
       width: scale(116),
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       lineHeight: scale(13 * 1.45),
       color: colors.ink,
     },
     gridVal: {
       flex: 1,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(13.5 * 1.5),
       color: colors.slate,
     },
-    formulaHead: { flexDirection: 'row', alignItems: 'flex-start', gap: scale(10) },
-    tag: { color: colors.quiet, letterSpacing: scale(0.6) },
+    // Wraps rather than squeezing. Both children carry real text -- a label
+    // and a gloss -- and across the corpus they run to 105 characters
+    // combined. `flex: 1` on the label gave it a flex basis of 0, so the tag
+    // claimed its full content width first and the label was left breaking
+    // mid-word down a column two characters wide. Now neither has a zero
+    // basis, so they share the line when they fit and the tag drops to its
+    // own line when they do not.
+    formulaHead: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'flex-start',
+      columnGap: scale(10),
+      rowGap: scale(3),
+    },
+    // Shrinks to share the line, but never to a zero basis the way `grow` did.
+    headLabel: { flexShrink: 1 },
+    // `marginLeft: auto` keeps a short tag against the right edge on a shared
+    // line; a long one fills its own line and the auto margin does nothing.
+    tag: { color: colors.quiet, letterSpacing: scale(0.6), flexShrink: 1, marginLeft: 'auto' },
     formulaMain: { textAlign: 'center', paddingTop: scale(16), paddingBottom: scale(14) },
     formulaLegend: { gap: scale(4), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)', paddingTop: scale(10) },
     legendLine: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(13 * 1.55),
       color: colors.faint,
     },
     formulaNote: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(13 * 1.5),
       color: colors.slate,
@@ -502,7 +517,7 @@ function makeStyles(scale: (n: number) => number) {
     procList: { gap: scale(9), marginTop: scale(10) },
     procRow: { flexDirection: 'row', gap: scale(11) },
     stepNum: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(10.5),
       color: colors.quiet,
       paddingTop: scale(2),
@@ -520,13 +535,13 @@ function makeStyles(scale: (n: number) => number) {
     // to which step. Fainter than a pressed state on purpose.
     derivHeadOpen: { backgroundColor: 'rgba(28,26,22,.03)' },
     derivNum: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(10.5),
       color: colors.quiet,
       width: scale(16),
     },
     derivWhy: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(13.5 * 1.55),
       color: colors.slate,
@@ -544,7 +559,7 @@ function makeStyles(scale: (n: number) => number) {
       paddingHorizontal: scale(16),
     },
     cardQ: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(15 * 1.6),
       color: colors.ink,
@@ -560,14 +575,14 @@ function makeStyles(scale: (n: number) => number) {
       paddingTop: scale(11),
     },
     exStep: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(13.5 * 1.55),
       color: colors.slate,
     },
     exAns: {
       marginTop: scale(10),
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(13.5 * 1.55),
       color: colors.slate,
@@ -589,20 +604,20 @@ function makeStyles(scale: (n: number) => number) {
     optWrong: { borderColor: 'rgba(221,68,51,.5)' },
     optPressed: { transform: [{ scale: 0.985 }] },
     optTag: {
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(10.5),
       color: colors.quiet,
     },
     optLabel: {
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       lineHeight: scale(14 * 1.45),
       color: colors.ink,
     },
-    optMark: { fontFamily: 'AnekLatin_700Bold', fontSize: scale(13.5) },
+    optMark: { fontFamily: 'Onest_700Bold', fontSize: scale(13.5) },
     reveal: { marginTop: scale(9) },
     revealBody: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13.5),
       lineHeight: scale(13.5 * 1.55),
       color: colors.slate,
@@ -620,18 +635,18 @@ function makeStyles(scale: (n: number) => number) {
     },
     checkBtnPressed: { transform: [{ scale: 0.97 }] },
     checkBtnText: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13.5),
       color: colors.ink,
     },
     cross: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.red,
       paddingTop: scale(1),
     },
     mistakeText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(14 * 1.55),
       color: colors.slate,
@@ -663,10 +678,10 @@ function makeStyles(scale: (n: number) => number) {
       backgroundColor: colors.tint,
     },
     snapKicker: { color: colors.slate },
-    snapTick: { fontFamily: 'AnekLatin_800ExtraBold', fontSize: scale(10), color: colors.amberText },
+    snapTick: { fontFamily: 'Onest_800ExtraBold', fontSize: scale(10), color: colors.amberText },
     snapBody: { paddingVertical: scale(14), paddingHorizontal: scale(16) },
     snapRow: { flexDirection: 'row', alignItems: 'baseline', gap: scale(10), flexWrap: 'wrap', marginBottom: scale(8) },
-    snapNote: { fontFamily: 'AnekLatin_400Regular', fontSize: scale(12), color: colors.faint },
+    snapNote: { fontFamily: 'Onest_400Regular', fontSize: scale(12), color: colors.faint },
     snapAids: {
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.16)',

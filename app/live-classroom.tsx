@@ -68,10 +68,6 @@ import {
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
-import { BoardWidget } from '@/lib/widgets/BoardWidget';
-import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
-import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
-import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
 import { EnteringCardScreen } from '@/components/entering-card';
 import {
   LONG_WAIT_TEXT,
@@ -80,8 +76,6 @@ import {
 } from '@/constants/classroom-status';
 import { useStagedStatus } from '@/hooks/use-staged-status';
 import { latexToText } from '@/lib/latex-text';
-import { MicStatus, probeMicAvailability } from '@/lib/mic-availability';
-import { spokenMathToNotation } from '@/lib/spoken-math';
 import { supabase } from '@/lib/supabase';
 
 
@@ -138,26 +132,9 @@ interface AudioRecorderLike {
  * feature instead of crashing on app open.
  */
 let useAudioRecorder: () => AudioRecorderLike;
-/** Whether the native module is there at all — the first input to the mic probe. */
-let audioStudioLoaded = false;
-/**
- * The RAW native device enumeration.
- *
- * Deliberately NOT `audioDeviceManager.getAvailableDevices()`, which is the
- * obvious-looking call. That wrapper catches its own native failure and returns
- * a fabricated `DEFAULT_DEVICE` — `isAvailable: true`, a full `sampleRates`
- * list — so a probe that failed comes back indistinguishable from a healthy
- * built-in mic. Going straight to the module keeps a failure a failure; see
- * `lib/mic-availability.ts`.
- */
-let listInputDevices: () => Promise<unknown> = () =>
-  Promise.reject(new Error('audio-studio not loaded'));
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const audioStudio = require('@siteed/audio-studio');
-  useAudioRecorder = audioStudio.useAudioRecorder;
-  listInputDevices = () => audioStudio.AudioStudioModule.getAvailableInputDevices({ refresh: true });
-  audioStudioLoaded = true;
+  useAudioRecorder = require('@siteed/audio-studio').useAudioRecorder;
 } catch (err) {
   console.error('[live-classroom] @siteed/audio-studio failed to load:', err);
   useAudioRecorder = function useUnavailableAudioRecorder(): AudioRecorderLike {
@@ -212,12 +189,6 @@ export default function LiveClassroomScreen() {
   });
 
   const [micDenied, setMicDenied] = useState(false);
-  /**
-   * Whether speaking is on, and if not, why. Drives the rail's own appearance
-   * so the student can see that the button is off without pressing it, and
-   * picks the wording of the card when they do.
-   */
-  const [micStatus, setMicStatus] = useState<MicStatus>('checking');
   const [checkOptions, setCheckOptions] = useState<string[]>([]);
   /**
    * The question the chips answer, held separately from `caption`.
@@ -327,16 +298,6 @@ export default function LiveClassroomScreen() {
         dismissCard();
         setIsThinking(false);
         setCaption(text);
-        // A cue caption describes the figure at the moment it changes, so it
-        // outranks the narration line for that sentence — but only for that
-        // sentence. It is cleared here rather than by the widget because a
-        // board item never unmounts (the board is a ScrollView of every event
-        // in the turn), so the widget's own cleanup never runs and the strip
-        // would stay pinned to a diagram's caption for the rest of the class
-        // while the audio moved on. Ordering is safe: this runs in
-        // `onItemStart` immediately before `onBoardReveal`, so a cue firing on
-        // the same sentence still writes after this and wins.
-        setWidgetCaption(null);
       },
       onTranscriptPartial: (text) => setLiveTranscript(text),
       onTranscriptFinal: (text) => {
@@ -468,113 +429,6 @@ export default function LiveClassroomScreen() {
     }),
     [windowWidth, boardHeight]
   );
-  /**
-   * The board's own ink, so a widget diagram is not in a different hand than
-   * the writing around it. `fontFamily` must be one of the app's loaded
-   * families — mirrors the theme built for the (reverted) lesson-player M1
-   * wiring, since the requirement is the same wherever a widget renders.
-   */
-  const widgetTheme = useMemo<WidgetTheme>(
-    () => ({
-      ink: INK,
-      inkMuted: INK_MUTED,
-      rule: HAIRLINE,
-      accent: DEEP_AMBER,
-      surface: colors.paper,
-      fontFamily: 'Onest_400Regular',
-      monoFontFamily: 'Menlo',
-    }),
-    []
-  );
-
-  /**
-   * Only `molecule_3d` needs `resolveStructure`, and it is not built against
-   * live doubts yet, so this rejects rather than pretending. It must never
-   * reach the network when implemented — cache-first and offline by
-   * contract, because a live class has to render with the radio off.
-   */
-  const widgetServices = useMemo<WidgetServices>(
-    () => ({
-      resolveStructure: async (ref: string) => {
-        throw new Error(`No structure cache yet for ${ref}`);
-      },
-    }),
-    []
-  );
-
-  /** A tier-3 render is a measurement, not a failure — it feeds the queue
-   *  that decides which widget gets built next. Logged locally until
-   *  0021_board_widgets.sql is run and board_gaps exists. */
-  const onWidgetGap = useCallback((reason: string, detail: unknown) => {
-    console.warn('[board-gap]', reason, detail);
-  }, []);
-
-  /**
-   * The clock a live session actually has: not seconds, but how far the
-   * board has gotten in the server's own reveal order. `board` is appended
-   * to strictly in reveal sequence (`onBoardReveal`), so the last entry's
-   * `seq` is "how far we've gotten" — see `Cue.seq` in lib/widgets/types.ts.
-   */
-  const activeSeq = board.length > 0 ? board[board.length - 1].seq : null;
-
-  /** The active cue's caption, already {{token}}-interpolated. Takes
-   *  precedence over the narration caption in the strip below while a cue is
-   *  live — it is the more specific thing at that moment, same call as the
-   *  (reverted) lesson-player wiring made. */
-  const [widgetCaption, setWidgetCaption] = useState<string | null>(null);
-  const onWidgetCaption = useCallback((c: string | null) => setWidgetCaption(c), []);
-
-  /** What the strip actually shows: the cue caption if one is live, otherwise
-   *  the narration line, with its spelled-out maths rendered as notation.
-   *  Memoised because it runs on every render of a screen that re-renders on
-   *  the audio clock. */
-  const captionText = useMemo(
-    () => spokenMathToNotation(widgetCaption ?? caption),
-    [widgetCaption, caption]
-  );
-
-  /** Everything a `BoardWidget` needs beyond its own payload and its share of
-   *  the board box (`diagramBox`) — kept separate from `diagramBox` because
-   *  `BoardDiagram` (the tier-3 fallback) has no use for any of it. */
-  /**
-   * The illustration tier's asset store.
-   *
-   * `prefetch` runs ONCE, on mount, before any board event can arrive — it is
-   * the only asynchronous step on this path, and it is deliberately not
-   * awaited by anything that renders. During the class `BoardWidget` calls
-   * `figures.get(slug)`, which is synchronous and cache-only: a live class
-   * renders with the radio off (CLAUDE.md §3), and a slug that was not
-   * prefetched costs the student a figure, not a stalled board.
-   *
-   * Today the resolver is the bundled PLACEHOLDER — one generated PNG and a
-   * hand-written label set — because `concept_assets` does not exist and all
-   * 48 rows of illustration-manifest.csv are `status=todo`. When the R2
-   * loader lands, this constant is the only line that changes.
-   */
-  const figures = useMemo<FigureResolver>(() => placeholderFigureResolver, []);
-  useEffect(() => {
-    // Fire-and-forget on purpose: nothing renders off this promise. The
-    // report names the slugs that will miss, BEFORE the class, which is the
-    // only moment that information is actionable.
-    void figures.prefetch(figures.cached()).then((report) => {
-      if (report.missing.length > 0) {
-        console.warn('[figures] not resolvable offline:', report.missing.join(', '));
-      }
-    });
-  }, [figures]);
-
-  const widgetHost = useMemo(
-    () => ({
-      activeSeq,
-      theme: widgetTheme,
-      services: widgetServices,
-      figures,
-      onGap: onWidgetGap,
-      onCaption: onWidgetCaption,
-    }),
-    [activeSeq, widgetTheme, widgetServices, figures, onWidgetGap, onWidgetCaption]
-  );
-
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   /**
@@ -716,34 +570,14 @@ export default function LiveClassroomScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      /**
-       * Everything about whether the mic can be opened is settled HERE, before
-       * `startRecording` is called, because the failure this guards against is
-       * not catchable once the call is made.
-       *
-       * `startRecording` reaches `AVAudioEngine.inputNode`, and on a device
-       * with no reachable audio input that getter aborts the process:
-       * `AURemoteIO::Cleanup()` → `_CheckRPCError` → `abort()`, SIGABRT, on
-       * audio-studio's own `net.siteed.audiostudio.lifecycle` queue. An
-       * `abort()` does not unwind, so the `try` below cannot see it, and it is
-       * not even on this thread. There is no recovery — only avoidance.
-       *
-       * So the probe answers two questions with APIs that never construct an
-       * engine input node: does the student allow it, and is there anything to
-       * record from. Anything it could not find out counts as "no".
-       */
-      const mic = await probeMicAvailability({
-        moduleLoaded: audioStudioLoaded,
-        getPermission: getRecordingPermissionsAsync,
-        requestPermission: requestRecordingPermissionsAsync,
-        listInputDevices,
-      });
+      const existing = await getRecordingPermissionsAsync();
+      let granted = existing.granted;
+      if (!granted && existing.canAskAgain) {
+        granted = (await requestRecordingPermissionsAsync()).granted;
+      }
       if (cancelled) return;
-      if (mic.status !== 'available') {
-        // Not fatal, and not silent: the rail dims and says "Mic off", and the
-        // card explains it on press. Drona keeps teaching either way.
-        console.warn(`[live-classroom] voice questions disabled (${mic.status}): ${mic.reason}`);
-        setMicStatus(mic.status);
+      if (!granted) {
+        // Not an error state yet — the button explains itself when pressed.
         return;
       }
       try {
@@ -772,16 +606,9 @@ export default function LiveClassroomScreen() {
             }
           },
         });
-        if (cancelled) return;
-        micReadyRef.current = true;
-        setMicStatus('available');
-      } catch (err) {
-        // A REJECTED start — a format the engine refused, a session another
-        // app is holding. Survivable, unlike the abort the probe above exists
-        // to dodge. Leave `micReadyRef` false and say so on the rail.
-        if (cancelled) return;
-        console.warn('[live-classroom] recorder refused to start:', err);
-        setMicStatus('unavailable');
+        if (!cancelled) micReadyRef.current = true;
+      } catch {
+        // Leave `micReadyRef` false; the button reports it on press.
       }
     })();
     return () => {
@@ -828,15 +655,6 @@ export default function LiveClassroomScreen() {
   // without taking it as a dependency and re-arming on every render.
   const doneListeningRef = useRef<() => void>(doneListening);
   doneListeningRef.current = doneListening;
-
-  /**
-   * Speaking is known to be off — as distinct from `checking`, where the probe
-   * has not answered yet and dimming the button would be guessing. `checking`
-   * is normally sub-second and always resolves (the probe has its own
-   * timeout), so the button is only ever briefly non-committal.
-   */
-  const voiceOff = micStatus !== 'available' && micStatus !== 'checking';
-  const micNotice = micNoticeFor(micStatus);
 
   const togglePause = () => {
     setPaused((p) => {
@@ -952,12 +770,7 @@ export default function LiveClassroomScreen() {
             ) : (
               board.map((event, i) => (
                 <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
-                  <BoardBlockView
-                    event={event}
-                    styles={styles}
-                    diagramBox={diagramBox}
-                    widgetHost={widgetHost}
-                  />
+                  <BoardBlockView event={event} styles={styles} diagramBox={diagramBox} />
                 </Animated.View>
               ))
             )}
@@ -1055,16 +868,10 @@ export default function LiveClassroomScreen() {
           chips are answers, and answers with the question hidden are the exact
           thing this screen is not allowed to show. It closes again on its own
           the moment the question is answered. */}
-      {/* Notation, not dictation. `speech` is authored for TTS and may not
-          contain LaTeX (the engine reads the delimiters aloud), so it spells
-          maths out — "3.2 times 10 to the power minus 19". That is right for
-          the ear and wrong for the eye sitting under a board that renders
-          1.6 × 10⁻¹⁹ C properly. Converted at the point of display only; the
-          audio and the stored caption are untouched. */}
       <CaptionStrip
         open={captions || handRaised || checkOptions.length > 0}
         listening={handRaised}
-        text={captionText}
+        text={caption}
       />
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
@@ -1074,38 +881,21 @@ export default function LiveClassroomScreen() {
         <View style={styles.railDivider} />
 
         {/* Press and hold to speak; release to hand the board back. No
-            confirm step, no "done" button, no modal.
-
-            When there is no mic to open, the button stays here and stays
-            pressable — it is the only place the student would look — but it
-            wears the off state (dimmed plate, struck-through mic, "Mic off")
-            so the answer is visible before the press, and pressing it opens
-            the card that says why rather than doing nothing. */}
+            confirm step, no "done" button, no modal. */}
         <Pressable
-          style={[
-            styles.talkButton,
-            handRaised && styles.talkButtonOn,
-            voiceOff && styles.talkButtonOff,
-          ]}
+          style={[styles.talkButton, handRaised && styles.talkButtonOn]}
           onPressIn={raiseHand}
           onPressOut={doneListening}>
           {handRaised && <TalkGlow />}
           {handRaised && <TalkPulse />}
           {handRaised ? (
             <LevelBars color={INK} heights={[9, 17, 12]} />
-          ) : voiceOff ? (
-            <MicOffIcon size={18} color={colors.paper} />
           ) : (
             <MicIcon size={18} color={colors.paper} />
           )}
         </Pressable>
-        <Text
-          style={[
-            styles.talkLabel,
-            handRaised && styles.talkLabelOn,
-            voiceOff && styles.talkLabelOff,
-          ]}>
-          {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
+        <Text style={[styles.talkLabel, handRaised && styles.talkLabelOn]}>
+          {handRaised ? 'Speaking' : 'Interrupt'}
         </Text>
 
         <View style={styles.railDivider} />
@@ -1121,36 +911,27 @@ export default function LiveClassroomScreen() {
 
       <EdgeTab visible={!chromeVisible} onPress={showChrome} />
 
-      {/* Mic off: say plainly WHICH way it is off, and offer Settings only when
-          Settings is actually the fix. A student who has no input at all, or
-          whose device cannot reach its audio hardware, is not helped by being
-          sent to a permission toggle that is already on — that is the kind of
-          dead-end instruction that reads as the app blaming them.
+      {/* Mic denied: say so plainly and offer the one action that fixes it.
           Drona keeps teaching behind this — only speaking is unavailable. */}
       {micDenied && (
         <Animated.View entering={FadeIn.duration(200)} style={styles.micDeniedCard}>
-          <Text style={styles.micDeniedTitle}>{micNotice.title}</Text>
-          <Text style={styles.micDeniedBody}>{micNotice.body}</Text>
+          <Text style={styles.micDeniedTitle}>Microphone is off</Text>
+          <Text style={styles.micDeniedBody}>
+            Drona needs your mic to hear you. Turn it on in Settings — the class keeps going
+            either way.
+          </Text>
           <View style={styles.micDeniedRow}>
-            {micNotice.settingsFixesIt ? (
-              <>
-                <Pressable style={styles.micDeniedGhost} onPress={() => setMicDenied(false)}>
-                  <Text style={styles.micDeniedGhostText}>Not now</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.micDeniedPrimary}
-                  onPress={() => {
-                    setMicDenied(false);
-                    Linking.openSettings();
-                  }}>
-                  <Text style={styles.micDeniedPrimaryText}>Open Settings</Text>
-                </Pressable>
-              </>
-            ) : (
-              <Pressable style={styles.micDeniedPrimary} onPress={() => setMicDenied(false)}>
-                <Text style={styles.micDeniedPrimaryText}>Got it</Text>
-              </Pressable>
-            )}
+            <Pressable style={styles.micDeniedGhost} onPress={() => setMicDenied(false)}>
+              <Text style={styles.micDeniedGhostText}>Not now</Text>
+            </Pressable>
+            <Pressable
+              style={styles.micDeniedPrimary}
+              onPress={() => {
+                setMicDenied(false);
+                Linking.openSettings();
+              }}>
+              <Text style={styles.micDeniedPrimaryText}>Open Settings</Text>
+            </Pressable>
           </View>
         </Animated.View>
       )}
@@ -1254,19 +1035,10 @@ function BoardBlockView({
   event,
   styles,
   diagramBox,
-  widgetHost,
 }: {
   event: BoardEvent;
   styles: Styles;
   diagramBox: { availableWidth: number; maxHeight: number };
-  widgetHost: {
-    activeSeq: number | null;
-    theme: WidgetTheme;
-    services: WidgetServices;
-    figures: FigureResolver;
-    onGap: (reason: string, detail: unknown) => void;
-    onCaption: (caption: string | null) => void;
-  };
 }) {
   const raw =
     event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
@@ -1289,24 +1061,6 @@ function BoardBlockView({
   // A figure, not a line of writing — it owns its own sizing and never goes
   // near the LaTeX converter.
   if (event.type === 'diagram') {
-    // A payload beats markup wherever both exist: the registry draws the
-    // real curve from live parameters, an `svg` string draws an
-    // approximation the model produced by hand.
-    if (event.payload) {
-      return (
-        <BoardWidget
-          event={{ seq: event.seq, payload: event.payload, tier: event.tier ?? 'precomputed' }}
-          activeSeq={widgetHost.activeSeq}
-          width={diagramBox.availableWidth}
-          height={diagramBox.maxHeight}
-          theme={widgetHost.theme}
-          services={widgetHost.services}
-          figures={widgetHost.figures}
-          onGap={widgetHost.onGap}
-          onCaption={widgetHost.onCaption}
-        />
-      );
-    }
     if (!event.svg) return null;
     return (
       <BoardDiagram
@@ -1331,45 +1085,6 @@ function BoardBlockView({
   );
 }
 
-/**
- * What the card says, per reason speaking is off.
- *
- * `settingsFixesIt` is the load-bearing field: only a refused permission is
- * fixable from Settings. Offering that button for "there is no microphone" or
- * "this device cannot reach its audio hardware" sends the student to a toggle
- * that is already on, and they come back to the same dead button none the
- * wiser.
- */
-function micNoticeFor(status: MicStatus): {
-  title: string;
-  body: string;
-  settingsFixesIt: boolean;
-} {
-  switch (status) {
-    case 'denied':
-      return {
-        title: 'Microphone is off',
-        body: 'Drona needs your mic to hear you. Turn it on in Settings — the class keeps going either way.',
-        settingsFixesIt: true,
-      };
-    case 'no-input':
-      return {
-        title: 'No microphone found',
-        body: "There's no microphone for Drona to listen through, so speaking is off. The class keeps going — answer with the chips instead.",
-        settingsFixesIt: false,
-      };
-    // 'unavailable', and 'checking'/'available' defensively: the card only opens
-    // from a press that already failed, so a stale status still needs wording
-    // that is true.
-    default:
-      return {
-        title: 'Speaking is unavailable',
-        body: "Drona can't reach the microphone on this device right now, so speaking is off. Everything else in the class works as normal.",
-        settingsFixesIt: false,
-      };
-  }
-}
-
 function MicIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -1382,28 +1097,6 @@ function MicIcon({ size, color }: { size: number; color: string }) {
       />
       <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
       <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-/**
- * The same mic, struck through — the off state of the Interrupt button. Drawn
- * rather than swapped for a different glyph so the button reads as the same
- * control in two states, not two controls.
- */
-function MicOffIcon({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"
-        stroke={color}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-      <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-      <Path d="M4 3l16 18" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -1597,20 +1290,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: RHYTHM,
       color: INK,
     },
-    // No maxWidth. There used to be a 560 cap here and on boardKalamNote,
-    // which is a sane reading measure for a portrait column and the wrong one
-    // for this board: the content box is windowWidth - BOARD_LEFT(56) -
-    // BOARD_RIGHT_GUTTER(116), which on an iPhone 17 landscape is 702pt, so
-    // the cap left 142pt of every wrapped line empty and the board read as
-    // three-quarters full. The box itself is now the measure — it is already
-    // bounded by the notch gutter on one side and the thumb-rail clearance on
-    // the other. If lines ever feel too long to track on a wider device, cap
-    // it again against the measured board width rather than a fixed 560.
     boardBody: {
       fontFamily: 'Onest_400Regular',
       fontSize: 13.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
+      maxWidth: 560,
     },
     boardBodyBold: {
       fontFamily: 'Onest_700Bold',
@@ -1620,6 +1305,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       fontSize: 14.5,
       lineHeight: RHYTHM,
+      maxWidth: 560,
       transform: [{ rotate: '-0.4deg' }],
     },
     writingRow: {
@@ -1796,14 +1482,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     talkButtonOn: {
       backgroundColor: AMBER,
     },
-    /** Off, not missing: same plate, drained of the shadow that makes it read
-     *  as a live control. */
-    talkButtonOff: {
-      backgroundColor: INK_MUTED,
-      opacity: 0.55,
-      shadowOpacity: 0,
-      elevation: 0,
-    },
     // Pinned to 54 so the plate cannot resize when the label changes.
     talkLabel: {
       width: 54,
@@ -1817,9 +1495,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     talkLabelOn: {
       color: DEEP_AMBER,
-    },
-    talkLabelOff: {
-      color: INK_FAINT,
     },
     railButton: {
       width: 30,
@@ -2030,8 +1705,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rquoteLabel: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.9),
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.68),
       textTransform: 'uppercase',
       color: '#C53A2B',
     },
@@ -2044,8 +1719,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rwhatsWrong: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.5),
-      letterSpacing: scale(1.33),
+      fontSize: scale(8.55),
+      letterSpacing: scale(1.0),
       textTransform: 'uppercase',
       color: colors.faint,
     },

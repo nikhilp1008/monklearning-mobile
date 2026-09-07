@@ -100,10 +100,10 @@ export const ch01Sets: Chapter = {
           "t": "formula",
           "kicker": "THE STANDARD NUMBER SETS",
           "tag": "your universes",
-          "main": "ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ",
+          "main": "ℕ ⊂ W ⊂ ℤ ⊂ ℚ ⊂ ℝ",
           "legend": [
-            "ℕ = {1, 2, 3, …} naturals · 𝕎 = {0, 1, 2, …} wholes",
-            "ℤ = integers · ℚ = fractions p/q, q ≠ 0 · ℝ = reals · 𝕋 = irrationals"
+            "ℕ = {1, 2, 3, …} naturals · W = {0, 1, 2, …} wholes",
+            "ℤ = integers · ℚ = fractions p/q, q ≠ 0 · ℝ = reals · T = irrationals"
           ],
           "note": "The same condition gives different sets over different universes, read the universe symbol first."
         },
@@ -318,8 +318,8 @@ export const ch01Sets: Chapter = {
               "note": "equal ⇒ equivalent only"
             },
             {
-              "f": "ℕ ⊂ 𝕎 ⊂ ℤ ⊂ ℚ ⊂ ℝ",
-              "note": "𝕋 = the irrationals"
+              "f": "ℕ ⊂ W ⊂ ℤ ⊂ ℚ ⊂ ℝ",
+              "note": "T = the irrationals"
             }
           ],
           "aids": [

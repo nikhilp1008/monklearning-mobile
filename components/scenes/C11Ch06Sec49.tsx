@@ -27,7 +27,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, GREEN,
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = "var(--font-anek-latin), sans-serif";
+const ANEK = 'AnekLatin_600SemiBold';
 
 export default function C11Ch06Sec49({ currentTime, reveals, language }: SceneProps) {
   const beat = useBeat(currentTime, reveals);
@@ -71,9 +71,9 @@ export default function C11Ch06Sec49({ currentTime, reveals, language }: ScenePr
       {/* beat 3 — the simplification */}
       <Fade on={beat >= 3} delay={dl(3, 0.4)}>
         <SvgText x={540} y={180} textAnchor="middle" fontSize={17} fill={INK} fontFamily={ANEK}>
-          Ka = cα<TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          Ka = cα<TSpan dy={-8} fontSize={10.2}>2</TSpan>
           <TSpan dy={8}>/(1−α)  →  (α≪1)  →  cα</TSpan>
-          <TSpan dy={-8} fontSize="0.6em">2</TSpan>
+          <TSpan dy={-8} fontSize={10.2}>2</TSpan>
         </SvgText>
       </Fade>
 

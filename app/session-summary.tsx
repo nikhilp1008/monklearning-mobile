@@ -268,7 +268,7 @@ function createStyles() {
     scrollContent: { paddingHorizontal: GUTTER, paddingTop: 24, paddingBottom: 36 },
 
     heading: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 32,
       letterSpacing: -0.04 * 32,
       lineHeight: 32 * 1.06,
@@ -276,29 +276,29 @@ function createStyles() {
     },
     sub: {
       marginTop: 8,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 16,
       lineHeight: 16 * 1.5,
       color: INK_70,
     },
     topic: {
       marginTop: 16,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 15,
       color: AMBER,
     },
 
     stats: { flexDirection: 'row', gap: 30, marginTop: 22 },
     statValue: {
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 26,
       letterSpacing: -0.03 * 26,
       color: INK,
     },
-    statOf: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 17, color: INK_50 },
+    statOf: { fontFamily: 'Onest_600SemiBold', fontSize: 17, color: INK_50 },
     statLabel: {
       marginTop: 2,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: INK_50,
     },
@@ -326,13 +326,13 @@ function createStyles() {
     previewLead: {
       marginTop: 28,
       marginBottom: 10,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13.5,
       color: INK_50,
     },
     noteTopic: {
       marginBottom: 14,
-      fontFamily: 'AnekLatin_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 19,
       letterSpacing: -0.03 * 19,
       color: INK,
@@ -340,7 +340,7 @@ function createStyles() {
 
     label: {
       marginBottom: 14,
-      fontFamily: 'AnekLatin_800ExtraBold',
+      fontFamily: 'Onest_800ExtraBold',
       fontSize: 11,
       letterSpacing: 0.14 * 11,
       color: AMBER,
@@ -357,7 +357,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     coveredText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 15.5,
       lineHeight: CARD_RULE,
       color: INK_70,
@@ -371,7 +371,7 @@ function createStyles() {
       borderTopColor: HAIR,
     },
     noteMoreText: {
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 13.5,
       lineHeight: 13.5 * 1.5,
       color: INK_50,
@@ -379,14 +379,14 @@ function createStyles() {
 
     foot: {
       marginTop: 22,
-      fontFamily: 'AnekLatin_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: 13.5,
       lineHeight: 13.5 * 1.5,
       color: INK_50,
     },
     error: {
       marginTop: 12,
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: RED,
     },
@@ -405,11 +405,11 @@ function createStyles() {
       justifyContent: 'center',
     },
     primarySaved: { backgroundColor: 'rgba(28,155,87,0.12)' },
-    primaryText: { fontFamily: 'AnekLatin_600SemiBold', fontSize: 16, color: PAPER },
+    primaryText: { fontFamily: 'Onest_600SemiBold', fontSize: 16, color: PAPER },
     primaryTextSaved: { color: '#14663A' },
     dashboardLink: {
       textAlign: 'center',
-      fontFamily: 'AnekLatin_600SemiBold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 14,
       color: INK_50,
       paddingVertical: 14,

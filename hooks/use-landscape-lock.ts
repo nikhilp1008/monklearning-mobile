@@ -53,7 +53,7 @@ function cancelPendingRestore() {
   }
 }
 
-function useOrientationLock(target: 'landscape' | 'portrait'): boolean {
+function useOrientationLock(target: 'landscape' | 'portrait', pinned = false): boolean {
   const { width, height } = useWindowDimensions();
   const [timedOut, setTimedOut] = useState(false);
 
@@ -71,9 +71,14 @@ function useOrientationLock(target: 'landscape' | 'portrait'): boolean {
     // screen because the restore would undo the hand-off it is completing.
     cancelPendingRestore();
 
+    // `LANDSCAPE` permits both directions, so the board re-orients whenever the
+    // phone passes through upside-down — a student shifting position or lying
+    // down watches the lesson flip under them. `pinned` holds one direction.
     const lock =
       target === 'landscape'
-        ? ScreenOrientation.OrientationLock.LANDSCAPE
+        ? pinned
+          ? ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
+          : ScreenOrientation.OrientationLock.LANDSCAPE
         : ScreenOrientation.OrientationLock.PORTRAIT_UP;
     ScreenOrientation.lockAsync(lock).catch(() => {});
 
@@ -89,7 +94,7 @@ function useOrientationLock(target: 'landscape' | 'portrait'): boolean {
         }
       }, RESTORE_GRACE_MS);
     };
-  }, [target]);
+  }, [target, pinned]);
 
   if (Platform.OS === 'web') return true;
   const matches = target === 'landscape' ? width > height : height >= width;
@@ -102,8 +107,8 @@ function useOrientationLock(target: 'landscape' | 'portrait'): boolean {
  * wide layout into a still-portrait window is what made these transitions look
  * broken.
  */
-export function useLandscapeLock(): boolean {
-  return useOrientationLock('landscape');
+export function useLandscapeLock(pinned = false): boolean {
+  return useOrientationLock('landscape', pinned);
 }
 
 /**

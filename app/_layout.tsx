@@ -15,10 +15,9 @@ import {
   AnekLatin_700Bold,
   AnekLatin_800ExtraBold,
 } from '@expo-google-fonts/anek-latin';
-// The classroom caption line only — the design gives the Hinglish captions
-// their own family, and it is the one place in the app that uses it.
-import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
-import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
+// Onest is the website's typeface (monklearning.com sets it on `body`).
+// Home is the first screen moved onto it; the rest of the app is still on
+// Anek Latin, so both families load until the migration finishes.
 import {
   Onest_400Regular,
   Onest_500Medium,
@@ -26,6 +25,10 @@ import {
   Onest_700Bold,
   Onest_800ExtraBold,
 } from '@expo-google-fonts/onest';
+// The classroom caption line only — the design gives the Hinglish captions
+// their own family, and it is the one place in the app that uses it.
+import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
+import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
@@ -63,16 +66,16 @@ export default function RootLayout() {
     AnekLatin_600SemiBold,
     AnekLatin_700Bold,
     AnekLatin_800ExtraBold,
-    AnekDevanagari_500Medium,
-    Kalam_400Regular,
-    Kalam_700Bold,
-    // The classroom teaches in Onest. Kalam and AnekLatin stay loaded:
-    // every other screen still uses them.
     Onest_400Regular,
     Onest_500Medium,
     Onest_600SemiBold,
     Onest_700Bold,
     Onest_800ExtraBold,
+    AnekDevanagari_500Medium,
+    Kalam_400Regular,
+    Kalam_700Bold,
+    // The classroom teaches in Onest. Kalam and AnekLatin stay loaded:
+    // every other screen still uses them.
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
@@ -205,8 +208,10 @@ export default function RootLayout() {
             name="practice-focus"
             options={{
               headerShown: false,
-              presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // A full screen sliding in from the right, per the redesign
+              // bundle -- it was a transparent bottom sheet, and the bundle
+              // draws it as a page with its own back chevron.
+              animation: 'slide_from_right',
             }}
           />
           <Stack.Screen name="mock-ready" options={{ headerShown: false }} />
@@ -239,12 +244,10 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
-          <Stack.Screen name="milestones" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope-subject" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
           <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />
-          <Stack.Screen name="session-board" options={{ headerShown: false }} />
           <Stack.Screen
             name="plan-sheet"
             options={{
@@ -271,7 +274,7 @@ export default function RootLayout() {
           native UI it doesn't control: the keyboard, action sheets, the photo
           picker and system alerts.
 
-          Fifteen screens (every tab, plus account/terms/milestones and the
+          Fifteen screens (every tab, plus account/terms and the
           rest) declare no StatusBar of their own and inherit this one, so it
           is the only thing standing between them and whatever style the last
           screen happened to set. */}

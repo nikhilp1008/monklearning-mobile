@@ -1207,7 +1207,7 @@ export const ch02Relations: Chapter = {
                 { "x": 2, "y": 2 }
               ]
             },
-            {
+            { "aspect": 0.987,
               "x": [-6.5, 6.5],
               "y": [-6.5, 6.5],
               "curves": [

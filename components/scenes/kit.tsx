@@ -270,6 +270,98 @@ export function Draw({
   );
 }
 
+/**
+ * A group that walks sideways through a series of held positions.
+ *
+ * The webpage does this with a keyframed CSS animation (`sc-stick`): a metre
+ * stick is laid down, held, picked up and laid down again, four times, to
+ * measure a table. Dropping it left the stick sitting still and then jumping to
+ * the end — on the one beat whose entire point is the repeated laying-down.
+ *
+ * `stops` are the x offsets to rest at, `hold` how long to sit at each before
+ * moving, and `travel` how long a move takes. Not active means parked at the
+ * final stop, which is where the beat leaves it.
+ */
+export function StepAcross({
+  elapsed,
+  stops,
+  hold = 0.55,
+  travel = 0.4,
+  children,
+}: {
+  /** Seconds since the beat began; negative or absent means "not yet". */
+  elapsed: number;
+  stops: number[];
+  /** Seconds resting at each stop, and seconds spent sliding between them. */
+  hold?: number;
+  travel?: number;
+  children: React.ReactNode;
+}) {
+  const last = stops[stops.length - 1];
+  let x = last;
+
+  if (elapsed >= 0) {
+    const leg = hold + travel;
+    const step = Math.floor(elapsed / leg);
+    if (step >= stops.length - 1) {
+      x = last;
+    } else {
+      const into = elapsed - step * leg;
+      const from = stops[step];
+      const to = stops[step + 1];
+      // Rest, then ease across to the next stop.
+      const p = into <= hold ? 0 : Math.min(1, (into - hold) / travel);
+      x = from + (to - from) * easeInOut(p);
+    }
+  }
+
+  return <G x={x}>{children}</G>;
+}
+
+/** The `ease-in-out` the webpage's keyframes use, as a plain function. */
+function easeInOut(p: number): number {
+  return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+}
+
+/**
+ * A group that bobs up and down forever, then settles.
+ *
+ * The webpage runs one CSS keyframe per particle with a staggered delay, so a
+ * ripple appears to travel along a row of dots while each dot only moves up and
+ * down — which is the whole thesis of the scene it belongs to. Losing it left a
+ * static row illustrating nothing.
+ */
+export function Bob({
+  active,
+  elapsed,
+  amplitude = 22,
+  period = 1.3,
+  delay = 0,
+  settled = 0,
+  children,
+}: {
+  active: boolean;
+  /** Seconds since the beat began. */
+  elapsed: number;
+  amplitude?: number;
+  /** Seconds per full up-and-down. */
+  period?: number;
+  /** Stagger, in seconds — what makes the ripple appear to travel. */
+  delay?: number;
+  /** Where to rest once the bobbing stops. */
+  settled?: number;
+  children: React.ReactNode;
+}) {
+  let y = settled;
+  if (active) {
+    const since = elapsed - delay;
+    // The webpage's keyframe exactly: 0 at both ends of the cycle, -amplitude
+    // at the halfway point.
+    y = since <= 0 ? 0 : (-amplitude * (1 - Math.cos((2 * Math.PI * since) / period))) / 2;
+  }
+  return <G y={y}>{children}</G>;
+}
+
 /** Straight arrow with a drawn head, as a single Draw path. */
 export function arrowD(x1: number, y1: number, x2: number, y2: number): string {
   const a = Math.atan2(y2 - y1, x2 - x1);

@@ -8,15 +8,81 @@
 // have drifted out of alignment, a `kind` the reader does not implement (which
 // renders as nothing, silently).
 //
-// ALLOWED_KINDS must mirror DIAGRAM_KINDS in components/textbook/diagrams.tsx.
-// It has already fallen behind once, when three kinds were added to the reader
-// and not here, and it then reported every new figure as rendering nothing.
+// The kind list is READ from the reader rather than copied. It fell behind
+// once, when three kinds were added to components/textbook/diagrams.tsx and
+// not here, and this file then reported every new figure as rendering nothing.
+// A duplicated list drifts; a derived one cannot.
 import { readFileSync, readdirSync } from 'node:fs';
 
+// A note that cost a near-miss, recorded so nobody repeats the inference.
+//
+// Georgia -- the serif face every figure label and math run is set in -- is
+// MISSING most of the symbols this corpus uses: no arrow, no member-of, no
+// blackboard R, no proportional-to. Over four thousand such characters ship
+// today. That looks alarming and is not: iOS falls back to another installed
+// font per glyph, and all of them render correctly on device. Verified by
+// looking at Sets on a phone, where the notation table draws in, not-in,
+// if-and-only-if and the empty set perfectly.
+//
+// So "absent from Georgia" is NOT a reason to reject a character, and a gate
+// built on the font's cmap would raise four thousand false alarms.
+//
+// The Mathematical Alphanumeric block below IS different, and is rejected
+// below on evidence rather than on font tables: those code points have no
+// fallback anywhere on the device and draw as blank boxes.
+
 const ALLOWED_BLOCKS = new Set(['hook','p','think','def','defgrid','formula','proc','deriv','diagram','ex','mcq','practice','mistakes','protip','snapshot']);
-// Mirrors DIAGRAM_KINDS in components/textbook/diagrams.tsx. `tree`, `pascal`
-// and `axes3d` were added to the reader after this file was first written.
-const ALLOWED_KINDS = new Set(['numsys','lattice','venn2','venn3','family','grid','plot','numberline','unitcircle','tree','pascal','axes3d']);
+const ALLOWED_KINDS = (() => {
+  const src = readFileSync('components/textbook/diagrams.tsx', 'utf8');
+  const block = src.match(/export const DIAGRAM_KINDS[^=]*=\s*\[([\s\S]*?)\]/);
+  if (!block) {
+    console.error('validate-chapters: could not read DIAGRAM_KINDS from the reader.');
+    process.exit(2);
+  }
+  const kinds = [...block[1].matchAll(/'([a-z0-9]+)'/g)].map((m) => m[1]);
+  if (!kinds.length) {
+    console.error('validate-chapters: DIAGRAM_KINDS parsed as empty.');
+    process.exit(2);
+  }
+  return new Set(kinds);
+})();
+// Every key a frame may carry. A misspelled key -- `arrow` for `arrows`, or
+// `"arrow": "true"` as a string -- passes tsc, because every field is
+// optional, and then renders nothing at all. This is the check that actually
+// stops a silent hole.
+const FRAME_KEYS = new Set([
+  'x','y','curves','points','segments','labels','bands','areas','polygons',
+  'intervals','angle','show','piTicks','tree','pascal','axes3d',
+  'axes','axisX','axisY','ticksX','ticksY','arrows','arcs','polys','marks',
+  'bodies','aspect','flow','levels','circuit','optics',
+]);
+// Keys that actually put ink on the page. A frame with only a window and an
+// aspect draws an empty white box under a caption describing a diagram.
+const DRAWABLE = FRAME_KEYS.difference
+  ? FRAME_KEYS.difference(new Set(['x','y','axes','axisX','axisY','ticksX','ticksY','aspect','piTicks','show']))
+  : new Set([...FRAME_KEYS].filter(k => !['x','y','axes','axisX','axisY','ticksX','ticksY','aspect','piTicks','show'].includes(k)));
+// The six bespoke set-theory figures draw themselves from `selected` alone.
+const BESPOKE = new Set(['numsys','lattice','venn2','venn3','family','grid']);
+// Kinds whose contents live in their own coordinate space, not the plot window.
+const OWN_SPACE = new Set(['flow','levels','circuit','optics','tree','pascal','axes3d','unitcircle']);
+
+/** Every [x, y] a frame places in plot coordinates, for the bounds check. */
+function frameCoords(fr) {
+  const out = [];
+  const push = (x, y) => { if (typeof x === 'number' && typeof y === 'number') out.push([x, y]); };
+  fr.points?.forEach(p => push(p.x, p.y));
+  fr.labels?.forEach(p => push(p.x, p.y));
+  fr.marks?.forEach(p => push(p.x, p.y));
+  fr.arcs?.forEach(a => push(a.at?.[0], a.at?.[1]));
+  fr.segments?.forEach(g => { push(g.from?.[0], g.from?.[1]); push(g.to?.[0], g.to?.[1]); });
+  fr.arrows?.forEach(a => { push(a.from?.[0], a.from?.[1]); push(a.to?.[0], a.to?.[1]); });
+  fr.bodies?.forEach(b => { push(b.at?.[0], b.at?.[1]); if (b.to) push(b.to[0], b.to[1]); });
+  fr.polys?.forEach(pl => pl.pts?.forEach(q => push(q[0], q[1])));
+  fr.polygons?.forEach(pl => pl.points?.forEach(q => push(q[0], q[1])));
+  fr.curves?.forEach(c => { if (c.c === 'pts') c.pts?.forEach(q => push(q[0], q[1])); });
+  return out;
+}
+
 const TAG = /<\/?([a-z]+)[^>]*>/gi;
 const ALLOWED_TAGS = new Set(['b','i','sup','sub','br']);
 
@@ -36,6 +102,8 @@ for (const f of files) {
   catch (e) { console.log(`${f}: NOT PLAIN JSON (${e.message.slice(0,60)}) - skipped`); continue; }
 
   const problems = [];
+  if (!/export default\s+\w+;/.test(src))
+    problems.push('no default export -- the registry imports the default, so this fails only once registered');
   const topics = ch.topics ?? [];
   if (topics.length < 4 || topics.length > 6) problems.push(`${topics.length} topics (want 4-6)`);
 
@@ -54,8 +122,73 @@ for (const f of files) {
       if (b.t === 'hook') { hooks++; if (ti !== 0) problems.push(`hook on topic ${ti+1}, must be topic 1`); }
       if (b.t === 'diagram') {
         if (!ALLOWED_KINDS.has(b.kind)) problems.push(`topic ${ti+1}: diagram kind "${b.kind}" renders nothing`);
-        const par = ['plot','numberline','unitcircle','tree','pascal','axes3d'].includes(b.kind);
+        const par = !BESPOKE.has(b.kind);
         if (par && !(b.frames?.length)) problems.push(`topic ${ti+1}: ${b.kind} has no frames`);
+        b.frames?.forEach((fr, fi) => {
+          const where = `topic ${ti+1} ${b.kind} frame ${fi+1}`;
+          for (const k of Object.keys(fr)) {
+            if (!FRAME_KEYS.has(k)) problems.push(`${where}: unknown key "${k}" draws nothing`);
+          }
+          if (!Object.keys(fr).some(k => DRAWABLE.has(k))) {
+            problems.push(`${where}: nothing to draw`);
+          }
+          // A kind that needs its own payload must carry it.
+          if (OWN_SPACE.has(b.kind) && ['flow','levels','circuit','optics'].includes(b.kind) && !fr[b.kind]) {
+            problems.push(`${where}: kind is "${b.kind}" but the frame has no ${b.kind} block`);
+          }
+          // A label inside a figure is a tag, not a sentence. At 316pt an
+          // 11px serif runs about 6px per character, so 16 characters is
+          // already a quarter of the width; the first physics chapter put
+          // "slope = instantaneous velocity" on a tangent and it crossed the
+          // curve, the chord and two other labels. The explanation belongs in
+          // the caption, which is prose and has room.
+          // Two budgets, because two different things place the text.
+          // `labels` are free-floating: the author picks the coordinate and
+          // can see the gap they are putting it in, so they get room for a
+          // short annotation. Everything else is auto-placed relative to a
+          // shaft or a glyph and cannot dodge anything, so it must be a tag.
+          for (const [key, max] of [
+            ['arrows', 16], ['segments', 16], ['arcs', 16],
+            ['marks', 16], ['bodies', 16], ['polys', 16],
+            ['labels', 28],
+          ]) {
+            for (const it of fr[key] ?? []) {
+              const lab = it.label ?? it.text;
+              if (typeof lab === 'string' && lab.length > max) {
+                problems.push(
+                  `${where}: ${key} label is ${lab.length} chars, max ${max} ` +
+                  `-- put the sentence in the caption ("${lab.slice(0, 28)}...")`
+                );
+              }
+            }
+          }
+          fr.arrows?.forEach((a, ai) => {
+            if (a.from?.[0] === a.to?.[0] && a.from?.[1] === a.to?.[1]) {
+              problems.push(`${where}: arrow ${ai+1} has zero length, so it renders as a dot`);
+            }
+          });
+          // Coordinates outside the window are drawn off the canvas and are
+          // simply invisible. This is the defect that hid the z-axis label in
+          // every axes3d figure ever authored.
+          if (!OWN_SPACE.has(b.kind)) {
+            const [x0, x1] = fr.x ?? [-Math.PI, Math.PI];
+            const [y0, y1] = fr.y ?? [-1.6, 1.6];
+            const mx = (x1 - x0) * 0.04;
+            const my = (y1 - y0) * 0.04;
+            const out = frameCoords(fr).filter(
+              ([x, y]) => x < x0 - mx || x > x1 + mx || y < y0 - my || y > y1 + my
+            );
+            if (out.length) {
+              problems.push(`${where}: ${out.length} point(s) outside the window, e.g. [${out[0]}]`);
+            }
+          }
+        });
+        // A chip is an uppercase, letter-spaced pill rendered as bare text, so
+        // it is the one authored field where a tag still reaches the student as
+        // literal characters. Everything else now goes through Markup.
+        for (const c of b.chips ?? [])
+          if (/<\/?(b|i|sup|sub|br)\s*\/?>/i.test(c))
+            problems.push(`topic ${ti+1}: chip "${c.slice(0, 24)}" carries markup, which renders literally`);
         if (b.chips && b.captions && b.chips.length !== b.captions.length) problems.push(`topic ${ti+1}: ${b.chips.length} chips vs ${b.captions.length} captions`);
         if (b.chips && b.frames && b.chips.length !== b.frames.length) problems.push(`topic ${ti+1}: ${b.chips.length} chips vs ${b.frames.length} frames`);
       }
@@ -77,6 +210,62 @@ for (const f of files) {
   // the first pass flagged the finished Sets chapter for them.
   const emojiRe = /[\u{2600}-\u{2712}\u{2718}-\u{27BF}\u{1F300}-\u{1FAFF}]/u;
   if (emojiRe.test(json)) problems.push('contains emoji');
+  // The markup renderer parses five tags and decodes nothing else, so an
+  // HTML entity reaches the student as its literal characters: `&gt;` shows
+  // up as four glyphs in the middle of an inequality. Two chapter authors
+  // caught this by hand in a shipped file; the gate is cheaper.
+  const entities = [...new Set(json.match(/&(?:gt|lt|amp|nbsp|quot|#\d+);/g) ?? [])];
+  if (entities.length) problems.push(`HTML entities render literally: ${entities.join(', ')}`);
+
+  // Glyphs the app's faces cannot draw. Both physics sources are full of
+  // them: 95,000 Mathematical Alphanumeric characters and 2,600 combining
+  // arrows between the two books, and seven math-italic ones already leaked
+  // into finished maths chapters. They reach the student as blank boxes.
+  const mathItalic = [...new Set(json.match(/[\u{1D400}-\u{1D7FF}]/gu) ?? [])];
+  if (mathItalic.length) {
+    problems.push(`math-italic glyphs render as tofu: ${mathItalic.slice(0, 6).join(' ')}`);
+  }
+  if (/\u20D7/.test(json)) {
+    problems.push('U+20D7 combining arrow: write vectors as plain italic letters');
+  }
+  // Physics-specific text faults, none of which exist in maths.
+  const noSpace = [...new Set(
+    (json.match(/\d(?:m\/s|kg|ms|Hz|Pa|eV|nm|cm|km|mol)\b/g) ?? [])
+  )];
+  if (noSpace.length) {
+    problems.push(`missing space between number and unit: ${noSpace.slice(0, 4).join(', ')}`);
+  }
+  // `^` is not markup. The renderer draws it literally, so x^2 reaches the
+  // student as three characters instead of a power.
+  // Only a bare digit: `r^(1/n)` and `2^(5-r)` are deliberate, because <sup>
+  // has no solidus and cannot mark up a fractional or parenthesised exponent.
+  // A single digit always has a superscript glyph, so `x^2` is just unmarked.
+  const caret = [...new Set(json.match(/[A-Za-z0-9)\]]\^\d(?![\d(/])/g) ?? [])];
+  if (caret.length) {
+    problems.push(`"^" before a digit should be <sup>: ${caret.slice(0, 4).join(', ')}`);
+  }
+  // Only wrong next to a number: elsewhere U+2218 is the composition
+  // operator and f \u2218 g is correct, which the first draft flagged.
+  if (/\\d\\s*\\u2218/.test(json)) problems.push('U+2218 after a number; ° (U+00B0) is meant');
+
+  // Every single-letter symbol in a formula should be glossed in its legend.
+  // Mechanical, total coverage, and it catches the commonest real defect.
+  ch.topics?.forEach((t, ti) => {
+    t.blocks?.forEach((b) => {
+      if (b.t !== 'formula' || !b.main) return;
+      const legend = (b.legend ?? []).join(' ') + ' ' + (b.note ?? '');
+      const bare = b.main.replace(/<[^>]*>/g, '');
+      const syms = [...new Set(bare.match(/(?<![A-Za-z])[A-Za-z](?![A-Za-z])/g) ?? [])]
+        .filter((c) => !'aeiou'.includes(c))
+        // Vertices and points are named in the prose, not the legend.
+        .filter((c) => !'ABCOPQXYZ'.includes(c))
+        .filter((c) => !legend.includes(c));
+      if (syms.length > 3) {
+        problems.push(`topic ${ti+1} formula "${b.kicker?.slice(0,28)}": unglossed symbols ${syms.slice(0,5).join(' ')}`);
+      }
+    });
+  });
+
   let m; const badTags = new Set();
   while ((m = TAG.exec(json))) if (!ALLOWED_TAGS.has(m[1].toLowerCase())) badTags.add(m[1]);
   if (badTags.size) problems.push(`disallowed tags: ${[...badTags].join(', ')}`);
