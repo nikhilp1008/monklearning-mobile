@@ -29,6 +29,7 @@
  * cache-busts on its own.
  */
 import { createFigureResolver, type FigureRecord, type FigureResolver } from './figure-resolver';
+import { isReviewed, toFigureRecord, validateLabelSet } from './label-set';
 
 /**
  * Where the public illustrations bucket is served from, with NO trailing slash
@@ -77,6 +78,38 @@ export function createR2FigureLoader(
     }
     const raw = (await fetchJson(labelSetUrl(base, slug))) as Record<string, unknown>;
 
+    // THE SCHEMA GATE. A label set is the teaching payload: a wrong anchor puts
+    // a correct word on the wrong part of the body, which reads as
+    // authoritative. Every problem is reported at once, because an author
+    // fixing one field per round trip is how a 65-file batch becomes a week.
+    const checked = validateLabelSet(raw);
+    if (!checked.ok) {
+      throw new Error(`[labelled_figure] "${slug}" label set is invalid: ${checked.errors.join('; ')}`);
+    }
+
+    // THE REVIEW GATE, and it is not a quality preference.
+    //
+    // `draft-labels` proposes anchors from the image by vision. A proposal is a
+    // guess about where a structure IS. An unreviewed set is therefore not a
+    // rougher figure — it is a figure that may confidently label the wrong
+    // organ, and there is no way for a student to tell. So it does not resolve
+    // at all, and the board falls to the next tier, which draws something
+    // honest.
+    if (!isReviewed(checked.set)) {
+      throw new Error(
+        `[labelled_figure] "${slug}" has no reviewed_by — a draft label set is ` +
+          `a guess about where each structure is and never ships unreviewed.`
+      );
+    }
+    if (checked.set.asset_slug !== slug) {
+      // The file that answered is not the file that was asked for. Serving it
+      // would put one figure's labels on another figure's art.
+      throw new Error(
+        `[labelled_figure] asked for "${slug}" and got a set for ` +
+          `"${checked.set.asset_slug}"`
+      );
+    }
+
     // The stored JSON is a SUPERSET: it also carries the §4 provenance block
     // (licence, source_url, author). That is read by nobody here and never
     // reaches the renderer — licence enforcement belongs to the ingest gate,
@@ -84,21 +117,10 @@ export function createR2FigureLoader(
     // check in the render path would look like enforcement without being it,
     // because by the time a component is drawing pixels the decision to ship
     // the file has already been made.
-    const art = (raw.art ?? {}) as Record<string, unknown>;
     const ext = typeof raw.ext === 'string' ? raw.ext : 'png';
-
-    const record: FigureRecord = {
-      asset_slug: slug,
-      art: {
-        // `source` is `number | { uri }` precisely so a bundled asset and a
-        // remote file are the same thing to the renderer.
-        source: { uri: assetObjectUrl(base, slug, ext) },
-        intrinsic_w: Number(art.intrinsic_w ?? 0),
-        intrinsic_h: Number(art.intrinsic_h ?? 0),
-      },
-      groups: (raw.groups ?? []) as FigureRecord['groups'],
-      labels: (raw.labels ?? []) as FigureRecord['labels'],
-    };
+    // `source` is `number | { uri }` precisely so a bundled asset and a remote
+    // file are the same thing to the renderer.
+    const record: FigureRecord = toFigureRecord(checked.set, assetObjectUrl(base, slug, ext));
 
     // Refused rather than passed on. A record with no intrinsic size makes
     // every label position a division by zero, and a record with no labels is
