@@ -9,11 +9,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathText } from '@/components/math-text';
+import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
@@ -21,12 +23,18 @@ import { useScale } from '@/constants/scale';
 import {
   AnswerResult,
   NextQuestion,
+  PracticeStats,
+  explainWithDrona,
   getNextQuestion,
+  getPracticeStats,
   parseAnswerSolution,
+  solutionFinalAnswer,
   submitAnswer,
 } from '@/lib/practice';
+import { ApiError } from '@/lib/api';
 import { examSubjects, getCatalogue } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
+import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -60,13 +68,37 @@ export default function PracticeScreen() {
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chem', 'Maths']);
   const [activeSubject, setActiveSubject] = useState<string>('Physics');
 
+  /**
+   * The exam and class this student is actually sitting.
+   *
+   * Both were being left at the server's `"both"` default, so a Class 11 JEE
+   * student was served Class 12 chapters and NEET-only rows — the profile was
+   * already loaded here for the subject list and then thrown away for the
+   * query itself.
+   *
+   * Null until the profile resolves, and the fetch below waits for it rather
+   * than firing once on the wrong scope and again on the right one:
+   * `/practice/next` calls `record_serve` on the way out, so a discarded
+   * question is a question burned out of this student's pool for good.
+   */
+  const [scope, setScope] = useState<{
+    exam: 'jee' | 'neet' | 'both';
+    class_level: '11' | '12' | 'both';
+  } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
-    getProfile().then(({ exam }) => {
+    getProfile().then(({ exam, year }) => {
       if (cancelled) return;
       const next = examSubjects(exam).map((k) => SUBJECT_LABEL[k] ?? k);
       setSubjects(next);
       setActiveSubject((current) => (next.includes(current) ? current : next[0]));
+      // A dropper is sitting both years, which is exactly what 'both' means
+      // here — unlike `profiles.enrolled_class`, this field has a value for it.
+      setScope({
+        exam,
+        class_level: year === 'class11' ? '11' : year === 'class12' ? '12' : 'both',
+      });
     });
     return () => {
       cancelled = true;
@@ -83,6 +115,25 @@ export default function PracticeScreen() {
   const [numericInput, setNumericInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
+  /** Not an error, but not something to do silently either — currently only
+   *  the ungradeable-question swap below. */
+  const [notice, setNotice] = useState<string | null>(null);
+  /** Set while a question-scoped Drona session is being created. */
+  const [explaining, setExplaining] = useState(false);
+
+  /** Lifetime totals, fetched once. This session's answers are added on top
+   *  rather than re-fetching, so the line moves the moment one is graded. */
+  const [lifetime, setLifetime] = useState<PracticeStats | null>(null);
+  const [sessionAttempted, setSessionAttempted] = useState(0);
+  const [sessionCorrect, setSessionCorrect] = useState(0);
+
+  useEffect(() => {
+    getPracticeStats()
+      .then(setLifetime)
+      .catch(() => {
+        // Not worth telling the student about — the line simply stays hidden.
+      });
+  }, []);
   /** The subject dropdown, and where to hang it. The menu is anchored under
    *  the subject word rather than at a fixed offset, because "Physics",
    *  "Chemistry" and "Maths" are different widths and a constant would only
@@ -125,6 +176,53 @@ export default function PracticeScreen() {
     });
   };
 
+  /**
+   * A lesson about THIS question, not about its chapter.
+   *
+   * `/practice/explain` seeds the session with the stem, the options, what the
+   * student answered and the worked solution, and hands back a session already
+   * in `phase: "teaching"` — so this goes straight to `/live-classroom`, with
+   * no scoping screen, and Drona opens talking about the question they are
+   * looking at. `goLearnChapter` stays for the genuinely chapter-level route.
+   *
+   * Falls back to the chapter lesson if the session cannot be created: the
+   * student asked to be taught, and a chapter lesson is a worse answer than
+   * this one but a much better answer than an error.
+   */
+  const explainThisQuestion = async () => {
+    if (!question || explaining) return;
+    setExplaining(true);
+    try {
+      const [language, teacher] = await Promise.all([
+        getLanguagePreference(),
+        getTeacherPreference(),
+      ]);
+      const chosenValue = parseFloat(numericInput);
+      const session = await explainWithDrona({
+        question_id: question.question_id,
+        ...(selectedOption ? { chosen_option: selectedOption } : {}),
+        ...(question.question_type === 'numerical' && !Number.isNaN(chosenValue)
+          ? { chosen_value: chosenValue }
+          : {}),
+        language,
+        voice: teacherToVoice(teacher),
+      });
+      router.push({
+        pathname: '/live-classroom',
+        params: {
+          sessionId: session.session_id,
+          chapterTitle: question.chapter_name ?? 'this question',
+          subtopic: question.concept ?? 'This question',
+        },
+      });
+    } catch (err) {
+      console.error('[practice] could not start an explain session:', err);
+      await goLearnChapter(question.chapter_name);
+    } finally {
+      setExplaining(false);
+    }
+  };
+
   const solutionSteps = useMemo(
     () => (answerResult ? parseAnswerSolution(answerResult.solution) : []),
     [answerResult]
@@ -140,6 +238,28 @@ export default function PracticeScreen() {
       ? String(answerResult.correct_value)
       : null;
 
+  /** Some rows spell the answer out themselves rather than leaving it implied
+   *  by the last step. It was being parsed and then dropped. */
+  const finalAnswer = answerResult ? solutionFinalAnswer(answerResult.solution) : null;
+
+  const tally = useMemo(() => {
+    if (!lifetime) return null;
+    const attempted = lifetime.attempted + sessionAttempted;
+    if (!attempted) return null;
+    const correct = lifetime.correct + sessionCorrect;
+    return `${correct} of ${attempted} correct · ${Math.round((correct / attempted) * 100)}%`;
+  }, [lifetime, sessionAttempted, sessionCorrect]);
+
+  /** One graded answer: shown, counted, and the cue to fetch what comes next. */
+  function applyResult(result: AnswerResult) {
+    setAnswerResult(result);
+    setSessionAttempted((n) => n + 1);
+    if (result.is_correct) setSessionCorrect((n) => n + 1);
+    // The student now has a solution to read — use that time to fetch the next
+    // question, so Next feels instant.
+    prefetchNext();
+  }
+
   // A chapter picked under one subject stops applying the moment the
   // student switches subject pills — it can't describe questions from a
   // different subject's tree. "Mixed"/"weak" stay in place across subjects.
@@ -151,9 +271,11 @@ export default function PracticeScreen() {
   }, [activeSubject]);
 
   useEffect(() => {
+    // Waits for the profile: see `scope`.
+    if (!scope) return;
     loadQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSubject, focus.mode, focus.chapterId]);
+  }, [activeSubject, focus.mode, focus.chapterId, scope]);
 
 
   /**
@@ -166,9 +288,10 @@ export default function PracticeScreen() {
   const prefetchSubjectRef = useRef(activeSubject);
 
   function prefetchNext() {
+    if (!scope) return;
     prefetchedRef.current = null;
     prefetchSubjectRef.current = activeSubject;
-    getNextQuestion({ subject: SUBJECT_QUERY[activeSubject] })
+    getNextQuestion({ subject: SUBJECT_QUERY[activeSubject], ...scope })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
         // question must never appear under the Chemistry pill.
@@ -180,12 +303,31 @@ export default function PracticeScreen() {
       });
   }
 
+  /**
+   * A question the server cannot grade — 409, a numerical row whose
+   * `correct_value` was never filled in. The student had been shown the raw
+   * detail for this ("Numerical question lacks correct_value ground truth"),
+   * which reads as a crash. Swapping it out with no explanation reads as the
+   * app losing their answer, so it does both: swap, and say so.
+   */
+  async function handleSubmitError(err: unknown) {
+    if (err instanceof ApiError && err.status === 409) {
+      await loadQuestion();
+      setNotice(
+        "That one wasn't ready to be marked, so we've swapped it for another. Nothing counted against you.",
+      );
+      return;
+    }
+    setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
+  }
+
   async function loadQuestion() {
     setLoadError(null);
     setPoolMessage(null);
     setSelectedOption(null);
     setNumericInput('');
     setAnswerResult(null);
+    setNotice(null);
 
     // Already have the next one waiting — no spinner, no wait.
     const ready = prefetchedRef.current;
@@ -199,16 +341,17 @@ export default function PracticeScreen() {
 
     setLoading(true);
     try {
-      // /practice/next's live PracticeNextRequest schema (confirmed via
-      // GET /openapi.json) only accepts exam/class_level/subject — no
-      // chapter/topic field exists server-side yet, so `focus` can't be
-      // sent along here. It still drives this effect's re-fetch and the
-      // chip label below; wiring the request itself is a follow-up once
-      // the backend adds chapter-scoping. A single fetch, not a
-      // retry-until-MCQ loop — the numerical UI below renders those
-      // questions natively, and chaining extra round-trips just to avoid
-      // them was adding real, needless latency to every question load.
-      const result = await getNextQuestion({ subject: SUBJECT_QUERY[activeSubject] });
+      // PracticeNextRequest accepts exam/class_level/subject and nothing else
+      // — there is still no chapter or concept field server-side, so `focus`
+      // cannot be sent. It drives this effect's re-fetch and the chip label
+      // below, and making it real needs the backend to add scoping first.
+      // A single fetch, not a retry-until-MCQ loop — the numerical UI renders
+      // those natively, and extra round-trips just to avoid them added real
+      // latency to every question load.
+      const result = await getNextQuestion({
+        subject: SUBJECT_QUERY[activeSubject],
+        ...scope,
+      });
       if ('exhausted' in result) {
         setPoolMessage(result.message);
         setQuestion(null);
@@ -237,12 +380,9 @@ export default function PracticeScreen() {
           ? { question_id: question.question_id }
           : { question_id: question.question_id, chosen_option: key }
       );
-      setAnswerResult(result);
-      // The student now has a solution to read — use that time to fetch what
-      // comes next, so Next feels instant.
-      prefetchNext();
+      applyResult(result);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
+      await handleSubmitError(err);
     } finally {
       setSubmitting(false);
     }
@@ -257,10 +397,9 @@ export default function PracticeScreen() {
         question_id: question.question_id,
         chosen_value: value,
       });
-      setAnswerResult(result);
-      prefetchNext();
+      applyResult(result);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
+      await handleSubmitError(err);
     } finally {
       setSubmitting(false);
     }
@@ -357,6 +496,12 @@ export default function PracticeScreen() {
             </View>
           </Pressable>
 
+          {/* Lifetime accuracy, from /practice/stats — which the app has been
+              able to call since the endpoint shipped and never did. One line
+              rather than a panel: it belongs to the student's sense of how
+              they are doing, not to the question in front of them. */}
+          {tally ? <Text style={styles.tallyText}>{tally}</Text> : null}
+
           {loading && !question ? (
             <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
           ) : poolMessage ? (
@@ -380,16 +525,28 @@ export default function PracticeScreen() {
               {'  '}
               {[activeSubject, question.chapter_name].filter(Boolean).join(' · ')}
             </Text>
-            <MathText
+            {/* Not MathText directly: a stem can be a match-the-following
+                table, an Assertion/Reason pair or a numbered statement list,
+                and those carry their structure in line breaks that
+                `latexToText` collapses. QuestionStem parses the raw text
+                first and hands each block to MathText separately. An
+                ordinary stem still renders as one paragraph. */}
+            <QuestionStem
               text={question.question_text ?? ''}
               fontSize={scale(15)}
               lineHeight={scale(23)}
-              color={colors.ink}
-              fontWeight="500"
               style={styles.questionBody}
             />
+            {/* The figure the question refers to. Without it a circuit or a
+                graph question is unanswerable, and mobile was dropping the
+                field entirely — the API has always sent it. */}
+            {question.diagram?.map((figure) => (
+              <QuestionDiagram key={figure.url} url={figure.url} styles={styles} />
+            ))}
             <View style={styles.questionDivider} />
           </View>
+
+          {notice ? <Text style={styles.noticeText}>{notice}</Text> : null}
 
           {question.question_type === 'numerical' ? (
             <View style={styles.numericRow}>
@@ -520,8 +677,9 @@ export default function PracticeScreen() {
                     steps={solutionSteps}
                     // A picked option already carries its own CORRECT tag, so
                     // repeating it here would only be noise. A numerical answer
-                    // has nothing else showing it.
-                    answer={numericAnswer}
+                    // has nothing else showing it, and so does a row that spells
+                    // its own `final_answer` out.
+                    answer={numericAnswer ?? finalAnswer}
                   />
                 ) : (
                   <Text style={styles.explainEmpty}>
@@ -531,8 +689,10 @@ export default function PracticeScreen() {
               </View>
 
               <View style={styles.revealedActions}>
-                <Pressable hitSlop={8} onPress={() => goLearnChapter(question.chapter_name)}>
-                  <Text style={styles.deeperLinkText}>Go deeper with Drona →</Text>
+                <Pressable hitSlop={8} disabled={explaining} onPress={explainThisQuestion}>
+                  <Text style={styles.deeperLinkText}>
+                    {explaining ? 'Starting…' : 'Go deeper with Drona →'}
+                  </Text>
                 </Pressable>
                 <Pressable style={styles.nextButton} onPress={loadQuestion}>
                   <Text style={styles.nextButtonText}>Next</Text>
@@ -558,6 +718,35 @@ export default function PracticeScreen() {
 }
 
 /** The real needs_revision chapters from /progress, worst mastery first. */
+/**
+ * A question's figure.
+ *
+ * The remote file's dimensions are not known until it loads, and a fixed height
+ * would either crop a tall circuit diagram or leave a band of white under a
+ * wide graph. `onLoad` reports the real size, so the box takes the image's own
+ * aspect ratio and the layout settles once.
+ */
+function QuestionDiagram({
+  url,
+  styles,
+}: {
+  url: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const [ratio, setRatio] = useState(16 / 9);
+  return (
+    <Image
+      source={{ uri: url }}
+      style={[styles.diagram, { aspectRatio: ratio }]}
+      contentFit="contain"
+      transition={120}
+      onLoad={({ source }) => {
+        if (source?.width && source?.height) setRatio(source.width / source.height);
+      }}
+    />
+  );
+}
+
 function ChevronRightIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
@@ -992,6 +1181,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: 1,
       backgroundColor: 'rgba(28,25,20,.1)',
       marginTop: verticalScale(18),
+    },
+    diagram: {
+      width: '100%',
+      marginTop: verticalScale(12),
+      borderRadius: scale(10),
+      backgroundColor: '#fff',
+    },
+    /** The two lines added for wiring, in the muted voice the focus row
+     *  already uses — they report, they don't compete with the question. */
+    tallyText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(11.5),
+      color: colors.slate,
+      marginTop: verticalScale(10),
+    },
+    noticeText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      lineHeight: scale(17),
+      color: colors.slate,
+      marginTop: verticalScale(10),
     },
     // Kept for the two states that are still a card: an empty pool and a
     // load failure, where a bordered box is the right shape for a message.

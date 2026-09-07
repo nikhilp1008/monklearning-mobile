@@ -98,6 +98,13 @@ const LABELLED_ARROWS: Record<string, string> = {
   xrightarrow: '→', xleftarrow: '←', xrightleftharpoons: '⇌',
 };
 
+/** mhchem's own arrows, which are spelled in ASCII inside `\ce{…}` rather than
+ *  as commands. Longest first: `<=>` must not be read as `<=` and then `>`. */
+const CHEM_ARROWS: [string, string][] = [
+  ['<=>>', '⇌'], ['<<=>', '⇌'], ['<=>', '⇌'], ['<->', '↔'],
+  ['->', '→'], ['<-', '←'],
+];
+
 /** Wrappers whose braces vanish and whose contents render as-is. */
 const TRANSPARENT_WRAPPERS = new Set([
   'text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit',
@@ -149,6 +156,145 @@ function mapAll(text: string, table: Record<string, string>): string | null {
     out += mapped;
   }
   return out || null;
+}
+
+interface Script {
+  kind: '^' | '_';
+  /** Already converted, so `^\pi` arrives here as "π". */
+  inner: string;
+  next: number;
+}
+
+/** Reads one `^…` / `_…`, starting at the marker itself. */
+function readScript(src: string, at: number): Script {
+  const kind = src[at] as '^' | '_';
+  let i = at + 1;
+  while (src[i] === ' ') i++;
+  const group = readGroup(src, i);
+  return { kind, inner: convertMath(group.body), next: group.next };
+}
+
+/**
+ * True when `text` already carries its own brackets around the WHOLE of it.
+ *
+ * "(a)(b)" opens and closes with brackets without being one group, so this
+ * checks that the first bracket is the one the last character closes.
+ */
+function isBracketed(text: string): boolean {
+  const shut = { '(': ')', '[': ']', '{': '}' }[text[0] as '(' | '[' | '{'];
+  if (!shut || text[text.length - 1] !== shut) return false;
+  let depth = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    if (text[i] === text[0]) depth += 1;
+    else if (text[i] === shut) {
+      depth -= 1;
+      if (depth === 0) return i === text.length - 1;
+    }
+  }
+  return false;
+}
+
+/** Parenthesises a multi-character script so `x_net` cannot be read as
+ *  `x_n` followed by "et" — unless it is bracketed already, which is what
+ *  printed `E_{(Cu)}` as the doubled-up `E_((Cu))`. */
+function wrapScript(inner: string): string {
+  return inner.length <= 1 || isBracketed(inner) ? inner : `(${inner})`;
+}
+
+/**
+ * The body of one `\ce{…}`, in mhchem notation rather than LaTeX.
+ *
+ * Chemistry is written in its own sub-language: `2H2O` means 2H₂O, `->` is an
+ * arrow, `^2-` is a charge. None of that is LaTeX, so the ordinary converter
+ * never had a rule for it and `\ce` fell through to the unknown-command path,
+ * which drops the backslash and prints the name — a live d-block question read
+ * "ce2AgNO3 xrightarrow485 K Product(s)". Chemistry is roughly a quarter of the
+ * question bank, so this is not a rare corner.
+ *
+ * The one rule worth stating: a digit is a SUBSCRIPT when it follows an element
+ * or a closing bracket, and a stoichiometric COEFFICIENT when it opens a
+ * species. That is the whole difference between 2H₂O (two waters) and H₂O₂
+ * (peroxide), so it cannot be approximated by subscripting every digit.
+ */
+function renderChem(body: string): string {
+  let out = '';
+  let i = 0;
+  /** Set by an element or a closing bracket, cleared by anything that starts a
+   *  new species — so the next digit run knows which kind it is. */
+  let digitsAreSubscript = false;
+
+  while (i < body.length) {
+    const ch = body[i];
+
+    // A nested command — `\Delta`, `\cdot`, `\alpha`. Handed to the ordinary
+    // converter so chemistry needs no second symbol table of its own.
+    if (ch === '\\') {
+      const name = /^[a-zA-Z]+/.exec(body.slice(i + 1));
+      if (!name) {
+        i += 1;
+        continue;
+      }
+      out += convertMath(`\\${name[0]}`);
+      i += 1 + name[0].length;
+      digitsAreSubscript = false;
+      continue;
+    }
+
+    // An arrow, with up to two bracketed conditions. Rendered the same way
+    // `\xrightarrow[below]{above}` is, so both spellings read alike.
+    const arrow = CHEM_ARROWS.find(([literal]) => body.startsWith(literal, i));
+    if (arrow) {
+      i += arrow[0].length;
+      const labels: string[] = [];
+      while (body[i] === '[') {
+        const close = body.indexOf(']', i);
+        if (close === -1) break;
+        labels.push(renderChem(body.slice(i + 1, close)).trim());
+        i = close + 1;
+      }
+      const label = labels.filter(Boolean).join('/');
+      out += label ? ` ${arrow[1]}(${label}) ` : ` ${arrow[1]} `;
+      digitsAreSubscript = false;
+      continue;
+    }
+
+    // A charge (`^2-`, `^{2-}`, `^+`) or an isotope's mass/atomic number
+    // (`^{227}_{90}Th`). Unbraced charges run digits-then-sign, which is why
+    // this cannot just call readGroup and take one character.
+    if (ch === '^' || ch === '_') {
+      let raw: string;
+      if (body[i + 1] === '{') {
+        const group = readGroup(body, i + 1);
+        raw = group.body;
+        i = group.next;
+      } else {
+        raw = /^[0-9]*[+\-−]?/.exec(body.slice(i + 1))?.[0] ?? '';
+        i += 1 + raw.length;
+      }
+      const table = ch === '^' ? SUPERSCRIPT : SUBSCRIPT;
+      out += mapAll(raw, table) ?? `${ch}${raw}`;
+      continue;
+    }
+
+    if (/[0-9]/.test(ch)) {
+      const run = /^[0-9]+/.exec(body.slice(i))?.[0] ?? ch;
+      i += run.length;
+      out += digitsAreSubscript ? mapAll(run, SUBSCRIPT) ?? run : run;
+      continue;
+    }
+
+    out += ch;
+    i += 1;
+    // A bracket that CLOSES counts as an element for this purpose: the 2 in
+    // (NH4)2 is a subscript, while the one opening `(s)` is not.
+    if (/[A-Za-z)\]}]/.test(ch)) digitsAreSubscript = true;
+    else if (!/\s/.test(ch)) digitsAreSubscript = false;
+  }
+
+  // The arrows above pad themselves, and the source usually spaces them too
+  // (`2H2 + O2 -> 2H2O`), which left a double gap either side. The normalizing
+  // pass that would have collapsed it already ran, long before this point.
+  return out.replace(/\s{2,}/g, ' ');
 }
 
 /** True when `text` is a single term, so it needs no parens in `a/b`. */
@@ -358,8 +504,14 @@ export function convertMath(src: string): string {
         // "8\,\text{H}" was rendering as "8, H", and "8\ \text{H}" as "8H",
         // both of which put the unit in the wrong place.
         if (next && next in SPACING) {
-          out += SPACING[next];
+          const gap = SPACING[next];
+          // LaTeX ignores literal whitespace either side of a spacing command,
+          // so `\sin x \, dx` is ONE gap. Appending on top of the source's own
+          // spaces made it three ("sin x   dx"). The collapsing pass that would
+          // have tidied it runs before this function, not after.
+          if (gap && !/\s$/.test(out)) out += gap;
           i += 2;
+          if (gap) while (src[i] === ' ') i += 1;
           continue;
         }
         // Escaped punctuation (\%, \$, \{) — emit the character itself.
@@ -437,7 +589,11 @@ export function convertMath(src: string): string {
         i = group.next;
         const label = convertMath(group.body).trim();
         const arrow = name === 'xrightarrow' ? '→' : '←';
-        out += label ? ` ${arrow}[${label}] ` : ` ${arrow} `;
+        // Parenthesised to match the pre-pass in `latexToText`, which is the
+        // handler that catches this same command whenever its argument has no
+        // nested braces. Two spellings of one arrow was the only difference
+        // between `\xrightarrow{Ni}` and `\xrightarrow{\text{Ni}}`.
+        out += label ? ` ${arrow}(${label}) ` : ` ${arrow} `;
         continue;
       }
 
@@ -461,6 +617,23 @@ export function convertMath(src: string): string {
           label = convertMath(tag.body).trim();
         }
         out += label ? `${body} (${label})` : body;
+        continue;
+      }
+
+      /**
+       * `\ce{…}` / `\ch{…}` — mhchem. Handled HERE, as a command, rather than
+       * as a pre-pass over the raw string: the `$…$` scanner below treats a
+       * digit straight after the opening `$` as a price rather than maths
+       * ("US $33 trillion"), so expanding `$\ce{2H2 + O2}$` into `$2H₂ + O₂$`
+       * before that check turned a balanced equation into a price and left
+       * both dollar signs on screen. Leaving the command intact until the
+       * segment is already known to be maths keeps that heuristic honest.
+       */
+      if (name === 'ce' || name === 'ch') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        out += renderChem(group.body);
         continue;
       }
 
@@ -514,28 +687,49 @@ export function convertMath(src: string): string {
     }
 
     if (ch === '^' || ch === '_') {
-      const table = ch === '^' ? SUPERSCRIPT : SUBSCRIPT;
-      i += 1;
-      while (src[i] === ' ') i++;
-      const group = readGroup(src, i);
-      i = group.next;
-      const inner = convertMath(group.body);
-      if (ch === '^' && ALREADY_RAISED.has(inner)) {
-        out += inner;
+      const first = readScript(src, i);
+      i = first.next;
+
+      /**
+       * A base can carry BOTH scripts — `\int_0^\pi`, `E_{(Cu)}^{0}`,
+       * `\sum_{i=1}^{n}` — and they have to be decided together.
+       *
+       * Deciding them one at a time is what printed `∫₀^π`: Unicode has a
+       * subscript zero, so the lower limit was spelled, and it has no
+       * superscript pi, so the upper limit fell back to a caret. One integral,
+       * two notations, which reads as a typo rather than as an integral.
+       * Either both are spelled or neither is.
+       */
+      const paired =
+        (src[i] === '^' || src[i] === '_') && src[i] !== first.kind
+          ? readScript(src, i)
+          : null;
+      if (paired) i = paired.next;
+      const parts = paired ? [first, paired] : [first];
+
+      // `45^\circ` is already raised — a degree sign needs no script at all.
+      if (!paired && first.kind === '^' && ALREADY_RAISED.has(first.inner)) {
+        out += first.inner;
         continue;
       }
-      const mapped = mapAll(inner, table);
-      if (mapped) {
-        out += mapped;
+
+      const spelled = parts.map((part) =>
+        mapAll(part.inner, part.kind === '^' ? SUPERSCRIPT : SUBSCRIPT)
+      );
+      if (spelled.every((part) => part !== null)) {
+        out += spelled.join('');
         continue;
       }
       if (markSegments) {
-        // No character exists for it, so it is drawn instead of spelled.
-        out += `${ch === '^' ? SUP_OPEN : SUB_OPEN}${inner}${SCRIPT_CLOSE}`;
+        // No character exists for it, so it is drawn instead of spelled — and
+        // its partner is drawn too, so the pair shares one size and baseline.
+        out += parts
+          .map((part) => `${part.kind === '^' ? SUP_OPEN : SUB_OPEN}${part.inner}${SCRIPT_CLOSE}`)
+          .join('');
         continue;
       }
-      // Plain-string callers keep the caret so meaning isn't silently lost.
-      out += `${ch}${inner.length > 1 ? `(${inner})` : inner}`;
+      // Plain-string callers keep the marker so meaning isn't silently lost.
+      out += parts.map((part) => `${part.kind}${wrapScript(part.inner)}`).join('');
       continue;
     }
 
@@ -682,7 +876,7 @@ function unwrapSmiles(text: string): string {
  * PDF extraction, not real paragraph breaks.
  */
 export function latexToText(raw: string): string {
-  const normalized = unwrapSmiles(raw)
+  const arrowsResolved = unwrapSmiles(raw)
     .replace(
       // The OPTIONAL [below] argument is why this has a `(?:\[…\])?` in it.
       // LaTeX writes `\xrightarrow[below]{above}`, and the previous pattern
@@ -701,7 +895,9 @@ export function latexToText(raw: string): string {
         if (a && b) return `${arrow}(${a}/${b})`;
         return a || b ? `${arrow}(${a || b})` : arrow;
       },
-    )
+    );
+
+  const normalized = arrowsResolved
     .replace(DOUBLED_CARET, '^')
     // LaTeX escapes for literal punctuation. These sit in ordinary prose
     // rather than inside $…$, so the math converter never saw them and a
@@ -758,14 +954,24 @@ export function latexToText(raw: string): string {
       // valuation: the chapter says "US $33 trillion" and "~US $18 trillion" on
       // nearly every page, so a board about money silently lost the money.
       //
-      // A digit immediately after the opening `$` decides it. Real inline maths
-      // in this corpus opens with a letter or a command — `$A = \pi r^2$`,
-      // `$\theta$` — never a numeral, and formulas do not arrive delimited at
-      // all: planner_segment.md puts them in their own `latex` field. So this
-      // costs `$2x + 1$`, which nothing writes, and saves every price.
+      // What decides it is the BODY, not the first character.
+      //
+      // The rule here used to be "a digit straight after the opening `$` means
+      // a price", on the grounds that real inline maths never opens with a
+      // numeral. That holds for the board corpus it was measured on and is
+      // false for the practice bank, which is full of
+      // `$5 \times 10^6 m^{-1}$` and `$5000 A^0$` — so an Atomic Structure
+      // question rendered every one of its four options with literal dollar
+      // signs around it, on a live device.
+      //
+      // A price body is prose ("33 trillion vs ~US "); a maths body carries
+      // markup no price ever does. Testing for that markup keeps the money on
+      // the Ecosystem Services board AND renders the physics, where the
+      // first-character test could only ever protect one of the two.
       //
       // `$$` is left alone: nobody writes a price as `$$33`.
-      if (!isDisplay && /[0-9]/.test(normalized[start] ?? '')) {
+      const looksLikeMaths = /[\\^_{}]/.test(normalized.slice(start, end));
+      if (!isDisplay && !looksLikeMaths && /[0-9]/.test(normalized[start] ?? '')) {
         plain += ch;
         i += 1;
         continue;
