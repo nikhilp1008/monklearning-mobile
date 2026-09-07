@@ -8,6 +8,7 @@ import { processFlow } from './process-flow';
 import { reactionScheme } from './reaction-scheme';
 import { moleculeStruct } from './molecule-struct';
 import { circuitNetwork } from './circuit-network';
+import { linesPlanes3d } from './lines-planes-3d';
 
 /**
  * The registry is the closed set of things Drona can draw.
@@ -27,6 +28,7 @@ export const REGISTRY = {
   reaction_scheme: reactionScheme,
   molecule_struct: moleculeStruct,
   circuit_network: circuitNetwork,
+  lines_planes_3d: linesPlanes3d,
   // labelled_figure is deliberately ABSENT. The registry is the closed set the
   // MODEL may name and fill parameters for; a labelled figure is an asset a
   // subject author prepared offline, and its payload names a slug rather than

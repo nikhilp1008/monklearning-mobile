@@ -112,6 +112,12 @@ test('every registry entry is either verified below or explicitly skipped', () =
   const covered = new Set([
     'projectile_motion', 'field_lines', 'xy_plot', 'data_table_trend',
     'process_flow', 'reaction_scheme', 'molecule_struct', 'circuit_network',
+    // lines_planes_3d was verified below (line ~1896) for two commits before it
+    // was registered, exactly as reaction_scheme had been. Both times the guard
+    // caught it at the moment of wiring and named the widget -- which is the
+    // job. Verified below and listed here are two different claims, and only
+    // the second is what this set asserts.
+    'lines_planes_3d',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));

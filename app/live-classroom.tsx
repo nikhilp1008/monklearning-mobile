@@ -68,6 +68,10 @@ import {
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
+import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
+import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
+import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
 import { EnteringCardScreen } from '@/components/entering-card';
 import {
   LONG_WAIT_TEXT,
@@ -323,6 +327,16 @@ export default function LiveClassroomScreen() {
         dismissCard();
         setIsThinking(false);
         setCaption(text);
+        // A cue caption describes the figure at the moment it changes, so it
+        // outranks the narration line for that sentence — but only for that
+        // sentence. It is cleared here rather than by the widget because a
+        // board item never unmounts (the board is a ScrollView of every event
+        // in the turn), so the widget's own cleanup never runs and the strip
+        // would stay pinned to a diagram's caption for the rest of the class
+        // while the audio moved on. Ordering is safe: this runs in
+        // `onItemStart` immediately before `onBoardReveal`, so a cue firing on
+        // the same sentence still writes after this and wins.
+        setWidgetCaption(null);
       },
       onTranscriptPartial: (text) => setLiveTranscript(text),
       onTranscriptFinal: (text) => {
@@ -454,6 +468,113 @@ export default function LiveClassroomScreen() {
     }),
     [windowWidth, boardHeight]
   );
+  /**
+   * The board's own ink, so a widget diagram is not in a different hand than
+   * the writing around it. `fontFamily` must be one of the app's loaded
+   * families — mirrors the theme built for the (reverted) lesson-player M1
+   * wiring, since the requirement is the same wherever a widget renders.
+   */
+  const widgetTheme = useMemo<WidgetTheme>(
+    () => ({
+      ink: INK,
+      inkMuted: INK_MUTED,
+      rule: HAIRLINE,
+      accent: DEEP_AMBER,
+      surface: colors.paper,
+      fontFamily: 'Onest_400Regular',
+      monoFontFamily: 'Menlo',
+    }),
+    []
+  );
+
+  /**
+   * Only `molecule_3d` needs `resolveStructure`, and it is not built against
+   * live doubts yet, so this rejects rather than pretending. It must never
+   * reach the network when implemented — cache-first and offline by
+   * contract, because a live class has to render with the radio off.
+   */
+  const widgetServices = useMemo<WidgetServices>(
+    () => ({
+      resolveStructure: async (ref: string) => {
+        throw new Error(`No structure cache yet for ${ref}`);
+      },
+    }),
+    []
+  );
+
+  /** A tier-3 render is a measurement, not a failure — it feeds the queue
+   *  that decides which widget gets built next. Logged locally until
+   *  0021_board_widgets.sql is run and board_gaps exists. */
+  const onWidgetGap = useCallback((reason: string, detail: unknown) => {
+    console.warn('[board-gap]', reason, detail);
+  }, []);
+
+  /**
+   * The clock a live session actually has: not seconds, but how far the
+   * board has gotten in the server's own reveal order. `board` is appended
+   * to strictly in reveal sequence (`onBoardReveal`), so the last entry's
+   * `seq` is "how far we've gotten" — see `Cue.seq` in lib/widgets/types.ts.
+   */
+  const activeSeq = board.length > 0 ? board[board.length - 1].seq : null;
+
+  /** The active cue's caption, already {{token}}-interpolated. Takes
+   *  precedence over the narration caption in the strip below while a cue is
+   *  live — it is the more specific thing at that moment, same call as the
+   *  (reverted) lesson-player wiring made. */
+  const [widgetCaption, setWidgetCaption] = useState<string | null>(null);
+  const onWidgetCaption = useCallback((c: string | null) => setWidgetCaption(c), []);
+
+  /** What the strip actually shows: the cue caption if one is live, otherwise
+   *  the narration line, with its spelled-out maths rendered as notation.
+   *  Memoised because it runs on every render of a screen that re-renders on
+   *  the audio clock. */
+  const captionText = useMemo(
+    () => spokenMathToNotation(widgetCaption ?? caption),
+    [widgetCaption, caption]
+  );
+
+  /** Everything a `BoardWidget` needs beyond its own payload and its share of
+   *  the board box (`diagramBox`) — kept separate from `diagramBox` because
+   *  `BoardDiagram` (the tier-3 fallback) has no use for any of it. */
+  /**
+   * The illustration tier's asset store.
+   *
+   * `prefetch` runs ONCE, on mount, before any board event can arrive — it is
+   * the only asynchronous step on this path, and it is deliberately not
+   * awaited by anything that renders. During the class `BoardWidget` calls
+   * `figures.get(slug)`, which is synchronous and cache-only: a live class
+   * renders with the radio off (CLAUDE.md §3), and a slug that was not
+   * prefetched costs the student a figure, not a stalled board.
+   *
+   * Today the resolver is the bundled PLACEHOLDER — one generated PNG and a
+   * hand-written label set — because `concept_assets` does not exist and all
+   * 48 rows of illustration-manifest.csv are `status=todo`. When the R2
+   * loader lands, this constant is the only line that changes.
+   */
+  const figures = useMemo<FigureResolver>(() => placeholderFigureResolver, []);
+  useEffect(() => {
+    // Fire-and-forget on purpose: nothing renders off this promise. The
+    // report names the slugs that will miss, BEFORE the class, which is the
+    // only moment that information is actionable.
+    void figures.prefetch(figures.cached()).then((report) => {
+      if (report.missing.length > 0) {
+        console.warn('[figures] not resolvable offline:', report.missing.join(', '));
+      }
+    });
+  }, [figures]);
+
+  const widgetHost = useMemo(
+    () => ({
+      activeSeq,
+      theme: widgetTheme,
+      services: widgetServices,
+      figures,
+      onGap: onWidgetGap,
+      onCaption: onWidgetCaption,
+    }),
+    [activeSeq, widgetTheme, widgetServices, figures, onWidgetGap, onWidgetCaption]
+  );
+
   const [following, setFollowing] = useState(true);
   const [handRaised, setHandRaised] = useState(false);
   /**
@@ -831,7 +952,12 @@ export default function LiveClassroomScreen() {
             ) : (
               board.map((event, i) => (
                 <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
-                  <BoardBlockView event={event} styles={styles} diagramBox={diagramBox} />
+                  <BoardBlockView
+                    event={event}
+                    styles={styles}
+                    diagramBox={diagramBox}
+                    widgetHost={widgetHost}
+                  />
                 </Animated.View>
               ))
             )}
@@ -929,10 +1055,16 @@ export default function LiveClassroomScreen() {
           chips are answers, and answers with the question hidden are the exact
           thing this screen is not allowed to show. It closes again on its own
           the moment the question is answered. */}
+      {/* Notation, not dictation. `speech` is authored for TTS and may not
+          contain LaTeX (the engine reads the delimiters aloud), so it spells
+          maths out — "3.2 times 10 to the power minus 19". That is right for
+          the ear and wrong for the eye sitting under a board that renders
+          1.6 × 10⁻¹⁹ C properly. Converted at the point of display only; the
+          audio and the stored caption are untouched. */}
       <CaptionStrip
         open={captions || handRaised || checkOptions.length > 0}
         listening={handRaised}
-        text={caption}
+        text={captionText}
       />
 
       {/* The thumb rail is centred on the screen, not on the board, so it sits
@@ -1122,10 +1254,19 @@ function BoardBlockView({
   event,
   styles,
   diagramBox,
+  widgetHost,
 }: {
   event: BoardEvent;
   styles: Styles;
   diagramBox: { availableWidth: number; maxHeight: number };
+  widgetHost: {
+    activeSeq: number | null;
+    theme: WidgetTheme;
+    services: WidgetServices;
+    figures: FigureResolver;
+    onGap: (reason: string, detail: unknown) => void;
+    onCaption: (caption: string | null) => void;
+  };
 }) {
   const raw =
     event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
@@ -1148,6 +1289,24 @@ function BoardBlockView({
   // A figure, not a line of writing — it owns its own sizing and never goes
   // near the LaTeX converter.
   if (event.type === 'diagram') {
+    // A payload beats markup wherever both exist: the registry draws the
+    // real curve from live parameters, an `svg` string draws an
+    // approximation the model produced by hand.
+    if (event.payload) {
+      return (
+        <BoardWidget
+          event={{ seq: event.seq, payload: event.payload, tier: event.tier ?? 'precomputed' }}
+          activeSeq={widgetHost.activeSeq}
+          width={diagramBox.availableWidth}
+          height={diagramBox.maxHeight}
+          theme={widgetHost.theme}
+          services={widgetHost.services}
+          figures={widgetHost.figures}
+          onGap={widgetHost.onGap}
+          onCaption={widgetHost.onCaption}
+        />
+      );
+    }
     if (!event.svg) return null;
     return (
       <BoardDiagram
@@ -1165,7 +1324,7 @@ function BoardBlockView({
     return <Text style={styles.boardEquation}>{text}</Text>;
   }
   if (event.type === 'note') {
-    return <Text style={[styles.boardHandNote, { color: colors.red }]}>{text}</Text>;
+    return <Text style={[styles.boardKalamNote, { color: colors.red }]}>{text}</Text>;
   }
   return (
     <Text style={[styles.boardBody, event.emphasis && styles.boardBodyBold]}>{text}</Text>
@@ -1438,22 +1597,29 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: RHYTHM,
       color: INK,
     },
+    // No maxWidth. There used to be a 560 cap here and on boardKalamNote,
+    // which is a sane reading measure for a portrait column and the wrong one
+    // for this board: the content box is windowWidth - BOARD_LEFT(56) -
+    // BOARD_RIGHT_GUTTER(116), which on an iPhone 17 landscape is 702pt, so
+    // the cap left 142pt of every wrapped line empty and the board read as
+    // three-quarters full. The box itself is now the measure — it is already
+    // bounded by the notch gutter on one side and the thumb-rail clearance on
+    // the other. If lines ever feel too long to track on a wider device, cap
+    // it again against the measured board width rather than a fixed 560.
     boardBody: {
       fontFamily: 'Onest_400Regular',
       fontSize: 13.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
-      maxWidth: 560,
     },
     boardBodyBold: {
       fontFamily: 'Onest_700Bold',
       color: INK,
     },
-    boardHandNote: {
+    boardKalamNote: {
       fontFamily: 'Onest_700Bold',
       fontSize: 14.5,
       lineHeight: RHYTHM,
-      maxWidth: 560,
       transform: [{ rotate: '-0.4deg' }],
     },
     writingRow: {
