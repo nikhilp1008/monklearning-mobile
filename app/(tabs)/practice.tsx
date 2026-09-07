@@ -9,12 +9,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathText } from '@/components/math-text';
+import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
@@ -541,7 +541,7 @@ export default function PracticeScreen() {
                 graph question is unanswerable, and mobile was dropping the
                 field entirely — the API has always sent it. */}
             {question.diagram?.map((figure) => (
-              <QuestionDiagram key={figure.url} url={figure.url} styles={styles} />
+              <QuestionDiagram key={figure.url} url={figure.url} />
             ))}
             <View style={styles.questionDivider} />
           </View>
@@ -718,35 +718,6 @@ export default function PracticeScreen() {
 }
 
 /** The real needs_revision chapters from /progress, worst mastery first. */
-/**
- * A question's figure.
- *
- * The remote file's dimensions are not known until it loads, and a fixed height
- * would either crop a tall circuit diagram or leave a band of white under a
- * wide graph. `onLoad` reports the real size, so the box takes the image's own
- * aspect ratio and the layout settles once.
- */
-function QuestionDiagram({
-  url,
-  styles,
-}: {
-  url: string;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  const [ratio, setRatio] = useState(16 / 9);
-  return (
-    <Image
-      source={{ uri: url }}
-      style={[styles.diagram, { aspectRatio: ratio }]}
-      contentFit="contain"
-      transition={120}
-      onLoad={({ source }) => {
-        if (source?.width && source?.height) setRatio(source.width / source.height);
-      }}
-    />
-  );
-}
-
 function ChevronRightIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
@@ -1181,12 +1152,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: 1,
       backgroundColor: 'rgba(28,25,20,.1)',
       marginTop: verticalScale(18),
-    },
-    diagram: {
-      width: '100%',
-      marginTop: verticalScale(12),
-      borderRadius: scale(10),
-      backgroundColor: '#fff',
     },
     /** The two lines added for wiring, in the muted voice the focus row
      *  already uses — they report, they don't compete with the question. */
