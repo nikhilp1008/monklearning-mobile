@@ -71,6 +71,7 @@ import { BoardDiagram } from '@/components/board-diagram';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
+import { ASSETS_BASE_URL, r2FigureResolver } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
 import { EnteringCardScreen } from '@/components/entering-card';
 import {
@@ -546,12 +547,21 @@ export default function LiveClassroomScreen() {
    * renders with the radio off (CLAUDE.md §3), and a slug that was not
    * prefetched costs the student a figure, not a stalled board.
    *
-   * Today the resolver is the bundled PLACEHOLDER — one generated PNG and a
-   * hand-written label set — because `concept_assets` does not exist and all
-   * 48 rows of illustration-manifest.csv are `status=todo`. When the R2
-   * loader lands, this constant is the only line that changes.
+   * The R2 loader landed on 2026-09-07 and this is now the real resolver when
+   * a bucket is configured. The comment here used to say `concept_assets` did
+   * not exist; it does, and the sentence had simply not been revisited — the
+   * failure mode where a stale reason reads exactly like a current one.
+   *
+   * The PLACEHOLDER is still the fallback, and deliberately so rather than as
+   * a leftover: with no `EXPO_PUBLIC_ASSETS_BASE_URL` every slug would miss,
+   * and a developer running the app would see an empty board with no way to
+   * tell "the bucket is not wired" from "this widget is broken". One bundled
+   * figure that always resolves is the difference.
    */
-  const figures = useMemo<FigureResolver>(() => placeholderFigureResolver, []);
+  const figures = useMemo<FigureResolver>(
+    () => (ASSETS_BASE_URL ? r2FigureResolver : placeholderFigureResolver),
+    []
+  );
   useEffect(() => {
     // Fire-and-forget on purpose: nothing renders off this promise. The
     // report names the slugs that will miss, BEFORE the class, which is the
