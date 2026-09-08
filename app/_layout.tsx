@@ -220,6 +220,11 @@ export default function RootLayout() {
               a navigation bar that had nothing to do with either. Each carries
               its own back button instead. */}
           <Stack.Screen name="drona" options={{ headerShown: false }} />
+          {/* Progress is pushed, not a tab. `href: null` only hid it from the
+              bar -- it stayed a member of the (tabs) group, so the bar still
+              rendered underneath it. Same fix the chapter selector and
+              Practice got. */}
+          <Stack.Screen name="progress" options={{ headerShown: false }} />
           <Stack.Screen name="practice" options={{ headerShown: false }} />
           <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
