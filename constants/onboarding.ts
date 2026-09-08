@@ -180,21 +180,41 @@ export const WELCOME_2_VEIL = {
   locations: [0, 0.2, 0.34, 0.54, 0.76, 1] as const,
 };
 
-// Syllabus data — README "Syllabus data (live counts)", cross-checked against
-// the prototype's own EXAMS object. Totals: JEE 54, NEET 79, Both 93.
+/**
+ * Syllabus data.
+ *
+ * Counted from the live `chapters` table on 2026-09-08, not from a handoff.
+ * Both handoffs were wrong on every subject, in different directions, and the
+ * old numbers here (20/20/14/39) were wrong too -- NEET's total came out right
+ * only because two errors cancelled. `npm run check:syllabus` re-counts against
+ * the database so the next drift is caught rather than shipped.
+ *
+ *   physics 28 (11: 14 · 12: 14)      mathematics 28 (11: 15 · 12: 13)
+ *   chemistry 19 (11: 9 · 12: 10)     biology     32 (11: 19 · 12: 13)
+ *
+ * KNOWN GAP: chemistry is short by roughly ten chapters -- there is no
+ * s-Block, p-Block, States of Matter, Solid State, Surface Chemistry or
+ * Polymers in the table. Physics, maths and biology all read as complete
+ * against the NTA syllabus. Until chemistry is filled in, this screen says
+ * "we teach" rather than "we teach all of".
+ *
+ * Sample lines quote real rows. The previous ones named "Electrostatics",
+ * "Calculus", "Human Physiology", "Genetics" and "Ecology", none of which are
+ * chapters in the table.
+ */
 export type ExamKey = 'jee' | 'neet' | 'both';
 export type YearKey = 'class11' | 'class12' | 'dropper';
 
 export const EXAMS: Record<
   ExamKey,
   {
-    /** Row title on screen 05. */
+    /** Row title on the exam screen. */
     name: string;
     /** Subject tag on the right of the row. */
     tag: string;
     /** CTA label — "Continue with <label>". */
     label: string;
-    /** "WE TEACH ALL OF <upper>". */
+    /** "WE TEACH <upper>". */
     upper: string;
     subjects: { name: string; count: number }[];
     sample: string;
@@ -206,12 +226,12 @@ export const EXAMS: Record<
     label: 'JEE Main',
     upper: 'JEE MAIN',
     subjects: [
-      { name: 'Physics', count: 20 },
-      { name: 'Chemistry', count: 20 },
-      { name: 'Maths', count: 14 },
+      { name: 'Physics', count: 28 },
+      { name: 'Chemistry', count: 19 },
+      { name: 'Maths', count: 28 },
     ],
     sample:
-      'Rotational Motion · Thermodynamics · Electrostatics · Coordination Compounds · Calculus — NTA syllabus, complete.',
+      'Rotational Motion · Electrostatic Potential and Capacitance · Coordination Compounds · Integrals · Conic Sections.',
   },
   neet: {
     name: 'NEET UG',
@@ -219,12 +239,12 @@ export const EXAMS: Record<
     label: 'NEET UG',
     upper: 'NEET UG',
     subjects: [
-      { name: 'Physics', count: 20 },
-      { name: 'Chemistry', count: 20 },
-      { name: 'Biology', count: 39 },
+      { name: 'Physics', count: 28 },
+      { name: 'Chemistry', count: 19 },
+      { name: 'Biology', count: 32 },
     ],
     sample:
-      'Human Physiology · Genetics · Thermodynamics · Coordination Compounds · Ecology — NTA syllabus, complete.',
+      'Human Reproduction · Molecular Basis of Inheritance · Thermodynamics · Coordination Compounds · Ecosystem.',
   },
   both: {
     name: 'Both',
@@ -232,13 +252,13 @@ export const EXAMS: Record<
     label: 'both exams',
     upper: 'JEE MAIN + NEET UG',
     subjects: [
-      { name: 'Physics', count: 20 },
-      { name: 'Chemistry', count: 20 },
-      { name: 'Maths', count: 14 },
-      { name: 'Biology', count: 39 },
+      { name: 'Physics', count: 28 },
+      { name: 'Chemistry', count: 19 },
+      { name: 'Maths', count: 28 },
+      { name: 'Biology', count: 32 },
     ],
     sample:
-      'Rotational Motion · Calculus · Human Physiology · Genetics · Coordination Compounds — both syllabi, complete.',
+      'Rotational Motion · Integrals · Human Reproduction · Coordination Compounds · Evolution.',
   },
 };
 

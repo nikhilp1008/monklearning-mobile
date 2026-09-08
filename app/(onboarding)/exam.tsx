@@ -77,8 +77,14 @@ export default function ExamScreen() {
           {active && (
             <View style={styles.summary}>
               <View style={styles.summaryHeader}>
+                {/* "WE TEACH", not "WE TEACH ALL OF". Chemistry is ~10
+                    chapters short in the `chapters` table (no s-Block,
+                    p-Block, States of Matter, Solid State, Surface Chemistry
+                    or Polymers), so "all of" is a claim a student could check
+                    and catch us on. Restore the word once chemistry is
+                    complete — see the note on EXAMS. */}
                 <Text style={styles.summaryLabel}>
-                  WE TEACH ALL OF <Text style={styles.summaryLabelExam}>{active.upper}</Text>
+                  WE TEACH <Text style={styles.summaryLabelExam}>{active.upper}</Text>
                 </Text>
                 <View style={styles.summaryTotal}>
                   <Text style={styles.summaryTotalValue}>{total}</Text>
