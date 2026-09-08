@@ -222,16 +222,16 @@ export default function PassActiveScreen() {
         <View style={styles.footer}>
           {!!error && <Text style={styles.error}>{error}</Text>}
           <Rise delay={900}>
-            {/* The label does not change while the profile is written. The
-                write is usually a few hundred milliseconds, and swapping the
-                words for "Saving…" in that window read as the button doing
-                something other than what it said. It just stops accepting a
-                second tap. */}
+            {/* `busy`, not `disabled`. The label holds and the fill holds;
+                the arrow becomes a spinner and a second tap does nothing.
+                `disabled` empties the button to an outline, which on this dark
+                ground meant the cream button turned black the instant it was
+                tapped. */}
             <ObButton
               label="Start learning"
               variant="cream"
               withArrow
-              disabled={saving}
+              busy={saving}
               onPress={finish}
             />
           </Rise>

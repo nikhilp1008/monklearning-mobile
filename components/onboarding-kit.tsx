@@ -3,7 +3,15 @@
 // than being re-derived per screen — that's what keeps the six screens
 // pixel-identical to each other.
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -17,6 +25,10 @@ type ObButtonProps = {
   /** The white-flow buttons carry a trailing arrow; the welcome ones don't. */
   withArrow?: boolean;
   disabled?: boolean;
+  /** Working, not unavailable: keeps the fill and swaps the arrow for a
+   *  spinner. `disabled` empties the button to an outline, which on a dark
+   *  ground reads as the button turning black. */
+  busy?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -27,6 +39,7 @@ export function ObButton({
   variant = 'ink',
   withArrow = false,
   disabled = false,
+  busy = false,
   style,
 }: ObButtonProps) {
   const { ds, fs, tracking } = useDesignScale();
@@ -35,7 +48,7 @@ export function ObButton({
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || busy}
       style={({ pressed }) => [
         {
           width: '100%',
@@ -72,7 +85,14 @@ export function ObButton({
         }}>
         {label}
       </Text>
-      {withArrow && (
+      {busy && (
+        <ActivityIndicator
+          size="small"
+          color={isCream ? ob.ink : ob.cream}
+          style={{ marginLeft: ds(2) }}
+        />
+      )}
+      {withArrow && !busy && (
         <Text
           style={{
             fontFamily: obFont.m500,

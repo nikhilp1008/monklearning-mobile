@@ -22,7 +22,7 @@ export default function WelcomeScreen() {
           the image. Dark glyphs. */}
       <StatusBar style="dark" />
       <WelcomeFrame
-        photo={require('@/assets/images/welcome-01-scan-doubt.png')}
+        photo={require('@/assets/images/onboarding-welcome-1.png')}
         index={0}
         next="/welcome-2">
         <Text style={styles.headline}>AI for JEE &amp; NEET aspirants.</Text>

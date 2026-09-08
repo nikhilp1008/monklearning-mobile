@@ -17,7 +17,7 @@ export default function WelcomeTwoScreen() {
     <>
       <StatusBar style="dark" />
       <WelcomeFrame
-        photo={require('@/assets/images/welcome-02-ask-doubt.png')}
+        photo={require('@/assets/images/onboarding-welcome-2.png')}
         index={1}
         next="/email">
         <View style={styles.lines}>
