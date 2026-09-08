@@ -56,6 +56,43 @@ function Rise({ delay, children }: { delay: number; children: React.ReactNode })
   );
 }
 
+/**
+ * `mkRing` — an amber disc that expands out from under the tick and fades.
+ * Two of them, staggered, so the confirmation has something moving in it
+ * rather than four rows that are simply present. Runs once; this is a moment,
+ * not a loop.
+ */
+function Ring({ size, delay }: { size: number; delay: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const run = Animated.timing(anim, {
+      toValue: 1,
+      duration: 1400,
+      delay,
+      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      useNativeDriver: true,
+    });
+    run.start();
+    return () => run.stop();
+  }, [anim, delay]);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: ob.amber,
+        opacity: anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.5, 0.1, 0] }),
+        transform: [
+          { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 2] }) },
+        ],
+      }}
+    />
+  );
+}
+
 /** The tick pops out of nothing at 1.08 before settling — `mkPop`. */
 function Tick({ size }: { size: number }) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -152,7 +189,11 @@ export default function PassActiveScreen() {
       <StatusBar style="light" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.body}>
-          <Tick size={ds(64)} />
+          <View style={styles.tickWrap}>
+            <Ring size={ds(64)} delay={160} />
+            <Ring size={ds(64)} delay={620} />
+            <Tick size={ds(64)} />
+          </View>
 
           <View style={styles.headBlock}>
             <Rise delay={300}>
@@ -181,10 +222,15 @@ export default function PassActiveScreen() {
         <View style={styles.footer}>
           {!!error && <Text style={styles.error}>{error}</Text>}
           <Rise delay={900}>
+            {/* The label does not change while the profile is written. The
+                write is usually a few hundred milliseconds, and swapping the
+                words for "Saving…" in that window read as the button doing
+                something other than what it said. It just stops accepting a
+                second tap. */}
             <ObButton
-              label={saving ? 'Saving…' : 'Start learning'}
+              label="Start learning"
               variant="cream"
-              withArrow={!saving}
+              withArrow
               disabled={saving}
               onPress={finish}
             />
@@ -204,6 +250,7 @@ function createStyles(
     screen: { flex: 1, backgroundColor: ob.night },
     safeArea: { flex: 1 },
     body: { flex: 1, paddingHorizontal: ds(30), paddingTop: ds(56) },
+    tickWrap: { width: ds(64), height: ds(64), alignItems: 'center', justifyContent: 'center' },
     headBlock: { marginTop: ds(30), gap: ds(14) },
     headline: {
       fontFamily: obFont.r400,

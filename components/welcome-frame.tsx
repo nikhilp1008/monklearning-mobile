@@ -103,11 +103,12 @@ function createStyles(ds: (n: number) => number) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
+    // Square. The rounded bottom edge read as a card floating on the page;
+    // the photograph is the page here, so it meets the type on a straight
+    // line and keeps the full width of the frame.
     photoFrame: {
       flex: 1,
       overflow: 'hidden',
-      borderBottomLeftRadius: ds(34),
-      borderBottomRightRadius: ds(34),
       backgroundColor: '#EDEAE4',
     },
     photo: { width: '100%', height: '100%' },

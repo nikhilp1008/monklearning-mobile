@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
@@ -36,6 +37,20 @@ const INCLUDED: [string, string][] = [
   ['Teachers', 'Drona & Vedha · Eng / Hinglish'],
 ];
 
+function ArrowGlyph({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path
+        d="M2 8h11M9 3.5 13.5 8 9 12.5"
+        stroke={ob.link}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export default function PassScreen() {
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
@@ -44,16 +59,18 @@ export default function PassScreen() {
   // than popping to it — so the pass the student had already chosen has to
   // survive the round trip in params.
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
-  const [pass, setPass] = useState<PassKey>(
-    PASSES.some((p) => p.id === params.pass) ? (params.pass as PassKey) : 'week'
+  // Nothing preselected. A highlighted row reads as an answer already given,
+  // and this one costs money — the student should pick it, not un-pick ours.
+  const [pass, setPass] = useState<PassKey | null>(
+    PASSES.some((p) => p.id === params.pass) ? (params.pass as PassKey) : null
   );
   const [playToken, setPlayToken] = useState(0);
 
   const promo = (params.promo ?? '').toUpperCase();
-  const active = PASSES.find((p) => p.id === pass) ?? PASSES[1];
-  const discount = promoDiscount(promo, active.price);
-  const total = Math.max(0, active.price - discount);
-  const paid = total === 0;
+  const active = PASSES.find((p) => p.id === pass) ?? null;
+  const discount = active ? promoDiscount(promo, active.price) : 0;
+  const total = active ? Math.max(0, active.price - discount) : 0;
+  const paid = !!active && total === 0;
 
   const select = (id: PassKey) => {
     setPass(id);
@@ -76,7 +93,6 @@ export default function PassScreen() {
               <SelectRow
                 key={p.id}
                 name={p.name}
-                note={p.note}
                 trailing={rupees(p.price)}
                 selected={pass === p.id}
                 playToken={playToken}
@@ -84,16 +100,14 @@ export default function PassScreen() {
               />
             ))}
 
-            <PressableScale
-              style={[styles.promoRow, !!discount && styles.promoRowOn]}
-              onPress={toPromo}>
-              <View style={styles.promoText}>
-                <Text style={styles.promoLabel}>PROMO CODE</Text>
-                <Text style={styles.promoValue}>{discount ? promo : 'Add a code'}</Text>
-              </View>
-              <Text style={[styles.promoAction, !!discount && styles.promoActionOn]}>
-                {discount ? `−${rupees(discount)}` : 'Add'}
+            {/* A line, not a field. Nothing is typed here — the box implied an
+                input and sat in a stack of two other boxes that ARE choices,
+                so it read as a third pass. */}
+            <PressableScale style={styles.promoLink} hitSlop={10} onPress={toPromo}>
+              <Text style={styles.promoLinkText}>
+                {discount ? `${promo} applied · −${rupees(discount)}` : 'Have a promo code?'}
               </Text>
+              <ArrowGlyph size={ds(13)} />
             </PressableScale>
           </View>
 
@@ -115,7 +129,7 @@ export default function PassScreen() {
               exists the only completable total is zero, and the line under the
               button is where that is admitted rather than discovered on tap. */}
           <ObButton
-            label={paid ? 'Complete — ₹0 due' : `Pay ${rupees(total)}`}
+            label={!active ? 'Choose a pass' : paid ? 'Complete — ₹0 due' : `Pay ${rupees(total)}`}
             disabled={!paid}
             withArrow={paid}
             onPress={() => {
@@ -126,7 +140,7 @@ export default function PassScreen() {
               });
             }}
           />
-          {!paid && (
+          {!!active && !paid && (
             <Text style={styles.footNote}>
               Card payments aren’t live yet. Add the code{' '}
               <Text style={styles.footNoteCode}>{PROMO_CODE}</Text> to continue.
@@ -168,34 +182,18 @@ function createStyles(
       marginTop: ds(14),
     },
     rows: { marginTop: ds(24), gap: ds(10) },
-    promoRow: {
+    promoLink: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: ds(12),
-      borderRadius: ds(20),
-      borderWidth: 1.5,
-      borderColor: ob.hairline14,
-      backgroundColor: ob.surface,
-      paddingVertical: ds(15),
-      paddingHorizontal: ds(20),
+      gap: ds(6),
+      alignSelf: 'flex-start',
+      paddingVertical: ds(6),
     },
-    promoRowOn: { borderColor: ob.amber },
-    promoText: { flex: 1, minWidth: 0, gap: ds(4) },
-    promoLabel: {
-      fontFamily: obFont.sb600,
-      fontSize: fs(10),
-      letterSpacing: tracking(0.14, 10),
-      color: ob.ink55,
-    },
-    promoValue: {
+    promoLinkText: {
       fontFamily: obFont.m500,
-      fontSize: fs(17),
-      letterSpacing: tracking(0.02, 17),
-      color: ob.ink,
+      fontSize: fs(15),
+      color: ob.link,
     },
-    promoAction: { fontFamily: obFont.m500, fontSize: fs(14), color: ob.link },
-    promoActionOn: { fontSize: fs(16), color: ob.amberDark },
     included: { marginTop: ds(26) },
     overline: {
       fontFamily: obFont.sb600,

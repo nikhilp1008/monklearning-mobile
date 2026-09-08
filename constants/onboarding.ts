@@ -116,8 +116,8 @@ export const ob = {
  * there -- see app/(onboarding)/pass.tsx.
  */
 export const PASSES = [
-  { id: 'day', name: '1 day', note: '24 hours from payment', price: 149 },
-  { id: 'week', name: '7 days', note: 'Works out to ₹107 a day', price: 749 },
+  { id: 'day', name: '1 day', price: 149 },
+  { id: 'week', name: '7 days', price: 749 },
 ] as const;
 
 export type PassKey = (typeof PASSES)[number]['id'];
