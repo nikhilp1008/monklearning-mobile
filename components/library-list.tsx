@@ -160,15 +160,36 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   // Fetched unfiltered and filtered at render time, so switching a chip costs
   // no round trip. The chips themselves come from the response rather than
   // being derived from the rows — see `doubtsFilters`.
+  /**
+   * Whether each list has ever loaded.
+   *
+   * Refetching on focus is right — a doubt snapped elsewhere has to appear
+   * here — and the cost was never the request. It was `setLoading(true)`
+   * blanking a list that was already on screen and correct, on EVERY focus,
+   * for BOTH lists, on a tab that only ever renders one of them. Measured on
+   * device that was ~1.8s of churn per tab switch.
+   *
+   * So the refetch stays and the blanking goes: skeletons are for the first
+   * load only, and a refresh that returns the same rows repaints nothing. A
+   * staleness window was tried instead and rejected — it would have brought
+   * back exactly the bug this focus effect exists to prevent, a snapped doubt
+   * missing from the list it was promised in.
+   */
+  const doubtsLoadedRef = useRef(false);
+  const notesLoadedRef = useRef(false);
+
   const fetchDoubts = useCallback(() => {
     let cancelled = false;
-    setDoubtsLoading(true);
+    // Only the first load may show skeletons. On a return visit the list is
+    // already there, and replacing it with placeholders IS the lag.
+    if (!doubtsLoadedRef.current) setDoubtsLoading(true);
     setDoubtsError(null);
     listDoubts()
       .then((res) => {
         if (cancelled) return;
         setDoubts(res.doubts.filter((d) => d.status === 'solved'));
         setDoubtChips(res.subjects ?? []);
+        doubtsLoadedRef.current = true;
       })
       .catch((err) => {
         if (!cancelled) setDoubtsError(friendlyLoadError(err, 'doubts'));
@@ -183,11 +204,13 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
 
   const fetchNotes = useCallback(() => {
     let cancelled = false;
-    setNotesLoading(true);
+    if (!notesLoadedRef.current) setNotesLoading(true);
     setNotesError(null);
     listNotes()
       .then((res) => {
-        if (!cancelled) setNotes(res.notes);
+        if (cancelled) return;
+        setNotes(res.notes);
+        notesLoadedRef.current = true;
       })
       .catch((err) => {
         if (!cancelled) setNotesError(friendlyLoadError(err, 'notes'));
@@ -200,22 +223,21 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     };
   }, []);
 
-  useEffect(() => fetchDoubts(), [fetchDoubts]);
-  useEffect(() => fetchNotes(), [fetchNotes]);
-
-  // Library is a tab screen that stays mounted — without this, snapping a
-  // doubt and returning here wouldn't show it until something else forced a
-  // refetch, contradicting the "find it in Library any time" promise
+  // This is a tab screen that stays mounted — without a refetch on focus,
+  // snapping a doubt and returning here wouldn't show it until something else
+  // forced one, contradicting the "find it in Library any time" promise
   // snap-solved makes.
+  //
+  // Only the list this tab actually renders is fetched: `kind` picks one, and
+  // the other was a second round trip per focus for rows nobody was looking
+  // at. The plain mount effects that used to sit here are gone too — a focus
+  // effect already runs on mount, so every cold start was firing each request
+  // twice.
   useFocusEffect(
     useCallback(() => {
-      const cancelDoubts = fetchDoubts();
-      const cancelNotes = fetchNotes();
-      return () => {
-        cancelDoubts();
-        cancelNotes();
-      };
-    }, [fetchDoubts, fetchNotes])
+      const cancel = kind === 'notes' ? fetchNotes() : fetchDoubts();
+      return cancel;
+    }, [kind, fetchDoubts, fetchNotes])
   );
 
   // The sample cards stand in only while nothing real is saved.

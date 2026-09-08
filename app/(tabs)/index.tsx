@@ -124,7 +124,9 @@ export default function HomeScreen() {
 
   // Refetch on focus, not just mount — the plan is edited on a separate
   // screen this one stays mounted underneath, notes get saved from a class,
-  // and the score moves while the student practises.
+  // and the score moves while the student practises. Every one of these seeds
+  // from cache or leaves what is on screen alone, so a refresh that finds
+  // nothing new repaints nothing.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
