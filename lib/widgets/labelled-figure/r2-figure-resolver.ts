@@ -53,6 +53,56 @@ export function labelSetUrl(base: string, slug: string): string {
   return `${base}/concept-assets/${slug}.json`;
 }
 
+/* ------------------------------------------------------------- renditions */
+
+/**
+ * Every master in drona-illustrations-v1 is under 1600 px wide — 104 of them
+ * are 896x500, chat-transferred. Letterboxed into a 900pt board on a 2x screen
+ * that is 1800 device pixels of frame for 896 pixels of art, and flat-colour
+ * line art shown at 2x its own resolution is visibly soft.
+ *
+ * So the ingest produces `<asset_slug>@2x.png` by 2x Lanczos beside every
+ * master under 1600, and the client picks between them. Lanczos because these
+ * are flat fills with hard edges: bilinear rounds the edges off and nearest
+ * staircases them.
+ *
+ * PROVENANCE STAYS WITH THE MASTER. `concept_assets.sha256` is the master's,
+ * and only the master's — a rendition is derived, reproducible from it, and
+ * hashing it would put a second checksum in the table that means nothing on
+ * its own.
+ */
+export const RENDITION_SUFFIX = '@2x';
+
+/** The largest master this pipeline upscales. Mirrors the ingest's own bound. */
+export const RENDITION_THRESHOLD_PX = 1600;
+
+/**
+ * Which file to fetch for a frame. `master` or `@2x`.
+ *
+ * The comparison is DEVICE PIXELS against the master's own pixel width, not
+ * points against points: a 343pt board on a 3x phone is 1029 real pixels, and
+ * a 896px master is under-resolved there even though 896 > 343 reads
+ * comfortable. Points would pick the master on every phone in the catalogue.
+ *
+ * Ties go to the master. Equal resolution means the upscale adds bytes and no
+ * detail, and the master is the file whose sha256 is recorded.
+ */
+export function pickRendition(masterWidthPx: number, frameWidthPt: number, dpr: number):
+  'master' | typeof RENDITION_SUFFIX {
+  const devicePx = frameWidthPt * dpr;
+  return devicePx > masterWidthPx ? RENDITION_SUFFIX : 'master';
+}
+
+/** The object key for the chosen rendition. */
+export function renditionUrl(
+  base: string, slug: string, ext: string,
+  masterWidthPx: number, frameWidthPt: number, dpr: number
+): string {
+  const which = pickRendition(masterWidthPx, frameWidthPt, dpr);
+  const name = which === 'master' ? slug : `${slug}${RENDITION_SUFFIX}`;
+  return `${base}/concept-assets/${name}.${ext}`;
+}
+
 /**
  * Turns one slug into a `FigureRecord`, or throws so `prefetch` reports it as
  * missing.
