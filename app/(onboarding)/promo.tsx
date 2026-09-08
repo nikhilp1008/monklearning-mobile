@@ -24,7 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ObBack, ObButton } from '@/components/onboarding-kit';
+import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import {
   PASSES,
@@ -78,7 +78,7 @@ export default function PromoScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObBack />
+        <ObHeader title="Promo code" />
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -86,7 +86,6 @@ export default function PromoScreen() {
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <Text style={styles.heading}>Promo code</Text>
             <Text style={styles.sub}>Add one if you have it.</Text>
 
             <Animated.View

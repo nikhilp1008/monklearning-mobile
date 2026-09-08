@@ -168,6 +168,60 @@ const styles = StyleSheet.create({
  * student onto `details` with an empty history, and a back button that does
  * nothing is worse than none.
  */
+/**
+ * The screen header every white onboarding screen opens with: a back chevron
+ * and the title on ONE line, 13pt apart.
+ *
+ * ObBack below floats the chevron absolutely, which put it on its own line
+ * above the heading -- the handoff draws them as a single row, and with the
+ * heading down at 22.5px a chevron stranded above it reads as a stray mark
+ * rather than as part of the title.
+ */
+export function ObHeader({ title }: { title: string }) {
+  const { ds, fs, tracking } = useDesignScale();
+  const canGoBack = router.canGoBack();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: ds(13),
+        paddingHorizontal: ds(30),
+        paddingTop: ds(34),
+      }}>
+      {canGoBack && (
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+          <Svg viewBox="0 0 24 24" width={ds(20)} height={ds(20)} fill="none">
+            <Path
+              d="M15 5l-7 7 7 7"
+              stroke={ob.ink80}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
+      )}
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: obFont.m500,
+          fontSize: fs(22.5),
+          lineHeight: fs(28),
+          letterSpacing: tracking(-0.02, 22.5),
+          color: ob.ink,
+        }}>
+        {title}
+      </Text>
+    </View>
+  );
+}
+
 export function ObBack() {
   const { ds } = useDesignScale();
   // Absolute children are laid out against the parent's border box, so a

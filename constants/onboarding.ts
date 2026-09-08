@@ -25,7 +25,11 @@ const DESIGN_WIDTH = 390;
  * the spec untouched; `ds` stays linear because padding, radii and heights are
  * geometry and must not move. Same 0.9 / 0.75 pair the rest of the app uses.
  */
-const ONEST_SIZE = 0.9;
+// 0.93, not the 0.9 the x-height ratio alone argues for. 0.9 is the honest
+// optical match against Anek Latin, but read on a device the welcome headline
+// came out a shade under-set -- so this is 0.9 with the 3% back that judgement
+// asked for, applied in one place rather than screen by screen.
+const ONEST_SIZE = 0.93;
 const ONEST_TRACKING = 0.75;
 
 export function useDesignScale() {
@@ -260,6 +264,14 @@ export const EXAMS: Record<
     sample:
       'Rotational Motion · Integrals · Human Reproduction · Coordination Compounds · Evolution.',
   },
+};
+
+/** The note under each year is the handoff's; it is what makes the three rows
+ *  read as different paces rather than three labels. */
+export const YEAR_NOTES: Record<YearKey, string> = {
+  class11: 'Two years to build',
+  class12: 'Board year pace',
+  dropper: 'Revision first',
 };
 
 export const YEARS: Record<YearKey, string> = {

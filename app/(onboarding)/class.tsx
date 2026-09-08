@@ -11,10 +11,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
+import { LeaderRow, ObButton, ObHeader } from '@/components/onboarding-kit';
 import {
   EXAMS,
   YEARS,
+  YEAR_NOTES,
   examTotal,
   ob,
   obFont,
@@ -54,17 +55,11 @@ export default function ClassScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObBack />
+        <ObHeader title="Select your year" />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
-          {/* `padding:52px 34px 0` */}
-          <View style={styles.headlineBlock}>
-            <Text style={styles.headline}>
-              Which <Text style={styles.headlineBold}>year</Text> are you in?
-            </Text>
-            <Text style={styles.sub}>Same syllabus — only the pace changes.</Text>
-          </View>
+          <Text style={styles.sub}>Same syllabus. Only the pace changes.</Text>
 
           {/* `padding:32px 26px 0; gap:10px` */}
           <View style={styles.rowStack}>
@@ -72,6 +67,7 @@ export default function ClassScreen() {
               <SelectRow
                 key={key}
                 name={YEARS[key]}
+                note={YEAR_NOTES[key]}
                 selected={year === key}
                 playToken={playToken}
                 onPress={() => select(key)}
@@ -165,9 +161,11 @@ function createStyles(
       fontFamily: obFont.xb800,
     },
     sub: {
+      paddingHorizontal: ds(30),
+      paddingTop: ds(14),
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: fs(17),
+      fontSize: fs(16),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },

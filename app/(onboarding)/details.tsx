@@ -17,7 +17,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { ObBack, ObButton } from '@/components/onboarding-kit';
+import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { getSessionEmail } from '@/lib/auth';
 import { saveProfile } from '@/lib/profile';
@@ -101,18 +101,12 @@ export default function DetailsScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObBack />
+        <ObHeader title="Your details" />
         <KeyboardAvoidingView
           style={styles.safeArea}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* `padding:52px 34px 0` */}
-          <View style={styles.headlineBlock}>
-            <Text style={styles.headline}>
-              Who is <Text style={styles.headlineBold}>joining the class</Text>?
-            </Text>
-            <Text style={styles.sub}>Two fields, and your teacher knows what to call you.</Text>
-          </View>
+          <Text style={styles.sub}>We use your name in class.</Text>
 
           {/* `padding:32px 26px 0; display:flex; flex-direction:column; gap:12px` */}
           <View style={styles.fieldStack}>
@@ -265,59 +259,60 @@ function createStyles(
     },
     // `margin-top:14px; font-size:17px; line-height:1.45; color:#5F5A50`
     sub: {
+      paddingHorizontal: ds(30),
+      paddingTop: ds(14),
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: fs(17),
+      fontSize: fs(16),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },
     // `padding:32px 26px 0; flex-direction:column; gap:12px`
     fieldStack: {
-      paddingTop: ds(32),
-      paddingHorizontal: ds(26),
+      paddingTop: ds(30),
+      paddingHorizontal: ds(30),
       flexDirection: 'column',
       gap: ds(12),
     },
-    // `box-shadow:0 0 0 5px rgba(238,163,31,.18)` around a 20px radius card.
+    // The amber ring is gone with the rest of the old field system: a wash is
+    // the app's mark for a choice made, and focus is not a choice.
     focusRing: {
-      padding: ds(5),
-      borderRadius: ds(25),
-      backgroundColor: ob.focusRing,
+      borderRadius: ds(14),
     },
-    // `border-radius:20px; padding:18px 24px`
     card: {
-      borderRadius: ds(20),
-      paddingVertical: ds(18),
-      paddingHorizontal: ds(24),
+      borderRadius: ds(14),
+      paddingVertical: ds(16),
+      paddingHorizontal: ds(18),
     },
+    // Focus darkens the outline by one step. It does not thicken it, so
+    // nothing reflows as the student moves between fields.
     cardActive: {
       backgroundColor: ob.surface,
-      borderWidth: 1.5,
-      borderColor: ob.ink,
+      borderWidth: 1,
+      borderColor: ob.ink40,
     },
     cardIdle: {
       backgroundColor: ob.surface,
       borderWidth: 1,
-      borderColor: ob.hairline14,
+      borderColor: ob.fieldBorder,
     },
+    // The verified email: read-only, so it sits on a tint instead of white.
     cardWarm: {
-      backgroundColor: ob.surfaceWarm,
+      backgroundColor: ob.fieldMuted,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    // 13px / 700 / ls .1em / #8C867A
     label: {
-      fontFamily: obFont.b700,
-      fontSize: fs(13),
-      letterSpacing: tracking(0.1, 13),
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
       color: ob.ink55,
     },
-    // `font-size:22px; font-weight:500` — the `margin-top:8px` from the spec
-    // lives on whatever wraps the value, so the caret row centres correctly.
     value: {
-      fontFamily: obFont.m500,
-      fontSize: fs(22),
+      fontFamily: obFont.r400,
+      fontSize: fs(19),
+      letterSpacing: tracking(-0.01, 19),
       color: ob.ink,
     },
     input: {

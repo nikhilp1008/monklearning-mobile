@@ -29,7 +29,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
+import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
 import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
@@ -201,18 +201,13 @@ export default function EmailScreen() {
   return (
     <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
-      <ObBack />
       <KeyboardAvoidingView
         style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {stage === 'email' ? (
           <>
-            <View style={s.headBlock}>
-              <Text style={s.headline}>
-                What&apos;s <Text style={s.headlineStrong}>your email</Text>?
-              </Text>
-              <Text style={s.sub}>It is your account. No passwords to remember, ever.</Text>
-            </View>
+            <ObHeader title="Your email" />
+            <Text style={s.sub}>No password. We send a code instead.</Text>
 
             <View style={s.cardBlock}>
               {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
@@ -255,21 +250,11 @@ export default function EmailScreen() {
                   finished typing, and therefore what the button is about to
                   do. Before that it answers the question a returning student
                   actually has, which is whether they're in the right box. */}
-              <LeaderRow
-                label={ready ? 'Next' : 'Already with us'}
-                value={ready ? 'A six-digit code, to this address' : 'This same box signs you back in'}
-                tone="dark"
-                labelSize={15}
-                valueSize={15}
-                leaderColor={ob.leader28}
-                labelColor={ob.ink55}
-                style={s.recognition}
-              />
             </View>
 
             <View style={s.footer}>
               <ObButton
-                label={busy ? 'Sending…' : 'Send OTP'}
+                label={busy ? 'Sending…' : 'Send the code'}
                 variant="ink"
                 withArrow
                 disabled={!ready || busy}
@@ -279,25 +264,17 @@ export default function EmailScreen() {
           </>
         ) : (
           <>
-            <View style={s.headBlock}>
-              <Text style={s.headline}>
-                Enter <Text style={s.headlineStrong}>the OTP</Text>.
+            <ObHeader title="Enter the code" />
+            {/* The handoff puts the address and its escape hatch on one line
+                under the title, in place of the recap card. The card was a
+                second field-shaped object directly above six more, which read
+                as another thing to fill in. */}
+            <Text style={s.sub} numberOfLines={2}>
+              Sent to {email.trim()} ·{' '}
+              <Text style={s.changeLink} onPress={changeEmail}>
+                Change
               </Text>
-            </View>
-
-            <View style={s.recapBlock}>
-              <View style={s.recapCard}>
-                <View style={s.recapText}>
-                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
-                  <Text style={s.recapValue} numberOfLines={1}>
-                    {email.trim()}
-                  </Text>
-                </View>
-                <Pressable onPress={changeEmail} hitSlop={ds(10)}>
-                  <Text style={s.changeLink}>Change</Text>
-                </Pressable>
-              </View>
-            </View>
+            </Text>
 
             <Rise delay={100} distance={ds(14)} style={s.statusBlock}>
               <View style={s.statusRow}>
@@ -477,39 +454,46 @@ function createStyles(
     },
     headlineStrong: { fontFamily: obFont.xb800 },
     sub: {
+      paddingHorizontal: ds(30),
+      paddingTop: ds(14),
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: fs(17),
+      fontSize: fs(16),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },
 
     // padding:34px 26px 0
-    cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(26) },
-    focusRing: { padding: ds(5), borderRadius: ds(25), backgroundColor: ob.focusRing },
+    // The handoff's field: a plain 1pt outline, 14 radius, and nothing else.
+    // The old one carried a 1.5pt ink border inside a 5pt amber ring, which
+    // made an empty text box the loudest object on the screen -- louder than
+    // the button it leads to. "Gradients are for selection only", and an
+    // untouched field has selected nothing.
+    cardBlock: { paddingTop: ds(30), paddingHorizontal: ds(30) },
+    focusRing: { borderRadius: ds(14) },
     fieldCard: {
-      borderRadius: ds(20),
+      borderRadius: ds(14),
       backgroundColor: ob.surface,
-      borderWidth: 1.5,
-      borderColor: ob.ink,
-      paddingVertical: ds(20),
-      paddingHorizontal: ds(24),
+      borderWidth: 1,
+      borderColor: ob.fieldBorder,
+      paddingVertical: ds(16),
+      paddingHorizontal: ds(18),
     },
     fieldLabel: {
-      fontFamily: obFont.b700,
-      fontSize: fs(13),
-      letterSpacing: tracking(0.1, 13),
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
       color: ob.ink55,
     },
-    valueRow: { marginTop: ds(10), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
+    valueRow: { marginTop: ds(6), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
     // Typed straight into the card rather than behind a hidden input: an
     // address is variable-length and proportional, so the per-character
     // caret trick the phone digits used has nothing to align to.
     emailInput: {
       flex: 1,
       padding: 0,
-      fontFamily: obFont.sb600,
-      fontSize: fs(24),
+      fontFamily: obFont.r400,
+      fontSize: fs(19),
       // No lineHeight. iOS lays a TextInput's text out inside the line box and
       // clips whatever falls outside it, which was shaving the descenders off
       // g/p/y in an address. A minHeight reserves the same vertical space the

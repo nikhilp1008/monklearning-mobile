@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
+import { LeaderRow, ObButton, ObHeader } from '@/components/onboarding-kit';
 import { SelectRow } from '@/components/select-row';
 import { EXAMS, examTotal, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
 import { saveProfile } from '@/lib/profile';
@@ -43,17 +43,11 @@ export default function ExamScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObBack />
+        <ObHeader title="Select your exam" />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
-          {/* `padding:52px 34px 0` */}
-          <View style={styles.headlineBlock}>
-            <Text style={styles.headline}>
-              Select <Text style={styles.headlineBold}>your exam</Text>.
-            </Text>
-            <Text style={styles.sub}>Pick one. The syllabus below is what we teach for it.</Text>
-          </View>
+          <Text style={styles.sub}>Pick one. The syllabus below is what we teach for it.</Text>
 
           {/* `padding:30px 26px 0; gap:10px` */}
           <View style={styles.rowStack}>
@@ -161,9 +155,11 @@ function createStyles(
       fontFamily: obFont.xb800,
     },
     sub: {
+      paddingHorizontal: ds(30),
+      paddingTop: ds(14),
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: fs(17),
+      fontSize: fs(16),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },

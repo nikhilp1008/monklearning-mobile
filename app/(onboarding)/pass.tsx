@@ -14,7 +14,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ObBack, ObButton } from '@/components/onboarding-kit';
+import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import {
   EXAMS,
@@ -67,9 +67,8 @@ export default function PassScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObBack />
+        <ObHeader title="Choose a pass" />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.heading}>Choose a pass</Text>
           <Text style={styles.sub}>Nothing renews on its own.</Text>
 
           <View style={styles.rows}>
