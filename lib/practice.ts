@@ -132,6 +132,15 @@ export function submitAnswer(params: {
   question_id: string;
   chosen_option?: string;
   chosen_value?: number;
+  /**
+   * How long the question was actually on screen, measured by the client.
+   *
+   * The server derives its own time from `question_serves.served_at`, which is
+   * when it HANDED OUT the question — and the app fetches one ahead, so that
+   * clock starts while the student is still reading the previous one. Ignored
+   * by the API until it reads this field; safe to send meanwhile.
+   */
+  elapsed_ms?: number;
 }): Promise<AnswerResult> {
   return apiFetch('/practice/answer', {
     method: 'POST',
@@ -141,6 +150,45 @@ export function submitAnswer(params: {
 
 export function getPracticeStats(): Promise<PracticeStats> {
   return apiFetch('/practice/stats');
+}
+
+/**
+ * The question fetched ahead, held OUTSIDE the screen's lifetime.
+ *
+ * Practice is a stack route now rather than a tab, so it unmounts every time
+ * the student leaves and mounts fresh every time they come back. A prefetch
+ * held in a ref died with it, which made re-opening Practice pay the full
+ * `/practice/next` round trip — measured at a median 1.2s — every single time.
+ *
+ * Keeping it here is not only a speed-up, it is the correct thing to do with
+ * that question: `/practice/next` calls `record_serve`, so the question was
+ * already burned out of this student's pool the moment it was fetched.
+ * Throwing it away on unmount meant burning a second one to replace it.
+ *
+ * Module scope rather than storage: it should not outlive the app, because a
+ * question held across a restart would have a serve timestamp from another
+ * sitting — see the note on timing in `submitAnswer`.
+ */
+let queued: { question: NextQuestion; subject: string } | null = null;
+
+export function takeQueuedQuestion(subject: string): NextQuestion | null {
+  if (!queued || queued.subject !== subject) return null;
+  const { question } = queued;
+  queued = null;
+  return question;
+}
+
+export function holdQueuedQuestion(question: NextQuestion, subject: string) {
+  queued = { question, subject };
+}
+
+export function hasQueuedQuestion(subject: string): boolean {
+  return queued?.subject === subject;
+}
+
+/** Dropped when the answer to "which question comes next" changes. */
+export function clearQueuedQuestion() {
+  queued = null;
 }
 
 export interface PracticeExplainSession {
