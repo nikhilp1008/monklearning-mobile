@@ -445,13 +445,15 @@ function createStyles(
       color: ob.ink,
     },
     headlineStrong: { fontFamily: obFont.xb800 },
+    // 14pt under the title — `padding:14px 30px 0` in the handoff. This
+    // briefly carried a paddingTop AND a marginTop of 14 each, which is the
+    // gap that read as too wide.
     sub: {
       paddingHorizontal: ds(30),
-      paddingTop: ds(14),
       marginTop: ds(14),
       fontFamily: obFont.r400,
       fontSize: fs(16),
-      lineHeight: ds(17 * 1.45),
+      lineHeight: fs(23),
       color: ob.ink80,
     },
 

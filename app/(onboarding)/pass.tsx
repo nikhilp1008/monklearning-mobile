@@ -152,7 +152,7 @@ function createStyles(
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
-    content: { paddingHorizontal: ds(30), paddingTop: ds(34), paddingBottom: ds(24) },
+    content: { paddingHorizontal: ds(30), paddingBottom: ds(24) },
     heading: {
       fontFamily: obFont.m500,
       fontSize: fs(22.5),
@@ -165,7 +165,7 @@ function createStyles(
       fontSize: fs(16),
       lineHeight: fs(23),
       color: ob.ink80,
-      marginTop: ds(12),
+      marginTop: ds(14),
     },
     rows: { marginTop: ds(24), gap: ds(10) },
     promoRow: {

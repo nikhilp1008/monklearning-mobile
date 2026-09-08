@@ -25,7 +25,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
-import { PressableScale } from '@/components/pressable-scale';
 import {
   PASSES,
   ob,
@@ -137,12 +136,6 @@ export default function PromoScreen() {
 
           <View style={styles.footer}>
             <ObButton label="Apply code" disabled={!draft.trim()} onPress={apply} />
-            {/* No "Skip". Skipping lands on a pass that cannot be paid for,
-                which is a dead end rather than a shortcut — the back chevron
-                is there for anyone who wants out. */}
-            <PressableScale hitSlop={12} onPress={() => router.back()} style={styles.backRow}>
-              <Text style={styles.backText}>Back to passes</Text>
-            </PressableScale>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -159,7 +152,7 @@ function createStyles(
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
     flex: { flex: 1 },
-    content: { paddingHorizontal: ds(30), paddingTop: ds(34), paddingBottom: ds(24) },
+    content: { paddingHorizontal: ds(30), paddingBottom: ds(24) },
     heading: {
       fontFamily: obFont.m500,
       fontSize: fs(22.5),
@@ -172,7 +165,7 @@ function createStyles(
       fontSize: fs(16),
       lineHeight: fs(23),
       color: ob.ink80,
-      marginTop: ds(12),
+      marginTop: ds(14),
     },
     field: {
       marginTop: ds(28),
@@ -219,7 +212,5 @@ function createStyles(
     },
     hintBad: { color: '#DD4433' },
     footer: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(4) },
-    backRow: { height: ds(46), alignItems: 'center', justifyContent: 'center' },
-    backText: { fontFamily: obFont.r400, fontSize: fs(16), color: ob.ink55 },
   });
 }

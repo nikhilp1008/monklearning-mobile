@@ -178,20 +178,47 @@ const styles = StyleSheet.create({
  * rather than as part of the title.
  */
 /**
- * The title every white onboarding screen opens with.
+ * The header every white onboarding screen opens with: a back chevron and the
+ * title on ONE line, 13pt apart, exactly as the handoff draws it.
  *
- * No back chevron. The flow is short, each step writes what it collects, and
- * the two places a student actually needs to go back from have their own way
- * out -- "Change" on the code screen, and the promo screen's "Back to passes".
- * A chevron on all seven screens was navigation furniture for a journey that
- * only moves forward.
+ * The chevron only renders when there is somewhere to go: the first screen of
+ * the flow, and any screen reached by a `replace`, have no history and get the
+ * title alone rather than a control that would do nothing.
  */
 export function ObHeader({ title }: { title: string }) {
   const { ds, fs, tracking } = useDesignScale();
+  const canGoBack = router.canGoBack();
   return (
-    <View style={{ paddingHorizontal: ds(30), paddingTop: ds(34) }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: ds(13),
+        paddingHorizontal: ds(30),
+        paddingTop: ds(34),
+      }}>
+      {canGoBack && (
+        <Pressable
+          onPress={() => router.back()}
+          // Generous, because the glyph is small and sits in open space.
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => ({ opacity: pressed ? 0.45 : 1 })}>
+          <Svg viewBox="0 0 24 24" width={ds(19)} height={ds(19)} fill="none">
+            <Path
+              d="M15 5l-7 7 7 7"
+              stroke={ob.ink80}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
+      )}
       <Text
         style={{
+          flex: 1,
           fontFamily: obFont.m500,
           fontSize: fs(22.5),
           lineHeight: fs(28),
