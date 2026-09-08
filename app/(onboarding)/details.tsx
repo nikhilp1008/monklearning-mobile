@@ -132,17 +132,18 @@ export default function DetailsScreen() {
             {/* EMAIL ADDRESS — read only. This is the address the code was
                 just sent to, so it is the one field on the page that is
                 already proven; editing it here would mean re-verifying. */}
+            {/* The whole address, and a tick.
+                It was truncated at one line beside the word "Verified", which
+                spent the width a long address needs on a label the tick
+                already says. A student checking they typed it right could not
+                actually read it. The tick sits at the top so it stays beside
+                the label when the address takes two lines. */}
             <View style={[styles.card, styles.cardWarm]}>
               <View style={styles.cardText}>
                 <Text style={styles.label}>EMAIL ADDRESS</Text>
-                <Text style={[styles.value, styles.phoneValue]} numberOfLines={1}>
-                  {email}
-                </Text>
+                <Text style={styles.value}>{email}</Text>
               </View>
-              <View style={styles.verified}>
-                <DrawnCheck size={ds(20)} />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
+              <DrawnCheck size={ds(20)} />
             </View>
 
             {/* PHONE NUMBER — collected, not verified. SMS auth needs an
@@ -150,7 +151,13 @@ export default function DetailsScreen() {
                 nothing is sent here, so it is a plain optional field and
                 deliberately carries no Verified tag. */}
             <View style={[styles.card, styles.cardIdle]}>
-              <Text style={styles.label}>PHONE NUMBER</Text>
+              {/* "Optional" sits on the label row, as drawn. It was under the
+                  field, where it read as a note about the whole form rather
+                  than about this one answer. */}
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>PHONE</Text>
+                <Text style={styles.labelOptional}>OPTIONAL</Text>
+              </View>
               <TextInput
                 style={[styles.value, styles.input, styles.emailInput]}
                 value={phone}
@@ -159,16 +166,13 @@ export default function DetailsScreen() {
                 // paints the 11th digit, React re-renders with it removed, and
                 // the student sees it flash on for a frame.
                 maxLength={10}
-                placeholder="98765 43210"
+                placeholder="+91 98765 43210"
                 placeholderTextColor={ob.placeholder}
                 keyboardType="phone-pad"
                 selectionColor={ob.amber}
               />
             </View>
-            {/* Outside the card on purpose. A caveat sitting inside the field
-                reads as part of the answer; beside it, it reads as a note
-                about the field — which is what it is. */}
-            <Text style={styles.hint}>Optional</Text>
+            <Text style={styles.hint}>No calls from a sales team. Ever.</Text>
           </View>
 
           {/* `margin-top:auto; padding:0 34px 34px` */}
@@ -300,8 +304,10 @@ function createStyles(
     cardWarm: {
       backgroundColor: ob.fieldMuted,
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      // Top, not centre: the address may wrap to two lines and the tick should
+      // stay level with the label rather than drift down the block.
+      alignItems: 'flex-start',
+      gap: ds(12),
     },
     label: {
       fontFamily: obFont.sb600,
@@ -324,17 +330,26 @@ function createStyles(
     },
     // `margin-top:8px`
     cardText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
-    hint: {
-      marginTop: ds(-4),
-      marginLeft: ds(4),
-      fontFamily: obFont.r400,
-      fontSize: fs(13),
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    labelOptional: {
+      fontFamily: obFont.m500,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.1, 10),
       color: ob.ink40,
     },
-    emailInput: {
-      marginTop: ds(8),
+    // `font-size:13px; line-height:1.5; padding-top:2px`
+    hint: {
+      paddingTop: ds(2),
+      fontFamily: obFont.r400,
+      fontSize: fs(13),
+      lineHeight: fs(20),
+      color: ob.ink55,
     },
-    phoneValue: {
+    emailInput: {
       marginTop: ds(8),
     },
     valueRow: {
@@ -351,16 +366,6 @@ function createStyles(
       pointerEvents: 'none',
     },
     // `gap:8px; font-size:15px; font-weight:700; color:#5F5A50`
-    verified: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: ds(8),
-    },
-    verifiedText: {
-      fontFamily: obFont.b700,
-      fontSize: fs(15),
-      color: ob.ink80,
-    },
     // `margin-top:auto; padding:0 34px 34px`
     footer: {
       marginTop: 'auto',

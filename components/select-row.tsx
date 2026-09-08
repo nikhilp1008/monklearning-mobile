@@ -128,7 +128,7 @@ function createRowStyles(
   return StyleSheet.create({
     // `border-radius:20px; 1.5px solid; background:#FFFFFF`
     row: {
-      borderRadius: ds(20),
+      borderRadius: ds(14),
       borderWidth: 1.5,
       backgroundColor: ob.surface,
       overflow: 'hidden',
@@ -147,8 +147,8 @@ function createRowStyles(
     },
     // `padding:16px 22px; display:flex; align-items:center; justify-content:space-between`
     rowInner: {
-      paddingVertical: ds(16),
-      paddingHorizontal: ds(22),
+      paddingVertical: ds(20),
+      paddingHorizontal: ds(20),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -174,14 +174,14 @@ function createRowStyles(
       color: ob.ink,
     },
     rowName: {
-      fontFamily: obFont.b700,
-      fontSize: fs(22),
-      letterSpacing: tracking(-0.02, 22),
+      fontFamily: obFont.m500,
+      fontSize: fs(19),
+      letterSpacing: tracking(-0.02, 19),
       color: ob.ink,
     },
     rowTag: {
-      fontSize: fs(15),
-      letterSpacing: tracking(0.08, 15),
+      fontSize: fs(12),
+      letterSpacing: tracking(0.1, 12),
     },
     rowTagIdle: {
       fontFamily: obFont.sb600,

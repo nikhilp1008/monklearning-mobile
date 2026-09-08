@@ -43,6 +43,8 @@ function createStyles(
       letterSpacing: tracking(-0.034, 31),
       color: ob.ink,
     },
-    headlineQuiet: { color: ob.ink55 },
+    // The second line is lighter as well as greyer — 300 against the
+    // first line's 400, as drawn.
+    headlineQuiet: { fontFamily: obFont.l300, color: ob.ink55 },
   });
 }

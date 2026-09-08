@@ -144,6 +144,8 @@ function createStyles(
     // The frame is 932pt tall; on a short phone the stack + summary would
     // clip, so the middle scrolls and the button stays pinned below it.
     scrollContent: {
+      // Clears the pinned footer; the syllabus block was running under it.
+      paddingBottom: ds(110),
       flexGrow: 1,
     },
     headlineBlock: {
@@ -195,8 +197,8 @@ function createStyles(
       borderBottomColor: ob.hairline10,
     },
     footer: {
-      paddingHorizontal: ds(34),
-      paddingBottom: ds(34),
+      paddingHorizontal: ds(30),
+      paddingBottom: ds(16),
     },
     saveError: {
       marginBottom: ds(12),

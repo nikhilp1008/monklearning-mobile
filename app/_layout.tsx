@@ -19,6 +19,7 @@ import {
 // Home is the first screen moved onto it; the rest of the app is still on
 // Anek Latin, so both families load until the migration finishes.
 import {
+  Onest_300Light,
   Onest_400Regular,
   Onest_500Medium,
   Onest_600SemiBold,
@@ -66,7 +67,8 @@ export default function RootLayout() {
     AnekLatin_600SemiBold,
     AnekLatin_700Bold,
     AnekLatin_800ExtraBold,
-    Onest_400Regular,
+    Onest_300Light,
+  Onest_400Regular,
     Onest_500Medium,
     Onest_600SemiBold,
     Onest_700Bold,

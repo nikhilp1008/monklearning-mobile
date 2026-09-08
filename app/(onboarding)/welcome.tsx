@@ -38,7 +38,7 @@ function createStyles(
 ) {
   return StyleSheet.create({
     headline: {
-      fontFamily: obFont.r400,
+      fontFamily: obFont.l300,
       fontSize: fs(31),
       lineHeight: fs(36),
       letterSpacing: tracking(-0.034, 31),

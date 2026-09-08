@@ -152,6 +152,8 @@ export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
  * for the micro-labels, where 500 at 10px on a light ground disappears.
  */
 export const obFont = {
+  /** The welcome headlines only — the handoff sets them at 300. */
+  l300: 'Onest_300Light',
   r400: 'Onest_400Regular',
   m500: 'Onest_500Medium',
   sb600: 'Onest_600SemiBold',

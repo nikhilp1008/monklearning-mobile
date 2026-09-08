@@ -29,7 +29,7 @@ export function ObButton({
   disabled = false,
   style,
 }: ObButtonProps) {
-  const { ds, fs } = useDesignScale();
+  const { ds, fs, tracking } = useDesignScale();
   const isCream = variant === 'cream';
 
   return (
@@ -39,13 +39,12 @@ export function ObButton({
       style={({ pressed }) => [
         {
           width: '100%',
-          height: ds(62),
-          // The handoff specifies radius 16, but every other primary button in
-          // the app is a full pill (radius 99). Onboarding's last tap lands
-          // straight on Home, so the two are seen a second apart — matching the
-          // app's shape closes the only seam between the two systems. Height
-          // stays at the specced 62.
-          borderRadius: ds(99),
+          height: ds(60),
+          // 14, as drawn. This was a pill on the argument that the app's own
+          // buttons are pills and onboarding's last tap lands on Home — but
+          // onboarding is seven screens of this button and one of Home, and the
+          // handoff draws a box every time.
+          borderRadius: ds(14),
           // Disabled is an outline, not a dimmed fill.
           //
           // `opacity: .4` on an ink pill renders as a grey slab, and grey is
@@ -66,8 +65,9 @@ export function ObButton({
       ]}>
       <Text
         style={{
-          fontFamily: obFont.sb600,
-          fontSize: fs(19),
+          fontFamily: obFont.m500,
+          fontSize: fs(17),
+          letterSpacing: tracking(-0.01, 17),
           color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
         }}>
         {label}
@@ -75,8 +75,8 @@ export function ObButton({
       {withArrow && (
         <Text
           style={{
-            fontFamily: obFont.sb600,
-            fontSize: fs(17),
+            fontFamily: obFont.m500,
+            fontSize: fs(15),
             color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
           }}>
           →
@@ -177,39 +177,21 @@ const styles = StyleSheet.create({
  * heading down at 22.5px a chevron stranded above it reads as a stray mark
  * rather than as part of the title.
  */
+/**
+ * The title every white onboarding screen opens with.
+ *
+ * No back chevron. The flow is short, each step writes what it collects, and
+ * the two places a student actually needs to go back from have their own way
+ * out -- "Change" on the code screen, and the promo screen's "Back to passes".
+ * A chevron on all seven screens was navigation furniture for a journey that
+ * only moves forward.
+ */
 export function ObHeader({ title }: { title: string }) {
   const { ds, fs, tracking } = useDesignScale();
-  const canGoBack = router.canGoBack();
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: ds(13),
-        paddingHorizontal: ds(30),
-        paddingTop: ds(34),
-      }}>
-      {canGoBack && (
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={16}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-          <Svg viewBox="0 0 24 24" width={ds(20)} height={ds(20)} fill="none">
-            <Path
-              d="M15 5l-7 7 7 7"
-              stroke={ob.ink80}
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </Pressable>
-      )}
+    <View style={{ paddingHorizontal: ds(30), paddingTop: ds(34) }}>
       <Text
         style={{
-          flex: 1,
           fontFamily: obFont.m500,
           fontSize: fs(22.5),
           lineHeight: fs(28),

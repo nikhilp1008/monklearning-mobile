@@ -276,13 +276,6 @@ export default function EmailScreen() {
               </Text>
             </Text>
 
-            <Rise delay={100} distance={ds(14)} style={s.statusBlock}>
-              <View style={s.statusRow}>
-                <View style={s.statusDot} />
-                <Text style={s.statusText}>CODE SENT — ENTER THE SIX DIGITS</Text>
-              </View>
-            </Rise>
-
             <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
               <View style={s.boxesRow}>
                 {Array.from({ length: CODE_LENGTH }).map((_, i) => {
@@ -290,16 +283,15 @@ export default function EmailScreen() {
                   const isActive = i === activeBox;
                   return (
                     <View key={i} style={s.boxCell}>
-                      {/* Ring as an underlay rather than a padded wrapper:
-                          the boxes are `flex:1` in a 10px-gap row, so an
-                          outer 4px pad would shrink the box and widen the
-                          gaps. Inset -4 reproduces the CSS spread exactly
-                          and the box's white fill paints over it. */}
-                      {isActive && <View style={s.boxRing} />}
+                      {/* The active cell lifts and carries the caret; filled
+                          cells settle back onto a tint. No ring -- a wash is
+                          this app's mark for a choice made, and a cell waiting
+                          for a digit has not made one. */}
                       <View
                         style={[
                           s.box,
-                          isActive ? s.boxActive : i > code.length ? s.boxTrailing : null,
+                          digit ? s.boxFilled : null,
+                          isActive ? s.boxActive : null,
                         ]}>
                         {digit ? (
                           <Animated.Text style={[s.boxDigit, popStyle(popAnims[i])]}>
@@ -340,7 +332,7 @@ export default function EmailScreen() {
 
             <View style={s.footer}>
               <ObButton
-                label={busy ? 'Verifying…' : 'Verify & continue'}
+                label={busy ? 'Verifying…' : 'Verify'}
                 variant="ink"
                 withArrow
                 disabled={code.length < CODE_LENGTH || busy}
@@ -469,7 +461,7 @@ function createStyles(
     // made an empty text box the loudest object on the screen -- louder than
     // the button it leads to. "Gradients are for selection only", and an
     // untouched field has selected nothing.
-    cardBlock: { paddingTop: ds(30), paddingHorizontal: ds(30) },
+    cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(30) },
     focusRing: { borderRadius: ds(14) },
     fieldCard: {
       borderRadius: ds(14),
@@ -550,50 +542,42 @@ function createStyles(
     changeLink: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.link },
 
     // padding:24px 26px 0
-    statusBlock: { paddingTop: ds(24), paddingHorizontal: ds(26) },
-    statusRow: { flexDirection: 'row', alignItems: 'center', gap: ds(10) },
-    statusDot: {
-      width: ds(6),
-      height: ds(6),
-      borderRadius: ds(3),
-      backgroundColor: ob.amber,
-    },
-    statusText: {
-      fontFamily: obFont.b700,
-      fontSize: fs(13),
-      letterSpacing: tracking(0.1, 13),
-      color: ob.ink55,
-    },
-
-    // padding:16px 26px 0
-    boxesBlock: { paddingTop: ds(16), paddingHorizontal: ds(26) },
-    boxesRow: { flexDirection: 'row', gap: ds(10) },
+    boxesBlock: { paddingTop: ds(26), paddingHorizontal: ds(30) },
+    boxesRow: { flexDirection: 'row', gap: ds(9) },
     boxCell: { flex: 1 },
-    boxRing: {
-      position: 'absolute',
-      top: -ds(4),
-      right: -ds(4),
-      bottom: -ds(4),
-      left: -ds(4),
-      borderRadius: ds(22),
-      backgroundColor: ob.focusRing,
-    },
     box: {
-      height: ds(66),
-      borderRadius: ds(18),
+      height: ds(64),
+      borderRadius: ds(14),
       backgroundColor: ob.surface,
       borderWidth: 1,
-      borderColor: ob.hairline14,
+      borderColor: ob.fieldBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    boxActive: { borderWidth: 1.5, borderColor: ob.ink },
-    boxTrailing: { borderColor: ob.hairline12 },
-    boxDigit: { fontFamily: obFont.sb600, fontSize: fs(26), color: ob.ink },
+    /** A digit is in — settle back onto a tint. */
+    boxFilled: { backgroundColor: ob.fieldMuted },
+    /** Waiting for this one: a step darker, lifted 2pt and a touch larger. */
+    boxActive: {
+      borderWidth: 1.5,
+      borderColor: ob.ink80,
+      transform: [{ translateY: -2 }, { scale: 1.04 }],
+      shadowColor: ob.ink,
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    boxDigit: { fontFamily: obFont.r400, fontSize: fs(26), color: ob.ink },
 
-    // padding:18px 28px 0
-    resendBlock: { paddingTop: ds(18), paddingHorizontal: ds(28), alignItems: 'flex-end' },
-    resendText: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.ink55 },
+    // One 20pt row under the cells: the resend clock sits right, and the
+    // "Checking the code" spinner takes the left when it appears.
+    resendBlock: {
+      paddingTop: ds(12),
+      paddingHorizontal: ds(30),
+      minHeight: ds(20),
+      alignItems: 'flex-end',
+    },
+    resendText: { fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink55 },
 
     // padding:22px 34px 34px, pinned to the bottom
     footer: {
