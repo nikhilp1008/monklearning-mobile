@@ -59,5 +59,10 @@
       "t_frac",
       "bridge_delta"
     ]
+  },
+  {
+    "id": "lines_planes_3d",
+    "version": 1,
+    "animatable": []
   }
 ]
