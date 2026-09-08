@@ -64,10 +64,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderRadius: scale(16),
       backgroundColor: 'rgba(238,163,31,.12)',
     },
+    // Regular. The amber wash is already the whole signal that this row is
+    // the teacher speaking; bold on top of a coloured ground read as a warning
+    // banner rather than a remark, which is the opposite of what MOMENTS.md
+    // asks this row to feel like.
     text: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(22),
       letterSpacing: scale(-0.01 * 15),

@@ -732,10 +732,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
 
     // --- doubt of the day ---
+    // Regular, not SemiBold. It is the longest line on the page and the only
+    // one set as a question -- at 600 it competed with the class block for
+    // first read, which is the one thing on Home that should never be
+    // out-shouted. Its overline above and its link below already mark it as a
+    // section; the weight was doing that job a second time.
     doubtQuestion: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(16),
-      lineHeight: scale(22),
+      lineHeight: scale(23),
       letterSpacing: scale(-0.012 * 16),
       color: colors.ink,
       marginTop: verticalScale(10),
