@@ -28,6 +28,10 @@ export default function TextbooksScreen() {
         <View style={styles.headerFixed}>
           <Text style={styles.heading}>Textbooks</Text>
         </View>
+        {/* Outside headerFixed, so it reaches the screen edges while the
+            heading stays on the gutter -- the same rule Notes and Doubts
+            close their headers with. */}
+        <View style={styles.headerRule} />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <TextbooksPage scale={scale} verticalScale={verticalScale} />
         </ScrollView>
@@ -47,17 +51,33 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     headerFixed: {
       paddingTop: verticalScale(12),
-      paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(16),
+      paddingHorizontal: scale(24),
+    },
+    /** Full-bleed, 1pt, brand hairline -- identical to the line under the
+     *  search field on Notes and Doubts. It marks the end of the header. */
+    headerRule: {
+      height: 1,
+      backgroundColor: colors.hairline,
     },
     content: {
       // The grid brings its own horizontal padding; only the tab bar's
       // clearance is owed here.
       paddingBottom: verticalScale(130),
     },
+    /**
+     * 28/700 at -0.028em, on the 24pt gutter.
+     *
+     * Was 24/Medium on a 20pt gutter, which is why this tab read as a
+     * different product from Notes and Doubts sitting beside it in the bar:
+     * a smaller, lighter title starting 4pt further left. Three tabs, one
+     * title tier.
+     */
     heading: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(28),
+      letterSpacing: scale(-0.78),
+      lineHeight: scale(29.4),
       color: colors.ink,
     },
   });

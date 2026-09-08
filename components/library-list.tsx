@@ -950,14 +950,25 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(29.4),
       color: colors.ink,
     },
-    /** A bare line, not a pill: 44pt tall on a single hairline. */
+    /**
+     * A bare line, not a pill: 44pt tall on a single rule.
+     *
+     * The rule runs edge to edge while its contents stay on the 24pt gutter --
+     * hence the negative margin cancelled by an equal padding. That is the
+     * whole differentiation from the row dividers below it, which stop at the
+     * gutter. Same weight, same colour; only the reach differs, and it is
+     * enough to read one as "the end of the header" and the others as "between
+     * two items".
+     */
     searchLine: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(9),
       height: verticalScale(44),
+      marginHorizontal: -scale(24),
+      paddingHorizontal: scale(24),
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.12)',
+      borderBottomColor: colors.hairline,
     },
     // --- notes rows: no card, no rule, 30pt apart ---
     notesRows: {
