@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -113,7 +114,7 @@ function Tick({ size }: { size: number }) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: ob.amber,
+        overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
         opacity: anim,
@@ -121,6 +122,15 @@ function Tick({ size }: { size: number }) {
           { scale: anim.interpolate({ inputRange: [0, 0.62, 1], outputRange: [0.5, 1.08, 1] }) },
         ],
       }}>
+      {/* `linear-gradient(150deg, …)` in the handoff — light amber falling to
+          the deeper one, so the disc has some roundness under the tick rather
+          than reading as a flat sticker. */}
+      <LinearGradient
+        colors={[ob.amberLight, ob.amber]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <Svg viewBox="0 0 24 24" width={size * 0.46} height={size * 0.46} fill="none">
         <Path
           d="M5 12.5l4.5 4.5L19 7.5"

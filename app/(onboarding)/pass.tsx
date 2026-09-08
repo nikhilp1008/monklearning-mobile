@@ -130,6 +130,7 @@ export default function PassScreen() {
               button is where that is admitted rather than discovered on tap. */}
           <ObButton
             label={!active ? 'Choose a pass' : paid ? 'Complete — ₹0 due' : `Pay ${rupees(total)}`}
+            trailing={active?.name}
             disabled={!paid}
             withArrow={paid}
             onPress={() => {
@@ -176,12 +177,12 @@ function createStyles(
     },
     sub: {
       fontFamily: obFont.r400,
-      fontSize: fs(16),
-      lineHeight: fs(23),
+      fontSize: fs(15),
+      lineHeight: fs(22),
       color: ob.ink80,
       marginTop: ds(14),
     },
-    rows: { marginTop: ds(24), gap: ds(10) },
+    rows: { marginTop: ds(22), gap: ds(10) },
     promoLink: {
       flexDirection: 'row',
       alignItems: 'center',

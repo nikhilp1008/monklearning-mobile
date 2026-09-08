@@ -29,6 +29,9 @@ type ObButtonProps = {
    *  spinner. `disabled` empties the button to an outline, which on a dark
    *  ground reads as the button turning black. */
   busy?: boolean;
+  /** A quiet right-hand label. The pass screen names the pass being bought
+   *  beside the amount, as the handoff draws it. */
+  trailing?: string;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -40,6 +43,7 @@ export function ObButton({
   withArrow = false,
   disabled = false,
   busy = false,
+  trailing,
   style,
 }: ObButtonProps) {
   const { ds, fs, tracking } = useDesignScale();
@@ -70,7 +74,8 @@ export function ObButton({
           borderColor: isCream ? ob.creamRule : ob.hairline18,
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: trailing ? 'space-between' : 'center',
+          paddingHorizontal: trailing ? ds(22) : 0,
           gap: ds(10),
           opacity: pressed && !disabled ? 0.85 : 1,
         },
@@ -85,6 +90,7 @@ export function ObButton({
         }}>
         {label}
       </Text>
+      {!!trailing && <View style={{ flex: 1 }} />}
       {busy && (
         <ActivityIndicator
           size="small"
@@ -100,6 +106,26 @@ export function ObButton({
             color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
           }}>
           →
+        </Text>
+      )}
+      {!!trailing && (
+        <Text
+          style={{
+            flex: 1,
+            textAlign: 'right',
+            fontFamily: obFont.r400,
+            fontSize: fs(13),
+            // Disabled empties the fill to an outline over the page, so the
+            // "quiet on ink" white would be white on white. Follow the label.
+            color: disabled
+              ? isCream
+                ? ob.creamDim
+                : ob.ink40
+              : isCream
+                ? ob.ink55
+                : 'rgba(255,255,255,.65)',
+          }}>
+          {trailing}
         </Text>
       )}
     </Pressable>
