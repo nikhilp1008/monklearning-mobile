@@ -225,7 +225,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     subtitleAccent: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       color: colors.red,
     },
     planList: {

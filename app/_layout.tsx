@@ -8,16 +8,27 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import {
-  AnekLatin_400Regular,
-  AnekLatin_500Medium,
-  AnekLatin_600SemiBold,
-  AnekLatin_700Bold,
-  AnekLatin_800ExtraBold,
-} from '@expo-google-fonts/anek-latin';
-// Onest is the website's typeface (monklearning.com sets it on `body`).
-// Home is the first screen moved onto it; the rest of the app is still on
-// Anek Latin, so both families load until the migration finishes.
+// Onest is the website's typeface (monklearning.com sets it on `body`), and
+// as of this commit it is the app's ONLY Latin family. Anek Latin and Kalam
+// are gone: the last 51 files referencing them were moved over here, so
+// loading them would ship two ~200KB faces nothing asks for.
+//
+// WHAT ONEST DOES NOT COVER, checked against every character the checked-in
+// render trees actually draw (fontTools, cmap of Onest 400 vs Anek Latin 400):
+//
+//   Ω µ Δ Φ  — Onest has NO Greek block and no U+00B5 at all. Anek Latin had
+//             Ω, Δ and µ. This is NOT a regression on the board, because every
+//             one of those 298 occurrences is drawn in `theme.monoFontFamily`
+//             (Menlo), which covers them — but it IS a live trap for any
+//             future label moved onto `theme.fontFamily`.
+//   θ φ     — drawn in Onest today (lines_planes_3d's angle labels, 6
+//             occurrences) and covered by NEITHER family: they fell through to
+//             an iOS system fallback under Anek Latin too. Pre-existing, and
+//             worth knowing, because a fallback face has metrics
+//             lib/widgets/advance-widths.json does not model.
+//
+// Re-run that check before the next family swap; it is the thing that would
+// catch a migration silently dropping the ohm sign.
 import {
   Onest_300Light,
   Onest_400Regular,
@@ -26,10 +37,12 @@ import {
   Onest_700Bold,
   Onest_800ExtraBold,
 } from '@expo-google-fonts/onest';
-// The classroom caption line only — the design gives the Hinglish captions
-// their own family, and it is the one place in the app that uses it.
+// STAYS. Onest has no Devanagari coverage at all, so this is the only face
+// that can draw the script — the classroom caption strip
+// (components/classroom-chrome.tsx) and lib/widgets/advance-widths.json's
+// Devanagari table both depend on it being loaded. It is not a leftover of
+// the Anek Latin migration; it is a different script.
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
-import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
@@ -62,20 +75,18 @@ export default function RootLayout() {
   // hang" bugs, so every startup gate needs an escape hatch, not just the
   // one that happened to get reported.
   const [fontsLoaded, fontsError] = useFonts({
-    AnekLatin_400Regular,
-    AnekLatin_500Medium,
-    AnekLatin_600SemiBold,
-    AnekLatin_700Bold,
-    AnekLatin_800ExtraBold,
+    // 300 joins the set for the two welcome headlines, which the onboarding
+    // handoff sets at Light. Anek Latin is gone — see the note above the
+    // imports.
     Onest_300Light,
-  Onest_400Regular,
+    Onest_400Regular,
     Onest_500Medium,
     Onest_600SemiBold,
     Onest_700Bold,
     Onest_800ExtraBold,
+    // The one non-Latin face, and the reason it is not symmetrical with the
+    // five above: it is loaded for its SCRIPT, not for a weight in a scale.
     AnekDevanagari_500Medium,
-    Kalam_400Regular,
-    Kalam_700Bold,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);

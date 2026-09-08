@@ -1,0 +1,16 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": { "d": "M 60 380 C 300 60 600 60 840 380" },
+      "children": null
+    },
+    {
+      "type": "RNSVGLine",
+      "props": { "x1": 60, "y1": 380, "x2": 840, "y2": 380, "stroke": "#1C1A16", "strokeWidth": 1 },
+      "children": null
+    }
+  ]
+}

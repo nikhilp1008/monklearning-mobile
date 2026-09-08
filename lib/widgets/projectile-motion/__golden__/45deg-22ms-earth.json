@@ -1,0 +1,549 @@
+{
+ "type": "RNSVGSvgView",
+ "props": {
+  "width": 900,
+  "height": 430,
+  "focusable": false,
+  "style": [
+   {
+    "backgroundColor": "transparent",
+    "borderWidth": 0
+   },
+   {
+    "width": 900,
+    "height": 430,
+    "flex": 0
+   }
+  ],
+  "bbWidth": 900,
+  "bbHeight": 430
+ },
+ "children": [
+  {
+   "type": "RNSVGGroup",
+   "props": {
+    "fill": {
+     "type": 0,
+     "payload": 4278190080
+    }
+   },
+   "children": [
+    {
+     "type": "RNSVGGroup",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      }
+     },
+     "children": [
+      {
+       "type": "RNSVGGroup",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        }
+       },
+       "children": [
+        {
+         "type": "RNSVGLine",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4278190080
+          },
+          "stroke": {
+           "type": 0,
+           "payload": 521935382
+          },
+          "strokeWidth": 1.5,
+          "propList": [
+           "stroke",
+           "strokeWidth"
+          ],
+          "x1": 299.73901696389737,
+          "y1": 34.4,
+          "x2": 299.73901696389737,
+          "y2": 348.3
+         },
+         "children": null
+        },
+        {
+         "type": "RNSVGText",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4283913035
+          },
+          "propList": [
+           "fill"
+          ],
+          "content": null,
+          "font": {
+           "fontSize": 12,
+           "fontFamily": "Menlo",
+           "textAnchor": "middle"
+          },
+          "x": [
+           299.73901696389737
+          ],
+          "y": [
+           367.5
+          ],
+          "dx": [],
+          "dy": [],
+          "rotate": []
+         },
+         "children": [
+          {
+           "type": "RNSVGTSpan",
+           "props": {
+            "fill": {
+             "type": 0,
+             "payload": 4278190080
+            },
+            "content": "20",
+            "font": {},
+            "x": [],
+            "y": [],
+            "dx": [],
+            "dy": [],
+            "rotate": []
+           },
+           "children": null
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "RNSVGGroup",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        }
+       },
+       "children": [
+        {
+         "type": "RNSVGLine",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4278190080
+          },
+          "stroke": {
+           "type": 0,
+           "payload": 521935382
+          },
+          "strokeWidth": 1.5,
+          "propList": [
+           "stroke",
+           "strokeWidth"
+          ],
+          "x1": 522.9780339277947,
+          "y1": 34.4,
+          "x2": 522.9780339277947,
+          "y2": 348.3
+         },
+         "children": null
+        },
+        {
+         "type": "RNSVGText",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4283913035
+          },
+          "propList": [
+           "fill"
+          ],
+          "content": null,
+          "font": {
+           "fontSize": 12,
+           "fontFamily": "Menlo",
+           "textAnchor": "middle"
+          },
+          "x": [
+           522.9780339277947
+          ],
+          "y": [
+           367.5
+          ],
+          "dx": [],
+          "dy": [],
+          "rotate": []
+         },
+         "children": [
+          {
+           "type": "RNSVGTSpan",
+           "props": {
+            "fill": {
+             "type": 0,
+             "payload": 4278190080
+            },
+            "content": "40",
+            "font": {},
+            "x": [],
+            "y": [],
+            "dx": [],
+            "dy": [],
+            "rotate": []
+           },
+           "children": null
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "RNSVGGroup",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        }
+       },
+       "children": [
+        {
+         "type": "RNSVGLine",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4278190080
+          },
+          "stroke": {
+           "type": 0,
+           "payload": 521935382
+          },
+          "strokeWidth": 1.5,
+          "propList": [
+           "stroke",
+           "strokeWidth"
+          ],
+          "x1": 746.2170508916922,
+          "y1": 34.4,
+          "x2": 746.2170508916922,
+          "y2": 348.3
+         },
+         "children": null
+        },
+        {
+         "type": "RNSVGText",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4283913035
+          },
+          "propList": [
+           "fill"
+          ],
+          "content": null,
+          "font": {
+           "fontSize": 12,
+           "fontFamily": "Menlo",
+           "textAnchor": "middle"
+          },
+          "x": [
+           746.2170508916922
+          ],
+          "y": [
+           367.5
+          ],
+          "dx": [],
+          "dy": [],
+          "rotate": []
+         },
+         "children": [
+          {
+           "type": "RNSVGTSpan",
+           "props": {
+            "fill": {
+             "type": 0,
+             "payload": 4278190080
+            },
+            "content": "60",
+            "font": {},
+            "x": [],
+            "y": [],
+            "dx": [],
+            "dy": [],
+            "rotate": []
+           },
+           "children": null
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "RNSVGGroup",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        }
+       },
+       "children": [
+        {
+         "type": "RNSVGLine",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4278190080
+          },
+          "stroke": {
+           "type": 0,
+           "payload": 521935382
+          },
+          "strokeWidth": 1.5,
+          "propList": [
+           "stroke",
+           "strokeWidth"
+          ],
+          "x1": 76.5,
+          "y1": 125.06098303610261,
+          "x2": 873,
+          "y2": 125.06098303610261
+         },
+         "children": null
+        },
+        {
+         "type": "RNSVGText",
+         "props": {
+          "fill": {
+           "type": 0,
+           "payload": 4283913035
+          },
+          "propList": [
+           "fill"
+          ],
+          "content": null,
+          "font": {
+           "fontSize": 12,
+           "fontFamily": "Menlo",
+           "textAnchor": "end"
+          },
+          "x": [
+           69.3
+          ],
+          "y": [
+           129.2609830361026
+          ],
+          "dx": [],
+          "dy": [],
+          "rotate": []
+         },
+         "children": [
+          {
+           "type": "RNSVGTSpan",
+           "props": {
+            "fill": {
+             "type": 0,
+             "payload": 4278190080
+            },
+            "content": "20",
+            "font": {},
+            "x": [],
+            "y": [],
+            "dx": [],
+            "dy": [],
+            "rotate": []
+           },
+           "children": null
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "RNSVGPath",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4288309778
+      },
+      "fillOpacity": 0.08,
+      "propList": [
+       "fill",
+       "fillOpacity"
+      ],
+      "d": "M76.50 348.30L84.15 340.76L91.80 333.43L99.45 326.31L107.09 319.41L114.74 312.71L122.39 306.23L130.04 299.96L137.69 293.91L145.34 288.07L152.99 282.44L160.63 277.02L168.28 271.81L175.93 266.82L183.58 262.04L191.23 257.47L198.88 253.12L206.53 248.97L214.18 245.04L221.82 241.33L229.47 237.82L237.12 234.53L244.77 231.45L252.42 228.58L260.07 225.92L267.72 223.48L275.36 221.25L283.01 219.23L290.66 217.42L298.31 215.83L305.96 214.45L313.61 213.28L321.26 212.32L328.90 211.58L336.55 211.05L344.20 210.73L351.85 210.62L359.50 210.73L367.15 211.05L374.80 211.58L382.45 212.32L390.09 213.28L397.74 214.45L405.39 215.83L413.04 217.42L420.69 219.23L428.34 221.25L435.99 223.48L443.63 225.92L451.28 228.58L458.93 231.45L466.58 234.53L474.23 237.82L481.88 241.33L489.53 245.04L497.17 248.97L504.82 253.12L512.47 257.47L520.12 262.04L527.77 266.82L535.42 271.81L543.07 277.02L550.72 282.44L558.36 288.07L566.01 293.91L573.66 299.96L581.31 306.23L588.96 312.71L596.61 319.41L604.26 326.31L611.90 333.43L619.55 340.76L627.20 348.30L627.20 348.30L76.50 348.30Z"
+     },
+     "children": null
+    },
+    {
+     "type": "RNSVGPath",
+     "props": {
+      "fill": null,
+      "stroke": {
+       "type": 0,
+       "payload": 4288309778
+      },
+      "strokeWidth": 2.6,
+      "strokeLinecap": 1,
+      "strokeLinejoin": 1,
+      "propList": [
+       "fill",
+       "stroke",
+       "strokeWidth",
+       "strokeLinecap",
+       "strokeLinejoin"
+      ],
+      "d": "M76.50 348.30L84.15 340.76L91.80 333.43L99.45 326.31L107.09 319.41L114.74 312.71L122.39 306.23L130.04 299.96L137.69 293.91L145.34 288.07L152.99 282.44L160.63 277.02L168.28 271.81L175.93 266.82L183.58 262.04L191.23 257.47L198.88 253.12L206.53 248.97L214.18 245.04L221.82 241.33L229.47 237.82L237.12 234.53L244.77 231.45L252.42 228.58L260.07 225.92L267.72 223.48L275.36 221.25L283.01 219.23L290.66 217.42L298.31 215.83L305.96 214.45L313.61 213.28L321.26 212.32L328.90 211.58L336.55 211.05L344.20 210.73L351.85 210.62L359.50 210.73L367.15 211.05L374.80 211.58L382.45 212.32L390.09 213.28L397.74 214.45L405.39 215.83L413.04 217.42L420.69 219.23L428.34 221.25L435.99 223.48L443.63 225.92L451.28 228.58L458.93 231.45L466.58 234.53L474.23 237.82L481.88 241.33L489.53 245.04L497.17 248.97L504.82 253.12L512.47 257.47L520.12 262.04L527.77 266.82L535.42 271.81L543.07 277.02L550.72 282.44L558.36 288.07L566.01 293.91L573.66 299.96L581.31 306.23L588.96 312.71L596.61 319.41L604.26 326.31L611.90 333.43L619.55 340.76L627.20 348.30"
+     },
+     "children": null
+    },
+    {
+     "type": "RNSVGLine",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4278190080
+      },
+      "stroke": {
+       "type": 0,
+       "payload": 4280031766
+      },
+      "strokeWidth": 1.6,
+      "propList": [
+       "stroke",
+       "strokeWidth"
+      ],
+      "x1": 76.5,
+      "y1": 348.3,
+      "x2": 873,
+      "y2": 348.3
+     },
+     "children": null
+    },
+    {
+     "type": "RNSVGCircle",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4280031766
+      },
+      "propList": [
+       "fill"
+      ],
+      "cx": 76.5,
+      "cy": 348.3,
+      "r": 4
+     },
+     "children": null
+    },
+    {
+     "type": "RNSVGCircle",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4288309778
+      },
+      "propList": [
+       "fill"
+      ],
+      "cx": 351.8508771929825,
+      "cy": 210.62456140350878,
+      "r": 4.5
+     },
+     "children": null
+    },
+    {
+     "type": "RNSVGText",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4283913035
+      },
+      "propList": [
+       "fill"
+      ],
+      "content": null,
+      "font": {
+       "fontSize": 12,
+       "fontFamily": "Menlo",
+       "textAnchor": "end"
+      },
+      "x": [
+       873
+      ],
+      "y": [
+       385.5
+      ],
+      "dx": [],
+      "dy": [],
+      "rotate": []
+     },
+     "children": [
+      {
+       "type": "RNSVGTSpan",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        },
+        "content": "HORIZONTAL DISTANCE (m)",
+        "font": {},
+        "x": [],
+        "y": [],
+        "dx": [],
+        "dy": [],
+        "rotate": []
+       },
+       "children": null
+      }
+     ]
+    },
+    {
+     "type": "RNSVGText",
+     "props": {
+      "fill": {
+       "type": 0,
+       "payload": 4280031766
+      },
+      "propList": [
+       "fill"
+      ],
+      "content": null,
+      "font": {
+       "fontSize": 14,
+       "fontFamily": "Menlo"
+      },
+      "x": [
+       76.5
+      ],
+      "y": [
+       29.599999999999998
+      ],
+      "dx": [],
+      "dy": [],
+      "rotate": []
+     },
+     "children": [
+      {
+       "type": "RNSVGTSpan",
+       "props": {
+        "fill": {
+         "type": 0,
+         "payload": 4278190080
+        },
+        "content": "R 49.3 m    H 12.3 m    t 3.17 s",
+        "font": {},
+        "x": [],
+        "y": [],
+        "dx": [],
+        "dy": [],
+        "rotate": []
+       },
+       "children": null
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

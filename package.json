@@ -10,7 +10,14 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "postinstall": "patch-package",
-    "check:syllabus": "node scripts/check-syllabus-counts.mjs"
+    "check:syllabus": "node scripts/check-syllabus-counts.mjs",
+    "test": "jest --config jest.config.js",
+    "export-registry": "node scripts/export-registry.mjs",
+    "regenerate-golden": "node scripts/regenerate-golden.mjs",
+    "verify:render": "node scripts/verify-tree-dir.mjs build/trees",
+    "verify:plans": "node scripts/verify-plans.mjs",
+    "verify": "npm run export-registry && npm test && npm run verify:fixtures && npm run verify:render && npm run verify:plans",
+    "verify:fixtures": "node scripts/verify-fixtures.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/anek-devanagari": "^0.4.1",
@@ -60,9 +67,14 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
+    "@types/react-test-renderer": "^19.1.0",
+    "3dmol": "^2.5.5",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~54.0.18",
     "typescript": "~5.9.2"
   },
   "private": true

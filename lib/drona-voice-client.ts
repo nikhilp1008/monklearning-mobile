@@ -12,6 +12,14 @@ export interface BoardEvent {
   svg?: string;
   /** `diagram` events only: an optional one-line gloss under the figure. */
   caption?: string;
+  /**
+   * A registry widget and its parameters. Takes precedence over `svg` when
+   * both are present — the registry draws the real curve, an `svg` string
+   * draws an approximation of it. See `lib/widgets/BoardWidget.tsx` for the
+   * tier split this implements (`tier` names which one produced this event).
+   */
+  payload?: import('@/lib/widgets/types').WidgetPayload;
+  tier?: import('@/lib/widgets/types').ResolutionTier;
 }
 
 export interface DronaState {
@@ -71,15 +79,31 @@ const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 8000, 8000];
 /** Backstop for a turn whose audio never drains — a clip that fails to load,
  *  or a TTS gap that leaves the queue stalled. Without it, gating the flush on
  *  drain would trade "the checkpoint mounts too early" for the much worse "the
- *  checkpoint never mounts at all". Generous: it is a safety net, not a pace. */
+ *  checkpoint never mounts at all". Generous: it is a safety net, not a pace.
+ *
+ *  This is 20s of NO PROGRESS, not 20s from `turn_complete`. It used to be the
+ *  latter, which made it fire on every healthy turn longer than 20s of speech:
+ *  `turn_complete` means the server finished SENDING, and the server sends a
+ *  whole turn far faster than realtime, so a normal 6-10 sentence turn still
+ *  has 40-60s of audio queued when it lands. Twenty seconds later the watchdog
+ *  flushed mid-explanation and reproduced, exactly, the three symptoms the
+ *  `turn_complete` comment below says were already fixed: answer chips up while
+ *  Drona was still teaching, the question written into the caption strip only
+ *  to be overwritten by the sentences still queued behind it, and the turn's
+ *  remaining board events (diagrams included) dumped in one burst. Re-armed on
+ *  every clip start, it now fires only when playback is genuinely wedged, which
+ *  is the case it was written for. */
 const DRAIN_WATCHDOG_MS = 20000;
 /** Matches web's TURN_ERROR_RECOVERY_MS. A `turn_error` with no recovery means
  *  `turn_complete` is never coming, so whatever the turn was holding has to be
  *  released or the student sits on a dead board. */
 const TURN_ERROR_RECOVERY_MS = 15000;
 /** TTS sample rate — live-verified server-side (filler-cache fallback byte
- *  math). Bit depth/channels are the standard inference (16-bit mono), not
- *  independently confirmed. */
+ *  math). 16-bit mono is now confirmed too, not merely inferred: the batch
+ *  pipeline (synth_rumik.py) refuses to encode any Rumik WAV that is not
+ *  16-bit, single-channel, 24kHz, and the server's own progressive flush is
+ *  sized at 48000 bytes = 24000 * 2 * 1 per second. The server's
+ *  `duration_ms` field on audio_chunk is computed from that same geometry. */
 const TTS_SAMPLE_RATE = 24000;
 
 /**
@@ -128,13 +152,35 @@ export class DronaVoiceClient {
    *  backoff would advance twice per drop and burn its budget early. */
   private reconnectScheduled = false;
 
-  /** Playback id -> {speech, board_event} for chunks currently queued/playing,
-   *  so the playback queue's onItemStart can look up what to reveal. */
-  private chunkMeta = new Map<string, { speech?: string; boardEvent?: BoardEvent | null }>();
+  /** Playback id -> {speech, board_event, duration_ms} for chunks currently
+   *  queued/playing, so the playback queue's onItemStart can look up what to
+   *  reveal — and, for `durationMs`, how long the clip it just started runs. */
+  private chunkMeta = new Map<
+    string,
+    { speech?: string; boardEvent?: BoardEvent | null; durationMs?: number }
+  >();
   /** Monotonic suffix so continuation parts sharing one sentence_id get
    *  distinct playback ids — they otherwise collide on the queue's
    *  `drona-tts-${id}.wav` cache path and overwrite each other mid-sentence. */
   private chunkSeq = 0;
+
+  private currentChunkDurationMs: number | null = null;
+  /**
+   * Measured playback length of the clip that most recently started playing,
+   * in milliseconds, or null when the server did not send one (a pre-
+   * `duration_ms` build, or a silent checkpoint caption with no audio).
+   *
+   * Server-measured from the synthesized PCM byte count, the same arithmetic
+   * the batch pipeline uses — never estimated from word count or reading
+   * speed, which is exactly the input `useCueTrackByTime`'s `TimedCue.atMs`
+   * documents itself as needing.
+   *
+   * Read-only and currently unconsumed: `useCueTrack`'s seq-based selection is
+   * untouched, and wiring a real time track is a separate change.
+   */
+  get playingChunkDurationMs(): number | null {
+    return this.currentChunkDurationMs;
+  }
 
   constructor(
     sessionId: string,
@@ -149,9 +195,17 @@ export class DronaVoiceClient {
     this.buffering = handlers === PREWARM_HANDLERS;
 
     this.playback.onItemStart = (id) => {
+      // Audible proof the queue is moving. While a turn is held waiting for
+      // drain, that proof is what pushes the watchdog out — otherwise it
+      // counts down against a queue that is playing perfectly well and flushes
+      // the checkpoint over the top of it. See DRAIN_WATCHDOG_MS.
+      if (this.awaitingDrain) this.armDrainWatchdog();
       const meta = this.chunkMeta.get(id);
       if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
       if (meta?.boardEvent) this.handlers.onBoardReveal?.(meta.boardEvent);
+      // Survives the delete below so `playingChunkDurationMs` can be read
+      // after the reveal fires. Nothing consumes it yet — see the getter.
+      this.currentChunkDurationMs = meta?.durationMs ?? null;
       this.chunkMeta.delete(id);
     };
 
@@ -378,11 +432,7 @@ export class DronaVoiceClient {
           this.flushHeldTurn();
         } else {
           this.awaitingDrain = true;
-          if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
-          this.drainWatchdog = setTimeout(() => {
-            this.drainWatchdog = null;
-            if (this.awaitingDrain) this.flushHeldTurn();
-          }, DRAIN_WATCHDOG_MS);
+          this.armDrainWatchdog();
         }
         break;
       case 'turn_error':
@@ -435,6 +485,22 @@ export class DronaVoiceClient {
   }
 
   /**
+   * (Re)starts the no-progress countdown for a turn held waiting on drain.
+   *
+   * Called when the wait begins and again on every clip start, so the deadline
+   * measures silence rather than elapsed time. A turn that keeps producing
+   * audio keeps pushing it out and never trips it; a queue that wedges stops
+   * pushing and trips it once, DRAIN_WATCHDOG_MS later.
+   */
+  private armDrainWatchdog() {
+    if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
+    this.drainWatchdog = setTimeout(() => {
+      this.drainWatchdog = null;
+      if (this.awaitingDrain) this.flushHeldTurn();
+    }, DRAIN_WATCHDOG_MS);
+  }
+
+  /**
    * Ends a turn: reveals anything its audio never reached, mounts the question
    * it was holding, and tells the screen the turn is over.
    *
@@ -476,6 +542,15 @@ export class DronaVoiceClient {
     const audioBase64 = String(msg.audio ?? '');
     const boardEvent = (msg.board_event as BoardEvent | null) ?? null;
     const speech = msg.speech as string | undefined;
+    // Measured playback length of THIS frame's PCM, computed server-side from
+    // the synthesized byte count (len(pcm) / (24000 * 2) * 1000) — never
+    // estimated from the caption's word count. Optional: a server built before
+    // the field existed simply omits it, and everything below still works.
+    const rawDuration = msg.duration_ms;
+    const durationMs =
+      typeof rawDuration === 'number' && Number.isFinite(rawDuration) && rawDuration >= 0
+        ? rawDuration
+        : undefined;
 
     if (boardEvent) {
       this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => e.seq !== boardEvent.seq);
@@ -493,7 +568,7 @@ export class DronaVoiceClient {
     if (!sentenceId) return;
 
     const playbackId = `${sentenceId}-${this.chunkSeq++}`;
-    this.chunkMeta.set(playbackId, { speech, boardEvent });
+    this.chunkMeta.set(playbackId, { speech, boardEvent, durationMs });
 
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
@@ -544,6 +619,7 @@ export class DronaVoiceClient {
   bargeIn() {
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.currentChunkDurationMs = null;
     this.playback.clear();
   }
 
@@ -587,6 +663,7 @@ export class DronaVoiceClient {
   interrupt(playbackPosition: number, cutoffText: string) {
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.currentChunkDurationMs = null;
     this.playback.clear();
     this.sendJson({ type: 'interrupt', playback_position: playbackPosition, cutoff_text: cutoffText });
   }
@@ -601,9 +678,19 @@ export class DronaVoiceClient {
 
   pausePlayback() {
     this.playback.pause();
+    // The drain watchdog measures time without progress, and a pause is
+    // exactly that — so on a pause of any real length it would fire and mount
+    // the checkpoint over a lesson the student had deliberately stopped. Held
+    // down for the duration; `resumePlayback` starts the count again from
+    // zero, which is the right reading: the student has heard nothing new.
+    if (this.drainWatchdog) {
+      clearTimeout(this.drainWatchdog);
+      this.drainWatchdog = null;
+    }
   }
 
   resumePlayback() {
     this.playback.resume();
+    if (this.awaitingDrain) this.armDrainWatchdog();
   }
 }

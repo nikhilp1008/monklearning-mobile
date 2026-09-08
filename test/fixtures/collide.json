@@ -1,0 +1,25 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": { "d": "M 60 380 C 300 60 600 60 840 380" },
+      "children": null
+    },
+    {
+      "type": "RNSVGText",
+      "props": { "x": [90], "y": [100], "font": { "fontSize": 14, "textAnchor": "start" } },
+      "children": [
+        { "type": "RNSVGTSpan", "props": { "content": "R 49.3 m" }, "children": null }
+      ]
+    },
+    {
+      "type": "RNSVGText",
+      "props": { "x": [120], "y": [104], "font": { "fontSize": 14, "textAnchor": "start" } },
+      "children": [
+        { "type": "RNSVGTSpan", "props": { "content": "H 12.3 m" }, "children": null }
+      ]
+    }
+  ]
+}

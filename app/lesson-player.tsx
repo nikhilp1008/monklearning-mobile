@@ -948,7 +948,7 @@ function TrainsDiagram({ scale, styles }: { scale: (n: number) => number; styles
   return (
     <View style={styles.diagramWrap}>
       <Svg width={w} height={h} viewBox="0 0 340 150">
-        <SvgText x={10} y={14} fontFamily="Kalam_400Regular" fontSize={11} fill={colors.faint}>
+        <SvgText x={10} y={14} fontFamily="Onest_400Regular" fontSize={11} fill={colors.faint}>
           same direction · same speed
         </SvgText>
         <Line
@@ -961,7 +961,7 @@ function TrainsDiagram({ scale, styles }: { scale: (n: number) => number; styles
           strokeDasharray="2 6"
         />
         <Rect x={46} y={38} width={96} height={26} rx={7} fill="#FCF4E0" stroke={colors.ink} strokeWidth={2} />
-        <SvgText x={82} y={56} fontFamily="Kalam_700Bold" fontSize={14} fill={colors.ink}>
+        <SvgText x={82} y={56} fontFamily="Onest_700Bold" fontSize={14} fill={colors.ink}>
           A
         </SvgText>
         <Line x1={150} y1={51} x2={192} y2={51} stroke={colors.red} strokeWidth={2.4} strokeLinecap="round" />
@@ -973,7 +973,7 @@ function TrainsDiagram({ scale, styles }: { scale: (n: number) => number; styles
           strokeLinejoin="round"
           fill="none"
         />
-        <SvgText x={200} y={56} fontFamily="Kalam_400Regular" fontSize={11} fill={colors.slate}>
+        <SvgText x={200} y={56} fontFamily="Onest_400Regular" fontSize={11} fill={colors.slate}>
           60 km/h
         </SvgText>
         <Line
@@ -986,7 +986,7 @@ function TrainsDiagram({ scale, styles }: { scale: (n: number) => number; styles
           strokeDasharray="2 6"
         />
         <Rect x={104} y={92} width={96} height={26} rx={7} fill="#FCF4E0" stroke={colors.ink} strokeWidth={2} />
-        <SvgText x={142} y={110} fontFamily="Kalam_700Bold" fontSize={14} fill={colors.ink}>
+        <SvgText x={142} y={110} fontFamily="Onest_700Bold" fontSize={14} fill={colors.ink}>
           B
         </SvgText>
         <Line x1={208} y1={105} x2={250} y2={105} stroke={colors.red} strokeWidth={2.4} strokeLinecap="round" />
@@ -998,10 +998,10 @@ function TrainsDiagram({ scale, styles }: { scale: (n: number) => number; styles
           strokeLinejoin="round"
           fill="none"
         />
-        <SvgText x={258} y={110} fontFamily="Kalam_400Regular" fontSize={11} fill={colors.slate}>
+        <SvgText x={258} y={110} fontFamily="Onest_400Regular" fontSize={11} fill={colors.slate}>
           60 km/h
         </SvgText>
-        <SvgText x={118} y={144} fontFamily="Kalam_700Bold" fontSize={13} fill={colors.success}>
+        <SvgText x={118} y={144} fontFamily="Onest_700Bold" fontSize={13} fill={colors.success}>
           v(A rel B) = 60 − 60 = 0
         </SvgText>
       </Svg>
@@ -1081,7 +1081,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     boardHeading: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 17,
       lineHeight: RHYTHM,
       color: RED,
@@ -1141,7 +1141,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: INK,
     },
     boardKalamNoteBase: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       lineHeight: RHYTHM,
     },
     // Diagrams are whole multiples of the rhythm — 130 is 5×26 — so the
@@ -1163,7 +1163,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: AMBER,
     },
     writingText: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 12,
       color: INK_FAINT,
     },

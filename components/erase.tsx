@@ -496,7 +496,7 @@ const lineStyles = StyleSheet.create({
   // The amber of the eraser itself, as the reference still has it — in a
   // handwritten face it reads as a note in the margin rather than UI copy.
   hand: {
-    fontFamily: 'Kalam_700Bold',
+    fontFamily: 'Onest_700Bold',
     fontSize: 13.5,
     letterSpacing: 0.2,
     color: DEEP_AMBER,

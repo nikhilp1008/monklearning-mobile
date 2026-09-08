@@ -1,0 +1,302 @@
+{
+ "Cockroach: Circulatory, Respiratory and Excretory Systems": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Cockroach anatomy: 13-chambered dorsal heart with valved ostia, haemocoel, 10 pairs of spiracles/tracheae, malpighian tubules at the midgut-hindgut junction. Positional, drawable."
+ },
+ "Gaseous Exchange in Plants": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunks are prose reasoning, a routes list (stomata/lenticels/soil air), day-vs-night gas balance and MCQs. No structure or figure described."
+ },
+ "Evidences of Evolution: Homology, Analogy, Fossils and Embryology": {
+  "agent": "labelled_figure",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Not a process. Chunks describe a drawable comparative figure: whale flipper, bat wing, horse leg sharing 'humerus, radius-ulna, carpals, phalanges' in the same arrangement, versus insect vs bird wing."
+ },
+ "Sliding Filament Theory of Muscle Contraction": {
+  "agent": "process_flow",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunk renders 'The cross-bridge cycle (one myosin head) 1. ATP cocks head 2. binds actin site 3. power stroke 4. detach, new ATP binds -> cycle' - an explicit closed 4-stage loop."
+ },
+ "Ionic Bond Formation, Lattice Enthalpy and Born-Haber Cycle": {
+  "agent": "process_flow",
+  "was": "molecule_struct",
+  "conf": "med",
+  "evidence": "Chunk: 'Figure A closed Born-Haber cycle for an alkali halide MX' - boxes M(s)+1/2X2, M(g), M+(g), X-(g), MX(s) joined by sublimation/ionisation/electron-gain/lattice arrows, each labelled."
+ },
+ "Cardiac Output and Regulation of Cardiac Activity": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunks are CO = SV x HR arithmetic (~70 mL x 72 = 5 L/min), sympathetic/parasympathetic bullet contrasts and disorder definitions. Formula plus prose."
+ },
+ "Cardiac Cycle: Phases, Volumes and Heart Sounds": {
+  "agent": "process_flow",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Chunks give the closed cycle 'atrial systole -> ventricular systole -> joint diastole' (~0.8 s) with valve events and S1/S2 attached to each phase - a ring of labelled stages."
+ },
+ "Energy Flow and the Ten Per Cent Law": {
+  "agent": "process_flow",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunks trace an ordered chain Sun->producers->herbivores->consumers with ~10% passed per arrow and ~90% lost as heat; 'count the arrows... that many factors of /10'. Nodes+arrows, linear."
+ },
+ "Prokaryotic Cell: Cell Envelope, Mesosome, Nucleoid and Plasmid": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Chunk carries 'Diagram - Bacterial cell envelope in cross-section' and the layer-by-layer order glycocalyx (capsule/slime) -> cell wall -> plasma membrane, with mesosome and nucleoid."
+ },
+ "Cyanobacteria and Nitrogen-fixing Bacteria": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Chunks are property lists (chlorophyll a, heterocysts, biofertiliser) plus a bullet list of beneficial roles and MCQs. No nitrogen cycle stages are laid out; 'nutrient cycle' appears only as a phrase."
+ },
+ "NAND and NOR as Universal Gates": {
+  "agent": "gap_logic_gate",
+  "was": "circuit",
+  "conf": "med",
+  "evidence": "Chunks wire actual gate networks: two NANDs as inverters feeding a third NAND to make OR, tied-input NAND/NOR as NOT, De Morgan proofs. Topology of gates, which no shipped or approved widget draws."
+ },
+ "Kidney Disorders and Haemodialysis": {
+  "agent": "none_symbolic",
+  "was": "apparatus",
+  "conf": "low",
+  "evidence": "No apparatus is described: chunks are a dialysis MCQ ('only urea leaves, the dialysing fluid lacks it') and hormone/disorder pitfalls. The dialyser setup itself was not retrieved."
+ },
+ "Enzymes and Enzyme Catalysis": {
+  "agent": "none_symbolic",
+  "was": "molecule_struct",
+  "conf": "high",
+  "evidence": "Demoted; retrieval scattered (top sim 0.44, mostly DNA/RNA and vitamins). Enzyme content is definitions and lists: biocatalyst, naming, lock-and-key, optimum T 298-310 K, pH 5-7."
+ },
+ "Reproductive Health Programmes and Strategies (RCH, Family Planning)": {
+  "agent": "none_symbolic",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Chunks are policy and social prose - WHO definition, RCH pillars, family planning 1951, PCPNDT 1994, marriageable ages. No figure of any kind; labelled_figure was a name-driven error."
+ },
+ "AC through Pure Inductor": {
+  "agent": "xy_plot",
+  "was": "circuit",
+  "conf": "low",
+  "evidence": "One on-target chunk derives i=(vm/omega*L) sin(omega*t - pi/2) with X_L=omega*L, i.e. two closed-form sinusoids a quarter cycle apart. Rest of retrieval is transformer and power material."
+ },
+ "Transgenic Animals and Their Applications": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "The figure asked for is a hub with 'five arms radiating out, each with a small icon and label' - a decorated list of the five NCERT uses. No ordered stages and no cycle anywhere in the chunks."
+ },
+ "Hydrogen Bonding": {
+  "agent": "none_symbolic",
+  "was": "molecule_struct",
+  "conf": "med",
+  "evidence": "Relevant chunk is a definition plus a wedding analogy for H-bonding; three of six chunks are MOT bond-order text (retrieval drift). No dotted-bond structure spec retrieved for this concept."
+ },
+ "Micturition and Composition of Urine": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Retrieval missed: chunks are urine-formation and nitrogenous-waste text plus one MCQ defining micturition as the neural release of urine. No composition data and no structure."
+ },
+ "Pulmonary Volumes and Capacities": {
+  "agent": "gap_spirogram",
+  "was": "labelled_figure",
+  "conf": "low",
+  "evidence": "Chunks give TV 500, IRV 2500-3000, ERV 1000-1100, RV 1100-1200 and additive capacities (IC=TV+IRV). Natural visual is a stacked spirogram ladder; no shipped widget fits, no anatomy described."
+ },
+ "Preparation of Alkanes: Wurtz, Kolbe, Decarboxylation and Hydrogenation": {
+  "agent": "reaction_scheme",
+  "was": "reaction_mechanism",
+  "conf": "high",
+  "evidence": "Chunks give reagent-labelled equations: 2CH3Br + 2Na -dry ether-> CH3-CH3 + 2NaBr; CH3COONa + NaOH -CaO,Delta-> CH4; R-X + 2[H] -Zn,dil.HCl-> R-H. Species nodes, labelled arrows."
+ },
+ "Structure of Skeletal Muscle Fibre and the Sarcomere": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Chunks give the drawable hierarchy and banding: 'muscle -> fascicle -> fibre -> myofibril -> sarcomere -> filaments' and 'Sarcomere = unit between two Z-lines. Bands: A (dark) I (light) H (central)'."
+ },
+ "Class Amphibia and Reptilia": {
+  "agent": "none_symbolic",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Chunks are class one-liners, the whole-kingdom table and the canonical example bank. No amphibian or reptile anatomy in the retrieved text."
+ },
+ "Applications: Growth, Decay and Curve Geometry": {
+  "agent": "xy_plot",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Closed-form curves to plot: 'N = N0 e^kt' with doubling time / half-life ln2/k, and 'theta = theta_s + (theta0-theta_s) e^{-kt}' with the stated asymptote 'as t -> infinity, theta -> theta_s'."
+ },
+ "Cell Wall: Structure and Composition": {
+  "agent": "none_symbolic",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Demoted: chunks are wall CHEMISTRY (peptidoglycan vs cellulose, hemicellulose, pectin, middle lamella) and a prokaryote/eukaryote feature grid. Composition prose, no figure spec retrieved."
+ },
+ "Xylem: Structure and Conducting Elements": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Chunks describe element form - tracheids elongated with tapering ends and pits, vessel elements joined end-to-end into open tubes - plus protoxylem position (endarch vs exarch)."
+ },
+ "Parturition and Its Hormonal Control": {
+  "agent": "process_flow",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "'Diagram. Positive-feedback loop for parturition - signals -> mild uterine contractions -> oxytocin -> stronger contractions -> more oxytocin, drawn as a reinforcing cycle ending in delivery.'"
+ },
+ "Peripheral Nervous System: Cranial and Spinal Nerves": {
+  "agent": "none_symbolic",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Chunks are PNS definitions, nerve counts, somatic-vs-autonomic classification, transmitter lists. Only figure retrieved is a branching classification tree; no nerve-distribution drawing."
+ },
+ "Ecological Pyramids and Their Limitations": {
+  "agent": "data_table_trend",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Chunk is an explicit grid: rows Number/Biomass/Energy x columns 'usually upright' / 'can be inverted', with the exception rule (energy never inverts). Values-and-exceptions table, not a cycle."
+ },
+ "Measurement of Length, Mass and Time": {
+  "agent": "none_symbolic",
+  "was": "apparatus",
+  "conf": "high",
+  "evidence": "Chunks are parallax/angular-size/echo formulae, u and pc conversions, spectrograph m=qBr/v and caesium-clock facts. Pure definitions, unit tables and order-of-magnitude arithmetic; no apparatus drawn."
+ },
+ "Phylum Chordata: General Characters and Subphyla": {
+  "agent": "none_symbolic",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Chunks are the chordate feature checklist, subphylum one-liners and a yes/no classification tree of taxon names. Classification, not structure."
+ },
+ "C4 Pathway and Kranz Anatomy": {
+  "agent": "process_flow",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Chunk figure: 'Two adjacent leaf cells. LEFT mesophyll: CO2+PEP(3C)-PEPcase->OAA(4C)->malic acid; arrow (plasmodesmata) carrying mal[ate]' to bundle sheath - a labelled two-compartment chain."
+ },
+ "Capacitance of Conductors": {
+  "agent": "none_symbolic",
+  "was": "circuit",
+  "conf": "med",
+  "evidence": "Chunks are electrostatics-of-conductors statements: E=0 inside, q_interior=0, E=sigma/eps0, C=4*pi*eps0*R, plus a Gaussian-pillbox derivation. Definitions and Gauss-law algebra; no lumped circuit."
+ },
+ "Lamarckism and the Modern Synthetic Theory": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunks are definitions (saltation, germplasm, neo-Darwinism), a dated name timeline and H-W arithmetic pitfalls. Pure distinction/recall content."
+ },
+ "Bryophytes: Liverworts and Mosses": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Chunks describe body form: liverwort flat dorsiventral thallus anchored by rhizoids, gemmae in cup-like gemma cups, moss gametophyte stages. Organism morphology."
+ },
+ "DNA Content and Chromosome Number Across Divisions": {
+  "agent": "data_table_trend",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunk carries the bookkeeping grid verbatim: Stage | Chromosome number | Chromatids | DNA amount, with G1 2n/1/2C, after S 2n/2/4C, after Meiosis I n/2/2C. Values in a grid with a trend."
+ },
+ "Ligands, Denticity and Chelation": {
+  "agent": "none_symbolic",
+  "was": "molecule_struct",
+  "conf": "high",
+  "evidence": "Chunks are definitions and a classification list: unidentate/didentate/polydentate with examples, EDTA hexadentate, plus chelate-effect prose with two log K values. A list, not a structure."
+ },
+ "Physical Properties and Hydrogen Bonding in Amines": {
+  "agent": "data_table_trend",
+  "was": "molecule_struct",
+  "conf": "med",
+  "evidence": "Demoted to a value grid: pKb figures (aniline 9.38, ammonia 4.75), bp order 1>2>3, and the trend's own exception - gas phase 3>2>1 but 'the usual aqueous outcome is 2 > 1 > 3 > NH3'."
+ },
+ "Structure of the Human Kidney and Urinary Tract": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Explicit figure: 'Front view of the human urinary system... bean-shaped kidneys, renal artery/vein at the hilum, ureters to bladder, urethra. Label kidneys, hilum, ureters, urinary bladder, urethra.'"
+ },
+ "Metal Carbonyls and Synergic Bonding": {
+  "agent": "none_symbolic",
+  "was": "molecule_struct",
+  "conf": "med",
+  "evidence": "Chunks explain synergic bonding in prose (CO sigma lone pair to metal, metal d into CO pi*, C-O IR stretch falls) and EAN counting to 18/36. Argument and arithmetic, no structure spec retrieved."
+ },
+ "Cockroach: Nervous System and Reproduction": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Chunks give the nervous layout - 'double ventral nerve cord ... segmental ganglia (three thoracic, six abdominal), fused head ganglia = supra-oesophageal ganglion' - plus head appendages."
+ },
+ "Series LCR Circuit: Impedance and Phase": {
+  "agent": "gap_phasor",
+  "was": "circuit",
+  "conf": "med",
+  "evidence": "Chunks build it geometrically: V_L and V_C antiphase, resultant perpendicular to V_R, Pythagoras to v_m=im*sqrt(R^2+(XL-XC)^2), tan(phi)=(XL-XC)/R. A phasor triangle; nothing shipped draws it."
+ },
+ "Genetic Code and Its Properties": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "high",
+  "evidence": "Chunks are properties and traps - degenerate vs ambiguous, comma-less, stop-codon nicknames, template vs coding strand. Definitions and a pitfalls list; the codon table itself was never retrieved."
+ },
+ "Corrosion and Its Prevention": {
+  "agent": "apparatus",
+  "was": "apparatus",
+  "conf": "med",
+  "evidence": "Chunk describes a drawn situation, cut off at 'Figure - to be illu[strated]': water droplet on iron, oxygen-starved centre as anode, oxygen-rich rim as cathode, electrons through the metal."
+ },
+ "Industrial Chemicals, Enzymes and Bioactive Molecules from Microbes": {
+  "agent": "none_symbolic",
+  "was": "apparatus",
+  "conf": "high",
+  "evidence": "Every chunk is a Product|Microbe|Type|Use grid (lipase, pectinase, streptokinase, cyclosporin A, statins) plus match-column drilling. Pure name-pairing recall."
+ },
+ "Fungal Structure, Nutrition and Modes of Reproduction": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "Explicit illustration brief: mycelium as a branching network of hyphae through a substrate with an inset contrasting a septate hypha with cross-walls vs an aseptate coenocytic one."
+ },
+ "Reactions of Carbonyl Compounds with Ammonia Derivatives": {
+  "agent": "reaction_scheme",
+  "was": "reaction_mechanism",
+  "conf": "med",
+  "evidence": "On topic but thin: 'B. Addition-elimination with ammonia derivatives H2N-Z (acid-catalysed, optimum pH 3.5): the adduct loses' - the chunk truncates before the Z table; only pH reasoning follows."
+ },
+ "Types and Structure of RNA (mRNA, tRNA, rRNA)": {
+  "agent": "labelled_figure",
+  "was": "labelled_figure",
+  "conf": "med",
+  "evidence": "tRNA is described as a drawable adapter - 'Anticodon loop: three bases complementary to the codon' and 'Amino-acid acceptor end: the 3' end, bearing a -CCA-OH' - plus the two ribosomal subunits."
+ },
+ "Phylum Mollusca": {
+  "agent": "none_symbolic",
+  "was": "labelled_figure",
+  "conf": "high",
+  "evidence": "Chunks are the phylum matrix rows and an open-vs-closed-circulation analogy. Foot/visceral hump/mantle appears only inside a table cell; no molluscan figure retrieved."
+ },
+ "Cancer: Causes, Types, Detection and Treatment": {
+  "agent": "none_symbolic",
+  "was": "process_cycle",
+  "conf": "med",
+  "evidence": "Retrieval mostly missed (top 0.51 is immune phenomena). Cancer content is one cheat-sheet line 'loss of contact inhibition -> tumour (benign local; malignant metastasis)' plus carcinogen categories."
+ },
+ "Free Radical Halogenation and Reactions of Alkanes": {
+  "agent": "reaction_scheme",
+  "was": "reaction_mechanism",
+  "conf": "med",
+  "evidence": "Chunk gives the three-step chain as equations: Cl-Cl -hv-> 2Cl*; Cl* + CH4 -> *CH3 + HCl; *CH3 + Cl2 -> CH3Cl + Cl*; termination *CH3+*CH3->C2H6. Species nodes with labelled arrows."
+ }
+}

@@ -1,0 +1,51 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": {
+        "d": "M 60 40 C 300 60 600 60 840 380"
+      },
+      "children": null
+    },
+    {
+      "type": "RNSVGText",
+      "props": {
+        "x": [
+          90
+        ],
+        "y": [
+          400
+        ],
+        "font": {
+          "fontSize": 12,
+          "textAnchor": "start"
+        }
+      },
+      "children": [
+        {
+          "type": "RNSVGTSpan",
+          "props": {
+            "content": "Labrum"
+          },
+          "children": null
+        }
+      ]
+    },
+    {
+      "type": "RNSVGImage",
+      "props": {
+        "x": 700,
+        "y": 200,
+        "width": 400,
+        "height": 300,
+        "preserveAspectRatio": "none",
+        "src": {
+          "testUri": "assets/figures/placeholder-plant-cell.png"
+        }
+      },
+      "children": null
+    }
+  ]
+}

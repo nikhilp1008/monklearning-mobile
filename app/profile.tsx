@@ -10,7 +10,8 @@
 //     privacy-policy / subscription, and the student name is eased from the
 //     handoff's 34px down to 27 (≈30 at the handoff's frame) per the user.
 //
-// Fonts are unchanged from the handoff: Anek Latin throughout, with Kalam 700
+// Fonts: Onest throughout since the migration (this said "Anek Latin
+// throughout, with Kalam 700"), with the same weights in the same places
 // on the single "your teacher" accent — both already brand fonts here.
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -55,7 +56,7 @@ import {
 // — the difference is a few RGB points and never seen side by side.
 const INK_30 = '#B4AC9B'; // muted labels, chevrons
 const SURFACE_WARM = '#F7F4EC'; // subject chips
-const AMBER_DARK = '#8F5E0B'; // the Kalam accent
+const AMBER_DARK = '#8F5E0B'; // the red-pen accent (was set in Kalam)
 const AMBER_MUTED = '#C9A253'; // eyebrow on the dark rating card
 const CARD_TOP = '#2A251C';
 const CARD_BASE = '#1C1A16';
@@ -549,7 +550,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
     },
     yourTeacher: {
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(15.5),
       color: AMBER_DARK,
     },

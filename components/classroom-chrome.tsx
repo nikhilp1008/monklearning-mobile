@@ -400,14 +400,23 @@ const capStyles = StyleSheet.create({
     letterSpacing: 0.14 * 9.5,
     color: DEEP_AMBER,
   },
-  // Anek Devanagari, as the design specifies for the Hinglish caption line.
-  // The design's 1.2 line-height is a CSS line box, which never clips a glyph;
-  // RN's does, and this family's descenders sit lower than Anek Latin's — so
-  // the line box is opened up to 20 to keep them whole. The strip is 54 tall
-  // either way, so the rhythm is unchanged.
+  // Onest, with the rest of the classroom.
+  //
+  // This was Anek Devanagari, "opened up to 20 to keep the descenders whole".
+  // Measured from the font: Anek Devanagari 500 is asc +1.013 / desc -0.693,
+  // so at 14.5pt it needs 24.7pt of line box and 20 was clipping it by 4.7.
+  // That never showed because the caption line is Hinglish, which is romanised
+  // LATIN -- no Devanagari ships anywhere in the app (see lib/widgets/CLAUDE.md).
+  // Onest 500 is asc +0.970 / desc -0.305 and needs 18.5pt, so 20 is honest
+  // headroom rather than an under-provision nobody had exercised.
+  //
+  // The trade is real and worth naming: Onest has no Devanagari coverage, so
+  // if this line ever carries Devanagari it will tofu instead of clipping.
+  // That is a louder failure than the one being removed, which is the right
+  // direction, but it is a decision and not a free win.
   text: {
     flexShrink: 1,
-    fontFamily: 'AnekDevanagari_500Medium',
+    fontFamily: 'Onest_500Medium',
     fontSize: 14.5,
     lineHeight: 20,
     color: INK,

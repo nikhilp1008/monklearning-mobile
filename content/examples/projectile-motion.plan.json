@@ -1,0 +1,33 @@
+{
+  "concept_id": "phy.11.ch04.projectile_motion",
+  "syllabus_area": "physics.mechanics",
+  "segments": [
+    { "title": "What makes a motion 'projectile'", "concept_type": "physics.definition_or_notation",
+      "objectives": ["State the two conditions defining projectile motion"], "turns": 2 },
+
+    { "title": "Splitting velocity into two independent axes", "concept_type": "physics.kinematics.projectile.ground_launch",
+      "objectives": ["Resolve initial velocity into horizontal and vertical components"], "turns": 3,
+      "visual": { "widget": "projectile_motion@1" } },
+
+    { "title": "Range, apex and time of flight", "concept_type": "physics.kinematics.projectile.ground_launch",
+      "objectives": ["Derive R, H and T", "Identify which is maximised at 45 degrees"], "turns": 3,
+      "visual": { "widget": "projectile_motion@1" } },
+
+    { "title": "Complementary angles share a range", "concept_type": "physics.kinematics.projectile.ground_launch",
+      "objectives": ["Show that theta and (90 - theta) give equal range"], "turns": 3,
+      "visual": { "widget": "projectile_motion@1" } },
+
+    { "title": "The bullet fired and the bullet dropped", "concept_type": "physics.kinematics.projectile.horizontal_from_height",
+      "objectives": ["Show vertical motion is unaffected by horizontal velocity"], "turns": 3,
+      "visual": { "widget": "projectile_motion@2" } },
+
+    { "title": "Reading it off a v-t graph", "concept_type": "physics.kinematics.graphs",
+      "objectives": ["Connect the trajectory to its component graphs"], "turns": 3 },
+
+    { "title": "Worked example: a ball off a cliff", "concept_type": "physics.numerical_substitution",
+      "objectives": ["Apply the horizontal-launch equations to a numerical case"], "turns": 3 },
+
+    { "title": "Projectile up an incline", "concept_type": "physics.kinematics.projectile.on_incline",
+      "objectives": ["Set up axes along and perpendicular to the incline"], "turns": 3 }
+  ]
+}

@@ -1,0 +1,641 @@
+# CLAUDE.md — Drona Board Widget Runtime
+
+This file governs work on the **board widget runtime**: the system that draws
+interactive diagrams during a Learn with Drona live class. Read it before
+touching anything under `lib/widgets/`, `assets/molecule-host.html`, or the
+board rendering path in the classroom flow.
+
+`AGENTS.md` still applies in full. Its standing rule is repeated here because it
+matters most in this subsystem: **read the versioned docs at
+`https://docs.expo.dev/versions/v54.0.0/` before writing code.** SDK 54 moved a
+lot, and several of the rules below exist because a plausible-looking API is
+either newer than our pin or older than it.
+
+---
+
+## 1. The one idea
+
+**The model never draws. It selects a widget and fills that widget's parameters.**
+
+A widget is a deterministic TypeScript renderer that we write, review for
+physical correctness once, and then trust. The model's entire output for a
+diagram is a small JSON payload — typically 60–150 tokens — validated against
+the widget's own validator before a single pixel is drawn.
+
+This is not a token-cost optimisation, though it is one. It is a correctness
+guarantee. A model hand-writing SVG for a projectile draws an *approximate*
+parabola, and our students read values off these diagrams. A registry widget
+computes `y = x·tanθ − gx²/(2v²cos²θ)` and cannot be approximately right.
+
+If you are ever tempted to have the model emit SVG, coordinates, or drawing
+commands for something the registry covers — don't. That is the fallback tier,
+and it is instrumented as a defect.
+
+---
+
+## 2. The three tiers
+
+Every diagram on the board resolves through exactly one of these. `BoardWidget`
+is the single entry point; nothing else renders a diagram.
+
+| Tier | Source | Latency | When |
+|---|---|---|---|
+| `precomputed` | Payload baked into the lesson JSON at content-build time, stored in Supabase | 0 ms | Any concept in the authored curriculum |
+| `live` | Payload returned by the doubt endpoint on the Railway API | ~1 s | A student question the registry covers but the lesson didn't precompute |
+| `fallback_svg` | Model-generated SVG string, rendered through `SvgXml` | ~10 s | No registry widget matches |
+
+**Precomputing and live doubts are not in tension.** We cache *payloads*, not
+pictures. A cache miss costs one model call against a registry the model already
+knows; it does not cost a broken lesson. Precompute aggressively for authored
+concepts and let tier 2 absorb everything else.
+
+**Tier 3 is a measurement, not a failure.** `BoardWidget` calls `onGap` on every
+tier-3 render with the reason and payload. That feed is the queue that decides
+which widget we build next. Treat its rate as a tracked metric with a target
+near zero on the core syllabus — JEE/NEET is a closed syllabus, which is the
+entire reason a fixed registry works for us and would not for a general
+assistant. Do not let tier 3 quietly become 40% of diagrams.
+
+---
+
+## 3. Non-negotiable rules
+
+These are pinned to our actual dependency versions. Each one has a reason; the
+reason is stated so you can tell when it stops applying.
+
+### TypeScript, not JavaScript
+Every widget is `.ts` / `.tsx`. The repo is TS 5.9 `strict` and gated on
+`tsc --noEmit`. Do not add `.js` files under `lib/`, and do not reach for `any`
+outside the two places the registry already uses it (heterogeneous module map).
+
+### Animation: `useAnimatedProps`, never CSS animations
+We are on **`react-native-reanimated@4.1.1`** (SDK 54's pin). Reanimated's own
+docs show SVG path morphing via CSS animations (`animationName`, `animationDuration`).
+**That feature does not exist at our version.** Partial SVG CSS-animation support
+landed in 4.1.0 and full support — including `Path` morphing — only in 4.3.0.
+Copying the docs' headline example produces code that silently does nothing.
+
+The correct pattern here:
+
+```ts
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const animatedProps = useAnimatedProps(() => ({
+  d: trajectoryPath(angle.value, speed, gravity, originX, groundY, pxPerM, 72),
+}));
+<AnimatedPath animatedProps={animatedProps} />
+```
+
+`trajectoryPath` must be marked `'worklet'`, and every function it calls must be
+a worklet too. String concatenation and `Math.*` are fine inside a worklet.
+
+Animatable props on `react-native-svg@15.12.1`: `Path.d`, `Circle.cx/cy/r`,
+`Ellipse.cx/cy/rx/ry`, `Rect.x/y/width/height/rx/ry`, `Line.x1/y1/x2/y2`,
+`Polygon/Polyline.points`, plus stroke and fill props on everything. `Line` and
+`Polyline` point animation is native-only, which is fine — we are iOS-only.
+
+Reanimated 4 requires the New Architecture. We have it enabled. Do not attempt
+to support the old architecture.
+
+### Cue sync: keyed to reveal order, not seconds (revised M2)
+**This subsystem targets live Drona sessions, not the pre-recorded lesson
+player.** An earlier draft of this file (and of `use-cue-track.ts`) assumed a
+single seekable audio track with a `player.currentTime` to poll — the shape
+`app/lesson-player.tsx` has, and does not. Live sessions have neither a
+section-length track nor any timestamp on the wire at all: read
+`lib/drona-voice-client.ts`'s `BoardEvent` — there is no `at`, no
+`currentTime`, no duration. What a live session has instead is a strictly
+ordered stream of board events, each revealed exactly when the `audio_chunk`
+pairing it to its sentence starts playing (`AudioPlaybackQueue.onItemStart`).
+
+So `Cue.seq` names the board event a cue applies at, not a second, and
+`use-cue-track.ts` selects on `activeSeq` — the highest board-event `seq`
+revealed so far in the turn, threaded down from the classroom's own `board`
+array — rather than on a rAF-polled clock. This is not a workaround for
+missing timing data; it is **strictly more robust** than a seconds model: a
+cue fires WITH its sentence, by construction, so it cannot fire early or late
+the way a written-in-advance `at: 2.4` could if TTS pacing disagreed with the
+estimate. See `Cue.seq`'s own doc comment in `lib/widgets/types.ts` for the full
+reasoning. (A `docs/cue-timing.md` was cited here for the pre-recorded-lesson
+problem this sidesteps; it was never written — see the note at the end of this
+file.)
+
+Pause still works (the queue simply stops; no clip starts, no cue fires). Seek
+and backward scrub do not exist in a live session and are not attempted —
+there is nothing to seek along.
+
+If a widget is ever wired into `app/lesson-player.tsx` (a real seekable track,
+real `durationSec`, real `revealAt[]`), that screen needs `useCueTrack`'s
+*original* seconds-based selector back, or a second cue-selection strategy
+alongside this one — the two systems' clocks are genuinely different, and
+`Cue.seq` cannot mean anything on a track that has no board-event stream to
+number.
+
+### The `params` / `motion` split
+Two channels carry parameters, deliberately:
+
+- `params` — authoritative, JS thread, re-renders. Drives axes, gridlines, ticks,
+  labels, readouts.
+- `motion` — one `SharedValue<number>` per key listed in `animatable`, UI thread.
+  Drives geometry only.
+
+**A widget's static scaffolding must be computed from `params` only, and must not
+depend on any value a cue tween changes mid-flight.** Concretely, in
+`projectile-motion` the pixels-per-metre scale is a function of speed and gravity
+but *never* of launch angle — because angle is the parameter cues move most, and
+an axis that rescales mid-tween makes two trajectories visually incomparable,
+which destroys the one thing the animation exists to teach.
+
+**A widget whose moving geometry is LABEL-TERMINATED is snap-only.** If a
+param moves something that ends in a `<Text>` — an atom label on a bond, a
+force symbol on an arrow, a substituent on a Newman projection — it cannot be
+animated, because `SCAFFOLDING_TYPES` in `__tests__/test-utils.ts` includes
+`Text`/`TSpan` and `scaffoldingDiffs` reports any motion-driven change to them
+as a params/motion violation. That check is right: a bond that swings while
+its label stays put is a wrong diagram, not a slightly-off one.
+
+The consequence is that whole widget families are legitimately snap-only —
+`molecule_struct`, Newman projections, and most structural formulae. Those
+ship with `animatable: []` and drive change through successive board events
+with different `params` instead, which re-render freely. This is not a
+limitation to design around; it is the contract preventing a class of wrong
+diagram.
+
+(Written down 2026-09-05. It had been reasoned from `SCAFFOLDING_TYPES` and
+applied in three widget specs, but never actually stated here — and was then
+cited in a brief as though it were. Section 8 exists because of exactly that
+habit.)
+
+Maximum 4 animatable params per widget (`useCueTrack` allocates a fixed pool;
+hooks cannot be called in a loop over data). A widget needing five simultaneously
+tweening numbers is two widgets.
+
+**The readout jumps ahead of the curve, on purpose — decided M2, not a bug.**
+`use-cue-track.ts` calls `setParams(target)` (the new, final values) and only
+*then* sets each `motion` SharedValue to `withTiming(to, ...)`. Since `params`
+drives readouts and `motion` drives geometry, that ordering means a readout
+like "R 49.3 m" shows the DESTINATION value the instant a cue fires, while the
+curve is still ~1.1s (a typical `tween`) into travelling there. The number is
+already the answer; the curve is the explanation of how it got there — and the
+student's eye is on the moving curve, not the strip. Keep this. Synchronising
+the two would mean animating SVG `<Text>` content per frame, which
+`react-native-svg` does not make cheap and which is not worth it for a
+strip most students are not staring at during the tween. **Every widget built
+against this contract inherits this ordering — do not special-case one widget
+to feel "more synced" than the others; if this decision changes, it changes
+`use-cue-track.ts` once, for everyone.**
+
+### `validate()` is total and never throws
+Every widget exports a `validate(raw: unknown)` returning a discriminated result.
+It clamps in-range values, rejects the rest, and returns readable errors. This is
+the only place a malformed model payload can be stopped, and it is what makes
+tier 2 safe to expose to arbitrary student questions.
+
+Never `JSON.parse` a payload straight into a widget. Never trust `params` because
+it came from our own API.
+
+**The schema's legal range must be a SUBSET of what renders correctly.**
+`validate()` and `scripts/verify-render.mjs` are two halves of one contract: the
+first says what a payload may contain, the second says what may reach a student's
+board. If `validate()` admits a payload the gate rejects, the widget is broken
+even though every test passes — the defect just waits for a lesson to generate
+that value.
+
+This is not hypothetical. `projectile_motion` shipped accepting
+`launch_angle_deg: 1`, which puts the apex marker 4.8px from the origin dot at
+343x236 — under the gate's 12px glyph floor, at every board size. Found by
+sweeping the whole legal range against the gate rather than by testing the
+default.
+
+**When the two disagree, narrow the schema. Never widen the gate.** Widening it
+to admit a payload converts a diagram that is wrong on a phone into a diagram
+that is wrong on a phone and passes CI. And when you narrow, measure the new
+bound at the SMALLEST board — a floor derived at 900x430 is not a floor.
+
+**The extreme legal values are CORNERS, not endpoints.** A schema with N
+numeric params has 2^N corners, and defects hide in the combinations, not on
+the axes. Two params means four renders through the gate, not two. Sweep one
+param at a time and you will miss every bug that needs two things to be extreme
+at once.
+
+This is not a theoretical worry — it is how the next three defects in
+`projectile_motion` were found, after the angle sweep had already been done and
+had already come back clean:
+
+  - `tickStep` returned 1 for a 0.04 m span, so NO gridline fell inside the
+    plot and ink coverage collapsed to 0.7%. Needs low speed AND high gravity.
+  - `tickStep` returned its hard-coded 2000 fallback for a 25000 m span,
+    giving 12 intervals where the function promises 7. Seven five-digit labels
+    ran off a 343pt board. Needs high speed AND low gravity.
+  - `PAD.left = 0.085` is a 29pt gutter at 343pt, narrower than the 34.8pt
+    y-tick label it must hold, so labels hung off the left edge. Needs high
+    speed AND low gravity AND the smallest board — a three-way corner.
+
+Note the shape of the last one: it is the container rule (a container that
+holds fixed chrome is sized from that chrome, not from a fraction of the
+frame), still live in the very widget
+`docs/small-screen-rendering-rules.md` uses as its worked example. A rule
+written down is not a rule applied.
+
+So: enumerate the corners of the legal box, cross them with all three board
+sizes, and put the result through the gate. The middle of the range is the case
+that already works.
+
+### Exactly one WebView, and only for 3D
+`react-native-webview` was removed from this app for good reason: the old KaTeX
+maths path mounted five browser instances per four-option MCQ, each fetching
+KaTeX from a CDN before it could paint. **Do not reintroduce that pattern.**
+
+The molecule widget is a different shape and is the only sanctioned exception:
+
+- **one** WebView instance, mounted only in the classroom flow;
+- `3Dmol.js` **inlined into the HTML** by `scripts/build-molecule-host.mjs` —
+  zero network at runtime, ever;
+- structures pushed in over `postMessage`, so changing molecule does **not**
+  remount the WebView or rebuild the GL context;
+- `source={{ html }}` with `originWhitelist={['*']}` (required for an inline
+  html source — the default whitelist is http/https only).
+
+We avoid `file://` entirely, which sidesteps the whole permissions mess. For
+reference if you ever do need it: `allowFileAccess` is **Android-only**; the iOS
+knob is `allowingReadAccessToURL`, and it must point at the containing directory,
+not the file. Our pin is `react-native-webview@13.15.0` via `npx expo install`.
+Do not hand-install 14.x.
+
+`'html'` is already in Metro's default `assetExts`, so the asset bundles with no
+`metro.config.js` change.
+
+**If the WebView ever regresses**, the escape hatch is `expo-gl` (`~16.0.10`,
+New-Architecture-supported) plus `@react-three/fiber/native`. Note that
+**`expo-three` is unmaintained** — last release 2024-07-28, flagged
+`newArchitecture: false` — so do not reach for it. R3F peers `react >=19 <19.3`,
+which our React 19.1.0 satisfies. Budget a spike; do not swap on a hunch.
+
+### Never fetch at render time
+No CDN, no API call, no `fetch` inside a widget. Structures, fonts and libraries
+are bundled or cached before the class starts. `WidgetServices.resolveStructure`
+is cache-first and offline by contract. A live class must render with the network
+off.
+
+### The model never emits coordinates
+For 3D, the payload carries an **identifier** — `pubchem:5957`, `pdb:1BNA` —
+resolved against our cache. Model-generated atomic coordinates are plausible and
+chemically wrong. Small molecules are generated server-side with RDKit
+(ETKDGv3 + MMFF94) and cached; macromolecules come from RCSB PDB rather than
+being generated, because nothing generated is right at that size.
+
+### Landscape, and the app's own fonts
+The classroom is landscape-locked via `hooks/use-landscape-lock.ts`, and there is
+no portrait board slot anywhere in this runtime today — do not design against a
+portrait number. Widgets receive an explicit `width`/`height` box and must lay
+out for landscape. Do not hardcode a viewBox. Text inside SVG uses
+`theme.fontFamily` / `theme.monoFontFamily`, which resolve to the app's loaded
+families — **Onest** since 2026-09-06, across the classroom board and the scene
+components; Kalam is gone. A diagram in a different typeface than the board
+around it reads as a bug. The width model is per-family and per-weight, so
+changing a `fontFamily` changes what the gate measures: swap one and regenerate
+the trees.
+
+docs/small-screen-rendering-rules.md covers the other thing every widget must
+get right: a widget takes the MEASURED width/height it is given and computes
+geometry from it, never a hardcoded canvas scaled down. World constants scale;
+chrome constants (font size, glyph radius, stroke weight) never do — and the
+reference implementation in this very directory shipped that exact bug, which
+is the doc's own worked example. Read it before writing layout math for a new
+widget.
+
+### Sliders are out of scope right now
+The product decision is narration-driven variation first. Widgets must not render
+their own controls. The `animatable` list and the `motion` channel already support
+student-driven values when we turn them on; nothing needs redesigning for that.
+
+---
+
+## 3a. Content side: which concepts get a diagram
+
+Widget *selection* is not the model's judgment call either. A human-owned
+taxonomy (`content/concept-types.seed.json`) maps each `concept_type` to a
+diagram policy — `required` / `expected` / `optional` / `prohibited` — and the
+lesson plan declares the visual slot before any prose is generated.
+`scripts/validate-lesson-plan.mjs` fails the build on an empty `required` slot or
+a widget the client registry cannot render.
+
+Full rules, the two-pass plan/generate contract and the segment-count bands were
+to live in `docs/visual-grammar.md`, which was never written. Until it is,
+the enforced rules are the ones in `scripts/validate-lesson-plan.mjs` — read that
+script before changing how lessons are planned or generated.
+
+For the ~149 figures no renderer can generate — labelled anatomy, floral diagrams,
+dissections. The pipeline is licence-gated: **never fetch an image from the open
+web**, ingest only from the allowlist, and capture licence, source and attribution
+as non-null columns at ingest. NCERT figures are all-rights-reserved and must never
+be reproduced, traced or redrawn from.
+
+The rule that decides usability, measured across all 149 figures (2026-09-04):
+**authorship, not fame.** Art drawn by the Wikipedia community is share-alike
+(CC BY-SA or GFDL) and therefore unusable; art dropped by an institution
+(OpenStax/CNX, NIH BioArt, Berkshire CC0, CDC PHIL) is CC BY or PD and usable.
+Note that openstax.org now serves CC BY-NC-SA site-wide, but CC grants are
+irrevocable, so its older Commons mirrors remain CC BY — verify and record the
+licence AT THE MIRRORED FILE, never from the current site, and never re-source a
+crisper copy from openstax.org. A `docs/asset-pipeline.md` was cited here and
+never written.
+
+The one thing no validator checks is whether the words and the picture agree. The
+rule that makes a whole class of mismatch impossible: **numbers in captions are
+`{{derived}}` tokens, never typed values** — so a caption cannot disagree with the
+diagram it describes. `lib/widgets/alignment-lint.ts` enforces what can be
+enforced. (`docs/narration-diagram-alignment.md` was cited here and never written.)
+
+The invariant across precompute binding and live doubt resolution: **nothing is
+created during a live session**; precompute creates and binds, a live session only
+selects from what already exists. (`docs/asset-flow.md` was cited here and never
+written.)
+
+---
+
+## 4. File layout
+
+```
+content/
+  concept-types.seed.json      concept_type -> diagram policy + eligible widgets
+docs/
+  small-screen-rendering-rules.md   THE ONLY DOC HERE. The frame rule. Read it.
+                                    (see section 8 for the six that were cited
+                                     by this file but never written)
+lib/widgets/
+  types.ts                     the contract — read this first
+  registry.ts                  the closed set of drawable things
+  BoardWidget.tsx              single entry point; tier dispatch + gap logging
+  use-cue-track.ts             narration sync (rAF over player.currentTime)
+  projectile-motion/
+    physics.ts                 worklet-safe closed-form maths, no rendering
+    index.tsx                  react-native-svg component + validate + module
+  field-lines/
+    physics.ts                 superposition + line tracing, no animatable params
+    index.tsx                  react-native-svg component + validate + module
+  molecule-3d/
+    index.tsx                  WebView host + postMessage bridge + validate
+assets/
+  molecule-host.html           GENERATED — do not hand-edit
+scripts/
+  build-molecule-host.mjs      regenerates the above; run in CI, fail if stale
+  validate-lesson-plan.mjs     enforces visual coverage; run in CI
+  verify-render.mjs            render assertions over payloads; run in CI
+```
+
+Keep maths in `physics.ts`-style files, separate from rendering. It is the part
+that needs a physics review, and it should be readable without React in the way.
+
+---
+
+## 5. Adding a widget
+
+1. Create `lib/widgets/<name>/`. Put the closed-form maths in its own module,
+   every exported function marked `'worklet'` if geometry depends on it.
+2. Write `validate()` first, before the component. It defines the payload
+   contract the model will be prompted against.
+3. Build the component from `params` for scaffolding and `motion` for geometry.
+4. Register it in `lib/widgets/registry.ts`. This is the only way to add one.
+5. Export the manifest to the server so the payload generator's widget list and
+   the client's registry cannot drift.
+6. Verify with the checklist in §6.
+
+Pick the next widget from the tier-3 gap queue, not from intuition. Before
+designing anything new, mine the diagram board events already generated across
+the completed chapters and let the frequency distribution rank them.
+
+---
+
+## 5a. Verification at corpus scale
+
+The §6 checklist is per widget. It does not scale to ~9,200 board events, and schema
+validation alone does not prove a diagram is legible — a valid payload can still render
+off-canvas, with colliding labels, or empty.
+
+`scripts/verify-render.mjs` asserts over the rendered component tree (via
+`react-test-renderer`, no device needed): something was drawn, ink covers enough of the
+board, nothing outside the bounds, no label overlaps another, no `NaN` in any prop. Run it
+on every payload in CI. What it cannot catch: whether the diagram is the RIGHT
+diagram, and whether it agrees with the narration — those need the stratified
+human sample, reviewed with the audio playing.
+(`docs/render-verification.md` was cited here and never written.)
+
+---
+
+## 6. Definition of done
+
+A widget is not done until all of these hold:
+
+- [ ] `npx tsc --noEmit` clean, and `npx expo lint` clean.
+- [ ] `validate()` rejects: wrong type, missing required key, `NaN`, `Infinity`,
+      out-of-domain values, and an empty object — each with a readable message.
+      It never throws.
+- [ ] Numeric output checked against at least three known values from an NCERT
+      or standard reference, written down in a comment in the maths module.
+- [ ] Axes/scaffolding provably do not move while an animatable param tweens.
+- [ ] Renders correctly at the classroom's landscape box on the smallest
+      supported device, and at 2× that width.
+- [ ] Reduced-motion honoured: cue tweens collapse to snaps.
+- [ ] A cue track drives it correctly through play, pause, seek forward, and
+      scrub backwards.
+- [ ] No `fetch`, no CDN reference, no `Date.now()`-driven animation.
+- [ ] Renders with the device in airplane mode.
+- [ ] **A Hinglish-caption fixture at 343x236**, in the checked-in trees. See
+      "Every language the app actually ships" below. Hinglish, not Hindi — the
+      product has no Devanagari mode, and this line said Hindi until 2026-09-05.
+- [ ] **Verified by an agent other than its author, BEFORE it is wired into
+      `registry.ts`.** See "Someone else verifies it" below.
+- [ ] Every self-check takes an INDEPENDENT route. See "A self-check must
+      not be an identity" below.
+
+### Someone else verifies it
+
+An author's own tests encode the author's own model of the widget. Where that
+model is wrong, the tests are wrong in the same direction and agree with the
+code perfectly.
+
+This is not a hypothesis. On 2026-09-05 four widgets were built, each green on
+its author's full sweep, and then verified by agents that had not written them.
+Between them the verifiers found:
+
+- a **shared** defect in `chrome.ts` that TWO of them hit independently, from
+  opposite directions — `maxChars()` budgeted characters at the Latin width
+  while the gate measured Devanagari 29% wider, so a Hindi caption ran off the
+  board on every widget with a readout;
+- `derive()` computing a metre-bridge RESISTANCE from a CAPACITANCE, on a
+  payload `validate()` had no reason to reject, printing `X 5.21 Ω` for 6 µF;
+- an always-mounted quad parked at (0,0) stretching the ink bbox to the board
+  corner, so the coverage assertion passed for the wrong reason — 93.6%
+  reported against 68.9% actual;
+- a shape reporting `secondary_angle 0`, meaning "none", while DRAWING the
+  angle it denied having.
+
+Four wrong-reason passes and one shared bug, none of which the authors' own
+suites caught. The verifier must build its own harness rather than read the
+expected values out of the author's tests — the strongest pass spliced the
+gate's real assertion body into a wrapper and cross-validated it against the
+checked-in trees before trusting it.
+
+### A self-check must not be an identity
+
+A "cross-check" that reaches the same number by rearranging the same equation
+proves only that algebra works. `circuit_network` asserted
+
+    terminal_v === i_total * r_eq
+
+as proof its cell-bank maths was right. Given `i = V/(R+r)`, `V - i*r` IS
+`i*R` identically — it cannot fail, for any input, however wrong the model.
+Swept over 75 parameter combinations the worst deviation was under 1e-9.
+
+An independent route means a DIFFERENT derivation: mesh analysis against
+delta-star, an antiderivative against a Riemann sum, a table lookup against a
+formula. If you cannot state what a check could catch, it catches nothing.
+
+### 343x236 binds — EXCEPT where the assertion is a ratio
+
+The standing rule is that the smallest board is the binding case, so a cap
+measured there holds everywhere. That is true of every floor expressed in
+DEVICE POINTS — font 11, stroke 1.2, the 2r+4 glyph gap, label boxes — because
+each is a fixed quantity against a shrinking frame.
+
+**Ink coverage is not one of those.** It is drawn-area over board-area, so a
+scene whose projected aspect cannot fill a 2.09:1 board fails at the WIDEST
+board while passing the narrowest. Measured while building lines-planes-3d: a
+payload `validate()` admitted covered 5.0% of 900x430 -- degenerate by the gate
+-- and passed clean at 343x236. Checking only the small board is what let it
+through.
+
+So: measure a device-point bound at 343x236; measure a RATIO bound at every
+board. Anything phrased "as a fraction of the frame" belongs in the second
+group, and coverage is the one that exists today.
+
+### This repo cannot read the corpus. That is RLS, not a missing RPC.
+
+The mobile tree holds `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and nothing else.
+Measured from here:
+
+    chapters     -> 1 row
+    pdf_chunks   -> 0 rows          (row-level security, not an empty table)
+
+So `pdf_chunks` and the authored lesson content are NOT readable from this
+repo. The `match_pdf_chunks` RPC **does exist** and works from
+monk-learning-api under its service credentials — verified — with the argument
+`filter_chapter_id`.
+
+**A "the RPC does not exist in this database" conclusion reached from THIS
+repo is an RLS symptom, not a finding.** That conclusion has been drawn three
+times, once written into an evidence README where it then misled a later
+agent, and once acted on by reimplementing a cosine fallback nobody needed.
+
+Build a widget against the authored scene sections already in the tree —
+`components/scenes/P12Ch01Sec52`, and so on — and **cite the section behind
+every constant**, as `field_lines@2` does at the top of its `physics.ts`.
+State the substitution where a reader will find it; do not present a
+second-hand constant as if it came from the book directly.
+
+### Widget tests live in the widget's own `__tests__/`
+
+`lib/widgets/__tests__/render-trees.test.tsx` is an INTEGRATION file. It is
+regenerated by the integration step and **never edited by a widget author**.
+
+The reason is concrete: three agents edited it in one afternoon, and it ended
+up importing a widget directory that was still untracked — so the file was
+committable only in lockstep with work that was not ready. A widget's own
+tests belong beside the widget, where they can be committed, reverted and
+reviewed with it.
+
+### Every language the app actually ships
+
+The Devanagari defect existed because neither author tested a second language,
+and it was found twice by luck rather than once by design. Reviewers are not a
+gate.
+
+**This section used to say "every script the app ships" and mandate a Hindi
+fixture per widget. That was wrong, and it was wrong in the expensive
+direction: it gated the widgets on a language the product does not have.**
+From `lib/preferences.ts`:
+
+    LanguageId = 'hinglish' | 'english'      // default hinglish
+
+and hinglish is romanised **Latin** — "Chalo shuru karte hain", from the API's
+`persona.py`. No Devanagari string exists in either repo outside test fixtures.
+(The app loads `AnekDevanagari_500Medium` for the classroom caption strip, but
+that family renders Latin too; a Devanagari FACE being loaded is not evidence
+Devanagari TEXT is ever shown. That inference was made once already and is what
+`git show c482452` undoes.)
+
+So a per-widget Hindi fixture asserts a path nothing can reach, while the case
+that actually ships went untested for a year: **the DEFAULT language, at the
+smallest board, with a caption longer than its English equivalent.** Hinglish
+says the same thing in more characters, every time — "Two banks in series" (19)
+becomes "Do bank series mein jude hue hain" (33) — and the readout is
+width-fitted, so length is the whole pressure.
+
+Therefore:
+
+- Every widget with a readout carries a **Hinglish-caption fixture rendered at
+  343x236**, with a realistic caption of realistic length — the kind
+  `persona.py` actually produces, not a short stub. Pair it with an existing
+  English case on the same payload so the two trees differ in the caption and
+  nothing else. If a widget's readout cannot hold a realistic Hinglish caption
+  at 343x236, that is a FINDING to report, not something to shorten until it
+  passes. (`molecule_struct` is one: see below.)
+- **Exactly TWO Devanagari fixtures exist**, and they are a matched pair:
+  `test/fixtures/deva-labels-collide.json` (expects 1) and
+  `deva-latin-width-would-collide.json` (expects 0), both pinned to 343x236 in
+  `scripts/verify-fixtures.mjs`. Together they are the guardrail-liveness test
+  for the Devanagari width branch. It costs nothing while nothing reaches it,
+  and Hindi-medium students read Devanagari textbooks, so the day figure labels
+  are authored in Devanagari it is what stands between them and a label off the
+  board. Do not add per-widget Devanagari fixtures on top of them.
+
+  **Why two and not one.** The single fixture worked only while
+  `CHAR_W_DEVA = 0.75` over-charged Devanagari. Measured against Anek
+  Devanagari's own hmtx, Devanagari is NARROWER per code unit than Latin, not
+  wider — four of that string's twelve code units are matras with no advance at
+  all — so deleting the branch entirely still leaves the first fixture failing,
+  and it proves nothing. Only the second flips (0 -> 1, printing the collision)
+  when the branch dies. Falsified both ways before being trusted; if you touch
+  the width model, re-run that ablation rather than assuming.
+
+343x236 is the binding board — and it now binds mechanically, because a fixture
+may carry its own `[exit, w, h]`. Widths are MEASURED, from
+`lib/widgets/advance-widths.json`, generated by
+`scripts/measure-advance-widths.py` from the shipped `.ttf` files. `CHAR_W` and
+`CHAR_W_DEVA` are gone. `SAFETY_MARGIN` (5%) is a separate field and is not part
+of any measurement — do not fold it into a width and do not describe the result
+as measured.
+
+---
+
+## 7. Not this subsystem's job
+
+Do not, while working here: change the audio architecture (expo-audio for
+playback and `@siteed/audio-studio` for capture are deliberately separate — a
+shared session routes Drona to the earpiece); change orientation handling outside
+the classroom; add a state-management library; or "clean up" `react-native-webview`
+out of `package.json` — as of this runtime it is load-bearing again.
+
+---
+
+## 8. Docs this file used to cite that do not exist
+
+Verified 2026-09-04 with `git log --all --diff-filter=A`: **never committed on any
+branch.**
+
+```
+docs/asset-pipeline.md             docs/asset-flow.md
+docs/visual-grammar.md             docs/cue-timing.md
+docs/narration-diagram-alignment.md  docs/render-verification.md
+docs/widget-prompt-template.md
+```
+
+`docs/small-screen-rendering-rules.md` is the only doc in `docs/` and is real.
+
+Their load-bearing rules have been inlined above rather than left as dangling
+pointers, because **a contract citing documents that do not exist is worse than no
+contract** — it reads as though the rules were written down and reviewed when they
+were neither. If any of these is written later, inline the pointer again and delete
+the corresponding paragraph here.
+
+Do not add a citation to a document you have not confirmed exists.

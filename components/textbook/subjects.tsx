@@ -177,15 +177,15 @@ export function SubjectArt({
           <Path d="M46 28v48h48" {...common} strokeDasharray="2 3" />
           <Path d="M28 100h48" {...common} stroke={colors.red} />
           <Path d="M28 97v6M76 97v6" {...common} stroke={colors.red} />
-          <SvgText x={46} y={112} fontFamily="Kalam_700Bold" fontSize={12} fill={colors.red}>
+          <SvgText x={46} y={112} fontFamily="Onest_700Bold" fontSize={12} fill={colors.red}>
             a
           </SvgText>
           <Path d="M16 44v48" {...common} stroke={colors.marigold} />
           <Path d="M13 44h6M13 92h6" {...common} stroke={colors.marigold} />
-          <SvgText x={4} y={72} fontFamily="Kalam_700Bold" fontSize={12} fill={colors.marigold}>
+          <SvgText x={4} y={72} fontFamily="Onest_700Bold" fontSize={12} fill={colors.marigold}>
             a
           </SvgText>
-          <SvgText x={84} y={20} fontFamily="Kalam_700Bold" fontSize={12} fill={s}>
+          <SvgText x={84} y={20} fontFamily="Onest_700Bold" fontSize={12} fill={s}>
             V=a³
           </SvgText>
         </Svg>

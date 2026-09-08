@@ -1,0 +1,218 @@
+{
+  "$comment": "SEED. Replace policies and widget mappings with values derived from your own generated chapters — see docs/visual-grammar.md section 5. The shape is the deliverable; the rows are a starting point.",
+  "version": 1,
+  "policies": {
+    "required": "A segment of this type without a valid widget payload FAILS validation.",
+    "expected": "Diagram unless the planner records an explicit `visual_waiver` reason. Waivers are audited.",
+    "optional": "Planner's call. No waiver needed either way.",
+    "prohibited": "A diagram here is noise. Payload present = validation failure."
+  },
+  "concept_types": [
+    {
+      "id": "physics.kinematics.projectile.ground_launch",
+      "label": "Projectile launched from the ground at an angle",
+      "policy": "required",
+      "widgets": ["projectile_motion@1"],
+      "note": "Range/apex/time-of-flight, complementary angles."
+    },
+    {
+      "id": "physics.kinematics.projectile.horizontal_from_height",
+      "label": "Horizontal launch from a height; independence of the two axes",
+      "policy": "required",
+      "widgets": ["projectile_motion@2"],
+      "note": "The bullet-fired-vs-bullet-dropped case. v1 CANNOT draw this — needs launch_mode + companion body."
+    },
+    {
+      "id": "physics.kinematics.projectile.on_incline",
+      "label": "Projectile onto or along an inclined plane",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. No widget yet."
+    },
+    {
+      "id": "physics.kinematics.graphs",
+      "label": "x-t, v-t, a-t graph reading and construction",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. High frequency across mechanics; likely an early build."
+    },
+    {
+      "id": "physics.optics.ray_diagram",
+      "label": "Lens or mirror ray construction, image formation",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "physics.optics.interference",
+      "label": "Two-source interference, fringe pattern and intensity",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "physics.mechanics.free_body",
+      "label": "Force resolution on a body, free-body diagram",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. Probably the single highest-frequency physics diagram."
+    },
+    {
+      "id": "physics.thermo.pv_process",
+      "label": "P-V diagram for a thermodynamic process or cycle",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "physics.definition_or_notation",
+      "label": "Defining a quantity, its symbol, units and sign convention",
+      "policy": "prohibited",
+      "widgets": [],
+      "note": "A diagram here competes with the definition for attention."
+    },
+    {
+      "id": "physics.numerical_substitution",
+      "label": "Plugging values into an already-derived formula",
+      "policy": "optional",
+      "widgets": [],
+      "note": "Draw only if the setup itself is geometric."
+    },
+
+    {
+      "id": "chemistry.organic.structure",
+      "label": "Naming, drawing or comparing a molecular structure",
+      "policy": "required",
+      "widgets": ["molecule_3d@1"],
+      "note": "3D only where conformation or stereochemistry is the point; a 2D skeletal widget is a separate gap."
+    },
+    {
+      "id": "chemistry.organic.mechanism_step",
+      "label": "One step of a reaction mechanism, arrow pushing",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. Highest-value chemistry widget; arrow pushing is not renderable as a static SVG the model writes."
+    },
+    {
+      "id": "chemistry.organic.stereochemistry",
+      "label": "Chirality, R/S, conformers, optical isomerism",
+      "policy": "required",
+      "widgets": ["molecule_3d@1"],
+      "note": "The one place a flat diagram genuinely cannot teach the idea."
+    },
+    {
+      "id": "chemistry.physical.titration_curve",
+      "label": "pH against titrant volume, equivalence and buffer regions",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "chemistry.physical.equilibrium_shift",
+      "label": "Le Chatelier response to a change in conditions",
+      "policy": "expected",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "chemistry.inorganic.periodic_trend",
+      "label": "A trend across a period or down a group",
+      "policy": "expected",
+      "widgets": [],
+      "note": "GAP. A small trend-plot widget covers most of inorganic."
+    },
+    {
+      "id": "chemistry.inorganic.factual_recall",
+      "label": "Named compounds, colours, uses, occurrence",
+      "policy": "optional",
+      "widgets": [],
+      "note": "Largely list-shaped. Resists visualisation and that is fine."
+    },
+
+    {
+      "id": "maths.coordinate_geometry",
+      "label": "Loci, conics, lines and their intersections in the plane",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "maths.calculus.curve_behaviour",
+      "label": "Monotonicity, extrema, concavity, area under a curve",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "maths.trigonometry.unit_circle",
+      "label": "Angles, signs and identities on the unit circle",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "maths.vectors_3d",
+      "label": "Vectors, planes and lines in three dimensions",
+      "policy": "expected",
+      "widgets": [],
+      "note": "GAP."
+    },
+    {
+      "id": "maths.probability.sample_space",
+      "label": "Enumerating outcomes, tree diagrams, Venn relations",
+      "policy": "expected",
+      "widgets": [],
+      "note": "GAP. Tree/Venn covers most of it."
+    },
+    {
+      "id": "maths.algebraic_manipulation",
+      "label": "Symbolic derivation, identity proof, series expansion",
+      "policy": "prohibited",
+      "widgets": [],
+      "note": "Nothing spatial. A decorative diagram here actively hurts."
+    },
+    {
+      "id": "maths.worked_example",
+      "label": "A solved problem",
+      "policy": "expected",
+      "widgets": [],
+      "note": "Inherits the visual need of the underlying concept_type; the planner should name that type here too."
+    },
+
+    {
+      "id": "biology.macromolecule_structure",
+      "label": "DNA, RNA, protein, carbohydrate, lipid structure",
+      "policy": "required",
+      "widgets": ["molecule_3d@1"],
+      "note": "Macromolecules come from RCSB PDB, not generated."
+    },
+    {
+      "id": "biology.anatomy_labelled",
+      "label": "A labelled organ, organelle or tissue figure",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. Likely the largest single gap in NEET biology; consider a curated illustrated-asset library rather than a generative widget."
+    },
+    {
+      "id": "biology.process_cycle",
+      "label": "A cyclic or sequential process — Krebs, Calvin, cell cycle, nitrogen cycle",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. One flow/cycle widget covers a large fraction of biology."
+    },
+    {
+      "id": "biology.genetics_cross",
+      "label": "Punnett squares, pedigree charts, dihybrid crosses",
+      "policy": "required",
+      "widgets": [],
+      "note": "GAP. Highly regular structure — cheap widget, high coverage."
+    },
+    {
+      "id": "biology.classification_or_recall",
+      "label": "Taxonomy, named examples, characteristic lists",
+      "policy": "optional",
+      "widgets": [],
+      "note": ""
+    }
+  ]
+}

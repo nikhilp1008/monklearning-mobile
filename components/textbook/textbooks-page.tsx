@@ -195,7 +195,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     spacer: { flex: 1 },
     count: {
-      fontFamily: 'Kalam_400Regular',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       marginTop: verticalScale(6),
     },

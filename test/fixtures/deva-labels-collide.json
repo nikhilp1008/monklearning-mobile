@@ -1,0 +1,61 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": {
+        "d": "M 20 30 C 100 50 200 50 320 205"
+      },
+      "children": null
+    },
+    {
+      "type": "RNSVGText",
+      "props": {
+        "x": [
+          100
+        ],
+        "y": [
+          100
+        ],
+        "font": {
+          "fontSize": 12,
+          "textAnchor": "start"
+        }
+      },
+      "children": [
+        {
+          "type": "RNSVGTSpan",
+          "props": {
+            "content": "कोशिकाद्रव्य"
+          },
+          "children": null
+        }
+      ]
+    },
+    {
+      "type": "RNSVGText",
+      "props": {
+        "x": [
+          155
+        ],
+        "y": [
+          100
+        ],
+        "font": {
+          "fontSize": 12,
+          "textAnchor": "start"
+        }
+      },
+      "children": [
+        {
+          "type": "RNSVGTSpan",
+          "props": {
+            "content": "केंद्रकद्रव्य"
+          },
+          "children": null
+        }
+      ]
+    }
+  ]
+}

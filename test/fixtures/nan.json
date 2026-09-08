@@ -1,0 +1,11 @@
+{
+  "type": "RNSVGSvgView",
+  "props": {},
+  "children": [
+    {
+      "type": "RNSVGPath",
+      "props": { "d": "M NaN NaN C NaN NaN NaN NaN NaN NaN" },
+      "children": null
+    }
+  ]
+}

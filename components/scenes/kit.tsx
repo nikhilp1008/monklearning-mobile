@@ -393,15 +393,24 @@ type Anchor = 'start' | 'middle' | 'end';
  * The web sets a family and a numeric weight and lets the browser pick the
  * face. React Native has no such synthesis — each weight is its own bundled
  * family — so the weight is resolved to a face here.
+ *
+ * `script` USED TO SELECT KALAM, AND NOW SELECTS NOTHING DIFFERENT. Kalam was
+ * the app's handwriting face and it is no longer loaded; every family in this
+ * app is Onest apart from the Devanagari one. The branch is kept rather than
+ * deleted because the callers' `script` flag still records WHICH marks are
+ * meant to read as handwritten — a scene's intent, not a leftover — and it is
+ * the hook a future handwriting face would be reattached to. It is left
+ * visibly inert rather than quietly removed so the next reader can see that
+ * the distinction is currently not being drawn.
  */
 function fontFor(script: boolean, weight?: number): string {
-  if (script) return weight != null && weight < 700 ? 'Kalam_400Regular' : 'Kalam_700Bold';
-  if (weight == null) return 'AnekLatin_600SemiBold';
-  if (weight >= 800) return 'AnekLatin_800ExtraBold';
-  if (weight >= 700) return 'AnekLatin_700Bold';
-  if (weight >= 600) return 'AnekLatin_600SemiBold';
-  if (weight >= 500) return 'AnekLatin_500Medium';
-  return 'AnekLatin_400Regular';
+  if (script) return weight != null && weight < 700 ? 'Onest_400Regular' : 'Onest_700Bold';
+  if (weight == null) return 'Onest_600SemiBold';
+  if (weight >= 800) return 'Onest_800ExtraBold';
+  if (weight >= 700) return 'Onest_700Bold';
+  if (weight >= 600) return 'Onest_600SemiBold';
+  if (weight >= 500) return 'Onest_500Medium';
+  return 'Onest_400Regular';
 }
 
 export function T({

@@ -450,7 +450,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     rowNumber: {
       width: scale(22),
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: '#C2BCAF',
     },

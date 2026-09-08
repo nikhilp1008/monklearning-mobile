@@ -88,7 +88,7 @@ export default function C11Ch06Sec8({ currentTime, reveals, language }: ScenePro
 
       {/* beat 4 — the bridge, ringed */}
       <Fade on={beat >= 4} delay={dl(4, 0.4)}>
-        <SvgText x={540} y={280} textAnchor="middle" fontSize={28} fontWeight={800} fill={GREEN} fontFamily='AnekLatin_800ExtraBold'>
+        <SvgText x={540} y={280} textAnchor="middle" fontSize={28} fontWeight={800} fill={GREEN} fontFamily='Onest_800ExtraBold'>
           Kp = Kc (RT)<TSpan dy={-11} fontSize={16.8}>Δn</TSpan>
         </SvgText>
       </Fade>

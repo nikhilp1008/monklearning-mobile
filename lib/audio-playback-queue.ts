@@ -43,6 +43,19 @@ export class AudioPlaybackQueue {
   private supervisor: ReturnType<typeof setInterval> | null = null;
   private lastPosition = -1;
   private stalledTicks = 0;
+  /**
+   * Paused BY THE STUDENT, as opposed to not currently playing.
+   *
+   * The supervisor's whole job is to notice a playhead that has stopped
+   * moving and rescue the class from it. A pause is a playhead that has
+   * stopped moving ON PURPOSE, and the supervisor could not tell the
+   * difference: 400ms after the pause button it re-issued `play()` and the
+   * lesson carried on talking, which is why pause appeared to do nothing.
+   * Had that `play()` not taken, it would then have skipped the sentence
+   * outright at 2s. So the pause has to be a state the queue knows about,
+   * not just a call passed through to the player.
+   */
+  private paused = false;
 
   onItemStart?: (id: string) => void;
   onQueueDrained?: () => void;
@@ -75,11 +88,20 @@ export class AudioPlaybackQueue {
     file.create();
     file.write(wrapPcmAsWav(item.pcm, item.sampleRate, 1, 16));
     this.queue.push({ item, uri: file.uri });
-    if (!this.playing) this.advance();
+    // `!this.paused` matters on a long pause: the server keeps sending the
+    // rest of the turn, and without it the first chunk to arrive after the
+    // queue had drained would start speaking on its own.
+    if (!this.playing && !this.paused) this.advance();
   }
 
   private advance() {
     this.stopSupervisor();
+    // A clip that ends while the student is paused must not pull the next one
+    // in behind it — that would resume the lesson without them asking. The
+    // queue keeps its place and `resume` calls back in here. `playing` is left
+    // as-is on purpose, so `idle` stays false and a held checkpoint is not
+    // released by a pause.
+    if (this.paused) return;
     const next = this.queue.shift();
     if (!next) {
       this.playing = false;
@@ -162,12 +184,35 @@ export class AudioPlaybackQueue {
     this.stalledTicks = 0;
   }
 
+  /** True while the student has the class paused. `idle` stays false through a
+   *  pause, so a turn held waiting on drain is not released by one. */
+  get isPaused() {
+    return this.paused;
+  }
+
   pause() {
+    if (this.paused) return;
+    this.paused = true;
+    // Stand the supervisor down first: it is the thing that would otherwise
+    // undo this on its next tick. See the `paused` field's comment.
+    this.stopSupervisor();
     this.player.pause();
   }
 
   resume() {
-    this.player.play();
+    if (!this.paused) return;
+    this.paused = false;
+    if (this.playing) {
+      // Mid-clip: pick the same clip back up and start watching it again.
+      // `startSupervisor` resets lastPosition, so the stall counter does not
+      // carry the pause over into a false skip.
+      this.player.play();
+      this.startSupervisor();
+    } else {
+      // Either the queue drained into the pause, or a clip ended while paused
+      // and `advance` deliberately declined to start the next one. Take it now.
+      this.advance();
+    }
   }
 
   /** Drops everything queued and stops the current clip — for barge-in/interrupt and session end. */
@@ -175,6 +220,9 @@ export class AudioPlaybackQueue {
     this.stopSupervisor();
     this.queue = [];
     this.playing = false;
+    // A barge-in ends the pause too: the student is talking to Drona now, and
+    // leaving `paused` set would silently swallow the reply's audio.
+    this.paused = false;
     this.player.pause();
   }
 

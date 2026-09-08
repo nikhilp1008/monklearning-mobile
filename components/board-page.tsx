@@ -23,9 +23,17 @@ import { BoardBlock, BoardContent } from '@/lib/board-sections';
  * subject only, no dates, no durations, no edit; dates belong to the list the
  * student came from.
  *
- * Fonts are the app's own in place of the design's Bricolage Grotesque. Kalam
- * is unchanged — the design asks for it on the handwritten touches and the
- * app already bundles it.
+ * Fonts are the app's own in place of the design's Bricolage Grotesque.
+ *
+ * THE HANDWRITTEN TOUCHES ARE NO LONGER HANDWRITTEN. This said "Kalam is
+ * unchanged — the design asks for it on the handwritten touches and the app
+ * already bundles it", and the app no longer bundles it: the Onest migration
+ * took the last 51 files and Kalam went with it. The red `hand` heading and
+ * the `q` label are now Onest 700, a geometric sans where the design asked
+ * for a script face. That is a deliberate, visible change of character on
+ * this page — the one place in the app where the tree diff for this migration
+ * is a typeface and not just a name — and it is written down here rather than
+ * left to be noticed.
  */
 
 const INK = '#1C1A16';
@@ -321,22 +329,22 @@ const FIGURES: Record<string, () => React.ReactElement> = {
       />
       <Line x1={36} y1={123} x2={36} y2={133} stroke="rgba(28,26,22,.45)" strokeWidth={1} />
       <Line x1={215} y1={123} x2={215} y2={133} stroke="rgba(28,26,22,.45)" strokeWidth={1} />
-      <SvgText x={120} y={145} fontFamily="AnekLatin_700Bold" fontSize={14} fill={INK_70}>
+      <SvgText x={120} y={145} fontFamily="Onest_700Bold" fontSize={14} fill={INK_70}>
         r
       </SvgText>
       <SvgText
         x={290}
         y={58}
-        fontFamily="AnekLatin_700Bold"
+        fontFamily="Onest_700Bold"
         fontSize={15}
         fill={AMBER}
         textAnchor="end">
         F
       </SvgText>
-      <SvgText x={252} y={96} fontFamily="AnekLatin_700Bold" fontSize={14} fill={AMBER}>
+      <SvgText x={252} y={96} fontFamily="Onest_700Bold" fontSize={14} fill={AMBER}>
         θ
       </SvgText>
-      <SvgText x={20} y={92} fontFamily="AnekLatin_600SemiBold" fontSize={12} fill={INK_50}>
+      <SvgText x={20} y={92} fontFamily="Onest_600SemiBold" fontSize={12} fill={INK_50}>
         hinge
       </SvgText>
     </Svg>
@@ -428,7 +436,7 @@ function createStyles() {
 
     hand: {
       marginTop: 2,
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 17,
       lineHeight: 17 * 1.5,
       color: RED,
@@ -500,7 +508,7 @@ function createStyles() {
     qa: { alignSelf: 'stretch', gap: 16 },
     q: {
       marginBottom: 7,
-      fontFamily: 'Kalam_700Bold',
+      fontFamily: 'Onest_700Bold',
       fontSize: 17,
       color: INK,
     },

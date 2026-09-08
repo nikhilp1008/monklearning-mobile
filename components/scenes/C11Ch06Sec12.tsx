@@ -32,7 +32,7 @@ import { SceneProps, useBeat, delayFor, Fade, Draw, T, ringD, INK, MUTED, AMBER_
   Scene,
 } from '@/components/scenes/kit';
 
-const ANEK = 'AnekLatin_600SemiBold';
+const ANEK = 'Onest_600SemiBold';
 const COLX = [250, 350, 510, 670, 830];
 const ROWY = [145, 177, 209, 241, 273];
 
