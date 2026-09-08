@@ -13,17 +13,34 @@ import { useWindowDimensions } from 'react-native';
 // (constants/scale.ts), so design numbers cannot be fed into that helper —
 // they'd come out ~10% oversized. `ds()` converts a raw design px straight
 // off the spec into device px: exact at 430 pt wide, proportional elsewhere.
-const DESIGN_WIDTH = 430;
+const DESIGN_WIDTH = 390;
+
+/**
+ * Onest is optically larger than Anek Latin at the same nominal size -- its
+ * x-height is 0.527 of the em against Anek's 0.489, and its caps 0.707 against
+ * 0.639. Setting a spec drawn for one in the other, unchanged, reads about a
+ * tenth too big and a tenth too loose.
+ *
+ * `fs` carries that correction so the design numbers can be transcribed off
+ * the spec untouched; `ds` stays linear because padding, radii and heights are
+ * geometry and must not move. Same 0.9 / 0.75 pair the rest of the app uses.
+ */
+const ONEST_SIZE = 0.9;
+const ONEST_TRACKING = 0.75;
 
 export function useDesignScale() {
   const { width } = useWindowDimensions();
   return useMemo(() => {
     const ratio = width / DESIGN_WIDTH;
     return {
+      /** Geometry: padding, radii, heights. Linear. */
       ds: (size: number) => size * ratio,
+      /** Type size, corrected for Onest's larger x-height. */
+      fs: (size: number) => size * ratio * ONEST_SIZE,
       // CSS letter-spacing is in em; React Native wants absolute px.
-      // tracking(-0.035, 44) === CSS `letter-spacing:-.035em` at 44px.
-      tracking: (em: number, fontSize: number) => em * fontSize * ratio,
+      // tracking(-0.034, 31) === CSS `letter-spacing:-.034em` at 31px.
+      tracking: (em: number, fontSize: number) =>
+        em * fontSize * ratio * ONEST_SIZE * ONEST_TRACKING,
     };
   }, [width]);
 }
@@ -72,15 +89,70 @@ export const ob = {
   washLocations: [0, 0.48, 1] as const,
 
   headlineShadow: 'rgba(20,17,12,.5)',
+
+  // --- pass, promo and confirmation (handoff-onboarding) ---
+  /** Field and row outlines. */
+  fieldBorder: 'rgba(28,26,22,.13)',
+  /** Ledger rules inside a section. Lighter than a field's own edge. */
+  rule: 'rgba(28,26,22,.09)',
+  /** A read-only field: the verified email on Details. */
+  fieldMuted: '#FBFAF8',
+  /** The confirmation screen is the only dark ground in onboarding. */
+  night: '#1A1814',
+  onNight: 'rgba(255,255,255,.72)',
+  onNightDim: 'rgba(255,255,255,.6)',
+  nightRule: 'rgba(255,255,255,.13)',
 } as const;
 
-// Anek Latin is already loaded app-wide in app/_layout.tsx.
+/**
+ * Passes.
+ *
+ * Prices are real and final; the charge is not. There is no payment provider
+ * wired yet, so the flow reaches ₹0 through the promo code and completes from
+ * there -- see app/(onboarding)/pass.tsx.
+ */
+export const PASSES = [
+  { id: 'day', name: '1 day', note: '24 hours from payment', price: 149 },
+  { id: 'week', name: '7 days', note: 'Works out to ₹107 a day', price: 749 },
+] as const;
+
+export type PassKey = (typeof PASSES)[number]['id'];
+
+/**
+ * The one code that works, and it clears the balance rather than discounting
+ * it.
+ *
+ * The handoff wired two codes at partial discounts (FIRST100 −₹75, MONK50
+ * −₹50), which cannot complete without a payment sheet to take the remainder.
+ * Until there is one, a code either brings the total to zero or the student
+ * cannot get through -- so there is exactly one, and it is worth the whole
+ * amount. Client-side by design; nothing is validated on a server.
+ */
+export const PROMO_CODE = 'FIRST100';
+
+export function promoDiscount(code: string, price: number) {
+  return code.trim().toUpperCase() === PROMO_CODE ? price : 0;
+}
+
+export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+/**
+ * Onest, loaded app-wide in app/_layout.tsx.
+ *
+ * Onboarding was the last surface still set in Anek Latin, which meant the
+ * very first screens a student ever sees were in a different typeface from
+ * every screen after them. The new handoff specifies Onest throughout, so the
+ * two answers agree. Sizes are corrected by `fs` above rather than re-typed.
+ *
+ * The handoff asks for nothing heavier than medium; sb600 and b700 are kept
+ * for the micro-labels, where 500 at 10px on a light ground disappears.
+ */
 export const obFont = {
-  r400: 'AnekLatin_400Regular',
-  m500: 'AnekLatin_500Medium',
-  sb600: 'AnekLatin_600SemiBold',
-  b700: 'AnekLatin_700Bold',
-  xb800: 'AnekLatin_800ExtraBold',
+  r400: 'Onest_400Regular',
+  m500: 'Onest_500Medium',
+  sb600: 'Onest_600SemiBold',
+  b700: 'Onest_700Bold',
+  xb800: 'Onest_800ExtraBold',
 } as const;
 
 // Full-bleed photo veils — README per-screen gradients, verbatim.

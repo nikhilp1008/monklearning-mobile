@@ -29,8 +29,8 @@ const SPEC_ROWS = [
 const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
 export default function WelcomeScreen() {
-  const { ds, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const rise = useMemo(
     () =>
@@ -97,6 +97,7 @@ export default function WelcomeScreen() {
 
 function createStyles(
   ds: (size: number) => number,
+  fs: (size: number) => number,
   tracking: (em: number, fontSize: number) => number
 ) {
   return StyleSheet.create({
@@ -119,7 +120,7 @@ function createStyles(
     // 44px / 600 / lh 1.02 / -.035em / #FBF9F2 + text-shadow 0 2px 18px
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(44),
+      fontSize: fs(44),
       lineHeight: ds(44 * 1.02),
       letterSpacing: tracking(-0.035, 44),
       color: ob.cream,

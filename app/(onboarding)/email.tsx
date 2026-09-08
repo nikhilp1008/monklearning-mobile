@@ -52,8 +52,8 @@ function onlyDigits(text: string, max: number) {
 type Stage = 'email' | 'otp';
 
 export default function EmailScreen() {
-  const { ds, tracking } = useDesignScale();
-  const s = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const s = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const [stage, setStage] = useState<Stage>('email');
   const [email, setEmail] = useState('');
@@ -457,7 +457,11 @@ function Caret({ width, height }: { width: number; height: number }) {
   );
 }
 
-function createStyles(ds: (n: number) => number, tracking: (em: number, size: number) => number) {
+function createStyles(
+  ds: (n: number) => number,
+  fs: (n: number) => number,
+  tracking: (em: number, size: number) => number
+) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: ob.surface },
     flex: { flex: 1 },
@@ -466,7 +470,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     headBlock: { paddingTop: ds(52), paddingHorizontal: ds(34) },
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(44),
+      fontSize: fs(44),
       lineHeight: ds(44 * 1.02),
       letterSpacing: tracking(-0.035, 44),
       color: ob.ink,
@@ -475,7 +479,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     sub: {
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(17),
+      fontSize: fs(17),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },
@@ -493,7 +497,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     },
     fieldLabel: {
       fontFamily: obFont.b700,
-      fontSize: ds(13),
+      fontSize: fs(13),
       letterSpacing: tracking(0.1, 13),
       color: ob.ink55,
     },
@@ -505,7 +509,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
       flex: 1,
       padding: 0,
       fontFamily: obFont.sb600,
-      fontSize: ds(24),
+      fontSize: fs(24),
       // No lineHeight. iOS lays a TextInput's text out inside the line box and
       // clips whatever falls outside it, which was shaving the descenders off
       // g/p/y in an address. A minHeight reserves the same vertical space the
@@ -516,7 +520,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     error: {
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(15),
+      fontSize: fs(15),
       lineHeight: ds(15 * 1.4),
       // The onboarding palette has no error tone of its own; this is the
       // same red the rest of the app uses for the red-pen accents.
@@ -526,13 +530,13 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     recapText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
     valuePrefix: {
       fontFamily: obFont.sb600,
-      fontSize: ds(30),
+      fontSize: fs(30),
       letterSpacing: tracking(-0.01, 30),
       color: ob.ink55,
     },
     valueDigits: {
       fontFamily: obFont.sb600,
-      fontSize: ds(30),
+      fontSize: fs(30),
       letterSpacing: tracking(-0.01, 30),
       color: ob.ink,
     },
@@ -555,11 +559,11 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     recapValue: {
       marginTop: ds(6),
       fontFamily: obFont.sb600,
-      fontSize: ds(24),
+      fontSize: fs(24),
       letterSpacing: tracking(-0.01, 24),
       color: ob.ink,
     },
-    changeLink: { fontFamily: obFont.b700, fontSize: ds(16), color: ob.link },
+    changeLink: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.link },
 
     // padding:24px 26px 0
     statusBlock: { paddingTop: ds(24), paddingHorizontal: ds(26) },
@@ -572,7 +576,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     },
     statusText: {
       fontFamily: obFont.b700,
-      fontSize: ds(13),
+      fontSize: fs(13),
       letterSpacing: tracking(0.1, 13),
       color: ob.ink55,
     },
@@ -601,11 +605,11 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     },
     boxActive: { borderWidth: 1.5, borderColor: ob.ink },
     boxTrailing: { borderColor: ob.hairline12 },
-    boxDigit: { fontFamily: obFont.sb600, fontSize: ds(26), color: ob.ink },
+    boxDigit: { fontFamily: obFont.sb600, fontSize: fs(26), color: ob.ink },
 
     // padding:18px 28px 0
     resendBlock: { paddingTop: ds(18), paddingHorizontal: ds(28), alignItems: 'flex-end' },
-    resendText: { fontFamily: obFont.b700, fontSize: ds(16), color: ob.ink55 },
+    resendText: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.ink55 },
 
     // padding:22px 34px 34px, pinned to the bottom
     footer: {

@@ -29,7 +29,7 @@ export function ObButton({
   disabled = false,
   style,
 }: ObButtonProps) {
-  const { ds } = useDesignScale();
+  const { ds, fs } = useDesignScale();
   const isCream = variant === 'cream';
 
   return (
@@ -46,20 +46,29 @@ export function ObButton({
           // app's shape closes the only seam between the two systems. Height
           // stays at the specced 62.
           borderRadius: ds(99),
-          backgroundColor: isCream ? ob.cream : ob.ink,
+          // Disabled is an outline, not a dimmed fill.
+          //
+          // `opacity: .4` on an ink pill renders as a grey slab, and grey is
+          // not in this product's palette -- it reads as a different material
+          // rather than as the same button waiting. An outline says "not yet"
+          // without introducing a colour the app does not otherwise own, and
+          // it is the same answer Practice's Submit arrived at.
+          backgroundColor: disabled ? 'transparent' : isCream ? ob.cream : ob.ink,
+          borderWidth: disabled ? 1.5 : 0,
+          borderColor: isCream ? ob.creamRule : ob.hairline18,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: ds(10),
-          opacity: disabled ? 0.4 : pressed ? 0.85 : 1,
+          opacity: pressed && !disabled ? 0.85 : 1,
         },
         style,
       ]}>
       <Text
         style={{
           fontFamily: obFont.sb600,
-          fontSize: ds(19),
-          color: isCream ? ob.ink : ob.cream,
+          fontSize: fs(19),
+          color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
         }}>
         {label}
       </Text>
@@ -67,8 +76,8 @@ export function ObButton({
         <Text
           style={{
             fontFamily: obFont.sb600,
-            fontSize: ds(17),
-            color: isCream ? ob.ink : ob.cream,
+            fontSize: fs(17),
+            color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
           }}>
           →
         </Text>
@@ -106,7 +115,7 @@ export function LeaderRow({
   labelColor,
   style,
 }: LeaderRowProps) {
-  const { ds } = useDesignScale();
+  const { ds, fs } = useDesignScale();
   const isCream = tone === 'cream';
 
   return (
@@ -114,7 +123,7 @@ export function LeaderRow({
       <Text
         style={{
           fontFamily: obFont.r400,
-          fontSize: ds(labelSize),
+          fontSize: fs(labelSize),
           color: labelColor ?? (isCream ? ob.creamDim : ob.ink80),
         }}>
         {label}
@@ -130,7 +139,7 @@ export function LeaderRow({
       <Text
         style={{
           fontFamily: obFont.b700,
-          fontSize: ds(valueSize),
+          fontSize: fs(valueSize),
           color: isCream ? ob.cream : ob.ink,
         }}>
         {value}

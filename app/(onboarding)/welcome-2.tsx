@@ -47,8 +47,8 @@ const FEATURES = [
 const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
 export default function WelcomeTwoScreen() {
-  const { ds, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const rise = useMemo(
     () =>
@@ -113,6 +113,7 @@ export default function WelcomeTwoScreen() {
 
 function createStyles(
   ds: (size: number) => number,
+  fs: (size: number) => number,
   tracking: (em: number, fontSize: number) => number
 ) {
   return StyleSheet.create({
@@ -130,7 +131,7 @@ function createStyles(
     // 46px / 600 / lh 1.02 / -.035em / #FBF9F2 + text-shadow 0 2px 18px
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(46),
+      fontSize: fs(46),
       lineHeight: ds(46 * 1.02),
       letterSpacing: tracking(-0.035, 46),
       color: ob.cream,
@@ -163,7 +164,7 @@ function createStyles(
     rowIndex: {
       width: ds(28),
       fontFamily: obFont.sb600,
-      fontSize: ds(15),
+      fontSize: fs(15),
       color: ob.amberLight,
     },
     rowBody: {
@@ -171,13 +172,13 @@ function createStyles(
     },
     rowTitle: {
       fontFamily: obFont.sb600,
-      fontSize: ds(18),
+      fontSize: fs(18),
       color: ob.cream,
     },
     rowSubtitle: {
       marginTop: ds(1),
       fontFamily: obFont.r400,
-      fontSize: ds(15),
+      fontSize: fs(15),
       color: ob.creamDim,
     },
     // `padding:26px 34px 34px`

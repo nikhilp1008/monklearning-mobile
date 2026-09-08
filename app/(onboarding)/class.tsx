@@ -22,10 +22,9 @@ import {
   type ExamKey,
   type YearKey,
 } from '@/constants/onboarding';
-import { revalidateAuthState } from '@/lib/auth';
-import { pushProfile, saveProfile } from '@/lib/profile';
+import { saveProfile } from '@/lib/profile';
 
-import { SelectRow } from './exam';
+import { SelectRow } from '@/components/select-row';
 
 const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
 
@@ -35,8 +34,8 @@ function resolveExam(param: string | string[] | undefined): ExamKey {
 }
 
 export default function ClassScreen() {
-  const { ds, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const params = useLocalSearchParams<{ exam?: string }>();
   const exam = resolveExam(params.exam);
@@ -44,8 +43,6 @@ export default function ClassScreen() {
   // Nothing preselected, for the same reason as the exam rows: a highlighted
   // row reads as an answer the student already gave.
   const [year, setYear] = useState<YearKey | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [playToken, setPlayToken] = useState(0);
 
   const select = useCallback((key: YearKey) => {
@@ -114,38 +111,19 @@ export default function ClassScreen() {
 
         {/* `margin-top:auto; padding:0 34px 34px` */}
         <View style={styles.footer}>
-          {!!saveError && <Text style={styles.saveError}>{saveError}</Text>}
           <ObButton
-            label={saving ? 'Saving…' : year ? 'Start learning' : 'Pick your year'}
-            disabled={!year || saving}
+            label={year ? 'Continue' : 'Pick your year'}
+            disabled={!year}
             withArrow
             onPress={async () => {
-              if (!year || saving) return;
-              setSaving(true);
-              setSaveError(null);
-              // Last step of onboarding, so this is where the whole profile
-              // reaches the server. `target_exam` in particular decides which
-              // subjects GET /progress returns — a NEET student gets Biology
-              // instead of Maths from this write, with no filtering in the app.
+              if (!year) return;
+              // Saved locally only. The write that reaches the server -- and
+              // with it the `display_name` the gate reads as "onboarded" --
+              // now happens on the last screen, because three more steps
+              // follow this one and a reload in between would otherwise drop
+              // the student on Home with no pass.
               await saveProfile({ year });
-              try {
-                await pushProfile();
-              } catch {
-                // Do NOT wave them through. Without this write there is no
-                // `display_name` on the server, so every later launch reads as
-                // "never onboarded" and sends them round again — a loop they
-                // cannot escape and we would never hear about. Better to stop
-                // here, where retrying costs one tap.
-                setSaving(false);
-                setSaveError('Couldn’t save your details. Check your connection and try again.');
-                return;
-              }
-              // The gate still believes onboarding is owed — it recomputes on
-              // Supabase auth events and this was a write to `profiles`.
-              // Awaited before navigating so the tabs are never asked to paint
-              // while the answer is still the old one.
-              await revalidateAuthState();
-              router.replace('/(tabs)');
+              router.push({ pathname: '/pass', params: { exam: exam ?? 'jee' } });
             }}
           />
         </View>
@@ -156,6 +134,7 @@ export default function ClassScreen() {
 
 function createStyles(
   ds: (size: number) => number,
+  fs: (size: number) => number,
   tracking: (em: number, fontSize: number) => number
 ) {
   return StyleSheet.create({
@@ -177,7 +156,7 @@ function createStyles(
     },
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(44),
+      fontSize: fs(44),
       lineHeight: ds(44 * 1.02),
       letterSpacing: tracking(-0.035, 44),
       color: ob.ink,
@@ -188,7 +167,7 @@ function createStyles(
     sub: {
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(17),
+      fontSize: fs(17),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },
@@ -208,7 +187,7 @@ function createStyles(
     },
     summaryLabel: {
       fontFamily: obFont.b700,
-      fontSize: ds(13),
+      fontSize: fs(13),
       letterSpacing: tracking(0.1, 13),
       color: ob.ink55,
     },
@@ -224,7 +203,7 @@ function createStyles(
     saveError: {
       marginBottom: ds(12),
       fontFamily: obFont.r400,
-      fontSize: ds(15),
+      fontSize: fs(15),
       lineHeight: ds(15 * 1.4),
       color: '#DD4433',
     },

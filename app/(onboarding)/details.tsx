@@ -75,8 +75,8 @@ function formatPhone(raw?: string) {
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export default function DetailsScreen() {
-  const { ds, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const params = useLocalSearchParams<{ email?: string }>();
   const [email, setEmail] = useState((params.email ?? '').trim());
 
@@ -236,6 +236,7 @@ function DrawnCheck({ size }: { size: number }) {
 
 function createStyles(
   ds: (size: number) => number,
+  fs: (size: number) => number,
   tracking: (em: number, fontSize: number) => number,
 ) {
   return StyleSheet.create({
@@ -254,7 +255,7 @@ function createStyles(
     // 44px / 600 / lh 1.02 / -.035em
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(44),
+      fontSize: fs(44),
       lineHeight: ds(44 * 1.02),
       letterSpacing: tracking(-0.035, 44),
       color: ob.ink,
@@ -266,7 +267,7 @@ function createStyles(
     sub: {
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(17),
+      fontSize: fs(17),
       lineHeight: ds(17 * 1.45),
       color: ob.ink80,
     },
@@ -308,7 +309,7 @@ function createStyles(
     // 13px / 700 / ls .1em / #8C867A
     label: {
       fontFamily: obFont.b700,
-      fontSize: ds(13),
+      fontSize: fs(13),
       letterSpacing: tracking(0.1, 13),
       color: ob.ink55,
     },
@@ -316,7 +317,7 @@ function createStyles(
     // lives on whatever wraps the value, so the caret row centres correctly.
     value: {
       fontFamily: obFont.m500,
-      fontSize: ds(22),
+      fontSize: fs(22),
       color: ob.ink,
     },
     input: {
@@ -332,7 +333,7 @@ function createStyles(
       marginTop: ds(-4),
       marginLeft: ds(4),
       fontFamily: obFont.r400,
-      fontSize: ds(13),
+      fontSize: fs(13),
       color: ob.ink40,
     },
     emailInput: {
@@ -362,7 +363,7 @@ function createStyles(
     },
     verifiedText: {
       fontFamily: obFont.b700,
-      fontSize: ds(15),
+      fontSize: fs(15),
       color: ob.ink80,
     },
     // `margin-top:auto; padding:0 34px 34px`
