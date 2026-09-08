@@ -29,7 +29,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LeaderRow, ObBack, ObButton } from '@/components/onboarding-kit';
+import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
 import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
@@ -52,8 +52,8 @@ function onlyDigits(text: string, max: number) {
 type Stage = 'email' | 'otp';
 
 export default function EmailScreen() {
-  const { ds, tracking } = useDesignScale();
-  const s = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const s = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const [stage, setStage] = useState<Stage>('email');
   const [email, setEmail] = useState('');
@@ -201,18 +201,13 @@ export default function EmailScreen() {
   return (
     <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
-      <ObBack />
       <KeyboardAvoidingView
         style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {stage === 'email' ? (
           <>
-            <View style={s.headBlock}>
-              <Text style={s.headline}>
-                What&apos;s <Text style={s.headlineStrong}>your email</Text>?
-              </Text>
-              <Text style={s.sub}>It is your account. No passwords to remember, ever.</Text>
-            </View>
+            <ObHeader title="Your email" />
+            <Text style={s.sub}>No password. We send a code instead.</Text>
 
             <View style={s.cardBlock}>
               {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
@@ -255,21 +250,11 @@ export default function EmailScreen() {
                   finished typing, and therefore what the button is about to
                   do. Before that it answers the question a returning student
                   actually has, which is whether they're in the right box. */}
-              <LeaderRow
-                label={ready ? 'Next' : 'Already with us'}
-                value={ready ? 'A six-digit code, to this address' : 'This same box signs you back in'}
-                tone="dark"
-                labelSize={15}
-                valueSize={15}
-                leaderColor={ob.leader28}
-                labelColor={ob.ink55}
-                style={s.recognition}
-              />
             </View>
 
             <View style={s.footer}>
               <ObButton
-                label={busy ? 'Sending…' : 'Send OTP'}
+                label={busy ? 'Sending…' : 'Send the code'}
                 variant="ink"
                 withArrow
                 disabled={!ready || busy}
@@ -279,32 +264,17 @@ export default function EmailScreen() {
           </>
         ) : (
           <>
-            <View style={s.headBlock}>
-              <Text style={s.headline}>
-                Enter <Text style={s.headlineStrong}>the OTP</Text>.
+            <ObHeader title="Enter the code" />
+            {/* The handoff puts the address and its escape hatch on one line
+                under the title, in place of the recap card. The card was a
+                second field-shaped object directly above six more, which read
+                as another thing to fill in. */}
+            <Text style={s.sub} numberOfLines={2}>
+              Sent to {email.trim()} ·{' '}
+              <Text style={s.changeLink} onPress={changeEmail}>
+                Change
               </Text>
-            </View>
-
-            <View style={s.recapBlock}>
-              <View style={s.recapCard}>
-                <View style={s.recapText}>
-                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
-                  <Text style={s.recapValue} numberOfLines={1}>
-                    {email.trim()}
-                  </Text>
-                </View>
-                <Pressable onPress={changeEmail} hitSlop={ds(10)}>
-                  <Text style={s.changeLink}>Change</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            <Rise delay={100} distance={ds(14)} style={s.statusBlock}>
-              <View style={s.statusRow}>
-                <View style={s.statusDot} />
-                <Text style={s.statusText}>CODE SENT — ENTER THE SIX DIGITS</Text>
-              </View>
-            </Rise>
+            </Text>
 
             <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
               <View style={s.boxesRow}>
@@ -313,16 +283,15 @@ export default function EmailScreen() {
                   const isActive = i === activeBox;
                   return (
                     <View key={i} style={s.boxCell}>
-                      {/* Ring as an underlay rather than a padded wrapper:
-                          the boxes are `flex:1` in a 10px-gap row, so an
-                          outer 4px pad would shrink the box and widen the
-                          gaps. Inset -4 reproduces the CSS spread exactly
-                          and the box's white fill paints over it. */}
-                      {isActive && <View style={s.boxRing} />}
+                      {/* The active cell lifts and carries the caret; filled
+                          cells settle back onto a tint. No ring -- a wash is
+                          this app's mark for a choice made, and a cell waiting
+                          for a digit has not made one. */}
                       <View
                         style={[
                           s.box,
-                          isActive ? s.boxActive : i > code.length ? s.boxTrailing : null,
+                          digit ? s.boxFilled : null,
+                          isActive ? s.boxActive : null,
                         ]}>
                         {digit ? (
                           <Animated.Text style={[s.boxDigit, popStyle(popAnims[i])]}>
@@ -363,7 +332,7 @@ export default function EmailScreen() {
 
             <View style={s.footer}>
               <ObButton
-                label={busy ? 'Verifying…' : 'Verify & continue'}
+                label={busy ? 'Verifying…' : 'Verify'}
                 variant="ink"
                 withArrow
                 disabled={code.length < CODE_LENGTH || busy}
@@ -457,7 +426,11 @@ function Caret({ width, height }: { width: number; height: number }) {
   );
 }
 
-function createStyles(ds: (n: number) => number, tracking: (em: number, size: number) => number) {
+function createStyles(
+  ds: (n: number) => number,
+  fs: (n: number) => number,
+  tracking: (em: number, size: number) => number
+) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: ob.surface },
     flex: { flex: 1 },
@@ -466,46 +439,55 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     headBlock: { paddingTop: ds(52), paddingHorizontal: ds(34) },
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(44),
+      fontSize: fs(44),
       lineHeight: ds(44 * 1.02),
       letterSpacing: tracking(-0.035, 44),
       color: ob.ink,
     },
     headlineStrong: { fontFamily: obFont.xb800 },
+    // 14pt under the title — `padding:14px 30px 0` in the handoff. This
+    // briefly carried a paddingTop AND a marginTop of 14 each, which is the
+    // gap that read as too wide.
     sub: {
+      paddingHorizontal: ds(30),
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(17),
-      lineHeight: ds(17 * 1.45),
+      fontSize: fs(16),
+      lineHeight: fs(23),
       color: ob.ink80,
     },
 
     // padding:34px 26px 0
-    cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(26) },
-    focusRing: { padding: ds(5), borderRadius: ds(25), backgroundColor: ob.focusRing },
+    // The handoff's field: a plain 1pt outline, 14 radius, and nothing else.
+    // The old one carried a 1.5pt ink border inside a 5pt amber ring, which
+    // made an empty text box the loudest object on the screen -- louder than
+    // the button it leads to. "Gradients are for selection only", and an
+    // untouched field has selected nothing.
+    cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(30) },
+    focusRing: { borderRadius: ds(14) },
     fieldCard: {
-      borderRadius: ds(20),
+      borderRadius: ds(14),
       backgroundColor: ob.surface,
-      borderWidth: 1.5,
-      borderColor: ob.ink,
-      paddingVertical: ds(20),
-      paddingHorizontal: ds(24),
+      borderWidth: 1,
+      borderColor: ob.fieldBorder,
+      paddingVertical: ds(16),
+      paddingHorizontal: ds(18),
     },
     fieldLabel: {
-      fontFamily: obFont.b700,
-      fontSize: ds(13),
-      letterSpacing: tracking(0.1, 13),
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
       color: ob.ink55,
     },
-    valueRow: { marginTop: ds(10), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
+    valueRow: { marginTop: ds(6), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
     // Typed straight into the card rather than behind a hidden input: an
     // address is variable-length and proportional, so the per-character
     // caret trick the phone digits used has nothing to align to.
     emailInput: {
       flex: 1,
       padding: 0,
-      fontFamily: obFont.sb600,
-      fontSize: ds(24),
+      fontFamily: obFont.r400,
+      fontSize: fs(19),
       // No lineHeight. iOS lays a TextInput's text out inside the line box and
       // clips whatever falls outside it, which was shaving the descenders off
       // g/p/y in an address. A minHeight reserves the same vertical space the
@@ -516,7 +498,7 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     error: {
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(15),
+      fontSize: fs(15),
       lineHeight: ds(15 * 1.4),
       // The onboarding palette has no error tone of its own; this is the
       // same red the rest of the app uses for the red-pen accents.
@@ -526,13 +508,13 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     recapText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
     valuePrefix: {
       fontFamily: obFont.sb600,
-      fontSize: ds(30),
+      fontSize: fs(30),
       letterSpacing: tracking(-0.01, 30),
       color: ob.ink55,
     },
     valueDigits: {
       fontFamily: obFont.sb600,
-      fontSize: ds(30),
+      fontSize: fs(30),
       letterSpacing: tracking(-0.01, 30),
       color: ob.ink,
     },
@@ -555,57 +537,49 @@ function createStyles(ds: (n: number) => number, tracking: (em: number, size: nu
     recapValue: {
       marginTop: ds(6),
       fontFamily: obFont.sb600,
-      fontSize: ds(24),
+      fontSize: fs(24),
       letterSpacing: tracking(-0.01, 24),
       color: ob.ink,
     },
-    changeLink: { fontFamily: obFont.b700, fontSize: ds(16), color: ob.link },
+    changeLink: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.link },
 
     // padding:24px 26px 0
-    statusBlock: { paddingTop: ds(24), paddingHorizontal: ds(26) },
-    statusRow: { flexDirection: 'row', alignItems: 'center', gap: ds(10) },
-    statusDot: {
-      width: ds(6),
-      height: ds(6),
-      borderRadius: ds(3),
-      backgroundColor: ob.amber,
-    },
-    statusText: {
-      fontFamily: obFont.b700,
-      fontSize: ds(13),
-      letterSpacing: tracking(0.1, 13),
-      color: ob.ink55,
-    },
-
-    // padding:16px 26px 0
-    boxesBlock: { paddingTop: ds(16), paddingHorizontal: ds(26) },
-    boxesRow: { flexDirection: 'row', gap: ds(10) },
+    boxesBlock: { paddingTop: ds(26), paddingHorizontal: ds(30) },
+    boxesRow: { flexDirection: 'row', gap: ds(9) },
     boxCell: { flex: 1 },
-    boxRing: {
-      position: 'absolute',
-      top: -ds(4),
-      right: -ds(4),
-      bottom: -ds(4),
-      left: -ds(4),
-      borderRadius: ds(22),
-      backgroundColor: ob.focusRing,
-    },
     box: {
-      height: ds(66),
-      borderRadius: ds(18),
+      height: ds(64),
+      borderRadius: ds(14),
       backgroundColor: ob.surface,
       borderWidth: 1,
-      borderColor: ob.hairline14,
+      borderColor: ob.fieldBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    boxActive: { borderWidth: 1.5, borderColor: ob.ink },
-    boxTrailing: { borderColor: ob.hairline12 },
-    boxDigit: { fontFamily: obFont.sb600, fontSize: ds(26), color: ob.ink },
+    /** A digit is in — settle back onto a tint. */
+    boxFilled: { backgroundColor: ob.fieldMuted },
+    /** Waiting for this one: a step darker, lifted 2pt and a touch larger. */
+    boxActive: {
+      borderWidth: 1.5,
+      borderColor: ob.ink80,
+      transform: [{ translateY: -2 }, { scale: 1.04 }],
+      shadowColor: ob.ink,
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    boxDigit: { fontFamily: obFont.r400, fontSize: fs(26), color: ob.ink },
 
-    // padding:18px 28px 0
-    resendBlock: { paddingTop: ds(18), paddingHorizontal: ds(28), alignItems: 'flex-end' },
-    resendText: { fontFamily: obFont.b700, fontSize: ds(16), color: ob.ink55 },
+    // One 20pt row under the cells: the resend clock sits right, and the
+    // "Checking the code" spinner takes the left when it appears.
+    resendBlock: {
+      paddingTop: ds(12),
+      paddingHorizontal: ds(30),
+      minHeight: ds(20),
+      alignItems: 'flex-end',
+    },
+    resendText: { fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink55 },
 
     // padding:22px 34px 34px, pinned to the bottom
     footer: {

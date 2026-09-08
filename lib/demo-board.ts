@@ -177,6 +177,42 @@ export const DEMO_NOTE_CARDS: DemoNoteCard[] = [
     title: 'Projectile motion essentials',
     body: 'Split into x and y. Time is the bridge.',
   },
+  {
+    id: 'demo-card-5',
+    subject: 'Chemistry',
+    tint: '#157A45',
+    dot: '#1C9B57',
+    time: '2 weeks ago',
+    title: 'Le Chatelier and shifting equilibria',
+    body: 'Pressure favours the side with fewer gas moles.',
+  },
+  {
+    id: 'demo-card-6',
+    subject: 'Maths',
+    tint: '#9A6A12',
+    dot: '#EEA31F',
+    time: '3 weeks ago',
+    title: 'Limits that look like 0/0',
+    body: 'Factor first. L’Hôpital is the last resort, not the first.',
+  },
+  {
+    id: 'demo-card-7',
+    subject: 'Physics',
+    tint: '#C53A2B',
+    dot: '#DD4433',
+    time: '3 weeks ago',
+    title: 'Rotational motion: the parallel-axis theorem',
+    body: 'I = I_cm + Md². The shift is always away from the centre.',
+  },
+  {
+    id: 'demo-card-8',
+    subject: 'Chemistry',
+    tint: '#157A45',
+    dot: '#1C9B57',
+    time: 'last month',
+    title: 'Why phenol nitrates faster than benzene',
+    body: 'The −OH group pushes electron density into the ring.',
+  },
 ];
 
 /**

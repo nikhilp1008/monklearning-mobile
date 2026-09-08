@@ -53,36 +53,37 @@ export function NoticedCard({
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
+    // export-10a: a wash, no outline. The border was doing the same job as
+    // the fill and the two together read as a warning banner; the fill alone
+    // reads as a remark.
     card: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: verticalScale(15),
-      paddingHorizontal: scale(16),
+      gap: scale(12),
+      padding: scale(16),
       borderRadius: scale(16),
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.38)',
-      backgroundColor: 'rgba(238,163,31,.09)',
+      backgroundColor: 'rgba(238,163,31,.12)',
     },
     text: {
       flex: 1,
       minWidth: 0,
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
-      lineHeight: scale(20),
-      letterSpacing: scale(-0.02 * 15),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.01 * 15),
       color: colors.ink,
     },
     metaChip: {
       flexShrink: 0,
       paddingHorizontal: scale(8),
-      paddingVertical: verticalScale(2.5),
+      paddingVertical: verticalScale(2),
       borderRadius: scale(99),
-      backgroundColor: 'rgba(255,255,255,.85)',
+      backgroundColor: '#fff',
     },
     metaText: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.amberText,
     },
   });

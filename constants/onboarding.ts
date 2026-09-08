@@ -13,17 +13,38 @@ import { useWindowDimensions } from 'react-native';
 // (constants/scale.ts), so design numbers cannot be fed into that helper —
 // they'd come out ~10% oversized. `ds()` converts a raw design px straight
 // off the spec into device px: exact at 430 pt wide, proportional elsewhere.
-const DESIGN_WIDTH = 430;
+const DESIGN_WIDTH = 390;
+
+/**
+ * Onest is optically larger than Anek Latin at the same nominal size -- its
+ * x-height is 0.527 of the em against Anek's 0.489, and its caps 0.707 against
+ * 0.639. Setting a spec drawn for one in the other, unchanged, reads about a
+ * tenth too big and a tenth too loose.
+ *
+ * `fs` carries that correction so the design numbers can be transcribed off
+ * the spec untouched; `ds` stays linear because padding, radii and heights are
+ * geometry and must not move. Same 0.9 / 0.75 pair the rest of the app uses.
+ */
+// 0.93, not the 0.9 the x-height ratio alone argues for. 0.9 is the honest
+// optical match against Anek Latin, but read on a device the welcome headline
+// came out a shade under-set -- so this is 0.9 with the 3% back that judgement
+// asked for, applied in one place rather than screen by screen.
+const ONEST_SIZE = 0.93;
+const ONEST_TRACKING = 0.75;
 
 export function useDesignScale() {
   const { width } = useWindowDimensions();
   return useMemo(() => {
     const ratio = width / DESIGN_WIDTH;
     return {
+      /** Geometry: padding, radii, heights. Linear. */
       ds: (size: number) => size * ratio,
+      /** Type size, corrected for Onest's larger x-height. */
+      fs: (size: number) => size * ratio * ONEST_SIZE,
       // CSS letter-spacing is in em; React Native wants absolute px.
-      // tracking(-0.035, 44) === CSS `letter-spacing:-.035em` at 44px.
-      tracking: (em: number, fontSize: number) => em * fontSize * ratio,
+      // tracking(-0.034, 31) === CSS `letter-spacing:-.034em` at 31px.
+      tracking: (em: number, fontSize: number) =>
+        em * fontSize * ratio * ONEST_SIZE * ONEST_TRACKING,
     };
   }, [width]);
 }
@@ -72,15 +93,72 @@ export const ob = {
   washLocations: [0, 0.48, 1] as const,
 
   headlineShadow: 'rgba(20,17,12,.5)',
+
+  // --- pass, promo and confirmation (handoff-onboarding) ---
+  /** Field and row outlines. */
+  fieldBorder: 'rgba(28,26,22,.13)',
+  /** Ledger rules inside a section. Lighter than a field's own edge. */
+  rule: 'rgba(28,26,22,.09)',
+  /** A read-only field: the verified email on Details. */
+  fieldMuted: '#FBFAF8',
+  /** The confirmation screen is the only dark ground in onboarding. */
+  night: '#1A1814',
+  onNight: 'rgba(255,255,255,.72)',
+  onNightDim: 'rgba(255,255,255,.6)',
+  nightRule: 'rgba(255,255,255,.13)',
 } as const;
 
-// Anek Latin is already loaded app-wide in app/_layout.tsx.
+/**
+ * Passes.
+ *
+ * Prices are real and final; the charge is not. There is no payment provider
+ * wired yet, so the flow reaches ₹0 through the promo code and completes from
+ * there -- see app/(onboarding)/pass.tsx.
+ */
+export const PASSES = [
+  { id: 'day', name: '1 day', price: 149 },
+  { id: 'week', name: '7 days', price: 749 },
+] as const;
+
+export type PassKey = (typeof PASSES)[number]['id'];
+
+/**
+ * The one code that works, and it clears the balance rather than discounting
+ * it.
+ *
+ * The handoff wired two codes at partial discounts (FIRST100 −₹75, MONK50
+ * −₹50), which cannot complete without a payment sheet to take the remainder.
+ * Until there is one, a code either brings the total to zero or the student
+ * cannot get through -- so there is exactly one, and it is worth the whole
+ * amount. Client-side by design; nothing is validated on a server.
+ */
+export const PROMO_CODE = 'FIRST100';
+
+export function promoDiscount(code: string, price: number) {
+  return code.trim().toUpperCase() === PROMO_CODE ? price : 0;
+}
+
+export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+
+/**
+ * Onest, loaded app-wide in app/_layout.tsx.
+ *
+ * Onboarding was the last surface still set in Anek Latin, which meant the
+ * very first screens a student ever sees were in a different typeface from
+ * every screen after them. The new handoff specifies Onest throughout, so the
+ * two answers agree. Sizes are corrected by `fs` above rather than re-typed.
+ *
+ * The handoff asks for nothing heavier than medium; sb600 and b700 are kept
+ * for the micro-labels, where 500 at 10px on a light ground disappears.
+ */
 export const obFont = {
-  r400: 'AnekLatin_400Regular',
-  m500: 'AnekLatin_500Medium',
-  sb600: 'AnekLatin_600SemiBold',
-  b700: 'AnekLatin_700Bold',
-  xb800: 'AnekLatin_800ExtraBold',
+  /** The welcome headlines only — the handoff sets them at 300. */
+  l300: 'Onest_300Light',
+  r400: 'Onest_400Regular',
+  m500: 'Onest_500Medium',
+  sb600: 'Onest_600SemiBold',
+  b700: 'Onest_700Bold',
+  xb800: 'Onest_800ExtraBold',
 } as const;
 
 // Full-bleed photo veils — README per-screen gradients, verbatim.
@@ -108,21 +186,41 @@ export const WELCOME_2_VEIL = {
   locations: [0, 0.2, 0.34, 0.54, 0.76, 1] as const,
 };
 
-// Syllabus data — README "Syllabus data (live counts)", cross-checked against
-// the prototype's own EXAMS object. Totals: JEE 54, NEET 79, Both 93.
+/**
+ * Syllabus data.
+ *
+ * Counted from the live `chapters` table on 2026-09-08, not from a handoff.
+ * Both handoffs were wrong on every subject, in different directions, and the
+ * old numbers here (20/20/14/39) were wrong too -- NEET's total came out right
+ * only because two errors cancelled. `npm run check:syllabus` re-counts against
+ * the database so the next drift is caught rather than shipped.
+ *
+ *   physics 28 (11: 14 · 12: 14)      mathematics 28 (11: 15 · 12: 13)
+ *   chemistry 19 (11: 9 · 12: 10)     biology     32 (11: 19 · 12: 13)
+ *
+ * KNOWN GAP: chemistry is short by roughly ten chapters -- there is no
+ * s-Block, p-Block, States of Matter, Solid State, Surface Chemistry or
+ * Polymers in the table. Physics, maths and biology all read as complete
+ * against the NTA syllabus. Until chemistry is filled in, this screen says
+ * "we teach" rather than "we teach all of".
+ *
+ * Sample lines quote real rows. The previous ones named "Electrostatics",
+ * "Calculus", "Human Physiology", "Genetics" and "Ecology", none of which are
+ * chapters in the table.
+ */
 export type ExamKey = 'jee' | 'neet' | 'both';
 export type YearKey = 'class11' | 'class12' | 'dropper';
 
 export const EXAMS: Record<
   ExamKey,
   {
-    /** Row title on screen 05. */
+    /** Row title on the exam screen. */
     name: string;
     /** Subject tag on the right of the row. */
     tag: string;
     /** CTA label — "Continue with <label>". */
     label: string;
-    /** "WE TEACH ALL OF <upper>". */
+    /** "WE TEACH <upper>". */
     upper: string;
     subjects: { name: string; count: number }[];
     sample: string;
@@ -134,12 +232,12 @@ export const EXAMS: Record<
     label: 'JEE Main',
     upper: 'JEE MAIN',
     subjects: [
-      { name: 'Physics', count: 20 },
-      { name: 'Chemistry', count: 20 },
-      { name: 'Maths', count: 14 },
+      { name: 'Physics', count: 28 },
+      { name: 'Chemistry', count: 19 },
+      { name: 'Maths', count: 28 },
     ],
     sample:
-      'Rotational Motion · Thermodynamics · Electrostatics · Coordination Compounds · Calculus — NTA syllabus, complete.',
+      'Rotational Motion · Electrostatic Potential and Capacitance · Coordination Compounds · Integrals · Conic Sections.',
   },
   neet: {
     name: 'NEET UG',
@@ -147,12 +245,12 @@ export const EXAMS: Record<
     label: 'NEET UG',
     upper: 'NEET UG',
     subjects: [
-      { name: 'Physics', count: 20 },
-      { name: 'Chemistry', count: 20 },
-      { name: 'Biology', count: 39 },
+      { name: 'Physics', count: 28 },
+      { name: 'Chemistry', count: 19 },
+      { name: 'Biology', count: 32 },
     ],
     sample:
-      'Human Physiology · Genetics · Thermodynamics · Coordination Compounds · Ecology — NTA syllabus, complete.',
+      'Human Reproduction · Molecular Basis of Inheritance · Thermodynamics · Coordination Compounds · Ecosystem.',
   },
   both: {
     name: 'Both',
@@ -160,14 +258,22 @@ export const EXAMS: Record<
     label: 'both exams',
     upper: 'JEE MAIN + NEET UG',
     subjects: [
-      { name: 'Physics', count: 20 },
-      { name: 'Chemistry', count: 20 },
-      { name: 'Maths', count: 14 },
-      { name: 'Biology', count: 39 },
+      { name: 'Physics', count: 28 },
+      { name: 'Chemistry', count: 19 },
+      { name: 'Maths', count: 28 },
+      { name: 'Biology', count: 32 },
     ],
     sample:
-      'Rotational Motion · Calculus · Human Physiology · Genetics · Coordination Compounds — both syllabi, complete.',
+      'Rotational Motion · Integrals · Human Reproduction · Coordination Compounds · Evolution.',
   },
+};
+
+/** The note under each year is the handoff's; it is what makes the three rows
+ *  read as different paces rather than three labels. */
+export const YEAR_NOTES: Record<YearKey, string> = {
+  class11: 'Two years to build',
+  class12: 'Board year pace',
+  dropper: 'Revision first',
 };
 
 export const YEARS: Record<YearKey, string> = {

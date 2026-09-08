@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "postinstall": "patch-package",
+    "check:syllabus": "node scripts/check-syllabus-counts.mjs",
     "test": "jest --config jest.config.js",
     "export-registry": "node scripts/export-registry.mjs",
     "regenerate-golden": "node scripts/regenerate-golden.mjs",

@@ -17,7 +17,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { ObBack, ObButton } from '@/components/onboarding-kit';
+import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { getSessionEmail } from '@/lib/auth';
 import { saveProfile } from '@/lib/profile';
@@ -75,8 +75,8 @@ function formatPhone(raw?: string) {
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export default function DetailsScreen() {
-  const { ds, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, tracking), [ds, tracking]);
+  const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const params = useLocalSearchParams<{ email?: string }>();
   const [email, setEmail] = useState((params.email ?? '').trim());
 
@@ -101,18 +101,12 @@ export default function DetailsScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObBack />
+        <ObHeader title="Your details" />
         <KeyboardAvoidingView
           style={styles.safeArea}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* `padding:52px 34px 0` */}
-          <View style={styles.headlineBlock}>
-            <Text style={styles.headline}>
-              Who is <Text style={styles.headlineBold}>joining the class</Text>?
-            </Text>
-            <Text style={styles.sub}>Two fields, and your teacher knows what to call you.</Text>
-          </View>
+          <Text style={styles.sub}>We use your name in class.</Text>
 
           {/* `padding:32px 26px 0; display:flex; flex-direction:column; gap:12px` */}
           <View style={styles.fieldStack}>
@@ -138,17 +132,18 @@ export default function DetailsScreen() {
             {/* EMAIL ADDRESS — read only. This is the address the code was
                 just sent to, so it is the one field on the page that is
                 already proven; editing it here would mean re-verifying. */}
+            {/* The whole address, and a tick.
+                It was truncated at one line beside the word "Verified", which
+                spent the width a long address needs on a label the tick
+                already says. A student checking they typed it right could not
+                actually read it. The tick sits at the top so it stays beside
+                the label when the address takes two lines. */}
             <View style={[styles.card, styles.cardWarm]}>
               <View style={styles.cardText}>
                 <Text style={styles.label}>EMAIL ADDRESS</Text>
-                <Text style={[styles.value, styles.phoneValue]} numberOfLines={1}>
-                  {email}
-                </Text>
+                <Text style={styles.value}>{email}</Text>
               </View>
-              <View style={styles.verified}>
-                <DrawnCheck size={ds(20)} />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
+              <DrawnCheck size={ds(20)} />
             </View>
 
             {/* PHONE NUMBER — collected, not verified. SMS auth needs an
@@ -156,7 +151,13 @@ export default function DetailsScreen() {
                 nothing is sent here, so it is a plain optional field and
                 deliberately carries no Verified tag. */}
             <View style={[styles.card, styles.cardIdle]}>
-              <Text style={styles.label}>PHONE NUMBER</Text>
+              {/* "Optional" sits on the label row, as drawn. It was under the
+                  field, where it read as a note about the whole form rather
+                  than about this one answer. */}
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>PHONE</Text>
+                <Text style={styles.labelOptional}>OPTIONAL</Text>
+              </View>
               <TextInput
                 style={[styles.value, styles.input, styles.emailInput]}
                 value={phone}
@@ -165,16 +166,13 @@ export default function DetailsScreen() {
                 // paints the 11th digit, React re-renders with it removed, and
                 // the student sees it flash on for a frame.
                 maxLength={10}
-                placeholder="98765 43210"
+                placeholder="+91 98765 43210"
                 placeholderTextColor={ob.placeholder}
                 keyboardType="phone-pad"
                 selectionColor={ob.amber}
               />
             </View>
-            {/* Outside the card on purpose. A caveat sitting inside the field
-                reads as part of the answer; beside it, it reads as a note
-                about the field — which is what it is. */}
-            <Text style={styles.hint}>Optional</Text>
+            <Text style={styles.hint}>No calls from a sales team. Ever.</Text>
           </View>
 
           {/* `margin-top:auto; padding:0 34px 34px` */}
@@ -236,6 +234,7 @@ function DrawnCheck({ size }: { size: number }) {
 
 function createStyles(
   ds: (size: number) => number,
+  fs: (size: number) => number,
   tracking: (em: number, fontSize: number) => number,
 ) {
   return StyleSheet.create({
@@ -254,7 +253,7 @@ function createStyles(
     // 44px / 600 / lh 1.02 / -.035em
     headline: {
       fontFamily: obFont.sb600,
-      fontSize: ds(44),
+      fontSize: fs(44),
       lineHeight: ds(44 * 1.02),
       letterSpacing: tracking(-0.035, 44),
       color: ob.ink,
@@ -263,60 +262,65 @@ function createStyles(
       fontFamily: obFont.xb800,
     },
     // `margin-top:14px; font-size:17px; line-height:1.45; color:#5F5A50`
+    // 14pt under the title — `padding:14px 30px 0` in the handoff. This
+    // briefly carried a paddingTop AND a marginTop of 14 each, which is the
+    // gap that read as too wide.
     sub: {
+      paddingHorizontal: ds(30),
       marginTop: ds(14),
       fontFamily: obFont.r400,
-      fontSize: ds(17),
-      lineHeight: ds(17 * 1.45),
+      fontSize: fs(16),
+      lineHeight: fs(23),
       color: ob.ink80,
     },
     // `padding:32px 26px 0; flex-direction:column; gap:12px`
     fieldStack: {
-      paddingTop: ds(32),
-      paddingHorizontal: ds(26),
+      paddingTop: ds(30),
+      paddingHorizontal: ds(30),
       flexDirection: 'column',
       gap: ds(12),
     },
-    // `box-shadow:0 0 0 5px rgba(238,163,31,.18)` around a 20px radius card.
+    // The amber ring is gone with the rest of the old field system: a wash is
+    // the app's mark for a choice made, and focus is not a choice.
     focusRing: {
-      padding: ds(5),
-      borderRadius: ds(25),
-      backgroundColor: ob.focusRing,
+      borderRadius: ds(14),
     },
-    // `border-radius:20px; padding:18px 24px`
     card: {
-      borderRadius: ds(20),
-      paddingVertical: ds(18),
-      paddingHorizontal: ds(24),
+      borderRadius: ds(14),
+      paddingVertical: ds(16),
+      paddingHorizontal: ds(18),
     },
+    // Focus darkens the outline by one step. It does not thicken it, so
+    // nothing reflows as the student moves between fields.
     cardActive: {
       backgroundColor: ob.surface,
-      borderWidth: 1.5,
-      borderColor: ob.ink,
+      borderWidth: 1,
+      borderColor: ob.ink40,
     },
     cardIdle: {
       backgroundColor: ob.surface,
       borderWidth: 1,
-      borderColor: ob.hairline14,
+      borderColor: ob.fieldBorder,
     },
+    // The verified email: read-only, so it sits on a tint instead of white.
     cardWarm: {
-      backgroundColor: ob.surfaceWarm,
+      backgroundColor: ob.fieldMuted,
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      // Top, not centre: the address may wrap to two lines and the tick should
+      // stay level with the label rather than drift down the block.
+      alignItems: 'flex-start',
+      gap: ds(12),
     },
-    // 13px / 700 / ls .1em / #8C867A
     label: {
-      fontFamily: obFont.b700,
-      fontSize: ds(13),
-      letterSpacing: tracking(0.1, 13),
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
       color: ob.ink55,
     },
-    // `font-size:22px; font-weight:500` — the `margin-top:8px` from the spec
-    // lives on whatever wraps the value, so the caret row centres correctly.
     value: {
-      fontFamily: obFont.m500,
-      fontSize: ds(22),
+      fontFamily: obFont.r400,
+      fontSize: fs(19),
+      letterSpacing: tracking(-0.01, 19),
       color: ob.ink,
     },
     input: {
@@ -328,17 +332,26 @@ function createStyles(
     },
     // `margin-top:8px`
     cardText: { flex: 1, minWidth: 0, paddingRight: ds(12) },
-    hint: {
-      marginTop: ds(-4),
-      marginLeft: ds(4),
-      fontFamily: obFont.r400,
-      fontSize: ds(13),
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    labelOptional: {
+      fontFamily: obFont.m500,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.1, 10),
       color: ob.ink40,
     },
-    emailInput: {
-      marginTop: ds(8),
+    // `font-size:13px; line-height:1.5; padding-top:2px`
+    hint: {
+      paddingTop: ds(2),
+      fontFamily: obFont.r400,
+      fontSize: fs(13),
+      lineHeight: fs(20),
+      color: ob.ink55,
     },
-    phoneValue: {
+    emailInput: {
       marginTop: ds(8),
     },
     valueRow: {
@@ -355,16 +368,6 @@ function createStyles(
       pointerEvents: 'none',
     },
     // `gap:8px; font-size:15px; font-weight:700; color:#5F5A50`
-    verified: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: ds(8),
-    },
-    verifiedText: {
-      fontFamily: obFont.b700,
-      fontSize: ds(15),
-      color: ob.ink80,
-    },
     // `margin-top:auto; padding:0 34px 34px`
     footer: {
       marginTop: 'auto',

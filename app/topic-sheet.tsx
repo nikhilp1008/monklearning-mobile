@@ -2,21 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { WashSelectRow } from '@/components/wash-select-row';
+import { BloomFace } from '@/components/gradient-select';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
@@ -24,14 +15,10 @@ import { CatalogueSubject, getCatalogue } from '@/lib/drona';
 // Matched to practice-focus.tsx, the app's other bottom sheet — a flick
 // dismisses even if the sheet barely moved, so a quick swipe down doesn't need
 // a full quarter-height drag to register.
-const DISMISS_VELOCITY = 900;
-const DISMISS_DISTANCE_RATIO = 0.25;
-const DISMISS_ANIMATION_DURATION = 220;
 
-const TALKS = [
-  { title: 'EMF vs terminal voltage', when: '2d ago' },
-  { title: 'Why a fuse wire melts first', when: 'last week' },
-];
+
+/** export-6c's split: at or under this, a name is a pill; over it, a row. */
+const PILL_MAX_CHARS = 26;
 
 export default function TopicSheetScreen() {
   const params = useLocalSearchParams<{
@@ -44,51 +31,13 @@ export default function TopicSheetScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [playToken, setPlayToken] = useState(0);
-
-  const translateY = useSharedValue(0);
-  // Measured rather than assumed: the sheet is pinned to a top offset, so its
-  // height is whatever the window leaves — which is not a constant.
-  const sheetHeight = useSharedValue(verticalScale(560));
-
-  const closeSheet = () => router.back();
-
-  const dragGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      // Downwards only. Dragging up would lift the sheet off the bottom edge
-      // and show the scrim underneath it.
-      translateY.value = Math.max(0, event.translationY);
-    })
-    .onEnd((event) => {
-      const pastDistance = translateY.value > sheetHeight.value * DISMISS_DISTANCE_RATIO;
-      const flicked = event.velocityY > DISMISS_VELOCITY;
-      if (pastDistance || flicked) {
-        translateY.value = withTiming(
-          sheetHeight.value,
-          { duration: DISMISS_ANIMATION_DURATION, easing: Easing.in(Easing.cubic) },
-          (finished) => {
-            if (finished) runOnJS(closeSheet)();
-          }
-        );
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 280 });
-      }
-    });
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
 
   const select = useCallback((topic: string) => {
     setSelected(topic);
-    setPlayToken((n) => n + 1);
   }, []);
 
   const chapterId = params.chapterId;
-  const chapterNumber = params.chapterNumber ?? '03';
   const chapterTitle = params.chapterTitle ?? 'Current Electricity';
-  const subject = params.subject ?? 'Physics';
-  const classLabel = params.classLabel ?? 'Class 12';
 
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,32 +92,20 @@ export default function TopicSheetScreen() {
     });
 
   return (
-    <View style={styles.root}>
+    <View style={styles.screen}>
       <StatusBar style="dark" />
-      <Pressable style={styles.scrim} onPress={() => router.back()} />
-      <Animated.View
-        style={[styles.sheet, sheetAnimatedStyle]}
-        onLayout={(event) => {
-          sheetHeight.value = event.nativeEvent.layout.height;
-        }}>
-        <SafeAreaView style={styles.flex} edges={['bottom']}>
-          {/* The handle and the header, and nothing below them: the topic grid
-              is its own ScrollView, and a pan gesture over that would fight its
-              vertical scroll instead of handing off to it. */}
-          <GestureDetector gesture={dragGesture}>
-            <View style={styles.dragArea}>
-              <View style={styles.handle} />
-              <View style={styles.headerRow}>
-                <View style={styles.headerTextBlock}>
-                  <Text style={styles.headerOverline}>
-                    Chapter {chapterNumber} · {subject} · {classLabel}
-                  </Text>
-                  <Text style={styles.headerTitle}>{chapterTitle}</Text>
-                </View>
-                <Text style={styles.headerHint}>pick one topic</Text>
-              </View>
-            </View>
-          </GestureDetector>
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        {/* A page now, not a sheet over the chapter list: no scrim, no handle,
+            no drag-to-dismiss. The chapter name is the heading, and the back
+            button is the way out. */}
+        <View style={styles.headerRow}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <BackArrowIcon size={scale(16)} />
+          </Pressable>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            {chapterTitle}
+          </Text>
+        </View>
 
           <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
             {loading ? (
@@ -188,22 +125,40 @@ export default function TopicSheetScreen() {
                 </Pressable>
               </View>
             ) : topics.length > 0 ? (
+              /* Adaptive, per export-6c: a short name is a pill and several
+                 share a line; a long one takes the row to itself. Measured
+                 across all 648 topic names in the catalogue, the split at 26
+                 characters is what keeps the pills to one line each. */
               <View style={styles.grid}>
                 {topics.map((topic) => {
                   const isSelected = selected === topic;
+                  const wide = topic.length > PILL_MAX_CHARS;
+                  if (isSelected) {
+                    return (
+                      <Pressable
+                        key={topic}
+                        onPress={() => select(topic)}
+                        style={wide ? styles.rowOuterSelected : styles.pillOuterSelected}>
+                        {/* No rotating sweep here. On a grid of eleven pills a
+                            turning line drew the eye away from the name it was
+                            marking; the bloom carries the selection on its own,
+                            turned up to compensate, inside a marigold edge. */}
+                        <BloomFace
+                          style={wide ? styles.rowFace : styles.pillFace}
+                          direction="bottom"
+                          strength={2.1}>
+                          <Text style={styles.topicText}>{topic}</Text>
+                        </BloomFace>
+                      </Pressable>
+                    );
+                  }
                   return (
-                    <WashSelectRow
+                    <Pressable
                       key={topic}
-                      selected={isSelected}
-                      playToken={playToken}
                       onPress={() => select(topic)}
-                      style={styles.topicCard}
-                      selectedStyle={styles.topicCardSelected}>
-                      <Text
-                        style={[styles.topicCardText, isSelected && styles.topicCardTextSelected]}>
-                        {topic}
-                      </Text>
-                    </WashSelectRow>
+                      style={wide ? styles.rowIdle : styles.pillIdle}>
+                      <Text style={styles.topicText}>{topic}</Text>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -221,23 +176,6 @@ export default function TopicSheetScreen() {
               <ArrowRightIcon color={colors.faint} size={scale(13)} />
             </Pressable>
 
-            <View style={styles.talksSection}>
-              <Text style={styles.talksOverline}>From your talks</Text>
-              <View style={styles.talksList}>
-                {TALKS.map((talk) => (
-                  <Pressable
-                    key={talk.title}
-                    style={styles.talkRow}
-                    onPress={() => goToClassroom(talk.title)}>
-                    <Text style={styles.talkTitle} numberOfLines={1}>
-                      {talk.title}
-                    </Text>
-                    <Text style={styles.talkWhen}>{talk.when}</Text>
-                    <ChevronRightIcon size={scale(12)} />
-                  </Pressable>
-                ))}
-              </View>
-            </View>
           </ScrollView>
 
           <View style={styles.footer}>
@@ -245,22 +183,32 @@ export default function TopicSheetScreen() {
               style={[styles.cta, !selected && styles.ctaDisabled]}
               disabled={!selected}
               onPress={() => goToClassroom(selected ?? undefined)}>
-              {/* Single line, ellipsised: real subtopic names run long ("Electric
-                  Current, Ohm's Law & Drift Velocity") and, against the pill's
-                  fixed height, a second line spilled outside the button and
-                  pushed the arrow off-screen. */}
-              <Text
-                style={[styles.ctaText, !selected && styles.ctaTextDisabled]}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                {selected ? `Start with ${selected}` : 'Pick a topic to start'}
+              {/* Static, per export-6c. It used to read "Start with <topic>",
+                  and real subtopic names run long enough ("Electric Current,
+                  Ohm's Law & Drift Velocity") that the label had to be
+                  ellipsised to keep the arrow on screen. */}
+              <Text style={[styles.ctaText, !selected && styles.ctaTextDisabled]}>
+                Start learning
               </Text>
               {selected && <ArrowRightIcon color={colors.paper} size={scale(15)} />}
             </Pressable>
           </View>
-        </SafeAreaView>
-      </Animated.View>
+      </SafeAreaView>
     </View>
+  );
+}
+
+function BackArrowIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 
@@ -285,97 +233,106 @@ function MicIcon({ size }: { size: number }) {
   );
 }
 
-function ChevronRightIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path
-        d="M5.5 3 10.5 8 5.5 13"
-        stroke={colors.faint}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    root: {
+    screen: {
       flex: 1,
+      backgroundColor: '#fff',
+      paddingHorizontal: scale(20),
     },
     flex: {
       flex: 1,
     },
-    scrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(28,26,22,.42)',
-    },
-    sheet: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      top: verticalScale(96),
-      backgroundColor: '#fff',
-      borderTopLeftRadius: scale(24),
-      borderTopRightRadius: scale(24),
-      paddingHorizontal: scale(20),
-      shadowColor: '#16130E',
-      shadowOffset: { width: 0, height: verticalScale(-10) },
-      shadowOpacity: 0.25,
-      shadowRadius: scale(20),
-      elevation: 12,
-    },
     // A generous grab target — the handle alone is 5pt tall, which is not
 // something a thumb can reliably catch.
-    dragArea: {
-      flexDirection: 'column',
-      paddingBottom: verticalScale(4),
-    },
-    handle: {
-      width: scale(40),
-      height: verticalScale(5),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,26,22,.18)',
-      alignSelf: 'center',
-      marginTop: verticalScale(10),
-      marginBottom: verticalScale(14),
-    },
     headerRow: {
       flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: scale(10),
+      alignItems: 'center',
+      gap: scale(12),
+      paddingTop: verticalScale(8),
+      paddingBottom: verticalScale(16),
     },
-    headerTextBlock: {
-      minWidth: 0,
-    },
-    headerOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.95),
-      textTransform: 'uppercase',
-      color: colors.faint,
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      flexShrink: 0,
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(21),
-      letterSpacing: scale(-0.42),
-      color: colors.ink,
-      marginTop: verticalScale(3),
-    },
-    headerHint: {
-      flexShrink: 0,
+      flex: 1,
+      minWidth: 0,
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
+      fontSize: scale(20),
+      letterSpacing: scale(-0.4),
+      color: colors.ink,
     },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: scale(9),
-      marginTop: verticalScale(16),
+      gap: scale(8),
+      paddingTop: verticalScale(4),
+    },
+    // --- short name: a pill, several to a line ---
+    pillIdle: {
+      paddingVertical: verticalScale(9),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+    },
+    pillOuterSelected: {
+      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: colors.marigold,
+      overflow: 'hidden',
+      backgroundColor: '#fff',
+    },
+    /** Identical padding to `pillIdle`, so selecting never resizes a pill and
+     *  the row cannot re-flow under the tap. */
+    pillFace: {
+      paddingVertical: verticalScale(9),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(99),
+      overflow: 'hidden',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // --- long name: the row to itself ---
+    rowIdle: {
+      width: '100%',
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(16),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+    },
+    rowOuterSelected: {
+      width: '100%',
+      borderRadius: scale(16),
+      borderWidth: 1,
+      borderColor: colors.marigold,
+      overflow: 'hidden',
+      backgroundColor: '#fff',
+    },
+    rowFace: {
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(14),
+      overflow: 'hidden',
+      backgroundColor: '#fff',
+    },
+    topicText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14),
+      lineHeight: scale(19),
+      color: colors.ink,
     },
     stateBlock: {
       alignItems: 'center',
@@ -421,20 +378,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(2),
       elevation: 1,
     },
-    topicCardSelected: {
-      borderWidth: scale(1.6),
-      borderColor: colors.marigold,
-    },
-    topicCardText: {
-      flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
-      lineHeight: scale(17.55),
-      color: colors.ink,
-    },
-    topicCardTextSelected: {
-      fontFamily: 'Onest_700Bold',
-    },
     freetalkRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -458,46 +401,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
       textDecorationLine: 'underline',
       textDecorationColor: 'rgba(238,163,31,.6)',
-    },
-    talksSection: {
-      marginTop: verticalScale(16),
-      paddingBottom: verticalScale(16),
-    },
-    talksOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.95),
-      textTransform: 'uppercase',
-      color: colors.faint,
-      marginBottom: verticalScale(9),
-    },
-    talksList: {
-      flexDirection: 'column',
-      gap: verticalScale(7),
-    },
-    talkRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(11),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(15),
-    },
-    talkTitle: {
-      flex: 1,
-      minWidth: 0,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13.5),
-      color: colors.ink,
-    },
-    talkWhen: {
-      flexShrink: 0,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11),
-      color: colors.faint,
     },
     footer: {
       flexShrink: 0,

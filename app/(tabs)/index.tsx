@@ -1,73 +1,64 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
-import { PressableScale } from '@/components/pressable-scale';
+import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
-import { Skeleton } from '@/components/skeleton';
-import { ICON_CHIP, PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
+import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
-import { NoteSummary, listNotes } from '@/lib/notes';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
-import { getCachedProgress, getProgress } from '@/lib/progress';
 import { getStoredName } from '@/lib/profile';
+import { getCachedProgress, getProgress } from '@/lib/progress';
 import { classesTaken } from '@/lib/proof';
 
 /**
- * Home.
+ * Home — export-10a.
  *
- * Layout system, deliberately small so nothing drifts:
- *  - type: 24 title · 18 card · 15 body · 13 secondary · 11 caption · 10 overline
- *  - weights: Regular, SemiBold, ExtraBold (Kalam only for the red-pen accent)
- *  - spacing: 24 gutter, 32 between sections, 20 card padding, 8/12/16 inside
- *  - radii: 12 chips · 16 cards · 99 pills
+ * The page is one column of quiet sections separated by hairlines, with a
+ * single dark block at the top. Two things carry all the weight: the charcoal
+ * class block and its paper key. Everything below is ink on white, ranked by
+ * type size alone.
  *
- * The three features are peers: one card shell, three instances. Drona keeps
- * the amber wash and the only filled button — first among equals, not a
- * different species.
+ * Layout system:
+ *  - type: 17/25 hero · 16/22 titles and stat numbers · 15/22 body
+ *          · 13/18 supporting · 11/14 overline (uppercase, +.1em)
+ *  - weights: 400 body, 600 titles, 700 overlines and links
+ *  - spacing: 4pt rhythm. 32 between sections, 24 after a rule, 20 inside the
+ *             Snap/Practice cells, 16 inside rows, 12 icon to title,
+ *             8 label to text, 4 title to support. 24 page margin.
  *
- * Every number on this screen is real or absent. Score and ledger come from
- * /progress, notes from /notes; a brand-new account gets honest zero states,
- * never sample data.
- */
-
-const INK_RGB = '28,26,22'; // colors.ink — the app has exactly one black
-const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
-
-/**
- * The page is pure white and so are the cards — the boxes earn their edges
- * with a firm hairline and a soft, diffuse shadow (the same treatment the
- * Library and Practice cards already use), never with a grey tint.
+ * Dark appears in exactly two places in the whole app frame: this page's class
+ * block, and the nav island's shadow. Nothing else competes.
+ *
+ * Every number is real or absent. Score and ledger come from /progress; a
+ * brand-new account gets honest zero states, never sample data.
  */
 
 /**
  * Editorial prompts for the "doubt of the day" section — hand-written, rotated
  * by day-of-year so the card genuinely changes daily. Tapping one hands the
- * question itself to Drona as the opening utterance, so the class starts on
- * exactly this doubt instead of a blank "what do you want to learn?".
+ * question itself to the teacher as the opening utterance, so the class starts
+ * on exactly this doubt instead of a blank "what do you want to learn?".
  * Replace with a backend endpoint when one exists.
  */
 const DAILY_DOUBTS = [
   {
-    tag: 'Physics · Modern',
     chapterTitle: 'Modern Physics',
     question:
       'Why do photoelectrons stop the moment intensity drops — but not when frequency drops below threshold?',
   },
   {
-    tag: 'Chemistry · Organic',
     chapterTitle: 'Organic Chemistry',
     question:
       'Why does phenol nitrate so much faster than benzene, when both offer the same aromatic ring?',
   },
   {
-    tag: 'Maths · Calculus',
     chapterTitle: 'Limits and Derivatives',
     question:
       'Why does L’Hôpital’s rule fail on (x + sin x)/x as x → ∞, even though it looks like ∞/∞?',
@@ -81,29 +72,9 @@ function doubtOfTheDay(date: Date) {
   return DAILY_DOUBTS[dayOfYear % DAILY_DOUBTS.length];
 }
 
-const SUBJECT_DOT: Record<string, string> = {
-  physics: '#DD4433',
-  chemistry: '#1C9B57',
-  mathematics: '#EEA31F',
-  maths: '#EEA31F',
-  biology: '#1C9B57',
-};
-
-function timeAgo(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return '';
-  const days = Math.floor((Date.now() - then) / 86_400_000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days} days ago`;
-  if (days < 14) return 'last week';
-  return `${Math.floor(days / 7)} weeks ago`;
-}
-
 type StatsState =
   | { kind: 'loading' }
-  | { kind: 'ready'; score: number; doubts: number; practised: number }
-  | { kind: 'empty' }
+  | { kind: 'ready'; score: number; practised: number }
   | { kind: 'hidden' };
 
 export default function HomeScreen() {
@@ -115,23 +86,22 @@ export default function HomeScreen() {
   const [stats, setStats] = useState<StatsState>(() => {
     const c = getCachedProgress();
     if (!c) return { kind: 'loading' };
-    return toStatsState(c.monk_score.display, c.ledger.doubts_solved, c.ledger.questions_attempted);
+    return toStatsState(c.monk_score.display, c.ledger.questions_attempted);
   });
-  const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [noticed, setNoticed] = useState<Observation | null>(null);
   const doneCount = planItems.filter((item) => item.done).length;
   const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
-  // Refetch on focus, not just mount — the plan is edited on a separate
-  // screen this one stays mounted underneath, notes get saved from a class,
-  // and the score moves while the student practises. Every one of these seeds
-  // from cache or leaves what is on screen alone, so a refresh that finds
-  // nothing new repaints nothing.
+  // Refetch on focus, not just mount — the plan is edited on a separate screen
+  // this one stays mounted underneath, and the score moves while the student
+  // practises. Every one of these seeds from cache or leaves what is on screen
+  // alone, so a refresh that finds nothing new repaints nothing. (The notes
+  // fetch this comment used to mention went with the Recent notes section.)
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      // The stored name only — a fresh install shows the neutral glyph,
-      // never a sample profile's initial presented as the student's own.
+      // The stored name only — a fresh install shows the neutral glyph, never
+      // a sample profile's initial presented as the student's own.
       getStoredName().then((name) => {
         if (!cancelled) setInitial(name?.trim()[0]?.toUpperCase() ?? '');
       });
@@ -141,10 +111,8 @@ export default function HomeScreen() {
       getProgress()
         .then((p) => {
           if (cancelled) return;
-          setStats(
-            toStatsState(p.monk_score.display, p.ledger.doubts_solved, p.ledger.questions_attempted)
-          );
-          // The observation rides the same payload the strip does — one fetch,
+          setStats(toStatsState(p.monk_score.display, p.ledger.questions_attempted));
+          // The observation rides the same payload the stats do — one fetch,
           // and the numbers and the sentence about them can never disagree.
           classesTaken().then((classes) => {
             if (!cancelled) setNoticed(observe(p, classes));
@@ -152,22 +120,12 @@ export default function HomeScreen() {
         })
         .catch(() => {
           if (cancelled) return;
-          // No number is better than a wrong one — but a cached fetch is a
-          // true number, so fall back to it rather than hiding the strip (or
-          // worse, leaving the skeleton pulsing forever).
+          // No number is better than a wrong one — but a cached fetch is a true
+          // number, so fall back to it rather than hiding the row.
           const c = getCachedProgress();
           setStats(
-            c
-              ? toStatsState(c.monk_score.display, c.ledger.doubts_solved, c.ledger.questions_attempted)
-              : { kind: 'hidden' }
+            c ? toStatsState(c.monk_score.display, c.ledger.questions_attempted) : { kind: 'hidden' }
           );
-        });
-      listNotes()
-        .then((r) => {
-          if (!cancelled) setNotes(r.notes.slice(0, 6));
-        })
-        .catch(() => {
-          // The section simply doesn't render without notes.
         });
       return () => {
         cancelled = true;
@@ -184,169 +142,99 @@ export default function HomeScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.headerRow}>
-          <PressableScale style={styles.headerButton} onPress={() => router.push('/profile')}>
-            {initial ? (
-              <Text style={styles.headerInitial}>{initial}</Text>
-            ) : (
-              <PersonIcon size={scale(19)} />
-            )}
-          </PressableScale>
-          {/* Was a notification bell that did nothing. There is no notification
-              we actually want to send — the moments spec rules out the whole
-              "come back, you haven't studied" category — so the slot goes to
-              the one thing a student earns and might want to revisit.
-
-              Absent until there is something in it: an always-present icon
-              leading to an empty page teaches a student to ignore it, and that
-              first impression is hard to undo. Appearing on the day they earn
-              their first is a small reward in itself. */}
-          {/* Progress lives here now, not in the tab bar. It is a place you
-              check, not a place you work, so it belongs beside the avatar
-              rather than taking a quarter of the bar. Always present — unlike
-              the milestones button it replaces, which appeared only once one
-              had been earned. */}
-          <PressableScale
-            style={styles.headerButton}
-            accessibilityLabel="Progress"
-            onPress={() => router.push('/progress')}>
-            <ProgressGlyph size={scale(20)} />
-          </PressableScale>
+        {/* App bar. The rule under it is full-bleed and 1.5pt — heavier than
+            every other line on the page, because it separates the chrome from
+            the document rather than one section from the next. */}
+        <View style={styles.appBar}>
+          <MonkLogo height={scale(30)} />
+          <View style={styles.appBarRight}>
+            <PressableScale
+              style={styles.appBarButton}
+              accessibilityLabel="Progress"
+              onPress={() => router.push('/progress')}>
+              <ProgressGlyph size={scale(20)} />
+            </PressableScale>
+            <PressableScale
+              style={styles.appBarButton}
+              accessibilityLabel="Profile"
+              onPress={() => router.push('/profile')}>
+              {initial ? (
+                <Text style={styles.appBarInitial}>{initial}</Text>
+              ) : (
+                <PersonIcon size={scale(19)} />
+              )}
+            </PressableScale>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* The three ways to study — one shell, three instances. */}
-          <View style={styles.cardsGroup}>
-            <View style={[styles.card, styles.dronaCard]}>
-              <LinearGradient
-                colors={['#EFC578', '#F8DFB0', '#FDF3DC']}
-                locations={[0, 0.55, 1]}
-                start={{ x: 0.3, y: 0 }}
-                end={{ x: 0.7, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-              />
-              <Text style={[styles.cardTitle, styles.dronaTitle]} numberOfLines={1}>
-                Learn with Drona
-              </Text>
-              <Text style={styles.dronaBody}>
-                Pick a chapter and Drona teaches it out loud, writing on the board as it goes.
-              </Text>
-              <PressableScale style={styles.dronaCtaRing} onPress={() => router.push('/drona')}>
-                <LinearGradient
-                  colors={['#FFE9BE', '#E2A62D']}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-                <View style={styles.dronaCtaInner}>
-                  {/* "Chapter", not "topic": this opens ChapterSelectorScreen,
-                      which lists chapters, searches "a chapter" and counts
-                      chapters. Topics are one level deeper, on the sheet a
-                      chapter opens. The body copy directly above already says
-                      "Pick a chapter", so the button was contradicting it. */}
-                  <Text style={styles.dronaCtaText}>Select chapter</Text>
-                  <ArrowRightIcon color={colors.ink} size={scale(14)} />
-                </View>
-              </PressableScale>
-            </View>
+          <ClassBlock styles={styles} scale={scale} onPress={() => router.push('/drona')} />
 
-            {/* Two tiles, not two thinner rows: the hero is wide, the pair is
-                square — different architecture, so neither reads as a lesser
-                copy of the other. The icons finally get the stage. */}
-            <View style={styles.tilesRow}>
-              <PressableScale
-                style={[styles.card, styles.tile]}
-                onPress={() => router.push('/snap-capture')}>
-                <View style={styles.tileHeader}>
-                  <TileChip size={scale(ICON_CHIP.size)} radius={scale(ICON_CHIP.radius)}>
-                    <SnapADoubtIcon size={scale(ICON_CHIP.icon)} />
-                  </TileChip>
-                  <ArrowRightIcon color={colors.faint} size={scale(16)} />
-                </View>
-                <Text style={styles.tileTitle}>Snap and Solve</Text>
-                <Text style={styles.tileSubtitle}>Up to 3 questions, solved step by step</Text>
-              </PressableScale>
-
-              <PressableScale
-                style={[styles.card, styles.tile]}
-                onPress={() => router.push('/practice')}>
-                <View style={styles.tileHeader}>
-                  <TileChip size={scale(ICON_CHIP.size)} radius={scale(ICON_CHIP.radius)}>
-                    <PracticeIcon size={scale(ICON_CHIP.icon)} />
-                  </TileChip>
-                  <ArrowRightIcon color={colors.faint} size={scale(16)} />
-                </View>
-                <Text style={styles.tileTitle}>Practice Questions</Text>
-                {/* 150 a day. NOTE: monklearning.com currently publishes 75
-                    ("50 doubt snaps and 75 practice questions a day") in three
-                    places, so the site needs the same number or the two
-                    disagree on one entitlement. Neither figure is enforced
-                    anywhere yet -- /practice/* returns no daily/quota field,
-                    unlike Snap, which has daily_limit and used_today. */}
-                <Text style={styles.tileSubtitle}>150 a day, across all subjects</Text>
-              </PressableScale>
-            </View>
+          {/* Two cells of one strip, not two cards. A vertical rule between
+              them and a horizontal rule above and below: the pair reads as a
+              single row of the document, one rank below the block. */}
+          <View style={styles.strip}>
+            <PressableScale
+              style={[styles.stripCell, styles.stripCellLeft]}
+              onPress={() => router.push('/snap-capture')}>
+              <View style={styles.stripHead}>
+                <SnapIcon size={scale(24)} />
+                <ArrowRightIcon color={colors.ink} size={scale(16)} />
+              </View>
+              <Text style={styles.stripTitle}>Snap and Solve</Text>
+              <Text style={styles.stripBody}>Up to 3 questions, solved step by step</Text>
+            </PressableScale>
+            <PressableScale
+              style={[styles.stripCell, styles.stripCellRight]}
+              onPress={() => router.push('/practice')}>
+              <View style={styles.stripHead}>
+                <PracticeIcon size={scale(24)} />
+                <ArrowRightIcon color={colors.ink} size={scale(16)} />
+              </View>
+              <Text style={styles.stripTitle}>Practice</Text>
+              {/* 150 a day. NOTE: monklearning.com currently publishes 75
+                  ("50 doubt snaps and 75 practice questions a day") in three
+                  places, so the site needs the same number or the two disagree
+                  on one entitlement. Neither figure is enforced anywhere yet —
+                  /practice/* returns no daily/quota field, unlike Snap, which
+                  has daily_limit and used_today. */}
+              <Text style={styles.stripBody}>150 a day, across all subjects</Text>
+            </PressableScale>
           </View>
 
-          {stats.kind !== 'hidden' && (
-            <View style={styles.statsStrip}>
-              {stats.kind === 'loading' ? (
-                <>
-                  <View style={styles.statItem}>
-                    <Skeleton style={styles.statSkeletonValue} />
-                    <Skeleton delay={60} style={styles.statSkeletonLabel} />
-                  </View>
-                  <View style={styles.statItem}>
-                    <Skeleton delay={120} style={styles.statSkeletonValue} />
-                    <Skeleton delay={180} style={styles.statSkeletonLabel} />
-                  </View>
-                  <View style={styles.statItem}>
-                    <Skeleton delay={240} style={styles.statSkeletonValue} />
-                    <Skeleton delay={300} style={styles.statSkeletonLabel} />
-                  </View>
-                </>
-              ) : stats.kind === 'empty' ? (
-                <Text style={styles.statsEmptyText}>
-                  Your Monk Score starts the moment you answer your first question.
-                </Text>
-              ) : (
-                <>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{stats.score}</Text>
-                    <Text style={styles.statLabel}>monk score</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={[styles.statValue, styles.statValueGreen]}>{stats.doubts}</Text>
-                    <Text style={styles.statLabel}>doubts solved</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{stats.practised}</Text>
-                    <Text style={styles.statLabel}>practised</Text>
-                  </View>
-                </>
-              )}
+          {/* One observation, or nothing. Silence is a valid answer — see
+              lib/noticed.ts — so this renders nothing at all rather than a
+              placeholder, and the section below simply moves up. */}
+          {noticed && (
+            <View style={styles.noticedSlot}>
+              <NoticedCard
+                observation={noticed}
+                onPress={() => runObservationAction(noticed.action)}
+              />
             </View>
           )}
 
-          {/* The teacher reading the numbers just above. One remark, or
-              nothing — never a second section of the page. */}
-          {noticed && (
-            <NoticedCard
-              observation={noticed}
-              onPress={() => runObservationAction(noticed.action)}
-            />
+          {stats.kind === 'ready' && (
+            <View style={styles.stats}>
+              <View style={styles.stat}>
+                <Text style={styles.statNumber}>{stats.score}</Text>
+                <Text style={styles.statLabel}>Monk Score</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statNumber}>{stats.practised}</Text>
+                <Text style={styles.statLabel}>Practised</Text>
+              </View>
+            </View>
           )}
 
-          <View>
+          <View style={styles.section}>
             <View style={styles.planHeaderRow}>
-              <Text style={styles.planOverline}>Today&apos;s plan</Text>
+              <Text style={styles.overline}>Today&apos;s plan</Text>
               <View style={styles.planHeaderRight}>
                 {planItems.length > 0 && (
-                  <View style={styles.planBadge}>
-                    <Text style={styles.planBadgeText}>
-                      {doneCount} of {planItems.length}
-                    </Text>
-                  </View>
+                  <Text style={styles.planCount}>
+                    {doneCount} of {planItems.length}
+                  </Text>
                 )}
                 <PressableScale
                   style={styles.planAddPill}
@@ -362,28 +250,30 @@ export default function HomeScreen() {
                 today&apos;s goals.
               </Text>
             ) : (
-              planItems.map((item, index) => (
-                <PressableScale
-                  key={item.id}
-                  style={[styles.planRow, index === planItems.length - 1 && styles.planRowLast]}
-                  onPress={() => togglePlanItem(item.id)}>
-                  {item.done ? (
-                    <View style={styles.planCheckDone}>
-                      <CheckIcon size={scale(12)} color="#fff" />
-                    </View>
-                  ) : (
-                    <View style={styles.planCheckOpen} />
-                  )}
-                  <Text style={item.done ? styles.planRowTextDone : styles.planRowText}>
-                    {item.text}
-                  </Text>
-                </PressableScale>
-              ))
+              <View style={styles.planRows}>
+                {planItems.map((item) => (
+                  <PressableScale
+                    key={item.id}
+                    style={styles.planRow}
+                    onPress={() => togglePlanItem(item.id)}>
+                    {item.done ? (
+                      <View style={styles.planCheckDone}>
+                        <CheckIcon size={scale(12)} color="#fff" />
+                      </View>
+                    ) : (
+                      <View style={styles.planCheckOpen} />
+                    )}
+                    <Text style={item.done ? styles.planRowTextDone : styles.planRowText}>
+                      {item.text}
+                    </Text>
+                  </PressableScale>
+                ))}
+              </View>
             )}
           </View>
 
           <PressableScale
-            style={styles.doubtSection}
+            style={styles.ruledSection}
             onPress={() =>
               router.push({
                 pathname: '/entering-classroom',
@@ -396,70 +286,26 @@ export default function HomeScreen() {
                 },
               })
             }>
-            <Text style={styles.doubtOverline}>Doubt of the day</Text>
+            <Text style={styles.overline}>Doubt of the day</Text>
             <Text style={styles.doubtQuestion}>{dailyDoubt.question}</Text>
-            <View style={styles.doubtCtaRow}>
-              <Text style={styles.doubtCtaText}>Learn this with Drona</Text>
-              <ArrowRightIcon color={colors.amberText} size={scale(13)} />
+            <View style={styles.linkRow}>
+              <Text style={styles.linkText}>Ask your teacher</Text>
+              <ArrowRightIcon color={colors.amberText} size={scale(15)} />
             </View>
           </PressableScale>
 
-          {notes.length > 0 && (
-            <View>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={styles.sectionTitleDash} />
-                  <Text style={styles.sectionTitle}>Recent notes</Text>
-                </View>
-                <PressableScale hitSlop={12} onPress={() => router.push('/notes')}>
-                  <Text style={styles.viewAll}>View all →</Text>
-                </PressableScale>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.notesRow}>
-                {notes.map((note) => (
-                  <PressableScale
-                    key={note.id}
-                    style={styles.noteCard}
-                    onPress={() => router.push({ pathname: '/note-detail', params: { id: note.id } })}>
-                    <View style={styles.noteSubjectRow}>
-                      <View
-                        style={[
-                          styles.noteDot,
-                          {
-                            backgroundColor:
-                              SUBJECT_DOT[(note.subject ?? '').toLowerCase()] ?? colors.marigold,
-                          },
-                        ]}
-                      />
-                      <Text style={styles.noteSubject}>{note.subject ?? 'Note'}</Text>
-                    </View>
-                    <Text style={styles.noteTitle} numberOfLines={2}>
-                      {note.concept ?? note.chapter ?? 'Class note'}
-                    </Text>
-                    <Text style={styles.noteBody} numberOfLines={1}>
-                      {note.preview}
-                    </Text>
-                    <Text style={styles.noteTime}>{timeAgo(note.created_at)}</Text>
-                  </PressableScale>
-                ))}
-              </ScrollView>
-            </View>
-          )}
           {/* Last thing on the page, deliberately quiet: this is a reference
               students visit once or twice, not a daily action. */}
           <PressableScale style={styles.scopeRow} onPress={() => router.push('/exam-scope')}>
             <View style={styles.scopeTextBlock}>
-              <Text style={styles.scopeOverline}>Exam scope</Text>
+              <Text style={styles.overline}>Exam scope</Text>
               <Text style={styles.scopeTitle}>What&apos;s actually in your exam</Text>
               <Text style={styles.scopeBody}>
                 Not every NCERT chapter is examinable — see what counts, and what you can stop
                 studying.
               </Text>
             </View>
-            <ArrowRightIcon color={colors.faint} size={scale(16)} />
+            <ArrowRightIcon color={colors.slate} size={scale(15)} />
           </PressableScale>
         </ScrollView>
       </SafeAreaView>
@@ -467,69 +313,56 @@ export default function HomeScreen() {
   );
 }
 
-function toStatsState(score: number, doubts: number, practised: number): StatsState {
-  if (score === 0 && doubts === 0 && practised === 0) return { kind: 'empty' };
-  return { kind: 'ready', score, doubts, practised };
-}
-
-function PersonIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Circle cx={12} cy={8.2} r={3.6} stroke={colors.ink} strokeWidth={1.8} />
-      <Path
-        d="M4.8 19.4c.9-3.4 3.8-5 7.2-5s6.3 1.6 7.2 5"
-        stroke={colors.ink}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
-
 /**
- * The tile's icon chip.
+ * The class block, and the key inside it.
  *
- * White with a hairline. It has been three things now, and the reasons matter:
- * a cream-to-gold gradient, which ended at `#F0C063` and swallowed the amber
- * accent every `handoff_icons_v1` icon is built around (about 1.3:1); then the
- * spec's `#FDF3DE` tint, which cleared the accent but left the chip too close
- * to the white card to hold an edge. White clears the accent best of all, and
- * the hairline gives back the edge the tint could not.
+ * The handoff draws the button with four stacked shadows, two of them inset.
+ * React Native has one shadow per view and no inset at all, so the key is
+ * built out of geometry instead: a dark rounded rect showing 3pt below the
+ * face is the `0 3px 0` base, the face's gradient holds white for its first
+ * 6% to stand in for the `inset 0 1px 0 #FFF` top highlight, and the soft
+ * `0 8px 18px` is the only shadow left for the shadow props to carry.
+ *
+ * Pressing translates the face down 2pt and drops the base to 1, which is the
+ * travel the handoff specifies — the reason the block is one Pressable rather
+ * than a PressableScale is that a uniform scale cannot express it.
  */
-function TileChip({
-  size,
-  radius,
-  children,
+function ClassBlock({
+  styles,
+  scale,
+  onPress,
 }: {
-  size: number;
-  radius: number;
-  children: React.ReactNode;
+  styles: ReturnType<typeof createStyles>;
+  scale: (n: number) => number;
+  onPress: () => void;
 }) {
+  const [held, setHeld] = useState(false);
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: ICON_CHIP.background,
-        borderWidth: 1,
-        borderColor: ICON_CHIP.border,
-      }}>
-      {children}
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Start a live class"
+      onPress={onPress}
+      onPressIn={() => setHeld(true)}
+      onPressOut={() => setHeld(false)}
+      style={styles.classBlock}>
+      <Text style={styles.classLine}>Pick a chapter and your teacher teaches it live.</Text>
+      <View style={[styles.keyBase, held && styles.keyBaseHeld]}>
+        <LinearGradient
+          colors={['#FFFFFF', '#FFFFFF', '#F4F0E6']}
+          locations={[0, 0.06, 1]}
+          style={[styles.keyFace, held && { transform: [{ translateY: scale(2) }] }]}>
+          <Text style={styles.keyLabel}>Start a Live Class</Text>
+        </LinearGradient>
+      </View>
+    </Pressable>
   );
 }
 
+function toStatsState(score: number, practised: number): StatsState {
+  if (score === 0 && practised === 0) return { kind: 'hidden' };
+  return { kind: 'ready', score, practised };
+}
 
-
-/**
- * Where an observation sends you. The union is mapped to literal `router.push`
- * calls rather than a route string, because typed routes are on and a stringly
- * typed pathname would silently outlive a route rename.
- */
 function runObservationAction(action: ObservationAction | undefined) {
   switch (action?.kind) {
     case 'progress':
@@ -540,8 +373,8 @@ function runObservationAction(action: ObservationAction | undefined) {
       return;
     case 'textbooks':
       // Deliberately the subject grid, not that subject's chapter list: the
-      // card fires for a subject nobody has opened, and for one whose
-      // textbook is not written yet that would land on a wall of SOON.
+      // card fires for a subject nobody has opened, and for one whose textbook
+      // is not written yet that would land on a wall of SOON.
       router.push('/textbooks');
       return;
     case 'class':
@@ -552,7 +385,21 @@ function runObservationAction(action: ObservationAction | undefined) {
   }
 }
 
-/** The bars from the old Progress tab, at header size. Same shape, so the
+function PersonIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Circle cx={12} cy={8} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
+      <Path
+        d="M4.8 20c0-3.6 3.2-5.6 7.2-5.6s7.2 2 7.2 5.6"
+        stroke={colors.ink}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** The bars from the old Progress tab, at app-bar size. Same shape, so the
  *  control is recognisable in its new home. */
 function ProgressGlyph({ size }: { size: number }) {
   return (
@@ -565,6 +412,28 @@ function ProgressGlyph({ size }: { size: number }) {
         strokeLinecap="round"
       />
       <Circle cx={16} cy={4.6} r={1.8} fill={colors.marigold} />
+    </Svg>
+  );
+}
+
+function SnapIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={colors.ink} strokeWidth={1.7} />
+      <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={colors.ink} strokeWidth={1.7} />
+      <Circle cx={12} cy={13.2} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
+      <Circle cx={12} cy={13.2} r={1.2} fill={colors.marigold} />
+    </Svg>
+  );
+}
+
+function PracticeIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={colors.ink} strokeWidth={1.7} />
+      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={colors.ink} strokeWidth={1.7} />
+      <Path d="M6.4 12.4h7.2" stroke={colors.ink} strokeWidth={1.7} />
+      <Circle cx={17.4} cy={11.4} r={1.5} fill={colors.marigold} />
     </Svg>
   );
 }
@@ -583,6 +452,8 @@ function CheckIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
+const RULE = 'rgba(28,26,22,.1)';
+
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
@@ -592,461 +463,324 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
-    headerRow: {
-      flexShrink: 0,
+
+    // --- app bar ---
+    appBar: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: scale(12),
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(24),
-      paddingBottom: verticalScale(16),
+      paddingLeft: scale(24),
+      paddingRight: scale(24),
+      paddingTop: verticalScale(10),
+      paddingBottom: verticalScale(14),
+      borderBottomWidth: 1.5,
+      borderBottomColor: 'rgba(28,26,22,.14)',
     },
-    headerButton: {
+    appBarRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(10),
+    },
+    appBarButton: {
       width: scale(40),
       height: scale(40),
       borderRadius: scale(20),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
     },
-    // Sits on the button's edge, the way an unread mark does — the one
-    // ambient signal in the app, and it points at something earned rather
-    // than at a reason to come back.
-    headerInitial: {
+    appBarInitial: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(16),
       color: colors.ink,
     },
+
     scrollContent: {
+      paddingTop: verticalScale(28),
       paddingHorizontal: scale(24),
       paddingBottom: verticalScale(130),
-      gap: verticalScale(32),
     },
-    cardsGroup: {
-      gap: verticalScale(12),
-    },
-    card: {
-      position: 'relative',
-      overflow: 'hidden',
-      backgroundColor: '#fff',
+
+    // --- the class block ---
+    classBlock: {
+      alignItems: 'flex-start',
+      gap: verticalScale(20),
+      padding: scale(24),
+      borderRadius: scale(22),
+      backgroundColor: '#2A2621',
       borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      padding: scale(20),
+      borderColor: 'rgba(238,163,31,.8)',
       shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: verticalScale(12) },
+      shadowRadius: scale(30),
+      elevation: 10,
+      marginBottom: verticalScale(32),
     },
-    dronaCard: {
-      borderColor: 'rgba(238,163,31,.5)',
+    classLine: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(17),
+      lineHeight: scale(25),
+      color: colors.paper,
     },
-    dronaTitle: {
-      // Ink, held back a little rather than replaced. At full strength it was
-      // the only pure-black object on the card and read as pasted on top of
-      // the gradient; letting the amber show through warms it into the
-      // surface. Alpha, not a new colour — a warm hex here would drift brown,
-      // and the weight stays bold either way.
-      color: hairline(0.8),
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(21),
-      letterSpacing: scale(-0.32),
-      lineHeight: scale(25.2),
+    /** The `0 3px 0` base: a dark rect the face sits 3pt proud of. */
+    keyBase: {
+      paddingBottom: 3,
+      borderRadius: 99,
+      backgroundColor: 'rgba(28,26,22,.55)',
+      shadowColor: '#000',
+      shadowOpacity: 0.34,
+      shadowOffset: { width: 0, height: verticalScale(8) },
+      shadowRadius: scale(18),
+      elevation: 6,
     },
-    tilesRow: {
+    keyBaseHeld: {
+      paddingBottom: 1,
+    },
+    keyFace: {
+      height: verticalScale(46),
+      paddingHorizontal: scale(20),
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    keyLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      color: colors.ink,
+    },
+
+    // --- snap / practice ---
+    strip: {
       flexDirection: 'row',
-      gap: scale(12),
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: RULE,
     },
-    tile: {
+    stripCell: {
       flex: 1,
-      padding: scale(18),
+      paddingVertical: verticalScale(20),
     },
-    tileHeader: {
+    stripCellLeft: {
+      paddingRight: scale(20),
+      borderRightWidth: 1,
+      borderRightColor: RULE,
+    },
+    stripCellRight: {
+      paddingLeft: scale(20),
+    },
+    stripHead: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
     },
-    tileChip: {
-      width: scale(44),
-      height: scale(44),
-      borderRadius: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.12),
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    tileTitle: {
+    stripTitle: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
-      letterSpacing: scale(-0.17),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
       color: colors.ink,
-      marginTop: verticalScale(14),
-    },
-    tileSubtitle: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12.5),
-      lineHeight: scale(17.5),
-      color: colors.slate,
-      marginTop: verticalScale(3),
-    },
-    cardTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-    },
-    cardTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    cardTitle: {
-      flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(18),
-      color: colors.ink,
-    },
-    cardSubtitle: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.slate,
-      marginTop: verticalScale(2),
-    },
-    dronaBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
-      color: colors.slate,
       marginTop: verticalScale(12),
     },
-    dronaCtaRing: {
-      position: 'relative',
-      overflow: 'hidden',
-      alignSelf: 'flex-start',
-      borderRadius: scale(99),
-      padding: scale(1.5),
-      marginTop: verticalScale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(5) },
-      shadowOpacity: 0.16,
-      shadowRadius: scale(10),
-      elevation: 4,
-    },
-    dronaCtaInner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      height: verticalScale(41),
-      paddingHorizontal: scale(20),
-      borderRadius: scale(99),
-      backgroundColor: '#FFFDF8',
-    },
-    dronaCtaText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    statsStrip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderTopWidth: 1,
-      borderTopColor: hairline(0.1),
-      borderBottomWidth: 1,
-      borderBottomColor: hairline(0.1),
-      paddingVertical: verticalScale(16),
-    },
-    statItem: {
-      flex: 1,
-      alignItems: 'flex-start',
-    },
-    statValue: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(18),
-      letterSpacing: scale(-0.27),
-      color: colors.ink,
-    },
-    statValueGreen: {
-      color: '#157A45',
-    },
-    statLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.6),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    statSkeletonValue: {
-      width: scale(44),
-      height: verticalScale(18),
-      borderRadius: scale(5),
-    },
-    statSkeletonLabel: {
-      width: scale(64),
-      height: verticalScale(9),
-      borderRadius: scale(4),
-      marginTop: verticalScale(5),
-    },
-    statsEmptyText: {
-      flex: 1,
+    stripBody: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
-      lineHeight: scale(19.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+    },
+
+    noticedSlot: {
+      marginTop: verticalScale(32),
+    },
+
+    // --- stats ---
+    stats: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(40),
+      marginTop: verticalScale(32),
+      paddingBottom: verticalScale(16),
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
+    },
+    stat: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: scale(6),
+    },
+    statNumber: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      // Three-digit values without the column shifting as they grow.
+      fontVariant: ['tabular-nums'],
+      color: colors.ink,
+    },
+    statLabel: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
     },
+
+    // --- shared section furniture ---
+    section: {
+      marginTop: verticalScale(32),
+    },
+    ruledSection: {
+      marginTop: verticalScale(32),
+      paddingTop: verticalScale(24),
+      borderTopWidth: 1,
+      borderTopColor: RULE,
+    },
+    overline: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(11),
+      lineHeight: scale(14),
+      letterSpacing: scale(0.1 * 11),
+      textTransform: 'uppercase',
+      color: colors.slate,
+    },
+
+    // --- today's plan ---
     planHeaderRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: verticalScale(4),
-    },
-    planOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
+      gap: scale(12),
     },
     planHeaderRight: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(8),
+      gap: scale(10),
     },
-    planBadge: {
-      backgroundColor: 'rgba(28,155,87,.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.3)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(9),
-    },
-    planBadgeText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: '#157A45',
+    planCount: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.slate,
     },
     planAddPill: {
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.16)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(5),
       paddingHorizontal: scale(12),
+      paddingVertical: verticalScale(5),
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
     },
     planAddText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.ink,
-    },
-    planRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      paddingVertical: verticalScale(12),
-      borderBottomWidth: 1,
-      borderBottomColor: hairline(0.09),
-      borderStyle: 'dashed',
-    },
-    planRowLast: {
-      borderBottomWidth: 0,
-      paddingBottom: verticalScale(2),
-    },
-    planCheckDone: {
-      width: scale(22),
-      height: scale(22),
-      borderRadius: scale(7),
-      backgroundColor: '#1C9B57',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    planCheckOpen: {
-      width: scale(22),
-      height: scale(22),
-      borderRadius: scale(7),
-      borderWidth: scale(1.8),
-      borderColor: 'rgba(28,26,22,.25)',
-    },
-    planRowTextDone: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      color: colors.faint,
-      textDecorationLine: 'line-through',
-    },
-    planRowText: {
-      flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.ink,
     },
     planEmptyText: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19.5),
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.slate,
-      paddingVertical: verticalScale(12),
+      marginTop: verticalScale(12),
     },
     planEmptyAccent: {
       fontFamily: 'Onest_600SemiBold',
       color: colors.ink,
     },
-    doubtOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.9),
-      textTransform: 'uppercase',
-      color: colors.faint,
+    planRows: {
+      marginTop: verticalScale(12),
+      gap: verticalScale(12),
     },
-    /**
-     * A section, not a card.
-     *
-     * It used to be a bordered box with ruled paper, a red margin rule and a
-     * 40pt left inset for that rule — which put its text 41pt inside every
-     * other section on this page, since the rest start at the 24pt gutter.
-     * The indent was the misalignment; the box was what required it. Now it
-     * is separated the way Today's plan and Exam scope are, by a hairline.
-     */
-    doubtSection: {
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.1)',
-      paddingTop: verticalScale(18),
-      marginTop: verticalScale(20),
+    planRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
     },
-    doubtQuestion: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(16),
-      lineHeight: scale(23.5),
-      letterSpacing: scale(-0.08),
+    planCheckOpen: {
+      width: scale(20),
+      height: scale(20),
+      borderRadius: scale(10),
+      borderWidth: 1.5,
+      borderColor: 'rgba(28,26,22,.26)',
+    },
+    planCheckDone: {
+      width: scale(20),
+      height: scale(20),
+      borderRadius: scale(10),
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.ink,
+    },
+    planRowText: {
+      flex: 1,
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.ink,
-      marginTop: verticalScale(7),
     },
-    doubtCtaRow: {
+    planRowTextDone: {
+      flex: 1,
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
+      color: colors.faint,
+      textDecorationLine: 'line-through',
+    },
+
+    // --- doubt of the day ---
+    doubtQuestion: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      color: colors.ink,
+      marginTop: verticalScale(10),
+    },
+    linkRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(6),
-      marginTop: verticalScale(11),
+      marginTop: verticalScale(12),
     },
-    doubtCtaText: {
+    linkText: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.amberText,
     },
-    sectionHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: verticalScale(12),
-    },
-    sectionTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-    },
-    sectionTitleDash: {
-      width: scale(18),
-      height: verticalScale(2),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
-    },
-    sectionTitle: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.9),
-      letterSpacing: scale(1.16),
-      textTransform: 'uppercase',
-      color: colors.ink,
-    },
-    viewAll: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
-      color: colors.slate,
-    },
-    notesRow: {
-      gap: scale(12),
-      paddingRight: scale(20),
-      paddingBottom: verticalScale(4),
-    },
-    noteCard: {
-      width: scale(210),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(16),
-      paddingHorizontal: scale(16),
-    },
-    noteSubjectRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-    },
-    noteDot: {
-      width: scale(6),
-      height: scale(6),
-      borderRadius: scale(3),
-    },
-    noteSubject: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.slate,
-    },
-    noteTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      letterSpacing: scale(-0.225),
-      lineHeight: scale(19.5),
-      color: colors.ink,
-      marginTop: verticalScale(8),
-    },
-    noteBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(18.2),
-      color: colors.slate,
-      marginTop: verticalScale(4),
-    },
+
+    // --- exam scope ---
     scopeRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(14),
-      paddingTop: verticalScale(20),
+      gap: scale(16),
+      marginTop: verticalScale(32),
+      paddingTop: verticalScale(24),
       borderTopWidth: 1,
-      borderTopColor: hairline(0.1),
+      borderTopColor: RULE,
     },
     scopeTextBlock: {
       flex: 1,
       minWidth: 0,
     },
-    scopeOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9),
-      letterSpacing: scale(0.9),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
     scopeTitle: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
       color: colors.ink,
-      marginTop: verticalScale(3),
+      marginTop: verticalScale(10),
     },
     scopeBody: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
-      lineHeight: scale(19.5),
+      lineHeight: scale(18),
       color: colors.slate,
-      marginTop: verticalScale(2),
-    },
-    noteTime: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
-      marginTop: verticalScale(12),
-      paddingTop: verticalScale(10),
-      borderTopWidth: 1,
-      borderTopColor: hairline(0.1),
+      marginTop: verticalScale(4),
     },
   });
 }

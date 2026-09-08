@@ -1005,7 +1005,11 @@ describe('validate() refuses exactly the configurations the picture would lie ab
     expect(floorFires(NaN, 0.07)).toBe(true);
     expect(floorFires(NaN, 70)).toBe(true);
     expect(floorFires(NaN, 10)).toBe(true);
-    // the shape that does NOT work, kept as the contrast
+    // The shape that does NOT work, kept as the contrast. The comparison IS
+    // the assertion here -- this line records that `NaN < x` is false, which
+    // is the bug `floorFires` was written to avoid -- so the rule is off for
+    // it rather than the assertion being rewritten into something else.
+    // eslint-disable-next-line use-isnan
     expect(NaN < 14).toBe(false);
 
     // And the inputs that could produce one are refused before layout runs.

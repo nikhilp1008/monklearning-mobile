@@ -30,6 +30,7 @@ import 'react-native-reanimated';
 // Re-run that check before the next family swap; it is the thing that would
 // catch a migration silently dropping the ohm sign.
 import {
+  Onest_300Light,
   Onest_400Regular,
   Onest_500Medium,
   Onest_600SemiBold,
@@ -74,6 +75,10 @@ export default function RootLayout() {
   // hang" bugs, so every startup gate needs an escape hatch, not just the
   // one that happened to get reported.
   const [fontsLoaded, fontsError] = useFonts({
+    // 300 joins the set for the two welcome headlines, which the onboarding
+    // handoff sets at Light. Anek Latin is gone — see the note above the
+    // imports.
+    Onest_300Light,
     Onest_400Regular,
     Onest_500Medium,
     Onest_600SemiBold,
@@ -191,8 +196,9 @@ export default function RootLayout() {
             name="topic-sheet"
             options={{
               headerShown: false,
-              presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // A page now, not a sheet over the chapter list -- so it pushes
+              // from the right like every other step in this flow.
+              animation: 'slide_from_right',
             }}
           />
           <Stack.Screen
@@ -208,6 +214,13 @@ export default function RootLayout() {
             options={{ headerShown: false, animation: 'fade' }}
           />
           <Stack.Screen name="session-summary" options={{ headerShown: false }} />
+          {/* Pushed screens, not tabs. Both used to live in (tabs) behind
+              href:null, which hid them from the bar but still wrapped them in
+              it -- so picking a chapter or answering a question happened under
+              a navigation bar that had nothing to do with either. Each carries
+              its own back button instead. */}
+          <Stack.Screen name="drona" options={{ headerShown: false }} />
+          <Stack.Screen name="practice" options={{ headerShown: false }} />
           <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
           <Stack.Screen

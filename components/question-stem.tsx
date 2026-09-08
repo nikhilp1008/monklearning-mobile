@@ -49,7 +49,11 @@ export function QuestionStem({
     <MathLine
       text={content}
       style={{
-        fontFamily: 'AnekLatin_500Medium',
+        // Onest. Anek Latin stopped being loaded in the family migration and
+        // this line was the one reference left behind, so every question stem
+        // in Practice was falling through to the iOS system face — on a screen
+        // that is Onest everywhere else.
+        fontFamily: 'Onest_500Medium',
         fontSize: size,
         lineHeight: size * (lineHeight / fontSize),
         color: colors.ink,

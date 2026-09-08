@@ -1,237 +1,190 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path, Rect, Circle } from 'react-native-svg';
 
-import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 
-type TabIconProps = { active: boolean; size: number };
-
-// Filled for active, outline for inactive — a single silhouette per icon,
-// rendered two ways rather than just recolored, per the redesign's icon spec.
-function HomeIcon({ active, size }: TabIconProps) {
-  const housePath = 'M4.5 10.4 12 3.8l7.5 6.6V18a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2z';
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d={housePath} fill={colors.ink} />
-        <Circle cx={12} cy={14.4} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={housePath} stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={12} cy={14.4} r={1.7} fill={colors.faint} />
-    </Svg>
-  );
-}
-
-function TextbooksIcon({ active, size }: TabIconProps) {
-  const bookPath =
-    'M12 6.4C10.1 4.7 7.3 4.1 4 4.5v13c3.3-.4 6.1.2 8 1.9 1.9-1.7 4.7-2.3 8-1.9v-13c-3.3-.4-6.1.2-8 1.9z';
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d={bookPath} fill={colors.ink} />
-        <Circle cx={12} cy={12.9} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={bookPath} stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M12 6.4v13" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
-      <Circle cx={12} cy={12.9} r={1.7} fill={colors.faint} />
-    </Svg>
-  );
-}
-
 /**
- * Doubts — a question mark inside a snapped frame.
+ * The bottom island — export-10a.
  *
- * A doubt is always a photographed question, so the frame is the corner marks
- * of a viewfinder rather than a speech bubble, which would have read as chat.
- * The marigold dot sits where every other icon in this bar carries it.
+ * One white pill holding four labelled items: Home, Textbooks, Doubts, Notes.
+ *
+ * The centre "Class" pill is gone. It was a fifth control that did not belong
+ * to the bar's own job: the other four switch which page you are looking at,
+ * while Class pushed a route on top of whichever page you were on. Starting a
+ * class is now the charcoal block at the top of Home, which is where the
+ * product's front door should be -- and the bar goes back to being four peers
+ * with nothing competing for the middle.
+ *
+ * Labels are back too. With five items and a labelled pill in the centre, four
+ * unlabelled glyphs beside it read as decoration; with four items in a row the
+ * labels fit at 10pt and the icons stop having to carry a word on their own.
  */
-function DoubtsIcon({ active, size }: TabIconProps) {
-  const frame =
-    'M4.2 8.6V6.4a2.2 2.2 0 0 1 2.2-2.2h2.2M15.4 4.2h2.2a2.2 2.2 0 0 1 2.2 2.2v2.2M19.8 15.4v2.2a2.2 2.2 0 0 1-2.2 2.2h-2.2M8.6 19.8H6.4a2.2 2.2 0 0 1-2.2-2.2v-2.2';
-  const mark = 'M9.9 9.7a2.2 2.2 0 1 1 2.6 2.5v1.2';
+
+const OFF = '#8A857A';
+
+type IconProps = { color: string; size: number };
+
+/** Solid, and its fill follows the item's colour like every other stroke here
+ *  -- so it goes grey with the rest rather than becoming a second active mark
+ *  the way a permanently-ink house would. The door is cut in paper. */
+function HomeIcon({ color, size }: IconProps) {
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={frame} stroke={colors.ink} strokeWidth={active ? 2.4 : 1.75} strokeLinecap="round" />
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Path
-        d={mark}
-        stroke={colors.ink}
-        strokeWidth={active ? 2.2 : 1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M4.75 10.6 12 4.75l7.25 5.85V18.4a1.85 1.85 0 0 1-1.85 1.85H6.6a1.85 1.85 0 0 1-1.85-1.85z"
+        fill={color}
+        stroke={color}
+        strokeWidth={1.6}
       />
-      <Circle cx={12.4} cy={16.4} r={active ? 1.6 : 1.4} fill={active ? colors.marigold : colors.faint} />
+      <Path d="M9.75 20.25v-5.1a2.25 2.25 0 0 1 4.5 0v5.1" stroke={colors.paper} strokeWidth={1.6} />
     </Svg>
   );
 }
 
-/**
- * Notes — a ruled page with its corner turned.
- *
- * Deliberately not a book: Textbooks already owns that shape, one tab away.
- * The rules are what separate it from a plain document, and they echo the
- * ruled paper a note is actually rendered on.
- */
-function NotesIcon({ active, size }: TabIconProps) {
-  const page = 'M5.6 3.4h7.6l5.2 5.2v12a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V5.4a2 2 0 0 1 2-2z';
-  if (active) {
-    return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-        <Path d={page} fill={colors.ink} />
-        <Path
-          d="M7.4 12.6h7M7.4 16h4.4"
-          stroke={colors.paper}
-          strokeWidth={1.6}
-          strokeLinecap="round"
-        />
-        <Circle cx={16.4} cy={17.4} r={1.8} fill={colors.marigold} />
-      </Svg>
-    );
-  }
+function TextbooksIcon({ color, size }: IconProps) {
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d={page} stroke={colors.ink} strokeWidth={1.75} strokeLinejoin="round" />
-      <Path
-        d="M13.2 3.4v5.2h5.2"
-        stroke={colors.ink}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M7.4 12.6h7M7.4 16h4.4" stroke={colors.ink} strokeWidth={1.6} strokeLinecap="round" />
-      <Circle cx={16.4} cy={17.4} r={1.4} fill={colors.faint} />
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={5} y={4.4} width={12} height={4.6} rx={1.6} stroke={color} strokeWidth={1.6} />
+      <Rect x={7} y={9.9} width={12.5} height={4.6} rx={1.6} stroke={color} strokeWidth={1.6} />
+      <Rect x={4.4} y={15.4} width={13.4} height={4.6} rx={1.6} stroke={color} strokeWidth={1.6} />
     </Svg>
   );
 }
 
+function DoubtsIcon({ color, size }: IconProps) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Path
+        d="M8.3 6.3 9.5 4.5h5l1.2 1.8h1.8A2.5 2.5 0 0 1 20 8.8v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.8v-8a2.5 2.5 0 0 1 2.5-2.5z"
+        stroke={color}
+        strokeWidth={1.6}
+      />
+      <Circle cx={12} cy={12.8} r={3.3} stroke={color} strokeWidth={1.6} />
+    </Svg>
+  );
+}
 
-const TAB_META: Record<string, { label: string; Icon: (props: TabIconProps) => React.ReactElement }> = {
-  index: { label: 'Home', Icon: HomeIcon },
-  textbooks: { label: 'Textbooks', Icon: TextbooksIcon },
-  doubts: { label: 'Doubts', Icon: DoubtsIcon },
-  notes: { label: 'Notes', Icon: NotesIcon },
+function NotesIcon({ color, size }: IconProps) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={5} y={3.75} width={14} height={16.5} rx={2.2} stroke={color} strokeWidth={1.6} />
+      <Path d="M9 3.75v16.5" stroke={color} strokeWidth={1.6} />
+      <Path d="M12.2 9h3.6M12.2 12.5h3.6" stroke={color} strokeWidth={1.6} />
+    </Svg>
+  );
+}
+
+const ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
+  index: HomeIcon,
+  textbooks: TextbooksIcon,
+  doubts: DoubtsIcon,
+  notes: NotesIcon,
 };
 
-export function TabBar({ state, navigation }: BottomTabBarProps) {
+export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { scale, verticalScale } = useScale();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(
-    () => createStyles(scale, verticalScale, insets.bottom),
-    [scale, verticalScale, insets.bottom]
-  );
+  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+
+  // ICONS is the whitelist. Lessons and Progress are still routable screens in
+  // this group (`href: null`), and having no icon here is what keeps them out
+  // of the bar -- one list to edit rather than two that can disagree.
+  const routes = state.routes.filter((route) => ICONS[route.name]);
 
   return (
     <>
+      {/* Content scrolls under the island rather than stopping short of it, so
+          the page needs to fade out behind it instead of ending in a hard cut. */}
       <LinearGradient
         pointerEvents="none"
-        colors={[colors.paper, 'rgba(255,253,248,0)']}
-        start={{ x: 0.5, y: 1 }}
-        end={{ x: 0.5, y: 0 }}
-        style={styles.fade}
+        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,.96)']}
+        locations={[0, 0.55]}
+        style={[styles.fade, { height: verticalScale(120) }]}
       />
-      <View style={styles.container}>
-        <View style={styles.row}>
-          {state.routes.map((route, index) => {
-            const meta = TAB_META[route.name];
-            if (!meta) return null;
-            const { Icon, label } = meta;
-            const isFocused = state.index === index;
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
+      <View
+        style={[styles.bar, { bottom: Math.max(verticalScale(26), insets.bottom) }]}
+        accessibilityRole="tablist">
+        {routes.map((route) => {
+          const { options } = descriptors[route.key];
+          const focused = state.routes[state.index].key === route.key;
+          const Icon = ICONS[route.name];
+          const color = focused ? colors.ink : OFF;
+          const label = options.title ?? route.name;
 
-            return (
-              <PressableScale
-                key={route.key}
-                onPress={onPress}
-                accessibilityRole="tab"
-                accessibilityLabel={label}
-                style={[styles.item, !isFocused && styles.itemInactive]}>
-                <Icon active={isFocused} size={scale(23)} />
-                <Text style={[styles.label, isFocused && styles.labelActive]}>{label}</Text>
-              </PressableScale>
-            );
-          })}
-        </View>
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={label}
+              style={styles.item}
+              onPress={() => {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (!focused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              }}>
+              <Icon color={color} size={scale(22)} />
+              <Text style={[styles.label, { color }, focused && styles.labelOn]}>{label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </>
   );
 }
 
-function createStyles(
-  scale: (size: number) => number,
-  verticalScale: (size: number) => number,
-  bottomInset: number
-) {
-  const barHeight = verticalScale(56) + bottomInset;
-
+function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
     fade: {
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: barHeight,
-      height: verticalScale(32),
-    },
-    container: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
       bottom: 0,
-      backgroundColor: '#FFFFFF',
-      borderTopWidth: 1.5,
-      borderTopColor: 'rgba(28,26,22,.16)',
-      paddingHorizontal: scale(12),
-      // Split out of the row's own height rather than added on top, so the
-      // total bar height (and the `fade` gradient pinned above it) stays
-      // exactly `barHeight` — this just shifts the icon row down within
-      // that same footprint, off the very top edge, so the safe-area gap
-      // below it (bare on notch-less Android, ~34pt on iPhone) doesn't read
-      // as an orphaned dead zone now that the fake home-indicator bar that
-      // used to sit inside it is gone.
-      paddingTop: verticalScale(6),
-      paddingBottom: bottomInset,
     },
-    row: {
+    bar: {
+      position: 'absolute',
+      left: scale(16),
+      right: scale(16),
+      height: verticalScale(64),
       flexDirection: 'row',
-      height: verticalScale(50),
-      alignItems: 'center',
+      alignItems: 'stretch',
+      gap: scale(2),
+      paddingHorizontal: scale(8),
+      borderRadius: 99,
+      backgroundColor: '#fff',
+      // `0 0 0 1px` in the handoff: a ring, not a border, so it does not take
+      // a point off the inside of the pill.
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.06)',
+      shadowColor: colors.ink,
+      shadowOpacity: 0.14,
+      shadowOffset: { width: 0, height: verticalScale(8) },
+      shadowRadius: scale(22),
+      elevation: 12,
     },
     item: {
       flex: 1,
       alignItems: 'center',
-      gap: scale(3),
-    },
-    itemInactive: {
-      opacity: 0.5,
+      justifyContent: 'center',
+      gap: verticalScale(4),
     },
     label: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
-      color: colors.faint,
+      lineHeight: scale(12),
     },
-    labelActive: {
-      fontFamily: 'Onest_800ExtraBold',
-      color: colors.ink,
+    labelOn: {
+      fontFamily: 'Onest_700Bold',
     },
   });
 }

@@ -140,8 +140,10 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
   return StyleSheet.create({
     grid: {
       gap: scale(16),
-      paddingHorizontal: scale(20),
-      paddingTop: verticalScale(14),
+      // 24, the app-wide gutter -- was 20, which left the shelf a notch wider
+      // than the lists on the neighbouring tabs.
+      paddingHorizontal: scale(24),
+      paddingTop: verticalScale(20),
     },
     row: { flexDirection: 'row', gap: scale(16) },
     filler: { flex: 1 },
