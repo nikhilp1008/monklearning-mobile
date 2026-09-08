@@ -267,6 +267,10 @@ export default function PracticeScreen() {
     if (focus.mode === 'chapter' && focus.subject !== SUBJECT_QUERY[activeSubject]) {
       setFocus(DEFAULT_PRACTICE_FOCUS);
     }
+    // A question queued under the old subject is not just unusable, it would
+    // also stop a new one being queued — `prefetchNext` declines while a
+    // prefetch is already held.
+    prefetchedRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSubject]);
 
@@ -279,17 +283,36 @@ export default function PracticeScreen() {
 
 
   /**
-   * Fetches the question after this one while the student is still reading the
-   * current solution, so tapping Next swaps instantly instead of waiting on a
-   * measured ~2.5-3.5s round-trip. Discarded silently on failure — Next falls
-   * back to fetching normally, so a failed prefetch costs nothing.
+   * Fetches the question after this one the moment the current one is on
+   * screen, so Next and Skip both swap instantly instead of waiting on the
+   * round trip.
+   *
+   * That wait is not small and it is not the network: `/practice/next` reads
+   * every question in the subject and filters them in Python, so it ships 1000
+   * rows and 0.8 MB to choose one. Timed against production: 2.2s for that
+   * query alone, plus ~0.3s for the attempts it also pulls whole. The real fix
+   * is server-side — see the note in the commit — but no student should be
+   * made to watch it, and by the time they have read one question the next is
+   * already here.
+   *
+   * It used to fire only after an answer was graded, which left Skip -- the
+   * one action whose whole point is "not this one, quickly" -- paying full
+   * price every time.
+   *
+   * The cost is one question burned if they leave the screen without using it,
+   * since `/practice/next` records a serve. That was already true of the
+   * post-grade prefetch; this widens the window, not the principle. Discarded
+   * silently on failure — the next load just fetches normally.
    */
   const prefetchedRef = useRef<NextQuestion | null>(null);
   const prefetchSubjectRef = useRef(activeSubject);
 
+  /** Set while a prefetch is in the air, so two triggers cannot both fire. */
+  const prefetchInFlight = useRef(false);
+
   function prefetchNext() {
-    if (!scope) return;
-    prefetchedRef.current = null;
+    if (!scope || prefetchInFlight.current || prefetchedRef.current) return;
+    prefetchInFlight.current = true;
     prefetchSubjectRef.current = activeSubject;
     getNextQuestion({ subject: SUBJECT_QUERY[activeSubject], ...scope })
       .then((result) => {
@@ -300,6 +323,9 @@ export default function PracticeScreen() {
       })
       .catch(() => {
         prefetchedRef.current = null;
+      })
+      .finally(() => {
+        prefetchInFlight.current = false;
       });
   }
 
@@ -336,6 +362,7 @@ export default function PracticeScreen() {
       setQuestion(ready);
       setSeen((n) => n + 1);
       setLoading(false);
+      prefetchNext();
       return;
     }
 
@@ -358,6 +385,7 @@ export default function PracticeScreen() {
       } else {
         setQuestion(result);
         setSeen((n) => n + 1);
+        prefetchNext();
       }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
