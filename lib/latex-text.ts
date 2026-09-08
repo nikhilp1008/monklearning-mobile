@@ -388,6 +388,23 @@ const SCRIPT_CLOSE = '\u0018';
  * is why a module-level flag is safe here: nothing awaits in between, so no
  * second conversion can observe it.
  */
+/**
+ * A matrix, kept as a grid rather than flattened.
+ *
+ * Two dimensions need a view, not a character, so `latexToText` degrades one to
+ * `[a  b ; c  d]` -- a semicolon between rows, because that is how it would be
+ * dictated. Measured over the bank, 2.9% of stems hold one, which is often
+ * enough that a determinant question reads as punctuation.
+ *
+ * The delimiters ride inside the marker: exactly two characters after
+ * MATRIX_OPEN, a space standing for "none" (`cases` opens a brace and never
+ * closes it). No delimiter is ever a space, so the slot cannot be misread.
+ */
+const MATRIX_OPEN = '\u0019';
+const MATRIX_CELL = '\u001A';
+const MATRIX_ROW = '\u001B';
+const MATRIX_CLOSE = '\u001C';
+
 let markSegments = false;
 
 function renderFraction(rawNum: string, rawDen: string): string {
@@ -443,7 +460,9 @@ export type MathSegment =
   /** A sub- or superscript with no Unicode character to spell it. */
   | { kind: 'sub'; text: string }
   | { kind: 'sup'; text: string }
-  | { kind: 'fraction'; numerator: string; denominator: string };
+  | { kind: 'fraction'; numerator: string; denominator: string }
+  /** A grid, with the delimiters it is written between. */
+  | { kind: 'matrix'; rows: string[][]; open: string; close: string };
 
 /**
  * The same conversion `latexToText` does, but with fractions kept as pieces
@@ -497,6 +516,28 @@ export function latexToSegments(raw: string): MathSegment[] {
       i = close;
       continue;
     }
+    if (ch === MATRIX_OPEN) {
+      const end = marked.indexOf(MATRIX_CLOSE, i);
+      if (end === -1) {
+        buffer += ch;
+        continue;
+      }
+      flush();
+      // Two characters of delimiter, then the grid — see MATRIX_OPEN.
+      const openDelim = marked[i + 1] === ' ' ? '' : marked[i + 1];
+      const closeDelim = marked[i + 2] === ' ' ? '' : marked[i + 2];
+      segments.push({
+        kind: 'matrix',
+        open: openDelim,
+        close: closeDelim,
+        rows: marked
+          .slice(i + 3, end)
+          .split(MATRIX_ROW)
+          .map((row) => row.split(MATRIX_CELL)),
+      });
+      i = end;
+      continue;
+    }
     if (ch === FRAC_OPEN) {
       const sep = marked.indexOf(FRAC_SEP, i);
       const close = marked.indexOf(FRAC_CLOSE, sep);
@@ -521,13 +562,39 @@ export function latexToSegments(raw: string): MathSegment[] {
 
 /** A fraction's halves are rendered as plain text, so any marker that rode
  *  along inside them would show up as a control character. */
+/** A matrix cell renders as plain text, so any marker inside it is spelled
+ *  out rather than drawn -- a fraction becomes `(a)/(b)`, a nested grid its
+ *  linear form. */
+function flattenMarkers(text: string): string {
+  let out = strip(text);
+  // Rebuilt the way `renderFraction`'s own linear branch does it, rather than
+  // wrapping both halves unconditionally: a half that is a single term needs
+  // no brackets, and `1/2` beats `(1)/(2)` inside an already-small cell.
+  for (let guard = 0; out.includes(FRAC_OPEN) && guard < 20; guard += 1) {
+    const open = out.indexOf(FRAC_OPEN);
+    const sep = out.indexOf(FRAC_SEP, open);
+    const close = out.indexOf(FRAC_CLOSE, sep);
+    if (sep === -1 || close === -1) break;
+    const half = (part: string) => (isAtomic(part) ? part : `(${part})`);
+    out =
+      out.slice(0, open) +
+      `${half(out.slice(open + 1, sep))}/${half(out.slice(sep + 1, close))}` +
+      out.slice(close + 1);
+  }
+  return out;
+}
+
 function strip(text: string): string {
   return text
     .split(MATH_OPEN).join('')
     .split(MATH_CLOSE).join('')
     .split(SUB_OPEN).join('')
     .split(SUP_OPEN).join('')
-    .split(SCRIPT_CLOSE).join('');
+    .split(SCRIPT_CLOSE).join('')
+    .split(MATRIX_OPEN).join('')
+    .split(MATRIX_CELL).join(' ')
+    .split(MATRIX_ROW).join(' ; ')
+    .split(MATRIX_CLOSE).join('');
 }
 
 /** Converts the body of one math segment (already stripped of its `$`). */
@@ -607,18 +674,15 @@ export function convertMath(src: string): string {
         const body = at === -1 ? src.slice(i) : src.slice(i, at);
         i = at === -1 ? src.length : at + close.length;
 
-        const rows = body
+        const cells = body
           .split(/\\\\/)
           .map((row) =>
             row
               .split('&')
               .map((cell) => convertMath(cell).trim())
               .filter(Boolean)
-              .join('  ')
           )
-          .map((row) => row.trim())
-          .filter(Boolean);
-        const inner = rows.join(' ; ');
+          .filter((row) => row.length);
         const WRAP: Record<string, [string, string]> = {
           vmatrix: ['|', '|'],
           Vmatrix: ['‖', '‖'],
@@ -628,7 +692,19 @@ export function convertMath(src: string): string {
           cases: ['{', ''],
         };
         const [open, shut] = WRAP[kind] ?? ['', ''];
-        out += `${open}${inner}${shut}`;
+        if (markSegments && cells.length) {
+          // A matrix inside a matrix cell stays linear, the same call
+          // `renderFraction` makes for a nested fraction: stacking it would
+          // build a grid of grids out of one line of working.
+          out +=
+            MATRIX_OPEN +
+            (open || ' ') +
+            (shut || ' ') +
+            cells.map((row) => row.map(flattenMarkers).join(MATRIX_CELL)).join(MATRIX_ROW) +
+            MATRIX_CLOSE;
+          continue;
+        }
+        out += `${open}${cells.map((row) => row.join('  ')).join(' ; ')}${shut}`;
         continue;
       }
 
