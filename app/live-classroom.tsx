@@ -1815,12 +1815,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 0,
     },
     // Pinned to 54 so the plate cannot resize when the label changes.
+    /**
+     * 60, not 54.
+     *
+     * "INTERRUPT" measures 56.2pt in Onest ExtraBold at 8.5 with 0.1em
+     * tracking, so it spilled out of a 54pt box and over the rail's rounded
+     * plate. The other two states fit -- "SPEAKING" 50.8, "MIC OFF" 41.7 --
+     * which is why only the resting state looked wrong. The box is the widest
+     * child of the rail, so it also sets the rail's width; a fixed one keeps
+     * the dock from resizing as the label changes.
+     *
+     * lineHeight is explicit so the -3 lands the same on any face. The old -4
+     * was measured against Anek Latin's line box.
+     */
     talkLabel: {
-      width: 54,
-      marginTop: -4,
+      width: 60,
+      marginTop: -3,
       textAlign: 'center',
       fontFamily: 'Onest_800ExtraBold',
       fontSize: 8.5,
+      lineHeight: 11,
       letterSpacing: 0.1 * 8.5,
       textTransform: 'uppercase',
       color: INK_MUTED,
