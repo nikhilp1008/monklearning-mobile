@@ -28,7 +28,11 @@ describe('a dollar sign followed by a digit is currency', () => {
 
 describe('real inline maths still converts', () => {
   test('a letter after the delimiter is maths, not a price', () => {
-    expect(latexToText('Area is $A = \\pi r^2$ here')).toBe('Area is A = π r² here');
+    // `πr²`, not `π r²`. 74ed13f made a LETTER-LIKE glyph bind to what follows,
+    // because `$\\Delta H$` was reading as "Δ H" and an enthalpy is one
+    // quantity. π binds to r for the same reason; `2 \\times 10^6` stays
+    // spaced because × is an operator, not a letter.
+    expect(latexToText('Area is $A = \\pi r^2$ here')).toBe('Area is A = πr² here');
   });
 
   test('a command after the delimiter is maths', () => {
