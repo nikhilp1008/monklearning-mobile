@@ -974,13 +974,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /**
      * Carried by every row except the first, so the list never closes on a
-     * dangling line. hairlineWidth, not 1 -- one device pixel, which on a 3x
-     * screen is a third of a point: the line reads as a seam in the paper
-     * rather than as a border drawn on top of it.
+     * dangling line.
+     *
+     * 1pt, not hairlineWidth. hairlineWidth is a single device pixel -- a
+     * third of a point here -- and at .12 alpha that fell below the threshold
+     * where the eye reads it as a divider at all: present in a screenshot,
+     * invisible on the phone. 1pt is three times the ink and still lighter
+     * than any border on the page.
      */
     noteRowDivided: {
       paddingTop: verticalScale(15),
-      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopWidth: 1,
       borderTopColor: colors.hairline,
     },
     noteRowTitle: {
