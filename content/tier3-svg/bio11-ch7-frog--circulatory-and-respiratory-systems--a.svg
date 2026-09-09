@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 248" width="360" height="248">
+  <!--
+    Frog heart, ventral view. Figure a (sub_index 0) of the concept
+    bio11-ch7-frog, circulatory and respiratory systems.
+
+    No double hyphen anywhere in these comments: XML forbids it inside a
+    comment and the slug is full of them. Spelling the slug out cost one
+    cairosvg parse failure to learn, on a file the gate had already passed.
+
+    THE VIEWBOX IS 360x248 AND THAT IS A GATE DECISION, not a drawing one.
+    A static SVG scales everything, chrome included, which is the trap
+    docs/small-screen-rendering-rules.md describes. Fitted into the smallest
+    board this app renders (343x236) the contain scale is 0.952, so a 12-unit
+    label lands at 11.4 device px, above the gate's floor of 11. Authored any
+    larger, the labels sink under the floor on a phone while still looking
+    fine at 900x430.
+
+    LABELS ARE COLUMN-ALIGNED TO THEIR LEADERS, right-aligned at x=118 on the
+    left and left-aligned at x=242 on the right. The first draft placed them
+    all at x=8 and let each line end where its text did, so the leaders began
+    in empty space at a different gap per label and pointed at nothing. The
+    gate passed that: it measures collisions, bounds and floors, not whether a
+    leader touches the thing it names.
+
+    Chrome values are lib/widgets/chrome.ts's: LABEL_SIZE 12, LINE_STROKE 1.6,
+    EMPHASIS_STROKE 2.6 for the ventricle wall, HAIRLINE_STROKE 1.5 for leaders.
+
+    Only M/L/C/Z. The gate's pathBounds reads a `d` as a flat list of
+    coordinate PAIRS, so an arc would have its flags read as coordinates.
+  -->
+  <g fill="none" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- AORTIC ARCHES, three per side, leaving the two divisions of the
+         truncus. Outermost is the carotid, then the systemic, then the
+         pulmocutaneous innermost. They are drawn diverging along their whole
+         length: an earlier version let them leave a single point and they read
+         as one vessel with a fork. -->
+    <path d="M150,74 C136,56 128,34 124,14"/>
+    <path d="M150,74 C142,54 140,34 142,16"/>
+    <path d="M150,74 C158,58 168,40 176,24"/>
+
+    <path d="M200,78 C200,60 202,40 204,22"/>
+    <path d="M200,78 C210,58 218,38 224,16"/>
+    <path d="M200,78 C214,60 228,36 238,14"/>
+
+    <!-- TRUNCUS ARTERIOSUS, a short tube dividing left and right. Off centre
+         because the conus lies on the animal's right, the viewer's left in a
+         ventral view. -->
+    <path d="M140,98 C144,90 152,84 162,82"/>
+    <path d="M150,102 C154,94 160,90 168,90"/>
+    <path d="M162,82 C158,78 154,76 150,74"/>
+    <path d="M168,90 C180,86 192,82 200,78"/>
+
+    <!-- CONUS ARTERIOSUS, drawn as a TUBE of two walls rather than one line,
+         so it reads as a vessel lying on the ventral face of the ventricle
+         instead of as part of the ventricle outline. -->
+    <path d="M150,154 C136,138 132,116 140,98"/>
+    <path d="M160,152 C148,138 144,118 150,102"/>
+
+    <!-- SINUS VENOSUS, dorsal, so dashed: it lies behind the left atrium and
+         all three caval veins open into it. -->
+    <g stroke-dasharray="5 4">
+      <path d="M210,102 C214,90 234,90 238,102 C234,112 214,112 210,102 Z"/>
+      <path d="M236,72 C232,82 230,90 228,94"/>
+      <path d="M238,146 C234,130 232,116 232,108"/>
+    </g>
+
+    <!-- ATRIA, two, sitting on the single ventricle. -->
+    <path d="M152,150 C142,132 148,114 166,114 C178,114 182,130 182,150 Z"/>
+    <path d="M212,150 C222,132 216,114 198,114 C186,114 182,130 182,150 Z"/>
+
+    <!-- VENTRICLE, one, thick walled, tapering to the apex. -->
+    <path d="M152,150 C148,186 164,216 182,228 C200,216 216,186 212,150 Z"
+          stroke-width="2.6"/>
+
+    <!-- PULMONARY VEINS, returning oxygenated blood to the LEFT atrium. -->
+    <path d="M236,176 C224,164 210,150 200,138"/>
+    <path d="M238,166 C226,156 212,142 204,132"/>
+  </g>
+
+  <!-- LEADERS. Hairline and grey, deliberately lighter than any structure, so
+       a leader is never mistaken for a vessel. Each starts 4 units from its
+       label's edge and ends ON the thing it names. -->
+  <g stroke="#5a5a5a" stroke-width="1.5" fill="none">
+    <line x1="122" y1="22" x2="125" y2="20"/>
+    <line x1="122" y1="42" x2="140" y2="26"/>
+    <line x1="122" y1="78" x2="170" y2="36"/>
+    <line x1="122" y1="114" x2="156" y2="88"/>
+    <line x1="122" y1="150" x2="140" y2="126"/>
+    <line x1="122" y1="172" x2="163" y2="132"/>
+    <line x1="122" y1="194" x2="168" y2="196"/>
+    <line x1="238" y1="62" x2="235" y2="76"/>
+    <line x1="238" y1="98" x2="237" y2="102"/>
+    <line x1="238" y1="120" x2="214" y2="130"/>
+    <line x1="238" y1="150" x2="236" y2="142"/>
+    <line x1="238" y1="182" x2="235" y2="177"/>
+  </g>
+
+  <!-- LABELS. 12 units; 11.4 device px at 343x236. Rows are 22 or more apart:
+       a label BOX is fontSize * 1.15 = 13.8 tall, so the 12-unit spacing the
+       first draft used overlapped by 1.8 and the gate caught it.
+
+       The three longest terms wrap to two lines. Measured against the shipped
+       Onest advances, "pulmocutaneous arch" is 132 units at size 12: right
+       aligned in a 118-unit gutter it started at x = -14 and ran off the left
+       edge at 343x236 while fitting at 900x430, because a wider board scales
+       the gutter up with everything else. The narrow board is the one that
+       binds. Wrapping is the fix; shortening the term is not, since it is the
+       term the book uses. -->
+  <g font-family="Onest" font-size="12" fill="#1a1a1a">
+    <text x="118" y="24"  text-anchor="end">carotid arch</text>
+    <text x="118" y="44"  text-anchor="end">systemic arch</text>
+    <text x="118" y="66"  text-anchor="end">pulmocutaneous</text>
+    <text x="118" y="80"  text-anchor="end">arch</text>
+    <text x="118" y="102" text-anchor="end">truncus</text>
+    <text x="118" y="116" text-anchor="end">arteriosus</text>
+    <text x="118" y="138" text-anchor="end">conus</text>
+    <text x="118" y="152" text-anchor="end">arteriosus</text>
+    <text x="118" y="174" text-anchor="end">right atrium</text>
+    <text x="118" y="196" text-anchor="end">ventricle</text>
+    <text x="242" y="64"  text-anchor="start">precaval vein</text>
+    <text x="242" y="100" text-anchor="start">sinus venosus</text>
+    <text x="242" y="122" text-anchor="start">left atrium</text>
+    <text x="242" y="152" text-anchor="start">postcaval vein</text>
+    <text x="242" y="184" text-anchor="start">pulmonary vein</text>
+  </g>
+</svg>
