@@ -79,8 +79,41 @@ describe('the URL names the file that was picked', () => {
 });
 
 test('the threshold matches what the ingest upscales', () => {
-  // The client must not ask for a rendition the ingest never produced. 1600 is
-  // the ingest's own bound; every one of the 112 masters is under it.
-  expect(RENDITION_THRESHOLD_PX).toBe(1600);
+  // The client must not ask for a rendition the ingest never produced.
+  expect(RENDITION_THRESHOLD_PX).toBe(1800);
   expect(MASTER_W).toBeLessThan(RENDITION_THRESHOLD_PX);
+});
+
+describe('no master width can ask for a file the ingest declines to make', () => {
+  /**
+   * The rule on each side, stated once:
+   *   client: asks for @2x when frameWidthPt * dpr > masterWidthPx
+   *   ingest: produces  @2x when masterWidthPx < RENDITION_THRESHOLD_PX
+   * They agree only if the threshold IS the widest request the app can make.
+   *
+   * When the threshold was 1600 this swept up a window nobody was watching:
+   * a 1700px master asks for @2x at 900pt/2x (1800 > 1700) and the ingest
+   * skips it, so the board fetches a key that does not exist. No master in
+   * v1.1 fell in that window, which is exactly why it survived — a latent gap
+   * has no symptom until the first file lands in it, and the frog heart was
+   * about to be rendered at 1792.
+   */
+  const FRAMES: [number, number][] = [[343, 3], [495, 3], [900, 2]];
+  const widest = Math.max(...FRAMES.map(([f, d]) => f * d));
+
+  test('the threshold is exactly the widest request', () => {
+    expect(RENDITION_THRESHOLD_PX).toBe(widest);
+  });
+
+  test.each(
+    Array.from({ length: 60 }, (_v, i) => 500 + i * 25)   // 500..1975
+  )('master %ipx: every frame gets a file that exists', (masterW) => {
+    const ingestMakesRendition = masterW < RENDITION_THRESHOLD_PX;
+    for (const [frame, dpr] of FRAMES) {
+      const wants = pickRendition(masterW, frame, dpr);
+      if (wants === RENDITION_SUFFIX) {
+        expect(ingestMakesRendition).toBe(true);
+      }
+    }
+  });
 });

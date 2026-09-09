@@ -74,7 +74,18 @@ export function labelSetUrl(base: string, slug: string): string {
 export const RENDITION_SUFFIX = '@2x';
 
 /** The largest master this pipeline upscales. Mirrors the ingest's own bound. */
-export const RENDITION_THRESHOLD_PX = 1600;
+/**
+ * The widest request this app can make: 900pt at 2x. A master at least this
+ * wide is never asked for a rendition, and a master under it always is on some
+ * device — so this is also the width above which the ingest stops producing
+ * one, and the two must be the same number.
+ *
+ * It was 1600 on both sides, which opened a window nothing was watching: a
+ * master 1601..1799 px wide was asked for an @2x the ingest declined to make,
+ * and the board 404s on the only file it wants. No master in v1.1 fell in it,
+ * so it was latent rather than broken.
+ */
+export const RENDITION_THRESHOLD_PX = 1800;
 
 /**
  * Which file to fetch for a frame. `master` or `@2x`.

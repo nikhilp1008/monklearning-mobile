@@ -31,6 +31,7 @@
  * label reader that found zero labels and reported a pass.
  */
 import { readFileSync } from 'node:fs';
+import sax from 'sax';
 
 const argv = process.argv.slice(2);
 const file = argv.find(a => !a.startsWith('--'));
@@ -40,29 +41,52 @@ if (!file) { console.error('usage: svg-to-tree.mjs <file.svg> [--w N] [--h N]');
 
 const src = readFileSync(file, 'utf8');
 
-// Unsupported constructs are a REFUSAL, not a silent skip. Each of these would
-// move or hide geometry this file cannot follow, and measuring the rest would
-// report a confident number about a picture that is not the one on screen.
+/* ---------- 1. STRICT XML PARSE, BEFORE ANYTHING ELSE ---------- */
+/*
+ * A REAL parser, not a regex, and it runs first.
+ *
+ * This gate once passed a document at all three frames that cairosvg then
+ * refused to open: its comment named a slug containing a double hyphen, which
+ * XML forbids inside a comment, and the converter stripped comments with a
+ * regex that did not care. Every slug in drona-illustrations-v1.1 has that
+ * shape, so it is the mistake a tier-3 author is most likely to make.
+ *
+ * A checker looser than the consumer green-lights what ships broken. The
+ * consumer here is a real XML parser — react-native-svg's, cairosvg's, any
+ * browser's — so the check has to be one too.
+ *
+ * sax in STRICT mode, and it is a declared devDependency rather than a
+ * transitive one: this assertion disappearing because some other package
+ * dropped its dependency would be silent. @xmldom/xmldom was the other
+ * candidate and is not usable here — measured, it ACCEPTS the malformed
+ * comment.
+ *
+ * Failing fixture: test/fixtures/svg/malformed-comment.svg
+ */
+function parseStrict(xml, path) {
+  const errors = [];
+  const parser = sax.parser(true, { xmlns: false, position: true });
+  parser.onerror = (e) => { errors.push(e.message.split('\n')[0]); parser.resume(); };
+  try { parser.write(xml).close(); } catch (e) { errors.push(String(e.message).split('\n')[0]); }
+  if (errors.length) {
+    console.error(`svg-to-tree: ${path} is not well-formed XML — ${errors[0]}`);
+    console.error('  Real parsers refuse this file. Nothing downstream is measured.');
+    process.exit(2);
+  }
+}
+parseStrict(src, file);
+
+/* ---------- 2. constructs this converter cannot follow ---------- */
+/*
+ * Unsupported constructs are a REFUSAL, not a silent skip. Each would move or
+ * hide geometry this file cannot follow, and measuring the rest would report a
+ * confident number about a picture that is not the one on screen.
+ */
 for (const bad of ['<use', '<defs', '<clipPath', '<linearGradient', '<radialGradient',
                    '<style', '<symbol', '<image', 'transform=']) {
   if (src.includes(bad)) {
     console.error(`svg-to-tree: ${file} contains ${bad} — this converter cannot follow it, ` +
                   `and measuring the rest would be a confident number about the wrong picture.`);
-    process.exit(2);
-  }
-}
-
-// WELL-FORMEDNESS FIRST. This converter strips comments with a regex, which
-// is more forgiving than any real XML parser — and the first version of the
-// frog heart passed this gate at all three frames while being invalid XML,
-// because its comment named a slug containing a double hyphen. XML forbids
-// `--` inside a comment. The gate said OK and cairosvg refused to open the
-// file. A checker looser than the consumer is a checker that green-lights
-// what ships broken.
-for (const c of src.matchAll(/<!--([\s\S]*?)-->/g)) {
-  if (c[1].includes('--')) {
-    console.error(`svg-to-tree: ${file} has "--" inside an XML comment, which is ` +
-                  `not well-formed XML. Real parsers refuse this file.`);
     process.exit(2);
   }
 }

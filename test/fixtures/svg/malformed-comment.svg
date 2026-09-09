@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 248" width="360" height="248">
+  <!--
+    THE FAILING FIXTURE for the strict XML parse.
+
+    This document is not well-formed XML: a comment may not contain a double
+    hyphen, and this one names a slug that does —
+    bio11-ch7-frog--circulatory-and-respiratory-systems--a. Every real slug in
+    drona-illustrations-v1.1 has that shape, so this is the mistake an author
+    of a tier-3 figure is most likely to make.
+
+    It is here because the gate ONCE PASSED THIS DOCUMENT at all three frames.
+    The converter stripped comments with a regex, which is more forgiving than
+    any real parser, so the geometry measured fine and cairosvg then refused to
+    open the file. A checker looser than the consumer green-lights what ships
+    broken.
+
+    Expected: svg-to-tree.mjs exits 2 and names the comment.
+  -->
+  <g fill="none" stroke="#1a1a1a" stroke-width="1.6">
+    <path d="M40,40 C80,40 120,80 120,120"/>
+  </g>
+  <g font-family="Onest" font-size="12" fill="#1a1a1a">
+    <text x="40" y="200" text-anchor="start">well formed geometry, malformed document</text>
+  </g>
+</svg>

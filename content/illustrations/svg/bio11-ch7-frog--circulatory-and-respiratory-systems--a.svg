@@ -30,32 +30,31 @@
   -->
   <g fill="none" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
 
-    <!-- AORTIC ARCHES, three per side, leaving the two divisions of the
-         truncus. Outermost is the carotid, then the systemic, then the
-         pulmocutaneous innermost. They are drawn diverging along their whole
-         length: an earlier version let them leave a single point and they read
-         as one vessel with a fork. -->
-    <path d="M150,74 C136,56 128,34 124,14"/>
-    <path d="M150,74 C142,54 140,34 142,16"/>
-    <path d="M150,74 C158,58 168,40 176,24"/>
+    <!-- AORTIC ARCHES, three per side, each leaving its own division of the
+         truncus and fanning with real angular separation. The first version
+         gave them shared control points and the innermost one ran alongside
+         the truncus, so the plate read as two vessels per side and a fork.
+         Three arches that cannot be counted are not three arches. -->
+    <path d="M150,66 C142,50 134,32 130,14"/>
+    <path d="M150,66 C150,48 150,30 150,12"/>
+    <path d="M150,66 C158,50 166,32 172,20"/>
 
-    <path d="M200,78 C200,60 202,40 204,22"/>
-    <path d="M200,78 C210,58 218,38 224,16"/>
-    <path d="M200,78 C214,60 228,36 238,14"/>
+    <path d="M200,70 C194,54 190,34 188,16"/>
+    <path d="M200,70 C204,50 208,30 210,12"/>
+    <path d="M200,70 C212,52 224,32 232,16"/>
 
-    <!-- TRUNCUS ARTERIOSUS, a short tube dividing left and right. Off centre
+    <!-- TRUNCUS ARTERIOSUS, a short trunk dividing left and right. Off centre
          because the conus lies on the animal's right, the viewer's left in a
          ventral view. -->
-    <path d="M140,98 C144,90 152,84 162,82"/>
-    <path d="M150,102 C154,94 160,90 168,90"/>
-    <path d="M162,82 C158,78 154,76 150,74"/>
-    <path d="M168,90 C180,86 192,82 200,78"/>
+    <path d="M145,98 C152,88 160,82 170,78"/>
+    <path d="M170,78 C162,74 155,70 150,66"/>
+    <path d="M170,78 C182,75 193,72 200,70"/>
 
     <!-- CONUS ARTERIOSUS, drawn as a TUBE of two walls rather than one line,
          so it reads as a vessel lying on the ventral face of the ventricle
          instead of as part of the ventricle outline. -->
-    <path d="M150,154 C136,138 132,116 140,98"/>
-    <path d="M160,152 C148,138 144,118 150,102"/>
+    <path d="M150,154 C136,138 132,116 140,96"/>
+    <path d="M160,152 C148,138 144,118 150,100"/>
 
     <!-- SINUS VENOSUS, dorsal, so dashed: it lies behind the left atrium and
          all three caval veins open into it. -->
@@ -78,14 +77,21 @@
     <path d="M238,166 C226,156 212,142 204,132"/>
   </g>
 
+  <!-- id="labels" and id="leaders" exist so the raster master can be
+       rendered with the label layer HIDDEN. The alternative, rendering the
+       labelled plate and removing the text afterwards, edits the art to undo
+       something the art did and leaves whatever the removal missed. Here the
+       master is a render of the same document with one layer switched off, so
+       the two files cannot disagree about anything except the labels. -->
+
   <!-- LEADERS. Hairline and grey, deliberately lighter than any structure, so
        a leader is never mistaken for a vessel. Each starts 4 units from its
        label's edge and ends ON the thing it names. -->
-  <g stroke="#5a5a5a" stroke-width="1.5" fill="none">
-    <line x1="122" y1="22" x2="125" y2="20"/>
-    <line x1="122" y1="42" x2="140" y2="26"/>
-    <line x1="122" y1="78" x2="170" y2="36"/>
-    <line x1="122" y1="114" x2="156" y2="88"/>
+  <g id="leaders" stroke="#5a5a5a" stroke-width="1.5" fill="none">
+    <line x1="122" y1="22" x2="130" y2="17"/>
+    <line x1="122" y1="42" x2="150" y2="28"/>
+    <line x1="122" y1="78" x2="167" y2="34"/>
+    <line x1="122" y1="114" x2="162" y2="86"/>
     <line x1="122" y1="150" x2="140" y2="126"/>
     <line x1="122" y1="172" x2="163" y2="132"/>
     <line x1="122" y1="194" x2="168" y2="196"/>
@@ -107,7 +113,7 @@
        the gutter up with everything else. The narrow board is the one that
        binds. Wrapping is the fix; shortening the term is not, since it is the
        term the book uses. -->
-  <g font-family="Onest" font-size="12" fill="#1a1a1a">
+  <g id="labels" font-family="Onest" font-size="12" fill="#1a1a1a">
     <text x="118" y="24"  text-anchor="end">carotid arch</text>
     <text x="118" y="44"  text-anchor="end">systemic arch</text>
     <text x="118" y="66"  text-anchor="end">pulmocutaneous</text>
