@@ -9,7 +9,7 @@
  */
 import { createR2FigureLoader, assetObjectUrl, labelSetUrl } from '../r2-figure-resolver';
 import { createFigureResolver } from '../figure-resolver';
-import { LABEL_SET_SCHEMA_VERSION } from '../label-set';
+import { LABEL_SET_SCHEMA_VERSION, validateLabelSet } from '../label-set';
 
 const BASE = 'https://assets.example.test';
 const SLUG = 'bio11-ch16-nephron-structure-and-types';
@@ -33,8 +33,18 @@ const GOOD = {
   author: 'Henry Vandyke Carter',
 };
 
+/** `measureArt` is stubbed everywhere: no test may reach a network or a bucket. */
+const MEASURED = { w: 1800, h: 1240 };
 const load = (payload: unknown, base = BASE) =>
-  createR2FigureLoader(base, async () => payload);
+  createR2FigureLoader(base, async () => payload, async () => MEASURED);
+
+/** No label set published at all — `fetchJson` rejects, as a 404 does. */
+const loadWithNoSet = (base = BASE) =>
+  createR2FigureLoader(
+    base,
+    async () => { throw new Error('404 Not Found'); },
+    async () => MEASURED
+  );
 
 describe('keys mirror the API, so a bucket listing matches the work order', () => {
   test('art key is concept-assets/{slug}.{ext}', () => {
@@ -62,36 +72,63 @@ test('a good set resolves to what the renderer needs', async () => {
 });
 
 describe('a draft never ships', () => {
-  test('no reviewed_by does not resolve at all', async () => {
+  /*
+   * These asserted the loader REJECTED. It no longer does, and the guarantee
+   * they exist for is unchanged: a draft's labels never reach a student. What
+   * changed is the blast radius — withholding the labels used to take the
+   * plate with them, and the plate is the same licensed file either way.
+   *
+   * So each case now asserts the two halves separately: zero labels, and a
+   * drawn plate. A test that only checked "it threw" could not tell the two
+   * apart, which is how 113 uploaded plates rendered as blank boards.
+   */
+  const withheld = async (payload: unknown) => {
+    const rec = await load(payload)(SLUG);
+    expect(rec.labels).toHaveLength(0);
+    expect(rec.groups).toHaveLength(0);
+    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    return rec;
+  };
+
+  test('no reviewed_by withholds the labels', async () => {
     const { reviewed_by, ...draft } = GOOD;
-    await expect(load(draft)(SLUG)).rejects.toThrow(/no reviewed_by/);
+    await withheld(draft);
   });
 
   test('a placeholder reviewer is the same as none', async () => {
     // NOT NULL does not stop 'unknown', and 'unknown' is what gets typed.
-    await expect(load({ ...GOOD, reviewed_by: 'TBD' })(SLUG)).rejects.toThrow(/no reviewed_by/);
+    await withheld({ ...GOOD, reviewed_by: 'TBD' });
   });
 });
 
 describe('sets that would render plausibly and wrongly are REFUSED', () => {
+  /* Refused means their LABELS are refused. The plate is drawn regardless —
+   * it is correct, licensed and already uploaded, and none of these faults are
+   * faults of the art. */
+  const withheld = async (payload: unknown) => {
+    const rec = await load(payload)(SLUG);
+    expect(rec.labels).toHaveLength(0);
+    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+  };
+
   test('an unversioned file is not "version 1 by default"', async () => {
     const { schema_version, ...nover } = GOOD;
-    await expect(load(nover)(SLUG)).rejects.toThrow(/schema_version must be 1/);
+    await withheld(nover);
   });
 
   test('anchors in pixels rather than 0..1', async () => {
     const px = { ...GOOD, labels: [{ ...GOOD.labels[0], anchor: [496, 504] }] };
-    await expect(load(px)(SLUG)).rejects.toThrow(/normalised 0\.\.1/);
+    await withheld(px);
   });
 
   test('a half-translated set', async () => {
     const half = { ...GOOD, labels: [{ ...GOOD.labels[0], text: { en: 'glomerulus', hi: '' } }] };
-    await expect(load(half)(SLUG)).rejects.toThrow(/text\.hi is missing/);
+    await withheld(half);
   });
 
   test('duplicate ids — a Cue.patch names labels by id', async () => {
     const dup = { ...GOOD, labels: [GOOD.labels[0], { ...GOOD.labels[1], id: 'l1' }] };
-    await expect(load(dup)(SLUG)).rejects.toThrow(/duplicate/);
+    await withheld(dup);
   });
 
   test('half the labels grouped is a set that was half-organised', async () => {
@@ -99,7 +136,7 @@ describe('sets that would render plausibly and wrongly are REFUSED', () => {
       ...GOOD,
       labels: [{ ...GOOD.labels[0], group: 'vascular' }, GOOD.labels[1]],
     };
-    await expect(load(mixed)(SLUG)).rejects.toThrow(/Either all do or none do/);
+    await withheld(mixed);
   });
 
   test('a set for a DIFFERENT figure', async () => {
@@ -107,26 +144,32 @@ describe('sets that would render plausibly and wrongly are REFUSED', () => {
     // puts one figure's labels on another figure's art — the single worst
     // outcome this whole pipeline can produce, and the easiest to cause with a
     // mistyped filename.
-    await expect(load({ ...GOOD, asset_slug: 'bio11-ch18-neuron' })(SLUG)).rejects.toThrow(
-      /asked for .* and got a set for/
-    );
+    await withheld({ ...GOOD, asset_slug: 'bio11-ch18-neuron' });
   });
 
   test('no labels at all', async () => {
-    await expect(load({ ...GOOD, labels: [] })(SLUG)).rejects.toThrow(/labels is empty/);
+    await withheld({ ...GOOD, labels: [] });
   });
 
   test('no intrinsic size — every label position divides by zero', async () => {
-    await expect(load({ ...GOOD, image_w: 0 })(SLUG)).rejects.toThrow(/image_w must be a positive/);
+    await withheld({ ...GOOD, image_w: 0 });
   });
 
   test('an unset base URL says so instead of fetching nowhere', async () => {
     await expect(load(GOOD, '')(SLUG)).rejects.toThrow(/EXPO_PUBLIC_ASSETS_BASE_URL is not set/);
   });
 
-  test('every problem is reported at once, not the first', async () => {
+  test('every problem is reported at once, not the first', () => {
+    // Asserted against the validator rather than the loader's throw, because
+    // the loader no longer throws — it withholds the labels and warns. The
+    // guarantee is unchanged and belongs to the layer that owns it: an author
+    // fixing one field per round trip is how a 65-file batch becomes a week.
     const bad = { ...GOOD, image_w: 0, schema_version: 99 };
-    await expect(load(bad)(SLUG)).rejects.toThrow(/schema_version[\s\S]*image_w|image_w[\s\S]*schema_version/);
+    const checked = validateLabelSet(bad);
+    expect(checked.ok).toBe(false);
+    const joined = checked.ok ? '' : checked.errors.join('; ');
+    expect(joined).toMatch(/schema_version/);
+    expect(joined).toMatch(/image_w/);
   });
 });
 
@@ -149,5 +192,76 @@ describe('the resolver contract survives the real loader', () => {
     expect(report.missing).toEqual([SLUG]);
     expect(report.resolved).toEqual([]);
     expect(r.get(SLUG)).toBeNull();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// THE PLATE AND THE LABELS ARE TWO DECISIONS.
+//
+// This loader used to throw on a missing or unreviewed label set, so the whole
+// figure failed to resolve and the board fell to the next tier — a blank where
+// a correct, licensed, already-uploaded plate existed. Measured on the
+// simulator: 113 plates ingested, 0 label sets published, 0 figures on any
+// board.
+//
+// The review gate is about LABELS. An unreviewed anchor may put a correct word
+// on the wrong organ and a student cannot tell. None of that is true of the
+// art, which is the same file either way.
+// ---------------------------------------------------------------------------
+
+describe('an unreviewed or absent label set costs the labels, never the plate', () => {
+  test('no label set published -> plate drawn, zero labels', async () => {
+    const rec = await loadWithNoSet()(SLUG);
+    expect(rec.asset_slug).toBe(SLUG);
+    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    // Size comes from the image itself, because image_w/image_h live in the
+    // set that is not there.
+    expect(rec.art.intrinsic_w).toBe(MEASURED.w);
+    expect(rec.art.intrinsic_h).toBe(MEASURED.h);
+    expect(rec.labels).toHaveLength(0);
+    expect(rec.groups).toHaveLength(0);
+  });
+
+  test('set published with reviewed_by null -> plate drawn, zero labels', async () => {
+    const rec = await load({ ...GOOD, reviewed_by: null })(SLUG);
+    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    expect(rec.labels).toHaveLength(0);
+    // The set carried two perfectly well-formed labels. They are withheld
+    // because nobody has signed them, not because they are malformed.
+    expect(GOOD.labels).toHaveLength(2);
+  });
+
+  test('reviewed -> plate AND labels', async () => {
+    const rec = await load(GOOD)(SLUG);
+    expect(rec.labels).toHaveLength(2);
+    expect(rec.groups.length).toBeGreaterThan(0);
+    expect(rec.art.intrinsic_w).toBe(1600);   // from the set, not measured
+  });
+
+  test('a set addressed to another slug is withheld, and the plate still draws', async () => {
+    // The one label failure worse than having none: another figure's words on
+    // this figure's art.
+    const rec = await load({ ...GOOD, asset_slug: 'some-other-figure' })(SLUG);
+    expect(rec.asset_slug).toBe(SLUG);
+    expect(rec.labels).toHaveLength(0);
+    expect(rec.art.intrinsic_w).toBe(MEASURED.w);
+  });
+
+  test('an invalid set is withheld, and the plate still draws', async () => {
+    const rec = await load({ asset_slug: SLUG, labels: 'not an array' })(SLUG);
+    expect(rec.labels).toHaveLength(0);
+    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+  });
+
+  test('art with no measurable size still throws', async () => {
+    // The one thing that is not a rougher figure but a wrong one: a letterbox
+    // fit computed against zero puts the plate nowhere.
+    const loader = createR2FigureLoader(
+      BASE,
+      async () => { throw new Error('404'); },
+      async () => ({ w: 0, h: 0 })
+    );
+    await expect(loader(SLUG)).rejects.toThrow(/no intrinsic size/);
   });
 });

@@ -1,3 +1,4 @@
+import { Image as RNImage } from 'react-native';
 /**
  * The real figure loader: an `asset_slug` becomes art plus a label set, fetched
  * from the public illustrations bucket.
@@ -29,7 +30,7 @@
  * cache-busts on its own.
  */
 import { createFigureResolver, type FigureRecord, type FigureResolver } from './figure-resolver';
-import { isReviewed, toFigureRecord, validateLabelSet } from './label-set';
+import { isReviewed, type LabelSet, toFigureRecord, validateLabelSet } from './label-set';
 
 /**
  * Where the public illustrations bucket is served from, with NO trailing slash
@@ -122,13 +123,29 @@ export function renditionUrl(
  * a provisioned bucket — the alternative is a module nothing can exercise until
  * infrastructure exists, which is how untested code reaches a classroom.
  */
+/**
+ * How art measures itself when no label set says so.
+ *
+ * `image_w`/`image_h` live in the label set, so an unlabelled plate has no
+ * declared size — and without one the letterbox fit has nothing to fit. This
+ * asks the image. Injectable for the same reason `fetchJson` is: a module that
+ * can only be exercised against a provisioned bucket is a module nothing tests.
+ */
+export type MeasureArt = (url: string) => Promise<{ w: number; h: number }>;
+
+const defaultMeasure: MeasureArt = (url) =>
+  new Promise((resolve, reject) => {
+    RNImage.getSize(url, (w, h) => resolve({ w, h }), reject);
+  });
+
 export function createR2FigureLoader(
   base: string,
   fetchJson: (url: string) => Promise<unknown> = async (url) => {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
-  }
+  },
+  measureArt: MeasureArt = defaultMeasure
 ): (slug: string) => Promise<FigureRecord> {
   return async (slug: string) => {
     if (!base) {
@@ -137,67 +154,76 @@ export function createR2FigureLoader(
           `cannot be loaded. The illustrations bucket is provisioned separately.`
       );
     }
-    const raw = (await fetchJson(labelSetUrl(base, slug))) as Record<string, unknown>;
 
-    // THE SCHEMA GATE. A label set is the teaching payload: a wrong anchor puts
-    // a correct word on the wrong part of the body, which reads as
-    // authoritative. Every problem is reported at once, because an author
-    // fixing one field per round trip is how a 65-file batch becomes a week.
-    const checked = validateLabelSet(raw);
-    if (!checked.ok) {
-      throw new Error(`[labelled_figure] "${slug}" label set is invalid: ${checked.errors.join('; ')}`);
+    /*
+     * THE PLATE AND THE LABELS ARE TWO DECISIONS, NOT ONE.
+     *
+     * This used to throw on a missing or unreviewed label set, so the whole
+     * figure failed to resolve and the board fell to the next tier — a blank
+     * where a correct, licensed, already-uploaded plate existed. The review
+     * gate is about LABELS: an unreviewed anchor may put a correct word on the
+     * wrong organ, and a student cannot tell. None of that is true of the art
+     * itself, which is the same file either way.
+     *
+     * So: draw the plate whenever the asset resolves. Draw labels only when a
+     * set is published, valid, addressed to THIS slug, and carries a
+     * reviewed_by. Every failure below costs the labels and nothing else.
+     */
+    let set: LabelSet | null = null;
+    // `ext` rides the raw JSON, not the validated set. It is read even when
+    // the set is rejected: the extension names the ART file, and the art is
+    // drawn either way.
+    let ext = 'png';
+    let why = '';
+    try {
+      const raw = (await fetchJson(labelSetUrl(base, slug))) as Record<string, unknown>;
+      if (typeof raw.ext === 'string' && raw.ext) ext = raw.ext;
+      const checked = validateLabelSet(raw);
+      if (!checked.ok) {
+        why = `label set is invalid: ${checked.errors.join('; ')}`;
+      } else if (checked.set.asset_slug !== slug) {
+        // The file that answered is not the file that was asked for. Serving
+        // its labels would put one figure's words on another figure's art —
+        // the one failure here that is worse than having no labels.
+        why = `asked for "${slug}" and got a set for "${checked.set.asset_slug}"`;
+      } else if (!isReviewed(checked.set)) {
+        why = 'no reviewed_by — a draft anchor is a guess about where each ' +
+              'structure is, and never ships unreviewed';
+      } else {
+        set = checked.set;
+      }
+    } catch (err) {
+      // Absent is the NORMAL state for a freshly ingested plate: the art is
+      // uploaded at ingest and the label set only after a person reviews it.
+      why = `no label set published (${String((err as Error)?.message ?? err)})`;
     }
 
-    // THE REVIEW GATE, and it is not a quality preference.
-    //
-    // `draft-labels` proposes anchors from the image by vision. A proposal is a
-    // guess about where a structure IS. An unreviewed set is therefore not a
-    // rougher figure — it is a figure that may confidently label the wrong
-    // organ, and there is no way for a student to tell. So it does not resolve
-    // at all, and the board falls to the next tier, which draws something
-    // honest.
-    if (!isReviewed(checked.set)) {
+    const artUrl = assetObjectUrl(base, slug, ext);
+
+    if (set) return toFigureRecord(set, artUrl);
+
+    // ── plate only ──────────────────────────────────────────────────────────
+    // Logged every time, and not as an error: this is the expected state for
+    // 113 of the 113 plates ingested so far. A silent unlabelled plate would
+    // make "the labels never got reviewed" indistinguishable from "this figure
+    // has no labels", and only the first is a queue someone has to work.
+    console.warn(`[labelled_figure] "${slug}" drawn without labels — ${why}`);
+
+    const { w, h } = await measureArt(artUrl);
+    if (!(w > 0 && h > 0)) {
+      // Still a throw: a plate with no size cannot be letterboxed, and a
+      // figure drawn against zero is not a rougher figure, it is a wrong one.
       throw new Error(
-        `[labelled_figure] "${slug}" has no reviewed_by — a draft label set is ` +
-          `a guess about where each structure is and never ships unreviewed.`
+        `[labelled_figure] "${slug}" art has no intrinsic size (${w}x${h}); ` +
+          `the letterbox fit would be computed against zero.`
       );
     }
-    if (checked.set.asset_slug !== slug) {
-      // The file that answered is not the file that was asked for. Serving it
-      // would put one figure's labels on another figure's art.
-      throw new Error(
-        `[labelled_figure] asked for "${slug}" and got a set for ` +
-          `"${checked.set.asset_slug}"`
-      );
-    }
-
-    // The stored JSON is a SUPERSET: it also carries the §4 provenance block
-    // (licence, source_url, author). That is read by nobody here and never
-    // reaches the renderer — licence enforcement belongs to the ingest gate,
-    // which refuses a share-alike row before it can be stored at all. A second
-    // check in the render path would look like enforcement without being it,
-    // because by the time a component is drawing pixels the decision to ship
-    // the file has already been made.
-    const ext = typeof raw.ext === 'string' ? raw.ext : 'png';
-    // `source` is `number | { uri }` precisely so a bundled asset and a remote
-    // file are the same thing to the renderer.
-    const record: FigureRecord = toFigureRecord(checked.set, assetObjectUrl(base, slug, ext));
-
-    // Refused rather than passed on. A record with no intrinsic size makes
-    // every label position a division by zero, and a record with no labels is
-    // a picture with nothing to teach — both render as something plausible and
-    // wrong, which is worse than the gap this throw produces.
-    if (!(record.art.intrinsic_w > 0 && record.art.intrinsic_h > 0)) {
-      throw new Error(
-        `[labelled_figure] "${slug}" has no intrinsic size ` +
-          `(${record.art.intrinsic_w}x${record.art.intrinsic_h}); every label ` +
-          `position would be computed against zero.`
-      );
-    }
-    if (record.labels.length === 0) {
-      throw new Error(`[labelled_figure] "${slug}" carries no labels — it is art, not a figure.`);
-    }
-    return record;
+    return {
+      asset_slug: slug,
+      art: { source: { uri: artUrl }, intrinsic_w: w, intrinsic_h: h },
+      groups: [],
+      labels: [],
+    };
   };
 }
 
