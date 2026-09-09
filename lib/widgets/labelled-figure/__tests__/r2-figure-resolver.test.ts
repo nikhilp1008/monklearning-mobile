@@ -49,7 +49,7 @@ beforeEach(() => {
   _clearChapterAssets();
   setChapterAssets([
     { asset_slug: SLUG, r2_key: `concept-assets/${SLUG}.png`,
-      bytes: 1234, sha256: 'a'.repeat(64), width: 1800, height: 1240 },
+      bytes: 1234, master_sha256: 'a'.repeat(64), rendition_2x_sha256: null, width: 1800, height: 1240 },
   ]);
 });
 

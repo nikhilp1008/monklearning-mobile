@@ -10,16 +10,13 @@
  * `file://` URI, which is what the contract said all along.
  *
  * WHAT IS VERIFIED AND WHY EACH ONE.
- *   bytes   always. A truncated download is the normal failure on a phone —
- *           a tunnel, a captive portal, a backgrounded app — and it produces a
- *           file that exists, opens, and renders as a grey band.
- *   sha256  for the master. `bytes` alone cannot tell a truncated file from a
- *           DIFFERENT file of the same length, and the row's hash is the only
- *           thing that can. Not checked for the @2x rendition, and that is a
- *           real gap stated rather than papered over: the ingest derives the
- *           rendition and records no hash for it, so there is nothing to
- *           compare against. Its length is still checked against R2's own
- *           Content-Length, which catches truncation but not substitution.
+ *   sha256  ALWAYS, for whichever file was downloaded — master or @2x. The
+ *           row carries a hash for each, so there is no file this fetches that
+ *           it cannot verify. `bytes` alone cannot tell a truncated download
+ *           from a DIFFERENT file of the same length, and only the hash can.
+ *   bytes   for the master, where the row records a length as well. A length
+ *           mismatch is the cheaper failure to report — it names the size —
+ *           so it is checked first even though the hash would also catch it.
  *
  * A file that fails either check is DELETED before anything can read it. A
  * half-file left on disk would pass `exists` on the next launch and never be
@@ -35,7 +32,12 @@ export interface AssetRow {
   asset_slug: string;
   r2_key: string;
   bytes: number;
-  sha256: string;
+  /** SHA-256 of the master object. */
+  master_sha256: string;
+  /** SHA-256 of the @2x beside it, or null when the master is wide enough that
+   *  no rendition exists. NULL is a statement, not an omission — see
+   *  migrations/0041. */
+  rendition_2x_sha256: string | null;
   width: number;
   height: number;
 }
@@ -113,23 +115,23 @@ export async function ensureFigureFile(
   dpr: number,
   deps: DownloadDeps = defaultDeps
 ): Promise<string> {
-  if (!row.sha256) {
+  if (!row.master_sha256) {
     // Refused rather than keyed on something else. A file cached under a
     // guessed version is a file that never invalidates, and the endpoint
     // already logs which rows arrive unhashed.
     throw new FigureDownloadError(
-      `[figure-cache] "${row.asset_slug}" has no sha256 — refusing to cache art ` +
-        `with no version. Backfill concept_assets.sha256 (migration 0040).`
+      `[figure-cache] "${row.asset_slug}" has no master_sha256 — refusing to cache ` +
+        `art with no version. Backfill concept_assets (migration 0040).`
     );
   }
-  const dedupeKey = `${row.asset_slug}.${row.sha256}`;
+  const dedupeKey = `${row.asset_slug}.${row.master_sha256}`;
   const existing = inFlight.get(dedupeKey);
   if (existing) return existing;
 
   const p = (async () => {
     const { key, isMaster } = chooseKey(row, frameWidthPt, dpr);
     const ext = key.slice(key.lastIndexOf('.') + 1);
-    const dest = new File(figuresDir(), fileNameFor(row.asset_slug, row.sha256, ext));
+    const dest = new File(figuresDir(), fileNameFor(row.asset_slug, row.master_sha256, ext));
 
     if (dest.exists) {
       lastUsed.set(dest.uri, deps.now());
@@ -139,29 +141,34 @@ export async function ensureFigureFile(
     const file = await deps.download(`${base}/${key}`, dest);
 
     // ── verification, before anything can read it ──────────────────────────
-    if (isMaster) {
-      if (file.size !== row.bytes) {
-        file.delete();
-        throw new FigureDownloadError(
-          `[figure-cache] "${row.asset_slug}" downloaded ${file.size} bytes, row says ` +
-            `${row.bytes}. Deleted; the board draws no figure rather than a torn one.`
-        );
-      }
-      const got = hex(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, await file.bytes()));
-      if (got !== row.sha256) {
-        file.delete();
-        throw new FigureDownloadError(
-          `[figure-cache] "${row.asset_slug}" hashes ${got.slice(0, 12)}, row says ` +
-            `${row.sha256.slice(0, 12)}. Deleted — same length, different file, which ` +
-            `is the case a byte count cannot see.`
-        );
-      }
-    } else if (!(file.size > 0)) {
-      // The rendition has no recorded hash to check (see the header). An empty
-      // file is the one thing still worth refusing outright.
+    // Length first where the row records one: it names the size, so it is the
+    // cheaper failure to read. The hash then catches what a length cannot.
+    if (isMaster && file.size !== row.bytes) {
       file.delete();
       throw new FigureDownloadError(
-        `[figure-cache] "${row.asset_slug}" @2x downloaded empty. Deleted.`
+        `[figure-cache] "${row.asset_slug}" downloaded ${file.size} bytes, row says ` +
+          `${row.bytes}. Deleted; the board draws no figure rather than a torn one.`
+      );
+    }
+    const want = isMaster ? row.master_sha256 : row.rendition_2x_sha256;
+    if (!want) {
+      // Only reachable if the server offered an @2x with no hash for it, which
+      // 0041 makes impossible for a narrow master. Refused rather than
+      // accepted unverified — an unverifiable file is the one this whole
+      // module exists to keep off the board.
+      file.delete();
+      throw new FigureDownloadError(
+        `[figure-cache] "${row.asset_slug}" chose ${isMaster ? 'the master' : 'the @2x'} ` +
+          `and the row records no hash for it. Deleted; nothing unverified is cached.`
+      );
+    }
+    const got = hex(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, await file.bytes()));
+    if (got !== want) {
+      file.delete();
+      throw new FigureDownloadError(
+        `[figure-cache] "${row.asset_slug}" ${isMaster ? 'master' : '@2x'} hashes ` +
+          `${got.slice(0, 12)}, row says ${want.slice(0, 12)}. Deleted — same length, ` +
+          `different file, which is the case a byte count cannot see.`
       );
     }
 

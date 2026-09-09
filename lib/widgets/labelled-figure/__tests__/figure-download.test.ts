@@ -35,7 +35,8 @@ const row = (over = {}) => ({
   asset_slug: SLUG,
   r2_key: `concept-assets/${SLUG}.png`,
   bytes: ART.length,
-  sha256: SHA,
+  master_sha256: SHA,
+  rendition_2x_sha256: null,
   width: 1800,          // wide enough that the MASTER is chosen, so the sha
   height: 1240,         // check applies — the rendition has no recorded hash
   ...over,
@@ -87,7 +88,7 @@ test('a new sha is a new file, and the old one is unreachable', async () => {
   const newSha = createHash('sha256').update(Buffer.from(NEW)).digest('hex');
   const d2 = fakeDownload(NEW);
   const second = await ensureFigureFile(
-    BASE, row({ sha256: newSha, bytes: NEW.length }), 900, 2,
+    BASE, row({ master_sha256: newSha, bytes: NEW.length }), 900, 2,
     { download: d2.download, now: () => 2 }
   );
   expect(second).not.toBe(first);
@@ -121,8 +122,8 @@ test('a same-length DIFFERENT file is deleted — the case bytes cannot see', as
 test('a row with no sha256 is refused rather than cached under a guess', async () => {
   const { download, calls } = fakeDownload(ART);
   await expect(
-    ensureFigureFile(BASE, row({ sha256: '' }), 900, 2, { download, now: () => 1 })
-  ).rejects.toThrow(/no sha256/);
+    ensureFigureFile(BASE, row({ master_sha256: '' }), 900, 2, { download, now: () => 1 })
+  ).rejects.toThrow(/no master_sha256/);
   // Not downloaded at all: a file cached under a guessed version never
   // invalidates, which is worse than not caching it.
   expect(calls).toHaveLength(0);
@@ -144,4 +145,50 @@ test('offline with nothing cached rejects — the caller logs one gap', async ()
     ensureFigureFile(BASE, row(), 900, 2, { download: offline as never, now: () => 1 })
   ).rejects.toThrow(/Network request failed/);
   expect(_fs.size).toBe(0);
+});
+
+describe('the @2x is verified too, not trusted for its length', () => {
+  /*
+   * It used to be checked for emptiness only, because the ingest recorded no
+   * hash for it — a real gap, and the fix was to record one rather than to
+   * describe the gap more carefully. A rendition is the file MOST devices
+   * actually fetch (896px master, 343pt at 3x is 1029 device px), so trusting
+   * it for its length meant the file a student sees was the one file nothing
+   * could verify.
+   */
+  const NARROW = { width: 896, height: 560 };
+  const REND = new Uint8Array(Array.from({ length: 900 }, (_v, i) => (i * 3) % 251));
+  const RSHA = createHash('sha256').update(Buffer.from(REND)).digest('hex');
+
+  const narrowRow = (over = {}) => ({
+    ...row(), ...NARROW, rendition_2x_sha256: RSHA, ...over,
+  });
+
+  test('a phone downloads the @2x and it is hashed against the row', async () => {
+    const { download, calls } = fakeDownload(REND);
+    const uri = await ensureFigureFile(BASE, narrowRow(), 343, 3,
+                                       { download, now: () => 1 });
+    expect(calls[0]).toContain('@2x.png');
+    expect(uri).toBeTruthy();
+  });
+
+  test('a substituted @2x of the same length is deleted', async () => {
+    const other = new Uint8Array(REND.length).fill(7);
+    const { download } = fakeDownload(other);
+    await expect(
+      ensureFigureFile(BASE, narrowRow(), 343, 3, { download, now: () => 1 })
+    ).rejects.toThrow(/@2x hashes/);
+    expect(_fs.size).toBe(0);
+  });
+
+  test('an @2x offered with no recorded hash is refused, not cached unverified', async () => {
+    // 0041 makes this unreachable for a narrow master, so it is the case that
+    // says what happens if the guarantee ever slips.
+    const { download } = fakeDownload(REND);
+    await expect(
+      ensureFigureFile(BASE, narrowRow({ rendition_2x_sha256: null }), 343, 3,
+                       { download, now: () => 1 })
+    ).rejects.toThrow(/records no hash for it/);
+    expect(_fs.size).toBe(0);
+  });
 });
