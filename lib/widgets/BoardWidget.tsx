@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SvgXml } from 'react-native-svg';
 
 import { labelledFigure } from './labelled-figure';
@@ -77,6 +77,11 @@ export function BoardWidget({
   onGap,
   onCaption,
 }: BoardWidgetProps) {
+  // Bumped when a background figure fetch lands, so the memo below re-runs and
+  // the plate appears. Without it the fetch fills the cache and nothing looks
+  // again until the next board event — which usually arrives, but "usually" is
+  // not a rendering contract.
+  const [figureTick, setFigureTick] = useState(0);
   const resolved = useMemo(() => {
     const { payload } = event;
     if (!payload) return null;
@@ -111,7 +116,28 @@ export function BoardWidget({
       }
       const record = figures?.get(slug) ?? null;
       if (!record) {
+        // STILL A GAP, STILL SYNCHRONOUS, AND NOW ALSO A REQUEST.
+        //
+        // `get()` remains cache-only: this frame renders nothing and never
+        // awaits, so the §3 invariant is untouched. What changed is that the
+        // miss now ASKS for the slug in the background, and the next render
+        // finds it.
+        //
+        // The old behaviour was a permanent gap for every live figure, and the
+        // reason is structural rather than accidental: the classroom prefetches
+        // `figures.cached()` — the slugs already in the cache, which on a fresh
+        // mount is none — while slot 3 picks the asset SERVER-SIDE during the
+        // turn. So the client could only ever draw a figure it had somehow
+        // already drawn. Measured: 113 plates ingested, ILLUSTRATION SERVED in
+        // the log, `figure_not_cached` on the board, every time.
+        //
+        // Fetching once per slug is the smallest fix that keeps the invariant.
+        // The alternative — the session announcing its chapter's slugs at
+        // connect so they can be prefetched before the class — is better and
+        // is a protocol change; this does not preclude it, and prefetch is
+        // idempotent, so both can be true at once.
         onGap?.('figure_not_cached', { asset_slug: slug });
+        void figures?.prefetch([slug]).then(() => setFigureTick((n) => n + 1));
         return null;
       }
       const checked = labelledFigure.validate({
@@ -140,7 +166,7 @@ export function BoardWidget({
       return null;
     }
     return { mod, params: checked.params };
-  }, [event, figures, onGap]);
+  }, [event, figures, onGap, figureTick]);
 
   if (!resolved) {
     if (event.svg) {
