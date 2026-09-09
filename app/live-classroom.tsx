@@ -69,7 +69,10 @@ import {
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import { apiFetch } from '@/lib/api';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
+import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
+import { setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
 import { ASSETS_BASE_URL, r2FigureResolver } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
@@ -177,6 +180,7 @@ export default function LiveClassroomScreen() {
     chapterTitle?: string;
     subtopic?: string;
     subject?: string;
+    chapterId?: string;
   }>();
   const sessionId = params.sessionId ?? '';
   const chapterTitle = params.chapterTitle || 'this chapter';
@@ -577,15 +581,40 @@ export default function LiveClassroomScreen() {
     []
   );
   useEffect(() => {
-    // Fire-and-forget on purpose: nothing renders off this promise. The
-    // report names the slugs that will miss, BEFORE the class, which is the
-    // only moment that information is actionable.
-    void figures.prefetch(figures.cached()).then((report) => {
-      if (report.missing.length > 0) {
-        console.warn('[figures] not resolvable offline:', report.missing.join(', '));
-      }
-    });
-  }, [figures]);
+    // THE CHAPTER'S FIGURES, AT MOUNT.
+    //
+    // This used to call `prefetch(figures.cached())` — the slugs already IN
+    // the cache, which on a fresh mount is none — so it resolved nothing and
+    // the client could only ever draw a figure it had somehow already drawn.
+    //
+    // Now it asks the server which assets this chapter has and downloads them
+    // before the first sentence. `setChapterAssets` also populates the index
+    // the loader verifies against: a slug with no row is refused rather than
+    // fetched on trust, because the cache key IS the row's sha256.
+    //
+    // Fire-and-forget: nothing renders off this promise, and a class whose
+    // figures fail to download is a class with a plain board, not a stalled
+    // one.
+    let cancelled = false;
+    if (!params.chapterId) {
+      console.warn('[figures] no chapterId on this session — figures cannot be prefetched');
+      return;
+    }
+    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${params.chapterId}/figures`)
+      .then((res) => {
+        if (cancelled) return;
+        setChapterAssets(res.assets ?? []);
+        return figures.prefetch((res.assets ?? []).map((a) => a.asset_slug));
+      })
+      .then((report) => {
+        if (report && report.missing.length > 0) {
+          // Named before the class, which is the only moment it is actionable.
+          console.warn('[figures] not resolvable offline:', report.missing.join(', '));
+        }
+      })
+      .catch((err) => console.warn('[figures] chapter prefetch failed:', String(err)));
+    return () => { cancelled = true; };
+  }, [figures, params.chapterId]);
 
   const widgetHost = useMemo(
     () => ({

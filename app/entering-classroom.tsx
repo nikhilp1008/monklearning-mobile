@@ -225,6 +225,12 @@ export default function EnteringClassroomScreen() {
             // Resolved here so the classroom half of the loading card keeps
             // the same subject copy without re-deriving it.
             subject: subject ?? '',
+            // Carried through so the classroom can ask for the chapter's
+            // figures at mount. Slot 3 picks its asset server-side per TURN,
+            // so the chapter is the only thing knowable in advance — and
+            // without it the art can only be requested after the sentence
+            // that introduces the figure has already been spoken.
+            chapterId,
           },
         });
         return;

@@ -30,6 +30,7 @@ import { Image as RNImage } from 'react-native';
  * cache-busts on its own.
  */
 import { createFigureResolver, type FigureRecord, type FigureResolver } from './figure-resolver';
+import { type AssetRow, ensureFigureFile } from './figure-file-cache';
 import { isReviewed, type LabelSet, toFigureRecord, validateLabelSet } from './label-set';
 
 /**
@@ -164,10 +165,41 @@ export function renditionUrl(
  */
 export type MeasureArt = (url: string) => Promise<{ w: number; h: number }>;
 
+/**
+ * What the server said about each asset, keyed by slug.
+ *
+ * Populated from GET /drona/chapter/{id}/figures at class start. The loader
+ * needs `bytes` and `sha256` to verify a download and to name the cached file,
+ * and neither lives in the label set — a plate with no published labels has no
+ * label set at all, and that is the normal case.
+ */
+const assetIndex = new Map<string, AssetRow>();
+
+export function setChapterAssets(rows: readonly AssetRow[]): void {
+  for (const r of rows) assetIndex.set(r.asset_slug, r);
+}
+
+export function knownAsset(slug: string): AssetRow | null {
+  return assetIndex.get(slug) ?? null;
+}
+
+/** Test seam. */
+export function _clearChapterAssets(): void {
+  assetIndex.clear();
+}
+
 const defaultMeasure: MeasureArt = (url) =>
   new Promise((resolve, reject) => {
     RNImage.getSize(url, (w, h) => resolve({ w, h }), reject);
   });
+
+export interface FigureLoaderOptions {
+  /** The frame the art will be drawn into, so the rendition is chosen once, at
+   *  download time, rather than fetched twice. Defaults to the widest board. */
+  frameWidthPt?: number;
+  dpr?: number;
+  ensureFile?: typeof ensureFigureFile;
+}
 
 export function createR2FigureLoader(
   base: string,
@@ -176,8 +208,10 @@ export function createR2FigureLoader(
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
   },
-  measureArt: MeasureArt = defaultMeasure
+  measureArt: MeasureArt = defaultMeasure,
+  opts: FigureLoaderOptions = {}
 ): (slug: string) => Promise<FigureRecord> {
+  const { frameWidthPt = 900, dpr = 2, ensureFile = ensureFigureFile } = opts;
   return async (slug: string) => {
     if (!base) {
       throw new Error(
@@ -229,7 +263,29 @@ export function createR2FigureLoader(
       why = `no label set published (${String((err as Error)?.message ?? err)})`;
     }
 
-    const artUrl = assetObjectUrl(base, slug, ext);
+    /*
+     * THE ART IS DOWNLOADED, NOT LINKED.
+     *
+     * `validate()` rejects a remote URL — "the board never fetches while
+     * rendering" — and this loader used to hand it one, so the two halves
+     * could never agree and no plate has ever drawn in a live class. The file
+     * is fetched to the device's cache and the widget gets a `file://` URI,
+     * which is what that rule always assumed had happened.
+     *
+     * A slug with no row in the asset index cannot be verified or named, so it
+     * is refused rather than downloaded on trust: the cache key IS the row's
+     * sha256, and inventing one produces a file that never invalidates.
+     */
+    const row = knownAsset(slug);
+    if (!row) {
+      throw new Error(
+        `[labelled_figure] "${slug}" is not in the chapter asset index, so its ` +
+          `art cannot be verified or cached. The class start prefetch calls ` +
+          `GET /drona/chapter/{id}/figures; a slug missing from it is a row the ` +
+          `server did not return.`
+      );
+    }
+    const artUrl = await ensureFile(base, row, frameWidthPt, dpr);
 
     if (set) return toFigureRecord(set, artUrl);
 

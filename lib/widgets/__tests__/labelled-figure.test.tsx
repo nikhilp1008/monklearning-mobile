@@ -27,6 +27,7 @@ import {
   type LabelRecord, type LabelledFigureParams, type Lang,
 } from '../labelled-figure/figure-layout';
 import { createFigureResolver } from '../labelled-figure/figure-resolver';
+import type { FigureRecord, FigureResolver } from '../labelled-figure/figure-resolver';
 import {
   PLACEHOLDER_FIGURE, PLACEHOLDER_SLUG, placeholderFigureResolver,
 } from '../labelled-figure/placeholder-figure';

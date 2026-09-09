@@ -7,7 +7,8 @@
  * everything except the socket is checked here — including the refusals, which
  * are the whole reason this is not just a fetch.
  */
-import { createR2FigureLoader, assetObjectUrl, labelSetUrl } from '../r2-figure-resolver';
+import { createR2FigureLoader, assetObjectUrl, labelSetUrl,
+         setChapterAssets, _clearChapterAssets } from '../r2-figure-resolver';
 import { createFigureResolver } from '../figure-resolver';
 import { LABEL_SET_SCHEMA_VERSION, validateLabelSet } from '../label-set';
 
@@ -33,17 +34,36 @@ const GOOD = {
   author: 'Henry Vandyke Carter',
 };
 
-/** `measureArt` is stubbed everywhere: no test may reach a network or a bucket. */
+/** `measureArt` and the DOWNLOAD are stubbed everywhere: no test in this file
+ *  may reach a network, a bucket, or a filesystem. `ensureFile` returning a
+ *  `file://` URI is the whole point of the download step — the widget's
+ *  validate() rejects an https one — so the stub returns the shape the real
+ *  thing produces, not a convenient string. */
 const MEASURED = { w: 1800, h: 1240 };
+const CACHED_URI = `file:///cache/figures/${SLUG}.aaaaaaaaaaaa.png`;
+const stubEnsure = async () => CACHED_URI;
+
+/** The asset index the loader consults before downloading. Registered here
+ *  because a slug the server never returned is refused, deliberately. */
+beforeEach(() => {
+  _clearChapterAssets();
+  setChapterAssets([
+    { asset_slug: SLUG, r2_key: `concept-assets/${SLUG}.png`,
+      bytes: 1234, sha256: 'a'.repeat(64), width: 1800, height: 1240 },
+  ]);
+});
+
 const load = (payload: unknown, base = BASE) =>
-  createR2FigureLoader(base, async () => payload, async () => MEASURED);
+  createR2FigureLoader(base, async () => payload, async () => MEASURED,
+                       { ensureFile: stubEnsure });
 
 /** No label set published at all — `fetchJson` rejects, as a 404 does. */
 const loadWithNoSet = (base = BASE) =>
   createR2FigureLoader(
     base,
     async () => { throw new Error('404 Not Found'); },
-    async () => MEASURED
+    async () => MEASURED,
+    { ensureFile: stubEnsure }
   );
 
 describe('keys mirror the API, so a bucket listing matches the work order', () => {
@@ -59,7 +79,7 @@ describe('keys mirror the API, so a bucket listing matches the work order', () =
 test('a good set resolves to what the renderer needs', async () => {
   const rec = await load(GOOD)(SLUG);
   expect(rec.asset_slug).toBe(SLUG);
-  expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+  expect(rec.art.source).toEqual({ uri: CACHED_URI });
   expect(rec.art.intrinsic_w).toBe(1600);
   expect(rec.labels).toHaveLength(2);
   // Wire `text.{en,hi}` became renderer `term.{english,hinglish}`, and
@@ -86,7 +106,7 @@ describe('a draft never ships', () => {
     const rec = await load(payload)(SLUG);
     expect(rec.labels).toHaveLength(0);
     expect(rec.groups).toHaveLength(0);
-    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    expect(rec.art.source).toEqual({ uri: CACHED_URI });
     return rec;
   };
 
@@ -108,7 +128,7 @@ describe('sets that would render plausibly and wrongly are REFUSED', () => {
   const withheld = async (payload: unknown) => {
     const rec = await load(payload)(SLUG);
     expect(rec.labels).toHaveLength(0);
-    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    expect(rec.art.source).toEqual({ uri: CACHED_URI });
   };
 
   test('an unversioned file is not "version 1 by default"', async () => {
@@ -214,7 +234,7 @@ describe('an unreviewed or absent label set costs the labels, never the plate', 
   test('no label set published -> plate drawn, zero labels', async () => {
     const rec = await loadWithNoSet()(SLUG);
     expect(rec.asset_slug).toBe(SLUG);
-    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    expect(rec.art.source).toEqual({ uri: CACHED_URI });
     // Size comes from the image itself, because image_w/image_h live in the
     // set that is not there.
     expect(rec.art.intrinsic_w).toBe(MEASURED.w);
@@ -225,7 +245,7 @@ describe('an unreviewed or absent label set costs the labels, never the plate', 
 
   test('set published with reviewed_by null -> plate drawn, zero labels', async () => {
     const rec = await load({ ...GOOD, reviewed_by: null })(SLUG);
-    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    expect(rec.art.source).toEqual({ uri: CACHED_URI });
     expect(rec.labels).toHaveLength(0);
     // The set carried two perfectly well-formed labels. They are withheld
     // because nobody has signed them, not because they are malformed.
@@ -251,7 +271,7 @@ describe('an unreviewed or absent label set costs the labels, never the plate', 
   test('an invalid set is withheld, and the plate still draws', async () => {
     const rec = await load({ asset_slug: SLUG, labels: 'not an array' })(SLUG);
     expect(rec.labels).toHaveLength(0);
-    expect(rec.art.source).toEqual({ uri: `${BASE}/concept-assets/${SLUG}.png` });
+    expect(rec.art.source).toEqual({ uri: CACHED_URI });
   });
 
   test('art with no measurable size still throws', async () => {
@@ -260,7 +280,8 @@ describe('an unreviewed or absent label set costs the labels, never the plate', 
     const loader = createR2FigureLoader(
       BASE,
       async () => { throw new Error('404'); },
-      async () => ({ w: 0, h: 0 })
+      async () => ({ w: 0, h: 0 }),
+      { ensureFile: stubEnsure }
     );
     await expect(loader(SLUG)).rejects.toThrow(/no intrinsic size/);
   });
