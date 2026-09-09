@@ -265,3 +265,42 @@ describe('an unreviewed or absent label set costs the labels, never the plate', 
     await expect(loader(SLUG)).rejects.toThrow(/no intrinsic size/);
   });
 });
+
+describe('the bucket cannot be unconfigured silently', () => {
+  /*
+   * The variable was absent from every env file in the repo for the entire
+   * life of the illustration tier. 113 plates ingested, publicly readable,
+   * reconciled 0/0, and not one could reach a board — because ASSETS_BASE_URL
+   * fell back to '' and the classroom selected the bundled placeholder, which
+   * always resolves and therefore looks exactly like success.
+   */
+  const realDev = (global as { __DEV__?: boolean }).__DEV__;
+  afterEach(() => { (global as { __DEV__?: boolean }).__DEV__ = realDev; });
+
+  test('dev throws when it resolves empty', () => {
+    jest.isolateModules(() => {
+      (global as { __DEV__?: boolean }).__DEV__ = true;
+      delete process.env.EXPO_PUBLIC_ASSETS_BASE_URL;
+      const mod = require('../r2-figure-resolver');
+      expect(() => mod.assertAssetsConfigured()).toThrow(/EXPO_PUBLIC_ASSETS_BASE_URL is not set/);
+    });
+  });
+
+  test('production does not throw — a student mid-class is not helped by a crash', () => {
+    jest.isolateModules(() => {
+      (global as { __DEV__?: boolean }).__DEV__ = false;
+      delete process.env.EXPO_PUBLIC_ASSETS_BASE_URL;
+      const mod = require('../r2-figure-resolver');
+      expect(() => mod.assertAssetsConfigured()).not.toThrow();
+    });
+  });
+
+  test('configured is silent in both', () => {
+    jest.isolateModules(() => {
+      (global as { __DEV__?: boolean }).__DEV__ = true;
+      process.env.EXPO_PUBLIC_ASSETS_BASE_URL = 'https://assets.example.test';
+      const mod = require('../r2-figure-resolver');
+      expect(() => mod.assertAssetsConfigured()).not.toThrow();
+    });
+  });
+});

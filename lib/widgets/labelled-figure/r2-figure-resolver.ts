@@ -44,6 +44,37 @@ import { isReviewed, type LabelSet, toFigureRecord, validateLabelSet } from './l
  */
 export const ASSETS_BASE_URL = (process.env.EXPO_PUBLIC_ASSETS_BASE_URL ?? '').replace(/\/+$/, '');
 
+/**
+ * Fails loudly in development when the bucket is not configured.
+ *
+ * WHY THIS EXISTS AND WHY IT IS NOISY. With `ASSETS_BASE_URL` empty the
+ * classroom silently selects `placeholderFigureResolver` — one bundled figure
+ * that always resolves — and every real slug misses. That fallback is
+ * deliberate and good: a developer with no bucket sees SOMETHING rather than a
+ * blank board with no way to tell "not wired" from "broken".
+ *
+ * But it is indistinguishable from the feature working. This variable was
+ * absent from every env file in the repo for the entire life of the
+ * illustration tier: 113 plates ingested, publicly readable, reconciled 0/0,
+ * and not one of them could ever have reached a board. Nothing failed. The
+ * board just drew text, and the placeholder made even that look intentional.
+ *
+ * So the silence is what gets fixed, not the fallback. Dev throws; production
+ * keeps the placeholder, because a student mid-class is not helped by a crash.
+ */
+export function assertAssetsConfigured(): void {
+  if (!__DEV__ || ASSETS_BASE_URL) return;
+  throw new Error(
+    'EXPO_PUBLIC_ASSETS_BASE_URL is not set.\n\n' +
+      'The figure resolver has fallen back to the bundled placeholder, so every ' +
+      'labelled_figure board event will render the same stand-in and no real ' +
+      'plate can appear. This is silent by design in production and must never ' +
+      'be silent here.\n\n' +
+      'Set it in .env (committed) and in eas.json for the build profile you are ' +
+      'running. The bucket is drona-assets; the value is its public r2.dev base.'
+  );
+}
+
 /** `concept-assets/{slug}.{ext}` — mirrors the API's `asset_object_key`. */
 export function assetObjectUrl(base: string, slug: string, ext = 'png'): string {
   return `${base}/concept-assets/${slug}.${ext}`;

@@ -10,7 +10,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://tgbknrmnjwiokraddurx.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_x_sJn5Q4j3f7GFESXK21wg_Ab2o5sV1",
-        "EXPO_PUBLIC_API_URL": "https://monk-learning-api-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://monk-learning-api-production.up.railway.app",
+        "EXPO_PUBLIC_ASSETS_BASE_URL": "https://pub-03eaaad7d1294d45ab6ae17beecbd799.r2.dev"
       }
     },
     "preview": {
@@ -18,7 +19,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://tgbknrmnjwiokraddurx.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_x_sJn5Q4j3f7GFESXK21wg_Ab2o5sV1",
-        "EXPO_PUBLIC_API_URL": "https://monk-learning-api-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://monk-learning-api-production.up.railway.app",
+        "EXPO_PUBLIC_ASSETS_BASE_URL": "https://pub-03eaaad7d1294d45ab6ae17beecbd799.r2.dev"
       }
     },
     "production": {
@@ -26,7 +28,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://tgbknrmnjwiokraddurx.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_x_sJn5Q4j3f7GFESXK21wg_Ab2o5sV1",
-        "EXPO_PUBLIC_API_URL": "https://monk-learning-api-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://monk-learning-api-production.up.railway.app",
+        "EXPO_PUBLIC_ASSETS_BASE_URL": "https://pub-03eaaad7d1294d45ab6ae17beecbd799.r2.dev"
       }
     }
   },
