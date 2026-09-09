@@ -715,15 +715,17 @@ export default function PracticeScreen() {
                     </Text>
                   )}
                 </Pressable>
-                <View style={styles.actionSpacer} />
-                <Pressable onPress={loadQuestion} hitSlop={10} style={styles.skipButton}>
-                  <Text style={styles.nextInlineText}>Skip</Text>
-                  <ArrowRightIcon size={scale(13)} color={colors.slate} />
-                </Pressable>
-                {/* Still no Report control. /practice serves next, answer,
-                    stats and explain and nothing else -- a report here would
-                    have nowhere to post, and a button that silently does
-                    nothing is worse than an absent one. */}
+                {/* No Skip, and no Report.
+                    Skip is gone deliberately. Every question served is one
+                    burned out of the student's pool by `record_serve`, and a
+                    skipped one was never closed again: 494 of 570 serve rows
+                    in production have no `answered_at` and never will, which
+                    is why the pace card has nothing to average. Ending every
+                    question at Submit is what makes that column mean
+                    something.
+                    Report has nowhere to post — /practice serves next, answer,
+                    stats and explain and nothing else, and a button that
+                    silently does nothing is worse than an absent one. */}
               </View>
             </>
           ) : (
@@ -881,7 +883,7 @@ function QuestionSkeleton({
       </View>
 
       <View style={styles.actionRow}>
-        <Skeleton delay={480} style={styles.skeletonSkip} />
+        <Skeleton delay={480} style={styles.skeletonSubmit} />
       </View>
     </>
   );
@@ -1217,10 +1219,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
       height: verticalScale(14),
     },
-    // The row below the options — "Skip →" on the left, "Report" on the right.
-    skeletonSkip: {
-      width: scale(46),
-      height: verticalScale(11),
+    // The row below the options — one control, Submit.
+    skeletonSubmit: {
+      width: scale(112),
+      height: verticalScale(40),
+      borderRadius: scale(99),
     },
     // The question is the page, not a widget on it. Ruled paper, an ink
     // border, a drop shadow and a red margin rule all competed with the one
@@ -1387,17 +1390,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(14),
       marginTop: verticalScale(16),
     },
-    actionSpacer: { flex: 1 },
-    // Filled, because committing an answer IS the action of the page. It sits
-    // left where the reading ends; Skip is pushed to the far edge so the two
-    // are never mistaken for a pair.
-    skipButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      height: verticalScale(40),
-      paddingHorizontal: scale(4),
-    },
+    // Filled, because committing an answer IS the action of the page, and now
+    // the only one on it.
     submitButton: {
       minWidth: scale(112),
       height: verticalScale(40),
@@ -1434,11 +1428,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.ink,
-    },
-    nextInlineText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
-      color: colors.slate,
     },
     explainSection: {
       marginTop: verticalScale(22),
