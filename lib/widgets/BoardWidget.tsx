@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { SvgXml } from 'react-native-svg';
 
 import { labelledFigure } from './labelled-figure';
@@ -77,11 +77,38 @@ export function BoardWidget({
   onGap,
   onCaption,
 }: BoardWidgetProps) {
-  // Bumped when a background figure fetch lands, so the memo below re-runs and
-  // the plate appears. Without it the fetch fills the cache and nothing looks
-  // again until the next board event — which usually arrives, but "usually" is
-  // not a rendering contract.
-  const [figureTick, setFigureTick] = useState(0);
+  /*
+   * THE FIGURE RECORD IS EXTERNAL STATE, so it is read as external state.
+   *
+   * `figures` is a cache shared by every board block; a record landing in it is
+   * an event in that cache, not in this component. A re-render counter owned by
+   * this component only helps the instance that owns it — a re-keyed board
+   * list, two blocks showing one figure, or a block that unmounts between the
+   * fetch and its landing each lose the update in a different way, and the
+   * first version here had exactly that shape.
+   *
+   * The slug is read before any hook and never conditionally, because hooks
+   * cannot be. A non-figure payload subscribes to nothing and snapshots null.
+   */
+  const figureSlug =
+    event.payload?.widget === labelledFigure.id &&
+    typeof (event.payload.params as Record<string, unknown> | undefined)?.asset_slug === 'string'
+      ? ((event.payload.params as Record<string, unknown>).asset_slug as string)
+      : null;
+
+  const subscribeFigure = useCallback(
+    (onChange: () => void) =>
+      figureSlug && figures ? figures.subscribe(figureSlug, onChange) : () => {},
+    [figures, figureSlug]
+  );
+  // Returns the SAME object identity while the cache entry is unchanged — it is
+  // a Map read — so useSyncExternalStore does not loop.
+  const snapshotFigure = useCallback(
+    () => (figureSlug && figures ? figures.get(figureSlug) : null),
+    [figures, figureSlug]
+  );
+  const figureRecord = useSyncExternalStore(subscribeFigure, snapshotFigure, snapshotFigure);
+
   const resolved = useMemo(() => {
     const { payload } = event;
     if (!payload) return null;
@@ -114,7 +141,7 @@ export function BoardWidget({
         onGap?.('invalid_params', { widget: payload.widget, errors: ['asset_slug is required'] });
         return null;
       }
-      const record = figures?.get(slug) ?? null;
+      const record = figureRecord;
       if (!record) {
         // STILL A GAP, STILL SYNCHRONOUS, AND NOW ALSO A REQUEST.
         //
@@ -137,7 +164,9 @@ export function BoardWidget({
         // is a protocol change; this does not preclude it, and prefetch is
         // idempotent, so both can be true at once.
         onGap?.('figure_not_cached', { asset_slug: slug });
-        void figures?.prefetch([slug]).then(() => setFigureTick((n) => n + 1));
+        // Fire-and-forget. The subscription above is what redraws when it
+        // lands, so nothing here awaits and nothing counts renders.
+        void figures?.prefetch([slug]);
         return null;
       }
       const checked = labelledFigure.validate({
@@ -166,7 +195,7 @@ export function BoardWidget({
       return null;
     }
     return { mod, params: checked.params };
-  }, [event, figures, onGap, figureTick]);
+  }, [event, figures, onGap, figureRecord]);
 
   if (!resolved) {
     if (event.svg) {

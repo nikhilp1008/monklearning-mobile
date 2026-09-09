@@ -69,6 +69,7 @@ import {
 } from '@/lib/drona-voice-client';
 import { BoardDiagram } from '@/components/board-diagram';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
 import { ASSETS_BASE_URL, r2FigureResolver } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
@@ -312,6 +313,19 @@ export default function LiveClassroomScreen() {
       // first. Real content exists on the client now, seconds before it is
       // spoken, so the card can stop guessing and say so.
       onTurnStarted: () => setCardPhase('writing'),
+      // The whole turn's board lands here ahead of its audio. Nothing is shown
+      // — reveal still belongs to each event's own chunk — but a figure's art
+      // is a network object, and asking for it now gives it the length of the
+      // preceding sentences to arrive. Fire-and-forget: `get()` stays
+      // synchronous and cache-only, and a slug that misses still costs a
+      // figure rather than a stalled board.
+      onBoardBuffered: (events) => {
+        const slugs = events
+          .filter((e) => e.payload?.widget === labelledFigure.id)
+          .map((e) => (e.payload?.params as Record<string, unknown> | undefined)?.asset_slug)
+          .filter((v): v is string => typeof v === 'string');
+        if (slugs.length > 0) void figures.prefetch(slugs);
+      },
       onBoardReveal: (event) => {
         // Drona is actually speaking: this fires when the first clip starts
         // playing. That is the handoff — the card goes, the board takes over.

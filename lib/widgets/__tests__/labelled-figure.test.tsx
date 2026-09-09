@@ -588,3 +588,107 @@ describe('render trees for the gate', () => {
     );
   });
 });
+
+/* ------------------------------------------------- the record lands LATE */
+/*
+ * A live session picks its figure server-side DURING the turn, so the client
+ * cannot have prefetched it before the class: `get()` misses on the first
+ * render, by construction, for every figure that has ever been shown.
+ *
+ * The first fix here was a re-render counter owned by BoardWidget. It works
+ * only for the instance that owns it, which is the narrowest possible reading
+ * of the problem — the record lands in a cache shared by every block, and a
+ * re-keyed list, a second block on the same slug, or an unmount between the
+ * fetch and its landing each lose the update in a different way. These four
+ * tests are those cases.
+ */
+describe('BoardWidget redraws when the figure record lands', () => {
+  const SLUG = 'bio11-ch7-cockroach--morphology-and-digestive-system--a';
+
+  /** A resolver whose loader we control, so "later" is a thing we can time. */
+  const deferredResolver = () => {
+    let release: (r: FigureRecord) => void = () => {};
+    let loads = 0;
+    const resolver = createFigureResolver(async (slug) => {
+      loads += 1;
+      return new Promise<FigureRecord>((res) => {
+        release = () => res({ ...PLACEHOLDER_FIGURE, asset_slug: slug });
+      });
+    });
+    return { resolver, release: () => release(PLACEHOLDER_FIGURE), loads: () => loads };
+  };
+
+  const mount = (figures: FigureResolver, gaps: [string, unknown][]) =>
+    TestRenderer.create(
+      <BoardWidget
+        event={{ seq: 1, tier: 'precomputed',
+                 payload: { widget: 'labelled_figure', version: 1,
+                            params: { asset_slug: SLUG, lang: 'english' } } }}
+        activeSeq={1}
+        width={900}
+        height={430}
+        theme={TEST_THEME}
+        services={TEST_SERVICES}
+        figures={figures}
+        onGap={(reason, detail) => gaps.push([reason, detail])}
+      />
+    );
+
+  test('(a) a record arriving after mount redraws THAT instance', async () => {
+    const { resolver, release } = deferredResolver();
+    const gaps: [string, unknown][] = [];
+    let r: TestRenderer.ReactTestRenderer;
+    act(() => { r = mount(resolver, gaps); });
+    expect(r!.toJSON()).toBeNull();                     // first render: a miss
+    expect(gaps.map((g) => g[0])).toEqual(['figure_not_cached']);
+
+    await act(async () => { release(); await Promise.resolve(); });
+    // No prop changed, no parent re-rendered, the list was not re-keyed.
+    expect(JSON.stringify(r!.toJSON())).toContain('RNSVGImage');
+  });
+
+  test('(b) unmounted and remounted after the fetch draws at once, no second fetch', async () => {
+    const { resolver, release, loads } = deferredResolver();
+    const gaps: [string, unknown][] = [];
+    let r: TestRenderer.ReactTestRenderer;
+    act(() => { r = mount(resolver, gaps); });
+    act(() => { r!.unmount(); });
+    await act(async () => { release(); await Promise.resolve(); });
+    expect(loads()).toBe(1);
+
+    let r2: TestRenderer.ReactTestRenderer;
+    act(() => { r2 = mount(resolver, gaps); });
+    expect(JSON.stringify(r2!.toJSON())).toContain('RNSVGImage');
+    // Still one. A cache hit must not re-enter the loader.
+    expect(loads()).toBe(1);
+  });
+
+  test('(c) two blocks on one slug both draw from a single fetch', async () => {
+    const { resolver, release, loads } = deferredResolver();
+    const gaps: [string, unknown][] = [];
+    let a: TestRenderer.ReactTestRenderer;
+    let b: TestRenderer.ReactTestRenderer;
+    act(() => { a = mount(resolver, gaps); b = mount(resolver, gaps); });
+    await act(async () => { release(); await Promise.resolve(); });
+    expect(JSON.stringify(a!.toJSON())).toContain('RNSVGImage');
+    expect(JSON.stringify(b!.toJSON())).toContain('RNSVGImage');
+    // `inFlight` dedupes; two subscribers is not two requests.
+    expect(loads()).toBe(1);
+  });
+
+  test('(d) a failed fetch logs the gap and never throws', async () => {
+    const resolver = createFigureResolver(async (slug) => {
+      throw new Error(`404 for ${slug}`);
+    });
+    const gaps: [string, unknown][] = [];
+    let r: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      r = mount(resolver, gaps);
+      await Promise.resolve();
+    });
+    // The block stays empty and the classroom draws its text fallback around
+    // it. A throw here would take the whole board down for one missing plate.
+    expect(r!.toJSON()).toBeNull();
+    expect(gaps.map((g) => g[0])).toEqual(['figure_not_cached']);
+  });
+});

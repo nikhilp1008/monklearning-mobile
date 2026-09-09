@@ -65,6 +65,18 @@ export interface FigureResolver {
   prefetch(assetSlugs: readonly string[]): Promise<PrefetchReport>;
   /** For tests and telemetry — what is currently resolvable offline. */
   cached(): string[];
+  /**
+   * Called when THIS slug's record lands in the cache. Returns an unsubscribe.
+   *
+   * The store half of a `useSyncExternalStore` pair, and the reason it exists
+   * rather than a re-render counter on the component: a record arriving is an
+   * event in the CACHE, not in any React tree. A counter only re-renders the
+   * component that owns it, so a board list that re-keys its blocks, or two
+   * blocks showing the same figure, or a block that unmounts between the fetch
+   * and its landing, each drop the update on the floor in a different way.
+   * Subscribing per slug makes all three the same case.
+   */
+  subscribe(assetSlug: string, onChange: () => void): () => void;
 }
 
 /**
@@ -80,6 +92,10 @@ export function createFigureResolver(
 ): FigureResolver {
   const cache = new Map<string, FigureRecord>();
   for (const rec of seed) cache.set(rec.asset_slug, rec);
+  const listeners = new Map<string, Set<() => void>>();
+  const announce = (slug: string) => {
+    for (const fn of listeners.get(slug) ?? []) fn();
+  };
   // Deduplicates concurrent prefetches of the same slug; never read by get().
   const inFlight = new Map<string, Promise<FigureRecord>>();
 
@@ -89,6 +105,20 @@ export function createFigureResolver(
     },
     cached() {
       return [...cache.keys()].sort();
+    },
+    subscribe(assetSlug, onChange) {
+      let set = listeners.get(assetSlug);
+      if (!set) {
+        set = new Set();
+        listeners.set(assetSlug, set);
+      }
+      set.add(onChange);
+      return () => {
+        set!.delete(onChange);
+        // Dropped when empty so a long class does not accumulate one entry per
+        // figure it has finished with.
+        if (set!.size === 0) listeners.delete(assetSlug);
+      };
     },
     async prefetch(assetSlugs) {
       const resolved: string[] = [];
@@ -107,6 +137,10 @@ export function createFigureResolver(
             }
             const rec = await p;
             cache.set(slug, rec);
+            // AFTER the cache write, never before: a listener that re-reads
+            // `get()` must find the record, and announcing first would hand it
+            // the same null it already had.
+            announce(slug);
             resolved.push(slug);
           } catch {
             // Swallowed on purpose: a figure that cannot be fetched before
