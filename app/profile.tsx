@@ -68,21 +68,25 @@ const TEACHERS: {
   id: TeacherId;
   name: string;
   trait: string;
-  orb: { dark: string; mid: string; bright: string; halo: string };
+  orb: { conic: readonly string[]; halo: string };
 }[] = [
   {
     id: 'drona',
     name: 'Drona',
     trait: 'calm · measured · exacting',
-    // conic(#6E2A06, #E2601C, #EEA31F, ...) + halo rgba(255,208,138,.85)
-    orb: { dark: '#6E2A06', mid: '#E2601C', bright: '#EEA31F', halo: '#FFD08A' },
+    orb: {
+      conic: ['#6E2A06', '#E2601C', '#EEA31F', '#E2601C', '#6E2A06'],
+      halo: '#FFD08A', // rgba(255,208,138,.85)
+    },
   },
   {
     id: 'vedha',
     name: 'Vedha',
     trait: 'warm · quick · encouraging',
-    // conic(#C98A1F, #FCEBC4, #F2C36B, ...) + halo rgba(255,246,224,.9)
-    orb: { dark: '#C98A1F', mid: '#F2C36B', bright: '#FCEBC4', halo: '#FFF6E0' },
+    orb: {
+      conic: ['#C98A1F', '#FCEBC4', '#F2C36B', '#FCEBC4', '#C98A1F'],
+      halo: '#FFF6E0', // rgba(255,246,224,.9)
+    },
   },
 ];
 
@@ -340,45 +344,130 @@ export default function ProfileScreen() {
 /**
  * The teacher's orb, as the landing page and the About page draw it.
  *
- * Three layers there, and the first two counter-rotate:
- *   1  conic-gradient(from 20deg, dark, mid, bright, mid, dark)  blur(9px)  6s
- *   2  radial-gradient(circle at 32% 30%, halo .85, transparent 55%)  blur(5px)  9s reverse
+ *   1  conic-gradient(from 20deg, dark, mid, bright, mid, dark)  blur(9px)   6s
+ *   2  radial-gradient(circle at 32% 30%, halo .85, transparent 55%) blur(5px) 9s reverse
  *   3  radial-gradient(closest-side, white .5, transparent) at 16%/10%  blur(3px)
  *
- * React Native has neither `conic-gradient` nor `filter: blur`, and the first
- * build of this used a single un-blurred LinearGradient -- which is why it read
- * as a hard-edged disc with a visible seam instead of an orb.
+ * Layer 1 is a CONIC gradient, and that is the whole character of the mark:
+ * colour sweeping around the centre like an iris. Two earlier attempts here
+ * were a linear gradient and then a radial one -- a radial radiates from a
+ * point, so it renders a shaded ball, which is a different object.
  *
- * The fix is not to fake the blur but to change tool: an SVG radial gradient is
- * soft by construction. So layers 1 and 2 are off-centre radial gradients, each
- * filling a square inset past the circle's edge (the site's own `inset:-24%`
- * and `-30%`), and each square is rotated. Rotating an off-centre gradient
- * inside a clipping circle is what produces the swirl; a centred one would
- * turn invisibly. Layer 3 is static, as it is on the site.
+ * Neither react-native-svg nor the SVG spec has a conic gradient, so this is
+ * the standard construction for one: 96 angular wedges, each a flat colour
+ * sampled along the ramp. At 56pt each wedge is 1.83pt of arc, which is below
+ * the threshold where banding is visible -- and the ramp starts and ends on
+ * the same colour, so there is no seam where the sweep closes either.
  *
- * Unselected orbs keep turning under a paper veil -- the veil is what says
- * "not chosen", and a frozen orb beside a moving one reads as broken.
+ * The `blur(9px)` matters more than it looks, and ignoring it was the second
+ * mistake here. Rendered at the site's own 80-110px the blur is ~9% of the
+ * diameter and the sweep stays crisp; at 24A's 56px it is 16%, and it smooths
+ * the conic almost flat. A sharp conic at this size is as wrong as a radial
+ * one, in the other direction.
+ *
+ * `filter: blur` does not exist in React Native, but for a conic the blur is
+ * separable and the angular half is exactly reproducible. At 56px the bulk of
+ * the orb's area sits near r=17.4px, so a 9px arc-length blur is a Gaussian of
+ * sigma = 9/17.4 rad = 30 degrees across the ramp -- so the ramp is convolved
+ * with that Gaussian before it is drawn, which keeps 75% of the raw contrast
+ * and matches the reference. The radial half of the blur shows up in two
+ * places: the rim, which the parent's clip handles, and the centre, where all
+ * 96 wedges converge on a singularity that renders as a visible spike -- so a
+ * cap of the ramp's mean colour covers the middle 26%.
  */
+const CONIC_WEDGES = 96;
+const CONIC_FROM = 20; // `from 20deg`
+const CONIC_R = 71; // 50*sqrt(2), so the square's corners stay covered
+
+/** Wedge geometry is palette-independent, so it is built once. */
+const WEDGE_PATHS: string[] = (() => {
+  const step = 360 / CONIC_WEDGES;
+  // 0deg is straight up and the angle increases clockwise, matching CSS.
+  const at = (deg: number) => {
+    const t = ((deg + CONIC_FROM) * Math.PI) / 180;
+    return [50 + CONIC_R * Math.sin(t), 50 - CONIC_R * Math.cos(t)];
+  };
+  return Array.from({ length: CONIC_WEDGES }, (_, i) => {
+    const [x0, y0] = at(i * step);
+    // A hair of overlap, so no seam shows between neighbouring wedges.
+    const [x1, y1] = at((i + 1) * step + 0.35);
+    return `M50 50L${x0.toFixed(2)} ${y0.toFixed(2)}A${CONIC_R} ${CONIC_R} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}Z`;
+  });
+})();
+
+/** The mean of the ramp — what a heavy blur resolves the centre to. */
+function meanHex(stops: readonly string[]): string {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  // The first and last stop are the same colour on both palettes, so the last
+  // is dropped rather than counted twice.
+  const used = stops.slice(0, -1).map(p);
+  const avg = (j: number) => Math.round(used.reduce((n, c) => n + c[j], 0) / used.length);
+  return `rgb(${avg(0)},${avg(1)},${avg(2)})`;
+}
+
+/** Interpolate two hex stops, kept as channels so the blur can average them. */
+function mixRgb(a: string, b: string, f: number): [number, number, number] {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [ar, ag, ab] = p(a);
+  const [br, bg, bb] = p(b);
+  return [ar + (br - ar) * f, ag + (bg - ag) * f, ab + (bb - ab) * f];
+}
+
+/** Degrees of Gaussian blur across the ramp — `blur(9px)` at 56px. See above. */
+const CONIC_BLUR_DEG = 30;
+
+/**
+ * Wedge colours along the ramp, convolved with the blur.
+ *
+ * Circular convolution, because the ramp wraps: wedge 0's neighbours include
+ * wedge 95, and treating the join as an edge would darken it into the seam the
+ * matched end stops exist to avoid.
+ */
+function wedgeColors(stops: readonly string[]): string[] {
+  const raw = Array.from({ length: CONIC_WEDGES }, (_, i) => {
+    const t = ((i + 0.5) / CONIC_WEDGES) * (stops.length - 1);
+    const lo = Math.min(Math.floor(t), stops.length - 2);
+    return mixRgb(stops[lo], stops[lo + 1], t - lo);
+  });
+
+  const sigma = CONIC_BLUR_DEG / (360 / CONIC_WEDGES);
+  const half = Math.max(1, Math.round(3 * sigma));
+  const kernel = Array.from({ length: 2 * half + 1 }, (_, d) =>
+    Math.exp(-((d - half) ** 2) / (2 * sigma * sigma))
+  );
+  const weight = kernel.reduce((a, b) => a + b, 0);
+
+  return raw.map((_, i) => {
+    const acc = [0, 0, 0];
+    kernel.forEach((w, j) => {
+      const c = raw[(i + j - half + CONIC_WEDGES * 2) % CONIC_WEDGES];
+      for (let ch = 0; ch < 3; ch++) acc[ch] += c[ch] * w;
+    });
+    return `rgb(${acc.map((v) => Math.round(v / weight)).join(',')})`;
+  });
+}
+
 function TeacherOrb({
   palette,
   dimmed,
   size,
   uid,
 }: {
-  palette: { dark: string; mid: string; bright: string; halo: string };
+  palette: { conic: readonly string[]; halo: string };
   dimmed: boolean;
   size: number;
-  /** Gradient ids are document-global in SVG; two orbs on one screen would
-   *  otherwise share the first one's stops. */
+  /** SVG gradient ids are document-global; two orbs would share the first. */
   uid: string;
 }) {
   const swirl = useSharedValue(0);
   const halo = useSharedValue(0);
+  const fills = useMemo(() => wedgeColors(palette.conic), [palette.conic]);
+  const centre = useMemo(() => meanHex(palette.conic), [palette.conic]);
 
   useEffect(() => {
     swirl.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false);
-    // Negative: `ringSpin` runs the other way, which is what keeps the two
-    // layers from locking together into one rigid pattern.
+    // Negative: `ringSpin` runs the other way, which is what stops the two
+    // layers locking together into one rigid pattern.
     halo.value = withRepeat(withTiming(-360, { duration: 9000, easing: Easing.linear }), -1, false);
   }, [swirl, halo]);
 
@@ -398,6 +487,7 @@ function TeacherOrb({
         borderWidth: 1,
         borderColor: 'rgba(28,26,22,.08)',
       }}>
+      {/* Layer 1 — the conic. */}
       <Animated.View
         style={[
           { position: 'absolute', left: inset24, right: inset24, top: inset24, bottom: inset24 },
@@ -405,16 +495,21 @@ function TeacherOrb({
         ]}>
         <Svg width="100%" height="100%" viewBox="0 0 100 100">
           <Defs>
-            <RadialGradient id={`orb-${uid}`} cx="32%" cy="30%" r="78%">
-              <Stop offset="0" stopColor={palette.bright} />
-              <Stop offset="0.52" stopColor={palette.mid} />
-              <Stop offset="1" stopColor={palette.dark} />
+            <RadialGradient id={`cap-${uid}`} cx="50%" cy="50%" r="26%">
+              <Stop offset="0" stopColor={centre} stopOpacity={1} />
+              <Stop offset="0.6" stopColor={centre} stopOpacity={0.85} />
+              <Stop offset="1" stopColor={centre} stopOpacity={0} />
             </RadialGradient>
           </Defs>
-          <Rect x={0} y={0} width={100} height={100} fill={`url(#orb-${uid})`} />
+          {WEDGE_PATHS.map((d, i) => (
+            <Path key={i} d={d} fill={fills[i]} />
+          ))}
+          {/* Over the convergence point, under everything else. */}
+          <Rect x={0} y={0} width={100} height={100} fill={`url(#cap-${uid})`} />
         </Svg>
       </Animated.View>
 
+      {/* Layer 2 — the halo, counter-rotating. */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -432,7 +527,7 @@ function TeacherOrb({
         </Svg>
       </Animated.View>
 
-      {/* Layer 3: the specular catch-light, static. */}
+      {/* Layer 3 — the specular catch-light, static, as on the site. */}
       <Svg
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
