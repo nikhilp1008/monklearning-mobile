@@ -35,11 +35,11 @@ export default function ReportSheetScreen() {
     setSending(true);
     setSendError(null);
     try {
-      const comment = [selectedReason, notes.trim()].filter(Boolean).join(' — ');
+      const comment = [selectedReason, notes.trim()].filter(Boolean).join(': ');
       await reportDoubt(params.doubtId, comment || undefined);
       router.back();
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Could not send that report — try again.');
+      setSendError(err instanceof Error ? err.message : 'Could not send that report. Try again.');
     } finally {
       setSending(false);
     }

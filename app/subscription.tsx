@@ -75,7 +75,7 @@ const PLAN: PlanState = {
 
 const INCLUDED = [
   'Live classes with Drona or Vedha, in English or Hinglish',
-  'Snap a doubt — up to 3 questions a photo',
+  'Snap a doubt, up to 3 questions a photo',
   'Unlimited practice, and mock tests as chapters unlock',
   'Every note and doubt you save, kept and exportable',
 ];
@@ -126,8 +126,8 @@ export default function SubscriptionScreen() {
       <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
         <Text style={styles.noticeText}>
           {expiringSoon
-            ? `Your access ends on ${PLAN.endsOn}. Nothing renews on its own — extend it when you're ready.`
-            : 'This is a one-time purchase. Nothing auto-renews, and no card is stored — when it ends, it just ends.'}
+            ? `Your access ends on ${PLAN.endsOn}. Nothing renews on its own. Extend it when you're ready.`
+            : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'}
         </Text>
       </View>
 
@@ -173,8 +173,7 @@ export default function SubscriptionScreen() {
           style={styles.link}
           onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
           support@monklearning.com
-        </Text>{' '}
-        — we reply within 24 hours.
+        </Text>. We reply within 24 hours.
       </Text>
 
       <Text style={styles.footNote}>

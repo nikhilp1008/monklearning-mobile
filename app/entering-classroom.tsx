@@ -38,7 +38,7 @@ function friendlyScopeError(err: unknown): string {
   const raw = err instanceof Error ? err.message : '';
   const looksLikeUpstreamDump = /error code:\s*\d/i.test(raw) || /^\{.*\}$/.test(raw.trim());
   if (!raw || looksLikeUpstreamDump) {
-    return "Drona's having trouble reaching the lesson right now — try again in a bit.";
+    return "Drona's having trouble reaching the lesson right now. Try again in a bit.";
   }
   return raw;
 }
@@ -362,7 +362,7 @@ export default function EnteringClassroomScreen() {
         </View>
         <View style={styles.footer}>
           <Text style={styles.footerHint}>
-            Tip: you can interrupt Drona any time — just tap raise hand.
+            Tip: you can interrupt Drona any time: just tap raise hand.
           </Text>
         </View>
       </SafeAreaView>

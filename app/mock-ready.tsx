@@ -79,7 +79,7 @@ export default function MockReadyScreen() {
           </View>
 
           <Text style={styles.hint}>
-            Once you start, the timer runs — but you can pause and resume any time.
+            Once you start, the timer runs, but you can pause and resume any time.
           </Text>
         </View>
 

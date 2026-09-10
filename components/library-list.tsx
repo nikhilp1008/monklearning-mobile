@@ -551,7 +551,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   <View style={styles.stateBlock}>
                     <Text style={styles.stateText}>
                       {notes.length === 0
-                        ? 'No saved notes yet — finish a class with Drona and save its board.'
+                        ? 'No saved notes yet. Finish a class with Drona and save its board.'
                         : notesQuery.trim()
                           ? 'No notes match that search.'
                           : `No ${notesFilter} notes yet.`}
@@ -659,7 +659,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // the right unit.
                 <View style={styles.doubtsRows}>
                   <Text style={styles.doubtsSampleNote}>
-                    Nothing snapped yet — these two came off one photo, and each stands alone so
+                    Nothing snapped yet. These two came off one photo, and each stands alone so
                     you can find and erase them separately.
                   </Text>
                   {sampleDoubts.map((card) => (

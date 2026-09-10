@@ -40,7 +40,7 @@ export type BoardContent = {
 };
 
 const CLASS_END_MARKER =
-  '——— class ended here — everything below is the rest of the lesson, for self-study ———';
+  '——— class ended here: everything below is the rest of the lesson, for self-study ———';
 
 const ALL_CAPS_LINE = /^[A-Z0-9 &,'’\-—():.]+$/;
 const HAS_LETTER = /[A-Z]/;
@@ -124,7 +124,7 @@ function fromContent(content: string): BoardSection[] {
       current = push('Self-study');
       current.blocks.push({
         kind: 'foot',
-        text: 'The class ended here — the rest is the lesson to finish on your own.',
+        text: 'The class ended here. The rest is the lesson to finish on your own.',
       });
       continue;
     }

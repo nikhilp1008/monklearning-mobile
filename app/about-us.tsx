@@ -5,11 +5,11 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Built by EAO Labs to solve this problem',
-    body: 'monklearning is built by EAO Labs Private Limited. EAO stands for Educate, Agitate, Organize — Dr. B.R. Ambedkar’s call to action, and the reason this company exists.',
+    body: 'monklearning is built by EAO Labs Private Limited. EAO stands for Educate, Agitate, Organize: Dr. B.R. Ambedkar’s call to action, and the reason this company exists.',
   },
   {
     title: 'The problem we’re solving',
-    body: 'Roughly 14 lakh students sit JEE Main and 23 lakh sit NEET UG every year, and most good coaching batches still run 100+ students to one teacher. Quality tutoring is concentrated in a handful of cities and can cost upwards of ₹2,00,000 a year — and the doubt that actually matters usually shows up at 11pm, long after class has ended.',
+    body: 'Roughly 14 lakh students sit JEE Main and 23 lakh sit NEET UG every year, and most good coaching batches still run 100+ students to one teacher. Quality tutoring is concentrated in a handful of cities and can cost upwards of ₹2,00,000 a year, and the doubt that actually matters usually shows up at 11pm, long after class has ended.',
   },
   {
     title: 'How Drona actually teaches',
@@ -17,11 +17,11 @@ const SECTIONS = [
   },
   {
     title: 'Two teachers, one plan',
-    body: 'Drona is methodical and exacting — he builds every answer up from first principles. Vedha is encouraging and energetic, built for momentum on the days you need it. Both teach in English or Hinglish, and you can switch between them anytime.',
+    body: 'Drona is methodical and exacting: he builds every answer up from first principles. Vedha is encouraging and energetic, built for momentum on the days you need it. Both teach in English or Hinglish, and you can switch between them anytime.',
   },
   {
     title: 'What we believe',
-    body: 'That patience is the actual product — teaching over just answering, progress you can see and trust, instruction in the language you think in, priced like a textbook, and built for how Indian students actually study.',
+    body: 'That patience is the actual product: teaching over just answering, progress you can see and trust, instruction in the language you think in, priced like a textbook, and built for how Indian students actually study.',
   },
   {
     title: 'What we won’t do',
@@ -53,8 +53,7 @@ export default function AboutUsScreen() {
             style={styles.link}
             onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
             support@monklearning.com
-          </Text>{' '}
-          — we reply within 24 hours. Stuck on a subject? Just ask your AI teacher inside the
+          </Text>. We reply within 24 hours. Stuck on a subject? Just ask your AI teacher inside the
           classroom instead.
         </Text>
         <View style={styles.chipRow}>

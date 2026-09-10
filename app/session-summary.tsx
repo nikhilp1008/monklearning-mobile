@@ -135,9 +135,9 @@ export default function SessionSummaryScreen() {
     saveState === 'saving'
       ? 'Saving…'
       : saveState === 'saved'
-        ? 'Saved — open your note'
+        ? 'Saved. Open your note'
         : saveState === 'error'
-          ? 'Couldn’t save — tap to retry'
+          ? 'Couldn’t save. Tap to retry'
           : 'Save to notes';
 
   if (!isPortrait) {
@@ -164,7 +164,7 @@ export default function SessionSummaryScreen() {
           showsVerticalScrollIndicator={false}>
           <Animated.View entering={FadeInDown.duration(340)}>
             <Text style={styles.heading}>Class dismissed.</Text>
-            <Text style={styles.sub}>Good work today — here&apos;s what you covered.</Text>
+            <Text style={styles.sub}>Good work today. Here&apos;s what you covered.</Text>
             <Text style={styles.topic}>{chapterTitle}</Text>
           </Animated.View>
 
@@ -221,8 +221,8 @@ export default function SessionSummaryScreen() {
 
                 <View style={styles.noteMore}>
                   <Text style={styles.noteMoreText}>
-                    The rest of the board — every derivation, the diagrams, the worked examples and
-                    the doubts you asked — is in the full note.
+                    The rest of the board (every derivation, the diagrams, the worked examples and
+                    the doubts you asked) is in the full note.
                   </Text>
                 </View>
               </View>

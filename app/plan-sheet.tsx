@@ -99,7 +99,7 @@ export default function PlanSheetScreen() {
             ))}
           </View>
         ) : (
-          <Text style={styles.emptyText}>Nothing planned yet — add one below.</Text>
+          <Text style={styles.emptyText}>Nothing planned yet. Add one below.</Text>
         )}
 
         <View style={[styles.inputRow, !hasSlot && styles.rowDisabled]}>

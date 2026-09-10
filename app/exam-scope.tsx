@@ -61,7 +61,7 @@ export default function ExamScopeScreen() {
   return (
     <SettingsPage title="Exam scope">
       <Text style={styles.lede}>
-        Neither NTA nor NMC publishes a chapter list — they publish units, and every
+        Neither NTA nor NMC publishes a chapter list. They publish units, and every
         &ldquo;chapter-wise syllabus&rdquo; you&apos;ve seen online is someone&apos;s
         reconstruction. Here is ours, mapped onto the NCERT chapters you actually own.
       </Text>
@@ -99,7 +99,7 @@ export default function ExamScopeScreen() {
         </View>
         <Text style={styles.cardNote}>
           Set by {scope.authority}. A chapter being in scope means it contains examinable
-          material — not that every line of it is examined.
+          material, not that every line of it is examined.
         </Text>
       </View>
 
@@ -109,7 +109,7 @@ export default function ExamScopeScreen() {
         <Text style={styles.sectionTitle}>Chapter by chapter</Text>
       </View>
       <Text style={styles.answerLine}>
-        Open a subject to see every chapter you own — what&apos;s examined, what has a topic
+        Open a subject to see every chapter you own: what&apos;s examined, what has a topic
         quietly trimmed out, and what left the books in 2023.
       </Text>
       <View style={styles.subjectCards}>
@@ -161,7 +161,7 @@ export default function ExamScopeScreen() {
           </View>
         </View>
         <Text style={styles.cardNote}>
-          The first group left NCERT in 2023 — not in either exam, not in your boards. The second
+          The first group left NCERT in 2023: not in either exam, not in your boards. The second
           sits inside chapters you keep and is still board material, so weigh it lighter rather
           than skipping it. Both are named per subject below.
         </Text>
@@ -184,7 +184,7 @@ export default function ExamScopeScreen() {
       </View>
       <Text style={styles.answerLine}>
         <Text style={styles.answerStrong}>No.</Text> Both syllabi only move when the NCERT books
-        move — and the books moved once, in 2023.
+        move, and the books moved once, in 2023.
       </Text>
 
       <View style={styles.timeline}>

@@ -223,7 +223,7 @@ export default function ProgressScreen() {
               </Pressable>
               <Text style={styles.heading}>Progress</Text>
             </View>
-            <Text style={styles.subtitle}>One number — and everything that explains it.</Text>
+            <Text style={styles.subtitle}>One number, and everything that explains it.</Text>
           </View>
 
           {state.kind === 'loading' && (
@@ -244,7 +244,7 @@ export default function ProgressScreen() {
             <View style={styles.card}>
               <Text style={styles.errorTitle}>Couldn&apos;t load your progress</Text>
               <Text style={styles.errorBody}>
-                Check your connection and try again — your score is safe on the server.
+                Check your connection and try again. Your score is safe on the server.
               </Text>
               <PressableScale style={styles.retryButton} onPress={retry}>
                 <Text style={styles.retryButtonText}>Retry</Text>
@@ -305,7 +305,7 @@ export default function ProgressScreen() {
                 <Text style={styles.scoreBody}>
                   Every first attempt at a question you&apos;ve never seen moves a concept&apos;s
                   mastery. The score is the average across your whole syllabus, weighted by what
-                  each chapter is worth in the exam — so the chapters that carry the most marks
+                  each chapter is worth in the exam, so the chapters that carry the most marks
                   move it the most. Concepts flagged “needs revision” cap it until you refresh
                   them. 1000 means command of everything.
                 </Text>
@@ -382,7 +382,7 @@ export default function ProgressScreen() {
                 {SUBJECT_LABEL[subject.subject] ?? subject.subject} · chapter by chapter
               </Text>
               <Text style={styles.chapterHint}>
-                Tap a chapter to see its concepts. Grey means not started yet — the syllabus
+                Tap a chapter to see its concepts. Grey means not started yet. The syllabus
                 itself is complete everywhere.
               </Text>
 
@@ -461,7 +461,7 @@ export default function ProgressScreen() {
               </View>
             ))}
             <Text style={styles.cardFootnote}>
-              Measured silently from Practice — you never run a timer. The black tick is the
+              Measured silently from Practice. You never run a timer. The black tick is the
               exam&apos;s own per-question budget. Live numbers arrive soon.
             </Text>
           </View>

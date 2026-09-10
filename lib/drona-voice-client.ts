@@ -291,7 +291,7 @@ export class DronaVoiceClient {
     }
     if (this.manualDisconnect) return;
     if (!token) {
-      this.handlers.onError?.('Lost your sign-in — go back and start the class again.');
+      this.handlers.onError?.('Lost your sign-in. Go back and start the class again.');
       return;
     }
 
@@ -327,7 +327,7 @@ export class DronaVoiceClient {
     if (this.reconnectAttempt >= RECONNECT_DELAYS_MS.length) {
       // Previously a bare return: the UI kept showing "Reconnecting" forever
       // with nothing left retrying behind it.
-      this.handlers.onError?.("Couldn't reconnect to the classroom — check your connection and rejoin.");
+      this.handlers.onError?.("Couldn't reconnect to the classroom. Check your connection and rejoin.");
       return;
     }
     this.reconnectScheduled = true;

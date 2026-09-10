@@ -244,7 +244,7 @@ export default function LiveClassroomScreen() {
 
   useEffect(() => {
     if (!sessionId) {
-      setConnectError('No session to join — go back and start a class from a chapter.');
+      setConnectError('No session to join. Go back and start a class from a chapter.');
       return;
     }
     let cancelled = false;
@@ -348,7 +348,7 @@ export default function LiveClassroomScreen() {
           setQuestionText(null);
         }
       },
-      onSttTooShort: () => setCaption("Didn't catch that — hold the button a little longer."),
+      onSttTooShort: () => setCaption("Didn't catch that. Hold the button a little longer."),
       onAnswerResult: (result) => {
         setAnswerVerdict(result.verdict);
         if (answerVerdictTimerRef.current) clearTimeout(answerVerdictTimerRef.current);
@@ -361,7 +361,7 @@ export default function LiveClassroomScreen() {
       // board's own error affordances, so every failure drops it.
       onTurnError: () => {
         dismissCard();
-        setCaption('Drona hit a snag — one moment…');
+        setCaption('Drona hit a snag. One moment…');
       },
       // The lesson itself finished — go to the summary rather than leaving the
       // student on a silent board wondering whether it broke.
@@ -1168,7 +1168,7 @@ export default function LiveClassroomScreen() {
       {toastVisible && (
         <Animated.View entering={FadeIn.duration(150)} style={styles.toast}>
           <Text style={styles.toastCheck}>✓</Text>
-          <Text style={styles.toastText}> Report sent — Drona&apos;s team will check this class.</Text>
+          <Text style={styles.toastText}> Report sent. Drona&apos;s team will check this class.</Text>
         </Animated.View>
       )}
 
@@ -1359,13 +1359,13 @@ function micNoticeFor(status: MicStatus): {
     case 'denied':
       return {
         title: 'Microphone is off',
-        body: 'Drona needs your mic to hear you. Turn it on in Settings — the class keeps going either way.',
+        body: 'Drona needs your mic to hear you. Turn it on in Settings. The class keeps going either way.',
         settingsFixesIt: true,
       };
     case 'no-input':
       return {
         title: 'No microphone found',
-        body: "There's no microphone for Drona to listen through, so speaking is off. The class keeps going — answer with the chips instead.",
+        body: "There's no microphone for Drona to listen through, so speaking is off. The class keeps going: answer with the chips instead.",
         settingsFixesIt: false,
       };
     // 'unavailable', and 'checking'/'available' defensively: the card only opens

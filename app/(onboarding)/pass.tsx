@@ -129,7 +129,7 @@ export default function PassScreen() {
               exists the only completable total is zero, and the line under the
               button is where that is admitted rather than discovered on tap. */}
           <ObButton
-            label={!active ? 'Choose a pass' : paid ? 'Complete — ₹0 due' : `Pay ${rupees(total)}`}
+            label={!active ? 'Choose a pass' : paid ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={active?.name}
             disabled={!paid}
             withArrow={paid}

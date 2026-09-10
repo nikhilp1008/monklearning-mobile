@@ -72,7 +72,7 @@ export const SCOPE_TIMELINE: ScopeYear[] = [
   {
     period: 'till 2022',
     headline: 'No structural change',
-    detail: 'Same unit sets year on year — a wider syllabus than today’s.',
+    detail: 'Same unit sets year on year, but a wider syllabus than today’s.',
     state: 'stable',
   },
   {

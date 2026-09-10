@@ -19,7 +19,7 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
 export function remedyCopy(): Record<Remedy, string> {
   const teacher = teacherNameNow();
   return {
-    retake: 'Try snapping it again — steadier light or a closer frame usually fixes this.',
+    retake: 'Try snapping it again. Steadier light or a closer frame usually fixes this.',
     not_photo: `This looks like it needs a figure or diagram ${teacher} can’t read from text alone.`,
     our_side: 'This one was on our end, not your photo. Give it another try in a moment.',
   };
@@ -98,7 +98,7 @@ export function solutionView(
     caution: unsure
       ? (source.failure_reason
           ? withTeacherName(latexToText(source.failure_reason))
-          : `${teacherNameNow()} could not stand behind an answer here — read the working and check it yourself.`)
+          : `${teacherNameNow()} could not stand behind an answer here. Read the working and check it yourself.`)
       : null,
     failureNote: refused
       ? withTeacherName(

@@ -51,7 +51,7 @@ const DAILY_DOUBTS = [
   {
     chapterTitle: 'Modern Physics',
     question:
-      'Why do photoelectrons stop the moment intensity drops — but not when frequency drops below threshold?',
+      'Why do photoelectrons stop the moment intensity drops, but not when frequency drops below threshold?',
   },
   {
     chapterTitle: 'Organic Chemistry',
@@ -246,7 +246,7 @@ export default function HomeScreen() {
             </View>
             {planItems.length === 0 ? (
               <Text style={styles.planEmptyText}>
-                Nothing planned yet — tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
+                Nothing planned yet. Tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
                 today&apos;s goals.
               </Text>
             ) : (
@@ -301,7 +301,7 @@ export default function HomeScreen() {
               <Text style={styles.overline}>Exam scope</Text>
               <Text style={styles.scopeTitle}>What&apos;s actually in your exam</Text>
               <Text style={styles.scopeBody}>
-                Not every NCERT chapter is examinable — see what counts, and what you can stop
+                Not every NCERT chapter is examinable. See what counts, and what you can stop
                 studying.
               </Text>
             </View>

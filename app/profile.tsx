@@ -282,7 +282,7 @@ export default function ProfileScreen() {
             value={language}
             onChange={chooseLanguage}
           />
-          <Text style={styles.speech}>{speech} Switch anytime — even mid-class.</Text>
+          <Text style={styles.speech}>{speech} Switch anytime, even mid-class.</Text>
 
           {/* Rate the app. The only dark object on the page, and it carries the
               amber rim the class block on Home uses. */}

@@ -5,7 +5,7 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Information we collect',
-    body: 'Account basics like your name, email, phone and password; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details — payment confirmations only. While you study, we also pick up classroom audio and transcripts, which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data — device, OS, app version, IP address and region, crash logs — comes along for the ride too.',
+    body: 'Account basics like your name, email, phone and password; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up classroom audio and transcripts, which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data (device, OS, app version, IP address and region, crash logs) comes along for the ride too.',
   },
   {
     title: 'How we use it',
@@ -13,11 +13,11 @@ const SECTIONS = [
   },
   {
     title: 'Who we share it with',
-    body: 'Only the service providers that keep monklearning running — cloud hosting, payment processing, messaging, crash reporting — and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
+    body: 'Only the service providers that keep monklearning running (cloud hosting, payment processing, messaging, crash reporting) and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
   },
   {
     title: 'How long we keep it',
-    body: 'Your learning data sticks around for as long as your account is active. Voice recordings can be deleted anytime from Personal information. Delete your account and we purge your personal data within 30 days — payment and tax records are kept a little longer, as Indian law requires.',
+    body: 'Your learning data sticks around for as long as your account is active. Voice recordings can be deleted anytime from Personal information. Delete your account and we purge your personal data within 30 days. Payment and tax records are kept a little longer, as Indian law requires.',
   },
   {
     title: 'Your rights',
@@ -29,7 +29,7 @@ const SECTIONS = [
   },
   {
     title: 'Contact us',
-    body: 'Questions about this policy can be sent to support@monklearning.com — we reply within 24 hours, usually much faster.',
+    body: 'Questions about this policy can be sent to support@monklearning.com. We reply within 24 hours, usually much faster.',
   },
 ];
 
