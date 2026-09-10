@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
@@ -12,27 +12,26 @@ import { getTeacherPreference, teacherName } from '@/lib/preferences';
  * The observation row on Home: one true sentence about this student's
  * syllabus, from their teacher.
  *
- * Three builds got here, and what each one got wrong is worth keeping.
+ * Four builds, and each failure narrowed it:
  *
- * A 12% amber wash in a rounded card: 1.09:1 against the page, so its shape
- * barely existed, while being the only filled object on a screen otherwise
- * built from hairline rules apart from the class block. It had the shape
- * language of the hero and the contrast of a whisper.
+ *  - A rounded card on a 12% amber wash. 1.09:1 against the page, so the shape
+ *    barely existed, and it was the only filled object on a screen otherwise
+ *    built from hairline rules apart from the class block: the shape language
+ *    of the hero with the contrast of a whisper.
+ *  - A 20pt teacher orb as the author mark. Fixed authorship, but put a
+ *    saturated gradient on Home, which is more colour than one sentence earns.
+ *  - "+6 more" in an outlined pill. The most decorated thing in the row,
+ *    labelling the least important thing in it.
+ *  - A "DRONA NOTICED" overline. Named the teacher, but in the same 11/700
+ *    every other section uses -- so the row stopped standing out at all and
+ *    merged into the page.
  *
- * Then the wash came off and a 20pt teacher orb went in as the author mark.
- * That fixed the authorship but put a saturated gradient on Home, which is
- * more colour than this row has earned.
- *
- * The remaining fault was the chip. "+6 more" in an outlined amber pill was
- * the loudest thing in the row, and it decorates the least important
- * information in it -- a count of other chapters. The sentence is the point,
- * and the count was out-shouting it.
- *
- * So: no fill, no orb, no pill. An overline names the teacher, which is what
- * MOMENTS.md asks for and what the wash never carried, and it does it in the
- * same 11/700 uppercase every other section of Home uses -- so this reads as a
- * section rather than a notice. The count is plain trailing text. The only
- * colour left is the arrow, which is the accent this row is actually worth.
+ * What is left is a different device from anything else on Home. Every other
+ * section is bounded by HORIZONTAL rules; this one is marked by a vertical
+ * one -- a 3pt marigold bar down its left edge, the typographic sign for a
+ * remark. A new axis, so it reads as distinct without a heading to announce it
+ * and without a field of colour. The wash stays but only as warmth behind the
+ * bar; the bar is what actually draws the boundary the wash could not.
  */
 
 export function NoticedCard({
@@ -59,40 +58,35 @@ export function NoticedCard({
   }, []);
 
   return (
-    <PressableScale style={styles.section} onPress={onPress}>
-      <Text style={styles.overline}>{teacher} noticed</Text>
-      <View style={styles.row}>
-        <Text style={styles.text} numberOfLines={2}>
-          {observation.text}
-        </Text>
-        {!!observation.meta && <Text style={styles.meta}>{observation.meta}</Text>}
-        <ArrowRightIcon color={colors.amberText} size={scale(15)} />
-      </View>
+    <PressableScale
+      style={styles.row}
+      accessibilityLabel={`${teacher} noticed: ${observation.text}`}
+      onPress={onPress}>
+      <Text style={styles.text} numberOfLines={2}>
+        {observation.text}
+      </Text>
+      {!!observation.meta && <Text style={styles.meta}>{observation.meta}</Text>}
+      <ArrowRightIcon color={colors.amberText} size={scale(15)} />
     </PressableScale>
   );
 }
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    section: {
-      paddingBottom: verticalScale(16),
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.1)',
-    },
-    /** The same 11/700 at .1em every other section on Home opens with. */
-    overline: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(11),
-      lineHeight: scale(14),
-      letterSpacing: scale(0.1 * 11),
-      textTransform: 'uppercase',
-      color: colors.slate,
-    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
-      marginTop: verticalScale(10),
+      paddingVertical: verticalScale(14),
+      paddingRight: scale(14),
+      paddingLeft: scale(14),
+      borderLeftWidth: 3,
+      borderLeftColor: colors.marigold,
+      borderTopRightRadius: scale(10),
+      borderBottomRightRadius: scale(10),
+      // Warmth behind the bar, not a boundary -- at 1.10:1 it cannot draw one.
+      // The bar does that.
+      backgroundColor: colors.tint,
     },
     text: {
       flex: 1,
