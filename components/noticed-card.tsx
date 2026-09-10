@@ -1,29 +1,37 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
+import { TeacherOrb } from '@/components/teacher-orb';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { Observation } from '@/lib/noticed';
+import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 
 /**
- * The observation row on Home.
+ * The observation row on Home: one true sentence about this student's
+ * syllabus, from their teacher.
  *
- * Stripped to one sentence on purpose. The first build carried an initial in a
- * marigold disc, a "<teacher> noticed" label and a highlighter mark on the
- * chapter name — three separate signals competing inside 110pt, which read as
- * congested rather than considered.
+ * Was a card on a 12%-amber wash. Two things were wrong with that, and they
+ * pulled in opposite directions, which is why it read as odd rather than
+ * simply wrong.
  *
- * What that costs is worth recording: those three were what made this the
- * *teacher* speaking (MOMENTS.md rule 3), and without them the row is an
- * observation from the app. The amber keeps it in the teacher's colour, but
- * nothing here says who is talking. Worth revisiting if the row ever needs to
- * feel personal again — but half-signalling it was the worse option.
+ * The wash sat at 1.09:1 against the page — a non-text boundary needs about
+ * 3:1 to register — so the card's shape barely existed. The white "+6 more"
+ * chip was 1.09:1 against the wash, so it was not reading as a chip at all;
+ * only its text was. Meanwhile every other section on Home is built from
+ * hairline rules, and the only other filled, rounded object is the class
+ * block. So this had the shape language of the hero and the contrast of a
+ * whisper.
  *
- * What's left is the sentence, an optional short tag, and the chevron; the
- * whole row is the target, so the card is the button rather than containing
- * one.
+ * It is a row now, closed by the same hairline the stats row uses, and the
+ * amber has moved out of the background and into the teacher's orb. That
+ * restores something the wash never carried: WHO is speaking. MOMENTS.md asks
+ * for the teacher's voice, and the earlier build's own note recorded that
+ * dropping the initial, the label and the highlighter left this "an
+ * observation from the app". The orb is the smallest thing that says otherwise
+ * — and being 20pt of real colour, it highlights the row without tinting it.
  */
 
 export function NoticedCard({
@@ -35,9 +43,23 @@ export function NoticedCard({
 }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  /** Drona until the stored preference says otherwise, so the orb never
+   *  renders as the wrong teacher while the read is in flight. */
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
+
+  useEffect(() => {
+    let cancelled = false;
+    getTeacherPreference().then((t) => {
+      if (!cancelled) setTeacher(t);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
-    <PressableScale style={styles.card} onPress={onPress}>
+    <PressableScale style={styles.row} onPress={onPress}>
+      <TeacherOrb teacher={teacher} size={scale(20)} />
       <Text style={styles.text} numberOfLines={2}>
         {observation.text}
       </Text>
@@ -53,21 +75,14 @@ export function NoticedCard({
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    // export-10a: a wash, no outline. The border was doing the same job as
-    // the fill and the two together read as a warning banner; the fill alone
-    // reads as a remark.
-    card: {
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(12),
-      padding: scale(16),
-      borderRadius: scale(16),
-      backgroundColor: 'rgba(238,163,31,.12)',
+      paddingBottom: verticalScale(16),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.1)',
     },
-    // Regular. The amber wash is already the whole signal that this row is
-    // the teacher speaking; bold on top of a coloured ground read as a warning
-    // banner rather than a remark, which is the opposite of what MOMENTS.md
-    // asks this row to feel like.
     text: {
       flex: 1,
       minWidth: 0,
@@ -77,12 +92,23 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       letterSpacing: scale(-0.01 * 15),
       color: colors.ink,
     },
+    /**
+     * An outline, because no fill works here.
+     *
+     * White was 1.09:1 on the old wash. Moving to the page did not help: the
+     * warm tint is 1.10:1 on white and even solid marigold only reaches 2.12,
+     * so a filled chip on paper cannot show its own edge. `amberText` at full
+     * strength is 4.73:1 — the only candidate that reads — so it draws the
+     * border, and the tint stays as a wash inside it for warmth.
+     */
     metaChip: {
       flexShrink: 0,
       paddingHorizontal: scale(8),
       paddingVertical: verticalScale(2),
       borderRadius: scale(99),
-      backgroundColor: '#fff',
+      backgroundColor: colors.tint,
+      borderWidth: 1,
+      borderColor: colors.amberText,
     },
     metaText: {
       fontFamily: 'Onest_600SemiBold',

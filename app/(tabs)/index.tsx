@@ -620,6 +620,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(4),
     },
 
+    // The row closes itself with a hairline, matching the stats row below it,
+    // so the three blocks under the strip share one rhythm.
     noticedSlot: {
       marginTop: verticalScale(32),
     },
