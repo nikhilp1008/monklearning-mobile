@@ -25,7 +25,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, {
+  Defs,
+  Ellipse,
+  LinearGradient as SvgLinearGradient,
+  Path,
+  RadialGradient,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
@@ -60,19 +68,21 @@ const TEACHERS: {
   id: TeacherId;
   name: string;
   trait: string;
-  orb: readonly [string, string, string, string, string];
+  orb: { dark: string; mid: string; bright: string; halo: string };
 }[] = [
   {
     id: 'drona',
     name: 'Drona',
     trait: 'calm · measured · exacting',
-    orb: ['#6E2A06', '#E2601C', '#EEA31F', '#E2601C', '#6E2A06'],
+    // conic(#6E2A06, #E2601C, #EEA31F, ...) + halo rgba(255,208,138,.85)
+    orb: { dark: '#6E2A06', mid: '#E2601C', bright: '#EEA31F', halo: '#FFD08A' },
   },
   {
     id: 'vedha',
     name: 'Vedha',
     trait: 'warm · quick · encouraging',
-    orb: ['#C98A1F', '#FCEBC4', '#F2C36B', '#FCEBC4', '#C98A1F'],
+    // conic(#C98A1F, #FCEBC4, #F2C36B, ...) + halo rgba(255,246,224,.9)
+    orb: { dark: '#C98A1F', mid: '#F2C36B', bright: '#FCEBC4', halo: '#FFF6E0' },
   },
 ];
 
@@ -100,8 +110,6 @@ export default function ProfileScreen() {
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [language, setLanguage] = useState<LanguageId>('english');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
-  /** Local only. Nothing is posted anywhere yet — see the note on the button. */
-  const [rating, setRating] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,17 +235,31 @@ export default function ProfileScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: on }}
                   accessibilityLabel={`Teacher ${t.name}`}
-                  style={[styles.teacherCell, i === 0 && styles.teacherCellLeft]}
+                  style={[
+                    styles.teacherCell,
+                    i === 0 ? styles.teacherCellLeft : styles.teacherCellRight,
+                  ]}
                   onPress={() => chooseTeacher(t.id)}>
                   {/* Remounting on change replays the bloom, as 24A does. */}
                   <TeacherOrb
                     key={on ? `${t.id}-on` : `${t.id}-off`}
-                    colors={t.orb}
+                    palette={t.orb}
                     dimmed={!on}
                     size={scale(56)}
+                    uid={t.id}
                   />
                   <Text style={[styles.teacherName, !on && styles.teacherNameIdle]}>{t.name}</Text>
-                  <Text style={[styles.teacherTrait, !on && styles.teacherTraitIdle]}>
+                  {/* `white-space:nowrap` in 24A. Both traits are 26
+                      characters and the cell is ~157pt, so at 12.5 they land
+                      within a point or two of the edge -- and wrapped to two
+                      lines once the right cell got its 20pt gutter back.
+                      One line, shrinking a fraction where it has to, rather
+                      than a two-line block under a 56pt orb. */}
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.88}
+                    style={[styles.teacherTrait, !on && styles.teacherTraitIdle]}>
                     {t.trait}
                   </Text>
                 </Pressable>
@@ -259,16 +281,10 @@ export default function ProfileScreen() {
           <View style={styles.rateCard}>
             <Text style={styles.rateSub}>Enjoying monklearning so far?</Text>
             <Text style={styles.rateHeadline}>Give us a rating</Text>
+            {/* Five, all filled, as the handoff draws them. */}
             <View style={styles.starRow}>
               {[1, 2, 3, 4, 5].map((i) => (
-                <Pressable
-                  key={i}
-                  hitSlop={4}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${i} star${i > 1 ? 's' : ''}`}
-                  onPress={() => setRating(i)}>
-                  <StarIcon size={scale(40)} filled={i <= rating} />
-                </Pressable>
+                <StarIcon key={i} size={scale(40)} />
               ))}
             </View>
             {/* The 3D key from onboarding: a dark rect showing 3pt below the
@@ -284,9 +300,7 @@ export default function ProfileScreen() {
                 colors={['#FFFFFF', '#FFFFFF', '#F4F0E6']}
                 locations={[0, 0.06, 1]}
                 style={styles.keyFace}>
-                <Text style={styles.keyLabel}>
-                  {rating > 0 ? 'Post it on the App Store' : 'Rate monklearning'}
-                </Text>
+                <Text style={styles.keyLabel}>Rate monklearning</Text>
               </LinearGradient>
             </View>
           </View>
@@ -324,33 +338,55 @@ export default function ProfileScreen() {
 }
 
 /**
- * `orbSwirl` — the teacher's orb, 6s linear infinite.
+ * The teacher's orb, as the landing page and the About page draw it.
  *
- * The sweep is inset negatively so the square gradient still covers the circle
- * once it turns, and the whole thing is clipped by the parent's radius. The
- * specular blob is static, as it is in 24A. Unselected orbs keep spinning
- * under a paper veil rather than stopping: the veil is what says "not chosen",
- * and a frozen orb beside a moving one reads as broken instead.
+ * Three layers there, and the first two counter-rotate:
+ *   1  conic-gradient(from 20deg, dark, mid, bright, mid, dark)  blur(9px)  6s
+ *   2  radial-gradient(circle at 32% 30%, halo .85, transparent 55%)  blur(5px)  9s reverse
+ *   3  radial-gradient(closest-side, white .5, transparent) at 16%/10%  blur(3px)
+ *
+ * React Native has neither `conic-gradient` nor `filter: blur`, and the first
+ * build of this used a single un-blurred LinearGradient -- which is why it read
+ * as a hard-edged disc with a visible seam instead of an orb.
+ *
+ * The fix is not to fake the blur but to change tool: an SVG radial gradient is
+ * soft by construction. So layers 1 and 2 are off-centre radial gradients, each
+ * filling a square inset past the circle's edge (the site's own `inset:-24%`
+ * and `-30%`), and each square is rotated. Rotating an off-centre gradient
+ * inside a clipping circle is what produces the swirl; a centred one would
+ * turn invisibly. Layer 3 is static, as it is on the site.
+ *
+ * Unselected orbs keep turning under a paper veil -- the veil is what says
+ * "not chosen", and a frozen orb beside a moving one reads as broken.
  */
 function TeacherOrb({
-  colors: sweep,
+  palette,
   dimmed,
   size,
+  uid,
 }: {
-  colors: readonly [string, string, string, string, string];
+  palette: { dark: string; mid: string; bright: string; halo: string };
   dimmed: boolean;
   size: number;
+  /** Gradient ids are document-global in SVG; two orbs on one screen would
+   *  otherwise share the first one's stops. */
+  uid: string;
 }) {
-  const spin = useSharedValue(0);
+  const swirl = useSharedValue(0);
+  const halo = useSharedValue(0);
+
   useEffect(() => {
-    spin.value = withRepeat(
-      withTiming(360, { duration: 6000, easing: Easing.linear }),
-      -1,
-      false
-    );
-  }, [spin]);
-  const turn = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value}deg` }] }));
-  const bleed = -size * 0.26;
+    swirl.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false);
+    // Negative: `ringSpin` runs the other way, which is what keeps the two
+    // layers from locking together into one rigid pattern.
+    halo.value = withRepeat(withTiming(-360, { duration: 9000, easing: Easing.linear }), -1, false);
+  }, [swirl, halo]);
+
+  const swirlTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${swirl.value}deg` }] }));
+  const haloTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${halo.value}deg` }] }));
+
+  const inset24 = -size * 0.24;
+  const inset30 = -size * 0.3;
 
   return (
     <View
@@ -363,26 +399,55 @@ function TeacherOrb({
         borderColor: 'rgba(28,26,22,.08)',
       }}>
       <Animated.View
-        style={[{ position: 'absolute', left: bleed, right: bleed, top: bleed, bottom: bleed }, turn]}>
-        <LinearGradient
-          colors={[...sweep]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        style={[
+          { position: 'absolute', left: inset24, right: inset24, top: inset24, bottom: inset24 },
+          swirlTurn,
+        ]}>
+        <Svg width="100%" height="100%" viewBox="0 0 100 100">
+          <Defs>
+            <RadialGradient id={`orb-${uid}`} cx="32%" cy="30%" r="78%">
+              <Stop offset="0" stopColor={palette.bright} />
+              <Stop offset="0.52" stopColor={palette.mid} />
+              <Stop offset="1" stopColor={palette.dark} />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={100} height={100} fill={`url(#orb-${uid})`} />
+        </Svg>
       </Animated.View>
-      <View
+
+      <Animated.View
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          left: '14%',
-          top: '10%',
-          width: '42%',
-          height: '34%',
-          borderRadius: size,
-          backgroundColor: 'rgba(255,255,255,.34)',
-        }}
-      />
+        style={[
+          { position: 'absolute', left: inset30, right: inset30, top: inset30, bottom: inset30 },
+          haloTurn,
+        ]}>
+        <Svg width="100%" height="100%" viewBox="0 0 100 100">
+          <Defs>
+            <RadialGradient id={`halo-${uid}`} cx="32%" cy="30%" r="55%">
+              <Stop offset="0" stopColor={palette.halo} stopOpacity={0.85} />
+              <Stop offset="1" stopColor={palette.halo} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={100} height={100} fill={`url(#halo-${uid})`} />
+        </Svg>
+      </Animated.View>
+
+      {/* Layer 3: the specular catch-light, static. */}
+      <Svg
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100">
+        <Defs>
+          <RadialGradient id={`spec-${uid}`} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.5} />
+            <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Ellipse cx={36} cy={25} rx={20} ry={15} fill={`url(#spec-${uid})`} />
+      </Svg>
+
       {dimmed && (
         <View
           pointerEvents="none"
@@ -456,8 +521,8 @@ function LanguageToggle({
   );
 }
 
-/** 24A's star: filled in the amber ramp, or an outline on the dark card. */
-function StarIcon({ size, filled }: { size: number; filled: boolean }) {
+/** 24A's star: the amber ramp, #FFE49B down to #EEA31F. */
+function StarIcon({ size }: { size: number }) {
   const d =
     'M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z';
   return (
@@ -468,12 +533,7 @@ function StarIcon({ size, filled }: { size: number; filled: boolean }) {
           <Stop offset="1" stopColor="#EEA31F" />
         </SvgLinearGradient>
       </Defs>
-      <Path
-        d={d}
-        fill={filled ? 'url(#starFill)' : 'none'}
-        stroke={filled ? 'none' : 'rgba(251,249,242,.3)'}
-        strokeWidth={1.4}
-      />
+      <Path d={d} fill="url(#starFill)" />
     </Svg>
   );
 }
@@ -625,12 +685,16 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderBottomWidth: 1,
       borderColor: RULE,
     },
+    // 24A: `padding:20px 20px 20px 0` left, `padding:20px 0 20px 20px` right.
+    // The right cell's 20pt was missing, so Vedha's orb sat flush against the
+    // divider while Drona's had the full gutter -- the misalignment.
     teacherCell: { flex: 1, paddingVertical: verticalScale(20) },
     teacherCellLeft: {
       paddingRight: scale(20),
       borderRightWidth: 1,
       borderRightColor: RULE,
     },
+    teacherCellRight: { paddingLeft: scale(20) },
     teacherName: {
       marginTop: verticalScale(14),
       fontFamily: 'Onest_600SemiBold',
