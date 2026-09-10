@@ -27,10 +27,30 @@ import Svg, { Circle } from 'react-native-svg';
 
 /** Inked height of "monklearning" in Onest, as a fraction of the em. */
 const INK_EM = 0.968;
-/** Symbol height ÷ wordmark ink height. */
-const SYMBOL_TO_INK = 1.75;
-/** Gap ÷ symbol height. */
-const GAP_RATIO = 0.31;
+/**
+ * Symbol height ÷ wordmark ink height, and gap ÷ symbol height.
+ *
+ * These are measured off the kit's own render
+ * (png/lockup-horizontal/lockup-horizontal-2400w.png): a 316px symbol over a
+ * 265px wordmark, 187px apart. So 1.192 and 0.592.
+ *
+ * The type rules that came with the Onest change said 1.75 and 0.31, and this
+ * shipped that way first. At 1.75 the symbol has to be 30pt to keep the
+ * wordmark legible, and it read as an oversized mark next to a small word --
+ * which is what it is: 1.75 makes the symbol 47% more dominant than the
+ * lockup the website has been showing all along. The gap at 0.31 is also half
+ * the kit's.
+ *
+ * Most likely the rule measures "ink height" as something narrower than the
+ * full inked span -- to make 1.75 true of the kit's own artwork it would have
+ * to mean about 0.68 of it, roughly a cap height. Rather than guess which
+ * band it meant, these follow the artwork.
+ *
+ * The practical effect is that the app bar goes back to the proportions the
+ * outlined wordmark had: a 20.75pt symbol over 17.4pt of wordmark ink.
+ */
+const SYMBOL_TO_INK = 1.192;
+const GAP_RATIO = 0.592;
 /**
  * 'm' carries 55/1000 em of left side bearing inside its glyph box, and
  * `marginLeft` positions the TEXT BOX, not the first inked pixel. Left alone

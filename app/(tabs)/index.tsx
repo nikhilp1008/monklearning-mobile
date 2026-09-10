@@ -146,7 +146,9 @@ export default function HomeScreen() {
             every other line on the page, because it separates the chrome from
             the document rather than one section from the next. */}
         <View style={styles.appBar}>
-          <MonkLogo height={scale(30)} />
+          {/* 21pt is the SYMBOL's height, and the lockup's. The wordmark
+              follows from it at the kit's 1.192 ratio. */}
+          <MonkLogo height={scale(21)} />
           <View style={styles.appBarRight}>
             <PressableScale
               style={styles.appBarButton}
