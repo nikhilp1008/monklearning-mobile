@@ -1,105 +1,90 @@
-// 22C Profile — rebuilt from design_handoff_profile_22c.
+// 24A Profile — rebuilt from "MonkLearning Profile 24A.html".
 //
-// Two deliberate departures from that handoff, both agreed with the user:
-//   * the mockup's fake "1:26" status-bar row is not reproduced (prototype
-//     chrome — the real OS bar sits there), and
-//   * the type is expressed in the app's own scale rather than the handoff's
-//     430pt frame, so this screen sits in the same coordinate system as every
-//     other in-app screen. The header ("Profile", 17px/700 + a 34pt back
-//     circle) is the exact convention used by account / terms / about-us /
-//     privacy-policy / subscription, and the student name is eased from the
-//     handoff's 34px down to 27 (≈30 at the handoff's frame) per the user.
+// Only this screen changes. Personal information, privacy policy, manage exam,
+// terms and about us keep the layout and the shared `SettingsHeader` they
+// already have.
 //
-// Fonts: Onest throughout since the migration (this said "Anek Latin
-// throughout, with Kalam 700"), with the same weights in the same places
-// on the single "your teacher" accent — both already brand fonts here.
+// Which is why the header here is local rather than that shared component:
+// 24A draws a 40pt back circle beside a 22/700 title, and `SettingsHeader` is
+// 34pt beside 24/500 across eight screens. Changing the shared one to match
+// would have redesigned all seven of the pages that were meant to stay put.
+//
+// Fonts are the app's own Onest. The handoff carries an Anek Latin @font-face
+// block, but it is dead boilerplate from the kit -- 24A's own phone container
+// sets `font-family:'Onest'`, so there was nothing to reconcile.
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
+  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Defs,
-  Ellipse,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  RadialGradient,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
-import { signOut } from '@/lib/auth';
-import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
-import { SettingsHeader } from '@/components/settings-page';
-import { EXAMS, YEARS } from '@/constants/onboarding';
-import { BloomFace, RingSweep } from '@/components/gradient-select';
 import { colors } from '@/constants/brand';
+import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
+import { signOut } from '@/lib/auth';
 import {
   getLanguagePreference,
   getTeacherPreference,
   setLanguagePreference,
   setTeacherPreference,
 } from '@/lib/preferences';
+import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
 
-// Handoff tokens with no equivalent in constants/brand.js. The near-identical
-// greys (#5F5A50 / #8C867A) deliberately use the app's own slate/faint instead
-// — the difference is a few RGB points and never seen side by side.
-const INK_30 = '#B4AC9B'; // muted labels, chevrons
-const SURFACE_WARM = '#F7F4EC'; // subject chips
-const AMBER_DARK = '#8F5E0B'; // the red-pen accent (was set in Kalam)
-const AMBER_MUTED = '#C9A253'; // eyebrow on the dark rating card
-const CARD_TOP = '#2A251C';
-const CARD_BASE = '#1C1A16';
+const RULE = 'rgba(28,26,22,.1)';
+const OUTLINE = 'rgba(28,26,22,.16)';
 const CREAM = '#FBF9F2';
-
-// `spin` — the selected row's amber ring, 3.6s linear infinite. React Native
-// has no conic-gradient, so this is the sanctioned fallback from the handoff's
-// own implementation note: a rotating gradient sweep clipped by the parent.
-// The ramp below maps the conic's 0/70/130/180/280deg stops onto 0..1.
-
-// `chipIn` — "your teacher", opacity 0→1 + translateX −10→0, .4s, delay .18s.
-const CHIP_MS = 400;
-const CHIP_DELAY_MS = 180;
-const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
-
+const CREAM_66 = 'rgba(251,249,242,.66)';
+const IDLE_INK = '#8A857A';
+const IDLE_QUIET = '#B4AC9B';
 
 type TeacherId = 'drona' | 'vedha';
 type LanguageId = 'hinglish' | 'english';
 
-const TEACHERS: { id: TeacherId; name: string; trait: string }[] = [
-  { id: 'drona', name: 'Drona', trait: 'steady, exacting' },
-  { id: 'vedha', name: 'Vedha', trait: 'warm, patient' },
-];
-
-const LANGUAGES: { id: LanguageId; label: string }[] = [
-  { id: 'hinglish', label: 'Hinglish' },
-  { id: 'english', label: 'English' },
-];
-
 /**
- * "Joined June" style, from `profiles.created_at`.
- *
- * The year is only printed once it stops being obvious — a student who signed
- * up this year does not need telling which year that was.
+ * The orb palettes are 24A's two conic gradients, read in order. React Native
+ * has no conic-gradient, so each is a rotating linear sweep clipped by a
+ * circle -- the same fallback this screen already used for the old selection
+ * ring, and the reason the stop list starts and ends on the same colour.
  */
-function joinedLabel(iso: string): string | null {
-  if (!iso) return null;
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return null;
-  const month = at.toLocaleDateString('en-GB', { month: 'long' });
-  const now = new Date();
-  return at.getFullYear() === now.getFullYear() ? month : `${month} ${at.getFullYear()}`;
-}
+const TEACHERS: {
+  id: TeacherId;
+  name: string;
+  trait: string;
+  orb: readonly [string, string, string, string, string];
+}[] = [
+  {
+    id: 'drona',
+    name: 'Drona',
+    trait: 'calm · measured · exacting',
+    orb: ['#6E2A06', '#E2601C', '#EEA31F', '#E2601C', '#6E2A06'],
+  },
+  {
+    id: 'vedha',
+    name: 'Vedha',
+    trait: 'warm · quick · encouraging',
+    orb: ['#C98A1F', '#FCEBC4', '#F2C36B', '#FCEBC4', '#C98A1F'],
+  },
+];
+
+// English first, as 24A draws the toggle.
+const LANGUAGES: { id: LanguageId; label: string; speech: string }[] = [
+  { id: 'english', label: 'English', speech: 'Everything in English, start to finish.' },
+  {
+    id: 'hinglish',
+    label: 'Hinglish',
+    speech: 'Explains in Hindi, keeps the terms in English.',
+  },
+];
 
 const MORE_LINKS: { label: string; href: Parameters<typeof router.push>[0] }[] = [
   { label: 'Personal information', href: '/account' },
@@ -112,14 +97,11 @@ export default function ProfileScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const scrollY = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
-  });
-
   const [teacher, setTeacher] = useState<TeacherId>('drona');
-  const [language, setLanguage] = useState<LanguageId>('hinglish');
+  const [language, setLanguage] = useState<LanguageId>('english');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  /** Local only. Nothing is posted anywhere yet — see the note on the button. */
+  const [rating, setRating] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,138 +135,59 @@ export default function ProfileScreen() {
     setLanguagePreference(id);
   };
 
-  const teacherName = TEACHERS.find((t) => t.id === teacher)?.name ?? 'Drona';
   const exam = profile ? EXAMS[profile.exam] : null;
-  const joined = joinedLabel(profile?.joined ?? '');
+  // 24A shows "JEE Main · NEET" for a student sitting both. `EXAMS.both.name`
+  // is the word "Both", which is the right label on a row you choose from and
+  // the wrong one on a row that reports what you chose.
+  const examValue = !exam
+    ? '—'
+    : profile?.exam === 'both'
+      ? `${EXAMS.jee.name} · ${EXAMS.neet.name}`
+      : exam.name;
+  const speech = LANGUAGES.find((l) => l.id === language)?.speech ?? '';
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        {/* Pinned, not scrolled — this page is long, and the way back out
-            shouldn't cost a scroll to the top to find. */}
-        <SettingsHeader title="Profile" scrollY={scrollY} />
+        <View style={styles.header}>
+          <PressableScale
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}>
+            <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
+              <Path
+                d="M10 3 5 8l5 5"
+                stroke={colors.ink}
+                strokeWidth={1.9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </PressableScale>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
 
-        <Animated.ScrollView
-          contentContainerStyle={styles.scrollContent}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}>
-          {/* Identity */}
-          <View style={[styles.section, styles.sectionFirst]}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Identity. The year rides in a pill on the right rather than in a
+              subtitle, so a student with no name set still has a full row. */}
+          <View style={styles.identityRow}>
             <Text style={styles.name}>{profile?.name || 'Your account'}</Text>
-            {/* Every clause here is conditional: a student who skipped a field
-                should get a shorter line, never a placeholder standing in for
-                something we don't know. */}
-            <Text style={styles.nameSub}>
-              {[
-                profile ? YEARS[profile.year] : null,
-                `with ${teacherName}${joined ? ` since ${joined}` : ''}`,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-            <View style={styles.examLeaderRow}>
-              <Text style={styles.examLeaderLabel}>Exam</Text>
-              <View style={styles.leaderLine} />
-              <Text style={styles.examLeaderValue}>{exam?.name ?? '—'}</Text>
-            </View>
-          </View>
-
-          {/* Teacher */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR TEACHER</Text>
-            <View style={styles.teacherList}>
-              {TEACHERS.map((t) => {
-                const selected = t.id === teacher;
-                if (!selected) {
-                  return (
-                    <Pressable
-                      key={t.id}
-                      style={styles.teacherRowIdle}
-                      onPress={() => chooseTeacher(t.id)}>
-                      <View style={styles.flex1}>
-                        <Text style={styles.teacherNameIdle}>{t.name}</Text>
-                        <Text style={styles.teacherTraitIdle}>{t.trait}</Text>
-                      </View>
-                      <Text style={styles.chooseText}>choose</Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  // Remounting on change is what replays `bloom` and `chipIn`,
-                  // exactly as the prototype does.
-                  <Pressable key={`${t.id}-selected`} onPress={() => chooseTeacher(t.id)}>
-                    <View style={styles.ringOuter}>
-                      <RingSweep radius={scale(20)} />
-                      <BloomFace style={styles.teacherFace} direction="left">
-                        <View style={styles.flex1}>
-                          <Text style={styles.teacherName}>{t.name}</Text>
-                          <Text style={styles.teacherTrait}>{t.trait}</Text>
-                        </View>
-                        <ChipIn scale={scale}>
-                          <Text style={styles.yourTeacher}>your teacher</Text>
-                        </ChipIn>
-                      </BloomFace>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Language */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>TEACHING LANGUAGE</Text>
-            <View style={styles.langRow}>
-              {LANGUAGES.map((l) => {
-                const selected = l.id === language;
-                if (!selected) {
-                  return (
-                    <Pressable
-                      key={l.id}
-                      style={styles.langPillIdle}
-                      onPress={() => chooseLanguage(l.id)}>
-                      <Text style={styles.langLabelIdle}>{l.label}</Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  <Pressable
-                    key={`${l.id}-selected`}
-                    style={styles.flex1}
-                    onPress={() => chooseLanguage(l.id)}>
-                    <View style={styles.langRingOuter}>
-                      <RingSweep radius={scale(14)} />
-                      <BloomFace style={styles.langFace} direction="bottom">
-                        <Text style={styles.langLabel}>{l.label}</Text>
-                      </BloomFace>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={styles.langNote}>
-              {teacherName} speaks &amp; teaches in this language. Switch anytime — even
-              mid-class.
-            </Text>
-          </View>
-
-          {/* Exam */}
-          <View style={styles.section}>
-            <View style={styles.examHeaderRow}>
-              <View style={styles.examLabelRow}>
-                <View style={styles.examRule} />
-                <Text style={styles.examLabel}>YOUR EXAM</Text>
+            {!!profile && (
+              <View style={styles.yearPill}>
+                <Text style={styles.yearPillText}>{YEARS[profile.year]}</Text>
               </View>
-              <PressableScale
-                style={styles.managePill}
-                onPress={() => router.push('/subscription')}>
-                <Text style={styles.manageText}>Manage</Text>
-                <Text style={styles.manageChevron}>›</Text>
-              </PressableScale>
-            </View>
-            <Text style={styles.examName}>{exam?.name ?? '—'}</Text>
+            )}
+          </View>
+
+          <View style={styles.examRow}>
+            <Text style={styles.rowLabel}>Exam</Text>
+            <Text style={styles.rowValue}>{examValue}</Text>
+          </View>
+
+          <View style={styles.subjectsBlock}>
+            <Text style={styles.rowLabel}>Subjects</Text>
             <View style={styles.chipRow}>
               {/* Follows the exam, so a NEET student sees Biology here rather
                   than the Maths this row used to hardcode. */}
@@ -296,108 +199,269 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Links */}
-          <View style={styles.section}>
-            {MORE_LINKS.map((link, index) => (
+          <PressableScale
+            style={styles.manageLink}
+            hitSlop={10}
+            onPress={() => router.push('/subscription')}>
+            <Text style={styles.manageText}>Manage exam</Text>
+            <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+              <Path
+                d="M2 8h11M9 3.5 13.5 8 9 12.5"
+                stroke={colors.amberText}
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </PressableScale>
+
+          <Text style={styles.overline}>Your teacher</Text>
+          {/* Two cells of one strip, split by a rule — the same figure the
+              home screen uses for Snap and Practice. */}
+          <View style={styles.teacherStrip}>
+            {TEACHERS.map((t, i) => {
+              const on = t.id === teacher;
+              return (
+                <Pressable
+                  key={t.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`Teacher ${t.name}`}
+                  style={[styles.teacherCell, i === 0 && styles.teacherCellLeft]}
+                  onPress={() => chooseTeacher(t.id)}>
+                  {/* Remounting on change replays the bloom, as 24A does. */}
+                  <TeacherOrb
+                    key={on ? `${t.id}-on` : `${t.id}-off`}
+                    colors={t.orb}
+                    dimmed={!on}
+                    size={scale(56)}
+                  />
+                  <Text style={[styles.teacherName, !on && styles.teacherNameIdle]}>{t.name}</Text>
+                  <Text style={[styles.teacherTrait, !on && styles.teacherTraitIdle]}>
+                    {t.trait}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.overline}>Speaks</Text>
+          <LanguageToggle
+            styles={styles}
+            options={LANGUAGES}
+            value={language}
+            onChange={chooseLanguage}
+          />
+          <Text style={styles.speech}>{speech} Switch anytime — even mid-class.</Text>
+
+          {/* Rate the app. The only dark object on the page, and it carries the
+              amber rim the class block on Home uses. */}
+          <View style={styles.rateCard}>
+            <Text style={styles.rateSub}>Enjoying monklearning so far?</Text>
+            <Text style={styles.rateHeadline}>Give us a rating</Text>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Pressable
+                  key={i}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${i} star${i > 1 ? 's' : ''}`}
+                  onPress={() => setRating(i)}>
+                  <StarIcon size={scale(40)} filled={i <= rating} />
+                </Pressable>
+              ))}
+            </View>
+            {/* The 3D key from onboarding: a dark rect showing 3pt below the
+                face stands in for `0 3px 0`, and the gradient holds white for
+                its first 6% for the inset top highlight. RN has one shadow per
+                view and no inset, so the rest is geometry.
+
+                Unwired, as it was before: there is no App Store listing to
+                open yet. The label still moves, because a student who has just
+                tapped five stars should be told what the button will do. */}
+            <View style={styles.keyBase}>
+              <LinearGradient
+                colors={['#FFFFFF', '#FFFFFF', '#F4F0E6']}
+                locations={[0, 0.06, 1]}
+                style={styles.keyFace}>
+                <Text style={styles.keyLabel}>
+                  {rating > 0 ? 'Post it on the App Store' : 'Rate monklearning'}
+                </Text>
+              </LinearGradient>
+            </View>
+          </View>
+
+          <View style={styles.links}>
+            {MORE_LINKS.map((link) => (
               <PressableScale
                 key={link.label}
-                style={[styles.linkRow, index === MORE_LINKS.length - 1 && styles.linkRowLast]}
+                style={styles.linkRow}
                 onPress={() => router.push(link.href)}>
                 <Text style={styles.linkLabel}>{link.label}</Text>
-                <Text style={styles.linkChevron}>›</Text>
+                <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
+                  <Path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    stroke={IDLE_INK}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
               </PressableScale>
             ))}
           </View>
 
-          {/* Rate the app */}
-          <View style={styles.rateCard}>
-            <LinearGradient
-              colors={[CARD_TOP, CARD_BASE]}
-              locations={[0, 0.62]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.rateGlow} pointerEvents="none">
-              <CardGlow width={scale(254)} height={verticalScale(181)} />
-            </View>
-            <Text style={styles.rateEyebrow}>INDIA&apos;S FIRST AI TEACHER APP</Text>
-            <Text style={styles.rateHeadline}>Give us a rating</Text>
-            <Text style={styles.rateSub}>Enjoying MonkLearning so far?</Text>
-            <View style={styles.starRow}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <StarIcon key={i} size={scale(36)} />
-              ))}
-            </View>
-            <PressableScale style={styles.rateButton} onPress={() => {}}>
-              <LinearGradient
-                colors={['#F5CB60', '#EEA31F']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={[StyleSheet.absoluteFill, styles.rateButtonFill]}
-              />
-              <Text style={styles.rateButtonText}>Rate MonkLearning</Text>
-            </PressableScale>
-          </View>
-
-          {/* Log out */}
-          <View style={styles.logOutWrap}>
-            {/* Ends the Supabase session and clears this student's local data;
-                the root gate sees the change and routes to onboarding itself,
-                so there is nothing to navigate to here. */}
-            <PressableScale style={styles.logOutButton} onPress={() => signOut()}>
-              <Text style={styles.logOutText}>Log out</Text>
-            </PressableScale>
-          </View>
-        </Animated.ScrollView>
+          {/* Ends the Supabase session and clears this student's local data;
+              the root gate sees the change and routes to onboarding itself,
+              so there is nothing to navigate to here. */}
+          <PressableScale style={styles.logOut} hitSlop={10} onPress={() => signOut()}>
+            <Text style={styles.logOutText}>Log out</Text>
+          </PressableScale>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
-/** `chipIn` — the "your teacher" line slides in just after the bloom. */
-function ChipIn({ scale, children }: { scale: (n: number) => number; children: React.ReactNode }) {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withDelay(
-      CHIP_DELAY_MS,
-      withTiming(1, { duration: CHIP_MS, easing: CSS_EASE })
-    );
-  }, [progress]);
-
-  const offset = scale(10);
-  const animated = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateX: -offset * (1 - progress.value) }],
-  }));
-
-  return <Animated.View style={animated}>{children}</Animated.View>;
-}
-
 /**
- * The rating card's top halo. This has to be a real radial gradient — a linear
- * one only fades along a single axis, so its left/right edges stay opaque and
- * the "glow" renders as a visible hard-edged block.
+ * `orbSwirl` — the teacher's orb, 6s linear infinite.
+ *
+ * The sweep is inset negatively so the square gradient still covers the circle
+ * once it turns, and the whole thing is clipped by the parent's radius. The
+ * specular blob is static, as it is in 24A. Unselected orbs keep spinning
+ * under a paper veil rather than stopping: the veil is what says "not chosen",
+ * and a frozen orb beside a moving one reads as broken instead.
  */
-function CardGlow({ width, height }: { width: number; height: number }) {
+function TeacherOrb({
+  colors: sweep,
+  dimmed,
+  size,
+}: {
+  colors: readonly [string, string, string, string, string];
+  dimmed: boolean;
+  size: number;
+}) {
+  const spin = useSharedValue(0);
+  useEffect(() => {
+    spin.value = withRepeat(
+      withTiming(360, { duration: 6000, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [spin]);
+  const turn = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value}deg` }] }));
+  const bleed = -size * 0.26;
+
   return (
-    <Svg width={width} height={height}>
-      <Defs>
-        <RadialGradient id="cardGlow" cx="50%" cy="50%" rx="50%" ry="50%">
-          <Stop offset="0" stopColor={colors.marigold} stopOpacity={0.4} />
-          <Stop offset="1" stopColor={colors.marigold} stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Ellipse cx={width / 2} cy={height / 2} rx={width / 2} ry={height / 2} fill="url(#cardGlow)" />
-    </Svg>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(28,26,22,.08)',
+      }}>
+      <Animated.View
+        style={[{ position: 'absolute', left: bleed, right: bleed, top: bleed, bottom: bleed }, turn]}>
+        <LinearGradient
+          colors={[...sweep]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: '14%',
+          top: '10%',
+          width: '42%',
+          height: '34%',
+          borderRadius: size,
+          backgroundColor: 'rgba(255,255,255,.34)',
+        }}
+      />
+      {dimmed && (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,.66)' }]}
+        />
+      )}
+    </View>
   );
 }
 
-/** The handoff's rounded five-point star, path verbatim from the prototype. */
-function StarIcon({ size }: { size: number }) {
+/**
+ * The Speaks toggle: one pill, two halves, an amber knob that slides between
+ * them in 380ms on 24A's own easing curve.
+ *
+ * The knob is driven by a shared value rather than by re-rendering into a new
+ * position, so the slide survives the preference write that follows the tap.
+ */
+function LanguageToggle({
+  styles,
+  options,
+  value,
+  onChange,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  options: { id: LanguageId; label: string }[];
+  value: LanguageId;
+  onChange: (id: LanguageId) => void;
+}) {
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.id === value)
+  );
+  const [width, setWidth] = useState(0);
+  const pos = useSharedValue(index);
+
+  useEffect(() => {
+    pos.value = withTiming(index, { duration: 380, easing: Easing.bezier(0.2, 0.75, 0.2, 1) });
+  }, [index, pos]);
+
+  // `calc(50% - 3px)`, measured, because RN has no calc and the knob has to
+  // land exactly inside the 3pt inset on both sides.
+  const half = width > 0 ? (width - 6) / 2 : 0;
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: pos.value * half }] }));
+
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size}>
+    <View style={styles.toggle} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {half > 0 && (
+        <Animated.View style={[styles.knob, { width: half }, slide]}>
+          <LinearGradient
+            colors={['#F7D779', '#EEA31F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[StyleSheet.absoluteFill, styles.knobFill]}
+          />
+        </Animated.View>
+      )}
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <Pressable
+            key={o.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            style={styles.toggleHalf}
+            onPress={() => onChange(o.id)}>
+            <Text style={[styles.toggleLabel, on && styles.toggleLabelOn]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** 24A's star: filled in the amber ramp, or an outline on the dark card. */
+function StarIcon({ size, filled }: { size: number; filled: boolean }) {
+  const d =
+    'M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z';
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Defs>
         <SvgLinearGradient id="starFill" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#FFE49B" />
@@ -405,388 +469,310 @@ function StarIcon({ size }: { size: number }) {
         </SvgLinearGradient>
       </Defs>
       <Path
-        d="M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z"
-        fill="url(#starFill)"
+        d={d}
+        fill={filled ? 'url(#starFill)' : 'none'}
+        stroke={filled ? 'none' : 'rgba(251,249,242,.3)'}
+        strokeWidth={1.4}
       />
     </Svg>
   );
 }
 
-
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
+function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: '#fff',
-    },
-    safeArea: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingBottom: verticalScale(28),
-    },
-    flex1: {
-      flex: 1,
-      minWidth: 0,
-    },
+    screen: { flex: 1, backgroundColor: '#fff' },
+    safeArea: { flex: 1 },
 
-    section: {
+    // --- header (local: see the note at the top of the file) ---
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
       paddingHorizontal: scale(24),
-      marginTop: verticalScale(24),
+      paddingTop: verticalScale(14),
     },
-    sectionFirst: {
-      marginTop: verticalScale(10),
-    },
-
-    // Identity — handoff 34px, eased to 27 per the user.
-    name: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(27),
-      letterSpacing: scale(-0.035 * 27),
-      lineHeight: scale(27 * 1.05),
-      color: colors.ink,
-    },
-    nameSub: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14.5),
-      color: colors.slate,
-      marginTop: verticalScale(6),
-    },
-    examLeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      gap: scale(8),
-      marginTop: verticalScale(14),
-      paddingVertical: verticalScale(10),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.14)',
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.14)',
-    },
-    examLeaderLabel: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      color: colors.faint,
-    },
-    leaderLine: {
-      flex: 1,
-      borderBottomWidth: 1,
-      borderStyle: 'dotted',
-      borderBottomColor: 'rgba(28,26,22,.26)',
-    },
-    examLeaderValue: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15.5),
-      color: colors.ink,
-    },
-
-    sectionLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.8),
-      letterSpacing: scale(0.0975 * 10.8),
-      color: colors.faint,
-    },
-
-    // Teacher rows
-    teacherList: {
-      flexDirection: 'column',
-      gap: verticalScale(9),
-      marginTop: verticalScale(13),
-    },
-    teacherRowIdle: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(13),
-      paddingVertical: verticalScale(15),
-      paddingHorizontal: scale(16),
-      borderRadius: scale(18),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      backgroundColor: '#fff',
-    },
-    teacherNameIdle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.02 * 19),
-      color: colors.faint,
-    },
-    teacherTraitIdle: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      color: INK_30,
-    },
-    chooseText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13.5),
-      color: INK_30,
-    },
-    // 2pt of padding is what reveals the rotating ring beneath the face.
-    ringOuter: {
-      position: 'relative',
+    backButton: {
+      width: scale(40),
+      height: scale(40),
+      flexShrink: 0,
       borderRadius: scale(20),
-      padding: scale(2),
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-    },
-    teacherFace: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(13),
-      paddingVertical: verticalScale(15),
-      paddingHorizontal: scale(16),
-      borderRadius: scale(18),
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-    },
-    teacherName: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.02 * 19),
-      color: colors.ink,
-    },
-    teacherTrait: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      color: colors.slate,
-    },
-    yourTeacher: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15.5),
-      color: AMBER_DARK,
-    },
-
-    // Language pills
-    langRow: {
-      flexDirection: 'row',
-      gap: scale(9),
-      marginTop: verticalScale(13),
-    },
-    langPillIdle: {
-      flex: 1,
-      height: verticalScale(47),
-      borderRadius: scale(13),
-      alignItems: 'center',
-      justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      backgroundColor: '#fff',
-    },
-    langLabelIdle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.slate,
-    },
-    langRingOuter: {
-      position: 'relative',
-      borderRadius: scale(14.5),
-      padding: scale(2),
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-    },
-    langFace: {
-      height: verticalScale(43),
-      borderRadius: scale(12.5),
+      borderColor: OUTLINE,
       alignItems: 'center',
       justifyContent: 'center',
-      overflow: 'hidden',
-      backgroundColor: '#fff',
     },
-    langLabel: {
+    headerTitle: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(16),
+      fontSize: scale(22),
+      lineHeight: scale(24.2),
+      letterSpacing: scale(-0.02 * 22),
       color: colors.ink,
     },
-    langNote: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(13.5 * 1.45),
-      color: colors.faint,
-      marginTop: verticalScale(9),
-    },
 
-    // Exam
-    examHeaderRow: {
+    scrollContent: { paddingHorizontal: scale(24), paddingBottom: verticalScale(40) },
+
+    // --- identity ---
+    identityRow: {
+      marginTop: verticalScale(24),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: scale(16),
+      paddingBottom: verticalScale(20),
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
     },
-    examLabelRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(9),
+    name: {
+      flex: 1,
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(24),
+      lineHeight: scale(26.4),
+      letterSpacing: scale(-0.02 * 24),
+      color: colors.ink,
     },
-    examRule: {
-      width: scale(16),
-      height: verticalScale(2),
-      backgroundColor: colors.red,
-    },
-    examLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.8),
-      letterSpacing: scale(0.0975 * 10.8),
-      color: colors.red,
-    },
-    managePill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(5),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.18)',
-      borderRadius: scale(99),
+    yearPill: {
+      flexShrink: 0,
+      paddingHorizontal: scale(12),
       paddingVertical: verticalScale(5),
-      paddingHorizontal: scale(13),
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: OUTLINE,
     },
-    manageText: {
+    yearPillText: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(13.5),
-      color: colors.ink,
-    },
-    manageChevron: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
-    examName: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(23.5),
-      letterSpacing: scale(-0.03 * 23.5),
-      color: colors.ink,
-      marginTop: verticalScale(13),
-    },
-    chipRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: scale(7),
-      marginTop: verticalScale(11),
-    },
-    chip: {
-      backgroundColor: SURFACE_WARM,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(13.5),
-    },
-    chipText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13.5),
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.ink,
     },
 
-    // Links
+    // --- exam / subjects ---
+    examRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: scale(16),
+      paddingVertical: verticalScale(14),
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
+    },
+    rowLabel: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
+      color: colors.slate,
+    },
+    rowValue: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      color: colors.ink,
+    },
+    subjectsBlock: {
+      paddingTop: verticalScale(14),
+      paddingBottom: verticalScale(16),
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: scale(8),
+      marginTop: verticalScale(10),
+    },
+    chip: {
+      paddingHorizontal: scale(12),
+      paddingVertical: verticalScale(6),
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: OUTLINE,
+    },
+    chipText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.ink,
+    },
+    manageLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: scale(6),
+      marginTop: verticalScale(12),
+    },
+    manageText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.amberText,
+    },
+
+    overline: {
+      marginTop: verticalScale(32),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(11),
+      lineHeight: scale(14),
+      letterSpacing: scale(0.1 * 11),
+      textTransform: 'uppercase',
+      color: colors.slate,
+    },
+
+    // --- teacher ---
+    teacherStrip: {
+      marginTop: verticalScale(12),
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: RULE,
+    },
+    teacherCell: { flex: 1, paddingVertical: verticalScale(20) },
+    teacherCellLeft: {
+      paddingRight: scale(20),
+      borderRightWidth: 1,
+      borderRightColor: RULE,
+    },
+    teacherName: {
+      marginTop: verticalScale(14),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      color: colors.ink,
+    },
+    teacherNameIdle: { color: IDLE_INK },
+    teacherTrait: {
+      marginTop: verticalScale(3),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+    },
+    teacherTraitIdle: { color: IDLE_QUIET },
+
+    // --- speaks ---
+    toggle: {
+      marginTop: verticalScale(12),
+      height: verticalScale(46),
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: OUTLINE,
+      flexDirection: 'row',
+    },
+    knob: {
+      position: 'absolute',
+      top: 3,
+      bottom: 3,
+      left: 3,
+      borderRadius: 99,
+      shadowColor: colors.marigold,
+      shadowOpacity: 0.45,
+      shadowOffset: { width: 0, height: verticalScale(4) },
+      shadowRadius: scale(8),
+      elevation: 4,
+    },
+    knobFill: { borderRadius: 99 },
+    toggleHalf: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    toggleLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
+    },
+    toggleLabelOn: { fontFamily: 'Onest_700Bold', color: colors.ink },
+    speech: {
+      marginTop: verticalScale(12),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.slate,
+    },
+
+    // --- rate ---
+    rateCard: {
+      marginTop: verticalScale(32),
+      borderRadius: scale(22),
+      backgroundColor: '#2A2621',
+      borderWidth: 1,
+      borderColor: 'rgba(238,163,31,.8)',
+      paddingTop: verticalScale(28),
+      paddingBottom: verticalScale(26),
+      paddingHorizontal: scale(24),
+      alignItems: 'center',
+      shadowColor: colors.ink,
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: verticalScale(12) },
+      shadowRadius: scale(30),
+      elevation: 10,
+    },
+    rateSub: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
+      color: CREAM_66,
+      textAlign: 'center',
+    },
+    rateHeadline: {
+      marginTop: verticalScale(6),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(28),
+      lineHeight: scale(30.2),
+      letterSpacing: scale(-0.028 * 28),
+      color: CREAM,
+      textAlign: 'center',
+    },
+    starRow: {
+      marginTop: verticalScale(20),
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: scale(6),
+    },
+    keyBase: {
+      marginTop: verticalScale(22),
+      alignSelf: 'stretch',
+      paddingBottom: 3,
+      borderRadius: 99,
+      backgroundColor: 'rgba(28,26,22,.55)',
+      shadowColor: '#000',
+      shadowOpacity: 0.34,
+      shadowOffset: { width: 0, height: verticalScale(8) },
+      shadowRadius: scale(18),
+      elevation: 6,
+    },
+    keyFace: {
+      height: verticalScale(50),
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    keyLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      color: colors.ink,
+    },
+
+    // --- links / log out ---
+    links: { marginTop: verticalScale(32), borderTopWidth: 1, borderTopColor: RULE },
     linkRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: verticalScale(13.5),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.12)',
-    },
-    linkRowLast: {
+      paddingVertical: verticalScale(16),
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.12)',
+      borderBottomColor: RULE,
     },
     linkLabel: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.ink,
     },
-    linkChevron: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14.5),
-      color: INK_30,
-    },
-
-    // Rate the app
-    rateCard: {
-      position: 'relative',
-      overflow: 'hidden',
-      marginTop: verticalScale(27),
-      marginHorizontal: scale(24),
-      borderRadius: scale(27),
-      paddingTop: verticalScale(27),
-      paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(22),
-      alignItems: 'center',
-    },
-    // No clipping here — the SVG ellipse fades to fully transparent on every
-    // edge by itself, and the card's own overflow:hidden trims the overhang.
-    rateGlow: {
-      position: 'absolute',
-      top: verticalScale(-63),
-      alignSelf: 'center',
-      width: scale(254),
-      height: verticalScale(181),
-    },
-    rateEyebrow: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.8),
-      letterSpacing: scale(0.105 * 10.8),
-      color: AMBER_MUTED,
-      textAlign: 'center',
-    },
-    rateHeadline: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(27),
-      letterSpacing: scale(-0.038 * 27),
-      lineHeight: scale(27 * 1.06),
-      color: CREAM,
-      textAlign: 'center',
-      marginTop: verticalScale(9),
-    },
-    rateSub: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15.5),
-      color: 'rgba(251,249,242,.62)',
-      textAlign: 'center',
-      marginTop: verticalScale(6),
-    },
-    // The handoff puts a `drop-shadow` on each star glyph. RN shadows follow the
-    // View's box, not the glyph, so applying one here painted a dark rectangle
-    // behind the row — dropped rather than faked; the card's halo already
-    // supplies the amber glow around them.
-    starRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: scale(7),
-      marginTop: verticalScale(16),
-    },
-    rateButton: {
-      position: 'relative',
-      overflow: 'hidden',
-      width: '100%',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: verticalScale(20),
-    },
-    rateButtonFill: {
-      borderRadius: scale(99),
-    },
-    rateButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(17),
-      color: colors.ink,
-    },
-
-    // Log out
-    logOutWrap: {
-      paddingHorizontal: scale(24),
-      marginTop: verticalScale(18),
-    },
-    logOutButton: {
-      width: '100%',
-      height: verticalScale(49),
-      borderRadius: scale(14.5),
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(221,68,51,.4)',
-    },
+    logOut: { marginTop: verticalScale(32), alignItems: 'center' },
     logOutText: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.red,
     },
   });
