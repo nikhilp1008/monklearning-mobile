@@ -1,7 +1,14 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 
@@ -86,6 +93,71 @@ const ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   notes: NotesIcon,
 };
 
+/** Matches the 200ms shift the pages move on, so the bar and the page settle
+ *  together rather than one arriving after the other. */
+const ITEM_MS = 200;
+const ITEM_EASING = Easing.out(Easing.cubic);
+
+/**
+ * One tab item.
+ *
+ * The icon is drawn twice, grey and ink, and the pair is cross-faded. That is
+ * the cheap way to animate an SVG stroke colour: `stroke` is not a style prop,
+ * so reanimated cannot drive it, and re-rendering the icon on every frame would
+ * put the work on the JS thread. Two static copies and an opacity do it
+ * natively.
+ *
+ * The label's colour IS a style prop, so it interpolates directly.
+ */
+function TabItem({
+  Icon,
+  label,
+  focused,
+  size,
+  styles,
+  onPress,
+}: {
+  Icon: (p: IconProps) => React.ReactElement;
+  label: string;
+  focused: boolean;
+  size: number;
+  styles: ReturnType<typeof createStyles>;
+  onPress: () => void;
+}) {
+  const on = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    on.value = withTiming(focused ? 1 : 0, { duration: ITEM_MS, easing: ITEM_EASING });
+  }, [focused, on]);
+
+  const fadeOn = useAnimatedStyle(() => ({ opacity: on.value }));
+  const fadeOff = useAnimatedStyle(() => ({ opacity: 1 - on.value }));
+  const labelColor = useAnimatedStyle(() => ({
+    color: interpolateColor(on.value, [0, 1], [OFF, colors.ink]),
+  }));
+
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={label}
+      style={styles.item}
+      onPress={onPress}>
+      <View style={{ width: size, height: size }}>
+        <Animated.View style={[StyleSheet.absoluteFill, fadeOff]}>
+          <Icon color={OFF} size={size} />
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, fadeOn]}>
+          <Icon color={colors.ink} size={size} />
+        </Animated.View>
+      </View>
+      <Animated.Text style={[styles.label, focused && styles.labelOn, labelColor]}>
+        {label}
+      </Animated.Text>
+    </Pressable>
+  );
+}
+
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { scale, verticalScale } = useScale();
   const insets = useSafeAreaInsets();
@@ -112,17 +184,16 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         {routes.map((route) => {
           const { options } = descriptors[route.key];
           const focused = state.routes[state.index].key === route.key;
-          const Icon = ICONS[route.name];
-          const color = focused ? colors.ink : OFF;
           const label = options.title ?? route.name;
 
           return (
-            <Pressable
+            <TabItem
               key={route.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={label}
-              style={styles.item}
+              Icon={ICONS[route.name]}
+              label={label}
+              focused={focused}
+              size={scale(22)}
+              styles={styles}
               onPress={() => {
                 const event = navigation.emit({
                   type: 'tabPress',
@@ -132,10 +203,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 if (!focused && !event.defaultPrevented) {
                   navigation.navigate(route.name);
                 }
-              }}>
-              <Icon color={color} size={scale(22)} />
-              <Text style={[styles.label, { color }, focused && styles.labelOn]}>{label}</Text>
-            </Pressable>
+              }}
+            />
           );
         })}
       </View>
