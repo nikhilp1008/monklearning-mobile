@@ -2,7 +2,7 @@
  * The chapter-level scope map — which NCERT chapters each exam actually
  * examines, and what is quietly trimmed inside the ones it keeps.
  *
- * Sourced from MonkLearning's "JEE Main & NEET UG Exam Scope Map" (verified
+ * Sourced from monklearning's "JEE Main & NEET UG Exam Scope Map" (verified
  * August 2026). The research document presents this as a four-column table
  * repeating "IN SCOPE" a hundred times; that is the right shape for an
  * auditable spreadsheet and the wrong shape for a student. Here the same

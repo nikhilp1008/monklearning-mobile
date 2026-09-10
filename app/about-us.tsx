@@ -5,7 +5,7 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Built by EAO Labs to solve this problem',
-    body: 'MonkLearning is built by EAO Labs Private Limited. EAO stands for Educate, Agitate, Organize — Dr. B.R. Ambedkar’s call to action, and the reason this company exists.',
+    body: 'monklearning is built by EAO Labs Private Limited. EAO stands for Educate, Agitate, Organize — Dr. B.R. Ambedkar’s call to action, and the reason this company exists.',
   },
   {
     title: 'The problem we’re solving',
@@ -69,7 +69,7 @@ export default function AboutUsScreen() {
         </View>
       </View>
 
-      <Text style={styles.footer}>MonkLearning · v2.0 · Made for students, not batches.</Text>
+      <Text style={styles.footer}>monklearning · v2.0 · Made for students, not batches.</Text>
     </SettingsPage>
   );
 }

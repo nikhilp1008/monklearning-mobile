@@ -10,7 +10,7 @@ import { useScale } from '@/constants/scale';
  * Your plan.
  *
  * What this replaces described a product we don't sell: an "Annual" plan at
- * ₹11,999/year that "Renews", with a monthly/annual switcher. MonkLearning's
+ * ₹11,999/year that "Renews", with a monthly/annual switcher. monklearning's
  * payments are one-time and nothing auto-renews — our own Terms say so — so
  * every number and every word on that screen was wrong.
  *

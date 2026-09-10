@@ -9,11 +9,11 @@ const SECTIONS = [
   },
   {
     title: 'How we use it',
-    body: 'To actually run your classes, track what you’ve mastered, and decide what Drona or Vedha teaches you next. We also use it to keep the service running, to improve MonkLearning through de-identified analysis, and to catch fraud. We don’t sell your data, and we don’t use it to train anything outside your own account.',
+    body: 'To actually run your classes, track what you’ve mastered, and decide what Drona or Vedha teaches you next. We also use it to keep the service running, to improve monklearning through de-identified analysis, and to catch fraud. We don’t sell your data, and we don’t use it to train anything outside your own account.',
   },
   {
     title: 'Who we share it with',
-    body: 'Only the service providers that keep MonkLearning running — cloud hosting, payment processing, messaging, crash reporting — and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
+    body: 'Only the service providers that keep monklearning running — cloud hosting, payment processing, messaging, crash reporting — and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
   },
   {
     title: 'How long we keep it',

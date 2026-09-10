@@ -5,10 +5,10 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'The agreement',
-    body: 'Creating an account or using MonkLearning means you accept these terms. If you’re under 18, a parent or guardian accepts them at sign-up and stays responsible for the account.',
+    body: 'Creating an account or using monklearning means you accept these terms. If you’re under 18, a parent or guardian accepts them at sign-up and stays responsible for the account.',
   },
   {
-    title: 'What MonkLearning is',
+    title: 'What monklearning is',
     body: 'An AI teaching platform for JEE Main and NEET UG — live classroom sessions, a lesson library, Snap-a-doubt, unlimited practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
   },
   {
@@ -21,7 +21,7 @@ const SECTIONS = [
   },
   {
     title: 'Acceptable use',
-    body: 'Please don’t share or resell your account, scrape content in bulk, try to reverse-engineer Drona or Vedha, use MonkLearning to cheat on an exam, or upload abusive or plagiarized doubts at scale.',
+    body: 'Please don’t share or resell your account, scrape content in bulk, try to reverse-engineer Drona or Vedha, use monklearning to cheat on an exam, or upload abusive or plagiarized doubts at scale.',
   },
   {
     title: 'Mock test access',
@@ -29,7 +29,7 @@ const SECTIONS = [
   },
   {
     title: 'Who owns what',
-    body: 'MonkLearning owns the platform itself — lessons, questions, and our teachers’ voices. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
+    body: 'monklearning owns the platform itself — lessons, questions, and our teachers’ voices. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
   },
   {
     title: 'Changes & availability',
@@ -37,7 +37,7 @@ const SECTIONS = [
   },
   {
     title: 'What we don’t guarantee',
-    body: 'MonkLearning is a study tool, not a promise of marks, rank, or admission. Our AI teachers can make mistakes — every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
+    body: 'monklearning is a study tool, not a promise of marks, rank, or admission. Our AI teachers can make mistakes — every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
   },
   {
     title: 'Suspension & account deletion',

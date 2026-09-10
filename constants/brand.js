@@ -1,5 +1,5 @@
 // constants/theme.js
-// MonkLearning design tokens — the single source every screen pulls its
+// monklearning design tokens — the single source every screen pulls its
 // colors and spacing from, instead of hardcoding values screen by screen.
 
 export const colors = {

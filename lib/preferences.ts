@@ -71,8 +71,10 @@ export async function primeTeacherName(): Promise<string> {
  * called it by name since onboarding, so a refusal that suddenly says "Monk"
  * reads as a different product talking.
  *
- * `\bMonk\b` deliberately: it leaves "MonkLearning" alone, since the brand is
- * not the teacher.
+ * `\bMonk\b` deliberately, and case-sensitively: it matches the capitalised
+ * "Monk" the API sends and nothing else. The brand name is not the teacher, and
+ * it survives this untouched either way -- there is no word boundary after the
+ * "monk" in "monklearning" for `\b` to find.
  */
 export function withTeacherName(text: string): string;
 export function withTeacherName(text: null | undefined): null;
