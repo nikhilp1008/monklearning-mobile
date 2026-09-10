@@ -349,6 +349,20 @@ function ClassBlock({
       onPressIn={() => setHeld(true)}
       onPressOut={() => setHeld(false)}
       style={styles.classBlock}>
+      {/* An absolute fill, not a wrapper with `overflow: hidden`.
+          Clipping the block would take the drop shadow with it -- RN cannot
+          draw a shadow around a view that clips its own children -- and the
+          shadow is part of the design. An absolutely-positioned child fills
+          the padding box, so it lands INSIDE the 1pt amber ring and leaves it
+          drawing on top; its radius is 21, one point tighter than the block's
+          22, so the two stay concentric. */}
+      <LinearGradient
+        colors={['#2A2621', '#2A2621', '#4A3512']}
+        locations={[0, 0.4, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.classGradient}
+      />
       <Text style={styles.classLine}>Pick a chapter and your teacher teaches it live.</Text>
       <View style={[styles.keyBase, held && styles.keyBaseHeld]}>
         <LinearGradient
@@ -514,6 +528,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(20),
       padding: scale(24),
       borderRadius: scale(22),
+      // Kept under the gradient as the base coat: it is the gradient's own
+      // first two stops, so nothing flashes before the gradient paints and the
+      // 1pt border has something to sit against.
       backgroundColor: '#2A2621',
       borderWidth: 1,
       borderColor: 'rgba(238,163,31,.8)',
@@ -523,6 +540,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(30),
       elevation: 10,
       marginBottom: verticalScale(32),
+    },
+    classGradient: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: scale(21),
     },
     classLine: {
       fontFamily: 'Onest_400Regular',
