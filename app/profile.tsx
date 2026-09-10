@@ -417,13 +417,34 @@ function mixRgb(a: string, b: string, f: number): [number, number, number] {
 const CONIC_BLUR_DEG = 30;
 
 /**
+ * The unchosen orb.
+ *
+ * 24A lays `rgba(255,255,255,.66)` over it, and that works for Drona's browns
+ * and fails for Vedha's creams. Measured against a white page: Drona veils to
+ * 0.814 luminance, Vedha to 0.931 — seven hundredths off the page itself. One
+ * reads as unchosen, the other as an empty circle, and they sit side by side.
+ * Lowering opacity is the same operation and fails the same way, because
+ * fading toward white IS a white veil.
+ *
+ * So the orb is greyed instead, and both palettes are normalised to one
+ * lightness: each wedge keeps half its variation around a fixed 0.72 mean. The
+ * sweep survives, so it is visibly the same object; the colour does not, which
+ * is the whole signal.
+ */
+const IDLE_LUM = 0.72;
+const IDLE_CONTRAST = 0.5;
+
+const luminance = ([r, g, b]: [number, number, number]) =>
+  (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+/**
  * Wedge colours along the ramp, convolved with the blur.
  *
  * Circular convolution, because the ramp wraps: wedge 0's neighbours include
  * wedge 95, and treating the join as an edge would darken it into the seam the
  * matched end stops exist to avoid.
  */
-function wedgeColors(stops: readonly string[]): string[] {
+function wedgeColors(stops: readonly string[], dimmed: boolean): string[] {
   const raw = Array.from({ length: CONIC_WEDGES }, (_, i) => {
     const t = ((i + 0.5) / CONIC_WEDGES) * (stops.length - 1);
     const lo = Math.min(Math.floor(t), stops.length - 2);
@@ -437,13 +458,24 @@ function wedgeColors(stops: readonly string[]): string[] {
   );
   const weight = kernel.reduce((a, b) => a + b, 0);
 
-  return raw.map((_, i) => {
-    const acc = [0, 0, 0];
+  const blurred = raw.map((_, i) => {
+    const acc: [number, number, number] = [0, 0, 0];
     kernel.forEach((w, j) => {
       const c = raw[(i + j - half + CONIC_WEDGES * 2) % CONIC_WEDGES];
       for (let ch = 0; ch < 3; ch++) acc[ch] += c[ch] * w;
     });
-    return `rgb(${acc.map((v) => Math.round(v / weight)).join(',')})`;
+    return acc.map((v) => v / weight) as [number, number, number];
+  });
+
+  if (!dimmed) {
+    return blurred.map((c) => `rgb(${c.map(Math.round).join(',')})`);
+  }
+
+  const lums = blurred.map(luminance);
+  const mean = lums.reduce((a, b) => a + b, 0) / lums.length;
+  return lums.map((l) => {
+    const v = Math.round(255 * Math.min(1, Math.max(0, IDLE_LUM + (l - mean) * IDLE_CONTRAST)));
+    return `rgb(${v},${v},${v})`;
   });
 }
 
@@ -461,8 +493,13 @@ function TeacherOrb({
 }) {
   const swirl = useSharedValue(0);
   const halo = useSharedValue(0);
-  const fills = useMemo(() => wedgeColors(palette.conic), [palette.conic]);
-  const centre = useMemo(() => meanHex(palette.conic), [palette.conic]);
+  const fills = useMemo(() => wedgeColors(palette.conic, dimmed), [palette.conic, dimmed]);
+  // The cap follows the orb: a coloured cap over a greyed sweep would put the
+  // one saturated patch on the orb exactly where the eye lands.
+  const centre = useMemo(
+    () => (dimmed ? `rgb(${Math.round(255 * IDLE_LUM)},${Math.round(255 * IDLE_LUM)},${Math.round(255 * IDLE_LUM)})` : meanHex(palette.conic)),
+    [palette.conic, dimmed]
+  );
 
   useEffect(() => {
     swirl.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false);
@@ -519,8 +556,12 @@ function TeacherOrb({
         <Svg width="100%" height="100%" viewBox="0 0 100 100">
           <Defs>
             <RadialGradient id={`halo-${uid}`} cx="32%" cy="30%" r="55%">
-              <Stop offset="0" stopColor={palette.halo} stopOpacity={0.85} />
-              <Stop offset="1" stopColor={palette.halo} stopOpacity={0} />
+              <Stop
+                offset="0"
+                stopColor={dimmed ? '#FFFFFF' : palette.halo}
+                stopOpacity={dimmed ? 0.4 : 0.85}
+              />
+              <Stop offset="1" stopColor={dimmed ? '#FFFFFF' : palette.halo} stopOpacity={0} />
             </RadialGradient>
           </Defs>
           <Rect x={0} y={0} width={100} height={100} fill={`url(#halo-${uid})`} />
@@ -543,12 +584,6 @@ function TeacherOrb({
         <Ellipse cx={36} cy={25} rx={20} ry={15} fill={`url(#spec-${uid})`} />
       </Svg>
 
-      {dimmed && (
-        <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,.66)' }]}
-        />
-      )}
     </View>
   );
 }
@@ -783,7 +818,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     // 24A: `padding:20px 20px 20px 0` left, `padding:20px 0 20px 20px` right.
     // The right cell's 20pt was missing, so Vedha's orb sat flush against the
     // divider while Drona's had the full gutter -- the misalignment.
-    teacherCell: { flex: 1, paddingVertical: verticalScale(20) },
+    teacherCell: { flex: 1, paddingVertical: scale(20) },
     teacherCellLeft: {
       paddingRight: scale(20),
       borderRightWidth: 1,
@@ -791,7 +826,11 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     teacherCellRight: { paddingLeft: scale(20) },
     teacherName: {
-      marginTop: verticalScale(14),
+      // scale, not verticalScale. The orb is sized on the horizontal axis, so
+      // measuring the gap under it on the vertical one let the two drift apart
+      // by device -- 57.7pt of orb over a 13.8pt gap here, where the design
+      // says 56 over 14.
+      marginTop: scale(14),
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       lineHeight: scale(22),
@@ -800,7 +839,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     teacherNameIdle: { color: IDLE_INK },
     teacherTrait: {
-      marginTop: verticalScale(3),
+      marginTop: scale(3),
       fontFamily: 'Onest_400Regular',
       fontSize: scale(12.5),
       lineHeight: scale(18),
