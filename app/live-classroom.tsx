@@ -604,10 +604,17 @@ export default function LiveClassroomScreen() {
       .then((res) => {
         if (cancelled) return;
         setChapterAssets(res.assets ?? []);
+        console.log(`[figures] chapter prefetch: ${res.assets?.length ?? 0} asset(s) for chapter ${params.chapterId}`);
         return figures.prefetch((res.assets ?? []).map((a) => a.asset_slug));
       })
       .then((report) => {
-        if (report && report.missing.length > 0) {
+        if (!report) return;
+        // Success is LOGGED, not silent. A silent success here is
+        // indistinguishable from the prefetch never running, which is exactly
+        // how prefetch(figures.cached()) — a no-op by construction — went
+        // unnoticed for the life of the tier.
+        console.log(`[figures] chapter prefetch resolved ${report.resolved.length}, missing ${report.missing.length}`);
+        if (report.missing.length > 0) {
           // Named before the class, which is the only moment it is actionable.
           console.warn('[figures] not resolvable offline:', report.missing.join(', '));
         }
