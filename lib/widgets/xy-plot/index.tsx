@@ -187,6 +187,7 @@ import {
   type PlotMode,
   type TangentKind,
   type XyPlotDerived,
+  type SecantKind,
   type XyPlotParams,
 } from './plot-math';
 import { NAMED_CURVES, NAMED_SHAPE_IDS, namedRange, type NamedCurveDef } from './named-curves';
@@ -957,6 +958,16 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
   if (typeof axis !== 'string' || !(AXES as string[]).includes(axis)) {
     errors.push(`integrate_along must be one of ${AXES.join(', ')}`);
   }
+  const secantKind = r.secant ?? 'none';
+  if (typeof secantKind !== 'string' || !['none', 'chord', 'chord_with_deltas'].includes(secantKind)) {
+    errors.push(`secant must be one of none, chord, chord_with_deltas`);
+  }
+  if (r.secant_from !== undefined && !finite(r.secant_from)) {
+    errors.push('secant_from must be a finite number');
+  }
+  if (r.secant_to !== undefined && !finite(r.secant_to)) {
+    errors.push('secant_to must be a finite number');
+  }
   const tangentKind = r.tangent_kind ?? 'none';
   if (typeof tangentKind !== 'string' || !(TANGENT_KINDS as string[]).includes(tangentKind)) {
     errors.push(`tangent_kind must be one of ${TANGENT_KINDS.join(', ')}`);
@@ -1076,10 +1087,14 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
         'a named shape carries no formula to differentiate, so it cannot take a tangent — several of these curves are qualitative and a slope read off one would be a number with no referent'
       );
     }
+    if (secantKind !== 'none') {
+      errors.push('a named shape is qualitative — a secant slope read off one would be a number with no referent');
+    }
   }
   if (mode === 'data') {
     if (pieces.length > 0) errors.push('data mode plots a sample, not a function; pieces has no meaning there');
     if (tangentKind !== 'none') errors.push('data mode plots a sample, not a function; there is nothing to take a tangent to');
+    if (secantKind !== 'none') errors.push('data mode plots a sample, not a function; a chord between samples is the trend line, which data mode already draws');
   }
 
   if (errors.length > 0) return { ok: false, errors };
@@ -1118,6 +1133,8 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
   sTo = clamp(sTo, xMin, xMax);
 
   const tangentAt = finite(r.tangent_at) ? clamp(r.tangent_at, xMin, xMax) : xMin;
+  const secantFrom = finite(r.secant_from) ? clamp(r.secant_from, xMin, xMax) : xMin;
+  const secantTo = finite(r.secant_to) ? clamp(r.secant_to, xMin, xMax) : xMax;
 
   const params: XyPlotParams = {
     mode: mode as PlotMode,
@@ -1149,6 +1166,9 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
     pieces,
     tangent_at: tangentAt,
     tangent_kind: tangentKind as TangentKind,
+    secant: secantKind as SecantKind,
+    secant_from: secantFrom,
+    secant_to: secantTo,
     family_param: familyParam as FamilyParam,
     family_values: (familyRaw as number[]).map((v) => clamp(v, -100, 100)),
     named_shape: mode === 'named' ? (namedShape as string) : '',
@@ -1209,6 +1229,16 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
    *     The TANGENT there is horizontal, slope 0, and is perfectly legal —
    *     which is the extremum case this was extended for.
    */
+  if (params.secant !== 'none' && errors.length === 0) {
+    const span = Math.abs(params.x_max - params.x_min);
+    if (Math.abs(params.secant_to - params.secant_from) < span * 0.05) {
+      errors.push(
+        `secant endpoints ${params.secant_from} and ${params.secant_to} are closer than 5% of the ` +
+          `domain — the chord degenerates into the tangent it is being compared against; ` +
+          `use tangent_kind for that limit`
+      );
+    }
+  }
   if (params.tangent_kind !== 'none' && errors.length === 0) {
     if (params.pieces.length > 0) {
       const tolP = Math.max(Math.abs(params.x_max - params.x_min), 1) * 1e-7;
@@ -1324,8 +1354,20 @@ function readoutValue(p: XyPlotParams, d: XyPlotDerived): string {
    * reason: several named shapes are qualitative and a slope read off one
    * would be a number with no referent.
    */
-  if (p.tangent_kind !== 'none' && p.mode !== 'named' && p.mode !== 'data') {
+  const hasTan = p.tangent_kind !== 'none' && p.mode !== 'named' && p.mode !== 'data';
+  const hasSec = p.secant !== 'none' && p.mode !== 'named' && p.mode !== 'data';
+  if (hasTan && hasSec) {
+    // Fig 2.1 shows BOTH lines, and the full phrasing ("tangent slope …
+    // avg slope …") is 309.8pt against 281.4pt of board at 343x236 — the
+    // readout-width validator refused the book's own figure. Compressed to
+    // the two words the comparison is ABOUT; the lines on the board carry
+    // the rest. Shortening the phrasing, never widening the validator.
+    parts.push(`inst ${fmt(d.slope)}`);
+    parts.push(`avg ${fmt(d.secantSlope)}`);
+  } else if (hasTan) {
     parts.push(`${p.tangent_kind} slope ${fmt(d.slope)}`);
+  } else if (hasSec) {
+    parts.push(`avg slope ${fmt(d.secantSlope)}`);
   }
   return parts.join(READOUT_SEP);
 }
@@ -1342,9 +1384,16 @@ function readoutFor(p: XyPlotParams, d: XyPlotDerived): string {
   return caption === '' ? value : `${caption}${READOUT_SEP}${value}`;
 }
 
+/** Δ values printed short: 2 significant-ish decimals, no trailing zeros. */
+function fmtShort(v: number): string {
+  const r = Math.round(v * 100) / 100;
+  return String(r);
+}
+
 function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPlotParams>) {
   const shadeSv = motion.shade_to;
   const tangentSv = motion.tangent_at;
+  const secantToSv = motion.secant_to;
 
   /*
    * Static scaffolding: axes, gridlines, ticks. Computed from `params` only,
@@ -1559,6 +1608,88 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
     };
   });
 
+  const hasSecant = params.secant !== 'none' && !frame.isData && frame.named === null;
+
+  /**
+   * The chord, rebuilt on the UI thread as `secant_to` slides — the
+   * average→instantaneous limit is the one animation this construction
+   * exists for. A Path for the same reason the tangent is: a moving straight
+   * line must be geometry, not a `Line` the scaffolding check rightly flags.
+   */
+  const secantProps = useAnimatedProps(() => {
+    if (!hasSecant) return { d: '' };
+    const at = (x: number) => {
+      const i = params.pieces.length > 0 ? pieceAt(params.pieces, x) : -1;
+      const k = params.pieces.length > 0
+        ? (i < 0 ? null : params.pieces[i])
+        : { curve: params.curve, a: params.a, b: params.b, c: params.c };
+      return k ? evalCurve(k.curve, k.a, k.b, k.c, x) : 0;
+    };
+    const x1 = params.secant_from;
+    const x2 = secantToSv.value;
+    const y1 = at(x1);
+    const y2 = at(x2);
+    const X1 = pointPx(x1, y1, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap);
+    const Y1 = pointPy(x1, y1, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap);
+    const X2 = pointPx(x2, y2, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap);
+    const Y2 = pointPy(x2, y2, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap);
+    return { d: `M${X1},${Y1} L${X2},${Y2}` };
+  });
+
+  /** The sliding endpoint B. Same in-board sentinel as the tangent dot. */
+  const secantDotProps = useAnimatedProps(() => {
+    if (!hasSecant) return { cx: frame.left, cy: frame.top, r: 0 };
+    const i = params.pieces.length > 0 ? pieceAt(params.pieces, secantToSv.value) : -1;
+    const k = params.pieces.length > 0
+      ? (i < 0 ? null : params.pieces[i])
+      : { curve: params.curve, a: params.a, b: params.b, c: params.c };
+    if (!k) return { cx: frame.left, cy: frame.top, r: 0 };
+    const v0 = evalCurve(k.curve, k.a, k.b, k.c, secantToSv.value);
+    return {
+      cx: pointPx(secantToSv.value, v0, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap),
+      cy: pointPy(secantToSv.value, v0, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap),
+      r: DOT_R,
+    };
+  });
+
+  /**
+   * Fixed endpoint A, and — for 'chord_with_deltas' — the dashed risers and
+   * their Δ labels. PARAMS ONLY, all of it: while the chord slides, the
+   * triangle holds at the destination, which is the readout-jumps-ahead
+   * decision applied to geometry with labels on it, and what keeps every
+   * Text params-derived for scaffoldingDiffs.
+   */
+  const secantStatic = useMemo(() => {
+    if (!hasSecant) return null;
+    const at = (x: number) => {
+      const i = params.pieces.length > 0 ? pieceAt(params.pieces, x) : -1;
+      const k = params.pieces.length > 0
+        ? (i < 0 ? null : params.pieces[i])
+        : { curve: params.curve, a: params.a, b: params.b, c: params.c };
+      return k ? evalCurve(k.curve, k.a, k.b, k.c, x) : 0;
+    };
+    const x1 = params.secant_from;
+    const x2 = params.secant_to;
+    const y1 = at(x1);
+    const y2 = at(x2);
+    const P = (u: number, v: number) => ({
+      x: pointPx(u, v, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap),
+      y: pointPy(u, v, proj[0], proj[1], proj[2], proj[3], proj[4], proj[5], frame.swap),
+    });
+    const A = P(x1, y1);
+    const B = P(x2, y2);
+    const C = P(x2, y1);            // the right-angle corner of the Δ triangle
+    // Fig 2.1 draws the tangent AT A, so the tangent dot and this endpoint
+    // coincide by design. Two r=4 glyphs 0px apart is the gate's 2r+4 floor
+    // violated by the book's own picture — the dot is deduped, the schema is
+    // not narrowed against the canonical payload.
+    const tangentCoincides =
+      params.tangent_kind !== 'none' &&
+      Math.abs(params.tangent_at - x1) < Math.abs(params.x_max - params.x_min) * 1e-6;
+    return { A, B, C, dx: x2 - x1, dy: y2 - y1, tangentCoincides };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, frame]);
+
   const isArea = params.mode === 'area' || params.mode === 'area_between';
 
   /*
@@ -1684,6 +1815,59 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
           strokeWidth={MARKER_STROKE} strokeDasharray="5 4" strokeLinecap="round"
         />
       )}
+
+      {/* v4: the secant chord and its sliding endpoint. Mounted CONDITIONALLY
+          like the tangent, not parked with an empty-d sentinel: an
+          always-mounted pair would add two elements to every v1..v3 tree and
+          break the goldens byte-for-byte — which is exactly what happened on
+          the first draft of this block, and the goldens are why it was seen. */}
+      {hasSecant && (
+        <AnimatedPath
+          animatedProps={secantProps}
+          fill="none"
+          stroke={theme.ink}
+          strokeWidth={LINE_STROKE}
+        />
+      )}
+      {hasSecant && <AnimatedCircle animatedProps={secantDotProps} fill={theme.ink} />}
+      {secantStatic && (
+        <G>
+          {!secantStatic.tangentCoincides && (
+            <Circle cx={secantStatic.A.x} cy={secantStatic.A.y} r={DOT_R} fill={theme.ink} />
+          )}
+          {params.secant === 'chord_with_deltas' && (
+            <G>
+              <Path
+                d={`M${secantStatic.A.x},${secantStatic.A.y} L${secantStatic.C.x},${secantStatic.C.y} L${secantStatic.B.x},${secantStatic.B.y}`}
+                fill="none"
+                stroke={theme.inkMuted}
+                strokeWidth={HAIRLINE_STROKE}
+                strokeDasharray="4 3"
+              />
+              <SvgText
+                x={(secantStatic.A.x + secantStatic.C.x) / 2}
+                y={secantStatic.A.y + (secantStatic.C.y >= secantStatic.A.y ? 14 : -6)}
+                fill={theme.inkMuted}
+                fontSize={11}
+                fontFamily={theme.monoFontFamily}
+                textAnchor="middle"
+              >
+                {`Δ${params.x_label} ${fmtShort(secantStatic.dx)}`}
+              </SvgText>
+              <SvgText
+                x={secantStatic.C.x + (secantStatic.C.x > (frame.left + frame.right) / 2 ? -6 : 6)}
+                y={(secantStatic.C.y + secantStatic.B.y) / 2 + 4}
+                fill={theme.inkMuted}
+                fontSize={11}
+                fontFamily={theme.monoFontFamily}
+                textAnchor={secantStatic.C.x > (frame.left + frame.right) / 2 ? 'end' : 'start'}
+              >
+                {`Δ${params.y_label} ${fmtShort(secantStatic.dy)}`}
+              </SvgText>
+            </G>
+          )}
+        </G>
+      )}
       {hasTangent && <AnimatedCircle animatedProps={tangentDotProps} fill={theme.ink} />}
 
       {/* Data mode: one bar + dot per observation, with mean and median rules. */}
@@ -1802,7 +1986,15 @@ export const xyPlot: WidgetModule<XyPlotParams> = {
    * been, and every existing harness that renders it keeps rendering the same
    * picture.
    */
-  version: 3,
+  /**
+   * v4 — the secant chord. Params shape grew three keys (secant,
+   * secant_from, secant_to) at inert defaults, so every v1..v3 payload
+   * resolves and renders identically — the goldens assert it byte for byte.
+   * The bump protects the other direction: a v4 payload on a v3 client is
+   * refused rather than drawn with its chord silently missing, which on an
+   * x-t plot would show "average velocity" with no average anywhere.
+   */
+  version: 4,
   defaults: {
     mode: 'area',
     curve: 'parabola',
@@ -1820,6 +2012,11 @@ export const xyPlot: WidgetModule<XyPlotParams> = {
     pieces: [],
     tangent_at: 0,
     tangent_kind: 'none',
+    // v4's keys at their inert values, so `defaults` is still the v1 "area
+    // under y = x²" payload and every frozen golden stays byte-identical.
+    secant: 'none',
+    secant_from: 0,
+    secant_to: 0,
     family_param: 'a',
     family_values: [],
     named_shape: '',
@@ -1846,8 +2043,17 @@ export const xyPlot: WidgetModule<XyPlotParams> = {
    * a family that grew a member mid-tween would change the element count,
    * which scaffoldingDiffs reports and should.
    */
-  animatable: ['shade_to', 'tangent_at'],
-  derived: ['area', 'mean', 'median', 'variance', 'stdDev', 'slope', 'tangentX', 'tangentY'],
+  /**
+   * THREE of the four the pool allows. `secant_to` slides B along the curve
+   * toward A — the average→instantaneous limit, which is the single reason
+   * ch2 draws this figure. Same admissibility argument as `tangent_at`:
+   * planFrame reads none of these keys, so the frame provably holds still.
+   * `secant_from` stays static: sliding both ends teaches nothing the
+   * one-ended slide does not, and the fourth slot is not spent lightly.
+   */
+  animatable: ['shade_to', 'tangent_at', 'secant_to'],
+  derived: ['area', 'mean', 'median', 'variance', 'stdDev', 'slope', 'tangentX', 'tangentY',
+            'secantSlope', 'secantFromY', 'secantToY'],
   computeDerived: derive,
   derivedAliases: {
     area: ['area', 'the area', 'region', 'bigger', 'smaller', 'grows', 'shrinks'],
@@ -1858,6 +2064,9 @@ export const xyPlot: WidgetModule<XyPlotParams> = {
     slope: ['slope', 'gradient', 'steeper', 'flatter', 'the derivative', 'rate of change'],
     tangentX: ['point of tangency', 'the point', 'x of the point'],
     tangentY: ['height at the point', 'y of the point'],
+    secantSlope: ['average velocity', 'average rate', 'chord slope', 'secant slope', 'average slope'],
+    secantFromY: ['starting height', 'y at A'],
+    secantToY: ['ending height', 'y at B'],
   },
   validate,
   Component: XyPlot,

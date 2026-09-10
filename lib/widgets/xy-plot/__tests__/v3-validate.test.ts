@@ -26,14 +26,14 @@ const errorsOf = (raw: unknown) => {
   return r.ok ? [] : [...r.errors];
 };
 
-test('the v3 defaults are still the v1 payload, and still validate', () => {
+test('the v4 defaults are still the v1 payload, and still validate', () => {
   expect(xyPlot.validate(good).ok).toBe(true);
   expect(good.integrate_along).toBe('x');
   expect(good.pieces).toEqual([]);
   expect(good.tangent_kind).toBe('none');
   expect(good.family_values).toEqual([]);
   expect(good.named_shape).toBe('');
-  expect(xyPlot.version).toBe(3);
+  expect(xyPlot.version).toBe(4);
 });
 
 test('never throws, on anything — including malformed v3 keys', () => {

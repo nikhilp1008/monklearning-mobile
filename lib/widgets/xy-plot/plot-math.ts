@@ -102,6 +102,7 @@ export type PlotMode =
 export type IntegrationAxis = 'x' | 'y';
 
 export type TangentKind = 'none' | 'tangent' | 'normal';
+export type SecantKind = 'none' | 'chord' | 'chord_with_deltas';
 
 /** Which coefficient a `family` payload varies. */
 export type FamilyParam = 'a' | 'b' | 'c';
@@ -197,6 +198,30 @@ export interface XyPlotParams {
   tangent_at: number;
   tangent_kind: TangentKind;
 
+  /**
+   * The secant chord, v4 — the ONE construction the motion-graph evidence
+   * (physics 11 ch2, Fig 2.1) needed that v3 lacked: an x-t curve with the
+   * chord AB labelled "slope = average velocity" beside the tangent labelled
+   * "instantaneous". Same doctrine as `tangent_kind`: the payload names
+   * POINTS, the widget computes the line — nobody types a slope in.
+   *
+   *   'none'               no chord (every v1..v3 payload)
+   *   'chord'              the chord from secant_from to secant_to
+   *   'chord_with_deltas'  the chord plus dashed Δx/Δy risers closing the
+   *                        right triangle, labels included — Fig 2.1's Δt/Δx
+   *
+   * `secant_to` is animatable (sliding B toward A is the average→instant
+   * limit, the whole reason the figure exists); `secant_from` is not. The
+   * riser geometry and its Δ labels are drawn from PARAMS ONLY, so while the
+   * chord slides they hold at the destination — the readout-jumps-ahead
+   * decision applied to a triangle: the number is the answer, the moving
+   * chord is the explanation. That is also what keeps every Text
+   * params-derived, which scaffoldingDiffs asserts.
+   */
+  secant: SecantKind;
+  secant_from: number;
+  secant_to: number;
+
   /** `family` mode: the coefficient that varies, and the values it takes. */
   family_param: FamilyParam;
   family_values: readonly number[];
@@ -237,6 +262,15 @@ export interface XyPlotDerived {
    *  caption can say "at (2, 4)" without the author typing either number. */
   tangentX: number;
   tangentY: number;
+  /**
+   * The chord's slope, (f(b) − f(a)) / (b − a), and its endpoint heights.
+   * 0 when `secant` is 'none'. On an x-t plot this IS the average velocity,
+   * which is the number Fig 2.1 exists to teach; `slope` above is then the
+   * instantaneous one, and a caption can hold both without typing either.
+   */
+  secantSlope: number;
+  secantFromY: number;
+  secantToY: number;
   /** Structurally a Record<string, number>, so `derive` can serve directly as
    *  computeDerived with no wrapper — one function, not two that can drift. */
   [key: string]: number;
@@ -686,7 +720,26 @@ export function derive(p: XyPlotParams): XyPlotDerived {
       tangentY = evalCurve(k.curve, k.a, k.b, k.c, p.tangent_at);
     }
   }
-  return { area, ...stats, slope, tangentX: p.tangent_at, tangentY };
+  let secantSlope = 0;
+  let secantFromY = 0;
+  let secantToY = 0;
+  if (p.secant !== 'none' && p.mode !== 'named' && p.mode !== 'data') {
+    const at = (x: number) => {
+      const i = p.pieces.length > 0 ? pieceAt(p.pieces, x) : -1;
+      const k = p.pieces.length > 0
+        ? (i < 0 ? null : p.pieces[i])
+        : { curve: p.curve, a: p.a, b: p.b, c: p.c };
+      return k ? evalCurve(k.curve, k.a, k.b, k.c, x) : 0;
+    };
+    secantFromY = at(p.secant_from);
+    secantToY = at(p.secant_to);
+    const run = p.secant_to - p.secant_from;
+    // validate() refuses |run| under tolerance, so this branch is belt over
+    // braces: a zero run must not reach a readout as Infinity.
+    secantSlope = Math.abs(run) > 1e-12 ? (secantToY - secantFromY) / run : 0;
+  }
+  return { area, ...stats, slope, tangentX: p.tangent_at, tangentY,
+           secantSlope, secantFromY, secantToY };
 }
 
 /**
