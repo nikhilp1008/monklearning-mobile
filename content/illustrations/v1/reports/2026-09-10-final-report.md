@@ -96,13 +96,41 @@ wide master or missing on a narrow one; `manifest_status` other than
 renderer; a figure cached with no version; a licence outside the enum;
 `generated:` source_urls that name no asset.
 
-## Screenshots
+## Screenshots (reports/shots/)
 
-(appended with block 3: cockroach morphology, connective tissue, phylum
-arthropoda at 343×236 and 900×430, unlabelled plates from file:// cache,
-figure-letter switching = the figure cue.)
+Six exact-frame shots through the production path — chapter rows from the
+figures endpoint, art downloaded and sha-verified into the file:// cache,
+rendered by BoardWidget at the stated box:
 
-## Production
+    cockroach-343-figa.png    cockroach-900-figa.png
+    connective-343-figa.png   connective-900-figa.png
+    arthropoda-343-figa.png   arthropoda-900-figa.png
 
-(appended with block 4: /version SHA, live class with ILLUSTRATION SERVED and
-no DIAGRAM DROPPED, plate visible; EAS preview build id.)
+Plus `cockroach-900-figb.png` — the figure cue made visible: switching a to b
+is, on the client, exactly a payload naming the other member of the set. And
+two live boards: `live-class-cockroach.png` (local API) and
+`live-class-production.png` (production), each with the plate drawn between
+board text. All plates unlabelled — the correct state while every label set
+is reviewed_by NULL. Note: the 900-wide box slightly exceeds the phone's
+874pt landscape width, so wide-frame shots clip at the right edge; the widget
+itself received exactly 900x430.
+
+## Production verification
+
+    /version                  13deabd49a47ed57d8be8a24c418439ebb6b813d
+    GET .../figures           200 (9,820 ms cold — watch, not a blocker)
+    ILLUSTRATION SERVED       bio11-ch7-cockroach--morphology-...--a
+    DIAGRAM DROPPED           0
+    client                    chapter prefetch: 23 asset(s), resolved 23,
+                              missing 0; figure revealed; no gaps
+    plate                     visible on the production board (screenshot)
+
+## EAS preview build — handoff
+
+Blocked on the Expo account login, which only Raasikh can do:
+
+    npx eas-cli login && npx eas-cli build --profile preview --platform ios
+
+or set EXPO_TOKEN for a non-interactive trigger. eas.json already carries
+EXPO_PUBLIC_ASSETS_BASE_URL for all three profiles, and the ios/ project has
+ExpoCrypto linked (the dev-client rebuild proved the pod graph).
