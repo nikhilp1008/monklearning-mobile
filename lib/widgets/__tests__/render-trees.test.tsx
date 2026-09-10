@@ -27,6 +27,7 @@ import type { CircuitNetworkParams } from '../circuit-network';
 import { reactionScheme } from '../reaction-scheme';
 import { labelBoxes, type ReactionSchemeParams } from '../reaction-scheme/scheme-graph';
 import { moleculeStruct } from '../molecule-struct';
+import { freeBodyForces } from '../free-body-forces';
 import { linesPlanes3d } from '../lines-planes-3d';
 import { REFERENCE_CASES as LINES_PLANES_CASES } from '../lines-planes-3d/reference-cases';
 import type { XyPlotParams } from '../xy-plot/plot-math';
@@ -118,6 +119,11 @@ test('every registry entry is either verified below or explicitly skipped', () =
     // job. Verified below and listed here are two different claims, and only
     // the second is what this set asserts.
     'lines_planes_3d',
+    // free_body_forces was wired 2026-09-10. Its own suite
+    // (free-body-forces/__tests__) runs seven corner payloads through the
+    // REAL gate at all three boards; the section below is the integration
+    // file's own record of the same claim, in this file's shape.
+    'free_body_forces',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
@@ -1857,6 +1863,67 @@ describe('circuit_network', () => {
  * so the guard below asserts the empty `animatable` directly instead — a
  * silent regression to a non-empty list is the thing worth catching.
  */
+describe('free_body_forces', () => {
+  const mod = freeBodyForces;
+  const FBD_CASES: Record<string, object> = {
+    defaults: mod.defaults,
+    'terminal-velocity': {
+      mode: 'fbd', body: 'sphere', context: 'none',
+      forces: [
+        { label: 'W', angle_deg: 270, magnitude_rel: 1 },
+        { label: 'F_B', angle_deg: 90, magnitude_rel: 0.4 },
+        { label: 'F_v', angle_deg: 114, magnitude_rel: 0.6 },
+      ],
+      caption: 'At terminal velocity: W = F_B + F_v',
+    },
+    'head-to-tail-closed': {
+      mode: 'head_to_tail', context: 'none',
+      forces: [
+        { label: 'P', angle_deg: 0, magnitude_rel: 1 },
+        { label: 'Q', angle_deg: 120, magnitude_rel: 1 },
+        { label: 'R', angle_deg: 240, magnitude_rel: 1 },
+      ],
+    },
+  };
+
+  test('every case is a payload validate() would actually admit', () => {
+    for (const [name, params] of Object.entries(FBD_CASES)) {
+      const r = mod.validate(params);
+      expect([name, r.ok ? [] : r.errors]).toEqual([name, []]);
+    }
+  });
+
+  test.each(Object.keys(FBD_CASES))('renders %s and writes its tree', (name) => {
+    const r = mod.validate(FBD_CASES[name]);
+    if (!r.ok) throw new Error(r.errors.join(', '));
+    const tree = renderWidgetTree(mod, r.params);
+    expect(tree).not.toBeNull();
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(
+      resolve(outDir, `${mod.id}@${mod.version}.${name}.json`),
+      JSON.stringify(tree, null, 1)
+    );
+    const json = JSON.stringify(tree);
+    // Arrows are Lines with Path heads; every force terminates in a Text
+    // label. A tree without all three is not a free-body diagram.
+    expect(json).toContain('RNSVGLine');
+    expect(json).toContain('RNSVGPath');
+    expect(json).toContain('RNSVGText');
+  });
+
+  describe.each(Object.keys(FBD_CASES))('%s at small boards', (name) => {
+    test.each([
+      ['real-small', REAL_SMALL],
+      ['spec-small', SPEC_SMALL],
+    ])('renders at the %s board box (%o)', (label, box) => {
+      const r = mod.validate(FBD_CASES[name]);
+      if (!r.ok) throw new Error(r.errors.join(', '));
+      const tree = renderWidgetTreeAt(mod, r.params, {}, box.width, box.height);
+      expect(tree).not.toBeNull();
+    });
+  });
+});
+
 describe('lines_planes_3d', () => {
   const mod = linesPlanes3d;
   const CASES = LINES_PLANES_CASES;

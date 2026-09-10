@@ -2,6 +2,7 @@ import type { WidgetId, WidgetModule } from './types';
 import { projectileMotion } from './projectile-motion';
 import { molecule3d } from './molecule-3d';
 import { fieldLines } from './field-lines';
+import { freeBodyForces } from './free-body-forces';
 import { xyPlot } from './xy-plot';
 import { dataTableTrend } from './data-table-trend';
 import { processFlow } from './process-flow';
@@ -22,6 +23,7 @@ export const REGISTRY = {
   projectile_motion: projectileMotion,
   molecule_3d: molecule3d,
   field_lines: fieldLines,
+  free_body_forces: freeBodyForces,
   xy_plot: xyPlot,
   data_table_trend: dataTableTrend,
   process_flow: processFlow,
