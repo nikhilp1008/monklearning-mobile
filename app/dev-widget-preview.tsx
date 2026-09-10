@@ -32,6 +32,9 @@ import { moleculeStruct } from '@/lib/widgets/molecule-struct';
 import type { MoleculeStructParams } from '@/lib/widgets/molecule-struct';
 import { useCueTrackByTime, type TimedCue } from '@/lib/widgets/use-cue-track';
 import type { WidgetTheme } from '@/lib/widgets/types';
+import { apiFetch } from '@/lib/api';
+import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
+import { r2FigureResolver, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 
 /**
  * DEV-ONLY. Not part of the live classroom flow, not linked from any nav —
@@ -142,7 +145,7 @@ type Mode =
   | 'reaction_scheme'
   | 'process_flow'
   | 'molecule_struct'
-  | 'circuit_network';
+  | 'circuit_network' | 'figures';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -208,7 +211,14 @@ export default function DevWidgetPreviewScreen() {
             circuit_network
           </Text>
         </Pressable>
+      <Pressable
+          onPress={() => setMode('figures')}
+          style={[styles.pill, mode === 'figures' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'figures' && styles.pillTextActive]}>figures</Text>
+        </Pressable>
       </View>
+      {mode === 'figures' && <FigureLab />}
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
@@ -295,6 +305,127 @@ const DEV_SERVICES = {
     throw new Error(`dev-widget-preview: no structure cache for ${ref}`);
   },
 };
+
+
+/* ------------------------------------------------------------- figure lab */
+/*
+ * The illustration tier at EXACT board frames, through the production path.
+ *
+ * Everything here is the real thing: the chapter rows come from
+ * GET /drona/chapter/{id}/figures, the art is downloaded and verified by
+ * figure-file-cache into cacheDirectory/figures/, and the render goes through
+ * BoardWidget — resolver, validate(), Component — not a hand-mounted
+ * LabelledFigure. The only synthetic part is the board EVENT, because the lab
+ * is standing in for slot 3, which is the one piece that lives server-side.
+ *
+ * The figure-letter pills are a figure cue, made tactile: a cue switching
+ * from figure a to figure b is, on the client, exactly a payload whose
+ * asset_slug names the other member of the set.
+ */
+const LAB_CONCEPTS = [
+  {
+    label: 'cockroach morphology',
+    chapterId: '5ec9dcb0-2679-5515-9422-5ca618283550',
+    conceptSlug: 'bio11-ch7-cockroach--morphology-and-digestive-system',
+    figures: ['a', 'b'],
+  },
+  {
+    label: 'connective tissue',
+    chapterId: '5ec9dcb0-2679-5515-9422-5ca618283550',
+    conceptSlug: 'bio11-ch7-connective-tissue--types-and-matrix',
+    figures: ['a', 'b', 'c', 'd', 'e', 'f'],
+  },
+  {
+    label: 'phylum arthropoda',
+    chapterId: 'f6bee128-d309-5443-b6f2-e9914769623d',
+    conceptSlug: 'bio11-ch4-phylum-arthropoda',
+    figures: ['a', 'b', 'c', 'd', 'e', 'f'],
+  },
+] as const;
+
+/** The two frames the gate binds at: spec-small and the wide board. */
+const LAB_FRAMES = [
+  { label: '343\u00d7236', w: 343, h: 236 },
+  { label: '900\u00d7430', w: 900, h: 430 },
+] as const;
+
+function FigureLab() {
+  const theme = useDevTheme();
+  const [concept, setConcept] = useState(0);
+  const [frame, setFrame] = useState(0);
+  const [fig, setFig] = useState(0);
+  const [status, setStatus] = useState('fetching chapter assets\u2026');
+
+  const c = LAB_CONCEPTS[concept];
+  const letter = c.figures[Math.min(fig, c.figures.length - 1)];
+  const slug = `${c.conceptSlug}--${letter}`;
+  const box = LAB_FRAMES[frame];
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatus('fetching chapter assets\u2026');
+    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${c.chapterId}/figures`)
+      .then((res) => {
+        if (cancelled) return;
+        setChapterAssets(res.assets ?? []);
+        setStatus(`chapter has ${res.assets?.length ?? 0} assets; downloading\u2026`);
+        return r2FigureResolver.prefetch(
+          (res.assets ?? [])
+            .filter((a) => a.asset_slug.startsWith(c.conceptSlug))
+            .map((a) => a.asset_slug)
+        );
+      })
+      .then((rep) => {
+        if (cancelled || !rep) return;
+        setStatus(rep.missing.length
+          ? `missing: ${rep.missing.join(', ')}`
+          : `set cached from file:// (${rep.resolved.length} figures)`);
+      })
+      .catch((e) => { if (!cancelled) setStatus(`prefetch failed: ${String(e)}`); });
+    return () => { cancelled = true; };
+  }, [c]);
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 10, alignItems: 'flex-start' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {LAB_CONCEPTS.map((k, i) => (
+          <Pressable key={k.conceptSlug} onPress={() => { setConcept(i); setFig(0); }}
+            style={[styles.pill, i === concept && styles.pillActive]}>
+            <Text style={[styles.pillText, i === concept && styles.pillTextActive]}>{k.label}</Text>
+          </Pressable>
+        ))}
+        {LAB_FRAMES.map((f, i) => (
+          <Pressable key={f.label} onPress={() => setFrame(i)}
+            style={[styles.pill, i === frame && styles.pillActive]}>
+            <Text style={[styles.pillText, i === frame && styles.pillTextActive]}>{f.label}</Text>
+          </Pressable>
+        ))}
+        {c.figures.map((g, i) => (
+          <Pressable key={g} onPress={() => setFig(i)}
+            style={[styles.pill, i === fig && styles.pillActive]}>
+            <Text style={[styles.pillText, i === fig && styles.pillTextActive]}>fig {g}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={{ fontSize: 11, color: INK_MUTED }}>{slug} \u00b7 {status}</Text>
+      <View style={{ width: box.w, height: box.h, borderWidth: StyleSheet.hairlineWidth,
+                     borderColor: HAIRLINE, backgroundColor: colors.paper }}>
+        <BoardWidget
+          event={{ seq: 1, tier: 'precomputed',
+                   payload: { widget: 'labelled_figure', version: 1,
+                              params: { asset_slug: slug, lang: 'english' } } }}
+          activeSeq={1}
+          width={box.w}
+          height={box.h}
+          theme={theme}
+          services={DEV_SERVICES}
+          figures={r2FigureResolver}
+          onGap={(reason, detail) => console.warn('[figure-lab gap]', reason, detail)}
+        />
+      </View>
+    </ScrollView>
+  );
+}
 
 function ManualPreview() {
   const diagramBox = useDiagramBox();
