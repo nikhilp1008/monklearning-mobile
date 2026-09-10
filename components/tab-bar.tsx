@@ -7,6 +7,7 @@ import Animated, {
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -93,10 +94,25 @@ const ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   notes: NotesIcon,
 };
 
-/** Matches the 200ms shift the pages move on, so the bar and the page settle
- *  together rather than one arriving after the other. */
-const ITEM_MS = 200;
-const ITEM_EASING = Easing.out(Easing.cubic);
+/**
+ * The switch, inside the bar.
+ *
+ * A colour cross-fade on its own is not motion -- the icon arrives in a new
+ * colour without ever having moved, which is why the swap still read as a cut.
+ * So the chosen icon also LIFTS and grows a little, on a spring, and the one
+ * it takes over from settles back down.
+ *
+ * A spring rather than a timing curve because this is a direct response to a
+ * finger: it overshoots a touch and settles, which is what makes it feel
+ * physical instead of scheduled. Damped enough not to wobble.
+ */
+const LIFT = 3;       // points the chosen icon rises
+const GROW = 0.12;    // and how much it grows
+const SPRING = { damping: 13, stiffness: 210, mass: 0.55 } as const;
+
+/** The press itself, so the tap is acknowledged before the spring starts. */
+const PRESS_IN = { duration: 90, easing: Easing.out(Easing.quad) } as const;
+const PRESS_OUT = { duration: 160, easing: Easing.out(Easing.cubic) } as const;
 
 /**
  * One tab item.
@@ -125,15 +141,27 @@ function TabItem({
   onPress: () => void;
 }) {
   const on = useSharedValue(focused ? 1 : 0);
+  const held = useSharedValue(0);
 
   useEffect(() => {
-    on.value = withTiming(focused ? 1 : 0, { duration: ITEM_MS, easing: ITEM_EASING });
+    on.value = withSpring(focused ? 1 : 0, SPRING);
   }, [focused, on]);
 
   const fadeOn = useAnimatedStyle(() => ({ opacity: on.value }));
   const fadeOff = useAnimatedStyle(() => ({ opacity: 1 - on.value }));
+  // The lift and the press share one transform, so a tap on the already-chosen
+  // tab still gives way instead of sitting rigid.
+  const move = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -LIFT * on.value + 1.5 * held.value },
+      { scale: 1 + GROW * on.value - 0.08 * held.value },
+    ],
+  }));
   const labelColor = useAnimatedStyle(() => ({
     color: interpolateColor(on.value, [0, 1], [OFF, colors.ink]),
+    // The label follows the icon up by a fraction, so the pair moves as one
+    // object rather than the glyph detaching from its name.
+    transform: [{ translateY: -1 * on.value }],
   }));
 
   return (
@@ -142,15 +170,21 @@ function TabItem({
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
       style={styles.item}
+      onPressIn={() => {
+        held.value = withTiming(1, PRESS_IN);
+      }}
+      onPressOut={() => {
+        held.value = withTiming(0, PRESS_OUT);
+      }}
       onPress={onPress}>
-      <View style={{ width: size, height: size }}>
+      <Animated.View style={[{ width: size, height: size }, move]}>
         <Animated.View style={[StyleSheet.absoluteFill, fadeOff]}>
           <Icon color={OFF} size={size} />
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, fadeOn]}>
           <Icon color={colors.ink} size={size} />
         </Animated.View>
-      </View>
+      </Animated.View>
       <Animated.Text style={[styles.label, focused && styles.labelOn, labelColor]}>
         {label}
       </Animated.Text>

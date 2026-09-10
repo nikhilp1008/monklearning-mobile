@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router';
-import { Easing } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
 
 import { TabBar } from '@/components/tab-bar';
@@ -53,25 +52,7 @@ export default function TabLayout() {
   return (
     <>
       <StatusBar style="dark" />
-      {/* `shift`, not `fade`. The four tabs are peers in a row, so a lateral
-          slide says "you moved sideways" -- which is the thing that was
-          missing; a cross-fade would only say "the content changed". 200ms:
-          long enough to read as movement, short enough that a double-tap
-          between tabs never queues.
-
-          The tab BAR does not move with it. It is a fixed island the pages
-          slide underneath, and animating both at once read as the whole screen
-          lurching. */}
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          animation: 'shift',
-          transitionSpec: {
-            animation: 'timing',
-            config: { duration: 200, easing: Easing.out(Easing.cubic) },
-          },
-        }}
-        tabBar={(props) => <TabBar {...props} />}>
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="textbooks" options={{ title: 'Textbooks' }} />
         <Tabs.Screen name="doubts" options={{ title: 'Doubts' }} />
