@@ -7,33 +7,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { getSessionEmail } from '@/lib/auth';
 import { saveProfile } from '@/lib/profile';
 
-// CSS `ease` is cubic-bezier(.25,.1,.25,1); Reanimated's Easing.ease is a
-// different curve, so the bezier is spelled out (same call as welcome.tsx).
-const CSS_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
-
 // `@keyframes caret{0%,45%{opacity:1}50%,95%{opacity:0}100%{opacity:1}}`
 // at `1.1s steps(1) infinite` — a hard on/off, 550ms each half.
-
-// `@keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}`
-// at `.5s .2s ease both`, with `stroke-dasharray:32` on the path.
-const DRAW_LEN = 32;
-const DRAW_DURATION_MS = 500;
-const DRAW_DELAY_MS = 200;
 
 // The design's sample values. `Aarav Sharma` is the name the mockup shows typed
 // into the active card; here it is the placeholder, since the field is real.
@@ -72,7 +54,6 @@ function formatPhone(raw?: string) {
   return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
 }
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export default function DetailsScreen() {
   const { ds, fs, tracking } = useDesignScale();
@@ -132,18 +113,22 @@ export default function DetailsScreen() {
             {/* EMAIL ADDRESS — read only. This is the address the code was
                 just sent to, so it is the one field on the page that is
                 already proven; editing it here would mean re-verifying. */}
-            {/* The whole address, and a tick.
-                It was truncated at one line beside the word "Verified", which
-                spent the width a long address needs on a label the tick
-                already says. A student checking they typed it right could not
-                actually read it. The tick sits at the top so it stays beside
-                the label when the address takes two lines. */}
+            {/* The address on one line, with the state as a tag under it.
+                The tick used to sit to the right of the address, and between
+                the glyph and its gap it took 32 of the card's 306pt. Measured
+                in Onest at this size, that is the difference between
+                "nikhil.kumar.p@monklearning.com" (287pt) fitting and wrapping
+                -- and once it wrapped, the tick was stranded beside the first
+                line. Moving the state below buys the width back, and the
+                address is clamped to one line so nothing can wrap again. */}
             <View style={[styles.card, styles.cardWarm]}>
-              <View style={styles.cardText}>
-                <Text style={styles.label}>EMAIL ADDRESS</Text>
-                <Text style={styles.value}>{email}</Text>
+              <Text style={styles.label}>EMAIL ADDRESS</Text>
+              <Text style={styles.value} numberOfLines={1} ellipsizeMode="tail">
+                {email}
+              </Text>
+              <View style={styles.verifiedTag}>
+                <Text style={styles.verifiedTagText}>Verified</Text>
               </View>
-              <DrawnCheck size={ds(20)} />
             </View>
 
             {/* PHONE NUMBER — collected, not verified. SMS auth needs an
@@ -202,36 +187,6 @@ export default function DetailsScreen() {
 }
 
 // The "Verified" tick draws itself in: `animation:draw .5s .2s ease both`.
-function DrawnCheck({ size }: { size: number }) {
-  const dashoffset = useSharedValue(DRAW_LEN);
-
-  useEffect(() => {
-    dashoffset.value = withDelay(
-      DRAW_DELAY_MS,
-      withTiming(0, { duration: DRAW_DURATION_MS, easing: CSS_EASE }),
-    );
-  }, [dashoffset]);
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: dashoffset.value,
-  }));
-
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <AnimatedPath
-        d="M4 13 9.6 18.4 20 6.6"
-        fill="none"
-        stroke={ob.ink}
-        strokeWidth={3}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={DRAW_LEN}
-        animatedProps={animatedProps}
-      />
-    </Svg>
-  );
-}
-
 function createStyles(
   ds: (size: number) => number,
   fs: (size: number) => number,
@@ -303,13 +258,35 @@ function createStyles(
       borderColor: ob.fieldBorder,
     },
     // The verified email: read-only, so it sits on a tint instead of white.
+    // A column now -- label, address, tag -- so the address gets the card's
+    // whole width instead of sharing it with a glyph.
     cardWarm: {
       backgroundColor: ob.fieldMuted,
-      flexDirection: 'row',
-      // Top, not centre: the address may wrap to two lines and the tick should
-      // stay level with the label rather than drift down the block.
       alignItems: 'flex-start',
-      gap: ds(12),
+    },
+    /**
+     * "Verified" as a tag rather than a tick.
+     *
+     * Green because that is what the state is; the onboarding palette has no
+     * success colour of its own, so these are the app's #1C9B57 at 12% with
+     * the same #12703E the observation row uses for text on a green wash --
+     * #1C9B57 itself only manages 2.4:1 there.
+     */
+    verifiedTag: {
+      marginTop: ds(8),
+      alignSelf: 'flex-start',
+      paddingHorizontal: ds(8),
+      paddingVertical: ds(2),
+      borderRadius: 99,
+      backgroundColor: 'rgba(28,155,87,.12)',
+    },
+    verifiedTagText: {
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      lineHeight: fs(14),
+      letterSpacing: tracking(0.1, 10),
+      textTransform: 'uppercase',
+      color: '#12703E',
     },
     label: {
       fontFamily: obFont.sb600,
