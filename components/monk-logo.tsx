@@ -50,12 +50,16 @@ const INK_EM = 0.968;
  * outlined wordmark had: a 20.75pt symbol over 17.4pt of wordmark ink.
  */
 /**
- * 1.157, which is the kit's 1.192 with the wordmark 3% larger against the same
- * symbol. At an 18pt mark the artwork's own ratio left the word reading small
- * beside it -- the kit is drawn for display sizes, where 1.192 holds up, and
- * a phone's app bar is not one.
+ * 1.102, against the kit's 1.192. The wordmark has been taken up twice, 3%
+ * then 5%, against a symbol that has not moved -- the artwork's ratio is drawn
+ * for display sizes and left the word reading small beside an 18pt mark.
+ *
+ * This is close to the floor for the ratio. The inked span includes the 'g'
+ * descender, so at 1.102 the letters' own body -- Onest's x-height, 0.527 em
+ * -- is 8.9pt against an 18pt symbol. Push much past this and the word starts
+ * to out-weigh the mark rather than sit with it.
  */
-const SYMBOL_TO_INK = 1.157;
+const SYMBOL_TO_INK = 1.102;
 /**
  * 0.38, against the kit's measured 0.592.
  *
