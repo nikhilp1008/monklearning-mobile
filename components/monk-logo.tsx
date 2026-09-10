@@ -50,7 +50,15 @@ const INK_EM = 0.968;
  * outlined wordmark had: a 20.75pt symbol over 17.4pt of wordmark ink.
  */
 const SYMBOL_TO_INK = 1.192;
-const GAP_RATIO = 0.592;
+/**
+ * 0.45, not the kit's measured 0.592.
+ *
+ * The kit's lockup is drawn for display use -- a website header, a poster --
+ * where 0.592 reads as composed. At an 18pt symbol in an app bar it read as a
+ * mark standing near a word rather than one lockup, so the gap is tightened
+ * here on purpose. The height ratio above is still the artwork's.
+ */
+const GAP_RATIO = 0.45;
 /**
  * 'm' carries 55/1000 em of left side bearing inside its glyph box, and
  * `marginLeft` positions the TEXT BOX, not the first inked pixel. Left alone
