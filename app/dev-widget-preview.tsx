@@ -145,7 +145,7 @@ type Mode =
   | 'reaction_scheme'
   | 'process_flow'
   | 'molecule_struct'
-  | 'circuit_network' | 'figures';
+  | 'circuit_network' | 'figures' | 'wframes';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -217,8 +217,15 @@ export default function DevWidgetPreviewScreen() {
         >
           <Text style={[styles.pillText, mode === 'figures' && styles.pillTextActive]}>figures</Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('wframes')}
+          style={[styles.pill, mode === 'wframes' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'wframes' && styles.pillTextActive]}>wframes</Text>
+        </Pressable>
       </View>
       {mode === 'figures' && <FigureLab />}
+      {mode === 'wframes' && <WidgetFrameLab />}
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
@@ -421,6 +428,89 @@ function FigureLab() {
           services={DEV_SERVICES}
           figures={r2FigureResolver}
           onGap={(reason, detail) => console.warn('[figure-lab gap]', reason, detail)}
+        />
+      </View>
+    </ScrollView>
+  );
+}
+
+/* ------------------------------------------------------- widget frame lab */
+/*
+ * W7's exact-frame evidence: the two live-class widget payloads rendered
+ * through BoardWidget at the gate's binding frames. Mirrors FigureLab, minus
+ * the network — a registry widget's payload is self-contained, so the only
+ * synthetic part is (again) the board EVENT standing in for the server.
+ *
+ * The payloads reproduce the classes verified on production 2026-09-10:
+ * xy_plot's "area under y = x² + 1 on [0, 2]" (readout area 4.67 = 14/3) and
+ * field_lines' parallel plates. Params are written out in full, defaults
+ * included, so what renders here is exactly what validate() admits — not a
+ * partial payload leaning on defaulting behaviour.
+ */
+const WFRAME_CASES = [
+  {
+    label: 'xy_plot (maths 12 ch8)',
+    payload: {
+      widget: 'xy_plot', version: 4,
+      params: {
+        mode: 'area', curve: 'parabola', a: 1, b: 0, c: 1,
+        curve2: 'line', a2: 0, b2: 0, c2: 0,
+        x_min: 0, x_max: 2, shade_from: 0, shade_to: 2,
+        values: [], x_label: 'x', y_label: 'y', integrate_along: 'x',
+        pieces: [], tangent_at: 0, tangent_kind: 'none',
+        secant: 'none', secant_from: 0, secant_to: 0,
+        family_param: 'a', family_values: [], named_shape: '',
+      },
+    },
+  },
+  {
+    label: 'field_lines (physics 12 ch1)',
+    payload: {
+      widget: 'field_lines', version: 2,
+      params: {
+        configuration: 'parallel_plates', charge_uc: 10, surface_scale: 1,
+        enclosed: true, show_arrows: true, annotate: null, caption: '',
+      },
+    },
+  },
+] as const;
+
+function WidgetFrameLab() {
+  const theme = useDevTheme();
+  const [caseIdx, setCaseIdx] = useState(0);
+  const [frame, setFrame] = useState(0);
+
+  const kase = WFRAME_CASES[caseIdx];
+  const box = LAB_FRAMES[frame];
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 10, alignItems: 'flex-start' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {WFRAME_CASES.map((k, i) => (
+          <Pressable key={k.label} onPress={() => setCaseIdx(i)}
+            style={[styles.pill, i === caseIdx && styles.pillActive]}>
+            <Text style={[styles.pillText, i === caseIdx && styles.pillTextActive]}>{k.label}</Text>
+          </Pressable>
+        ))}
+        {LAB_FRAMES.map((f, i) => (
+          <Pressable key={f.label} onPress={() => setFrame(i)}
+            style={[styles.pill, i === frame && styles.pillActive]}>
+            <Text style={[styles.pillText, i === frame && styles.pillTextActive]}>{f.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={{ fontSize: 11, color: INK_MUTED }}>{kase.payload.widget}@{kase.payload.version} · {box.label}</Text>
+      <View style={{ width: box.w, height: box.h, borderWidth: StyleSheet.hairlineWidth,
+                     borderColor: HAIRLINE, backgroundColor: colors.paper }}>
+        <BoardWidget
+          event={{ seq: 1, tier: 'precomputed', payload: kase.payload }}
+          activeSeq={1}
+          width={box.w}
+          height={box.h}
+          theme={theme}
+          services={DEV_SERVICES}
+          figures={r2FigureResolver}
+          onGap={(reason, detail) => console.warn('[wframe-lab gap]', reason, detail)}
         />
       </View>
     </ScrollView>
