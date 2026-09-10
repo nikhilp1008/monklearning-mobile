@@ -134,3 +134,32 @@ Blocked on the Expo account login, which only Raasikh can do:
 or set EXPO_TOKEN for a non-interactive trigger. eas.json already carries
 EXPO_PUBLIC_ASSETS_BASE_URL for all three profiles, and the ios/ project has
 ExpoCrypto linked (the dev-client rebuild proved the pod graph).
+
+## Production verification — re-run on 8cb7c16 (2026-09-10)
+
+The first verification above ran on `13deabd`. Between it and this one,
+production teaching turns were found to be failing wholesale: DeepSeek began
+echoing `deepseek-flash` in stream chunks for the pinned `deepseek-v4-flash`,
+and tutor.py's strict model-echo equality check raised on the first chunk of
+every turn — the failure fallback voiced "I didn't quite catch that" while
+auto-populated boards and precomputed widgets made classes look healthy. Fixed
+in `8cb7c16` (evidence-dated alias map `models.KNOWN_MODEL_ECHOES`; unknown
+echoes still refused; six unit tests incl. the failing fixture).
+
+Verification class: bio11-ch7 "Cockroach: Morphology and Digestive System",
+live against production.
+
+    /version                  8cb7c16ae7c1c94a451324d6b9a67b5c17fdff36
+    MODEL ECHO ALIAS          warning logged once (new guard path, visible)
+    turn                      failed=False, 200-word narration, llm=30.4s
+    ILLUSTRATION SERVED       bio11-ch7-cockroach--morphology-and-digestive-system--a (seg=1)
+    DIAGRAM DROPPED           0
+    client                    chapter prefetch: 23 asset(s), resolved 23, missing 0
+    reveal pairing            seq 1-5 each carriedBy=onItemStart(s1-0..s5-4) —
+                              per-sentence pairing restored (during the outage
+                              only seq 1 paired; the rest END_OF_TURN_FLUSH)
+    checkpoint                question + 3 chips mounted after audio drain
+    plate                     visible (shots/live-class-production-8cb7c16.png)
+
+Plates draw unlabelled with a 404-per-slug warning — correct while every
+label set is reviewed_by NULL, and now explicit in the client log.
