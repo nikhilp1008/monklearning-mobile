@@ -234,7 +234,7 @@ export default function ProfileScreen() {
             {TEACHERS.map((t, i) => {
               const on = t.id === teacher;
               return (
-                <Pressable
+                <PressableScale
                   key={t.id}
                   accessibilityRole="button"
                   accessibilityState={{ selected: on }}
@@ -244,13 +244,17 @@ export default function ProfileScreen() {
                     i === 0 ? styles.teacherCellLeft : styles.teacherCellRight,
                   ]}
                   onPress={() => chooseTeacher(t.id)}>
-                  {/* Remounting on change replays the bloom, as 24A does. */}
+                  {/* No `key` here. It used to be keyed on the selection to
+                      "replay the bloom", but there is no bloom on the orb --
+                      so all it did was unmount and remount both orbs on every
+                      tap: ~28k multiply-adds re-run, 384 SVG nodes torn down
+                      and rebuilt, and both rotations snapped back to 0deg.
+                      That was the friction. */}
                   <TeacherOrb
-                    key={on ? `${t.id}-on` : `${t.id}-off`}
+                    teacher={t.id}
                     palette={t.orb}
                     dimmed={!on}
                     size={scale(56)}
-                    uid={t.id}
                   />
                   <Text style={[styles.teacherName, !on && styles.teacherNameIdle]}>{t.name}</Text>
                   {/* `white-space:nowrap` in 24A. Both traits are 26
@@ -266,7 +270,7 @@ export default function ProfileScreen() {
                     style={[styles.teacherTrait, !on && styles.teacherTraitIdle]}>
                     {t.trait}
                   </Text>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
@@ -431,6 +435,9 @@ const CONIC_BLUR_DEG = 30;
  * sweep survives, so it is visibly the same object; the colour does not, which
  * is the whole signal.
  */
+/** 24A's curve, shared by the orb cross-fade and the Speaks knob. */
+const SWITCH_EASING = Easing.bezier(0.2, 0.75, 0.2, 1);
+
 const IDLE_LUM = 0.72;
 const IDLE_CONTRAST = 0.5;
 
@@ -479,27 +486,41 @@ function wedgeColors(stops: readonly string[], dimmed: boolean): string[] {
   });
 }
 
+/**
+ * Both states of both orbs, built once at module load.
+ *
+ * The convolution is ~14k multiply-adds per orb. Computing it inside the
+ * component meant paying it on every tap; there are exactly four possible
+ * results, so they are cached here and interaction never touches the maths.
+ *
+ * Declared HERE, below `wedgeColors` and the consts it reads, not up beside
+ * TEACHERS. `wedgeColors` is a hoisted function declaration, but `luminance`,
+ * `WEDGE_PATHS` and `CONIC_BLUR_DEG` are `const` -- so calling it any earlier
+ * hit their temporal dead zone and threw at import time. tsc and eslint both
+ * pass that; only running the app catches it.
+ */
+const ORB_FILLS: Record<TeacherId, { on: string[]; off: string[] }> = Object.fromEntries(
+  TEACHERS.map((t) => [
+    t.id,
+    { on: wedgeColors(t.orb.conic, false), off: wedgeColors(t.orb.conic, true) },
+  ])
+) as Record<TeacherId, { on: string[]; off: string[] }>;
+
 function TeacherOrb({
+  teacher,
   palette,
   dimmed,
   size,
-  uid,
 }: {
+  teacher: TeacherId;
   palette: { conic: readonly string[]; halo: string };
   dimmed: boolean;
   size: number;
-  /** SVG gradient ids are document-global; two orbs would share the first. */
-  uid: string;
 }) {
   const swirl = useSharedValue(0);
   const halo = useSharedValue(0);
-  const fills = useMemo(() => wedgeColors(palette.conic, dimmed), [palette.conic, dimmed]);
-  // The cap follows the orb: a coloured cap over a greyed sweep would put the
-  // one saturated patch on the orb exactly where the eye lands.
-  const centre = useMemo(
-    () => (dimmed ? `rgb(${Math.round(255 * IDLE_LUM)},${Math.round(255 * IDLE_LUM)},${Math.round(255 * IDLE_LUM)})` : meanHex(palette.conic)),
-    [palette.conic, dimmed]
-  );
+  /** 0 chosen, 1 unchosen. Drives the cross-fade on the UI thread. */
+  const off = useSharedValue(dimmed ? 1 : 0);
 
   useEffect(() => {
     swirl.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false);
@@ -508,11 +529,20 @@ function TeacherOrb({
     halo.value = withRepeat(withTiming(-360, { duration: 9000, easing: Easing.linear }), -1, false);
   }, [swirl, halo]);
 
+  useEffect(() => {
+    off.value = withTiming(dimmed ? 1 : 0, { duration: 320, easing: SWITCH_EASING });
+  }, [dimmed, off]);
+
   const swirlTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${swirl.value}deg` }] }));
   const haloTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${halo.value}deg` }] }));
+  const greyFade = useAnimatedStyle(() => ({ opacity: off.value }));
+  const colourFade = useAnimatedStyle(() => ({ opacity: 1 - off.value }));
 
   const inset24 = -size * 0.24;
   const inset30 = -size * 0.3;
+  const fills = ORB_FILLS[teacher];
+  const capOn = useMemo(() => meanHex(palette.conic), [palette.conic]);
+  const capOff = `rgb(${Math.round(255 * IDLE_LUM)},${Math.round(255 * IDLE_LUM)},${Math.round(255 * IDLE_LUM)})`;
 
   return (
     <View
@@ -524,7 +554,8 @@ function TeacherOrb({
         borderWidth: 1,
         borderColor: 'rgba(28,26,22,.08)',
       }}>
-      {/* Layer 1 — the conic. */}
+      {/* Both conics share ONE rotation, so they cannot drift out of phase
+          while the cross-fade is running. */}
       <Animated.View
         style={[
           { position: 'absolute', left: inset24, right: inset24, top: inset24, bottom: inset24 },
@@ -532,40 +563,64 @@ function TeacherOrb({
         ]}>
         <Svg width="100%" height="100%" viewBox="0 0 100 100">
           <Defs>
-            <RadialGradient id={`cap-${uid}`} cx="50%" cy="50%" r="26%">
-              <Stop offset="0" stopColor={centre} stopOpacity={1} />
-              <Stop offset="0.6" stopColor={centre} stopOpacity={0.85} />
-              <Stop offset="1" stopColor={centre} stopOpacity={0} />
+            <RadialGradient id={`cap-on-${teacher}`} cx="50%" cy="50%" r="26%">
+              <Stop offset="0" stopColor={capOn} stopOpacity={1} />
+              <Stop offset="0.6" stopColor={capOn} stopOpacity={0.85} />
+              <Stop offset="1" stopColor={capOn} stopOpacity={0} />
             </RadialGradient>
           </Defs>
           {WEDGE_PATHS.map((d, i) => (
-            <Path key={i} d={d} fill={fills[i]} />
+            <Path key={i} d={d} fill={fills.on[i]} />
           ))}
-          {/* Over the convergence point, under everything else. */}
-          <Rect x={0} y={0} width={100} height={100} fill={`url(#cap-${uid})`} />
+          <Rect x={0} y={0} width={100} height={100} fill={`url(#cap-on-${teacher})`} />
         </Svg>
+        <Animated.View style={[StyleSheet.absoluteFill, greyFade]}>
+          <Svg width="100%" height="100%" viewBox="0 0 100 100">
+            <Defs>
+              <RadialGradient id={`cap-off-${teacher}`} cx="50%" cy="50%" r="26%">
+                <Stop offset="0" stopColor={capOff} stopOpacity={1} />
+                <Stop offset="0.6" stopColor={capOff} stopOpacity={0.85} />
+                <Stop offset="1" stopColor={capOff} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            {WEDGE_PATHS.map((d, i) => (
+              <Path key={i} d={d} fill={fills.off[i]} />
+            ))}
+            <Rect x={0} y={0} width={100} height={100} fill={`url(#cap-off-${teacher})`} />
+          </Svg>
+        </Animated.View>
       </Animated.View>
 
-      {/* Layer 2 — the halo, counter-rotating. */}
+      {/* The halo, counter-rotating. Two stops cross-faded rather than one
+          whose colour changes, because an SVG gradient stop cannot animate. */}
       <Animated.View
         pointerEvents="none"
         style={[
           { position: 'absolute', left: inset30, right: inset30, top: inset30, bottom: inset30 },
           haloTurn,
         ]}>
-        <Svg width="100%" height="100%" viewBox="0 0 100 100">
-          <Defs>
-            <RadialGradient id={`halo-${uid}`} cx="32%" cy="30%" r="55%">
-              <Stop
-                offset="0"
-                stopColor={dimmed ? '#FFFFFF' : palette.halo}
-                stopOpacity={dimmed ? 0.4 : 0.85}
-              />
-              <Stop offset="1" stopColor={dimmed ? '#FFFFFF' : palette.halo} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect x={0} y={0} width={100} height={100} fill={`url(#halo-${uid})`} />
-        </Svg>
+        <Animated.View style={[StyleSheet.absoluteFill, colourFade]}>
+          <Svg width="100%" height="100%" viewBox="0 0 100 100">
+            <Defs>
+              <RadialGradient id={`halo-${teacher}`} cx="32%" cy="30%" r="55%">
+                <Stop offset="0" stopColor={palette.halo} stopOpacity={0.85} />
+                <Stop offset="1" stopColor={palette.halo} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Rect x={0} y={0} width={100} height={100} fill={`url(#halo-${teacher})`} />
+          </Svg>
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, greyFade]}>
+          <Svg width="100%" height="100%" viewBox="0 0 100 100">
+            <Defs>
+              <RadialGradient id={`halo-off-${teacher}`} cx="32%" cy="30%" r="55%">
+                <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.4} />
+                <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Rect x={0} y={0} width={100} height={100} fill={`url(#halo-off-${teacher})`} />
+          </Svg>
+        </Animated.View>
       </Animated.View>
 
       {/* Layer 3 — the specular catch-light, static, as on the site. */}
@@ -576,14 +631,13 @@ function TeacherOrb({
         height="100%"
         viewBox="0 0 100 100">
         <Defs>
-          <RadialGradient id={`spec-${uid}`} cx="50%" cy="50%" r="50%">
+          <RadialGradient id={`spec-${teacher}`} cx="50%" cy="50%" r="50%">
             <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.5} />
             <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
           </RadialGradient>
         </Defs>
-        <Ellipse cx={36} cy={25} rx={20} ry={15} fill={`url(#spec-${uid})`} />
+        <Ellipse cx={36} cy={25} rx={20} ry={15} fill={`url(#spec-${teacher})`} />
       </Svg>
-
     </View>
   );
 }
@@ -614,7 +668,7 @@ function LanguageToggle({
   const pos = useSharedValue(index);
 
   useEffect(() => {
-    pos.value = withTiming(index, { duration: 380, easing: Easing.bezier(0.2, 0.75, 0.2, 1) });
+    pos.value = withTiming(index, { duration: 380, easing: SWITCH_EASING });
   }, [index, pos]);
 
   // `calc(50% - 3px)`, measured, because RN has no calc and the knob has to
