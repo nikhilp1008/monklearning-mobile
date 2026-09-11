@@ -76,11 +76,31 @@ export default function PlanSheetScreen() {
           </PressableScale>
         </View>
 
+        {/* ONE LINE, NOT THREE. This used to read "Set up to 3 plans for
+            today. 3 slots left." with "Nothing planned yet. Add one below."
+            under it -- three lines to say you have none and may have three,
+            the last of them pointing at a field already in view. The count
+            only earns its own words once some are used, and the cap only
+            needs saying while none are. */}
         <Text style={styles.subtitle}>
-          Set up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.{' '}
-          <Text style={styles.subtitleAccent}>
-            {slotsLeft} slot{slotsLeft === 1 ? '' : 's'} left.
-          </Text>
+          {slotsLeft === MAX_PLAN_ITEMS ? (
+            <>
+              Set up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.
+            </>
+          ) : slotsLeft > 0 ? (
+            <>
+              <Text style={styles.subtitleBold}>
+                {slotsLeft} slot{slotsLeft === 1 ? '' : 's'}
+              </Text>{' '}
+              left for today.
+            </>
+          ) : (
+            // The only state where this line is doing work: it is why the
+            // field and the chips have gone quiet.
+            <Text style={styles.subtitleFull}>
+              All {MAX_PLAN_ITEMS} slots used for today.
+            </Text>
+          )}
         </Text>
 
         {items.length > 0 ? (
@@ -98,9 +118,7 @@ export default function PlanSheetScreen() {
               </View>
             ))}
           </View>
-        ) : (
-          <Text style={styles.emptyText}>Nothing planned yet. Add one below.</Text>
-        )}
+        ) : null}
 
         <View style={[styles.inputRow, !hasSlot && styles.rowDisabled]}>
           <TextInput
@@ -123,7 +141,7 @@ export default function PlanSheetScreen() {
 
         {availableSuggestions.length > 0 && (
           <>
-            <Text style={styles.suggestOverline}>Or pick a suggestion</Text>
+            <Text style={styles.suggestOverline}>Suggestions</Text>
             <View style={[styles.chipsRow, !hasSlot && styles.rowDisabled]}>
               {availableSuggestions.map((suggestion) => (
                 <PressableScale
@@ -163,11 +181,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       left: 0,
       right: 0,
       bottom: 0,
-      // The original design spec's every bottom sheet (this one, Chapter
-      // focus, Report) uses a warm #FCFAF4, not flat white — reuse the
-      // app's existing paper token rather than add a new one-off hex this
-      // close to it (a few RGB points, never seen side by side).
-      backgroundColor: colors.paper,
+      // White, like the screens it covers.
+      //
+      // This was `colors.paper` (#FFFDF8) on the reasoning that the design
+      // spec's sheets are warm — but every control INSIDE it is pure #fff:
+      // the field, the chips, the close button, the plan rows. So the sheet
+      // was the dimmest surface on the screen, darker than the home page
+      // behind it and darker than its own contents, and the white controls
+      // read as lit against a grubby ground. Figure and ground were the
+      // wrong way round.
+      //
+      // #fff is also what Home and Practice already use, so the sheet now
+      // belongs to the same app as the page it slides over. The scrim is
+      // what separates them, and it separates them better against white.
+      backgroundColor: '#fff',
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
@@ -224,20 +251,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
-    subtitleAccent: {
+    // Marigold, not red. `colors.red` is the wrong-answer mark on Practice
+    // and the red-pen accent in the reader, so painting a healthy slot count
+    // in it raised an alarm over nothing. Marigold is the app's "daily goal"
+    // accent, which is exactly what a full plan is.
+    subtitleFull: {
       fontFamily: 'Onest_700Bold',
-      color: colors.red,
+      color: colors.marigold,
     },
     planList: {
       flexDirection: 'column',
       gap: verticalScale(7),
       marginTop: verticalScale(12),
-    },
-    emptyText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.faint,
-      marginTop: verticalScale(14),
     },
     planRow: {
       flexDirection: 'row',
@@ -274,7 +299,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     inputRow: {
       flexDirection: 'row',
       gap: scale(8),
-      marginTop: verticalScale(10),
+      // One value whether or not a plan list sits above it, so the field
+      // holds its place as plans are added and removed.
+      marginTop: verticalScale(14),
     },
     input: {
       flex: 1,
@@ -300,14 +327,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     rowDisabled: {
       opacity: 0.5,
     },
+    // Home's overline exactly -- 700/11/+.1em/slate -- rather than the
+    // one-off 800/9/faint this sheet had invented, which shouted harder than
+    // any section heading on the page that opened it.
     suggestOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(11),
+      lineHeight: scale(14),
+      letterSpacing: scale(0.1 * 11),
       textTransform: 'uppercase',
-      color: colors.faint,
-      marginTop: verticalScale(16),
-      marginBottom: verticalScale(8),
+      color: colors.slate,
+      marginTop: verticalScale(18),
+      marginBottom: verticalScale(9),
     },
     chipsRow: {
       flexDirection: 'row',
