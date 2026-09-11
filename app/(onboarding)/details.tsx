@@ -113,8 +113,9 @@ export default function DetailsScreen() {
             {/* EMAIL ADDRESS — read only. This is the address the code was
                 just sent to, so it is the one field on the page that is
                 already proven; editing it here would mean re-verifying. */}
-            {/* The address on one line, with the state as a tag under it.
-                The tick used to sit to the right of the address, and between
+            {/* The address on one line, with the state as a tag under the
+                card -- outside it, so the card holds the answer and nothing
+                else. The tick used to sit to the right of the address, and between
                 the glyph and its gap it took 32 of the card's 306pt. Measured
                 in Onest at this size, that is the difference between
                 "nikhil.kumar.p@monklearning.com" (287pt) fitting and wrapping
@@ -126,11 +127,13 @@ export default function DetailsScreen() {
                 the domain -- "nikhilkumarpotnuru2007@gm..." doesn't tell a
                 student which account this is, "nikhilkumarpot...@gmail.com"
                 does. */}
-            <View style={[styles.card, styles.cardWarm]}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <Text style={styles.value} numberOfLines={1} ellipsizeMode="middle">
-                {email}
-              </Text>
+            <View style={styles.emailGroup}>
+              <View style={[styles.card, styles.cardWarm]}>
+                <Text style={styles.label}>EMAIL ADDRESS</Text>
+                <Text style={styles.value} numberOfLines={1} ellipsizeMode="middle">
+                  {email}
+                </Text>
+              </View>
               <View style={styles.verifiedTag}>
                 <Text style={styles.verifiedTagText}>Verified</Text>
               </View>
@@ -263,14 +266,20 @@ function createStyles(
       borderColor: ob.fieldBorder,
     },
     // The verified email: read-only, so it sits on a tint instead of white.
-    // A column now -- label, address, tag -- so the address gets the card's
-    // whole width instead of sharing it with a glyph.
+    // Label and address only -- the state tag hangs below the card -- so the
+    // address gets the card's whole width instead of sharing it with a glyph.
     cardWarm: {
       backgroundColor: ob.fieldMuted,
       alignItems: 'flex-start',
     },
+    // Card plus its tag, so the tag reads as belonging to this field rather
+    // than floating in the stack's own 12pt gap.
+    emailGroup: {
+      flexDirection: 'column',
+    },
     /**
-     * "Verified" as a tag rather than a tick.
+     * "Verified" as a tag rather than a tick, and below the card rather than
+     * inside it: the card is the answer, the tag is what we know about it.
      *
      * Green because that is what the state is; the onboarding palette has no
      * success colour of its own, so these are the app's #1C9B57 at 12% with
