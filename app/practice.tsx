@@ -695,8 +695,26 @@ export default function PracticeScreen() {
           {!revealed ? (
             <>
               <View style={styles.actionRow}>
+                {/* BUSY IS NOT DISABLED, AND THE DIFFERENCE IS THE WHOLE
+                    CONTROL. `canSubmit` goes false the instant the answer is
+                    in flight, so gating the outline on `!canSubmit` alone
+                    emptied the button exactly when it had the most to say:
+                    the ink fill went transparent over a #fff page and the
+                    spinner, which is paper cream, went from 17.09:1 on the
+                    fill to 1.00:1 on the page. The button faded to a 1.41:1
+                    ghost border with an invisible spinner inside it, so a
+                    student who had just committed an answer saw nothing at
+                    all happen.
+
+                    Disabled means there is nothing to submit -- an outline is
+                    right for that. Submitting means the answer is gone to the
+                    server, and the fill has to stay for the spinner to read
+                    against. */}
                 <Pressable
-                  style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+                  style={[
+                    styles.submitButton,
+                    !canSubmit && !submitting && styles.submitButtonDisabled,
+                  ]}
                   disabled={!canSubmit}
                   onPress={() =>
                     question.question_type === 'numerical'
@@ -709,7 +727,7 @@ export default function PracticeScreen() {
                     <Text
                       style={[
                         styles.submitButtonText,
-                        !canSubmit && styles.submitButtonTextDisabled,
+                        !canSubmit && !submitting && styles.submitButtonTextDisabled,
                       ]}>
                       Submit
                     </Text>
