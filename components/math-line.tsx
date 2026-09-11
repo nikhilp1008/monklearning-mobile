@@ -83,22 +83,13 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
           ];
         }
         if (segment.kind === 'matrix') {
-          // HELD: the drawn grid waits on Nikhil.
-          //
-          // Raasikh's `Matrix` below renders this as the grid it is. Until
-          // that is signed off, a matrix reads exactly as it does in
-          // production today -- `[1  2 ; 3  4]`, the same linear form
-          // `latexToText` produces -- so the parser change is live and only
-          // the drawing is held. To take the grid, restore the `<Matrix .../>`
-          // return here; nothing else needs touching.
-          const linear =
-            segment.open +
-            segment.rows.map((row) => row.join('  ')).join(' ; ') +
-            segment.close;
           return [
-            <Text key={`m${i}`} style={[style, mathStyle, styles.word]}>
-              {linear}
-            </Text>,
+            <Matrix
+              key={`m${i}`}
+              segment={segment}
+              styles={styles}
+              style={[style, mathStyle]}
+            />,
           ];
         }
         const voice = segment.kind === 'math' ? [style, mathStyle] : [style];
@@ -144,9 +135,6 @@ function Fraction({
  * opening brace and no closing one, which is why the right-hand side is
  * conditional rather than assumed.
  */
-// Unused while the grid is held above -- kept, not deleted, so approving it is
-// a one-line change rather than a rewrite.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Matrix({
   segment,
   styles,
