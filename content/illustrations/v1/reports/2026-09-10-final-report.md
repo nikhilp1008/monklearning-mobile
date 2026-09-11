@@ -125,40 +125,49 @@ itself received exactly 900x430.
                               missing 0; figure revealed; no gaps
     plate                     visible on the production board (screenshot)
 
-## EAS preview build — handoff (updated 2026-09-11)
+## EAS preview build — DONE (2026-09-11)
 
-The Expo half is DONE. An EXPO_TOKEN now lives in `.env.local` (gitignored);
-`eas-cli whoami` authenticates as `nikhilp1018`, project
-`@nikhilp1018/monk-learning-app` (650785f4-c23c-4aa4-a390-7b97596e1a46), and
-the preview profile resolves all four EXPO_PUBLIC_* vars from eas.json.
+    build      ac0922c1-1de6-47d8-b75d-68f3c587fabc  status=finished
+    profile    preview (internal / ad-hoc)  version 1.0.0 (18)  SDK 54
+    commit     dac6f899  (board-widget-runtime)
+    install    https://expo.dev/accounts/nikhilp1018/projects/
+               monk-learning-app/builds/ac0922c1-1de6-47d8-b75d-68f3c587fabc
+    archive    .../artifacts/eas/eDl4E3K1xpa5P6ZjdjtXF9WFQ8QxYB0wmwT4y4HCwMQ.ipa
+    device     iPhone UDID 00008130-0018041030FA8D3A on team 5NYMKKM5K5
 
-The build now stops one step further along, on APPLE credentials — a separate
-login from Expo:
+Three separate credential walls stood between "EXPO_TOKEN exists" and a build,
+and each looked like the previous one until it was read:
 
-    ✔ Using remote iOS credentials (Expo server)
-    Failed to set up credentials. ... couldn't find any credentials suitable
-    for internal distribution. Run this command again in interactive mode.
+1. **Expo auth** — solved with EXPO_TOKEN in `.env.local` (gitignored).
+2. **Apple portal auth.** `eas device:create` with an Apple ID failed with
+   `iTunes service key is empty`. Fixed by authenticating with an App Store
+   Connect **API key** instead (key G9VF92L7PH). This works for the PORTAL
+   path, not only for submission: `credentials/ios/appstore/
+   resolveCredentials.js` reads EXPO_ASC_API_KEY_PATH / _KEY_ID / _ISSUER_ID
+   and `authenticate.js` has an `AuthenticationMode.API_KEY`. No Apple ID, no
+   2FA, and the failure never recurred.
+3. **No registered device, then no credentials.** Internal distribution is
+   ad-hoc: it needs a device UDID registered (website flow, profile installed
+   on the phone) AND a distribution certificate + ad-hoc provisioning profile.
+   EAS refuses to CREATE credentials under `--non-interactive`, so the build
+   was run interactively through a pty; it registered the bundle identifier,
+   synced capabilities, generated the profile, and uploaded 259 MB.
 
-Cause, measured rather than guessed: both `development` and `preview` are
-`"distribution": "internal"`, which is ad-hoc — it needs at least one device
-UDID registered on the Apple team, and
+Reproducing it non-interactively from here on (credentials now exist):
 
-    eas device:list --apple-team-id 5NYMKKM5K5
-    → Could not find devices on Apple team
+    EXPO_ASC_API_KEY_PATH=<path to AuthKey_G9VF92L7PH.p8> \
+    EXPO_ASC_KEY_ID=G9VF92L7PH \
+    EXPO_ASC_ISSUER_ID=ab2e1863-a67d-40f0-a099-b22c8f43fa7b \
+    EXPO_APPLE_TEAM_ID=5NYMKKM5K5 \
+    EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION \
+    npx eas-cli build --profile preview --platform ios --non-interactive
 
-Zero devices are registered on MS Info Tech LLC (5NYMKKM5K5). Registering one
-authenticates against the Apple Developer portal (Apple ID + password + 2FA),
-which is interactive and is credential entry — it has to be Raasikh, in his
-own terminal:
+Note EXPO_APPLE_TEAM_TYPE: without it the CLI prompts, and the FIRST option is
+`Enterprise` while this team is Company/Organization. Pinning it removes a
+prompt that is easy to answer wrongly.
 
-    npx eas-cli device:create          # register the iPhone, then
-    npx eas-cli build --profile preview --platform ios
-
-Every path to a PHYSICAL device needs that Apple auth: ad-hoc internal
-distribution needs the device registered, and TestFlight needs an App Store
-Connect upload. A simulator build (`"ios": {"simulator": true}`) needs no
-credentials at all, but it does not put plates on a physical phone, which is
-the entire point of this build — so it has NOT been substituted.
+Expect plates to draw UNLABELLED on device, with a 404 per slug in the log.
+That is correct while every label set is reviewed_by NULL.
 
 ## Production verification — re-run on 8cb7c16 (2026-09-10)
 
