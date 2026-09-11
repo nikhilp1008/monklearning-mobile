@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -64,15 +64,33 @@ function TextbooksIcon({ color, size }: IconProps) {
   );
 }
 
+/**
+ * A question on a card.
+ *
+ * This was a camera, which is the same object Home draws for Snap and Solve.
+ * The camera is how a doubt gets IN; it is not what the page IS, and using
+ * one glyph for both made the tab look like a second shutter button.
+ *
+ * The card is close in silhouette to Notes two slots along, so the mark
+ * inside it carries the difference: Notes has a spine at a quarter width and
+ * two short rules, this has one large centred glyph and no spine.
+ *
+ * The "?" is a scaled Feather question mark with the transform baked into
+ * its coordinates rather than applied by a <G>: the stroke inside a scaled
+ * group scales with it, so the 1.6 here would not have matched the 1.6 on
+ * the card. Centred by construction -- the glyph spans 7.54 to 16.46, the
+ * card's interior 4.60 to 19.40, both on 12.00.
+ */
 function DoubtsIcon({ color, size }: IconProps) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={4.2} y={3.8} width={15.6} height={16.4} rx={2.6} stroke={color} strokeWidth={1.6} />
       <Path
-        d="M8.3 6.3 9.5 4.5h5l1.2 1.8h1.8A2.5 2.5 0 0 1 20 8.8v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.8v-8a2.5 2.5 0 0 1 2.5-2.5z"
+        d="M9.89 9.78a2.16 2.16 0 0 1 4.2.72c0 1.44-2.16 2.16-2.16 2.16"
         stroke={color}
         strokeWidth={1.6}
       />
-      <Circle cx={12} cy={12.8} r={3.3} stroke={color} strokeWidth={1.6} />
+      <Path d="M11.99 15.54h.01" stroke={color} strokeWidth={1.84} />
     </Svg>
   );
 }
