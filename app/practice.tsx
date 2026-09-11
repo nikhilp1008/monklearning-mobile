@@ -676,12 +676,20 @@ export default function PracticeScreen() {
                       {key.toUpperCase()}
                     </Text>
                   </View>
+                  {/* One weight, always. Grading used to switch the chosen
+                      and correct options to 700, which costs 3.2% width in
+                      Onest -- enough that any line already sitting in the
+                      last 3.1% of the 283.7pt column wrapped to a second
+                      one. So the row grew as it was graded, and the answer
+                      the student was reading moved under them. The fill and
+                      the badge already say which option this is; the text
+                      does not need to say it a third time, and it is the
+                      only one of the three that can reflow. */}
                   <MathText
                     text={text}
                     fontSize={scale(15)}
                     lineHeight={scale(21)}
                     color={colors.ink}
-                    fontWeight={isPending || isYourWrongPick || isCorrectReveal ? '700' : '400'}
                     style={styles.optionText}
                   />
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
