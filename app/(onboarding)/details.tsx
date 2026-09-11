@@ -120,10 +120,15 @@ export default function DetailsScreen() {
                 "nikhil.kumar.p@monklearning.com" (287pt) fitting and wrapping
                 -- and once it wrapped, the tick was stranded beside the first
                 line. Moving the state below buys the width back, and the
-                address is clamped to one line so nothing can wrap again. */}
+                address is clamped to one line so nothing can wrap again.
+                Truncation is "middle", not "tail": an address only overflows
+                because the local part is long, and tail truncation would eat
+                the domain -- "nikhilkumarpotnuru2007@gm..." doesn't tell a
+                student which account this is, "nikhilkumarpot...@gmail.com"
+                does. */}
             <View style={[styles.card, styles.cardWarm]}>
               <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <Text style={styles.value} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={styles.value} numberOfLines={1} ellipsizeMode="middle">
                 {email}
               </Text>
               <View style={styles.verifiedTag}>
