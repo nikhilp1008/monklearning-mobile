@@ -1,6 +1,21 @@
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
 import { base64ToBytes } from '@/lib/audio-pcm';
 
+/**
+ * The reveal probe: every board event entering the buffer and every reveal
+ * with what carried it.
+ *
+ * Off unless EXPO_PUBLIC_REVEAL_PROBE=1 and __DEV__. It earned its keep once —
+ * it refuted the theory that a labelled_figure event was never carried by an
+ * audio chunk (it is, on its own sentence, exactly like a widget event) and
+ * stopped a change to the reveal path that would have added a second
+ * anchoring mechanism for a symptom the reveal path was not causing.
+ */
+const REVEAL_PROBE = __DEV__ && process.env.EXPO_PUBLIC_REVEAL_PROBE === '1';
+const probe = (line: string) => {
+  if (REVEAL_PROBE) console.log(`[reveal-probe] ${line}`);
+};
+
 export interface BoardEvent {
   seq: number;
   type: 'text' | 'heading' | 'note' | 'formula' | 'diagram' | string;
@@ -52,6 +67,9 @@ export interface DronaVoiceHandlers {
   onState?: (state: DronaState) => void;
   /** Board items revealed one at a time, synced to when their paired sentence starts playing. */
   onBoardReveal?: (event: BoardEvent) => void;
+  /** The whole turn's board, at buffer time — ahead of any audio. For warming
+   *  caches only; nothing here is shown until its own reveal. */
+  onBoardBuffered?: (events: BoardEvent[]) => void;
   /** Full board history re-painted on reconnect — no reveal pacing, render immediately. */
   onBoardReplay?: (events: BoardEvent[]) => void;
   onCaptionReveal?: (text: string) => void;
@@ -202,7 +220,15 @@ export class DronaVoiceClient {
       if (this.awaitingDrain) this.armDrainWatchdog();
       const meta = this.chunkMeta.get(id);
       if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
-      if (meta?.boardEvent) this.handlers.onBoardReveal?.(meta.boardEvent);
+      if (meta?.boardEvent) {
+        probe(
+          `REVEALED seq=${meta.boardEvent.seq}` +
+            ` type=${meta.boardEvent.type}` +
+            ` widget=${meta.boardEvent.payload?.widget ?? '-'}` +
+            ` carriedBy=onItemStart(${id})`
+        );
+        this.handlers.onBoardReveal?.(meta.boardEvent);
+      }
       // Survives the delete below so `playingChunkDurationMs` can be read
       // after the reveal fires. Nothing consumes it yet — see the getter.
       this.currentChunkDurationMs = meta?.durationMs ?? null;
@@ -528,12 +554,40 @@ export class DronaVoiceClient {
    *  not shown yet, until each item's paired audio_chunk starts playing. */
   private pendingBoardEvents: BoardEvent[] = [];
   private bufferBoardEvents(events: BoardEvent[]) {
+    // INSTRUMENTATION, temporary and deliberately verbose. The question this
+    // answers: which board events ever get carried by an audio chunk, and
+    // which sit in this queue until the end-of-turn safety net. A figure has
+    // no sentence of its own, so the suspicion is that it is never carried —
+    // but that is a suspicion, and the reveal path is not somewhere to change
+    // code on one.
+    for (const e of events) {
+      probe(
+        `BUFFERED seq=${e.seq} type=${e.type}` +
+          ` revealAt=${(e as { revealAt?: number }).revealAt ?? '(none)'}` +
+          ` widget=${e.payload?.widget ?? '-'}`
+      );
+    }
     this.pendingBoardEvents.push(...events);
+    // BUFFER TIME IS THE EARLIEST HONEST MOMENT TO FETCH. The whole turn's
+    // board arrives here, ahead of its audio, and a figure's art is a network
+    // object — so asking for it now gives it the length of the preceding
+    // sentences to land, and the plate draws on the FIRST render of its block
+    // rather than the second.
+    //
+    // Announced rather than fetched here: this module is the transport and
+    // knows nothing about figures. The screen owns the resolver and wires it.
+    this.handlers.onBoardBuffered?.(events);
   }
   /** Safety net for a sentence whose TTS failed to synthesize — its board
    *  event would otherwise never get revealed since nothing ever plays for it. */
   private flushPendingBoardEvents() {
-    for (const event of this.pendingBoardEvents) this.handlers.onBoardReveal?.(event);
+    for (const event of this.pendingBoardEvents) {
+      probe(
+        `REVEALED seq=${event.seq} type=${event.type}` +
+          ` widget=${event.payload?.widget ?? '-'} carriedBy=END_OF_TURN_FLUSH`
+      );
+      this.handlers.onBoardReveal?.(event);
+    }
     this.pendingBoardEvents = [];
   }
 
@@ -562,7 +616,14 @@ export class DronaVoiceClient {
     // stall with nothing on screen to answer.
     if (!audioBase64) {
       if (speech) this.handlers.onCaptionReveal?.(speech);
-      if (boardEvent) this.handlers.onBoardReveal?.(boardEvent);
+      if (boardEvent) {
+        probe(
+          `REVEALED seq=${boardEvent.seq} type=${boardEvent.type}` +
+            ` widget=${boardEvent.payload?.widget ?? '-'}` +
+            ` carriedBy=audio_chunk(${sentenceId})`
+        );
+        this.handlers.onBoardReveal?.(boardEvent);
+      }
       return;
     }
     if (!sentenceId) return;

@@ -17,11 +17,17 @@
     "animatable": []
   },
   {
+    "id": "free_body_forces",
+    "version": 1,
+    "animatable": []
+  },
+  {
     "id": "xy_plot",
-    "version": 3,
+    "version": 4,
     "animatable": [
       "shade_to",
-      "tangent_at"
+      "tangent_at",
+      "secant_to"
     ]
   },
   {
@@ -59,5 +65,10 @@
       "t_frac",
       "bridge_delta"
     ]
+  },
+  {
+    "id": "lines_planes_3d",
+    "version": 1,
+    "animatable": []
   }
 ]

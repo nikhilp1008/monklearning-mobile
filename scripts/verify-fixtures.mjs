@@ -124,6 +124,46 @@ for (const file of files) {
   }
 }
 
+/* ---------- SVG fixtures: the tier-3 gate's own failing cases ---------- */
+/*
+ * Separate from the tree fixtures because the INPUT is different: a tier-3
+ * figure is an SVG document, and scripts/svg-to-tree.mjs is what turns one
+ * into something verify-render.mjs can measure. Its assertions need failing
+ * fixtures for the same reason every other gate assertion does — an assertion
+ * with only passing cases is one nobody has watched fail.
+ */
+const svgDir = resolve(root, 'test/fixtures/svg');
+const SVG_EXPECT = {
+  // not well-formed XML: a double hyphen inside a comment. The gate passed
+  // this document at all three frames before the strict parse existed, and
+  // cairosvg then refused to open it.
+  'malformed-comment.svg': 2,
+  // the real frog heart, which must keep passing
+  'well-formed.svg': 0,
+};
+const svgFiles = readdirSync(svgDir).filter((f) => f.endsWith('.svg'));
+for (const name of Object.keys(SVG_EXPECT)) {
+  if (!svgFiles.includes(name)) {
+    console.error(`verify:fixtures — expected svg fixture missing: ${name}`);
+    failed++;
+  }
+}
+for (const file of svgFiles) {
+  if (!(file in SVG_EXPECT)) {
+    console.error(`verify:fixtures — ${file} has no expected outcome in SVG_EXPECT; add one.`);
+    failed++;
+    continue;
+  }
+  const r = spawnSync('node', [resolve(root, 'scripts/svg-to-tree.mjs'),
+                               join(svgDir, file), '--w', '343', '--h', '236'],
+                      { cwd: root, encoding: 'utf8' });
+  if (r.status !== SVG_EXPECT[file]) {
+    console.error(`FAIL: ${file} exited ${r.status}, expected ${SVG_EXPECT[file]}`);
+    console.error((r.stderr || '').trim());
+    failed++;
+  }
+}
+
 if (failed > 0) {
   console.error(`\nverify:fixtures — ${failed} fixture(s) did not behave as documented.`);
   process.exit(1);

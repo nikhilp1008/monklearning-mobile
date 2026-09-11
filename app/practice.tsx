@@ -25,11 +25,15 @@ import {
   NextQuestion,
   PracticeStats,
   explainWithDrona,
+  clearQueuedQuestion,
   getNextQuestion,
   getPracticeStats,
+  hasQueuedQuestion,
+  holdQueuedQuestion,
   parseAnswerSolution,
   solutionFinalAnswer,
   submitAnswer,
+  takeQueuedQuestion,
 } from '@/lib/practice';
 import { ApiError } from '@/lib/api';
 import { examSubjects, getCatalogue } from '@/lib/drona';
@@ -250,6 +254,19 @@ export default function PracticeScreen() {
     return `${correct} of ${attempted} correct · ${Math.round((correct / attempted) * 100)}%`;
   }, [lifetime, sessionAttempted, sessionCorrect]);
 
+  /**
+   * How long this question was on screen, or nothing if that cannot be said
+   * honestly — no start stamp, or a reading long enough that the student
+   * almost certainly left the app open rather than sat there. Ten minutes is
+   * well past the longest a JEE question is worth, and sending a number that
+   * is really "overnight" would poison an average more than sending none.
+   */
+  function elapsed(): { elapsed_ms?: number } {
+    if (shownAt.current === null) return {};
+    const ms = Date.now() - shownAt.current;
+    return ms > 0 && ms < 600_000 ? { elapsed_ms: ms } : {};
+  }
+
   /** One graded answer: shown, counted, and the cue to fetch what comes next. */
   function applyResult(result: AnswerResult) {
     setAnswerResult(result);
@@ -268,9 +285,9 @@ export default function PracticeScreen() {
       setFocus(DEFAULT_PRACTICE_FOCUS);
     }
     // A question queued under the old subject is not just unusable, it would
-    // also stop a new one being queued — `prefetchNext` declines while a
-    // prefetch is already held.
-    prefetchedRef.current = null;
+    // also stop a new one being queued — `prefetchNext` declines while one is
+    // already held.
+    clearQueuedQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSubject]);
 
@@ -304,25 +321,40 @@ export default function PracticeScreen() {
    * post-grade prefetch; this widens the window, not the principle. Discarded
    * silently on failure — the next load just fetches normally.
    */
-  const prefetchedRef = useRef<NextQuestion | null>(null);
-  const prefetchSubjectRef = useRef(activeSubject);
+  /**
+   * When the question in front of the student went on screen.
+   *
+   * The server already times these — `record_serve` stamps `served_at` and
+   * `apply_answer_scoring` writes `time_to_answer_ms` — but it measures from
+   * when it SERVED the question, which is not when the student saw it. This
+   * screen fetches one question ahead, so the server's clock starts while they
+   * are still reading the previous one, and every measurement is inflated by
+   * however long that took. Re-opening Practice on a held question inflates it
+   * further.
+   *
+   * So the client sends what it can actually observe. `elapsed_ms` is ignored
+   * by the API today and is safe to send (the request model drops unknown
+   * fields); the server-side half is written up in the commit.
+   */
+  const shownAt = useRef<number | null>(null);
 
   /** Set while a prefetch is in the air, so two triggers cannot both fire. */
   const prefetchInFlight = useRef(false);
 
   function prefetchNext() {
-    if (!scope || prefetchInFlight.current || prefetchedRef.current) return;
+    const subject = SUBJECT_QUERY[activeSubject];
+    if (!scope || prefetchInFlight.current || hasQueuedQuestion(subject)) return;
     prefetchInFlight.current = true;
-    prefetchSubjectRef.current = activeSubject;
-    getNextQuestion({ subject: SUBJECT_QUERY[activeSubject], ...scope })
+    getNextQuestion({ subject, ...scope })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
-        // question must never appear under the Chemistry pill.
-        if ('exhausted' in result || prefetchSubjectRef.current !== activeSubject) return;
-        prefetchedRef.current = result;
+        // question must never appear under the Chemistry pill. The subject it
+        // was fetched for is stored beside it, so this cannot go stale.
+        if ('exhausted' in result) return;
+        holdQueuedQuestion(result, subject);
       })
       .catch(() => {
-        prefetchedRef.current = null;
+        clearQueuedQuestion();
       })
       .finally(() => {
         prefetchInFlight.current = false;
@@ -355,11 +387,12 @@ export default function PracticeScreen() {
     setAnswerResult(null);
     setNotice(null);
 
-    // Already have the next one waiting — no spinner, no wait.
-    const ready = prefetchedRef.current;
-    if (ready && prefetchSubjectRef.current === activeSubject) {
-      prefetchedRef.current = null;
+    // Already have the next one waiting — no spinner, no wait. This survives
+    // leaving and re-entering Practice, so re-opening it is instant too.
+    const ready = takeQueuedQuestion(SUBJECT_QUERY[activeSubject]);
+    if (ready) {
       setQuestion(ready);
+      shownAt.current = Date.now();
       setSeen((n) => n + 1);
       setLoading(false);
       prefetchNext();
@@ -384,6 +417,7 @@ export default function PracticeScreen() {
         setQuestion(null);
       } else {
         setQuestion(result);
+        shownAt.current = Date.now();
         setSeen((n) => n + 1);
         prefetchNext();
       }
@@ -403,11 +437,11 @@ export default function PracticeScreen() {
     setSelectedOption(key ?? null);
     setSubmitting(true);
     try {
-      const result = await submitAnswer(
-        key === undefined
-          ? { question_id: question.question_id }
-          : { question_id: question.question_id, chosen_option: key }
-      );
+      const result = await submitAnswer({
+        question_id: question.question_id,
+        ...(key === undefined ? {} : { chosen_option: key }),
+        ...elapsed(),
+      });
       applyResult(result);
     } catch (err) {
       await handleSubmitError(err);
@@ -424,6 +458,7 @@ export default function PracticeScreen() {
       const result = await submitAnswer({
         question_id: question.question_id,
         chosen_value: value,
+        ...elapsed(),
       });
       applyResult(result);
     } catch (err) {
@@ -680,15 +715,17 @@ export default function PracticeScreen() {
                     </Text>
                   )}
                 </Pressable>
-                <View style={styles.actionSpacer} />
-                <Pressable onPress={loadQuestion} hitSlop={10} style={styles.skipButton}>
-                  <Text style={styles.nextInlineText}>Skip</Text>
-                  <ArrowRightIcon size={scale(13)} color={colors.slate} />
-                </Pressable>
-                {/* Still no Report control. /practice serves next, answer,
-                    stats and explain and nothing else -- a report here would
-                    have nowhere to post, and a button that silently does
-                    nothing is worse than an absent one. */}
+                {/* No Skip, and no Report.
+                    Skip is gone deliberately. Every question served is one
+                    burned out of the student's pool by `record_serve`, and a
+                    skipped one was never closed again: 494 of 570 serve rows
+                    in production have no `answered_at` and never will, which
+                    is why the pace card has nothing to average. Ending every
+                    question at Submit is what makes that column mean
+                    something.
+                    Report has nowhere to post — /practice serves next, answer,
+                    stats and explain and nothing else, and a button that
+                    silently does nothing is worse than an absent one. */}
               </View>
             </>
           ) : (
@@ -846,7 +883,7 @@ function QuestionSkeleton({
       </View>
 
       <View style={styles.actionRow}>
-        <Skeleton delay={480} style={styles.skeletonSkip} />
+        <Skeleton delay={480} style={styles.skeletonSubmit} />
       </View>
     </>
   );
@@ -1182,10 +1219,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
       height: verticalScale(14),
     },
-    // The row below the options — "Skip →" on the left, "Report" on the right.
-    skeletonSkip: {
-      width: scale(46),
-      height: verticalScale(11),
+    // The row below the options — one control, Submit.
+    skeletonSubmit: {
+      width: scale(112),
+      height: verticalScale(40),
+      borderRadius: scale(99),
     },
     // The question is the page, not a widget on it. Ruled paper, an ink
     // border, a drop shadow and a red margin rule all competed with the one
@@ -1352,17 +1390,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(14),
       marginTop: verticalScale(16),
     },
-    actionSpacer: { flex: 1 },
-    // Filled, because committing an answer IS the action of the page. It sits
-    // left where the reading ends; Skip is pushed to the far edge so the two
-    // are never mistaken for a pair.
-    skipButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      height: verticalScale(40),
-      paddingHorizontal: scale(4),
-    },
+    // Filled, because committing an answer IS the action of the page, and now
+    // the only one on it.
     submitButton: {
       minWidth: scale(112),
       height: verticalScale(40),
@@ -1399,11 +1428,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.ink,
-    },
-    nextInlineText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
-      color: colors.slate,
     },
     explainSection: {
       marginTop: verticalScale(22),

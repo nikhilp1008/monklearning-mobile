@@ -150,9 +150,14 @@ export function validate(raw: unknown): ValidationResult<LabelledFigureParams> {
   /* --- groups --- */
   const groups: FigureGroup[] = [];
   const groupIds = new Set<string>();
-  if (!Array.isArray(r.groups) || r.groups.length === 0) {
-    errors.push('groups must be a non-empty array — a figure with one subset declares one group');
-  } else {
+  // EMPTY IS LEGAL, and it is the normal state of a freshly ingested plate.
+  // The review gate withholds LABELS, not art: a plate whose label set is
+  // absent or unreviewed is drawn with no labels and therefore no groups.
+  // Requiring a group here would turn "nobody has reviewed the anchors yet"
+  // into a blank board, which is the failure this widget exists to avoid.
+  if (!Array.isArray(r.groups)) {
+    errors.push('groups must be an array');
+  } else if (r.groups.length > 0) {
     r.groups.forEach((g, i) => {
       if (typeof g !== 'object' || g === null) {
         errors.push(`groups[${i}] must be an object`);
@@ -177,9 +182,12 @@ export function validate(raw: unknown): ValidationResult<LabelledFigureParams> {
   /* --- labels --- */
   const labels: LabelRecord[] = [];
   const labelIds = new Set<string>();
-  if (!Array.isArray(r.labels) || r.labels.length === 0) {
-    errors.push('labels must be a non-empty array');
-  } else {
+  // Same rule as groups: an unlabelled plate is a legal render, not an error.
+  // `label-set.ts` still refuses a PUBLISHED set with zero labels — that JSON
+  // really is art claiming to be a figure — and the two are different claims.
+  if (!Array.isArray(r.labels)) {
+    errors.push('labels must be an array');
+  } else if (r.labels.length > 0) {
     r.labels.forEach((l, i) => {
       if (typeof l !== 'object' || l === null) {
         errors.push(`labels[${i}] must be an object`);

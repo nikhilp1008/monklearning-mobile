@@ -37,7 +37,7 @@ type MathLineProps = {
 export function MathLine({ text, style, fontSize, color, mathStyle }: MathLineProps) {
   const segments = useMemo(() => latexToSegments(text), [text]);
   const hasFraction = segments.some(
-    (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup'
+    (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup' || s.kind === 'matrix'
   );
   const hasMath = !!mathStyle && segments.some((s) => s.kind === 'math');
   const styles = useMemo(() => createStyles(fontSize, color), [fontSize, color]);
@@ -46,7 +46,11 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
   // wrapping and selection behave exactly as they did before this component
   // existed.
   if (!hasFraction && !hasMath) {
-    return <Text style={style}>{segments.map((s) => (s as { text: string }).text).join('')}</Text>;
+    return (
+      <Text style={style}>
+        {segments.map((s) => ('text' in s ? s.text : '')).join('')}
+      </Text>
+    );
   }
 
   return (
@@ -76,6 +80,16 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
               ]}>
               {segment.text}
             </Text>,
+          ];
+        }
+        if (segment.kind === 'matrix') {
+          return [
+            <Matrix
+              key={`m${i}`}
+              segment={segment}
+              styles={styles}
+              style={[style, mathStyle]}
+            />,
           ];
         }
         const voice = segment.kind === 'math' ? [style, mathStyle] : [style];
@@ -112,6 +126,44 @@ function Fraction({
   );
 }
 
+/**
+ * A matrix, drawn as the grid it is.
+ *
+ * The brackets are single tall glyphs stretched to the height of the rows
+ * rather than characters repeated down the side: `[` scaled vertically reads
+ * as one delimiter, and three stacked `[` read as three. `cases` has an
+ * opening brace and no closing one, which is why the right-hand side is
+ * conditional rather than assumed.
+ */
+function Matrix({
+  segment,
+  styles,
+  style,
+}: {
+  segment: Extract<MathSegment, { kind: 'matrix' }>;
+  styles: ReturnType<typeof createStyles>;
+  style?: StyleProp<TextStyle>;
+}) {
+  const columns = Math.max(...segment.rows.map((row) => row.length));
+  return (
+    <View style={styles.matrix}>
+      {!!segment.open && <Text style={[style, styles.bracket]}>{segment.open}</Text>}
+      <View>
+        {segment.rows.map((row, r) => (
+          <View key={r} style={styles.matrixRow}>
+            {Array.from({ length: columns }, (_, c) => (
+              <Text key={c} style={[style, styles.matrixCell]}>
+                {row[c] ?? ''}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </View>
+      {!!segment.close && <Text style={[style, styles.bracket]}>{segment.close}</Text>}
+    </View>
+  );
+}
+
 function createStyles(fontSize: number, color: string) {
   return StyleSheet.create({
     row: {
@@ -137,6 +189,30 @@ function createStyles(fontSize: number, color: string) {
     },
     scriptUp: {
       transform: [{ translateY: -fontSize * 0.3 }],
+    },
+    matrix: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 2,
+    },
+    matrixRow: {
+      flexDirection: 'row',
+    },
+    matrixCell: {
+      // Wide enough that a two-digit entry and a signed one still line up as
+      // columns, which is the whole point of drawing it rather than listing it.
+      minWidth: fontSize * 1.5,
+      paddingHorizontal: fontSize * 0.22,
+      paddingVertical: fontSize * 0.06,
+      textAlign: 'center',
+      lineHeight: fontSize * 1.25,
+    },
+    bracket: {
+      // One glyph stretched to the grid's height, not a column of them.
+      fontSize: fontSize * 1.1,
+      transform: [{ scaleY: 2.1 }],
+      lineHeight: fontSize * 1.25,
+      paddingHorizontal: 1,
     },
     fraction: {
       alignItems: 'center',

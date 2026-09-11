@@ -45,6 +45,7 @@ import {
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
+import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -56,6 +57,11 @@ export const unstable_settings = {
 // below, instead of relying on its (undocumented, easy to get wrong) default
 // auto-hide timing. Must run at module scope, before the first render.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Module scope, before the first render. In an effect this would fire after a
+// board could already have drawn a placeholder, which is the state it exists
+// to make impossible to miss. No-op unless __DEV__ and the value is empty.
+assertAssetsConfigured();
 
 // Absolute last resort, on top of every individual gate already having its
 // own bounded wait (useEnsureAnonymousSession's own 8s timeout, useFonts
