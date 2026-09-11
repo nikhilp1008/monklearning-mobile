@@ -125,15 +125,40 @@ itself received exactly 900x430.
                               missing 0; figure revealed; no gaps
     plate                     visible on the production board (screenshot)
 
-## EAS preview build — handoff
+## EAS preview build — handoff (updated 2026-09-11)
 
-Blocked on the Expo account login, which only Raasikh can do:
+The Expo half is DONE. An EXPO_TOKEN now lives in `.env.local` (gitignored);
+`eas-cli whoami` authenticates as `nikhilp1018`, project
+`@nikhilp1018/monk-learning-app` (650785f4-c23c-4aa4-a390-7b97596e1a46), and
+the preview profile resolves all four EXPO_PUBLIC_* vars from eas.json.
 
-    npx eas-cli login && npx eas-cli build --profile preview --platform ios
+The build now stops one step further along, on APPLE credentials — a separate
+login from Expo:
 
-or set EXPO_TOKEN for a non-interactive trigger. eas.json already carries
-EXPO_PUBLIC_ASSETS_BASE_URL for all three profiles, and the ios/ project has
-ExpoCrypto linked (the dev-client rebuild proved the pod graph).
+    ✔ Using remote iOS credentials (Expo server)
+    Failed to set up credentials. ... couldn't find any credentials suitable
+    for internal distribution. Run this command again in interactive mode.
+
+Cause, measured rather than guessed: both `development` and `preview` are
+`"distribution": "internal"`, which is ad-hoc — it needs at least one device
+UDID registered on the Apple team, and
+
+    eas device:list --apple-team-id 5NYMKKM5K5
+    → Could not find devices on Apple team
+
+Zero devices are registered on MS Info Tech LLC (5NYMKKM5K5). Registering one
+authenticates against the Apple Developer portal (Apple ID + password + 2FA),
+which is interactive and is credential entry — it has to be Raasikh, in his
+own terminal:
+
+    npx eas-cli device:create          # register the iPhone, then
+    npx eas-cli build --profile preview --platform ios
+
+Every path to a PHYSICAL device needs that Apple auth: ad-hoc internal
+distribution needs the device registered, and TestFlight needs an App Store
+Connect upload. A simulator build (`"ios": {"simulator": true}`) needs no
+credentials at all, but it does not put plates on a physical phone, which is
+the entire point of this build — so it has NOT been substituted.
 
 ## Production verification — re-run on 8cb7c16 (2026-09-10)
 
