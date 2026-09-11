@@ -30,7 +30,7 @@ export default function PlanSheetScreen() {
   }, []);
 
   const hasSlot = items.length < MAX_PLAN_ITEMS;
-  const slotsLeft = MAX_PLAN_ITEMS - items.length;
+  const plansLeft = MAX_PLAN_ITEMS - items.length;
 
   const addPlan = (text: string) => {
     const trimmed = text.trim();
@@ -76,29 +76,33 @@ export default function PlanSheetScreen() {
           </PressableScale>
         </View>
 
-        {/* ONE LINE, NOT THREE. This used to read "Set up to 3 plans for
-            today. 3 slots left." with "Nothing planned yet. Add one below."
-            under it -- three lines to say you have none and may have three,
-            the last of them pointing at a field already in view. The count
-            only earns its own words once some are used, and the cap only
-            needs saying while none are. */}
+        {/* ONE LINE, NOT THREE, AND NO "SLOTS". This used to read "Set up to
+            3 plans for today. 3 slots left." with "Nothing planned yet. Add
+            one below." under it -- three lines to say you have none and may
+            have three, the last pointing at a field already in view.
+
+            "Slots" was the other half of the problem: a student does not
+            have slots, they have plans, and counting the empty container
+            rather than the thing is how a booking system talks. Every state
+            now says what you can DO. The word is "plans" because that is
+            what this feature is called in its own title, in Home's overline
+            and in the model (`PlanItem`) -- Home's "today's goals" is the
+            odd one out, not this. */}
         <Text style={styles.subtitle}>
-          {slotsLeft === MAX_PLAN_ITEMS ? (
+          {plansLeft === MAX_PLAN_ITEMS ? (
             <>
-              Set up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.
+              Add up to <Text style={styles.subtitleBold}>{MAX_PLAN_ITEMS} plans</Text> for today.
             </>
-          ) : slotsLeft > 0 ? (
+          ) : plansLeft > 0 ? (
             <>
-              <Text style={styles.subtitleBold}>
-                {slotsLeft} slot{slotsLeft === 1 ? '' : 's'}
-              </Text>{' '}
-              left for today.
+              You can add{' '}
+              <Text style={styles.subtitleBold}>{plansLeft} more</Text>.
             </>
           ) : (
             // The only state where this line is doing work: it is why the
             // field and the chips have gone quiet.
             <Text style={styles.subtitleFull}>
-              All {MAX_PLAN_ITEMS} slots used for today.
+              All {MAX_PLAN_ITEMS} plans set for today.
             </Text>
           )}
         </Text>
@@ -252,7 +256,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     // Marigold, not red. `colors.red` is the wrong-answer mark on Practice
-    // and the red-pen accent in the reader, so painting a healthy slot count
+    // and the red-pen accent in the reader, so painting a healthy plan count
     // in it raised an alarm over nothing. Marigold is the app's "daily goal"
     // accent, which is exactly what a full plan is.
     subtitleFull: {
