@@ -450,8 +450,19 @@ function PracticeIcon({ size }: { size: number }) {
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={colors.ink} strokeWidth={1.7} />
       <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={colors.ink} strokeWidth={1.7} />
-      <Path d="M6.4 12.4h7.2" stroke={colors.ink} strokeWidth={1.7} />
-      <Circle cx={17.4} cy={11.4} r={1.5} fill={colors.marigold} />
+      {/* The marigold marks the item ON the card, not a blob beside it.
+          It used to sit at cx 17.4 -- the front card's stroke spans
+          15.75-17.45, so the dot was centred on the border, half inside the
+          card and half in the channel, cutting the back card's edge on its
+          way past. It read as a smudge welded to the corner.
+
+          Snap's marigold is the aperture: inside the form, concentric,
+          doing a job. This one is now the bullet on the card's one line,
+          which is also how a plan row is drawn elsewhere in the app. Dot
+          and line sit on 1.00 of clearance at each end of the card's
+          interior, the round cap included. */}
+      <Circle cx={6.4} cy={12.4} r={1.15} fill={colors.marigold} />
+      <Path d="M10 12.4h3.9" stroke={colors.ink} strokeWidth={1.7} />
     </Svg>
   );
 }
