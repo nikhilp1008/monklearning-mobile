@@ -1,6 +1,5 @@
 import {
   RecordingPresets,
-  createAudioPlayer,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
@@ -11,7 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { SolutionSteps } from '@/components/solution-steps';
-import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUp } from '@/lib/doubt-followup';
+import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUpStreaming } from '@/lib/doubt-followup';
+import { FollowUpAudio } from '@/lib/followup-audio';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -87,14 +87,14 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const audioRef = useRef<FollowUpAudio | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
   const startedRef = useRef(false);
 
   useEffect(
     () => () => {
       abortRef.current?.abort();
-      playerRef.current?.remove();
+      audioRef.current?.stop();
       recorder.stop().catch(() => {});
       // Closing mid-listen must not leave the session recording-shaped. The
       // classroom sets playback once on entry and never again, so a session
@@ -219,23 +219,22 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
 
   async function play(spoken: string, controller: AbortController) {
     try {
-      // ONE file, one player. The streamed version played 2.5s clips through
-      // AudioPlaybackQueue and they talked over each other: that queue drives
-      // a single shared player through `replace()`, and a second FollowUp
-      // queue — or a stale `didJustFinish` landing after a replace — starts a
-      // clip while another is still sounding. Sizing the clips up did not fix
-      // it twice, because the sizes were never the problem.
-      //
-      // Whole-file cannot overlap and cannot seam. It costs about 2.2s for a
-      // one-sentence answer and 4.9s for three, with the socket warmed on the
-      // server — so the answer being SHORT is what keeps this quick, which is
-      // what a follow-up should be anyway.
-      const uri = await speakFollowUp(doubtId, spoken);
-      if (controller.signal.aborted || !uri) return;
-      playerRef.current?.remove();
-      const player = createAudioPlayer({ uri });
-      playerRef.current = player;
-      player.play();
+      audioRef.current?.stop();
+      const audio = new FollowUpAudio(doubtId);
+      audioRef.current = audio;
+      // Each frame is a finished WAV, played as it lands. FollowUpAudio rather
+      // than the classroom's queue: that one nudges a stalled playhead and
+      // shares a single player, and both of those turn short clips into a
+      // voice talking over itself. See lib/followup-audio.ts.
+      await speakFollowUpStreaming(
+        doubtId,
+        spoken,
+        (wav) => {
+          if (controller.signal.aborted) return;
+          audio.enqueue(wav);
+        },
+        controller.signal
+      );
     } catch {
       // The words are on screen. Speech that will not synthesise is a missing
       // extra, not a failed answer.
