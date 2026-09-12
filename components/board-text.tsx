@@ -261,9 +261,22 @@ const styles = StyleSheet.create({
   },
 
   /**
-   * The exam callout, marked by an indent. Red used to be the only thing
-   * separating it from an emphasised body line; an indent does the same job in
-   * any typeface and for any eye, and it costs no colour.
+   * The exam callout, marked by an indent.
+   *
+   * NO ITALIC HERE, AND NONE IS POSSIBLE — checked on the device, not
+   * assumed. Onest ships nine weights and zero italic variants
+   * (`post.italicAngle` 0, OS/2 italic bit clear), and iOS does not
+   * synthesise an oblique for a custom family that lacks one: it silently
+   * renders upright. `fontStyle: 'italic'` here changed nothing on screen.
+   *
+   * Worse than nothing, in fact, so it is gone: Android DOES synthesise, so
+   * leaving the declaration in would have italicised this line on one
+   * platform and not the other, which is a divergence nobody asked for and
+   * nobody would have noticed until a user reported it.
+   *
+   * A browser shears the glyphs, which is why a mock of this looked fine.
+   * Real italic on this board needs a second family, and that is a typeface
+   * decision rather than a slant.
    */
   boardNote: {
     fontFamily: 'Onest_500Medium',
