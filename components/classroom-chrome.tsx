@@ -64,7 +64,17 @@ export const MARGIN_X = 44;
 export const CAPTION_HEIGHT = 54;
 
 /** How long chrome stays up before it tucks itself away. */
-export const CHROME_HIDE_MS = 4000;
+/**
+ * How long the chrome stays before it tucks itself away.
+ *
+ * Was 4000, which was too quick from a standing start and much too quick in
+ * practice: the countdown ran while the entering card was still covering the
+ * board, so by the time the card faded the chrome had often already gone —
+ * the student's first sight of their class was a bare page. The countdown is
+ * blocked until the card goes now, and 6s is long enough to read a chapter
+ * name and find the controls without the bars overstaying.
+ */
+export const CHROME_HIDE_MS = 6000;
 
 /**
  * Chrome tucks itself away after a few idle seconds, and a tap brings it back.

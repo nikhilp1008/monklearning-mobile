@@ -720,7 +720,27 @@ export default function LiveClassroomScreen() {
   // on a board tap or the edge tab. It never hides mid-hold or behind the
   // report drawer.
   const hideChrome = useCallback(() => setChromeVisible(false), []);
-  useChromeAutoHide(chromeVisible, handRaised || reportOpen, hideChrome);
+  /**
+   * `cardVisible` blocks the countdown, which is the fix for "it hides
+   * immediately". The timer used to run while the entering card still covered
+   * the board, so a wait of six seconds spent the whole window and the chrome
+   * was already gone when the card faded — the student's first sight of the
+   * class was a bare page with no chapter name and no controls. Now the clock
+   * starts when the class does.
+   */
+  useChromeAutoHide(chromeVisible, cardVisible || handRaised || reportOpen, hideChrome);
+
+  /**
+   * Turning the phone brings the chrome back and restarts the clock.
+   *
+   * Without this, rotating inherited whatever was left of the previous
+   * countdown: rotate at 5.2s of a 6s window and the new layout's header and
+   * rail vanished under a second later, which is exactly what it did. A
+   * student who has just changed orientation is looking at the controls.
+   */
+  useEffect(() => {
+    setChromeVisible(true);
+  }, [isLandscape]);
 
   useEffect(() => {
     return () => {
@@ -1159,17 +1179,13 @@ export default function LiveClassroomScreen() {
             Portrait only. Landscape has a 52pt top padding and a single
             header row over it, and a band that deep across a 390pt-tall board
             would eat an eighth of the writing. */}
-        {!isLandscape && (
-          <Animated.View
-            style={[styles.headerScrim, scrimStyle]}
-            pointerEvents="none">
-            <LinearGradient
-              colors={['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0)']}
-              locations={[0, 0.84, 1]}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
-        )}
+        <Animated.View style={[styles.headerScrim, scrimStyle]} pointerEvents="none">
+          <LinearGradient
+            colors={['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0)']}
+            locations={[0, isLandscape ? 0.77 : 0.84, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
 
         <Animated.View style={[styles.topBar, headerStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
           {/* No dot. It bought nothing the title does not already say, and
@@ -1986,7 +2002,10 @@ function createStyles(
       minWidth: 0,
     },
     topChapterText: {
-      fontFamily: 'Onest_700Bold',
+      // Not bold. It is a label for where you are, not a headline — and at 700
+      // it competed with the End pill for the eye in a row that has only one
+      // thing worth pressing.
+      fontFamily: 'Onest_500Medium',
       fontSize: 13,
       color: INK,
     },
@@ -2092,15 +2111,25 @@ function createStyles(
       backgroundColor: 'rgba(28,26,22,.12)',
     },
 
-    // 124 deep: white to 104, fading out by 124. The board's top padding is
-    // 130, so a line at rest sits clear of it and only a scrolled line passes
-    // under the fade.
+    /**
+     * The header's ground, in both orientations.
+     *
+     * The solid part ends just past the header row and the fade carries it to
+     * the line where the writing starts, so a line at rest sits clear of it
+     * and only a scrolled line passes under the fade.
+     *
+     *   portrait   124 deep, solid to 104 (row ends at 84), padding 130
+     *   landscape   52 deep, solid to  40 (row ends at 40), padding 52
+     *
+     * Landscape is shallower because it has to be: its board is 390pt tall, so
+     * a 124 band there would have covered an eighth of the writing.
+     */
     headerScrim: {
       position: 'absolute',
       left: 0,
       right: 0,
       top: 0,
-      height: 124,
+      height: isLandscape ? 52 : 124,
     },
 
     /* --- portrait dock: the rail's controls, laid along the bottom --- */
