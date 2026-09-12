@@ -303,6 +303,7 @@ export default function LiveClassroomScreen() {
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
   const [board, setBoard] = useState<BoardEvent[]>([]);
+
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [paused, setPaused] = useState(false);
@@ -1424,13 +1425,13 @@ export default function LiveClassroomScreen() {
               </View>
             ) : (
               board.map((event, i) => (
-                <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
+                <BoardLine key={`${event.seq}-${i}`}>
                   <BoardBlockView
                     event={event}
                     diagramBox={diagramBox}
                     widgetHost={widgetHost}
                   />
-                </Animated.View>
+                </BoardLine>
               ))
             )}
           </Pressable>
@@ -1996,6 +1997,48 @@ function VerdictMark({ correct, color }: { correct: boolean; color: string }) {
       <Path d={d} stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
+}
+
+/**
+ * ONE LINE OF THE BOARD, and how it arrives.
+ *
+ * A flat 220ms fade was the whole of it before, which is why the writing read
+ * as printing — a line simply existed, at full strength, one frame after it did
+ * not. It now rises six points as it fades in, easing out over 320ms: short
+ * enough to keep up with speech, long enough to read as something being written
+ * rather than pasted.
+ *
+ * NO SPOTLIGHT HERE, AND THE REASON IS WORTH KEEPING. This briefly dimmed every
+ * line except the one being spoken. The sync was real — the server pairs each
+ * sentence with its board line and reports that clip's measured length — and
+ * the feature was still useless, because a line is WRITTEN at the moment its
+ * sentence begins. So the line being spoken is always the newest line: nothing
+ * ever lit up that was already on the board, and all that happened was older
+ * lines went slightly paler. Two classes were watched and nobody saw a thing.
+ *
+ * It could not have been made louder either. Against white, body type at
+ * 7.65:1 drops under AA by alpha 0.794 and the amber heading at 4.73:1 has no
+ * room at all, so the dim was stuck at 0.82 — about 12% on ordinary prose.
+ *
+ * What would make it worth doing is the server naming which EARLIER lines a
+ * sentence refers to, so a value written minutes ago can light while it is
+ * discussed. `board_event` only ever names the line a sentence introduces.
+ * That ask is with Raasikh; when it lands, the highlight belongs here.
+ */
+function BoardLine({ children }: { children: React.ReactNode }) {
+  return <Animated.View entering={enterLine}>{children}</Animated.View>;
+}
+
+/** Fade up and settle, rather than appear. See BoardLine. */
+function enterLine() {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 6 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) }),
+      transform: [{ translateY: withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }) }],
+    },
+  };
 }
 
 function PlayIcon({ size, color }: { size: number; color: string }) {
