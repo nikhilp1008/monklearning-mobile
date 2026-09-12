@@ -172,33 +172,8 @@ function Bar({
   return <Animated.View style={[style, animated]} />;
 }
 
-/**
- * The teacher's audio wave — four amber bars. While the student holds
- * Interrupt it keeps moving but changes character: a slow quiet drift in
- * ghost ink, so the board never looks frozen and the student can still see
- * who has the floor.
- */
-export function TeacherWave({ quiet }: { quiet: boolean }) {
-  const delays = quiet ? [0, 160, 320, 480] : [0, 180, 360, 540];
-  return (
-    <View style={waveStyles.row}>
-      {delays.map((delay, i) => (
-        <Bar
-          key={`${quiet ? 'q' : 'a'}-${i}`}
-          style={[waveStyles.bar, quiet && waveStyles.barQuiet]}
-          from={quiet ? 0.16 : 0.35}
-          to={quiet ? 0.34 : 1}
-          duration={quiet ? 2600 : 1000}
-          delay={delay}
-          easing={quiet ? Easing.inOut(Easing.ease) : Easing.ease}
-        />
-      ))}
-    </View>
-  );
-}
-
-/** The three-bar level meter: inside the Interrupt button, and on the
- *  caption strip's Listening state. */
+/** The three-bar level meter: inside the dock's mic while the student holds
+ *  it, and on the rail's own Listening state. */
 export function LevelBars({
   color,
   heights,
@@ -230,15 +205,6 @@ export function LevelBars({
 }
 
 const waveStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 12 },
-  bar: {
-    width: 2.5,
-    height: 12,
-    borderRadius: 2,
-    backgroundColor: AMBER,
-    transformOrigin: 'bottom',
-  },
-  barQuiet: { backgroundColor: WAVE_QUIET },
   levelRow: { flexDirection: 'row', alignItems: 'center' },
 });
 

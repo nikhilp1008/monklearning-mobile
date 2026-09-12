@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedProps,
@@ -25,13 +25,11 @@ import Svg, { ClipPath, Defs, Ellipse, FeGaussianBlur, Filter, G, Rect } from 'r
  * 0.81 accepts `filter` in its types and implements it on Android, but on iOS
  * `RCTViewComponentView.mm` reads only `brightness` and `opacity` out of the
  * filter list — `blur` is silently dropped. Porting the markup literally would
- * have drawn hard-edged ovals on iPhone and the right thing on Android, which
- * is the same trap `fontStyle: 'italic'` set on the board.
+ * have drawn hard-edged ovals on iPhone and the right thing on Android, the
+ * same trap `fontStyle: 'italic'` set on the board.
  *
- * So every blur here happens inside SVG, where `FeGaussianBlur` has a real
- * native implementation on both platforms
- * (`apple/Filters/RNSVGFeGaussianBlur.mm`, `android/.../FeGaussianBlurView.java`).
- * The radii, colours, sizes, drift paths and periods are all the prototype's.
+ * So every blur happens inside SVG, where `FeGaussianBlur` has a real native
+ * implementation on both platforms.
  */
 
 export type RingMood = 'teacher' | 'student' | 'paused';
@@ -48,12 +46,8 @@ const PALETTE: Record<RingMood, readonly [string, string, string, string]> = {
  *
  * `left/top/w/h` are the prototype's inline percentages. `from`/`to` are its
  * `auraA`–`auraD` keyframes as [translateX, translateY, scale], the two
- * translations being fractions of the blob's OWN width and height — that is
- * what a CSS percentage translate means, which is why they are multiplied by
- * `bw`/`bh` rather than by the ring.
- *
- * `hair` is the hairline layer's blur. The halo's is not listed because the
- * halo blurs once for all four, as the prototype does.
+ * translations being fractions of the blob's OWN width and height — which is
+ * what a CSS percentage translate means, hence the multiply by `bw`/`bh`.
  *
  * `dur` is the CSS animation-duration; the animation is `alternate`, so a
  * round trip is twice it.
@@ -77,6 +71,31 @@ const HALO_INSET = 6;
 /** `filter: blur(14px)` on the prototype's glow layer, and its `opacity:.55`. */
 const HALO_BLUR = 14;
 const HALO_OPACITY = 0.55;
+/** `.55s` on the cover's height, `.5s` on the glow's opacity. */
+const REVEAL_MS = 550;
+const GLOW_MS = 500;
+
+/**
+ * HOW OFTEN THE HALO IS ALLOWED TO MOVE, and why it is not every frame.
+ *
+ * The halo is the one thing here that re-filters as it animates: its blobs move
+ * *under* a `FeGaussianBlur`, so Core Image re-runs a sigma-14 gaussian over
+ * roughly 284x160 points every time they do. On device that is GPU work and
+ * free; in the Simulator, Core Image has no GPU to use and it is the single
+ * most expensive thing on the screen — which is where the dock felt heavy.
+ *
+ * It does not need anything like 60fps. The halo drifts about 28 points a
+ * second, so even at 7fps a step moves about 4 points — seen through a
+ * 14-point blur at 0.55 opacity, which is to say the step is smaller than the
+ * softness hiding it. The hairline runs at full rate, and the hairline is
+ * where movement is actually legible.
+ *
+ * Measured with the ring awake: freezing the drift entirely took the classroom
+ * from about 40% CPU to about 10% in the Simulator, and nearly all of that gap
+ * is this one blurred layer being re-rasterised. What it is allowed to cost is
+ * set here and nowhere else.
+ */
+const HALO_STEP_MS = 150;
 
 type Field = { w: number; h: number };
 
@@ -84,9 +103,9 @@ type Field = { w: number; h: number };
  * Where a blob is at phase `p`.
  *
  * A triangle off the phase, then smoothstepped: the triangle is CSS
- * `alternate` and the smoothstep is its `ease-in-out`. Shared by both layers
- * so a blob is in the same place in the hairline and in the halo, which is
- * what the prototype's identical `auraA`–`auraD` on both layers means.
+ * `alternate`, the smoothstep its `ease-in-out`. Shared by both layers, so a
+ * blob is in the same place in the hairline and in the halo — which is what
+ * the prototype's identical `auraA`–`auraD` on both layers means.
  */
 function blobAt(spec: (typeof BLOBS)[number], p: number, bw: number, bh: number) {
   'worklet';
@@ -101,9 +120,9 @@ function blobAt(spec: (typeof BLOBS)[number], p: number, bw: number, bh: number)
  * THE HAIRLINE — a 1.5pt band of saturated colour right against the pill.
  *
  * Each blob is one blurred `<Ellipse>` in its own small `<Svg>`, moved by a
- * transform on the view around it. The SVG never changes, so its Core Image
- * pass is rasterised once and every frame after is a layer transform; only the
- * band's own 1.5pt shows, the pill covering the rest.
+ * transform on the view around it. The SVG content never changes, so its Core
+ * Image pass is rasterised once and every frame after is a layer transform —
+ * which is why this layer, unlike the halo, costs nothing to run at 60fps.
  */
 function HairBlob({
   field,
@@ -194,22 +213,15 @@ function HaloBlob({
  *
  * Its light source is NOT a ring: the glow layer is `inset:-6` with
  * `overflow:hidden`, so what gets blurred is the pill-plus-6 rounded rect
- * FILLED with the drifting blob colours. Blurring that by 14 is what throws a
- * tight glow a few points past the pill, and the opaque pill then covers the
- * middle of it.
+ * FILLED with the drifting blob colours. Blurring that by 14 throws a tight
+ * glow a few points past the pill, and the opaque pill then covers the middle.
  *
  * That ordering is the whole reason this is SVG and not two nested views: the
  * clip has to happen BEFORE the blur, and an RN view can do either but never
- * blur what it has just clipped. Built the other way round — unclipped blobs,
- * each blurred on its own — the light source is a 190pt field instead of a
- * 76pt pill, and the glow washes a third of the screen instead of hugging the
- * dock. Measured that way first; it was not close.
- *
- * So: `<G filter=blur><G clipPath=pill+6>` with four ellipses inside, which is
- * `filter: blur(14px)` over `overflow:hidden` over the blobs, in that order.
- * The filter re-rasterises each frame because the ellipses move under it — one
- * Core Image pass over about 250x110 points, which is small enough to be
- * cheaper than the four separate blurred canvases the hairline uses.
+ * blur what it has just clipped. Built the other way round — unclipped blobs
+ * each blurred alone — the light source becomes a 400pt bar instead of a 76pt
+ * pill and the glow washes a third of the screen. Measured that way first; it
+ * was not close.
  */
 function Halo({
   ring,
@@ -235,15 +247,15 @@ function Halo({
    * Portrait turns the whole blob field 90 degrees — the prototype's
    * `[data-rot]` wrapper and its `fitRot()`, which sizes that wrapper from the
    * parent's opposite axis. Without it the blobs, 60% wide and 200% tall,
-   * would streak the wrong way across a horizontal pill; with it a wide dock
-   * and a tall one show the same drift.
+   * streak the wrong way across a horizontal pill; with it a wide dock and a
+   * tall one show the same drift.
    */
   const field: Field = rotate ? { w: boxH, h: boxW } : { w: boxW, h: boxH };
   const origin = { x: w / 2 - field.w / 2, y: h / 2 - field.h / 2 };
   const palette = PALETTE[mood];
 
   return (
-    <Svg width={w} height={h} style={{ position: 'absolute', left: -pad, top: -pad }}>
+    <Svg width={w} height={h}>
       <Defs>
         <Filter id={`${id}-soft`} x="-50%" y="-50%" width="200%" height="200%">
           <FeGaussianBlur stdDeviation={HALO_BLUR} />
@@ -326,14 +338,15 @@ function HairField({
   );
 }
 
-export function DockRing({
+function DockRingImpl({
   mood,
   awake,
   vertical,
   id,
 }: {
   mood: RingMood;
-  /** True while a student is touching the dock, and for 1.5s after. */
+  /** True while a student is touching the dock, while the mic is held, and for
+   *  1.5s after the last of either. */
   awake: boolean;
   /** The landscape rail. Portrait rotates its blob field; landscape does not. */
   vertical?: boolean;
@@ -346,53 +359,117 @@ export function DockRing({
     []
   );
 
+  /**
+   * Phase per blob, 0 to 1 and back. Two copies: the hairline reads `phases`
+   * every frame, the halo reads `haloPhases`, which is only written every
+   * HALO_STEP_MS. Writing a shared value is what pushes the halo's ellipses
+   * into the SVG and makes Core Image re-blur, so throttling the write is what
+   * throttles the filter.
+   */
   const phases = useSharedValue<number[]>([0, 0, 0, 0]);
+  const haloPhases = useSharedValue<number[]>([0, 0, 0, 0]);
+  const haloClock = useSharedValue(0);
   /**
-   * One frame callback for the whole ring, advancing all four phases.
+   * The frame callback's inputs live in a shared value rather than in its
+   * closure, so the callback itself can be created once. `useFrameCallback`
+   * re-registers whenever the callback's identity changes, and an inline arrow
+   * is a new identity on every render — which, in a screen that re-renders on
+   * every board event the teacher writes, meant unregistering and
+   * re-registering a frame callback several times a second all class long.
+   */
+  const speed = useSharedValue(1);
+  useEffect(() => {
+    speed.value = mood === 'student' ? FAST : 1;
+  }, [mood, speed]);
+
+  const tick = useCallback(
+    (frame: { timeSincePreviousFrame: number | null }) => {
+      'worklet';
+      const dt = frame.timeSincePreviousFrame ?? 16;
+      const next = [0, 0, 0, 0];
+      for (let i = 0; i < 4; i++) {
+        // A round trip is two durations: the CSS animation is `alternate`.
+        const cycle = BLOBS[i].dur * 2 * speed.value;
+        next[i] = (phases.value[i] + dt / cycle) % 1;
+      }
+      phases.value = next;
+      haloClock.value += dt;
+      if (haloClock.value >= HALO_STEP_MS) {
+        haloClock.value = 0;
+        haloPhases.value = next;
+      }
+    },
+    [phases, haloPhases, haloClock, speed]
+  );
+
+  const frame = useFrameCallback(tick, false);
+  /**
+   * Nothing runs unless the ring is both awake and unpaused.
    *
-   * This is where `animation-duration` and `animation-play-state` live. A
-   * changed duration takes effect on the next frame with no discontinuity —
-   * restarting a `withRepeat` would have re-based the oscillation on wherever
-   * the blob happened to be. Paused simply stops accumulating, which leaves
-   * the blob standing where it is, exactly as the prototype's `paused` does.
+   * Paused stops the clock, which leaves every blob standing exactly where it
+   * was — that is what the prototype's `animation-play-state: paused` does,
+   * and it is why this is a stop rather than a slow-down. Asleep stops it too,
+   * so a dock nobody is touching costs zero per frame instead of a worklet hop
+   * that immediately returns.
    */
-  const frozen = mood === 'paused';
-  const fast = mood === 'student';
-  useFrameCallback((frame) => {
-    if (frozen || !awake) return;
-    const dt = frame.timeSincePreviousFrame ?? 16;
-    const next = [0, 0, 0, 0];
-    for (let i = 0; i < 4; i++) {
-      // A round trip is two durations: the CSS animation is `alternate`.
-      const cycle = BLOBS[i].dur * 2 * (fast ? FAST : 1);
-      next[i] = (phases.value[i] + dt / cycle) % 1;
-    }
-    phases.value = next;
-  }, true);
-
-  /** `glow`'s opacity, 0 to .55 over .5s, both ways. */
-  const haloStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(awake ? HALO_OPACITY : 0, { duration: 500 }),
-  }));
+  const running = awake && mood !== 'paused';
+  useEffect(() => {
+    frame.setActive(running);
+  }, [frame, running]);
 
   /**
-   * The hairline is revealed by a white cover shrinking upward, not by fading:
-   * the prototype animates `#coverQa`'s height from 100% to 0% over .55s. The
-   * ring wipes on from the bottom, which is what makes it read as being
-   * switched on rather than turned up.
+   * Reveal and glow are driven from effects, not from `withTiming` inside the
+   * style worklet.
+   *
+   * Written the other way, the cover's height animated from its 0 default up
+   * to full on the very first frame after layout — so mounting the dock
+   * flashed the ring on and then wiped it away. Starting a shared value at
+   * "covered" and only animating on a real change means the resting state is
+   * the resting state from the first frame.
    */
+  const reveal = useSharedValue(0);
+  const glow = useSharedValue(0);
+  useEffect(() => {
+    reveal.value = withTiming(awake ? 1 : 0, { duration: REVEAL_MS });
+    glow.value = withTiming(awake ? HALO_OPACITY : 0, { duration: GLOW_MS });
+  }, [awake, reveal, glow]);
+
+  const haloStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+  /**
+   * SLID, NOT RESIZED. An animated `height` is a Yoga layout pass on every
+   * frame of the 550ms; a full-height cover translating up by its own height
+   * uncovers from the bottom in exactly the same way and costs no layout.
+   *
+   * The prototype reveals the hairline with `#coverQa`'s height going 100% to
+   *  0% — the ring wipes on from the bottom, which is what makes it read as
+   *  being switched on rather than turned up. */
   const coverStyle = useAnimatedStyle(() => ({
-    height: withTiming(awake ? 0 : (ring?.h ?? 0) + HAIR_INSET * 2, { duration: 550 }),
+    transform: [{ translateY: -reveal.value * ((ring?.h ?? 0) + HAIR_INSET * 2) }],
   }));
+
+  const pad = Math.ceil(HALO_BLUR * 3);
 
   return (
     <>
       {/* Both layers sit behind the pill, so the pill's own white covers the
-          middle of them and only the edge shows. */}
+          middle of them and only the edge shows.
+
+          Sized to the whole padded box rather than left at zero and allowed to
+          overflow: Android clips children to their parent's bounds, so a
+          zero-size wrapper would have shown no halo at all there. */}
       <Animated.View
         pointerEvents="none"
-        style={[styles.layer, { top: 0, left: 0 }, haloStyle]}>
-        {ring && <Halo ring={ring} rotate={!vertical} mood={mood} phases={phases} id={id} />}
+        style={[
+          styles.halo,
+          {
+            left: -HALO_INSET - pad,
+            top: -HALO_INSET - pad,
+            width: (ring?.w ?? 0) + (HALO_INSET + pad) * 2,
+            height: (ring?.h ?? 0) + (HALO_INSET + pad) * 2,
+          },
+          haloStyle,
+        ]}>
+        {ring && <Halo ring={ring} rotate={!vertical} mood={mood} phases={haloPhases} id={id} />}
       </Animated.View>
 
       <View
@@ -403,17 +480,25 @@ export function DockRing({
           { top: -HAIR_INSET, right: -HAIR_INSET, bottom: -HAIR_INSET, left: -HAIR_INSET },
         ]}>
         {ring && <HairField ring={ring} rotate={!vertical} mood={mood} phases={phases} id={id} />}
-        <Animated.View style={[styles.cover, coverStyle]} />
+        <Animated.View
+          style={[styles.cover, { height: (ring?.h ?? 0) + HAIR_INSET * 2 }, coverStyle]}
+        />
       </View>
     </>
   );
 }
 
+/**
+ * Memoised on purpose. Every prop is a primitive, and the classroom around it
+ * re-renders on every board event, caption and timer tick — without this, the
+ * ring's eight SVG subtrees were reconciled several times a second for nothing.
+ */
+export const DockRing = memo(DockRingImpl);
+
 const styles = StyleSheet.create({
-  // The halo is positioned at the pill's own origin; its SVG reaches out past
-  // it by its own padding, and nothing clips it at the view level — the clip
-  // that matters happens inside the SVG, before the blur.
-  layer: { position: 'absolute' },
+  // Nothing clips the halo at the view level: the clip that matters happens
+  // inside the SVG, before the blur.
+  halo: { position: 'absolute' },
   // The hairline does clip, because it is meant to read as a bright 1.5pt edge
   // around the pill rather than as a glow.
   hair: { position: 'absolute', borderRadius: 99, overflow: 'hidden' },
