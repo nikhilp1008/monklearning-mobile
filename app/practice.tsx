@@ -30,6 +30,7 @@ import {
   getPracticeStats,
   hasQueuedQuestion,
   holdQueuedQuestion,
+  questionScopeKey,
   parseAnswerSolution,
   solutionFinalAnswer,
   submitAnswer,
@@ -330,9 +331,8 @@ export default function PracticeScreen() {
 
 
   /**
-   * Fetches the question after this one the moment the current one is on
-   * screen, so Next and Skip both swap instantly instead of waiting on the
-   * round trip.
+   * Fetches the question after this one the moment the current one is
+   * ANSWERED, so Next swaps instantly instead of waiting on the round trip.
    *
    * That wait is not small and it is not the network: `/practice/next` reads
    * every question in the subject and filters them in Python, so it ships 1000
@@ -342,14 +342,17 @@ export default function PracticeScreen() {
    * made to watch it, and by the time they have read one question the next is
    * already here.
    *
-   * It used to fire only after an answer was graded, which left Skip -- the
-   * one action whose whole point is "not this one, quickly" -- paying full
-   * price every time.
+   * It briefly fired on DISPLAY instead, to cover Skip. Skip is gone, and
+   * every remaining way forward — Submit and "I don't know" — passes through
+   * `applyResult`, so answering is the only moment a next question is needed.
    *
-   * The cost is one question burned if they leave the screen without using it,
-   * since `/practice/next` records a serve. That was already true of the
-   * post-grade prefetch; this widens the window, not the principle. Discarded
-   * silently on failure — the next load just fetches normally.
+   * Firing on display cost a question. `/practice/next` calls `record_serve`,
+   * so a student who opened Practice, read one question and left burned TWO
+   * out of their 150: the one they saw and the one waiting behind it.
+   * Measured on device, 11 serves in a twenty-minute session were never
+   * answered. Now nothing is fetched ahead until an answer exists, so seeing
+   * one question costs one. Discarded silently on failure — the next load
+   * just fetches normally.
    */
   /**
    * When the question in front of the student went on screen.
@@ -368,20 +371,35 @@ export default function PracticeScreen() {
    */
   const shownAt = useRef<number | null>(null);
 
+  /**
+   * The chapter the student pinned in Focus mode, when it still applies to the
+   * subject on screen. `/practice/next` takes `chapter_id` now, so this is a
+   * real filter rather than the label it used to be.
+   */
+  const focusChapterId =
+    focus.mode === 'chapter' &&
+    focus.chapterId &&
+    focus.subject === SUBJECT_QUERY[activeSubject]
+      ? focus.chapterId
+      : null;
+  const focusChapter = focusChapterId ? { chapter_id: focusChapterId } : {};
+  /** What a queued question must match to be usable. */
+  const scopeKey = questionScopeKey(SUBJECT_QUERY[activeSubject], focusChapterId);
+
   /** Set while a prefetch is in the air, so two triggers cannot both fire. */
   const prefetchInFlight = useRef(false);
 
   function prefetchNext() {
     const subject = SUBJECT_QUERY[activeSubject];
-    if (!scope || prefetchInFlight.current || hasQueuedQuestion(subject)) return;
+    if (!scope || prefetchInFlight.current || hasQueuedQuestion(scopeKey)) return;
     prefetchInFlight.current = true;
-    getNextQuestion({ subject, ...scope })
+    getNextQuestion({ subject, ...scope, ...focusChapter })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
         // question must never appear under the Chemistry pill. The subject it
         // was fetched for is stored beside it, so this cannot go stale.
         if ('exhausted' in result) return;
-        holdQueuedQuestion(result, subject);
+        holdQueuedQuestion(result, scopeKey);
       })
       .catch(() => {
         clearQueuedQuestion();
@@ -419,13 +437,12 @@ export default function PracticeScreen() {
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
-    const ready = takeQueuedQuestion(SUBJECT_QUERY[activeSubject]);
+    const ready = takeQueuedQuestion(scopeKey);
     if (ready) {
       setQuestion(ready);
       shownAt.current = Date.now();
       setSeen((n) => n + 1);
       setLoading(false);
-      prefetchNext();
       return;
     }
 
@@ -441,6 +458,7 @@ export default function PracticeScreen() {
       const result = await getNextQuestion({
         subject: SUBJECT_QUERY[activeSubject],
         ...scope,
+        ...focusChapter,
       });
       if ('exhausted' in result) {
         if (result.questions_used_today != null && result.daily_limit != null) {
@@ -455,7 +473,6 @@ export default function PracticeScreen() {
           setQuota({ used: result.questions_used_today, limit: result.daily_limit });
         }
         setSeen((n) => n + 1);
-        prefetchNext();
       }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
