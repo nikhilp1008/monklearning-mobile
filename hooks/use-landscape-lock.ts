@@ -1,5 +1,5 @@
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 
 /**
@@ -29,26 +29,6 @@ import { Platform, useWindowDimensions } from 'react-native';
  *  appears is far worse than one that appears un-rotated. */
 const ORIENTATION_TIMEOUT_MS = 700;
 
-/**
- * How long a window may disagree with the orientation we asked for before we
- * ask again.
- *
- * This exists because iOS and React Native can genuinely come apart. Rotate a
- * few times in a row and the device ends up where it was told — framebuffer
- * and status bar both portrait — while RN's `Dimensions` is still reporting
- * the landscape it used to be. Nothing re-reads it, so the screen lays a
- * landscape board into a portrait window and stays that way: content off the
- * right edge, the bottom half of the phone unpainted, stuck until the app is
- * killed. Reproduced by toggling eight times; it wedged on the fifth and never
- * recovered.
- *
- * Re-issuing the lock makes iOS send a fresh geometry change, which is what
- * shakes a new size out of RN. It is bounded — see RESYNC_LIMIT — because a
- * window that legitimately cannot match (iPad multitasking, a refused lock)
- * must not turn into a permanent retry loop.
- */
-const RESYNC_MS = 900;
-const RESYNC_LIMIT = 3;
 
 /**
  * Safety net for leaving a landscape screen by a route that doesn't declare an
@@ -112,25 +92,23 @@ function useOrientationLock(target: 'landscape' | 'portrait', pinned = false): b
     return () => clearTimeout(id);
   }, [target, matches]);
 
-  /**
-   * Ask again if the window never caught up. See RESYNC_MS — this is the
-   * recovery from RN and iOS disagreeing about which way round the phone is.
-   */
-  const resyncs = useRef(0);
-  useEffect(() => {
-    if (Platform.OS === 'web') return;
-    if (matches) {
-      resyncs.current = 0;
-      return;
-    }
-    if (resyncs.current >= RESYNC_LIMIT) return;
-    const id = setTimeout(() => {
-      resyncs.current += 1;
-      ScreenOrientation.lockAsync(lockFor(target, pinned)).catch(() => {});
-    }, RESYNC_MS);
-    return () => clearTimeout(id);
-  }, [target, pinned, matches]);
 
+  /**
+   * NO RETRY LOOP HERE, and the reason is worth keeping.
+   *
+   * A "the window never caught up, ask again" timer looks obviously right and
+   * is obviously wrong, because MORE THAN ONE SCREEN IS MOUNTED AT A TIME.
+   * `app/(tabs)/_layout.tsx` holds a portrait lock and stays mounted
+   * underneath the classroom, so while the classroom is landscape the tabs
+   * layout is permanently "not matching" — by design, it lost the argument.
+   * Give it a retry and it stops losing: it re-locks portrait, the classroom
+   * re-locks landscape, and the phone flips between the two about once a
+   * second for as long as the class lasts. Observed doing exactly that, ten
+   * flips in ten seconds.
+   *
+   * A lock is a declaration, and the last screen to declare one wins. A screen
+   * that is not on top must state its preference once and then be quiet.
+   */
   useEffect(() => {
     if (Platform.OS === 'web') return;
 

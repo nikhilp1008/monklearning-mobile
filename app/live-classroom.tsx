@@ -295,6 +295,7 @@ export default function LiveClassroomScreen() {
   );
 
 
+
   const styles = useMemo(
     () => createStyles(scale, verticalScale, isLandscape),
     [scale, verticalScale, isLandscape]
