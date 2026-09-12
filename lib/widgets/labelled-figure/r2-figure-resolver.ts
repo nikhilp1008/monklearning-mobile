@@ -225,6 +225,72 @@ const defaultMeasure: MeasureArt = (url) =>
     RNImage.getSize(url, (w, h) => resolve({ w, h }), reject);
   });
 
+/* ------------------------------------------------------ the board's frame */
+
+/**
+ * The frame the board is currently handing diagrams, and the device's scale.
+ *
+ * The rendition is chosen from `frameWidthPt * dpr` against the master's pixel
+ * width — but the loader baked that in at CONSTRUCTION (default 900pt), so a
+ * record fetched for one frame kept its file forever. Since the student can
+ * now rotate mid-class (db00ac4), the frame genuinely changes under a drawn
+ * figure: portrait hands it 340pt, landscape 702pt. At 3x that is 1020px
+ * against 2106px, either side of a 1800px master.
+ */
+let boardFrameWidthPt = 900;
+let boardDpr = 2;
+/** Which file each cached slug was actually fetched as. */
+const chosenVariant = new Map<string, 'master' | typeof RENDITION_SUFFIX>();
+
+/**
+ * Tell the resolver what box the board is drawing into now.
+ *
+ * Any cached figure whose rendition choice CHANGES as a result is invalidated,
+ * which makes B0's machinery do the rest: the record is dropped, subscribers
+ * are told once, and the next draw re-resolves and downloads the better file
+ * under the same sha-keyed LRU.
+ *
+ * Only ever upgrades master -> @2x. Going back down (landscape -> portrait)
+ * would re-download a SMALLER file to draw the same picture: the @2x already
+ * on disk is not wrong at 340pt, it is merely generous, and spending a
+ * download to lose detail is the wrong trade.
+ *
+ * Returns the slugs it invalidated, so a caller can assert "exactly once".
+ */
+export function setBoardFrame(frameWidthPt: number, dpr: number): string[] {
+  boardFrameWidthPt = frameWidthPt;
+  boardDpr = dpr;
+  const upgraded: string[] = [];
+  for (const [slug, current] of chosenVariant) {
+    if (current !== 'master') continue;
+    const row = assetIndex.get(slug);
+    // No row, no width, or no rendition on the row: nothing better exists.
+    if (!row?.width || !row.rendition_2x_sha256) continue;
+    if (pickRendition(row.width, frameWidthPt, dpr) !== RENDITION_SUFFIX) continue;
+    chosenVariant.delete(slug);
+    // The DECISION is recorded whether or not a record happened to be cached.
+    // Returning only what `invalidate` dropped made the "exactly once" test
+    // pass against an empty list — it asserted nothing, because nothing was
+    // cached. What this function decides is the thing worth asserting;
+    // invalidate() is what makes the decision take effect, and B0 tests that.
+    upgraded.push(slug);
+    r2FigureResolver.invalidate(slug, `frame ${frameWidthPt}pt@${dpr}x wants @2x`);
+  }
+  return upgraded;
+}
+
+/** Test seam: pretend `slug` was fetched as `variant`. */
+export function _recordVariant(slug: string, variant: 'master' | typeof RENDITION_SUFFIX): void {
+  chosenVariant.set(slug, variant);
+}
+
+/** Test seam. */
+export function _resetBoardFrame(): void {
+  boardFrameWidthPt = 900;
+  boardDpr = 2;
+  chosenVariant.clear();
+}
+
 export interface FigureLoaderOptions {
   /** The frame the art will be drawn into, so the rendition is chosen once, at
    *  download time, rather than fetched twice. Defaults to the widest board. */
@@ -243,7 +309,9 @@ export function createR2FigureLoader(
   measureArt: MeasureArt = defaultMeasure,
   opts: FigureLoaderOptions = {}
 ): (slug: string) => Promise<FigureRecord> {
-  const { frameWidthPt = 900, dpr = 2, ensureFile = ensureFigureFile } = opts;
+  // Read at CALL time, not construction: the frame moves when the student
+  // rotates, and a value captured in the closure could not follow it.
+  const { ensureFile = ensureFigureFile } = opts;
   return async (slug: string) => {
     if (!base) {
       throw new Error(
@@ -317,7 +385,13 @@ export function createR2FigureLoader(
           `server did not return.`
       );
     }
+    const frameWidthPt = opts.frameWidthPt ?? boardFrameWidthPt;
+    const dpr = opts.dpr ?? boardDpr;
     const artUrl = await ensureFile(base, row, frameWidthPt, dpr);
+    chosenVariant.set(
+      slug,
+      row.width ? pickRendition(row.width, frameWidthPt, dpr) : 'master'
+    );
 
     if (set) return toFigureRecord(set, artUrl);
 

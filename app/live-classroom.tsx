@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  PixelRatio,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -72,7 +73,7 @@ import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import { apiFetch } from '@/lib/api';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
-import { setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
+import { setBoardFrame, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
 import { ASSETS_BASE_URL, r2FigureResolver } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
@@ -575,6 +576,17 @@ export default function LiveClassroomScreen() {
    * it measures — the first version of this did exactly that and reported the
    * landscape arithmetic while portrait was live. It reads `diagramBox`.
    */
+  /**
+   * B3: tell the resolver what box it is drawing into.
+   *
+   * The rendition is chosen from frame x dpr against the master's pixel width,
+   * so a figure resolved in portrait (340pt) and then rotated into landscape
+   * (702pt) would otherwise keep a master it now upscales past 1.0. Any cached
+   * figure whose choice changes is invalidated, and B0 does the rest.
+   */
+  useEffect(() => {
+    setBoardFrame(diagramBox.availableWidth, PixelRatio.get());
+  }, [diagramBox.availableWidth]);
   useEffect(() => {
     if (__DEV__) {
       console.info(
