@@ -68,8 +68,7 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
-import { BoardDiagram } from '@/components/board-diagram';
-import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import { BoardBlockView } from '@/components/board-text';
 import { apiFetch } from '@/lib/api';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
@@ -85,7 +84,6 @@ import {
   toStatusSubject,
 } from '@/constants/classroom-status';
 import { useStagedStatus } from '@/hooks/use-staged-status';
-import { latexToText } from '@/lib/latex-text';
 import { MicStatus, probeMicAvailability } from '@/lib/mic-availability';
 import { spokenMathToNotation } from '@/lib/spoken-math';
 import { supabase } from '@/lib/supabase';
@@ -1202,7 +1200,6 @@ export default function LiveClassroomScreen() {
                 <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
                   <BoardBlockView
                     event={event}
-                    styles={styles}
                     diagramBox={diagramBox}
                     widgetHost={widgetHost}
                   />
@@ -1620,93 +1617,6 @@ export default function LiveClassroomScreen() {
   );
 }
 
-function BoardBlockView({
-  event,
-  styles,
-  diagramBox,
-  widgetHost,
-}: {
-  event: BoardEvent;
-  styles: Styles;
-  diagramBox: { availableWidth: number; maxHeight: number };
-  widgetHost: {
-    activeSeq: number | null;
-    theme: WidgetTheme;
-    services: WidgetServices;
-    figures: FigureResolver;
-    onGap: (reason: string, detail: unknown) => void;
-  };
-}) {
-  const raw =
-    event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
-  /**
-   * The board was the one surface in the app painting its source.
-   *
-   * `formula` events carry bare LaTeX with no `$…$` around it, and this
-   * component rendered that string straight into a <Text> — so a class on
-   * drift velocity wrote `\vec{v}_d = \vec{a}\tau = -\dfrac{e\vec{E}}{m}\tau`
-   * on the whiteboard, markup and all. Exactly the undelimited-field case
-   * `convertBareText` was written for when the solver's Final answer box had
-   * the same bug. Every other call site — practice, library, solutions,
-   * textbooks — already goes through this converter.
-   *
-   * Applied to prose lines too, not only formulas: `latexToText` leaves text
-   * carrying no commands alone, and it picks up bare scripts the board was
-   * also missing (`10^5 m/s` reads as 10⁵ m/s now).
-   */
-  const text = useMemo(() => latexToText(raw), [raw]);
-  // A figure, not a line of writing — it owns its own sizing and never goes
-  // near the LaTeX converter.
-  if (event.type === 'diagram') {
-    // A payload beats markup wherever both exist: the registry draws the
-    // real curve from live parameters, an `svg` string draws an
-    // approximation the model produced by hand.
-    if (event.payload) {
-      return (
-        <BoardWidget
-          event={{ seq: event.seq, payload: event.payload, tier: event.tier ?? 'precomputed' }}
-          activeSeq={widgetHost.activeSeq}
-          width={diagramBox.availableWidth}
-          height={diagramBox.maxHeight}
-          theme={widgetHost.theme}
-          services={widgetHost.services}
-          figures={widgetHost.figures}
-          onGap={widgetHost.onGap}
-        />
-      );
-    }
-    if (!event.svg) return null;
-    return (
-      <BoardDiagram
-        svg={event.svg}
-        caption={event.caption}
-        availableWidth={diagramBox.availableWidth}
-        maxHeight={diagramBox.maxHeight}
-      />
-    );
-  }
-  if (event.type === 'heading') {
-    return <Text style={styles.boardHeading}>{text}</Text>;
-  }
-  if (event.type === 'formula') {
-    return <Text style={styles.boardEquation}>{text}</Text>;
-  }
-  if (event.type === 'note') {
-    return <Text style={[styles.boardNote, { color: colors.red }]}>{text}</Text>;
-  }
-  /**
-   * Bold on `key` or `high` only.
-   *
-   * `emphasis` is a string from the planner — `normal | key | high` — and it
-   * was typed as a boolean here, so `"normal"` came through truthy and every
-   * ordinary line rendered bold. The board had no non-emphasised state at all,
-   * which is why all of it looked shouted. Same comparison the lesson player
-   * has always made.
-   */
-  const emphasised = event.emphasis === 'key' || event.emphasis === 'high';
-  return <Text style={[styles.boardBody, emphasised && styles.boardBodyBold]}>{text}</Text>;
-}
-
 /**
  * What the card says, per reason speaking is off.
  *
@@ -2045,19 +1955,6 @@ function createStyles(
      * handwritten, it reads as misaligned. On a 300pt heading the last letter
      * sat 2.09pt off its rule.
      */
-    boardHeading: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 17,
-      lineHeight: RHYTHM,
-      marginTop: RHYTHM,
-      color: RED,
-    },
-    boardEquation: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 17,
-      lineHeight: RHYTHM,
-      color: INK,
-    },
     // No maxWidth. There used to be a 560 cap here and on boardNote,
     // which is a sane reading measure for a portrait column and the wrong one
     // for this board: the content box is windowWidth - BOARD_LEFT(56) -
@@ -2077,23 +1974,8 @@ function createStyles(
      * tightest, which is backwards. 14.5 brings it to 1.79 and is easier to
      * read on a phone.
      */
-    boardBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: 14.5,
-      lineHeight: RHYTHM,
-      color: INK_MUTED,
-    },
-    boardBodyBold: {
-      fontFamily: 'Onest_700Bold',
-      color: INK,
-    },
     // An exam callout. Named for Kalam once; the font and its tilt are both
     // gone, and size is what separates it from a heading now (14.5 to 17).
-    boardNote: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 14.5,
-      lineHeight: RHYTHM,
-    },
     writingRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -2762,4 +2644,3 @@ function createStyles(
   });
 }
 
-type Styles = ReturnType<typeof createStyles>;
