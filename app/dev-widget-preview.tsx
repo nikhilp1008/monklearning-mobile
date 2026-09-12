@@ -16,7 +16,7 @@ import {
   RuledGround,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
-import { useLandscapeLock } from '@/hooks/use-landscape-lock';
+import { useLandscapeLock, useOrientation } from '@/hooks/use-landscape-lock';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import { CHARGE_UC_MAX, CHARGE_UC_MIN, fieldLines } from '@/lib/widgets/field-lines';
 import type { FieldLinesParams } from '@/lib/widgets/field-lines';
@@ -152,13 +152,18 @@ type Mode =
   | 'circuit_network' | 'figures' | 'wframes' | 'froglabels';
 
 export default function DevWidgetPreviewScreen() {
-  useLandscapeLock();
+  // The shot frame decides the orientation: 702pt only fits across a
+  // landscape phone, 343/340 only fit down a portrait one. Laying a frame out
+  // at less than 1:1 would make the capture evidence of nothing.
+  const shotWide = SHOT_FRAME >= 0 && (LAB_FRAMES[SHOT_FRAME as 0]?.w ?? 0) > 402;
+  useOrientation(SHOT_FRAME >= 0 && !shotWide ? 'portrait' : 'landscape');
   const [mode, setMode] = useState<Mode>('manual');
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.root, { paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <View style={[styles.modeRow, { paddingTop: insets.top || 10 }]}>
+      <View style={[styles.modeRow, { paddingTop: insets.top || 10 },
+                    SHOT_FRAME >= 0 && { display: 'none' }]}>
         <Pressable
           onPress={() => setMode('manual')}
           style={[styles.pill, mode === 'manual' && styles.pillActive]}
@@ -364,6 +369,8 @@ const LAB_CONCEPTS = [
 /** The two frames the gate binds at: spec-small and the wide board. */
 const LAB_FRAMES = [
   { label: '343\u00d7236', w: 343, h: 236 },
+  { label: '702\u00d7289', w: 702, h: 289 },
+  { label: '340\u00d7340', w: 340, h: 340 },
   { label: '900\u00d7430', w: 900, h: 430 },
 ] as const;
 
@@ -474,7 +481,24 @@ function FigureLab() {
 /** Screenshot driver: set these, let fast refresh apply, capture. Tapping the
  *  pills is unreliable at the 900 frame, which is taller than the viewport and
  *  pushes them off-screen — so the taps land on the board instead. */
-const SHOT_FRAME = -1;   // 0 = 343x236, 1 = 900x430
+/**
+ * CAPTURE RIG — a magenta fence, not a native screenshot module.
+ *
+ * react-native-view-shot would mean a new native module and a dev-client
+ * rebuild. This gets the same evidence from the simulator screenshot that
+ * already works: when SHOT_FRAME >= 0 the board is wrapped in a 2pt #FF00FF
+ * border, laid out 1:1, and scripts/crop-shot.py finds that rectangle in the
+ * PNG and crops to its INTERIOR — asserting the interior is exactly
+ * W x H x scale. A crop that cannot find the fence, or finds the wrong size,
+ * fails rather than producing a plausible image.
+ *
+ * The border is on a WRAPPER, not the board: React Native draws a border
+ * inside the box, so bordering the board itself would shrink the very frame
+ * being evidenced by 4pt.
+ */
+const SHOT_FENCE = '#FF00FF';
+const SHOT_FENCE_PT = 2;
+const SHOT_FRAME = -1;   // 0=343x236  1=702x289  2=340x340  3=900x430
 const SHOT_GROUP = -1;   // 0 = heart, 1 = arterial, 2 = venous
 const FROG_SLUG = 'bio11-ch7-frog--circulatory-and-respiratory-systems--a';
 const FROG_CHAPTER = '5ec9dcb0-2679-5515-9422-5ca618283550';
@@ -549,8 +573,10 @@ function FrogLabelLab() {
         const f = LAB_FRAMES[frame];
         return (
           <View style={{ gap: 4 }}>
-            <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang} · {group}</Text>
-            {record && (
+            {SHOT_FRAME < 0 && (
+              <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang} · {group}</Text>
+            )}
+            {record && SHOT_FRAME < 0 && (
               <Text style={{ fontSize: 9, color: INK_MUTED }}>
                 {layoutFigure(
                   { ...record, active_group: group, lang } as never,
@@ -560,6 +586,14 @@ function FrogLabelLab() {
                 ).join('  ')}
               </Text>
             )}
+            <View style={SHOT_FRAME >= 0
+              ? { borderWidth: SHOT_FENCE_PT, borderColor: SHOT_FENCE,
+                  // Shrink-wrap the board. A column child stretches by
+                  // default, so without this the fence measured the COLUMN
+                  // (374pt) and not the 343pt frame inside it — which the
+                  // crop assertion caught rather than cropping to it.
+                  alignSelf: 'flex-start' }
+              : undefined}>
             <View style={{ width: f.w, height: f.h, borderWidth: StyleSheet.hairlineWidth,
                            borderColor: HAIRLINE, backgroundColor: colors.paper }}>
               {record && (
@@ -578,10 +612,12 @@ function FrogLabelLab() {
                 />
               )}
             </View>
+            </View>
           </View>
         );
       })()}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+                    SHOT_FRAME >= 0 && { display: 'none' }]}>
         {LAB_FRAMES.map((f, i) => (
           <Pressable key={f.label} onPress={() => setFrame(i)}
             style={[styles.pill, i === frame && styles.pillActive]}>
@@ -601,8 +637,12 @@ function FrogLabelLab() {
           </Pressable>
         ))}
       </View>
-      <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
-      <Text style={{ fontSize: 10, color: INK_MUTED }}>GATE: {gate}</Text>
+      {SHOT_FRAME < 0 && (
+        <>
+          <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
+          <Text style={{ fontSize: 10, color: INK_MUTED }}>GATE: {gate}</Text>
+        </>
+      )}
     </ScrollView>
   );
 }
