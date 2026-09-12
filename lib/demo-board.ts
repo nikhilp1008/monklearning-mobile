@@ -26,7 +26,7 @@ export const DEMO_BOARD: BoardContent = {
         {
           kind: 'text',
           markable: true,
-          text: 'A force pointing straight at the hinge cannot turn anything. Only the part of the force perpendicular to the rod does the turning — and the further from the hinge it acts, the more it turns.',
+          text: 'A force pointing straight at the hinge cannot turn anything. Only the part of the force perpendicular to the rod does the turning, and the further from the hinge it acts, the more it turns.',
         },
         { kind: 'hand', text: 'far from the hinge + perpendicular = biggest turn' },
       ],
@@ -111,7 +111,7 @@ export const DEMO_BOARD: BoardContent = {
             },
             {
               q: 'does torque have a direction?',
-              a: 'Yes — it is a vector along the axis. Curl your right hand the way the rod turns and your thumb points along τ.',
+              a: 'Yes, it is a vector along the axis. Curl your right hand the way the rod turns and your thumb points along τ.',
             },
           ],
         },

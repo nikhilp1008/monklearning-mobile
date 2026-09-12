@@ -164,7 +164,7 @@ export default function AccountScreen() {
           </View>
           {phoneNote && (
             <Text style={styles.fieldNote}>
-              Number verification isn&apos;t live yet — your email is what keeps your account
+              Number verification isn&apos;t live yet. Your email is what keeps your account
               secure for now. We&apos;ll text you the moment it is.
             </Text>
           )}

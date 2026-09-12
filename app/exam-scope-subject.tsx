@@ -69,7 +69,7 @@ export default function ExamScopeSubjectScreen() {
         </Text>{' '}
         are examinable in {EXAM_SCOPE[exam].label}
         {trimmed.length > 0
-          ? ` — ${trimmed.length} of them with a topic trimmed out.`
+          ? `, ${trimmed.length} of them with a topic trimmed out.`
           : '.'}
       </Text>
 
@@ -160,7 +160,7 @@ export default function ExamScopeSubjectScreen() {
                             </Text>
                           ))}
                           <Text style={styles.detailNote}>
-                            Still in your CBSE boards — learn it lightly, don&apos;t skip it.
+                            Still in your CBSE boards. Learn it lightly, don&apos;t skip it.
                           </Text>
                         </View>
                       )}
@@ -197,7 +197,7 @@ export default function ExamScopeSubjectScreen() {
               {subject.boardOnly.map((c) => c.name).join(', ')}
             </Text>{' '}
             is still a live chapter in your Class {subject.boardOnly[0].classLevel} book and a
-            board topic — but it isn&apos;t in the {EXAM_SCOPE[exam].label} syllabus at all.
+            board topic, but it isn&apos;t in the {EXAM_SCOPE[exam].label} syllabus at all.
           </Text>
         </View>
       )}
@@ -225,7 +225,7 @@ export default function ExamScopeSubjectScreen() {
             .map((e) => (
               <View key={e.name} style={styles.noteCard}>
                 <Text style={styles.noteCardText}>
-                  <Text style={styles.noteCardStrong}>One exception.</Text> {e.survives} — so that
+                  <Text style={styles.noteCardStrong}>One exception.</Text> {e.survives}, so that
                   part is still examinable even though {e.name} is gone.
                 </Text>
               </View>

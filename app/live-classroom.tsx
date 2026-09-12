@@ -249,7 +249,7 @@ export default function LiveClassroomScreen() {
 
   useEffect(() => {
     if (!sessionId) {
-      setConnectError('No session to join — go back and start a class from a chapter.');
+      setConnectError('No session to join. Go back and start a class from a chapter.');
       return;
     }
     let cancelled = false;
@@ -366,7 +366,7 @@ export default function LiveClassroomScreen() {
           setQuestionText(null);
         }
       },
-      onSttTooShort: () => setCaption("Didn't catch that — hold the button a little longer."),
+      onSttTooShort: () => setCaption("Didn't catch that. Hold the button a little longer."),
       onAnswerResult: (result) => {
         setAnswerVerdict(result.verdict);
         if (answerVerdictTimerRef.current) clearTimeout(answerVerdictTimerRef.current);
@@ -379,7 +379,7 @@ export default function LiveClassroomScreen() {
       // board's own error affordances, so every failure drops it.
       onTurnError: () => {
         dismissCard();
-        setCaption('Drona hit a snag — one moment…');
+        setCaption('Drona hit a snag. One moment…');
       },
       // The lesson itself finished — go to the summary rather than leaving the
       // student on a silent board wondering whether it broke.
@@ -1218,7 +1218,7 @@ export default function LiveClassroomScreen() {
       {toastVisible && (
         <Animated.View entering={FadeIn.duration(150)} style={styles.toast}>
           <Text style={styles.toastCheck}>✓</Text>
-          <Text style={styles.toastText}> Report sent — Drona&apos;s team will check this class.</Text>
+          <Text style={styles.toastText}> Report sent. Drona&apos;s team will check this class.</Text>
         </Animated.View>
       )}
 
@@ -1409,13 +1409,13 @@ function micNoticeFor(status: MicStatus): {
     case 'denied':
       return {
         title: 'Microphone is off',
-        body: 'Drona needs your mic to hear you. Turn it on in Settings — the class keeps going either way.',
+        body: 'Drona needs your mic to hear you. Turn it on in Settings. The class keeps going either way.',
         settingsFixesIt: true,
       };
     case 'no-input':
       return {
         title: 'No microphone found',
-        body: "There's no microphone for Drona to listen through, so speaking is off. The class keeps going — answer with the chips instead.",
+        body: "There's no microphone for Drona to listen through, so speaking is off. The class keeps going: answer with the chips instead.",
         settingsFixesIt: false,
       };
     // 'unavailable', and 'checking'/'available' defensively: the card only opens
@@ -1865,12 +1865,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 0,
     },
     // Pinned to 54 so the plate cannot resize when the label changes.
+    /**
+     * 60, not 54.
+     *
+     * "INTERRUPT" measures 56.2pt in Onest ExtraBold at 8.5 with 0.1em
+     * tracking, so it spilled out of a 54pt box and over the rail's rounded
+     * plate. The other two states fit -- "SPEAKING" 50.8, "MIC OFF" 41.7 --
+     * which is why only the resting state looked wrong. The box is the widest
+     * child of the rail, so it also sets the rail's width; a fixed one keeps
+     * the dock from resizing as the label changes.
+     *
+     * lineHeight is explicit so the -3 lands the same on any face. The old -4
+     * was measured against Anek Latin's line box.
+     */
     talkLabel: {
-      width: 54,
-      marginTop: -4,
+      width: 60,
+      marginTop: -3,
       textAlign: 'center',
       fontFamily: 'Onest_800ExtraBold',
       fontSize: 8.5,
+      lineHeight: 11,
       letterSpacing: 0.1 * 8.5,
       textTransform: 'uppercase',
       color: INK_MUTED,

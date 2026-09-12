@@ -742,12 +742,20 @@ export default function PracticeScreen() {
                       {key.toUpperCase()}
                     </Text>
                   </View>
+                  {/* One weight, always. Grading used to switch the chosen
+                      and correct options to 700, which costs 3.2% width in
+                      Onest -- enough that any line already sitting in the
+                      last 3.1% of the 283.7pt column wrapped to a second
+                      one. So the row grew as it was graded, and the answer
+                      the student was reading moved under them. The fill and
+                      the badge already say which option this is; the text
+                      does not need to say it a third time, and it is the
+                      only one of the three that can reflow. */}
                   <MathText
                     text={text}
                     fontSize={scale(15)}
                     lineHeight={scale(21)}
                     color={colors.ink}
-                    fontWeight={isPending || isYourWrongPick || isCorrectReveal ? '700' : '400'}
                     style={styles.optionText}
                   />
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
@@ -761,8 +769,26 @@ export default function PracticeScreen() {
           {!revealed ? (
             <>
               <View style={styles.actionRow}>
+                {/* BUSY IS NOT DISABLED, AND THE DIFFERENCE IS THE WHOLE
+                    CONTROL. `canSubmit` goes false the instant the answer is
+                    in flight, so gating the outline on `!canSubmit` alone
+                    emptied the button exactly when it had the most to say:
+                    the ink fill went transparent over a #fff page and the
+                    spinner, which is paper cream, went from 17.09:1 on the
+                    fill to 1.00:1 on the page. The button faded to a 1.41:1
+                    ghost border with an invisible spinner inside it, so a
+                    student who had just committed an answer saw nothing at
+                    all happen.
+
+                    Disabled means there is nothing to submit -- an outline is
+                    right for that. Submitting means the answer is gone to the
+                    server, and the fill has to stay for the spinner to read
+                    against. */}
                 <Pressable
-                  style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+                  style={[
+                    styles.submitButton,
+                    !canSubmit && !submitting && styles.submitButtonDisabled,
+                  ]}
                   disabled={!canSubmit}
                   onPress={() =>
                     question.question_type === 'numerical'
@@ -775,7 +801,7 @@ export default function PracticeScreen() {
                     <Text
                       style={[
                         styles.submitButtonText,
-                        !canSubmit && styles.submitButtonTextDisabled,
+                        !canSubmit && !submitting && styles.submitButtonTextDisabled,
                       ]}>
                       Submit
                     </Text>

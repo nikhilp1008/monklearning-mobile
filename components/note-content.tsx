@@ -6,7 +6,7 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 
 const CLASS_END_MARKER =
-  '——— class ended here — everything below is the rest of the lesson, for self-study ———';
+  '——— class ended here: everything below is the rest of the lesson, for self-study ———';
 
 // A line with only uppercase letters/digits/punctuation and at least one
 // actual letter — matches ALL-CAPS section headings without matching a

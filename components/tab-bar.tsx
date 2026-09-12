@@ -1,9 +1,17 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -56,15 +64,33 @@ function TextbooksIcon({ color, size }: IconProps) {
   );
 }
 
+/**
+ * A question on a card.
+ *
+ * This was a camera, which is the same object Home draws for Snap and Solve.
+ * The camera is how a doubt gets IN; it is not what the page IS, and using
+ * one glyph for both made the tab look like a second shutter button.
+ *
+ * The card is close in silhouette to Notes two slots along, so the mark
+ * inside it carries the difference: Notes has a spine at a quarter width and
+ * two short rules, this has one large centred glyph and no spine.
+ *
+ * The "?" is a scaled Feather question mark with the transform baked into
+ * its coordinates rather than applied by a <G>: the stroke inside a scaled
+ * group scales with it, so the 1.6 here would not have matched the 1.6 on
+ * the card. Centred by construction -- the glyph spans 7.54 to 16.46, the
+ * card's interior 4.60 to 19.40, both on 12.00.
+ */
 function DoubtsIcon({ color, size }: IconProps) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={4.2} y={3.8} width={15.6} height={16.4} rx={2.6} stroke={color} strokeWidth={1.6} />
       <Path
-        d="M8.3 6.3 9.5 4.5h5l1.2 1.8h1.8A2.5 2.5 0 0 1 20 8.8v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.8v-8a2.5 2.5 0 0 1 2.5-2.5z"
+        d="M9.89 9.78a2.16 2.16 0 0 1 4.2.72c0 1.44-2.16 2.16-2.16 2.16"
         stroke={color}
         strokeWidth={1.6}
       />
-      <Circle cx={12} cy={12.8} r={3.3} stroke={color} strokeWidth={1.6} />
+      <Path d="M11.99 15.54h.01" stroke={color} strokeWidth={1.84} />
     </Svg>
   );
 }
@@ -85,6 +111,104 @@ const ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   doubts: DoubtsIcon,
   notes: NotesIcon,
 };
+
+/**
+ * The switch, inside the bar.
+ *
+ * A colour cross-fade on its own is not motion -- the icon arrives in a new
+ * colour without ever having moved, which is why the swap still read as a cut.
+ * So the chosen icon also LIFTS and grows a little, on a spring, and the one
+ * it takes over from settles back down.
+ *
+ * A spring rather than a timing curve because this is a direct response to a
+ * finger: it overshoots a touch and settles, which is what makes it feel
+ * physical instead of scheduled. Damped enough not to wobble.
+ */
+const LIFT = 3;       // points the chosen icon rises
+const GROW = 0.12;    // and how much it grows
+const SPRING = { damping: 13, stiffness: 210, mass: 0.55 } as const;
+
+/** The press itself, so the tap is acknowledged before the spring starts. */
+const PRESS_IN = { duration: 90, easing: Easing.out(Easing.quad) } as const;
+const PRESS_OUT = { duration: 160, easing: Easing.out(Easing.cubic) } as const;
+
+/**
+ * One tab item.
+ *
+ * The icon is drawn twice, grey and ink, and the pair is cross-faded. That is
+ * the cheap way to animate an SVG stroke colour: `stroke` is not a style prop,
+ * so reanimated cannot drive it, and re-rendering the icon on every frame would
+ * put the work on the JS thread. Two static copies and an opacity do it
+ * natively.
+ *
+ * The label's colour IS a style prop, so it interpolates directly.
+ */
+function TabItem({
+  Icon,
+  label,
+  focused,
+  size,
+  styles,
+  onPress,
+}: {
+  Icon: (p: IconProps) => React.ReactElement;
+  label: string;
+  focused: boolean;
+  size: number;
+  styles: ReturnType<typeof createStyles>;
+  onPress: () => void;
+}) {
+  const on = useSharedValue(focused ? 1 : 0);
+  const held = useSharedValue(0);
+
+  useEffect(() => {
+    on.value = withSpring(focused ? 1 : 0, SPRING);
+  }, [focused, on]);
+
+  const fadeOn = useAnimatedStyle(() => ({ opacity: on.value }));
+  const fadeOff = useAnimatedStyle(() => ({ opacity: 1 - on.value }));
+  // The lift and the press share one transform, so a tap on the already-chosen
+  // tab still gives way instead of sitting rigid.
+  const move = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -LIFT * on.value + 1.5 * held.value },
+      { scale: 1 + GROW * on.value - 0.08 * held.value },
+    ],
+  }));
+  const labelColor = useAnimatedStyle(() => ({
+    color: interpolateColor(on.value, [0, 1], [OFF, colors.ink]),
+    // The label follows the icon up by a fraction, so the pair moves as one
+    // object rather than the glyph detaching from its name.
+    transform: [{ translateY: -1 * on.value }],
+  }));
+
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={label}
+      style={styles.item}
+      onPressIn={() => {
+        held.value = withTiming(1, PRESS_IN);
+      }}
+      onPressOut={() => {
+        held.value = withTiming(0, PRESS_OUT);
+      }}
+      onPress={onPress}>
+      <Animated.View style={[{ width: size, height: size }, move]}>
+        <Animated.View style={[StyleSheet.absoluteFill, fadeOff]}>
+          <Icon color={OFF} size={size} />
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, fadeOn]}>
+          <Icon color={colors.ink} size={size} />
+        </Animated.View>
+      </Animated.View>
+      <Animated.Text style={[styles.label, focused && styles.labelOn, labelColor]}>
+        {label}
+      </Animated.Text>
+    </Pressable>
+  );
+}
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { scale, verticalScale } = useScale();
@@ -112,17 +236,16 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         {routes.map((route) => {
           const { options } = descriptors[route.key];
           const focused = state.routes[state.index].key === route.key;
-          const Icon = ICONS[route.name];
-          const color = focused ? colors.ink : OFF;
           const label = options.title ?? route.name;
 
           return (
-            <Pressable
+            <TabItem
               key={route.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={label}
-              style={styles.item}
+              Icon={ICONS[route.name]}
+              label={label}
+              focused={focused}
+              size={scale(22)}
+              styles={styles}
               onPress={() => {
                 const event = navigation.emit({
                   type: 'tabPress',
@@ -132,10 +255,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 if (!focused && !event.defaultPrevented) {
                   navigation.navigate(route.name);
                 }
-              }}>
-              <Icon color={color} size={scale(22)} />
-              <Text style={[styles.label, { color }, focused && styles.labelOn]}>{label}</Text>
-            </Pressable>
+              }}
+            />
           );
         })}
       </View>

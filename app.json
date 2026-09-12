@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.monklearning.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "monklearning"
       }
     },
     "android": {

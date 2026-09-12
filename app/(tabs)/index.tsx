@@ -51,7 +51,7 @@ const DAILY_DOUBTS = [
   {
     chapterTitle: 'Modern Physics',
     question:
-      'Why do photoelectrons stop the moment intensity drops — but not when frequency drops below threshold?',
+      'Why do photoelectrons stop the moment intensity drops, but not when frequency drops below threshold?',
   },
   {
     chapterTitle: 'Organic Chemistry',
@@ -146,7 +146,11 @@ export default function HomeScreen() {
             every other line on the page, because it separates the chrome from
             the document rather than one section from the next. */}
         <View style={styles.appBar}>
-          <MonkLogo height={scale(30)} />
+          {/* The SYMBOL's height, and the lockup's -- the wordmark and the gap
+              are both ratios of it, so this one number scales the whole mark.
+              Settled at 20 after 30 (too symbol-dominant), 21, then 18 (word
+              too small once the ratios were right). */}
+          <MonkLogo height={scale(20)} />
           <View style={styles.appBarRight}>
             <PressableScale
               style={styles.appBarButton}
@@ -246,8 +250,8 @@ export default function HomeScreen() {
             </View>
             {planItems.length === 0 ? (
               <Text style={styles.planEmptyText}>
-                Nothing planned yet — tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
-                today&apos;s goals.
+                Nothing planned yet. Tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
+                today&apos;s plans.
               </Text>
             ) : (
               <View style={styles.planRows}>
@@ -301,7 +305,7 @@ export default function HomeScreen() {
               <Text style={styles.overline}>Exam scope</Text>
               <Text style={styles.scopeTitle}>What&apos;s actually in your exam</Text>
               <Text style={styles.scopeBody}>
-                Not every NCERT chapter is examinable — see what counts, and what you can stop
+                Not every NCERT chapter is examinable. See what counts, and what you can stop
                 studying.
               </Text>
             </View>
@@ -345,6 +349,20 @@ function ClassBlock({
       onPressIn={() => setHeld(true)}
       onPressOut={() => setHeld(false)}
       style={styles.classBlock}>
+      {/* An absolute fill, not a wrapper with `overflow: hidden`.
+          Clipping the block would take the drop shadow with it -- RN cannot
+          draw a shadow around a view that clips its own children -- and the
+          shadow is part of the design. An absolutely-positioned child fills
+          the padding box, so it lands INSIDE the 1pt amber ring and leaves it
+          drawing on top; its radius is 21, one point tighter than the block's
+          22, so the two stay concentric. */}
+      <LinearGradient
+        colors={['#2A2621', '#2A2621', '#4A3512']}
+        locations={[0, 0.4, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.classGradient}
+      />
       <Text style={styles.classLine}>Pick a chapter and your teacher teaches it live.</Text>
       <View style={[styles.keyBase, held && styles.keyBaseHeld]}>
         <LinearGradient
@@ -432,8 +450,19 @@ function PracticeIcon({ size }: { size: number }) {
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={colors.ink} strokeWidth={1.7} />
       <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={colors.ink} strokeWidth={1.7} />
-      <Path d="M6.4 12.4h7.2" stroke={colors.ink} strokeWidth={1.7} />
-      <Circle cx={17.4} cy={11.4} r={1.5} fill={colors.marigold} />
+      {/* The marigold marks the item ON the card, not a blob beside it.
+          It used to sit at cx 17.4 -- the front card's stroke spans
+          15.75-17.45, so the dot was centred on the border, half inside the
+          card and half in the channel, cutting the back card's edge on its
+          way past. It read as a smudge welded to the corner.
+
+          Snap's marigold is the aperture: inside the form, concentric,
+          doing a job. This one is now the bullet on the card's one line,
+          which is also how a plan row is drawn elsewhere in the app. Dot
+          and line sit on 1.00 of clearance at each end of the card's
+          interior, the round cap included. */}
+      <Circle cx={6.4} cy={12.4} r={1.15} fill={colors.marigold} />
+      <Path d="M10 12.4h3.9" stroke={colors.ink} strokeWidth={1.7} />
     </Svg>
   );
 }
@@ -510,6 +539,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: verticalScale(20),
       padding: scale(24),
       borderRadius: scale(22),
+      // Kept under the gradient as the base coat: it is the gradient's own
+      // first two stops, so nothing flashes before the gradient paints and the
+      // 1pt border has something to sit against.
       backgroundColor: '#2A2621',
       borderWidth: 1,
       borderColor: 'rgba(238,163,31,.8)',
@@ -519,6 +551,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(30),
       elevation: 10,
       marginBottom: verticalScale(32),
+    },
+    classGradient: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: scale(21),
     },
     classLine: {
       fontFamily: 'Onest_400Regular',
@@ -595,6 +631,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(4),
     },
 
+    // The row closes itself with a hairline, matching the stats row below it,
+    // so the three blocks under the strip share one rhythm.
     noticedSlot: {
       marginTop: verticalScale(32),
     },
@@ -732,10 +770,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
 
     // --- doubt of the day ---
+    // Regular, not SemiBold. It is the longest line on the page and the only
+    // one set as a question -- at 600 it competed with the class block for
+    // first read, which is the one thing on Home that should never be
+    // out-shouted. Its overline above and its link below already mark it as a
+    // section; the weight was doing that job a second time.
     doubtQuestion: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(16),
-      lineHeight: scale(22),
+      lineHeight: scale(23),
       letterSpacing: scale(-0.012 * 16),
       color: colors.ink,
       marginTop: verticalScale(10),

@@ -5,43 +5,43 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'The agreement',
-    body: 'Creating an account or using MonkLearning means you accept these terms. If you’re under 18, a parent or guardian accepts them at sign-up and stays responsible for the account.',
+    body: 'Creating an account or using monklearning means you accept these terms. If you’re under 18, a parent or guardian accepts them at sign-up and stays responsible for the account.',
   },
   {
-    title: 'What MonkLearning is',
-    body: 'An AI teaching platform for JEE Main and NEET UG — live classroom sessions, a lesson library, Snap-a-doubt, unlimited practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
+    title: 'What monklearning is',
+    body: 'An AI teaching platform for JEE Main and NEET UG: live classroom sessions, a lesson library, Snap-a-doubt, unlimited practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
   },
   {
     title: 'Your account',
-    body: 'One student per account — it’s built around your own learning data, not a shared login. Keep your sign-up details accurate and your password to yourself; we may pause accounts we find being shared.',
+    body: 'One student per account. It’s built around your own learning data, not a shared login. Keep your sign-up details accurate and your password to yourself; we may pause accounts we find being shared.',
   },
   {
     title: 'Pricing & payment',
-    body: 'Payments are one-time, not subscriptions — nothing auto-renews. You choose a duration (1, 3, 6 or 11 months) per exam track, or a ₹249 Day Pass for 24 hours of full access from your first class. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST and are processed through RBI-regulated payment gateways.',
+    body: 'Payments are one-time, not subscriptions, and nothing auto-renews. You choose a duration (1, 3, 6 or 11 months) per exam track, or a ₹249 Day Pass for 24 hours of full access from your first class. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST and are processed through RBI-regulated payment gateways.',
   },
   {
     title: 'Acceptable use',
-    body: 'Please don’t share or resell your account, scrape content in bulk, try to reverse-engineer Drona or Vedha, use MonkLearning to cheat on an exam, or upload abusive or plagiarized doubts at scale.',
+    body: 'Please don’t share or resell your account, scrape content in bulk, try to reverse-engineer Drona or Vedha, use monklearning to cheat on an exam, or upload abusive or plagiarized doubts at scale.',
   },
   {
     title: 'Mock test access',
-    body: 'Mock tests unlock based on how well our AI thinks you’ve mastered a chapter, not on a fixed schedule or extra payment — so the exact timing can shift with your own performance.',
+    body: 'Mock tests unlock based on how well our AI thinks you’ve mastered a chapter, not on a fixed schedule or extra payment, so the exact timing can shift with your own performance.',
   },
   {
     title: 'Who owns what',
-    body: 'MonkLearning owns the platform itself — lessons, questions, and our teachers’ voices. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
+    body: 'monklearning owns the platform itself: lessons, questions, and our teachers’ voices. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
   },
   {
     title: 'Changes & availability',
-    body: 'We do routine maintenance and occasionally have outages. If significant downtime affects a short plan or Day Pass, we’ll extend your access to make up for it. Features we describe as “coming soon,” like JEE Advanced, are plans — not something your current purchase guarantees.',
+    body: 'We do routine maintenance and occasionally have outages. If significant downtime affects a short plan or Day Pass, we’ll extend your access to make up for it. Features we describe as “coming soon,” like JEE Advanced, are plans, not something your current purchase guarantees.',
   },
   {
     title: 'What we don’t guarantee',
-    body: 'MonkLearning is a study tool, not a promise of marks, rank, or admission. Our AI teachers can make mistakes — every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
+    body: 'monklearning is a study tool, not a promise of marks, rank, or admission. Our AI teachers can make mistakes, and every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
   },
   {
     title: 'Suspension & account deletion',
-    body: 'You can delete your own account anytime. We may suspend or terminate accounts for a material breach of these terms — usually after a warning, except in severe cases or where the law requires immediate action. Termination for breach doesn’t come with a refund.',
+    body: 'You can delete your own account anytime. We may suspend or terminate accounts for a material breach of these terms, usually after a warning, except in severe cases or where the law requires immediate action. Termination for breach doesn’t come with a refund.',
   },
   {
     title: 'Liability',

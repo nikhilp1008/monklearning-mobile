@@ -84,7 +84,7 @@ export function EnteringCardScreen({
         </View>
         <View style={styles.footer}>
           <Text style={styles.footerHint}>
-            Tip: you can interrupt Drona any time — just tap raise hand.
+            Tip: you can interrupt Drona any time. Just tap raise hand.
           </Text>
         </View>
       </SafeAreaView>

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -93,6 +93,20 @@ type LoadState =
   | { kind: 'loading' }
   | { kind: 'ready'; data: ProgressSummary }
   | { kind: 'error' };
+
+function BackArrowIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
 
 export default function ProgressScreen() {
   const { scale, verticalScale } = useScale();
@@ -210,8 +224,20 @@ export default function ProgressScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View>
-            <Text style={styles.heading}>Progress</Text>
-            <Text style={styles.subtitle}>One number — and everything that explains it.</Text>
+            {/* Pushed screen, no tab bar under it, so the way out is here.
+                Same 36pt round button Practice and the chapter selector use. */}
+            <View style={styles.headerRow}>
+              <Pressable
+                style={styles.backButton}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={() => router.back()}>
+                <BackArrowIcon size={scale(16)} />
+              </Pressable>
+              <Text style={styles.heading}>Progress</Text>
+            </View>
+            <Text style={styles.subtitle}>One number, and everything that explains it.</Text>
           </View>
 
           {state.kind === 'loading' && (
@@ -232,7 +258,7 @@ export default function ProgressScreen() {
             <View style={styles.card}>
               <Text style={styles.errorTitle}>Couldn&apos;t load your progress</Text>
               <Text style={styles.errorBody}>
-                Check your connection and try again — your score is safe on the server.
+                Check your connection and try again. Your score is safe on the server.
               </Text>
               <PressableScale style={styles.retryButton} onPress={retry}>
                 <Text style={styles.retryButtonText}>Retry</Text>
@@ -293,7 +319,7 @@ export default function ProgressScreen() {
                 <Text style={styles.scoreBody}>
                   Every first attempt at a question you&apos;ve never seen moves a concept&apos;s
                   mastery. The score is the average across your whole syllabus, weighted by what
-                  each chapter is worth in the exam — so the chapters that carry the most marks
+                  each chapter is worth in the exam, so the chapters that carry the most marks
                   move it the most. Concepts flagged “needs revision” cap it until you refresh
                   them. 1000 means command of everything.
                 </Text>
@@ -370,7 +396,7 @@ export default function ProgressScreen() {
                 {SUBJECT_LABEL[subject.subject] ?? subject.subject} · chapter by chapter
               </Text>
               <Text style={styles.chapterHint}>
-                Tap a chapter to see its concepts. Grey means not started yet — the syllabus
+                Tap a chapter to see its concepts. Grey means not started yet. The syllabus
                 itself is complete everywhere.
               </Text>
 
@@ -651,8 +677,25 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     scrollContent: {
       paddingHorizontal: scale(24),
       paddingTop: verticalScale(8),
-      paddingBottom: verticalScale(130),
+      // 130 was clearance for the floating tab bar. There is no bar under this
+      // screen any more, so this is just the last card's breathing room.
+      paddingBottom: verticalScale(40),
       gap: verticalScale(32),
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(10),
+    },
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      flexShrink: 0,
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     heading: {
       fontFamily: 'Onest_500Medium',

@@ -289,7 +289,7 @@ export default function SnapCaptureScreen() {
                   <ActivityIndicator color="#F5CB60" size="large" />
                   <Text style={styles.statusTitle}>Drona is reading your photo…</Text>
                   <Text style={styles.statusSubtext}>
-                    Pulling out the question, the formulas, the context — up to 30 seconds.
+                    Pulling out the question, the formulas, the context. Up to 30 seconds.
                   </Text>
                 </View>
               ) : failure ? (
@@ -390,7 +390,7 @@ export default function SnapCaptureScreen() {
               <ActivityIndicator color="#EFEBDD" />
               <Text style={styles.statusTitle}>Opening the camera…</Text>
               <Text style={styles.statusSubtext}>
-                Point it at one question — up to 3 on a page.
+                Point it at one question, up to 3 on a page.
               </Text>
               <View style={styles.failureActions}>
                 <Pressable style={styles.secondaryAction} onPress={openGallery}>

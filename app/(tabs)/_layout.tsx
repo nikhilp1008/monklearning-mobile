@@ -60,9 +60,6 @@ export default function TabLayout() {
         {/* Lessons is on hold, not deleted -- the screen stays routable so the
             work survives, but nothing in the bar points at it. */}
         <Tabs.Screen name="lessons" options={{ href: null }} />
-        {/* Progress moved to Home's header. It is a place you check, not a
-            place you work, so it no longer takes a quarter of the bar. */}
-        <Tabs.Screen name="progress" options={{ href: null }} />
       </Tabs>
     </>
   );

@@ -1,7 +1,7 @@
 /**
  * Exam scope — what JEE Main and NEET UG actually examine.
  *
- * Curated from MonkLearning's own "JEE Main & NEET UG Exam Scope Map"
+ * Curated from monklearning's own "JEE Main & NEET UG Exam Scope Map"
  * (verified edition, August 2026), which was checked against the official
  * NTA JEE Main 2026 syllabus PDF and the NMC NEET UG 2026 notice.
  *
@@ -72,7 +72,7 @@ export const SCOPE_TIMELINE: ScopeYear[] = [
   {
     period: 'till 2022',
     headline: 'No structural change',
-    detail: 'Same unit sets year on year — a wider syllabus than today’s.',
+    detail: 'Same unit sets year on year, but a wider syllabus than today’s.',
     state: 'stable',
   },
   {

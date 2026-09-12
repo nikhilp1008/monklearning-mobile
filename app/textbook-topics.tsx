@@ -79,17 +79,37 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     listContent: { paddingBottom: verticalScale(12) },
     row: {
       flexDirection: 'row',
-      alignItems: 'center',
+      // Top, not centre. Two of these five titles wrap, and centring floated
+      // the number and the "Reading" tag into the gap between the two lines
+      // instead of setting them on the first one. A numbered list aligns on
+      // its first line; that is the misalignment, not the digits themselves,
+      // which are zero-padded and were always the same width.
+      alignItems: 'flex-start',
       gap: scale(14),
       paddingVertical: verticalScale(13),
       paddingHorizontal: scale(24),
     },
     rowCurrent: { backgroundColor: colors.tint },
     rowPressed: { backgroundColor: 'rgba(28,26,22,.03)' },
+    /**
+     * Right-aligned in a 24pt box, on tabular figures.
+     *
+     * It was left-aligned in 20: "9" is 9.9pt wide and "10" is 16.6pt, so
+     * single and double digits ended at different x and the column read as
+     * ragged. 20 was also within 0.4pt of overflowing on "20" once the face
+     * changed, which a larger text setting would have pushed over.
+     *
+     * lineHeight is explicit here and on the title so the two sit on one
+     * baseline: the row centres its children, and 16pt and 15.5pt text have
+     * different default line boxes, which tilted the pair by a fraction.
+     */
     number: {
-      width: scale(20),
+      width: scale(24),
+      textAlign: 'right',
       fontFamily: 'Onest_500Medium',
       fontSize: scale(16),
+      lineHeight: scale(22),
+      fontVariant: ['tabular-nums'],
       color: colors.quiet,
     },
     numberCurrent: { color: colors.amberText, fontFamily: 'Onest_700Bold' },
@@ -97,6 +117,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       flex: 1,
       fontFamily: 'Onest_500Medium',
       fontSize: scale(15.5),
+      lineHeight: scale(22),
       color: colors.ink,
     },
     titleCurrent: { fontFamily: 'Onest_700Bold' },

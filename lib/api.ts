@@ -77,7 +77,7 @@ export async function apiFetch<T>(
       // A caller cancelling deliberately isn't a failure to report back — the
       // screen that cancelled is already leaving.
       if (callerSignal?.aborted) throw new ApiError('cancelled', 0);
-      throw new ApiError('This is taking longer than expected — check your connection and try again.', 0);
+      throw new ApiError('This is taking longer than expected. Check your connection and try again.', 0);
     }
     throw err;
   } finally {

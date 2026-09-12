@@ -688,7 +688,7 @@ export default function LessonPlayerScreen() {
 
             <View style={styles.drawerFooter}>
               <Text style={styles.drawerFooterText}>
-                Tap a topic to jump — your progress is saved.
+                Tap a topic to jump. Your progress is saved.
               </Text>
             </View>
           </Animated.View>

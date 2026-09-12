@@ -1,29 +1,51 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { Observation } from '@/lib/noticed';
+import { getTeacherPreference, teacherName } from '@/lib/preferences';
+
+/** One step darker than `colors.success`, so the trailing marks clear 4.5:1
+ *  on the wash. */
+const GREEN_INK = '#12703E';
 
 /**
- * The observation row on Home.
+ * The observation row on Home: one true sentence about this student's
+ * syllabus, from their teacher.
  *
- * Stripped to one sentence on purpose. The first build carried an initial in a
- * marigold disc, a "<teacher> noticed" label and a highlighter mark on the
- * chapter name — three separate signals competing inside 110pt, which read as
- * congested rather than considered.
+ * Five builds. What each one got wrong, since the sequence is the argument:
  *
- * What that costs is worth recording: those three were what made this the
- * *teacher* speaking (MOMENTS.md rule 3), and without them the row is an
- * observation from the app. The amber keeps it in the teacher's colour, but
- * nothing here says who is talking. Worth revisiting if the row ever needs to
- * feel personal again — but half-signalling it was the worse option.
+ *  - A rounded card on a 12% amber wash: 1.09:1 against the page, so its shape
+ *    barely existed, and it was the only filled object on a screen otherwise
+ *    built from hairline rules apart from the class block.
+ *  - A 20pt teacher orb as the author mark: fixed authorship, but put a
+ *    saturated gradient on Home.
+ *  - "+6 more" in an outlined pill: the most decorated thing in the row,
+ *    labelling the least important thing in it.
+ *  - A "DRONA NOTICED" overline: in the same 11/700 as every other section, so
+ *    the row stopped standing out and merged into the page.
+ *  - A 3pt marigold left bar: read as a generic callout.
  *
- * What's left is the sentence, an optional short tag, and the chevron; the
- * whole row is the target, so the card is the button rather than containing
- * one.
+ * Measuring the candidates settled the real constraint. On a white page NO
+ * warm tint can produce a visible block: the 12% amber was 1.10:1, a 28%
+ * amber 1.30, and even SOLID marigold only 2.12, against roughly 3:1 for a
+ * boundary you are meant to notice. Yellow and white are nearly the same
+ * lightness. That, not the shade, is why every amber variant read as dull.
+ *
+ * The green wash is chosen for what it does to the page rather than for
+ * contrast: it is the one cool note on an entirely warm screen, which is what
+ * makes it register at all. 22%, the deepest that still reads as a wash rather
+ * than a panel, at 1.29:1 -- so this is a quiet block by construction, not a
+ * highlighted one, and no depth of green would change that.
+ *
+ * Two things to know if this ever gets revisited. Green is `masteryStrong` in
+ * the progress scale, and this row usually reports a WEAKNESS, so the colour
+ * and the sentence disagree. And if the row ever has to genuinely stand out,
+ * the fill has to go dark -- ink measured 17:1 where every wash measured under
+ * 1.5.
  */
 
 export function NoticedCard({
@@ -35,56 +57,69 @@ export function NoticedCard({
 }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  /** The label names whoever the student picked. Drona until the stored
+   *  preference resolves, so the row never renders the wrong teacher. */
+  const [teacher, setTeacher] = useState('Drona');
+
+  useEffect(() => {
+    let cancelled = false;
+    getTeacherPreference().then((t) => {
+      if (!cancelled) setTeacher(teacherName(t));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
-    <PressableScale style={styles.card} onPress={onPress}>
+    <PressableScale
+      style={styles.row}
+      accessibilityLabel={`${teacher} noticed: ${observation.text}`}
+      onPress={onPress}>
       <Text style={styles.text} numberOfLines={2}>
         {observation.text}
       </Text>
-      {!!observation.meta && (
-        <View style={styles.metaChip}>
-          <Text style={styles.metaText}>{observation.meta}</Text>
-        </View>
-      )}
-      <ArrowRightIcon color={colors.amberText} size={scale(15)} />
+      {!!observation.meta && <Text style={styles.meta}>{observation.meta}</Text>}
+      <ArrowRightIcon color={GREEN_INK} size={scale(15)} />
     </PressableScale>
   );
 }
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    // export-10a: a wash, no outline. The border was doing the same job as
-    // the fill and the two together read as a warning banner; the fill alone
-    // reads as a remark.
-    card: {
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(12),
-      padding: scale(16),
-      borderRadius: scale(16),
-      backgroundColor: 'rgba(238,163,31,.12)',
+      gap: scale(10),
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(12),
+      // success/masteryStrong at 22%. See the note above: this is a wash, not
+      // a boundary.
+      backgroundColor: '#CDE9DA',
     },
     text: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(22),
       letterSpacing: scale(-0.01 * 15),
       color: colors.ink,
     },
-    metaChip: {
+    /**
+     * Text, not a pill. As a pill this was the most decorated thing in the row
+     * and it labels the least important thing in it. Quiet, and set in the
+     * arrow's colour so the two trailing marks read as one control.
+     */
+    /** #12703E, a step darker than `success`, for 4.77:1 on the wash. The
+     *  brand's own #1C9B57 only reaches 2.4 there. */
+    meta: {
       flexShrink: 0,
-      paddingHorizontal: scale(8),
-      paddingVertical: verticalScale(2),
-      borderRadius: scale(99),
-      backgroundColor: '#fff',
-    },
-    metaText: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(18),
-      color: colors.amberText,
+      color: GREEN_INK,
     },
   });
 }

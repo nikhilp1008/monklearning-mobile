@@ -59,7 +59,14 @@ export const ob = {
   // Placeholders only. Lighter than any text tone on purpose: at ink30 a
   // placeholder was being read as a filled-in answer, which is the whole
   // failure mode a placeholder has.
-  placeholder: 'rgba(28,26,22,.26)',
+  //
+  // .26 rendered #C4C4C3, 1.75:1 on white -- about where iOS puts its own
+  // placeholder, but these are set at 19pt, and that much glyph at 1.75:1
+  // still carries weight. .20 renders #D2D1D0, 1.53:1, which is the app's
+  // own `disabled` (#D8D2C2, 1.51:1) -- the lightest tone the rest of the
+  // app trusts for text that is present but must recede. Below that a
+  // placeholder starts to vanish on a bright screen.
+  placeholder: 'rgba(28,26,22,.20)',
   surface: '#FFFFFF',
   surfaceWarm: '#F7F4EC',
   cream: '#FBF9F2',

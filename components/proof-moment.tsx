@@ -35,7 +35,7 @@ function leadLine(event: ProofEvent): Line {
     case 'all_flags_cleared':
       return {
         headline: 'Every flag is cleared.',
-        detail: 'Nothing is capping your score now — the ceiling is fully open.',
+        detail: 'Nothing is capping your score now. The ceiling is fully open.',
       };
     case 'first_class':
       return {
