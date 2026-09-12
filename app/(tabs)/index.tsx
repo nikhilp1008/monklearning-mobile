@@ -251,7 +251,7 @@ export default function HomeScreen() {
             {planItems.length === 0 ? (
               <Text style={styles.planEmptyText}>
                 Nothing planned yet. Tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
-                today&apos;s goals.
+                today&apos;s plans.
               </Text>
             ) : (
               <View style={styles.planRows}>

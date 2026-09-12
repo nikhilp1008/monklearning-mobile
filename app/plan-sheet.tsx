@@ -84,10 +84,10 @@ export default function PlanSheetScreen() {
             "Slots" was the other half of the problem: a student does not
             have slots, they have plans, and counting the empty container
             rather than the thing is how a booking system talks. Every state
-            now says what you can DO. The word is "plans" because that is
-            what this feature is called in its own title, in Home's overline
-            and in the model (`PlanItem`) -- Home's "today's goals" is the
-            odd one out, not this. */}
+            now says what you can DO. The word is "plans" everywhere the
+            feature speaks -- this sheet, Home's overline, Home's empty line
+            and the model (`PlanItem`) -- so a student meets one word from
+            the heading to the field. */}
         <Text style={styles.subtitle}>
           {plansLeft === MAX_PLAN_ITEMS ? (
             <>
