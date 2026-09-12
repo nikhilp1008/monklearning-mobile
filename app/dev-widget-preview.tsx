@@ -471,14 +471,24 @@ function FigureLab() {
  * coordinates for them is precisely the failure the gate exists to prevent.
  * They need a person to place them.
  */
+/** Screenshot driver: set these, let fast refresh apply, capture. Tapping the
+ *  pills is unreliable at the 900 frame, which is taller than the viewport and
+ *  pushes them off-screen — so the taps land on the board instead. */
+const SHOT_FRAME = -1;   // 0 = 343x236, 1 = 900x430
+const SHOT_GROUP = -1;   // 0 = heart, 1 = arterial, 2 = venous
 const FROG_SLUG = 'bio11-ch7-frog--circulatory-and-respiratory-systems--a';
 const FROG_CHAPTER = '5ec9dcb0-2679-5515-9422-5ca618283550';
 
 function FrogLabelLab() {
   const theme = useDevTheme();
-  const [frame, setFrame] = useState(0);
+  const [frameSel, setFrame] = useState(0);
   const [lang, setLang] = useState<'english' | 'hinglish'>('english');
-  const [groupIdx, setGroupIdx] = useState(0);
+  const [groupSel, setGroupIdx] = useState(0);
+  // Read EVERY render, not just at mount: fast refresh keeps component state,
+  // so a changed `useState` initial value does nothing. A module const does.
+  // -1 in either means "the pills decide".
+  const frame = SHOT_FRAME >= 0 ? SHOT_FRAME : frameSel;
+  const groupIdx = SHOT_GROUP >= 0 ? SHOT_GROUP : groupSel;
   const [status, setStatus] = useState('fetching chapter assets\u2026');
   const [record, setRecord] = useState<FigureRecord | null>(null);
 
@@ -532,6 +542,45 @@ function FrogLabelLab() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 12, gap: 10, alignItems: 'flex-start' }}>
+      {(() => {
+        // ONE frame at a time, chosen by the pill. Both stacked no longer fits
+        // on the phone once the 900 box is there, and a screenshot of a frame
+        // that is half off-screen proves nothing about that frame.
+        const f = LAB_FRAMES[frame];
+        return (
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang} · {group}</Text>
+            {record && (
+              <Text style={{ fontSize: 9, color: INK_MUTED }}>
+                {layoutFigure(
+                  { ...record, active_group: group, lang } as never,
+                  f.w, f.h
+                ).labels.map((l) =>
+                  `${l.id}:${l.dir}/${l.leaderLen.toFixed(0)}pt${l.overlapped ? '!OVERLAP' : ''}`
+                ).join('  ')}
+              </Text>
+            )}
+            <View style={{ width: f.w, height: f.h, borderWidth: StyleSheet.hairlineWidth,
+                           borderColor: HAIRLINE, backgroundColor: colors.paper }}>
+              {record && (
+                <BoardWidget
+                  event={{ seq: 1, tier: 'precomputed',
+                           payload: { widget: 'labelled_figure', version: 1,
+                                      params: { asset_slug: FROG_SLUG, lang,
+                                                active_group: group } } }}
+                  activeSeq={1}
+                  width={f.w}
+                  height={f.h}
+                  theme={theme}
+                  services={DEV_SERVICES}
+                  figures={devResolver}
+                  onGap={(reason, detail) => console.warn('[frog-label-lab gap]', reason, detail)}
+                />
+              )}
+            </View>
+          </View>
+        );
+      })()}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {LAB_FRAMES.map((f, i) => (
           <Pressable key={f.label} onPress={() => setFrame(i)}
@@ -554,46 +603,6 @@ function FrogLabelLab() {
       </View>
       <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
       <Text style={{ fontSize: 10, color: INK_MUTED }}>GATE: {gate}</Text>
-      {LAB_FRAMES.map((f) => (
-        <View key={f.label} style={{ gap: 4 }}>
-          <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang}</Text>
-          {/*
-            THE PLACEMENT DECISION, INSPECTABLE. Which compass direction each
-            label took and how long its leader is — the two numbers that say
-            whether a layout is doing what it claims. Recomputed here with the
-            same function the widget uses, so the overlay cannot drift from
-            the render.
-          */}
-          {record && (
-            <Text style={{ fontSize: 9, color: INK_MUTED }}>
-              {layoutFigure(
-                { ...record, active_group: group, lang } as never,
-                f.w, f.h
-              ).labels.map((l) =>
-                `${l.id}:${l.dir}/${l.leaderLen.toFixed(0)}pt${l.overlapped ? '!OVERLAP' : ''}`
-              ).join('  ')}
-            </Text>
-          )}
-          <View style={{ width: f.w, height: f.h, borderWidth: StyleSheet.hairlineWidth,
-                         borderColor: HAIRLINE, backgroundColor: colors.paper }}>
-            {record && (
-              <BoardWidget
-                event={{ seq: 1, tier: 'precomputed',
-                         payload: { widget: 'labelled_figure', version: 1,
-                                    params: { asset_slug: FROG_SLUG, lang,
-                                              active_group: group } } }}
-                activeSeq={1}
-                width={f.w}
-                height={f.h}
-                theme={theme}
-                services={DEV_SERVICES}
-                figures={devResolver}
-                onGap={(reason, detail) => console.warn('[frog-label-lab gap]', reason, detail)}
-              />
-            )}
-          </View>
-        </View>
-      ))}
     </ScrollView>
   );
 }
