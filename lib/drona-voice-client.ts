@@ -21,7 +21,15 @@ export interface BoardEvent {
   type: 'text' | 'heading' | 'note' | 'formula' | 'diagram' | string;
   text?: string;
   latex?: string;
-  emphasis?: boolean;
+  /**
+   * `normal | key | high`, as the planner emits it — NOT a boolean.
+   *
+   * It was typed `boolean` here, and `"normal"` is a truthy string, so every
+   * line the server marked as ordinary rendered in the emphasised style. The
+   * whole board came out bold. `app/lesson-player.tsx` has always read the
+   * three values correctly; the classroom did not.
+   */
+  emphasis?: 'normal' | 'key' | 'high' | (string & {});
   /** `diagram` events only: complete, self-contained, server-validated SVG.
    *  See `components/board-diagram.tsx` for what the host owes it. */
   svg?: string;

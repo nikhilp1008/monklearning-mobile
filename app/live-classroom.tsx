@@ -1692,11 +1692,19 @@ function BoardBlockView({
     return <Text style={styles.boardEquation}>{text}</Text>;
   }
   if (event.type === 'note') {
-    return <Text style={[styles.boardKalamNote, { color: colors.red }]}>{text}</Text>;
+    return <Text style={[styles.boardNote, { color: colors.red }]}>{text}</Text>;
   }
-  return (
-    <Text style={[styles.boardBody, event.emphasis && styles.boardBodyBold]}>{text}</Text>
-  );
+  /**
+   * Bold on `key` or `high` only.
+   *
+   * `emphasis` is a string from the planner — `normal | key | high` — and it
+   * was typed as a boolean here, so `"normal"` came through truthy and every
+   * ordinary line rendered bold. The board had no non-emphasised state at all,
+   * which is why all of it looked shouted. Same comparison the lesson player
+   * has always made.
+   */
+  const emphasised = event.emphasis === 'key' || event.emphasis === 'high';
+  return <Text style={[styles.boardBody, emphasised && styles.boardBodyBold]}>{text}</Text>;
 }
 
 /**
@@ -2025,12 +2033,24 @@ function createStyles(
     enteringCardOverlay: {
       zIndex: 20,
     },
+    /**
+     * A section title. One blank rule above it and none below, so a heading
+     * belongs to what follows it instead of floating between two paragraphs —
+     * the board had no margins at all, which is why nothing grouped. 26 is a
+     * whole rule, so the writing stays on the lines.
+     *
+     * No tilt. It used to carry `rotate(-0.4deg)` from when the board was set
+     * in Kalam and a slight lean read as handwriting. Kalam is gone and this
+     * is Onest: a tilted bold sans on ruled paper does not read as
+     * handwritten, it reads as misaligned. On a 300pt heading the last letter
+     * sat 2.09pt off its rule.
+     */
     boardHeading: {
       fontFamily: 'Onest_700Bold',
       fontSize: 17,
       lineHeight: RHYTHM,
+      marginTop: RHYTHM,
       color: RED,
-      transform: [{ rotate: '-0.4deg' }],
     },
     boardEquation: {
       fontFamily: 'Onest_800ExtraBold',
@@ -2038,7 +2058,7 @@ function createStyles(
       lineHeight: RHYTHM,
       color: INK,
     },
-    // No maxWidth. There used to be a 560 cap here and on boardKalamNote,
+    // No maxWidth. There used to be a 560 cap here and on boardNote,
     // which is a sane reading measure for a portrait column and the wrong one
     // for this board: the content box is windowWidth - BOARD_LEFT(56) -
     // BOARD_RIGHT_GUTTER(116), which on an iPhone 17 landscape is 702pt, so
@@ -2047,9 +2067,19 @@ function createStyles(
     // bounded by the notch gutter on one side and the thumb-rail clearance on
     // the other. If lines ever feel too long to track on a wider device, cap
     // it again against the measured board width rather than a fixed 560.
+    /**
+     * The reading text, and after the emphasis fix it is most of the board
+     * rather than a secondary tone — 7.65:1 on white, so it carries prose.
+     *
+     * 14.5 rather than 13.5: the rule spacing is fixed at 26, so the smaller
+     * size gave body copy 1.93 leading where the 17pt heading got 1.53 — the
+     * small text was the airiest thing on the board and the large text the
+     * tightest, which is backwards. 14.5 brings it to 1.79 and is easier to
+     * read on a phone.
+     */
     boardBody: {
       fontFamily: 'Onest_400Regular',
-      fontSize: 13.5,
+      fontSize: 14.5,
       lineHeight: RHYTHM,
       color: INK_MUTED,
     },
@@ -2057,11 +2087,12 @@ function createStyles(
       fontFamily: 'Onest_700Bold',
       color: INK,
     },
-    boardKalamNote: {
+    // An exam callout. Named for Kalam once; the font and its tilt are both
+    // gone, and size is what separates it from a heading now (14.5 to 17).
+    boardNote: {
       fontFamily: 'Onest_700Bold',
       fontSize: 14.5,
       lineHeight: RHYTHM,
-      transform: [{ rotate: '-0.4deg' }],
     },
     writingRow: {
       flexDirection: 'row',
