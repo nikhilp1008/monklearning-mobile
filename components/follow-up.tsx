@@ -1,4 +1,10 @@
-import { RecordingPresets, createAudioPlayer, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
+import {
+  RecordingPresets,
+  createAudioPlayer,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +37,38 @@ const LISTENING = '#C53A2B';
 /** Past this, an answer wants the rail and the room rather than a bar. */
 const SHORT_ANSWER_CHARS = 240;
 
+/**
+ * The iOS audio session, which this screen has to move between two categories.
+ *
+ * expo-audio's recorder cannot start unless the session allows recording, and
+ * nothing else in the app ever puts it there: the classroom records through
+ * `@siteed/audio-studio`, which asks for its own category, and deliberately
+ * leaves expo-audio's mode on playback so Drona is not routed to the earpiece
+ * (see the comment in live-classroom.tsx). Anywhere else the session is on
+ * iOS's default `soloAmbient`. Both refuse to record, which is why
+ * `prepareToRecordAsync` threw every single time and the bar said "Could not
+ * start listening" even with a microphone that works in class.
+ *
+ * The two modes cannot be collapsed into one. `allowsRecording: true` puts iOS
+ * into `.playAndRecord`, and expo-audio has no `defaultToSpeaker`, so the
+ * spoken answer would come back through the EARPIECE — audible only against
+ * your ear, which reads as broken. So: record in one mode, speak in the other.
+ */
+const RECORDING_SESSION = {
+  allowsRecording: true,
+  playsInSilentMode: true,
+  shouldPlayInBackground: false,
+  interruptionMode: 'mixWithOthers',
+} as const;
+
+/** What the rest of the app expects to find: playback, through the speaker. */
+const PLAYBACK_SESSION = {
+  allowsRecording: false,
+  playsInSilentMode: true,
+  shouldPlayInBackground: false,
+  interruptionMode: 'mixWithOthers',
+} as const;
+
 type Phase = 'listening' | 'thinking' | 'brief' | 'detailed' | 'failed';
 
 type FollowUpProps = {
@@ -59,6 +97,11 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
       abortRef.current?.abort();
       playerRef.current?.remove();
       recorder.stop().catch(() => {});
+      // Closing mid-listen must not leave the session recording-shaped. The
+      // classroom sets playback once on entry and never again, so a session
+      // left in `.playAndRecord` here would route Drona to the earpiece for
+      // the rest of the app's life.
+      setAudioModeAsync(PLAYBACK_SESSION).catch(() => {});
     },
     [recorder]
   );
@@ -83,11 +126,18 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         setPhase('failed');
         return;
       }
+      // Before prepareToRecordAsync, not after: on iOS the recorder cannot be
+      // prepared at all while the session is on a non-recording category, and
+      // it is on one every time this screen opens.
+      await setAudioModeAsync(RECORDING_SESSION);
       await recorder.prepareToRecordAsync();
       recorder.record();
     } catch {
       setError('Could not start listening. Try again.');
       setPhase('failed');
+      // Do not leave the session in .playAndRecord after a failed start — the
+      // earpiece routing would outlive this screen and quieten Drona.
+      setAudioModeAsync(PLAYBACK_SESSION).catch(() => {});
     }
   }, [recorder]);
 
@@ -106,6 +156,11 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
     } catch {
       // An unstoppable recorder still has whatever it captured.
     }
+    // Back to playback the moment the microphone is done, and before the
+    // answer is spoken: `.playAndRecord` would send Drona's voice to the
+    // earpiece, which sounds like the feature failed rather than like a
+    // routing choice.
+    setAudioModeAsync(PLAYBACK_SESSION).catch(() => {});
     if (!uri) {
       setError('Nothing was recorded. Try again.');
       setPhase('failed');
