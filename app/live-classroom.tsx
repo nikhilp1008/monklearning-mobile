@@ -115,6 +115,9 @@ const RAIL_HALF = 84;
 const RAIL_TUCK_X = 96;
 /** `sleepC`'s timer: how long the ring lingers after the last touch. */
 const DOCK_SLEEP_MS = 1500;
+/** How long after the window agrees before another rotation is allowed. Long
+ *  enough that UIKit has finished the transition, not merely started it. */
+const ROTATE_SETTLE_MS = 650;
 
 /**
  * The two waits after an answer.
@@ -220,7 +223,9 @@ export default function LiveClassroomScreen() {
    * a slow or refused lock painted the wide layout into an upright window.
    */
   const [wantLandscape, setWantLandscape] = useState(false);
+
   const oriented = useOrientation(wantLandscape ? 'landscape' : 'portrait');
+
   const params = useLocalSearchParams<{
     sessionId?: string;
     chapterTitle?: string;
@@ -241,6 +246,55 @@ export default function LiveClassroomScreen() {
    * of painting a wide board into an upright window.
    */
   const isLandscape = windowWidth > windowHeight;
+  /**
+   * ONE ROTATION AT A TIME.
+   *
+   * Tapping rotate again while the last one is still turning is what pulls
+   * iOS and React Native apart: the device ends up where it was told, RN's
+   * `Dimensions` keeps reporting the orientation before last, and the board
+   * lays itself out landscape inside a portrait window — half the phone
+   * unpainted, and stuck there. The hook can recover from that now, but not
+   * provoking it is better than healing it.
+   *
+   * `settled` is simply "the window is the shape we asked for". Until it is,
+   * the rotate control ignores presses. A student cannot tap faster than the
+   * phone can turn, which is the only guarantee that matters here.
+   */
+
+  const settled = isLandscape === wantLandscape;
+  /**
+   * MATCHING IS NOT THE SAME AS FINISHED.
+   *
+   * `isLandscape` comes from `Dimensions`, and `Dimensions` updates partway
+   * through the rotation — before UIKit has finished resizing the scene. A
+   * guard that only waited for the two to agree therefore opened again while
+   * the phone was still turning, which is exactly the window that leaves
+   * React Native's root view sized for one orientation inside a window that
+   * is the other. So the control stays shut for a beat after they agree.
+   *
+   * ROTATE_SETTLE_MS is not tuned to a human; it is tuned to UIKit. A student
+   * cannot tap faster than this, which is the point — the control is only ever
+   * closed during a transition they can see happening.
+   */
+  const [rotateReady, setRotateReady] = useState(true);
+  useEffect(() => {
+    if (!settled) {
+      setRotateReady(false);
+      return;
+    }
+    const id = setTimeout(() => setRotateReady(true), ROTATE_SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [settled, wantLandscape]);
+  const requestOrientation = useCallback(
+    (next: boolean) => {
+      if (next === wantLandscape) return;
+      if (!settled || !rotateReady) return;
+      setWantLandscape(next);
+    },
+    [wantLandscape, settled, rotateReady]
+  );
+
+
   const styles = useMemo(
     () => createStyles(scale, verticalScale, isLandscape),
     [scale, verticalScale, isLandscape]
@@ -1583,7 +1637,7 @@ export default function LiveClassroomScreen() {
                 gone and this is the control that earns it. */}
             <Pressable
               style={styles.railCtrl}
-              onPress={() => setWantLandscape(false)}
+              onPress={() => requestOrientation(false)}
               hitSlop={8}
               accessibilityLabel="Rotate to portrait">
               <RotateIcon size={19} color={INK_MUTED} portrait />
@@ -1635,7 +1689,7 @@ export default function LiveClassroomScreen() {
 
               <Pressable
                 style={styles.dockCtrl}
-                onPress={() => setWantLandscape(true)}
+                onPress={() => requestOrientation(true)}
                 hitSlop={8}
                 accessibilityLabel="Rotate to landscape">
                 <RotateIcon size={21} color={INK_MUTED} />

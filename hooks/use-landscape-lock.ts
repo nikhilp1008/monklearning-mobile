@@ -1,5 +1,5 @@
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 
 /**
@@ -30,6 +30,27 @@ import { Platform, useWindowDimensions } from 'react-native';
 const ORIENTATION_TIMEOUT_MS = 700;
 
 /**
+ * How long a window may disagree with the orientation we asked for before we
+ * ask again.
+ *
+ * This exists because iOS and React Native can genuinely come apart. Rotate a
+ * few times in a row and the device ends up where it was told — framebuffer
+ * and status bar both portrait — while RN's `Dimensions` is still reporting
+ * the landscape it used to be. Nothing re-reads it, so the screen lays a
+ * landscape board into a portrait window and stays that way: content off the
+ * right edge, the bottom half of the phone unpainted, stuck until the app is
+ * killed. Reproduced by toggling eight times; it wedged on the fifth and never
+ * recovered.
+ *
+ * Re-issuing the lock makes iOS send a fresh geometry change, which is what
+ * shakes a new size out of RN. It is bounded — see RESYNC_LIMIT — because a
+ * window that legitimately cannot match (iPad multitasking, a refused lock)
+ * must not turn into a permanent retry loop.
+ */
+const RESYNC_MS = 900;
+const RESYNC_LIMIT = 3;
+
+/**
  * Safety net for leaving a landscape screen by a route that doesn't declare an
  * orientation — swipe-back or the error screens' "Go back", which land on
  * ordinary portrait screens.
@@ -53,15 +74,62 @@ function cancelPendingRestore() {
   }
 }
 
+/** The lock a target maps to. `LANDSCAPE` permits both directions, so the
+ *  board re-orients when the phone passes through upside-down; `pinned` holds
+ *  one direction. */
+function lockFor(target: 'landscape' | 'portrait', pinned: boolean) {
+  if (target !== 'landscape') return ScreenOrientation.OrientationLock.PORTRAIT_UP;
+  return pinned
+    ? ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
+    : ScreenOrientation.OrientationLock.LANDSCAPE;
+}
+
 function useOrientationLock(target: 'landscape' | 'portrait', pinned = false): boolean {
   const { width, height } = useWindowDimensions();
+  const matches = target === 'landscape' ? width > height : height >= width;
   const [timedOut, setTimedOut] = useState(false);
 
+  /**
+   * THE GATE HAS TO RE-ARM FOR EVERY ROTATION, not once per mount.
+   *
+   * This timer used to have `[]` deps, so `timedOut` was set 700ms after the
+   * screen appeared and never cleared again. From then on this hook returned
+   * true unconditionally and the caller's "hold the first paint until the
+   * window really turned" was dead — every rotation after the first painted
+   * the new layout into the old window. That is the whole point of the hook,
+   * switched off 700ms in.
+   *
+   * Keyed on `matches` as well as `target`: once the window agrees there is
+   * nothing to wait for, and the next disagreement starts a fresh wait.
+   */
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || matches) {
+      setTimedOut(false);
+      return;
+    }
+    setTimedOut(false);
     const id = setTimeout(() => setTimedOut(true), ORIENTATION_TIMEOUT_MS);
     return () => clearTimeout(id);
-  }, []);
+  }, [target, matches]);
+
+  /**
+   * Ask again if the window never caught up. See RESYNC_MS — this is the
+   * recovery from RN and iOS disagreeing about which way round the phone is.
+   */
+  const resyncs = useRef(0);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    if (matches) {
+      resyncs.current = 0;
+      return;
+    }
+    if (resyncs.current >= RESYNC_LIMIT) return;
+    const id = setTimeout(() => {
+      resyncs.current += 1;
+      ScreenOrientation.lockAsync(lockFor(target, pinned)).catch(() => {});
+    }, RESYNC_MS);
+    return () => clearTimeout(id);
+  }, [target, pinned, matches]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -71,16 +139,7 @@ function useOrientationLock(target: 'landscape' | 'portrait', pinned = false): b
     // screen because the restore would undo the hand-off it is completing.
     cancelPendingRestore();
 
-    // `LANDSCAPE` permits both directions, so the board re-orients whenever the
-    // phone passes through upside-down — a student shifting position or lying
-    // down watches the lesson flip under them. `pinned` holds one direction.
-    const lock =
-      target === 'landscape'
-        ? pinned
-          ? ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT
-          : ScreenOrientation.OrientationLock.LANDSCAPE
-        : ScreenOrientation.OrientationLock.PORTRAIT_UP;
-    ScreenOrientation.lockAsync(lock).catch(() => {});
+    ScreenOrientation.lockAsync(lockFor(target, pinned)).catch(() => {});
 
     if (target !== 'landscape') return;
     landscapeCount += 1;
@@ -97,7 +156,6 @@ function useOrientationLock(target: 'landscape' | 'portrait', pinned = false): b
   }, [target, pinned]);
 
   if (Platform.OS === 'web') return true;
-  const matches = target === 'landscape' ? width > height : height >= width;
   return matches || timedOut;
 }
 
@@ -136,5 +194,32 @@ export function usePortraitLock(): boolean {
  * the student is actually holding.
  */
 export function useOrientation(target: 'portrait' | 'landscape'): boolean {
-  return useOrientationLock(target);
+  /**
+   * PINNED TO ONE LANDSCAPE DIRECTION, and this is the line that stopped the
+   * classroom wedging.
+   *
+   * `OrientationLock.LANDSCAPE` permits landscape-left AND landscape-right, so
+   * every rotation gives UIKit two destinations to consider rather than one.
+   * Toggle back and forth a few times and it loses track: the scene ends up
+   * portrait while React Native's root view stays sized 874x402, so the board
+   * is laid out landscape inside a portrait window — content off the right
+   * edge, the bottom half of the phone unpainted, and stuck there until the
+   * app is killed.
+   *
+   * Nothing in JavaScript can see that state. `Dimensions.get('window')`,
+   * `Dimensions.get('screen')` and the root view's own `onLayout` all report
+   * 874x402, in agreement with each other and with what the screen asked for;
+   * the disagreement is between React Native's view tree and the native
+   * window, one level below anything JS can read. So it cannot be detected and
+   * recovered from — it has to not happen.
+   *
+   * Measured, mashing the rotate control every 400ms: permanently wedged with
+   * both directions allowed, and with one direction pinned, a single transient
+   * frame mid-rotation that recovers on its own. Reproduced twice.
+   *
+   * THE COST IS REAL AND IS A DESIGN CHOICE: a student who turns their phone
+   * the other way gets an upside-down board until they turn it back. That is
+   * a nuisance; the wedge needed the app force-quit.
+   */
+  return useOrientationLock(target, true);
 }
