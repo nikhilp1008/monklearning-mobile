@@ -187,13 +187,17 @@ const styles = StyleSheet.create({
     paddingRight: RIGHT,
   },
   barWrap: { position: 'absolute', left: 0, right: 0, top: 0 },
+  // Opaque, with a hairline under it. At .94 the scrolled board showed through
+  // the bar, which made a preview meant for judging type look like a bug.
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     paddingHorizontal: 18,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,.94)',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(28,26,22,.12)',
   },
   back: { fontFamily: 'Onest_700Bold', fontSize: 13, color: INK },
   label: { fontFamily: 'Onest_400Regular', fontSize: 11, color: INK_FAINT },

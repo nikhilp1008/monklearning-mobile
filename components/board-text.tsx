@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BoardDiagram } from '@/components/board-diagram';
-import { INK, INK_MUTED, RHYTHM } from '@/components/classroom-chrome';
+import { AMBER_WASH, INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
 import { latexToText } from '@/lib/latex-text';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
@@ -100,7 +100,11 @@ export function BoardBlockView({
     return <Text style={styles.boardHeading}>{text}</Text>;
   }
   if (event.type === 'formula') {
-    return <Text style={styles.boardEquation}>{text}</Text>;
+    return (
+      <View style={styles.boardFormulaPlate}>
+        <Text style={styles.boardEquation}>{text}</Text>
+      </View>
+    );
   }
   if (event.type === 'note') {
     return <Text style={styles.boardNote}>{text}</Text>;
@@ -118,43 +122,100 @@ export function BoardBlockView({
   return <Text style={[styles.boardBody, emphasised && styles.boardBodyBold]}>{text}</Text>;
 }
 
+/**
+ * SPACING AND SIZE, NOT THE RULE GRID.
+ *
+ * Every style used to be locked to `lineHeight: RHYTHM` so the writing sat on
+ * the ruled lines. That is a charming idea and it was the wrong master: 26pt
+ * of leading is right for a 17pt heading and much too tight for a stack of
+ * 15pt prose, it forced four different sizes onto one rhythm, and because a
+ * whole line was the only unit of space available, nothing could be separated
+ * by less than a rule or more than a rule. Hence the congestion.
+ *
+ * The rules are decoration now. They are .075 alpha — a line passes behind a
+ * word without touching it — and the type is spaced for reading instead.
+ *
+ * SPACE IS `marginTop` ONLY, never marginBottom. Yoga does not collapse
+ * margins the way CSS does, so a block with both would add its bottom to the
+ * next block's top and the gap would depend on what happened to precede it.
+ * With top-only, the gap between any two blocks is exactly the lower one's
+ * marginTop — one number, readable off this sheet.
+ *
+ * THE LADDER IS WEIGHT, then size: 400 prose, 600 the line that matters, 700
+ * headings and formulas. No colour at all, so a student who cannot see colour
+ * reads the same hierarchy as everyone else.
+ */
 const styles = StyleSheet.create({
+  /** The section title. The largest thing on the board and the only one with a
+   *  real break above it — 32 says "new idea" where 12 says "next line". */
   boardHeading: {
     fontFamily: 'Onest_700Bold',
-    fontSize: 17,
-    lineHeight: RHYTHM,
-    marginTop: RHYTHM,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.2,
+    marginTop: 32,
     color: INK,
   },
-  boardEquation: {
-    fontFamily: 'Onest_800ExtraBold',
-    fontSize: 17,
-    lineHeight: RHYTHM,
-    color: INK,
-  },
+
+  /**
+   * The reading text. 15/23 is 1.53 leading, and on a 346pt measure that is
+   * about 45 characters a line — normal for a phone, where iOS's own body text
+   * runs nearer 40. The old 13.5 on a 26pt line was 1.93, the airiest thing on
+   * a board whose headings were the tightest.
+   */
   boardBody: {
     fontFamily: 'Onest_400Regular',
-    fontSize: 14.5,
-    lineHeight: RHYTHM,
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: 12,
     color: INK_MUTED,
   },
+  /** `key` or `high`. 600 and full ink: darker and firmer than the prose round
+   *  it, without the shout of 700 at reading size. */
   boardBodyBold: {
-    fontFamily: 'Onest_700Bold',
+    fontFamily: 'Onest_600SemiBold',
     color: INK,
   },
+
   /**
-   * NO COLOUR ANYWHERE ON THIS BOARD. The heading and the note were both red
-   * and both are ink now.
+   * The formula, centred on its own plate.
    *
-   * Which leaves a collision worth naming rather than hiding: a note and an
-   * emphasised body line are now identical — 700 at 14.5 in ink. Nothing but
-   * colour was separating them, so removing colour removed the distinction
-   * entirely. Flagged for Nikhil rather than invented around.
+   * Centred because a formula is not a line of prose — it is a result, and
+   * left-aligning it buried it in the paragraph flow. The plate is the board's
+   * only filled surface, which is what makes it mean "formula" rather than
+   * decoration, and it is the existing amber wash rather than a new tone.
+   */
+  boardFormulaPlate: {
+    marginTop: 18,
+    alignSelf: 'stretch',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: AMBER_WASH,
+  },
+  boardEquation: {
+    fontFamily: 'Onest_700Bold',
+    fontSize: 19,
+    lineHeight: 26,
+    textAlign: 'center',
+    color: INK,
+  },
+
+  /**
+   * The exam callout, marked by an indent rather than by colour.
+   *
+   * It was red, and red was the only thing separating it from an emphasised
+   * body line. With colour gone the indent does that job: a block stepped in
+   * from the measure reads as an aside in any typeface, and it costs nothing.
+   * Smaller and lighter than the line it follows, because an aside should sit
+   * below the argument rather than on top of it.
    */
   boardNote: {
-    fontFamily: 'Onest_700Bold',
-    fontSize: 14.5,
-    lineHeight: RHYTHM,
-    color: INK,
+    fontFamily: 'Onest_500Medium',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 18,
+    paddingLeft: 16,
+    color: INK_MUTED,
   },
 });
