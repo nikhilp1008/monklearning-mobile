@@ -83,6 +83,9 @@ export default function SnapSolvedScreen() {
         text: latexToText(r.stem ?? r.question_text ?? 'Could not read this question.'),
         textRaw: r.stem ?? r.question_text ?? null,
         options: r.options?.map((o) => ({ ...o, label: o.label, text: o.text })) ?? null,
+        // Their own question, from their own photo — available on this frame,
+        // so it is on screen while the solve is still running.
+        questionImageUrl: r.question_image_url ?? null,
         steps: [],
         answer: null,
         pending: true,

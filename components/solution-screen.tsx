@@ -116,6 +116,17 @@ export type SolutionQuestion = {
   textRaw?: string | null;
   /** The figures the question was printed with, in reading order. */
   figureUrls?: string[] | null;
+  /**
+   * The question as it was photographed, cut from the student's own page.
+   *
+   * Shown in place of `text` when it is there. The transcription is what the
+   * SOLVER needs; it is not what a student should have to read back, because a
+   * half-read question arrives looking mangled in a way they cannot tell apart
+   * from a question that IS mangled. Null whenever the server could not cut a
+   * span — a two-column page, no geometry, a doubt saved before the crop
+   * existed — and then the text is shown exactly as before.
+   */
+  questionImageUrl?: string | null;
   /** The label(s) the answer landed on, so the right choice can be marked. */
   answerLabels?: string[] | null;
   /** The one-line takeaway, in the app's handwriting. */
@@ -220,6 +231,9 @@ export function SolutionScreen({
    *  more of it to ask for. */
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
+  /** The question crop, opened large. Closed on every question change below —
+   *  swiping to question 3 must not leave question 2 filling the screen. */
+  const [zoomed, setZoomed] = useState(false);
 
   // Advances only while something is actually pending, so a finished page is
   // not re-rendering on a timer it has no use for.
@@ -235,6 +249,7 @@ export function SolutionScreen({
   useEffect(() => {
     setExpanded(false);
     setClipped(false);
+    setZoomed(false);
   }, [index]);
 
   const select = (i: number) => {
@@ -294,7 +309,10 @@ export function SolutionScreen({
           // there when it is a line or two of text, let it scroll when it
           // carries a picture.
           stickyHeaderIndices={
-            question.options?.length || question.figureUrls?.length ? undefined : [0]
+            question.options?.length || question.figureUrls?.length
+            || question.questionImageUrl
+              ? undefined
+              : [0]
           }
           showsVerticalScrollIndicator={false}>
           {/* Pinned and opaque, so the grid never runs under it and the
@@ -309,7 +327,45 @@ export function SolutionScreen({
                 `numberOfLines` only applies on the plain path — a stacked
                 fraction is a view and cannot be line-clamped — so a question
                 carrying one shows in full. */}
-            {hasStackableFraction ? (
+            {/* Their own page, when the server could cut it out: the question
+                as printed, rather than a transcription that has been through
+                OCR and back. The crop is the STEM and its figure only — the
+                choices are still drawn below, because the correct one is
+                marked and a picture cannot be. Falls through to the text
+                whenever no crop exists, which is a two-column page, a photo
+                with no usable geometry, or any doubt saved before crops. */}
+            {question.questionImageUrl ? (
+              /* A page strip is far wider than it is tall, so `contain` in a
+                 box this shape leaves a band of dead space down each side and
+                 renders the words smaller than the text it replaced. The same
+                 image, blown up and blurred, fills that band: the question
+                 still sits sharp and uncropped on top, and the edges read as
+                 the page continuing rather than as the layout falling short. */
+              <Pressable
+                onPress={() => setZoomed(true)}
+                accessibilityRole="imagebutton"
+                accessibilityLabel="Open the question larger"
+                accessibilityHint="Shows the photographed question at full size">
+                <View style={styles.questionImageFrame}>
+                  <Image
+                    source={{ uri: question.questionImageUrl }}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    blurRadius={18}
+                    accessible={false}
+                    transition={120}
+                  />
+                  <View style={styles.questionImageVeil} />
+                  <Image
+                    source={{ uri: question.questionImageUrl }}
+                    style={styles.questionImage}
+                    contentFit="contain"
+                    transition={120}
+                    accessibilityLabel={question.text}
+                  />
+                </View>
+              </Pressable>
+            ) : hasStackableFraction ? (
               <MathLine
                 text={question.textRaw ?? question.text}
                 style={styles.questionText}
@@ -329,7 +385,7 @@ export function SolutionScreen({
                 lines it drew. This one is laid out untruncated and off the
                 page — no space, invisible to eye and screen reader — purely to
                 be measured. */}
-            <Text
+            {!question.questionImageUrl && <Text
               style={[styles.questionText, styles.questionProbe]}
               accessible={false}
               importantForAccessibility="no-hide-descendants"
@@ -339,8 +395,8 @@ export function SolutionScreen({
                 if (cut !== clipped) setClipped(cut);
               }}>
               {question.text}
-            </Text>
-            {clipped && (
+            </Text>}
+            {clipped && !question.questionImageUrl && (
               <Pressable
                 onPress={() => setExpanded((on) => !on)}
                 hitSlop={8}
@@ -355,7 +411,7 @@ export function SolutionScreen({
                 question refers to it. "As shown in the figure" is unanswerable
                 without it, and the written description the solver worked from
                 is a summary of the thing rather than the thing. */}
-            {!!question.figureUrls?.length && (
+            {!!question.figureUrls?.length && !question.questionImageUrl && (
               <View style={styles.figures}>
                 {question.figureUrls.map((url) => (
                   <Image
@@ -529,7 +585,59 @@ export function SolutionScreen({
           </Pressable>
         </View>
       </View>
+
+      {/* The question, opened big. Over the solution rather than routed to,
+          for the same reason the follow-up is: the student is in the middle
+          of reading working, and going somewhere else to see the question
+          loses the thing they were comparing it against.
+
+          Not edge to edge either — the card stops short of the top and bottom
+          so the screen behind stays visible, which is what makes the close
+          read as "put this down" rather than "go back". */}
+      {zoomed && !!question.questionImageUrl && (
+        <View style={styles.zoomRoot}>
+          <Pressable
+            style={styles.zoomScrim}
+            onPress={() => setZoomed(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close the enlarged question"
+          />
+          <View style={styles.zoomCard} pointerEvents="box-none">
+            <Image
+              source={{ uri: question.questionImageUrl }}
+              style={styles.zoomImage}
+              contentFit="contain"
+              transition={140}
+              accessibilityLabel={question.text}
+            />
+            {/* Top-left, over the card. A close control on the image itself
+                is the only affordance here — the scrim closes too, but
+                nothing tells you that. */}
+            <Pressable
+              style={styles.zoomClose}
+              onPress={() => setZoomed(false)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Close">
+              <CloseIcon />
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
+      <Path
+        d="M6 6l12 12M18 6L6 18"
+        stroke={INK}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
   );
 }
 
@@ -718,6 +826,64 @@ function createStyles() {
       height: 190,
       borderRadius: 8,
       backgroundColor: PAPER,
+    },
+    questionImageFrame: {
+      width: '100%',
+      height: 240,
+      borderRadius: 8,
+      overflow: 'hidden',
+      backgroundColor: PAPER,
+      justifyContent: 'center',
+    },
+    /* Over the blurred fill, under the sharp copy. The blur alone still reads
+       as a busy smear behind the words; this lifts it toward the page colour
+       so the question keeps the contrast it had as text. */
+    questionImageVeil: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(255,255,255,0.55)',
+    },
+    zoomRoot: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+    zoomScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,12,9,0.55)' },
+    zoomCard: {
+      width: '94%',
+      // A good amount of the screen, not all of it: the solution staying
+      // visible behind is what makes this feel like holding the question up
+      // rather than navigating away from the working.
+      maxHeight: '72%',
+      backgroundColor: PAPER,
+      borderRadius: 14,
+      paddingTop: 44,
+      paddingBottom: 12,
+      paddingHorizontal: 12,
+    },
+    zoomImage: {
+      width: '100%',
+      // Tall enough that a full-width page strip is finally readable, which
+      // is the entire reason for opening it.
+      height: 420,
+    },
+    zoomClose: {
+      position: 'absolute',
+      top: 8,
+      left: 8,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(28,26,22,0.06)',
+    },
+    questionImage: {
+      width: '100%',
+      // Taller than a figure, and for a different reason: this one carries
+      // WORDS. A figure only has to be recognisable; a stem has to be read at
+      // arm's length. `contain` keeps the page's own aspect ratio, so a short
+      // question simply leaves room at top and bottom rather than stretching.
+      height: 240,
+      // No background: this is the SHARP copy, sitting over the blurred fill
+      // that covers the frame. Painting it PAPER — which it did while it was
+      // the only layer — would hide the very thing the blur is there to do.
+      backgroundColor: 'transparent',
     },
     optionFigure: {
       width: '100%',

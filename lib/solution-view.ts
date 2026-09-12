@@ -39,6 +39,7 @@ export type SolvedSource = {
   status: DoubtStatus;
   failure_reason: string | null;
   figure_urls?: string[] | null;
+  question_image_url?: string | null;
   legibility_note?: string | null;
   chapter?: string | null;
   concept?: string | null;
@@ -75,6 +76,8 @@ export function solutionView(
     // apparent depth of the coin is ___" is being asked about a beaker, and
     // until now could not see it.
     figureUrls: source.figure_urls ?? null,
+    // The student's own question, shown instead of the transcription of it.
+    questionImageUrl: source.question_image_url ?? null,
     // Options go over UNCONVERTED too: `MathLine` does the conversion, and it
     // is the only thing that renders them. Converting here first would flatten
     // `\frac{16}{9}R` to `16R/9` before anything could stack it.
