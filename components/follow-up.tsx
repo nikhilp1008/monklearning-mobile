@@ -1,5 +1,6 @@
 import {
   RecordingPresets,
+  createAudioPlayer,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
@@ -10,8 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { SolutionSteps } from '@/components/solution-steps';
-import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUpStreaming } from '@/lib/doubt-followup';
-import { FollowUpAudio } from '@/lib/followup-audio';
+import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUp } from '@/lib/doubt-followup';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -87,7 +87,7 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const audioRef = useRef<FollowUpAudio | null>(null);
+  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
   const startedRef = useRef(false);
   /** Whether this answer has already begun speaking. */
@@ -96,7 +96,7 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
   useEffect(
     () => () => {
       abortRef.current?.abort();
-      audioRef.current?.stop();
+      playerRef.current?.remove();
       recorder.stop().catch(() => {});
       // Closing mid-listen must not leave the session recording-shaped. The
       // classroom sets playback once on entry and never again, so a session
@@ -228,22 +228,29 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
 
   async function play(spoken: string, controller: AbortController) {
     try {
-      audioRef.current?.stop();
-      const audio = new FollowUpAudio(doubtId);
-      audioRef.current = audio;
-      // Each frame is a finished WAV, played as it lands. FollowUpAudio rather
-      // than the classroom's queue: that one nudges a stalled playhead and
-      // shares a single player, and both of those turn short clips into a
-      // voice talking over itself. See lib/followup-audio.ts.
-      await speakFollowUpStreaming(
-        doubtId,
-        spoken,
-        (wav) => {
-          if (controller.signal.aborted) return;
-          audio.enqueue(wav);
-        },
-        controller.signal
-      );
+      // ONE file. Not a latency choice — a correctness one.
+      //
+      // Streaming split the audio at arbitrary byte boundaries every 0.8s,
+      // which lands mid-WORD, and each piece was played as its own file.
+      // Sequential file playback has a load-and-start gap at every join, so
+      // even with the overlap fixed the voice broke twice a second. The
+      // classroom's queue only sounds continuous because its clips are whole
+      // SENTENCES and the gap falls on a pause that was there anyway.
+      //
+      // Three attempts went into making chunked playback work — 0.7s clips,
+      // 2.5s clips, then a player of its own — and none of them could fix
+      // that, because splitting mid-word and rejoining across files is not
+      // something sequencing can repair.
+      //
+      // Whole-file costs about 2.4s against 1.9s, and cannot break or overlap
+      // at all. The server still streams, and a gapless version needs either
+      // sentence-boundary splits or a player that takes raw PCM.
+      const uri = await speakFollowUp(doubtId, spoken);
+      if (controller.signal.aborted || !uri) return;
+      playerRef.current?.remove();
+      const player = createAudioPlayer({ uri });
+      playerRef.current = player;
+      player.play();
     } catch {
       // The words are on screen. Speech that will not synthesise is a missing
       // extra, not a failed answer.
