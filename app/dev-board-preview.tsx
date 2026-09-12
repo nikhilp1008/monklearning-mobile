@@ -7,7 +7,6 @@ import { BoardBlockView } from '@/components/board-text';
 import {
   INK,
   INK_FAINT,
-  MarginRule,
   RHYTHM,
   RuledGround,
 } from '@/components/classroom-chrome';
@@ -132,10 +131,11 @@ const BOARD: BoardEvent[] = [
   },
 ];
 
-/** The portrait classroom's own gutters, so the line measure matches exactly. */
+/** The portrait classroom's own gutters, so the line measure matches exactly.
+ *  No margin rule: `Board 1c Faded Rules` has none, and a red ledger line is
+ *  the look its faded rules exist to avoid. */
 const LEFT = 40;
 const RIGHT = 22;
-const MARGIN_X = 28;
 
 export default function DevBoardPreviewScreen() {
   const oriented = usePortraitLock();
@@ -146,7 +146,6 @@ export default function DevBoardPreviewScreen() {
       <StatusBar style="dark" />
       <View style={styles.boardArea}>
         <RuledGround height={2400} />
-        <MarginRule x={MARGIN_X} />
         <ScrollView
           style={StyleSheet.absoluteFill}
           contentContainerStyle={styles.content}

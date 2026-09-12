@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Animated, {
@@ -38,7 +39,19 @@ export const INK_GHOST = '#C0BBAD';
 export const WAVE_QUIET = '#C7C1B2';
 export const PAPER = '#FCFAF4';
 export const BOARD = '#FFFFFF';
-export const RULE = 'rgba(28,26,22,.055)';
+/**
+ * The rule line, from `Board 1c Faded Rules`: .075 rather than the .055 this
+ * board shipped with. The rules also stop short of both edges now — see
+ * `RuledGround` — and a line that dissolves can afford to be a little stronger
+ * where it is actually drawn.
+ */
+export const RULE = 'rgba(28,26,22,.075)';
+/**
+ * How far the rules fade in from each edge. The handoff masks the whole ruled
+ * layer with `linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100%
+ * - 60px), transparent 100%)`, so 60 is the run at both ends.
+ */
+export const RULE_FADE = 60;
 export const MARGIN_RULE = 'rgba(221,68,51,.32)';
 export const AMBER = '#EEA31F';
 export const DEEP_AMBER = '#9A6A12';
@@ -235,6 +248,23 @@ const waveStyles = StyleSheet.create({
  * so the rules and the writing stay in register either way, and a fixed layer
  * costs nothing per frame.
  */
+/**
+ * The ruled page — rules that dissolve before they reach either edge.
+ *
+ * From `Board 1c Faded Rules`: the same 26pt spacing, but masked to nothing
+ * over the first and last 60pt. Its own note says why, and it is the right
+ * reason: it "keeps the notebook feel without the ledger look". A rule running
+ * hard into both bezels reads as a table; one that fades reads as paper.
+ *
+ * React Native has no `mask-image`, so the fade is done the other way round —
+ * two white gradients laid over the rules at each edge. The board behind is
+ * #fff, so painting white over a rule and masking it out are the same
+ * operation, and this needs no native mask view.
+ *
+ * The line sits at `(i + 1) * RHYTHM - 1`, matching the handoff's
+ * `repeating-linear-gradient(transparent 0 25px, … 25px 26px)`: the rule is
+ * the last point of each 26pt band, not the first point of the next one.
+ */
 export function RuledGround({ height }: { height: number }) {
   const rows = Math.ceil(height / RHYTHM) + 1;
   return (
@@ -246,12 +276,24 @@ export function RuledGround({ height }: { height: number }) {
             position: 'absolute',
             left: 0,
             right: 0,
-            top: (i + 1) * RHYTHM,
+            top: (i + 1) * RHYTHM - 1,
             height: 1,
             backgroundColor: RULE,
           }}
         />
       ))}
+      <LinearGradient
+        colors={['#FFFFFF', 'rgba(255,255,255,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[groundStyles.fade, { left: 0 }]}
+      />
+      <LinearGradient
+        colors={['rgba(255,255,255,0)', '#FFFFFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[groundStyles.fade, { right: 0 }]}
+      />
     </View>
   );
 }
@@ -375,6 +417,12 @@ export function EdgeTab({
 }
 
 const groundStyles = StyleSheet.create({
+  fade: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: RULE_FADE,
+  },
   margin: {
     position: 'absolute',
     top: 0,

@@ -43,8 +43,6 @@ import {
   INK_FAINT,
   INK_MUTED,
   LevelBars,
-  MARGIN_X,
-  MarginRule,
   RED,
   RHYTHM,
   RuledGround,
@@ -1209,7 +1207,6 @@ export default function LiveClassroomScreen() {
           </Pressable>
         </ScrollView>
 
-        <MarginRule x={isLandscape ? MARGIN_X : 28} />
         <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
 
         {/* Header — tucks up and out on a board tap. */}
