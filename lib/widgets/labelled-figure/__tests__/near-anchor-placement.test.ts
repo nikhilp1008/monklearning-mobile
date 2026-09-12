@@ -92,7 +92,7 @@ const FIXTURES: { name: string; iw: number; ih: number; groups: FigureGroup[]; l
       { id: 'venous', label: { english: 'Veins', hinglish: 'Veins' } },
     ],
     labels: [
-      g('heart', label('sinus-venosus', 0.6583, 0.4113, 'sinus venosus')),
+      g('heart', label('sinus-venosus', 0.4389, 0.4435, 'sinus venosus')),
       g('heart', label('right-atrium', 0.4528, 0.5323, 'right atrium')),
       g('heart', label('left-atrium', 0.5944, 0.5242, 'left atrium')),
       g('heart', label('ventricle', 0.4667, 0.7903, 'ventricle')),
@@ -102,8 +102,8 @@ const FIXTURES: { name: string; iw: number; ih: number; groups: FigureGroup[]; l
       g('arterial', label('systemic-arch', 0.4167, 0.1129, 'systemic arch')),
       g('arterial', label('pulmocutaneous-arch', 0.4639, 0.1371, 'pulmocutaneous arch')),
       g('venous', label('pulmonary-vein', 0.6528, 0.7137, 'pulmonary vein')),
-      g('venous', label('precaval-vein', 0.6528, 0.3065, 'precaval vein')),
-      g('venous', label('postcaval-vein', 0.6556, 0.5726, 'postcaval vein')),
+      g('venous', label('precaval-vein', 0.3531, 0.3202, 'precaval vein')),
+      g('venous', label('postcaval-vein', 0.3722, 0.6427, 'postcaval vein')),
     ],
   },
 ];
@@ -227,7 +227,7 @@ describe('the set gate', () => {
 
     expect(v.length).toBeGreaterThan(0);
     // Named, so an author knows what to move rather than being told "too dense".
-    expect(v.map((x) => x.labels).flat()).toContain('postcaval-vein');
+    expect(v.map((x) => x.labels).flat()).toContain('pulmocutaneous-arch');
     expect(v.every((x) => x.group === 'all')).toBe(true);
     // Both small frames refuse it; only the wide board has the room.
     expect([...new Set(v.map((x) => x.frame))]).toEqual(['343x236', '495x270']);
@@ -290,9 +290,9 @@ describe('how many labels one plate actually holds', () => {
     expect(layoutFigure(p, 343, 236).labels.filter((l) => l.overlapped).map((l) => l.id))
       .toEqual(['pulmocutaneous-arch', 'precaval-vein']);
     expect(layoutFigure(p, 495, 270).labels.filter((l) => l.overlapped).map((l) => l.id))
-      .toEqual(['postcaval-vein']);
+      .toEqual(['pulmocutaneous-arch']);
     expect(layoutFigure(p, 900, 430).labels.filter((l) => l.overlapped)).toEqual([]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('postcaval-vein'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('pulmocutaneous-arch'));
     warn.mockRestore();
   });
 

@@ -69,15 +69,46 @@
        so the viewer-left atrium is the right atrium.
   -->
   <g id="colour">
+    <!-- DORSAL STRUCTURES FIRST, so what is behind is painted behind.
+
+         The sinus venosus opens into the RIGHT atrium and lies DORSAL to it,
+         and in a ventral view dorsal means hidden. Painting order is the only
+         thing that says so: this group draws the sinus and the three caval
+         veins, and the right atrium's fill lands on top of them a few lines
+         below, covering the part that is behind the heart. The black outline
+         in the line-art group then draws over everything.
+
+         Fixed 2026-09-12. It was previously drawn beside the LEFT atrium
+         (viewer-right), which is the wrong chamber AND the wrong depth. -->
+    <g>
+      <!-- Colour band first, dashed outline ON TOP of it. The vessel underlays
+           further down this group would otherwise paint over these dashes and
+           leave three bare blue bars — which is exactly what the first render
+           of this fix showed. -->
+      <g stroke="#dbeafe" stroke-width="5.5" fill="none" stroke-linecap="round">
+        <path d="M120,70 C128,80 136,92 142,100"/>
+        <path d="M196,70 C188,80 180,92 174,100"/>
+        <path d="M128,168 C138,154 148,138 155,122"/>
+      </g>
+      <g stroke-dasharray="5 4" stroke="#1a1a1a" stroke-width="1.6" fill="none"
+         stroke-linecap="round">
+        <!-- sinus venosus, a sac dorsal to the right atrium -->
+        <path d="M135,110 C139,98 177,98 181,110 C177,122 139,122 135,110 Z" fill="#dbeafe"/>
+        <!-- precaval veins, entering from above-left and above-right -->
+        <path d="M120,70 C128,80 136,92 142,100"/>
+        <path d="M196,70 C188,80 180,92 174,100"/>
+        <!-- postcaval vein, entering from below and passing behind the heart -->
+        <path d="M128,168 C138,154 148,138 155,122"/>
+      </g>
+    </g>
+
     <!-- Closed regions: flat fill, no stroke of their own. -->
-    <!-- right atrium (viewer left) - deoxygenated -->
+    <!-- right atrium (viewer left) - deoxygenated, and it covers the sinus -->
     <path d="M152,150 C142,132 148,114 166,114 C178,114 182,130 182,150 Z" fill="#dbeafe"/>
     <!-- left atrium (viewer right) - oxygenated -->
     <path d="M212,150 C222,132 216,114 198,114 C186,114 182,130 182,150 Z" fill="#f9d8d8"/>
     <!-- ventricle - mixed blood in the single frog ventricle -->
     <path d="M152,150 C148,186 164,216 182,228 C200,216 216,186 212,150 Z" fill="#eae1eb"/>
-    <!-- sinus venosus, dorsal - deoxygenated -->
-    <path d="M210,102 C214,90 234,90 238,102 C234,112 214,112 210,102 Z" fill="#dbeafe"/>
 
     <!-- Vessel underlays: same geometry, wide light stroke, black line art on top. -->
     <g fill="none" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
@@ -95,8 +126,7 @@
       <g stroke="#dbeafe">
         <path d="M150,66 C158,50 166,32 172,20"/>
         <path d="M200,70 C212,52 224,32 232,16"/>
-        <path d="M236,72 C232,82 230,90 228,94"/>
-        <path d="M238,146 C234,130 232,116 232,108"/>
+
       </g>
       <!-- conus and truncus arteriosus - neutral warm grey -->
       <g stroke="#f1efeb">
@@ -135,14 +165,6 @@
          instead of as part of the ventricle outline. -->
     <path d="M150,154 C136,138 132,116 140,96"/>
     <path d="M160,152 C148,138 144,118 150,100"/>
-
-    <!-- SINUS VENOSUS, dorsal, so dashed: it lies behind the left atrium and
-         all three caval veins open into it. -->
-    <g stroke-dasharray="5 4">
-      <path d="M210,102 C214,90 234,90 238,102 C234,112 214,112 210,102 Z"/>
-      <path d="M236,72 C232,82 230,90 228,94"/>
-      <path d="M238,146 C234,130 232,116 232,108"/>
-    </g>
 
     <!-- ATRIA, two, sitting on the single ventricle. -->
     <path d="M152,150 C142,132 148,114 166,114 C178,114 182,130 182,150 Z"/>
