@@ -36,7 +36,6 @@ import {
   DARK_CHROME,
   DEEP_AMBER,
   EdgeTab,
-  GREEN_INK,
   HAIRLINE,
   INK,
   INK_FAINT,
@@ -110,6 +109,20 @@ const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong
 const RAIL_HALF = 108;
 /** Far enough right to clear the rail's own width plus its 12pt inset. */
 const RAIL_TUCK_X = 92;
+
+/**
+ * The portrait dock's height, from its parts, so anything that has to sit
+ * above it is derived rather than guessed.
+ *
+ * 44 button + 9 padding either side + 1 border either side = 64 for the
+ * plate, then the gap and the hint line under it. Guessing this is what put
+ * the jump chip on top of the hint text.
+ */
+const DOCK_OFFSET = 20;
+const DOCK_PLATE_H = 64;
+const DOCK_GAP = 6;
+const DOCK_HINT_H = 14;
+const DOCK_TOP = DOCK_OFFSET + DOCK_PLATE_H + DOCK_GAP + DOCK_HINT_H;
 const FOLLOW_SCROLL_MS = 350;
 /** A hold this long is a stuck button, not an answer. */
 const MAX_HOLD_MS = 30000;
@@ -219,7 +232,6 @@ export default function LiveClassroomScreen() {
   const [board, setBoard] = useState<BoardEvent[]>([]);
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-  const [sessionPhase, setSessionPhase] = useState('teaching');
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -263,12 +275,8 @@ export default function LiveClassroomScreen() {
    * voicing a question.
    */
   const [questionText, setQuestionText] = useState<string | null>(null);
-  const [liveTranscript, setLiveTranscript] = useState('');
-  const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
-  const [isThinking, setIsThinking] = useState(false);
 
   const clientRef = useRef<DronaVoiceClient | null>(null);
-  const answerVerdictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Lets the socket's session-ended callback reach the latest endClass
    *  without making the connect effect depend on it (which would tear the
    *  socket down and rebuild it on every render). */
@@ -323,10 +331,6 @@ export default function LiveClassroomScreen() {
         // A connect that lands on 'teaching' means the server is already
         // running turn one; see the kick-off note below.
         if (state.phase === 'teaching') serverStartedTurnRef.current = true;
-        // Bare state frames carry only the field that changed (e.g.
-        // `no_response_timer_paused`), so an unguarded assignment blanked the
-        // phase on every one of them.
-        if (state.phase) setSessionPhase(state.phase);
         // Checkpoint questions: the client holds these until the turn's audio
         // finishes, so by the time this arrives Drona has actually asked it.
         // Only when the frame actually carries them — the post-turn_complete
@@ -362,7 +366,6 @@ export default function LiveClassroomScreen() {
         // Drona is actually speaking: this fires when the first clip starts
         // playing. That is the handoff — the card goes, the board takes over.
         dismissCard();
-        setIsThinking(false);
         setBoard((prev) => [...prev, event]);
       },
       onBoardReplay: (events) => setBoard(events),
@@ -372,7 +375,6 @@ export default function LiveClassroomScreen() {
       // thinking" across her entire spoken reply.
       onCaptionReveal: (text: string) => {
         dismissCard();
-        setIsThinking(false);
         setCaption(text);
         // A cue caption describes the figure at the moment it changes, so it
         // outranks the narration line for that sentence — but only for that
@@ -385,9 +387,7 @@ export default function LiveClassroomScreen() {
         // the same sentence still writes after this and wins.
         setWidgetCaption(null);
       },
-      onTranscriptPartial: (text) => setLiveTranscript(text),
       onTranscriptFinal: (text) => {
-        setLiveTranscript('');
         // Speaking an answer counts the same as tapping a chip.
         if (text.trim()) {
           setCheckOptions([]);
@@ -395,14 +395,16 @@ export default function LiveClassroomScreen() {
         }
       },
       onSttTooShort: () => setCaption("Didn't catch that. Hold the button a little longer."),
-      onAnswerResult: (result) => {
-        setAnswerVerdict(result.verdict);
-        if (answerVerdictTimerRef.current) clearTimeout(answerVerdictTimerRef.current);
-        answerVerdictTimerRef.current = setTimeout(() => setAnswerVerdict(null), 5000);
-      },
-      // Backstop only — a turn that produced neither a caption nor a board line
-      // still has to release the status row.
-      onTurnComplete: () => setIsThinking(false),
+      /**
+       * The verdict has nowhere to go now, and that is worth saying out loud.
+       *
+       * It used to hold "Correct" / "Almost" / "Not quite" on the top row for
+       * five seconds, and the top row is empty by design. The student is not
+       * left guessing — Drona says the verdict in the next turn and the board
+       * writes it — but there is no longer a visual mark for it. Flagged for
+       * Nikhil: if it wants one, the chips themselves are the place, not the
+       * corner of the screen.
+       */
       // A card over a board that is never going to fill is worse than the
       // board's own error affordances, so every failure drops it.
       onTurnError: () => {
@@ -1067,36 +1069,12 @@ export default function LiveClassroomScreen() {
   // connect effect) is what avoids rebuilding the WebSocket each render.
   endClassRef.current = endClass;
 
-  /**
-   * What the room is waiting on, or nothing at all.
-   *
-   * `null` in the ordinary case — connected, Drona talking, nothing asked of
-   * the student — so the header carries the chapter and the two controls and
-   * no more. Every value here is something the student can act on.
-   */
-  const statusLine: string | null = handRaised
-    ? liveTranscript
-      ? 'Transcribing'
-      : 'Listening'
-    : answerVerdict === 'correct'
-      ? 'Correct'
-      : answerVerdict === 'partial'
-        ? 'Almost'
-        : answerVerdict
-          ? 'Not quite'
-          : isThinking
-            ? 'Thinking'
-            : paused
-              ? 'Paused'
-              : sessionPhase === 'wrapup'
-                ? 'Wrapping up'
-                : checkOptions.length > 0 || sessionPhase === 'awaiting_answer'
-                  ? 'Your turn'
-                  : null;
-
   // Suppressed while the student holds Interrupt, so bottom centre has one
   // owner — the Listening strip.
-  const showJumpChip = !following && !handRaised;
+  // Stands down for a checkpoint: the question and its answers own the space
+  // above the controls, and two stacked overlays in one place is how the chip
+  // ended up sitting on the dock's hint text.
+  const showJumpChip = !following && !handRaised && checkOptions.length === 0;
 
   // Hold the first paint until the window has actually turned, so the board
   // is never seen reflowing mid-rotation. Unlike the old landscape lock this
@@ -1196,26 +1174,17 @@ export default function LiveClassroomScreen() {
               {params.subtopic || chapterTitle}
             </Text>
           </View>
-          {/* NO "LIVE", AND NO DOT.
-              Both are gone: a class the student opened and is watching does
-              not need a badge telling them it is live, and the dot beside it
-              said the same thing a second time. Between them they cost 40pt
-              of a 362pt row, which the chapter title was paying for in
-              ellipsis.
+          {/* NOTHING ELSE IN THIS ROW.
+              "Your turn" was the last rung left and it has gone with the
+              others: the chips that appear for a checkpoint already say it is
+              the student's turn, and they say it where the answer is given
+              rather than in the corner of the screen. The row is the chapter,
+              a flag and End.
 
-              The other rungs stay. "Your turn", "Listening" and "Thinking"
-              are things the student can act on, and they now appear only when
-              they are true instead of sitting inside a permanent badge — the
-              row is quiet until the room has something to say.
-
-              Connecting/Reconnecting went earlier, and with the dot gone a
-              dropped socket now has no indicator at all. Flagged: worth a
-              deliberate treatment rather than a word in this row. */}
-          {statusLine && (
-            <Text style={styles.topLiveText} numberOfLines={1}>
-              {statusLine}
-            </Text>
-          )}
+              The state itself is not lost — every rung that mattered has a
+              home in the body of the screen: Listening and Transcribing are
+              on the Interrupt button, Thinking and Paused are visible in the
+              board and the pause control, and a checkpoint is its own chips. */}
           <View style={styles.topSpacer} />
           {/* Icon only in portrait, which is how the reference draws it. The
               label is 40pt of a 362pt row and portrait has none to spare —
@@ -1239,12 +1208,39 @@ export default function LiveClassroomScreen() {
           </Pressable>
         )}
 
+      </View>
+
+      {/* THE CHECKPOINT, AS ONE BLOCK ABOVE THE CONTROLS.
+          The question and its answers used to be positioned separately: the
+          strip was a flex child at the bottom of the screen and the chips were
+          absolute inside the board at bottom 18, with `right: 96` reserving a
+          channel for the landscape thumb rail. In portrait there is no rail
+          and the dock owns the bottom 104pt, so both landed behind it —
+          answers the student could see the top edge of and not press.
+
+          They are one column now, anchored above whichever control set the
+          orientation uses, so the question is always directly over the chips
+          that answer it and neither can go under a control.
+
+          It also stopped resizing the board. As a flex child the strip took 54
+          from the board every time a question appeared, so the writing jumped;
+          the handoff is explicit that these are overlays and the board does
+          not resize under them.
+
+          Notation, not dictation. `speech` is authored for TTS and may not
+          contain LaTeX, so it spells maths out — "3.2 times 10 to the power
+          minus 19". That is right for the ear and wrong for the eye sitting
+          under a board that renders 1.6 x 10^-19 C properly. Converted at the
+          point of display only; the audio and the stored caption are
+          untouched. */}
+      <View style={styles.askColumn} pointerEvents="box-none">
+        <CaptionStrip open={checkOptions.length > 0} listening={false} text={captionText} />
         {/* Answer chips for Drona's checkpoint questions. Previously the state
             frame's check_options were parsed and then discarded, so a student
             was told "Your turn" with nothing on screen to answer with — the
             class simply stalled. Mirrors web's AskSheet. */}
         {checkOptions.length > 0 && questionText && !handRaised && (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.askSheet}>
+          <Animated.View entering={FadeIn.duration(200)} style={styles.askRow}>
             {checkOptions.map((option) => (
               <Pressable
                 key={option}
@@ -1253,7 +1249,6 @@ export default function LiveClassroomScreen() {
                   clientRef.current?.sendAnswer(option);
                   setCheckOptions([]);
                   setQuestionText(null);
-                  setIsThinking(true);
                 }}>
                 <Text style={styles.askChipText}>{option}</Text>
               </Pressable>
@@ -1261,20 +1256,6 @@ export default function LiveClassroomScreen() {
           </Animated.View>
         )}
       </View>
-
-      {/* One strip, two states — the caption line and Listening are mutually
-          exclusive, so the bottom edge always has exactly one owner. */}
-      {/* The strip also opens for a checkpoint regardless of the CC toggle:
-          chips are answers, and answers with the question hidden are the exact
-          thing this screen is not allowed to show. It closes again on its own
-          the moment the question is answered. */}
-      {/* Notation, not dictation. `speech` is authored for TTS and may not
-          contain LaTeX (the engine reads the delimiters aloud), so it spells
-          maths out — "3.2 times 10 to the power minus 19". That is right for
-          the ear and wrong for the eye sitting under a board that renders
-          1.6 × 10⁻¹⁹ C properly. Converted at the point of display only; the
-          audio and the stored caption are untouched. */}
-      <CaptionStrip open={checkOptions.length > 0} listening={false} text={captionText} />
 
       {/* Landscape keeps the thumb rail on the right, where a hand holding the
           phone sideways already is. Portrait puts the same controls in a dock
@@ -2009,13 +1990,6 @@ function createStyles(
       fontSize: 13,
       color: INK,
     },
-    topLiveText: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 10,
-      letterSpacing: 0.12 * 10,
-      textTransform: 'uppercase',
-      color: GREEN_INK,
-    },
     topSpacer: {
       flex: 1,
     },
@@ -2061,7 +2035,9 @@ function createStyles(
     liveChip: {
       position: 'absolute',
       alignSelf: 'center',
-      bottom: 14,
+      // Above the dock in portrait, not on it. At 14 this sat squarely over
+      // the dock's "Hold to interrupt" line.
+      bottom: isLandscape ? 14 : verticalScale(DOCK_TOP + 14),
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -2327,11 +2303,26 @@ function createStyles(
       fontSize: scale(12.5),
       color: colors.paper,
     },
-    askSheet: {
+    /**
+     * The checkpoint block: the question, then the answers, clear of the
+     * controls.
+     *
+     * Landscape sits it just above the bottom edge and keeps a 96 channel on
+     * the right for the thumb rail. Portrait has no rail, so it spans the
+     * width — but the dock owns the bottom DOCK_TOP points, so it is anchored
+     * above that with a 14 gap rather than at a guessed offset.
+     *
+     * `box-none` on the container so the paper underneath still takes taps
+     * everywhere the question and chips are not.
+     */
+    askColumn: {
       position: 'absolute',
-      left: scale(24),
-      right: scale(96),
-      bottom: verticalScale(18),
+      left: isLandscape ? scale(24) : scale(20),
+      right: isLandscape ? scale(96) : scale(20),
+      bottom: isLandscape ? verticalScale(14) : verticalScale(DOCK_TOP + 14),
+      gap: verticalScale(10),
+    },
+    askRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'center',
