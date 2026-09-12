@@ -64,7 +64,17 @@ export const MARGIN_X = 44;
 export const CAPTION_HEIGHT = 54;
 
 /** How long chrome stays up before it tucks itself away. */
-export const CHROME_HIDE_MS = 4000;
+/**
+ * How long the chrome stays before it tucks itself away.
+ *
+ * Was 4000, which was too quick from a standing start and much too quick in
+ * practice: the countdown ran while the entering card was still covering the
+ * board, so by the time the card faded the chrome had often already gone —
+ * the student's first sight of their class was a bare page. The countdown is
+ * blocked until the card goes now, and 6s is long enough to read a chapter
+ * name and find the controls without the bars overstaying.
+ */
+export const CHROME_HIDE_MS = 6000;
 
 /**
  * Chrome tucks itself away after a few idle seconds, and a tap brings it back.
@@ -247,8 +257,8 @@ export function RuledGround({ height }: { height: number }) {
 }
 
 /** The red margin at x = 44, full height, edge to edge. */
-export function MarginRule() {
-  return <View style={groundStyles.margin} pointerEvents="none" />;
+export function MarginRule({ x = MARGIN_X }: { x?: number } = {}) {
+  return <View style={[groundStyles.margin, { left: x }]} pointerEvents="none" />;
 }
 
 /** 3px pill on the right edge, visible only while the board is moving. */
@@ -332,13 +342,28 @@ export function CaptionStrip({
  * The 19×74 tab flush on the right edge that brings tucked chrome back. It
  * sits outside the board's own tap target so the two taps never fight.
  */
-export function EdgeTab({ visible, onPress }: { visible: boolean; onPress: () => void }) {
+export function EdgeTab({
+  visible,
+  onPress,
+  side = 'right',
+}: {
+  visible: boolean;
+  onPress: () => void;
+  /** Which edge the tucked chrome went out through. Landscape tucks the rail
+   *  sideways, portrait drops the dock, so the tab has to meet it there. */
+  side?: 'right' | 'bottom';
+}) {
   if (!visible) return null;
+  const bottom = side === 'bottom';
   return (
-    <Pressable style={edgeStyles.tab} onPress={onPress} hitSlop={8}>
+    <Pressable
+      style={bottom ? edgeStyles.tabBottom : edgeStyles.tab}
+      onPress={onPress}
+      hitSlop={8}>
       <Svg viewBox="0 0 24 24" width={12} height={12} fill="none">
         <Path
-          d="M15 6l-6 6 6 6"
+          // Points the way the chrome will come back from.
+          d={bottom ? 'M6 9l6 6 6-6' : 'M15 6l-6 6 6 6'}
           stroke={DEEP_AMBER}
           strokeWidth={2.4}
           strokeLinecap="round"
@@ -447,6 +472,25 @@ const edgeStyles = StyleSheet.create({
     backgroundColor: 'rgba(252,250,244,.96)',
     borderWidth: 1,
     borderRightWidth: 0,
+    borderColor: HAIRLINE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+  },
+  // The handoff's 74x19 tab on the bottom edge — the same plate as the
+  // landscape one, turned a quarter.
+  tabBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: '50%',
+    transform: [{ translateX: -37 }],
+    width: 74,
+    height: 19,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    backgroundColor: 'rgba(252,250,244,.96)',
+    borderWidth: 1,
+    borderBottomWidth: 0,
     borderColor: HAIRLINE,
     alignItems: 'center',
     justifyContent: 'center',

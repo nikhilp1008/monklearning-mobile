@@ -119,3 +119,22 @@ export function useLandscapeLock(pinned = false): boolean {
 export function usePortraitLock(): boolean {
   return useOrientationLock('portrait');
 }
+
+/**
+ * For a screen whose orientation the STUDENT chooses.
+ *
+ * The classroom used to call `useLandscapeLock`, which is a declaration: this
+ * screen is landscape, turn the phone. That forced every class into landscape
+ * and, worse, the 700ms `timedOut` fallback meant a refused or slow lock
+ * painted the landscape layout into a portrait window — a sideways board,
+ * which is what the classroom did when opened cold.
+ *
+ * A screen using this must lay out from the window's REAL dimensions rather
+ * than from `target`, and use the return only to hold its first paint. Then a
+ * mismatch is impossible by construction instead of being raced against a
+ * timer: if the lock is refused outright, the layout still matches the window
+ * the student is actually holding.
+ */
+export function useOrientation(target: 'portrait' | 'landscape'): boolean {
+  return useOrientationLock(target);
+}

@@ -216,11 +216,33 @@ export async function pullProfile(): Promise<void> {
       .limit(1);
     const row = rows?.[0];
     if (!row) return;
+    const local = await getProfile();
+    /**
+     * 'JEE' on the server means jee OR both, so it cannot overwrite 'both'.
+     *
+     * `examForServer` stores a both-exam student as JEE because the column's
+     * check constraint rejects 'both'. A pull then read that back as plain
+     * 'jee' and saved it over the local answer -- and `app/profile.tsx` pulls
+     * on mount, so opening Profile to look at your exams was itself what
+     * destroyed them. After that Profile showed one exam and Textbooks three
+     * subjects, permanently.
+     *
+     * 'NEET' is unambiguous and still wins. Same shape as `enrolled_class`
+     * below, where a server 12 never overwrites a local 'dropper'.
+     *
+     * This holds the answer on the device that made the choice. A reinstall
+     * or a second device still comes back as JEE, because the server genuinely
+     * does not hold 'both' -- that needs the constraint widened, which is
+     * flagged on `examForServer`.
+     */
+    const serverExam = String(row.target_exam).toLowerCase();
+    const exam: ExamKey =
+      serverExam === 'neet' ? 'neet' : local.exam === 'both' ? 'both' : 'jee';
     await saveProfile({
       ...(row.display_name ? { name: row.display_name as string } : {}),
       ...(row.phone ? { phone: row.phone as string } : {}),
       phoneVerified: row.phone_verified === true,
-      exam: String(row.target_exam).toLowerCase() === 'neet' ? 'neet' : 'jee',
+      exam,
       // 12 covers both Class 12 and droppers on the server, so a pull can only
       // ever restore the coarse answer — it never overwrites a local
       // 'dropper' with 'class12' unless there was nothing local to keep.

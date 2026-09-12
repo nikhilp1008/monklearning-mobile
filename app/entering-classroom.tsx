@@ -13,8 +13,8 @@ import {
   toStatusSubject,
   type StatusSubject,
 } from '@/constants/classroom-status';
-import { useLandscapeScale } from '@/constants/scale';
-import { useLandscapeLock } from '@/hooks/use-landscape-lock';
+import { useScale } from '@/constants/scale';
+import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { useStagedStatus } from '@/hooks/use-staged-status';
 import { subjectForChapter } from '@/lib/drona';
 import {
@@ -44,7 +44,7 @@ function friendlyScopeError(err: unknown): string {
 }
 
 export default function EnteringClassroomScreen() {
-  const isLandscape = useLandscapeLock();
+  const isPortrait = usePortraitLock();
   const params = useLocalSearchParams<{
     chapterId?: string;
     chapterTitle?: string;
@@ -77,7 +77,8 @@ export default function EnteringClassroomScreen() {
     const id = setTimeout(() => setParamsSettled(true), 400);
     return () => clearTimeout(id);
   }, [hasParams]);
-  const { scale, verticalScale } = useLandscapeScale();
+  // Portrait references now: this screen no longer turns the phone.
+  const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [stage, setStage] = useState<Stage>('connecting');
@@ -269,10 +270,12 @@ export default function EnteringClassroomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, initialUtterance]);
 
-  // Hold on a plain paper-coloured field until the device has actually turned.
-  // Painting the landscape layout into a still-portrait window is what made
-  // this transition look broken — a squeezed frame, then a snap.
-  if (!isLandscape) {
+  // Hold on the loading screen's own ground until the window really is
+  // portrait. Painting a layout into a window of the wrong shape is what made
+  // this transition look broken — a squeezed frame, then a snap. It is a much
+  // shorter hold than it was: the phone is almost always already portrait, so
+  // there is usually nothing to wait for.
+  if (!isPortrait) {
     return <View style={styles.rotateHold} />;
   }
 
@@ -287,7 +290,11 @@ export default function EnteringClassroomScreen() {
     return (
       <>
         <StatusBar style="light" />
-        <EnteringCardScreen chapterTitle={chapterTitle} statusText={statusText} />
+        <EnteringCardScreen
+          chapterTitle={chapterTitle}
+          statusText={statusText}
+          onBack={() => router.back()}
+        />
       </>
     );
   }

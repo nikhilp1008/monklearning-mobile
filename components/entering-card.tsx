@@ -1,393 +1,383 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Circle,
-  Defs,
-  G,
-  Line,
-  Path,
-  RadialGradient,
-  Stop,
-  Text as SvgText,
-} from 'react-native-svg';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '@/constants/brand';
-import { useLandscapeScale } from '@/constants/scale';
+import { useScale } from '@/constants/scale';
 
 /**
  * The card a student watches while their class is being built.
  *
- * Lifted out of `app/entering-classroom.tsx` unchanged — every value here is the
- * one that screen already shipped. It lives in `components/` now because it is
- * rendered from two routes: `entering-classroom` owns the first half of the wait
- * (`session/start`, `scope`) and `live-classroom` overlays the same card over its
- * blank board for the second half (socket, first turn), so the student sees one
- * continuous surface instead of two static loaders either side of a route change.
+ * PORTRAIT, as of the classroom-flow handoff. It used to be landscape, because
+ * the classroom it handed to was landscape and turning the phone twice in one
+ * entry was worse than turning it once. The classroom opens in portrait now,
+ * so this screen holds the phone the way the student is already holding it and
+ * nothing rotates on the way in at all.
  *
- * For that to hold, `live-classroom` must be registered with `animation: 'fade'`
- * in `app/_layout.tsx` — the default push animation slides, and the card would
- * visibly jump at the boundary.
+ * Rendered from two routes: `entering-classroom` owns the first half of the
+ * wait (`session/start`, `scope`) and `live-classroom` overlays the same card
+ * over its blank board for the second half (socket, first turn), so the student
+ * sees one continuous surface instead of two static loaders either side of a
+ * route change. For that to hold, `live-classroom` must be registered with
+ * `animation: 'fade'` in `app/_layout.tsx` — the default push animation slides,
+ * and the card would visibly jump at the boundary.
+ *
+ * The protractor mark that used to sit above the heading is gone with the
+ * redesign: the handoff screen is purely typographic. It was a considered piece
+ * of work and it is recoverable from git history if it is wanted back.
  */
+
+/** Dark ground. Deliberately the ink token, not black. */
+const GROUND = '#1C1A16';
+/** The heading's resting colour, and the two brighter stops the sweep passes
+ *  through. Straight from the handoff's `txShimmer` gradient. */
+const TEXT_REST = '#DCD6C7';
+const TEXT_WARM = '#EBC77A';
+const TEXT_CORE = '#FFF6E0';
+const AMBER = '#EEA31F';
+/** The chapter line and the stage line, as rgba over the ground. */
+const CHAPTER = 'rgba(220,214,199,.6)';
+const STAGE = 'rgba(220,214,199,.5)';
+
+const HEADING = 'Entering your classroom';
+/** Word spacing is the handoff's `gap:0 .28em`, not a space character. */
+const WORD_GAP_EM = 0.28;
+
+/** One full sweep, and the pause before the first one. `txShimmer 4.4s 1s`. */
+const SWEEP_MS = 4400;
+const SWEEP_DELAY_MS = 1000;
+
+/**
+ * How wide the bright band is, as a fraction of the heading's width.
+ *
+ * The handoff paints a 300%-wide gradient and slides it across, so the band's
+ * geometry is set by its stops: the core runs 46%–54% of the gradient and the
+ * shoulders 36%–64%. Against a window one third of the gradient wide, that is
+ * +/-12% of the text for the core and +/-42% for the shoulders.
+ */
+const CORE_HALF = 0.12;
+const SHOULDER_HALF = 0.42;
+
+/**
+ * Per-character colour, rather than a gradient clipped to text.
+ *
+ * `background-clip:text` has no React Native equivalent without a mask view,
+ * and this does not justify a new native dependency. Sampling the same ramp
+ * once per character is the same function, quantised to a character's width —
+ * about 12px at this size, which is well below the band's own 84px core.
+ *
+ * It costs nothing in layout: Onest has a `kern` feature but not one kern pair
+ * in this string (checked against the 500 face's GPOS), so splitting it into
+ * characters measures identically to setting it as one run.
+ */
+function ShimmerChar({
+  char,
+  at,
+  sweep,
+  style,
+}: {
+  char: string;
+  /** This character's centre, 0..1 across the heading. */
+  at: number;
+  sweep: SharedValue<number>;
+  style: object;
+}) {
+  const animated = useAnimatedStyle(() => {
+    // The band starts and ends clear of the text so the sweep enters and
+    // leaves rather than appearing mid-word.
+    const centre = -0.42 + sweep.value * 1.84;
+    const d = Math.abs(at - centre);
+    return {
+      color: interpolateColor(
+        d,
+        [0, CORE_HALF, SHOULDER_HALF],
+        [TEXT_CORE, TEXT_WARM, TEXT_REST]
+      ),
+    };
+  });
+  return <Animated.Text style={[style, animated]}>{char}</Animated.Text>;
+}
+
+/**
+ * Arrives, without moving.
+ *
+ * The handoff rises each word in by 8px on a stagger, and on the device that
+ * read as the screen assembling itself rather than as a screen loading: three
+ * separate movements before anything had loaded, competing with the sweep that
+ * is the actual loading signal. Opacity only now, and everything on one
+ * timing, so the type simply appears and the sweep is the only thing moving.
+ */
+function FadeIn({
+  delay = 0,
+  children,
+  style,
+}: {
+  delay?: number;
+  children: React.ReactNode;
+  style?: object;
+}) {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withDelay(delay, withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }));
+  }, [p, delay]);
+  const animated = useAnimatedStyle(() => ({ opacity: p.value }));
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+}
+
 export function EnteringCardScreen({
   chapterTitle,
   statusText,
+  onBack,
 }: {
   chapterTitle: string;
   statusText: string;
+  /**
+   * Leaves the wait. A class can take a while to build, and until this was
+   * here the only way out of that wait was the hardware gesture — the screen
+   * offered nothing, which reads as being stuck rather than as waiting.
+   *
+   * Optional so the card can still be rendered somewhere that has no sensible
+   * way back, but both of its callers pass one.
+   */
+  onBack?: () => void;
 }) {
-  const { scale, verticalScale } = useLandscapeScale();
+  const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  /**
+   * Read directly, because the back button is absolutely positioned and Yoga
+   * does not apply a parent's padding to absolute children — so sitting inside
+   * `SafeAreaView` bought it nothing and it landed in the status bar, level
+   * with the clock. Positioning it absolutely is still right: a flex child in
+   * a header row would push the heading off the screen's optical centre, which
+   * is where the handoff puts it.
+   */
+  const insets = useSafeAreaInsets();
+
+  const sweep = useSharedValue(0);
+  useEffect(() => {
+    sweep.value = withDelay(
+      SWEEP_DELAY_MS,
+      withRepeat(withTiming(1, { duration: SWEEP_MS, easing: Easing.linear }), -1)
+    );
+  }, [sweep]);
+
+  /**
+   * Words for the stagger, characters for the sweep.
+   *
+   * Each character needs its position across the WHOLE heading, not across its
+   * own word, or the band would restart at every space. The running index is
+   * what carries that.
+   */
+  const words = useMemo(() => {
+    const parts = HEADING.split(' ');
+    const chars = HEADING.replace(/ /g, '').length;
+    let seen = 0;
+    // Still split by word, but only for the gap between them now -- the
+    // per-word stagger is gone with the movement. The characters inside carry
+    // their position across the whole heading, which is what the sweep reads.
+    return parts.map((word) =>
+      word.split('').map((char) => {
+        const at = (seen + 0.5) / chars;
+        seen += 1;
+        return { char, at };
+      })
+    );
+  }, []);
 
   return (
     <View style={styles.screen}>
-      <LinearGradient
-        colors={['rgba(238,163,31,.12)', 'rgba(238,163,31,0)']}
-        start={{ x: 0.5, y: 0.3 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
-          <ProtractorLoader size={scale(118)} />
-          <View style={styles.textBlock}>
-            <View style={styles.chapterChip}>
-              <View style={styles.chapterDot} />
-              <Text style={styles.chapterChipText}>{chapterTitle}</Text>
-            </View>
-            <Text style={styles.heading} numberOfLines={1}>
-              Entering your classroom
-            </Text>
-            {/* The one line on this screen that changes. Announced politely for
-                the same reason snap-loading announces its stages: without it a
-                screen reader hears the heading once and then silence for the
-                whole wait. */}
-            <View
-              style={styles.statusRow}
-              accessibilityLiveRegion="polite"
-              accessibilityRole="text">
-              <BouncingDots />
-              <StatusLine key={statusText} style={styles.statusText} text={statusText} />
-            </View>
+        {onBack && (
+          <Pressable
+            style={[styles.back, { top: insets.top + verticalScale(4) }]}
+            onPress={onBack}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Leave">
+            <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
+              <Path
+                d="M15 5l-7 7 7 7"
+                stroke={TEXT_REST}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </Pressable>
+        )}
+        {/* One fade for the whole block, so the heading and the chapter arrive
+            together and nothing shifts. */}
+        <FadeIn style={styles.middle}>
+          <View style={styles.headingRow}>
+            {words.map((word, i) => (
+              <View key={i} style={[styles.word, i < words.length - 1 && styles.wordGap]}>
+                {word.map((entry, j) => (
+                  <ShimmerChar
+                    key={j}
+                    char={entry.char}
+                    at={entry.at}
+                    sweep={sweep}
+                    style={styles.heading}
+                  />
+                ))}
+              </View>
+            ))}
           </View>
-        </View>
-        <View style={styles.footer}>
-          <Text style={styles.footerHint}>
-            Tip: you can interrupt Drona any time. Just tap raise hand.
+          <Text style={styles.chapter} numberOfLines={2}>
+            {chapterTitle}
           </Text>
-        </View>
+        </FadeIn>
+
+        {/* The one line on this screen that changes. Announced politely for the
+            same reason snap-loading announces its stages: without it a screen
+            reader hears the heading once and then silence for the whole wait. */}
+        <FadeIn delay={420} style={styles.stageRow}>
+          <View style={styles.stageInner} accessibilityLiveRegion="polite" accessibilityRole="text">
+            <Dots />
+            <StageLine key={statusText} style={styles.stage} text={statusText} />
+          </View>
+        </FadeIn>
       </SafeAreaView>
     </View>
   );
 }
 
 /** Fades up as it replaces the line before it — remounted per line via `key`. */
-function StatusLine({ style, text }: { style: object; text: string }) {
-  const progress = useSharedValue(0);
+function StageLine({ style, text }: { style: object; text: string }) {
+  const p = useSharedValue(0);
   useEffect(() => {
-    progress.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
-  }, [progress]);
-  const animated = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: interpolate(progress.value, [0, 1], [6, 0]) }],
-  }));
+    p.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
+  }, [p]);
+  // Crossfades in place. It used to rise 6px as it replaced the line before
+  // it, which is a second thing moving on a screen whose only movement should
+  // be the sweep.
+  const animated = useAnimatedStyle(() => ({ opacity: p.value }));
   return (
     <Animated.View style={animated}>
-      <Text style={style}>{text}</Text>
+      <Text style={style} numberOfLines={1}>
+        {text}
+      </Text>
     </Animated.View>
   );
 }
 
-function BouncingDots() {
-  const progress = useSharedValue(0);
+/** Three amber dots on the handoff's 2.2s `dotWave`, a third of a cycle apart. */
+function Dots() {
+  const p = useSharedValue(0);
   useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 1200, easing: Easing.ease }), -1);
-  }, [progress]);
-
+    p.value = withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1);
+  }, [p]);
   return (
     <View style={dotStyles.row}>
-      <Dot progress={progress} delay={0} />
-      <Dot progress={progress} delay={0.21} />
-      <Dot progress={progress} delay={0.42} />
+      <Dot p={p} phase={0} />
+      <Dot p={p} phase={0.136} />
+      <Dot p={p} phase={0.272} />
     </View>
   );
 }
 
-function Dot({ progress, delay }: { progress: SharedValue<number>; delay: number }) {
-  const style = useAnimatedStyle(() => {
-    'worklet';
-    const t = (progress.value + delay) % 1;
-    const opacity =
-      t < 0.5 ? interpolate(t, [0, 0.5], [1, 0.2]) : interpolate(t, [0.5, 1], [0.2, 1]);
-    return { opacity };
+function Dot({ p, phase }: { p: SharedValue<number>; phase: number }) {
+  const animated = useAnimatedStyle(() => {
+    const t = (p.value + phase) % 1;
+    return {
+      opacity: t < 0.5 ? interpolate(t, [0, 0.5], [0.22, 1]) : interpolate(t, [0.5, 1], [1, 0.22]),
+    };
   });
-  return <Animated.View style={[dotStyles.dot, style]} />;
-}
-
-/**
- * The loading mark. Two things were wrong with the version this replaces.
- *
- * The logo was incomplete for most of its cycle: the amber centre dot only
- * existed between 50% and 90% of a 6.5s loop, so more than half the time the
- * brand mark was two rings and a hole. It is now painted every frame, exactly
- * as components/protractor-mark.tsx draws it — outer ring, inner ring, dot.
- *
- * And it felt heavy because it was a construction: ticks faded in, each ring
- * swept into place, two red arcs drew themselves, two angle labels appeared
- * and left, the dot popped at 1.45x — then the whole thing faded to nothing
- * and started again from an empty frame. That restart is the stutter.
- *
- * Now nothing is built or erased. The mark is whole and simply turns: the
- * outer ring one way, the inner ring slower and the other way, the dot still
- * at the centre. Both rotations are continuous, so there is no seam to loop
- * across, and a protractor turning is what the instrument does anyway.
- *
- * The red arcs and the two angle labels are back, but as PRINTED SCALE rather
- * than as animation: fully drawn on every frame, static, with the rings
- * turning over them. Only their construction was the problem — a reading that
- * assembles itself and then wipes has to restart, and the restart is the
- * stutter. A reading that is simply there does not.
- */
-function ProtractorLoader({ size }: { size: number }) {
-  const outer = useSharedValue(0);
-  const inner = useSharedValue(0);
-  const breath = useSharedValue(0);
-
-  useEffect(() => {
-    // Linear and continuous: an eased spin would visibly hesitate once per
-    // turn, which is the heaviness this is meant to remove.
-    outer.value = withRepeat(withTiming(1, { duration: 9000, easing: Easing.linear }), -1);
-    inner.value = withRepeat(withTiming(1, { duration: 14000, easing: Easing.linear }), -1);
-    breath.value = withRepeat(
-      withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, [outer, inner, breath]);
-
-  const outerStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${-90 + outer.value * 360}deg` }],
-  }));
-  const innerStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${-30 - inner.value * 360}deg` }],
-  }));
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + breath.value * 0.3,
-  }));
-
-  const ticks = Array.from({ length: 12 }, (_, i) => i * 30);
-
-  return (
-    <View style={{ width: size, height: size }}>
-      {/* A slow amber breath behind the mark — the only thing on this screen
-          that changes brightness, and it never restarts. */}
-      <Animated.View style={[StyleSheet.absoluteFill, glowStyle]} pointerEvents="none">
-        <Svg width={size} height={size} viewBox="0 0 120 120">
-          <Defs>
-            <RadialGradient id="loaderGlow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0" stopColor={colors.marigold} stopOpacity={0.34} />
-              <Stop offset="1" stopColor={colors.marigold} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={60} cy={60} r={58} fill="url(#loaderGlow)" />
-        </Svg>
-      </Animated.View>
-
-      {/* The protractor's bezel, static. It reads as the instrument's scale;
-          animating it was noise. */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width={size} height={size} viewBox="0 0 120 120">
-          <G stroke="#55524A" strokeWidth={1.2} opacity={0.5}>
-            {ticks.map((angle) => (
-              <Line
-                key={angle}
-                x1={60}
-                y1={12}
-                x2={60}
-                y2={16}
-                transform={angle ? `rotate(${angle} 60 60)` : undefined}
-              />
-            ))}
-          </G>
-        </Svg>
-      </View>
-
-      <Animated.View style={[StyleSheet.absoluteFill, outerStyle]} pointerEvents="none">
-        <Svg width={size} height={size} viewBox="0 0 120 120">
-          <Circle
-            cx={60}
-            cy={60}
-            r={36}
-            fill="none"
-            stroke="#FCFAF4"
-            strokeWidth={11}
-            strokeLinecap="round"
-            strokeDasharray="52 23.4"
-          />
-        </Svg>
-      </Animated.View>
-
-      <Animated.View style={[StyleSheet.absoluteFill, innerStyle]} pointerEvents="none">
-        <Svg width={size} height={size} viewBox="0 0 120 120">
-          <Circle
-            cx={60}
-            cy={60}
-            r={19}
-            fill="none"
-            stroke="#FCFAF4"
-            strokeWidth={9}
-            strokeLinecap="round"
-            strokeDasharray="21.8 18"
-          />
-        </Svg>
-      </Animated.View>
-
-      {/* The measurement the instrument is making: two red arcs and the angles
-          they subtend. These are the annotations the earlier loader drew and
-          then erased on every 6.5s loop, which is what made it stutter. They
-          are painted WHOLE and held here instead — printed on the bezel the
-          way a real protractor's scale is, while the rings turn over them. So
-          the reading is back without the restart that removed it.
-
-          `overflow: 'visible'` because the -90 label starts at x=102 and its
-          glyphs run past the 120-unit viewBox; clipped, it loses its degree
-          sign. */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width={size} height={size} viewBox="0 0 120 120" style={{ overflow: 'visible' }}>
-          <Path
-            d="M112,60 A52,52 0 0 0 60,8"
-            fill="none"
-            stroke={colors.red}
-            strokeWidth={1.4}
-            opacity={0.9}
-          />
-          <Path
-            d="M88,60 A28,28 0 0 0 84.25,46"
-            fill="none"
-            stroke={colors.red}
-            strokeWidth={1.4}
-            opacity={0.9}
-          />
-          <SvgText x={102} y={22} fontFamily="Onest_400Regular" fontSize={9} fill={colors.marigold}>
-            −90°
-          </SvgText>
-          <SvgText x={94} y={48} fontFamily="Onest_400Regular" fontSize={9} fill={colors.marigold}>
-            −30°
-          </SvgText>
-        </Svg>
-      </View>
-
-      {/* The dot the mark was missing. Always here, never animated. */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width={size} height={size} viewBox="0 0 120 120">
-          <Circle cx={60} cy={60} r={6} fill={colors.marigold} />
-        </Svg>
-      </View>
-    </View>
-  );
+  return <Animated.View style={[dotStyles.dot, animated]} />;
 }
 
 const dotStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EEA31F',
-  },
+  row: { flexDirection: 'row', gap: 4 },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: AMBER },
 });
 
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
+function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
+  const headingSize = scale(26);
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: '#16130E',
+      backgroundColor: GROUND,
     },
     safeArea: {
       flex: 1,
     },
-    // The mark and the text are one centred pair. The text block is capped
-    // so a longer chapter name can't drag the pair off centre or push the
-    // mark towards the edge — the composition holds still whatever the
-    // chapter is called.
-    content: {
-      flex: 1,
-      flexDirection: 'row',
+    // Top-left, on its own above the centred block — it must not shift the
+    // heading, which is why the middle stays a full-height centred flex child
+    // and this is absolute over it.
+    back: {
+      position: 'absolute',
+      left: scale(14),
+      // `top` is set on the element, from the safe-area inset.
+      width: scale(40),
+      height: scale(40),
       alignItems: 'center',
       justifyContent: 'center',
-      gap: scale(40),
-      paddingHorizontal: scale(56),
+      zIndex: 2,
     },
-    textBlock: {
-      flexShrink: 1,
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: verticalScale(12),
-      minWidth: 0,
-      maxWidth: scale(420),
-    },
-    chapterChip: {
-      flexDirection: 'row',
+    // The heading and chapter sit on the optical centre of the whole screen,
+    // as drawn — not above the stage line, which is pinned to the foot.
+    middle: {
+      flex: 1,
       alignItems: 'center',
-      gap: scale(8),
-      alignSelf: 'flex-start',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,.16)',
-      backgroundColor: 'rgba(255,255,255,.05)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(16),
+      justifyContent: 'center',
+      paddingHorizontal: scale(36),
     },
-    chapterDot: {
-      width: scale(7),
-      height: scale(7),
-      borderRadius: scale(3.5),
-      backgroundColor: colors.marigold,
+    headingRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
     },
-    chapterChipText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: '#EFEBDD',
+    // Each word is its own row of characters so the stagger has something to
+    // move and the characters inside it still sit on one baseline.
+    word: {
+      flexDirection: 'row',
+    },
+    wordGap: {
+      marginRight: headingSize * WORD_GAP_EM,
     },
     heading: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(27),
-      letterSpacing: scale(-0.54),
-      color: '#EFEBDD',
+      fontFamily: 'Onest_500Medium',
+      fontSize: headingSize,
+      lineHeight: headingSize * 1.15,
+      letterSpacing: headingSize * -0.02,
+      color: TEXT_REST,
     },
-    statusRow: {
+    chapter: {
+      marginTop: verticalScale(14),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14.5),
+      lineHeight: scale(14.5) * 1.4,
+      letterSpacing: scale(14.5) * 0.01,
+      textAlign: 'center',
+      color: CHAPTER,
+    },
+    stageRow: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: verticalScale(56),
+      alignItems: 'center',
+    },
+    stageInner: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(12),
+      gap: scale(10),
     },
-    statusText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      color: '#C7C1B3',
-    },
-    footer: {
-      alignItems: 'center',
-      paddingBottom: verticalScale(12),
-    },
-    footerHint: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: '#938D80',
+    stage: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      color: STAGE,
     },
   });
 }
