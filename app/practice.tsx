@@ -54,6 +54,10 @@ const SUBJECT_LABEL: Record<string, string> = {
 };
 
 /** UI label -> the subject string the API's questions table actually uses. */
+/** How many give-ups in a row, in one chapter, before the screen suggests a
+ *  lesson. Five is a run; two is a bad pair of questions. */
+const STUCK_RUN = 5;
+
 const SUBJECT_QUERY: Record<string, string> = {
   Physics: 'physics',
   Chem: 'chemistry',
@@ -124,6 +128,18 @@ export default function PracticeScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   /** Set while a question-scoped Drona session is being created. */
   const [explaining, setExplaining] = useState(false);
+
+  /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
+   *  serving more of the same and offers the lesson instead — an offer, never
+   *  a block: a student who wants to keep going always can. */
+  const [stuck, setStuck] = useState<{ chapter: string | null; run: number }>({
+    chapter: null,
+    run: 0,
+  });
+
+  /** The day's tally, off whichever response last mentioned it. Null until the
+   *  API says — never counted here, or two devices would disagree. */
+  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
 
   /** Lifetime totals, fetched once. This session's answers are added on top
    *  rather than re-fetching, so the line moves the moment one is graded. */
@@ -268,10 +284,24 @@ export default function PracticeScreen() {
   }
 
   /** One graded answer: shown, counted, and the cue to fetch what comes next. */
-  function applyResult(result: AnswerResult) {
+  function applyResult(
+    result: AnswerResult,
+    context: { gaveUp: boolean; chapter: string | null }
+  ) {
     setAnswerResult(result);
     setSessionAttempted((n) => n + 1);
     if (result.is_correct) setSessionCorrect((n) => n + 1);
+    // A run of give-ups in ONE chapter is the signal, not a daily total: five
+    // in a row means this chapter is not landing, while forty spread across a
+    // hard day just means a hard day. Any correct answer clears it, and so
+    // does moving to a different chapter.
+    setStuck((prev) => {
+      if (!context.gaveUp || result.is_correct) return { chapter: null, run: 0 };
+      const chapter = context.chapter ?? 'this chapter';
+      return prev.chapter === chapter
+        ? { chapter, run: prev.run + 1 }
+        : { chapter, run: 1 };
+    });
     // The student now has a solution to read — use that time to fetch the next
     // question, so Next feels instant.
     prefetchNext();
@@ -413,11 +443,17 @@ export default function PracticeScreen() {
         ...scope,
       });
       if ('exhausted' in result) {
+        if (result.questions_used_today != null && result.daily_limit != null) {
+          setQuota({ used: result.questions_used_today, limit: result.daily_limit });
+        }
         setPoolMessage(result.message);
         setQuestion(null);
       } else {
         setQuestion(result);
         shownAt.current = Date.now();
+        if (result.questions_used_today != null && result.daily_limit != null) {
+          setQuota({ used: result.questions_used_today, limit: result.daily_limit });
+        }
         setSeen((n) => n + 1);
         prefetchNext();
       }
@@ -434,15 +470,16 @@ export default function PracticeScreen() {
    */
   async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
+    const gaveUp = key === undefined;
     setSelectedOption(key ?? null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
         question_id: question.question_id,
-        ...(key === undefined ? {} : { chosen_option: key }),
+        ...(gaveUp ? { gave_up: true } : { chosen_option: key }),
         ...elapsed(),
       });
-      applyResult(result);
+      applyResult(result, { gaveUp, chapter: question.chapter_name });
     } catch (err) {
       await handleSubmitError(err);
     } finally {
@@ -460,7 +497,7 @@ export default function PracticeScreen() {
         chosen_value: value,
         ...elapsed(),
       });
-      applyResult(result);
+      applyResult(result, { gaveUp: false, chapter: question.chapter_name });
     } catch (err) {
       await handleSubmitError(err);
     } finally {
@@ -621,6 +658,29 @@ export default function PracticeScreen() {
           </View>
 
           {notice ? <Text style={styles.noticeText}>{notice}</Text> : null}
+
+          {/* Five give-ups in a row in one chapter. An offer, not a gate — the
+              question below is still answerable, and Next still works. The
+              alternative considered was locking Practice for an hour, which
+              would have taught students to guess instead of saying they did
+              not know, and a guess writes a false signal into mastery where a
+              give-up writes an honest one. */}
+          {stuck.run >= STUCK_RUN && (
+            <View style={styles.stuckCard}>
+              <Text style={styles.stuckTitle}>{stuck.chapter} isn&apos;t landing</Text>
+              <Text style={styles.stuckBody}>
+                That&apos;s {stuck.run} in a row you haven&apos;t known. A lesson will get you
+                further than another question.
+              </Text>
+              <Pressable
+                style={styles.stuckButton}
+                disabled={explaining}
+                onPress={() => goLearnChapter(stuck.chapter)}>
+                <Text style={styles.stuckButtonText}>Learn it with Drona</Text>
+                <ArrowRightIcon size={scale(13)} color={colors.paper} />
+              </Pressable>
+            </View>
+          )}
 
           {question.question_type === 'numerical' ? (
             <View style={styles.numericRow}>
@@ -795,6 +855,16 @@ export default function PracticeScreen() {
           )}
             </>
           ) : null}
+
+          {/* The day's tally, the way Snap a Doubt shows its own. Only ever
+              the server's numbers: counting locally would disagree with a
+              second device the moment one existed. Hidden until the API has
+              spoken, so it never renders a guess. */}
+          {quota && (
+            <Text style={styles.quotaText}>
+              {Math.max(0, quota.limit - quota.used)} of {quota.limit} questions left today
+            </Text>
+          )}
         </ScrollView>
 
         {menuOpen && (
@@ -1278,6 +1348,51 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(11.5),
       color: colors.slate,
       marginTop: verticalScale(10),
+    },
+    // The stuck nudge. Amber wash rather than the ink of a real control: it is
+    // a suggestion sitting above the question, not the thing to do next.
+    stuckCard: {
+      backgroundColor: colors.tint,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      borderRadius: scale(12),
+      padding: scale(14),
+      marginTop: verticalScale(14),
+    },
+    stuckTitle: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(14),
+      color: colors.ink,
+    },
+    stuckBody: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+    },
+    stuckButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: scale(6),
+      height: verticalScale(34),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      marginTop: verticalScale(10),
+    },
+    stuckButtonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(12.5),
+      color: colors.paper,
+    },
+    quotaText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(11.5),
+      color: colors.faint,
+      textAlign: 'center',
+      marginTop: verticalScale(22),
     },
     noticeText: {
       fontFamily: 'Onest_500Medium',

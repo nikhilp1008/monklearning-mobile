@@ -27,11 +27,20 @@ export interface NextQuestion {
   concept: string | null;
   difficulty: string | null;
   diagram: DiagramFigure[] | null;
+  /** The day's tally, so the quota line needs no second call. Counted BEFORE
+   *  this question is answered. */
+  questions_used_today?: number;
+  daily_limit?: number;
 }
 
 export interface PoolExhausted {
   exhausted: true;
   message: string;
+  /** `daily_limit` when the 150 are spent, `pool_empty` when this filter has
+   *  nothing left. They need different words and different advice. */
+  reason?: 'daily_limit' | 'pool_empty';
+  questions_used_today?: number;
+  daily_limit?: number;
 }
 
 /**
@@ -141,6 +150,10 @@ export function submitAnswer(params: {
    * by the API until it reads this field; safe to send meanwhile.
    */
   elapsed_ms?: number;
+  /** True when the student pressed "I don't know" rather than answering. Still
+   *  graded incorrect and still spaced the same way, but excluded from the
+   *  pace median — giving up is quick and solving is slow. */
+  gave_up?: boolean;
 }): Promise<AnswerResult> {
   return apiFetch('/practice/answer', {
     method: 'POST',

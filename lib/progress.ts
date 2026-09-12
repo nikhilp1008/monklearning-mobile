@@ -71,7 +71,25 @@ export interface ProgressSummary {
   monk_score: MonkScore;
   ledger: ProgressLedger;
   subjects: ProgressSubject[];
-  pace: { available: boolean; note?: string };
+  /**
+   * Median seconds per question, by subject, against this exam's target.
+   *
+   * MEDIAN, not mean: the production distribution runs from under a second to
+   * a row where the app was left open for two days, and a mean belongs to that
+   * row. A subject is omitted rather than guessed at until it has enough
+   * samples, so `rows` can be shorter than the student's subject list.
+   */
+  pace: {
+    available: boolean;
+    note?: string;
+    rows?: {
+      subject: string;
+      actual_seconds: number;
+      target_seconds: number;
+      over: boolean;
+      samples: number;
+    }[];
+  };
   recommendations: ProgressRecommendation[];
 }
 

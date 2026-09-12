@@ -63,17 +63,31 @@ const SUBJECT_LABEL: Record<string, string> = {
  *  active chapters always make the cut, quiet ones fill up to this floor. */
 const COLLAPSED_CHAPTER_COUNT = 6;
 
+/** "3m 06s", or "48s" when a minute would be a lie about the precision. */
+function asClock(seconds: number): string {
+  const whole = Math.max(0, Math.round(seconds));
+  if (whole < 60) return `${whole}s`;
+  return `${Math.floor(whole / 60)}m ${String(whole % 60).padStart(2, '0')}s`;
+}
+
+/** Subject keys arrive as the questions table stores them. */
+const PACE_SUBJECT_LABEL: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  biology: 'Biology',
+};
+
 /**
- * SAMPLE — the pace card is a preview. GET /progress returns
- * pace.available=false (question_serves has no timing data yet), so these
- * rows are hand-written and badged "Preview" on screen. Wire to the real
- * payload and delete this constant when the backend ships timing.
+ * Both bars are drawn against the SAME scale — the slower of actual and target,
+ * plus a margin — so the fill and the tick can be compared by eye. Scaling each
+ * row to its own maximum would put every subject's tick in the same place and
+ * make a student who is 10s over look like one who is two minutes over.
  */
-const PACE_PREVIEW = [
-  { subject: 'Physics', actual: '3m 06s', target: '2m 54s', fill: 0.85, tick: 0.79, over: true },
-  { subject: 'Chemistry', actual: '1m 48s', target: '2m 00s', fill: 0.76, tick: 0.85, over: false },
-  { subject: 'Maths', actual: '3m 42s', target: '3m 30s', fill: 0.85, tick: 0.8, over: true },
-] as const;
+function paceGeometry(actual: number, target: number) {
+  const ceiling = Math.max(actual, target) * 1.25 || 1;
+  return { fill: Math.min(1, actual / ceiling), tick: Math.min(1, target / ceiling) };
+}
 
 type LoadState =
   | { kind: 'loading' }
@@ -404,40 +418,58 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {/* Pace — preview until the API ships timing data. */}
+          {/* Pace. Real numbers now — the card no longer ships sample rows,
+              and a subject the student has not done enough of is simply
+              absent rather than estimated. */}
           <View style={styles.card}>
             <View style={styles.scoreHeaderRow}>
-              <Text style={styles.overline}>Pace · avg time per question</Text>
-              <View style={styles.previewBadge}>
-                <Text style={styles.previewBadgeText}>Preview</Text>
-              </View>
+              <Text style={styles.overline}>Pace · typical time per question</Text>
             </View>
-            {PACE_PREVIEW.map((row) => (
-              <View key={row.subject} style={styles.paceRow}>
-                <View style={styles.paceTextRow}>
-                  <Text style={styles.paceSubject}>{row.subject}</Text>
-                  <Text style={styles.paceTimes}>
-                    <Text style={styles.paceActual}>{row.actual}</Text> · target {row.target}
-                  </Text>
-                </View>
-                <View style={styles.paceTrack}>
-                  <View
-                    style={[
-                      styles.paceFill,
-                      {
-                        width: `${row.fill * 100}%`,
-                        backgroundColor: row.over ? colors.marigold : colors.masteryStrong,
-                      },
-                    ]}
-                  />
-                  <View style={[styles.paceTick, { left: `${row.tick * 100}%` }]} />
-                </View>
-              </View>
-            ))}
-            <Text style={styles.cardFootnote}>
-              Measured silently from Practice — you never run a timer. The black tick is the
-              exam&apos;s own per-question budget. Live numbers arrive soon.
-            </Text>
+            {data?.pace.rows?.length ? (
+              <>
+                {data.pace.rows.map((row) => {
+                  const { fill, tick } = paceGeometry(row.actual_seconds, row.target_seconds);
+                  return (
+                    <View key={row.subject} style={styles.paceRow}>
+                      <View style={styles.paceTextRow}>
+                        <Text style={styles.paceSubject}>
+                          {PACE_SUBJECT_LABEL[row.subject] ?? row.subject}
+                        </Text>
+                        <Text style={styles.paceTimes}>
+                          <Text style={styles.paceActual}>{asClock(row.actual_seconds)}</Text>
+                          {' · target '}
+                          {asClock(row.target_seconds)}
+                        </Text>
+                      </View>
+                      <View style={styles.paceTrack}>
+                        <View
+                          style={[
+                            styles.paceFill,
+                            {
+                              width: `${fill * 100}%`,
+                              backgroundColor: row.over
+                                ? colors.marigold
+                                : colors.masteryStrong,
+                            },
+                          ]}
+                        />
+                        <View style={[styles.paceTick, { left: `${tick * 100}%` }]} />
+                      </View>
+                    </View>
+                  );
+                })}
+                <Text style={styles.cardFootnote}>
+                  Measured silently from Practice — you never run a timer. The black tick is
+                  the exam&apos;s own per-question budget, and the time shown is your middle
+                  question, not your average, so one long one can&apos;t skew it.
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.cardFootnote}>
+                {data?.pace.note ??
+                  'Answer a few more in Practice and your pace per subject appears here.'}
+              </Text>
+            )}
           </View>
 
           {data && data.recommendations.length > 0 && (
@@ -920,20 +952,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       color: colors.slate,
-    },
-    previewBadge: {
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(10),
-    },
-    previewBadgeText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(0.38),
-      textTransform: 'uppercase',
-      color: colors.faint,
     },
     paceRow: {
       marginTop: verticalScale(14),
