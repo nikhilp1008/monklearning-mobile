@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -742,6 +743,15 @@ export default function LiveClassroomScreen() {
   useEffect(() => {
     tuck.value = withTiming(chromeVisible ? 0 : 1, { duration: 350, easing: Easing.ease });
   }, [tuck, chromeVisible]);
+  /**
+   * The scrim fades; it does not slide.
+   *
+   * The header slides up by 74, but the band behind it is 124 deep — sliding
+   * that would leave 50pt of white sitting on the paper with nothing on it.
+   */
+  const scrimStyle = useAnimatedStyle(() => ({
+    opacity: 1 - tuck.value,
+  }));
   const headerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -74 * tuck.value }],
     opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
@@ -1112,6 +1122,29 @@ export default function LiveClassroomScreen() {
         <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
 
         {/* Header — tucks up and out on a board tap. */}
+        {/* THE HEADER NEEDS A GROUND, and the reference gives it one.
+            Measured off the mock: solid white to y=104, then a fade to
+            transparent by y=124. Without it the header floats on the paper and
+            the board's writing runs under it as the student scrolls — the two
+            collided rather than one passing beneath the other. The fade is
+            what stops the band reading as a drawn bar: text dissolves into it
+            instead of being cut off by an edge.
+
+            Portrait only. Landscape has a 52pt top padding and a single
+            header row over it, and a band that deep across a 390pt-tall board
+            would eat an eighth of the writing. */}
+        {!isLandscape && (
+          <Animated.View
+            style={[styles.headerScrim, scrimStyle]}
+            pointerEvents="none">
+            <LinearGradient
+              colors={['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0)']}
+              locations={[0, 0.84, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+        )}
+
         <Animated.View style={[styles.topBar, headerStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
           <View style={styles.topChapterChip}>
             <View style={styles.topChapterDot} />
@@ -2064,14 +2097,28 @@ function createStyles(
       backgroundColor: 'rgba(28,26,22,.12)',
     },
 
+    // 124 deep: white to 104, fading out by 124. The board's top padding is
+    // 130, so a line at rest sits clear of it and only a scrolled line passes
+    // under the fade.
+    headerScrim: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      height: 124,
+    },
+
     /* --- portrait dock: the rail's controls, laid along the bottom --- */
     dockWrap: {
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: verticalScale(30),
+      // Lower than it was (30), and the gap under the plate is tighter, so the
+      // group sits down near the edge the way the reference draws it. It stops
+      // short of the home indicator, which lives in the bottom ~13pt.
+      bottom: verticalScale(20),
       alignItems: 'center',
-      gap: verticalScale(8),
+      gap: verticalScale(6),
     },
     dock: {
       flexDirection: 'row',
@@ -2080,13 +2127,17 @@ function createStyles(
       paddingVertical: 9,
       paddingHorizontal: 12,
       borderRadius: 99,
-      backgroundColor: 'rgba(252,250,244,.97)',
+      // White, measured off the reference plate's interior (255,255,255). It
+      // was the warm paper tone, which on a white board read as a slightly
+      // grubby plate rather than a clean one — the same figure-and-ground
+      // inversion the plan sheet had.
+      backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: HAIRLINE,
+      borderColor: 'rgba(28,26,22,.10)',
       shadowColor: INK,
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.18,
-      shadowRadius: 12,
+      shadowOpacity: 0.16,
+      shadowRadius: 14,
       elevation: 6,
     },
     dockDivider: {
