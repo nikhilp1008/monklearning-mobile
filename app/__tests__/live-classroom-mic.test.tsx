@@ -162,11 +162,11 @@ describe('entering the live classroom without a usable microphone', () => {
     expect(allText(renderer.toJSON()).length).toBeGreaterThan(0);
   });
 
-  it('says on the rail that the mic is off, rather than leaving a dead button', async () => {
+  it('says on the dock that the mic is off, rather than leaving a dead button', async () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
     expect(text).toContain('Mic off');
-    expect(text).not.toContain('Interrupt');
+    expect(text).not.toContain('Hold mic to speak');
   });
 });
 
@@ -208,10 +208,16 @@ describe('entering the live classroom with a working microphone', () => {
     });
   });
 
-  it('leaves the rail in its normal Interrupt state', async () => {
+  /**
+   * The resting copy is "Hold mic to speak", not "Interrupt" — the word went
+   * with the command dock redesign, along with the label it used to sit in.
+   * What this test is actually for is unchanged: a student whose mic works must
+   * not be shown the mic-off state.
+   */
+  it('leaves the dock in its normal resting state', async () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
-    expect(text).toContain('Interrupt');
+    expect(text).toContain('Hold mic to speak');
     expect(text).not.toContain('Mic off');
   });
 

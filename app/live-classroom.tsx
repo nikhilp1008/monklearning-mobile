@@ -23,11 +23,11 @@ import Animated, {
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
+
+import { DockRing, type RingMood } from '@/components/dock-ring';
 
 import {
   AMBER,
@@ -43,12 +43,12 @@ import {
   INK_FAINT,
   INK_MUTED,
   LevelBars,
+  PAPER,
   RED,
   RHYTHM,
   RuledGround,
   useChromeAutoHide,
   ScrollIndicator,
-  TeacherWave,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
 import { useOrientedScale } from '@/constants/scale';
@@ -103,9 +103,17 @@ const CARD_CEILING_MS = 30000;
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 /** Half the rail's own height, so it can be centred with a transform. */
-const RAIL_HALF = 108;
-/** Far enough right to clear the rail's own width plus its 12pt inset. */
-const RAIL_TUCK_X = 92;
+/**
+ * Half the rail's height, for centring it. 84, because 8b's pill is 168 tall:
+ * 8 + 48 (mic) + 12 + 40 (pause) + 12 + 40 (rotate) + 8. It was 108 when the
+ * rail also carried a teacher wave, two dividers and an Interrupt label.
+ */
+const RAIL_HALF = 84;
+/** Far enough right to clear the rail's own width (64) plus its 12pt inset,
+ *  plus the ring's halo, which reaches about 20pt past the pill. */
+const RAIL_TUCK_X = 96;
+/** `sleepC`'s timer: how long the ring lingers after the last touch. */
+const DOCK_SLEEP_MS = 1500;
 
 /**
  * The two waits after an answer.
@@ -130,7 +138,7 @@ const VERDICT_HOLD_MS = 1150;
  */
 const DOCK_OFFSET = 20;
 const DOCK_PLATE_H = 64;
-const DOCK_GAP = 6;
+const DOCK_GAP = 9;
 const DOCK_HINT_H = 14;
 const DOCK_TOP = DOCK_OFFSET + DOCK_PLATE_H + DOCK_GAP + DOCK_HINT_H;
 const FOLLOW_SCROLL_MS = 350;
@@ -843,6 +851,35 @@ export default function LiveClassroomScreen() {
   }));
 
 
+  /**
+   * THE RING IS AWAKE WHILE A STUDENT IS TOUCHING THE DOCK, and for 1.5s after.
+   *
+   * The prototype drives this from `onpointerenter` / `onpointerleave` on the
+   * dock, which a phone does not have — there is no hover, so there is no
+   * "enter" without a press. A touch anywhere on the dock is the whole of the
+   * gesture here, and `sleepC`'s own 1500ms is what carries the ring past the
+   * release so it fades rather than snapping off.
+   *
+   * Holding the mic pins it awake regardless: `hooks` in the prototype wakes on
+   * talk and only schedules the fade once the student lets go.
+   */
+  const [dockAwake, setDockAwake] = useState(false);
+  const dockSleepRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakeDock = useCallback(() => {
+    if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
+    setDockAwake(true);
+    dockSleepRef.current = setTimeout(() => setDockAwake(false), DOCK_SLEEP_MS);
+  }, []);
+  useEffect(() => {
+    if (handRaised) wakeDock();
+  }, [handRaised, wakeDock]);
+  useEffect(() => () => {
+    if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
+  }, []);
+  /** Talking beats paused, which beats the resting teacher palette — the
+   *  prototype's `on ? S2 : (paused ? G2 : T2)`. */
+  const ringMood: RingMood = handRaised ? 'student' : paused ? 'paused' : 'teacher';
+
   const showChrome = () => setChromeVisible(true);
 
   const toggleChrome = () => {
@@ -1368,59 +1405,59 @@ export default function LiveClassroomScreen() {
           phone sideways already is. Portrait puts the same controls in a dock
           along the bottom, within reach of a thumb on an upright phone — the
           whole reason this screen stopped forcing landscape. */}
+      {/* THE COMMAND DOCK, from `dock_handoff/Classroom Dock 8a 8b`.
+          8a across the bottom in portrait, 8b upright at the side in
+          landscape. Three round targets and nothing else: no Interrupt label,
+          no dividers, and no teacher wave — the dock is colourless and still
+          for the whole class and only lights up when a student touches it. */}
       {isLandscape ? (
       <Animated.View style={[styles.rail, railStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
-        <TeacherWave quiet={handRaised} />
-        <View style={styles.railDivider} />
+        {/* `onTouchStart` on the wrapper, not a Pressable around it: it fires
+            for touches on the buttons inside as well, which is how one gesture
+            both wakes the ring and works the control — the prototype's
+            `onpointerdown` on `#dockQL` over its own children. */}
+        <View style={styles.dockAnchor} onTouchStart={wakeDock}>
+          <DockRing mood={ringMood} awake={dockAwake} vertical id="rail" />
+          <View style={styles.railPill}>
+            {/* Press and hold to speak; release to hand the board back. No
+                confirm step, no "done" button, no modal.
 
-        {/* Press and hold to speak; release to hand the board back. No
-            confirm step, no "done" button, no modal.
-
-            When there is no mic to open, the button stays here and stays
-            pressable — it is the only place the student would look — but it
-            wears the off state (dimmed plate, struck-through mic, "Mic off")
-            so the answer is visible before the press, and pressing it opens
-            the card that says why rather than doing nothing. */}
-        <Pressable
-          style={[
-            styles.talkButton,
-            handRaised && styles.talkButtonOn,
-            voiceOff && styles.talkButtonOff,
-          ]}
-          onPressIn={raiseHand}
-          onPressOut={doneListening}>
-          {handRaised && <TalkGlow />}
-          {handRaised && <TalkPulse />}
-          {handRaised ? (
-            <LevelBars color={INK} heights={[9, 17, 12]} />
-          ) : voiceOff ? (
-            <MicOffIcon size={18} color={colors.paper} />
-          ) : (
-            <MicIcon size={18} color={colors.paper} />
-          )}
-        </Pressable>
-        <Text
-          style={[
-            styles.talkLabel,
-            handRaised && styles.talkLabelOn,
-            voiceOff && styles.talkLabelOff,
-          ]}>
-          {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
-        </Text>
-
-        <View style={styles.railDivider} />
-        <Pressable style={styles.railButton} onPress={togglePause}>
-          {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
-        </Pressable>
-        {/* Back to upright. The same slot CC used to hold — captions are gone
-            and this is the control that earns it. */}
-        <Pressable
-          style={styles.railButton}
-          onPress={() => setWantLandscape(false)}
-          hitSlop={8}
-          accessibilityLabel="Rotate to portrait">
-          <RotateIcon size={15} color={INK} portrait />
-        </Pressable>
+                When there is no mic to open, the button stays here and stays
+                pressable — it is the only place the student would look — but
+                it wears the off state, so the answer is visible before the
+                press, and pressing it opens the card that says why rather
+                than doing nothing. */}
+            <Pressable
+              style={[styles.railMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+              onPressIn={raiseHand}
+              onPressOut={doneListening}
+              accessibilityLabel="Hold to speak">
+              {handRaised ? (
+                <LevelBars color={PAPER} heights={[9, 17, 12]} />
+              ) : voiceOff ? (
+                <MicOffIcon size={20} color={PAPER} />
+              ) : (
+                <MicIcon size={20} color={PAPER} />
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.railCtrl}
+              onPress={togglePause}
+              hitSlop={6}
+              accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+              {paused ? <PlayIcon size={16} color={INK} /> : <PauseIcon size={16} color={INK} />}
+            </Pressable>
+            {/* Back to upright. The same slot CC used to hold — captions are
+                gone and this is the control that earns it. */}
+            <Pressable
+              style={styles.railCtrl}
+              onPress={() => setWantLandscape(false)}
+              hitSlop={8}
+              accessibilityLabel="Rotate to portrait">
+              <RotateIcon size={19} color={INK_MUTED} portrait />
+            </Pressable>
+          </View>
+        </View>
       </Animated.View>
       ) : (
         /* THE DOCK DOES NOT TUCK.
@@ -1428,7 +1465,7 @@ export default function LiveClassroomScreen() {
            In portrait a tap hides the header only; the controls stay put.
            Tucking them made sense for a landscape rail sitting over the
            writing, but across the bottom of an upright phone the dock covers
-           no text, and taking Interrupt away from a student who is reading
+           no text, and taking the mic away from a student who is reading
            removes the button at the moment they want it. It is also why
            portrait needs no edge tab: nothing has gone anywhere to fetch back.
 
@@ -1436,50 +1473,48 @@ export default function LiveClassroomScreen() {
            animated wrapper that always resolves to translateY(0)/opacity(1)
            only looks like it does. */
         <View style={styles.dockWrap}>
-          <View style={styles.dock}>
-            <TeacherWave quiet={handRaised} />
-            <View style={styles.dockDivider} />
-            <Pressable style={styles.railButton} onPress={togglePause} hitSlop={6}>
-              {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
-            </Pressable>
+          <View style={styles.dockAnchor} onTouchStart={wakeDock}>
+            <DockRing mood={ringMood} awake={dockAwake} vertical={false} id="dock" />
+            <View style={styles.dockPill}>
+              <Pressable
+                style={styles.dockCtrl}
+                onPress={togglePause}
+                hitSlop={6}
+                accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+                {paused ? <PlayIcon size={17} color={INK} /> : <PauseIcon size={17} color={INK} />}
+              </Pressable>
 
-            {/* The same press-and-hold as the rail's, drawn as a wide pill
-                with its label inside — there is room for it across the bottom
-                and none stacked under a 46pt circle. */}
-            <Pressable
-              style={[
-                styles.dockTalk,
-                handRaised && styles.dockTalkOn,
-                voiceOff && styles.dockTalkOff,
-              ]}
-              onPressIn={raiseHand}
-              onPressOut={doneListening}>
-              {handRaised ? (
-                <LevelBars color={INK} heights={[9, 15, 11]} />
-              ) : voiceOff ? (
-                <MicOffIcon size={16} color={colors.paper} />
-              ) : (
-                <MicIcon size={16} color={colors.paper} />
-              )}
-              <Text
-                style={[
-                  styles.dockTalkText,
-                  handRaised && styles.dockTalkTextOn,
-                  voiceOff && styles.dockTalkTextOff,
-                ]}>
-                {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
-              </Text>
-            </Pressable>
+              {/* The mic is a circle now, not a wide labelled pill. The label
+                  is what the handoff dropped, and once it is gone the pill has
+                  nothing to be wide for. */}
+              <Pressable
+                style={[styles.dockMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+                onPressIn={raiseHand}
+                onPressOut={doneListening}
+                accessibilityLabel="Hold to speak">
+                {handRaised ? (
+                  <LevelBars color={PAPER} heights={[9, 17, 12]} />
+                ) : voiceOff ? (
+                  <MicOffIcon size={20} color={PAPER} />
+                ) : (
+                  <MicIcon size={20} color={PAPER} />
+                )}
+              </Pressable>
 
-            <Pressable
-              style={styles.railButton}
-              onPress={() => setWantLandscape(true)}
-              hitSlop={8}
-              accessibilityLabel="Rotate to landscape">
-              <RotateIcon size={15} color={INK} />
-            </Pressable>
+              <Pressable
+                style={styles.dockCtrl}
+                onPress={() => setWantLandscape(true)}
+                hitSlop={8}
+                accessibilityLabel="Rotate to landscape">
+                <RotateIcon size={21} color={INK_MUTED} />
+              </Pressable>
+            </View>
           </View>
-          <Text style={styles.dockHint}>Hold to interrupt</Text>
+          {/* The handoff's hint is fixed text — it does not answer back while
+              you speak, because the mic going green and growing bars already
+              does. "Mic off" is the one state it has no word for, and that one
+              has to be said. */}
+          <Text style={styles.dockHint}>{voiceOff ? 'Mic off' : 'Hold mic to speak'}</Text>
         </View>
       )}
 
@@ -1695,57 +1730,6 @@ function MicOffIcon({ size, color }: { size: number; color: string }) {
     </Svg>
   );
 }
-
-/**
- * The amber glow under the Interrupt button while it is held. A real radial
- * gradient, centred at 50% 118% as the design has it — a linear one only
- * fades along one axis and reads as a hard-edged block.
- */
-function TalkGlow() {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width={46} height={46}>
-        <Defs>
-          <RadialGradient id="talkGlow" cx="50%" cy="118%" rx="62%" ry="62%">
-            <Stop offset="0" stopColor={AMBER} stopOpacity={0.95} />
-            <Stop offset="1" stopColor={AMBER} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={23} cy={23} r={23} fill="url(#talkGlow)" />
-      </Svg>
-    </View>
-  );
-}
-
-/** The inset ring that pulses while speaking. Opacity only — nothing scales,
- *  nothing leaves the 46pt circle. */
-function TalkPulse() {
-  const opacity = useSharedValue(0.15);
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.7, { duration: 750, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.15, { duration: 750, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1
-    );
-  }, [opacity]);
-  const animated = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={[pulseStyle.ring, animated]} pointerEvents="none" />;
-}
-
-const pulseStyle = StyleSheet.create({
-  ring: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    bottom: 5,
-    left: 5,
-    borderRadius: 99,
-    borderWidth: 1.5,
-    borderColor: 'rgba(28,26,22,.5)',
-  },
-});
 
 function ReportIcon({ size, color }: { size: number; color: string }) {
   return (
@@ -2082,28 +2066,66 @@ function createStyles(
     },
 
     // Thumb rail — a floating paper plate, centred on the screen.
+
+    /**
+     * 8b. The rail is only a position now — right 12, vertically centred,
+     * which is the prototype's `right:12px; top:50%; translateY(-50%)`. Its
+     * plate, border and shadow moved to `railPill`, because the ring has to
+     * draw BEHIND them: it is a sibling of the plate, not a child, or it would
+     * paint over the very white it is meant to be hugging.
+     */
     rail: {
       position: 'absolute',
       right: 12,
       top: '50%',
+    },
+    /** Wraps ring and plate together and sizes itself to the plate, so the
+     *  ring's -1.5 and -6 insets are measured off the pill's own edge. */
+    dockAnchor: {
+      position: 'relative',
+      alignSelf: 'center',
+    },
+    railPill: {
       alignItems: 'center',
       gap: 12,
-      paddingVertical: 13,
-      paddingHorizontal: 9,
+      paddingVertical: 8,
+      paddingHorizontal: 8,
       borderRadius: 99,
-      backgroundColor: 'rgba(252,250,244,.94)',
+      backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: HAIRLINE,
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.22,
-      shadowRadius: 8,
-      elevation: 6,
+      borderColor: 'rgba(28,26,22,.10)',
+      /**
+       * The prototype's two shadows, literally — negative spreads included,
+       * which `shadowOffset`/`shadowRadius`/`shadowOpacity` cannot express and
+       * which is why this used to be an approximation. `boxShadow` carries
+       * `spreadDistance` and RN 0.81 implements it natively on iOS
+       * (`RCTBoxShadow.mm`). The tight second shadow seats the plate on the
+       * paper; the wide first one lifts it off.
+       */
+      boxShadow: [
+        { offsetX: 0, offsetY: 18, blurRadius: 36, spreadDistance: -20, color: 'rgba(28,26,22,0.5)' },
+        { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      ],
     },
-    railDivider: {
-      width: 22,
-      height: 1,
-      backgroundColor: 'rgba(28,26,22,.12)',
+    /** 48 here against portrait's 52: the prototype sizes them differently
+     *  because an upright rail has less room to give. */
+    railMic: {
+      width: 48,
+      height: 48,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: INK,
+      boxShadow: [
+        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+      ],
+    },
+    railCtrl: {
+      width: 40,
+      height: 40,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
 
     /**
@@ -2139,94 +2161,76 @@ function createStyles(
       alignItems: 'center',
       gap: verticalScale(6),
     },
-    dock: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: 9,
-      paddingHorizontal: 12,
-      borderRadius: 99,
-      // White, measured off the reference plate's interior (255,255,255). It
-      // was the warm paper tone, which on a white board read as a slightly
-      // grubby plate rather than a clean one — the same figure-and-ground
-      // inversion the plan sheet had.
-      backgroundColor: '#FFFFFF',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.10)',
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
-      elevation: 6,
-    },
-    dockDivider: {
-      width: 1,
-      height: 22,
-      backgroundColor: 'rgba(28,26,22,.12)',
-    },
     // The wide pill the handoff draws: mic and label on one line, because
     // across the bottom there is room for it and no room to stack a label
     // under a circle.
-    dockTalk: {
+    /** 8a. Same split as the rail: plate here, ring behind it. */
+    dockPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      height: 44,
-      paddingHorizontal: 18,
+      gap: 12,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
       borderRadius: 99,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      /**
+       * The prototype's two shadows, literally — negative spreads included,
+       * which `shadowOffset`/`shadowRadius`/`shadowOpacity` cannot express and
+       * which is why this used to be an approximation. `boxShadow` carries
+       * `spreadDistance` and RN 0.81 implements it natively on iOS
+       * (`RCTBoxShadow.mm`). The tight second shadow seats the plate on the
+       * paper; the wide first one lifts it off.
+       */
+      boxShadow: [
+        { offsetX: 0, offsetY: 18, blurRadius: 36, spreadDistance: -20, color: 'rgba(28,26,22,0.5)' },
+        { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      ],
+    },
+    dockCtrl: {
+      width: 48,
+      height: 48,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    /** 52 — the largest target on the dock and the only filled one, which is
+     *  the whole of how the handoff says "this is the one". */
+    dockMic: {
+      width: 52,
+      height: 52,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: INK,
+      boxShadow: [
+        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+      ],
     },
-    dockTalkOn: {
-      backgroundColor: AMBER,
+    /** Held. GREEN_INK is already #157A45, the prototype's own green; the mic
+     *  glyph gives way to level bars at the same moment. */
+    micOn: {
+      backgroundColor: GREEN_INK,
     },
-    dockTalkOff: {
-      backgroundColor: 'rgba(28,26,22,.28)',
-    },
-    dockTalkText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 12.5,
-      letterSpacing: 0.06 * 12.5,
-      textTransform: 'uppercase',
-      color: colors.paper,
-    },
-    dockTalkTextOn: {
-      color: INK,
-    },
-    dockTalkTextOff: {
-      color: 'rgba(252,250,244,.72)',
+    /** Off, not missing: same plate in the same place, drained of the shadow
+     *  that makes it read as a live control. The prototype has no state for
+     *  this — it never considers a phone whose mic cannot be opened — so this
+     *  one is the app's own, kept from the dock it replaces. */
+    micOff: {
+      backgroundColor: INK_MUTED,
+      opacity: 0.55,
+      boxShadow: [],
     },
     dockHint: {
       fontFamily: 'Onest_700Bold',
-      fontSize: 9.5,
-      letterSpacing: 0.1 * 9.5,
+      fontSize: 10.5,
+      letterSpacing: 0.08 * 10.5,
       textTransform: 'uppercase',
       color: INK_FAINT,
     },
-    talkButton: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: INK,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 7,
-      elevation: 5,
-    },
-    talkButtonOn: {
-      backgroundColor: AMBER,
-    },
     /** Off, not missing: same plate, drained of the shadow that makes it read
      *  as a live control. */
-    talkButtonOff: {
-      backgroundColor: INK_MUTED,
-      opacity: 0.55,
-      shadowOpacity: 0,
-      elevation: 0,
-    },
     // Pinned to 54 so the plate cannot resize when the label changes.
     /**
      * 60, not 54.
@@ -2241,30 +2245,6 @@ function createStyles(
      * lineHeight is explicit so the -3 lands the same on any face. The old -4
      * was measured against Anek Latin's line box.
      */
-    talkLabel: {
-      width: 60,
-      marginTop: -3,
-      textAlign: 'center',
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 8.5,
-      lineHeight: 11,
-      letterSpacing: 0.1 * 8.5,
-      textTransform: 'uppercase',
-      color: INK_MUTED,
-    },
-    talkLabelOn: {
-      color: DEEP_AMBER,
-    },
-    talkLabelOff: {
-      color: INK_FAINT,
-    },
-    railButton: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     micDeniedCard: {
       position: 'absolute',
       left: '50%',
