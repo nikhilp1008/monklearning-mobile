@@ -90,6 +90,8 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
   const audioRef = useRef<FollowUpAudio | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
   const startedRef = useRef(false);
+  /** Whether this answer has already begun speaking. */
+  const spokeRef = useRef(false);
 
   useEffect(
     () => () => {
@@ -169,6 +171,7 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
     const controller = new AbortController();
     abortRef.current = controller;
     const arrived: FollowUpStep[] = [];
+    spokeRef.current = false;
     let spoken = '';
     let asked = '';
 
@@ -190,6 +193,12 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
           },
           onSpoken: (text) => {
             spoken = text;
+            // Once per answer. Two `spoken` frames — a server that emits it
+            // early AND at the end, a reader that re-parses a frame — would
+            // build two players and put two voices in the air, which is the
+            // failure this whole path keeps coming back to.
+            if (spokeRef.current) return;
+            spokeRef.current = true;
             // Immediately, not after the await below. The server now writes
             // `spoken` as the FIRST field of the answer, so it lands before
             // the steps do — waiting for the stream to finish threw that head

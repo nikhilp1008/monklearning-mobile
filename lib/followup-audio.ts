@@ -47,29 +47,15 @@ const WAV_HEADER_BYTES = 44;
 const FINISH_GRACE_MS = 350;
 
 export class FollowUpAudio {
-  private player: AudioPlayer;
-  private removeListener: () => void;
   private queue: { uri: string; ms: number }[] = [];
-  private playing = false;
+  /** The clip sounding right now, with the listener and timer that belong to
+   *  it. Everything about a clip is torn down before the next one starts. */
+  private current: { player: AudioPlayer; done: () => void } | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
   private seq = 0;
 
-  constructor(private readonly key: string) {
-    // `keepAudioSessionActive` for the same reason the classroom sets it:
-    // without it expo-audio tears the whole AVAudioSession down after every
-    // clip and rebuilds it on the next `play()`, which clips the head off the
-    // one that follows. An answer is a handful of clips back to back, so that
-    // would be audible at every join.
-    this.player = createAudioPlayer(null, { keepAudioSessionActive: true });
-    const subscription = this.player.addListener(
-      'playbackStatusUpdate',
-      (status: AudioStatus) => {
-        if (status.didJustFinish) this.next();
-      }
-    );
-    this.removeListener = () => subscription.remove();
-  }
+  constructor(private readonly key: string) {}
 
   /** Adds one finished WAV to the end of the answer. */
   enqueue(wav: Uint8Array) {
@@ -88,40 +74,60 @@ export class FollowUpAudio {
       return;
     }
     this.queue.push({ uri: file.uri, ms });
-    if (!this.playing) this.next();
+    if (!this.current) this.next();
   }
 
   /**
-   * Moves to the next clip.
+   * Tears down the clip that is sounding and starts the next.
    *
-   * Guarded against being called twice for the same clip — `didJustFinish` and
-   * the fallback timer can both fire, and that double-advance is precisely how
-   * the classroom's queue ended up with two clips sounding at once.
+   * A player PER CLIP, rather than one player re-pointed with `replace()`.
+   * That sharing is exactly what made both earlier attempts overlap: the
+   * `didJustFinish` belonging to a clip that has just been replaced still
+   * arrives, advances the queue a second time, and puts two clips in the air.
+   * Here the previous clip's listener is removed and its player released
+   * before the next one exists, so there is nothing left to fire late.
    */
-  private next() {
+  private next = () => {
     if (this.stopped) return;
-    this.clearTimer();
-    const item = this.queue.shift();
-    if (!item) {
-      this.playing = false;
-      return;
-    }
-    this.playing = true;
-    this.player.replace({ uri: item.uri });
-    this.player.play();
-    // Its own length, known rather than watched. If `didJustFinish` arrives
-    // first it cancels this; if it never arrives, this is what keeps the rest
-    // of the answer playing.
-    this.timer = setTimeout(() => {
-      this.timer = null;
-      this.next();
-    }, item.ms + FINISH_GRACE_MS);
-  }
+    this.teardown();
 
-  private clearTimer() {
+    const item = this.queue.shift();
+    if (!item) return;
+
+    const player = createAudioPlayer({ uri: item.uri }, { keepAudioSessionActive: true });
+    const subscription = player.addListener(
+      'playbackStatusUpdate',
+      (status: AudioStatus) => {
+        if (status.didJustFinish) this.next();
+      }
+    );
+    this.current = {
+      player,
+      done: () => {
+        subscription.remove();
+        try {
+          player.remove();
+        } catch {
+          // Already released.
+        }
+      },
+    };
+    player.play();
+
+    // Its own length, known rather than watched — bytes over byte rate. Only
+    // reached when `didJustFinish` never arrives: a lost notification, a route
+    // change, an output device that never really started.
+    this.timer = setTimeout(this.next, item.ms + FINISH_GRACE_MS);
+  };
+
+  private teardown() {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (this.current) {
+      this.current.done();
+      this.current = null;
     }
   }
 
@@ -129,19 +135,7 @@ export class FollowUpAudio {
   stop() {
     if (this.stopped) return;
     this.stopped = true;
-    this.clearTimer();
     this.queue = [];
-    this.playing = false;
-    try {
-      this.player.pause();
-    } catch {
-      // Already gone; nothing to stop.
-    }
-    this.removeListener();
-    try {
-      this.player.remove();
-    } catch {
-      // Same.
-    }
+    this.teardown();
   }
 }
