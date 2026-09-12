@@ -521,6 +521,21 @@ export default function LiveClassroomScreen() {
 
     return () => {
       cancelled = true;
+      /**
+       * Give the floor back BEFORE the socket goes, not after.
+       *
+       * `sendPttStop` needs a live client, and the two lines below take it
+       * away — so a release attempted from any later cleanup finds
+       * `clientRef.current` already null and sends nothing. React runs
+       * cleanups in the order their effects were defined and this effect is
+       * near the top of the screen, which makes "before disconnect" the only
+       * place a leave-mid-hold can be told to the server at all.
+       *
+       * The rotation case is handled separately, further down, because
+       * rotating does not re-run this effect: the mic button unmounts under
+       * the thumb while the socket stays up.
+       */
+      doneListeningRef.current?.();
       clientRef.current?.disconnect();
       clientRef.current = null;
       // Covers navigating away mid-push-to-talk (swipe-back, hardware back)

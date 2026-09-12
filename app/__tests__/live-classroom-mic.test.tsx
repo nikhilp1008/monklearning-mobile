@@ -27,6 +27,9 @@ const mockStopRecording = jest.fn(() => Promise.resolve());
 const mockGetPermissions = jest.fn(() => Promise.resolve({ granted: true, canAskAgain: false }));
 const mockRequestPermissions = jest.fn(() => Promise.resolve({ granted: true, canAskAgain: false }));
 const mockListDevices = jest.fn<Promise<unknown>, []>(() => Promise.resolve([]));
+/** The floor: opened on press-in, and owed back on press-out. */
+const mockPttStart = jest.fn();
+const mockPttStop = jest.fn();
 
 /** A built-in mic that can actually record — the shape both natives return. */
 const HEALTHY_MIC = {
@@ -70,6 +73,14 @@ jest.mock('@/lib/drona-voice-client', () => ({
       return Promise.resolve();
     }
     sendUtterance() {}
+    sendPttStart() {
+      mockPttStart();
+    }
+    sendPttStop() {
+      mockPttStop();
+    }
+    pausePlayback() {}
+    resumePlayback() {}
   },
 }));
 jest.mock('@/hooks/use-landscape-lock', () => ({
@@ -219,6 +230,37 @@ describe('entering the live classroom with a working microphone', () => {
     const text = allText(renderer.toJSON());
     expect(text).toContain('Hold mic to speak');
     expect(text).not.toContain('Mic off');
+  });
+
+  /**
+   * THE FLOOR HAS TO COME BACK EVEN IF THE BUTTON DOES NOT.
+   *
+   * `sendPttStop` has one caller, the mic's `onPressOut`, and the mic lives
+   * inside the screen's `isLandscape ?` branch — so rotating mid-hold unmounts
+   * the very Pressable that owes us the release. When that happened no
+   * `onPressOut` ever arrived: the PTT window stayed open until a 30s ceiling
+   * retired it, the teacher stayed stopped, and the next hold was eaten
+   * because the server's `is_ptt_active` was never cleared.
+   *
+   * Unmounting is the same shape of event as rotating, and it is the one a
+   * test can stage, so that is what this asserts: the floor is given back on
+   * the way out, without a press-out.
+   */
+  it('gives the floor back when the mic button goes away mid-hold', async () => {
+    renderer = await enterClassroom();
+    const mic = renderer.root.findByProps({ accessibilityLabel: 'Hold to speak' });
+    await act(async () => {
+      mic.props.onPressIn();
+    });
+    expect(mockPttStart).toHaveBeenCalledTimes(1);
+    expect(mockPttStop).not.toHaveBeenCalled();
+
+    // No press-out: the button is simply gone, as it is on a rotation.
+    await act(async () => {
+      renderer?.unmount();
+    });
+    renderer = null;
+    expect(mockPttStop).toHaveBeenCalledTimes(1);
   });
 
   it('asks for permission when it has never been asked, then opens the mic', async () => {
