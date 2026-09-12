@@ -17,7 +17,9 @@ import {
 import Animated, {
   Easing,
   FadeIn,
+  FadeInDown,
   FadeOut,
+  FadeOutDown,
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
@@ -32,7 +34,6 @@ import {
   BOARD_LEFT,
   BOARD_TOP,
   Blink,
-  CaptionStrip,
   DARK_CHROME,
   DEEP_AMBER,
   EdgeTab,
@@ -385,7 +386,6 @@ export default function LiveClassroomScreen() {
         // while the audio moved on. Ordering is safe: this runs in
         // `onItemStart` immediately before `onBoardReveal`, so a cue firing on
         // the same sentence still writes after this and wins.
-        setWidgetCaption(null);
       },
       onTranscriptFinal: (text) => {
         // Speaking an answer counts the same as tapping a chip.
@@ -600,17 +600,7 @@ export default function LiveClassroomScreen() {
    *  precedence over the narration caption in the strip below while a cue is
    *  live — it is the more specific thing at that moment, same call as the
    *  (reverted) lesson-player wiring made. */
-  const [widgetCaption, setWidgetCaption] = useState<string | null>(null);
-  const onWidgetCaption = useCallback((c: string | null) => setWidgetCaption(c), []);
 
-  /** What the strip actually shows: the cue caption if one is live, otherwise
-   *  the narration line, with its spelled-out maths rendered as notation.
-   *  Memoised because it runs on every render of a screen that re-renders on
-   *  the audio clock. */
-  const captionText = useMemo(
-    () => spokenMathToNotation(widgetCaption ?? caption),
-    [widgetCaption, caption]
-  );
 
   /** Everything a `BoardWidget` needs beyond its own payload and its share of
    *  the board box (`diagramBox`) — kept separate from `diagramBox` because
@@ -690,9 +680,8 @@ export default function LiveClassroomScreen() {
       services: widgetServices,
       figures,
       onGap: onWidgetGap,
-      onCaption: onWidgetCaption,
     }),
-    [activeSeq, widgetTheme, widgetServices, figures, onWidgetGap, onWidgetCaption]
+    [activeSeq, widgetTheme, widgetServices, figures, onWidgetGap]
   );
 
   const [following, setFollowing] = useState(true);
@@ -1210,52 +1199,50 @@ export default function LiveClassroomScreen() {
 
       </View>
 
-      {/* THE CHECKPOINT, AS ONE BLOCK ABOVE THE CONTROLS.
-          The question and its answers used to be positioned separately: the
-          strip was a flex child at the bottom of the screen and the chips were
-          absolute inside the board at bottom 18, with `right: 96` reserving a
-          channel for the landscape thumb rail. In portrait there is no rail
-          and the dock owns the bottom 104pt, so both landed behind it —
-          answers the student could see the top edge of and not press.
+      {/* THE CHECKPOINT, AS ITS OWN CARD.
+          Not the caption strip. The first attempt reused it to carry the
+          question, which meant the thing Nikhil had removed came straight
+          back — "cc" badge, blinking caret and all — for the one case it was
+          still wired to. A question Drona asks is not a subtitle of what
+          Drona said; it is a thing to answer, so it gets a card with the
+          answers inside it.
 
-          They are one column now, anchored above whichever control set the
-          orientation uses, so the question is always directly over the chips
-          that answer it and neither can go under a control.
+          The question comes from `questionText`, the state frame's own field,
+          rather than from the caption stream. `caption` is now only what the
+          Report drawer quotes.
 
-          It also stopped resizing the board. As a flex child the strip took 54
-          from the board every time a question appeared, so the writing jumped;
-          the handoff is explicit that these are overlays and the board does
-          not resize under them.
+          Rises and leaves as one piece: the chips cannot outlive the question
+          they belong to, and the card unmounting is what plays the exit.
 
-          Notation, not dictation. `speech` is authored for TTS and may not
-          contain LaTeX, so it spells maths out — "3.2 times 10 to the power
-          minus 19". That is right for the ear and wrong for the eye sitting
-          under a board that renders 1.6 x 10^-19 C properly. Converted at the
-          point of display only; the audio and the stored caption are
-          untouched. */}
-      <View style={styles.askColumn} pointerEvents="box-none">
-        <CaptionStrip open={checkOptions.length > 0} listening={false} text={captionText} />
-        {/* Answer chips for Drona's checkpoint questions. Previously the state
-            frame's check_options were parsed and then discarded, so a student
-            was told "Your turn" with nothing on screen to answer with — the
-            class simply stalled. Mirrors web's AskSheet. */}
-        {checkOptions.length > 0 && questionText && !handRaised && (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.askRow}>
-            {checkOptions.map((option) => (
-              <Pressable
-                key={option}
-                style={styles.askChip}
-                onPress={() => {
-                  clientRef.current?.sendAnswer(option);
-                  setCheckOptions([]);
-                  setQuestionText(null);
-                }}>
-                <Text style={styles.askChipText}>{option}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-      </View>
+          Portrait puts it directly above the dock, landscape above the bottom
+          edge and clear of the rail's channel — the positioning lives on
+          `askColumn`. */}
+      {checkOptions.length > 0 && questionText && !handRaised && (
+        <Animated.View
+          style={styles.askColumn}
+          entering={FadeInDown.duration(320).easing(Easing.bezier(0.2, 0.7, 0.2, 1).factory())}
+          exiting={FadeOutDown.duration(220)}>
+          <View style={styles.askCard}>
+            <Text style={styles.askQuestion} numberOfLines={3}>
+              {spokenMathToNotation(questionText)}
+            </Text>
+            <View style={styles.askRow}>
+              {checkOptions.map((option) => (
+                <Pressable
+                  key={option}
+                  style={styles.askChip}
+                  onPress={() => {
+                    clientRef.current?.sendAnswer(option);
+                    setCheckOptions([]);
+                    setQuestionText(null);
+                  }}>
+                  <Text style={styles.askChipText}>{option}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Landscape keeps the thumb rail on the right, where a hand holding the
           phone sideways already is. Portrait puts the same controls in a dock
@@ -1527,7 +1514,6 @@ function BoardBlockView({
     services: WidgetServices;
     figures: FigureResolver;
     onGap: (reason: string, detail: unknown) => void;
-    onCaption: (caption: string | null) => void;
   };
 }) {
   const raw =
@@ -1565,7 +1551,6 @@ function BoardBlockView({
           services={widgetHost.services}
           figures={widgetHost.figures}
           onGap={widgetHost.onGap}
-          onCaption={widgetHost.onCaption}
         />
       );
     }
@@ -2317,16 +2302,41 @@ function createStyles(
      */
     askColumn: {
       position: 'absolute',
-      left: isLandscape ? scale(24) : scale(20),
-      right: isLandscape ? scale(96) : scale(20),
-      bottom: isLandscape ? verticalScale(14) : verticalScale(DOCK_TOP + 14),
-      gap: verticalScale(10),
+      left: isLandscape ? scale(24) : scale(18),
+      right: isLandscape ? scale(96) : scale(18),
+      bottom: isLandscape ? verticalScale(14) : verticalScale(DOCK_TOP + 12),
+    },
+    /**
+     * The card itself: white plate, hairline, the same shadow as the dock, so
+     * the two read as one family of things that float over the paper.
+     */
+    askCard: {
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      borderRadius: scale(18),
+      paddingTop: verticalScale(13),
+      paddingBottom: verticalScale(12),
+      paddingHorizontal: scale(15),
+      gap: verticalScale(11),
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.16,
+      shadowRadius: 14,
+      elevation: 6,
+    },
+    // 500, not bold: it is a question to read, and the answers under it are
+    // what the eye should land on.
+    askQuestion: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14.5),
+      lineHeight: scale(20),
+      color: INK,
     },
     askRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: scale(9),
+      gap: scale(8),
     },
     askChip: {
       backgroundColor: '#fff',
