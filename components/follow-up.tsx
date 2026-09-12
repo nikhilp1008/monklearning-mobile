@@ -1,6 +1,5 @@
 import {
   RecordingPresets,
-  createAudioPlayer,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
@@ -11,7 +10,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { SolutionSteps } from '@/components/solution-steps';
-import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUp } from '@/lib/doubt-followup';
+import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
+import { extractPcmFromWav } from '@/lib/audio-pcm';
+import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUpStreaming } from '@/lib/doubt-followup';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -83,19 +84,18 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const [phase, setPhase] = useState<Phase>('listening');
-  const [heard, setHeard] = useState<string | null>(null);
   const [steps, setSteps] = useState<FollowUpStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const queueRef = useRef<AudioPlaybackQueue | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
   const startedRef = useRef(false);
 
   useEffect(
     () => () => {
       abortRef.current?.abort();
-      playerRef.current?.remove();
+      queueRef.current?.clear();
       recorder.stop().catch(() => {});
       // Closing mid-listen must not leave the session recording-shaped. The
       // classroom sets playback once on entry and never again, so a session
@@ -115,7 +115,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
 
   const listen = useCallback(async () => {
     setError(null);
-    setHeard(null);
     setSteps([]);
     setSeconds(0);
     setPhase('listening');
@@ -180,9 +179,11 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         uri,
         turnsRef.current,
         {
+          // Kept for the conversation history the next turn is sent with,
+          // but no longer shown: the student knows what they just asked, and
+          // printing it back delays the only new thing on screen.
           onTranscript: (text) => {
             asked = text;
-            setHeard(text);
           },
           onStep: (step) => {
             arrived.push(step);
@@ -190,6 +191,11 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
           },
           onSpoken: (text) => {
             spoken = text;
+            // Immediately, not after the await below. The server now writes
+            // `spoken` as the FIRST field of the answer, so it lands before
+            // the steps do — waiting for the stream to finish threw that head
+            // start away and put the voice back behind the board.
+            void play(text, controller);
           },
         },
         controller.signal
@@ -205,7 +211,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         { role: 'user', content: asked },
         { role: 'assistant', content: body },
       ];
-      if (spoken) void play(spoken, controller);
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'That did not go through.');
@@ -215,14 +220,31 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
 
   async function play(spoken: string, controller: AbortController) {
     try {
-      const uri = await speakFollowUp(doubtId, spoken);
-      if (controller.signal.aborted || !uri) return;
-      playerRef.current?.remove();
-      const player = createAudioPlayer({ uri });
-      playerRef.current = player;
-      player.play();
+      queueRef.current?.clear();
+      const queue = new AudioPlaybackQueue();
+      queueRef.current = queue;
+      // Each frame is a finished WAV for one sentence, queued as it lands, so
+      // the first plays while the rest are still being synthesised. The whole
+      // answer took 9.4s to speak before this — 24.7s once it was long enough
+      // to need splitting — and the student had read all of it by then.
+      await speakFollowUpStreaming(
+        doubtId,
+        spoken,
+        (wav, index) => {
+          if (controller.signal.aborted) return;
+          queue.enqueue({
+            id: `${doubtId}-${index}`,
+            pcm: extractPcmFromWav(wav),
+            // Rumik is 24kHz 16-bit mono, asserted by the batch pipeline and
+            // by the server's own flush geometry — the same constant the
+            // classroom plays its turns at.
+            sampleRate: 24000,
+          });
+        },
+        controller.signal
+      );
     } catch {
-      // The words are on screen. Speech that will not synthesize is a missing
+      // The words are on screen. Speech that will not synthesise is a missing
       // extra, not a failed answer.
     }
   }
@@ -247,7 +269,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
                 <Text style={styles.close}>Done</Text>
               </Pressable>
             </View>
-            {!!heard && <Text style={styles.heardInSheet}>“{heard}”</Text>}
             <ScrollView style={styles.flex} contentContainerStyle={styles.sheetBody}>
               <SolutionSteps steps={rail} size="compact" />
             </ScrollView>
@@ -284,9 +305,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
           <>
             <ActivityIndicator color={INK_50} />
             <View style={styles.barBody}>
-              <Text style={styles.barTitle} numberOfLines={1}>
-                {heard ? `“${heard}”` : 'Hearing you out…'}
-              </Text>
               <Text style={styles.barHint}>Working it out…</Text>
             </View>
           </>
@@ -295,11 +313,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         {(phase === 'brief' || phase === 'failed') && (
           <>
             <View style={styles.barBody}>
-              {!!heard && (
-                <Text style={styles.barHint} numberOfLines={1}>
-                  “{heard}”
-                </Text>
-              )}
               <Text style={styles.answer}>
                 {error ?? steps.map((s) => s.text).join(' ')}
               </Text>
@@ -407,16 +420,6 @@ function createStyles(height: number) {
     },
     title: { fontFamily: 'Onest_700Bold', fontSize: 19, color: INK },
     close: { fontFamily: 'Onest_600SemiBold', fontSize: 15, color: INK_50 },
-    heardInSheet: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: 15,
-      lineHeight: 22,
-      color: INK,
-      paddingTop: 6,
-      paddingBottom: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: HAIR,
-    },
     sheetBody: { paddingVertical: 16 },
     primary: {
       height: 50,
