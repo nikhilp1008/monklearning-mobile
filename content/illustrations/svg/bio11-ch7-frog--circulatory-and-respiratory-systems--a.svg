@@ -41,12 +41,25 @@
        brief requires — the black outline still sits on top and the colour
        reads as a band behind it.
 
-       THE PALETTE HAS NO BLUE. constants/brand.js is ink / paper / marigold /
-       slate / faint / quiet / tint / red / success. `red` (#DD4433) tints to
-       the oxygenated colour below, but deoxygenated blue and the mixed mauve
-       are NOT in the palette and are not derivable from it. They are proposed
-       here and flagged for Raasikh rather than quietly invented as "from the
-       chrome palette".
+       COLOURS, AND WHERE EACH ONE COMES FROM. The brief says "from the chrome
+       palette". constants/brand.js has no blue at all, so the palette meant
+       here is the SVG one this codebase already gates model-drawn diagrams
+       against (app/drona/diagram_author.py): #dc2626 red, #dbeafe pale blue
+       (fills), #f1f5f9 pale grey (fills), #2563eb blue.
+
+       One rule, applied to palette members, so every value is reproducible
+       rather than picked by eye — mix with white at a stated fraction:
+
+         deoxygenated  #dbeafe  the palette's pale-blue FILL, used exactly
+         oxygenated    #f9d8d8  palette #dc2626 at 18% over white
+         ventricle     #eae1eb  the two above averaged — the frog ventricle
+                                carries MIXED blood, so the colour is the
+                                mixture, not a third hue chosen to look right
+         conus/truncus #f1efeb  brand `quiet` #C0B8A6 at 22% over white; the
+                                SVG palette's own #f1f5f9 grey is COOL and the
+                                brief asked for warm, so the warm grey comes
+                                from the app palette and is named here rather
+                                than silently substituted
 
        WHICH ARCH IS WHICH is read from the label anchors, not guessed:
        carotid u=0.3611 -> x=130, systemic u=0.4167 -> x=150, pulmocutaneous
@@ -58,18 +71,18 @@
   <g id="colour">
     <!-- Closed regions: flat fill, no stroke of their own. -->
     <!-- right atrium (viewer left) - deoxygenated -->
-    <path d="M152,150 C142,132 148,114 166,114 C178,114 182,130 182,150 Z" fill="#C5D4E4"/>
+    <path d="M152,150 C142,132 148,114 166,114 C178,114 182,130 182,150 Z" fill="#dbeafe"/>
     <!-- left atrium (viewer right) - oxygenated -->
-    <path d="M212,150 C222,132 216,114 198,114 C186,114 182,130 182,150 Z" fill="#F2C7C1"/>
+    <path d="M212,150 C222,132 216,114 198,114 C186,114 182,130 182,150 Z" fill="#f9d8d8"/>
     <!-- ventricle - mixed blood in the single frog ventricle -->
-    <path d="M152,150 C148,186 164,216 182,228 C200,216 216,186 212,150 Z" fill="#DCC8D6"/>
+    <path d="M152,150 C148,186 164,216 182,228 C200,216 216,186 212,150 Z" fill="#eae1eb"/>
     <!-- sinus venosus, dorsal - deoxygenated -->
-    <path d="M210,102 C214,90 234,90 238,102 C234,112 214,112 210,102 Z" fill="#C5D4E4"/>
+    <path d="M210,102 C214,90 234,90 238,102 C234,112 214,112 210,102 Z" fill="#dbeafe"/>
 
     <!-- Vessel underlays: same geometry, wide light stroke, black line art on top. -->
     <g fill="none" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
       <!-- carotid + systemic arches, both sides - oxygenated -->
-      <g stroke="#F2C7C1">
+      <g stroke="#f9d8d8">
         <path d="M150,66 C142,50 134,32 130,14"/>
         <path d="M150,66 C150,48 150,30 150,12"/>
         <path d="M200,70 C194,54 190,34 188,16"/>
@@ -79,14 +92,14 @@
         <path d="M238,166 C226,156 212,142 204,132"/>
       </g>
       <!-- pulmocutaneous arches and the caval veins - deoxygenated -->
-      <g stroke="#C5D4E4">
+      <g stroke="#dbeafe">
         <path d="M150,66 C158,50 166,32 172,20"/>
         <path d="M200,70 C212,52 224,32 232,16"/>
         <path d="M236,72 C232,82 230,90 228,94"/>
         <path d="M238,146 C234,130 232,116 232,108"/>
       </g>
       <!-- conus and truncus arteriosus - neutral warm grey -->
-      <g stroke="#E0DACB">
+      <g stroke="#f1efeb">
         <path d="M145,98 C152,88 160,82 170,78"/>
         <path d="M170,78 C162,74 155,70 150,66"/>
         <path d="M170,78 C182,75 193,72 200,70"/>
