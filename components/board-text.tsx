@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BoardDiagram } from '@/components/board-diagram';
-import { INK, INK_MUTED } from '@/components/classroom-chrome';
+import { DEEP_AMBER, INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
 import { latexToText } from '@/lib/latex-text';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
@@ -180,14 +180,30 @@ export function BoardBlockView({
  * either side, which is what a displayed equation gets in a book.
  */
 const styles = StyleSheet.create({
-  /** The section title. 19 against a 16 body, so it leads without shouting. */
+  /**
+   * The section title. 19 against a 16 body, so it leads without shouting —
+   * and DEEP_AMBER carries the rest of the separation that size no longer
+   * does at a 1.19 ratio.
+   *
+   * It is the brand's own accent ink, the same #9A6A12 the app already uses
+   * for links, so a coloured heading is not a new tone on the board. At
+   * 4.73:1 on white it carries body-size text comfortably, let alone 19pt at
+   * 700 — and of the palette only ink, slate, greenInk and this clear 4.5:1
+   * at all. Marigold fails outright at 2.12, which is why the accent can be a
+   * dot or a fill but never type.
+   *
+   * Not green: #157A45 measures better at 5.38:1, but green already means
+   * CORRECT in this app — the verdict chip, mastery-strong — and a heading is
+   * not a verdict. The cheaper contrast is worth not spending a meaning
+   * twice.
+   */
   boardHeading: {
     fontFamily: 'Onest_700Bold',
     fontSize: 19,
     lineHeight: 25,
     letterSpacing: -0.2,
     marginTop: 34,
-    color: INK,
+    color: DEEP_AMBER,
   },
 
   /**
