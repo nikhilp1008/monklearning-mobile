@@ -580,7 +580,8 @@ function FrogLabelLab() {
               <BoardWidget
                 event={{ seq: 1, tier: 'precomputed',
                          payload: { widget: 'labelled_figure', version: 1,
-                                    params: { asset_slug: FROG_SLUG, lang } } }}
+                                    params: { asset_slug: FROG_SLUG, lang,
+                                              active_group: group } } }}
                 activeSeq={1}
                 width={f.w}
                 height={f.h}
