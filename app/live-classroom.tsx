@@ -31,7 +31,6 @@ import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-nativ
 
 import {
   AMBER,
-  BOARD_LEFT,
   BOARD_TOP,
   Blink,
   DARK_CHROME,
@@ -119,6 +118,42 @@ const BOARD_RIGHT_GUTTER = 116;
  * reason — a first line resting inside the ramp would render half-faded with
  * no scrolling at all.
  */
+/**
+ * THE GUTTERS ARE SYMMETRIC, AND THEY ARE WHAT IS LEFT OVER.
+ *
+ * `BOARD_MEASURE` fixes how wide a line may be; the screen fixes how wide the
+ * board is; the difference has to go somewhere. Landscape is 874pt and the
+ * measure is 512, so 362pt is spare — and it was all being dumped on the right,
+ * which is why the board read as a column pinned to one edge with a hole beside
+ * it rather than as writing on a page.
+ *
+ * Split it in half instead and the same 362pt stops being a gap and becomes two
+ * 181pt margins. Nothing about the line length changes; only where the spare
+ * width sits. A centred column is what every reading surface does when it is
+ * wider than its text, and it is the one arrangement that cannot look like a
+ * layout bug.
+ *
+ * The floor is per-orientation and it is a floor, not a target:
+ *   portrait   28 — the board's own gutter, from `Board 1c`'s content box. A
+ *              390pt screen has nothing spare (the measure is wider than the
+ *              screen), so the floor is what is used and portrait is unchanged.
+ *   landscape  116 — the thumb-rail channel. On a narrow landscape window the
+ *              spare width halves to less than this, and the rail still has to
+ *              be cleared, so the floor wins and the column is narrower than
+ *              the measure. Still symmetric.
+ *
+ * Because both sides are equal, centring in the content box and centring on
+ * the screen are the same thing, so there is no `alignSelf` anywhere — the
+ * padding alone places the column. Everything that floats over the board reads
+ * this number too, so the header, the question card and the writing share one
+ * left edge.
+ */
+const PORTRAIT_GUTTER = 28;
+/** Half the spare width, but never less than the orientation's floor. */
+function boardGutter(windowWidth: number, isLandscape: boolean) {
+  const floor = isLandscape ? BOARD_RIGHT_GUTTER : PORTRAIT_GUTTER;
+  return Math.max(floor, (windowWidth - BOARD_MEASURE) / 2);
+}
 const LS_SCRIM = 76;
 const LS_SCRIM_SOLID = 44;
 
@@ -264,9 +299,15 @@ export default function LiveClassroomScreen() {
    * of painting a wide board into an upright window.
    */
   const isLandscape = windowWidth > windowHeight;
+  /**
+   * The board's side margin, and the left edge of everything that floats over
+   * it. Read from the real window rather than a constant, because it is half
+   * of whatever the measure leaves over — see `boardGutter`.
+   */
+  const boardSide = boardGutter(windowWidth, isLandscape);
   const styles = useMemo(
-    () => createStyles(scale, verticalScale, isLandscape),
-    [scale, verticalScale, isLandscape]
+    () => createStyles(scale, verticalScale, isLandscape, boardSide),
+    [scale, verticalScale, isLandscape, boardSide]
   );
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
@@ -608,14 +649,11 @@ export default function LiveClassroomScreen() {
       // Mirrors `boardContent`'s own padding, which differs by orientation:
       // landscape keeps the notch gutter on the left and the thumb-rail
       // channel on the right, portrait has no rail so the writing runs wide.
-      // Capped by BOARD_MEASURE like the writing is, so a figure never hangs
-      // past the column of text it is an aside to. The portrait numbers are
-      // 28 and 28 — the board's gutters — not the 40 and 22 they used to be,
-      // which were the old padding and left a figure 6pt narrower than the
-      // lines above it.
-      availableWidth: isLandscape
-        ? Math.min(BOARD_MEASURE, Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER))
-        : Math.min(BOARD_MEASURE, Math.max(0, windowWidth - 28 - 28)),
+      // Exactly the writing's column, both orientations, from the one gutter
+      // rule — so a figure is never wider or narrower than the lines it sits
+      // between. It used to subtract hardcoded padding that had drifted out of
+      // date in both orientations.
+      availableWidth: Math.max(0, windowWidth - boardSide * 2),
       /**
        * A figure is an aside to the argument, so the lines either side of it
        * have to stay on screen with it.
@@ -629,9 +667,9 @@ export default function LiveClassroomScreen() {
        */
       maxHeight: isLandscape
         ? boardHeight * 0.72
-        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - 28 - 28)),
+        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - boardSide * 2)),
     }),
-    [windowWidth, boardHeight, isLandscape]
+    [windowWidth, boardHeight, isLandscape, boardSide]
   );
   /**
    * The board's own ink, so a widget diagram is not in a different hand than
@@ -1894,25 +1932,24 @@ function ScreenshotIcon({ size }: { size: number }) {
 function createStyles(
   scale: (size: number) => number,
   verticalScale: (size: number) => number,
-  isLandscape: boolean
+  isLandscape: boolean,
+  boardSide: number
 ) {
   /**
-   * The board's gutters, which differ by orientation because the chrome does.
+   * Side margins are equal and come from `boardGutter`; only the vertical
+   * padding differs by orientation, because only the chrome does. Portrait
+   * clears a header above and a dock below (130 and 146); landscape clears a
+   * deeper scrim above and has its controls in a rail at the side, so the
+   * bottom only has to clear the question card (76 and 52).
    *
-   * Landscape keeps a 116 channel on the right for the thumb rail. Portrait has
-   * no rail — the controls sit in a dock along the bottom — so the writing runs
-   * almost to the right edge and the vertical padding grows instead, to clear
-   * the header above and the dock below.
-   *
-   * The left gutter is 28, not 40. 40 was the classroom-flow handoff's value
-   * and it was 12pt of clearance for a red margin rule at x=28 — with the rule
-   * gone it was just a wide, unexplained indent. `Board 1c Faded Rules` sets
-   * its own content box to `padding: 26px 28px 40px 28px`, so 28 on both
-   * sides, and the rules fade over the first 60 anyway.
+   * The portrait floor is 28, not the 40 the classroom-flow handoff used: that
+   * 40 was 12pt of clearance for a red margin rule at x=28, and with the rule
+   * gone it was an unexplained indent. `Board 1c Faded Rules` sets its own
+   * content box to `padding: 26px 28px 40px 28px`.
    */
   const boardPad = isLandscape
-    ? { top: LS_SCRIM, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
-    : { top: 130, right: 28, bottom: 146, left: 28 };
+    ? { top: LS_SCRIM, right: boardSide, bottom: BOARD_TOP, left: boardSide }
+    : { top: 130, right: boardSide, bottom: 146, left: boardSide };
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -1979,13 +2016,12 @@ function createStyles(
       paddingBottom: boardPad.bottom,
       paddingLeft: boardPad.left,
     },
-    // Holds every line of writing, so the measure cap goes here: one maxWidth
-    // instead of one on each of five text styles. It stays on the left gutter
-    // — a column stretched to its max and then placed at flex-start — and in
-    // portrait the cap is never reached, so nothing changes there.
+    // No maxWidth here any more. It capped the column but left it pinned to
+    // the left gutter with all the spare width in one lump on the right; the
+    // symmetric padding from `boardGutter` caps it AND centres it, so one
+    // mechanism does both and there is nothing to keep in step.
     boardTapTarget: {
       flex: 1,
-      maxWidth: BOARD_MEASURE,
     },
     enteringCardOverlay: {
       zIndex: 20,
@@ -2023,8 +2059,22 @@ function createStyles(
     topBar: {
       position: 'absolute',
       top: isLandscape ? 14 : 58,
-      left: isLandscape ? BOARD_LEFT : 22,
-      right: isLandscape ? 26 : 18,
+      /**
+       * On the column's own edges, not the screen's, so the title sits over
+       * the first letter of the writing it names and End sits over the line
+       * ends. In landscape that pulls the row in from 56/26 to 181/181 and the
+       * header stops being wider than the board it labels — the misalignment
+       * was 125pt, which reads as a mistake rather than as a margin.
+       *
+       * Portrait keeps its 6pt overhang (22 against the writing's 28): a
+       * 13pt title and a pill are optically further in than a run of body
+       * text at the same x, and the reference draws it that way.
+       *
+       * The rail is the exception and stays at the screen edge — it is a thumb
+       * target before it is a layout element.
+       */
+      left: isLandscape ? boardSide : boardSide - 6,
+      right: isLandscape ? boardSide : 18,
       flexDirection: 'row',
       alignItems: 'center',
       // The row is three things with two joints: title | flag | End. 14 is
@@ -2375,8 +2425,11 @@ function createStyles(
      */
     askColumn: {
       position: 'absolute',
-      left: isLandscape ? scale(24) : scale(18),
-      right: isLandscape ? scale(96) : scale(18),
+      // Landscape: the column's edges, so the options line up under the
+      // question the teacher just wrote. The old 24/96 was measured off the
+      // screen and put the card 157pt wider than the writing above it.
+      left: isLandscape ? boardSide : scale(18),
+      right: isLandscape ? boardSide : scale(18),
       bottom: isLandscape ? verticalScale(14) : verticalScale(DOCK_TOP + 12),
     },
     /**
