@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BoardDiagram } from '@/components/board-diagram';
-import { AMBER_WASH, INK, INK_MUTED } from '@/components/classroom-chrome';
+import { INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
 import { latexToText } from '@/lib/latex-text';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
@@ -101,7 +101,7 @@ export function BoardBlockView({
   }
   if (event.type === 'formula') {
     return (
-      <View style={styles.boardFormulaPlate}>
+      <View style={styles.boardFormulaRow}>
         <Text style={styles.boardEquation}>{text}</Text>
       </View>
     );
@@ -145,76 +145,98 @@ export function BoardBlockView({
  * headings and formulas. No colour at all, so a student who cannot see colour
  * reads the same hierarchy as everyone else.
  */
+/**
+ * THE SCALE IS A RATIO, AND THE GAPS ARE FRACTIONS OF A LINE.
+ *
+ * Both of those were picked by feel before and both were wrong in a way the
+ * arithmetic shows plainly.
+ *
+ * SIZE. The heading was 20 against a 15pt body — a ratio of 1.33, which is a
+ * print-poster jump and read as a heading shouting at a body too small to
+ * answer. The base is 16 now and the scale is 1.2 (a major second, the usual
+ * choice on screen), so the heading lands at 19 and the ratio is 1.19. The
+ * hierarchy is carried by weight and space instead: 400 prose, 600 the line
+ * that matters, 700 headings and formulas.
+ *
+ * SPACE. The gap between two ideas was 12pt against a 23pt line — 0.52 of a
+ * line, LESS than a single line-space between two separate definitions. That
+ * is the congestion: consecutive events ran together into one wall. Gaps are
+ * now stated as fractions of the 26pt line, which is why they are the numbers
+ * they are:
+ *
+ *   between ideas   0.75 line   20
+ *   around a note   0.85 line   22
+ *   around a formula   1 line   26
+ *   a new heading    1.3 line   34
+ *
+ * `marginTop` only, never marginBottom: Yoga does not collapse margins, so a
+ * block with both would add its bottom to the next block's top and the gap
+ * would depend on what preceded it. Top-only means the gap between any two
+ * blocks is exactly the lower one's number.
+ *
+ * NO BACKGROUND COLOUR ANYWHERE, and no coloured type yet either. The formula
+ * had an amber plate and it is gone: nothing on this board is filled. A
+ * formula earns its place by being centred and by having a full line of air
+ * either side, which is what a displayed equation gets in a book.
+ */
 const styles = StyleSheet.create({
-  /** The section title. The largest thing on the board and the only one with a
-   *  real break above it — 32 says "new idea" where 12 says "next line". */
+  /** The section title. 19 against a 16 body, so it leads without shouting. */
   boardHeading: {
     fontFamily: 'Onest_700Bold',
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 19,
+    lineHeight: 25,
     letterSpacing: -0.2,
-    marginTop: 32,
+    marginTop: 34,
     color: INK,
   },
 
   /**
-   * The reading text. 15/23 is 1.53 leading, and on a 346pt measure that is
-   * about 45 characters a line — normal for a phone, where iOS's own body text
-   * runs nearer 40. The old 13.5 on a 26pt line was 1.93, the airiest thing on
-   * a board whose headings were the tightest.
+   * The reading text, and most of the board. 16/26 is 1.62 leading — generous
+   * on purpose, because this is read while someone is talking over it, and
+   * about 42 characters a line on a 346pt measure.
    */
   boardBody: {
     fontFamily: 'Onest_400Regular',
-    fontSize: 15,
-    lineHeight: 23,
-    marginTop: 12,
+    fontSize: 16,
+    lineHeight: 26,
+    marginTop: 20,
     color: INK_MUTED,
   },
-  /** `key` or `high`. 600 and full ink: darker and firmer than the prose round
-   *  it, without the shout of 700 at reading size. */
+  /** `key` or `high`: 600 and full ink, firmer than the prose round it without
+   *  the shout of 700 at reading size. */
   boardBodyBold: {
     fontFamily: 'Onest_600SemiBold',
     color: INK,
   },
 
   /**
-   * The formula, centred on its own plate.
-   *
-   * Centred because a formula is not a line of prose — it is a result, and
-   * left-aligning it buried it in the paragraph flow. The plate is the board's
-   * only filled surface, which is what makes it mean "formula" rather than
-   * decoration, and it is the existing amber wash rather than a new tone.
+   * The formula: centred, with a full line of air above it and nothing behind
+   * it. A formula is a result rather than a line of prose, and left-aligning
+   * it buried it in the paragraph flow — centring and space are what a
+   * displayed equation gets on a page, and they do the job without a fill.
    */
-  boardFormulaPlate: {
-    marginTop: 18,
+  boardFormulaRow: {
+    marginTop: 26,
     alignSelf: 'stretch',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: AMBER_WASH,
   },
   boardEquation: {
     fontFamily: 'Onest_700Bold',
-    fontSize: 19,
+    fontSize: 18,
     lineHeight: 26,
     textAlign: 'center',
     color: INK,
   },
 
   /**
-   * The exam callout, marked by an indent rather than by colour.
-   *
-   * It was red, and red was the only thing separating it from an emphasised
-   * body line. With colour gone the indent does that job: a block stepped in
-   * from the measure reads as an aside in any typeface, and it costs nothing.
-   * Smaller and lighter than the line it follows, because an aside should sit
-   * below the argument rather than on top of it.
+   * The exam callout, marked by an indent. Red used to be the only thing
+   * separating it from an emphasised body line; an indent does the same job in
+   * any typeface and for any eye, and it costs no colour.
    */
   boardNote: {
     fontFamily: 'Onest_500Medium',
-    fontSize: 14,
+    fontSize: 13.5,
     lineHeight: 21,
-    marginTop: 18,
+    marginTop: 22,
     paddingLeft: 16,
     color: INK_MUTED,
   },
