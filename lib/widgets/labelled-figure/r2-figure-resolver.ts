@@ -175,8 +175,40 @@ export type MeasureArt = (url: string) => Promise<{ w: number; h: number }>;
  */
 const assetIndex = new Map<string, AssetRow>();
 
+/**
+ * Record the chapter's asset rows, and DROP any cached figure whose bytes have
+ * since changed.
+ *
+ * This is the only place a fresher truth about an asset arrives: the chapter
+ * prefetch re-reads `master_sha256` from the server every time a class starts.
+ * Comparing it against what is already indexed is therefore free, and it is
+ * the one moment a running app can learn that a plate was replaced.
+ *
+ * WHAT THIS FIXES. The record cache is keyed by slug and lives as long as the
+ * app; the bytes are identified by content hash. Replace a master at an
+ * unchanged key — exactly what the frog heart did on 2026-09-12 — and a
+ * running app draws the old plate forever, because `get(slug)` keeps
+ * answering and nothing ever asks the on-disk cache for the new sha. Measured:
+ * the board only picked the recoloured plate up after a cold restart.
+ *
+ * Deliberately NOT a cache clear: only the slugs whose sha actually moved are
+ * dropped. And the on-disk keying is untouched — the new sha simply misses,
+ * downloads, and the old file ages out of the LRU as any other orphan does.
+ */
 export function setChapterAssets(rows: readonly AssetRow[]): void {
-  for (const r of rows) assetIndex.set(r.asset_slug, r);
+  for (const r of rows) {
+    const had = assetIndex.get(r.asset_slug);
+    assetIndex.set(r.asset_slug, r);
+    if (!had) continue;
+    const wasSha = had.master_sha256;
+    const nowSha = r.master_sha256;
+    if (wasSha && nowSha && wasSha !== nowSha) {
+      r2FigureResolver.invalidate(
+        r.asset_slug,
+        `master_sha256 ${wasSha.slice(0, 12)} -> ${nowSha.slice(0, 12)}`
+      );
+    }
+  }
 }
 
 export function knownAsset(slug: string): AssetRow | null {

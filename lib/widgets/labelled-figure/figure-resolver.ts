@@ -77,6 +77,23 @@ export interface FigureResolver {
    * Subscribing per slug makes all three the same case.
    */
   subscribe(assetSlug: string, onChange: () => void): () => void;
+  /**
+   * Drop a cached record whose underlying bytes have changed, and tell whoever
+   * is drawing it.
+   *
+   * WHY THIS EXISTS. The cache is keyed by SLUG and lives for the life of the
+   * app, while the thing it caches is identified by its CONTENT hash. Replace
+   * a master in R2 — which the frog heart just did — and a running app keeps
+   * drawing the old plate forever: the on-disk cache would happily fetch the
+   * new sha, but nothing ever asks it to, because `get(slug)` still answers.
+   * Measured 2026-09-12: the board only picked up the recoloured plate after a
+   * cold restart.
+   *
+   * Returns true when something was actually dropped, so a caller can tell a
+   * real invalidation from a no-op. Subscribers are notified exactly once per
+   * invalidated slug — the notification is what makes a live board re-resolve.
+   */
+  invalidate(assetSlug: string, reason?: string): boolean;
 }
 
 /**
@@ -98,6 +115,17 @@ export function createFigureResolver(
   };
   // Deduplicates concurrent prefetches of the same slug; never read by get().
   const inFlight = new Map<string, Promise<FigureRecord>>();
+  /**
+   * Bumped every time a slug is invalidated.
+   *
+   * Dropping the in-flight PROMISE is not enough on its own: the load it
+   * refers to is already running, and when it settles it would write the stale
+   * record straight back into the cache. So a load records the generation it
+   * started under and only writes if that is still current. Found by the
+   * mid-flight fixture, which failed against the first version of this fix.
+   */
+  const generation = new Map<string, number>();
+  const genOf = (slug: string) => generation.get(slug) ?? 0;
 
   return {
     get(assetSlug) {
@@ -120,6 +148,31 @@ export function createFigureResolver(
         if (set!.size === 0) listeners.delete(assetSlug);
       };
     },
+    invalidate(assetSlug, reason) {
+      // NOT a map clear. Only this slug goes; every other figure in the class
+      // stays cached, because nothing about them changed.
+      // BOTH, and neither short-circuits the other. A first version returned
+      // early when nothing was CACHED — but a load can be in the air with
+      // nothing cached yet, and that load would then complete and cache the
+      // stale record after the invalidation. The mid-flight fixture is what
+      // caught it.
+      const hadRecord = cache.delete(assetSlug);
+      const hadFlight = inFlight.delete(assetSlug);
+      if (!hadRecord && !hadFlight) return false;
+
+      // Dropping the promise does not stop the work already running, so the
+      // generation is what actually invalidates it: a load writes only if the
+      // generation it started under is still current.
+      generation.set(assetSlug, genOf(assetSlug) + 1);
+      if (reason) {
+        console.info(`[figures] "${assetSlug}" invalidated — ${reason}`);
+      }
+      // Only when something was actually ON SCREEN. Announcing for a
+      // cancelled in-flight load would redraw a board that is drawing nothing
+      // yet, which is a wasted render rather than a correction.
+      if (hadRecord) announce(assetSlug);
+      return true;
+    },
     async prefetch(assetSlugs) {
       const resolved: string[] = [];
       const missing: string[] = [];
@@ -135,7 +188,14 @@ export function createFigureResolver(
               p = load(slug);
               inFlight.set(slug, p);
             }
+            const startedAt = genOf(slug);
             const rec = await p;
+            if (genOf(slug) !== startedAt) {
+              // Invalidated while this was in the air. The bytes it describes
+              // are the ones we just decided are stale.
+              missing.push(slug);
+              return;
+            }
             cache.set(slug, rec);
             // AFTER the cache write, never before: a listener that re-reads
             // `get()` must find the record, and announcing first would hand it
