@@ -482,6 +482,12 @@ export default function PracticeScreen() {
         !Number.isNaN(parseFloat(numericInput))
       : selectedOption !== null);
 
+  /**
+   * "I don't know" needs no answer, which is the whole point — it is live
+   * whenever a question is, and never while one is being graded.
+   */
+  const canGiveUp = !!question && !revealed && !submitting && !loading;
+
   const chapterChipLabel =
     focus.mode === 'chapter' && focus.chapterName
       ? focus.chapterName
@@ -714,6 +720,22 @@ export default function PracticeScreen() {
                       Submit
                     </Text>
                   )}
+                </Pressable>
+                <View style={styles.actionSpacer} />
+                {/*
+                  The honest exit, and the reason Skip could go.
+                  It submits with no option, so the server grades it as not
+                  correct, closes the serve row and returns the worked
+                  solution — the student still gets taught, the question still
+                  gets timed, and it re-enters the pool as a wrong answer
+                  rather than vanishing from the record the way a skip did.
+                */}
+                <Pressable
+                  onPress={() => submitAnswerFor(undefined)}
+                  disabled={!canGiveUp}
+                  hitSlop={10}
+                  style={styles.giveUpButton}>
+                  <Text style={styles.giveUpText}>I don&apos;t know</Text>
                 </Pressable>
                 {/* No Skip, and no Report.
                     Skip is gone deliberately. Every question served is one
@@ -1390,8 +1412,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(14),
       marginTop: verticalScale(16),
     },
-    // Filled, because committing an answer IS the action of the page, and now
-    // the only one on it.
+    actionSpacer: { flex: 1 },
+    // Quiet, and deliberately not a button shape: it is the way out, not the
+    // way forward, and it must never be mistaken for Submit at a glance.
+    giveUpButton: {
+      height: verticalScale(40),
+      justifyContent: 'center',
+      paddingHorizontal: scale(4),
+    },
+    giveUpText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13.5),
+      color: colors.slate,
+    },
+    // Filled, because committing an answer IS the action of the page.
     submitButton: {
       minWidth: scale(112),
       height: verticalScale(40),
