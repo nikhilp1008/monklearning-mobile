@@ -17,7 +17,7 @@
  * that trips it is trusted on the strength of having been written, which is the
  * defect shape this whole subsystem keeps producing.
  */
-import { layoutFigure, type LabelledFigureParams, type PlacedLabel } from '../figure-layout';
+import { GATE_FRAMES, layoutFigure, type LabelledFigureParams, type PlacedLabel } from '../figure-layout';
 import { PLACEHOLDER_FIGURE } from '../placeholder-figure';
 
 const SPEC_SMALL = { W: 343, H: 236 };
@@ -192,7 +192,7 @@ describe('THE FAILING FIXTURE — the assertion must be able to fire', () => {
         group: 'organelles',
       }));
       const params = withLabels(labels as never);
-      for (const [W, H] of [[343, 236], [495, 270], [900, 430]] as const) {
+      for (const { w: W, h: H } of GATE_FRAMES) {
         checked++;
         const bad = crossingLeaders(params, W, H);
         if (bad.length) found.push(`${W}x${H} [${u1},${v1}] [${u2},${v2}]: ${bad.join(' ')}`);
@@ -207,7 +207,7 @@ describe('THE FAILING FIXTURE — the assertion must be able to fire', () => {
     // both anchors are the SAME point (skipped: two labels on one anchor share
     // it legitimately and `segmentsCross` excludes shared endpoints by design)
     // = 2352, at three frames.
-    expect(checked).toBe(2352 * 3);
+    expect(checked).toBe(2352 * GATE_FRAMES.length);
     expect(found).toEqual([]);
   });
 

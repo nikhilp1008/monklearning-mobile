@@ -206,10 +206,43 @@ export const PILL_H = LABEL_SIZE * 1.15 + 2 * PILL_PAD_Y;
  * and label named — see `gateLabelSet`.
  */
 export const GATE_FRAMES = [
+  { w: 340, h: 340 },
   { w: 343, h: 236 },
   { w: 495, h: 270 },
+  { w: 702, h: 289 },
   { w: 900, h: 430 },
 ] as const;
+
+/**
+ * THE TWO FRAMES THAT ACTUALLY SHIP — measured, not assumed.
+ *
+ * The classroom is no longer landscape-locked: as of `db00ac4` the STUDENT
+ * chooses the orientation, so both are shipping configurations and both are
+ * gated. Measured on an iPhone 17 via the `[diagram-box]` probe in
+ * live-classroom.tsx, 2026-09-12, reading the computed `diagramBox` itself
+ * rather than re-deriving the formula beside it:
+ *
+ *   landscape window=874pt board=402.0pt -> 702x289
+ *   portrait  window=402pt board=874.0pt -> 340x340
+ *
+ * PORTRAIT IS A SQUARE, and that is deliberate rather than incidental: the
+ * portrait board is twice as tall, so the landscape 0.72 share would hand one
+ * diagram six hundred points and push the argument around it off screen.
+ * Width binds instead and the cap is the square width allows. No frame gated
+ * before today had an aspect anywhere near 1:1 — 343x236 is 1.45:1 and
+ * 900x430 is 2.09:1 — so anything whose layout assumed a landscape-ish box
+ * meets a genuinely new case here.
+ *
+ * CORRECTIONS TO WHAT WAS WRITTEN DOWN. The docs table said ~734x292: the
+ * height is close (289) and the width is not (702). And an earlier pass of
+ * this measurement read 702x251, taken BEFORE the orientation work landed —
+ * the chrome changed, `boardHeight` went 348 -> 402, and the number moved.
+ * Both numbers here are post-merge.
+ */
+export const SHIPPING_FRAMES = {
+  landscape: { w: 702, h: 289 },
+  portrait: { w: 340, h: 340 },
+} as const;
 
 /** The eight compass directions, in SVG axes (y grows downward). */
 export const COMPASS: readonly { name: string; x: number; y: number }[] = [

@@ -230,7 +230,14 @@ describe('the set gate', () => {
     expect(v.map((x) => x.labels).flat()).toContain('pulmocutaneous-arch');
     expect(v.every((x) => x.group === 'all')).toBe(true);
     // Both small frames refuse it; only the wide board has the room.
-    expect([...new Set(v.map((x) => x.frame))]).toEqual(['343x236', '495x270']);
+    // MEASURED: refused at the three narrow frames, ACCEPTED at both wide
+    // ones. The landscape shipping frame (702x289) has the room for twelve;
+    // the square portrait frame (340x340) does not, and is the tightest of
+    // the five. So the frame that binds density is portrait, not the phone
+    // landscape board and not 343x236.
+    expect([...new Set(v.map((x) => x.frame))]).toEqual(
+      ['340x340', '343x236', '495x270']
+    );
     expect(describeViolations(v)).toMatch(/\[all @ 343x236\] overlap/);
   });
 
@@ -248,7 +255,11 @@ describe('the set gate', () => {
   });
 
   test('the gate runs every frame in GATE_FRAMES', () => {
-    expect(GATE_FRAMES.map((f) => `${f.w}x${f.h}`)).toEqual(['343x236', '495x270', '900x430']);
+    // Both shipping frames are gated: portrait 340x340 and landscape 702x289,
+    // measured on device after the student-chooses-orientation change.
+    expect(GATE_FRAMES.map((f) => `${f.w}x${f.h}`)).toEqual(
+      ['340x340', '343x236', '495x270', '702x289', '900x430']
+    );
   });
 });
 

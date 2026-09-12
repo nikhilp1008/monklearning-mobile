@@ -543,18 +543,6 @@ export default function LiveClassroomScreen() {
    * on screen with it. Height is what binds on a landscape board — see the
    * sizing note in `board-diagram.tsx`.
    */
-  // B1: the real box, logged once per layout change. __DEV__ only — this is
-  // the number every gate frame is supposed to be derived from, and it was
-  // previously only ever reasoned about.
-  useEffect(() => {
-    if (__DEV__) {
-      console.info(
-        `[diagram-box] window=${windowWidth}pt board=${boardHeight.toFixed(1)}pt ` +
-        `-> availableWidth=${Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER)} ` +
-        `maxHeight=${(boardHeight * 0.72).toFixed(1)}`
-      );
-    }
-  }, [windowWidth, boardHeight]);
   const diagramBox = useMemo(
     () => ({
       // Mirrors `boardContent`'s own padding, which differs by orientation:
@@ -580,6 +568,22 @@ export default function LiveClassroomScreen() {
     }),
     [windowWidth, boardHeight, isLandscape]
   );
+  /**
+   * B1: the box as COMPUTED, not as re-derived here.
+   *
+   * Logging a second copy of the formula is how a probe drifts from the thing
+   * it measures — the first version of this did exactly that and reported the
+   * landscape arithmetic while portrait was live. It reads `diagramBox`.
+   */
+  useEffect(() => {
+    if (__DEV__) {
+      console.info(
+        `[diagram-box] ${isLandscape ? 'landscape' : 'portrait'} ` +
+        `window=${windowWidth}pt board=${boardHeight.toFixed(1)}pt -> ` +
+        `${diagramBox.availableWidth.toFixed(0)}x${diagramBox.maxHeight.toFixed(0)}`
+      );
+    }
+  }, [windowWidth, boardHeight, isLandscape, diagramBox]);
   /**
    * The board's own ink, so a widget diagram is not in a different hand than
    * the writing around it. `fontFamily` must be one of the app's loaded
