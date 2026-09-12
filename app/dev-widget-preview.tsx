@@ -37,7 +37,7 @@ import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
 import { r2FigureResolver, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { createFigureResolver, type FigureRecord } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { toFigureRecord, validateLabelSet } from '@/lib/widgets/labelled-figure/label-set';
-import { layoutFigure, pagesFor } from '@/lib/widgets/labelled-figure/figure-layout';
+import { describeViolations, gateLabelSet, layoutFigure } from '@/lib/widgets/labelled-figure/figure-layout';
 import FROG_LABEL_FIXTURE from '@/test/fixtures/frog-circulatory-labels.preview.json';
 
 /**
@@ -478,6 +478,7 @@ function FrogLabelLab() {
   const theme = useDevTheme();
   const [frame, setFrame] = useState(0);
   const [lang, setLang] = useState<'english' | 'hinglish'>('english');
+  const [groupIdx, setGroupIdx] = useState(0);
   const [status, setStatus] = useState('fetching chapter assets\u2026');
   const [record, setRecord] = useState<FigureRecord | null>(null);
 
@@ -516,6 +517,14 @@ function FrogLabelLab() {
     return () => { cancelled = true; };
   }, []);
 
+  const group = record?.groups[Math.min(groupIdx, record.groups.length - 1)]?.id ?? '';
+  // The gate's verdict for the whole set, shown beside the render: a reviewer
+  // should not have to run jest to see whether this set would be accepted.
+  const gate = useMemo(
+    () => (record ? describeViolations(gateLabelSet(record.labels, record.groups, record.art)) : ''),
+    [record]
+  );
+
   const devResolver = useMemo(
     () => (record ? createFigureResolver(async () => record, [record]) : r2FigureResolver),
     [record]
@@ -530,6 +539,12 @@ function FrogLabelLab() {
             <Text style={[styles.pillText, i === frame && styles.pillTextActive]}>{f.label}</Text>
           </Pressable>
         ))}
+        {(record?.groups ?? []).map((g, i) => (
+          <Pressable key={g.id} onPress={() => setGroupIdx(i)}
+            style={[styles.pill, i === groupIdx && styles.pillActive]}>
+            <Text style={[styles.pillText, i === groupIdx && styles.pillTextActive]}>{g.id}</Text>
+          </Pressable>
+        ))}
         {(['english', 'hinglish'] as const).map((l) => (
           <Pressable key={l} onPress={() => setLang(l)}
             style={[styles.pill, l === lang && styles.pillActive]}>
@@ -538,6 +553,7 @@ function FrogLabelLab() {
         ))}
       </View>
       <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
+      <Text style={{ fontSize: 10, color: INK_MUTED }}>GATE: {gate}</Text>
       {LAB_FRAMES.map((f) => (
         <View key={f.label} style={{ gap: 4 }}>
           <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang}</Text>
@@ -551,7 +567,7 @@ function FrogLabelLab() {
           {record && (
             <Text style={{ fontSize: 9, color: INK_MUTED }}>
               {layoutFigure(
-                { ...record, active_group: record.groups[0].id, lang, page: 0 } as never,
+                { ...record, active_group: group, lang } as never,
                 f.w, f.h
               ).labels.map((l) =>
                 `${l.id}:${l.dir}/${l.leaderLen.toFixed(0)}pt${l.overlapped ? '!OVERLAP' : ''}`

@@ -21,9 +21,9 @@
  * every frame.
  */
 import {
-  FRAME_INSET, LEADER_MAX, MAX_LABELS_PHONE, PHONE_MAX_W,
-  layoutFigure, pagesFor,
-  type FigureGroup, type LabelRecord, type LabelledFigureParams,
+  FRAME_INSET, GATE_FRAMES, LEADER_MAX,
+  describeViolations, gateLabelSet, layoutFigure,
+  type FigureArt, type FigureGroup, type LabelRecord, type LabelledFigureParams,
 } from '../figure-layout';
 
 const FRAMES = [
@@ -113,15 +113,18 @@ function g(group: string, l: LabelRecord): LabelRecord {
   return { ...l, group };
 }
 
-function paramsFor(f: (typeof FIXTURES)[number], group: string, page: number): LabelledFigureParams {
+function artOf(f: (typeof FIXTURES)[number]): FigureArt {
+  return { source: 1, intrinsic_w: f.iw, intrinsic_h: f.ih } as FigureArt;
+}
+
+function paramsFor(f: (typeof FIXTURES)[number], group: string): LabelledFigureParams {
   return {
     asset_slug: f.name,
-    art: { source: 1, intrinsic_w: f.iw, intrinsic_h: f.ih },
+    art: artOf(f),
     groups: f.groups,
     labels: f.labels,
     active_group: group,
     lang: 'english',
-    page,
   } as LabelledFigureParams;
 }
 
@@ -129,14 +132,14 @@ describe.each(FIXTURES)('$name', (f) => {
   describe.each(FRAMES)('at $name', (frame) => {
     // Every group of every fixture, at every frame — a layout checked on one
     // group is a layout checked in the middle of its range.
-    const runs = f.groups.flatMap((grp) => {
-      const inGroup = f.labels.filter((l) => l.group === grp.id);
-      return pagesFor(inGroup, frame.w).map((_, page) => ({ group: grp.id, page, inGroup }));
-    });
+    const runs = f.groups.map((grp) => ({
+      group: grp.id,
+      inGroup: f.labels.filter((l) => l.group === grp.id),
+    }));
 
     test('no pill leaves the frame', () => {
       for (const r of runs) {
-        for (const l of layoutFigure(paramsFor(f, r.group, r.page), frame.w, frame.h).labels) {
+        for (const l of layoutFigure(paramsFor(f, r.group), frame.w, frame.h).labels) {
           expect(l.plate.x).toBeGreaterThanOrEqual(FRAME_INSET - 0.001);
           expect(l.plate.y).toBeGreaterThanOrEqual(FRAME_INSET - 0.001);
           expect(l.plate.x + l.plate.w).toBeLessThanOrEqual(frame.w - FRAME_INSET + 0.001);
@@ -147,7 +150,7 @@ describe.each(FIXTURES)('$name', (f) => {
 
     test('no two pills overlap', () => {
       for (const r of runs) {
-        const ls = layoutFigure(paramsFor(f, r.group, r.page), frame.w, frame.h).labels;
+        const ls = layoutFigure(paramsFor(f, r.group), frame.w, frame.h).labels;
         for (let i = 0; i < ls.length; i++) {
           for (let j = i + 1; j < ls.length; j++) {
             const a = ls[i].plate;
@@ -164,17 +167,19 @@ describe.each(FIXTURES)('$name', (f) => {
 
     test(`every leader is <= ${LEADER_MAX}pt`, () => {
       for (const r of runs) {
-        for (const l of layoutFigure(paramsFor(f, r.group, r.page), frame.w, frame.h).labels) {
+        for (const l of layoutFigure(paramsFor(f, r.group), frame.w, frame.h).labels) {
           expect(l.leaderLen).toBeLessThanOrEqual(LEADER_MAX + 0.001);
         }
       }
     });
 
-    test('the phone frame draws at most five at once', () => {
+    test('every label of the group is drawn — never paged, never dropped', () => {
+      // The runtime does not thin a dense group. A figure showing some of its
+      // labels looks complete and is not, and the student cannot tell. Density
+      // is refused at review by gateLabelSet instead.
       for (const r of runs) {
-        const n = layoutFigure(paramsFor(f, r.group, r.page), frame.w, frame.h).labels.length;
-        if (frame.w < PHONE_MAX_W) expect(n).toBeLessThanOrEqual(MAX_LABELS_PHONE);
-        else expect(n).toBe(r.inGroup.length);
+        const n = layoutFigure(paramsFor(f, r.group), frame.w, frame.h).labels.length;
+        expect(n).toBe(r.inGroup.length);
       }
     });
 
@@ -185,7 +190,7 @@ describe.each(FIXTURES)('$name', (f) => {
       // fires, the group is too dense for the board and wants splitting, not
       // a looser assertion.
       for (const r of runs) {
-        const bad = layoutFigure(paramsFor(f, r.group, r.page), frame.w, frame.h)
+        const bad = layoutFigure(paramsFor(f, r.group), frame.w, frame.h)
           .labels.filter((l) => l.overlapped).map((l) => l.id);
         expect(bad).toEqual([]);
       }
@@ -193,23 +198,57 @@ describe.each(FIXTURES)('$name', (f) => {
   });
 });
 
-describe('paging', () => {
-  test('a group over five pages only at the phone frame', () => {
-    const twelve = FIXTURES[3].labels.map((l) => ({ ...l, group: 'all' }));
-    expect(pagesFor(twelve, 343).map((p) => p.length)).toEqual([5, 5, 2]);
-    expect(pagesFor(twelve, 495).map((p) => p.length)).toEqual([12]);
-    expect(pagesFor(twelve, 900).map((p) => p.length)).toEqual([12]);
+describe('the set gate', () => {
+  /**
+   * The gate is what replaced the phone-only cap. A dense group is refused at
+   * REVIEW, naming the group and the label, rather than paged or thinned at
+   * runtime where the student cannot tell something is missing.
+   */
+  test('the frog heart, as three groups, places clear at every frame', () => {
+    const f = FIXTURES[3];
+    const v = gateLabelSet(f.labels, f.groups, artOf(f));
+    expect(describeViolations(v)).toBe('set places clear at every frame');
   });
 
-  test('paging preserves group order and loses nothing', () => {
-    const twelve = FIXTURES[3].labels.map((l) => ({ ...l, group: 'all' }));
-    const flat = pagesFor(twelve, 343).flat().map((l) => l.id);
-    expect(flat).toEqual(twelve.map((l) => l.id));
+  test('each tissue slide places clear at every frame', () => {
+    for (const f of FIXTURES.slice(0, 3)) {
+      expect(describeViolations(gateLabelSet(f.labels, f.groups, artOf(f)))).toBe(
+        'set places clear at every frame'
+      );
+    }
   });
 
-  test('a page index past the end clamps rather than rendering nothing', () => {
-    const p = paramsFor(FIXTURES[3], 'heart', 99);
-    expect(layoutFigure(p, 343, 236).labels.length).toBe(5); // the sole page
+  test('twelve in ONE group is refused, naming the group and the label', () => {
+    const f = FIXTURES[3];
+    const flat = f.labels.map((l) => ({ ...l, group: 'all' }));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const v = gateLabelSet(flat, SOLE, artOf(f));
+    warn.mockRestore();
+
+    expect(v.length).toBeGreaterThan(0);
+    // Named, so an author knows what to move rather than being told "too dense".
+    expect(v.map((x) => x.labels).flat()).toContain('postcaval-vein');
+    expect(v.every((x) => x.group === 'all')).toBe(true);
+    // Both small frames refuse it; only the wide board has the room.
+    expect([...new Set(v.map((x) => x.frame))]).toEqual(['343x236', '495x270']);
+    expect(describeViolations(v)).toMatch(/\[all @ 343x236\] overlap/);
+  });
+
+  test('the gate checks overlap itself rather than trusting the engine flag', () => {
+    // `overlapped` says the SEARCH gave up; the pairwise test says two pills
+    // actually intersect. A gate that only read the flag would be asking the
+    // engine to mark its own work.
+    const f = FIXTURES[3];
+    const flat = f.labels.map((l) => ({ ...l, group: 'all' }));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const v = gateLabelSet(flat, SOLE, artOf(f));
+    warn.mockRestore();
+    const pairs = v.filter((x) => x.labels.length === 2);
+    expect(pairs.length).toBeGreaterThan(0);
+  });
+
+  test('the gate runs every frame in GATE_FRAMES', () => {
+    expect(GATE_FRAMES.map((f) => `${f.w}x${f.h}`)).toEqual(['343x236', '495x270', '900x430']);
   });
 });
 
@@ -217,53 +256,62 @@ describe('paging', () => {
 
 describe('how many labels one plate actually holds', () => {
   /**
-   * MEASURED, not chosen. The frog heart's twelve anchors in a SINGLE group
-   * cannot all be placed clear at 495x270 — three of them exhaust all eight
-   * directions at every leader length up to LEADER_MAX and fall back to an
-   * overlapping placement.
+   * MEASURED, and kept as documentation of WHY the frog heart ships as three
+   * groups. With paging removed the runtime draws all twelve wherever it is
+   * asked to, so this records where that stops being drawable:
    *
-   * This is the arithmetic behind the grouping proposed to Raasikh: the set
-   * ships as heart/arterial/venous (5+4+3) because twelve-at-once does not
-   * fit, not because three groups read nicely. If a future change makes this
-   * pass, that is a real improvement and this test should be updated with the
-   * new bound rather than deleted.
+   *   343x236  `pulmocutaneous-arch` and `precaval-vein` cannot be placed clear
+   *   495x270  `postcaval-vein` cannot be placed clear
+   *   900x430  all twelve place clear
+   *
+   * CORRECTED 2026-09-12, and the correction matters more than the numbers.
+   * An earlier version of this comment claimed 343x236 placed all twelve
+   * clear. It did not: paging capped that frame at FIVE labels, so the
+   * measurement was of five, and "no overlap" was true of a figure missing
+   * seven of its labels. Removing the cap is what made the real number
+   * visible. A measurement taken through a filter is a measurement of the
+   * filter.
+   *
+   * If a future change makes either small frame pass, that is a real
+   * improvement — update the bound rather than deleting it.
    */
-  test('twelve in one group overflows the small tablet frame', () => {
-    const flat = FIXTURES[3].labels.map((l) => ({ ...l, group: 'all' }));
-    const params = {
-      asset_slug: 'frog-stress',
-      art: { source: 1, intrinsic_w: 1800, intrinsic_h: 1240 },
-      groups: SOLE,
-      labels: flat,
-      active_group: 'all',
-      lang: 'english',
-      page: 0,
-    } as LabelledFigureParams;
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const flatParams = (): LabelledFigureParams => ({
+    asset_slug: 'frog-stress',
+    art: artOf(FIXTURES[3]),
+    groups: SOLE,
+    labels: FIXTURES[3].labels.map((l) => ({ ...l, group: 'all' })),
+    active_group: 'all',
+    lang: 'english',
+  } as LabelledFigureParams);
 
-    // MEASURED at each frame, not asserted from intuition:
-    //   343x236  5 drawn (paged), none overlapping
-    //   495x270  12 drawn, `postcaval-vein` cannot be placed clear
-    //   900x430  12 drawn, none overlapping
-    // So the small tablet frame is the binding one for density — NOT the
-    // phone, which pages, and not the wide board, which has the room. That is
-    // the opposite of the usual "343 binds" rule, and it is why this is
-    // written down rather than assumed.
-    expect(layoutFigure(params, 343, 236).labels.filter((l) => l.overlapped)).toEqual([]);
-    expect(layoutFigure(params, 900, 430).labels.filter((l) => l.overlapped)).toEqual([]);
-    const mid = layoutFigure(params, 495, 270).labels.filter((l) => l.overlapped);
-    expect(mid.map((l) => l.id)).toEqual(['postcaval-vein']);
-    // Named, not silent.
+  test('both small frames overflow; only the wide board holds twelve', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const p = flatParams();
+    expect(layoutFigure(p, 343, 236).labels.filter((l) => l.overlapped).map((l) => l.id))
+      .toEqual(['pulmocutaneous-arch', 'precaval-vein']);
+    expect(layoutFigure(p, 495, 270).labels.filter((l) => l.overlapped).map((l) => l.id))
+      .toEqual(['postcaval-vein']);
+    expect(layoutFigure(p, 900, 430).labels.filter((l) => l.overlapped)).toEqual([]);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('postcaval-vein'));
     warn.mockRestore();
   });
 
-  test('the same twelve fit once split into the shipping groups', () => {
+  test('every label is still DRAWN at the overflowing frame, not dropped', () => {
+    // Overflow places with overlap and warns. It never silently omits a label:
+    // the gate is what stops such a set shipping, not the renderer.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(layoutFigure(flatParams(), 495, 270).labels.length).toBe(12);
+    warn.mockRestore();
+  });
+
+  test('split into the shipping groups, nothing overflows anywhere', () => {
     const f = FIXTURES[3];
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     for (const grp of f.groups) {
-      const ls = layoutFigure(paramsFor(f, grp.id, 0), 495, 270).labels;
-      expect(ls.filter((l) => l.overlapped)).toEqual([]);
+      for (const fr of GATE_FRAMES) {
+        const ls = layoutFigure(paramsFor(f, grp.id), fr.w, fr.h).labels;
+        expect(ls.filter((l) => l.overlapped)).toEqual([]);
+      }
     }
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();

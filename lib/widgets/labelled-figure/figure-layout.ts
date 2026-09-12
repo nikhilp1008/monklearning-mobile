@@ -134,15 +134,6 @@ export interface LabelledFigureParams {
   lang: Lang;
   /** The group currently drawn. Patched by a cue to advance the reveal. */
   active_group: string;
-  /**
-   * Which reveal STEP of the active group to draw, 0-based.
-   *
-   * Only meaningful at the phone frame, where a group larger than
-   * MAX_LABELS_PHONE is paged. Optional and defaulting to 0, so every payload
-   * written before paging existed renders exactly as it did — and on a tablet
-   * frame it is ignored entirely, because there is only ever one page.
-   */
-  page?: number;
 }
 
 /* -------------------------------------------------------------- constants */
@@ -205,15 +196,20 @@ export const PILL_RADIUS = 4;
 export const PILL_H = LABEL_SIZE * 1.15 + 2 * PILL_PAD_Y;
 
 /**
- * The phone frame shows at most this many labels at once.
+ * THE THREE FRAMES A SET MUST SURVIVE.
  *
- * A group larger than this is PAGED — rendered in successive reveal steps of
- * five, in group-list order. Tablet-and-wider frames show the whole group.
+ * A label set is accepted at REVIEW only if every group places clear at all
+ * three. The runtime never pages, never splits and never drops a label: a
+ * figure that silently shows five of twelve is a figure the student cannot
+ * know is incomplete, and that is worse than a set which was refused before
+ * it shipped. Density is an authoring decision, taken once, with the group
+ * and label named — see `gateLabelSet`.
  */
-export const MAX_LABELS_PHONE = 5;
-/** Frames narrower than this are treated as the phone board. 343 is in,
- *  495 (the small tablet frame) is out. */
-export const PHONE_MAX_W = 400;
+export const GATE_FRAMES = [
+  { w: 343, h: 236 },
+  { w: 495, h: 270 },
+  { w: 900, h: 430 },
+] as const;
 
 /** The eight compass directions, in SVG axes (y grows downward). */
 export const COMPASS: readonly { name: string; x: number; y: number }[] = [
@@ -492,23 +488,6 @@ function inkCost(r: Rect, art: Rect, dots: readonly { x: number; y: number }[]):
 }
 
 /**
- * The labels drawn at one board width, as reveal STEPS.
- *
- * At the phone frame a group of more than five is split into successive steps
- * of five in group-list order; wider frames return the whole group as one
- * step. Splitting is a LAYOUT decision, not a content one — the same label set
- * pages differently on a phone and a tablet, and neither is a different figure.
- */
-export function pagesFor(labels: readonly LabelRecord[], W: number): LabelRecord[][] {
-  if (W >= PHONE_MAX_W || labels.length <= MAX_LABELS_PHONE) return [[...labels]];
-  const out: LabelRecord[][] = [];
-  for (let i = 0; i < labels.length; i += MAX_LABELS_PHONE) {
-    out.push(labels.slice(i, i + MAX_LABELS_PHONE));
-  }
-  return out;
-}
-
-/**
  * Place the ACTIVE GROUP's labels beside the structures they name.
  *
  * For each label, in group order:
@@ -531,10 +510,7 @@ export function layoutFigure(
 ): FigureLayout {
   const fit = fitRect(W, H, params.art.intrinsic_w, params.art.intrinsic_h);
   const multi = params.groups.length > 1;
-  const group = activeLabels(params);
-  const pages = pagesFor(group, W);
-  const page = Math.min(Math.max(params.page ?? 0, 0), pages.length - 1);
-  const drawn = pages[page] ?? [];
+  const drawn = activeLabels(params);
 
   const artRect: Rect = { x: fit.ox, y: fit.oy, w: fit.sW, h: fit.sH };
   const centre = { x: fit.ox + fit.sW / 2, y: fit.oy + fit.sH / 2 };
@@ -621,11 +597,7 @@ export function layoutFigure(
     });
   });
 
-  return {
-    fit,
-    labels: out,
-    strip: multi || pages.length > 1 ? stripFor(params, W, page, pages.length) : null,
-  };
+  return { fit, labels: out, strip: multi ? stripFor(params, W) : null };
 }
 
 /**
@@ -637,14 +609,10 @@ export function layoutFigure(
  * there are, and `group_index`/`group_count` are `derived` quantities, so a
  * caption cannot disagree with it either.
  */
-function stripFor(params: LabelledFigureParams, W: number, page = 0, pageCount = 1) {
+function stripFor(params: LabelledFigureParams, W: number) {
   const i = params.groups.findIndex((g) => g.id === params.active_group);
   const full = params.groups[i] ? params.groups[i].label[params.lang] : '';
-  // A paged group says which STEP it is too, or the board would claim to be
-  // showing a group it is showing five of.
-  const counter = pageCount > 1
-    ? `${i + 1}/${params.groups.length} \u00b7 ${page + 1} of ${pageCount}`
-    : `${i + 1}/${params.groups.length}`;
+  const counter = `${i + 1}/${params.groups.length}`;
   const sep = '  \u00b7  ';
 
   // The font is fixed; what varies with the box is how many characters FIT
@@ -667,6 +635,110 @@ function stripFor(params: LabelledFigureParams, W: number, page = 0, pageCount =
       h: READOUT_SIZE * 1.15 + 3,
     },
   };
+}
+
+/* ------------------------------------------------------------- THE SET GATE */
+
+export interface SetViolation {
+  group: string;
+  frame: string;
+  /** The label that could not be placed, or the pair that collided. */
+  labels: string[];
+  reason: 'overlap' | 'exits-frame' | 'leader-too-long';
+  detail: string;
+}
+
+/**
+ * Is this label set drawable, as authored, on every board?
+ *
+ * ACCEPTED ONLY IF EVERY GROUP PLACES CLEAR AT ALL THREE FRAMES. No overlap,
+ * nothing outside the frame, no leader past LEADER_MAX. A set that fails is
+ * REFUSED AT REVIEW, naming the group and the label — it is not shipped and
+ * then quietly degraded on a small screen.
+ *
+ * WHY THIS IS A GATE AND NOT A RUNTIME BEHAVIOUR. The runtime could page a
+ * dense group, or drop the labels that do not fit, and an earlier draft of
+ * this widget did page at the phone frame. Both are worse than refusing:
+ * a figure showing five of twelve structures looks complete, says nothing
+ * about what is missing, and the student has no way to know. Density is a
+ * decision for whoever authors the set — split it into groups, or move terms
+ * to another sub-figure — taken ONCE, at review, with the evidence in hand.
+ *
+ * MEASURED, and it is not the frame you would guess: the binding board for
+ * density is 495x270, not 343x236. The frog heart's twelve anchors in a
+ * single group place clear at 343 and at 900 and collide only in the middle
+ * frame, because 343 scales the art down until the anchors are close enough
+ * for short leaders to work while 900 simply has the room. "343 binds" is the
+ * rule for device-point floors, not for this.
+ */
+export function gateLabelSet(
+  labels: readonly LabelRecord[],
+  groups: readonly FigureGroup[],
+  art: FigureArt,
+  lang: Lang = 'english'
+): SetViolation[] {
+  const out: SetViolation[] = [];
+
+  for (const g of groups) {
+    const inGroup = labels.filter((l) => l.group === g.id);
+    if (inGroup.length === 0) continue;
+
+    for (const f of GATE_FRAMES) {
+      const frame = `${f.w}x${f.h}`;
+      const params = {
+        asset_slug: 'gate', art, groups, labels, active_group: g.id, lang,
+      } as LabelledFigureParams;
+      const placed = layoutFigure(params, f.w, f.h).labels;
+
+      for (const l of placed) {
+        if (l.overlapped) {
+          out.push({
+            group: g.id, frame, labels: [l.id], reason: 'overlap',
+            detail: `"${l.id}" could not be placed clear of the frame and its `
+              + `neighbours in any of the eight directions up to ${LEADER_MAX}pt`,
+          });
+        }
+        if (l.leaderLen > LEADER_MAX + 1e-6) {
+          out.push({
+            group: g.id, frame, labels: [l.id], reason: 'leader-too-long',
+            detail: `"${l.id}" leader is ${l.leaderLen.toFixed(1)}pt, over ${LEADER_MAX}pt`,
+          });
+        }
+        const r = l.plate;
+        if (r.x < FRAME_INSET - 1e-6 || r.y < FRAME_INSET - 1e-6 ||
+            r.x + r.w > f.w - FRAME_INSET + 1e-6 || r.y + r.h > f.h - FRAME_INSET + 1e-6) {
+          out.push({
+            group: g.id, frame, labels: [l.id], reason: 'exits-frame',
+            detail: `"${l.id}" pill at (${r.x.toFixed(1)}, ${r.y.toFixed(1)}) `
+              + `${r.w.toFixed(1)}x${r.h.toFixed(1)} leaves the ${frame} frame`,
+          });
+        }
+      }
+
+      // Checked independently of `overlapped`, which records only that the
+      // SEARCH gave up. Trusting the engine's own flag to prove the engine's
+      // own output is the identity-check failure CLAUDE.md names.
+      for (let i = 0; i < placed.length; i++) {
+        for (let j = i + 1; j < placed.length; j++) {
+          const a = placed[i].plate;
+          const b = placed[j].plate;
+          if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) {
+            out.push({
+              group: g.id, frame, labels: [placed[i].id, placed[j].id], reason: 'overlap',
+              detail: `"${placed[i].id}" and "${placed[j].id}" overlap at ${frame}`,
+            });
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** One line per violation, for a reviewer. */
+export function describeViolations(v: readonly SetViolation[]): string {
+  if (v.length === 0) return 'set places clear at every frame';
+  return v.map((x) => `[${x.group} @ ${x.frame}] ${x.reason}: ${x.detail}`).join('\n');
 }
 
 /* --------------------------------------------------- schema-side checks */

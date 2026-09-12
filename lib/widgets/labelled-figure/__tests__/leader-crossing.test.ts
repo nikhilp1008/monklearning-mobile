@@ -162,6 +162,55 @@ describe('THE FAILING FIXTURE — the assertion must be able to fire', () => {
    * that provably cross. The detector keeps a case that trips it, and the
    * sweep result is recorded above rather than being mistaken for one.
    */
+  /**
+   * THE SWEEP, kept as a regression fixture rather than as a one-off finding.
+   *
+   * Every ordered pair of anchors on a 7x7 grid of (u, v) — 2,401
+   * configurations — laid out at all three gate frames, asserting NOT ONE
+   * produces crossing leaders. Near-anchor placement should make this
+   * structurally hard: a leader is at most LEADER_MAX and runs outward from
+   * the plate centre, so two of them have very little room to cross.
+   *
+   * "Should" is the reason this runs every time instead of being written down
+   * once. If a placement change reintroduces crossings, this names the
+   * configuration that does it — which is far more useful than rediscovering
+   * the property by eye on a plate.
+   */
+  test('no pair of anchors, anywhere on a 7x7 grid, produces a crossing', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const S = [0.15, 0.3, 0.45, 0.5, 0.55, 0.7, 0.85];
+    const found: string[] = [];
+    let checked = 0;
+
+    for (const u1 of S) for (const v1 of S) for (const u2 of S) for (const v2 of S) {
+      if (u1 === u2 && v1 === v2) continue;
+      const labels = [[u1, v1], [u2, v2]].map(([u, v], i) => ({
+        id: `L${i}`,
+        term: { english: `Label ${i}`, hinglish: `Label ${i}` },
+        anchor: { u, v },
+        side: u < 0.5 ? 'left' : 'right',
+        group: 'organelles',
+      }));
+      const params = withLabels(labels as never);
+      for (const [W, H] of [[343, 236], [495, 270], [900, 430]] as const) {
+        checked++;
+        const bad = crossingLeaders(params, W, H);
+        if (bad.length) found.push(`${W}x${H} [${u1},${v1}] [${u2},${v2}]: ${bad.join(' ')}`);
+      }
+    }
+    warn.mockRestore();
+
+    // The count is asserted too: a sweep that silently stopped iterating would
+    // report zero crossings for the same reason a broken one does.
+    //
+    // 7x7 grid -> 49 points -> 49*49 = 2401 ordered pairs, minus the 49 where
+    // both anchors are the SAME point (skipped: two labels on one anchor share
+    // it legitimately and `segmentsCross` excludes shared endpoints by design)
+    // = 2352, at three frames.
+    expect(checked).toBe(2352 * 3);
+    expect(found).toEqual([]);
+  });
+
   test('the detector fires on two segments that really do cross', () => {
     const p = { x1: 0, y1: 0, x2: 100, y2: 100 };
     const q = { x1: 0, y1: 100, x2: 100, y2: 0 };
