@@ -290,7 +290,11 @@ export default function EnteringClassroomScreen() {
     return (
       <>
         <StatusBar style="light" />
-        <EnteringCardScreen chapterTitle={chapterTitle} statusText={statusText} />
+        <EnteringCardScreen
+          chapterTitle={chapterTitle}
+          statusText={statusText}
+          onBack={() => router.back()}
+        />
       </>
     );
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -11,7 +11,8 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { useScale } from '@/constants/scale';
 
@@ -135,12 +136,31 @@ function FadeUp({
 export function EnteringCardScreen({
   chapterTitle,
   statusText,
+  onBack,
 }: {
   chapterTitle: string;
   statusText: string;
+  /**
+   * Leaves the wait. A class can take a while to build, and until this was
+   * here the only way out of that wait was the hardware gesture — the screen
+   * offered nothing, which reads as being stuck rather than as waiting.
+   *
+   * Optional so the card can still be rendered somewhere that has no sensible
+   * way back, but both of its callers pass one.
+   */
+  onBack?: () => void;
 }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  /**
+   * Read directly, because the back button is absolutely positioned and Yoga
+   * does not apply a parent's padding to absolute children — so sitting inside
+   * `SafeAreaView` bought it nothing and it landed in the status bar, level
+   * with the clock. Positioning it absolutely is still right: a flex child in
+   * a header row would push the heading off the screen's optical centre, which
+   * is where the handoff puts it.
+   */
+  const insets = useSafeAreaInsets();
 
   const sweep = useSharedValue(0);
   useEffect(() => {
@@ -175,6 +195,24 @@ export function EnteringCardScreen({
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {onBack && (
+          <Pressable
+            style={[styles.back, { top: insets.top + verticalScale(4) }]}
+            onPress={onBack}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Leave">
+            <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
+              <Path
+                d="M15 5l-7 7 7 7"
+                stroke={TEXT_REST}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </Pressable>
+        )}
         <View style={styles.middle}>
           <View style={styles.headingRow}>
             {words.map((word, i) => (
@@ -273,6 +311,19 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     safeArea: {
       flex: 1,
+    },
+    // Top-left, on its own above the centred block — it must not shift the
+    // heading, which is why the middle stays a full-height centred flex child
+    // and this is absolute over it.
+    back: {
+      position: 'absolute',
+      left: scale(14),
+      // `top` is set on the element, from the safe-area inset.
+      width: scale(40),
+      height: scale(40),
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
     },
     // The heading and chapter sit on the optical centre of the whole screen,
     // as drawn — not above the stage line, which is pinned to the foot.

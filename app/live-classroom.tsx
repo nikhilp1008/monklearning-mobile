@@ -110,8 +110,6 @@ const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong
 const RAIL_HALF = 108;
 /** Far enough right to clear the rail's own width plus its 12pt inset. */
 const RAIL_TUCK_X = 92;
-/** Far enough to clear the dock's own height plus its caption and shadow. */
-const DOCK_TUCK_Y = 132;
 const FOLLOW_SCROLL_MS = 350;
 /** A hold this long is a stuck button, not an answer. */
 const MAX_HOLD_MS = 30000;
@@ -770,11 +768,7 @@ export default function LiveClassroomScreen() {
     transform: [{ translateY: -RAIL_HALF }, { translateX: RAIL_TUCK_X * tuck.value }],
     opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
   }));
-  /** The dock leaves downwards, the way it came in. */
-  const dockStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: DOCK_TUCK_Y * tuck.value }],
-    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
-  }));
+
 
   const showChrome = () => setChromeVisible(true);
 
@@ -988,6 +982,27 @@ export default function LiveClassroomScreen() {
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   };
 
+  /**
+   * Leaving during the wait, before Drona has said anything.
+   *
+   * Not `endClass`: that replaces the route with the session summary, and a
+   * class that never began has nothing to summarise — the student would land
+   * on an empty report of a lesson they never had. This closes the socket, tells
+   * the server the session is over so it is not left open, and goes back where
+   * they came from.
+   */
+  const leaveBeforeStart = async () => {
+    if (ending) return;
+    setEnding(true);
+    clientRef.current?.disconnect();
+    try {
+      if (sessionId) await endDronaSession(sessionId);
+    } catch {
+      // Best effort: the student is already on their way out.
+    }
+    router.back();
+  };
+
   const endClass = async () => {
     if (ending) return;
     setEnding(true);
@@ -1111,36 +1126,49 @@ export default function LiveClassroomScreen() {
             />
             {/* Priority ladder mirroring web's SessionView status badge, so
                 the student always knows who the room is waiting on. */}
-            <Text style={styles.topLiveText}>
-              {connectionStatus !== 'open'
-                ? connectionStatus === 'reconnecting'
-                  ? 'Reconnecting'
-                  : 'Connecting'
-                : handRaised
-                  ? liveTranscript
-                    ? 'Transcribing'
-                    : 'Listening'
-                  : answerVerdict
-                    ? answerVerdict === 'correct'
-                      ? 'Correct'
-                      : answerVerdict === 'partial'
-                        ? 'Almost'
-                        : 'Not quite'
-                    : isThinking
-                      ? 'Drona is thinking'
-                      : paused
-                        ? 'Paused'
-                        : sessionPhase === 'wrapup'
-                          ? 'Wrapping up'
-                          : checkOptions.length > 0 || sessionPhase === 'awaiting_answer'
-                            ? 'Your turn'
-                            : 'Live'}
+            {/* NO CONNECTING RUNG. "Connecting" and "Reconnecting" are gone:
+                the entering card covers this screen for the whole of the first
+                connect, so the word was almost never seen at a moment it was
+                true, and at 10pt with .12em tracking "RECONNECTING" is 97pt of
+                a 362pt row — it shoved the chapter title into an ellipsis to
+                say something the student could not act on. The live dot beside
+                it already carries connection state: it warns when the socket
+                is not open.
+
+                "Drona is thinking" was the other offender at 124.7pt, a
+                sentence where every other rung is a word or two. It reads
+                "Thinking" now. */}
+            <Text style={styles.topLiveText} numberOfLines={1}>
+              {handRaised
+                ? liveTranscript
+                  ? 'Transcribing'
+                  : 'Listening'
+                : answerVerdict === 'correct'
+                  ? 'Correct'
+                  : answerVerdict === 'partial'
+                    ? 'Almost'
+                    : answerVerdict
+                      ? 'Not quite'
+                      : isThinking
+                        ? 'Thinking'
+                        : paused
+                          ? 'Paused'
+                          : sessionPhase === 'wrapup'
+                            ? 'Wrapping up'
+                            : checkOptions.length > 0 || sessionPhase === 'awaiting_answer'
+                              ? 'Your turn'
+                              : 'Live'}
             </Text>
           </View>
           <View style={styles.topSpacer} />
-          <Pressable style={styles.topReportButton} onPress={openReport}>
+          {/* Icon only in portrait, which is how the reference draws it. The
+              label is 40pt of a 362pt row and portrait has none to spare —
+              with it, the header needed 436pt and the chapter title paid for
+              the difference in ellipsis. Landscape has the room and keeps the
+              word. */}
+          <Pressable style={styles.topReportButton} onPress={openReport} hitSlop={8}>
             <ReportIcon size={12} color={INK_MUTED} />
-            <Text style={styles.topReportText}>Report</Text>
+            {isLandscape && <Text style={styles.topReportText}>Report</Text>}
           </Pressable>
           <Pressable style={styles.topEndButton} onPress={endClass} disabled={ending}>
             <View style={styles.topEndSquare} />
@@ -1251,9 +1279,19 @@ export default function LiveClassroomScreen() {
         </Pressable>
       </Animated.View>
       ) : (
-        <Animated.View
-          style={[styles.dockWrap, dockStyle]}
-          pointerEvents={chromeVisible ? 'auto' : 'none'}>
+        /* THE DOCK DOES NOT TUCK.
+
+           In portrait a tap hides the header only; the controls stay put.
+           Tucking them made sense for a landscape rail sitting over the
+           writing, but across the bottom of an upright phone the dock covers
+           no text, and taking Interrupt away from a student who is reading
+           removes the button at the moment they want it. It is also why
+           portrait needs no edge tab: nothing has gone anywhere to fetch back.
+
+           A plain View, deliberately — it has no animated state, and an
+           animated wrapper that always resolves to translateY(0)/opacity(1)
+           only looks like it does. */
+        <View style={styles.dockWrap}>
           <View style={styles.dock}>
             <TeacherWave quiet={handRaised} />
             <View style={styles.dockDivider} />
@@ -1298,14 +1336,14 @@ export default function LiveClassroomScreen() {
             </Pressable>
           </View>
           <Text style={styles.dockHint}>Hold to interrupt</Text>
-        </Animated.View>
+        </View>
       )}
 
-      <EdgeTab
-        visible={!chromeVisible}
-        onPress={showChrome}
-        side={isLandscape ? 'right' : 'bottom'}
-      />
+      {/* Landscape only: the rail tucks sideways and needs a way back. In
+          portrait the dock never leaves, so there is nothing to restore and a
+          tab would point at nothing. A tap on the paper brings the header
+          back. */}
+      <EdgeTab visible={isLandscape && !chromeVisible} onPress={showChrome} />
 
       {/* Mic off: say plainly WHICH way it is off, and offer Settings only when
           Settings is actually the fix. A student who has no input at all, or
@@ -1429,6 +1467,7 @@ export default function LiveClassroomScreen() {
           <EnteringCardScreen
             chapterTitle={params.subtopic || chapterTitle}
             statusText={longWait ? LONG_WAIT_TEXT : cardLine}
+            onBack={leaveBeforeStart}
           />
         </Animated.View>
       )}
