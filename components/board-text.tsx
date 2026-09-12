@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { BoardDiagram } from '@/components/board-diagram';
-import { INK, INK_MUTED, RED, RHYTHM } from '@/components/classroom-chrome';
-import { colors } from '@/constants/brand';
+import { INK, INK_MUTED, RHYTHM } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
 import { latexToText } from '@/lib/latex-text';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
@@ -104,7 +103,7 @@ export function BoardBlockView({
     return <Text style={styles.boardEquation}>{text}</Text>;
   }
   if (event.type === 'note') {
-    return <Text style={[styles.boardNote, { color: colors.red }]}>{text}</Text>;
+    return <Text style={styles.boardNote}>{text}</Text>;
   }
   /**
    * Bold on `key` or `high` only.
@@ -125,7 +124,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: RHYTHM,
     marginTop: RHYTHM,
-    color: RED,
+    color: INK,
   },
   boardEquation: {
     fontFamily: 'Onest_800ExtraBold',
@@ -143,9 +142,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Onest_700Bold',
     color: INK,
   },
+  /**
+   * NO COLOUR ANYWHERE ON THIS BOARD. The heading and the note were both red
+   * and both are ink now.
+   *
+   * Which leaves a collision worth naming rather than hiding: a note and an
+   * emphasised body line are now identical — 700 at 14.5 in ink. Nothing but
+   * colour was separating them, so removing colour removed the distinction
+   * entirely. Flagged for Nikhil rather than invented around.
+   */
   boardNote: {
     fontFamily: 'Onest_700Bold',
     fontSize: 14.5,
     lineHeight: RHYTHM,
+    color: INK,
   },
 });

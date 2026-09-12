@@ -1863,12 +1863,17 @@ function createStyles(
    * Landscape keeps a 116 channel on the right for the thumb rail. Portrait has
    * no rail — the controls sit in a dock along the bottom — so the writing runs
    * almost to the right edge and the vertical padding grows instead, to clear
-   * the header above and the dock below. The numbers are the handoff's own
-   * (130/22/146/40, margin rule at 28).
+   * the header above and the dock below.
+   *
+   * The left gutter is 28, not 40. 40 was the classroom-flow handoff's value
+   * and it was 12pt of clearance for a red margin rule at x=28 — with the rule
+   * gone it was just a wide, unexplained indent. `Board 1c Faded Rules` sets
+   * its own content box to `padding: 26px 28px 40px 28px`, so 28 on both
+   * sides, and the rules fade over the first 60 anyway.
    */
   const boardPad = isLandscape
     ? { top: BOARD_TOP, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
-    : { top: 130, right: 22, bottom: 146, left: 40 };
+    : { top: 130, right: 28, bottom: 146, left: 28 };
   return StyleSheet.create({
     screen: {
       flex: 1,

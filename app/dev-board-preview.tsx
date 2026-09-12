@@ -132,10 +132,10 @@ const BOARD: BoardEvent[] = [
 ];
 
 /** The portrait classroom's own gutters, so the line measure matches exactly.
- *  No margin rule: `Board 1c Faded Rules` has none, and a red ledger line is
- *  the look its faded rules exist to avoid. */
-const LEFT = 40;
-const RIGHT = 22;
+ *  28 both sides, from `Board 1c`'s own content box — not the 40 the earlier
+ *  handoff used to clear a red margin rule that no longer exists. */
+const LEFT = 28;
+const RIGHT = 28;
 
 export default function DevBoardPreviewScreen() {
   const oriented = usePortraitLock();
