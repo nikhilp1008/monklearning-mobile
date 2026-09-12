@@ -94,6 +94,23 @@ export interface DronaVoiceHandlers {
 }
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 8000, 8000];
+/**
+ * Close codes the server uses to mean "do not come back", so the client does
+ * not. 4004 is a session that does not exist, 4401 a missing/expired/invalid
+ * token, 4403 a session belonging to someone else — see
+ * app/drona/live_session_ws.py, which sends each one and then closes.
+ */
+const PERMANENT_CLOSE_CODES = new Set([4004, 4401, 4403]);
+/**
+ * How long a socket must stay open before it counts as having worked.
+ *
+ * Below this it is treated as a failed attempt rather than a success, so the
+ * backoff keeps climbing. The server ACCEPTS a socket before it checks the
+ * session, so a refused connection still fires `onopen` — which was resetting
+ * the backoff to zero on every cycle and turning a capped retry into an
+ * endless one.
+ */
+const HEALTHY_CONNECTION_MS = 5000;
 /** Backstop for a turn whose audio never drains — a clip that fails to load,
  *  or a TTS gap that leaves the queue stalled. Without it, gating the flush on
  *  drain would trade "the checkpoint mounts too early" for the much worse "the
@@ -169,6 +186,10 @@ export class DronaVoiceClient {
   /** onerror and onclose can both fire for one failure; without this the
    *  backoff would advance twice per drop and burn its budget early. */
   private reconnectScheduled = false;
+  /** When the current socket opened, or 0. See HEALTHY_CONNECTION_MS. */
+  private openedAt = 0;
+  /** Consecutive sockets that opened and died before proving themselves. */
+  private diedYoung = 0;
 
   /** Playback id -> {speech, board_event, duration_ms} for chunks currently
    *  queued/playing, so the playback queue's onItemStart can look up what to
@@ -327,6 +348,7 @@ export class DronaVoiceClient {
     this.ws = ws;
 
     ws.onopen = () => {
+      this.openedAt = Date.now();
       this.reconnectAttempt = 0;
       this.reconnectScheduled = false;
       this.handlers.onConnectionChange?.('open');
@@ -342,14 +364,45 @@ export class DronaVoiceClient {
     ws.onerror = () => {
       if (!this.manualDisconnect) this.scheduleReconnect();
     };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       this.handlers.onConnectionChange?.('closed');
-      if (!this.manualDisconnect) this.scheduleReconnect();
+      if (this.manualDisconnect) return;
+      // The server's own verdict, honoured. It closes 4004 for a session that
+      // does not exist, 4401 for a bad or expired token and 4403 for a session
+      // belonging to someone else — none of which a retry can change.
+      //
+      // Ignoring the code is what produced the reconnect storm in the server
+      // logs: hundreds of sockets to one dead session, accepted and closed
+      // over and over, which is load for nothing and evicts every other line
+      // from the log buffer. Reconnecting is for a connection that BROKE, not
+      // for one that was refused.
+      const code = (event as { code?: number })?.code;
+      if (code && PERMANENT_CLOSE_CODES.has(code)) {
+        this.handlers.onError?.(
+          code === 4004
+            ? 'That class has ended. Go back and start a new one.'
+            : 'Your sign-in is no longer valid here. Go back and rejoin the class.'
+        );
+        return;
+      }
+      this.scheduleReconnect();
     };
   }
 
   private scheduleReconnect() {
     if (this.reconnectScheduled) return;
+    // A socket that opened and died immediately has not proved anything, so
+    // it must not clear the backoff. `onopen` resetting the counter is right
+    // for a connection that WORKED and later dropped; for one the server
+    // accepts and then closes, it means every cycle restarts at the shortest
+    // delay and the cap below is never reached.
+    if (this.openedAt && Date.now() - this.openedAt < HEALTHY_CONNECTION_MS) {
+      this.reconnectAttempt = Math.max(this.reconnectAttempt, this.diedYoung);
+      this.diedYoung += 1;
+    } else {
+      this.diedYoung = 0;
+    }
+    this.openedAt = 0;
     if (this.reconnectAttempt >= RECONNECT_DELAYS_MS.length) {
       // Previously a bare return: the UI kept showing "Reconnecting" forever
       // with nothing left retrying behind it.
