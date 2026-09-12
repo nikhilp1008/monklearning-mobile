@@ -1116,22 +1116,30 @@ export default function LiveClassroomScreen() {
   // Suppressed while the student holds Interrupt, so bottom centre has one
   // owner — the Listening strip.
   /**
-   * The verdict's fill, its text colour and its word.
+   * TWO STATES, because a chip only has two.
+   *
+   * The socket's `verdict` can be 'correct', 'partial' or 'incorrect', and the
+   * middle one used to show as "Almost" in amber. On a multiple-choice chip
+   * that is meaningless: you pressed one option, and either it was the right
+   * one or it was not. "Almost" invited the student to work out how a single
+   * tap could be partly right.
+   *
+   * It is also unreachable in practice. The only answer that can carry a
+   * partial grade is a spoken one, and `onTranscriptFinal` clears the card the
+   * moment a spoken answer lands — so the verdict chip is only ever shown for
+   * a tap. Anything that is not 'correct' reads as not correct here, and
+   * Drona explains the difference in the next turn either way.
    *
    * Fills are chosen for the contrast of the text ON them, not for hue:
-   * GREEN_INK carries paper at 5.29:1 and DEEP_AMBER at 4.65:1, where the
-   * brighter GREEN and AMBER manage only 3.52 and 2.09. RED is the app's own
-   * error colour at 4.17.
+   * GREEN_INK carries paper at 5.29:1 where the brighter GREEN manages 3.52.
+   * RED is the app's own error colour, at 4.17.
    */
-  const verdictFill =
-    answerVerdict === 'correct'
-      ? { backgroundColor: GREEN_INK, borderColor: GREEN_INK }
-      : answerVerdict === 'partial'
-        ? { backgroundColor: DEEP_AMBER, borderColor: DEEP_AMBER }
-        : { backgroundColor: RED, borderColor: RED };
+  const wasCorrect = answerVerdict === 'correct';
+  const verdictFill = wasCorrect
+    ? { backgroundColor: GREEN_INK, borderColor: GREEN_INK }
+    : { backgroundColor: RED, borderColor: RED };
   const verdictInk = colors.paper;
-  const verdictWord =
-    answerVerdict === 'correct' ? 'Correct' : answerVerdict === 'partial' ? 'Almost' : 'Not quite';
+  const verdictWord = wasCorrect ? 'Correct' : 'Not quite';
 
   // Stands down for a checkpoint: the question and its answers own the space
   // above the controls, and two stacked overlays in one place is how the chip
@@ -1316,7 +1324,7 @@ export default function LiveClassroomScreen() {
                 entering={FadeIn.duration(200)}
                 style={[styles.askRow, styles.askRowVerdict]}>
                 <View style={[styles.askChip, styles.askChipVerdict, verdictFill]}>
-                  <VerdictMark verdict={answerVerdict} color={verdictInk} />
+                  <VerdictMark correct={wasCorrect} color={verdictInk} />
                   <Text style={[styles.askChipText, { color: verdictInk }]}>{chosenOption}</Text>
                   <Text style={[styles.askVerdictWord, { color: verdictInk }]}>{verdictWord}</Text>
                 </View>
@@ -1886,18 +1894,12 @@ function RotateIcon({
 }
 
 /**
- * The verdict as a shape, so it does not depend on the fill.
- *
- * Tick for right, cross for wrong, and a level line for "almost" — a partly
- * right answer is neither, and a half-tick reads as a badly drawn tick.
+ * The verdict as a shape, so it does not depend on the fill — the two fills
+ * sit within 1.27:1 of each other in lightness, which is no difference at all
+ * to a student who cannot separate green from red.
  */
-function VerdictMark({ verdict, color }: { verdict: string; color: string }) {
-  const d =
-    verdict === 'correct'
-      ? 'M4.5 12.4l4.6 4.6L19.5 6.6'
-      : verdict === 'partial'
-        ? 'M5 12h14'
-        : 'M6.4 6.4l11.2 11.2M17.6 6.4L6.4 17.6';
+function VerdictMark({ correct, color }: { correct: boolean; color: string }) {
+  const d = correct ? 'M4.5 12.4l4.6 4.6L19.5 6.6' : 'M6.4 6.4l11.2 11.2M17.6 6.4L6.4 17.6';
   return (
     <Svg viewBox="0 0 24 24" width={13} height={13} fill="none">
       <Path d={d} stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
