@@ -28,6 +28,73 @@
     Only M/L/C/Z. The gate's pathBounds reads a `d` as a flat list of
     coordinate PAIRS, so an arc would have its flags read as coordinates.
   -->
+
+  <!-- COLOUR, added 2026-09-11. Flat fills only, no gradients.
+
+       WHAT IS COLOURED AND HOW. The line art is entirely `fill="none"`
+       strokes, so "add fills" only literally applies to the four CLOSED
+       shapes (two atria, ventricle, sinus venosus). The vessels are open
+       paths and have no region to fill, yet they are most of what the
+       oxygenated/deoxygenated contrast is FOR. So each vessel gets a wide,
+       light UNDERLAY stroke on the same `d`, drawn in this group BEFORE the
+       black line art. Every original stroke is untouched, exactly as the
+       brief requires — the black outline still sits on top and the colour
+       reads as a band behind it.
+
+       THE PALETTE HAS NO BLUE. constants/brand.js is ink / paper / marigold /
+       slate / faint / quiet / tint / red / success. `red` (#DD4433) tints to
+       the oxygenated colour below, but deoxygenated blue and the mixed mauve
+       are NOT in the palette and are not derivable from it. They are proposed
+       here and flagged for Raasikh rather than quietly invented as "from the
+       chrome palette".
+
+       WHICH ARCH IS WHICH is read from the label anchors, not guessed:
+       carotid u=0.3611 -> x=130, systemic u=0.4167 -> x=150, pulmocutaneous
+       u=0.4639 -> x=167, and the three left-hand arches end at (130,14),
+       (150,12) and (172,20) respectively. The right-hand set mirrors it.
+       Viewer-left is the animal's RIGHT, as the conus comment already states,
+       so the viewer-left atrium is the right atrium.
+  -->
+  <g id="colour">
+    <!-- Closed regions: flat fill, no stroke of their own. -->
+    <!-- right atrium (viewer left) - deoxygenated -->
+    <path d="M152,150 C142,132 148,114 166,114 C178,114 182,130 182,150 Z" fill="#C5D4E4"/>
+    <!-- left atrium (viewer right) - oxygenated -->
+    <path d="M212,150 C222,132 216,114 198,114 C186,114 182,130 182,150 Z" fill="#F2C7C1"/>
+    <!-- ventricle - mixed blood in the single frog ventricle -->
+    <path d="M152,150 C148,186 164,216 182,228 C200,216 216,186 212,150 Z" fill="#DCC8D6"/>
+    <!-- sinus venosus, dorsal - deoxygenated -->
+    <path d="M210,102 C214,90 234,90 238,102 C234,112 214,112 210,102 Z" fill="#C5D4E4"/>
+
+    <!-- Vessel underlays: same geometry, wide light stroke, black line art on top. -->
+    <g fill="none" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+      <!-- carotid + systemic arches, both sides - oxygenated -->
+      <g stroke="#F2C7C1">
+        <path d="M150,66 C142,50 134,32 130,14"/>
+        <path d="M150,66 C150,48 150,30 150,12"/>
+        <path d="M200,70 C194,54 190,34 188,16"/>
+        <path d="M200,70 C204,50 208,30 210,12"/>
+        <!-- pulmonary veins, returning oxygenated blood to the left atrium -->
+        <path d="M236,176 C224,164 210,150 200,138"/>
+        <path d="M238,166 C226,156 212,142 204,132"/>
+      </g>
+      <!-- pulmocutaneous arches and the caval veins - deoxygenated -->
+      <g stroke="#C5D4E4">
+        <path d="M150,66 C158,50 166,32 172,20"/>
+        <path d="M200,70 C212,52 224,32 232,16"/>
+        <path d="M236,72 C232,82 230,90 228,94"/>
+        <path d="M238,146 C234,130 232,116 232,108"/>
+      </g>
+      <!-- conus and truncus arteriosus - neutral warm grey -->
+      <g stroke="#E0DACB">
+        <path d="M145,98 C152,88 160,82 170,78"/>
+        <path d="M170,78 C162,74 155,70 150,66"/>
+        <path d="M170,78 C182,75 193,72 200,70"/>
+        <path d="M150,154 C136,138 132,116 140,96"/>
+        <path d="M160,152 C148,138 144,118 150,100"/>
+      </g>
+    </g>
+  </g>
   <g fill="none" stroke="#1a1a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
 
     <!-- AORTIC ARCHES, three per side, each leaving its own division of the
