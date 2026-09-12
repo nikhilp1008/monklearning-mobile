@@ -36,6 +36,7 @@ import {
   Blink,
   DARK_CHROME,
   DEEP_AMBER,
+  GREEN_INK,
   EdgeTab,
   HAIRLINE,
   INK,
@@ -111,9 +112,18 @@ const RAIL_HALF = 108;
 /** Far enough right to clear the rail's own width plus its 12pt inset. */
 const RAIL_TUCK_X = 92;
 
-/** How long a chosen answer stays lit before the card goes. Long enough to
- *  read as confirmation, short enough not to hold up the lesson. */
-const ANSWER_HOLD_MS = 850;
+/**
+ * The two waits after an answer.
+ *
+ * `ANSWER_HOLD_MS` is the longest the card waits for a verdict that may never
+ * arrive — a dropped socket, a server that does not grade. Without it the card
+ * would sit there forever holding a lit chip.
+ *
+ * `VERDICT_HOLD_MS` is how long the verdict itself stays once it does arrive.
+ * Long enough to read a word, short enough not to hold up the lesson.
+ */
+const ANSWER_HOLD_MS = 2600;
+const VERDICT_HOLD_MS = 1150;
 
 /**
  * The portrait dock's height, from its parts, so anything that has to sit
@@ -290,7 +300,19 @@ export default function LiveClassroomScreen() {
    * the server immediately; only the dismissal waits.
    */
   const [chosenOption, setChosenOption] = useState<string | null>(null);
+  /**
+   * What the server said about it: 'correct', 'partial', or anything else for
+   * wrong. Null until the answer comes back.
+   */
+  const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
   const answerHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Takes the card down and resets it, from either path. */
+  const clearCheckpoint = useCallback(() => {
+    setCheckOptions([]);
+    setQuestionText(null);
+    setChosenOption(null);
+    setAnswerVerdict(null);
+  }, []);
   useEffect(
     () => () => {
       if (answerHoldRef.current) clearTimeout(answerHoldRef.current);
@@ -416,6 +438,18 @@ export default function LiveClassroomScreen() {
         }
       },
       onSttTooShort: () => setCaption("Didn't catch that. Hold the button a little longer."),
+      /**
+       * The verdict, shown ON the chip the student pressed.
+       *
+       * It used to be a word in the top row, which is empty by design now.
+       * Putting it on the chip is better than putting it back: it is attached
+       * to the thing it is about, so there is nothing to look up.
+       */
+      onAnswerResult: (result) => {
+        setAnswerVerdict(result.verdict);
+        if (answerHoldRef.current) clearTimeout(answerHoldRef.current);
+        answerHoldRef.current = setTimeout(clearCheckpoint, VERDICT_HOLD_MS);
+      },
       /**
        * The verdict has nowhere to go now, and that is worth saying out loud.
        *
@@ -1081,6 +1115,24 @@ export default function LiveClassroomScreen() {
 
   // Suppressed while the student holds Interrupt, so bottom centre has one
   // owner — the Listening strip.
+  /**
+   * The verdict's fill, its text colour and its word.
+   *
+   * Fills are chosen for the contrast of the text ON them, not for hue:
+   * GREEN_INK carries paper at 5.29:1 and DEEP_AMBER at 4.65:1, where the
+   * brighter GREEN and AMBER manage only 3.52 and 2.09. RED is the app's own
+   * error colour at 4.17.
+   */
+  const verdictFill =
+    answerVerdict === 'correct'
+      ? { backgroundColor: GREEN_INK, borderColor: GREEN_INK }
+      : answerVerdict === 'partial'
+        ? { backgroundColor: DEEP_AMBER, borderColor: DEEP_AMBER }
+        : { backgroundColor: RED, borderColor: RED };
+  const verdictInk = colors.paper;
+  const verdictWord =
+    answerVerdict === 'correct' ? 'Correct' : answerVerdict === 'partial' ? 'Almost' : 'Not quite';
+
   // Stands down for a checkpoint: the question and its answers own the space
   // above the controls, and two stacked overlays in one place is how the chip
   // ended up sitting on the dock's hint text.
@@ -1247,38 +1299,60 @@ export default function LiveClassroomScreen() {
             <Text style={styles.askQuestion} numberOfLines={3}>
               {spokenMathToNotation(questionText)}
             </Text>
-            <View style={styles.askRow}>
-              {checkOptions.map((option) => {
-                const chosen = chosenOption === option;
-                const passedOver = chosenOption !== null && !chosen;
-                return (
-                  <Pressable
-                    key={option}
-                    // Once one is pressed the rest stop taking taps, so a
-                    // second answer cannot be sent during the hold.
-                    disabled={chosenOption !== null}
-                    style={[
-                      styles.askChip,
-                      chosen && styles.askChipChosen,
-                      passedOver && styles.askChipPassedOver,
-                    ]}
-                    onPress={() => {
-                      if (chosenOption !== null) return;
-                      setChosenOption(option);
-                      clientRef.current?.sendAnswer(option);
-                      answerHoldRef.current = setTimeout(() => {
-                        setCheckOptions([]);
-                        setQuestionText(null);
-                        setChosenOption(null);
-                      }, ANSWER_HOLD_MS);
-                    }}>
-                    <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
-                      {option}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {/* THE VERDICT REPLACES THE ROW, it does not squeeze into it.
+                The four chips leave only 5.9pt of slack across a 336pt row, so
+                adding a mark to the chosen one would have wrapped the set at
+                the exact moment of feedback. Swapping the whole row for a
+                single chip means nothing can reflow, and once the alternatives
+                are gone the chip has room for a mark AND a word — 168pt at
+                worst.
+
+                It needs the word. The three fills are within 1.11-1.27:1 of
+                each other in lightness, so a student who cannot separate green
+                from red gets nothing from the colour alone. The mark and the
+                word carry it; the colour agrees with them. */}
+            {answerVerdict && chosenOption ? (
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                style={[styles.askRow, styles.askRowVerdict]}>
+                <View style={[styles.askChip, styles.askChipVerdict, verdictFill]}>
+                  <VerdictMark verdict={answerVerdict} color={verdictInk} />
+                  <Text style={[styles.askChipText, { color: verdictInk }]}>{chosenOption}</Text>
+                  <Text style={[styles.askVerdictWord, { color: verdictInk }]}>{verdictWord}</Text>
+                </View>
+              </Animated.View>
+            ) : (
+              <View style={styles.askRow}>
+                {checkOptions.map((option) => {
+                  const chosen = chosenOption === option;
+                  const passedOver = chosenOption !== null && !chosen;
+                  return (
+                    <Pressable
+                      key={option}
+                      // Once one is pressed the rest stop taking taps, so a
+                      // second answer cannot be sent during the hold.
+                      disabled={chosenOption !== null}
+                      style={[
+                        styles.askChip,
+                        chosen && styles.askChipChosen,
+                        passedOver && styles.askChipPassedOver,
+                      ]}
+                      onPress={() => {
+                        if (chosenOption !== null) return;
+                        setChosenOption(option);
+                        clientRef.current?.sendAnswer(option);
+                        // A backstop only. `onAnswerResult` normally arrives
+                        // first and replaces this with the shorter verdict hold.
+                        answerHoldRef.current = setTimeout(clearCheckpoint, ANSWER_HOLD_MS);
+                      }}>
+                      <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
         </Animated.View>
       )}
@@ -1807,6 +1881,26 @@ function RotateIcon({
           <Path d="M15.6 2.4 13.3 4.4 15.6 6.4" stroke={color} strokeWidth={1.8} />
         </>
       )}
+    </Svg>
+  );
+}
+
+/**
+ * The verdict as a shape, so it does not depend on the fill.
+ *
+ * Tick for right, cross for wrong, and a level line for "almost" — a partly
+ * right answer is neither, and a half-tick reads as a badly drawn tick.
+ */
+function VerdictMark({ verdict, color }: { verdict: string; color: string }) {
+  const d =
+    verdict === 'correct'
+      ? 'M4.5 12.4l4.6 4.6L19.5 6.6'
+      : verdict === 'partial'
+        ? 'M5 12h14'
+        : 'M6.4 6.4l11.2 11.2M17.6 6.4L6.4 17.6';
+  return (
+    <Svg viewBox="0 0 24 24" width={13} height={13} fill="none">
+      <Path d={d} stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -2401,6 +2495,22 @@ function createStyles(
     // still see what they chose between.
     askChipPassedOver: {
       opacity: 0.4,
+    },
+    // The verdict row holds one chip, so it starts at the left rather than
+    // spreading like a set of choices.
+    askRowVerdict: {
+      alignItems: 'center',
+    },
+    askChipVerdict: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(7),
+    },
+    // Lighter than the option it sits beside: the option is what was pressed,
+    // the word is what came back about it.
+    askVerdictWord: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(13),
     },
     askChipTextChosen: {
       color: colors.paper,
