@@ -68,6 +68,16 @@ export class FollowUpAudio {
   /** True between sentences, while the gap timer is waiting to start one. */
   private waiting = false;
 
+  /**
+   * Called when the queue has nothing left to play.
+   *
+   * May fire more than once per answer, and that is not a bug: sentences are
+   * synthesised as they are spoken, so the queue legitimately runs dry between
+   * them. Only the caller knows whether the stream has also finished, so only
+   * the caller can decide that "empty" means "done talking".
+   */
+  onIdle: (() => void) | null = null;
+
   constructor(private readonly key: string) {}
 
   /** Adds one finished WAV to the end of the answer. */
@@ -109,7 +119,10 @@ export class FollowUpAudio {
     this.teardown();
 
     const item = this.queue.shift();
-    if (!item) return;
+    if (!item) {
+      this.onIdle?.();
+      return;
+    }
 
     // Let the pause land before the next sentence starts — but never in front
     // of the FIRST one, where it would just be latency.
