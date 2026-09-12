@@ -27,6 +27,36 @@ import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
  * the grid on any device whose width is not the reference 390.
  */
 
+/**
+ * THE LINE MEASURE — how wide a line of board writing is allowed to get.
+ *
+ * Portrait never needed one: 390 less two 28pt gutters is a 334pt column,
+ * which at Onest 400/16 (mean advance 0.4441em, so 7.11pt a character) is 47
+ * characters. Landscape is the same board turned on its side and nothing was
+ * holding it: 844 less the 56pt notch gutter and the 116pt thumb rail is
+ * 672pt — 94.6 characters, almost exactly double, and half again past the
+ * readable ceiling.
+ *
+ * That band is 45 to 75 characters with about 66 the optimum, and the reason
+ * is the return sweep: past roughly 75 the eye loses which line it came from
+ * on the way back to the left margin and re-reads or skips one. This board is
+ * read while a teacher talks over it, so a lost line is a lost sentence of
+ * the lesson, not just a stumble.
+ *
+ * 512pt is 72 characters at body size, inside the band with a little room for
+ * the wider bold runs. It is a MAXIMUM, not a width: portrait's 334pt column
+ * is far under it and is untouched, so this single number is inert on a phone
+ * held upright and binds only where the board is too wide. The column stays
+ * on the left gutter and the empty paper falls on the thumb-rail side, which
+ * is what a teacher's own board looks like — written from the left, trailing
+ * off before the far edge.
+ *
+ * Stated here rather than in the classroom because the figures have to honour
+ * the same column; a diagram sized to the full 672 would hang 160pt past the
+ * writing it belongs to.
+ */
+export const BOARD_MEASURE = 512;
+
 export function BoardBlockView({
   event,
   diagramBox,

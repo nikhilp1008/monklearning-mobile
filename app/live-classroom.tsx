@@ -49,7 +49,6 @@ import {
   useChromeAutoHide,
   ScrollIndicator,
   TeacherWave,
-  settleToRhythm,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
 import { useOrientedScale } from '@/constants/scale';
@@ -66,7 +65,7 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
-import { BoardBlockView } from '@/components/board-text';
+import { BOARD_MEASURE, BoardBlockView } from '@/components/board-text';
 import { apiFetch } from '@/lib/api';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
@@ -91,6 +90,37 @@ import { supabase } from '@/lib/supabase';
  *  sits on top of the writing. Shared by `boardContent`'s padding and the
  *  width a diagram is allowed to draw into. */
 const BOARD_RIGHT_GUTTER = 116;
+/**
+ * THE LANDSCAPE HEADER'S GROUND, and why it is 76 rather than the 52 it was.
+ *
+ * A scrim does two things at once: it hides the writing that scrolls under
+ * the header, and it avoids looking like a drawn bar while doing it. The
+ * second is why it ends in a fade — text dissolves into the paper instead of
+ * being chopped off by an edge.
+ *
+ * A fade only reads as a fade if it is taller than the thing fading through
+ * it. Landscape's was 52 deep, solid to 40 and transparent by 52: a 12pt ramp
+ * for a 26pt line. Measured on the device, a line caught in it ran from 250
+ * grey at its top to 26 at its bottom — one glyph, invisible above and full
+ * ink below, which reads as a rendering fault rather than as something passing
+ * beneath the header. Portrait never showed this: its 20pt ramp sits at the
+ * end of a 124pt band, so a line lands wholly inside the tail and dims evenly
+ * (116 grey across its whole height, measured).
+ *
+ * So the ramp is 32pt here — longer than a line — and the solid part stops at
+ * 44, just past the header row's own bottom edge at about 46. Total 76.
+ *
+ * IT COSTS BOARD HEIGHT, which is the whole reason it is not simply 124: the
+ * landscape board is 402pt tall against portrait's 874. 76 is 19% of it, about
+ * one line of the eleven visible. The alternative was a permanent artefact at
+ * the top of every scrolled landscape board.
+ *
+ * `BOARD_TOP` no longer serves as the landscape top padding, for the same
+ * reason — a first line resting inside the ramp would render half-faded with
+ * no scrolling at all.
+ */
+const LS_SCRIM = 76;
+const LS_SCRIM_SOLID = 44;
 
 /**
  * How long the loading card may cover the board before giving up.
@@ -578,9 +608,14 @@ export default function LiveClassroomScreen() {
       // Mirrors `boardContent`'s own padding, which differs by orientation:
       // landscape keeps the notch gutter on the left and the thumb-rail
       // channel on the right, portrait has no rail so the writing runs wide.
+      // Capped by BOARD_MEASURE like the writing is, so a figure never hangs
+      // past the column of text it is an aside to. The portrait numbers are
+      // 28 and 28 — the board's gutters — not the 40 and 22 they used to be,
+      // which were the old padding and left a figure 6pt narrower than the
+      // lines above it.
       availableWidth: isLandscape
-        ? Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER)
-        : Math.max(0, windowWidth - 40 - 22),
+        ? Math.min(BOARD_MEASURE, Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER))
+        : Math.min(BOARD_MEASURE, Math.max(0, windowWidth - 28 - 28)),
       /**
        * A figure is an aside to the argument, so the lines either side of it
        * have to stay on screen with it.
@@ -594,7 +629,7 @@ export default function LiveClassroomScreen() {
        */
       maxHeight: isLandscape
         ? boardHeight * 0.72
-        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - 40 - 22)),
+        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - 28 - 28)),
     }),
     [windowWidth, boardHeight, isLandscape]
   );
@@ -857,16 +892,19 @@ export default function LiveClassroomScreen() {
       setIndicatorTop((contentOffset.y / contentSize.height) * layoutMeasurement.height);
       setIndicatorVisible(true);
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
-      // Settle onto the rule grid when the board comes to rest, so a written
-      // line is never left half-cut by the top edge.
-      indicatorTimerRef.current = setTimeout(() => {
-        setIndicatorVisible(false);
-        const settled = settleToRhythm(
-          contentOffset.y,
-          contentSize.height - layoutMeasurement.height
-        );
-        if (settled != null) scrollRef.current?.scrollTo({ y: settled, animated: true });
-      }, 900);
+      /**
+       * NO RULE-SNAPPING ANY MORE. This used to settle the board onto the
+       * nearest 26pt multiple when scrolling stopped, "so a written line is
+       * never left half-cut by the top edge" — which was true while every
+       * line sat on the rule grid.
+       *
+       * The writing is spaced for reading now, not snapped to the rules, so a
+       * line's position is set by mixed sizes and margins and lands on no
+       * multiple of anything. Snapping to 26 aligned nothing: it just slid the
+       * board by up to 13pt, 900ms after the student stopped scrolling. A
+       * nudge with no purpose is worse than none.
+       */
+      indicatorTimerRef.current = setTimeout(() => setIndicatorVisible(false), 900);
     }
     const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
     setFollowing(atBottom);
@@ -1218,13 +1256,14 @@ export default function LiveClassroomScreen() {
             what stops the band reading as a drawn bar: text dissolves into it
             instead of being cut off by an edge.
 
-            Portrait only. Landscape has a 52pt top padding and a single
-            header row over it, and a band that deep across a 390pt-tall board
-            would eat an eighth of the writing. */}
+            Landscape gets the same treatment at its own depth — see
+            LS_SCRIM. It cannot reuse 124 across a 402pt-tall board, but 52
+            with a 12pt fade was too steep to fade a line of writing rather
+            than slice one. */}
         <Animated.View style={[styles.headerScrim, scrimStyle]} pointerEvents="none">
           <LinearGradient
             colors={['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0)']}
-            locations={[0, isLandscape ? 0.77 : 0.84, 1]}
+            locations={[0, isLandscape ? LS_SCRIM_SOLID / LS_SCRIM : 0.84, 1]}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
@@ -1872,7 +1911,7 @@ function createStyles(
    * sides, and the rules fade over the first 60 anyway.
    */
   const boardPad = isLandscape
-    ? { top: BOARD_TOP, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
+    ? { top: LS_SCRIM, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
     : { top: 130, right: 28, bottom: 146, left: 28 };
   return StyleSheet.create({
     screen: {
@@ -1926,8 +1965,11 @@ function createStyles(
       backgroundColor: '#fff',
       overflow: 'hidden',
     },
-    // 52 top and bottom (2×26), 56 left (the notch gutter), 116 right to clear
-    // the thumb rail.
+    // Landscape: 52 top and bottom, 56 left (the notch gutter), 116 right to
+    // clear the thumb rail. Portrait: 130 and 146 to clear the header and the
+    // dock, 28 either side — `Board 1c`'s own content box. The old pair of
+    // 2x26s was a rule-grid number and means nothing now that the writing is
+    // not set to the grid; see `boardPad` above.
     boardContent: {
       // flexGrow lets the tap target below stretch to the full board height,
       // so tapping empty paper tucks the chrome just like tapping a line.
@@ -1937,47 +1979,28 @@ function createStyles(
       paddingBottom: boardPad.bottom,
       paddingLeft: boardPad.left,
     },
-    // Every board line is exactly one rule tall with no margins — that is what
-    // keeps the writing sitting ON the rules instead of drifting between them.
+    // Holds every line of writing, so the measure cap goes here: one maxWidth
+    // instead of one on each of five text styles. It stays on the left gutter
+    // — a column stretched to its max and then placed at flex-start — and in
+    // portrait the cap is never reached, so nothing changes there.
     boardTapTarget: {
       flex: 1,
+      maxWidth: BOARD_MEASURE,
     },
     enteringCardOverlay: {
       zIndex: 20,
     },
     /**
-     * A section title. One blank rule above it and none below, so a heading
-     * belongs to what follows it instead of floating between two paragraphs —
-     * the board had no margins at all, which is why nothing grouped. 26 is a
-     * whole rule, so the writing stays on the lines.
+     * THE WRITING'S OWN STYLES ARE NOT HERE — see `components/board-text.tsx`.
      *
-     * No tilt. It used to carry `rotate(-0.4deg)` from when the board was set
-     * in Kalam and a slight lean read as handwriting. Kalam is gone and this
-     * is Onest: a tilted bold sans on ruled paper does not read as
-     * handwritten, it reads as misaligned. On a 300pt heading the last letter
-     * sat 2.09pt off its rule.
+     * Heading, body, formula and note moved there so the preview screen and
+     * this classroom cannot drift apart, and their comments went with them.
+     * What was left behind was a page of reasoning about sizes and rule
+     * alignment with no styles under it, still asserting things the board
+     * stopped doing: that a line is one rule tall, that the writing sits ON
+     * the rules, that the note is 14.5. Spacing is set for reading now and the
+     * rules are decoration. Only `writingRow` below is still this screen's.
      */
-    // No maxWidth. There used to be a 560 cap here and on boardNote,
-    // which is a sane reading measure for a portrait column and the wrong one
-    // for this board: the content box is windowWidth - BOARD_LEFT(56) -
-    // BOARD_RIGHT_GUTTER(116), which on an iPhone 17 landscape is 702pt, so
-    // the cap left 142pt of every wrapped line empty and the board read as
-    // three-quarters full. The box itself is now the measure — it is already
-    // bounded by the notch gutter on one side and the thumb-rail clearance on
-    // the other. If lines ever feel too long to track on a wider device, cap
-    // it again against the measured board width rather than a fixed 560.
-    /**
-     * The reading text, and after the emphasis fix it is most of the board
-     * rather than a secondary tone — 7.65:1 on white, so it carries prose.
-     *
-     * 14.5 rather than 13.5: the rule spacing is fixed at 26, so the smaller
-     * size gave body copy 1.93 leading where the 17pt heading got 1.53 — the
-     * small text was the airiest thing on the board and the large text the
-     * tightest, which is backwards. 14.5 brings it to 1.79 and is easier to
-     * read on a phone.
-     */
-    // An exam callout. Named for Kalam once; the font and its tilt are both
-    // gone, and size is what separates it from a heading now (14.5 to 17).
     writingRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -2130,17 +2153,17 @@ function createStyles(
      * and only a scrolled line passes under the fade.
      *
      *   portrait   124 deep, solid to 104 (row ends at 84), padding 130
-     *   landscape   52 deep, solid to  40 (row ends at 40), padding 52
+     *   landscape   76 deep, solid to  44 (row ends at 46), padding 76
      *
-     * Landscape is shallower because it has to be: its board is 390pt tall, so
-     * a 124 band there would have covered an eighth of the writing.
+     * Landscape is shallower than portrait because it has to be — its board is
+     * 402pt tall, not 874 — but not as shallow as the 52 it was. See LS_SCRIM.
      */
     headerScrim: {
       position: 'absolute',
       left: 0,
       right: 0,
       top: 0,
-      height: isLandscape ? 52 : 124,
+      height: isLandscape ? LS_SCRIM : 124,
     },
 
     /* --- portrait dock: the rail's controls, laid along the bottom --- */
