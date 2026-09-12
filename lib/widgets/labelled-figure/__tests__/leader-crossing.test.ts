@@ -142,46 +142,44 @@ describe('the shipped fixture is clean', () => {
 
 describe('THE FAILING FIXTURE — the assertion must be able to fire', () => {
   /**
-   * Two labels on the same side whose anchors are ordered OPPOSITELY to their
-   * rows. `decollide` assigns rows by anchor order, so the only way to force a
-   * crossing is to override it — which `v_hint` does, and which is exactly what
-   * a careless author does when they nudge a label "up a bit" to make room.
+   * REWRITTEN 2026-09-11, and the reason is a result in itself.
+   *
+   * The old fixture forced a crossing with `v_hint`: two same-side labels
+   * whose anchors were ordered opposite to their de-collided rows. That
+   * construction depended on the COLUMN layout, where a label could be rows
+   * away from its anchor. Near-anchor placement deleted it — `v_hint` no
+   * longer moves anything, and a leader is at most LEADER_MAX (40pt) running
+   * outward from the plate centre, so two of them have very little room to
+   * cross.
+   *
+   * MEASURED, before concluding it: a sweep of every pair of anchors on a
+   * 7x7 grid of (u, v) — 2,401 configurations — at all three frames produced
+   * ZERO layout crossings. That is evidence the new engine makes this failure
+   * hard to reach, NOT evidence the detector works; those are different
+   * claims and only the second is this file's job.
+   *
+   * So the fixture now exercises `segmentsCross` directly, on two segments
+   * that provably cross. The detector keeps a case that trips it, and the
+   * sweep result is recorded above rather than being mistaken for one.
    */
-  const CROSSED = withLabels([
-    {
-      id: 'high-anchor-low-row',
-      term: { english: 'Nucleus', hinglish: 'Kendrak' },
-      anchor: { u: 0.4, v: 0.15 },
-      side: 'left',
-      group: 'organelles',
-      v_hint: 0.95,
-    },
-    {
-      id: 'low-anchor-high-row',
-      term: { english: 'Vacuole', hinglish: 'Riktika' },
-      anchor: { u: 0.4, v: 0.85 },
-      side: 'left',
-      group: 'organelles',
-      v_hint: 0.05,
-    },
-  ]);
+  test('the detector fires on two segments that really do cross', () => {
+    const p = { x1: 0, y1: 0, x2: 100, y2: 100 };
+    const q = { x1: 0, y1: 100, x2: 100, y2: 0 };
+    expect(segmentsCross(p, q)).toBe(true);
+  });
 
-  test('it really does cross, at every board', () => {
-    for (const [W, H] of [
-      [343, 236],
-      [495, 270],
-      [900, 430],
-    ]) {
-      const found = crossingLeaders(CROSSED, W, H);
-      expect([`${W}x${H}`, found.length]).toEqual([`${W}x${H}`, 1]);
-      // Order-insensitive: `layoutFigure` returns labels sorted by ROW, so
-      // which of the pair is named first depends on the de-collision, not on
-      // the crossing. Asserting a fixed string made this fail for a reason
-      // that had nothing to do with the geometry.
-      expect(found[0].split(' x ').sort()).toEqual(
-        ['high-anchor-low-row', 'low-anchor-high-row'].sort()
-      );
-    }
+  test('a laid-out figure whose leaders cross is reported by id', () => {
+    // Hand-built PlacedLabels, because layoutFigure will not produce this —
+    // the point is that IF it ever did, the pair would be named.
+    const a = {
+      id: 'alpha', anchor: { x: 10, y: 10 }, stub: { x: 110, y: 110 }, via: null,
+    } as unknown as PlacedLabel;
+    const b = {
+      id: 'beta', anchor: { x: 10, y: 110 }, stub: { x: 110, y: 10 }, via: null,
+    } as unknown as PlacedLabel;
+    const segA = segmentsOf(a)[0];
+    const segB = segmentsOf(b)[0];
+    expect(segmentsCross(segA, segB)).toBe(true);
   });
 
   test('and the detector does not fire on merely touching segments', () => {

@@ -134,6 +134,15 @@ export interface LabelledFigureParams {
   lang: Lang;
   /** The group currently drawn. Patched by a cue to advance the reveal. */
   active_group: string;
+  /**
+   * Which reveal STEP of the active group to draw, 0-based.
+   *
+   * Only meaningful at the phone frame, where a group larger than
+   * MAX_LABELS_PHONE is paged. Optional and defaulting to 0, so every payload
+   * written before paging existed renders exactly as it did — and on a tablet
+   * frame it is ignored entirely, because there is only ever one page.
+   */
+  page?: number;
 }
 
 /* -------------------------------------------------------------- constants */
@@ -167,6 +176,56 @@ export const LEADER_STROKE = LINE_STROKE;
 
 /** The group strip's baseline, when one is drawn. */
 export const STRIP_BASELINE = 18;
+
+/* ---------------------------------------------- NEAR-ANCHOR PLACEMENT (v2)
+
+ * Labels sit BESIDE the structure they name, not stacked in a column at the
+ * frame edge with a long leader reaching back. The column layout is gone.
+ *
+ * Raasikh reviewed the edge-column render on 2026-09-11 and rejected the
+ * LAYOUT while accepting the anchors: a reader should not have to trace a
+ * 200pt line across the plate to find out what a dot is called.
+ */
+
+/** Gap between the anchor dot and the nearest edge of the pill, at 1x. */
+export const LABEL_OFFSET = 14;
+/** Hard cap on leader length at 1x. Past this the label is not "near". */
+export const LEADER_MAX = 40;
+/** Below this a leader is noise between two things already touching. */
+export const LEADER_MIN_DRAW = 8;
+/** Step used when no direction fits at the default offset. */
+export const LEADER_STEP = 12;
+/** Every pill stays this far inside the frame. */
+export const FRAME_INSET = 6;
+
+export const PILL_PAD_X = 6;
+export const PILL_PAD_Y = 3;
+export const PILL_RADIUS = 4;
+/** Text box model is `fontSize * 1.15`, matching the gate. */
+export const PILL_H = LABEL_SIZE * 1.15 + 2 * PILL_PAD_Y;
+
+/**
+ * The phone frame shows at most this many labels at once.
+ *
+ * A group larger than this is PAGED — rendered in successive reveal steps of
+ * five, in group-list order. Tablet-and-wider frames show the whole group.
+ */
+export const MAX_LABELS_PHONE = 5;
+/** Frames narrower than this are treated as the phone board. 343 is in,
+ *  495 (the small tablet frame) is out. */
+export const PHONE_MAX_W = 400;
+
+/** The eight compass directions, in SVG axes (y grows downward). */
+export const COMPASS: readonly { name: string; x: number; y: number }[] = [
+  { name: 'E', x: 1, y: 0 },
+  { name: 'SE', x: Math.SQRT1_2, y: Math.SQRT1_2 },
+  { name: 'S', x: 0, y: 1 },
+  { name: 'SW', x: -Math.SQRT1_2, y: Math.SQRT1_2 },
+  { name: 'W', x: -1, y: 0 },
+  { name: 'NW', x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
+  { name: 'N', x: 0, y: -1 },
+  { name: 'NE', x: Math.SQRT1_2, y: -Math.SQRT1_2 },
+];
 
 /** WORLD — the sizes the caps below were derived at. §2.4/§2.5: "measure the
  *  new bound at the SMALLEST board". */
@@ -333,6 +392,14 @@ export interface PlacedLabel {
   plate: { x: number; y: number; w: number; h: number };
   /** Where the leader leaves the plate. */
   stub: { x: number; y: number };
+  /** Which compass direction was chosen, e.g. 'NE'. Inspectable in the dev
+   *  overlay and asserted in the fixture. */
+  dir: string;
+  /** Drawn leader length in points. Below LEADER_MIN_DRAW no leader is drawn. */
+  leaderLen: number;
+  /** True when no direction fit even at LEADER_MAX and the pill was placed
+   *  overlapping. Always accompanied by a console warning naming the label. */
+  overlapped: boolean;
 }
 
 export interface FigureLayout {
@@ -352,59 +419,110 @@ export function activeLabels(params: LabelledFigureParams): LabelRecord[] {
   return params.labels.filter((l) => l.group === params.active_group);
 }
 
-/**
- * Vertical de-collision, per column (§2.3).
- *
- * Deterministic by construction — no measured text, no solver. CLAUDE.md §3a:
- * nothing is created during a live session, and a layout that depends on a
- * solver is a layout that can differ between the CI tree and the device.
- *
- * DEVIATION from §2.3, stated because it changes an outcome: the spec clamps
- * the column to the ART's vertical band (`oy + LABEL_SIZE` to
- * `oy + sH - PAD_EDGE`). For a very wide art the drawn band is short — a
- * 2000x500 art at 343x236 is only 85.75pt tall — and ten labels in one column
- * need 160.2pt, so "shift the column up by the excess" walks the top label off
- * the board and trips assertion 3. So the art band is PREFERRED and the BOARD
- * band is the fallback when the art band cannot hold the column. The board
- * band always can at the cap: `rowsPerColumn(236, true) = 11 >= 10`.
- */
-function decollide(desired: number[], H: number, fit: FittedRect, stripTop: number): number[] {
-  const n = desired.length;
-  if (n === 0) return [];
+/* ------------------------------------------------------- placement helpers */
 
-  const need = (n - 1) * ROW;
-  let top = Math.max(fit.oy + LABEL_SIZE, stripTop);
-  let bottom = fit.oy + fit.sH - PAD_EDGE;
-  if (bottom - top < need) {
-    top = Math.max(LABEL_SIZE, stripTop);
-    bottom = H - PAD_EDGE;
-  }
+interface Rect { x: number; y: number; w: number; h: number }
 
-  const y = [...desired].sort((a, b) => a - b);
-  y[0] = Math.max(y[0], top);
-  for (let i = 1; i < n; i++) y[i] = Math.max(y[i], y[i - 1] + ROW);
+/** Distance from the anchor to the nearest point of the pill — the leader as
+ *  it is actually drawn. */
+function leaderLenFor(anchor: { x: number; y: number }, r: Rect): number {
+  const sx = Math.min(Math.max(anchor.x, r.x), r.x + r.w);
+  const sy = Math.min(Math.max(anchor.y, r.y), r.y + r.h);
+  return Math.hypot(sx - anchor.x, sy - anchor.y);
+}
 
-  const excess = y[n - 1] - bottom;
-  if (excess > 0) for (let i = 0; i < n; i++) y[i] -= excess;
+function rectsOverlap(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
 
-  // Re-clamp down. Reachable only when the column cannot fit even the board
-  // band — which needs a board shorter than 12 + 28.4 + 10 + 9 * 17.8 = 210pt,
-  // and MAX_LABELS_PER_GROUP is what keeps that unreachable here.
-  // Rigid-packing from the top is the deterministic answer rather than
-  // leaving labels off the top edge.
-  if (y[0] < top) for (let i = 0; i < n; i++) y[i] = top + i * ROW;
+function insideFrame(r: Rect, W: number, H: number): boolean {
+  return (
+    r.x >= FRAME_INSET && r.y >= FRAME_INSET &&
+    r.x + r.w <= W - FRAME_INSET && r.y + r.h <= H - FRAME_INSET
+  );
+}
 
-  return y;
+function intersectArea(a: Rect, b: Rect): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
 }
 
 /**
- * Place the ACTIVE GROUP's labels for one language at one board box.
+ * Pill rect for one candidate direction.
  *
- * Columns are pinned to the ART's edges (a world quantity) but the hard bound
- * is the BOARD, because assertion 3 is what actually errors. Where the art is
- * narrow, the plate is pushed INWARD over the illustration rather than off the
- * board — §2.2's deliberate trade, and §2.1's honest cost: every label hides a
- * rectangle of the art, about 153 x 17pt at the 22-character cap.
+ * `LABEL_OFFSET` (or an extended leader) is measured from the anchor to the
+ * pill's NEAREST EDGE, not to its centre — otherwise a long term would sit
+ * closer than a short one in the same direction.
+ */
+function pillRect(anchor: { x: number; y: number }, d: { x: number; y: number },
+                  len: number, w: number, h: number): Rect {
+  const halfW = w / 2;
+  const halfH = h / 2;
+  const reach = len + Math.abs(d.x) * halfW + Math.abs(d.y) * halfH;
+  return { x: anchor.x + d.x * reach - halfW, y: anchor.y + d.y * reach - halfH, w, h };
+}
+
+/**
+ * How much ART a candidate pill would cover — the (iii) term.
+ *
+ * DELIBERATELY A PROXY, AND SAID SO. The brief asks to "sample plate
+ * alpha/darkness under the pill rect". This runtime cannot: the art is an
+ * `<Image>` handed to react-native-svg, there is no pixel read at layout
+ * time, and CLAUDE.md forbids a layout that could differ between the CI tree
+ * and the device. A real ink term needs a coarse darkness grid computed at
+ * INGEST and carried with the asset — and the same brief freezes the label-set
+ * schema, so there is nowhere to put one yet.
+ *
+ * So the cost uses two things already known, both exact and both deterministic:
+ *   - the fraction of the pill that lands on the DRAWN ART rect at all
+ *     (outside the letterboxed art there is nothing to cover);
+ *   - whether it would sit on another label's anchor dot, which marks a
+ *     structure and is therefore ink that matters.
+ * The second is an integer penalty and dominates, so a pill never lands on a
+ * neighbouring dot to save a little art overlap.
+ */
+function inkCost(r: Rect, art: Rect, dots: readonly { x: number; y: number }[]): number {
+  const covered = intersectArea(r, art) / (r.w * r.h);
+  let onDots = 0;
+  for (const p of dots) {
+    if (p.x >= r.x - 2 && p.x <= r.x + r.w + 2 && p.y >= r.y - 2 && p.y <= r.y + r.h + 2) onDots++;
+  }
+  return onDots * 10 + covered;
+}
+
+/**
+ * The labels drawn at one board width, as reveal STEPS.
+ *
+ * At the phone frame a group of more than five is split into successive steps
+ * of five in group-list order; wider frames return the whole group as one
+ * step. Splitting is a LAYOUT decision, not a content one — the same label set
+ * pages differently on a phone and a tablet, and neither is a different figure.
+ */
+export function pagesFor(labels: readonly LabelRecord[], W: number): LabelRecord[][] {
+  if (W >= PHONE_MAX_W || labels.length <= MAX_LABELS_PHONE) return [[...labels]];
+  const out: LabelRecord[][] = [];
+  for (let i = 0; i < labels.length; i += MAX_LABELS_PHONE) {
+    out.push(labels.slice(i, i + MAX_LABELS_PHONE));
+  }
+  return out;
+}
+
+/**
+ * Place the ACTIVE GROUP's labels beside the structures they name.
+ *
+ * For each label, in group order:
+ *   1. take the outward vector from the art's centre through the anchor;
+ *   2. try the eight compass directions, nearest that vector first;
+ *   3. keep the candidates that stay inside the frame and clear every pill
+ *      already placed, and take the one covering least art;
+ *   4. if none fit, extend the leader in LEADER_STEP points up to LEADER_MAX
+ *      and try again;
+ *   5. if it still cannot fit, place it outward at LABEL_OFFSET, mark it
+ *      `overlapped`, and warn naming the label.
+ *
+ * Order matters and is the record order, so the layout is deterministic: the
+ * same set at the same box always produces the same picture.
  */
 export function layoutFigure(
   params: LabelledFigureParams,
@@ -412,65 +530,102 @@ export function layoutFigure(
   H: number
 ): FigureLayout {
   const fit = fitRect(W, H, params.art.intrinsic_w, params.art.intrinsic_h);
-  const mid = W / 2;
   const multi = params.groups.length > 1;
-  // The group strip takes the top READOUT_BAND, and ONLY when there is a
-  // group to name. A single-group figure reserves nothing, so §1.3's worked
-  // arithmetic holds for it exactly as written.
-  const stripTop = multi ? LABEL_SIZE + READOUT_BAND : 0;
-  const drawn = activeLabels(params);
+  const group = activeLabels(params);
+  const pages = pagesFor(group, W);
+  const page = Math.min(Math.max(params.page ?? 0, 0), pages.length - 1);
+  const drawn = pages[page] ?? [];
+
+  const artRect: Rect = { x: fit.ox, y: fit.oy, w: fit.sW, h: fit.sH };
+  const centre = { x: fit.ox + fit.sW / 2, y: fit.oy + fit.sH / 2 };
+  const dots = drawn.map((l) => anchorAt(fit, l.anchor.u, l.anchor.v));
+
+  const placed: Rect[] = [];
   const out: PlacedLabel[] = [];
 
-  for (const side of ['left', 'right'] as const) {
-    const column = drawn.filter((l) => l.side === side);
-    if (column.length === 0) continue;
+  drawn.forEach((l, idx) => {
+    const text = termFor(l, params.lang);
+    const tw = textWidth(text, LABEL_SIZE);
+    const w = tw + 2 * PILL_PAD_X;
+    const h = PILL_H;
+    const anchor = dots[idx];
 
-    // `v_hint` is consumed HERE, before de-collision — never after (§1.5).
-    const order = column
-      .map((l) => ({ l, d: fit.oy + (l.v_hint ?? l.anchor.v) * fit.sH }))
-      .sort((a, b) => a.d - b.d);
-    const rows = decollide(order.map((o) => o.d), H, fit, stripTop);
+    // Outward from the plate centre. A label on a structure at the centre has
+    // no outward direction; E is the deterministic fallback.
+    let ox = anchor.x - centre.x;
+    let oy = anchor.y - centre.y;
+    const mag = Math.hypot(ox, oy);
+    if (mag < 1e-6) { ox = 1; oy = 0; } else { ox /= mag; oy /= mag; }
 
-    order.forEach(({ l }, i) => {
-      const text = termFor(l, params.lang);
-      const w = textWidth(text, LABEL_SIZE);
-      const ty = rows[i];
+    const order = [...COMPASS].sort(
+      (a, b) => (b.x * ox + b.y * oy) - (a.x * ox + a.y * oy)
+    );
 
-      let tx: number;
-      if (side === 'left') {
-        // Text is right-aligned; `tx` is its RIGHT edge.
-        tx = Math.max(fit.ox - LEADER_STUB, PAD_EDGE + w);
-        tx = Math.min(tx, mid - LEADER_STUB);
-      } else {
-        // Text is left-aligned; `tx` is its LEFT edge.
-        tx = Math.min(fit.ox + fit.sW + LEADER_STUB, W - PAD_EDGE - w);
-        tx = Math.max(tx, mid + LEADER_STUB);
+    let chosen: { rect: Rect; dir: string } | null = null;
+    for (let len = LABEL_OFFSET; len <= LEADER_MAX && !chosen; len += LEADER_STEP) {
+      let best: { rect: Rect; dir: string; cost: number } | null = null;
+      for (const d of order) {
+        const r = pillRect(anchor, d, len, w, h);
+        if (!insideFrame(r, W, H)) continue;
+        if (placed.some((p) => rectsOverlap(p, r))) continue;
+        // MEASURED, not assumed. `len` is the offset along the direction
+        // axis; the drawn leader runs to the nearest point of the rect, and
+        // on a diagonal that is a CORNER, which is further. A 38pt step was
+        // measuring 42.99pt on the frog heart. The cap is on what is drawn.
+        if (leaderLenFor(anchor, r) > LEADER_MAX) continue;
+        // Other labels' dots, not this one's.
+        const others = dots.filter((_, i) => i !== idx);
+        const cost = inkCost(r, artRect, others);
+        if (!best || cost < best.cost) best = { rect: r, dir: d.name, cost };
       }
+      if (best) chosen = { rect: best.rect, dir: best.dir };
+    }
 
-      out.push({
-        id: l.id,
-        text,
-        side,
-        anchor: anchorAt(fit, l.anchor.u, l.anchor.v),
-        via: l.leader_via ? anchorAt(fit, l.leader_via.u, l.leader_via.v) : null,
-        tx,
-        ty,
-        textAnchor: side === 'left' ? 'end' : 'start',
-        plate: {
-          x: side === 'left' ? tx - w - PLATE_PAD_X : tx - PLATE_PAD_X,
-          y: ty - TEXT_ASCENT - 1.5,
-          w: w + 2 * PLATE_PAD_X,
-          h: PLATE_H,
-        },
-        stub: {
-          x: side === 'left' ? tx + PLATE_PAD_X : tx - PLATE_PAD_X,
-          y: ty - TEXT_ASCENT + (LABEL_SIZE * 1.15) / 2,
-        },
-      });
+    let overlapped = false;
+    if (!chosen) {
+      overlapped = true;
+      const d = order[0];
+      chosen = { rect: pillRect(anchor, d, LABEL_OFFSET, w, h), dir: d.name };
+      // Loud, and it names the label: a silently overlapping pill is a wrong
+      // figure that looks like a rendered one.
+      console.warn(
+        `[labelled_figure] "${l.id}" could not be placed clear of the frame and ` +
+          `its neighbours at any of the eight directions up to ${LEADER_MAX}pt — ` +
+          `placed ${d.name} with overlap. The group is too dense for this board.`
+      );
+    }
+
+    const r = chosen.rect;
+    placed.push(r);
+
+    const stub = {
+      x: Math.min(Math.max(anchor.x, r.x), r.x + r.w),
+      y: Math.min(Math.max(anchor.y, r.y), r.y + r.h),
+    };
+    const leaderLen = Math.hypot(stub.x - anchor.x, stub.y - anchor.y);
+
+    out.push({
+      id: l.id,
+      text,
+      side: anchor.x < W / 2 ? 'left' : 'right',
+      anchor,
+      via: l.leader_via ? anchorAt(fit, l.leader_via.u, l.leader_via.v) : null,
+      tx: r.x + PILL_PAD_X,
+      ty: r.y + PILL_PAD_Y + LABEL_SIZE * 0.82,
+      textAnchor: 'start',
+      plate: { x: r.x, y: r.y, w: r.w, h: r.h },
+      stub,
+      dir: chosen.dir,
+      leaderLen,
+      overlapped,
     });
-  }
+  });
 
-  return { fit, labels: out, strip: multi ? stripFor(params, W) : null };
+  return {
+    fit,
+    labels: out,
+    strip: multi || pages.length > 1 ? stripFor(params, W, page, pages.length) : null,
+  };
 }
 
 /**
@@ -482,10 +637,14 @@ export function layoutFigure(
  * there are, and `group_index`/`group_count` are `derived` quantities, so a
  * caption cannot disagree with it either.
  */
-function stripFor(params: LabelledFigureParams, W: number) {
+function stripFor(params: LabelledFigureParams, W: number, page = 0, pageCount = 1) {
   const i = params.groups.findIndex((g) => g.id === params.active_group);
   const full = params.groups[i] ? params.groups[i].label[params.lang] : '';
-  const counter = `${i + 1}/${params.groups.length}`;
+  // A paged group says which STEP it is too, or the board would claim to be
+  // showing a group it is showing five of.
+  const counter = pageCount > 1
+    ? `${i + 1}/${params.groups.length} \u00b7 ${page + 1} of ${pageCount}`
+    : `${i + 1}/${params.groups.length}`;
   const sep = '  \u00b7  ';
 
   // The font is fixed; what varies with the box is how many characters FIT

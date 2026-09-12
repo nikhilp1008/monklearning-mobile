@@ -337,23 +337,21 @@ describe('layout', () => {
     }
   });
 
-  test('rows are at least ROW apart within a column, at every board and language', () => {
-    for (const b of BOARDS) {
-      for (const lang of ['english', 'hinglish'] as Lang[]) {
-        for (const g of base.groups) {
-          const { labels } = layoutFigure(paramsFor(lang, g.id), b.width, b.height);
-          for (const side of ['left', 'right'] as const) {
-            const ys = labels.filter((l) => l.side === side).map((l) => l.ty).sort((x, y) => x - y);
-            for (let i = 1; i < ys.length; i++) {
-              expect([b.width, lang, g.id, side, ys[i] - ys[i - 1] >= ROW - 1e-9]).toEqual(
-                [b.width, lang, g.id, side, true]
-              );
-            }
-          }
-        }
-      }
-    }
-  });
+  /*
+   * RETIRED 2026-09-11 — there are no columns.
+   *
+   * This asserted that labels stacked in a left/right column were at least
+   * ROW apart vertically, which was the de-collision rule of the column
+   * layout. Near-anchor placement puts each label beside its own anchor, so
+   * two labels are routinely at the same `ty` and that is correct, not a
+   * collision — what matters is that their PILLS do not overlap, which the
+   * next test asserts directly and which
+   * labelled-figure/__tests__/near-anchor-placement.test.ts asserts for every
+   * label of every fixture at every frame.
+   *
+   * Deleted rather than loosened: a vertical-spacing rule that no longer
+   * describes the layout would pass for reasons unrelated to what it claims.
+   */
 
   test('no two label boxes overlap — assertion 4, asserted at the schema', () => {
     for (const b of BOARDS) {

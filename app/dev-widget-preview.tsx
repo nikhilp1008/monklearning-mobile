@@ -35,6 +35,10 @@ import type { WidgetTheme } from '@/lib/widgets/types';
 import { apiFetch } from '@/lib/api';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
 import { r2FigureResolver, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
+import { createFigureResolver, type FigureRecord } from '@/lib/widgets/labelled-figure/figure-resolver';
+import { toFigureRecord, validateLabelSet } from '@/lib/widgets/labelled-figure/label-set';
+import { layoutFigure, pagesFor } from '@/lib/widgets/labelled-figure/figure-layout';
+import FROG_LABEL_FIXTURE from '@/test/fixtures/frog-circulatory-labels.preview.json';
 
 /**
  * DEV-ONLY. Not part of the live classroom flow, not linked from any nav —
@@ -145,7 +149,7 @@ type Mode =
   | 'reaction_scheme'
   | 'process_flow'
   | 'molecule_struct'
-  | 'circuit_network' | 'figures' | 'wframes';
+  | 'circuit_network' | 'figures' | 'wframes' | 'froglabels';
 
 export default function DevWidgetPreviewScreen() {
   useLandscapeLock();
@@ -223,9 +227,16 @@ export default function DevWidgetPreviewScreen() {
         >
           <Text style={[styles.pillText, mode === 'wframes' && styles.pillTextActive]}>wframes</Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('froglabels')}
+          style={[styles.pill, mode === 'froglabels' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'froglabels' && styles.pillTextActive]}>froglabels</Text>
+        </Pressable>
       </View>
       {mode === 'figures' && <FigureLab />}
       {mode === 'wframes' && <WidgetFrameLab />}
+      {mode === 'froglabels' && <FrogLabelLab />}
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
@@ -430,6 +441,142 @@ function FigureLab() {
           onGap={(reason, detail) => console.warn('[figure-lab gap]', reason, detail)}
         />
       </View>
+    </ScrollView>
+  );
+}
+
+/* --------------------------------------------------------- frog label lab */
+/*
+ * PRE-REVIEW ONLY. Draws the frog circulatory plate with its svg-authored
+ * label anchors so a human can look at the placement BEFORE anything is
+ * marked reviewed.
+ *
+ * IT DOES NOT TOUCH THE REVIEW GATE. `r2-figure-resolver` refuses a set with
+ * no `reviewed_by`, and that refusal is correct and stays exactly as it is —
+ * an unreviewed anchor is a guess about where a structure is, and a correct
+ * word on the wrong organ is the worst thing this pipeline can ship. So this
+ * lab does not publish a set, does not add reviewed_by, and does not call the
+ * production loader for labels. It builds a record directly with
+ * `toFigureRecord` from a checked-in fixture, and feeds it to BoardWidget
+ * through a throwaway resolver. Nothing here can make an unreviewed set reach
+ * a classroom: the classroom asks R2, and R2 has no set for this slug.
+ *
+ * The ART still comes through the real path — the production resolver
+ * downloads and sha-verifies it into the file:// cache — so what is on screen
+ * is the real plate at the real frame, with proposed anchors on top.
+ *
+ * FOUR TERMS ARE MISSING ON PURPOSE. The draft carries 16 terms; the authored
+ * SVG had leader endpoints for 12. lung, buccal cavity, glottis and skin have
+ * a null anchor, `validateLabelSet` refuses null anchors, and inventing
+ * coordinates for them is precisely the failure the gate exists to prevent.
+ * They need a person to place them.
+ */
+const FROG_SLUG = 'bio11-ch7-frog--circulatory-and-respiratory-systems--a';
+const FROG_CHAPTER = '5ec9dcb0-2679-5515-9422-5ca618283550';
+
+function FrogLabelLab() {
+  const theme = useDevTheme();
+  const [frame, setFrame] = useState(0);
+  const [lang, setLang] = useState<'english' | 'hinglish'>('english');
+  const [status, setStatus] = useState('fetching chapter assets\u2026');
+  const [record, setRecord] = useState<FigureRecord | null>(null);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = validateLabelSet(FROG_LABEL_FIXTURE as unknown as Record<string, unknown>);
+    if (!check.ok) {
+      setStatus(`fixture rejected: ${check.errors.join('; ')}`);
+      return;
+    }
+    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${FROG_CHAPTER}/figures`)
+      .then((res) => {
+        if (cancelled) return;
+        setChapterAssets(res.assets ?? []);
+        return r2FigureResolver.prefetch([FROG_SLUG]);
+      })
+      .then((rep) => {
+        if (cancelled || !rep) return;
+        // The plate-only record the production resolver produces (no labels,
+        // because R2 has no published set for this slug — as it should not).
+        const plate = r2FigureResolver.get(FROG_SLUG);
+        if (!plate) {
+          setStatus(`art did not resolve: ${rep.missing.join(', ') || 'unknown'}`);
+          return;
+        }
+        const art = plate.art.source as { uri?: string };
+        if (!art?.uri) {
+          setStatus('plate resolved without a file uri');
+          return;
+        }
+        setRecord(toFigureRecord(check.set, art.uri));
+        setStatus(`art from file:// cache \u00b7 ${check.set.labels.length} placed labels \u00b7 4 unplaced omitted`);
+      })
+      .catch((e) => { if (!cancelled) setStatus(`failed: ${String(e)}`); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const devResolver = useMemo(
+    () => (record ? createFigureResolver(async () => record, [record]) : r2FigureResolver),
+    [record]
+  );
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 10, alignItems: 'flex-start' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {LAB_FRAMES.map((f, i) => (
+          <Pressable key={f.label} onPress={() => setFrame(i)}
+            style={[styles.pill, i === frame && styles.pillActive]}>
+            <Text style={[styles.pillText, i === frame && styles.pillTextActive]}>{f.label}</Text>
+          </Pressable>
+        ))}
+        {(['english', 'hinglish'] as const).map((l) => (
+          <Pressable key={l} onPress={() => setLang(l)}
+            style={[styles.pill, l === lang && styles.pillActive]}>
+            <Text style={[styles.pillText, l === lang && styles.pillTextActive]}>{l}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
+      {LAB_FRAMES.map((f) => (
+        <View key={f.label} style={{ gap: 4 }}>
+          <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang}</Text>
+          {/*
+            THE PLACEMENT DECISION, INSPECTABLE. Which compass direction each
+            label took and how long its leader is — the two numbers that say
+            whether a layout is doing what it claims. Recomputed here with the
+            same function the widget uses, so the overlay cannot drift from
+            the render.
+          */}
+          {record && (
+            <Text style={{ fontSize: 9, color: INK_MUTED }}>
+              {layoutFigure(
+                { ...record, active_group: record.groups[0].id, lang, page: 0 } as never,
+                f.w, f.h
+              ).labels.map((l) =>
+                `${l.id}:${l.dir}/${l.leaderLen.toFixed(0)}pt${l.overlapped ? '!OVERLAP' : ''}`
+              ).join('  ')}
+            </Text>
+          )}
+          <View style={{ width: f.w, height: f.h, borderWidth: StyleSheet.hairlineWidth,
+                         borderColor: HAIRLINE, backgroundColor: colors.paper }}>
+            {record && (
+              <BoardWidget
+                event={{ seq: 1, tier: 'precomputed',
+                         payload: { widget: 'labelled_figure', version: 1,
+                                    params: { asset_slug: FROG_SLUG, lang } } }}
+                activeSeq={1}
+                width={f.w}
+                height={f.h}
+                theme={theme}
+                services={DEV_SERVICES}
+                figures={devResolver}
+                onGap={(reason, detail) => console.warn('[frog-label-lab gap]', reason, detail)}
+              />
+            )}
+          </View>
+        </View>
+      ))}
     </ScrollView>
   );
 }

@@ -1,0 +1,189 @@
+{
+  "asset_slug": "bio11-ch7-frog--circulatory-and-respiratory-systems--a",
+  "image_w": 1800,
+  "image_h": 1240,
+  "schema_version": 1,
+  "source": "svg-authored",
+  "labels": [
+    {
+      "id": "sinus-venosus",
+      "text": {
+        "en": "sinus venosus",
+        "hi": "sinus venosus"
+      },
+      "anchor": [
+        0.6583,
+        0.4113
+      ],
+      "side": "auto",
+      "group": "heart"
+    },
+    {
+      "id": "right-atrium",
+      "text": {
+        "en": "right atrium",
+        "hi": "right atrium"
+      },
+      "anchor": [
+        0.4528,
+        0.5323
+      ],
+      "side": "auto",
+      "group": "heart"
+    },
+    {
+      "id": "left-atrium",
+      "text": {
+        "en": "left atrium",
+        "hi": "left atrium"
+      },
+      "anchor": [
+        0.5944,
+        0.5242
+      ],
+      "side": "auto",
+      "group": "heart"
+    },
+    {
+      "id": "ventricle",
+      "text": {
+        "en": "ventricle",
+        "hi": "ventricle"
+      },
+      "anchor": [
+        0.4667,
+        0.7903
+      ],
+      "side": "auto",
+      "group": "heart"
+    },
+    {
+      "id": "conus-arteriosus",
+      "text": {
+        "en": "conus arteriosus",
+        "hi": "conus arteriosus"
+      },
+      "anchor": [
+        0.3889,
+        0.5081
+      ],
+      "side": "auto",
+      "group": "heart"
+    },
+    {
+      "id": "truncus-arteriosus",
+      "text": {
+        "en": "truncus arteriosus",
+        "hi": "truncus arteriosus"
+      },
+      "anchor": [
+        0.45,
+        0.3468
+      ],
+      "side": "auto",
+      "group": "arterial"
+    },
+    {
+      "id": "carotid-arch",
+      "text": {
+        "en": "carotid arch",
+        "hi": "carotid arch"
+      },
+      "anchor": [
+        0.3611,
+        0.0685
+      ],
+      "side": "auto",
+      "group": "arterial"
+    },
+    {
+      "id": "systemic-arch",
+      "text": {
+        "en": "systemic arch",
+        "hi": "systemic arch"
+      },
+      "anchor": [
+        0.4167,
+        0.1129
+      ],
+      "side": "auto",
+      "group": "arterial"
+    },
+    {
+      "id": "pulmocutaneous-arch",
+      "text": {
+        "en": "pulmocutaneous arch",
+        "hi": "pulmocutaneous arch"
+      },
+      "anchor": [
+        0.4639,
+        0.1371
+      ],
+      "side": "auto",
+      "group": "arterial"
+    },
+    {
+      "id": "pulmonary-vein",
+      "text": {
+        "en": "pulmonary vein",
+        "hi": "pulmonary vein"
+      },
+      "anchor": [
+        0.6528,
+        0.7137
+      ],
+      "side": "auto",
+      "group": "venous"
+    },
+    {
+      "id": "precaval-vein",
+      "text": {
+        "en": "precaval vein",
+        "hi": "precaval vein"
+      },
+      "anchor": [
+        0.6528,
+        0.3065
+      ],
+      "side": "auto",
+      "group": "venous"
+    },
+    {
+      "id": "postcaval-vein",
+      "text": {
+        "en": "postcaval vein",
+        "hi": "postcaval vein"
+      },
+      "anchor": [
+        0.6556,
+        0.5726
+      ],
+      "side": "auto",
+      "group": "venous"
+    }
+  ],
+  "_dev_note": "PREVIEW FIXTURE — deliberately carries NO reviewed_by. 4 term(s) from the draft are omitted because the svg carried no leader endpoint for them: lung, buccal cavity, glottis, skin. validateLabelSet refuses a null anchor, and inventing one is the plausible-but-wrong failure the label pipeline exists to prevent. PROPOSED GROUPING: the widget draws at most 10 labels per group and this set has 12 placed, so it must be split. Split by anatomy (chambers / arterial arches / veins), 5+4+3, which is also the order the figure is taught in. Grouping is an authoring decision and is offered for confirmation, not applied to any published set.",
+  "groups": [
+    {
+      "id": "heart",
+      "label": {
+        "english": "Heart chambers",
+        "hinglish": "Heart ke chambers"
+      }
+    },
+    {
+      "id": "arterial",
+      "label": {
+        "english": "Arterial arches",
+        "hinglish": "Arterial arches"
+      }
+    },
+    {
+      "id": "venous",
+      "label": {
+        "english": "Veins",
+        "hinglish": "Veins"
+      }
+    }
+  ]
+}
