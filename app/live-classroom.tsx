@@ -36,7 +36,6 @@ import {
   DARK_CHROME,
   DEEP_AMBER,
   EdgeTab,
-  GREEN,
   GREEN_INK,
   HAIRLINE,
   INK,
@@ -1048,6 +1047,33 @@ export default function LiveClassroomScreen() {
   // connect effect) is what avoids rebuilding the WebSocket each render.
   endClassRef.current = endClass;
 
+  /**
+   * What the room is waiting on, or nothing at all.
+   *
+   * `null` in the ordinary case — connected, Drona talking, nothing asked of
+   * the student — so the header carries the chapter and the two controls and
+   * no more. Every value here is something the student can act on.
+   */
+  const statusLine: string | null = handRaised
+    ? liveTranscript
+      ? 'Transcribing'
+      : 'Listening'
+    : answerVerdict === 'correct'
+      ? 'Correct'
+      : answerVerdict === 'partial'
+        ? 'Almost'
+        : answerVerdict
+          ? 'Not quite'
+          : isThinking
+            ? 'Thinking'
+            : paused
+              ? 'Paused'
+              : sessionPhase === 'wrapup'
+                ? 'Wrapping up'
+                : checkOptions.length > 0 || sessionPhase === 'awaiting_answer'
+                  ? 'Your turn'
+                  : null;
+
   // Suppressed while the student holds Interrupt, so bottom centre has one
   // owner — the Listening strip.
   const showJumpChip = !following && !handRaised;
@@ -1146,53 +1172,34 @@ export default function LiveClassroomScreen() {
         )}
 
         <Animated.View style={[styles.topBar, headerStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
+          {/* No dot. It bought nothing the title does not already say, and
+              the 13pt it cost is 13pt the title now spends on being readable
+              before it has to truncate. */}
           <View style={styles.topChapterChip}>
-            <View style={styles.topChapterDot} />
-            <Text style={styles.topChapterText} numberOfLines={1}>
+            <Text style={styles.topChapterText} numberOfLines={1} ellipsizeMode="tail">
               {params.subtopic || chapterTitle}
             </Text>
           </View>
-          <View style={styles.topLiveChip}>
-            <Blink
-              style={[styles.topLiveDot, connectionStatus !== 'open' && styles.topLiveDotWarn]}
-              duration={1800}
-            />
-            {/* Priority ladder mirroring web's SessionView status badge, so
-                the student always knows who the room is waiting on. */}
-            {/* NO CONNECTING RUNG. "Connecting" and "Reconnecting" are gone:
-                the entering card covers this screen for the whole of the first
-                connect, so the word was almost never seen at a moment it was
-                true, and at 10pt with .12em tracking "RECONNECTING" is 97pt of
-                a 362pt row — it shoved the chapter title into an ellipsis to
-                say something the student could not act on. The live dot beside
-                it already carries connection state: it warns when the socket
-                is not open.
+          {/* NO "LIVE", AND NO DOT.
+              Both are gone: a class the student opened and is watching does
+              not need a badge telling them it is live, and the dot beside it
+              said the same thing a second time. Between them they cost 40pt
+              of a 362pt row, which the chapter title was paying for in
+              ellipsis.
 
-                "Drona is thinking" was the other offender at 124.7pt, a
-                sentence where every other rung is a word or two. It reads
-                "Thinking" now. */}
+              The other rungs stay. "Your turn", "Listening" and "Thinking"
+              are things the student can act on, and they now appear only when
+              they are true instead of sitting inside a permanent badge — the
+              row is quiet until the room has something to say.
+
+              Connecting/Reconnecting went earlier, and with the dot gone a
+              dropped socket now has no indicator at all. Flagged: worth a
+              deliberate treatment rather than a word in this row. */}
+          {statusLine && (
             <Text style={styles.topLiveText} numberOfLines={1}>
-              {handRaised
-                ? liveTranscript
-                  ? 'Transcribing'
-                  : 'Listening'
-                : answerVerdict === 'correct'
-                  ? 'Correct'
-                  : answerVerdict === 'partial'
-                    ? 'Almost'
-                    : answerVerdict
-                      ? 'Not quite'
-                      : isThinking
-                        ? 'Thinking'
-                        : paused
-                          ? 'Paused'
-                          : sessionPhase === 'wrapup'
-                            ? 'Wrapping up'
-                            : checkOptions.length > 0 || sessionPhase === 'awaiting_answer'
-                              ? 'Your turn'
-                              : 'Live'}
+              {statusLine}
             </Text>
-          </View>
+          )}
           <View style={styles.topSpacer} />
           {/* Icon only in portrait, which is how the reference draws it. The
               label is 40pt of a 362pt row and portrait has none to spare —
@@ -1965,39 +1972,23 @@ function createStyles(
       right: isLandscape ? 26 : 18,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      // The row is three things with two joints: title | flag | End. 14 is
+      // what keeps the flag off the title's last letter and off the pill,
+      // and there is room for it now that the dot and the badge are gone.
+      gap: 14,
     },
+    // Just the title now. It keeps `flexShrink` so a long chapter gives way
+    // to the controls rather than pushing them off the row, and `minWidth: 0`
+    // is what lets a flex child actually shrink below its content width --
+    // without it the Text refuses to ellipsize and overflows instead.
     topChapterChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 7,
       flexShrink: 1,
-    },
-    topChapterDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: AMBER,
+      minWidth: 0,
     },
     topChapterText: {
       fontFamily: 'Onest_700Bold',
       fontSize: 13,
       color: INK,
-    },
-    topLiveChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      flexShrink: 0,
-    },
-    topLiveDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: GREEN,
-    },
-    topLiveDotWarn: {
-      backgroundColor: AMBER,
     },
     topLiveText: {
       fontFamily: 'Onest_800ExtraBold',
@@ -2014,6 +2005,10 @@ function createStyles(
       alignItems: 'center',
       gap: 6,
       flexShrink: 0,
+      // A 12pt glyph is a small target; the padding makes it a real one
+      // without moving anything, because the row has the width to spare.
+      paddingHorizontal: 4,
+      paddingVertical: 6,
     },
     topReportText: {
       fontFamily: 'Onest_700Bold',
