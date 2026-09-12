@@ -117,6 +117,15 @@ export class FollowUpAudio {
       done: () => {
         subscription.remove();
         try {
+          // PAUSE before release. `remove()` alone does not reliably silence a
+          // clip that is mid-sentence, which is why pressing Done left the
+          // voice talking over an empty screen — the per-clip rewrite dropped
+          // the explicit pause the single-player version had.
+          player.pause();
+        } catch {
+          // Already stopped.
+        }
+        try {
           player.remove();
         } catch {
           // Already released.

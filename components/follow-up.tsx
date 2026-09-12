@@ -77,7 +77,7 @@ type FollowUpProps = {
   onClose: () => void;
 };
 
-export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
+export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpProps) {
   const { height } = useWindowDimensions();
   const styles = useMemo(() => createStyles(height), [height]);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -113,6 +113,21 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
     const id = setInterval(() => setSeconds((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, [phase]);
+
+  /**
+   * Closing stops the voice, here rather than only on unmount.
+   *
+   * The cleanup effect does stop it, but leaning on unmount ordering to
+   * silence audio is how a teacher ends up still talking over a screen the
+   * student has already dismissed. The recording is stopped too: Done can be
+   * pressed while it is still listening.
+   */
+  const onClose = useCallback(() => {
+    abortRef.current?.abort();
+    audioRef.current?.stop();
+    recorder.stop().catch(() => {});
+    dismiss();
+  }, [dismiss, recorder]);
 
   const listen = useCallback(async () => {
     setError(null);
