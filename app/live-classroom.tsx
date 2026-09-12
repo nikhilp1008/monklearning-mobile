@@ -111,6 +111,10 @@ const RAIL_HALF = 108;
 /** Far enough right to clear the rail's own width plus its 12pt inset. */
 const RAIL_TUCK_X = 92;
 
+/** How long a chosen answer stays lit before the card goes. Long enough to
+ *  read as confirmation, short enough not to hold up the lesson. */
+const ANSWER_HOLD_MS = 850;
+
 /**
  * The portrait dock's height, from its parts, so anything that has to sit
  * above it is derived rather than guessed.
@@ -276,6 +280,23 @@ export default function LiveClassroomScreen() {
    * voicing a question.
    */
   const [questionText, setQuestionText] = useState<string | null>(null);
+  /**
+   * The option the student just pressed, held so the card can acknowledge it.
+   *
+   * Tapping used to clear the question in the same tick, so the card began
+   * leaving on the same frame as the press — the student got no confirmation
+   * that the tap had landed on the answer they meant. The chip now fills for
+   * ANSWER_HOLD_MS and the card leaves after that. The answer itself goes to
+   * the server immediately; only the dismissal waits.
+   */
+  const [chosenOption, setChosenOption] = useState<string | null>(null);
+  const answerHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (answerHoldRef.current) clearTimeout(answerHoldRef.current);
+    },
+    []
+  );
 
   const clientRef = useRef<DronaVoiceClient | null>(null);
   /** Lets the socket's session-ended callback reach the latest endClass
@@ -1227,18 +1248,36 @@ export default function LiveClassroomScreen() {
               {spokenMathToNotation(questionText)}
             </Text>
             <View style={styles.askRow}>
-              {checkOptions.map((option) => (
-                <Pressable
-                  key={option}
-                  style={styles.askChip}
-                  onPress={() => {
-                    clientRef.current?.sendAnswer(option);
-                    setCheckOptions([]);
-                    setQuestionText(null);
-                  }}>
-                  <Text style={styles.askChipText}>{option}</Text>
-                </Pressable>
-              ))}
+              {checkOptions.map((option) => {
+                const chosen = chosenOption === option;
+                const passedOver = chosenOption !== null && !chosen;
+                return (
+                  <Pressable
+                    key={option}
+                    // Once one is pressed the rest stop taking taps, so a
+                    // second answer cannot be sent during the hold.
+                    disabled={chosenOption !== null}
+                    style={[
+                      styles.askChip,
+                      chosen && styles.askChipChosen,
+                      passedOver && styles.askChipPassedOver,
+                    ]}
+                    onPress={() => {
+                      if (chosenOption !== null) return;
+                      setChosenOption(option);
+                      clientRef.current?.sendAnswer(option);
+                      answerHoldRef.current = setTimeout(() => {
+                        setCheckOptions([]);
+                        setQuestionText(null);
+                        setChosenOption(null);
+                      }, ANSWER_HOLD_MS);
+                    }}>
+                    <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
+                      {option}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         </Animated.View>
@@ -2338,18 +2377,33 @@ function createStyles(
       flexWrap: 'wrap',
       gap: scale(8),
     },
+    /**
+     * A full-strength ink ring at 1.5pt with a shadow under each chip, inside
+     * a card that already has one — that is where the heaviness came from.
+     * One point at 20% is the same affordance the practice option rows use
+     * (1.4 at 12%, a little softer because they are much bigger), and the
+     * card's own shadow does the lifting for all of them.
+     */
     askChip: {
       backgroundColor: '#fff',
-      borderWidth: scale(1.5),
-      borderColor: colors.ink,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.20)',
       borderRadius: scale(99),
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(18),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(3) },
-      shadowOpacity: 0.18,
-      shadowRadius: scale(6),
-      elevation: 4,
+      paddingVertical: verticalScale(9),
+      paddingHorizontal: scale(16),
+    },
+    // The press, acknowledged: the chip fills with ink for the hold.
+    askChipChosen: {
+      backgroundColor: colors.ink,
+      borderColor: colors.ink,
+    },
+    // The ones not taken step back rather than disappear, so the student can
+    // still see what they chose between.
+    askChipPassedOver: {
+      opacity: 0.4,
+    },
+    askChipTextChosen: {
+      color: colors.paper,
     },
     askChipText: {
       fontFamily: 'Onest_700Bold',
