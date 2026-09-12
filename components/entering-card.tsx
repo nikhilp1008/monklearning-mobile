@@ -109,27 +109,29 @@ function ShimmerChar({
   return <Animated.Text style={[style, animated]}>{char}</Animated.Text>;
 }
 
-/** Rises as it arrives, per word, on the handoff's stagger. */
-function FadeUp({
-  delay,
+/**
+ * Arrives, without moving.
+ *
+ * The handoff rises each word in by 8px on a stagger, and on the device that
+ * read as the screen assembling itself rather than as a screen loading: three
+ * separate movements before anything had loaded, competing with the sweep that
+ * is the actual loading signal. Opacity only now, and everything on one
+ * timing, so the type simply appears and the sweep is the only thing moving.
+ */
+function FadeIn({
+  delay = 0,
   children,
   style,
 }: {
-  delay: number;
+  delay?: number;
   children: React.ReactNode;
   style?: object;
 }) {
   const p = useSharedValue(0);
   useEffect(() => {
-    p.value = withDelay(
-      delay,
-      withTiming(1, { duration: 700, easing: Easing.bezier(0.2, 0.7, 0.2, 1) })
-    );
+    p.value = withDelay(delay, withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }));
   }, [p, delay]);
-  const animated = useAnimatedStyle(() => ({
-    opacity: p.value,
-    transform: [{ translateY: interpolate(p.value, [0, 1], [8, 0]) }],
-  }));
+  const animated = useAnimatedStyle(() => ({ opacity: p.value }));
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 }
 
@@ -181,15 +183,16 @@ export function EnteringCardScreen({
     const parts = HEADING.split(' ');
     const chars = HEADING.replace(/ /g, '').length;
     let seen = 0;
-    return parts.map((word, i) => {
-      const entries = word.split('').map((char) => {
+    // Still split by word, but only for the gap between them now -- the
+    // per-word stagger is gone with the movement. The characters inside carry
+    // their position across the whole heading, which is what the sweep reads.
+    return parts.map((word) =>
+      word.split('').map((char) => {
         const at = (seen + 0.5) / chars;
         seen += 1;
         return { char, at };
-      });
-      // .1s, .22s, .34s — the handoff's own three delays.
-      return { entries, delay: 100 + i * 120 };
-    });
+      })
+    );
   }, []);
 
   return (
@@ -213,14 +216,13 @@ export function EnteringCardScreen({
             </Svg>
           </Pressable>
         )}
-        <View style={styles.middle}>
+        {/* One fade for the whole block, so the heading and the chapter arrive
+            together and nothing shifts. */}
+        <FadeIn style={styles.middle}>
           <View style={styles.headingRow}>
             {words.map((word, i) => (
-              <FadeUp
-                key={i}
-                delay={word.delay}
-                style={[styles.word, i < words.length - 1 && styles.wordGap]}>
-                {word.entries.map((entry, j) => (
+              <View key={i} style={[styles.word, i < words.length - 1 && styles.wordGap]}>
+                {word.map((entry, j) => (
                   <ShimmerChar
                     key={j}
                     char={entry.char}
@@ -229,25 +231,23 @@ export function EnteringCardScreen({
                     style={styles.heading}
                   />
                 ))}
-              </FadeUp>
+              </View>
             ))}
           </View>
-          <FadeUp delay={600}>
-            <Text style={styles.chapter} numberOfLines={2}>
-              {chapterTitle}
-            </Text>
-          </FadeUp>
-        </View>
+          <Text style={styles.chapter} numberOfLines={2}>
+            {chapterTitle}
+          </Text>
+        </FadeIn>
 
         {/* The one line on this screen that changes. Announced politely for the
             same reason snap-loading announces its stages: without it a screen
             reader hears the heading once and then silence for the whole wait. */}
-        <FadeUp delay={1000} style={styles.stageRow}>
+        <FadeIn delay={420} style={styles.stageRow}>
           <View style={styles.stageInner} accessibilityLiveRegion="polite" accessibilityRole="text">
             <Dots />
             <StageLine key={statusText} style={styles.stage} text={statusText} />
           </View>
-        </FadeUp>
+        </FadeIn>
       </SafeAreaView>
     </View>
   );
@@ -259,10 +259,10 @@ function StageLine({ style, text }: { style: object; text: string }) {
   useEffect(() => {
     p.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
   }, [p]);
-  const animated = useAnimatedStyle(() => ({
-    opacity: p.value,
-    transform: [{ translateY: interpolate(p.value, [0, 1], [6, 0]) }],
-  }));
+  // Crossfades in place. It used to rise 6px as it replaced the line before
+  // it, which is a second thing moving on a screen whose only movement should
+  // be the sweep.
+  const animated = useAnimatedStyle(() => ({ opacity: p.value }));
   return (
     <Animated.View style={animated}>
       <Text style={style} numberOfLines={1}>
