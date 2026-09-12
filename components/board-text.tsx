@@ -226,14 +226,31 @@ const styles = StyleSheet.create({
   },
 
   /**
-   * The formula: centred, with a full line of air above it and nothing behind
-   * it. A formula is a result rather than a line of prose, and left-aligning
-   * it buried it in the paragraph flow — centring and space are what a
-   * displayed equation gets on a page, and they do the job without a fill.
+   * The formula, boxed on a hairline. Centred, a full line of air above it,
+   * and still no fill.
+   *
+   * Centring and space alone were not enough — a bold centred line is still a
+   * line, and it sank back into the paragraph flow. A box is the textbook
+   * convention for an equation worth keeping, and it is also what a student
+   * does to one in a notebook, which is the gesture this board is made of.
+   *
+   * The border is the heading's own #9A6A12 at .34 rather than a neutral
+   * grey, so the two structural elements — the section title and the equation
+   * — are the same colour family and the board still carries exactly one hue.
+   *
+   * NOT two horizontal rules instead of a box: the background is already
+   * ruled every 26pt, so a rule above and below reads as the decoration
+   * having darkened rather than as a frame round the formula. A closed box
+   * cannot be confused with the paper.
    */
   boardFormulaRow: {
     marginTop: 26,
     alignSelf: 'stretch',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(154,106,18,.34)',
+    borderRadius: 10,
   },
   boardEquation: {
     fontFamily: 'Onest_700Bold',
