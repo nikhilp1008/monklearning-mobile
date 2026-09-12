@@ -28,6 +28,7 @@ import Animated, {
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 import {
   AMBER,
@@ -1123,6 +1124,38 @@ export default function LiveClassroomScreen() {
     clientRef.current?.sendPttStop();
   }, []);
 
+  /**
+   * THE MIC'S OWN GESTURE, with the taps that go with it.
+   *
+   * Wrappers rather than haptics inside `raiseHand`/`doneListening`, because
+   * those two are called from places that are not a gesture at all — the 30s
+   * hold ceiling, and the socket teardown when a student leaves mid-hold. A
+   * buzz as the class unmounts under them would be a lie about what they did.
+   * Only a real press and a real release are felt.
+   *
+   * The tap fires AFTER `raiseHand` has run, never before. `raiseHand` is
+   * deliberately synchronous so the server's PTT window opens ahead of the
+   * first audio frame, and nothing decorative is allowed in front of it.
+   *
+   * Which tap is decided by what actually happened rather than by what we
+   * expected: `handRaisedRef` is set synchronously inside `raiseHand`, so
+   * reading it either side says whether the floor really opened or whether the
+   * press was turned away for want of a microphone.
+   */
+  const onMicPressIn = useCallback(() => {
+    const held = handRaisedRef.current;
+    raiseHand();
+    if (held) return;
+    if (handRaisedRef.current) hapticFloorTaken();
+    else hapticRefused();
+  }, [raiseHand]);
+
+  const onMicPressOut = useCallback(() => {
+    const held = handRaisedRef.current;
+    doneListening();
+    if (held) hapticFloorReleased();
+  }, [doneListening]);
+
   // `raiseHand`'s ceiling timer needs to call the *current* `doneListening`
   // without taking it as a dependency and re-arming on every render.
   const doneListeningRef = useRef<() => void>(doneListening);
@@ -1528,8 +1561,8 @@ export default function LiveClassroomScreen() {
                 than doing nothing. */}
             <Pressable
               style={[styles.railMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
-              onPressIn={raiseHand}
-              onPressOut={doneListening}
+              onPressIn={onMicPressIn}
+              onPressOut={onMicPressOut}
               accessibilityLabel="Hold to speak">
               {handRaised ? (
                 <LevelBars color={PAPER} heights={[9, 17, 12]} />
@@ -1588,8 +1621,8 @@ export default function LiveClassroomScreen() {
                   nothing to be wide for. */}
               <Pressable
                 style={[styles.dockMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
-                onPressIn={raiseHand}
-                onPressOut={doneListening}
+                onPressIn={onMicPressIn}
+                onPressOut={onMicPressOut}
                 accessibilityLabel="Hold to speak">
                 {handRaised ? (
                   <LevelBars color={PAPER} heights={[9, 17, 12]} />
