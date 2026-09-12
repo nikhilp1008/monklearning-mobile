@@ -1,11 +1,17 @@
-import { RecordingPresets, createAudioPlayer, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { SolutionSteps } from '@/components/solution-steps';
-import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUp } from '@/lib/doubt-followup';
+import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUpStreaming } from '@/lib/doubt-followup';
+import { FollowUpAudio } from '@/lib/followup-audio';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -31,6 +37,38 @@ const LISTENING = '#C53A2B';
 /** Past this, an answer wants the rail and the room rather than a bar. */
 const SHORT_ANSWER_CHARS = 240;
 
+/**
+ * The iOS audio session, which this screen has to move between two categories.
+ *
+ * expo-audio's recorder cannot start unless the session allows recording, and
+ * nothing else in the app ever puts it there: the classroom records through
+ * `@siteed/audio-studio`, which asks for its own category, and deliberately
+ * leaves expo-audio's mode on playback so Drona is not routed to the earpiece
+ * (see the comment in live-classroom.tsx). Anywhere else the session is on
+ * iOS's default `soloAmbient`. Both refuse to record, which is why
+ * `prepareToRecordAsync` threw every single time and the bar said "Could not
+ * start listening" even with a microphone that works in class.
+ *
+ * The two modes cannot be collapsed into one. `allowsRecording: true` puts iOS
+ * into `.playAndRecord`, and expo-audio has no `defaultToSpeaker`, so the
+ * spoken answer would come back through the EARPIECE — audible only against
+ * your ear, which reads as broken. So: record in one mode, speak in the other.
+ */
+const RECORDING_SESSION = {
+  allowsRecording: true,
+  playsInSilentMode: true,
+  shouldPlayInBackground: false,
+  interruptionMode: 'mixWithOthers',
+} as const;
+
+/** What the rest of the app expects to find: playback, through the speaker. */
+const PLAYBACK_SESSION = {
+  allowsRecording: false,
+  playsInSilentMode: true,
+  shouldPlayInBackground: false,
+  interruptionMode: 'mixWithOthers',
+} as const;
+
 type Phase = 'listening' | 'thinking' | 'brief' | 'detailed' | 'failed';
 
 type FollowUpProps = {
@@ -45,20 +83,26 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const [phase, setPhase] = useState<Phase>('listening');
-  const [heard, setHeard] = useState<string | null>(null);
   const [steps, setSteps] = useState<FollowUpStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const audioRef = useRef<FollowUpAudio | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
   const startedRef = useRef(false);
+  /** Whether this answer has already begun speaking. */
+  const spokeRef = useRef(false);
 
   useEffect(
     () => () => {
       abortRef.current?.abort();
-      playerRef.current?.remove();
+      audioRef.current?.stop();
       recorder.stop().catch(() => {});
+      // Closing mid-listen must not leave the session recording-shaped. The
+      // classroom sets playback once on entry and never again, so a session
+      // left in `.playAndRecord` here would route Drona to the earpiece for
+      // the rest of the app's life.
+      setAudioModeAsync(PLAYBACK_SESSION).catch(() => {});
     },
     [recorder]
   );
@@ -72,7 +116,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
 
   const listen = useCallback(async () => {
     setError(null);
-    setHeard(null);
     setSteps([]);
     setSeconds(0);
     setPhase('listening');
@@ -83,11 +126,18 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         setPhase('failed');
         return;
       }
+      // Before prepareToRecordAsync, not after: on iOS the recorder cannot be
+      // prepared at all while the session is on a non-recording category, and
+      // it is on one every time this screen opens.
+      await setAudioModeAsync(RECORDING_SESSION);
       await recorder.prepareToRecordAsync();
       recorder.record();
     } catch {
       setError('Could not start listening. Try again.');
       setPhase('failed');
+      // Do not leave the session in .playAndRecord after a failed start — the
+      // earpiece routing would outlive this screen and quieten Drona.
+      setAudioModeAsync(PLAYBACK_SESSION).catch(() => {});
     }
   }, [recorder]);
 
@@ -106,6 +156,11 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
     } catch {
       // An unstoppable recorder still has whatever it captured.
     }
+    // Back to playback the moment the microphone is done, and before the
+    // answer is spoken: `.playAndRecord` would send Drona's voice to the
+    // earpiece, which sounds like the feature failed rather than like a
+    // routing choice.
+    setAudioModeAsync(PLAYBACK_SESSION).catch(() => {});
     if (!uri) {
       setError('Nothing was recorded. Try again.');
       setPhase('failed');
@@ -116,6 +171,7 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
     const controller = new AbortController();
     abortRef.current = controller;
     const arrived: FollowUpStep[] = [];
+    spokeRef.current = false;
     let spoken = '';
     let asked = '';
 
@@ -125,9 +181,11 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         uri,
         turnsRef.current,
         {
+          // Kept for the conversation history the next turn is sent with,
+          // but no longer shown: the student knows what they just asked, and
+          // printing it back delays the only new thing on screen.
           onTranscript: (text) => {
             asked = text;
-            setHeard(text);
           },
           onStep: (step) => {
             arrived.push(step);
@@ -135,6 +193,17 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
           },
           onSpoken: (text) => {
             spoken = text;
+            // Once per answer. Two `spoken` frames — a server that emits it
+            // early AND at the end, a reader that re-parses a frame — would
+            // build two players and put two voices in the air, which is the
+            // failure this whole path keeps coming back to.
+            if (spokeRef.current) return;
+            spokeRef.current = true;
+            // Immediately, not after the await below. The server now writes
+            // `spoken` as the FIRST field of the answer, so it lands before
+            // the steps do — waiting for the stream to finish threw that head
+            // start away and put the voice back behind the board.
+            void play(text, controller);
           },
         },
         controller.signal
@@ -150,7 +219,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         { role: 'user', content: asked },
         { role: 'assistant', content: body },
       ];
-      if (spoken) void play(spoken, controller);
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'That did not go through.');
@@ -160,14 +228,26 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
 
   async function play(spoken: string, controller: AbortController) {
     try {
-      const uri = await speakFollowUp(doubtId, spoken);
-      if (controller.signal.aborted || !uri) return;
-      playerRef.current?.remove();
-      const player = createAudioPlayer({ uri });
-      playerRef.current = player;
-      player.play();
+      audioRef.current?.stop();
+      const audio = new FollowUpAudio(doubtId);
+      audioRef.current = audio;
+      // One WHOLE SENTENCE per clip now, not a slice of audio. The earlier
+      // attempts cut every 0.8s by byte count, which lands mid-word, and
+      // sequential file playback has a load-and-start gap at every join — so
+      // the voice broke twice a second however cleanly it was sequenced. Split
+      // where a speaker pauses and the gap falls on a break that was there
+      // anyway. See lib/followup-audio.ts and followup_voice._spoken_sentences.
+      await speakFollowUpStreaming(
+        doubtId,
+        spoken,
+        (wav) => {
+          if (controller.signal.aborted) return;
+          audio.enqueue(wav);
+        },
+        controller.signal
+      );
     } catch {
-      // The words are on screen. Speech that will not synthesize is a missing
+      // The words are on screen. Speech that will not synthesise is a missing
       // extra, not a failed answer.
     }
   }
@@ -192,7 +272,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
                 <Text style={styles.close}>Done</Text>
               </Pressable>
             </View>
-            {!!heard && <Text style={styles.heardInSheet}>“{heard}”</Text>}
             <ScrollView style={styles.flex} contentContainerStyle={styles.sheetBody}>
               <SolutionSteps steps={rail} size="compact" />
             </ScrollView>
@@ -229,9 +308,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
           <>
             <ActivityIndicator color={INK_50} />
             <View style={styles.barBody}>
-              <Text style={styles.barTitle} numberOfLines={1}>
-                {heard ? `“${heard}”` : 'Hearing you out…'}
-              </Text>
               <Text style={styles.barHint}>Working it out…</Text>
             </View>
           </>
@@ -240,11 +316,6 @@ export function FollowUp({ doubtId, questionText, onClose }: FollowUpProps) {
         {(phase === 'brief' || phase === 'failed') && (
           <>
             <View style={styles.barBody}>
-              {!!heard && (
-                <Text style={styles.barHint} numberOfLines={1}>
-                  “{heard}”
-                </Text>
-              )}
               <Text style={styles.answer}>
                 {error ?? steps.map((s) => s.text).join(' ')}
               </Text>
@@ -352,16 +423,6 @@ function createStyles(height: number) {
     },
     title: { fontFamily: 'Onest_700Bold', fontSize: 19, color: INK },
     close: { fontFamily: 'Onest_600SemiBold', fontSize: 15, color: INK_50 },
-    heardInSheet: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: 15,
-      lineHeight: 22,
-      color: INK,
-      paddingTop: 6,
-      paddingBottom: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: HAIR,
-    },
     sheetBody: { paddingVertical: 16 },
     primary: {
       height: 50,

@@ -80,6 +80,12 @@ export interface DoubtDetail extends Omit<DoubtSummary, 'scrap'> {
    * carried there instead.
    */
   figure_urls?: string[] | null;
+  /**
+   * The question as it was photographed, cut from the page. Shown in place
+   * of the transcription. Null when no span could be cut — a two-column
+   * page, no OCR geometry, or a doubt saved before crops existed.
+   */
+  question_image_url?: string | null;
   reported: boolean;
 }
 
@@ -144,6 +150,12 @@ export interface SnappedQuestion {
   failure_reason: string | null;
   /** The figures this question was printed with, as short-lived signed URLs. */
   figure_urls?: string[] | null;
+  /**
+   * The question as it was photographed, cut from the page. Shown in place
+   * of the transcription. Null when no span could be cut — a two-column
+   * page, no OCR geometry, or a doubt saved before crops existed.
+   */
+  question_image_url?: string | null;
 }
 
 export interface SnapResponse {

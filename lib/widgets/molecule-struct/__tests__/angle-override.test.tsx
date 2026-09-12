@@ -44,7 +44,11 @@ const outDir = resolve(__dirname, '../../../../build/trees');
 const SPEC_SMALL = { width: 343, height: 236 };
 const REAL_SMALL = { width: 495, height: 270 };
 const BOARD = { width: 900, height: 430 };
-const BOARDS = [SPEC_SMALL, REAL_SMALL, BOARD];
+/** The two frames that actually ship, measured on device 2026-09-12: the
+ *  student now chooses orientation, so both are real configurations. */
+const LANDSCAPE_SHIP = { width: 702, height: 289 };
+const PORTRAIT_SHIP = { width: 340, height: 340 };
+const BOARDS = [SPEC_SMALL, REAL_SMALL, BOARD, LANDSCAPE_SHIP, PORTRAIT_SHIP];
 
 function species(patch: Partial<MoleculeStructParams> & {
   centre: string; ligands: string[]; lone_pairs: number;
@@ -490,6 +494,7 @@ describe('validate() and the drawn-geometry veto', () => {
       ['AsH3', 91.8, axeFor(3, 1)!.bondAngle],   // 107   -> 15.2
       ['SF4', 101.6, axeFor(4, 1)!.bondAngle],   // 117   -> 15.4
       ['H2S', 92.1, axeFor(2, 2)!.bondAngle],    // 104.5 -> 12.4
+
     ] as const;
     for (const [name, measured, table] of widest) {
       const gap = Math.abs(measured - table);

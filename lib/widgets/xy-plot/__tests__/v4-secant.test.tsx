@@ -22,7 +22,11 @@ const BOARDS = [
   { name: '', width: 900, height: 430 },
   { name: '.real-small', width: 495, height: 270 },
   { name: '.spec-small', width: 343, height: 236 },
-] as const;
+
+  // The two frames that actually ship, measured on device 2026-09-12:
+  // the student now chooses orientation, so both are real.
+  { name: '.landscape', width: 702, height: 289 },
+  { name: '.portrait', width: 340, height: 340 },] as const;
 
 function params(over: Partial<XyPlotParams>): XyPlotParams {
   const r = xyPlot.validate({ ...xyPlot.defaults, ...over });

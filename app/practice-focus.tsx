@@ -132,15 +132,18 @@ export default function PracticeFocusScreen() {
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
-          {/* Says "coming soon", not the bundle's "questions follow whatever
-              you pick": /practice/next accepts no chapter parameter yet
-              (confirmed against the live OpenAPI schema), so a picked chapter
-              cannot change which question is served. Claiming otherwise is
-              what made this read as broken on a real device — the student
-              picks Rotational Motion, gets an unrelated question, and
-              concludes the feature is bust. Honest copy until the backend
-              lands it, and the same reason multi-select is on hold. */}
-          <Text style={styles.subtitle}>{subjectLabel} · chapter focus is coming soon</Text>
+          {/* This said "coming soon" while /practice/next accepted no chapter
+              parameter — a picked chapter could not change which question was
+              served, and claiming otherwise is what made the feature read as
+              broken: pick Rotational Motion, get an unrelated question,
+              conclude it is bust. The endpoint takes `chapter_id` now and
+              `app/practice.tsx` sends it, so the promise is real and the copy
+              can make it. Still ONE chapter: the parameter is singular, so
+              multi-select remains on hold rather than silently honouring the
+              first pick. */}
+          <Text style={styles.subtitle}>
+            {subjectLabel} · pick a chapter and every question comes from it
+          </Text>
 
           <View style={styles.modeList}>
             {MODES.map((mode) => {

@@ -27,11 +27,20 @@ export interface NextQuestion {
   concept: string | null;
   difficulty: string | null;
   diagram: DiagramFigure[] | null;
+  /** The day's tally, so the quota line needs no second call. Counted BEFORE
+   *  this question is answered. */
+  questions_used_today?: number;
+  daily_limit?: number;
 }
 
 export interface PoolExhausted {
   exhausted: true;
   message: string;
+  /** `daily_limit` when the 150 are spent, `pool_empty` when this filter has
+   *  nothing left. They need different words and different advice. */
+  reason?: 'daily_limit' | 'pool_empty';
+  questions_used_today?: number;
+  daily_limit?: number;
 }
 
 /**
@@ -121,6 +130,10 @@ export function getNextQuestion(params: {
   exam?: 'jee' | 'neet' | 'both';
   class_level?: '11' | '12' | 'both';
   subject?: string;
+  /** Focus mode. Restricts the pool to one chapter — and, because a chapter
+   *  is tens of rows where a subject is hundreds, it is also the fastest this
+   *  endpoint gets. */
+  chapter_id?: string;
 }): Promise<NextQuestion | PoolExhausted> {
   return apiFetch('/practice/next', {
     method: 'POST',
@@ -141,6 +154,10 @@ export function submitAnswer(params: {
    * by the API until it reads this field; safe to send meanwhile.
    */
   elapsed_ms?: number;
+  /** True when the student pressed "I don't know" rather than answering. Still
+   *  graded incorrect and still spaced the same way, but excluded from the
+   *  pace median — giving up is quick and solving is slow. */
+  gave_up?: boolean;
 }): Promise<AnswerResult> {
   return apiFetch('/practice/answer', {
     method: 'POST',
@@ -169,21 +186,32 @@ export function getPracticeStats(): Promise<PracticeStats> {
  * question held across a restart would have a serve timestamp from another
  * sitting — see the note on timing in `submitAnswer`.
  */
-let queued: { question: NextQuestion; subject: string } | null = null;
+let queued: { question: NextQuestion; scope: string } | null = null;
 
-export function takeQueuedQuestion(subject: string): NextQuestion | null {
-  if (!queued || queued.subject !== subject) return null;
+/**
+ * The scope a queued question was fetched under — subject AND chapter.
+ *
+ * Keyed on subject alone, a question queued under "All chapters" would be
+ * handed out after the student pinned a chapter in Focus mode, which is
+ * exactly the promise Focus mode makes and the one thing it must not break.
+ */
+export function questionScopeKey(subject: string, chapterId?: string | null): string {
+  return `${subject}|${chapterId ?? ''}`;
+}
+
+export function takeQueuedQuestion(scope: string): NextQuestion | null {
+  if (!queued || queued.scope !== scope) return null;
   const { question } = queued;
   queued = null;
   return question;
 }
 
-export function holdQueuedQuestion(question: NextQuestion, subject: string) {
-  queued = { question, subject };
+export function holdQueuedQuestion(question: NextQuestion, scope: string) {
+  queued = { question, scope };
 }
 
-export function hasQueuedQuestion(subject: string): boolean {
-  return queued?.subject === subject;
+export function hasQueuedQuestion(scope: string): boolean {
+  return queued?.scope === scope;
 }
 
 /** Dropped when the answer to "which question comes next" changes. */

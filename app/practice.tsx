@@ -30,6 +30,7 @@ import {
   getPracticeStats,
   hasQueuedQuestion,
   holdQueuedQuestion,
+  questionScopeKey,
   parseAnswerSolution,
   solutionFinalAnswer,
   submitAnswer,
@@ -54,6 +55,10 @@ const SUBJECT_LABEL: Record<string, string> = {
 };
 
 /** UI label -> the subject string the API's questions table actually uses. */
+/** How many give-ups in a row, in one chapter, before the screen suggests a
+ *  lesson. Five is a run; two is a bad pair of questions. */
+const STUCK_RUN = 5;
+
 const SUBJECT_QUERY: Record<string, string> = {
   Physics: 'physics',
   Chem: 'chemistry',
@@ -124,6 +129,18 @@ export default function PracticeScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   /** Set while a question-scoped Drona session is being created. */
   const [explaining, setExplaining] = useState(false);
+
+  /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
+   *  serving more of the same and offers the lesson instead — an offer, never
+   *  a block: a student who wants to keep going always can. */
+  const [stuck, setStuck] = useState<{ chapter: string | null; run: number }>({
+    chapter: null,
+    run: 0,
+  });
+
+  /** The day's tally, off whichever response last mentioned it. Null until the
+   *  API says — never counted here, or two devices would disagree. */
+  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
 
   /** Lifetime totals, fetched once. This session's answers are added on top
    *  rather than re-fetching, so the line moves the moment one is graded. */
@@ -268,10 +285,24 @@ export default function PracticeScreen() {
   }
 
   /** One graded answer: shown, counted, and the cue to fetch what comes next. */
-  function applyResult(result: AnswerResult) {
+  function applyResult(
+    result: AnswerResult,
+    context: { gaveUp: boolean; chapter: string | null }
+  ) {
     setAnswerResult(result);
     setSessionAttempted((n) => n + 1);
     if (result.is_correct) setSessionCorrect((n) => n + 1);
+    // A run of give-ups in ONE chapter is the signal, not a daily total: five
+    // in a row means this chapter is not landing, while forty spread across a
+    // hard day just means a hard day. Any correct answer clears it, and so
+    // does moving to a different chapter.
+    setStuck((prev) => {
+      if (!context.gaveUp || result.is_correct) return { chapter: null, run: 0 };
+      const chapter = context.chapter ?? 'this chapter';
+      return prev.chapter === chapter
+        ? { chapter, run: prev.run + 1 }
+        : { chapter, run: 1 };
+    });
     // The student now has a solution to read — use that time to fetch the next
     // question, so Next feels instant.
     prefetchNext();
@@ -300,9 +331,8 @@ export default function PracticeScreen() {
 
 
   /**
-   * Fetches the question after this one the moment the current one is on
-   * screen, so Next and Skip both swap instantly instead of waiting on the
-   * round trip.
+   * Fetches the question after this one the moment the current one is
+   * ANSWERED, so Next swaps instantly instead of waiting on the round trip.
    *
    * That wait is not small and it is not the network: `/practice/next` reads
    * every question in the subject and filters them in Python, so it ships 1000
@@ -312,14 +342,17 @@ export default function PracticeScreen() {
    * made to watch it, and by the time they have read one question the next is
    * already here.
    *
-   * It used to fire only after an answer was graded, which left Skip -- the
-   * one action whose whole point is "not this one, quickly" -- paying full
-   * price every time.
+   * It briefly fired on DISPLAY instead, to cover Skip. Skip is gone, and
+   * every remaining way forward — Submit and "I don't know" — passes through
+   * `applyResult`, so answering is the only moment a next question is needed.
    *
-   * The cost is one question burned if they leave the screen without using it,
-   * since `/practice/next` records a serve. That was already true of the
-   * post-grade prefetch; this widens the window, not the principle. Discarded
-   * silently on failure — the next load just fetches normally.
+   * Firing on display cost a question. `/practice/next` calls `record_serve`,
+   * so a student who opened Practice, read one question and left burned TWO
+   * out of their 150: the one they saw and the one waiting behind it.
+   * Measured on device, 11 serves in a twenty-minute session were never
+   * answered. Now nothing is fetched ahead until an answer exists, so seeing
+   * one question costs one. Discarded silently on failure — the next load
+   * just fetches normally.
    */
   /**
    * When the question in front of the student went on screen.
@@ -338,20 +371,35 @@ export default function PracticeScreen() {
    */
   const shownAt = useRef<number | null>(null);
 
+  /**
+   * The chapter the student pinned in Focus mode, when it still applies to the
+   * subject on screen. `/practice/next` takes `chapter_id` now, so this is a
+   * real filter rather than the label it used to be.
+   */
+  const focusChapterId =
+    focus.mode === 'chapter' &&
+    focus.chapterId &&
+    focus.subject === SUBJECT_QUERY[activeSubject]
+      ? focus.chapterId
+      : null;
+  const focusChapter = focusChapterId ? { chapter_id: focusChapterId } : {};
+  /** What a queued question must match to be usable. */
+  const scopeKey = questionScopeKey(SUBJECT_QUERY[activeSubject], focusChapterId);
+
   /** Set while a prefetch is in the air, so two triggers cannot both fire. */
   const prefetchInFlight = useRef(false);
 
   function prefetchNext() {
     const subject = SUBJECT_QUERY[activeSubject];
-    if (!scope || prefetchInFlight.current || hasQueuedQuestion(subject)) return;
+    if (!scope || prefetchInFlight.current || hasQueuedQuestion(scopeKey)) return;
     prefetchInFlight.current = true;
-    getNextQuestion({ subject, ...scope })
+    getNextQuestion({ subject, ...scope, ...focusChapter })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
         // question must never appear under the Chemistry pill. The subject it
         // was fetched for is stored beside it, so this cannot go stale.
         if ('exhausted' in result) return;
-        holdQueuedQuestion(result, subject);
+        holdQueuedQuestion(result, scopeKey);
       })
       .catch(() => {
         clearQueuedQuestion();
@@ -389,13 +437,12 @@ export default function PracticeScreen() {
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
-    const ready = takeQueuedQuestion(SUBJECT_QUERY[activeSubject]);
+    const ready = takeQueuedQuestion(scopeKey);
     if (ready) {
       setQuestion(ready);
       shownAt.current = Date.now();
       setSeen((n) => n + 1);
       setLoading(false);
-      prefetchNext();
       return;
     }
 
@@ -411,15 +458,21 @@ export default function PracticeScreen() {
       const result = await getNextQuestion({
         subject: SUBJECT_QUERY[activeSubject],
         ...scope,
+        ...focusChapter,
       });
       if ('exhausted' in result) {
+        if (result.questions_used_today != null && result.daily_limit != null) {
+          setQuota({ used: result.questions_used_today, limit: result.daily_limit });
+        }
         setPoolMessage(result.message);
         setQuestion(null);
       } else {
         setQuestion(result);
         shownAt.current = Date.now();
+        if (result.questions_used_today != null && result.daily_limit != null) {
+          setQuota({ used: result.questions_used_today, limit: result.daily_limit });
+        }
         setSeen((n) => n + 1);
-        prefetchNext();
       }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
@@ -434,15 +487,16 @@ export default function PracticeScreen() {
    */
   async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
+    const gaveUp = key === undefined;
     setSelectedOption(key ?? null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
         question_id: question.question_id,
-        ...(key === undefined ? {} : { chosen_option: key }),
+        ...(gaveUp ? { gave_up: true } : { chosen_option: key }),
         ...elapsed(),
       });
-      applyResult(result);
+      applyResult(result, { gaveUp, chapter: question.chapter_name });
     } catch (err) {
       await handleSubmitError(err);
     } finally {
@@ -460,7 +514,7 @@ export default function PracticeScreen() {
         chosen_value: value,
         ...elapsed(),
       });
-      applyResult(result);
+      applyResult(result, { gaveUp: false, chapter: question.chapter_name });
     } catch (err) {
       await handleSubmitError(err);
     } finally {
@@ -481,6 +535,12 @@ export default function PracticeScreen() {
         // user can paste into would otherwise offer a Submit that does nothing.
         !Number.isNaN(parseFloat(numericInput))
       : selectedOption !== null);
+
+  /**
+   * "I don't know" needs no answer, which is the whole point — it is live
+   * whenever a question is, and never while one is being graded.
+   */
+  const canGiveUp = !!question && !revealed && !submitting && !loading;
 
   const chapterChipLabel =
     focus.mode === 'chapter' && focus.chapterName
@@ -616,6 +676,29 @@ export default function PracticeScreen() {
 
           {notice ? <Text style={styles.noticeText}>{notice}</Text> : null}
 
+          {/* Five give-ups in a row in one chapter. An offer, not a gate — the
+              question below is still answerable, and Next still works. The
+              alternative considered was locking Practice for an hour, which
+              would have taught students to guess instead of saying they did
+              not know, and a guess writes a false signal into mastery where a
+              give-up writes an honest one. */}
+          {stuck.run >= STUCK_RUN && (
+            <View style={styles.stuckCard}>
+              <Text style={styles.stuckTitle}>{stuck.chapter} isn&apos;t landing</Text>
+              <Text style={styles.stuckBody}>
+                That&apos;s {stuck.run} in a row you haven&apos;t known. A lesson will get you
+                further than another question.
+              </Text>
+              <Pressable
+                style={styles.stuckButton}
+                disabled={explaining}
+                onPress={() => goLearnChapter(stuck.chapter)}>
+                <Text style={styles.stuckButtonText}>Learn it with Drona</Text>
+                <ArrowRightIcon size={scale(13)} color={colors.paper} />
+              </Pressable>
+            </View>
+          )}
+
           {question.question_type === 'numerical' ? (
             <View style={styles.numericRow}>
               <TextInput
@@ -741,6 +824,22 @@ export default function PracticeScreen() {
                     </Text>
                   )}
                 </Pressable>
+                <View style={styles.actionSpacer} />
+                {/*
+                  The honest exit, and the reason Skip could go.
+                  It submits with no option, so the server grades it as not
+                  correct, closes the serve row and returns the worked
+                  solution — the student still gets taught, the question still
+                  gets timed, and it re-enters the pool as a wrong answer
+                  rather than vanishing from the record the way a skip did.
+                */}
+                <Pressable
+                  onPress={() => submitAnswerFor(undefined)}
+                  disabled={!canGiveUp}
+                  hitSlop={10}
+                  style={styles.giveUpButton}>
+                  <Text style={styles.giveUpText}>I don&apos;t know</Text>
+                </Pressable>
                 {/* No Skip, and no Report.
                     Skip is gone deliberately. Every question served is one
                     burned out of the student's pool by `record_serve`, and a
@@ -799,6 +898,16 @@ export default function PracticeScreen() {
           )}
             </>
           ) : null}
+
+          {/* The day's tally, the way Snap a Doubt shows its own. Only ever
+              the server's numbers: counting locally would disagree with a
+              second device the moment one existed. Hidden until the API has
+              spoken, so it never renders a guess. */}
+          {quota && (
+            <Text style={styles.quotaText}>
+              {Math.max(0, quota.limit - quota.used)} questions left today
+            </Text>
+          )}
         </ScrollView>
 
         {menuOpen && (
@@ -1283,6 +1392,51 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
       marginTop: verticalScale(10),
     },
+    // The stuck nudge. Amber wash rather than the ink of a real control: it is
+    // a suggestion sitting above the question, not the thing to do next.
+    stuckCard: {
+      backgroundColor: colors.tint,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      borderRadius: scale(12),
+      padding: scale(14),
+      marginTop: verticalScale(14),
+    },
+    stuckTitle: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(14),
+      color: colors.ink,
+    },
+    stuckBody: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+    },
+    stuckButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: scale(6),
+      height: verticalScale(34),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      marginTop: verticalScale(10),
+    },
+    stuckButtonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(12.5),
+      color: colors.paper,
+    },
+    quotaText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(11.5),
+      color: colors.faint,
+      textAlign: 'center',
+      marginTop: verticalScale(22),
+    },
     noticeText: {
       fontFamily: 'Onest_500Medium',
       fontSize: scale(12),
@@ -1416,8 +1570,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(14),
       marginTop: verticalScale(16),
     },
-    // Filled, because committing an answer IS the action of the page, and now
-    // the only one on it.
+    actionSpacer: { flex: 1 },
+    // Quiet, and deliberately not a button shape: it is the way out, not the
+    // way forward, and it must never be mistaken for Submit at a glance.
+    giveUpButton: {
+      height: verticalScale(40),
+      justifyContent: 'center',
+      paddingHorizontal: scale(4),
+    },
+    giveUpText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13.5),
+      color: colors.slate,
+    },
+    // Filled, because committing an answer IS the action of the page.
     submitButton: {
       minWidth: scale(112),
       height: verticalScale(40),

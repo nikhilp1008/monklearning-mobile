@@ -16,7 +16,7 @@ import {
   RuledGround,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
-import { useLandscapeLock } from '@/hooks/use-landscape-lock';
+import { useLandscapeLock, useOrientation } from '@/hooks/use-landscape-lock';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import { CHARGE_UC_MAX, CHARGE_UC_MIN, fieldLines } from '@/lib/widgets/field-lines';
 import type { FieldLinesParams } from '@/lib/widgets/field-lines';
@@ -35,6 +35,10 @@ import type { WidgetTheme } from '@/lib/widgets/types';
 import { apiFetch } from '@/lib/api';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
 import { r2FigureResolver, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
+import { createFigureResolver, type FigureRecord } from '@/lib/widgets/labelled-figure/figure-resolver';
+import { toFigureRecord, validateLabelSet } from '@/lib/widgets/labelled-figure/label-set';
+import { describeViolations, gateLabelSet, layoutFigure } from '@/lib/widgets/labelled-figure/figure-layout';
+import FROG_LABEL_FIXTURE from '@/test/fixtures/frog-circulatory-labels.preview.json';
 
 /**
  * DEV-ONLY. Not part of the live classroom flow, not linked from any nav —
@@ -145,16 +149,21 @@ type Mode =
   | 'reaction_scheme'
   | 'process_flow'
   | 'molecule_struct'
-  | 'circuit_network' | 'figures' | 'wframes';
+  | 'circuit_network' | 'figures' | 'wframes' | 'froglabels';
 
 export default function DevWidgetPreviewScreen() {
-  useLandscapeLock();
+  // The shot frame decides the orientation: 702pt only fits across a
+  // landscape phone, 343/340 only fit down a portrait one. Laying a frame out
+  // at less than 1:1 would make the capture evidence of nothing.
+  const shotWide = SHOT_FRAME >= 0 && (LAB_FRAMES[SHOT_FRAME as 0]?.w ?? 0) > 402;
+  useOrientation(SHOT_FRAME >= 0 && !shotWide ? 'portrait' : 'landscape');
   const [mode, setMode] = useState<Mode>('manual');
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.root, { paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <View style={[styles.modeRow, { paddingTop: insets.top || 10 }]}>
+      <View style={[styles.modeRow, { paddingTop: insets.top || 10 },
+                    SHOT_FRAME >= 0 && { display: 'none' }]}>
         <Pressable
           onPress={() => setMode('manual')}
           style={[styles.pill, mode === 'manual' && styles.pillActive]}
@@ -223,9 +232,16 @@ export default function DevWidgetPreviewScreen() {
         >
           <Text style={[styles.pillText, mode === 'wframes' && styles.pillTextActive]}>wframes</Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('froglabels')}
+          style={[styles.pill, mode === 'froglabels' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'froglabels' && styles.pillTextActive]}>froglabels</Text>
+        </Pressable>
       </View>
       {mode === 'figures' && <FigureLab />}
       {mode === 'wframes' && <WidgetFrameLab />}
+      {mode === 'froglabels' && <FrogLabelLab />}
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
@@ -353,6 +369,8 @@ const LAB_CONCEPTS = [
 /** The two frames the gate binds at: spec-small and the wide board. */
 const LAB_FRAMES = [
   { label: '343\u00d7236', w: 343, h: 236 },
+  { label: '702\u00d7289', w: 702, h: 289 },
+  { label: '340\u00d7340', w: 340, h: 340 },
   { label: '900\u00d7430', w: 900, h: 430 },
 ] as const;
 
@@ -430,6 +448,201 @@ function FigureLab() {
           onGap={(reason, detail) => console.warn('[figure-lab gap]', reason, detail)}
         />
       </View>
+    </ScrollView>
+  );
+}
+
+/* --------------------------------------------------------- frog label lab */
+/*
+ * PRE-REVIEW ONLY. Draws the frog circulatory plate with its svg-authored
+ * label anchors so a human can look at the placement BEFORE anything is
+ * marked reviewed.
+ *
+ * IT DOES NOT TOUCH THE REVIEW GATE. `r2-figure-resolver` refuses a set with
+ * no `reviewed_by`, and that refusal is correct and stays exactly as it is —
+ * an unreviewed anchor is a guess about where a structure is, and a correct
+ * word on the wrong organ is the worst thing this pipeline can ship. So this
+ * lab does not publish a set, does not add reviewed_by, and does not call the
+ * production loader for labels. It builds a record directly with
+ * `toFigureRecord` from a checked-in fixture, and feeds it to BoardWidget
+ * through a throwaway resolver. Nothing here can make an unreviewed set reach
+ * a classroom: the classroom asks R2, and R2 has no set for this slug.
+ *
+ * The ART still comes through the real path — the production resolver
+ * downloads and sha-verifies it into the file:// cache — so what is on screen
+ * is the real plate at the real frame, with proposed anchors on top.
+ *
+ * FOUR TERMS ARE MISSING ON PURPOSE. The draft carries 16 terms; the authored
+ * SVG had leader endpoints for 12. lung, buccal cavity, glottis and skin have
+ * a null anchor, `validateLabelSet` refuses null anchors, and inventing
+ * coordinates for them is precisely the failure the gate exists to prevent.
+ * They need a person to place them.
+ */
+/** Screenshot driver: set these, let fast refresh apply, capture. Tapping the
+ *  pills is unreliable at the 900 frame, which is taller than the viewport and
+ *  pushes them off-screen — so the taps land on the board instead. */
+/**
+ * CAPTURE RIG — a magenta fence, not a native screenshot module.
+ *
+ * react-native-view-shot would mean a new native module and a dev-client
+ * rebuild. This gets the same evidence from the simulator screenshot that
+ * already works: when SHOT_FRAME >= 0 the board is wrapped in a 2pt #FF00FF
+ * border, laid out 1:1, and scripts/crop-shot.py finds that rectangle in the
+ * PNG and crops to its INTERIOR — asserting the interior is exactly
+ * W x H x scale. A crop that cannot find the fence, or finds the wrong size,
+ * fails rather than producing a plausible image.
+ *
+ * The border is on a WRAPPER, not the board: React Native draws a border
+ * inside the box, so bordering the board itself would shrink the very frame
+ * being evidenced by 4pt.
+ */
+const SHOT_FENCE = '#FF00FF';
+const SHOT_FENCE_PT = 2;
+const SHOT_FRAME = -1;   // 0=343x236  1=702x289  2=340x340  3=900x430
+const SHOT_GROUP = -1;   // 0 = heart, 1 = arterial, 2 = venous
+const FROG_SLUG = 'bio11-ch7-frog--circulatory-and-respiratory-systems--a';
+const FROG_CHAPTER = '5ec9dcb0-2679-5515-9422-5ca618283550';
+
+function FrogLabelLab() {
+  const theme = useDevTheme();
+  const [frameSel, setFrame] = useState(0);
+  const [lang, setLang] = useState<'english' | 'hinglish'>('english');
+  const [groupSel, setGroupIdx] = useState(0);
+  // Read EVERY render, not just at mount: fast refresh keeps component state,
+  // so a changed `useState` initial value does nothing. A module const does.
+  // -1 in either means "the pills decide".
+  const frame = SHOT_FRAME >= 0 ? SHOT_FRAME : frameSel;
+  const groupIdx = SHOT_GROUP >= 0 ? SHOT_GROUP : groupSel;
+  const [status, setStatus] = useState('fetching chapter assets\u2026');
+  const [record, setRecord] = useState<FigureRecord | null>(null);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = validateLabelSet(FROG_LABEL_FIXTURE as unknown as Record<string, unknown>);
+    if (!check.ok) {
+      setStatus(`fixture rejected: ${check.errors.join('; ')}`);
+      return;
+    }
+    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${FROG_CHAPTER}/figures`)
+      .then((res) => {
+        if (cancelled) return;
+        setChapterAssets(res.assets ?? []);
+        return r2FigureResolver.prefetch([FROG_SLUG]);
+      })
+      .then((rep) => {
+        if (cancelled || !rep) return;
+        // The plate-only record the production resolver produces (no labels,
+        // because R2 has no published set for this slug — as it should not).
+        const plate = r2FigureResolver.get(FROG_SLUG);
+        if (!plate) {
+          setStatus(`art did not resolve: ${rep.missing.join(', ') || 'unknown'}`);
+          return;
+        }
+        const art = plate.art.source as { uri?: string };
+        if (!art?.uri) {
+          setStatus('plate resolved without a file uri');
+          return;
+        }
+        setRecord(toFigureRecord(check.set, art.uri));
+        setStatus(`art from file:// cache \u00b7 ${check.set.labels.length} placed labels \u00b7 4 unplaced omitted`);
+      })
+      .catch((e) => { if (!cancelled) setStatus(`failed: ${String(e)}`); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const group = record?.groups[Math.min(groupIdx, record.groups.length - 1)]?.id ?? '';
+  // The gate's verdict for the whole set, shown beside the render: a reviewer
+  // should not have to run jest to see whether this set would be accepted.
+  const gate = useMemo(
+    () => (record ? describeViolations(gateLabelSet(record.labels, record.groups, record.art)) : ''),
+    [record]
+  );
+
+  const devResolver = useMemo(
+    () => (record ? createFigureResolver(async () => record, [record]) : r2FigureResolver),
+    [record]
+  );
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 10, alignItems: 'flex-start' }}>
+      {(() => {
+        // ONE frame at a time, chosen by the pill. Both stacked no longer fits
+        // on the phone once the 900 box is there, and a screenshot of a frame
+        // that is half off-screen proves nothing about that frame.
+        const f = LAB_FRAMES[frame];
+        return (
+          <View style={{ gap: 4 }}>
+            {SHOT_FRAME < 0 && (
+              <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang} · {group}</Text>
+            )}
+            {record && SHOT_FRAME < 0 && (
+              <Text style={{ fontSize: 9, color: INK_MUTED }}>
+                {layoutFigure(
+                  { ...record, active_group: group, lang } as never,
+                  f.w, f.h
+                ).labels.map((l) =>
+                  `${l.id}:${l.dir}/${l.leaderLen.toFixed(0)}pt${l.overlapped ? '!OVERLAP' : ''}`
+                ).join('  ')}
+              </Text>
+            )}
+            <View style={SHOT_FRAME >= 0
+              ? { borderWidth: SHOT_FENCE_PT, borderColor: SHOT_FENCE,
+                  // Shrink-wrap the board. A column child stretches by
+                  // default, so without this the fence measured the COLUMN
+                  // (374pt) and not the 343pt frame inside it — which the
+                  // crop assertion caught rather than cropping to it.
+                  alignSelf: 'flex-start' }
+              : undefined}>
+            <View style={{ width: f.w, height: f.h, borderWidth: StyleSheet.hairlineWidth,
+                           borderColor: HAIRLINE, backgroundColor: colors.paper }}>
+              {record && (
+                <BoardWidget
+                  event={{ seq: 1, tier: 'precomputed',
+                           payload: { widget: 'labelled_figure', version: 1,
+                                      params: { asset_slug: FROG_SLUG, lang,
+                                                active_group: group } } }}
+                  activeSeq={1}
+                  width={f.w}
+                  height={f.h}
+                  theme={theme}
+                  services={DEV_SERVICES}
+                  figures={devResolver}
+                  onGap={(reason, detail) => console.warn('[frog-label-lab gap]', reason, detail)}
+                />
+              )}
+            </View>
+            </View>
+          </View>
+        );
+      })()}
+      <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+                    SHOT_FRAME >= 0 && { display: 'none' }]}>
+        {LAB_FRAMES.map((f, i) => (
+          <Pressable key={f.label} onPress={() => setFrame(i)}
+            style={[styles.pill, i === frame && styles.pillActive]}>
+            <Text style={[styles.pillText, i === frame && styles.pillTextActive]}>{f.label}</Text>
+          </Pressable>
+        ))}
+        {(record?.groups ?? []).map((g, i) => (
+          <Pressable key={g.id} onPress={() => setGroupIdx(i)}
+            style={[styles.pill, i === groupIdx && styles.pillActive]}>
+            <Text style={[styles.pillText, i === groupIdx && styles.pillTextActive]}>{g.id}</Text>
+          </Pressable>
+        ))}
+        {(['english', 'hinglish'] as const).map((l) => (
+          <Pressable key={l} onPress={() => setLang(l)}
+            style={[styles.pill, l === lang && styles.pillActive]}>
+            <Text style={[styles.pillText, l === lang && styles.pillTextActive]}>{l}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {SHOT_FRAME < 0 && (
+        <>
+          <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
+          <Text style={{ fontSize: 10, color: INK_MUTED }}>GATE: {gate}</Text>
+        </>
+      )}
     </ScrollView>
   );
 }

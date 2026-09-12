@@ -23,11 +23,12 @@
 import React, { useMemo } from 'react';
 import Svg, { Circle, G, Image as SvgImage, Line, Rect, Text as SvgText } from 'react-native-svg';
 
-import { LABEL_SIZE, READOUT_SIZE, hasDevanagari } from '../chrome';
+import { HAIRLINE_STROKE, LABEL_SIZE, READOUT_SIZE, hasDevanagari } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   ANCHOR_R, LEADER_STROKE, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA, MAX_TERM_LATIN,
   activeLabels, layoutFigure, termCapFor, tooCloseAnchors,
+  LEADER_MIN_DRAW, PILL_RADIUS,
   type FigureArt, type FigureGroup, type LabelRecord, type LabelledFigureParams, type Lang,
   type Side,
 } from './figure-layout';
@@ -358,23 +359,32 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
 
       {labels.map((l) => (
         <G key={l.id}>
-          {l.via ? (
-            <>
+          {/*
+            NO LEADER WHEN THERE IS NOTHING TO LEAD. The pill now sits beside
+            its own anchor, so under LEADER_MIN_DRAW the line is a smudge
+            between two things already touching — and the gate counts it as
+            ink either way. `via` is still honoured when an author routed the
+            leader deliberately.
+          */}
+          {l.leaderLen >= LEADER_MIN_DRAW ? (
+            l.via ? (
+              <>
+                <Line
+                  x1={l.stub.x} y1={l.stub.y} x2={l.via.x} y2={l.via.y}
+                  stroke={theme.ink} strokeWidth={LEADER_STROKE}
+                />
+                <Line
+                  x1={l.via.x} y1={l.via.y} x2={l.anchor.x} y2={l.anchor.y}
+                  stroke={theme.ink} strokeWidth={LEADER_STROKE}
+                />
+              </>
+            ) : (
               <Line
-                x1={l.stub.x} y1={l.stub.y} x2={l.via.x} y2={l.via.y}
+                x1={l.stub.x} y1={l.stub.y} x2={l.anchor.x} y2={l.anchor.y}
                 stroke={theme.ink} strokeWidth={LEADER_STROKE}
               />
-              <Line
-                x1={l.via.x} y1={l.via.y} x2={l.anchor.x} y2={l.anchor.y}
-                stroke={theme.ink} strokeWidth={LEADER_STROKE}
-              />
-            </>
-          ) : (
-            <Line
-              x1={l.stub.x} y1={l.stub.y} x2={l.anchor.x} y2={l.anchor.y}
-              stroke={theme.ink} strokeWidth={LEADER_STROKE}
-            />
-          )}
+            )
+          ) : null}
           {/* Fill only, no stroke — assertion 7's 1.2 floor would otherwise
               become a live risk for a decorative hairline. */}
           <Circle cx={l.anchor.x} cy={l.anchor.y} r={ANCHOR_R} fill={theme.accent} />
@@ -385,9 +395,23 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
             is true for identical boxes — `labels collide: "Labrum" and
             "Labrum"`. One Rect, one Text.
           */}
+          {/*
+            A STROKED pill now, not a bare fill — it sits ON the art rather
+            than in a margin, and without an edge a white plate on pale art
+            has no boundary.
+
+            The colour is `theme.rule`, which IS this runtime's hairline. The
+            stroke is HAIRLINE_STROKE (1.5), not the 1.0 the brief asked for: verify-render's assertion 7 refuses any stroke below 1.2, so
+            a 1px hairline would render and then fail the gate. 1.5 is the
+            chrome hairline and the thinnest line this runtime is allowed to
+            draw.
+          */}
           <Rect
             x={l.plate.x} y={l.plate.y} width={l.plate.w} height={l.plate.h}
+            rx={PILL_RADIUS} ry={PILL_RADIUS}
             fill={theme.surface}
+            stroke={theme.rule}
+            strokeWidth={HAIRLINE_STROKE}
           />
           <SvgText
             x={l.tx}

@@ -1,5 +1,6 @@
 import { File, Paths } from 'expo-file-system';
 
+import { base64ToBytes } from '@/lib/audio-pcm';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -128,6 +129,95 @@ export async function speakFollowUp(
   file.create();
   file.write(new Uint8Array(bytes));
   return path;
+}
+
+/**
+ * The answer read aloud a SENTENCE AT A TIME, played as each arrives.
+ *
+ * `speakFollowUp` above cannot start until the whole answer has been
+ * synthesised — measured server-side at 9.4s for a 588-character answer, and
+ * 24.7s once it has to be split to clear Rumik's ~25s ceiling. The student has
+ * been reading the steps for all of it, which is what made the voice feel like
+ * it was trailing the board rather than accompanying it.
+ *
+ * `/doubts/{id}/speak-stream` sends one complete WAV per sentence as it is
+ * made. `onChunk` is handed each one in order; the caller queues them.
+ *
+ * Never throws. A voice that will not synthesise is a missing extra — the
+ * steps are on screen and readable without it.
+ */
+export function speakFollowUpStreaming(
+  doubtId: string,
+  spoken: string,
+  onChunk: (wav: Uint8Array, index: number) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    (async () => {
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL;
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!baseUrl || !token) {
+        resolve();
+        return;
+      }
+
+      // XHR for the same reason as everywhere else here: RN's fetch has no
+      // readable body, so an SSE stream has to be read off `responseText`.
+      const xhr = new XMLHttpRequest();
+      let consumed = 0;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      };
+      function onAbort() {
+        xhr.abort();
+        finish();
+      }
+      signal?.addEventListener('abort', onAbort);
+
+      const drain = () => {
+        const text = xhr.responseText ?? '';
+        // Whole frames only — a chunk split across two progress events is the
+        // next event's problem, not a parse failure.
+        const boundary = text.lastIndexOf('\n\n');
+        if (boundary < consumed) return;
+        const block = text.slice(consumed, boundary + 2);
+        consumed = boundary + 2;
+        for (const frame of block.split('\n\n')) {
+          let name = '';
+          const lines: string[] = [];
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) name = line.slice(6).trim();
+            else if (line.startsWith('data:')) lines.push(line.slice(5).trim());
+          }
+          if (name !== 'audio' || !lines.length) continue;
+          try {
+            const payload = JSON.parse(lines.join('\n'));
+            if (payload?.b64) onChunk(base64ToBytes(payload.b64), Number(payload.n) || 0);
+          } catch {
+            // One unreadable chunk is one silent sentence, not a failed answer.
+          }
+        }
+      };
+
+      xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/doubts/${doubtId}/speak-stream`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Accept', 'text/event-stream');
+      xhr.onprogress = drain;
+      xhr.onerror = finish;
+      xhr.ontimeout = finish;
+      xhr.onload = () => {
+        drain();
+        finish();
+      };
+      xhr.send(JSON.stringify({ text: spoken }));
+    })().catch(() => resolve());
+  });
 }
 
 /** One reader for both routes: same frames, different body. */

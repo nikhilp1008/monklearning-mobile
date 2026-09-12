@@ -22,7 +22,8 @@ import { BoardWidget } from '../BoardWidget';
 import { CHAR_W, DEVA_MAX_CHAR_W, LABEL_SIZE, PAD_EDGE } from '../chrome';
 import { labelledFigure } from '../labelled-figure';
 import {
-  LEADER_STUB, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA, MAX_TERM_LATIN, ROW,
+  FRAME_INSET, LEADER_MAX, LEADER_STUB, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA,
+  MAX_TERM_LATIN, ROW,
   anchorAt, boardCapacity, fitRect, layoutFigure, rowsPerColumn, termCapFor,
   type LabelRecord, type LabelledFigureParams, type Lang,
 } from '../labelled-figure/figure-layout';
@@ -337,22 +338,54 @@ describe('layout', () => {
     }
   });
 
-  test('rows are at least ROW apart within a column, at every board and language', () => {
+  /*
+   * REPLACED 2026-09-12. This slot held "rows are at least ROW apart within a
+   * column", which described the de-collision of a layout that no longer
+   * exists. Deleted rather than loosened — a spacing rule that no longer
+   * describes the layout passes for reasons unrelated to what it claims.
+   *
+   * In its place, the four near-anchor invariants on the SAME input this file
+   * already builds, so the replacement is checked against the fixture the
+   * deleted assertion used rather than against a friendlier one.
+   */
+  test('near-anchor invariants hold on this file\'s own fixture', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     for (const b of BOARDS) {
       for (const lang of ['english', 'hinglish'] as Lang[]) {
         for (const g of base.groups) {
           const { labels } = layoutFigure(paramsFor(lang, g.id), b.width, b.height);
-          for (const side of ['left', 'right'] as const) {
-            const ys = labels.filter((l) => l.side === side).map((l) => l.ty).sort((x, y) => x - y);
-            for (let i = 1; i < ys.length; i++) {
-              expect([b.width, lang, g.id, side, ys[i] - ys[i - 1] >= ROW - 1e-9]).toEqual(
-                [b.width, lang, g.id, side, true]
+
+          for (const l of labels) {
+            // 1. inside the frame
+            expect([l.id, l.plate.x >= FRAME_INSET - 1e-6]).toEqual([l.id, true]);
+            expect([l.id, l.plate.y >= FRAME_INSET - 1e-6]).toEqual([l.id, true]);
+            expect([l.id, l.plate.x + l.plate.w <= b.width - FRAME_INSET + 1e-6])
+              .toEqual([l.id, true]);
+            expect([l.id, l.plate.y + l.plate.h <= b.height - FRAME_INSET + 1e-6])
+              .toEqual([l.id, true]);
+            // 3. leader within the cap
+            expect([l.id, l.leaderLen <= LEADER_MAX + 1e-6]).toEqual([l.id, true]);
+          }
+          // 2. no two pills overlap
+          for (let i = 0; i < labels.length; i++) {
+            for (let j = i + 1; j < labels.length; j++) {
+              const a = labels[i].plate;
+              const c = labels[j].plate;
+              const hit = a.x < c.x + c.w && c.x < a.x + a.w
+                && a.y < c.y + c.h && c.y < a.y + a.h;
+              expect([`${labels[i].id}/${labels[j].id}`, hit]).toEqual(
+                [`${labels[i].id}/${labels[j].id}`, false]
               );
             }
           }
+          // 4. every label of the group is drawn — never paged, never dropped
+          expect(labels.length).toBe(
+            base.labels.filter((l) => l.group === g.id).length
+          );
         }
       }
     }
+    warn.mockRestore();
   });
 
   test('no two label boxes overlap — assertion 4, asserted at the schema', () => {

@@ -32,6 +32,10 @@ export type ReadQuestion = Pick<
   | 'question_type'
   | 'legible'
   | 'legibility_note'
+  // The photographed question, cut from the page. It arrives on THIS event
+  // rather than with the answer, because this is the frame that first paints
+  // the question box — showing the text and swapping it later would flicker.
+  | 'question_image_url'
 >;
 
 export interface SnapStreamHandlers {

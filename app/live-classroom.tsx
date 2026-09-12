@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  PixelRatio,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -70,7 +71,7 @@ import { BoardBlockView } from '@/components/board-text';
 import { apiFetch } from '@/lib/api';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
-import { setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
+import { setBoardFrame, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
 import { ASSETS_BASE_URL, r2FigureResolver } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
@@ -679,6 +680,33 @@ export default function LiveClassroomScreen() {
     }),
     [windowWidth, boardHeight, isLandscape]
   );
+  /**
+   * B1: the box as COMPUTED, not as re-derived here.
+   *
+   * Logging a second copy of the formula is how a probe drifts from the thing
+   * it measures — the first version of this did exactly that and reported the
+   * landscape arithmetic while portrait was live. It reads `diagramBox`.
+   */
+  /**
+   * B3: tell the resolver what box it is drawing into.
+   *
+   * The rendition is chosen from frame x dpr against the master's pixel width,
+   * so a figure resolved in portrait (340pt) and then rotated into landscape
+   * (702pt) would otherwise keep a master it now upscales past 1.0. Any cached
+   * figure whose choice changes is invalidated, and B0 does the rest.
+   */
+  useEffect(() => {
+    setBoardFrame(diagramBox.availableWidth, PixelRatio.get());
+  }, [diagramBox.availableWidth]);
+  useEffect(() => {
+    if (__DEV__) {
+      console.info(
+        `[diagram-box] ${isLandscape ? 'landscape' : 'portrait'} ` +
+        `window=${windowWidth}pt board=${boardHeight.toFixed(1)}pt -> ` +
+        `${diagramBox.availableWidth.toFixed(0)}x${diagramBox.maxHeight.toFixed(0)}`
+      );
+    }
+  }, [windowWidth, boardHeight, isLandscape, diagramBox]);
   /**
    * The board's own ink, so a widget diagram is not in a different hand than
    * the writing around it. `fontFamily` must be one of the app's loaded

@@ -116,6 +116,17 @@ export type SolutionQuestion = {
   textRaw?: string | null;
   /** The figures the question was printed with, in reading order. */
   figureUrls?: string[] | null;
+  /**
+   * The question as it was photographed, cut from the student's own page.
+   *
+   * Shown in place of `text` when it is there. The transcription is what the
+   * SOLVER needs; it is not what a student should have to read back, because a
+   * half-read question arrives looking mangled in a way they cannot tell apart
+   * from a question that IS mangled. Null whenever the server could not cut a
+   * span — a two-column page, no geometry, a doubt saved before the crop
+   * existed — and then the text is shown exactly as before.
+   */
+  questionImageUrl?: string | null;
   /** The label(s) the answer landed on, so the right choice can be marked. */
   answerLabels?: string[] | null;
   /** The one-line takeaway, in the app's handwriting. */
@@ -294,7 +305,10 @@ export function SolutionScreen({
           // there when it is a line or two of text, let it scroll when it
           // carries a picture.
           stickyHeaderIndices={
-            question.options?.length || question.figureUrls?.length ? undefined : [0]
+            question.options?.length || question.figureUrls?.length
+            || question.questionImageUrl
+              ? undefined
+              : [0]
           }
           showsVerticalScrollIndicator={false}>
           {/* Pinned and opaque, so the grid never runs under it and the
@@ -309,7 +323,22 @@ export function SolutionScreen({
                 `numberOfLines` only applies on the plain path — a stacked
                 fraction is a view and cannot be line-clamped — so a question
                 carrying one shows in full. */}
-            {hasStackableFraction ? (
+            {/* Their own page, when the server could cut it out: the question
+                as printed, rather than a transcription that has been through
+                OCR and back. The crop is the STEM and its figure only — the
+                choices are still drawn below, because the correct one is
+                marked and a picture cannot be. Falls through to the text
+                whenever no crop exists, which is a two-column page, a photo
+                with no usable geometry, or any doubt saved before crops. */}
+            {question.questionImageUrl ? (
+              <Image
+                source={{ uri: question.questionImageUrl }}
+                style={styles.questionImage}
+                contentFit="contain"
+                transition={120}
+                accessibilityLabel={question.text}
+              />
+            ) : hasStackableFraction ? (
               <MathLine
                 text={question.textRaw ?? question.text}
                 style={styles.questionText}
@@ -329,7 +358,7 @@ export function SolutionScreen({
                 lines it drew. This one is laid out untruncated and off the
                 page — no space, invisible to eye and screen reader — purely to
                 be measured. */}
-            <Text
+            {!question.questionImageUrl && <Text
               style={[styles.questionText, styles.questionProbe]}
               accessible={false}
               importantForAccessibility="no-hide-descendants"
@@ -339,8 +368,8 @@ export function SolutionScreen({
                 if (cut !== clipped) setClipped(cut);
               }}>
               {question.text}
-            </Text>
-            {clipped && (
+            </Text>}
+            {clipped && !question.questionImageUrl && (
               <Pressable
                 onPress={() => setExpanded((on) => !on)}
                 hitSlop={8}
@@ -355,7 +384,7 @@ export function SolutionScreen({
                 question refers to it. "As shown in the figure" is unanswerable
                 without it, and the written description the solver worked from
                 is a summary of the thing rather than the thing. */}
-            {!!question.figureUrls?.length && (
+            {!!question.figureUrls?.length && !question.questionImageUrl && (
               <View style={styles.figures}>
                 {question.figureUrls.map((url) => (
                   <Image
@@ -529,6 +558,7 @@ export function SolutionScreen({
           </Pressable>
         </View>
       </View>
+
     </View>
   );
 }
@@ -716,6 +746,16 @@ function createStyles() {
       // Taller than an option's thumbnail: this one IS the question, and a
       // beaker or a circuit has to be readable rather than recognisable.
       height: 190,
+      borderRadius: 8,
+      backgroundColor: PAPER,
+    },
+    questionImage: {
+      width: '100%',
+      // Taller than a figure, and for a different reason: this one carries
+      // WORDS. A figure only has to be recognisable; a stem has to be read at
+      // arm's length. `contain` keeps the page's own aspect ratio, so a short
+      // question simply leaves room at top and bottom rather than stretching.
+      height: 240,
       borderRadius: 8,
       backgroundColor: PAPER,
     },
