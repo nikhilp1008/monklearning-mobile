@@ -48,3 +48,21 @@ export function useScale() {
 export function useLandscapeScale() {
   return useScaleFns(LANDSCAPE_REFERENCE_WIDTH, LANDSCAPE_REFERENCE_HEIGHT);
 }
+
+/**
+ * For a screen the student can rotate, which is the classroom.
+ *
+ * The reference canvas has to follow the window, not the screen's intent.
+ * `useLandscapeScale` divides width by 844, so in a 402pt-wide upright window
+ * every `scale()` value came out at 0.476 of what it should be — the dock
+ * rendered at half size and read as broken. Picking the canvas from the real
+ * dimensions makes both orientations measure against the mock drawn for them.
+ */
+export function useOrientedScale() {
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  return useScaleFns(
+    landscape ? LANDSCAPE_REFERENCE_WIDTH : REFERENCE_WIDTH,
+    landscape ? LANDSCAPE_REFERENCE_HEIGHT : REFERENCE_CONTENT_HEIGHT
+  );
+}

@@ -24,11 +24,10 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Path, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import {
   AMBER,
-  AMBER_WASH,
   BOARD_LEFT,
   BOARD_TOP,
   Blink,
@@ -43,6 +42,7 @@ import {
   INK_FAINT,
   INK_MUTED,
   LevelBars,
+  MARGIN_X,
   MarginRule,
   RED,
   RHYTHM,
@@ -53,8 +53,8 @@ import {
   settleToRhythm,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
-import { useLandscapeScale } from '@/constants/scale';
-import { useLandscapeLock } from '@/hooks/use-landscape-lock';
+import { useOrientedScale } from '@/constants/scale';
+import { useOrientation } from '@/hooks/use-landscape-lock';
 import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
@@ -110,6 +110,8 @@ const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong
 const RAIL_HALF = 108;
 /** Far enough right to clear the rail's own width plus its 12pt inset. */
 const RAIL_TUCK_X = 92;
+/** Far enough to clear the dock's own height plus its caption and shadow. */
+const DOCK_TUCK_Y = 132;
 const FOLLOW_SCROLL_MS = 350;
 /** A hold this long is a stuck button, not an answer. */
 const MAX_HOLD_MS = 30000;
@@ -174,7 +176,22 @@ try {
 }
 
 export default function LiveClassroomScreen() {
-  const isLandscape = useLandscapeLock();
+  /**
+   * ORIENTATION IS THE STUDENT'S, NOT THE SCREEN'S.
+   *
+   * This screen used to declare landscape and turn the phone, which forced
+   * every class sideways. Most students hold a phone upright and would rather
+   * not change how they are holding it to attend a class, so the class opens
+   * the way the phone is already held and offers a rotate button for the times
+   * a wide board genuinely helps — a long derivation, a big diagram.
+   *
+   * `wantLandscape` is the request; `isLandscape` is the truth. Everything
+   * below lays out from the truth, so the sideways-board failure is impossible
+   * rather than raced: `useLandscapeLock` returned true on a 700ms timeout, so
+   * a slow or refused lock painted the wide layout into an upright window.
+   */
+  const [wantLandscape, setWantLandscape] = useState(false);
+  const oriented = useOrientation(wantLandscape ? 'landscape' : 'portrait');
   const params = useLocalSearchParams<{
     sessionId?: string;
     chapterTitle?: string;
@@ -184,8 +201,21 @@ export default function LiveClassroomScreen() {
   }>();
   const sessionId = params.sessionId ?? '';
   const chapterTitle = params.chapterTitle || 'this chapter';
-  const { scale, verticalScale } = useLandscapeScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  // Follows the window, so both orientations measure against the mock that
+  // was drawn for them.
+  const { scale, verticalScale } = useOrientedScale();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  /**
+   * What the window IS, which is what every measurement below lays out from —
+   * never `wantLandscape`, which is only what was asked for. Keeping these two
+   * apart is what makes a refused or slow rotation lay out correctly instead
+   * of painting a wide board into an upright window.
+   */
+  const isLandscape = windowWidth > windowHeight;
+  const styles = useMemo(
+    () => createStyles(scale, verticalScale, isLandscape),
+    [scale, verticalScale, isLandscape]
+  );
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
   const [board, setBoard] = useState<BoardEvent[]>([]);
@@ -466,10 +496,24 @@ export default function LiveClassroomScreen() {
 
   // --- Board follow-scroll / chrome auto-hide (unchanged from the original UI) ---
   const [chromeVisible, setChromeVisible] = useState(true);
-  // The caption strip is a real toggle now (CC on the rail), per the handoff.
-  const [captions, setCaptions] = useState(true);
+  /**
+   * NO CAPTIONS. Drona's narration is not subtitled any more — the board is
+   * what the student reads, and a running transcript under it competed with
+   * the writing it was describing.
+   *
+   * The strip itself stays for exactly one job: a checkpoint QUESTION, which
+   * the student has to read in order to answer the chips under it. That is not
+   * a caption, and dropping it would leave answers on screen with nothing to
+   * answer. `caption` is still tracked because the Report drawer quotes the
+   * last line as what is being reported.
+   *
+   * Listening feedback moved to the control itself, where the handoff puts it:
+   * the Interrupt button fills, its label reads "Speaking" and the mic becomes
+   * a level meter. It does not need a strip of its own.
+   */
   const [boardHeight, setBoardHeight] = useState(390);
-  const { width: windowWidth } = useWindowDimensions();
+  // `windowWidth` / `isLandscape` are read near the top of the component, above
+  // the styles that depend on them.
   /**
    * How much of the visible board one figure may occupy.
    *
@@ -480,12 +524,28 @@ export default function LiveClassroomScreen() {
    */
   const diagramBox = useMemo(
     () => ({
-      // Mirrors `boardContent`'s own padding: the notch gutter on the left, the
-      // thumb-rail clearance on the right.
-      availableWidth: Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER),
-      maxHeight: boardHeight * 0.72,
+      // Mirrors `boardContent`'s own padding, which differs by orientation:
+      // landscape keeps the notch gutter on the left and the thumb-rail
+      // channel on the right, portrait has no rail so the writing runs wide.
+      availableWidth: isLandscape
+        ? Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER)
+        : Math.max(0, windowWidth - 40 - 22),
+      /**
+       * A figure is an aside to the argument, so the lines either side of it
+       * have to stay on screen with it.
+       *
+       * Height is what binds on a landscape board, and 0.72 of it is the right
+       * share there. Portrait is the other way round: the board is twice as
+       * tall, so the same fraction would hand a single diagram six hundred
+       * points and push every line around it off screen. Width binds instead,
+       * and the cap is the square that width allows — tall enough for any
+       * figure that fits across the column, never taller than it is wide.
+       */
+      maxHeight: isLandscape
+        ? boardHeight * 0.72
+        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - 40 - 22)),
     }),
-    [windowWidth, boardHeight]
+    [windowWidth, boardHeight, isLandscape]
   );
   /**
    * The board's own ink, so a widget diagram is not in a different hand than
@@ -708,6 +768,11 @@ export default function LiveClassroomScreen() {
    */
   const railStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -RAIL_HALF }, { translateX: RAIL_TUCK_X * tuck.value }],
+    opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
+  }));
+  /** The dock leaves downwards, the way it came in. */
+  const dockStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: DOCK_TUCK_Y * tuck.value }],
     opacity: withTiming(chromeVisible ? 1 : 0, { duration: 300 }),
   }));
 
@@ -962,7 +1027,11 @@ export default function LiveClassroomScreen() {
   // owner — the Listening strip.
   const showJumpChip = !following && !handRaised;
 
-  if (!isLandscape) {
+  // Hold the first paint until the window has actually turned, so the board
+  // is never seen reflowing mid-rotation. Unlike the old landscape lock this
+  // is only a paint gate: the layout below reads the real window, so if a lock
+  // is refused the board still matches the phone instead of lying sideways.
+  if (!oriented) {
     return <View style={styles.rotateHold} />;
   }
 
@@ -1024,7 +1093,7 @@ export default function LiveClassroomScreen() {
           </Pressable>
         </ScrollView>
 
-        <MarginRule />
+        <MarginRule x={isLandscape ? MARGIN_X : 28} />
         <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
 
         {/* Header — tucks up and out on a board tap. */}
@@ -1121,14 +1190,13 @@ export default function LiveClassroomScreen() {
           the ear and wrong for the eye sitting under a board that renders
           1.6 × 10⁻¹⁹ C properly. Converted at the point of display only; the
           audio and the stored caption are untouched. */}
-      <CaptionStrip
-        open={captions || handRaised || checkOptions.length > 0}
-        listening={handRaised}
-        text={captionText}
-      />
+      <CaptionStrip open={checkOptions.length > 0} listening={false} text={captionText} />
 
-      {/* The thumb rail is centred on the screen, not on the board, so it sits
-          under the thumb wherever the caption strip happens to be. */}
+      {/* Landscape keeps the thumb rail on the right, where a hand holding the
+          phone sideways already is. Portrait puts the same controls in a dock
+          along the bottom, within reach of a thumb on an upright phone — the
+          whole reason this screen stopped forcing landscape. */}
+      {isLandscape ? (
       <Animated.View style={[styles.rail, railStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
         <TeacherWave quiet={handRaised} />
         <View style={styles.railDivider} />
@@ -1172,14 +1240,72 @@ export default function LiveClassroomScreen() {
         <Pressable style={styles.railButton} onPress={togglePause}>
           {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
         </Pressable>
+        {/* Back to upright. The same slot CC used to hold — captions are gone
+            and this is the control that earns it. */}
         <Pressable
-          style={[styles.railCc, !captions && styles.railCcOff]}
-          onPress={() => setCaptions((c) => !c)}>
-          <Text style={[styles.railCcText, !captions && styles.railCcTextOff]}>CC</Text>
+          style={styles.railButton}
+          onPress={() => setWantLandscape(false)}
+          hitSlop={8}
+          accessibilityLabel="Rotate to portrait">
+          <RotateIcon size={15} color={INK} portrait />
         </Pressable>
       </Animated.View>
+      ) : (
+        <Animated.View
+          style={[styles.dockWrap, dockStyle]}
+          pointerEvents={chromeVisible ? 'auto' : 'none'}>
+          <View style={styles.dock}>
+            <TeacherWave quiet={handRaised} />
+            <View style={styles.dockDivider} />
+            <Pressable style={styles.railButton} onPress={togglePause} hitSlop={6}>
+              {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
+            </Pressable>
 
-      <EdgeTab visible={!chromeVisible} onPress={showChrome} />
+            {/* The same press-and-hold as the rail's, drawn as a wide pill
+                with its label inside — there is room for it across the bottom
+                and none stacked under a 46pt circle. */}
+            <Pressable
+              style={[
+                styles.dockTalk,
+                handRaised && styles.dockTalkOn,
+                voiceOff && styles.dockTalkOff,
+              ]}
+              onPressIn={raiseHand}
+              onPressOut={doneListening}>
+              {handRaised ? (
+                <LevelBars color={INK} heights={[9, 15, 11]} />
+              ) : voiceOff ? (
+                <MicOffIcon size={16} color={colors.paper} />
+              ) : (
+                <MicIcon size={16} color={colors.paper} />
+              )}
+              <Text
+                style={[
+                  styles.dockTalkText,
+                  handRaised && styles.dockTalkTextOn,
+                  voiceOff && styles.dockTalkTextOff,
+                ]}>
+                {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.railButton}
+              onPress={() => setWantLandscape(true)}
+              hitSlop={8}
+              accessibilityLabel="Rotate to landscape">
+              <RotateIcon size={15} color={INK} />
+            </Pressable>
+          </View>
+          <Text style={styles.dockHint}>Hold to interrupt</Text>
+        </Animated.View>
+      )}
+
+      <EdgeTab
+        visible={!chromeVisible}
+        onPress={showChrome}
+        side={isLandscape ? 'right' : 'bottom'}
+      />
 
       {/* Mic off: say plainly WHICH way it is off, and offer Settings only when
           Settings is actually the fix. A student who has no input at all, or
@@ -1542,6 +1668,49 @@ function PauseIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
+/**
+ * Rotate. Draws the shape the board is going TO, not the one it is in: in
+ * landscape the button shows an upright phone, in portrait a wide one, so the
+ * icon is a preview rather than a label for the current state.
+ */
+function RotateIcon({
+  size,
+  color,
+  portrait,
+}: {
+  size: number;
+  color: string;
+  portrait?: boolean;
+}) {
+  return (
+    <Svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      {/* The screen in the shape it is going to, and a turn arrow clear of it.
+          An arc drawn ACROSS the phone was the first attempt and it collided
+          with the outline — at 15pt the two merged into a blob. Keeping the
+          arrow in the corner is what makes it read at this size. */}
+      {portrait ? (
+        <>
+          <Rect x={3} y={6.5} width={9.5} height={15} rx={2.2} stroke={color} strokeWidth={1.8} />
+          <Path d="M16.4 4.4h1.6a3.4 3.4 0 0 1 3.4 3.4v4.6" stroke={color} strokeWidth={1.8} />
+          <Path d="M18.4 2.4 16.1 4.4 18.4 6.4" stroke={color} strokeWidth={1.8} />
+        </>
+      ) : (
+        <>
+          <Rect x={2.5} y={11} width={15} height={9.5} rx={2.2} stroke={color} strokeWidth={1.8} />
+          <Path d="M13.6 4.4h4.4a3.4 3.4 0 0 1 3.4 3.4v4.6" stroke={color} strokeWidth={1.8} />
+          <Path d="M15.6 2.4 13.3 4.4 15.6 6.4" stroke={color} strokeWidth={1.8} />
+        </>
+      )}
+    </Svg>
+  );
+}
+
 function PlayIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -1572,7 +1741,23 @@ function ScreenshotIcon({ size }: { size: number }) {
   );
 }
 
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
+function createStyles(
+  scale: (size: number) => number,
+  verticalScale: (size: number) => number,
+  isLandscape: boolean
+) {
+  /**
+   * The board's gutters, which differ by orientation because the chrome does.
+   *
+   * Landscape keeps a 116 channel on the right for the thumb rail. Portrait has
+   * no rail — the controls sit in a dock along the bottom — so the writing runs
+   * almost to the right edge and the vertical padding grows instead, to clear
+   * the header above and the dock below. The numbers are the handoff's own
+   * (130/22/146/40, margin rule at 28).
+   */
+  const boardPad = isLandscape
+    ? { top: BOARD_TOP, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
+    : { top: 130, right: 22, bottom: 146, left: 40 };
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -1631,10 +1816,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       // flexGrow lets the tap target below stretch to the full board height,
       // so tapping empty paper tucks the chrome just like tapping a line.
       flexGrow: 1,
-      paddingTop: BOARD_TOP,
-      paddingRight: BOARD_RIGHT_GUTTER,
-      paddingBottom: BOARD_TOP,
-      paddingLeft: BOARD_LEFT,
+      paddingTop: boardPad.top,
+      paddingRight: boardPad.right,
+      paddingBottom: boardPad.bottom,
+      paddingLeft: boardPad.left,
     },
     // Every board line is exactly one rule tall with no margins — that is what
     // keeps the writing sitting ON the rules instead of drifting between them.
@@ -1703,9 +1888,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // Header — left 56 so it starts on the same gutter as the writing.
     topBar: {
       position: 'absolute',
-      top: 14,
-      left: BOARD_LEFT,
-      right: 26,
+      top: isLandscape ? 14 : 58,
+      left: isLandscape ? BOARD_LEFT : 22,
+      right: isLandscape ? 26 : 18,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
@@ -1839,6 +2024,75 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: 1,
       backgroundColor: 'rgba(28,26,22,.12)',
     },
+
+    /* --- portrait dock: the rail's controls, laid along the bottom --- */
+    dockWrap: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: verticalScale(30),
+      alignItems: 'center',
+      gap: verticalScale(8),
+    },
+    dock: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(10),
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+      borderRadius: 99,
+      backgroundColor: 'rgba(252,250,244,.97)',
+      borderWidth: 1,
+      borderColor: HAIRLINE,
+      shadowColor: INK,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    dockDivider: {
+      width: 1,
+      height: 22,
+      backgroundColor: 'rgba(28,26,22,.12)',
+    },
+    // The wide pill the handoff draws: mic and label on one line, because
+    // across the bottom there is room for it and no room to stack a label
+    // under a circle.
+    dockTalk: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      height: 44,
+      paddingHorizontal: 18,
+      borderRadius: 99,
+      backgroundColor: INK,
+    },
+    dockTalkOn: {
+      backgroundColor: AMBER,
+    },
+    dockTalkOff: {
+      backgroundColor: 'rgba(28,26,22,.28)',
+    },
+    dockTalkText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: 12.5,
+      letterSpacing: 0.06 * 12.5,
+      textTransform: 'uppercase',
+      color: colors.paper,
+    },
+    dockTalkTextOn: {
+      color: INK,
+    },
+    dockTalkTextOff: {
+      color: 'rgba(252,250,244,.72)',
+    },
+    dockHint: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: 9.5,
+      letterSpacing: 0.1 * 9.5,
+      textTransform: 'uppercase',
+      color: INK_FAINT,
+    },
     talkButton: {
       width: 46,
       height: 46,
@@ -1902,27 +2156,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    railCc: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: AMBER_WASH,
-    },
-    railCcOff: {
-      backgroundColor: 'transparent',
-    },
-    railCcText: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 9.5,
-      letterSpacing: 0.06 * 9.5,
-      color: DEEP_AMBER,
-    },
-    railCcTextOff: {
-      color: INK_FAINT,
-    },
-
     micDeniedCard: {
       position: 'absolute',
       left: '50%',

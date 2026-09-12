@@ -72,7 +72,12 @@ jest.mock('@/lib/drona-voice-client', () => ({
     sendUtterance() {}
   },
 }));
-jest.mock('@/hooks/use-landscape-lock', () => ({ useLandscapeLock: () => true }));
+jest.mock('@/hooks/use-landscape-lock', () => ({
+  useLandscapeLock: () => true,
+  // The classroom asks for an orientation now rather than declaring landscape.
+  // `true` means "the window already matches", which is what lets it paint.
+  useOrientation: () => true,
+}));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
