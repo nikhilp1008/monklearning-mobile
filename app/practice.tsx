@@ -888,7 +888,7 @@ export default function PracticeScreen() {
               spoken, so it never renders a guess. */}
           {quota && (
             <Text style={styles.quotaText}>
-              {Math.max(0, quota.limit - quota.used)} of {quota.limit} questions left today
+              {Math.max(0, quota.limit - quota.used)} questions left today
             </Text>
           )}
         </ScrollView>
