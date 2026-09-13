@@ -44,15 +44,26 @@ cannot carry"* — this just makes the empty case legal and explicit.
 Nothing new is needed: the sheet has always required at least one step, so
 `steps: []` keeps it shut on its own.
 
-Because we could not wait for this, the phone now also reads the answer before
-raising the board: a written answer earns the board when it carries **maths, a
-number, or more than one step**, which is this file's own definition of what a
-step is for. That is in `lib/followup-board.ts` with the test beside it.
+Because we could not wait for this, the phone now judges it from the
+TRANSCRIPT — what the student said, not what came back. That is in
+`lib/followup-board.ts` with the test beside it.
 
-It is a guess at something you know for certain, and it will occasionally be
-wrong in both directions — a purely verbal explanation stays unwritten, and a
-chatty reply that happens to mention a number still opens. If the prompt rule
-lands, that guess stops being the thing deciding and becomes a backstop.
+Reading the answer was tried first and did not survive contact. Asked "hello
+wassup", the model wrote:
+
+```
+1. Ball thrown up at 29.4 m/s; find max height.
+2. Ask away — which step is bugging you?
+```
+
+Two steps, carrying the question's own numbers, indistinguishable from a real
+explanation by any reading of them. The question is distinguishable instantly,
+so that is what the phone reads now — word lists for English and Hinglish, a
+small-talk list, and the words the utterance borrows from the page.
+
+It is a list of words standing in for something you know for certain, and it
+will be wrong sometimes. If the prompt rule lands it stops being the thing
+deciding and becomes a backstop.
 
 ## Not urgent, and not a blocker
 

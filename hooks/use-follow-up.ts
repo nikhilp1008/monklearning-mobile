@@ -13,7 +13,7 @@ import {
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
-import { earnsTheBoard } from '@/lib/followup-board';
+import { asksAboutTheWork, hasWriting } from '@/lib/followup-board';
 
 /**
  * ONE FOLLOW-UP EXCHANGE: hold, ask, hear the answer, read the answer.
@@ -52,7 +52,15 @@ type Phase = FollowUpPhase;
 const ANSWER_DELAY_MS = 2000;
 
 
-export function useFollowUp(doubtId?: string | null) {
+export function useFollowUp(
+  doubtId?: string | null,
+  /**
+   * The page the student is looking at — the question and its step headings.
+   * Used only to recognise a word they have borrowed from it, which is the
+   * plainest sign a follow-up is about the work; see `asksAboutTheWork`.
+   */
+  context?: string
+) {
   const [steps, setSteps] = useState<FollowUpStep[]>([]);
   /** Separate from `steps`: the steps are the content, this is whether the
    *  sheet is up. They are not the same question. */
@@ -63,6 +71,10 @@ export function useFollowUp(doubtId?: string | null) {
     openTimerRef.current = null;
     setAnswerOpen(false);
   }, []);
+  /** Read at the moment of asking rather than captured when `endHold` was
+   *  built, so swiping to the next question changes the page this reads. */
+  const contextRef = useRef(context);
+  contextRef.current = context;
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>('idle');
   /**
@@ -210,9 +222,16 @@ export function useFollowUp(doubtId?: string | null) {
      * at the two-second mark, would have thrown that answer away.
      */
     let settled = false;
+    /**
+     * Set from the transcript, which the server sends FIRST — before the spoken
+     * line, before any step — so the decision is made before there is anything
+     * to show. Defaults to true, so an answer is never withheld on the strength
+     * of a transcript that never arrived.
+     */
+    let aboutTheWork = true;
     const openIfEarned = () => {
       if (controller.signal.aborted) return;
-      if (!settled || !earnsTheBoard(arrived)) return;
+      if (!settled || !aboutTheWork || !hasWriting(arrived)) return;
       setAnswerOpen(true);
     };
     let asked = '';
@@ -228,6 +247,15 @@ export function useFollowUp(doubtId?: string | null) {
           // the student knows what they just said.
           onTranscript: (text) => {
             asked = text;
+            /**
+             * The board is decided here, on what the STUDENT said, and not
+             * later on what came back. Asked "hello wassup" the model writes
+             * two perfectly step-shaped lines — the question restated, its
+             * numbers included, then an invitation to ask something — and no
+             * reading of that tells it apart from an explanation. The question
+             * tells them apart instantly.
+             */
+            aboutTheWork = asksAboutTheWork(text, contextRef.current);
           },
           /**
            * The written answer, kept and shown. It arrives a step at a time

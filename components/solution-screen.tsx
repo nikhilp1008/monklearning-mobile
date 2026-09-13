@@ -238,7 +238,17 @@ export function SolutionScreen({
    * iOS, so a sheet rendered from inside the bar would appear and then refuse
    * to scroll or close.
    */
-  const fu = useFollowUp(question?.doubtId);
+  /**
+   * The page in words, for the follow-up to recognise itself in what the
+   * student says. Step headings rather than every line: they carry the
+   * question's own vocabulary without the arithmetic, which is what a spoken
+   * question borrows from.
+   */
+  const spokenContext = useMemo(
+    () => [question?.text ?? '', ...(question?.steps ?? []).map((s) => s.title)].join(' '),
+    [question?.text, question?.steps]
+  );
+  const fu = useFollowUp(question?.doubtId, spokenContext);
 
   /** Whether the student asked for the whole question, and whether there is
    *  more of it to ask for. */

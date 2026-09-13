@@ -1,52 +1,81 @@
-import { earnsTheBoard } from '@/lib/followup-board';
-import type { FollowUpStep } from '@/lib/doubt-followup';
+import { asksAboutTheWork, hasWriting } from '@/lib/followup-board';
 
 /**
- * WHEN A SPOKEN FOLLOW-UP IS ALSO WORTH WRITING DOWN.
+ * WHEN A SPOKEN FOLLOW-UP EARNS THE ANSWER BOARD.
  *
- * The bar is a microphone and students talk into microphones — "hi", "can you
- * hear me", "wait". Every one of those came back with an answer, and the sheet
- * flew up over the solution for all of them.
- *
- * The rule is the server's own: a step exists to carry what the ear cannot —
- * the equation, the substitution, the number, the unit. The cases below are the
- * two sides of that line, and the greeting cases are the ones that were the bug.
+ * The bar is a microphone and students talk into microphones. The first attempt
+ * at this read the ANSWER and asked whether it looked like working; it failed
+ * on the first real test, because asked "hello wassup" the model wrote two
+ * perfectly step-shaped lines carrying the question's own numbers. That case is
+ * the first test below, and it is the reason this reads the question instead.
  */
 
-const steps = (...texts: string[]): FollowUpStep[] =>
-  texts.map((text, i) => ({ n: i + 1, text }));
+/** The page from that failure, so the borrowed-word rule is tested against
+ *  something real rather than a convenient sentence. */
+const PAGE =
+  'A ball is thrown vertically upwards with an initial speed of 29.4 m/s. ' +
+  'Find the maximum height reached. Use the kinematic equation. Evaluating the height.';
 
-describe('earnsTheBoard', () => {
-  it('stays shut on a greeting', () => {
-    expect(earnsTheBoard(steps('Ask me about any step you are unsure of.'))).toBe(false);
-    expect(earnsTheBoard(steps('Happy to help whenever you are ready.'))).toBe(false);
+describe('asksAboutTheWork', () => {
+  it('stays shut on the greeting that started all this', () => {
+    expect(asksAboutTheWork('hello wassup', PAGE)).toBe(false);
   });
 
-  it('stays shut when the server sends nothing written', () => {
-    expect(earnsTheBoard([])).toBe(false);
-    expect(earnsTheBoard(steps('', '   '))).toBe(false);
+  it('stays shut on the rest of the small talk', () => {
+    for (const said of [
+      'hi',
+      'hey there',
+      'how are you',
+      'can you hear me',
+      'testing testing',
+      'wait one sec',
+      'ok thanks',
+      'good morning',
+      'kaise ho',
+    ]) {
+      expect([said, asksAboutTheWork(said, PAGE)]).toEqual([said, false]);
+    }
   });
 
-  it('opens on maths', () => {
-    expect(earnsTheBoard(steps('$V = IR = 2 \\times 4 = 8\\,\\text{V}$'))).toBe(true);
+  it('opens on the questions the student actually came to ask', () => {
+    for (const said of [
+      'explain this question',
+      'explain step 2',
+      'why is it minus',
+      'where did the 2 come from',
+      "I don't understand step three",
+      'how did you get this',
+      'what is the formula here',
+      'yeh samjhao',
+      'kyun negative hai',
+    ]) {
+      expect([said, asksAboutTheWork(said, PAGE)]).toEqual([said, true]);
+    }
   });
 
-  it('opens on a bare quantity, without needing the delimiters', () => {
-    expect(earnsTheBoard(steps('The 2 comes from the two identical halves.'))).toBe(true);
+  it('opens on a word borrowed from the page, with no question words at all', () => {
+    expect(asksAboutTheWork('the kinematic part', PAGE)).toBe(true);
+    expect(asksAboutTheWork('29.4 comes from', PAGE)).toBe(true);
   });
 
-  it('opens on a method, even in plain words', () => {
-    expect(
-      earnsTheBoard(
-        steps(
-          'Balance the torques about the hinge, so the wall force drops out.',
-          'Solve the remaining equation for the tension.'
-        )
-      )
-    ).toBe(true);
+  it('lets a real question through a greeting', () => {
+    expect(asksAboutTheWork('hi, explain step two', PAGE)).toBe(true);
+    expect(asksAboutTheWork('hello where did 29.4 come from', PAGE)).toBe(true);
   });
 
-  it('does not count blank steps towards a method', () => {
-    expect(earnsTheBoard(steps('Yes, that is right.', '', '  '))).toBe(false);
+  it('shows rather than withholds when nothing was heard', () => {
+    expect(asksAboutTheWork('', PAGE)).toBe(true);
+    expect(asksAboutTheWork('   ', PAGE)).toBe(true);
+  });
+});
+
+describe('hasWriting', () => {
+  it('is false for nothing and for blanks', () => {
+    expect(hasWriting([])).toBe(false);
+    expect(hasWriting([{ text: '' }, { text: '   ' }])).toBe(false);
+  });
+
+  it('is true the moment one step has words', () => {
+    expect(hasWriting([{ text: '' }, { text: '$v^2 = u^2 + 2as$' }])).toBe(true);
   });
 });
