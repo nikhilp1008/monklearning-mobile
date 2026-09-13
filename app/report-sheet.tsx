@@ -14,10 +14,25 @@ const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong langua
 
 export default function ReportSheetScreen() {
   const params = useLocalSearchParams<{ context?: string; quote?: string; doubtId?: string }>();
-  const context = params.context ?? 'Rotational Motion';
-  const quote =
-    params.quote ??
-    "Same force, bigger r → bigger turn. That's why the handle is far from the hinge.";
+  /**
+   * THE QUOTE IS THE QUESTION BEING REPORTED, and until now it was neither.
+   *
+   * These two had hardcoded fallbacks left over from a design where the sheet
+   * belonged to a live class — `'Rotational Motion'` and a sentence about
+   * torque. Both callers pass only `doubtId`, so the fallbacks always won:
+   * every student reporting anything, on any subject, was shown somebody
+   * else's sentence about a door hinge and told it came "from this class".
+   *
+   * What was SENT was always right — `reportDoubt` takes the real id — so the
+   * reports themselves are fine. But a student who reads a quote that is not
+   * their question has every reason to think the report will go against the
+   * wrong one, and not send it.
+   *
+   * No fallbacks now. A missing quote shows no quote, because an empty card is
+   * honest and a borrowed one is not.
+   */
+  const context = params.context?.trim() || null;
+  const quote = params.quote?.trim() || null;
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [selectedReason, setSelectedReason] = useState('Wrong answer');
@@ -63,12 +78,22 @@ export default function ReportSheetScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.quoteCard}>
-            <RuledPaper step={verticalScale(23)} color="rgba(28,26,22,.06)" count={20} />
-            <View style={styles.quoteRule} />
-            <Text style={styles.quoteLabel}>From this class · {context}</Text>
-            <Text style={styles.quoteText}>&quot;{quote}&quot;</Text>
-          </View>
+          {/* Only when there is something real to show. "From this class" is
+              gone with it: the live classroom reports through its own drawer,
+              so this sheet is only ever reached from a doubt and was never
+              looking at a class. */}
+          {quote && (
+            <View style={styles.quoteCard}>
+              <RuledPaper step={verticalScale(23)} color="rgba(28,26,22,.06)" count={20} />
+              <View style={styles.quoteRule} />
+              <Text style={styles.quoteLabel}>
+                {context ? `The question · ${context}` : 'The question'}
+              </Text>
+              <Text style={styles.quoteText} numberOfLines={4}>
+                &quot;{quote}&quot;
+              </Text>
+            </View>
+          )}
 
           <Text style={styles.whatsWrong}>What&apos;s wrong?</Text>
           <View style={styles.chipsRow}>
@@ -99,7 +124,10 @@ export default function ReportSheetScreen() {
           {sendError && <Text style={styles.sendErrorText}>{sendError}</Text>}
 
           <View style={styles.footerRow}>
-            <Text style={styles.footerHint}>Reporting won&apos;t interrupt your class.</Text>
+            {/* Was "Reporting won't interrupt your class." There is no class
+                to interrupt from here, and the reassurance that matters is
+                that the solution stays where it is. */}
+            <Text style={styles.footerHint}>Your solution stays saved.</Text>
             <Pressable
               style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
               disabled={!canSubmit}

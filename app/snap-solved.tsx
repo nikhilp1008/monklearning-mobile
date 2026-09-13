@@ -179,7 +179,13 @@ export default function SnapSolvedScreen() {
         onReport={() =>
           router.push({
             pathname: '/report-sheet',
-            params: { doubtId: questions[index]?.doubtId ?? '' },
+            params: {
+              doubtId: questions[index]?.doubtId ?? '',
+              // What is being reported, so the sheet quotes it rather than a
+              // leftover sentence about a door hinge.
+              quote: questions[index]?.text ?? '',
+              context: questions[index]?.chapter ?? '',
+            },
           })
         }
       />
