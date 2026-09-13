@@ -125,8 +125,19 @@ export class FollowUpAudio {
       } catch {
         // An unconfigurable session still leaves the steps on screen.
       }
-      this.context = new AudioContext({ sampleRate: SAMPLE_RATE });
+      // The DEVICE's rate, not Rumik's. Forcing a context to 24kHz on hardware
+      // that wants 48 can leave the graph running and silent; buffers are
+      // still created at Rumik's 24kHz and the graph resamples them, which is
+      // what a sample rate on a buffer is for.
+      let rate = SAMPLE_RATE;
+      try {
+        rate = AudioManager.getDevicePreferredSampleRate() || SAMPLE_RATE;
+      } catch {
+        // Keep Rumik's rate if the device will not say.
+      }
+      this.context = new AudioContext({ sampleRate: rate });
       this.context.resume().catch(() => {});
+      if (__DEV__) console.log('[followup-audio] context at', rate, 'Hz');
     }
     if (this.context.state === 'suspended') {
       // Re-checked on every piece: the session can be taken away after the
