@@ -64,6 +64,12 @@ export interface DoubtSummary {
   option_labels?: string[] | null;
   created_at: string;
   scrap: string;
+  /**
+   * The question as it was photographed, cut from the page — a short-lived
+   * signed URL, on the LIST now as well as the detail. Null when no span
+   * could be cut, or for doubts saved before crops existed.
+   */
+  question_image_url?: string | null;
 }
 
 export interface DoubtDetail extends Omit<DoubtSummary, 'scrap'> {

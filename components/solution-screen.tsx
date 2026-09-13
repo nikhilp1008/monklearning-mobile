@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { MathLine } from '@/components/math-line';
+import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
 import { DoubtOption } from '@/lib/doubts';
@@ -331,12 +332,14 @@ export function SolutionScreen({
                 whenever no crop exists, which is a two-column page, a photo
                 with no usable geometry, or any doubt saved before crops. */}
             {question.questionImageUrl ? (
-              <Image
-                source={{ uri: question.questionImageUrl }}
-                style={styles.questionImage}
+              /* Tappable now: 240pt is enough to recognise your question,
+                 not always enough to READ it at arm's length. Same viewer
+                 as the figures — pinch, double-tap, no blur. */
+              <QuestionPeek
+                uri={question.questionImageUrl}
+                label={question.text}
+                frameStyle={styles.questionImage}
                 contentFit="contain"
-                transition={120}
-                accessibilityLabel={question.text}
               />
             ) : hasStackableFraction ? (
               <MathLine
@@ -758,6 +761,7 @@ function createStyles() {
       height: 240,
       borderRadius: 8,
       backgroundColor: PAPER,
+      overflow: 'hidden',
     },
     optionFigure: {
       width: '100%',

@@ -17,6 +17,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { PressableScale } from '@/components/pressable-scale';
+import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { friendlyLoadError } from '@/lib/api';
 import { latexToText } from '@/lib/latex-text';
@@ -716,20 +717,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             },
                           })
                         }>
-                        {/* The 84pt thumbnail.
-                            export-8a ships this as a CSS placeholder and says
-                            so: "swap the 84x84 div for an <img>". It cannot be
-                            swapped yet — the list endpoint returns
-                            DoubtSummary, which has no photo. `image_url` exists
-                            only on DoubtDetail, one fetch per row, so filling
-                            this needs `image_url` added to GET /doubts.
-
-                            Until then it is the mock's own placeholder: a warm
-                            page with faint rules, which is what a snapped
-                            question actually looks like. Add the <Image> here
-                            the day the field lands. */}
+                        {/* The 84pt thumbnail — the question as it was
+                            photographed. The field landed (GET /doubts signs
+                            each row's crop), so the export-8a placeholder is
+                            now only the fallback: a doubt saved before crops
+                            existed, or a page no span could be cut from.
+                            Tapping the photo opens the full-screen viewer —
+                            the row around it still navigates. */}
                         <View style={styles.doubtThumb}>
-                          <PagePlaceholder subject={doubt.subject} />
+                          {doubt.question_image_url ? (
+                            <QuestionPeek
+                              uri={doubt.question_image_url}
+                              label={latexToText(doubt.stem ?? doubt.question_text ?? 'Snapped question')}
+                              frameStyle={styles.doubtThumbImage}
+                              disabled={eraseMode}
+                            />
+                          ) : (
+                            <PagePlaceholder subject={doubt.subject} />
+                          )}
                         </View>
                         <View style={styles.doubtRowBody}>
                           <View style={styles.doubtRowMeta}>
