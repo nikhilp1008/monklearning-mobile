@@ -212,6 +212,20 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
     const settle = () => {
       if (settled || controller.signal.aborted) return;
       settled = true;
+      if (!arrived.length && spoken) {
+        // A voice-only answer still deserves a screen: the spoken line
+        // becomes the single step rather than leaving the bar blank.
+        arrived.push({ n: 1, text: spoken });
+        setSteps([...arrived]);
+      }
+      if (!arrived.length) {
+        // Nothing came back at all. A blank bar reads as the app dying —
+        // this happened live, twice in a row, on a language-switch request
+        // the server answered with unparseable JSON. Say so instead.
+        setError('Monk could not answer that just now. Try asking again.');
+        setPhase('failed');
+        return;
+      }
       const body = arrived.map((s) => s.text).join(' ');
       setPhase(arrived.length <= 1 && body.length <= SHORT_ANSWER_CHARS ? 'brief' : 'detailed');
       turnsRef.current = [
