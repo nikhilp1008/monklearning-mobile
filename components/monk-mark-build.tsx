@@ -2,21 +2,28 @@ import { useEffect } from 'react';
 import Animated, {
   Easing,
   useAnimatedProps,
+  useDerivedValue,
   useSharedValue,
+  withRepeat,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle, G, Line } from 'react-native-svg';
+import Svg, { Circle, Line } from 'react-native-svg';
 
 /**
  * THE MONK MARK, DRAWN THE WAY IT WAS DESIGNED, from `loading_handoff/Loading 9A`.
  *
  * A compass arm sweeps a guide circle, then a smaller one; the mark's six arcs
  * land one at a time into the circles that were just measured; the amber dot
- * pops; the guides fade and the finished mark holds. Eight seconds, once, and
- * then it stays — the CSS says `forwards` on every keyframe and that matters,
- * because a loading screen whose logo restarts every eight seconds is a screen
- * that looks stuck.
+ * pops; the guides fade and the finished mark holds.
+ *
+ * THEN IT WAITS, AND DRAWS ITSELF AGAIN. The reference says `forwards` on every
+ * keyframe, so it builds once and stops — right for a mock, wrong for a wait
+ * that can run a minute. A finished mark sitting perfectly still for the rest
+ * of a slow connection is indistinguishable from a frozen screen. But a logo
+ * that restarts the instant it finishes is a fidget, so the finished mark is
+ * held for HOLD_MS first: long enough to read as done, short enough that the
+ * screen is never still for long.
  *
  * ONE CLOCK, NOT FOURTEEN. The reference is fourteen keyframe animations that
  * happen to share an 8s duration, which is how CSS has to express a timeline.
@@ -31,10 +38,13 @@ import Svg, { Circle, G, Line } from 'react-native-svg';
  */
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedLine = Animated.createAnimatedComponent(Line);
 
 /** The reference's own 8s. */
 export const MARK_BUILD_MS = 8000;
+/** How long the finished mark is held before it is drawn again. */
+const HOLD_MS = 5500;
+const CYCLE_MS = MARK_BUILD_MS + HOLD_MS;
 
 const GUIDE = '#4A463F';
 const ARC = '#8F8979';
@@ -93,9 +103,18 @@ function Guide({
 /**
  * The compass arm that draws a guide: a spoke with a red tip, one full turn.
  *
- * It appears just after its circle starts and is gone a moment after it
- * finishes, so the tip is always where the line is being drawn — the point of
- * the whole conceit. Outside its window it is not merely still, it is absent.
+ * THE TIP IS MOVED, NOT THE GROUP, and that is the whole of the fix. This
+ * rotated an `<G>` through `useAnimatedProps({ rotation })`, which
+ * react-native-svg quietly does not apply — measured on device, the red tip sat
+ * at identical pixel coordinates frame after frame while the circle drew itself
+ * beside it. The compass appeared to be holding still and watching, which is
+ * the opposite of the idea: the line is supposed to come OUT of the tip.
+ *
+ * So the endpoint is computed and written straight onto `x2`/`y2` and
+ * `cx`/`cy`, which are plain numbers and animate reliably. The angle runs
+ * clockwise from three o'clock because that is where an SVG circle's path
+ * starts and which way it goes, so the tip and the growing stroke are the same
+ * point by construction rather than by agreement.
  */
 function Arm({
   t,
@@ -110,15 +129,27 @@ function Arm({
   turn: [number, number];
   gone: number;
 }) {
-  const props = useAnimatedProps(() => ({
-    rotation: 360 * seg(t.value, turn[0], turn[1]),
-    opacity: t.value < turn[0] || t.value >= gone ? 0 : 1,
-  }));
+  const line = useAnimatedProps(() => {
+    const a = 2 * Math.PI * seg(t.value, turn[0], turn[1]);
+    return {
+      x2: 60 + length * Math.cos(a),
+      y2: 60 + length * Math.sin(a),
+      opacity: t.value < turn[0] || t.value >= gone ? 0 : 1,
+    };
+  });
+  const head = useAnimatedProps(() => {
+    const a = 2 * Math.PI * seg(t.value, turn[0], turn[1]);
+    return {
+      cx: 60 + length * Math.cos(a),
+      cy: 60 + length * Math.sin(a),
+      opacity: t.value < turn[0] || t.value >= gone ? 0 : 1,
+    };
+  });
   return (
-    <AnimatedG origin="60, 60" animatedProps={props}>
-      <Line x1={60} y1={60} x2={60 + length} y2={60} stroke={GUIDE} strokeWidth={1} />
-      <Circle cx={60 + length} cy={60} r={tip} fill={COMPASS_TIP} />
-    </AnimatedG>
+    <>
+      <AnimatedLine x1={60} y1={60} stroke={GUIDE} strokeWidth={1} animatedProps={line} />
+      <AnimatedCircle r={tip} fill={COMPASS_TIP} animatedProps={head} />
+    </>
   );
 }
 
@@ -159,12 +190,27 @@ function Arc({
 }
 
 export function MonkMarkBuild({ size = 96 }: { size?: number }) {
-  const t = useSharedValue(0);
+  /**
+   * One linear clock over the whole cycle — build plus hold — and the build's
+   * own 0→1 derived from it. Linear because the timeline IS the easing: every
+   * window below carries its own curve, exactly as each keyframe does in the
+   * reference.
+   *
+   * `t` reaches 1 when the build ends and then sits there for the hold, so
+   * every element below holds its finished state without knowing the hold
+   * exists. When the clock wraps, `t` returns to 0 and the mark is drawn from
+   * nothing again.
+   */
+  const clock = useSharedValue(0);
   useEffect(() => {
-    // Linear, because the timeline IS the easing: every window below carries
-    // its own curve, exactly as each keyframe does in the reference.
-    t.value = withTiming(1, { duration: MARK_BUILD_MS, easing: Easing.linear });
-  }, [t]);
+    clock.value = 0;
+    clock.value = withRepeat(
+      withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [clock]);
+  const t = useDerivedValue(() => Math.min(1, (clock.value * CYCLE_MS) / MARK_BUILD_MS));
 
   /** The pin-prick at the centre the compass turns on. Goes with the guides. */
   const centre = useAnimatedProps(() => ({
