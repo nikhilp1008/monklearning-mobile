@@ -51,6 +51,10 @@ export class FollowUpAudio {
       if (!buffer) return;
       const source = this.ensureSource();
       source.enqueueBuffer(buffer);
+      if (__DEV__ && !this.started) {
+        console.log('[followup-audio] first buffer:', buffer.duration.toFixed(2),
+                    's, context', this.context?.state);
+      }
       if (!this.started) {
         // Started only once the FIRST buffer is in. Starting an empty queue
         // plays silence and the node can consider itself finished before the
@@ -92,6 +96,17 @@ export class FollowUpAudio {
     if (this.stopped) return null;
     if (!this.context) {
       this.context = new AudioContext({ sampleRate: SAMPLE_RATE });
+      // iOS hands back a SUSPENDED context, and a suspended graph produces
+      // silence with no error anywhere — the buffers enqueue, the source
+      // starts, and nothing is heard. Resuming is asynchronous and nothing
+      // waits on it: buffers queued meanwhile are played once it is running.
+      this.context.resume().catch(() => {});
+    }
+    if (this.context.state === 'suspended') {
+      // The session can be taken away again — the recorder claiming the
+      // microphone for the next question is the obvious way — so this is
+      // checked on every piece rather than only at creation.
+      this.context.resume().catch(() => {});
     }
     return this.context;
   }
