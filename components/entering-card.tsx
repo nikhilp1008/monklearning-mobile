@@ -12,6 +12,8 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { MonkMarkBuild } from '@/components/monk-mark-build';
 import Svg, { Path } from 'react-native-svg';
 
 import { useScale } from '@/constants/scale';
@@ -216,9 +218,16 @@ export function EnteringCardScreen({
             </Svg>
           </Pressable>
         )}
-        {/* One fade for the whole block, so the heading and the chapter arrive
-            together and nothing shifts. */}
+        {/* One fade for the whole block, so the mark, the heading and the
+            chapter arrive together and nothing shifts. */}
         <FadeIn style={styles.middle}>
+          {/* 9A's own build: the mark is compassed into existence over 8s and
+              then holds. It is the only thing on this screen that moves apart
+              from the sweep, which is the point — a wait needs one thing to
+              watch, not three. */}
+          <View style={styles.mark}>
+            <MonkMarkBuild size={scale(96)} />
+          </View>
           <View style={styles.headingRow}>
             {words.map((word, i) => (
               <View key={i} style={[styles.word, i < words.length - 1 && styles.wordGap]}>
@@ -305,6 +314,11 @@ const dotStyles = StyleSheet.create({
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   const headingSize = scale(26);
   return StyleSheet.create({
+    /** The reference's own 34 under the mark, before the headline. */
+    mark: {
+      alignSelf: 'center',
+      marginBottom: verticalScale(34),
+    },
     screen: {
       flex: 1,
       backgroundColor: GROUND,
