@@ -45,6 +45,17 @@ const WAV_HEADER_BYTES = 44;
  * as the answer stopping.
  */
 const FINISH_GRACE_MS = 350;
+/**
+ * Spoken a quarter faster than Rumik delivers it.
+ *
+ * Rumik has no rate control — its payload is `{text, speaker}` and nothing
+ * else — and it paces the same text differently call to call, measured at
+ * 0.061 vs 0.103 s/char, which the ear hears as the voice dragging. A rate
+ * applied AT PLAYBACK compresses exactly that drag, and pitch correction
+ * keeps the teacher's voice from climbing with the speed. 1.25 was chosen by
+ * the founder listening, not derived; it is one number to retune.
+ */
+const SPEECH_RATE = 1.25;
 
 export class FollowUpAudio {
   private queue: { uri: string; ms: number }[] = [];
@@ -106,6 +117,9 @@ export class FollowUpAudio {
     if (this.stopped) return;
 
     const player = createAudioPlayer({ uri: item.uri }, { keepAudioSessionActive: true });
+    // 'high' pitch quality: this is a voice, and the cheap corrector makes
+    // speech sound phasey — worse than the slowness being fixed.
+    player.setPlaybackRate(SPEECH_RATE, 'high');
     const subscription = player.addListener(
       'playbackStatusUpdate',
       (status: AudioStatus) => {
@@ -137,7 +151,7 @@ export class FollowUpAudio {
     // Its own length, known rather than watched — bytes over byte rate. Only
     // reached when `didJustFinish` never arrives: a lost notification, a route
     // change, an output device that never really started.
-    this.timer = setTimeout(this.next, item.ms + FINISH_GRACE_MS);
+    this.timer = setTimeout(this.next, item.ms / SPEECH_RATE + FINISH_GRACE_MS);
   }
 
   private teardown() {
