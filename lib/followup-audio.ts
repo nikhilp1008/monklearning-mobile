@@ -52,10 +52,11 @@ const FINISH_GRACE_MS = 350;
  * else — and it paces the same text differently call to call, measured at
  * 0.061 vs 0.103 s/char, which the ear hears as the voice dragging. A rate
  * applied AT PLAYBACK compresses exactly that drag, and pitch correction
- * keeps the teacher's voice from climbing with the speed. 1.25 was chosen by
- * the founder listening, not derived; it is one number to retune.
+ * keeps the teacher's voice from climbing with the speed. Chosen by the
+ * founder listening, not derived: 1.25 sounded rushed, 1.15 sits right. It
+ * is one number to retune.
  */
-const SPEECH_RATE = 1.25;
+const SPEECH_RATE = 1.15;
 
 export class FollowUpAudio {
   private queue: { uri: string; ms: number }[] = [];
