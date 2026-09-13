@@ -528,6 +528,7 @@ function FrogLabelLab() {
 
   const [reloads, setReloads] = useState(0);
   const [source, setSource] = useState('');
+  const [rowInfo, setRowInfo] = useState('');
 
   /*
    * `fresh` is the B0 propagation probe. On a re-resolve it drops the cached
@@ -545,11 +546,27 @@ function FrogLabelLab() {
       setStatus(`fixture rejected: ${fixture.errors.join('; ')}`);
       return;
     }
-    if (reloads > 0) r2FigureResolver.invalidate(FROG_SLUG, 'lab re-resolve');
-    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${FROG_CHAPTER}/figures`)
+    /*
+     * NO MANUAL INVALIDATE. Until migration 0045 landed the lab had to call
+     * `invalidate()` itself to prove the no-restart path, because the server
+     * carried no signal a client could compare. It does now, so the button
+     * re-runs the REAL sequence — fetch the chapter, hand the rows to
+     * `setChapterAssets`, let IT decide — and what it returns is the proof.
+     */
+    void apiFetch<{ assets: AssetRow[]; label_sets_available?: boolean }>(
+      `/drona/chapter/${FROG_CHAPTER}/figures`)
       .then((res) => {
         if (cancelled) return;
-        setChapterAssets(res.assets ?? []);
+        const dropped = setChapterAssets(res.assets ?? []);
+        const row = (res.assets ?? []).find((a) => a.asset_slug === FROG_SLUG);
+        setRowInfo(
+          `row v${row?.label_set_version ?? '?'} ` +
+          `sha ${(row?.label_set_sha256 ?? 'none').slice(0, 12)} · ` +
+          `label_sets_available=${res.label_sets_available} · ` +
+          (dropped.length
+            ? `setChapterAssets DROPPED ${dropped.length}`
+            : 'setChapterAssets dropped nothing')
+        );
         return r2FigureResolver.prefetch([FROG_SLUG]);
       })
       .then((rep) => {
@@ -612,9 +629,12 @@ function FrogLabelLab() {
               </Text>
             )}
             {SHOT_FRAME < 0 && (
+              <Text style={{ fontSize: 9, color: INK_MUTED }}>{rowInfo || '…'}</Text>
+            )}
+            {SHOT_FRAME < 0 && (
               <Pressable onPress={() => setReloads((n) => n + 1)}
                 style={[styles.pill, { alignSelf: 'flex-start' }]}>
-                <Text style={styles.pillText}>re-resolve (invalidate + refetch)</Text>
+                <Text style={styles.pillText}>re-fetch chapter (real path)</Text>
               </Pressable>
             )}
             {record && SHOT_FRAME < 0 && (
