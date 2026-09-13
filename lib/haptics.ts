@@ -35,33 +35,68 @@ import { Platform } from 'react-native';
  * no VIBRATE permission. The alternative — reusing `impactAsync` everywhere —
  * goes through a path Expo's own documentation recommends against on Android.
  *
- * Every call is fire-and-forget and swallows its own rejection. A haptic that
- * fails is not an error the student should ever hear about, and an unhandled
- * rejection from a nicety is not worth a red box.
+ * AND ON iOS THEY ARE OFF WHILE THE MICROPHONE IS OPEN. This is not a bug in
+ * any of the code below; it is `AVAudioSession`'s documented default. A session
+ * on `.playAndRecord` silences the Taptic Engine for the whole time it is
+ * active, so the engine's own tap cannot be picked up by the microphone that is
+ * recording. iOS 13 added one switch to turn that off —
+ * `setAllowHapticsAndSystemSoundsDuringRecording(true)` — and neither
+ * `expo-audio` nor `@siteed/audio-studio` exposes it, so it cannot be reached
+ * from JavaScript at all.
+ *
+ * The live classroom holds `.playAndRecord` for the ENTIRE class, deliberately:
+ * opening the mic on the button press measured 2.75 seconds on device and ate
+ * the first words of every question, so the capture chain is warmed once and
+ * the button only opens a gate (see `live-classroom.tsx`). The consequence is
+ * that `hapticFloorTaken` and `hapticFloorReleased` — the two taps that exist
+ * for that button — cannot fire on an iPhone as the app is built today. They
+ * are correct, they are called, and iOS drops them.
+ *
+ * `hapticRefused` is the exception and does work: a press turned away for want
+ * of a microphone is, by definition, a press with no recording session open.
+ *
+ * Fixing the other two needs one line of native Swift at launch, which is a new
+ * build and a real trade — the tap would then be inside the recording the
+ * student's question is transcribed from. Written up rather than done.
+ *
+ * Every call is fire-and-forget and swallows its own failure, synchronous or
+ * not. A haptic that fails is not an error the student should ever hear about,
+ * an unhandled rejection from a nicety is not worth a red box — and a missing
+ * native module THROWS rather than rejecting, which without the `try` would
+ * take the mic's press handler down with it and stop the button working.
  */
+
+/** Runs a haptic and forgets it, however it fails. */
+function fire(tap: () => Promise<void>) {
+  try {
+    tap().catch(() => {});
+  } catch {
+    // The module is not in this build. Nothing to feel, nothing to report.
+  }
+}
 
 /** The floor is yours: the mic opened and the teacher has stopped. */
 export function hapticFloorTaken() {
   if (Platform.OS === 'android') {
     // `Gesture_Start` is Android's own name for "a press-and-hold has begun",
     // which is exactly what this is.
-    Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_Start).catch(() => {});
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_Start));
     return;
   }
   // Medium, not Light: this one is confirming that something happened, and it
   // is felt through a thumb that is pressing down rather than resting.
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
 }
 
 /** Given back: the student let go and the teacher has the board again. */
 export function hapticFloorReleased() {
   if (Platform.OS === 'android') {
-    Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_End).catch(() => {});
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_End));
     return;
   }
   // Lighter than the take, so the pair reads as one gesture opening and
   // closing rather than as two separate events.
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
 }
 
 /**
@@ -74,8 +109,8 @@ export function hapticFloorReleased() {
  */
 export function hapticRefused() {
   if (Platform.OS === 'android') {
-    Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject).catch(() => {});
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject));
     return;
   }
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+  fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
 }

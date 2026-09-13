@@ -1250,6 +1250,14 @@ export default function LiveClassroomScreen() {
    * expected: `handRaisedRef` is set synchronously inside `raiseHand`, so
    * reading it either side says whether the floor really opened or whether the
    * press was turned away for want of a microphone.
+   *
+   * ON iOS TODAY, TWO OF THE THREE CANNOT BE FELT, and it is worth knowing
+   * before anyone goes looking for the fault here. The capture chain above
+   * holds `.playAndRecord` for the whole class, and an active recording session
+   * silences the Taptic Engine by iOS default — so the take and the release are
+   * dropped by the system, while the refusal (no session, because no mic) is
+   * felt normally. `lib/haptics.ts` carries the detail and the one-line native
+   * fix it would need.
    */
   const onMicPressIn = useCallback(() => {
     const held = handRaisedRef.current;
