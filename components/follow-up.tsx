@@ -189,6 +189,37 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
     spokeRef.current = false;
     let spoken = '';
     let asked = '';
+    let settled = false;
+    let inlineAudio: FollowUpAudio | null = null;
+
+    // The player for clips the server sends down the answer stream itself.
+    // Created on the first frame that needs it, not up front — an answer
+    // whose voice never arrives should not have torn down the previous one
+    // for nothing.
+    const inlinePlayer = () => {
+      if (!inlineAudio) {
+        audioRef.current?.stop();
+        inlineAudio = new FollowUpAudio(doubtId);
+        audioRef.current = inlineAudio;
+      }
+      return inlineAudio;
+    };
+
+    // The answer picks its own surface the moment it is COMPLETE — the
+    // `answered` frame — not when the stream closes. The stream now stays
+    // open while the voice synthesises into it, and a sheet that waits for
+    // audio to finish is a sheet held shut by the slowest part of the answer.
+    const settle = () => {
+      if (settled || controller.signal.aborted) return;
+      settled = true;
+      const body = arrived.map((s) => s.text).join(' ');
+      setPhase(arrived.length <= 1 && body.length <= SHORT_ANSWER_CHARS ? 'brief' : 'detailed');
+      turnsRef.current = [
+        ...turnsRef.current,
+        { role: 'user', content: asked },
+        { role: 'assistant', content: body },
+      ];
+    };
 
     try {
       await askAboutDoubtAloud(
@@ -206,7 +237,7 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
             arrived.push(step);
             setSteps([...arrived]);
           },
-          onSpoken: (text) => {
+          onSpoken: (text, inlineVoice) => {
             spoken = text;
             // Once per answer. Two `spoken` frames — a server that emits it
             // early AND at the end, a reader that re-parses a frame — would
@@ -214,26 +245,31 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
             // failure this whole path keeps coming back to.
             if (spokeRef.current) return;
             spokeRef.current = true;
-            // Immediately, not after the await below. The server now writes
-            // `spoken` as the FIRST field of the answer, so it lands before
-            // the steps do — waiting for the stream to finish threw that head
-            // start away and put the voice back behind the board.
-            void play(text, controller);
+            // A server that speaks into its own stream needs nothing from us
+            // but a player; the fetch-it-back call is only for servers from
+            // before the audio moved inline.
+            if (!inlineVoice) void play(text, controller);
+          },
+          onAudio: (wav) => {
+            if (controller.signal.aborted) return;
+            inlinePlayer().enqueue(wav);
+          },
+          onAnswered: settle,
+          onVoiceDone: (chunks) => {
+            // The inline voice came to nothing. The old fetch is still there
+            // and still works — silence is the one outcome that is never
+            // right while the steps are being read aloud elsewhere.
+            if (chunks === 0 && spoken && !controller.signal.aborted) {
+              void play(spoken, controller);
+            }
           },
         },
         controller.signal
       );
       if (controller.signal.aborted) return;
-
-      // The answer picks its own surface. One short step stays on the bar;
-      // anything longer earns the sheet.
-      const body = arrived.map((s) => s.text).join(' ');
-      setPhase(arrived.length <= 1 && body.length <= SHORT_ANSWER_CHARS ? 'brief' : 'detailed');
-      turnsRef.current = [
-        ...turnsRef.current,
-        { role: 'user', content: asked },
-        { role: 'assistant', content: body },
-      ];
+      // A server from before the `answered` frame never sends one; the screen
+      // settles here at stream end, exactly as it always did.
+      settle();
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'That did not go through.');
