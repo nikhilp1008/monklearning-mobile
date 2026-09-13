@@ -105,7 +105,11 @@ export function QuestionPeek({
             <Text style={styles.closeText}>Close ✕</Text>
           </Pressable>
           <GestureDetector gesture={composed}>
-            <Pressable onPress={(e) => e.stopPropagation()}>
+            {/* The wrapper must own real size: the image's percentage height
+                resolves against its parent, and an auto-sized Pressable gave
+                it 85% of nothing — the viewer opened as scrim and a Close
+                button around an invisible image. */}
+            <Pressable style={styles.fullFrame} onPress={(e) => e.stopPropagation()}>
               <Image
                 source={{ uri }}
                 style={[styles.fullImage, { transform: [{ scale: zoom }] }]}
@@ -155,9 +159,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontWeight: '700',
       color: '#1c1a16',
     },
-    fullImage: {
+    fullFrame: {
       width: '100%',
       height: '85%',
+      justifyContent: 'center',
+    },
+    fullImage: {
+      width: '100%',
+      height: '100%',
       borderRadius: scale(12),
       backgroundColor: '#fff',
     },
