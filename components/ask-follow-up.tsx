@@ -83,7 +83,21 @@ export function AskFollowUpBar({
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>('idle');
-  const [error, setError] = useState<string | null>(null);
+  /**
+   * A FAILURE IS TWO WORDS, NOT A SENTENCE.
+   *
+   * This used to put whatever message came back into the hint line — "Monk
+   * could not answer that just now. Try again in a moment." sitting under a
+   * bar whose reference has no error line at all. A long apology in the one
+   * slot the design gives to "Hold to speak" reads as something bolted on,
+   * and naming the product while apologising for it makes it worse.
+   *
+   * So there are exactly two outcomes worth telling apart, because they ask
+   * different things of the student: press it again, or go and turn the
+   * microphone on. "Try again" would be a lie for the second — pressing again
+   * does nothing at all while permission is refused.
+   */
+  const [failure, setFailure] = useState<null | 'retry' | 'mic'>(null);
   const [linger, setLinger] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -139,7 +153,7 @@ export function AskFollowUpBar({
   const beginHold = useCallback(async () => {
     if (!doubtId) return;
     wake();
-    setError(null);
+    setFailure(null);
     // A second question interrupts the first answer rather than talking over
     // it — the student has clearly stopped listening.
     audioRef.current?.stop();
@@ -150,7 +164,7 @@ export function AskFollowUpBar({
     try {
       const granted = await requestRecordingPermissionsAsync();
       if (!granted.granted) {
-        setError('Monk needs the microphone to hear you.');
+        setFailure('mic');
         setPhase('idle');
         return;
       }
@@ -171,7 +185,7 @@ export function AskFollowUpBar({
       await recorder.prepareToRecordAsync();
       recorder.record();
     } catch {
-      setError('Could not start listening. Try again.');
+      setFailure('retry');
       setPhase('idle');
       toPlayback();
     }
@@ -191,7 +205,7 @@ export function AskFollowUpBar({
     // teacher's voice in the earpiece, which reads as broken rather than quiet.
     toPlayback();
     if (!uri) {
-      setError('Nothing was recorded.');
+      setFailure('retry');
       setPhase('idle');
       return;
     }
@@ -241,12 +255,15 @@ export function AskFollowUpBar({
       // No voice ever started — the answer exists but cannot be heard, and
       // with nothing printed there is nothing to show for it.
       if (!spokeStarted) {
-        setError('Monk answered, but the voice did not arrive.');
+        setFailure('retry');
         setPhase('idle');
       }
-    } catch (err) {
+    } catch {
       if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : 'That did not go through.');
+      // The server's own message is deliberately not read: it is a sentence,
+      // and this is a two-word slot. What the student can DO about it is the
+      // same however it failed.
+      setFailure('retry');
       setPhase('idle');
     }
 
@@ -286,8 +303,10 @@ export function AskFollowUpBar({
         ? 'Answering…'
         : 'Ask follow-up';
 
-  const hint = error
-    ? error
+  const hint = failure
+    ? failure === 'mic'
+      ? 'Microphone is off'
+      : 'Try again'
     : listening
       ? 'Release to stop'
       : phase === 'thinking'
@@ -348,7 +367,7 @@ export function AskFollowUpBar({
           <FlagIcon />
         </Pressable>
       </View>
-      <Text style={[styles.hint, (listening || !!error) && styles.hintLive]} numberOfLines={1}>
+      <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
         {hint}
       </Text>
     </View>
