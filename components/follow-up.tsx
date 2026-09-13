@@ -221,6 +221,25 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
       ];
     };
 
+    // One writer for finished steps and the step mid-write. Partials carry
+    // the full text-so-far and REPLACE the step they belong to — upsert by
+    // n, never append, or a step that streamed as six frames becomes six
+    // steps. The final `step` frame is just the last replacement.
+    const absorb = (step: FollowUpStep) => {
+      const at = arrived.findIndex((s) => s.n === step.n);
+      if (at >= 0) arrived[at] = step;
+      else arrived.push(step);
+      arrived.sort((a, b) => a.n - b.n);
+      setSteps([...arrived]);
+      // The board opens on the first WORDS of step one, not its last. Same
+      // formula settle() uses, so the surface picked mid-stream is the one
+      // the finished answer confirms — more steps never demote a sheet.
+      const body = arrived.map((s) => s.text).join(' ');
+      setPhase(
+        arrived.length <= 1 && body.length <= SHORT_ANSWER_CHARS ? 'brief' : 'detailed'
+      );
+    };
+
     try {
       await askAboutDoubtAloud(
         doubtId,
@@ -233,21 +252,8 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
           onTranscript: (text) => {
             asked = text;
           },
-          onStep: (step) => {
-            arrived.push(step);
-            setSteps([...arrived]);
-            // The board opens the moment there is board to show. Steps were
-            // already streaming in while the bar said "Working it out…" — a
-            // spinner over an answer that exists is the spinner lying. Same
-            // formula settle() uses, so the surface a step picks mid-stream
-            // is the surface the finished answer confirms: one short step
-            // stays on the bar, and the sheet opens the instant a second
-            // step (or a long first one) proves the answer has earned it.
-            const body = arrived.map((s) => s.text).join(' ');
-            setPhase(
-              arrived.length <= 1 && body.length <= SHORT_ANSWER_CHARS ? 'brief' : 'detailed'
-            );
-          },
+          onStep: absorb,
+          onStepPartial: absorb,
           onSpoken: (text, inlineVoice) => {
             spoken = text;
             // Once per answer. Two `spoken` frames — a server that emits it

@@ -28,6 +28,12 @@ export type FollowUpHandlers = {
   /** One finished step of the explanation. */
   onStep: (step: FollowUpStep) => void;
   /**
+   * The step being written RIGHT NOW — its full text so far, replaced on
+   * every frame. Same shape as `onStep`; the final `step` frame for the same
+   * `n` is simply the last replacement. Upsert by `n`, never append.
+   */
+  onStepPartial?: (step: FollowUpStep) => void;
+  /**
    * The same explanation as continuous speech. `inlineVoice` true means the
    * server is synthesising it into THIS stream — `onAudio` clips are coming —
    * and fetching /speak-stream would only buy the same voice twice.
@@ -295,6 +301,11 @@ function streamAsk(
             });
           } else if (frame.event === 'spoken') {
             handlers.onSpoken?.(String(payload.text ?? ''), payload.voice === 'inline');
+          } else if (frame.event === 'step_partial') {
+            handlers.onStepPartial?.({
+              n: Number(payload.n ?? 0),
+              text: String(payload.text ?? ''),
+            });
           } else if (frame.event === 'audio') {
             const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
             if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);
