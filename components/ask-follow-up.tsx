@@ -1,17 +1,9 @@
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
-} from 'expo-audio';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { askAboutDoubtAloud, speakFollowUpStreaming, type FollowUpTurn } from '@/lib/doubt-followup';
-import { FollowUpAudio } from '@/lib/followup-audio';
+import { useFollowUp } from '@/hooks/use-follow-up';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -35,11 +27,6 @@ import { FollowUpAudio } from '@/lib/followup-audio';
  * half-showing the text would be a worse answer than not showing it, and would
  * have to be torn out again. `onStep` is where it will attach.
  */
-
-/** How long the ring lingers after the last touch — the prototype's `hLeave`. */
-const LINGER_MS = 1500;
-
-type Phase = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 function MicIcon({ color }: { color: string }) {
   return (
@@ -75,225 +62,18 @@ function FlagIcon() {
 }
 
 export function AskFollowUpBar({
-  doubtId,
+  fu,
   onReport,
 }: {
-  doubtId?: string | null;
+  /** The exchange, owned by the screen so the answer sheet can share it. */
+  fu: ReturnType<typeof useFollowUp>;
   onReport?: () => void;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const [phase, setPhase] = useState<Phase>('idle');
-  /**
-   * A FAILURE IS TWO WORDS, NOT A SENTENCE.
-   *
-   * This used to put whatever message came back into the hint line — "Monk
-   * could not answer that just now. Try again in a moment." sitting under a
-   * bar whose reference has no error line at all. A long apology in the one
-   * slot the design gives to "Hold to speak" reads as something bolted on,
-   * and naming the product while apologising for it makes it worse.
-   *
-   * So there are exactly two outcomes worth telling apart, because they ask
-   * different things of the student: press it again, or go and turn the
-   * microphone on. "Try again" would be a lie for the second — pressing again
-   * does nothing at all while permission is refused.
-   */
-  const [failure, setFailure] = useState<null | 'retry' | 'mic'>(null);
-  const [linger, setLinger] = useState(false);
+  const { phase, failure, linger, disabled } = fu;
 
-  const abortRef = useRef<AbortController | null>(null);
-  const audioRef = useRef<FollowUpAudio | null>(null);
-  const turnsRef = useRef<FollowUpTurn[]>([]);
-  const lingerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Set when the sentence stream has finished, so a queue running dry between
-   *  sentences is not mistaken for the end of the answer. */
-  const streamDoneRef = useRef(false);
-
-  const wake = useCallback(() => {
-    if (lingerRef.current) clearTimeout(lingerRef.current);
-    setLinger(true);
-    lingerRef.current = setTimeout(() => setLinger(false), LINGER_MS);
-  }, []);
-
-  /**
-   * Back to a playback session, always, and never left recording-shaped.
-   *
-   * `allowsRecording: true` puts iOS into `.playAndRecord`, and expo-audio has
-   * no `defaultToSpeaker` — so a session left that way sends every later sound
-   * in the app to the EARPIECE, including Drona in class. That outlives this
-   * screen, which is why it is restored on every exit from every path.
-   */
-  const toPlayback = useCallback(() => {
-    setAudioModeAsync({
-      allowsRecording: false,
-      playsInSilentMode: true,
-      shouldPlayInBackground: false,
-      interruptionMode: 'mixWithOthers',
-    }).catch(() => {});
-  }, []);
-
-  const stopEverything = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    audioRef.current?.stop();
-    audioRef.current = null;
-    setPhase('idle');
-  }, []);
-
-  useEffect(
-    () => () => {
-      abortRef.current?.abort();
-      audioRef.current?.stop();
-      recorder.stop().catch(() => {});
-      if (lingerRef.current) clearTimeout(lingerRef.current);
-      toPlayback();
-    },
-    [recorder, toPlayback]
-  );
-
-  const beginHold = useCallback(async () => {
-    if (!doubtId) return;
-    wake();
-    setFailure(null);
-    // A second question interrupts the first answer rather than talking over
-    // it — the student has clearly stopped listening.
-    audioRef.current?.stop();
-    audioRef.current = null;
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setPhase('listening');
-    try {
-      const granted = await requestRecordingPermissionsAsync();
-      if (!granted.granted) {
-        setFailure('mic');
-        setPhase('idle');
-        return;
-      }
-      /**
-       * The session has to allow recording BEFORE `prepareToRecordAsync`, not
-       * after. Nothing else in the app leaves it that way — the classroom
-       * records through a different library and deliberately keeps expo-audio
-       * on playback so Drona is not routed to the earpiece — so every time
-       * this bar is pressed the session is on a category that refuses to
-       * record.
-       */
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-        interruptionMode: 'mixWithOthers',
-      });
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-    } catch {
-      setFailure('retry');
-      setPhase('idle');
-      toPlayback();
-    }
-  }, [doubtId, recorder, toPlayback, wake]);
-
-  const endHold = useCallback(async () => {
-    if (!doubtId) return;
-    wake();
-    let uri: string | null = null;
-    try {
-      await recorder.stop();
-      uri = recorder.uri ?? null;
-    } catch {
-      // A recorder that will not stop still has whatever it captured.
-    }
-    // Before the answer is spoken, never after: `.playAndRecord` would put the
-    // teacher's voice in the earpiece, which reads as broken rather than quiet.
-    toPlayback();
-    if (!uri) {
-      setFailure('retry');
-      setPhase('idle');
-      return;
-    }
-
-    setPhase('thinking');
-    const controller = new AbortController();
-    abortRef.current = controller;
-    streamDoneRef.current = false;
-    const steps: string[] = [];
-    let asked = '';
-    let spokeStarted = false;
-
-    try {
-      await askAboutDoubtAloud(
-        doubtId,
-        uri,
-        turnsRef.current,
-        {
-          // Kept for the history the next question is sent with. Not shown —
-          // the student knows what they just said.
-          onTranscript: (text) => {
-            asked = text;
-          },
-          // Read, not rendered: this is the written answer, and it is waiting
-          // on a surface of its own. It still has to be collected, because the
-          // next turn is sent with it as context.
-          onStep: (step) => {
-            steps.push(step.text);
-          },
-          onSpoken: (text) => {
-            // Once per answer. A server that emits `spoken` both early and at
-            // the end would otherwise build two players and put two voices in
-            // the air.
-            if (spokeStarted) return;
-            spokeStarted = true;
-            void speak(text, controller);
-          },
-        },
-        controller.signal
-      );
-      if (controller.signal.aborted) return;
-      turnsRef.current = [
-        ...turnsRef.current,
-        { role: 'user', content: asked },
-        { role: 'assistant', content: steps.join(' ') },
-      ];
-      // No voice ever started — the answer exists but cannot be heard, and
-      // with nothing printed there is nothing to show for it.
-      if (!spokeStarted) {
-        setFailure('retry');
-        setPhase('idle');
-      }
-    } catch {
-      if (controller.signal.aborted) return;
-      // The server's own message is deliberately not read: it is a sentence,
-      // and this is a two-word slot. What the student can DO about it is the
-      // same however it failed.
-      setFailure('retry');
-      setPhase('idle');
-    }
-
-    async function speak(spoken: string, ctl: AbortController) {
-      const audio = new FollowUpAudio(doubtId!);
-      audioRef.current = audio;
-      audio.onIdle = () => {
-        // A queue runs dry between sentences while the next is still being
-        // synthesised; only a finished stream makes an empty queue the end.
-        if (streamDoneRef.current && !ctl.signal.aborted) setPhase('idle');
-      };
-      setPhase('speaking');
-      try {
-        await speakFollowUpStreaming(
-          doubtId!,
-          spoken,
-          (wav) => {
-            if (!ctl.signal.aborted) audio.enqueue(wav);
-          },
-          ctl.signal
-        );
-      } finally {
-        streamDoneRef.current = true;
-      }
-    }
-  }, [doubtId, recorder, toPlayback, wake]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
-  const disabled = !doubtId;
 
   const label = listening
     ? 'Listening…'
@@ -330,16 +110,16 @@ export function AskFollowUpBar({
             accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
             onPressIn={() => {
               if (speaking || phase === 'thinking') return;
-              void beginHold();
+              void fu.beginHold();
             }}
             onPressOut={() => {
               if (phase !== 'listening') return;
-              void endHold();
+              void fu.endHold();
             }}
             onPress={() => {
               // Only meaningful while the answer is playing; a hold's own press
               // event arrives after `onPressOut` has already sent the question.
-              if (speaking) stopEverything();
+              if (speaking) fu.stopEverything();
             }}>
             <View style={[styles.thumb, listening && styles.thumbOn]}>
               {listening ? (

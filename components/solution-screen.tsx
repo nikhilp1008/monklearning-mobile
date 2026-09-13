@@ -6,6 +6,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { AskFollowUpBar } from '@/components/ask-follow-up';
+import { FollowUpAnswer } from '@/components/follow-up-answer';
+import { useFollowUp } from '@/hooks/use-follow-up';
 import { MathLine } from '@/components/math-line';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
@@ -230,6 +232,13 @@ export function SolutionScreen({
   const styles = useMemo(() => createStyles(), []);
   const scrollRef = useRef<ScrollView>(null);
   const question = questions[index];
+  /**
+   * The exchange lives here, not in the bar, because its answer needs a sheet
+   * at screen level — a view drawn outside its parent receives no touches on
+   * iOS, so a sheet rendered from inside the bar would appear and then refuse
+   * to scroll or close.
+   */
+  const fu = useFollowUp(question?.doubtId);
 
   /** Whether the student asked for the whole question, and whether there is
    *  more of it to ask for. */
@@ -541,6 +550,13 @@ export function SolutionScreen({
         </ScrollView>
       </SafeAreaView>
 
+      {/* Above the actions, so the bar it rises out of stays visible under it. */}
+      <FollowUpAnswer
+        steps={fu.steps}
+        speaking={fu.phase === 'speaking'}
+        onClose={fu.dismissAnswer}
+      />
+
       <View style={styles.actions} pointerEvents="box-none">
         <LinearGradient
           colors={['rgba(255,255,255,0)', PAPER, PAPER]}
@@ -558,7 +574,7 @@ export function SolutionScreen({
             spoken answer — because a follow-up is a question about the working
             on this screen and must not navigate away from it. */}
         <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} />
+          <AskFollowUpBar fu={fu} onReport={onReport} />
         </View>
       </View>
 
