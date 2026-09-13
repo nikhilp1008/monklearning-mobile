@@ -65,6 +65,20 @@ export class FollowUpAudio {
    */
   onIdle: (() => void) | null = null;
 
+  /**
+   * Called when the FIRST clip of this answer actually begins sounding.
+   *
+   * Not when the answer arrives and not when synthesis is requested — when
+   * there is a voice in the room. Those are seconds apart: the server sends
+   * the spoken text before the written steps, and the audio for it is fetched
+   * after both, so anything keyed to the text shows up while the student is
+   * still sitting in silence.
+   */
+  onStart: (() => void) | null = null;
+
+  /** Fires `onStart` once per answer, not once per sentence. */
+  private started = false;
+
   constructor(private readonly key: string) {}
 
   /** Adds one finished WAV to the end of the answer. */
@@ -125,6 +139,10 @@ export class FollowUpAudio {
         if (status.didJustFinish) this.next();
       }
     );
+    if (!this.started) {
+      this.started = true;
+      this.onStart?.();
+    }
     this.current = {
       player,
       done: () => {

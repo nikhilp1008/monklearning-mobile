@@ -34,8 +34,33 @@ const LINGER_MS = 1500;
 export type FollowUpPhase = 'idle' | 'listening' | 'thinking' | 'speaking';
 type Phase = FollowUpPhase;
 
+/**
+ * HOW LONG AFTER SHE STARTS TALKING THE ANSWER APPEARS.
+ *
+ * The sheet used to open on the first written step, and the steps arrive before
+ * any sound does — the server sends the spoken text first, then the steps, and
+ * only then is the audio fetched and played. So the answer flew up while the
+ * student was still waiting in silence, which reads as the screen jumping
+ * rather than as a teacher answering.
+ *
+ * It waits for the first clip to actually sound, and then a beat longer. The
+ * beat matters: arriving on the exact syllable is its own kind of startling,
+ * and two seconds in she is plainly mid-sentence, so the sheet reads as
+ * catching up with her rather than announcing her.
+ */
+const ANSWER_DELAY_MS = 2000;
+
 export function useFollowUp(doubtId?: string | null) {
   const [steps, setSteps] = useState<FollowUpStep[]>([]);
+  /** Separate from `steps`: the steps are the content, this is whether the
+   *  sheet is up. They are not the same question. */
+  const [answerOpen, setAnswerOpen] = useState(false);
+  const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeAnswer = useCallback(() => {
+    if (openTimerRef.current) clearTimeout(openTimerRef.current);
+    openTimerRef.current = null;
+    setAnswerOpen(false);
+  }, []);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>('idle');
   /**
@@ -117,6 +142,7 @@ export function useFollowUp(doubtId?: string | null) {
     abortRef.current = null;
     setPhase('listening');
     setSteps([]);
+    closeAnswer();
     try {
       const granted = await requestRecordingPermissionsAsync();
       if (!granted.granted) {
@@ -218,6 +244,14 @@ export function useFollowUp(doubtId?: string | null) {
       if (!spokeStarted) {
         setFailure('retry');
         setPhase('idle');
+      } else if (arrived.length > 0) {
+        /**
+         * The stream finished. If no clip ever sounded — synthesis refused, the
+         * route failed, the device is muted at the OS level — `onStart` never
+         * fired and the sheet would stay shut on an answer that exists and is
+         * perfectly readable. Show it rather than lose it.
+         */
+        if (openTimerRef.current == null) setAnswerOpen(true);
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -231,6 +265,19 @@ export function useFollowUp(doubtId?: string | null) {
     async function speak(spoken: string, ctl: AbortController) {
       const audio = new FollowUpAudio(doubtId!);
       audioRef.current = audio;
+      /**
+       * The first sound, not the first step — this is the moment the sheet is
+       * allowed to exist. The timer is cleared by `closeAnswer`, so a student
+       * who dismisses or asks again inside the two seconds does not get the
+       * sheet thrown back at them afterwards.
+       */
+      audio.onStart = () => {
+        if (ctl.signal.aborted) return;
+        if (openTimerRef.current) clearTimeout(openTimerRef.current);
+        openTimerRef.current = setTimeout(() => {
+          if (!ctl.signal.aborted) setAnswerOpen(true);
+        }, ANSWER_DELAY_MS);
+      };
       audio.onIdle = () => {
         // A queue runs dry between sentences while the next is still being
         // synthesised; only a finished stream makes an empty queue the end.
@@ -255,14 +302,16 @@ export function useFollowUp(doubtId?: string | null) {
    *  dismissed sheet is the thing this has to avoid. */
   const dismissAnswer = useCallback(() => {
     stopEverything();
+    closeAnswer();
     setSteps([]);
-  }, [stopEverything]);
+  }, [stopEverything, closeAnswer]);
 
   return {
     phase,
     failure,
     linger,
     steps,
+    answerOpen,
     beginHold,
     endHold,
     stopEverything,

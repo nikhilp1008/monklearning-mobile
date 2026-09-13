@@ -22,12 +22,13 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
  * about — the same reason the old sheet was removed. It stops at 64%, clear of
  * the bar, so the question and the step being queried stay visible above.
  *
- * It comes only when she answers. There is nothing to show while the student is
- * holding the mic and nothing to show while the server is thinking, so the
- * sheet does not exist then: no empty frame, no spinner in a box. The first
- * step to arrive brings it up, and the rest fill in underneath while she is
- * still speaking — which is what makes it read as being explained to rather
- * than handed a transcript.
+ * IT COMES WHEN SHE IS TALKING, not when the answer arrives. Those are not the
+ * same moment: the server sends the spoken text first, then the written steps,
+ * and only then is the audio fetched — so a sheet keyed to the steps flew up
+ * while the student was still sitting in silence. It waits for the first clip
+ * to sound and a beat beyond it (see `ANSWER_DELAY_MS`), and the steps keep
+ * filling in underneath while she talks, which is what makes it read as being
+ * explained to rather than handed a transcript.
  *
  * THE TYPE IS THE SOLUTION'S OWN. `parseSolutionSteps` and `SolutionSteps` are
  * what render the working above it, at `compact` instead of `full`. Its maths
@@ -68,16 +69,22 @@ const EASE_IN = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_OUT = Easing.bezier(0.4, 0, 0.9, 0.4);
 
 export function FollowUpAnswer({
+  open,
   steps,
   onClose,
 }: {
+  /**
+   * Whether the sheet is up — decided by the exchange, not by whether there is
+   * content. The steps arrive before the voice does, so "we have an answer" and
+   * "she is answering" are seconds apart and only the second one should raise
+   * a sheet.
+   */
+  open: boolean;
   steps: FollowUpStep[];
   onClose: () => void;
 }) {
   const { height } = useWindowDimensions();
   const parsed = useMemo(() => parseSolutionSteps(steps), [steps]);
-  const open = steps.length > 0;
-
   /**
    * Kept mounted through the exit, so there is something to animate out. The
    * previous version unmounted the moment the steps cleared, which is why
@@ -86,7 +93,7 @@ export function FollowUpAnswer({
   const [shown, setShown] = useState(false);
   const p = useSharedValue(0);
   useEffect(() => {
-    if (open) {
+    if (open && steps.length > 0) {
       setShown(true);
       p.value = withTiming(1, { duration: IN_MS, easing: EASE_IN });
       return;
@@ -94,7 +101,7 @@ export function FollowUpAnswer({
     p.value = withTiming(0, { duration: OUT_MS, easing: EASE_OUT }, (done) => {
       if (done) runOnJS(setShown)(false);
     });
-  }, [open, p]);
+  }, [open, steps.length, p]);
 
   const travel = height * SHEET_FRACTION;
   const sheetStyle = useAnimatedStyle(() => ({
