@@ -1,4 +1,4 @@
-import { AudioBufferQueueSourceNode, AudioContext } from 'react-native-audio-api';
+import { AudioBufferQueueSourceNode, AudioContext, AudioManager } from 'react-native-audio-api';
 
 /**
  * Gapless playback of a follow-up answer, fed raw PCM as it arrives.
@@ -52,8 +52,13 @@ export class FollowUpAudio {
       const source = this.ensureSource();
       source.enqueueBuffer(buffer);
       if (__DEV__ && !this.started) {
-        console.log('[followup-audio] first buffer:', buffer.duration.toFixed(2),
-                    's, context', this.context?.state);
+        const ctx = this.context;
+        // After a tick, not now: `resume()` is asynchronous, so reading the
+        // state here reported "suspended" whether or not it had worked.
+        setTimeout(() => {
+          console.log('[followup-audio] first buffer', buffer.duration.toFixed(2),
+                      's | context', ctx?.state);
+        }, 250);
       }
       if (!this.started) {
         // Started only once the FIRST buffer is in. Starting an empty queue
@@ -95,17 +100,39 @@ export class FollowUpAudio {
   private ensureContext() {
     if (this.stopped) return null;
     if (!this.context) {
+      // The session FIRST, and through this library's own manager.
+      //
+      // react-native-audio-api runs its own AVAudioSession; expo-audio's
+      // `setAudioModeAsync` configures a different one and does not reach it.
+      // Without this the context comes back suspended and stays suspended —
+      // and a suspended graph is silent with no error anywhere, so buffers
+      // convert, enqueue and "start" while nothing is heard. That is exactly
+      // what happened: 91 pieces arrived and the log read
+      // "first buffer: 0.25 s, context suspended".
+      //
+      // `playback` rather than `playAndRecord`: recording is finished by the
+      // time anything is spoken, and playAndRecord routes to the earpiece
+      // (the reason live-classroom.tsx avoids it). `spokenAudio` is the mode
+      // for speech rather than music, and `defaultToSpeaker` is what keeps it
+      // off the earpiece.
+      try {
+        AudioManager.setAudioSessionOptions({
+          iosCategory: 'playback',
+          iosMode: 'spokenAudio',
+          iosOptions: ['defaultToSpeaker'],
+        });
+        AudioManager.setAudioSessionActivity(true).catch(() => {});
+      } catch {
+        // An unconfigurable session still leaves the steps on screen.
+      }
       this.context = new AudioContext({ sampleRate: SAMPLE_RATE });
-      // iOS hands back a SUSPENDED context, and a suspended graph produces
-      // silence with no error anywhere — the buffers enqueue, the source
-      // starts, and nothing is heard. Resuming is asynchronous and nothing
-      // waits on it: buffers queued meanwhile are played once it is running.
       this.context.resume().catch(() => {});
     }
     if (this.context.state === 'suspended') {
-      // The session can be taken away again — the recorder claiming the
-      // microphone for the next question is the obvious way — so this is
-      // checked on every piece rather than only at creation.
+      // Re-checked on every piece: the session can be taken away after the
+      // fact, the recorder claiming the microphone for the next question
+      // being the obvious way. Resuming is asynchronous and nothing waits on
+      // it — buffers queued meanwhile play once it is running.
       this.context.resume().catch(() => {});
     }
     return this.context;
