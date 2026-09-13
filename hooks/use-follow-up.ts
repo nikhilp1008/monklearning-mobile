@@ -13,6 +13,7 @@ import {
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { earnsTheBoard } from '@/lib/followup-board';
 
 /**
  * ONE FOLLOW-UP EXCHANGE: hold, ask, hear the answer, read the answer.
@@ -49,6 +50,7 @@ type Phase = FollowUpPhase;
  * catching up with her rather than announcing her.
  */
 const ANSWER_DELAY_MS = 2000;
+
 
 export function useFollowUp(doubtId?: string | null) {
   const [steps, setSteps] = useState<FollowUpStep[]>([]);
@@ -171,7 +173,7 @@ export function useFollowUp(doubtId?: string | null) {
       setPhase('idle');
       toPlayback();
     }
-  }, [doubtId, recorder, toPlayback, wake]);
+  }, [closeAnswer, doubtId, recorder, toPlayback, wake]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
@@ -198,6 +200,21 @@ export function useFollowUp(doubtId?: string | null) {
     streamDoneRef.current = false;
     const arrived: FollowUpStep[] = [];
     setSteps([]);
+    /**
+     * Both halves of the decision, re-asked rather than answered once.
+     *
+     * `settled` is the timing — she has been talking long enough for a sheet
+     * to read as catching up with her. `earnsTheBoard` is the content, and the
+     * content is still arriving: at two seconds the answer may be one prose
+     * line that becomes three lines of algebra by the fourth. Deciding once,
+     * at the two-second mark, would have thrown that answer away.
+     */
+    let settled = false;
+    const openIfEarned = () => {
+      if (controller.signal.aborted) return;
+      if (!settled || !earnsTheBoard(arrived)) return;
+      setAnswerOpen(true);
+    };
     let asked = '';
     let spokeStarted = false;
 
@@ -221,6 +238,7 @@ export function useFollowUp(doubtId?: string | null) {
           onStep: (step) => {
             arrived.push(step);
             setSteps([...arrived]);
+            openIfEarned();
           },
           onSpoken: (text) => {
             // Once per answer. A server that emits `spoken` both early and at
@@ -248,10 +266,15 @@ export function useFollowUp(doubtId?: string | null) {
         /**
          * The stream finished. If no clip ever sounded — synthesis refused, the
          * route failed, the device is muted at the OS level — `onStart` never
-         * fired and the sheet would stay shut on an answer that exists and is
-         * perfectly readable. Show it rather than lose it.
+         * fired, and an answer that is perfectly readable would stay hidden
+         * behind a timer that is never coming. Let the timing go and let the
+         * content decide on its own: a real explanation appears, a hello still
+         * does not.
          */
-        if (openTimerRef.current == null) setAnswerOpen(true);
+        if (openTimerRef.current == null) {
+          settled = true;
+          openIfEarned();
+        }
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -266,16 +289,18 @@ export function useFollowUp(doubtId?: string | null) {
       const audio = new FollowUpAudio(doubtId!);
       audioRef.current = audio;
       /**
-       * The first sound, not the first step — this is the moment the sheet is
-       * allowed to exist. The timer is cleared by `closeAnswer`, so a student
-       * who dismisses or asks again inside the two seconds does not get the
-       * sheet thrown back at them afterwards.
+       * The first sound, not the first step: this is when the sheet becomes
+       * ALLOWED, which is not the same as due — `openIfEarned` still has to
+       * find something worth writing down. The timer is cleared by
+       * `closeAnswer`, so a student who dismisses or asks again inside the two
+       * seconds does not get the sheet thrown back at them afterwards.
        */
       audio.onStart = () => {
         if (ctl.signal.aborted) return;
         if (openTimerRef.current) clearTimeout(openTimerRef.current);
         openTimerRef.current = setTimeout(() => {
-          if (!ctl.signal.aborted) setAnswerOpen(true);
+          settled = true;
+          openIfEarned();
         }, ANSWER_DELAY_MS);
       };
       audio.onIdle = () => {
