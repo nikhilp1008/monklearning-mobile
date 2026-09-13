@@ -1,72 +1,61 @@
-# hi-review.csv — read this before signing it off
+# Label language: English, in both languages
 
-**I wrote these terms. A model pipeline did not.** `api.deepseek.com` was
-unreachable from this machine (TCP 443 connected, TLS reset by peer at its
-CloudFront edge, every variation, while OpenAI and R2 answered normally), so
-on Raasikh's instruction the Hinglish was drafted by hand and the authorship
-recorded in `source`:
+**Decision — Raasikh, 2026-09-12: "lets keep the labels in english strictly".**
 
-    claude-hinglish-drafted   29 distinct terms, 76 rows
-    claude-kept-english      122 distinct terms, 301 rows
+So every diagram label reads the same in `english` and `hinglish` mode:
+`term_hi == term_en` on all 377 rows, `source = en-final-raasikh`.
 
-`scripts/draft_hindi_labels.py` — the DeepSeek path — is built and committed
-(596c8b3) and can regenerate this file whenever the API is reachable. If it is
-re-run, its `source` values are `hinglish-translated` / `kept-english`, WITHOUT
-the `claude-` prefix. That difference is deliberate: a reviewer can tell at a
-glance which rows came from where, and a mixed file stays readable.
+This is not a placeholder and not an unfinished translation pass. It is the
+answer.
 
-## `hi` is HINGLISH, not Devanagari
+## Why it is the right answer, not a shortcut
 
-`lib/widgets/labelled-figure/label-set.ts:42` — "`hi` is HINGLISH — romanised
-Latin, not Devanagari" — and `toFigureRecord` maps `text.hi` onto the record's
-`hinglish` field. The app ships `english | hinglish` and nothing else. So
-"twacha", never "त्वचा".
+The terms are anatomical Latin — *conus arteriosus*, *Malpighian tubule*,
+*circum-oesophageal connective*. Three things line up behind leaving them:
 
-## Why 301 of 377 rows are kept-english
+- **There is no Hinglish for most of them.** A teacher pointing at the plate
+  says the English word. Inventing a Hindi rendering produces a term no
+  student has heard.
+- **The exam prints them in English.** A label that drifts from the examinable
+  string teaches the student the wrong string.
+- **The layout cannot hold the long ones anyway.** `chrome.ts` caps a label at
+  `MAX_TERM_LATIN = 20` characters, and formal Hindi like "hridaya maanspeshi
+  tantu" for *cardiac muscle fibre* would be truncated by the renderer even
+  where the register was right.
 
-Two reasons, and both are judgements worth disagreeing with:
+## What this replaced, so the history is legible
 
-**The terms are anatomical Latin.** Malpighian tubule, Haversian canal, conus
-arteriosus, circum-oesophageal connective. There is no Hinglish for these; a
-teacher says them in English. Inventing one produces a word no student has
-heard.
+This file went through three states in one day, and the middle one was wrong:
 
-**The exam is in English.** These are labels on a NEET/JEE diagram, and the
-term the student must recognise in the paper is the English one. A Hinglish
-label that drifts from the examinable term teaches the wrong string.
+1. **`hi != en` was REQUIRED.** `apply_review.py` refused any set whose `hi`
+   copied its `en`, reasoning that an untranslated set is indistinguishable
+   from a translated one and would ship half-done. Sound reasoning, wrong
+   premise for this product.
+2. **A per-term `en_is_final` allowance was built**, so a reviewer could sign
+   off individual terms as deliberately English. It worked, and it was the
+   wrong shape: an exception mechanism implies a rule, and the rule was the
+   part that was wrong.
+3. **The policy replaced both.** `en_is_final` was REMOVED rather than left
+   in — a second way to express the same thing is a thing the next reader has
+   to work out the precedence of.
 
-So I translated only where the Hindi word is what a teacher genuinely says
-while pointing — everyday organs and body parts — and left the technical
-vocabulary alone.
+`apply_review.py` now refuses a label whose `hi` DIFFERS from its `en`: the
+inverse check. What it guards against is a half-applied translation pass
+showing two registers on one plate.
 
-**A length constraint also bites.** `chrome.ts` caps a label at
-`MAX_TERM_LATIN = 20` characters. Long formal Hindi ("hridaya maanspeshi
-tantu" for cardiac muscle fibre) would be truncated by the layout even if it
-were the right register. Every term I did translate is 11 characters or fewer.
+## What was dropped
 
-## What I am NOT confident about, and what a reviewer should actually check
+29 Hinglish terms I had hand-drafted (DeepSeek was unreachable) are discarded
+by this decision — `heart -> hriday`, `skin -> twacha`, `liver -> yakrit` and
+26 others. They are in git history at `c8eed91` if the policy is ever revisited.
 
-- **Register.** I chose standard Hindi biology vocabulary (yakrit, aamashay,
-  agnyashay) over colloquial (jigar, pet, ...). A Hindi-medium teacher may use
-  the colloquial forms with students; I do not know which this product wants.
-- **`head -> sir` and `abdomen -> pet`.** Both are everyday words, but in
-  INSECT anatomy "head" and "abdomen" are named body segments and a teacher
-  may well keep them English. These two are my least confident translations.
-- **The 122 kept-english terms are the bigger review.** Each one is a decision
-  that no Hinglish form is worth having. If you disagree with even a handful,
-  that is the correction that matters — not the 29 I did translate.
+`scripts/draft_hindi_labels.py` is kept. If labels are ever wanted in Hinglish
+— for a Hindi-medium product, say — it regenerates this file, and its `source`
+values carry no `claude-` prefix so hand-written and model-drafted rows stay
+distinguishable.
 
-## What happens next
+## Scope
 
-Nothing is applied. Every label set still has `hi == en`, and
-`scripts/apply_review.py` REFUSES any set whose `hi` equals its `en`. So a
-kept-english row is not merely a note — it actively blocks publication until
-someone decides what that term should be in Hinglish, or the rule is relaxed
-for exam-term labels.
-
-**That is the open question this file raises**, and it is a product decision
-rather than a data one: for an English-medium exam app, is `hi == en` a
-legitimate final answer for a technical term? If yes, `apply_review.py`'s
-check needs an explicit allowance — carrying the reviewer's sign-off, so that
-"kept English on purpose" is recorded and not indistinguishable from
-"nobody has done the Hindi yet".
+bio11 ch7 only, because that is the chapter drafted so far. The policy is
+product-wide; the file is not. Later chapters get the same treatment when
+their sets are drafted.
