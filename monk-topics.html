@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MonkLearning — Topic list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* MonkLearning — the topic sheet, opened by tapping a chapter.
+     Every value lifted from app/topic-sheet.tsx and constants/brand.js.
+     Static: nothing here is wired up.
+
+     It is a sheet over the chapter list, not a page: the list stays visible
+     behind a scrim, and the sheet starts 96pt down. */
+
+  :root{
+    --ink:#1C1A16; --paper:#FFFDF8; --slate:#57534B; --faint:#9C988C;
+    --marigold:#EEA31F; --hair-16:rgba(28,26,22,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Onest',system-ui,sans-serif;color:var(--ink);background:#EFE9DA;
+       -webkit-font-smoothing:antialiased;min-height:100vh;display:grid;place-items:center;padding:40px 20px}
+  .phone{width:402px;height:874px;background:#fff;border:1px solid var(--hair-16);border-radius:28px;
+         overflow:hidden;position:relative;box-shadow:0 26px 60px rgba(28,26,22,.18)}
+
+  /* what shows behind the scrim: the chapter list underneath */
+  .behind{position:absolute;inset:0;display:flex;flex-direction:column;padding:14px 24px 0}
+  .behind .st{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px}
+  .behind .hd{display:flex;align-items:center;gap:12px;margin-top:16px}
+  .behind .back{width:36px;height:36px;border-radius:18px;border:1px solid rgba(28,26,22,.12);display:grid;place-items:center}
+  .behind h1{font-weight:500;font-size:24px;letter-spacing:-0.6px}
+  /* scrim: rgba(28,26,22,.42) */
+  .scrim{position:absolute;inset:0;background:rgba(28,26,22,.42)}
+
+  /* sheet: top 96, radius 24 top corners, paddingH 20, lifted on a shadow */
+  .sheet{position:absolute;left:0;right:0;bottom:0;top:96px;background:#fff;
+         border-top-left-radius:24px;border-top-right-radius:24px;padding:0 20px;
+         display:flex;flex-direction:column;box-shadow:0 -10px 20px rgba(22,19,14,.25)}
+  /* handle: 40x5, radius 99, marginTop 10 marginBottom 14 */
+  .handle{width:40px;height:5px;border-radius:99px;background:rgba(28,26,22,.18);
+          align-self:center;margin:10px 0 14px}
+
+  /* headerRow: baseline-aligned, space-between */
+  .shead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  /* headerOverline: Onest 800, 8.1, +0.95, uppercase, faint */
+  .overline{font-weight:800;font-size:8.1px;letter-spacing:.95px;text-transform:uppercase;color:var(--faint)}
+  /* headerTitle: Onest 700, 21, -0.42, marginTop 3 */
+  .shead h2{font-weight:700;font-size:21px;letter-spacing:-0.42px;margin-top:3px}
+  /* headerHint: Onest 600, 11, faint */
+  .hint{flex:none;font-weight:600;font-size:11px;color:var(--faint)}
+
+  .body{flex:1;min-height:0;overflow-y:auto}
+  .body::-webkit-scrollbar{width:0}
+
+  /* grid: wrap, gap 9, marginTop 16 · topicCard: basis 48%, min-height 58 */
+  .grid{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+  .topic{flex:1 1 48%;min-height:58px;display:flex;align-items:center;justify-content:space-between;
+         gap:8px;background:#fff;border:1px solid rgba(28,26,22,.2);border-radius:13px;
+         padding:12px 14px;box-shadow:0 1.5px 2px rgba(28,26,22,.05)}
+  /* topicCardText: Onest 600, 13, lh 17.55 */
+  .topic span{flex:1;font-weight:600;font-size:13px;line-height:17.55px}
+  /* topicCardSelected: 1.6px marigold, text goes 700 */
+  .topic.on{border:1.6px solid var(--marigold)}
+  .topic.on span{font-weight:700}
+
+  /* freetalkRow: hairlines above and below, 13/2, marginTop 8 */
+  .freetalk{display:flex;align-items:center;gap:9px;padding:13px 2px;margin-top:8px;
+            border-top:1px solid rgba(28,26,22,.08);border-bottom:1px solid rgba(28,26,22,.08)}
+  /* freetalkText: Onest 400, 13, slate · bold part underlined in amber */
+  .freetalk .t{flex:1;font-weight:400;font-size:13px;color:var(--slate)}
+  .freetalk b{font-weight:700;color:var(--ink);text-decoration:underline;
+              text-decoration-color:rgba(238,163,31,.6)}
+
+  /* talksSection: marginTop 16 · talksOverline marginBottom 9 */
+  .talks{margin-top:16px;padding-bottom:16px}
+  .talks .overline{display:block;margin-bottom:9px}
+  /* talkRow: 1px rgba(28,26,22,.08), radius 12, 13/15, gap 11 */
+  .talk{display:flex;align-items:center;gap:11px;background:#fff;
+        border:1px solid rgba(28,26,22,.08);border-radius:12px;padding:13px 15px}
+  /* talkTitle: Onest 600, 13.5 · talkWhen: Onest 400, 11, faint */
+  .talk .tt{flex:1;min-width:0;font-weight:600;font-size:13.5px}
+  .talk .tw{flex:none;font-weight:400;font-size:11px;color:var(--faint)}
+
+  /* footer: paddingTop 12, paddingBottom 10 · cta 52pt, radius 99 */
+  .foot{flex:none;padding:12px 0 10px;background:#fff}
+  .cta{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:52px;
+       border-radius:99px;font-weight:600;font-size:16px}
+  /* ctaDisabled: rgba(28,26,22,.07) ground, faint text, no lift */
+  .cta.off{background:rgba(28,26,22,.07);color:var(--faint)}
+  /* enabled: ink with a drop shadow */
+  .cta.on{background:var(--ink);color:var(--paper);box-shadow:0 6px 10px rgba(28,26,22,.3)}
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <div class="behind">
+    <div class="st">
+      <span>9:41</span>
+      <span style="display:flex;align-items:center;gap:5px">
+        <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:3px;height:4px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:6px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:8px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:10px;background:rgba(28,26,22,.3);border-radius:1px"></i></span>
+        <span style="width:22px;height:11px;border:1px solid rgba(28,26,22,.4);border-radius:3px;position:relative;display:block"><span style="position:absolute;top:1px;bottom:1px;left:1px;width:15px;background:#1C1A16;border-radius:1px"></span></span>
+      </span>
+    </div>
+    <div class="hd">
+      <span class="back"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M15 5l-7 7 7 7" stroke="#1C1A16" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <h1>What are we learning?</h1>
+    </div>
+  </div>
+  <div class="scrim"></div>
+
+  <div class="sheet">
+    <div class="handle"></div>
+
+    <div class="shead">
+      <div style="min-width:0">
+        <div class="overline">Chapter 01 · Physics · Class 12</div>
+        <h2>Electric Charges and Fields</h2>
+      </div>
+      <span class="hint">pick one topic</span>
+    </div>
+
+    <div class="body">
+      <div class="grid">
+        <div class="topic"><span>Electric Charge: Properties, Quantisation and Charging</span></div>
+        <div class="topic"><span>Coulomb's Law and Electric Forces</span></div>
+        <div class="topic"><span>Equilibrium of Charges</span></div>
+        <div class="topic"><span>Electric Field</span></div>
+        <div class="topic"><span>Electric Field Lines</span></div>
+        <div class="topic"><span>Motion of a Charged Particle in a Uniform Electric Field</span></div>
+        <div class="topic"><span>Electric Flux</span></div>
+        <div class="topic"><span>Electric Dipole and Its Field</span></div>
+        <div class="topic"><span>Torque and Potential Energy of a Dipole in a Uniform Electric Field</span></div>
+        <div class="topic"><span>Electric Field due to Continuous Charge Distribution</span></div>
+        <div class="topic" style="flex-basis:100%"><span>Gauss's Law and Its Applications</span></div>
+      </div>
+
+      <div class="freetalk">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#57534B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3"/>
+        </svg>
+        <span class="t">Can't find your topic? <b>Just start talking</b></span>
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none"><path d="M2 8h11M9 3.5 13.5 8 9 12.5" stroke="#57534B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+
+      <div class="talks">
+        <span class="overline">From your talks</span>
+        <div class="talk">
+          <span class="tt">EMF vs terminal voltage</span>
+          <span class="tw">2d ago</span>
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M6 3.5 10.5 8 6 12.5" stroke="#9C988C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <!-- Disabled until a topic is chosen; the enabled state is ink with a lift. -->
+      <div class="cta off">Pick a topic to start</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

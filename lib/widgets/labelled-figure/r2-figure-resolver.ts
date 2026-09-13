@@ -195,20 +195,59 @@ const assetIndex = new Map<string, AssetRow>();
  * dropped. And the on-disk keying is untouched — the new sha simply misses,
  * downloads, and the old file ages out of the LRU as any other orphan does.
  */
-export function setChapterAssets(rows: readonly AssetRow[]): void {
+export function setChapterAssets(rows: readonly AssetRow[]): string[] {
+  const dropped: string[] = [];
   for (const r of rows) {
     const had = assetIndex.get(r.asset_slug);
     assetIndex.set(r.asset_slug, r);
     if (!had) continue;
-    const wasSha = had.master_sha256;
-    const nowSha = r.master_sha256;
-    if (wasSha && nowSha && wasSha !== nowSha) {
-      r2FigureResolver.invalidate(
-        r.asset_slug,
-        `master_sha256 ${wasSha.slice(0, 12)} -> ${nowSha.slice(0, 12)}`
-      );
+
+    /*
+     * TWO THINGS CAN GO STALE, AND ONLY ONE OF THEM USED TO BE CHECKED.
+     *
+     * `master_sha256` covers the art. It does not cover the LABELS: publishing
+     * a set rewrites concept-assets/<slug>.json and never touches the master,
+     * so the frog heart went live on 2026-09-12 and every running client kept
+     * drawing the plate unlabelled until it was restarted. The bytes were
+     * right, the board was right, and nothing told the client to look again.
+     *
+     * The version is what a person reads; the SHA is what decides. A reviewer
+     * who corrects one anchor and republishes at the same version still
+     * changes the bytes, so a version-only check would miss exactly the edit
+     * this exists to propagate.
+     *
+     * `undefined` is not a change. Until migration 0045 is applied the server
+     * omits these fields, and reading that as "moved to nothing" would drop
+     * every cached figure on every class start.
+     */
+    const reason = staleReason(had, r);
+    if (reason) {
+      r2FigureResolver.invalidate(r.asset_slug, reason);
+      dropped.push(r.asset_slug);
     }
   }
+  // Returned so a caller can assert "exactly these, exactly once" rather than
+  // against an empty list that proves nothing — the hole B3's fixture had.
+  return dropped;
+}
+
+function staleReason(had: AssetRow, now: AssetRow): string | null {
+  const wasSha = had.master_sha256;
+  const nowSha = now.master_sha256;
+  if (wasSha && nowSha && wasSha !== nowSha) {
+    return `master_sha256 ${wasSha.slice(0, 12)} -> ${nowSha.slice(0, 12)}`;
+  }
+  const wasSet = had.label_set_sha256;
+  const nowSet = now.label_set_sha256;
+  if (wasSet !== undefined && nowSet !== undefined && wasSet !== nowSet) {
+    return `label_set_sha256 ${(wasSet ?? 'none').slice(0, 12)} -> ${(nowSet ?? 'none').slice(0, 12)}`;
+  }
+  const wasV = had.label_set_version;
+  const nowV = now.label_set_version;
+  if (wasV !== undefined && nowV !== undefined && wasV !== nowV) {
+    return `label_set_version ${wasV} -> ${nowV}`;
+  }
+  return null;
 }
 
 export function knownAsset(slug: string): AssetRow | null {

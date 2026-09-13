@@ -40,6 +40,15 @@ export interface AssetRow {
   rendition_2x_sha256: string | null;
   width: number;
   height: number;
+  /**
+   * The published label set's identity. Optional because migration 0045 is
+   * applied separately and the endpoint serves the rows without these fields
+   * until it is — an absent value means "this server cannot tell me", which
+   * is NOT the same claim as `0` / `null`, which mean "nothing published".
+   * `setChapterAssets` only acts on a value that is present and has moved.
+   */
+  label_set_version?: number;
+  label_set_sha256?: string | null;
 }
 
 /** 200 MB. The whole v1.1 corpus is ~180 MB of masters and renditions, so a

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MonkLearning — Doubts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Values lifted from components/library-list.tsx, components/erase.tsx and
+     constants/brand.js. Static: nothing here is wired up. */
+  :root{
+    --ink:#1C1A16; --paper:#FFFDF8; --slate:#57534B; --faint:#9C988C;
+    --marigold:#EEA31F; --amber-text:#9A6A12; --red:#DD4433; --green:#1C9B57;
+    --hair:rgba(28,26,22,.12); --hair-14:rgba(28,26,22,.14); --hair-16:rgba(28,26,22,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Onest',system-ui,sans-serif;color:var(--ink);background:#EFE9DA;
+       -webkit-font-smoothing:antialiased;min-height:100vh;display:grid;place-items:center;padding:40px 20px}
+  .phone{width:402px;height:874px;background:#fff;border:1px solid var(--hair-16);border-radius:28px;
+         overflow:hidden;display:flex;flex-direction:column;position:relative;
+         box-shadow:0 26px 60px rgba(28,26,22,.18)}
+  .status{flex:none;display:flex;align-items:center;justify-content:space-between;
+          padding:14px 24px 2px;font-weight:700;font-size:14px}
+  .status .right{display:flex;align-items:center;gap:5px}
+  .bars{display:flex;align-items:flex-end;gap:1.5px}
+  .bars i{display:block;width:3px;background:var(--ink);border-radius:1px}
+  .battery{width:22px;height:11px;border:1px solid rgba(28,26,22,.4);border-radius:3px;position:relative;display:block}
+  .battery span{position:absolute;top:1px;bottom:1px;left:1px;width:15px;background:var(--ink);border-radius:1px}
+
+  /* headerFixed: paddingTop 12, paddingHorizontal 20 */
+  .head{flex:none;padding:12px 20px 0}
+  /* headerRow: space-between, minHeight 40 */
+  .headRow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px}
+  /* heading: Onest 500, 24, -0.6 — the app's page-title tier */
+  .headRow h1{font-weight:500;font-size:24px;letter-spacing:-0.6px}
+  /* EraseTool pill: 1px hairline, radius 99, 5/12/5/9 · label Onest 700, 12 */
+  .erase{display:flex;align-items:center;gap:6px;margin-bottom:7px;
+         padding:5px 12px 5px 9px;border-radius:99px;border:1px solid var(--hair);
+         font-weight:700;font-size:12px;color:var(--slate)}
+
+  /* pageContent: paddingHorizontal 20 */
+  .list{flex:1;min-height:0;overflow-y:auto;padding:0 20px 24px}
+  .list::-webkit-scrollbar{width:0}
+  .list > *{flex:none}
+
+  /* searchBar: 1.4px hairline, radius 99, 10/15, marginTop 12 */
+  .search{display:flex;align-items:center;gap:9px;background:#fff;border:1.4px solid var(--hair);
+          border-radius:99px;padding:10px 15px;margin-top:12px}
+  .search span{flex:1;font-weight:400;font-size:14px;color:var(--faint)}
+  .searchRow{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .searchRow .search{flex:1;margin-top:0}
+  .snap{width:46px;height:44px;border:1.4px solid var(--hair);border-radius:14px;
+        display:grid;place-items:center;flex:none}
+
+  /* filterRow: gap 7, marginTop 12 · filterPill: radius 99, 6/13 */
+  .filters{display:flex;align-items:center;gap:7px;margin-top:12px}
+  .pill{padding:6px 13px;border-radius:99px;border:1px solid var(--hair-14);background:#fff;
+        font-weight:600;font-size:12px;color:var(--slate)}
+  .pill.on{border:0;background:var(--ink);color:var(--paper);font-weight:700}
+  /* filterCount: marginLeft auto, Onest 600, 11, faint */
+  .count{margin-left:auto;font-weight:600;font-size:11px;color:var(--faint)}
+
+  /* notesList / doubtsList: gap 12, marginTop 24 */
+  .cards{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+  /* noteCard / doubtCard: #fff, 1px hairline(.16), radius 16, 14/16 */
+  .card{background:#fff;border:1px solid var(--hair-16);border-radius:16px;
+        padding:14px 16px;box-shadow:0 1px 3px rgba(28,26,22,.06)}
+  .topRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .metaRow{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
+  /* noteDot: 6px */
+  .dot{width:6px;height:6px;border-radius:3px;flex:none}
+  /* subject: Onest 800, 8.1, +0.81, uppercase — the corrected size */
+  .subj{font-weight:800;font-size:8.1px;letter-spacing:.81px;text-transform:uppercase;flex:none}
+  /* noteTime: Kalam 700, 11, faint */
+  .time{font-family:'Kalam',cursive;font-weight:700;font-size:11px;color:var(--faint);flex:none}
+
+  /* tab bar */
+  .tabs{flex:none;background:#fff;border-top:1.5px solid var(--hair-16);padding:6px 12px 34px}
+  .tabRow{display:grid;grid-template-columns:repeat(4,1fr);height:50px;align-items:center}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tab.off{opacity:.5}
+  .tab span{font-size:10px;font-weight:700;color:var(--faint)}
+  .tab.on span{font-weight:800;color:var(--ink)}
+
+  /* doubtChapterText: Onest 500, 11.5, faint — sentence case, not caps, so it
+     does not compete with the subject beside it */
+  .chapter{flex-shrink:1;min-width:0;font-weight:500;font-size:11.5px;color:var(--faint);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* doubtQuestion: Onest 400, 14, lh 20, marginTop 7, two lines */
+  .q{font-weight:400;font-size:14px;line-height:20px;margin-top:7px;
+     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status">
+    <span>9:41</span>
+    <span class="right">
+      <span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px;background:rgba(28,26,22,.3)"></i></span>
+      <span class="battery"><span></span></span>
+    </span>
+  </div>
+  <div class="head">
+    <div class="headRow"><h1>Doubts</h1><span class="erase"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M4.8 16.9 12.5 6.6a1.9 1.9 0 0 1 2.7-.4l2.9 2.1a1.9 1.9 0 0 1 .4 2.7L13.4 19H6.7a1.9 1.9 0 0 1-1.9-2.1z" fill="rgba(238,163,31,.13)" stroke="#1C1A16" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.4 12.2 15.7 16.8" stroke="#1C1A16" stroke-width="1.6" stroke-linecap="round"/><path d="M13.4 19h4.9" stroke="#1C1A16" stroke-width="1.6" stroke-linecap="round"/></svg>Erase</span></div>
+  </div>
+  <div class="list">
+    <div class="searchRow">
+      <div class="search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none"><circle cx="11" cy="11" r="7" stroke="#9C988C" stroke-width="2"/><path d="m20 20-3.2-3.2" stroke="#9C988C" stroke-width="2" stroke-linecap="round"/></svg><span>Search your doubts…</span></div>
+      <span class="snap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#1C1A16" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3"/><rect x="2.8" y="6.4" width="18.4" height="13.5" rx="3.2"/><circle cx="12" cy="13.2" r="3.6"/><circle cx="17.6" cy="9.6" r="1.1" fill="#EEA31F" stroke="none"/></svg></span>
+    </div>
+    <div class="filters">
+      <span class="pill on">All</span><span class="pill">Physics</span>
+      <span class="pill">Chemistry</span><span class="pill">Math</span>
+      <span class="count">19 doubts</span>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="topRow">
+          <span class="metaRow">
+            <span class="dot" style="background:#DD4433"></span>
+            <span class="subj" style="color:#C53A2B">Physics</span>
+            <span class="chapter">Kinematics</span>
+          </span>
+          <span class="time">1h ago</span>
+        </div>
+        <p class="q">A car starting from rest accelerates uniformly at a rate of 4 m / s² for a duration of 6 seconds. I…</p>
+      </div>
+      <div class="card">
+        <div class="topRow">
+          <span class="metaRow">
+            <span class="dot" style="background:#EEA31F"></span>
+            <span class="subj" style="color:#9A6A12">Math</span>
+            <span class="chapter">Straight lines</span>
+          </span>
+          <span class="time">9h ago</span>
+        </div>
+        <p class="q">If the sum of squares of all real values of a, for which the lines 2 x-y+3=0,6 x+3 y+1=0 and a x…</p>
+      </div>
+      <div class="card">
+        <div class="topRow">
+          <span class="metaRow">
+            <span class="dot" style="background:#EEA31F"></span>
+            <span class="subj" style="color:#9A6A12">Math</span>
+            <span class="chapter">Coordinate geometry</span>
+          </span>
+          <span class="time">9h ago</span>
+        </div>
+        <p class="q">Let big(5, (a/4)big), be the circumcenter of a triangle with vertices A(a,-2), B(a, 6) and Cbig(…</p>
+      </div>
+      <div class="card">
+        <div class="topRow">
+          <span class="metaRow">
+            <span class="dot" style="background:#EEA31F"></span>
+            <span class="subj" style="color:#9A6A12">Math</span>
+            <span class="chapter">Complex Numbers</span>
+          </span>
+          <span class="time">9h ago</span>
+        </div>
+        <p class="q">Let z₁, z₂ and z₃ be three complex numbers on the circle |z|=1 with arg (z₁)=(-π)/4, arg (z₂)=0 a…</p>
+      </div>
+      <div class="card">
+        <div class="topRow">
+          <span class="metaRow">
+            <span class="dot" style="background:#EEA31F"></span>
+            <span class="subj" style="color:#9A6A12">Math</span>
+            <span class="chapter">Complex Numbers and Quadratic Equations</span>
+          </span>
+          <span class="time">9h ago</span>
+        </div>
+        <p class="q">If a+i β and γ+i δ are the roots of x²-(3-2 i) x-(2 i-2)=0, i=√(-1), then a γ+β δ is equal to:</p>
+      </div>
+      <div class="card">
+        <div class="topRow">
+          <span class="metaRow">
+            <span class="dot" style="background:#DD4433"></span>
+            <span class="subj" style="color:#C53A2B">Physics</span>
+            <span class="chapter">Rotational Motion</span>
+          </span>
+          <span class="time">1d ago</span>
+        </div>
+        <p class="q">A solid cylinder of mass M and radius R rolls without slipping down an incline of angle θ. Find its…</p>
+      </div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tabRow">
+      <span class="tab off">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#1C1A16" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4.5 10.4 12 3.8l7.5 6.6V18a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2z"/><circle cx="12" cy="14.4" r="1.7" fill="#9C988C" stroke="none"/>
+        </svg><span>Home</span>
+      </span>
+      <span class="tab off">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#1C1A16" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 6.4C10.1 4.7 7.3 4.1 4 4.5v13c3.3-.4 6.1.2 8 1.9 1.9-1.7 4.7-2.3 8-1.9v-13c-3.3-.4-6.1.2-8 1.9z"/><path d="M12 6.4v13"/>
+        </svg><span>Textbooks</span>
+      </span>
+            <span class="tab on">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none">
+          <path d="M4.2 8.6V6.4a2.2 2.2 0 0 1 2.2-2.2h2.2M15.4 4.2h2.2a2.2 2.2 0 0 1 2.2 2.2v2.2M19.8 15.4v2.2a2.2 2.2 0 0 1-2.2 2.2h-2.2M8.6 19.8H6.4a2.2 2.2 0 0 1-2.2-2.2v-2.2" stroke="#1C1A16" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M9.9 9.7a2.2 2.2 0 1 1 2.6 2.5v1.2" stroke="#1C1A16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12.4" cy="16.4" r="1.6" fill="#EEA31F"/>
+        </svg><span>Doubts</span>
+      </span>
+
+            <span class="tab off">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#1C1A16" stroke-width="1.75" stroke-linejoin="round">
+          <path d="M5.6 3.4h7.6l5.2 5.2v12a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V5.4a2 2 0 0 1 2-2z"/>
+          <path d="M13.2 3.4v5.2h5.2" stroke-linecap="round"/>
+          <path d="M7.4 12.6h7M7.4 16h4.4" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="16.4" cy="17.4" r="1.4" fill="#9C988C" stroke="none"/>
+        </svg><span>Notes</span>
+      </span>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Anek Latin',system-ui,sans-serif;color:#1C1A16;background:#EFE9DA;-webkit-font-smoothing:antialiased;min-height:100vh;display:grid;place-items:center;padding:40px 24px}
+a{color:#9A6A12;text-decoration:none}
+a:hover{color:#EEA31F}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;text-align:left}
+.mlsc::-webkit-scrollbar{width:0;height:0}
+.mlsc{scrollbar-width:none}
+</style>
+</helmet>
+
+<div data-screen-label="Practice" style="width:390px;height:844px;background:#FFFFFF;border:1px solid rgba(28,25,20,.14);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 22px 50px rgba(28,26,22,.13)">
+
+  <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 24px 6px;position:relative;z-index:14"><span style="font-weight:700;font-size:14px">9:41</span><span style="display:flex;align-items:center;gap:5px"><span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:3px;height:4px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:6px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:8px;background:#1C1A16;border-radius:1px"></i><i style="display:block;width:3px;height:10px;background:rgba(28,25,20,.3);border-radius:1px"></i></span><span style="width:22px;height:11px;border:1px solid rgba(28,25,20,.4);border-radius:3px;position:relative;display:block"><span style="position:absolute;top:1px;bottom:1px;left:1px;width:14px;background:#1C1A16;border-radius:1px"></span></span></span></div>
+
+  <div style="flex:none;display:flex;align-items:center;gap:10px;padding:10px 24px 0;position:relative;z-index:8">
+    <span style="width:28px;height:28px;margin-left:-6px;flex:none;display:grid;place-items:center"><svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M10 3 5 8l5 5" stroke="#1C1A16" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+    <h2 style="flex:1;font-weight:700;font-size:26px;letter-spacing:-.025em;line-height:1.1;display:flex;align-items:center;gap:8px"><span>Practice</span><button onClick="{{ toggleMenu }}" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:26px;letter-spacing:-.025em;line-height:1.1;padding:0">{{ subjName }}<svg viewBox="0 0 16 16" width="14" height="14" fill="none" style="{{ chevStyle }}"><path d="m4 6 4 4 4-4" stroke="#1C1A16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></h2>
+    <span style="width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(28,25,20,.14);margin-right:-4px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#57534B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"></path><path d="M5 4c4.2-2 8.8 2 14 0v10c-5.2 2-9.8-2-14 0"></path></svg></span>
+    <div style="{{ menuStyle }}">
+      <sc-for list="{{ subjects }}" as="s" hint-placeholder-count="3">
+        <button onClick="{{ s.onClick }}" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:11px"><b style="{{ s.nameStyle }}">{{ s.name }}</b><sc-if value="{{ s.on }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#1C1A16" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg></sc-if></button>
+      </sc-for>
+    </div>
+  </div>
+  <div onClick="{{ closeMenu }}" style="{{ menuScrimStyle }}"></div>
+
+  <div class="mlsc" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 24px 24px">
+
+    <button onClick="{{ openSheet }}" style="display:flex;align-items:center;gap:12px;width:100%;padding:16px 0 14px;margin-top:8px;border-bottom:1px solid rgba(28,25,20,.1)">
+      <span style="flex:1;min-width:0"><span style="display:block;font-weight:800;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9C988C">Focus mode</span><span style="display:block;font-weight:400;font-size:13px;color:#57534B;margin-top:3px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ focusLabel }}</span></span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:13px;color:#9A6A12;flex:none">Change<svg viewBox="0 0 16 16" width="11" height="11" fill="none"><path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+    </button>
+
+    <div style="padding:22px 0 18px;border-bottom:1px solid rgba(28,25,20,.1)">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:14px"><b style="font-weight:800;color:#1C1A16;flex:none">{{ qNum }}</b><span style="font-weight:400;color:#8A857A">{{ qTag }}</span></div>
+      <p style="margin-top:8px;line-height:1.5;font-size:17px;font-weight:500">{{ qText }}</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <sc-for list="{{ options }}" as="o" hint-placeholder-count="4">
+        <button onClick="{{ o.onClick }}" style="{{ o.style }}">
+          <span style="{{ o.badgeStyle }}">{{ o.letter }}</span>
+          <span style="{{ o.textStyle }}">{{ o.text }}</span>
+          <sc-if value="{{ o.hasTag }}" hint-placeholder-val="{{ false }}"><span style="{{ o.tagStyle }}">{{ o.tag }}</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ notRevealed }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+        <button onClick="{{ reveal }}" style="{{ submitStyle }}">Submit</button>
+        <button onClick="{{ next }}" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:#57534B;padding:0 4px;height:40px">Skip<svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M2 8h11M9 3.5 13.5 8 9 12.5" stroke="#57534B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ revealed }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button onClick="{{ next }}" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;height:48px;padding:0 22px;border-radius:99px;background:#1C1A16;color:#FFFFFF;flex:none">Next<svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M2 8h11M9 3.5 13.5 8 9 12.5" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:none;background:#FFFFFF;border-top:1px solid rgba(28,25,20,.08);padding:0 12px 26px;position:relative">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);height:56px;align-items:center">
+      <span style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg viewBox="0 0 24 24" width="23" height="23" fill="none"><path d="M4.5 10.4 12 3.8l7.5 6.6V18a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2z" fill="#1C1A16"></path><circle cx="12" cy="14.4" r="1.8" fill="#EEA31F"></circle></svg><span style="font-weight:800;font-size:10px">Home</span></span>
+      <span style="display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.5"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#1C1A16" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4C10.1 4.7 7.3 4.1 4 4.5v13c3.3-.4 6.1.2 8 1.9 1.9-1.7 4.7-2.3 8-1.9v-13c-3.3-.4-6.1.2-8 1.9z"></path><path d="M12 6.4v13"></path></svg><span style="font-weight:700;font-size:10px;color:#9C988C">Lessons</span></span>
+      <span style="display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.5"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#1C1A16" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19h15"></path><path d="M8 19v-4.5M12 19v-8M16 19V7.5"></path></svg><span style="font-weight:700;font-size:10px;color:#9C988C">Progress</span></span>
+      <span style="display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.5"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#1C1A16" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4.75" y="5" width="3.5" height="14" rx="1.2"></rect><rect x="10.25" y="5" width="3.5" height="14" rx="1.2"></rect><rect x="15.6" y="5.3" width="3.5" height="13.6" rx="1.2" transform="rotate(12 17.35 12.1)"></rect></svg><span style="font-weight:700;font-size:10px;color:#9C988C">Library</span></span>
+    </div>
+    <span style="position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:130px;height:4px;border-radius:99px;background:rgba(28,25,20,.2)"></span>
+  </div>
+
+  <div onClick="{{ closeSheet }}" style="{{ scrimStyle }}"></div>
+  <div data-screen-label="Practice focus" style="{{ sheetStyle }}">
+    <div style="flex:none;display:flex;align-items:center;gap:10px;padding:58px 24px 12px">
+      <button onClick="{{ closeSheet }}" style="width:28px;height:28px;margin-left:-6px;flex:none;display:grid;place-items:center"><svg viewBox="0 0 16 16" width="14" height="14" fill="none"><path d="M10 3 5 8l5 5" stroke="#1C1A16" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+      <b style="font-weight:700;font-size:26px;letter-spacing:-.025em;line-height:1.1">Focus mode</b>
+    </div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:0 24px 8px">
+    <p style="font-size:13px;color:#57534B">{{ sheetSub }}</p>
+    <div style="display:flex;flex-direction:column;margin-top:14px">
+      <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+        <button onClick="{{ m.onClick }}" style="display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid rgba(28,25,20,.1);width:100%">
+          <span style="flex:1;min-width:0;display:block;font-weight:400;font-size:15px;text-align:left">{{ m.label }}</span>
+          <span style="{{ m.radioStyle }}"><sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg></sc-if></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin:10px 0 4px"><span style="flex:1;height:1px;background:rgba(28,25,20,.1)"></span><span style="font-family:'Kalam',cursive;font-weight:700;color:#DD4433;font-size:13px;transform:rotate(-1deg)">{{ pickHint }}</span><span style="flex:1;height:1px;background:rgba(28,25,20,.1)"></span></div>
+    <sc-for list="{{ classGroups }}" as="g" hint-placeholder-count="2">
+      <span style="display:block;font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9C988C;margin:28px 0 6px">{{ g.label }}</span>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ g.chapters }}" as="c" hint-placeholder-count="5">
+          <button onClick="{{ c.onClick }}" style="{{ c.rowStyle }}">
+            <span style="flex:1;min-width:0;display:block;font-weight:400;font-size:15px;text-align:left">{{ c.name }}</span>
+            <span style="{{ c.radioStyle }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg></sc-if></span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-for>
+    </div>
+    <div style="flex:none;padding:12px 24px 22px;border-top:1px solid rgba(28,25,20,.08);background:#FFFFFF"><button onClick="{{ applyFocus }}" style="display:flex;align-items:center;justify-content:center;width:100%;font-weight:700;font-size:16px;height:52px;border-radius:99px;color:#FFF7E6;background:#241A08">Apply focus</button></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:940},&quot;exam&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;JEE Main&quot;,&quot;options&quot;:[&quot;JEE Main&quot;,&quot;NEET UG&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Content&quot;}}">
+class Component extends DCLogic {
+  static SUBJ = [
+    {key:'phy',name:'Physics',score:764,
+      c11:['Units and Measurements','Motion in a Straight Line','Motion in a Plane','Laws of Motion','Work, Energy and Power','Rotational Motion','Gravitation','Mechanical Properties of Solids','Mechanical Properties of Fluids','Thermal Properties of Matter','Thermodynamics','Kinetic Theory','Oscillations','Waves'],
+      c12:['Electric Charges and Fields','Electrostatic Potential and Capacitance','Current Electricity','Moving Charges and Magnetism','Magnetism and Matter','Electromagnetic Induction','Alternating Current','Electromagnetic Waves','Ray Optics and Optical Instruments','Wave Optics','Dual Nature of Radiation and Matter','Atoms','Nuclei','Semiconductor Electronics']},
+    {key:'chem',name:'Chemistry',score:618,
+      c11:['Some Basic Concepts of Chemistry','Structure of Atom','Classification of Elements and Periodicity','Chemical Bonding and Molecular Structure','Thermodynamics','Equilibrium','Redox Reactions','Organic Chemistry: Basic Principles','Hydrocarbons'],
+      c12:['Solutions','Electrochemistry','Chemical Kinetics','d- and f-Block Elements','Coordination Compounds','Haloalkanes and Haloarenes','Alcohols, Phenols and Ethers','Aldehydes, Ketones and Carboxylic Acids','Amines','Biomolecules']},
+    {key:'math',name:'Maths',score:727,
+      c11:['Sets','Relations and Functions','Trigonometric Functions','Complex Numbers and Quadratic Equations','Linear Inequalities','Permutations and Combinations','Binomial Theorem','Sequences and Series','Straight Lines','Conic Sections','Introduction to Three Dimensional Geometry','Limits and Derivatives','Statistics','Probability'],
+      c12:['Relations and Functions','Inverse Trigonometric Functions','Matrices','Determinants','Continuity and Differentiability','Application of Derivatives','Integrals','Application of Integrals','Differential Equations','Vector Algebra','Three Dimensional Geometry','Linear Programming','Probability']},
+    {key:'bio',name:'Biology',score:655,
+      c11:['The Living World','Biological Classification','Plant Kingdom','Animal Kingdom','Morphology of Flowering Plants','Anatomy of Flowering Plants','Structural Organisation in Animals','Cell: The Unit of Life','Biomolecules','Cell Cycle and Cell Division','Photosynthesis in Higher Plants','Respiration in Plants','Plant Growth and Development','Breathing and Exchange of Gases','Body Fluids and Circulation','Excretory Products and their Elimination','Locomotion and Movement','Neural Control and Coordination','Chemical Coordination and Integration'],
+      c12:['Sexual Reproduction in Flowering Plants','Human Reproduction','Reproductive Health','Principles of Inheritance and Variation','Molecular Basis of Inheritance','Evolution','Human Health and Disease','Microbes in Human Welfare','Biotechnology: Principles and Processes','Biotechnology and its Applications','Organisms and Populations','Ecosystem','Biodiversity and Conservation']}
+  ].map(s=>({...s,chapters:[...s.c11.map(n=>({name:n,cls:11})),...s.c12.map(n=>({name:n,cls:12}))]}));
+  static ST = {strong:['#1C9B57','Strong'],improving:['#EEA31F','Improving'],weak:['#DD4433','Needs revision'],new:['#C3BBA8','Not started']};
+  static QS = [
+    {s:'phy',ch:'Motion in a Plane',q:'A ball is thrown vertically upward at 20 m/s. Taking g = 10 m/s², it returns to the thrower after:',o:['1 s','2 s','4 s','8 s'],a:2,e:'Time up = u/g = 2 s. The fall takes exactly as long, so the round trip is 2u/g = 4 s.',r:'up and down take the same time.'},
+    {s:'phy',ch:'Motion in a Plane',q:'A projectile fired at 45° has range R. Its maximum height is:',o:['R / 4','R / 2','R','2R'],a:0,e:'H/R = tan θ / 4. At 45°, tan θ = 1, so H = R/4.',r:'H = R tanθ / 4, worth memorising.'},
+    {s:'phy',ch:'Rotational Motion',q:'A solid sphere rolls without slipping. The fraction of its kinetic energy that is rotational is:',o:['2 / 7','2 / 5','1 / 2','5 / 7'],a:0,e:'K_rot / K_trans = I/mr² = 2/5. So rotational share = (2/5) / (1 + 2/5) = 2/7.',r:'share = k / (1 + k), k = I/mr².'},
+    {s:'phy',ch:'Rotational Motion',q:'Moment of inertia of a thin uniform rod (mass M, length L) about a perpendicular axis through one end is:',o:['ML² / 12','ML² / 3','ML² / 2','ML²'],a:1,e:'About the centre it is ML²/12. Shift the axis by L/2 with the parallel-axis theorem: ML²/12 + M(L/2)² = ML²/3.',r:'centre → end: add M(L/2)².'},
+    {s:'phy',ch:'Current Electricity',q:'A wire of resistance R is stretched to twice its length. Its new resistance is:',o:['R / 2','2R','4R','R / 4'],a:2,e:'Volume is fixed, so doubling the length halves the area. R ∝ L/A: length ×2 and area ÷2 gives ×4.',r:'stretch ×2 → resistance ×4, always.'},
+    {s:'phy',ch:'Current Electricity',q:'Two resistors of 6 Ω and 3 Ω are joined in parallel. The equivalent resistance is:',o:['9 Ω','4.5 Ω','2 Ω','18 Ω'],a:2,e:'For a parallel pair, R = product / sum = (6 × 3) / (6 + 3) = 2 Ω. Always less than the smaller one.',r:'parallel → product over sum.'},
+    {s:'phy',ch:'Current Electricity',q:'A 100 W bulb rated at 220 V is run on 110 V. The power drawn becomes:',o:['100 W','50 W','25 W','200 W'],a:2,e:'Resistance stays fixed. P = V²/R, so halving the voltage divides the power by four: 25 W.',r:'P ∝ V² at fixed R.'},
+    {s:'phy',ch:'Electromagnetic Induction',q:'If the number of turns per unit length of a long solenoid is doubled (same length and area), its self-inductance becomes:',o:['2L','4L','L / 2','L'],a:1,e:'L = μ₀ n² A l. Inductance goes with n², so doubling n gives 4L.',r:'L ∝ n², not n.'},
+    {s:'phy',ch:'Electromagnetic Induction',q:'A conducting rod of length l moves at speed v perpendicular to a uniform field B. The emf induced across it is:',o:['B l v','B v / l','B l / v','zero'],a:0,e:'Each free charge feels qvB along the rod; work per unit charge over length l is Blv. That is the motional emf.',r:'motional emf = Blv.'},
+    {s:'phy',ch:'Dual Nature of Radiation and Matter',q:'A metal has work function 2 eV. Light of photon energy 5 eV falls on it. Maximum kinetic energy of the photoelectrons is:',o:['2 eV','3 eV','5 eV','7 eV'],a:1,e:'Einstein: K_max = hν − φ = 5 − 2 = 3 eV. The photon pays the work function first.',r:'K_max = photon − work function.'},
+    {s:'phy',ch:'Dual Nature of Radiation and Matter',q:'A sample has half-life 20 minutes. The fraction remaining after 1 hour is:',o:['1 / 2','1 / 4','1 / 8','1 / 16'],a:2,e:'One hour is three half-lives. Each halves the sample: (1/2)³ = 1/8.',r:'count half-lives, then (1/2)ⁿ.'},
+    {s:'chem',ch:'Chemical Bonding and Molecular Structure',q:'The geometry of SF₆ is:',o:['Tetrahedral','Trigonal bipyramidal','Octahedral','Square planar'],a:2,e:'Sulphur has six bond pairs and no lone pairs: sp³d² hybridisation, octahedral shape, all angles 90°.',r:'6 bond pairs, 0 lone → octahedral.'},
+    {s:'chem',ch:'Chemical Bonding and Molecular Structure',q:'The bond order of the superoxide ion O₂⁻ is:',o:['1','1.5','2','2.5'],a:1,e:'O₂ has bond order 2 (bonding 10, antibonding 6). One extra electron enters π*, so (10 − 7)/2 = 1.5.',r:'extra e⁻ into π* drops order by ½.'},
+    {s:'chem',ch:'Equilibrium',q:'The pH of a 0.001 M HCl solution is:',o:['1','2','3','11'],a:2,e:'HCl is a strong acid, fully ionised. [H⁺] = 10⁻³ M, so pH = −log(10⁻³) = 3.',r:'strong acid: pH = −log C.'},
+    {s:'chem',ch:'Equilibrium',q:'For N₂ + 3H₂ ⇌ 2NH₃, increasing the pressure at constant temperature:',o:['Shifts equilibrium left','Shifts equilibrium right','Has no effect','Changes K'],a:1,e:'4 moles of gas on the left, 2 on the right. Le Chatelier: higher pressure favours the side with fewer gas moles. K itself depends only on temperature.',r:'pressure up → fewer gas moles.'},
+    {s:'chem',ch:'Thermodynamics',q:'For an isothermal reversible expansion of an ideal gas, ΔU is:',o:['Positive','Negative','Zero','Depends on volume'],a:2,e:'Internal energy of an ideal gas depends only on temperature. Isothermal means ΔT = 0, so ΔU = 0 and q = −w.',r:'ideal gas + isothermal → ΔU = 0.'},
+    {s:'chem',ch:'Thermodynamics',q:'A reaction is spontaneous at all temperatures when:',o:['ΔH > 0, ΔS < 0','ΔH < 0, ΔS > 0','ΔH < 0, ΔS < 0','ΔH > 0, ΔS > 0'],a:1,e:'ΔG = ΔH − TΔS. With ΔH negative and ΔS positive, both terms make ΔG negative whatever T is.',r:'exothermic + more disorder = always on.'},
+    {s:'chem',ch:'Coordination Compounds',q:'The oxidation state of Fe in [Fe(CN)₆]⁴⁻ is:',o:['0','+2','+3','+4'],a:1,e:'Six CN⁻ ligands contribute −6. Overall charge is −4, so x − 6 = −4 gives x = +2.',r:'metal charge = total − ligand charges.'},
+    {s:'chem',ch:'Coordination Compounds',q:'The number of unpaired electrons in [Co(NH₃)₆]³⁺ is:',o:['0','2','4','6'],a:0,e:'Co³⁺ is d⁶. NH₃ is a strong-field ligand, so all six electrons pair in t₂g: low spin, diamagnetic, zero unpaired.',r:'strong field + d⁶ → t₂g⁶, all paired.'},
+    {s:'chem',ch:'Organic Chemistry: Basic Principles',q:'The most stable carbocation among these is:',o:['CH₃⁺','Primary (1°)','Secondary (2°)','Tertiary (3°)'],a:3,e:'Three alkyl groups donate electron density through +I effect and hyperconjugation, spreading the positive charge.',r:'more alkyl groups → happier cation.'},
+    {s:'chem',ch:'Organic Chemistry: Basic Principles',q:'Which group shows a −I (electron-withdrawing inductive) effect?',o:['–CH₃','–NO₂','–O⁻','–COO⁻'],a:1,e:'–NO₂ pulls electron density towards itself through the sigma framework. Alkyl and anionic groups push it away (+I).',r:'nitro pulls; alkyl pushes.'},
+    {s:'math',ch:'Relations and Functions',q:'If n(A) = 3 and n(B) = 4, the maximum possible value of n(A ∪ B) is:',o:['3','4','7','12'],a:2,e:'n(A ∪ B) = n(A) + n(B) − n(A ∩ B). It is largest when the sets are disjoint: 3 + 4 − 0 = 7.',r:'disjoint sets → just add.'},
+    {s:'math',ch:'Relations and Functions',q:'The number of subsets of a set with 5 elements is:',o:['5','10','25','32'],a:3,e:'Each element is either in or out of a subset: 2 choices each, 2⁵ = 32 subsets (including ∅ and the set itself).',r:'n elements → 2ⁿ subsets.'},
+    {s:'math',ch:'Complex Numbers and Quadratic Equations',q:'The value of i²⁰²⁶ is:',o:['1','−1','i','−i'],a:1,e:'Powers of i repeat every 4. 2026 = 4 × 506 + 2, so i²⁰²⁶ = i² = −1.',r:'divide the power by 4, keep the remainder.'},
+    {s:'math',ch:'Complex Numbers and Quadratic Equations',q:'The modulus of 3 + 4i is:',o:['1','5','7','25'],a:1,e:'|a + bi| = √(a² + b²) = √(9 + 16) = 5. The classic 3-4-5 triangle.',r:'modulus = distance from origin.'},
+    {s:'math',ch:'Limits and Derivatives',q:'lim (x→0) sin 3x / x equals:',o:['0','1','3','1 / 3'],a:2,e:'Write it as 3 · sin 3x / 3x. As x → 0, sin 3x / 3x → 1, leaving 3.',r:'match the inside: sin(kx)/x → k.'},
+    {s:'math',ch:'Limits and Derivatives',q:'lim (x→∞) (1 + 1/x)ˣ equals:',o:['0','1','e','∞'],a:2,e:'This is the definition of e ≈ 2.718. It is a 1^∞ form, not equal to 1.',r:'(1 + 1/x)ˣ → e, by definition.'},
+    {s:'math',ch:'Integrals',q:'∫₀^π sin x dx equals:',o:['0','1','2','π'],a:2,e:'The antiderivative is −cos x. Evaluate: −cos π − (−cos 0) = 1 + 1 = 2.',r:'one full hump of sine has area 2.'},
+    {s:'math',ch:'Integrals',q:'∫ e²ˣ dx equals:',o:['e²ˣ + C','e²ˣ / 2 + C','2e²ˣ + C','eˣ² + C'],a:1,e:'Differentiating e²ˣ gives 2e²ˣ, so you must divide by 2 to undo it: e²ˣ/2 + C.',r:'∫ eᵃˣ = eᵃˣ / a.'},
+    {s:'math',ch:'Probability',q:'Two fair dice are thrown. The probability that the sum is 7 is:',o:['1 / 6','1 / 12','5 / 36','7 / 36'],a:0,e:'36 equally likely outcomes. Six of them sum to 7: (1,6) (2,5) (3,4) (4,3) (5,2) (6,1). 6/36 = 1/6.',r:'7 is the most likely sum: 6 ways.'},
+    {s:'math',ch:'Probability',q:'A and B are independent with P(A) = 0.5 and P(B) = 0.4. Then P(A ∩ B) is:',o:['0.9','0.1','0.2','0.45'],a:2,e:'Independent events multiply: P(A ∩ B) = P(A) · P(B) = 0.5 × 0.4 = 0.2.',r:'independent → multiply.'},
+    {s:'bio',ch:'Cell: The Unit of Life',q:'Which organelle packages proteins into glycoproteins and glycolipids?',o:['Lysosome','Golgi apparatus','Ribosome','Peroxisome'],a:1,e:'The Golgi receives proteins from the ER, adds sugar chains and sorts them into vesicles for secretion or membranes.',r:'Golgi = the packaging desk.'},
+    {s:'bio',ch:'Cell: The Unit of Life',q:'The cell wall of fungi is made mainly of:',o:['Cellulose','Chitin','Peptidoglycan','Pectin'],a:1,e:'Cellulose is plants, peptidoglycan is bacteria, chitin is fungi (and arthropod exoskeletons).',r:'plant cellulose, bacteria peptidoglycan, fungi chitin.'},
+    {s:'bio',ch:'Principles of Inheritance and Variation',q:'The genotypic ratio in the F₂ generation of a monohybrid cross is:',o:['3 : 1','1 : 2 : 1','9 : 3 : 3 : 1','1 : 1'],a:1,e:'Tt × Tt gives TT, Tt, Tt, tt. Genotypes 1 : 2 : 1; the phenotypes collapse to 3 : 1.',r:'genotype 1:2:1, phenotype 3:1.'},
+    {s:'bio',ch:'Principles of Inheritance and Variation',q:'Colour blindness in humans is inherited as:',o:['Autosomal dominant','X-linked recessive','Y-linked','Autosomal recessive'],a:1,e:'The gene sits on the X chromosome. Males (XY) need one copy, females need two, so it is far commoner in males.',r:'X-linked recessive → mostly sons.'},
+    {s:'bio',ch:'Body Fluids and Circulation',q:'The pacemaker of the human heart is the:',o:['AV node','SA node','Bundle of His','Purkinje fibres'],a:1,e:'The sino-atrial node in the right atrium fires 70–75 times a minute and sets the rhythm; the others only conduct.',r:'SA sets the pace, AV relays.'},
+    {s:'bio',ch:'Body Fluids and Circulation',q:'Cardiac output of a healthy adult at rest is approximately:',o:['1 L / min','5 L / min','10 L / min','20 L / min'],a:1,e:'Stroke volume ~70 mL × heart rate ~72/min ≈ 5 L/min: roughly your whole blood volume every minute.',r:'70 mL × 72 ≈ 5 L.'},
+    {s:'bio',ch:'Organisms and Populations',q:'The pyramid of energy in an ecosystem is:',o:['Always inverted','Always upright','Upright or inverted','Spindle-shaped'],a:1,e:'Energy is lost as heat at every transfer, so each trophic level holds less than the one below. Number and biomass pyramids can invert; energy never does.',r:'energy only flows one way: down.'},
+    {s:'bio',ch:'Organisms and Populations',q:'The 10 percent law of energy transfer was proposed by:',o:['Odum','Lindeman','Tansley','Elton'],a:1,e:'Lindeman (1942): only about 10% of energy at one trophic level reaches the next. Tansley coined “ecosystem”; Elton gave us the pyramid idea.',r:'Lindeman → 10%.'},
+    {s:'bio',ch:'Photosynthesis in Higher Plants',q:'The first stable product of the C₄ (Hatch–Slack) pathway is:',o:['3-PGA','Oxaloacetic acid','Malic acid','RuBP'],a:1,e:'PEP carboxylase fixes CO₂ onto PEP in mesophyll cells to form the 4-carbon oxaloacetate, which is then reduced to malate.',r:'C₄ → 4 carbons → OAA first.'},
+    {s:'bio',ch:'Photosynthesis in Higher Plants',q:'Apical dominance in plants is caused by:',o:['Gibberellin','Cytokinin','Auxin','Ethylene'],a:2,e:'Auxin from the shoot tip suppresses lateral buds. Remove the tip and the side shoots grow, which is why gardeners prune.',r:'auxin at the tip keeps side buds quiet.'}
+  ];
+
+  state = {subj:0,focus:'all',qi:0,seq:0,picked:null,revealed:false,att:5,cor:4,sheet:false,tmp:'all',menu:false};
+  toggleMenu=()=>this.setState(s=>({menu:!s.menu}));
+  closeMenu=()=>this.setState({menu:false});
+
+  subjects(){const S=Component.SUBJ;return (this.props.exam??'JEE Main')==='NEET UG'?[S[0],S[1],S[3]]:[S[0],S[1],S[2]];}
+  pool(){
+    const subs=this.subjects(),s=subs[Math.min(this.state.subj,subs.length-1)];
+    let qs=Component.QS.filter(q=>q.s===s.key);const f=this.state.focus;
+    if(f==='weak'){const w=s.chapters.filter(c=>c.st==='weak').map(c=>c.name);const x=qs.filter(q=>w.includes(q.ch));if(x.length)qs=x;}
+    else if(Array.isArray(f)&&f.length){const x=qs.filter(q=>f.includes(q.ch));if(x.length)qs=x;}
+    return qs;
+  }
+  scrollTop(){const el=document.querySelector('.mlsc');if(el)el.scrollTo({top:0,behavior:'smooth'});}
+  reveal=()=>{if(this.state.revealed||this.state.picked==null)return;const q=this.pool()[this.state.qi%this.pool().length];this.setState(s=>({revealed:true,att:s.att+1,cor:s.cor+(s.picked===q.a?1:0)}));};
+  next=()=>{this.setState(s=>({qi:s.qi+1,seq:s.seq+1,picked:null,revealed:false}));this.scrollTop();};
+  pick(k){if(this.state.revealed)return;this.setState({picked:k});}
+  setSubj(i){this.setState({subj:i,focus:'all',tmp:'all',qi:0,picked:null,revealed:false,menu:false});this.scrollTop();}
+  openSheet=()=>this.setState(s=>({sheet:true,tmp:s.focus}));
+  closeSheet=()=>this.setState({sheet:false});
+  static MAX=3;
+  applyFocus=()=>{this.setState(s=>{const same=JSON.stringify(s.tmp)===JSON.stringify(s.focus),f=Array.isArray(s.tmp)&&!s.tmp.length?'all':s.tmp;return {sheet:false,focus:f,qi:same?s.qi:0,picked:same?s.picked:null,revealed:same?s.revealed:false};});};
+  toggleCh(name){this.setState(s=>{const cur=Array.isArray(s.tmp)?s.tmp:[];if(cur.includes(name))return {tmp:cur.filter(n=>n!==name)};if(cur.length>=Component.MAX)return null;return {tmp:[...cur,name]};});}
+
+  renderVals(){
+    const st=this.state,subs=this.subjects(),si=Math.min(st.subj,subs.length-1),S=subs[si];
+    const pool=this.pool(),q=pool[st.qi%pool.length];
+    const rev=st.revealed,pk=st.picked;
+    const subjects=subs.map((s,i)=>({name:s.name,score:String(s.score),on:i===si,onClick:()=>this.setSubj(i),nameStyle:{flex:1,textAlign:'left',fontWeight:i===si?700:600,fontSize:15},scoreStyle:{fontSize:12,fontWeight:600,color:i===si?'#57534B':'#9C988C'}}));
+    const options=q.o.map((t,k)=>{
+      const isA=rev&&k===q.a,isW=rev&&k===pk&&k!==q.a,isP=!rev&&pk===k;
+      return {letter:'ABCD'[k],text:t,onClick:()=>this.pick(k),hasTag:isA||isW,tag:isA?'Correct':'Your pick',
+        style:{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',borderRadius:14,width:'100%',cursor:rev?'default':'pointer',transition:'border-color .18s ease,background .18s ease',
+          border:isA?'1.5px solid #1C9B57':isW?'1.5px solid rgba(221,68,51,.55)':isP?'1.5px solid #EEA31F':'1px solid rgba(28,25,20,.12)',
+          background:isA?'rgba(28,155,87,.07)':isW?'rgba(221,68,51,.05)':isP?'#FCF4E0':'#fff'},
+        badgeStyle:{width:28,height:28,flex:'none',borderRadius:9,display:'grid',placeItems:'center',fontWeight:700,fontSize:12,
+          background:isA?'#1C9B57':isW?'#DD4433':isP?'#EEA31F':'transparent',color:isA||isW?'#fff':isP?'#3A2A06':'#1C1A16',border:isA||isW||isP?'none':'1px solid rgba(28,25,20,.18)'},
+        textStyle:{fontSize:15,lineHeight:1.4,flex:1,fontWeight:isA||isW?700:400},
+        tagStyle:{fontWeight:800,fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',color:isA?'#157A45':'#C53A2B',flex:'none'}};
+    });
+    const pct=st.att?Math.round(st.cor/st.att*100):0;
+    const correct=pk===q.a;
+    const isList=Array.isArray(st.focus);
+    const focusLabel=st.focus==='all'?'All chapters':st.focus==='weak'?'Weak areas first':st.focus.join(', ');
+    const sel=Array.isArray(st.tmp)?st.tmp:[],full=sel.length>=Component.MAX;
+    const pickHint=sel.length?sel.length+' of '+Component.MAX+' selected':'or up to '+Component.MAX+' chapters';
+    const modes=[{k:'all',label:'All chapters',sub:'The full '+S.name+' syllabus, shuffled'},{k:'weak',label:'Weak areas first',sub:'Drona weights your needs-revision chapters'}].map(m=>({label:m.label,sub:m.sub,on:st.tmp===m.k,onClick:()=>this.setState({tmp:m.k}),radioStyle:this.radio(st.tmp===m.k)}));
+    const mk=c=>{const on=sel.includes(c.name),dis=full&&!on;return {name:c.name,on,onClick:()=>this.toggleCh(c.name),radioStyle:this.radio(on,dis),rowStyle:{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid rgba(28,25,20,.08)',width:'100%',opacity:dis?.38:1,cursor:dis?'default':'pointer',transition:'opacity .2s ease'}};};
+    const chapters=S.chapters.map(mk);
+    const classGroups=[11,12].map(n=>({label:'Class '+n,chapters:S.chapters.filter(c=>c.cls===n).map(mk)}));
+    return {
+      subjects,openSheet:this.openSheet,focusLabel,subjName:S.name,classGroups,pickHint,
+      toggleMenu:this.toggleMenu,closeMenu:this.closeMenu,
+      chevStyle:{transform:st.menu?'rotate(180deg)':'none',transition:'transform .25s ease'},
+      menuStyle:{position:'absolute',left:118,top:44,width:230,background:'#fff',border:'1px solid rgba(28,25,20,.12)',borderRadius:16,boxShadow:'0 18px 40px -14px rgba(28,26,22,.35)',padding:6,zIndex:9,transformOrigin:'top left',transform:st.menu?'scale(1)':'scale(.96) translateY(-6px)',opacity:st.menu?1:0,pointerEvents:st.menu?'auto':'none',transition:'opacity .2s ease,transform .22s cubic-bezier(.22,1,.36,1)'},
+      menuScrimStyle:{position:'absolute',inset:0,background:'rgba(28,25,20,.12)',opacity:st.menu?1:0,pointerEvents:st.menu?'auto':'none',transition:'opacity .2s ease',zIndex:7},
+      qTag:q.ch,qNum:'Q'+(st.seq+1),qText:q.q,options,
+      notRevealed:!rev,revealed:rev,reveal:this.reveal,next:this.next,
+      submitStyle:{display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:14,height:40,padding:'0 22px',borderRadius:99,background:pk==null?'#F4F1E9':'#1C1A16',color:pk==null?'#9C988C':'#fff',cursor:pk==null?'default':'pointer',transition:'background .25s ease,color .25s ease'},
+      verdict:pk==null?'Revealed':correct?'Correct':'Not quite',
+      verdictStyle:{fontWeight:800,fontSize:10,letterSpacing:'.1em',textTransform:'uppercase',color:pk==null?'#57534B':correct?'#157A45':'#C53A2B'},
+      qExplain:q.e,qRule:q.r,att:st.att,cor:st.cor,
+      barStyle:{display:'block',height:'100%',width:pct+'%',borderRadius:99,background:'linear-gradient(90deg,#3FB877,#1C9B57)',transition:'width .4s ease'},
+      closeSheet:this.closeSheet,applyFocus:this.applyFocus,modes,chapters,
+      sheetSub:S.name+' · questions follow whatever you pick',
+      scrimStyle:{position:'absolute',inset:0,background:'rgba(28,25,20,.42)',backdropFilter:'blur(2px)',opacity:st.sheet?1:0,pointerEvents:st.sheet?'auto':'none',transition:'opacity .28s ease',zIndex:5},
+      sheetStyle:{position:'absolute',left:0,right:0,bottom:0,background:'#FFFFFF',top:0,padding:0,display:'flex',flexDirection:'column',overflow:'hidden',transform:st.sheet?'translateX(0)':'translateX(102%)',transition:'transform .32s cubic-bezier(.22,1,.36,1)',zIndex:12}
+    };
+  }
+  radio(on,dis){return {width:22,height:22,flex:'none',borderRadius:dis===undefined?'50%':7,display:'grid',placeItems:'center',background:on?'#EEA31F':'#fff',border:on?'1.5px solid #EEA31F':'1.5px solid rgba(28,25,20,.2)',transition:'all .18s ease'};}
+}
+</script>
+</body>
+</html>

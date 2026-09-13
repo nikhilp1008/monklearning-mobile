@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MonkLearning — Chapter list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* MonkLearning — the chapter list, reached from "Select chapter" on Home.
+     Every value lifted from app/(tabs)/drona.tsx and constants/brand.js.
+     Static: nothing here is wired up. */
+
+  :root{
+    --ink:#1C1A16; --paper:#FFFDF8; --slate:#57534B; --faint:#9C988C;
+    --marigold:#EEA31F; --hair:rgba(28,26,22,.12); --hair-16:rgba(28,26,22,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Onest',system-ui,sans-serif;color:var(--ink);background:#EFE9DA;
+       -webkit-font-smoothing:antialiased;min-height:100vh;display:grid;place-items:center;padding:40px 20px}
+  .phone{width:402px;height:874px;background:#fff;border:1px solid var(--hair-16);border-radius:28px;
+         overflow:hidden;display:flex;flex-direction:column;position:relative;
+         box-shadow:0 26px 60px rgba(28,26,22,.18)}
+  .status{flex:none;display:flex;align-items:center;justify-content:space-between;
+          padding:14px 24px 2px;font-weight:700;font-size:14px}
+  .status .right{display:flex;align-items:center;gap:5px}
+  .bars{display:flex;align-items:flex-end;gap:1.5px}
+  .bars i{display:block;width:3px;background:var(--ink);border-radius:1px}
+  .battery{width:22px;height:11px;border:1px solid rgba(28,26,22,.4);border-radius:3px;position:relative;display:block}
+  .battery span{position:absolute;top:1px;bottom:1px;left:1px;width:15px;background:var(--ink);border-radius:1px}
+
+  /* headerRow: gap 12, paddingTop 8, paddingHorizontal 20 */
+  .head{flex:none;display:flex;align-items:center;gap:12px;padding:8px 20px 0}
+  /* backButton: 36x36, radius 18, 1px hairline */
+  .back{width:36px;height:36px;flex:none;border-radius:18px;border:1px solid var(--hair);
+        display:grid;place-items:center}
+  /* headerTitle: Onest 500, 24, -0.6 — the app's page-title tier */
+  .head h1{flex:1;min-width:0;font-weight:500;font-size:24px;letter-spacing:-0.6px}
+
+  /* tabsRow: space-between, paddingTop 16, paddingHorizontal 20 */
+  .tabsRow{flex:none;display:flex;align-items:center;justify-content:space-between;
+           gap:10px;padding:16px 20px 0}
+  /* classToggle: gap 3, padding 3, rgba(28,26,22,.055), radius 99 */
+  .classToggle{display:flex;gap:3px;padding:3px;background:rgba(28,26,22,.055);border-radius:99px}
+  /* classPill: 6/13, radius 99 · text Onest 700, 12 */
+  .classPill{padding:6px 13px;border-radius:99px;font-weight:700;font-size:12px;color:var(--slate)}
+  /* classThumb: white with a soft lift */
+  .classPill.on{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(28,26,22,.12)}
+  /* subjectRow: gap 14 · subjectTab: Onest 700, 13 */
+  .subjects{display:flex;gap:14px;flex-shrink:1}
+  .subj{padding-bottom:5px;font-weight:700;font-size:13px;color:var(--faint);position:relative}
+  .subj.on{color:var(--ink)}
+  /* subjectUnderline: 2px marigold */
+  .subj.on:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:1px;background:var(--marigold)}
+
+  /* searchBar: 1.4px hairline, radius 99, 10/15, marginTop 14, marginH 20 */
+  .search{flex:none;display:flex;align-items:center;gap:9px;border:1.4px solid var(--hair);
+          border-radius:99px;padding:10px 15px;margin:14px 20px 0}
+  /* searchPlaceholder: Onest 400, 14, faint */
+  .search .ph{flex:1;font-weight:400;font-size:14px;color:var(--faint)}
+  /* searchCount: Onest 600, 11, faint */
+  .search .count{flex:none;font-weight:600;font-size:11px;color:var(--faint)}
+
+  /* listWrap: marginTop 14, marginH 20 · listContent gap 7 */
+  .listWrap{flex:1;min-height:0;position:relative;margin:14px 20px 0}
+  .list{height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-bottom:56px}
+  .list::-webkit-scrollbar{width:0}
+  .list > *{flex:none}
+  /* chapterRow: 1px rgba(28,26,22,.2), radius 12, 13/14, gap 11 */
+  .row{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid rgba(28,26,22,.2);
+       border-radius:12px;padding:13px 14px;box-shadow:0 1.5px 2px rgba(28,26,22,.05)}
+  /* chapterNumber: Kalam 700, 12, #C2BCAF, width 20 */
+  .num{width:20px;flex:none;font-family:'Kalam',cursive;font-weight:700;font-size:12px;color:#C2BCAF}
+  /* chapterTitle: Onest 600, 14 */
+  .title{flex:1;font-weight:600;font-size:14px}
+  /* chapterMeta: Onest 600, 11, faint */
+  .meta{flex:none;font-weight:600;font-size:11px;color:var(--faint)}
+  /* fadeMask: 56px white fade over the last row */
+  .fade{position:absolute;left:0;right:0;bottom:0;height:56px;pointer-events:none;
+        background:linear-gradient(to bottom,rgba(255,255,255,0),#fff)}
+
+  /* footer: the hint, lifted clear of the floating tab bar */
+  .footer{flex:none;display:flex;justify-content:center;padding:8px 20px 0}
+  .footer span{font-weight:400;font-size:12px;color:var(--faint)}
+
+  /* tab bar: 64pt on a soft upward shadow, 24px icons */
+  .tabs{flex:none;background:#fff;box-shadow:0 -10px 30px rgba(28,26,22,.07);padding:0 12px 34px;margin-top:8px}
+  .tabRow{display:grid;grid-template-columns:repeat(4,1fr);height:64px;align-items:center;justify-items:center}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tab span{font-size:10.5px;font-weight:600;color:#8A857A;letter-spacing:.1px}
+  .tab.on span{font-weight:700;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <div class="status">
+    <span>9:41</span>
+    <span class="right">
+      <span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px;background:rgba(28,26,22,.3)"></i></span>
+      <span class="battery"><span></span></span>
+    </span>
+  </div>
+
+  <div class="head">
+    <span class="back"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M15 5l-7 7 7 7" stroke="#1C1A16" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <h1>What are we learning?</h1>
+  </div>
+
+  <div class="tabsRow">
+    <span class="classToggle"><span class="classPill">Class 11</span><span class="classPill on">Class 12</span></span>
+    <span class="subjects">
+      <span class="subj on">Physics</span><span class="subj">Chemistry</span><span class="subj">Maths</span>
+    </span>
+  </div>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><circle cx="11" cy="11" r="7" stroke="#9C988C" stroke-width="2"/><path d="m20 20-3.2-3.2" stroke="#9C988C" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="ph">Search a chapter…</span>
+    <span class="count">14 chapters</span>
+  </div>
+
+  <div class="listWrap">
+    <div class="list">
+      <div class="row"><span class="num">01</span><span class="title">Electric Charges and Fields</span><span class="meta">11 topics →</span></div>
+      <div class="row"><span class="num">02</span><span class="title">Electrostatic Potential and Capacitance</span><span class="meta">10 topics →</span></div>
+      <div class="row"><span class="num">03</span><span class="title">Current Electricity</span><span class="meta">12 topics →</span></div>
+      <div class="row"><span class="num">04</span><span class="title">Moving Charges and Magnetism</span><span class="meta">10 topics →</span></div>
+      <div class="row"><span class="num">05</span><span class="title">Magnetism and Matter</span><span class="meta">10 topics →</span></div>
+      <div class="row"><span class="num">06</span><span class="title">Electromagnetic Induction</span><span class="meta">11 topics →</span></div>
+      <div class="row"><span class="num">07</span><span class="title">Alternating Current</span><span class="meta">12 topics →</span></div>
+      <div class="row"><span class="num">08</span><span class="title">Electromagnetic Waves</span><span class="meta">5 topics →</span></div>
+      <div class="row"><span class="num">09</span><span class="title">Ray Optics and Optical Instruments</span><span class="meta">13 topics →</span></div>
+      <div class="row"><span class="num">10</span><span class="title">Wave Optics</span><span class="meta">9 topics →</span></div>
+      <div class="row"><span class="num">11</span><span class="title">Dual Nature of Radiation and Matter</span><span class="meta">8 topics →</span></div>
+      <div class="row"><span class="num">12</span><span class="title">Atoms</span><span class="meta">7 topics →</span></div>
+      <div class="row"><span class="num">13</span><span class="title">Nuclei</span><span class="meta">8 topics →</span></div>
+      <div class="row"><span class="num">14</span><span class="title">Semiconductor Electronics</span><span class="meta">12 topics →</span></div>
+    </div>
+    <div class="fade"></div>
+  </div>
+
+  <div class="footer"><span>Tap a chapter to pick a topic</span></div>
+
+  <div class="tabs">
+    <div class="tabRow">
+      <span class="tab">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4.75 10.6 12 4.75l7.25 5.85V18.4a1.85 1.85 0 0 1-1.85 1.85H6.6a1.85 1.85 0 0 1-1.85-1.85z" stroke="#8A857A" stroke-width="1.6"/><path d="M9.75 20.25v-5.1a2.25 2.25 0 0 1 4.5 0v5.1" stroke="#8A857A" stroke-width="1.6"/></svg>
+        <span>Home</span>
+      </span>
+      <span class="tab">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.4" width="12" height="4.6" rx="1.6" stroke="#8A857A" stroke-width="1.6"/><rect x="7" y="9.9" width="12.5" height="4.6" rx="1.6" stroke="#8A857A" stroke-width="1.6"/><rect x="4.4" y="15.4" width="13.4" height="4.6" rx="1.6" stroke="#8A857A" stroke-width="1.6"/></svg>
+        <span>Textbooks</span>
+      </span>
+      <span class="tab">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8.3 6.3 9.5 4.5h5l1.2 1.8h1.8A2.5 2.5 0 0 1 20 8.8v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.8v-8a2.5 2.5 0 0 1 2.5-2.5z" stroke="#8A857A" stroke-width="1.6"/><circle cx="12" cy="12.8" r="3.3" stroke="#8A857A" stroke-width="1.6"/></svg>
+        <span>Doubts</span>
+      </span>
+      <span class="tab">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.75" width="14" height="16.5" rx="2.2" stroke="#8A857A" stroke-width="1.6"/><path d="M9 3.75v16.5" stroke="#8A857A" stroke-width="1.6"/><path d="M12.2 9h3.6M12.2 12.5h3.6" stroke="#8A857A" stroke-width="1.6"/></svg>
+        <span>Notes</span>
+      </span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

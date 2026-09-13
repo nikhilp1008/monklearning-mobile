@@ -45,15 +45,6 @@ const WAV_HEADER_BYTES = 44;
  * as the answer stopping.
  */
 const FINISH_GRACE_MS = 350;
-/**
- * A deliberate pause between sentences.
- *
- * The clips are split where a speaker pauses, so a join wants to SOUND like a
- * pause rather than like two files butted together. Without it the next
- * sentence begins the instant the last sample ends, which reads as rushed —
- * the opposite of a teacher drawing breath before the next point.
- */
-const SENTENCE_GAP_MS = 260;
 
 export class FollowUpAudio {
   private queue: { uri: string; ms: number }[] = [];
@@ -63,10 +54,6 @@ export class FollowUpAudio {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
   private seq = 0;
-  /** Sentences begun, so the gap is never put in front of the first. */
-  private spoken = 0;
-  /** True between sentences, while the gap timer is waiting to start one. */
-  private waiting = false;
 
   /**
    * Called when the queue has nothing left to play.
@@ -97,11 +84,7 @@ export class FollowUpAudio {
       return;
     }
     this.queue.push({ uri: file.uri, ms });
-    // `waiting` matters as much as `current`: during the gap between
-    // sentences nothing is sounding, but a clip has already been taken and is
-    // held by the timer. Without this a clip arriving in that window would
-    // start a second advance and the held one would be dropped.
-    if (!this.current && !this.waiting) this.next();
+    if (!this.current) this.next();
   }
 
   /**
@@ -124,17 +107,11 @@ export class FollowUpAudio {
       return;
     }
 
-    // Let the pause land before the next sentence starts — but never in front
-    // of the FIRST one, where it would just be latency.
-    if (this.spoken > 0) {
-      this.waiting = true;
-      this.timer = setTimeout(() => {
-        this.timer = null;
-        this.waiting = false;
-        this.start(item);
-      }, SENTENCE_GAP_MS);
-      return;
-    }
+    // No artificial pause between sentences. One was added on the theory that
+    // a join needs to sound like breath, and it was never measured: a TTS clip
+    // already ends with its own trailing silence, and opening the next file
+    // adds a gap of its own. Stacking a third delay on top made the answer
+    // sound halting rather than considered.
     this.start(item);
   };
 
@@ -142,7 +119,6 @@ export class FollowUpAudio {
     if (this.stopped) return;
 
     const player = createAudioPlayer({ uri: item.uri }, { keepAudioSessionActive: true });
-    this.spoken += 1;
     const subscription = player.addListener(
       'playbackStatusUpdate',
       (status: AudioStatus) => {
@@ -153,6 +129,15 @@ export class FollowUpAudio {
       player,
       done: () => {
         subscription.remove();
+        try {
+          // PAUSE before release. `remove()` alone does not reliably silence a
+          // clip that is mid-sentence, which is why pressing Done left the
+          // voice talking over an empty screen — the per-clip rewrite dropped
+          // the explicit pause the single-player version had.
+          player.pause();
+        } catch {
+          // Already stopped.
+        }
         try {
           player.remove();
         } catch {
@@ -183,7 +168,6 @@ export class FollowUpAudio {
   stop() {
     if (this.stopped) return;
     this.stopped = true;
-    this.waiting = false;
     this.queue = [];
     this.teardown();
   }

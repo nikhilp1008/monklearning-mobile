@@ -192,8 +192,49 @@ export const FRAME_INSET = 6;
 export const PILL_PAD_X = 6;
 export const PILL_PAD_Y = 3;
 export const PILL_RADIUS = 4;
-/** Text box model is `fontSize * 1.15`, matching the gate. */
-export const PILL_H = LABEL_SIZE * 1.15 + 2 * PILL_PAD_Y;
+/** One text line's box. The model is `fontSize * 1.15`, matching the gate. */
+export const PILL_LINE_H = LABEL_SIZE * 1.15;
+/** A single-line pill. Two-line pills are `pillHeight(2)`. */
+export const PILL_H = PILL_LINE_H + 2 * PILL_PAD_Y;
+
+export function pillHeight(lines: number): number {
+  return lines * PILL_LINE_H + 2 * PILL_PAD_Y;
+}
+
+/**
+ * A pill wider than this fraction of the frame's usable width wraps.
+ *
+ * WHY A FRACTION AND NOT A CHARACTER COUNT. The thing that goes wrong is
+ * geometric, not typographic: `supra-oesophageal ganglion` renders a 209pt
+ * pill, the usable width at 340x340 is 328pt, and with `LEADER_MAX` at 40pt a
+ * pill that wide has nowhere to go unless its anchor happens to sit near the
+ * horizontal centre. Five ch7 terms exceeded half the narrow frames; at
+ * 495x270 and wider, none did. So the threshold has to move with the frame —
+ * the same term is a problem on a phone in portrait and completely fine on the
+ * landscape board, and a character count cannot express that.
+ *
+ * 0.45 rather than 0.5: two pills of the same group must be able to sit side
+ * by side with a gap, and at exactly half they cannot.
+ */
+export const WRAP_FRACTION = 0.45;
+
+/**
+ * Split a term into at most two lines, at the LAST space.
+ *
+ * Raasikh's rule, 2026-09-12, and it is the right one for these terms: they
+ * are anatomical Latin where the final word is the noun and everything before
+ * it qualifies — "supra-oesophageal | ganglion", "integumentary | nephridium".
+ * Breaking anywhere else splits the qualifier from what it qualifies.
+ *
+ * A term with no space cannot wrap and is returned whole. That is not a
+ * failure to handle: it is a single word, and hyphenating an examinable term
+ * would teach a string the exam does not print.
+ */
+export function wrapTerm(text: string): string[] {
+  const i = text.lastIndexOf(' ');
+  if (i <= 0) return [text];
+  return [text.slice(0, i), text.slice(i + 1)];
+}
 
 /**
  * THE THREE FRAMES A SET MUST SURVIVE.
@@ -406,7 +447,12 @@ export function anchorAt(fit: FittedRect, u: number, v: number): { x: number; y:
 
 export interface PlacedLabel {
   id: string;
+  /** The whole term, unsplit — what the label MEANS, and what `familyFor`
+   *  and any accessibility reader should see. */
   text: string;
+  /** The term as drawn: one line normally, two when the pill would be wider
+   *  than `WRAP_FRACTION` of the frame. `ty` is the FIRST line's baseline. */
+  lines: string[];
   side: Side;
   /** The point on the art this label names. */
   anchor: { x: number; y: number };
@@ -549,14 +595,106 @@ export function layoutFigure(
   const centre = { x: fit.ox + fit.sW / 2, y: fit.oy + fit.sH / 2 };
   const dots = drawn.map((l) => anchorAt(fit, l.anchor.u, l.anchor.v));
 
-  const placed: Rect[] = [];
-  const out: PlacedLabel[] = [];
+  /*
+   * THE GROUP STRIP IS PLACED FIRST AND OCCUPIES ITS RECTANGLE.
+   *
+   * It used to be computed on the way out, after every label had been placed,
+   * which meant placement never knew it was there. On the frog heart's
+   * arterial group at 343x236 that put the "carotid arch" pill straight on
+   * top of "Arteries · 2/3" — and the gate called the set clear, because it
+   * compares labels against each other and against the frame and the strip
+   * was in neither set. A caught-by-looking defect, in the first label set
+   * this pipeline ever published.
+   *
+   * Seeding `placed` with the strip's plate fixes both halves at once: the
+   * eight-direction search now skips any candidate that would cover the
+   * caption, and when no direction survives, the existing `overlapped` flag
+   * fires and `gateLabelSet` refuses the set instead of calling it clear.
+   *
+   * The strip is the one thing on the board a label must never cover. It is
+   * what says "2/3" — the difference between a subset the student knows is a
+   * subset, and a figure that looks complete and is not.
+   */
+  /*
+   * TOP FIRST, BOTTOM IF THE TOP IS CONTESTED.
+   *
+   * The strip has no anchor — it is chrome, and the only thing fixing it to
+   * the top was that nothing had ever asked. The frog heart's arterial group
+   * is the case that asks: all four arches leave the heart upward, so their
+   * anchors and the caption want the same corner, and at 343x236 there is not
+   * room for both. Moving the caption to the bottom costs nothing, because
+   * the bottom of that plate is empty.
+   *
+   * So placement is run with the caption reserved at the top, and if any
+   * label came out overlapping, run again with it at the bottom and keep
+   * whichever placed more labels clear. A tie keeps the top, which is where
+   * a reader looks first.
+   */
+  const attempt = (baseline: number) => {
+    const strip = multi ? stripFor(params, W, baseline) : null;
+    const placed: Rect[] = strip ? [strip.plate] : [];
+    const out: PlacedLabel[] = [];
+    place(drawn, dots, params, W, H, fit, artRect, placed, out);
+    return { strip, out, bad: out.filter((l) => l.overlapped).length };
+  };
+
+  const top = attempt(STRIP_BASELINE);
+  const best =
+    top.bad === 0 || !multi
+      ? top
+      : (() => {
+          const bottom = attempt(H - PAD_EDGE - 4);
+          return bottom.bad < top.bad ? bottom : top;
+        })();
+
+  // Loud, and it names the label: a silently overlapping pill is a wrong
+  // figure that looks like a rendered one. Emitted for the CHOSEN placement.
+  for (const l of best.out) {
+    if (!l.overlapped) continue;
+    console.warn(
+      `[labelled_figure] "${l.id}" could not be placed clear of the frame, its ` +
+        `neighbours or the group caption at any of the eight directions up to ` +
+        `${LEADER_MAX}pt — placed ${l.dir} with overlap. The group is too dense ` +
+        `for this board.`
+    );
+  }
+
+  return { fit, labels: best.out, strip: best.strip };
+}
+
+/** The eight-direction search, extracted so it can be run more than once. */
+function place(
+  drawn: LabelRecord[],
+  dots: { x: number; y: number }[],
+  params: LabelledFigureParams,
+  W: number,
+  H: number,
+  fit: FittedRect,
+  artRect: Rect,
+  placed: Rect[],
+  out: PlacedLabel[]
+): void {
+  const centre = { x: artRect.x + artRect.w / 2, y: artRect.y + artRect.h / 2 };
+
+  // The frame's usable width, which is what "too wide" is measured against.
+  const usable = W - 2 * FRAME_INSET;
 
   drawn.forEach((l, idx) => {
     const text = termFor(l, params.lang);
-    const tw = textWidth(text, LABEL_SIZE);
+    /*
+     * WRAP, DO NOT SHRINK OR STRETCH. The font stays at LABEL_SIZE and
+     * LEADER_MAX stays 40; the pill grows downward instead. Shrinking the type
+     * would make the longest, least familiar terms the hardest to read, which
+     * is backwards; stretching the leader would let a label drift away from the
+     * structure it names.
+     */
+    let lines = [text];
+    if (textWidth(text, LABEL_SIZE) + 2 * PILL_PAD_X > WRAP_FRACTION * usable) {
+      lines = wrapTerm(text);
+    }
+    const tw = Math.max(...lines.map((t) => textWidth(t, LABEL_SIZE)));
     const w = tw + 2 * PILL_PAD_X;
-    const h = PILL_H;
+    const h = pillHeight(lines.length);
     const anchor = dots[idx];
 
     // Outward from the plate centre. A label on a structure at the centre has
@@ -595,13 +733,11 @@ export function layoutFigure(
       overlapped = true;
       const d = order[0];
       chosen = { rect: pillRect(anchor, d, LABEL_OFFSET, w, h), dir: d.name };
-      // Loud, and it names the label: a silently overlapping pill is a wrong
-      // figure that looks like a rendered one.
-      console.warn(
-        `[labelled_figure] "${l.id}" could not be placed clear of the frame and ` +
-          `its neighbours at any of the eight directions up to ${LEADER_MAX}pt — ` +
-          `placed ${d.name} with overlap. The group is too dense for this board.`
-      );
+      // The warning is NOT emitted here. `place` is run speculatively — once
+      // with the caption at the top and once at the bottom — and warning from
+      // inside it reported failures for a placement that was then thrown
+      // away, which reads as a broken board when the chosen one is fine.
+      // `layoutFigure` warns once, for the attempt it actually returns.
     }
 
     const r = chosen.rect;
@@ -616,6 +752,7 @@ export function layoutFigure(
     out.push({
       id: l.id,
       text,
+      lines,
       side: anchor.x < W / 2 ? 'left' : 'right',
       anchor,
       via: l.leader_via ? anchorAt(fit, l.leader_via.u, l.leader_via.v) : null,
@@ -629,8 +766,6 @@ export function layoutFigure(
       overlapped,
     });
   });
-
-  return { fit, labels: out, strip: multi ? stripFor(params, W) : null };
 }
 
 /**
@@ -642,7 +777,7 @@ export function layoutFigure(
  * there are, and `group_index`/`group_count` are `derived` quantities, so a
  * caption cannot disagree with it either.
  */
-function stripFor(params: LabelledFigureParams, W: number) {
+function stripFor(params: LabelledFigureParams, W: number, baseline: number) {
   const i = params.groups.findIndex((g) => g.id === params.active_group);
   const full = params.groups[i] ? params.groups[i].label[params.lang] : '';
   const counter = `${i + 1}/${params.groups.length}`;
@@ -660,10 +795,10 @@ function stripFor(params: LabelledFigureParams, W: number) {
   return {
     text,
     x: PAD_EDGE + PLATE_PAD_X,
-    y: STRIP_BASELINE,
+    y: baseline,
     plate: {
       x: PAD_EDGE,
-      y: STRIP_BASELINE - READOUT_SIZE * 0.82 - 1.5,
+      y: baseline - READOUT_SIZE * 0.82 - 1.5,
       w: textWidth(text, READOUT_SIZE) + 2 * PLATE_PAD_X,
       h: READOUT_SIZE * 1.15 + 3,
     },

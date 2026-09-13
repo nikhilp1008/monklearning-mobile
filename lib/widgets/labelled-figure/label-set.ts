@@ -175,6 +175,71 @@ export function validateLabelSet(raw: unknown): { ok: true; set: LabelSet } | { 
   // value nobody supplied. Optional-per-label is fine; SOME labels grouped and
   // others not is a set that was half-organised, and picking a bucket for the
   // remainder is exactly the auto-fill that rule forbids.
+  /*
+   * THE GROUPS ARRAY WAS NEVER VALIDATED, and a set that validates must never
+   * crash the board.
+   *
+   * `groups` went straight from JSON into `toFigureRecord` and out to
+   * `stripFor`, which reads `group.label[lang]` — so a group whose label used
+   * the WIRE keys (`en`/`hi`) instead of the record keys
+   * (`english`/`hinglish`) validated cleanly, then threw
+   * "Cannot read properties of undefined (reading 'slice')" inside layout.
+   * Eleven of the twenty-two ch7 sets did exactly that, and because the gate
+   * reports a non-zero exit either way, they read as REFUSED for a layout
+   * reason they did not have. On a live board it would not have been a
+   * misreport — it would have been a thrown exception where a figure should be.
+   *
+   * A label naming a group that does not exist is the same class of fault:
+   * `toFigureRecord` keeps the id, no group matches, and the label is drawn in
+   * none of them — present in the file, absent from every screen.
+   */
+  const declared = new Set<string>();
+  if (s.groups !== undefined) {
+    if (!Array.isArray(s.groups)) {
+      e.push('groups must be an array when present');
+    } else {
+      s.groups.forEach((g: unknown, i: number) => {
+        const at = `groups[${i}]`;
+        if (typeof g !== 'object' || g === null) { e.push(`${at} is not an object`); return; }
+        const G = g as Record<string, unknown>;
+        if (typeof G.id !== 'string' || !G.id.trim()) {
+          e.push(`${at}.id must be a non-empty string`);
+        } else if (declared.has(G.id)) {
+          e.push(`${at}: duplicate group id ${JSON.stringify(G.id)}`);
+        } else {
+          declared.add(G.id);
+        }
+        const lab = G.label as Record<string, unknown> | undefined;
+        if (typeof lab !== 'object' || lab === null) {
+          e.push(`${at}.label must be an object with english and hinglish`);
+          return;
+        }
+        for (const k of ['english', 'hinglish'] as const) {
+          if (typeof lab[k] !== 'string' || !(lab[k] as string).trim()) {
+            // Named explicitly, because the wrong-keys case is the one that
+            // happens: a tool writing `en`/`hi` produces a label object that
+            // looks populated and is empty at the only two keys read.
+            e.push(
+              `${at}.label.${k} must be a non-empty string (got ` +
+                `${JSON.stringify(lab[k])}; keys present: ${Object.keys(lab).join(', ') || 'none'})`
+            );
+          }
+        }
+      });
+    }
+  }
+  if (declared.size > 0) {
+    for (const [i, l] of (labels ?? []).entries()) {
+      const gid = (l as Record<string, unknown>)?.group;
+      if (typeof gid === 'string' && gid.trim() && !declared.has(gid)) {
+        e.push(
+          `labels[${i}].group ${JSON.stringify(gid)} is not declared in groups — ` +
+            `the label would be drawn in no group at all`
+        );
+      }
+    }
+  }
+
   const grouped = (labels ?? []).filter((l) => (l as Record<string, unknown>)?.group !== undefined);
   if (grouped.length > 0 && grouped.length !== (labels ?? []).length) {
     e.push(

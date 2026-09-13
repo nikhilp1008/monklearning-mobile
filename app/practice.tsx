@@ -668,8 +668,13 @@ export default function PracticeScreen() {
             {/* The figure the question refers to. Without it a circuit or a
                 graph question is unanswerable, and mobile was dropping the
                 field entirely — the API has always sent it. */}
-            {question.diagram?.map((figure) => (
-              <QuestionDiagram key={figure.url} url={figure.url} />
+            {question.diagram?.map((figure, i) => (
+              <QuestionDiagram
+                key={figure.r2_key ?? figure.url}
+                figure={figure}
+                index={i}
+                total={question.diagram?.length ?? 1}
+              />
             ))}
             <View style={styles.questionDivider} />
           </View>
