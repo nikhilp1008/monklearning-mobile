@@ -236,6 +236,17 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
           onStep: (step) => {
             arrived.push(step);
             setSteps([...arrived]);
+            // The board opens the moment there is board to show. Steps were
+            // already streaming in while the bar said "Working it out…" — a
+            // spinner over an answer that exists is the spinner lying. Same
+            // formula settle() uses, so the surface a step picks mid-stream
+            // is the surface the finished answer confirms: one short step
+            // stays on the bar, and the sheet opens the instant a second
+            // step (or a long first one) proves the answer has earned it.
+            const body = arrived.map((s) => s.text).join(' ');
+            setPhase(
+              arrived.length <= 1 && body.length <= SHORT_ANSWER_CHARS ? 'brief' : 'detailed'
+            );
           },
           onSpoken: (text, inlineVoice) => {
             spoken = text;
