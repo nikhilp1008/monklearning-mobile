@@ -3,8 +3,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
@@ -12,31 +18,54 @@ import { saveNote } from '@/lib/notes';
 import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
 
 /**
- * Class dismissed — what the student sees the moment a live class ends.
+ * CLASS DISMISSED — what the student sees the moment a live class ends.
+ * Built from `dismissed_handoff/Class Dismissed 4A`.
  *
- * The page itself is plain: a warm amber wash at the top, then white. The
- * ruled paper lives inside one card instead, because that card is a preview of
- * the note this class becomes — the board, the derivations, the diagrams and
- * the student's own doubts, rewritten into portrait. Making it look like the
- * note page is what tells the student what "Save to notes" actually gets them,
- * and it is the one thing on the screen that should read as an object.
+ * IT STATES FACTS AND THEN GETS OUT OF THE WAY. Cream fading to white, the
+ * headline, one card naming the chapter and the topic with the question tally,
+ * the teacher's own summary of what was covered, and the key that keeps it.
  *
- * Deliberately absent: the class duration. How long a class ran is not an
- * achievement and not something a student acts on.
+ * WHAT IS DELIBERATELY NOT HERE:
+ *
+ *   The count of topics covered. It was the one number on this screen that
+ *   measured the software rather than the student — a class that moves through
+ *   six topics badly is not better than one that moves through two well — and
+ *   it sat next to the tally as though the two were comparable.
+ *
+ *   The class duration, for the same reason: how long a class ran is not an
+ *   achievement and not something a student acts on.
+ *
+ *   The ruled note-preview card. It was a drawing of a note rather than the
+ *   note, and it pushed the real summary below the fold to make room.
+ *
+ * THE SUMMARY IS THE SERVER'S, NOT A RESTATEMENT. `summary_points` comes back
+ * on the session's end frame, written against what the class actually got
+ * through. Two lines show, because a wall of six reads as a receipt; the rest
+ * are one tap away on the line that would otherwise be cut off.
+ *
+ * ONLY THE SUMMARY SCROLLS. Heading, card and keys are fixed, so "Save notes"
+ * sits in the same place whether the class produced one line or six — a key
+ * that moves depending on the lesson is a key a student has to look for.
  */
 
 const INK = '#1C1A16';
-const INK_70 = '#4A463D';
-const INK_50 = '#8A8478';
+/** Secondary ink, for the subline and the quiet link. */
+const INK_MUTED = '#57534B';
+/** Labels and the tally's denominator: present, clearly subordinate. */
+const INK_SOFT = '#8A8577';
+/** The amber that means "tap this", not the amber of a heading. */
+const AMBER_LINK = '#9A6A12';
 const PAPER = '#FFFFFF';
-const RULE = 'rgba(28,26,22,0.05)';
-const HAIR = 'rgba(28,26,22,0.12)';
-const AMBER = '#B08420';
+/** The card's edge, and the rules inside it — the inner ones a shade lighter. */
+const HAIR = 'rgba(28,26,22,0.10)';
+const RULE = 'rgba(28,26,22,0.08)';
 const RED = '#DD4433';
 
-const GUTTER = 24;
-/** The note card's own ruled rhythm, matching its prose line-height. */
-const CARD_RULE = 30;
+const GUTTER = 28;
+/** How much of the summary the bottom fade covers, when it has to scroll. */
+const FADE = 22;
+/** Shown unexpanded. Two lines read as a summary; six read as a receipt. */
+const SHOWN = 2;
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -50,15 +79,28 @@ export default function SessionSummaryScreen() {
   const params = useLocalSearchParams<{
     sessionId?: string;
     chapterTitle?: string;
+    topicTitle?: string;
     summaryPoints?: string;
+    questionsAsked?: string;
     mistakesCount?: string;
     questionsAnswered?: string;
   }>();
 
   const chapterTitle = params.chapterTitle || 'this class';
+  const topicTitle = params.topicTitle?.trim() || null;
   const questionsAnswered = Number(params.questionsAnswered) || 0;
-  const mistakesCount = Number(params.mistakesCount) || 0;
-  const correctCount = Math.max(0, questionsAnswered - mistakesCount);
+  /**
+   * THE DENOMINATOR IS COUNTED IN THE CLASSROOM, because the session's end
+   * frame reports how many questions were answered and never how many were
+   * put — so the screen that wants a ratio has to have kept the tally itself.
+   * `live-classroom` increments one every time she offers a set of options.
+   *
+   * Floored at the answered count: a ratio reading "5 / 3" would be the
+   * screen's own bookkeeping calling the student a liar.
+   */
+  const questionsAsked = Math.max(Number(params.questionsAsked) || 0, questionsAnswered);
+  /** Only the first two, until the student asks for the rest. */
+  const [expanded, setExpanded] = useState(false);
   const covered = useMemo(() => {
     if (!params.summaryPoints) return [];
     try {
@@ -131,129 +173,193 @@ export default function SessionSummaryScreen() {
     }
   };
 
+  /** 4A's own label. "Save to notes" read as a destination; this is an act. */
   const saveLabel =
     saveState === 'saving'
-      ? 'Saving…'
+      ? 'Saving\u2026'
       : saveState === 'saved'
-        ? 'Saved. Open your note'
+        ? 'Saved \u00b7 open your note'
         : saveState === 'error'
-          ? 'Couldn’t save. Tap to retry'
-          : 'Save to notes';
+          ? 'Couldn\u2019t save \u00b7 tap to retry'
+          : 'Save notes';
+
+  /**
+   * The key is drawn as a physical one: a 3pt hard edge under it, and pressing
+   * it moves the face down onto that edge. Nothing else on the screen can be
+   * pressed, so the only control gets to look like one.
+   */
+  const [keyDown, setKeyDown] = useState(false);
+  /** The chevron turns over rather than swapping, so the line keeps its place. */
+  const chev = useSharedValue(0);
+  useEffect(() => {
+    chev.value = withTiming(expanded ? 1 : 0, { duration: 250 });
+  }, [expanded, chev]);
+  const chevStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chev.value * 180}deg` }],
+  }));
 
   if (!isPortrait) {
     return <View style={styles.rotateHold} />;
   }
 
+  const visible = expanded ? covered : covered.slice(0, SHOWN);
+  const rest = covered.length - SHOWN;
+
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
 
-      {/* A warm wash behind the heading, fading to white — the page's only
-          decoration, so nothing competes with the note card below. */}
+      {/* Cream to white over the top 440, which is the card's own depth: the
+          warmth belongs to the heading and the facts, and has faded out by the
+          time the summary starts. */}
       <LinearGradient
-        colors={['rgba(238,163,31,0.30)', 'rgba(238,163,31,0.08)', 'rgba(255,255,255,0)']}
-        locations={[0, 0.55, 1]}
+        colors={['#FAECCF', '#FCF3E2', '#FFFFFF']}
+        locations={[0, 0.35, 1]}
         style={styles.wash}
         pointerEvents="none"
       />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
-          <Animated.View entering={FadeInDown.duration(340)}>
+        <View style={styles.page}>
+          <Animated.View entering={FadeInDown.duration(420)}>
             <Text style={styles.heading}>Class dismissed.</Text>
             <Text style={styles.sub}>Good work today. Here&apos;s what you covered.</Text>
-            <Text style={styles.topic}>{chapterTitle}</Text>
           </Animated.View>
 
-          {/* Above the tallies on purpose: what was proven outranks what was
-              counted. Renders nothing when nothing was proven. */}
-          <ProofMoment events={proof} />
+          {/* One card, three rows: the two things the student chose on the way
+              in, and the one thing that happened while they were inside. */}
+          <Animated.View entering={FadeInDown.duration(420).delay(140)} style={styles.card}>
+            <View style={[styles.row, !topicTitle && questionsAsked === 0 && styles.rowLast]}>
+              <Text style={styles.rowLabel}>Chapter</Text>
+              <Text style={styles.rowValue} numberOfLines={2}>
+                {chapterTitle}
+              </Text>
+            </View>
 
-          {(questionsAnswered > 0 || covered.length > 0) && (
-            <Animated.View entering={FadeInDown.duration(340).delay(70)} style={styles.stats}>
-              {questionsAnswered > 0 && (
-                <View>
-                  <Text style={styles.statValue}>
-                    {correctCount}
-                    <Text style={styles.statOf}> of {questionsAnswered}</Text>
-                  </Text>
-                  <Text style={styles.statLabel}>answered in class</Text>
-                </View>
-              )}
-              {covered.length > 0 && (
-                <View>
-                  <Text style={styles.statValue}>{covered.length}</Text>
-                  <Text style={styles.statLabel}>
-                    topic{covered.length === 1 ? '' : 's'} covered
-                  </Text>
-                </View>
-              )}
-            </Animated.View>
-          )}
-
-          {/* The note itself, in miniature. Ruled like the note page, so the
-              student can see what they are about to keep. */}
-          {covered.length > 0 && (
-            <Animated.View entering={FadeInDown.duration(340).delay(140)}>
-              <Text style={styles.previewLead}>This class is now in your notes</Text>
-
-              {/* Built to read like the note page itself — ruled paper, an amber
-                  section label, plain prose lines. Ticks and bullets were a
-                  checklist, which is not what a note looks like. */}
-              <View style={styles.noteCard}>
-                <View style={styles.noteRules} pointerEvents="none">
-                  {Array.from({ length: 16 }, (_, i) => (
-                    <View key={i} style={[styles.noteRule, { top: (i + 1) * CARD_RULE }]} />
-                  ))}
-                </View>
-
-                <Text style={styles.noteTopic}>{chapterTitle}</Text>
-                <Text style={styles.label}>WHAT WE COVERED</Text>
-
-                {covered.map((line, i) => (
-                  <Text key={i} style={styles.coveredText}>
-                    {line}
-                  </Text>
-                ))}
-
-                <View style={styles.noteMore}>
-                  <Text style={styles.noteMoreText}>
-                    The rest of the board (every derivation, the diagrams, the worked examples and
-                    the doubts you asked) is in the full note.
-                  </Text>
-                </View>
+            {!!topicTitle && (
+              <View style={[styles.row, questionsAsked === 0 && styles.rowLast]}>
+                <Text style={styles.rowLabel}>Topic</Text>
+                <Text style={styles.rowValue} numberOfLines={2}>
+                  {topicTitle}
+                </Text>
               </View>
-            </Animated.View>
-          )}
+            )}
 
-          <Text style={styles.foot}>
-            {params.sessionId
-              ? 'Unsaved classes are kept for seven days, then they go.'
-              : 'This class wasn’t recorded, so there’s nothing to save.'}
-          </Text>
+            {/* Hidden rather than shown as "0 / 0" when she never checked: a
+                zero here would read as a failed test instead of a quiet class. */}
+            {questionsAsked > 0 && (
+              <View style={[styles.row, styles.rowLast, styles.rowInline]}>
+                <Text style={styles.rowLabel}>Questions answered</Text>
+                <Text style={styles.tally}>
+                  {questionsAnswered}
+                  <Text style={styles.tallyOf}> / {questionsAsked}</Text>
+                </Text>
+              </View>
+            )}
+          </Animated.View>
 
-          {!!saveError && <Text style={styles.error}>{saveError}</Text>}
-        </ScrollView>
-      </SafeAreaView>
+          <Animated.View entering={FadeInDown.duration(420).delay(260)} style={styles.summary}>
+            <ScrollView
+              contentContainerStyle={styles.summaryInner}
+              showsVerticalScrollIndicator={false}>
+              {/* Above the summary, because what was proven outranks what was
+                  covered. Renders nothing unless something actually was. */}
+              <ProofMoment events={proof} />
 
-      <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-        {!!params.sessionId && (
-          <Pressable
-            style={[styles.primary, saveState === 'saved' && styles.primarySaved]}
-            onPress={handleSave}
-            disabled={saveState === 'saving'}>
-            <Text style={[styles.primaryText, saveState === 'saved' && styles.primaryTextSaved]}>
-              {saveLabel}
+              {covered.length > 0 && (
+                <>
+                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                    What we covered
+                  </Text>
+                  {visible.map((line, i) => {
+                    const last = i === visible.length - 1;
+                    /* The toggle rides the last visible line instead of sitting
+                       under the list, so expanding does not add a row that is
+                       only ever chrome. */
+                    const toggle = last && rest > 0;
+                    return (
+                      <View key={i} style={[styles.line, last && styles.lineLast]}>
+                        <Text style={styles.lineText}>{line}</Text>
+                        {toggle && (
+                          <Pressable
+                            style={styles.more}
+                            onPress={() => setExpanded((v) => !v)}
+                            hitSlop={10}
+                            accessibilityLabel={expanded ? 'Show less' : `Show ${rest} more`}>
+                            <Text style={styles.moreText}>{expanded ? 'Less' : `${rest} more`}</Text>
+                            <Animated.View style={chevStyle}>
+                              <Svg viewBox="0 0 12 12" width={11} height={11} fill="none">
+                                <Path
+                                  d="M2 4.5l4 3.5 4-3.5"
+                                  stroke={AMBER_LINK}
+                                  strokeWidth={1.6}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </Svg>
+                            </Animated.View>
+                          </Pressable>
+                        )}
+                      </View>
+                    );
+                  })}
+                </>
+              )}
+            </ScrollView>
+
+            {/* Tells the student there is more below without a scrollbar, which
+                at this size would be a bigger mark than the text it sits on. */}
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', '#FFFFFF']}
+              style={styles.fade}
+              pointerEvents="none"
+            />
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInDown.duration(420).delay(380)}
+            style={[styles.actions, { paddingBottom: Math.max(insets.bottom - 6, 16) }]}>
+            {!!saveError && <Text style={styles.error}>{saveError}</Text>}
+
+            {/* Why the key is worth pressing, in the one place it cannot be
+                scrolled away from. */}
+            <Text style={styles.foot}>
+              {params.sessionId
+                ? 'Unsaved classes are kept for seven days, then they go.'
+                : 'This class wasn\u2019t recorded, so there\u2019s nothing to save.'}
             </Text>
-          </Pressable>
-        )}
-        <Pressable onPress={() => router.dismissTo('/')} hitSlop={10}>
-          <Text style={styles.dashboardLink}>Go to dashboard</Text>
-        </Pressable>
-      </View>
+
+            {!!params.sessionId && (
+              <Pressable
+                style={[
+                  styles.key,
+                  keyDown && styles.keyDown,
+                  saveState === 'saved' && styles.keySaved,
+                ]}
+                onPressIn={() => setKeyDown(true)}
+                onPressOut={() => setKeyDown(false)}
+                onPress={handleSave}
+                disabled={saveState === 'saving'}>
+                <LinearGradient
+                  colors={['#35302A', '#1C1A16']}
+                  locations={[0, 0.6]}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                {/* The bevel, on its own layer: an inset shadow is drawn onto
+                    the view's own background, so on the key itself the gradient
+                    child would cover it. */}
+                <View style={styles.keyBevel} pointerEvents="none" />
+                <Text style={styles.keyText}>{saveLabel}</Text>
+              </Pressable>
+            )}
+
+            <Pressable onPress={() => router.dismissTo('/')} hitSlop={10}>
+              <Text style={styles.dashboardLink}>Go to dashboard</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -263,156 +369,172 @@ function createStyles() {
     screen: { flex: 1, backgroundColor: PAPER },
     rotateHold: { flex: 1, backgroundColor: PAPER },
     safeArea: { flex: 1 },
-    wash: { position: 'absolute', left: 0, right: 0, top: 0, height: 280 },
-    scroll: { flex: 1, minHeight: 0 },
-    scrollContent: { paddingHorizontal: GUTTER, paddingTop: 24, paddingBottom: 36 },
+    wash: { position: 'absolute', left: 0, right: 0, top: 0, height: 440 },
+    /** A column, not a scroller. Only `summary` below is allowed to move. */
+    page: { flex: 1, paddingHorizontal: GUTTER, paddingTop: 6 },
 
     heading: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: 32,
-      letterSpacing: -0.04 * 32,
-      lineHeight: 32 * 1.06,
+      letterSpacing: -0.03 * 32,
+      lineHeight: 32 * 1.05,
       color: INK,
     },
     sub: {
       marginTop: 8,
       fontFamily: 'Onest_400Regular',
-      fontSize: 16,
-      lineHeight: 16 * 1.5,
-      color: INK_70,
-    },
-    topic: {
-      marginTop: 16,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: 15,
-      color: AMBER,
+      fontSize: 14.5,
+      lineHeight: 14.5 * 1.45,
+      color: INK_MUTED,
     },
 
-    stats: { flexDirection: 'row', gap: 30, marginTop: 22 },
-    statValue: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 26,
-      letterSpacing: -0.03 * 26,
-      color: INK,
-    },
-    statOf: { fontFamily: 'Onest_600SemiBold', fontSize: 17, color: INK_50 },
-    statLabel: {
-      marginTop: 2,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: 13,
-      color: INK_50,
-    },
-
-    noteCard: {
-      position: 'relative',
-      paddingTop: 20,
+    card: {
+      marginTop: 24,
       paddingHorizontal: 18,
-      paddingBottom: 18,
+      paddingVertical: 4,
       borderWidth: 1,
       borderColor: HAIR,
-      borderRadius: 18,
+      borderRadius: 20,
       backgroundColor: PAPER,
-      overflow: 'hidden',
-      // A single soft lift, so the note reads as an object without becoming a
-      // heavy box.
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.06,
-      shadowRadius: 14,
-      elevation: 2,
     },
-    noteRules: { ...StyleSheet.absoluteFillObject },
-    noteRule: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: RULE },
-    previewLead: {
-      marginTop: 28,
-      marginBottom: 10,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: 13.5,
-      color: INK_50,
+    row: {
+      gap: 3,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
     },
-    noteTopic: {
-      marginBottom: 14,
-      fontFamily: 'Onest_700Bold',
-      fontSize: 19,
-      letterSpacing: -0.03 * 19,
+    /** Whichever row ends up last — the card's own edge is the rule there. */
+    rowLast: { borderBottomWidth: 0 },
+    rowInline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 16,
+    },
+    rowLabel: { fontFamily: 'Onest_500Medium', fontSize: 13, color: INK_SOFT },
+    rowValue: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: 15,
+      lineHeight: 15 * 1.35,
       color: INK,
     },
+    tally: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 24,
+      letterSpacing: -0.03 * 24,
+      color: INK,
+      /** So 4 / 5 and 11 / 12 put their slash in the same place. */
+      fontVariant: ['tabular-nums'],
+    },
+    /** The denominator is context, not a second score. */
+    tallyOf: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: 15,
+      letterSpacing: 0,
+      color: INK_SOFT,
+    },
 
-    label: {
-      marginBottom: 14,
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 11,
-      letterSpacing: 0.14 * 11,
-      color: AMBER,
+    /** Takes whatever height is left, and scrolls inside it. */
+    summary: { flex: 1, minHeight: 0, marginTop: 24 },
+    summaryInner: { paddingBottom: FADE },
+    summaryLead: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: 13,
+      color: AMBER_LINK,
+      marginBottom: 4,
     },
-    coveredRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, marginBottom: 12 },
-    tick: {
-      width: 18,
-      height: 18,
-      marginTop: 3,
-      flexShrink: 0,
-      borderRadius: 9,
-      backgroundColor: 'rgba(28,155,87,0.12)',
-      alignItems: 'center',
-      justifyContent: 'center',
+    /** Only when the proof card is above it — otherwise the summary column's
+     *  own margin is already the gap. */
+    summaryLeadBelow: { marginTop: 20 },
+    line: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
     },
-    coveredText: {
+    lineLast: { borderBottomWidth: 0 },
+    lineText: {
+      flexShrink: 1,
       fontFamily: 'Onest_400Regular',
-      fontSize: 15.5,
-      lineHeight: CARD_RULE,
-      color: INK_70,
-      marginBottom: CARD_RULE - 18,
+      fontSize: 14.5,
+      lineHeight: 14.5 * 1.45,
+      color: INK,
     },
+    more: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingBottom: 1 },
+    moreText: { fontFamily: 'Onest_600SemiBold', fontSize: 13.5, color: AMBER_LINK },
+    fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FADE },
 
-    noteMore: {
-      marginTop: 6,
-      paddingTop: 14,
-      borderTopWidth: 1,
-      borderTopColor: HAIR,
-    },
-    noteMoreText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: 13.5,
-      lineHeight: 13.5 * 1.5,
-      color: INK_50,
-    },
-
+    actions: { paddingTop: 16 },
     foot: {
-      marginTop: 22,
+      marginBottom: 10,
+      textAlign: 'center',
       fontFamily: 'Onest_400Regular',
-      fontSize: 13.5,
-      lineHeight: 13.5 * 1.5,
-      color: INK_50,
+      fontSize: 12.5,
+      lineHeight: 12.5 * 1.4,
+      color: INK_SOFT,
     },
     error: {
-      marginTop: 12,
+      marginBottom: 10,
+      textAlign: 'center',
       fontFamily: 'Onest_600SemiBold',
       fontSize: 13,
       color: RED,
     },
 
-    actions: {
-      paddingHorizontal: GUTTER,
-      paddingTop: 12,
-      gap: 2,
-      backgroundColor: PAPER,
-    },
-    primary: {
+    /**
+     * THE INK KEY, built from three layers rather than one declaration.
+     *
+     * The hard edge below it is a zero-blur `boxShadow`, which iOS's box-shadow
+     * layer draws natively — the older `shadowRadius`/`shadowOpacity` props
+     * cannot express a shadow with no blur at all. The face is a real gradient
+     * view rather than `experimental_backgroundImage`, because that prop's
+     * CSS-string form is registered on Android's view config and not iOS's, so
+     * on a phone it would have quietly fallen back to flat ink.
+     */
+    key: {
       height: 54,
       borderRadius: 99,
-      backgroundColor: INK,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
+      backgroundColor: INK,
+      boxShadow: [{ offsetX: 0, offsetY: 3, blurRadius: 0, color: 'rgba(28,26,22,0.35)' }],
     },
-    primarySaved: { backgroundColor: 'rgba(28,155,87,0.12)' },
-    primaryText: { fontFamily: 'Onest_600SemiBold', fontSize: 16, color: PAPER },
-    primaryTextSaved: { color: '#14663A' },
-    dashboardLink: {
-      textAlign: 'center',
+    /** Lit along the top, dark along the bottom: a face catching light from
+     *  above, which is the whole of why it reads as raised. */
+    keyBevel: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: 99,
+      boxShadow: [
+        { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,0.22)', inset: true },
+        { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,0.4)', inset: true },
+      ],
+    },
+    /** Pressed: the face travels onto its own edge, which is what makes it feel
+     *  like a key rather than a rectangle that changed colour. */
+    keyDown: {
+      transform: [{ translateY: 2 }],
+      boxShadow: [{ offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(28,26,22,0.35)' }],
+    },
+    /** Saved: the key stays a key and stops being the brightest thing on it. */
+    keySaved: { opacity: 0.55 },
+    keyText: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: 14,
-      color: INK_50,
-      paddingVertical: 14,
+      fontSize: 16,
+      letterSpacing: -0.012 * 16,
+      color: '#FFFDF8',
+    },
+    dashboardLink: {
+      alignSelf: 'center',
+      paddingTop: 10,
+      paddingHorizontal: 12,
+      paddingBottom: 4,
+      fontFamily: 'Onest_500Medium',
+      fontSize: 15,
+      color: INK_MUTED,
     },
   });
 }

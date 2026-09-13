@@ -304,6 +304,22 @@ export default function LiveClassroomScreen() {
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
   const [board, setBoard] = useState<BoardEvent[]>([]);
+  /**
+   * How many checkpoint questions the teacher actually put to the student.
+   *
+   * The end-of-class summary reports "answered 4 / 5", and the server sends
+   * only the 4 — it counts answers, not asks. This is the denominator, counted
+   * where the asking happens: one per checkpoint that reached the screen. A
+   * question the student skipped still counts as asked, which is the whole
+   * point of showing a ratio rather than a total.
+   */
+  const askedRef = useRef(0);
+  /**
+   * Which question that count is currently standing on. A state frame carrying
+   * the same checkpoint can arrive more than once, and counting frames rather
+   * than questions would inflate the denominator every time one did.
+   */
+  const askedKeyRef = useRef<string | null>(null);
 
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
@@ -440,7 +456,16 @@ export default function LiveClassroomScreen() {
         // Only when the frame actually carries them — the post-turn_complete
         // state frame does not, and assigning `[]` there wiped the chips the
         // student was meant to answer.
-        if (state.check_options) setCheckOptions(state.check_options);
+        if (state.check_options) {
+          if (state.check_options.length > 0) {
+            const key = state.question_text ?? state.check_options.join('\u0001');
+            if (askedKeyRef.current !== key) {
+              askedKeyRef.current = key;
+              askedRef.current += 1;
+            }
+          }
+          setCheckOptions(state.check_options);
+        }
         if (state.question_text) {
           setQuestionText(state.question_text);
           // Safe to be the last caption of the turn now: the client holds this
@@ -1342,7 +1367,12 @@ export default function LiveClassroomScreen() {
         params: {
           sessionId,
           chapterTitle: summary?.chapter_name || chapterTitle,
+          // The topic the student chose on the way in. The server's end payload
+          // has no notion of it — it knows the chapter, not which corner of it
+          // was asked for.
+          topicTitle: params.subtopic ?? '',
           summaryPoints: JSON.stringify(summary?.summary_points ?? []),
+          questionsAsked: String(askedRef.current),
           mistakesCount: String(summary?.mistakes_count ?? 0),
           questionsAnswered: String(summary?.questions_answered ?? 0),
           durationMinutes: String(summary?.duration_minutes ?? 0),
