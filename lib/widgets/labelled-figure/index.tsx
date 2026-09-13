@@ -28,7 +28,7 @@ import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types
 import {
   ANCHOR_R, LEADER_STROKE, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA, MAX_TERM_LATIN,
   activeLabels, layoutFigure, termCapFor, tooCloseAnchors,
-  LEADER_MIN_DRAW, PILL_RADIUS,
+  LEADER_MIN_DRAW, PILL_LINE_H, PILL_RADIUS,
   type FigureArt, type FigureGroup, type LabelRecord, type LabelledFigureParams, type Lang,
   type Side,
 } from './figure-layout';
@@ -413,16 +413,23 @@ function LabelledFigure({ params, width, height, theme }: WidgetRenderProps<Labe
             stroke={theme.rule}
             strokeWidth={HAIRLINE_STROKE}
           />
-          <SvgText
-            x={l.tx}
-            y={l.ty}
-            fontSize={LABEL_SIZE}
-            fontFamily={familyFor(l.text)}
-            fill={theme.ink}
-            textAnchor={l.textAnchor}
-          >
-            {l.text}
-          </SvgText>
+          {/* One <SvgText> per line, not tspans: `dy` on a tspan is measured
+              against the PREVIOUS tspan in react-native-svg, so a two-line
+              pill drifts if a line is ever empty. Absolute baselines cannot
+              drift, and the box model here is the one the gate measures. */}
+          {l.lines.map((line, i) => (
+            <SvgText
+              key={i}
+              x={l.tx}
+              y={l.ty + i * PILL_LINE_H}
+              fontSize={LABEL_SIZE}
+              fontFamily={familyFor(l.text)}
+              fill={theme.ink}
+              textAnchor={l.textAnchor}
+            >
+              {line}
+            </SvgText>
+          ))}
         </G>
       ))}
     </Svg>

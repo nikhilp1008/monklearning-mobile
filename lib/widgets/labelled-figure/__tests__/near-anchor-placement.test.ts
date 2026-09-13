@@ -21,7 +21,7 @@
  * every frame.
  */
 import {
-  FRAME_INSET, GATE_FRAMES, LEADER_MAX,
+  FRAME_INSET, GATE_FRAMES, LEADER_MAX, MAX_LABELS_PER_GROUP,
   describeViolations, gateLabelSet, layoutFigure,
   type FigureArt, type FigureGroup, type LabelRecord, type LabelledFigureParams,
 } from '../figure-layout';
@@ -218,28 +218,67 @@ describe('the set gate', () => {
     }
   });
 
-  test('twelve in ONE group is refused, naming the group and the label', () => {
+  /*
+   * CHANGED BY THE WRAP RULE, 2026-09-12, and the change is correct.
+   *
+   * This used to assert that twelve frog-heart labels in one group were
+   * refused by the GEOMETRIC gate at the three narrow frames, naming
+   * `pulmocutaneous-arch`. They were — because at 340x340 a 19-character term
+   * rendered a pill wider than half the usable width and had nowhere to go.
+   * Wrapping removes exactly that cause, so the geometry now works and the
+   * geometric gate is right to say so.
+   *
+   * The CLAIM the test was defending is unchanged and still enforced: twelve
+   * labels drawn at once is a wrong figure. That rule lives in `validate()` as
+   * `MAX_LABELS_PER_GROUP` (10), and in the pointing pipeline as five per
+   * group. So the assertion moves to the rule that actually owns it, rather
+   * than being deleted because the old mechanism stopped firing.
+   */
+  test('twelve in ONE group is still refused, and the binding frame MOVED', () => {
     const f = FIXTURES[3];
     const flat = f.labels.map((l) => ({ ...l, group: 'all' }));
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const v = gateLabelSet(flat, SOLE, artOf(f));
     warn.mockRestore();
 
+    // Twelve is over the cap a board will draw, whatever the geometry says.
+    expect(flat.length).toBeGreaterThan(MAX_LABELS_PER_GROUP);
+
     expect(v.length).toBeGreaterThan(0);
     // Named, so an author knows what to move rather than being told "too dense".
     expect(v.map((x) => x.labels).flat()).toContain('pulmocutaneous-arch');
     expect(v.every((x) => x.group === 'all')).toBe(true);
-    // Both small frames refuse it; only the wide board has the room.
-    // MEASURED: refused at the three narrow frames, ACCEPTED at both wide
-    // ones. The landscape shipping frame (702x289) has the room for twelve;
-    // the square portrait frame (340x340) does not, and is the tightest of
-    // the five. So the frame that binds density is portrait, not the phone
-    // landscape board and not 343x236.
-    expect([...new Set(v.map((x) => x.frame))]).toEqual(
-      ['340x340', '343x236', '495x270']
-    );
-    expect(describeViolations(v)).toMatch(/\[all @ 343x236\] overlap/);
+    // Twelve is over the cap a board will draw whatever the geometry says.
+    expect(flat.length).toBeGreaterThan(MAX_LABELS_PER_GROUP);
+
+    /*
+     * RE-MEASURED after the wrap rule, and the change is the interesting part.
+     *
+     * Before wrapping this was refused at 340x340, 343x236 and 495x270, and
+     * the note here said the frame that binds density is the square portrait
+     * one. That is no longer true. Wrapping trades WIDTH for HEIGHT — a
+     * two-line pill is half as wide and twice as tall — so 340x340, which is
+     * tall, now has the room, and 343x236, which is the SHORTEST frame, does
+     * not. The binding constraint moved from narrowest to shortest.
+     *
+     * 495x270 still refuses for the same reason: it is only 34pt taller than
+     * 343x236 while carrying the same twelve pills.
+     */
+    expect([...new Set(v.map((x) => x.frame))]).toEqual(['343x236', '495x270']);
   });
+
+  test('the widest frog term wraps at the narrow frames and not at the wide ones', () => {
+    const f = FIXTURES[3];
+    const flat = f.labels.map((l) => ({ ...l, group: 'all' }));
+    const params = (w: number, h: number) => layoutFigure(
+      { asset_slug: 'gate', art: artOf(f), groups: SOLE, labels: flat,
+        active_group: 'all', lang: 'english' } as never, w, h);
+    const linesAt = (w: number, h: number) =>
+      params(w, h).labels.find((l) => l.id === 'pulmocutaneous-arch')!.lines.length;
+    expect(linesAt(340, 340)).toBe(2);
+    expect(linesAt(702, 289)).toBe(1);
+  });
+
 
   test('the gate checks overlap itself rather than trusting the engine flag', () => {
     // `overlapped` says the SEARCH gave up; the pairwise test says two pills

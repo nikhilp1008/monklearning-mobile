@@ -192,8 +192,49 @@ export const FRAME_INSET = 6;
 export const PILL_PAD_X = 6;
 export const PILL_PAD_Y = 3;
 export const PILL_RADIUS = 4;
-/** Text box model is `fontSize * 1.15`, matching the gate. */
-export const PILL_H = LABEL_SIZE * 1.15 + 2 * PILL_PAD_Y;
+/** One text line's box. The model is `fontSize * 1.15`, matching the gate. */
+export const PILL_LINE_H = LABEL_SIZE * 1.15;
+/** A single-line pill. Two-line pills are `pillHeight(2)`. */
+export const PILL_H = PILL_LINE_H + 2 * PILL_PAD_Y;
+
+export function pillHeight(lines: number): number {
+  return lines * PILL_LINE_H + 2 * PILL_PAD_Y;
+}
+
+/**
+ * A pill wider than this fraction of the frame's usable width wraps.
+ *
+ * WHY A FRACTION AND NOT A CHARACTER COUNT. The thing that goes wrong is
+ * geometric, not typographic: `supra-oesophageal ganglion` renders a 209pt
+ * pill, the usable width at 340x340 is 328pt, and with `LEADER_MAX` at 40pt a
+ * pill that wide has nowhere to go unless its anchor happens to sit near the
+ * horizontal centre. Five ch7 terms exceeded half the narrow frames; at
+ * 495x270 and wider, none did. So the threshold has to move with the frame —
+ * the same term is a problem on a phone in portrait and completely fine on the
+ * landscape board, and a character count cannot express that.
+ *
+ * 0.45 rather than 0.5: two pills of the same group must be able to sit side
+ * by side with a gap, and at exactly half they cannot.
+ */
+export const WRAP_FRACTION = 0.45;
+
+/**
+ * Split a term into at most two lines, at the LAST space.
+ *
+ * Raasikh's rule, 2026-09-12, and it is the right one for these terms: they
+ * are anatomical Latin where the final word is the noun and everything before
+ * it qualifies — "supra-oesophageal | ganglion", "integumentary | nephridium".
+ * Breaking anywhere else splits the qualifier from what it qualifies.
+ *
+ * A term with no space cannot wrap and is returned whole. That is not a
+ * failure to handle: it is a single word, and hyphenating an examinable term
+ * would teach a string the exam does not print.
+ */
+export function wrapTerm(text: string): string[] {
+  const i = text.lastIndexOf(' ');
+  if (i <= 0) return [text];
+  return [text.slice(0, i), text.slice(i + 1)];
+}
 
 /**
  * THE THREE FRAMES A SET MUST SURVIVE.
@@ -406,7 +447,12 @@ export function anchorAt(fit: FittedRect, u: number, v: number): { x: number; y:
 
 export interface PlacedLabel {
   id: string;
+  /** The whole term, unsplit — what the label MEANS, and what `familyFor`
+   *  and any accessibility reader should see. */
   text: string;
+  /** The term as drawn: one line normally, two when the pill would be wider
+   *  than `WRAP_FRACTION` of the frame. `ty` is the FIRST line's baseline. */
+  lines: string[];
   side: Side;
   /** The point on the art this label names. */
   anchor: { x: number; y: number };
@@ -630,11 +676,25 @@ function place(
 ): void {
   const centre = { x: artRect.x + artRect.w / 2, y: artRect.y + artRect.h / 2 };
 
+  // The frame's usable width, which is what "too wide" is measured against.
+  const usable = W - 2 * FRAME_INSET;
+
   drawn.forEach((l, idx) => {
     const text = termFor(l, params.lang);
-    const tw = textWidth(text, LABEL_SIZE);
+    /*
+     * WRAP, DO NOT SHRINK OR STRETCH. The font stays at LABEL_SIZE and
+     * LEADER_MAX stays 40; the pill grows downward instead. Shrinking the type
+     * would make the longest, least familiar terms the hardest to read, which
+     * is backwards; stretching the leader would let a label drift away from the
+     * structure it names.
+     */
+    let lines = [text];
+    if (textWidth(text, LABEL_SIZE) + 2 * PILL_PAD_X > WRAP_FRACTION * usable) {
+      lines = wrapTerm(text);
+    }
+    const tw = Math.max(...lines.map((t) => textWidth(t, LABEL_SIZE)));
     const w = tw + 2 * PILL_PAD_X;
-    const h = PILL_H;
+    const h = pillHeight(lines.length);
     const anchor = dots[idx];
 
     // Outward from the plate centre. A label on a structure at the centre has
@@ -692,6 +752,7 @@ function place(
     out.push({
       id: l.id,
       text,
+      lines,
       side: anchor.x < W / 2 ? 'left' : 'right',
       anchor,
       via: l.leader_via ? anchorAt(fit, l.leader_via.u, l.leader_via.v) : null,
