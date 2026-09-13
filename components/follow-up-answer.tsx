@@ -1,6 +1,12 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { SolutionSteps } from '@/components/solution-steps';
@@ -11,10 +17,10 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
 /**
  * THE ANSWER TO A FOLLOW-UP, ON A SHEET THAT RISES OUT OF THE BAR.
  *
- * Half the screen, not all of it. A follow-up is a question ABOUT the working
- * behind it, and a full-screen answer hides the very thing being asked about —
- * the same reason the old sheet was removed. It stops at 52% so the question
- * and the step being queried stay on screen above it.
+ * Most of the screen, not all of it. A follow-up is a question ABOUT the
+ * working behind it, and a full-screen answer hides the very thing being asked
+ * about — the same reason the old sheet was removed. It stops at 64%, clear of
+ * the bar, so the question and the step being queried stay visible above.
  *
  * It comes only when she answers. There is nothing to show while the student is
  * holding the mic and nothing to show while the server is thinking, so the
@@ -24,50 +30,103 @@ import { parseSolutionSteps } from '@/lib/solution-steps';
  * than handed a transcript.
  *
  * THE TYPE IS THE SOLUTION'S OWN. `parseSolutionSteps` and `SolutionSteps` are
- * what render the working above it, at `compact` instead of `full`. That is the
- * whole answer to "it shouldn't feel like some text is randomly written": the
- * answer is numbered on the same rail, its maths set by the same renderer, its
- * headings the same weight. A second way of setting steps would have drifted
- * from the first within a week.
+ * what render the working above it, at `compact` instead of `full`. Its maths
+ * is set by the same renderer and its headings carry the same weight, which is
+ * the answer to "it shouldn't feel like some text is randomly written" — a
+ * second way of setting steps would have drifted from the first within a week.
+ *
+ * WITHOUT THE NUMBERED RAIL, though. A solution's steps are an ordered method
+ * and the numbers are how a student points at one; a follow-up is a few
+ * sentences of explanation, where markers claim a structure the content does
+ * not have and the rail indents prose away from its own edge for nothing.
  */
 
-const SHEET_FRACTION = 0.52;
+/** Bigger than it was: 52% left the answer scrolling after three sentences. */
+const SHEET_FRACTION = 0.64;
+/**
+ * Clear of the bar rather than resting on it. At 96 the sheet and the bar read
+ * as one welded object; the answer is a separate thing that came OUT of the
+ * button and should be able to be seen as separate.
+ */
+const SHEET_BOTTOM = 132;
+/**
+ * ONE CURVE, BOTH WAYS, and written out rather than taken from the layout
+ * animation presets.
+ *
+ * `SlideInDown`/`SlideOutDown` measure the element and animate it as a layout
+ * change, which on a sheet whose height depends on content that is still
+ * streaming in produces a start that jumps and an exit that snaps. A plain
+ * translate and fade cannot do either: the distance is known before the first
+ * frame and does not change when a step arrives.
+ *
+ * Out is quicker than in — 260 against 380 — because dismissing is a decision
+ * already made and a slow exit reads as the screen arguing.
+ */
+const IN_MS = 380;
+const OUT_MS = 260;
+const EASE_IN = Easing.bezier(0.16, 1, 0.3, 1);
+const EASE_OUT = Easing.bezier(0.4, 0, 0.9, 0.4);
 
 export function FollowUpAnswer({
   steps,
-  speaking,
   onClose,
 }: {
   steps: FollowUpStep[];
-  /** Still talking — the sheet says so rather than looking finished. */
-  speaking: boolean;
   onClose: () => void;
 }) {
   const { height } = useWindowDimensions();
   const parsed = useMemo(() => parseSolutionSteps(steps), [steps]);
-  if (steps.length === 0) return null;
+  const open = steps.length > 0;
+
+  /**
+   * Kept mounted through the exit, so there is something to animate out. The
+   * previous version unmounted the moment the steps cleared, which is why
+   * closing looked like the sheet being deleted rather than leaving.
+   */
+  const [shown, setShown] = useState(false);
+  const p = useSharedValue(0);
+  useEffect(() => {
+    if (open) {
+      setShown(true);
+      p.value = withTiming(1, { duration: IN_MS, easing: EASE_IN });
+      return;
+    }
+    p.value = withTiming(0, { duration: OUT_MS, easing: EASE_OUT }, (done) => {
+      if (done) runOnJS(setShown)(false);
+    });
+  }, [open, p]);
+
+  const travel = height * SHEET_FRACTION;
+  const sheetStyle = useAnimatedStyle(() => ({
+    opacity: p.value,
+    transform: [{ translateY: (1 - p.value) * travel }],
+  }));
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: p.value }));
+
+  if (!shown) return null;
 
   return (
     <>
       {/* Dim, not black: the working stays legible behind the answer, because
           the answer is about it. Tapping it closes, which is the gesture people
           try first. */}
-      <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(180)}
-        style={styles.scrim}>
+      <Animated.View style={[styles.scrim, scrimStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close the answer" />
       </Animated.View>
 
       <Animated.View
-        entering={SlideInDown.duration(320)}
-        exiting={SlideOutDown.duration(240)}
-        style={[styles.sheet, { maxHeight: height * SHEET_FRACTION }]}>
-        <View style={styles.grabber} />
-
+        style={[styles.sheet, { maxHeight: height * SHEET_FRACTION }, sheetStyle]}>
+        {/* No heading. The sheet only exists while there is an answer on it, so
+            a label saying so was telling the student what they could already
+            see. The close control stays, because tapping the dim is a guess
+            and this is not. */}
         <View style={styles.head}>
-          <Text style={styles.title}>{speaking ? 'Answering…' : 'Follow-up'}</Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close">
+          <View style={styles.grabber} />
+          <Pressable
+            style={styles.close}
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityLabel="Close the answer">
             <Svg viewBox="0 0 24 24" width={16} height={16} fill="none">
               <Path
                 d="M6 6l12 12M18 6L6 18"
@@ -83,7 +142,7 @@ export function FollowUpAnswer({
           style={styles.body}
           contentContainerStyle={styles.bodyInner}
           showsVerticalScrollIndicator={false}>
-          <SolutionSteps steps={parsed} size="compact" />
+          <SolutionSteps steps={parsed} size="compact" rail={false} />
         </ScrollView>
       </Animated.View>
     </>
@@ -101,39 +160,36 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 10,
     right: 10,
-    bottom: 96,
+    bottom: SHEET_BOTTOM,
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(28,26,22,.10)',
     overflow: 'hidden',
+    /** Lighter. The sheet already reads as lifted because the ground behind it
+     *  is dimmed; a heavy shadow on top of that was doing the job twice. */
     boxShadow: [
-      { offsetX: 0, offsetY: 18, blurRadius: 40, spreadDistance: -16, color: 'rgba(28,26,22,0.45)' },
-      { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      { offsetX: 0, offsetY: 10, blurRadius: 28, spreadDistance: -14, color: 'rgba(28,26,22,0.28)' },
     ],
   },
+  /** The grabber centres on the sheet, so the close sits over it rather than
+   *  beside it — otherwise the bar would be centred against one control. */
+  head: {
+    height: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   grabber: {
-    alignSelf: 'center',
     width: 36,
     height: 4,
     borderRadius: 99,
     backgroundColor: 'rgba(28,26,22,.16)',
-    marginTop: 8,
   },
-  head: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  title: {
-    fontFamily: 'Onest_700Bold',
-    fontSize: 11,
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    color: colors.slate,
+  close: {
+    position: 'absolute',
+    right: 14,
+    top: 9,
+    padding: 2,
   },
   body: { flexGrow: 0 },
   bodyInner: { paddingHorizontal: 18, paddingBottom: 22 },

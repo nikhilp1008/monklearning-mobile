@@ -68,6 +68,15 @@ type SolutionStepsProps = {
   answerLabels?: string[] | null;
   answerLabel?: string;
   size?: SolutionStepsSize;
+  /**
+   * The numbered rail. On by default, because a solution's steps are an
+   * ordered argument and the numbers are how a student refers to one.
+   *
+   * Off for a follow-up answer, which is a few sentences of explanation rather
+   * than a numbered method — there, markers read as structure the content does
+   * not have and the rail indents prose away from its own edge for nothing.
+   */
+  rail?: boolean;
   /** Trailing line under the final answer, e.g. a step count. */
   footer?: ReactNode;
 };
@@ -79,22 +88,25 @@ export function SolutionSteps({
   answerLabels,
   answerLabel = 'Final answer',
   size = 'full',
+  rail = true,
   footer,
 }: SolutionStepsProps) {
-  const styles = useMemo(() => createStyles(size), [size]);
+  const styles = useMemo(() => createStyles(size, rail), [size, rail]);
   // The same metrics createStyles uses, needed here because a stacked fraction
   // has to be sized against the type it sits in.
   const m = METRICS[size];
 
   return (
     <View style={styles.steps}>
-      <View style={styles.rail} />
+      {rail && <View style={styles.rail} />}
 
       {steps.map((step, i) => (
         <View key={i} style={styles.step}>
-          <View style={styles.num}>
-            <Text style={styles.numText}>{String(i + 1).padStart(2, '0')}</Text>
-          </View>
+          {rail && (
+            <View style={styles.num}>
+              <Text style={styles.numText}>{String(i + 1).padStart(2, '0')}</Text>
+            </View>
+          )}
           {!!step.title && <Text style={styles.stepTitle}>{step.title}</Text>}
           {step.lines.map((line, j) =>
             line.kind === 'math' ? (
@@ -152,12 +164,14 @@ export function SolutionSteps({
   );
 }
 
-function createStyles(size: SolutionStepsSize) {
+function createStyles(size: SolutionStepsSize, rail: boolean) {
   const m = METRICS[size];
   return StyleSheet.create({
     steps: {
       position: 'relative',
-      paddingLeft: m.rail,
+      // The left inset exists to clear the markers. Without them it is an
+      // indent with nothing in it.
+      paddingLeft: rail ? m.rail : 0,
       gap: m.stepGap,
     },
     rail: {

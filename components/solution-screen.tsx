@@ -551,11 +551,7 @@ export function SolutionScreen({
       </SafeAreaView>
 
       {/* Above the actions, so the bar it rises out of stays visible under it. */}
-      <FollowUpAnswer
-        steps={fu.steps}
-        speaking={fu.phase === 'speaking'}
-        onClose={fu.dismissAnswer}
-      />
+      <FollowUpAnswer steps={fu.steps} onClose={fu.dismissAnswer} />
 
       <View style={styles.actions} pointerEvents="box-none">
         <LinearGradient
