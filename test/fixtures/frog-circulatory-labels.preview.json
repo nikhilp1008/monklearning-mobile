@@ -162,13 +162,12 @@
       "group": "venous"
     }
   ],
-  "_dev_note": "PREVIEW FIXTURE — deliberately carries NO reviewed_by. 4 term(s) from the draft are omitted because the svg carried no leader endpoint for them: lung, buccal cavity, glottis, skin. validateLabelSet refuses a null anchor, and inventing one is the plausible-but-wrong failure the label pipeline exists to prevent. PROPOSED GROUPING: the widget draws at most 10 labels per group and this set has 12 placed, so it must be split. Split by anatomy (chambers / arterial arches / veins), 5+4+3, which is also the order the figure is taught in. Grouping is an authoring decision and is offered for confirmation, not applied to any published set.",
   "groups": [
     {
       "id": "heart",
       "label": {
         "english": "Heart chambers",
-        "hinglish": "Heart ke chambers"
+        "hinglish": "Heart chambers"
       }
     },
     {
