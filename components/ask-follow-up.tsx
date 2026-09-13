@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { INK, INK_FAINT, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
+import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
 import { askAboutDoubtAloud, speakFollowUpStreaming, type FollowUpTurn } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
@@ -62,7 +62,25 @@ function StopIcon({ color }: { color: string }) {
   );
 }
 
-export function AskFollowUpBar({ doubtId }: { doubtId?: string | null }) {
+/** The reference's own flag: an upright staff with a pennant, in muted ink so
+ *  Report reads as the quieter of the two controls. */
+function FlagIcon() {
+  return (
+    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke={INK_MUTED}
+      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M5 21V4" />
+      <Path d="M5 4h11l-1.5 4L16 12H5" />
+    </Svg>
+  );
+}
+
+export function AskFollowUpBar({
+  doubtId,
+  onReport,
+}: {
+  doubtId?: string | null;
+  onReport?: () => void;
+}) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -283,38 +301,51 @@ export function AskFollowUpBar({ doubtId }: { doubtId?: string | null }) {
   const mood: RingMood = listening ? 'student' : 'teacher';
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.anchor}>
+    <View style={styles.block}>
+      <View style={styles.row}>
+        <View style={styles.anchor}>
         <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
+          <Pressable
+            style={[styles.face, disabled && styles.faceOff]}
+            disabled={disabled}
+            accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+            onPressIn={() => {
+              if (speaking || phase === 'thinking') return;
+              void beginHold();
+            }}
+            onPressOut={() => {
+              if (phase !== 'listening') return;
+              void endHold();
+            }}
+            onPress={() => {
+              // Only meaningful while the answer is playing; a hold's own press
+              // event arrives after `onPressOut` has already sent the question.
+              if (speaking) stopEverything();
+            }}>
+            <View style={[styles.thumb, listening && styles.thumbOn]}>
+              {listening ? (
+                <LevelBars color={PAPER} heights={[9, 17, 12]} />
+              ) : speaking ? (
+                <StopIcon color={PAPER} />
+              ) : (
+                <MicIcon color={PAPER} />
+              )}
+            </View>
+            <Text style={styles.label} numberOfLines={1}>
+              {label}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Report, as a disc matching the bar's own plate. It lives here rather
+            than in the screen because 12a centres the PAIR: the bar is content
+            sized, the disc is 52, and the two are centred together. Split
+            across two files the row could only be laid out by guesswork. */}
         <Pressable
-          style={[styles.face, disabled && styles.faceOff]}
-          disabled={disabled}
-          accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
-          onPressIn={() => {
-            if (speaking || phase === 'thinking') return;
-            void beginHold();
-          }}
-          onPressOut={() => {
-            if (phase !== 'listening') return;
-            void endHold();
-          }}
-          onPress={() => {
-            // Only meaningful while the answer is playing; a hold's own press
-            // event arrives after `onPressOut` has already sent the question.
-            if (speaking) stopEverything();
-          }}>
-          <View style={[styles.thumb, listening && styles.thumbOn]}>
-            {listening ? (
-              <LevelBars color={PAPER} heights={[9, 17, 12]} />
-            ) : speaking ? (
-              <StopIcon color={PAPER} />
-            ) : (
-              <MicIcon color={PAPER} />
-            )}
-          </View>
-          <Text style={styles.label} numberOfLines={1}>
-            {label}
-          </Text>
+          style={styles.disc}
+          onPress={onReport}
+          accessibilityLabel="Report a problem">
+          <FlagIcon />
         </Pressable>
       </View>
       <Text style={[styles.hint, (listening || !!error) && styles.hintLive]} numberOfLines={1}>
@@ -337,7 +368,17 @@ const PLATE = {
 } as const;
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, gap: 9 },
+  /**
+   * THE BAR IS NOT FULL WIDTH, and that was the mistake worth fixing.
+   *
+   * Built with `flex: 1` it stretched to whatever the footer gave it — 280pt
+   * against a 342pt row — and shoved the report disc against the right edge.
+   * Measured off the reference, the pill is CONTENT sized at 196 (1 + 6 + 40
+   * thumb + 10 + 118 label + 20 + 1) and the pair is centred: 42pt of air
+   * either side of bar-gap-disc. So nothing here flexes; the row centres.
+   */
+  block: { gap: 9 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   /** Holds ring and face together and sizes itself to the face, so the ring's
    *  -1.5 and -6 insets are measured off the bar's own edge. */
   anchor: { position: 'relative' },
@@ -355,6 +396,14 @@ const styles = StyleSheet.create({
     ...PLATE,
   },
   faceOff: { opacity: 0.5 },
+  disc: {
+    width: 52,
+    height: 52,
+    borderRadius: 99,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...PLATE,
+  },
   thumb: {
     width: 40,
     height: 40,

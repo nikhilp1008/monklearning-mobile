@@ -558,10 +558,7 @@ export function SolutionScreen({
             spoken answer — because a follow-up is a question about the working
             on this screen and must not navigate away from it. */}
         <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-          <AskFollowUpBar doubtId={question?.doubtId} />
-          <Pressable style={styles.iconBtn} onPress={onReport} accessibilityLabel="Report a problem">
-            <FlagIcon />
-          </Pressable>
+          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} />
         </View>
       </View>
 
@@ -576,20 +573,6 @@ function BackChevron() {
         d="M15 6l-6 6 6 6"
         stroke="#3A362E"
         strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function FlagIcon() {
-  return (
-    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
-      <Path
-        d="M5 21V4h11l-1.5 3.5L16 11H5"
-        stroke={INK}
-        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -840,12 +823,9 @@ function createStyles() {
       right: 0,
       bottom: 0,
     },
+    // Just the frame now: the bar lays out its own row and centres it, because
+    // 12a centres the bar and the Report disc together as one group.
     actionsInner: {
-      flexDirection: 'row',
-      // The bar has a hint line beneath it and the disc does not, so centring
-      // the row would push the disc down by half that line.
-      alignItems: 'flex-start',
-      gap: 10,
       paddingHorizontal: GUTTER,
       paddingTop: 14,
     },
