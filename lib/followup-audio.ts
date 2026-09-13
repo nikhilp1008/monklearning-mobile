@@ -1,182 +1,161 @@
-import { AudioBufferQueueSourceNode, AudioContext, AudioManager } from 'react-native-audio-api';
+import { createAudioPlayer, type AudioPlayer, type AudioStatus } from 'expo-audio';
+import { File, Paths } from 'expo-file-system';
 
 /**
- * Gapless playback of a follow-up answer, fed raw PCM as it arrives.
+ * Sequential playback for one follow-up answer, and nothing else.
  *
- * Everything before this played FILES — a sequence of WAVs handed to
- * expo-audio one after another. That is why the voice kept breaking however it
- * was sequenced: opening a file has a load-and-start cost, so every clip
- * boundary is a gap, and the only way to hide one is to put it where a speaker
- * would have paused anyway. Cutting the audio every 0.8s by byte count put
- * those gaps mid-word, which no amount of sequencing could repair.
+ * Deliberately NOT `AudioPlaybackQueue`. That one belongs to the live
+ * classroom, and the follow-up borrowing it produced a voice that stuttered
+ * and talked over itself — twice, at two different clip sizes, because the
+ * size was never the cause. Two of its behaviours are right for a lesson and
+ * wrong for this:
  *
- * `AudioBufferQueueSourceNode` is a different thing entirely: ONE source node
- * playing a queue of buffers as a continuous signal. Samples appended to it
- * follow the ones before with nothing in between, so the audio can be cut
- * anywhere — mid-word included — and still come out as one voice.
+ *  - It watches the playhead every 400ms and, when the position has not moved,
+ *    re-issues `play()` before eventually skipping the clip. That exists for a
+ *    real failure: on a simulator with no audio device AVPlayer reports
+ *    `playing` while the playhead sits at 0.0 forever, and without the nudge a
+ *    whole lesson dies in silence. But on a clip shorter than a couple of
+ *    ticks, "the playhead has not moved" means "this already finished" — so it
+ *    replayed fragments.
  *
- * Which makes Rumik's own streaming usable end to end at last: it emits PCM
- * while it is still speaking, and that PCM can now be played while it is still
- * arriving, instead of waiting for a whole sentence to exist as a file.
+ *  - It drives ONE shared `AudioPlayer` through `replace()`. A `didJustFinish`
+ *    belonging to the clip that was just replaced still arrives, and advances
+ *    the queue again — starting a clip while another is sounding.
  *
- * The classroom keeps AudioPlaybackQueue and is untouched. It carries hard-won
- * behaviour for pausing, barge-in and a wedged playhead, none of which a
- * follow-up needs and none of which should be disturbed to make this faster.
+ * Neither is a bug over there. Both are fatal here.
+ *
+ * This can be simpler because of one fact the classroom does not have: we
+ * synthesise these clips ourselves, so their length is known exactly — bytes
+ * over the byte rate, not an estimate. That turns "has it finished?" from
+ * something to watch for into something to calculate, so the timer below IS
+ * the safety net and no nudging is needed.
  */
 
-/** Rumik: 24kHz, 16-bit, mono. The server wraps it; this unwraps it. */
-const SAMPLE_RATE = 24000;
-/** A canonical RIFF header sits before the samples. */
+/** 24kHz, 16-bit, mono — what Rumik sends and what the server wraps. */
+const BYTE_RATE = 24000 * 2 * 1;
+/** A WAV header before the samples; `wav.length - this` is the audio. */
 const WAV_HEADER_BYTES = 44;
-/** 16-bit signed at full scale, for the conversion to float. */
-const INT16_FULL_SCALE = 32768;
+/**
+ * How long after a clip's own duration to wait before moving on regardless.
+ *
+ * Only ever reached when `didJustFinish` does not arrive — a lost
+ * notification, a route change, an output device that never really started.
+ * Generous enough not to clip the tail of a clip that is simply a little
+ * longer than its header claims, short enough that a lost event is not heard
+ * as the answer stopping.
+ */
+const FINISH_GRACE_MS = 350;
 
 export class FollowUpAudio {
-  private context: AudioContext | null = null;
-  private source: AudioBufferQueueSourceNode | null = null;
-  private started = false;
+  private queue: { uri: string; ms: number }[] = [];
+  /** The clip sounding right now, with the listener and timer that belong to
+   *  it. Everything about a clip is torn down before the next one starts. */
+  private current: { player: AudioPlayer; done: () => void } | null = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  private seq = 0;
 
-  /**
-   * Appends one piece of audio. Any size, any boundary.
-   *
-   * The server still sends complete WAVs, so the same stream could feed a
-   * file-based player if this one is ever swapped out; the header is stripped
-   * here rather than asking the server for two formats.
-   */
+  constructor(private readonly key: string) {}
+
+  /** Adds one finished WAV to the end of the answer. */
   enqueue(wav: Uint8Array) {
     if (this.stopped) return;
-    try {
-      const buffer = this.toBuffer(wav);
-      if (!buffer) return;
-      const source = this.ensureSource();
-      source.enqueueBuffer(buffer);
-      if (__DEV__ && !this.started) {
-        const ctx = this.context;
-        // After a tick, not now: `resume()` is asynchronous, so reading the
-        // state here reported "suspended" whether or not it had worked.
-        setTimeout(() => {
-          console.log('[followup-audio] first buffer', buffer.duration.toFixed(2),
-                      's | context', ctx?.state);
-        }, 250);
-      }
-      if (!this.started) {
-        // Started only once the FIRST buffer is in. Starting an empty queue
-        // plays silence and the node can consider itself finished before the
-        // audio it was waiting for ever arrives.
-        this.started = true;
-        source.start();
-      }
-    } catch {
-      // A piece that will not enqueue is a moment of audio lost, not an
-      // answer lost — the steps are on screen either way.
-    }
-  }
-
-  /** Int16 PCM from the server into the float samples the graph wants. */
-  private toBuffer(wav: Uint8Array) {
-    const context = this.ensureContext();
-    if (!context) return null;
-    const bytes = wav.length - WAV_HEADER_BYTES;
-    if (bytes <= 1) return null;
-    const frames = Math.floor(bytes / 2);
-    // `byteOffset` matters: a Uint8Array decoded from base64 can be a view
-    // into a larger buffer, and reading the raw ArrayBuffer would play
-    // whatever happens to sit in front of it.
-    const samples = new Int16Array(
-      wav.buffer.slice(
-        wav.byteOffset + WAV_HEADER_BYTES,
-        wav.byteOffset + WAV_HEADER_BYTES + frames * 2
-      )
+    const ms = Math.max(
+      0,
+      Math.round(((wav.length - WAV_HEADER_BYTES) / BYTE_RATE) * 1000)
     );
-    const buffer = context.createBuffer(1, frames, SAMPLE_RATE);
-    const channel = buffer.getChannelData(0);
-    for (let i = 0; i < frames; i += 1) {
-      channel[i] = samples[i] / INT16_FULL_SCALE;
+    const file = new File(Paths.cache, `followup-${this.key}-${this.seq++}.wav`);
+    try {
+      if (file.exists) file.delete();
+      file.create();
+      file.write(wav);
+    } catch {
+      // A clip we cannot write is one sentence lost, not an answer lost.
+      return;
     }
-    return buffer;
+    this.queue.push({ uri: file.uri, ms });
+    if (!this.current) this.next();
   }
 
-  private ensureContext() {
-    if (this.stopped) return null;
-    if (!this.context) {
-      // The session FIRST, and through this library's own manager.
-      //
-      // react-native-audio-api runs its own AVAudioSession; expo-audio's
-      // `setAudioModeAsync` configures a different one and does not reach it.
-      // Without this the context comes back suspended and stays suspended —
-      // and a suspended graph is silent with no error anywhere, so buffers
-      // convert, enqueue and "start" while nothing is heard. That is exactly
-      // what happened: 91 pieces arrived and the log read
-      // "first buffer: 0.25 s, context suspended".
-      //
-      // `playback` rather than `playAndRecord`: recording is finished by the
-      // time anything is spoken, and playAndRecord routes to the earpiece
-      // (the reason live-classroom.tsx avoids it). `spokenAudio` is the mode
-      // for speech rather than music, and `defaultToSpeaker` is what keeps it
-      // off the earpiece.
-      try {
-        AudioManager.setAudioSessionOptions({
-          iosCategory: 'playback',
-          iosMode: 'spokenAudio',
-          iosOptions: ['defaultToSpeaker'],
-        });
-        AudioManager.setAudioSessionActivity(true).catch(() => {});
-      } catch {
-        // An unconfigurable session still leaves the steps on screen.
+  /**
+   * Tears down the clip that is sounding and starts the next.
+   *
+   * A player PER CLIP, rather than one player re-pointed with `replace()`.
+   * That sharing is exactly what made both earlier attempts overlap: the
+   * `didJustFinish` belonging to a clip that has just been replaced still
+   * arrives, advances the queue a second time, and puts two clips in the air.
+   * Here the previous clip's listener is removed and its player released
+   * before the next one exists, so there is nothing left to fire late.
+   */
+  private next = () => {
+    if (this.stopped) return;
+    this.teardown();
+
+    const item = this.queue.shift();
+    if (!item) return;
+
+    // No artificial pause between sentences. One was added on the theory that
+    // a join needs to sound like breath, and it was never measured: a TTS clip
+    // already ends with its own trailing silence, and opening the next file
+    // adds a gap of its own. Stacking a third delay on top made the answer
+    // sound halting rather than considered.
+    this.start(item);
+  };
+
+  private start(item: { uri: string; ms: number }) {
+    if (this.stopped) return;
+
+    const player = createAudioPlayer({ uri: item.uri }, { keepAudioSessionActive: true });
+    const subscription = player.addListener(
+      'playbackStatusUpdate',
+      (status: AudioStatus) => {
+        if (status.didJustFinish) this.next();
       }
-      // The DEVICE's rate, not Rumik's. Forcing a context to 24kHz on hardware
-      // that wants 48 can leave the graph running and silent; buffers are
-      // still created at Rumik's 24kHz and the graph resamples them, which is
-      // what a sample rate on a buffer is for.
-      let rate = SAMPLE_RATE;
-      try {
-        rate = AudioManager.getDevicePreferredSampleRate() || SAMPLE_RATE;
-      } catch {
-        // Keep Rumik's rate if the device will not say.
-      }
-      this.context = new AudioContext({ sampleRate: rate });
-      this.context.resume().catch(() => {});
-      if (__DEV__) console.log('[followup-audio] context at', rate, 'Hz');
-    }
-    if (this.context.state === 'suspended') {
-      // Re-checked on every piece: the session can be taken away after the
-      // fact, the recorder claiming the microphone for the next question
-      // being the obvious way. Resuming is asynchronous and nothing waits on
-      // it — buffers queued meanwhile play once it is running.
-      this.context.resume().catch(() => {});
-    }
-    return this.context;
+    );
+    this.current = {
+      player,
+      done: () => {
+        subscription.remove();
+        try {
+          // PAUSE before release. `remove()` alone does not reliably silence a
+          // clip that is mid-sentence, which is why pressing Done left the
+          // voice talking over an empty screen — the per-clip rewrite dropped
+          // the explicit pause the single-player version had.
+          player.pause();
+        } catch {
+          // Already stopped.
+        }
+        try {
+          player.remove();
+        } catch {
+          // Already released.
+        }
+      },
+    };
+    player.play();
+
+    // Its own length, known rather than watched — bytes over byte rate. Only
+    // reached when `didJustFinish` never arrives: a lost notification, a route
+    // change, an output device that never really started.
+    this.timer = setTimeout(this.next, item.ms + FINISH_GRACE_MS);
   }
 
-  private ensureSource() {
-    const context = this.ensureContext();
-    if (!context) throw new Error('the audio context is gone');
-    if (!this.source) {
-      this.source = context.createBufferQueueSource();
-      this.source.connect(context.destination);
+  private teardown() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
     }
-    return this.source;
+    if (this.current) {
+      this.current.done();
+      this.current = null;
+    }
   }
 
-  /** Stops immediately and releases the graph. Safe to call more than once. */
+  /** Stops everything and releases the player. Safe to call more than once. */
   stop() {
     if (this.stopped) return;
     this.stopped = true;
-    try {
-      // Clear BEFORE stop: anything still queued would otherwise play on for
-      // as long as it lasts, which is how Done left the voice talking over a
-      // screen the student had already dismissed.
-      this.source?.clearBuffers();
-      if (this.started) this.source?.stop();
-    } catch {
-      // Already stopped.
-    }
-    this.source = null;
-    const context = this.context;
-    this.context = null;
-    // Closing is async and nothing waits on it; a context that will not close
-    // is not worth failing a dismissal over.
-    context?.close().catch(() => {});
+    this.queue = [];
+    this.teardown();
   }
 }
