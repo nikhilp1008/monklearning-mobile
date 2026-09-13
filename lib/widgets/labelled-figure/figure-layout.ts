@@ -549,8 +549,86 @@ export function layoutFigure(
   const centre = { x: fit.ox + fit.sW / 2, y: fit.oy + fit.sH / 2 };
   const dots = drawn.map((l) => anchorAt(fit, l.anchor.u, l.anchor.v));
 
-  const placed: Rect[] = [];
-  const out: PlacedLabel[] = [];
+  /*
+   * THE GROUP STRIP IS PLACED FIRST AND OCCUPIES ITS RECTANGLE.
+   *
+   * It used to be computed on the way out, after every label had been placed,
+   * which meant placement never knew it was there. On the frog heart's
+   * arterial group at 343x236 that put the "carotid arch" pill straight on
+   * top of "Arteries · 2/3" — and the gate called the set clear, because it
+   * compares labels against each other and against the frame and the strip
+   * was in neither set. A caught-by-looking defect, in the first label set
+   * this pipeline ever published.
+   *
+   * Seeding `placed` with the strip's plate fixes both halves at once: the
+   * eight-direction search now skips any candidate that would cover the
+   * caption, and when no direction survives, the existing `overlapped` flag
+   * fires and `gateLabelSet` refuses the set instead of calling it clear.
+   *
+   * The strip is the one thing on the board a label must never cover. It is
+   * what says "2/3" — the difference between a subset the student knows is a
+   * subset, and a figure that looks complete and is not.
+   */
+  /*
+   * TOP FIRST, BOTTOM IF THE TOP IS CONTESTED.
+   *
+   * The strip has no anchor — it is chrome, and the only thing fixing it to
+   * the top was that nothing had ever asked. The frog heart's arterial group
+   * is the case that asks: all four arches leave the heart upward, so their
+   * anchors and the caption want the same corner, and at 343x236 there is not
+   * room for both. Moving the caption to the bottom costs nothing, because
+   * the bottom of that plate is empty.
+   *
+   * So placement is run with the caption reserved at the top, and if any
+   * label came out overlapping, run again with it at the bottom and keep
+   * whichever placed more labels clear. A tie keeps the top, which is where
+   * a reader looks first.
+   */
+  const attempt = (baseline: number) => {
+    const strip = multi ? stripFor(params, W, baseline) : null;
+    const placed: Rect[] = strip ? [strip.plate] : [];
+    const out: PlacedLabel[] = [];
+    place(drawn, dots, params, W, H, fit, artRect, placed, out);
+    return { strip, out, bad: out.filter((l) => l.overlapped).length };
+  };
+
+  const top = attempt(STRIP_BASELINE);
+  const best =
+    top.bad === 0 || !multi
+      ? top
+      : (() => {
+          const bottom = attempt(H - PAD_EDGE - 4);
+          return bottom.bad < top.bad ? bottom : top;
+        })();
+
+  // Loud, and it names the label: a silently overlapping pill is a wrong
+  // figure that looks like a rendered one. Emitted for the CHOSEN placement.
+  for (const l of best.out) {
+    if (!l.overlapped) continue;
+    console.warn(
+      `[labelled_figure] "${l.id}" could not be placed clear of the frame, its ` +
+        `neighbours or the group caption at any of the eight directions up to ` +
+        `${LEADER_MAX}pt — placed ${l.dir} with overlap. The group is too dense ` +
+        `for this board.`
+    );
+  }
+
+  return { fit, labels: best.out, strip: best.strip };
+}
+
+/** The eight-direction search, extracted so it can be run more than once. */
+function place(
+  drawn: LabelRecord[],
+  dots: { x: number; y: number }[],
+  params: LabelledFigureParams,
+  W: number,
+  H: number,
+  fit: FittedRect,
+  artRect: Rect,
+  placed: Rect[],
+  out: PlacedLabel[]
+): void {
+  const centre = { x: artRect.x + artRect.w / 2, y: artRect.y + artRect.h / 2 };
 
   drawn.forEach((l, idx) => {
     const text = termFor(l, params.lang);
@@ -595,13 +673,11 @@ export function layoutFigure(
       overlapped = true;
       const d = order[0];
       chosen = { rect: pillRect(anchor, d, LABEL_OFFSET, w, h), dir: d.name };
-      // Loud, and it names the label: a silently overlapping pill is a wrong
-      // figure that looks like a rendered one.
-      console.warn(
-        `[labelled_figure] "${l.id}" could not be placed clear of the frame and ` +
-          `its neighbours at any of the eight directions up to ${LEADER_MAX}pt — ` +
-          `placed ${d.name} with overlap. The group is too dense for this board.`
-      );
+      // The warning is NOT emitted here. `place` is run speculatively — once
+      // with the caption at the top and once at the bottom — and warning from
+      // inside it reported failures for a placement that was then thrown
+      // away, which reads as a broken board when the chosen one is fine.
+      // `layoutFigure` warns once, for the attempt it actually returns.
     }
 
     const r = chosen.rect;
@@ -629,8 +705,6 @@ export function layoutFigure(
       overlapped,
     });
   });
-
-  return { fit, labels: out, strip: multi ? stripFor(params, W) : null };
 }
 
 /**
@@ -642,7 +716,7 @@ export function layoutFigure(
  * there are, and `group_index`/`group_count` are `derived` quantities, so a
  * caption cannot disagree with it either.
  */
-function stripFor(params: LabelledFigureParams, W: number) {
+function stripFor(params: LabelledFigureParams, W: number, baseline: number) {
   const i = params.groups.findIndex((g) => g.id === params.active_group);
   const full = params.groups[i] ? params.groups[i].label[params.lang] : '';
   const counter = `${i + 1}/${params.groups.length}`;
@@ -660,10 +734,10 @@ function stripFor(params: LabelledFigureParams, W: number) {
   return {
     text,
     x: PAD_EDGE + PLATE_PAD_X,
-    y: STRIP_BASELINE,
+    y: baseline,
     plate: {
       x: PAD_EDGE,
-      y: STRIP_BASELINE - READOUT_SIZE * 0.82 - 1.5,
+      y: baseline - READOUT_SIZE * 0.82 - 1.5,
       w: textWidth(text, READOUT_SIZE) + 2 * PLATE_PAD_X,
       h: READOUT_SIZE * 1.15 + 3,
     },

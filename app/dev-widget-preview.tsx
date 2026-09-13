@@ -461,12 +461,21 @@ function FigureLab() {
  * IT DOES NOT TOUCH THE REVIEW GATE. `r2-figure-resolver` refuses a set with
  * no `reviewed_by`, and that refusal is correct and stays exactly as it is —
  * an unreviewed anchor is a guess about where a structure is, and a correct
- * word on the wrong organ is the worst thing this pipeline can ship. So this
- * lab does not publish a set, does not add reviewed_by, and does not call the
- * production loader for labels. It builds a record directly with
- * `toFigureRecord` from a checked-in fixture, and feeds it to BoardWidget
- * through a throwaway resolver. Nothing here can make an unreviewed set reach
- * a classroom: the classroom asks R2, and R2 has no set for this slug.
+ * word on the wrong organ is the worst thing this pipeline can ship.
+ *
+ * TWO SOURCES, AND THE LAB SAYS WHICH. Until 2026-09-12 the only source was
+ * the checked-in fixture, because R2 had no set for this slug and the header
+ * here said so. That stopped being true the moment the frog heart published,
+ * and a lab that kept overlaying the fixture would have shown a PASS built
+ * from a local file while the published bytes went unlooked-at — the same
+ * confirm-from-the-wrong-document failure that put an ungrouped set one
+ * command away from shipping.
+ *
+ * So the production record wins whenever R2 answers with a reviewed set, and
+ * the readout names the source. The fixture overlay remains for the 22 ch7
+ * sets that are drafted and NOT published, which is what this lab is for.
+ * Nothing here can make an unreviewed set reach a classroom — the fixture
+ * path is local-only and the R2 path is the production loader, gate and all.
  *
  * The ART still comes through the real path — the production resolver
  * downloads and sha-verifies it into the file:// cache — so what is on screen
@@ -517,13 +526,26 @@ function FrogLabelLab() {
   const [record, setRecord] = useState<FigureRecord | null>(null);
 
 
+  const [reloads, setReloads] = useState(0);
+  const [source, setSource] = useState('');
+
+  /*
+   * `fresh` is the B0 propagation probe. On a re-resolve it drops the cached
+   * record FIRST, so the loader has to go back to R2 — which is the whole
+   * question: a running app holds one record per slug for its entire life,
+   * and publishing a label set changes the JSON but NOT the master sha, so
+   * `setChapterAssets` has nothing to compare and stays silent. Without an
+   * explicit invalidate the board keeps drawing the plate it resolved before
+   * the set existed, and would until the app restarted.
+   */
   useEffect(() => {
     let cancelled = false;
-    const check = validateLabelSet(FROG_LABEL_FIXTURE as unknown as Record<string, unknown>);
-    if (!check.ok) {
-      setStatus(`fixture rejected: ${check.errors.join('; ')}`);
+    const fixture = validateLabelSet(FROG_LABEL_FIXTURE as unknown as Record<string, unknown>);
+    if (!fixture.ok) {
+      setStatus(`fixture rejected: ${fixture.errors.join('; ')}`);
       return;
     }
+    if (reloads > 0) r2FigureResolver.invalidate(FROG_SLUG, 'lab re-resolve');
     void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${FROG_CHAPTER}/figures`)
       .then((res) => {
         if (cancelled) return;
@@ -532,24 +554,34 @@ function FrogLabelLab() {
       })
       .then((rep) => {
         if (cancelled || !rep) return;
-        // The plate-only record the production resolver produces (no labels,
-        // because R2 has no published set for this slug — as it should not).
-        const plate = r2FigureResolver.get(FROG_SLUG);
-        if (!plate) {
+        const live = r2FigureResolver.get(FROG_SLUG);
+        if (!live) {
           setStatus(`art did not resolve: ${rep.missing.join(', ') || 'unknown'}`);
           return;
         }
-        const art = plate.art.source as { uri?: string };
+        const art = live.art.source as { uri?: string };
         if (!art?.uri) {
           setStatus('plate resolved without a file uri');
           return;
         }
-        setRecord(toFigureRecord(check.set, art.uri));
-        setStatus(`art from file:// cache \u00b7 ${check.set.labels.length} placed labels \u00b7 4 unplaced omitted`);
+        // A record with labels can only have come from a PUBLISHED, valid,
+        // slug-matched, reviewed_by set — every other path in
+        // `createR2FigureLoader` yields the plate alone.
+        if (live.labels.length > 0) {
+          setRecord(live);
+          setSource('R2 (published)');
+          setStatus(`published set \u00b7 ${live.labels.length} labels \u00b7 `
+                    + `${live.groups.length} groups \u00b7 resolved from R2, no restart`);
+          return;
+        }
+        setRecord(toFigureRecord(fixture.set, art.uri));
+        setSource('local fixture (unpublished)');
+        setStatus(`R2 has no reviewed set \u2014 fixture overlay \u00b7 `
+                  + `${fixture.set.labels.length} placed labels`);
       })
       .catch((e) => { if (!cancelled) setStatus(`failed: ${String(e)}`); });
     return () => { cancelled = true; };
-  }, []);
+  }, [reloads]);
 
   const group = record?.groups[Math.min(groupIdx, record.groups.length - 1)]?.id ?? '';
   // The gate's verdict for the whole set, shown beside the render: a reviewer
@@ -574,7 +606,16 @@ function FrogLabelLab() {
         return (
           <View style={{ gap: 4 }}>
             {SHOT_FRAME < 0 && (
-              <Text style={{ fontSize: 10, color: INK_MUTED }}>{f.label} · {lang} · {group}</Text>
+              <Text style={{ fontSize: 10, color: INK_MUTED }}>
+                {f.label} · {lang} · {group} · LABELS FROM {source || '…'}
+                {reloads > 0 ? ` · re-resolved ${reloads}x, no restart` : ''}
+              </Text>
+            )}
+            {SHOT_FRAME < 0 && (
+              <Pressable onPress={() => setReloads((n) => n + 1)}
+                style={[styles.pill, { alignSelf: 'flex-start' }]}>
+                <Text style={styles.pillText}>re-resolve (invalidate + refetch)</Text>
+              </Pressable>
             )}
             {record && SHOT_FRAME < 0 && (
               <Text style={{ fontSize: 9, color: INK_MUTED }}>
@@ -640,6 +681,9 @@ function FrogLabelLab() {
       {SHOT_FRAME < 0 && (
         <>
           <Text style={{ fontSize: 11, color: INK_MUTED }}>{FROG_SLUG} — {status}</Text>
+          <Text style={{ fontSize: 10, color: INK_MUTED }}>
+            LABELS FROM: {source || '\u2026'}{reloads > 0 ? ` · re-resolved ${reloads}x, no restart` : ''}
+          </Text>
           <Text style={{ fontSize: 10, color: INK_MUTED }}>GATE: {gate}</Text>
         </>
       )}

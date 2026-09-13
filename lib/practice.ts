@@ -9,12 +9,17 @@ export type QuestionType = 'single_correct' | 'numerical' | string;
  * `/practice/next` has always returned these (`routers/practice.py` json-parses
  * the `diagram` column and puts it in the payload) and mobile has always
  * dropped them on the floor, so a circuit or a graph question arrived as its
- * caption alone. The data pipeline withholds any figure it is not confident
- * renders on its own, so anything that reaches here is meant to be shown.
+ * caption alone. The client renders whatever `cdn_crop` figures the payload
+ * contains; whether a figure is attached to the RIGHT question is the data
+ * pipeline's responsibility, and that attribution is currently under repair —
+ * nothing here is an assurance of correct attribution.
  */
 export interface DiagramFigure {
   url: string;
   form?: string;
+  r2_key?: string;
+  page?: number;
+  region?: { x: number; y: number; w: number; h: number };
 }
 
 export interface NextQuestion {
