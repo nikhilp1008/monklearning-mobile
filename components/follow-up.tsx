@@ -244,14 +244,14 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
   async function play(spoken: string, controller: AbortController) {
     try {
       audioRef.current?.stop();
-      const audio = new FollowUpAudio(doubtId);
+      const audio = new FollowUpAudio();
       audioRef.current = audio;
-      // One WHOLE SENTENCE per clip now, not a slice of audio. The earlier
-      // attempts cut every 0.8s by byte count, which lands mid-word, and
-      // sequential file playback has a load-and-start gap at every join — so
-      // the voice broke twice a second however cleanly it was sequenced. Split
-      // where a speaker pauses and the gap falls on a break that was there
-      // anyway. See lib/followup-audio.ts and followup_voice._spoken_sentences.
+      // Raw PCM into ONE continuous source, not a sequence of files. The
+      // pieces can now be cut anywhere — mid-word included — because samples
+      // appended to the queue follow the ones before with nothing between
+      // them. That is what every earlier attempt was missing: opening a file
+      // has a load-and-start cost, so each clip boundary was a gap, and gaps
+      // cut by byte count landed inside words. See lib/followup-audio.ts.
       await speakFollowUpStreaming(
         doubtId,
         spoken,
