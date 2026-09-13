@@ -12,6 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 import { SolutionSteps } from '@/components/solution-steps';
 import { FollowUpStep, FollowUpTurn, askAboutDoubtAloud, speakFollowUpStreaming } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { teacherNameNow, withTeacherName } from '@/lib/preferences';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -137,7 +138,7 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
     try {
       const granted = await requestRecordingPermissionsAsync();
       if (!granted.granted) {
-        setError('Monk needs the microphone to hear you. Turn it on in Settings.');
+        setError(`${teacherNameNow()} needs the microphone to hear you. Turn it on in Settings.`);
         setPhase('failed');
         return;
       }
@@ -222,7 +223,7 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
         // Nothing came back at all. A blank bar reads as the app dying —
         // this happened live, twice in a row, on a language-switch request
         // the server answered with unparseable JSON. Say so instead.
-        setError('Monk could not answer that just now. Try asking again.');
+        setError(`${teacherNameNow()} could not answer that just now. Try asking again.`);
         setPhase('failed');
         return;
       }
@@ -303,7 +304,10 @@ export function FollowUp({ doubtId, questionText, onClose: dismiss }: FollowUpPr
       settle();
     } catch (err) {
       if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : 'That did not go through.');
+      // Server and lib failure lines say "Monk" — the API cannot know which
+      // teacher this student picked, or the app's spelling of her name. The
+      // rebrand happens here, at display, like every other surface.
+      setError(err instanceof Error ? withTeacherName(err.message) : 'That did not go through.');
       setPhase('failed');
     }
   }
