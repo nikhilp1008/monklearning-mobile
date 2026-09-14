@@ -9,6 +9,7 @@ import { processFlow } from './process-flow';
 import { reactionScheme } from './reaction-scheme';
 import { moleculeStruct } from './molecule-struct';
 import { circuitNetwork } from './circuit-network';
+import { conicPlot } from './conic-plot';
 import { linesPlanes3d } from './lines-planes-3d';
 
 /**
@@ -30,6 +31,7 @@ export const REGISTRY = {
   reaction_scheme: reactionScheme,
   molecule_struct: moleculeStruct,
   circuit_network: circuitNetwork,
+  conic_plot: conicPlot,
   lines_planes_3d: linesPlanes3d,
   // labelled_figure is deliberately ABSENT. The registry is the closed set the
   // MODEL may name and fill parameters for; a labelled figure is an asset a

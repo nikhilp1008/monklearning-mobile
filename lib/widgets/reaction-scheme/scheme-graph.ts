@@ -119,9 +119,27 @@ export interface SchemeDerived {
 /* ------------------------------------------------------------------- caps */
 
 export const MAX_SPECIES = 8;
-export const MAX_SPECIES_CHARS = 10;
+/**
+ * RAISED 10 -> 20 and 12 -> 20 on Raasikh's decision, 2026-09-14 — and it
+ * moves almost nothing, because THIS WAS NEVER THE BINDING CONSTRAINT.
+ *
+ * `fitProblems` already measures the drawn scheme at REF_W x REF_H, and that
+ * is what actually decides. Measured, the longest species label that fits at
+ * 343x236:
+ *
+ *     2 species  12 chars      5 species  does not fit at any length
+ *     3 species   7 chars      6 species  does not fit at any length
+ *     4 species   5 chars
+ *
+ * So a 20-character label is admissible only in a two-species scheme, and
+ * even there only above 495pt. These caps are a cheap pre-filter in front of
+ * the real check; raising them lets a longer label reach `fitProblems`, which
+ * then refuses it on measured width. The chapter's problem is not the cap —
+ * organic names need a scheme wider than a phone.
+ */
+export const MAX_SPECIES_CHARS = 20;
 export const MAX_STEPS = 8;
-export const MAX_REAGENT_CHARS = 12;
+export const MAX_REAGENT_CHARS = 20;
 export const MAX_CAPTION_CHARS = 40;
 
 /** The board validate() measures against. Not the biggest one — the smallest

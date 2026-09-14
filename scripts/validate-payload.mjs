@@ -58,6 +58,7 @@ const WIDGETS = {
   reaction_scheme: ['reaction-scheme', 'reactionScheme'],
   molecule_struct: ['molecule-struct', 'moleculeStruct'],
   circuit_network: ['circuit-network', 'circuitNetwork'],
+  conic_plot: ['conic-plot', 'conicPlot'],
   lines_planes_3d: ['lines-planes-3d', 'linesPlanes3d'],
   // molecule_3d renders a WebView, not SVG; its validate() is reachable but
   // the module pulls an HTML asset through require(). Listed as unjudgeable

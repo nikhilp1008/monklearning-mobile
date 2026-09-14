@@ -1,0 +1,121 @@
+{
+ "seg1": {
+  "params": {
+   "a": 5,
+   "b": 3,
+   "caption": "Ellipse: area = pi*a*b",
+   "cx": 0,
+   "cy": 0,
+   "kind": "ellipse",
+   "rotate_deg": 0,
+   "show": [
+    "axes",
+    "vertices",
+    "foci"
+   ],
+   "x_label": "x",
+   "x_max": 7,
+   "x_min": -7,
+   "y_label": "y",
+   "y_max": 5,
+   "y_min": -5
+  },
+  "version": 1,
+  "widget": "conic_plot"
+ },
+ "seg2": {
+  "params": {
+   "a": 1,
+   "b": 1,
+   "caption": "Quarter circle: y = sqrt(a^2 - x^2)",
+   "cx": 0,
+   "cy": 0,
+   "kind": "circle",
+   "region": "interior",
+   "rotate_deg": 0,
+   "shade": true,
+   "show": [
+    "axes",
+    "vertices"
+   ],
+   "x_label": "x",
+   "x_max": 1.6,
+   "x_min": -1.6,
+   "y_label": "y",
+   "y_max": 1.6,
+   "y_min": -1.6
+  },
+  "version": 1,
+  "widget": "conic_plot"
+ },
+ "seg3": {
+  "params": {
+   "a": 1,
+   "b": 1,
+   "caption": "Circle x^2+y^2=a^2, first quadrant",
+   "cx": 0,
+   "cy": 0,
+   "kind": "circle",
+   "region": "interior",
+   "rotate_deg": 0,
+   "shade": true,
+   "show": [
+    "axes",
+    "vertices"
+   ],
+   "x_max": 1.6,
+   "x_min": -1.6,
+   "y_max": 1.6,
+   "y_min": -1.6
+  },
+  "version": 1,
+  "widget": "conic_plot"
+ },
+ "seg4": {
+  "params": {
+   "a": 5,
+   "b": 3,
+   "caption": "Ellipse from scaling circle y by b/a",
+   "cx": 0,
+   "cy": 0,
+   "kind": "ellipse",
+   "rotate_deg": 0,
+   "show": [
+    "axes",
+    "vertices"
+   ],
+   "x_max": 7,
+   "x_min": -7,
+   "y_max": 5,
+   "y_min": -5
+  },
+  "version": 1,
+  "widget": "conic_plot"
+ },
+ "seg5": {
+  "params": {
+   "a": 4,
+   "b": 4,
+   "caption": "Circle x^2+y^2=16 cut by x=2",
+   "cx": 0,
+   "cy": 0,
+   "kind": "circle",
+   "line_c": 2,
+   "region": "chord",
+   "rotate_deg": 0,
+   "shade": true,
+   "show": [
+    "axes",
+    "vertices"
+   ],
+   "x_label": "x",
+   "x_max": 5,
+   "x_min": -5,
+   "y_label": "y",
+   "y_max": 5,
+   "y_min": -5
+  },
+  "version": 1,
+  "widget": "conic_plot"
+ }
+}

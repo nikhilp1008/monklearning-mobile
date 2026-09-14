@@ -124,6 +124,11 @@ test('every registry entry is either verified below or explicitly skipped', () =
     // REAL gate at all three boards; the section below is the integration
     // file's own record of the same claim, in this file's shape.
     'free_body_forces',
+    // conic_plot was wired 2026-09-12. Its own suite
+    // (conic-plot/__tests__) validates and renders all four kinds at all five
+    // GATE_FRAMES and checks its maths against NCERT's worked answers before
+    // checking it against itself. Same claim as the others, made in its own file.
+    'conic_plot',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
