@@ -1,0 +1,13 @@
+confirmed: bio11-ch2, reviewed_by raasikh, exclude:
+confirmed: bio11-ch3, reviewed_by raasikh, exclude:
+confirmed: bio11-ch4, reviewed_by raasikh, exclude: bio11-ch4-phylum-platyhelminthes--b
+confirmed: bio11-ch5, reviewed_by raasikh, exclude:
+confirmed: bio11-ch6, reviewed_by raasikh, exclude:
+confirmed: bio11-ch14, reviewed_by raasikh, exclude:
+confirmed: bio11-ch15, reviewed_by raasikh, exclude:
+confirmed: bio11-ch16, reviewed_by raasikh, exclude:
+confirmed: bio11-ch17, reviewed_by raasikh, exclude:
+confirmed: bio11-ch18, reviewed_by raasikh, exclude:
+confirmed: bio12-ch2, reviewed_by raasikh, exclude:
+
+confirmed: adopt scripts/sane_proposals.md as SANE verdicts for the chapters it covers, verdict_by raasikh; precompute all chapters with hold-back below 85%

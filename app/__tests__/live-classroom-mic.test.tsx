@@ -120,6 +120,46 @@ function allText(node: unknown, out: string[] = []): string[] {
 }
 
 /** Mount the classroom and let the mic probe settle. */
+/**
+ * Flush until the microphone probe has actually finished, not for a fixed
+ * number of turns.
+ *
+ * This used to be a single empty `act(async () => {})` with the comment "the
+ * probe's promise chain resolves and commits its state" — which assumes the
+ * chain is exactly one microtask tier deep. It is not: permissions resolve,
+ * then devices enumerate, then the decision commits, and each hop is its own
+ * tier. On an unloaded machine one flush happened to be enough; under full
+ * suite load this case failed roughly one run in three, and it was the only
+ * one that ever failed because it is the only one whose mocks all resolve
+ * EMPTY — nothing else in the file depends this tightly on the chain being
+ * complete before the assertion runs.
+ *
+ * So: flush until the probe stops doing anything, judged by the probe's own
+ * observable — how many times it has called out. A fixpoint, not a guess.
+ * The bound is there so a genuinely stuck probe fails loudly with a message
+ * instead of spinning forever, which is the failure mode a bare `while` would
+ * turn into a hung CI job.
+ */
+async function settle(maxTurns = 25): Promise<void> {
+  let previous = -1;
+  for (let turn = 0; turn < maxTurns; turn += 1) {
+    const calls =
+      mockGetPermissions.mock.calls.length +
+      mockRequestPermissions.mock.calls.length +
+      mockListDevices.mock.calls.length +
+      mockStartRecording.mock.calls.length;
+    // Quiescent for a whole turn: the chain has nothing left to run.
+    if (calls === previous) return;
+    previous = calls;
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {});
+  }
+  throw new Error(
+    `the microphone probe never settled in ${maxTurns} turns — it is either ` +
+      `looping or awaiting something these mocks never resolve`
+  );
+}
+
 async function enterClassroom(): Promise<ReactTestRenderer> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const LiveClassroomScreen = require('../live-classroom').default;
@@ -127,8 +167,7 @@ async function enterClassroom(): Promise<ReactTestRenderer> {
   await act(async () => {
     renderer = create(React.createElement(LiveClassroomScreen));
   });
-  // Second pass: the probe's promise chain resolves and commits its state.
-  await act(async () => {});
+  await settle();
   return renderer;
 }
 

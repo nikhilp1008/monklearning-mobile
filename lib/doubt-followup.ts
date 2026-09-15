@@ -27,8 +27,30 @@ export type FollowUpHandlers = {
   onTranscript?: (text: string) => void;
   /** One finished step of the explanation. */
   onStep: (step: FollowUpStep) => void;
-  /** The same explanation as continuous speech, for reading aloud. */
-  onSpoken?: (text: string) => void;
+  /**
+   * The step being written RIGHT NOW — its full text so far, replaced on
+   * every frame. Same shape as `onStep`; the final `step` frame for the same
+   * `n` is simply the last replacement. Upsert by `n`, never append.
+   */
+  onStepPartial?: (step: FollowUpStep) => void;
+  /**
+   * The same explanation as continuous speech. `inlineVoice` true means the
+   * server is synthesising it into THIS stream — `onAudio` clips are coming —
+   * and fetching /speak-stream would only buy the same voice twice.
+   */
+  onSpoken?: (text: string, inlineVoice: boolean) => void;
+  /** One WAV clip of the answer's voice, sent down the same stream as the
+   *  steps. Enqueue and play; order is the arrival order. */
+  onAudio?: (wav: Uint8Array, n: number) => void;
+  /**
+   * The ANSWER is complete — every step and the spoken line are here. Audio
+   * may still be arriving behind it; settle the screen on this, not on the
+   * stream closing, or the sheet stays shut through seconds of synthesis.
+   */
+  onAnswered?: () => void;
+  /** The inline voice finished. Zero chunks means it came to nothing, and a
+   *  fallback fetch to /speak-stream is worth making. */
+  onVoiceDone?: (chunks: number) => void;
 };
 
 /** Everything after the last complete `\n\n`, left for the next chunk. */
@@ -278,7 +300,19 @@ function streamAsk(
               text: String(payload.text ?? ''),
             });
           } else if (frame.event === 'spoken') {
-            handlers.onSpoken?.(String(payload.text ?? ''));
+            handlers.onSpoken?.(String(payload.text ?? ''), payload.voice === 'inline');
+          } else if (frame.event === 'step_partial') {
+            handlers.onStepPartial?.({
+              n: Number(payload.n ?? 0),
+              text: String(payload.text ?? ''),
+            });
+          } else if (frame.event === 'audio') {
+            const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
+            if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);
+          } else if (frame.event === 'answered') {
+            handlers.onAnswered?.();
+          } else if (frame.event === 'voice_done') {
+            handlers.onVoiceDone?.(Number(payload.chunks) || 0);
           } else if (frame.event === 'error') {
             failure = String(payload.message ?? '');
           }

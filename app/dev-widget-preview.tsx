@@ -149,7 +149,8 @@ type Mode =
   | 'reaction_scheme'
   | 'process_flow'
   | 'molecule_struct'
-  | 'circuit_network' | 'figures' | 'wframes' | 'froglabels';
+  | 'circuit_network' | 'figures' | 'wframes' | 'froglabels' | 'published'
+  | 'sweep';
 
 export default function DevWidgetPreviewScreen() {
   // The shot frame decides the orientation: 702pt only fits across a
@@ -164,6 +165,12 @@ export default function DevWidgetPreviewScreen() {
     <View style={[styles.root, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <View style={[styles.modeRow, { paddingTop: insets.top || 10 },
                     SHOT_FRAME >= 0 && { display: 'none' }]}>
+        <Pressable
+          onPress={() => setMode('sweep')}
+          style={[styles.pill, mode === 'sweep' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'sweep' && styles.pillTextActive]}>sweep</Text>
+        </Pressable>
         <Pressable
           onPress={() => setMode('manual')}
           style={[styles.pill, mode === 'manual' && styles.pillActive]}
@@ -238,10 +245,18 @@ export default function DevWidgetPreviewScreen() {
         >
           <Text style={[styles.pillText, mode === 'froglabels' && styles.pillTextActive]}>froglabels</Text>
         </Pressable>
+        <Pressable
+          onPress={() => setMode('published')}
+          style={[styles.pill, mode === 'published' && styles.pillActive]}
+        >
+          <Text style={[styles.pillText, mode === 'published' && styles.pillTextActive]}>published</Text>
+        </Pressable>
       </View>
       {mode === 'figures' && <FigureLab />}
       {mode === 'wframes' && <WidgetFrameLab />}
       {mode === 'froglabels' && <FrogLabelLab />}
+      {mode === 'published' && <PublishedLab />}
+      {mode === 'sweep' && <PublishedSweep />}
       {mode === 'manual' && <ManualPreview />}
       {mode === 'narration' && <NarrationPreview />}
       {mode === 'classroom' && <ClassroomPreview />}
@@ -452,6 +467,219 @@ function FigureLab() {
   );
 }
 
+
+/* ----------------------------------------------------- published ch7 lab */
+/*
+ * Every PUBLISHED ch7 set, one at a time, through the production resolver.
+ *
+ * This exists to photograph what a student gets, which is a different claim
+ * from the review sheets: those show where an anchor points, this shows the
+ * board drawing the bytes that are actually in R2, with the reviewed_by gate
+ * satisfied and nothing local involved. `figures={r2FigureResolver}` is the
+ * whole point — a set that failed the gate or lost its reviewed_by would draw
+ * the plate alone here and the capture would show it.
+ *
+ * SHOT_PUBLISHED indexes PUBLISHED_SLUGS and is read every render, because
+ * fast refresh keeps component state and a changed `useState` initial value
+ * does nothing. -1 means the pills decide.
+ */
+const PUBLISHED_SLUGS = [
+  // The four batch-6 sets signed 2026-09-14, first so SHOT_PUBLISHED 0..3
+  // captures exactly the new work. (The Taenia is NOT here: held.)
+  'bio11-ch7-earthworm--morphology-and-digestive-system--a',
+  'bio11-ch7-cockroach--nervous-system-and-reproduction--b',
+  'bio11-ch7-cockroach--nervous-system-and-reproduction--c',
+  'bio11-ch7-frog--external-morphology-and-digestive-system--b',
+  'bio11-ch7-cockroach--circulatory--respiratory-and-excretory-systems',
+  'bio11-ch7-cockroach--morphology-and-digestive-system--a',
+  'bio11-ch7-cockroach--morphology-and-digestive-system--b',
+  'bio11-ch7-cockroach--nervous-system-and-reproduction',
+  'bio11-ch7-connective-tissue--types-and-matrix--a',
+  'bio11-ch7-connective-tissue--types-and-matrix--b',
+  'bio11-ch7-connective-tissue--types-and-matrix--c',
+  'bio11-ch7-connective-tissue--types-and-matrix--d',
+  'bio11-ch7-connective-tissue--types-and-matrix--e',
+  'bio11-ch7-connective-tissue--types-and-matrix--f',
+  'bio11-ch7-earthworm--circulatory--excretory-and-reproductive-systems--a',
+  'bio11-ch7-earthworm--circulatory--excretory-and-reproductive-systems--b',
+  'bio11-ch7-earthworm--circulatory--excretory-and-reproductive-systems--c',
+  'bio11-ch7-earthworm--morphology-and-digestive-system--b',
+  'bio11-ch7-frog--circulatory-and-respiratory-systems--a',
+  'bio11-ch7-frog--circulatory-and-respiratory-systems--b',
+  'bio11-ch7-frog--excretory--nervous-and-reproductive-systems--a',
+  'bio11-ch7-frog--excretory--nervous-and-reproductive-systems--b',
+  'bio11-ch7-frog--external-morphology-and-digestive-system',
+  'bio11-ch7-muscular-tissue--skeletal--smooth-and-cardiac--a',
+  'bio11-ch7-muscular-tissue--skeletal--smooth-and-cardiac--b',
+  'bio11-ch7-muscular-tissue--skeletal--smooth-and-cardiac--c',
+] as const;
+const SHOT_PUBLISHED = -1;    // index into PUBLISHED_SLUGS; -1 = pills decide
+const SHOT_PUB_GROUP = 0;    // which group of that set
+
+
+/**
+ * ONE PREFETCH PER CHAPTER, ALL OF THEM, IN ONE RUN.
+ *
+ * The publish proved itself server-side: every row carries a
+ * `label_set_version` and a `label_set_sha256`, and every `.json` R2 serves
+ * hashes to the row. None of that is evidence the CLIENT picks it up — the
+ * frog heart went live on 2026-09-12 and every running client kept drawing the
+ * plate unlabelled until it was restarted, with the bytes right the whole time.
+ *
+ * So this walks the published chapters the way a class start does: fetch the
+ * chapter's figures, hand them to `setChapterAssets` (which returns the slugs
+ * it DROPPED as stale), prefetch, then count how many resolved WITH labels.
+ * A chapter whose drop count is 0 on the second pass and whose labelled count
+ * equals what was published is a chapter that propagates without a restart.
+ */
+const SWEEP_CHAPTERS: readonly { slug: string; id: string; published: number }[] = [
+  { slug: 'bio11-ch2',  id: '8c9c091c-052a-51a1-841e-8304c7fe90ca', published: 3 },
+  { slug: 'bio11-ch3',  id: '1380c5e5-1556-5626-97fa-8237c6cb021b', published: 9 },
+  { slug: 'bio11-ch4',  id: 'f6bee128-d309-5443-b6f2-e9914769623d', published: 30 },
+  { slug: 'bio11-ch5',  id: 'ca9c37dd-ac72-50d6-96bf-fb3da5aba16e', published: 13 },
+  { slug: 'bio11-ch6',  id: 'e3200f90-b1db-5124-b97a-df6f8e7eee91', published: 16 },
+  { slug: 'bio11-ch7',  id: '5ec9dcb0-2679-5515-9422-5ca618283550', published: 26 },
+  { slug: 'bio11-ch14', id: '14d01ba4-58de-5ce7-afe1-48af70c88711', published: 2 },
+  { slug: 'bio11-ch15', id: '9bd0e62f-0407-5e84-8be4-71d2172879a4', published: 2 },
+  { slug: 'bio11-ch16', id: '0602318f-a82d-5187-a7fc-c6a3c5988d50', published: 1 },
+  { slug: 'bio11-ch17', id: '993ee963-3968-54f6-9313-f019471a0332', published: 5 },
+  { slug: 'bio11-ch18', id: 'd202ecdf-13b0-58db-8aff-2c511b68d009', published: 3 },
+  { slug: 'bio12-ch2',  id: 'e2b58cc5-d8d6-5741-95ba-bbf41c478e10', published: 5 },
+];
+
+type SweepRow = { slug: string; assets: number; dropped: number;
+                  labelled: number; published: number; missing: number };
+
+function PublishedSweep() {
+  const [rows, setRows] = useState<SweepRow[]>([]);
+  const [busy, setBusy] = useState('idle');
+
+  const run = async () => {
+    setRows([]); setBusy('running\u2026');
+    const out: SweepRow[] = [];
+    for (const ch of SWEEP_CHAPTERS) {
+      try {
+        const res = await apiFetch<{ assets: AssetRow[] }>(
+          `/drona/chapter/${ch.id}/figures`);
+        const assets = res.assets ?? [];
+        const dropped = setChapterAssets(assets);
+        const rep = await r2FigureResolver.prefetch(assets.map((a) => a.asset_slug));
+        const labelled = assets.filter(
+          (a) => (r2FigureResolver.get(a.asset_slug)?.labels.length ?? 0) > 0).length;
+        out.push({ slug: ch.slug, assets: assets.length, dropped: dropped.length,
+                   labelled, published: ch.published, missing: rep?.missing.length ?? 0 });
+      } catch (e) {
+        out.push({ slug: ch.slug, assets: -1, dropped: -1, labelled: -1,
+                   published: ch.published, missing: -1 });
+      }
+      setRows([...out]);
+    }
+    setBusy('done');
+  };
+
+  const ok = rows.filter((r) => r.labelled === r.published && r.missing === 0).length;
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 4 }}>
+      <Pressable onPress={run} style={[styles.pill, styles.pillActive]}>
+        <Text style={styles.pillTextActive}>run chapter sweep ({busy})</Text>
+      </Pressable>
+      {rows.length > 0 && (
+        <Text style={{ fontSize: 12, fontWeight: '700',
+                       color: ok === rows.length ? '#1C6B49' : '#9A2B2B' }}>
+          {ok}/{rows.length} chapters OK · {rows.reduce((n, r) => n + Math.max(r.labelled, 0), 0)} sets drew labels · {rows.reduce((n, r) => n + Math.max(r.missing, 0), 0)} missing · {rows.reduce((n, r) => n + Math.max(r.dropped, 0), 0)} dropped
+        </Text>
+      )}
+      <Text style={{ fontSize: 11, color: INK_MUTED, fontWeight: '700' }}>
+        chapter      assets  dropped  labelled/published  missing
+      </Text>
+      {rows.map((r) => (
+        <Text key={r.slug} style={{ fontSize: 11, color:
+            r.labelled === r.published && r.missing === 0 ? '#1C6B49' : '#9A2B2B' }}>
+          {r.slug.padEnd(12)} {String(r.assets).padStart(6)} {String(r.dropped).padStart(8)}
+          {`   ${r.labelled}/${r.published}`.padEnd(12)} {String(r.missing).padStart(7)}
+        </Text>
+      ))}
+    </ScrollView>
+  );
+}
+
+function PublishedLab() {
+  const theme = useDevTheme();
+  const [sel, setSel] = useState(0);
+  const [grp, setGrp] = useState(0);
+  const [status, setStatus] = useState('fetching chapter\u2026');
+  const idx = SHOT_PUBLISHED >= 0 ? SHOT_PUBLISHED : sel;
+  const gi = SHOT_PUBLISHED >= 0 ? SHOT_PUB_GROUP : grp;
+  const slug = PUBLISHED_SLUGS[Math.min(idx, PUBLISHED_SLUGS.length - 1)];
+  const box = LAB_FRAMES[0];   // 343x236, the narrow shipping frame
+
+  useEffect(() => {
+    let cancelled = false;
+    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${FROG_CHAPTER}/figures`)
+      .then((res) => {
+        if (cancelled) return;
+        setChapterAssets(res.assets ?? []);
+        return r2FigureResolver.prefetch((res.assets ?? []).map((a) => a.asset_slug));
+      })
+      .then((rep) => {
+        if (cancelled || !rep) return;
+        setStatus(`chapter cached, ${rep.missing.length} missing`);
+      })
+      .catch((e) => { if (!cancelled) setStatus(`failed: ${String(e)}`); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const rec = r2FigureResolver.get(slug);
+  const groups = rec?.groups ?? [];
+  const group = groups[Math.min(gi, Math.max(groups.length - 1, 0))]?.id ?? '';
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 12, gap: 8, alignItems: 'flex-start' }}>
+      {SHOT_PUBLISHED < 0 && (
+        <Text style={{ fontSize: 10, color: INK_MUTED }}>
+          {slug} · {rec ? `${rec.labels.length} labels, ${groups.length} groups` : 'not resolved'} · {status}
+        </Text>
+      )}
+      <View style={SHOT_PUBLISHED >= 0
+        ? { borderWidth: SHOT_FENCE_PT, borderColor: SHOT_FENCE, alignSelf: 'flex-start' }
+        : undefined}>
+        <View style={{ width: box.w, height: box.h, borderWidth: StyleSheet.hairlineWidth,
+                       borderColor: HAIRLINE, backgroundColor: colors.paper }}>
+          <BoardWidget
+            event={{ seq: 1, tier: 'precomputed',
+                     payload: { widget: 'labelled_figure', version: 1,
+                                params: { asset_slug: slug, lang: 'english',
+                                          active_group: group } } }}
+            activeSeq={1}
+            width={box.w}
+            height={box.h}
+            theme={theme}
+            services={DEV_SERVICES}
+            figures={r2FigureResolver}
+            onGap={(reason, detail) => console.warn('[published-lab gap]', reason, detail)}
+          />
+        </View>
+      </View>
+      {SHOT_PUBLISHED < 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
+          {PUBLISHED_SLUGS.map((p, i) => (
+            <Pressable key={p} onPress={() => { setSel(i); setGrp(0); }}
+              style={[styles.pill, i === idx && styles.pillActive]}>
+              <Text style={[styles.pillText, i === idx && styles.pillTextActive]}>{i + 1}</Text>
+            </Pressable>
+          ))}
+          {groups.map((g, i) => (
+            <Pressable key={g.id} onPress={() => setGrp(i)}
+              style={[styles.pill, i === gi && styles.pillActive]}>
+              <Text style={[styles.pillText, i === gi && styles.pillTextActive]}>{g.id}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
 /* --------------------------------------------------------- frog label lab */
 /*
  * PRE-REVIEW ONLY. Draws the frog circulatory plate with its svg-authored
@@ -528,6 +756,8 @@ function FrogLabelLab() {
 
   const [reloads, setReloads] = useState(0);
   const [source, setSource] = useState('');
+  const [rowInfo, setRowInfo] = useState('');
+  const [chapterInfo, setChapterInfo] = useState('');
 
   /*
    * `fresh` is the B0 propagation probe. On a re-resolve it drops the cached
@@ -545,12 +775,45 @@ function FrogLabelLab() {
       setStatus(`fixture rejected: ${fixture.errors.join('; ')}`);
       return;
     }
-    if (reloads > 0) r2FigureResolver.invalidate(FROG_SLUG, 'lab re-resolve');
-    void apiFetch<{ assets: AssetRow[] }>(`/drona/chapter/${FROG_CHAPTER}/figures`)
+    /*
+     * NO MANUAL INVALIDATE. Until migration 0045 landed the lab had to call
+     * `invalidate()` itself to prove the no-restart path, because the server
+     * carried no signal a client could compare. It does now, so the button
+     * re-runs the REAL sequence — fetch the chapter, hand the rows to
+     * `setChapterAssets`, let IT decide — and what it returns is the proof.
+     */
+    void apiFetch<{ assets: AssetRow[]; label_sets_available?: boolean }>(
+      `/drona/chapter/${FROG_CHAPTER}/figures`)
       .then((res) => {
         if (cancelled) return;
-        setChapterAssets(res.assets ?? []);
-        return r2FigureResolver.prefetch([FROG_SLUG]);
+        const assets = res.assets ?? [];
+        const dropped = setChapterAssets(assets);
+        const row = assets.find((a) => a.asset_slug === FROG_SLUG);
+        /*
+         * THE WHOLE CHAPTER, not one slug. A drop count is only evidence if
+         * it is counted against every set the chapter publishes — one slug
+         * cannot tell "21 sets propagated" from "one did and I asked about
+         * that one".
+         */
+        const published = assets.filter((a) => (a.label_set_version ?? 0) > 0).length;
+        setRowInfo(
+          `chapter ${assets.length} assets · ${published} with a published set · ` +
+          `frog row v${row?.label_set_version ?? '?'} ` +
+          `sha ${(row?.label_set_sha256 ?? 'none').slice(0, 12)} · ` +
+          (dropped.length
+            ? `setChapterAssets DROPPED ${dropped.length}`
+            : 'setChapterAssets dropped nothing')
+        );
+        return r2FigureResolver.prefetch(assets.map((a) => a.asset_slug))
+          .then((rep) => {
+            const withLabels = assets.filter(
+              (a) => (r2FigureResolver.get(a.asset_slug)?.labels.length ?? 0) > 0).length;
+            setChapterInfo(
+              `prefetched ${assets.length - (rep?.missing.length ?? 0)}/${assets.length} · ` +
+              `${withLabels} drew LABELS from R2 · ` +
+              `${rep?.missing.length ?? 0} missing`);
+            return rep;
+          });
       })
       .then((rep) => {
         if (cancelled || !rep) return;
@@ -612,9 +875,15 @@ function FrogLabelLab() {
               </Text>
             )}
             {SHOT_FRAME < 0 && (
+              <Text style={{ fontSize: 9, color: INK_MUTED }}>{rowInfo || '…'}</Text>
+            )}
+            {SHOT_FRAME < 0 && (
+              <Text style={{ fontSize: 9, color: INK_MUTED }}>{chapterInfo || '…'}</Text>
+            )}
+            {SHOT_FRAME < 0 && (
               <Pressable onPress={() => setReloads((n) => n + 1)}
                 style={[styles.pill, { alignSelf: 'flex-start' }]}>
-                <Text style={styles.pillText}>re-resolve (invalidate + refetch)</Text>
+                <Text style={styles.pillText}>re-fetch chapter (real path)</Text>
               </Pressable>
             )}
             {record && SHOT_FRAME < 0 && (

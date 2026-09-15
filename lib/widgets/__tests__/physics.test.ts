@@ -1124,12 +1124,16 @@ describe('reaction_scheme — validate()', () => {
     ['a non-object', null, /params must be an object/],
     ['one species', patched({ species: ['A'] }), /2 to 8 strings/],
     ['nine species', patched({ species: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] }), /2 to 8 strings/],
-    ['an 11-char species', { species: ['CH3CH2CH2XY', 'C2H4'], step_from: [0], step_to: [1], step_reagent: ['r'], step_kind: ['plain'], highlight_step: -1, step_progress: 0, caption: '' }, /1 to 10 characters/],
+    // The caps moved 10 -> 20 and 12 -> 20 on 2026-09-12 (Raasikh's call), so
+    // these now probe 21. The cap is only a cheap pre-filter: the real limit is
+    // fitProblems' width check, which still refuses a 20-char name in a 3-species
+    // scheme at 343x236. Raising the cap did NOT raise what actually fits.
+    ['a 21-char species', { species: ['CH3CH2CH2CH2CH2CH2CH2X', 'C2H4'], step_from: [0], step_to: [1], step_reagent: ['r'], step_kind: ['plain'], highlight_step: -1, step_progress: 0, caption: '' }, /1 to 20 characters/],
     ['ragged step arrays', patched({ step_to: [1, 2] }), /equal length/],
     ['no steps', patched({ step_from: [], step_to: [], step_reagent: [], step_kind: [] }), /1 to 8 entries/],
     ['an out-of-range index', patched({ step_to: [1, 2, 9] }), /species index in 0\.\.3/],
     ['a self-step', patched({ step_from: [0, 1, 3] }), /from a species to itself/],
-    ['a 13-char reagent', patched({ step_reagent: ['773 K', 'Br2,KOH', 'thirteenchars'] }), /at most 12 characters/],
+    ['a 21-char reagent', patched({ step_reagent: ['773 K', 'Br2,KOH', 'twentyonecharacters!!'] }), /at most 20 characters/],
     ['an unknown step_kind', patched({ step_kind: ['plain', 'plain', 'huge'] }), /must be one of plain, major, minor/],
     ['a highlight past the last step', patched({ highlight_step: 3 }), /-1 or an integer in 0\.\.2/],
     ['NaN progress', patched({ step_progress: NaN }), /finite number/],
