@@ -220,6 +220,10 @@ export default function RootLayout() {
             options={{ headerShown: false, animation: 'fade' }}
           />
           <Stack.Screen name="session-summary" options={{ headerShown: false }} />
+          {/* Dev only, reached by deep link: monklearningapp://dev-board-preview.
+              Registered so it loses the router's own header, which stacked on
+              top of the board's. */}
+          <Stack.Screen name="dev-board-preview" options={{ headerShown: false }} />
           {/* Pushed screens, not tabs. Both used to live in (tabs) behind
               href:null, which hid them from the bar but still wrapped them in
               it -- so picking a chapter or answering a question happened under

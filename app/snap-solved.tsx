@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
-import { FollowUp } from '@/components/follow-up';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
@@ -38,7 +37,6 @@ export default function SnapSolvedScreen() {
   const [index, setIndex] = useState(0);
   /** The follow-up sheet, open over this solution. Its conversation lives in
    *  the sheet and is gone when it closes — nothing about it is stored. */
-  const [asking, setAsking] = useState(false);
 
   // The student is often here *before* the answer is: the capture screen hands
   // over after SNAP_HANDOFF_MS whether or not the solve has finished, so this
@@ -176,10 +174,6 @@ export default function SnapSolvedScreen() {
         footerNote={quotaNote(response)}
         // Opens over the solution rather than routing away from it. A
         // follow-up is a question ABOUT the working on screen, and sending the
-        // student somewhere else to ask it loses the thing being asked about.
-        onFollowUp={
-          questions[index]?.doubtId ? () => setAsking(true) : undefined
-        }
         // The id of the question being looked at, which report-sheet requires
         // to send anything at all — without it its Send button stays disabled.
         onReport={() =>
@@ -189,13 +183,6 @@ export default function SnapSolvedScreen() {
           })
         }
       />
-      {asking && !!questions[index]?.doubtId && (
-        <FollowUp
-          doubtId={questions[index].doubtId!}
-          questionText={questions[index].text}
-          onClose={() => setAsking(false)}
-        />
-      )}
     </>
   );
 }

@@ -27,6 +27,9 @@ const mockStopRecording = jest.fn(() => Promise.resolve());
 const mockGetPermissions = jest.fn(() => Promise.resolve({ granted: true, canAskAgain: false }));
 const mockRequestPermissions = jest.fn(() => Promise.resolve({ granted: true, canAskAgain: false }));
 const mockListDevices = jest.fn<Promise<unknown>, []>(() => Promise.resolve([]));
+/** The floor: opened on press-in, and owed back on press-out. */
+const mockPttStart = jest.fn();
+const mockPttStop = jest.fn();
 
 /** A built-in mic that can actually record — the shape both natives return. */
 const HEALTHY_MIC = {
@@ -41,6 +44,23 @@ const HEALTHY_MIC = {
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), back: jest.fn() },
   useLocalSearchParams: () => ({ sessionId: 'session-1', chapterTitle: 'Laws of Motion', subject: 'physics' }),
+}));
+
+const mockImpact = jest.fn();
+const mockNotification = jest.fn();
+jest.mock('expo-haptics', () => ({
+  impactAsync: (style: string) => {
+    mockImpact(style);
+    return Promise.resolve();
+  },
+  notificationAsync: (type: string) => {
+    mockNotification(type);
+    return Promise.resolve();
+  },
+  performAndroidHapticsAsync: () => Promise.resolve(),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' },
+  NotificationFeedbackType: { Warning: 'warning' },
+  AndroidHaptics: { Gesture_Start: 'gesture-start', Gesture_End: 'gesture-end', Reject: 'reject' },
 }));
 
 jest.mock('expo-audio', () => ({
@@ -70,6 +90,14 @@ jest.mock('@/lib/drona-voice-client', () => ({
       return Promise.resolve();
     }
     sendUtterance() {}
+    sendPttStart() {
+      mockPttStart();
+    }
+    sendPttStop() {
+      mockPttStop();
+    }
+    pausePlayback() {}
+    resumePlayback() {}
   },
 }));
 jest.mock('@/hooks/use-landscape-lock', () => ({
@@ -201,11 +229,35 @@ describe('entering the live classroom without a usable microphone', () => {
     expect(allText(renderer.toJSON()).length).toBeGreaterThan(0);
   });
 
-  it('says on the rail that the mic is off, rather than leaving a dead button', async () => {
+  /**
+   * A REFUSED PRESS HAS TO FEEL DIFFERENT FROM A DEAD ONE.
+   *
+   * Without its own tap, pressing a mic that cannot open feels exactly like
+   * pressing a button that does nothing — and "my phone ignored me" is a worse
+   * story than "my phone told me no", especially when the reason is a
+   * permission the student can go and fix. The card says why; this is what
+   * makes them look at it.
+   */
+  it('answers a press it cannot honour with a refusal, not the take', async () => {
+    renderer = await enterClassroom();
+    const mic = renderer.root.findByProps({ accessibilityLabel: 'Hold to speak' });
+    await act(async () => {
+      mic.props.onPressIn();
+    });
+    expect(mockNotification).toHaveBeenCalledWith('warning');
+    expect(mockImpact).not.toHaveBeenCalled();
+    // And letting go of a press that never took the floor stays silent.
+    await act(async () => {
+      mic.props.onPressOut();
+    });
+    expect(mockImpact).not.toHaveBeenCalled();
+  });
+
+  it('says on the dock that the mic is off, rather than leaving a dead button', async () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
     expect(text).toContain('Mic off');
-    expect(text).not.toContain('Interrupt');
+    expect(text).not.toContain('Hold mic to speak');
   });
 });
 
@@ -247,11 +299,84 @@ describe('entering the live classroom with a working microphone', () => {
     });
   });
 
-  it('leaves the rail in its normal Interrupt state', async () => {
+  /**
+   * The resting copy is "Hold mic to speak", not "Interrupt" — the word went
+   * with the command dock redesign, along with the label it used to sit in.
+   * What this test is actually for is unchanged: a student whose mic works must
+   * not be shown the mic-off state.
+   */
+  it('leaves the dock in its normal resting state', async () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
-    expect(text).toContain('Interrupt');
+    expect(text).toContain('Hold mic to speak');
     expect(text).not.toContain('Mic off');
+  });
+
+  /**
+   * THE FLOOR HAS TO COME BACK EVEN IF THE BUTTON DOES NOT.
+   *
+   * `sendPttStop` has one caller, the mic's `onPressOut`, and the mic lives
+   * inside the screen's `isLandscape ?` branch — so rotating mid-hold unmounts
+   * the very Pressable that owes us the release. When that happened no
+   * `onPressOut` ever arrived: the PTT window stayed open until a 30s ceiling
+   * retired it, the teacher stayed stopped, and the next hold was eaten
+   * because the server's `is_ptt_active` was never cleared.
+   *
+   * Unmounting is the same shape of event as rotating, and it is the one a
+   * test can stage, so that is what this asserts: the floor is given back on
+   * the way out, without a press-out.
+   */
+  it('gives the floor back when the mic button goes away mid-hold', async () => {
+    renderer = await enterClassroom();
+    const mic = renderer.root.findByProps({ accessibilityLabel: 'Hold to speak' });
+    await act(async () => {
+      mic.props.onPressIn();
+    });
+    expect(mockPttStart).toHaveBeenCalledTimes(1);
+    expect(mockPttStop).not.toHaveBeenCalled();
+
+    // No press-out: the button is simply gone, as it is on a rotation.
+    await act(async () => {
+      renderer?.unmount();
+    });
+    renderer = null;
+    expect(mockPttStop).toHaveBeenCalledTimes(1);
+  });
+
+  /** Taking the floor and giving it back are one gesture, so they are one
+   *  pair: firmer opening it, lighter closing it. */
+  it('taps on taking the floor and again, lighter, on giving it back', async () => {
+    renderer = await enterClassroom();
+    const mic = renderer.root.findByProps({ accessibilityLabel: 'Hold to speak' });
+    await act(async () => {
+      mic.props.onPressIn();
+    });
+    expect(mockImpact).toHaveBeenCalledWith('medium');
+    expect(mockNotification).not.toHaveBeenCalled();
+    await act(async () => {
+      mic.props.onPressOut();
+    });
+    expect(mockImpact).toHaveBeenLastCalledWith('light');
+  });
+
+  /**
+   * The 30s ceiling and the socket teardown both call `doneListening`, and
+   * neither is a gesture: a buzz as the class unmounts under the student would
+   * be a lie about what they did. Only a real press-out is felt.
+   */
+  it('does not buzz when the floor is released without a press-out', async () => {
+    renderer = await enterClassroom();
+    const mic = renderer.root.findByProps({ accessibilityLabel: 'Hold to speak' });
+    await act(async () => {
+      mic.props.onPressIn();
+    });
+    mockImpact.mockClear();
+    await act(async () => {
+      renderer?.unmount();
+    });
+    renderer = null;
+    expect(mockPttStop).toHaveBeenCalled();
+    expect(mockImpact).not.toHaveBeenCalled();
   });
 
   it('asks for permission when it has never been asked, then opens the mic', async () => {

@@ -40,38 +40,6 @@ import { classesTaken } from '@/lib/proof';
  * brand-new account gets honest zero states, never sample data.
  */
 
-/**
- * Editorial prompts for the "doubt of the day" section — hand-written, rotated
- * by day-of-year so the card genuinely changes daily. Tapping one hands the
- * question itself to the teacher as the opening utterance, so the class starts
- * on exactly this doubt instead of a blank "what do you want to learn?".
- * Replace with a backend endpoint when one exists.
- */
-const DAILY_DOUBTS = [
-  {
-    chapterTitle: 'Modern Physics',
-    question:
-      'Why do photoelectrons stop the moment intensity drops, but not when frequency drops below threshold?',
-  },
-  {
-    chapterTitle: 'Organic Chemistry',
-    question:
-      'Why does phenol nitrate so much faster than benzene, when both offer the same aromatic ring?',
-  },
-  {
-    chapterTitle: 'Limits and Derivatives',
-    question:
-      'Why does L’Hôpital’s rule fail on (x + sin x)/x as x → ∞, even though it looks like ∞/∞?',
-  },
-] as const;
-
-function doubtOfTheDay(date: Date) {
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000
-  );
-  return DAILY_DOUBTS[dayOfYear % DAILY_DOUBTS.length];
-}
-
 type StatsState =
   | { kind: 'loading' }
   | { kind: 'ready'; score: number; practised: number }
@@ -90,7 +58,6 @@ export default function HomeScreen() {
   });
   const [noticed, setNoticed] = useState<Observation | null>(null);
   const doneCount = planItems.filter((item) => item.done).length;
-  const dailyDoubt = useMemo(() => doubtOfTheDay(new Date()), []);
 
   // Refetch on focus, not just mount — the plan is edited on a separate screen
   // this one stays mounted underneath, and the score moves while the student
@@ -275,28 +242,6 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
-
-          <PressableScale
-            style={styles.ruledSection}
-            onPress={() =>
-              router.push({
-                pathname: '/entering-classroom',
-                params: {
-                  chapterTitle: dailyDoubt.chapterTitle,
-                  // The question rides along as the opening utterance, so the
-                  // class opens on this exact doubt — without it the student
-                  // lands on a blank scoping question instead.
-                  initialUtterance: dailyDoubt.question,
-                },
-              })
-            }>
-            <Text style={styles.overline}>Doubt of the day</Text>
-            <Text style={styles.doubtQuestion}>{dailyDoubt.question}</Text>
-            <View style={styles.linkRow}>
-              <Text style={styles.linkText}>Ask your teacher</Text>
-              <ArrowRightIcon color={colors.amberText} size={scale(15)} />
-            </View>
-          </PressableScale>
 
           {/* Last thing on the page, deliberately quiet: this is a reference
               students visit once or twice, not a daily action. */}
@@ -672,12 +617,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     section: {
       marginTop: verticalScale(32),
     },
-    ruledSection: {
-      marginTop: verticalScale(32),
-      paddingTop: verticalScale(24),
-      borderTopWidth: 1,
-      borderTopColor: RULE,
-    },
     overline: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(11),
@@ -769,32 +708,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       textDecorationLine: 'line-through',
     },
 
-    // --- doubt of the day ---
-    // Regular, not SemiBold. It is the longest line on the page and the only
-    // one set as a question -- at 600 it competed with the class block for
-    // first read, which is the one thing on Home that should never be
-    // out-shouted. Its overline above and its link below already mark it as a
-    // section; the weight was doing that job a second time.
-    doubtQuestion: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(16),
-      lineHeight: scale(23),
-      letterSpacing: scale(-0.012 * 16),
-      color: colors.ink,
-      marginTop: verticalScale(10),
-    },
-    linkRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      marginTop: verticalScale(12),
-    },
-    linkText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      lineHeight: scale(18),
-      color: colors.amberText,
-    },
 
     // --- exam scope ---
     scopeRow: {

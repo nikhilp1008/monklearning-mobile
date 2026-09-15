@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } fr
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
@@ -98,6 +99,11 @@ const QUESTION_MAX_HEIGHT = Math.round(QUESTION_LINE * QUESTION_MAX_LINES);
 
 export type SolutionQuestion = {
   id: string;
+  /** The doubt this question belongs to, which the follow-up bar needs to ask
+   *  about it. Null for a question the server never persisted — the bar then
+   *  renders but stays disabled rather than disappearing, so the footer does
+   *  not change shape between questions. */
+  doubtId?: string | null;
   text: string;
   steps: ParsedStep[];
   answer: string | null;
@@ -145,7 +151,6 @@ type SolutionScreenProps = {
   index: number;
   onSelect: (index: number) => void;
   onBack: () => void;
-  onFollowUp?: () => void;
   onReport?: () => void;
   /** A page-level word from the server — e.g. that not every question on the
    *  photo could be read. Belongs to the photo, not to any one question. */
@@ -218,7 +223,6 @@ export function SolutionScreen({
   index,
   onSelect,
   onBack,
-  onFollowUp,
   onReport,
   notice,
   footerNote,
@@ -555,13 +559,12 @@ export function SolutionScreen({
             the home indicator, leaving them floating high. The design reserves
             just a 14px strip for the indicator, so this clears it by a similar
             margin and sits where the tab bar does elsewhere in the app. */}
+        {/* 12a: the hold-to-speak bar, with Report beside it as a matching
+            disc. The bar owns the whole exchange — recording, asking and the
+            spoken answer — because a follow-up is a question about the working
+            on this screen and must not navigate away from it. */}
         <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-          <Pressable style={styles.primary} onPress={onFollowUp}>
-            <Text style={styles.primaryText}>Ask a follow-up</Text>
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={onReport} accessibilityLabel="Report a problem">
-            <FlagIcon />
-          </Pressable>
+          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} />
         </View>
       </View>
 
@@ -576,20 +579,6 @@ function BackChevron() {
         d="M15 6l-6 6 6 6"
         stroke="#3A362E"
         strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function FlagIcon() {
-  return (
-    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
-      <Path
-        d="M5 21V4h11l-1.5 3.5L16 11H5"
-        stroke={INK}
-        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -841,10 +830,9 @@ function createStyles() {
       right: 0,
       bottom: 0,
     },
+    // Just the frame now: the bar lays out its own row and centres it, because
+    // 12a centres the bar and the Report disc together as one group.
     actionsInner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
       paddingHorizontal: GUTTER,
       paddingTop: 14,
     },
@@ -861,15 +849,22 @@ function createStyles() {
       fontSize: 16,
       color: PAPER,
     },
+    /** A disc, matching the bar's plate — 12a draws Report as the dock's own
+     *  face in miniature rather than as a bordered square. It sits on the bar's
+     *  row, so it is the bar's height and aligns to its top. */
     iconBtn: {
-      width: 54,
-      height: 54,
-      borderWidth: 1.4,
-      borderColor: 'rgba(28,26,22,0.16)',
-      borderRadius: 14,
-      backgroundColor: PAPER,
+      width: 52,
+      height: 52,
+      borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      boxShadow: [
+        { offsetX: 0, offsetY: 18, blurRadius: 36, spreadDistance: -20, color: 'rgba(28,26,22,0.5)' },
+        { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      ],
     },
   });
 }

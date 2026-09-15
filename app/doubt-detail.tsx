@@ -5,7 +5,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
-import { FollowUp } from '@/components/follow-up';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtDetail, getDoubt } from '@/lib/doubts';
@@ -27,7 +26,6 @@ export default function DoubtDetailScreen() {
   const [index, setIndex] = useState(0);
   /** The follow-up sheet, open over this solution. Its conversation lives in
    *  the sheet and is gone when it closes — nothing about it is stored. */
-  const [asking, setAsking] = useState(false);
   const [loading, setLoading] = useState(!!params.id);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -118,10 +116,6 @@ export default function DoubtDetailScreen() {
         index={index}
         onSelect={setIndex}
         onBack={() => router.back()}
-        // Over the solution, not away from it — see snap-solved.
-        onFollowUp={
-          questions[index]?.doubtId ? () => setAsking(true) : undefined
-        }
         onReport={() =>
           router.push({
             pathname: '/report-sheet',
@@ -129,13 +123,6 @@ export default function DoubtDetailScreen() {
           })
         }
       />
-      {asking && !!questions[index]?.doubtId && (
-        <FollowUp
-          doubtId={questions[index].doubtId!}
-          questionText={questions[index].text}
-          onClose={() => setAsking(false)}
-        />
-      )}
     </>
   );
 }

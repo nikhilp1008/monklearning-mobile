@@ -24,11 +24,12 @@ import Animated, {
   SlideInRight,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
+
+import { DockRing, type RingMood } from '@/components/dock-ring';
+import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 import {
   AMBER,
@@ -37,21 +38,19 @@ import {
   Blink,
   DARK_CHROME,
   DEEP_AMBER,
+  GREEN_INK,
   EdgeTab,
   HAIRLINE,
   INK,
   INK_FAINT,
   INK_MUTED,
   LevelBars,
-  MARGIN_X,
-  MarginRule,
+  PAPER,
   RED,
   RHYTHM,
   RuledGround,
   useChromeAutoHide,
   ScrollIndicator,
-  TeacherWave,
-  settleToRhythm,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
 import { useOrientedScale } from '@/constants/scale';
@@ -68,8 +67,7 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
-import { BoardDiagram } from '@/components/board-diagram';
-import { BoardWidget } from '@/lib/widgets/BoardWidget';
+import { BoardBlockView } from '@/components/board-text';
 import { apiFetch } from '@/lib/api';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
@@ -85,7 +83,6 @@ import {
   toStatusSubject,
 } from '@/constants/classroom-status';
 import { useStagedStatus } from '@/hooks/use-staged-status';
-import { latexToText } from '@/lib/latex-text';
 import { MicStatus, probeMicAvailability } from '@/lib/mic-availability';
 import { spokenMathToNotation } from '@/lib/spoken-math';
 import { supabase } from '@/lib/supabase';
@@ -108,13 +105,33 @@ const CARD_CEILING_MS = 30000;
 
 const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 /** Half the rail's own height, so it can be centred with a transform. */
-const RAIL_HALF = 108;
-/** Far enough right to clear the rail's own width plus its 12pt inset. */
-const RAIL_TUCK_X = 92;
+/**
+ * Half the rail's height, for centring it. 84, because 8b's pill is 168 tall:
+ * 8 + 48 (mic) + 12 + 40 (pause) + 12 + 40 (rotate) + 8. It was 108 when the
+ * rail also carried a teacher wave, two dividers and an Interrupt label.
+ */
+const RAIL_HALF = 84;
+/** Far enough right to clear the rail's own width (64) plus its 12pt inset,
+ *  plus the ring's halo, which reaches about 20pt past the pill. */
+const RAIL_TUCK_X = 96;
+/** `sleepC`'s timer: how long the ring lingers after the last touch. */
+const DOCK_SLEEP_MS = 1500;
+/** How long after the window agrees before another rotation is allowed. Long
+ *  enough that UIKit has finished the transition, not merely started it. */
+const ROTATE_SETTLE_MS = 650;
 
-/** How long a chosen answer stays lit before the card goes. Long enough to
- *  read as confirmation, short enough not to hold up the lesson. */
-const ANSWER_HOLD_MS = 850;
+/**
+ * The two waits after an answer.
+ *
+ * `ANSWER_HOLD_MS` is the longest the card waits for a verdict that may never
+ * arrive — a dropped socket, a server that does not grade. Without it the card
+ * would sit there forever holding a lit chip.
+ *
+ * `VERDICT_HOLD_MS` is how long the verdict itself stays once it does arrive.
+ * Long enough to read a word, short enough not to hold up the lesson.
+ */
+const ANSWER_HOLD_MS = 2600;
+const VERDICT_HOLD_MS = 1150;
 
 /**
  * The portrait dock's height, from its parts, so anything that has to sit
@@ -126,10 +143,9 @@ const ANSWER_HOLD_MS = 850;
  */
 const DOCK_OFFSET = 20;
 const DOCK_PLATE_H = 64;
-const DOCK_GAP = 6;
+const DOCK_GAP = 9;
 const DOCK_HINT_H = 14;
 const DOCK_TOP = DOCK_OFFSET + DOCK_PLATE_H + DOCK_GAP + DOCK_HINT_H;
-const FOLLOW_SCROLL_MS = 350;
 /** A hold this long is a stuck button, not an answer. */
 const MAX_HOLD_MS = 30000;
 
@@ -208,7 +224,9 @@ export default function LiveClassroomScreen() {
    * a slow or refused lock painted the wide layout into an upright window.
    */
   const [wantLandscape, setWantLandscape] = useState(false);
+
   const oriented = useOrientation(wantLandscape ? 'landscape' : 'portrait');
+
   const params = useLocalSearchParams<{
     sessionId?: string;
     chapterTitle?: string;
@@ -229,6 +247,56 @@ export default function LiveClassroomScreen() {
    * of painting a wide board into an upright window.
    */
   const isLandscape = windowWidth > windowHeight;
+  /**
+   * ONE ROTATION AT A TIME.
+   *
+   * Tapping rotate again while the last one is still turning is what pulls
+   * iOS and React Native apart: the device ends up where it was told, RN's
+   * `Dimensions` keeps reporting the orientation before last, and the board
+   * lays itself out landscape inside a portrait window — half the phone
+   * unpainted, and stuck there. The hook can recover from that now, but not
+   * provoking it is better than healing it.
+   *
+   * `settled` is simply "the window is the shape we asked for". Until it is,
+   * the rotate control ignores presses. A student cannot tap faster than the
+   * phone can turn, which is the only guarantee that matters here.
+   */
+
+  const settled = isLandscape === wantLandscape;
+  /**
+   * MATCHING IS NOT THE SAME AS FINISHED.
+   *
+   * `isLandscape` comes from `Dimensions`, and `Dimensions` updates partway
+   * through the rotation — before UIKit has finished resizing the scene. A
+   * guard that only waited for the two to agree therefore opened again while
+   * the phone was still turning, which is exactly the window that leaves
+   * React Native's root view sized for one orientation inside a window that
+   * is the other. So the control stays shut for a beat after they agree.
+   *
+   * ROTATE_SETTLE_MS is not tuned to a human; it is tuned to UIKit. A student
+   * cannot tap faster than this, which is the point — the control is only ever
+   * closed during a transition they can see happening.
+   */
+  const [rotateReady, setRotateReady] = useState(true);
+  useEffect(() => {
+    if (!settled) {
+      setRotateReady(false);
+      return;
+    }
+    const id = setTimeout(() => setRotateReady(true), ROTATE_SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [settled, wantLandscape]);
+  const requestOrientation = useCallback(
+    (next: boolean) => {
+      if (next === wantLandscape) return;
+      if (!settled || !rotateReady) return;
+      setWantLandscape(next);
+    },
+    [wantLandscape, settled, rotateReady]
+  );
+
+
+
   const styles = useMemo(
     () => createStyles(scale, verticalScale, isLandscape),
     [scale, verticalScale, isLandscape]
@@ -236,6 +304,7 @@ export default function LiveClassroomScreen() {
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
   const [board, setBoard] = useState<BoardEvent[]>([]);
+
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [paused, setPaused] = useState(false);
@@ -291,7 +360,19 @@ export default function LiveClassroomScreen() {
    * the server immediately; only the dismissal waits.
    */
   const [chosenOption, setChosenOption] = useState<string | null>(null);
+  /**
+   * What the server said about it: 'correct', 'partial', or anything else for
+   * wrong. Null until the answer comes back.
+   */
+  const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
   const answerHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Takes the card down and resets it, from either path. */
+  const clearCheckpoint = useCallback(() => {
+    setCheckOptions([]);
+    setQuestionText(null);
+    setChosenOption(null);
+    setAnswerVerdict(null);
+  }, []);
   useEffect(
     () => () => {
       if (answerHoldRef.current) clearTimeout(answerHoldRef.current);
@@ -418,6 +499,18 @@ export default function LiveClassroomScreen() {
       },
       onSttTooShort: () => setCaption("Didn't catch that. Hold the button a little longer."),
       /**
+       * The verdict, shown ON the chip the student pressed.
+       *
+       * It used to be a word in the top row, which is empty by design now.
+       * Putting it on the chip is better than putting it back: it is attached
+       * to the thing it is about, so there is nothing to look up.
+       */
+      onAnswerResult: (result) => {
+        setAnswerVerdict(result.verdict);
+        if (answerHoldRef.current) clearTimeout(answerHoldRef.current);
+        answerHoldRef.current = setTimeout(clearCheckpoint, VERDICT_HOLD_MS);
+      },
+      /**
        * The verdict has nowhere to go now, and that is worth saying out loud.
        *
        * It used to hold "Correct" / "Almost" / "Not quite" on the top row for
@@ -486,6 +579,21 @@ export default function LiveClassroomScreen() {
 
     return () => {
       cancelled = true;
+      /**
+       * Give the floor back BEFORE the socket goes, not after.
+       *
+       * `sendPttStop` needs a live client, and the two lines below take it
+       * away — so a release attempted from any later cleanup finds
+       * `clientRef.current` already null and sends nothing. React runs
+       * cleanups in the order their effects were defined and this effect is
+       * near the top of the screen, which makes "before disconnect" the only
+       * place a leave-mid-hold can be told to the server at all.
+       *
+       * The rotation case is handled separately, further down, because
+       * rotating does not re-run this effect: the mic button unmounts under
+       * the thumb while the socket stays up.
+       */
+      doneListeningRef.current?.();
       clientRef.current?.disconnect();
       clientRef.current = null;
       // Covers navigating away mid-push-to-talk (swipe-back, hardware back)
@@ -549,9 +657,12 @@ export default function LiveClassroomScreen() {
       // Mirrors `boardContent`'s own padding, which differs by orientation:
       // landscape keeps the notch gutter on the left and the thumb-rail
       // channel on the right, portrait has no rail so the writing runs wide.
+      // 28 and 28 in portrait, matching `boardPad` — not the 40 and 22 it
+      // used to subtract, which were an older padding and left a full-width
+      // figure 6pt narrower than the lines above it.
       availableWidth: isLandscape
         ? Math.max(0, windowWidth - BOARD_LEFT - BOARD_RIGHT_GUTTER)
-        : Math.max(0, windowWidth - 40 - 22),
+        : Math.max(0, windowWidth - 28 - 28),
       /**
        * A figure is an aside to the argument, so the lines either side of it
        * have to stay on screen with it.
@@ -565,7 +676,7 @@ export default function LiveClassroomScreen() {
        */
       maxHeight: isLandscape
         ? boardHeight * 0.72
-        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - 40 - 22)),
+        : Math.min(boardHeight * 0.52, Math.max(0, windowWidth - 28 - 28)),
     }),
     [windowWidth, boardHeight, isLandscape]
   );
@@ -789,12 +900,45 @@ export default function LiveClassroomScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (following) scrollRef.current?.scrollToEnd({ animated: false });
-    }, FOLLOW_SCROLL_MS);
-    return () => clearInterval(id);
-  }, [following]);
+  /**
+   * STAYING AT THE LIVE EDGE IS AN EVENT, NOT A POLL.
+   *
+   * This used to be `setInterval(() => scrollToEnd(), 350)`, running for the
+   * whole class. `scrollToEnd` is not free when there is nothing to do: it
+   * forces the ScrollView to measure its content and commit a layout, so the
+   * entire board — every text block and every figure — was re-laid-out three
+   * times a second whether or not a single character had been written, and
+   * whether or not the board was already at the bottom.
+   *
+   * Measured in the Simulator on a debug build: the classroom sat at 36% CPU
+   * with this running and 6% with it removed, against 0.4% on the home screen.
+   * Six times the work, all of it to discover that nothing had changed. That
+   * is the drag that made the dock feel heavy — the dock was innocent; with
+   * the ring removed entirely the 36% did not move.
+   *
+   * `onContentSizeChange` fires exactly when the board actually grows, which
+   * is the real signal, and costs nothing while Drona is between lines.
+   */
+  const followingRef = useRef(following);
+  followingRef.current = following;
+  const onBoardGrow = useCallback(() => {
+    if (followingRef.current) scrollRef.current?.scrollToEnd({ animated: true });
+  }, []);
+  /**
+   * WHO SCROLLED DECIDES WHETHER WE ARE STILL FOLLOWING — not where we are.
+   *
+   * `following` used to be recomputed from the offset on every scroll event,
+   * which was safe only because the old auto-scroll was instant and never
+   * produced an intermediate position. Now that the board glides to each new
+   * line, that glide passes through "not at the bottom" on its way there, and
+   * deriving `following` from position would drop it to false mid-glide and
+   * flash the Jump-to-live pill on every line Drona writes.
+   *
+   * A drag is the one unambiguous signal that the student, not the board,
+   * moved it. So `following` changes while a finger is down and when a fling
+   * settles, and a glide leaves it alone.
+   */
+  const draggingRef = useRef(false);
 
   // Chrome tuck: the header slides up out of frame and the rail slides right,
   // both on the spec's 0.35s. The edge tab is what brings them back.
@@ -839,6 +983,46 @@ export default function LiveClassroomScreen() {
   }));
 
 
+  /**
+   * THE RING IS AWAKE WHILE A STUDENT IS TOUCHING THE DOCK, and for 1.5s after.
+   *
+   * The prototype drives this from `onpointerenter` / `onpointerleave` on the
+   * dock, which a phone does not have — there is no hover, so there is no
+   * "enter" without a press. A touch anywhere on the dock is the whole of the
+   * gesture here, and `sleepC`'s own 1500ms carries the ring past the release
+   * so it fades rather than snapping off.
+   *
+   * THE LINGER IS A FLOOR, NOT THE WHOLE ANSWER, and getting that wrong is
+   * what made the ring quit mid-sentence. Written as "every touch arms a
+   * 1.5s timer", a hold longer than 1.5s armed the timer on press and then let
+   * it fire while the student was still speaking: the gradient faded out under
+   * their thumb, and because nothing re-armed on release it never came back.
+   * Holding the mic has to PIN the ring awake for as long as it is held —
+   * which is what the prototype does, waking on talk and only scheduling the
+   * fade once the student lets go.
+   *
+   * So: `ringAwake` is the linger OR the hold, and releasing re-arms the
+   * linger so the fade still happens after, not during.
+   */
+  const [dockLinger, setDockLinger] = useState(false);
+  const dockSleepRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakeDock = useCallback(() => {
+    if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
+    setDockLinger(true);
+    dockSleepRef.current = setTimeout(() => setDockLinger(false), DOCK_SLEEP_MS);
+  }, []);
+  // Both edges: pressing pins it (via `ringAwake`), releasing starts the fade.
+  useEffect(() => {
+    wakeDock();
+  }, [handRaised, wakeDock]);
+  useEffect(() => () => {
+    if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
+  }, []);
+  const ringAwake = dockLinger || handRaised;
+  /** Talking beats paused, which beats the resting teacher palette — the
+   *  prototype's `on ? S2 : (paused ? G2 : T2)`. */
+  const ringMood: RingMood = handRaised ? 'student' : paused ? 'paused' : 'teacher';
+
   const showChrome = () => setChromeVisible(true);
 
   const toggleChrome = () => {
@@ -855,19 +1039,31 @@ export default function LiveClassroomScreen() {
       setIndicatorTop((contentOffset.y / contentSize.height) * layoutMeasurement.height);
       setIndicatorVisible(true);
       if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
-      // Settle onto the rule grid when the board comes to rest, so a written
-      // line is never left half-cut by the top edge.
-      indicatorTimerRef.current = setTimeout(() => {
-        setIndicatorVisible(false);
-        const settled = settleToRhythm(
-          contentOffset.y,
-          contentSize.height - layoutMeasurement.height
-        );
-        if (settled != null) scrollRef.current?.scrollTo({ y: settled, animated: true });
-      }, 900);
+      /**
+       * NO RULE-SNAPPING ANY MORE. This used to settle the board onto the
+       * nearest 26pt multiple when scrolling stopped, "so a written line is
+       * never left half-cut by the top edge" — which was true while every
+       * line sat on the rule grid.
+       *
+       * The writing is spaced for reading now, not snapped to the rules, so a
+       * line's position is set by mixed sizes and margins and lands on no
+       * multiple of anything. Snapping to 26 aligned nothing: it just slid the
+       * board by up to 13pt, 900ms after the student stopped scrolling. A
+       * nudge with no purpose is worse than none.
+       */
+      indicatorTimerRef.current = setTimeout(() => setIndicatorVisible(false), 900);
     }
-    const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
-    setFollowing(atBottom);
+    if (draggingRef.current) {
+      const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
+      setFollowing(atBottom);
+    }
+  };
+
+  /** A fling that has come to rest: the student's scroll is finished, so this
+   *  is the moment to say whether they left the live edge or came back to it. */
+  const onBoardSettled = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    setFollowing(contentOffset.y + layoutMeasurement.height >= contentSize.height - 40);
   };
 
   const jumpToLive = () => {
@@ -1012,10 +1208,65 @@ export default function LiveClassroomScreen() {
     clientRef.current?.sendPttStop();
   }, []);
 
+  /**
+   * THE MIC'S OWN GESTURE, with the taps that go with it.
+   *
+   * Wrappers rather than haptics inside `raiseHand`/`doneListening`, because
+   * those two are called from places that are not a gesture at all — the 30s
+   * hold ceiling, and the socket teardown when a student leaves mid-hold. A
+   * buzz as the class unmounts under them would be a lie about what they did.
+   * Only a real press and a real release are felt.
+   *
+   * The tap fires AFTER `raiseHand` has run, never before. `raiseHand` is
+   * deliberately synchronous so the server's PTT window opens ahead of the
+   * first audio frame, and nothing decorative is allowed in front of it.
+   *
+   * Which tap is decided by what actually happened rather than by what we
+   * expected: `handRaisedRef` is set synchronously inside `raiseHand`, so
+   * reading it either side says whether the floor really opened or whether the
+   * press was turned away for want of a microphone.
+   */
+  const onMicPressIn = useCallback(() => {
+    const held = handRaisedRef.current;
+    raiseHand();
+    if (held) return;
+    if (handRaisedRef.current) hapticFloorTaken();
+    else hapticRefused();
+  }, [raiseHand]);
+
+  const onMicPressOut = useCallback(() => {
+    const held = handRaisedRef.current;
+    doneListening();
+    if (held) hapticFloorReleased();
+  }, [doneListening]);
+
   // `raiseHand`'s ceiling timer needs to call the *current* `doneListening`
   // without taking it as a dependency and re-arming on every render.
   const doneListeningRef = useRef<() => void>(doneListening);
   doneListeningRef.current = doneListening;
+
+  /**
+   * RELEASE THE FLOOR IF THE BUTTON GOES AWAY UNDER THE THUMB.
+   *
+   * `sendPttStop` had exactly one caller — `onPressOut` — and the mic lives
+   * inside the `isLandscape ?` branch, so rotating mid-hold unmounts the very
+   * Pressable that owes us the release. No `onPressOut` ever arrives,
+   * `handRaisedRef` stays true, and the server's PTT window stays open until
+   * MAX_HOLD_MS retires it thirty seconds later: the teacher stays stopped,
+   * the ring stays green, and the next hold is eaten because `is_ptt_active`
+   * was never cleared. Rotating while speaking is not an edge case — it is
+   * the button right next to the mic.
+   *
+   * The cleanup runs on both an orientation change and on leaving the class,
+   * and `doneListening` is a no-op when nothing is held, so this costs
+   * nothing when it is not needed.
+   */
+  useEffect(
+    () => () => {
+      doneListeningRef.current?.();
+    },
+    [isLandscape]
+  );
 
   /**
    * Speaking is known to be off — as distinct from `checking`, where the probe
@@ -1109,6 +1360,32 @@ export default function LiveClassroomScreen() {
 
   // Suppressed while the student holds Interrupt, so bottom centre has one
   // owner — the Listening strip.
+  /**
+   * TWO STATES, because a chip only has two.
+   *
+   * The socket's `verdict` can be 'correct', 'partial' or 'incorrect', and the
+   * middle one used to show as "Almost" in amber. On a multiple-choice chip
+   * that is meaningless: you pressed one option, and either it was the right
+   * one or it was not. "Almost" invited the student to work out how a single
+   * tap could be partly right.
+   *
+   * It is also unreachable in practice. The only answer that can carry a
+   * partial grade is a spoken one, and `onTranscriptFinal` clears the card the
+   * moment a spoken answer lands — so the verdict chip is only ever shown for
+   * a tap. Anything that is not 'correct' reads as not correct here, and
+   * Drona explains the difference in the next turn either way.
+   *
+   * Fills are chosen for the contrast of the text ON them, not for hue:
+   * GREEN_INK carries paper at 5.29:1 where the brighter GREEN manages 3.52.
+   * RED is the app's own error colour, at 4.17.
+   */
+  const wasCorrect = answerVerdict === 'correct';
+  const verdictFill = wasCorrect
+    ? { backgroundColor: GREEN_INK, borderColor: GREEN_INK }
+    : { backgroundColor: RED, borderColor: RED };
+  const verdictInk = colors.paper;
+  const verdictWord = wasCorrect ? 'Correct' : 'Not quite';
+
   // Stands down for a checkpoint: the question and its answers own the space
   // above the controls, and two stacked overlays in one place is how the chip
   // ended up sitting on the dock's hint text.
@@ -1156,6 +1433,15 @@ export default function LiveClassroomScreen() {
           scrollEventThrottle={16}
           onScroll={onBoardScroll}
           onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
+          onContentSizeChange={onBoardGrow}
+          onScrollBeginDrag={() => {
+            draggingRef.current = true;
+          }}
+          onScrollEndDrag={(e) => {
+            draggingRef.current = false;
+            onBoardSettled(e);
+          }}
+          onMomentumScrollEnd={onBoardSettled}
           showsVerticalScrollIndicator={false}>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
             {board.length === 0 ? (
@@ -1167,20 +1453,18 @@ export default function LiveClassroomScreen() {
               </View>
             ) : (
               board.map((event, i) => (
-                <Animated.View key={`${event.seq}-${i}`} entering={FadeIn.duration(220)}>
+                <BoardLine key={`${event.seq}-${i}`}>
                   <BoardBlockView
                     event={event}
-                    styles={styles}
                     diagramBox={diagramBox}
                     widgetHost={widgetHost}
                   />
-                </Animated.View>
+                </BoardLine>
               ))
             )}
           </Pressable>
         </ScrollView>
 
-        <MarginRule x={isLandscape ? MARGIN_X : 28} />
         <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
 
         {/* Header — tucks up and out on a board tap. */}
@@ -1275,38 +1559,60 @@ export default function LiveClassroomScreen() {
             <Text style={styles.askQuestion} numberOfLines={3}>
               {spokenMathToNotation(questionText)}
             </Text>
-            <View style={styles.askRow}>
-              {checkOptions.map((option) => {
-                const chosen = chosenOption === option;
-                const passedOver = chosenOption !== null && !chosen;
-                return (
-                  <Pressable
-                    key={option}
-                    // Once one is pressed the rest stop taking taps, so a
-                    // second answer cannot be sent during the hold.
-                    disabled={chosenOption !== null}
-                    style={[
-                      styles.askChip,
-                      chosen && styles.askChipChosen,
-                      passedOver && styles.askChipPassedOver,
-                    ]}
-                    onPress={() => {
-                      if (chosenOption !== null) return;
-                      setChosenOption(option);
-                      clientRef.current?.sendAnswer(option);
-                      answerHoldRef.current = setTimeout(() => {
-                        setCheckOptions([]);
-                        setQuestionText(null);
-                        setChosenOption(null);
-                      }, ANSWER_HOLD_MS);
-                    }}>
-                    <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
-                      {option}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {/* THE VERDICT REPLACES THE ROW, it does not squeeze into it.
+                The four chips leave only 5.9pt of slack across a 336pt row, so
+                adding a mark to the chosen one would have wrapped the set at
+                the exact moment of feedback. Swapping the whole row for a
+                single chip means nothing can reflow, and once the alternatives
+                are gone the chip has room for a mark AND a word — 168pt at
+                worst.
+
+                It needs the word. The three fills are within 1.11-1.27:1 of
+                each other in lightness, so a student who cannot separate green
+                from red gets nothing from the colour alone. The mark and the
+                word carry it; the colour agrees with them. */}
+            {answerVerdict && chosenOption ? (
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                style={[styles.askRow, styles.askRowVerdict]}>
+                <View style={[styles.askChip, styles.askChipVerdict, verdictFill]}>
+                  <VerdictMark correct={wasCorrect} color={verdictInk} />
+                  <Text style={[styles.askChipText, { color: verdictInk }]}>{chosenOption}</Text>
+                  <Text style={[styles.askVerdictWord, { color: verdictInk }]}>{verdictWord}</Text>
+                </View>
+              </Animated.View>
+            ) : (
+              <View style={styles.askRow}>
+                {checkOptions.map((option) => {
+                  const chosen = chosenOption === option;
+                  const passedOver = chosenOption !== null && !chosen;
+                  return (
+                    <Pressable
+                      key={option}
+                      // Once one is pressed the rest stop taking taps, so a
+                      // second answer cannot be sent during the hold.
+                      disabled={chosenOption !== null}
+                      style={[
+                        styles.askChip,
+                        chosen && styles.askChipChosen,
+                        passedOver && styles.askChipPassedOver,
+                      ]}
+                      onPress={() => {
+                        if (chosenOption !== null) return;
+                        setChosenOption(option);
+                        clientRef.current?.sendAnswer(option);
+                        // A backstop only. `onAnswerResult` normally arrives
+                        // first and replaces this with the shorter verdict hold.
+                        answerHoldRef.current = setTimeout(clearCheckpoint, ANSWER_HOLD_MS);
+                      }}>
+                      <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
         </Animated.View>
       )}
@@ -1315,59 +1621,59 @@ export default function LiveClassroomScreen() {
           phone sideways already is. Portrait puts the same controls in a dock
           along the bottom, within reach of a thumb on an upright phone — the
           whole reason this screen stopped forcing landscape. */}
+      {/* THE COMMAND DOCK, from `dock_handoff/Classroom Dock 8a 8b`.
+          8a across the bottom in portrait, 8b upright at the side in
+          landscape. Three round targets and nothing else: no Interrupt label,
+          no dividers, and no teacher wave — the dock is colourless and still
+          for the whole class and only lights up when a student touches it. */}
       {isLandscape ? (
       <Animated.View style={[styles.rail, railStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
-        <TeacherWave quiet={handRaised} />
-        <View style={styles.railDivider} />
+        {/* `onTouchStart` on the wrapper, not a Pressable around it: it fires
+            for touches on the buttons inside as well, which is how one gesture
+            both wakes the ring and works the control — the prototype's
+            `onpointerdown` on `#dockQL` over its own children. */}
+        <View style={styles.dockAnchor} onTouchStart={wakeDock}>
+          <DockRing mood={ringMood} awake={ringAwake} vertical id="rail" />
+          <View style={styles.railPill}>
+            {/* Press and hold to speak; release to hand the board back. No
+                confirm step, no "done" button, no modal.
 
-        {/* Press and hold to speak; release to hand the board back. No
-            confirm step, no "done" button, no modal.
-
-            When there is no mic to open, the button stays here and stays
-            pressable — it is the only place the student would look — but it
-            wears the off state (dimmed plate, struck-through mic, "Mic off")
-            so the answer is visible before the press, and pressing it opens
-            the card that says why rather than doing nothing. */}
-        <Pressable
-          style={[
-            styles.talkButton,
-            handRaised && styles.talkButtonOn,
-            voiceOff && styles.talkButtonOff,
-          ]}
-          onPressIn={raiseHand}
-          onPressOut={doneListening}>
-          {handRaised && <TalkGlow />}
-          {handRaised && <TalkPulse />}
-          {handRaised ? (
-            <LevelBars color={INK} heights={[9, 17, 12]} />
-          ) : voiceOff ? (
-            <MicOffIcon size={18} color={colors.paper} />
-          ) : (
-            <MicIcon size={18} color={colors.paper} />
-          )}
-        </Pressable>
-        <Text
-          style={[
-            styles.talkLabel,
-            handRaised && styles.talkLabelOn,
-            voiceOff && styles.talkLabelOff,
-          ]}>
-          {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
-        </Text>
-
-        <View style={styles.railDivider} />
-        <Pressable style={styles.railButton} onPress={togglePause}>
-          {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
-        </Pressable>
-        {/* Back to upright. The same slot CC used to hold — captions are gone
-            and this is the control that earns it. */}
-        <Pressable
-          style={styles.railButton}
-          onPress={() => setWantLandscape(false)}
-          hitSlop={8}
-          accessibilityLabel="Rotate to portrait">
-          <RotateIcon size={15} color={INK} portrait />
-        </Pressable>
+                When there is no mic to open, the button stays here and stays
+                pressable — it is the only place the student would look — but
+                it wears the off state, so the answer is visible before the
+                press, and pressing it opens the card that says why rather
+                than doing nothing. */}
+            <Pressable
+              style={[styles.railMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+              onPressIn={onMicPressIn}
+              onPressOut={onMicPressOut}
+              accessibilityLabel="Hold to speak">
+              {handRaised ? (
+                <LevelBars color={PAPER} heights={[9, 17, 12]} />
+              ) : voiceOff ? (
+                <MicOffIcon size={20} color={PAPER} />
+              ) : (
+                <MicIcon size={20} color={PAPER} />
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.railCtrl}
+              onPress={togglePause}
+              hitSlop={6}
+              accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+              {paused ? <PlayIcon size={16} color={INK} /> : <PauseIcon size={16} color={INK} />}
+            </Pressable>
+            {/* Back to upright. The same slot CC used to hold — captions are
+                gone and this is the control that earns it. */}
+            <Pressable
+              style={styles.railCtrl}
+              onPress={() => requestOrientation(false)}
+              hitSlop={8}
+              accessibilityLabel="Rotate to portrait">
+              <RotateIcon size={19} color={INK_MUTED} portrait />
+            </Pressable>
+          </View>
+        </View>
       </Animated.View>
       ) : (
         /* THE DOCK DOES NOT TUCK.
@@ -1375,7 +1681,7 @@ export default function LiveClassroomScreen() {
            In portrait a tap hides the header only; the controls stay put.
            Tucking them made sense for a landscape rail sitting over the
            writing, but across the bottom of an upright phone the dock covers
-           no text, and taking Interrupt away from a student who is reading
+           no text, and taking the mic away from a student who is reading
            removes the button at the moment they want it. It is also why
            portrait needs no edge tab: nothing has gone anywhere to fetch back.
 
@@ -1383,50 +1689,48 @@ export default function LiveClassroomScreen() {
            animated wrapper that always resolves to translateY(0)/opacity(1)
            only looks like it does. */
         <View style={styles.dockWrap}>
-          <View style={styles.dock}>
-            <TeacherWave quiet={handRaised} />
-            <View style={styles.dockDivider} />
-            <Pressable style={styles.railButton} onPress={togglePause} hitSlop={6}>
-              {paused ? <PlayIcon size={15} color={INK} /> : <PauseIcon size={15} color={INK} />}
-            </Pressable>
+          <View style={styles.dockAnchor} onTouchStart={wakeDock}>
+            <DockRing mood={ringMood} awake={ringAwake} vertical={false} id="dock" />
+            <View style={styles.dockPill}>
+              <Pressable
+                style={styles.dockCtrl}
+                onPress={togglePause}
+                hitSlop={6}
+                accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+                {paused ? <PlayIcon size={17} color={INK} /> : <PauseIcon size={17} color={INK} />}
+              </Pressable>
 
-            {/* The same press-and-hold as the rail's, drawn as a wide pill
-                with its label inside — there is room for it across the bottom
-                and none stacked under a 46pt circle. */}
-            <Pressable
-              style={[
-                styles.dockTalk,
-                handRaised && styles.dockTalkOn,
-                voiceOff && styles.dockTalkOff,
-              ]}
-              onPressIn={raiseHand}
-              onPressOut={doneListening}>
-              {handRaised ? (
-                <LevelBars color={INK} heights={[9, 15, 11]} />
-              ) : voiceOff ? (
-                <MicOffIcon size={16} color={colors.paper} />
-              ) : (
-                <MicIcon size={16} color={colors.paper} />
-              )}
-              <Text
-                style={[
-                  styles.dockTalkText,
-                  handRaised && styles.dockTalkTextOn,
-                  voiceOff && styles.dockTalkTextOff,
-                ]}>
-                {handRaised ? 'Speaking' : voiceOff ? 'Mic off' : 'Interrupt'}
-              </Text>
-            </Pressable>
+              {/* The mic is a circle now, not a wide labelled pill. The label
+                  is what the handoff dropped, and once it is gone the pill has
+                  nothing to be wide for. */}
+              <Pressable
+                style={[styles.dockMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+                onPressIn={onMicPressIn}
+                onPressOut={onMicPressOut}
+                accessibilityLabel="Hold to speak">
+                {handRaised ? (
+                  <LevelBars color={PAPER} heights={[9, 17, 12]} />
+                ) : voiceOff ? (
+                  <MicOffIcon size={20} color={PAPER} />
+                ) : (
+                  <MicIcon size={20} color={PAPER} />
+                )}
+              </Pressable>
 
-            <Pressable
-              style={styles.railButton}
-              onPress={() => setWantLandscape(true)}
-              hitSlop={8}
-              accessibilityLabel="Rotate to landscape">
-              <RotateIcon size={15} color={INK} />
-            </Pressable>
+              <Pressable
+                style={styles.dockCtrl}
+                onPress={() => requestOrientation(true)}
+                hitSlop={8}
+                accessibilityLabel="Rotate to landscape">
+                <RotateIcon size={21} color={INK_MUTED} />
+              </Pressable>
+            </View>
           </View>
-          <Text style={styles.dockHint}>Hold to interrupt</Text>
+          {/* The handoff's hint is fixed text — it does not answer back while
+              you speak, because the mic going green and growing bars already
+              does. "Mic off" is the one state it has no word for, and that one
+              has to be said. */}
+          <Text style={styles.dockHint}>{voiceOff ? 'Mic off' : 'Hold mic to speak'}</Text>
         </View>
       )}
 
@@ -1566,85 +1870,6 @@ export default function LiveClassroomScreen() {
   );
 }
 
-function BoardBlockView({
-  event,
-  styles,
-  diagramBox,
-  widgetHost,
-}: {
-  event: BoardEvent;
-  styles: Styles;
-  diagramBox: { availableWidth: number; maxHeight: number };
-  widgetHost: {
-    activeSeq: number | null;
-    theme: WidgetTheme;
-    services: WidgetServices;
-    figures: FigureResolver;
-    onGap: (reason: string, detail: unknown) => void;
-  };
-}) {
-  const raw =
-    event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
-  /**
-   * The board was the one surface in the app painting its source.
-   *
-   * `formula` events carry bare LaTeX with no `$…$` around it, and this
-   * component rendered that string straight into a <Text> — so a class on
-   * drift velocity wrote `\vec{v}_d = \vec{a}\tau = -\dfrac{e\vec{E}}{m}\tau`
-   * on the whiteboard, markup and all. Exactly the undelimited-field case
-   * `convertBareText` was written for when the solver's Final answer box had
-   * the same bug. Every other call site — practice, library, solutions,
-   * textbooks — already goes through this converter.
-   *
-   * Applied to prose lines too, not only formulas: `latexToText` leaves text
-   * carrying no commands alone, and it picks up bare scripts the board was
-   * also missing (`10^5 m/s` reads as 10⁵ m/s now).
-   */
-  const text = useMemo(() => latexToText(raw), [raw]);
-  // A figure, not a line of writing — it owns its own sizing and never goes
-  // near the LaTeX converter.
-  if (event.type === 'diagram') {
-    // A payload beats markup wherever both exist: the registry draws the
-    // real curve from live parameters, an `svg` string draws an
-    // approximation the model produced by hand.
-    if (event.payload) {
-      return (
-        <BoardWidget
-          event={{ seq: event.seq, payload: event.payload, tier: event.tier ?? 'precomputed' }}
-          activeSeq={widgetHost.activeSeq}
-          width={diagramBox.availableWidth}
-          height={diagramBox.maxHeight}
-          theme={widgetHost.theme}
-          services={widgetHost.services}
-          figures={widgetHost.figures}
-          onGap={widgetHost.onGap}
-        />
-      );
-    }
-    if (!event.svg) return null;
-    return (
-      <BoardDiagram
-        svg={event.svg}
-        caption={event.caption}
-        availableWidth={diagramBox.availableWidth}
-        maxHeight={diagramBox.maxHeight}
-      />
-    );
-  }
-  if (event.type === 'heading') {
-    return <Text style={styles.boardHeading}>{text}</Text>;
-  }
-  if (event.type === 'formula') {
-    return <Text style={styles.boardEquation}>{text}</Text>;
-  }
-  if (event.type === 'note') {
-    return <Text style={[styles.boardKalamNote, { color: colors.red }]}>{text}</Text>;
-  }
-  return (
-    <Text style={[styles.boardBody, event.emphasis && styles.boardBodyBold]}>{text}</Text>
-  );
-}
-
 /**
  * What the card says, per reason speaking is off.
  *
@@ -1722,57 +1947,6 @@ function MicOffIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-/**
- * The amber glow under the Interrupt button while it is held. A real radial
- * gradient, centred at 50% 118% as the design has it — a linear one only
- * fades along one axis and reads as a hard-edged block.
- */
-function TalkGlow() {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width={46} height={46}>
-        <Defs>
-          <RadialGradient id="talkGlow" cx="50%" cy="118%" rx="62%" ry="62%">
-            <Stop offset="0" stopColor={AMBER} stopOpacity={0.95} />
-            <Stop offset="1" stopColor={AMBER} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={23} cy={23} r={23} fill="url(#talkGlow)" />
-      </Svg>
-    </View>
-  );
-}
-
-/** The inset ring that pulses while speaking. Opacity only — nothing scales,
- *  nothing leaves the 46pt circle. */
-function TalkPulse() {
-  const opacity = useSharedValue(0.15);
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.7, { duration: 750, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.15, { duration: 750, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1
-    );
-  }, [opacity]);
-  const animated = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={[pulseStyle.ring, animated]} pointerEvents="none" />;
-}
-
-const pulseStyle = StyleSheet.create({
-  ring: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    bottom: 5,
-    left: 5,
-    borderRadius: 99,
-    borderWidth: 1.5,
-    borderColor: 'rgba(28,26,22,.5)',
-  },
-});
-
 function ReportIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -1839,6 +2013,62 @@ function RotateIcon({
   );
 }
 
+/**
+ * The verdict as a shape, so it does not depend on the fill — the two fills
+ * sit within 1.27:1 of each other in lightness, which is no difference at all
+ * to a student who cannot separate green from red.
+ */
+function VerdictMark({ correct, color }: { correct: boolean; color: string }) {
+  const d = correct ? 'M4.5 12.4l4.6 4.6L19.5 6.6' : 'M6.4 6.4l11.2 11.2M17.6 6.4L6.4 17.6';
+  return (
+    <Svg viewBox="0 0 24 24" width={13} height={13} fill="none">
+      <Path d={d} stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/**
+ * ONE LINE OF THE BOARD, and how it arrives.
+ *
+ * A flat 220ms fade was the whole of it before, which is why the writing read
+ * as printing — a line simply existed, at full strength, one frame after it did
+ * not. It now rises six points as it fades in, easing out over 320ms: short
+ * enough to keep up with speech, long enough to read as something being written
+ * rather than pasted.
+ *
+ * NO SPOTLIGHT HERE, AND THE REASON IS WORTH KEEPING. This briefly dimmed every
+ * line except the one being spoken. The sync was real — the server pairs each
+ * sentence with its board line and reports that clip's measured length — and
+ * the feature was still useless, because a line is WRITTEN at the moment its
+ * sentence begins. So the line being spoken is always the newest line: nothing
+ * ever lit up that was already on the board, and all that happened was older
+ * lines went slightly paler. Two classes were watched and nobody saw a thing.
+ *
+ * It could not have been made louder either. Against white, body type at
+ * 7.65:1 drops under AA by alpha 0.794 and the amber heading at 4.73:1 has no
+ * room at all, so the dim was stuck at 0.82 — about 12% on ordinary prose.
+ *
+ * What would make it worth doing is the server naming which EARLIER lines a
+ * sentence refers to, so a value written minutes ago can light while it is
+ * discussed. `board_event` only ever names the line a sentence introduces.
+ * That ask is with Raasikh; when it lands, the highlight belongs here.
+ */
+function BoardLine({ children }: { children: React.ReactNode }) {
+  return <Animated.View entering={enterLine}>{children}</Animated.View>;
+}
+
+/** Fade up and settle, rather than appear. See BoardLine. */
+function enterLine() {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 6 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) }),
+      transform: [{ translateY: withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }) }],
+    },
+  };
+}
+
 function PlayIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -1880,12 +2110,17 @@ function createStyles(
    * Landscape keeps a 116 channel on the right for the thumb rail. Portrait has
    * no rail — the controls sit in a dock along the bottom — so the writing runs
    * almost to the right edge and the vertical padding grows instead, to clear
-   * the header above and the dock below. The numbers are the handoff's own
-   * (130/22/146/40, margin rule at 28).
+   * the header above and the dock below.
+   *
+   * The left gutter is 28, not 40. 40 was the classroom-flow handoff's value
+   * and it was 12pt of clearance for a red margin rule at x=28 — with the rule
+   * gone it was just a wide, unexplained indent. `Board 1c Faded Rules` sets
+   * its own content box to `padding: 26px 28px 40px 28px`, so 28 on both
+   * sides, and the rules fade over the first 60 anyway.
    */
   const boardPad = isLandscape
     ? { top: BOARD_TOP, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
-    : { top: 130, right: 22, bottom: 146, left: 40 };
+    : { top: 130, right: 28, bottom: 146, left: 28 };
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -1938,8 +2173,11 @@ function createStyles(
       backgroundColor: '#fff',
       overflow: 'hidden',
     },
-    // 52 top and bottom (2×26), 56 left (the notch gutter), 116 right to clear
-    // the thumb rail.
+    // Landscape: 52 top and bottom, 56 left (the notch gutter), 116 right to
+    // clear the thumb rail. Portrait: 130 and 146 to clear the header and the
+    // dock, 28 either side — `Board 1c`'s own content box. The old pair of
+    // 2x26s was a rule-grid number and means nothing now that the writing is
+    // not set to the grid; see `boardPad` above.
     boardContent: {
       // flexGrow lets the tap target below stretch to the full board height,
       // so tapping empty paper tucks the chrome just like tapping a line.
@@ -1949,52 +2187,23 @@ function createStyles(
       paddingBottom: boardPad.bottom,
       paddingLeft: boardPad.left,
     },
-    // Every board line is exactly one rule tall with no margins — that is what
-    // keeps the writing sitting ON the rules instead of drifting between them.
     boardTapTarget: {
       flex: 1,
     },
     enteringCardOverlay: {
       zIndex: 20,
     },
-    boardHeading: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 17,
-      lineHeight: RHYTHM,
-      color: RED,
-      transform: [{ rotate: '-0.4deg' }],
-    },
-    boardEquation: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 17,
-      lineHeight: RHYTHM,
-      color: INK,
-    },
-    // No maxWidth. There used to be a 560 cap here and on boardKalamNote,
-    // which is a sane reading measure for a portrait column and the wrong one
-    // for this board: the content box is windowWidth - BOARD_LEFT(56) -
-    // BOARD_RIGHT_GUTTER(116), which on an iPhone 17 landscape is 702pt, so
-    // the cap left 142pt of every wrapped line empty and the board read as
-    // three-quarters full. The box itself is now the measure — it is already
-    // bounded by the notch gutter on one side and the thumb-rail clearance on
-    // the other. If lines ever feel too long to track on a wider device, cap
-    // it again against the measured board width rather than a fixed 560.
-    boardBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: 13.5,
-      lineHeight: RHYTHM,
-      color: INK_MUTED,
-    },
-    boardBodyBold: {
-      fontFamily: 'Onest_700Bold',
-      color: INK,
-    },
-    boardKalamNote: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 14.5,
-      lineHeight: RHYTHM,
-      transform: [{ rotate: '-0.4deg' }],
-    },
+    /**
+     * THE WRITING'S OWN STYLES ARE NOT HERE — see `components/board-text.tsx`.
+     *
+     * Heading, body, formula and note moved there so the preview screen and
+     * this classroom cannot drift apart, and their comments went with them.
+     * What was left behind was a page of reasoning about sizes and rule
+     * alignment with no styles under it, still asserting things the board
+     * stopped doing: that a line is one rule tall, that the writing sits ON
+     * the rules, that the note is 14.5. Spacing is set for reading now and the
+     * rules are decoration. Only `writingRow` below is still this screen's.
+     */
     writingRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -2115,28 +2324,66 @@ function createStyles(
     },
 
     // Thumb rail — a floating paper plate, centred on the screen.
+
+    /**
+     * 8b. The rail is only a position now — right 12, vertically centred,
+     * which is the prototype's `right:12px; top:50%; translateY(-50%)`. Its
+     * plate, border and shadow moved to `railPill`, because the ring has to
+     * draw BEHIND them: it is a sibling of the plate, not a child, or it would
+     * paint over the very white it is meant to be hugging.
+     */
     rail: {
       position: 'absolute',
       right: 12,
       top: '50%',
+    },
+    /** Wraps ring and plate together and sizes itself to the plate, so the
+     *  ring's -1.5 and -6 insets are measured off the pill's own edge. */
+    dockAnchor: {
+      position: 'relative',
+      alignSelf: 'center',
+    },
+    railPill: {
       alignItems: 'center',
       gap: 12,
-      paddingVertical: 13,
-      paddingHorizontal: 9,
+      paddingVertical: 8,
+      paddingHorizontal: 8,
       borderRadius: 99,
-      backgroundColor: 'rgba(252,250,244,.94)',
+      backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: HAIRLINE,
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.22,
-      shadowRadius: 8,
-      elevation: 6,
+      borderColor: 'rgba(28,26,22,.10)',
+      /**
+       * The prototype's two shadows, literally — negative spreads included,
+       * which `shadowOffset`/`shadowRadius`/`shadowOpacity` cannot express and
+       * which is why this used to be an approximation. `boxShadow` carries
+       * `spreadDistance` and RN 0.81 implements it natively on iOS
+       * (`RCTBoxShadow.mm`). The tight second shadow seats the plate on the
+       * paper; the wide first one lifts it off.
+       */
+      boxShadow: [
+        { offsetX: 0, offsetY: 18, blurRadius: 36, spreadDistance: -20, color: 'rgba(28,26,22,0.5)' },
+        { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      ],
     },
-    railDivider: {
-      width: 22,
-      height: 1,
-      backgroundColor: 'rgba(28,26,22,.12)',
+    /** 48 here against portrait's 52: the prototype sizes them differently
+     *  because an upright rail has less room to give. */
+    railMic: {
+      width: 48,
+      height: 48,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: INK,
+      boxShadow: [
+        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+      ],
+    },
+    railCtrl: {
+      width: 40,
+      height: 40,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
 
     /**
@@ -2172,94 +2419,76 @@ function createStyles(
       alignItems: 'center',
       gap: verticalScale(6),
     },
-    dock: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: 9,
-      paddingHorizontal: 12,
-      borderRadius: 99,
-      // White, measured off the reference plate's interior (255,255,255). It
-      // was the warm paper tone, which on a white board read as a slightly
-      // grubby plate rather than a clean one — the same figure-and-ground
-      // inversion the plan sheet had.
-      backgroundColor: '#FFFFFF',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.10)',
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
-      elevation: 6,
-    },
-    dockDivider: {
-      width: 1,
-      height: 22,
-      backgroundColor: 'rgba(28,26,22,.12)',
-    },
     // The wide pill the handoff draws: mic and label on one line, because
     // across the bottom there is room for it and no room to stack a label
     // under a circle.
-    dockTalk: {
+    /** 8a. Same split as the rail: plate here, ring behind it. */
+    dockPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      height: 44,
-      paddingHorizontal: 18,
+      gap: 12,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
       borderRadius: 99,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      /**
+       * The prototype's two shadows, literally — negative spreads included,
+       * which `shadowOffset`/`shadowRadius`/`shadowOpacity` cannot express and
+       * which is why this used to be an approximation. `boxShadow` carries
+       * `spreadDistance` and RN 0.81 implements it natively on iOS
+       * (`RCTBoxShadow.mm`). The tight second shadow seats the plate on the
+       * paper; the wide first one lifts it off.
+       */
+      boxShadow: [
+        { offsetX: 0, offsetY: 18, blurRadius: 36, spreadDistance: -20, color: 'rgba(28,26,22,0.5)' },
+        { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      ],
+    },
+    dockCtrl: {
+      width: 48,
+      height: 48,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    /** 52 — the largest target on the dock and the only filled one, which is
+     *  the whole of how the handoff says "this is the one". */
+    dockMic: {
+      width: 52,
+      height: 52,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: INK,
+      boxShadow: [
+        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+      ],
     },
-    dockTalkOn: {
-      backgroundColor: AMBER,
+    /** Held. GREEN_INK is already #157A45, the prototype's own green; the mic
+     *  glyph gives way to level bars at the same moment. */
+    micOn: {
+      backgroundColor: GREEN_INK,
     },
-    dockTalkOff: {
-      backgroundColor: 'rgba(28,26,22,.28)',
-    },
-    dockTalkText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 12.5,
-      letterSpacing: 0.06 * 12.5,
-      textTransform: 'uppercase',
-      color: colors.paper,
-    },
-    dockTalkTextOn: {
-      color: INK,
-    },
-    dockTalkTextOff: {
-      color: 'rgba(252,250,244,.72)',
+    /** Off, not missing: same plate in the same place, drained of the shadow
+     *  that makes it read as a live control. The prototype has no state for
+     *  this — it never considers a phone whose mic cannot be opened — so this
+     *  one is the app's own, kept from the dock it replaces. */
+    micOff: {
+      backgroundColor: INK_MUTED,
+      opacity: 0.55,
+      boxShadow: [],
     },
     dockHint: {
       fontFamily: 'Onest_700Bold',
-      fontSize: 9.5,
-      letterSpacing: 0.1 * 9.5,
+      fontSize: 10.5,
+      letterSpacing: 0.08 * 10.5,
       textTransform: 'uppercase',
       color: INK_FAINT,
     },
-    talkButton: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-      backgroundColor: INK,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 7,
-      elevation: 5,
-    },
-    talkButtonOn: {
-      backgroundColor: AMBER,
-    },
     /** Off, not missing: same plate, drained of the shadow that makes it read
      *  as a live control. */
-    talkButtonOff: {
-      backgroundColor: INK_MUTED,
-      opacity: 0.55,
-      shadowOpacity: 0,
-      elevation: 0,
-    },
     // Pinned to 54 so the plate cannot resize when the label changes.
     /**
      * 60, not 54.
@@ -2274,30 +2503,6 @@ function createStyles(
      * lineHeight is explicit so the -3 lands the same on any face. The old -4
      * was measured against Anek Latin's line box.
      */
-    talkLabel: {
-      width: 60,
-      marginTop: -3,
-      textAlign: 'center',
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: 8.5,
-      lineHeight: 11,
-      letterSpacing: 0.1 * 8.5,
-      textTransform: 'uppercase',
-      color: INK_MUTED,
-    },
-    talkLabelOn: {
-      color: DEEP_AMBER,
-    },
-    talkLabelOff: {
-      color: INK_FAINT,
-    },
-    railButton: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     micDeniedCard: {
       position: 'absolute',
       left: '50%',
@@ -2429,6 +2634,22 @@ function createStyles(
     // still see what they chose between.
     askChipPassedOver: {
       opacity: 0.4,
+    },
+    // The verdict row holds one chip, so it starts at the left rather than
+    // spreading like a set of choices.
+    askRowVerdict: {
+      alignItems: 'center',
+    },
+    askChipVerdict: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(7),
+    },
+    // Lighter than the option it sits beside: the option is what was pressed,
+    // the word is what came back about it.
+    askVerdictWord: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(13),
     },
     askChipTextChosen: {
       color: colors.paper,
@@ -2647,4 +2868,3 @@ function createStyles(
   });
 }
 
-type Styles = ReturnType<typeof createStyles>;
