@@ -13,7 +13,7 @@ import {
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
-import { asksAboutTheWork, hasWriting } from '@/lib/followup-board';
+import { absorbStep, earnsTheBoard } from '@/lib/followup-board';
 
 /**
  * ONE FOLLOW-UP EXCHANGE: hold, ask, hear the answer, read the answer.
@@ -52,15 +52,7 @@ type Phase = FollowUpPhase;
 const ANSWER_DELAY_MS = 2000;
 
 
-export function useFollowUp(
-  doubtId?: string | null,
-  /**
-   * The page the student is looking at — the question and its step headings.
-   * Used only to recognise a word they have borrowed from it, which is the
-   * plainest sign a follow-up is about the work; see `asksAboutTheWork`.
-   */
-  context?: string
-) {
+export function useFollowUp(doubtId?: string | null) {
   const [steps, setSteps] = useState<FollowUpStep[]>([]);
   /** Separate from `steps`: the steps are the content, this is whether the
    *  sheet is up. They are not the same question. */
@@ -71,10 +63,6 @@ export function useFollowUp(
     openTimerRef.current = null;
     setAnswerOpen(false);
   }, []);
-  /** Read at the moment of asking rather than captured when `endHold` was
-   *  built, so swiping to the next question changes the page this reads. */
-  const contextRef = useRef(context);
-  contextRef.current = context;
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>('idle');
   /**
@@ -216,26 +204,68 @@ export function useFollowUp(
      * Both halves of the decision, re-asked rather than answered once.
      *
      * `settled` is the timing — she has been talking long enough for a sheet
-     * to read as catching up with her. `earnsTheBoard` is the content, and the
-     * content is still arriving: at two seconds the answer may be one prose
-     * line that becomes three lines of algebra by the fourth. Deciding once,
-     * at the two-second mark, would have thrown that answer away.
+     * to read as catching up with her rather than announcing her. That two
+     * seconds is deliberate and is not the server's business; `earnsTheBoard`
+     * is the content, and it is the server's entirely.
+     *
+     * Re-asked because the content is still arriving. At two seconds the
+     * answer is often one step and looks like a one-liner; by the fourth it is
+     * three steps and plainly a method. Deciding once, at the two-second mark,
+     * would have thrown that answer away.
      */
     let settled = false;
-    /**
-     * Set from the transcript, which the server sends FIRST — before the spoken
-     * line, before any step — so the decision is made before there is anything
-     * to show. Defaults to true, so an answer is never withheld on the strength
-     * of a transcript that never arrived.
-     */
-    let aboutTheWork = true;
     const openIfEarned = () => {
       if (controller.signal.aborted) return;
-      if (!settled || !aboutTheWork || !hasWriting(arrived)) return;
+      if (!settled || !earnsTheBoard(arrived)) return;
       setAnswerOpen(true);
     };
     let asked = '';
+    let spoken = '';
     let spokeStarted = false;
+    let answerSettled = false;
+    /**
+     * The player for a voice arriving INSIDE this stream, built on the first
+     * clip rather than up front — a server from before the voice moved inline
+     * sends none, and an idle player would then be sitting on the audio
+     * session for nothing.
+     */
+    let inline: FollowUpAudio | null = null;
+    const inlinePlayer = () => {
+      if (!inline) {
+        audioRef.current?.stop();
+        inline = new FollowUpAudio(doubtId);
+        audioRef.current = inline;
+        armPlayer(inline, controller);
+        setPhase('speaking');
+      }
+      return inline;
+    };
+    /**
+     * The answer is COMPLETE — every step and the spoken line are in. Not the
+     * same moment as the stream closing: the stream now stays open while the
+     * voice synthesises into it, so settling on the close would hold the
+     * screen hostage to the slowest part of the answer.
+     */
+    const settleAnswer = () => {
+      if (answerSettled || controller.signal.aborted) return;
+      answerSettled = true;
+      // A voice-only answer still deserves to exist in writing: the spoken
+      // line becomes the single step rather than leaving nothing behind. It
+      // also goes into the history the next question is sent with, which is
+      // the half that would otherwise be silently lost.
+      if (!arrived.length && spoken) {
+        absorbStep(arrived, { n: 1, text: spoken });
+        setSteps([...arrived]);
+      }
+      if (!arrived.length) {
+        // Nothing came back at all — seen live on a server reply that was
+        // unparseable JSON. Two words, in the bar's own slot.
+        setFailure('retry');
+        setPhase('idle');
+        return;
+      }
+      openIfEarned();
+    };
 
     try {
       await askAboutDoubtAloud(
@@ -247,62 +277,87 @@ export function useFollowUp(
           // the student knows what they just said.
           onTranscript: (text) => {
             asked = text;
-            /**
-             * The board is decided here, on what the STUDENT said, and not
-             * later on what came back. Asked "hello wassup" the model writes
-             * two perfectly step-shaped lines — the question restated, its
-             * numbers included, then an invitation to ask something — and no
-             * reading of that tells it apart from an explanation. The question
-             * tells them apart instantly.
-             */
-            aboutTheWork = asksAboutTheWork(text, contextRef.current);
           },
           /**
-           * The written answer, kept and shown. It arrives a step at a time
-           * while she is already speaking, so the sheet fills as she talks
-           * rather than appearing finished — which is the difference between
-           * reading along and being handed a transcript.
+           * ONE WRITER FOR A FINISHED STEP AND A STEP MID-WRITE.
+           *
+           * The server now sends each step as it is being written, and a
+           * partial carries the whole text so far for the same `n` — so the
+           * finished frame is just its last replacement, and both go through
+           * the same upsert. The sheet fills as she writes rather than having
+           * lines appear fully formed, which is the difference between being
+           * taught and being handed a page.
            */
           onStep: (step) => {
-            arrived.push(step);
+            absorbStep(arrived, step);
             setSteps([...arrived]);
             openIfEarned();
           },
-          onSpoken: (text) => {
+          onStepPartial: (step) => {
+            absorbStep(arrived, step);
+            setSteps([...arrived]);
+            openIfEarned();
+          },
+          onSpoken: (text, inlineVoice) => {
+            spoken = text;
             // Once per answer. A server that emits `spoken` both early and at
             // the end would otherwise build two players and put two voices in
             // the air.
             if (spokeStarted) return;
             spokeStarted = true;
-            void speak(text, controller);
+            /**
+             * A server that speaks into its own stream needs nothing from us
+             * but a player. The second request this used to make — ask for the
+             * answer, then go back for its voice — was a whole round trip of
+             * silence after the words already existed. It is kept only for a
+             * server from before the audio moved inline.
+             */
+            if (!inlineVoice) void speak(text, controller);
+          },
+          onAudio: (wav) => {
+            if (controller.signal.aborted) return;
+            inlinePlayer().enqueue(wav);
+          },
+          onAnswered: settleAnswer,
+          onVoiceDone: (chunks) => {
+            if (chunks === 0) {
+              // The inline voice came to nothing. The old fetch still works,
+              // and silence is the one outcome that is never right.
+              if (spoken && !controller.signal.aborted) void speak(spoken, controller);
+              return;
+            }
+            /**
+             * Every inline clip is now enqueued, which is what "the voice
+             * stream is finished" means on this path — `speakFollowUpStreaming`
+             * is never called for it, so without this the player would treat a
+             * queue running dry between sentences as normal forever and the bar
+             * would sit on "Answering…" after the last word.
+             */
+            streamDoneRef.current = true;
           },
         },
         controller.signal
       );
       if (controller.signal.aborted) return;
+      // A server from before the `answered` frame never sends one, and this is
+      // where the screen has always settled. Idempotent, so a server that does
+      // send it has already been obeyed and this changes nothing.
+      settleAnswer();
       turnsRef.current = [
         ...turnsRef.current,
         { role: 'user', content: asked },
         { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
       ];
-      // No voice ever started — the answer exists but cannot be heard, and
-      // with nothing printed there is nothing to show for it.
-      if (!spokeStarted) {
-        setFailure('retry');
+      /**
+       * No player was ever built, from either path: no voice is coming at all.
+       * A player that exists but never sounds is handled by its own `onIdle` —
+       * this is the case where nothing will ever call it.
+       */
+      if (!audioRef.current) {
+        settled = true;
+        openIfEarned();
         setPhase('idle');
-      } else if (arrived.length > 0) {
-        /**
-         * The stream finished. If no clip ever sounded — synthesis refused, the
-         * route failed, the device is muted at the OS level — `onStart` never
-         * fired, and an answer that is perfectly readable would stay hidden
-         * behind a timer that is never coming. Let the timing go and let the
-         * content decide on its own: a real explanation appears, a hello still
-         * does not.
-         */
-        if (openTimerRef.current == null) {
-          settled = true;
-          openIfEarned();
-        }
+        if (!spokeStarted) setFailure('retry');
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -313,15 +368,21 @@ export function useFollowUp(
       setPhase('idle');
     }
 
-    async function speak(spoken: string, ctl: AbortController) {
-      const audio = new FollowUpAudio(doubtId!);
-      audioRef.current = audio;
+    /**
+     * THE TWO THINGS A PLAYER OWES THE SCREEN, wherever its clips came from.
+     *
+     * Both paths need them identically — the voice arriving inside the answer
+     * stream and the voice fetched separately from a server too old to send it
+     * that way — and a second copy of this drifted from the first within a day
+     * the last time there were two.
+     */
+    function armPlayer(audio: FollowUpAudio, ctl: AbortController) {
       /**
        * The first sound, not the first step: this is when the sheet becomes
-       * ALLOWED, which is not the same as due — `openIfEarned` still has to
-       * find something worth writing down. The timer is cleared by
-       * `closeAnswer`, so a student who dismisses or asks again inside the two
-       * seconds does not get the sheet thrown back at them afterwards.
+       * ALLOWED, which is not the same as due — `earnsTheBoard` still has to
+       * agree. The timer is cleared by `closeAnswer`, so a student who
+       * dismisses or asks again inside the two seconds does not get the sheet
+       * thrown back at them afterwards.
        */
       audio.onStart = () => {
         if (ctl.signal.aborted) return;
@@ -334,8 +395,26 @@ export function useFollowUp(
       audio.onIdle = () => {
         // A queue runs dry between sentences while the next is still being
         // synthesised; only a finished stream makes an empty queue the end.
-        if (streamDoneRef.current && !ctl.signal.aborted) setPhase('idle');
+        if (!streamDoneRef.current || ctl.signal.aborted) return;
+        setPhase('idle');
+        /**
+         * The queue drained and not one clip ever sounded — synthesis refused,
+         * the route failed, the device is muted at the OS level. The timing
+         * half of the decision is never arriving, so stop waiting for it: an
+         * answer that is perfectly readable should not stay hidden behind a
+         * timer that will not fire.
+         */
+        if (openTimerRef.current == null) {
+          settled = true;
+          openIfEarned();
+        }
       };
+    }
+
+    async function speak(spoken: string, ctl: AbortController) {
+      const audio = new FollowUpAudio(doubtId!);
+      audioRef.current = audio;
+      armPlayer(audio, ctl);
       setPhase('speaking');
       try {
         await speakFollowUpStreaming(
