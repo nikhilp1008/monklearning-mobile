@@ -193,7 +193,15 @@ function mapAll(text: string, table: Record<string, string>): string | null {
   let out = '';
   for (const ch of text) {
     if (ch === ' ') continue;
-    const mapped = table[ch] ?? table[ch.toLowerCase()];
+    // Exact match only. This used to fall back to `table[ch.toLowerCase()]`,
+    // which silently changed case: `N_A` (Avogadro) came out `Nₐ` and `P_A`
+    // came out `Pₐ`, and a reader cannot tell whether the source said A or a.
+    //
+    // Worse, it was inconsistent WITHIN one formula. Unicode has no subscript
+    // b, c, d, f, g, q, w, y or z, so `P_B` failed the whole-run test and
+    // stayed literal — leaving `Pₐ` beside `P_B` in the same line of a
+    // partial-pressure question. Literal on both sides is plainer and honest.
+    const mapped = table[ch];
     if (!mapped) return null;
     out += mapped;
   }
