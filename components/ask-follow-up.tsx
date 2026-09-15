@@ -4,14 +4,21 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
 } from 'expo-audio';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { askAboutDoubtAloud, speakFollowUpStreaming, type FollowUpTurn } from '@/lib/doubt-followup';
+import { SolutionSteps } from '@/components/solution-steps';
+import {
+  askAboutDoubtAloud,
+  speakFollowUpStreaming,
+  type FollowUpStep,
+  type FollowUpTurn,
+} from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -28,13 +35,18 @@ import { FollowUpAudio } from '@/lib/followup-audio';
  * two surfaces cannot drift apart. Colourless at rest; the ring only wakes
  * while a student is actually using it.
  *
- * VOICE ONLY, DELIBERATELY. The server streams the answer's written steps as
- * well, and they are read here — but only to build the conversation history the
- * next question is sent with. Nothing is printed. The written answer is getting
- * its own surface, a board that is still being designed; until that exists,
- * half-showing the text would be a worse answer than not showing it, and would
- * have to be torn out again. `onStep` is where it will attach.
+ * THE BOARD ATTACHED AT `onStep`, exactly where the note below said it would.
+ * Voice carries every answer; the WRITTEN steps open a sheet only when the
+ * answer earns one — more than one step, or a long one. Conversation ("what's
+ * your name", "thanks") stays voice-plus-bar; an explanation of working gets
+ * the board, streaming word by word as the model writes it. One short step is
+ * spoken and kept for history but opens nothing: a board over the student's
+ * solution is furniture falling over unless there is working to put on it.
  */
+
+/** A follow-up answer opens the sheet past ONE short step — the same line
+ *  the model's own prompt draws ("the board is for working"). */
+const SHORT_ANSWER_CHARS = 240;
 
 /** How long the ring lingers after the last touch — the prototype's `hLeave`. */
 const LINGER_MS = 1500;
@@ -99,6 +111,9 @@ export function AskFollowUpBar({
    */
   const [failure, setFailure] = useState<null | 'retry' | 'mic'>(null);
   const [linger, setLinger] = useState(false);
+  /** The written answer, when it earned a board. Empty array = no board. */
+  const [boardSteps, setBoardSteps] = useState<FollowUpStep[]>([]);
+  const [boardOpen, setBoardOpen] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<FollowUpAudio | null>(null);
@@ -214,9 +229,45 @@ export function AskFollowUpBar({
     const controller = new AbortController();
     abortRef.current = controller;
     streamDoneRef.current = false;
-    const steps: string[] = [];
+    const arrived: FollowUpStep[] = [];
     let asked = '';
+    let spokenText = '';
     let spokeStarted = false;
+    setBoardSteps([]);
+    setBoardOpen(false);
+
+    // One writer for finished steps and the step mid-write. Partials carry
+    // full text-so-far and REPLACE their step — upsert by n, never append,
+    // or a step that streamed as six frames becomes six steps. The board
+    // opens the moment the answer has earned it: a second step, or a long
+    // first one. One short step is conversation and opens nothing.
+    const absorb = (step: FollowUpStep) => {
+      if (controller.signal.aborted) return;
+      const at = arrived.findIndex((s) => s.n === step.n);
+      if (at >= 0) arrived[at] = step;
+      else arrived.push(step);
+      arrived.sort((a, b) => a.n - b.n);
+      const body = arrived.map((s) => s.text).join(' ');
+      if (arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
+        setBoardSteps([...arrived]);
+        setBoardOpen(true);
+      }
+    };
+
+    // Clips the server synthesises into the SAME stream as the answer. The
+    // old contract fetched the voice back with a second request; on this
+    // server that means paying for the same voice twice.
+    const inlinePlayer = () => {
+      if (!audioRef.current) {
+        const audio = new FollowUpAudio(doubtId!);
+        audio.onIdle = () => {
+          if (streamDoneRef.current && !controller.signal.aborted) setPhase('idle');
+        };
+        audioRef.current = audio;
+        setPhase('speaking');
+      }
+      return audioRef.current;
+    };
 
     try {
       await askAboutDoubtAloud(
@@ -229,19 +280,32 @@ export function AskFollowUpBar({
           onTranscript: (text) => {
             asked = text;
           },
-          // Read, not rendered: this is the written answer, and it is waiting
-          // on a surface of its own. It still has to be collected, because the
-          // next turn is sent with it as context.
-          onStep: (step) => {
-            steps.push(step.text);
-          },
-          onSpoken: (text) => {
+          onStep: absorb,
+          onStepPartial: absorb,
+          onSpoken: (text, inlineVoice) => {
             // Once per answer. A server that emits `spoken` both early and at
             // the end would otherwise build two players and put two voices in
             // the air.
             if (spokeStarted) return;
             spokeStarted = true;
-            void speak(text, controller);
+            spokenText = text;
+            // Inline audio needs a player, not a fetch; the fetch is only for
+            // servers from before the voice moved into the answer stream.
+            if (inlineVoice) inlinePlayer();
+            else void speak(text, controller);
+          },
+          onAudio: (wav) => {
+            if (controller.signal.aborted) return;
+            inlinePlayer().enqueue(wav);
+          },
+          onVoiceDone: (chunks) => {
+            if (controller.signal.aborted) return;
+            if (chunks === 0 && spokenText) {
+              // The inline voice came to nothing; the old fetch still works.
+              void speak(spokenText, controller);
+              return;
+            }
+            streamDoneRef.current = true;
           },
         },
         controller.signal
@@ -250,13 +314,18 @@ export function AskFollowUpBar({
       turnsRef.current = [
         ...turnsRef.current,
         { role: 'user', content: asked },
-        { role: 'assistant', content: steps.join(' ') },
+        { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
       ];
-      // No voice ever started — the answer exists but cannot be heard, and
-      // with nothing printed there is nothing to show for it.
+      // No voice ever started. With a board on screen that is a quiet answer,
+      // not a failed one; with nothing printed either, there is nothing to
+      // show for the question at all.
       if (!spokeStarted) {
-        setFailure('retry');
-        setPhase('idle');
+        if (arrived.length) {
+          setPhase('idle');
+        } else {
+          setFailure('retry');
+          setPhase('idle');
+        }
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -370,8 +439,44 @@ export function AskFollowUpBar({
       <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
         {hint}
       </Text>
+
+      {/* The board, when the answer earned one. A Modal rather than a layout
+          change so the bar — and the solution behind it — never move. Done
+          closes the board only; the voice keeps talking, and Stop on the bar
+          remains the way to silence it. */}
+      <Modal
+        visible={boardOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setBoardOpen(false)}>
+        <View style={styles.sheetScrim}>
+          <Pressable style={styles.sheetScrimTap} onPress={() => setBoardOpen(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Follow-up</Text>
+              <Pressable onPress={() => setBoardOpen(false)} hitSlop={10}>
+                <Text style={styles.sheetDone}>Done</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
+              <BoardRail steps={boardSteps} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
+}
+
+/** The written answer in the same numbered rail the solution uses. Parsed at
+ *  render because partials replace their step's text frame by frame. */
+function BoardRail({ steps }: { steps: FollowUpStep[] }) {
+  const rail = useMemo(
+    () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
+    [steps]
+  );
+  return <SolutionSteps steps={rail} size="compact" />;
 }
 
 /** The dock's plate, verbatim — negative spreads included, which is why this is
@@ -454,4 +559,32 @@ const styles = StyleSheet.create({
     color: INK_FAINT,
   },
   hintLive: { color: GREEN_INK },
+  sheetScrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,26,22,0.35)' },
+  sheetScrimTap: { ...StyleSheet.absoluteFillObject },
+  sheet: {
+    maxHeight: '72%',
+    backgroundColor: PAPER,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingBottom: 28,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 10,
+    backgroundColor: 'rgba(28,26,22,0.16)',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  sheetTitle: { fontFamily: 'Onest_700Bold', fontSize: 16, color: INK },
+  sheetDone: { fontFamily: 'Onest_700Bold', fontSize: 14, color: GREEN_INK },
+  sheetBody: { paddingHorizontal: 20 },
 });
