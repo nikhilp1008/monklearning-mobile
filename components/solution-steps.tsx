@@ -21,7 +21,22 @@ const INK_70 = '#4A463D';
 const INK_30 = '#B5B0A4';
 const PAPER = '#FFFFFF';
 const HAIR = 'rgba(28,26,22,0.12)';
-const AMBER_WASH = 'rgba(238,163,31,0.11)';
+/**
+ * The formula slab.
+ *
+ * Was a marigold wash. Marigold is documented in `constants/brand.js` as the
+ * "focus dot, primary accent, the daily goal" -- spending it on every formula
+ * in every solution drained the one colour that means a streak, and it sat
+ * directly above the green final-answer block, two saturated washes competing
+ * in a phone-width column.
+ *
+ * This separates by WEIGHT and SHAPE instead of hue: a near-neutral ground and
+ * a solid ink rule down the left. Nothing here depends on colour, so it holds
+ * in both themes and for a colour-blind reader, and the rule gives a hard left
+ * edge -- a student revising can run down the formulas and skip every word.
+ */
+const SLAB_GROUND = 'rgba(28,26,22,0.045)';
+const SLAB_RULE = INK;
 const GREEN = '#1C9B57';
 const GREEN_INK = '#14663A';
 const GREEN_WASH = 'rgba(28,155,87,0.11)';
@@ -234,8 +249,15 @@ function createStyles(size: SolutionStepsSize) {
       maxWidth: '100%',
       paddingVertical: size === 'full' ? 7 : 5,
       paddingHorizontal: size === 'full' ? 12 : 10,
-      borderRadius: 6,
-      backgroundColor: AMBER_WASH,
+      // Square against the rule, rounded away from it, so the left edge reads
+      // as one continuous line down a stack of steps.
+      borderTopLeftRadius: 0,
+      borderBottomLeftRadius: 0,
+      borderTopRightRadius: 6,
+      borderBottomRightRadius: 6,
+      borderLeftWidth: 2.5,
+      borderLeftColor: SLAB_RULE,
+      backgroundColor: SLAB_GROUND,
     },
     mathText: {
       fontFamily: 'Onest_600SemiBold',
