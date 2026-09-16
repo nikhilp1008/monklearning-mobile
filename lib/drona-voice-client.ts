@@ -1,4 +1,6 @@
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
+import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
+import { pcmAvailable } from '@/lib/pcm-player';
 import { base64ToBytes } from '@/lib/audio-pcm';
 
 /**
@@ -186,7 +188,10 @@ export class DronaVoiceClient {
   private readonly getAccessToken: () => Promise<string | null>;
   private readonly wsBaseUrl: string;
   private handlers: DronaVoiceHandlers;
-  private readonly playback = new AudioPlaybackQueue();
+  /** Gapless stream when this binary carries the native player; the
+   *  file-based queue — gaps, watchdogs and all — otherwise. Same contract,
+   *  so everything downstream is none the wiser. */
+  private readonly playback = pcmAvailable ? new PcmPlaybackQueue() : new AudioPlaybackQueue();
 
   private manualDisconnect = false;
   private reconnectAttempt = 0;

@@ -59,28 +59,35 @@ public class PcmPlayerModule: Module {
     }
 
     Function("feed") { (base64: String) in
-      guard let data = Data(base64Encoded: base64),
-            let player = self.player,
-            let format = self.format, data.count >= 2 else { return }
-      let frames = AVAudioFrameCount(data.count / 2)
-      guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
-                                          frameCapacity: frames) else { return }
-      buffer.frameLength = frames
-      data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
-        let int16 = raw.bindMemory(to: Int16.self)
-        if let channel = buffer.floatChannelData?[0] {
-          for i in 0..<Int(frames) {
-            channel[i] = Float(int16[i]) / 32768.0
-          }
-        }
-      }
-      player.scheduleBuffer(buffer, completionHandler: nil)
-      self.fedSeconds += Double(frames) / format.sampleRate
-      if !self.playing && self.fedSeconds >= self.prebufferSeconds {
-        player.play()
-        self.playing = true
-      }
+      guard let data = Data(base64Encoded: base64) else { return }
+      self.schedule(data)
     }
+
+    Function("feedBytes") { (data: Data) in
+      // The classroom already holds decoded PCM bytes; re-encoding them to
+      // base64 just to decode again here would be pure ceremony.
+      self.schedule(data)
+    }
+
+    Function("pause") {
+      self.player?.pause()
+    }
+
+    Function("resume") {
+      if self.playing { self.player?.play() }
+    }
+
+    Function("playedSeconds") { () -> Double in
+      // The sample-accurate playhead: frozen across pauses, zero while the
+      // prebuffer holds. This is the clock the board reveals run on.
+      guard let player = self.player,
+            let nodeTime = player.lastRenderTime,
+            let playerTime = player.playerTime(forNodeTime: nodeTime),
+            playerTime.sampleRate > 0 else { return 0 }
+      return Double(playerTime.sampleTime) / playerTime.sampleRate
+    }
+
+
 
     Function("finish") {
       // The stream is over. An answer shorter than the prebuffer would
@@ -97,6 +104,29 @@ public class PcmPlayerModule: Module {
 
     Function("stop") {
       self.teardown()
+    }
+  }
+
+  private func schedule(_ data: Data) {
+    guard let player = self.player,
+          let format = self.format, data.count >= 2 else { return }
+    let frames = AVAudioFrameCount(data.count / 2)
+    guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
+                                        frameCapacity: frames) else { return }
+    buffer.frameLength = frames
+    data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+      let int16 = raw.bindMemory(to: Int16.self)
+      if let channel = buffer.floatChannelData?[0] {
+        for i in 0..<Int(frames) {
+          channel[i] = Float(int16[i]) / 32768.0
+        }
+      }
+    }
+    player.scheduleBuffer(buffer, completionHandler: nil)
+    self.fedSeconds += Double(frames) / format.sampleRate
+    if !self.playing && self.fedSeconds >= self.prebufferSeconds {
+      player.play()
+      self.playing = true
     }
   }
 

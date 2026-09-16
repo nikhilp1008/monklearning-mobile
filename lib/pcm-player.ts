@@ -11,7 +11,11 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 type PcmPlayerModule = {
   start(sampleRate: number, rate: number): void;
   feed(base64: string): void;
+  feedBytes(data: Uint8Array): void;
   fedSeconds(): number;
+  playedSeconds(): number;
+  pause(): void;
+  resume(): void;
   finish(): void;
   stop(): void;
 };
@@ -43,4 +47,21 @@ export function pcmFinish(): void {
 
 export function pcmStop(): void {
   native?.stop();
+}
+
+export function pcmFeedBytes(data: Uint8Array): void {
+  native?.feedBytes(data);
+}
+
+/** Sample-accurate playhead: frozen across pauses, 0 while prebuffering. */
+export function pcmPlayedSeconds(): number {
+  return native?.playedSeconds() ?? 0;
+}
+
+export function pcmPause(): void {
+  native?.pause();
+}
+
+export function pcmResume(): void {
+  native?.resume();
 }
