@@ -18,7 +18,7 @@ import {
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
-import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmStart, pcmStop } from '@/lib/pcm-player';
+import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -331,6 +331,8 @@ export function AskFollowUpBar({
             }
             streamDoneRef.current = true;
             if (pcmAvailable && pcmStartedAtRef.current) {
+              // Release an answer still held by the jitter buffer.
+              pcmFinish();
               // No didJustFinish on the gapless path: the end is seconds fed
               // (at the played rate) against seconds elapsed, plus a breath.
               const played = (Date.now() - pcmStartedAtRef.current) / 1000;

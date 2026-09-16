@@ -12,6 +12,7 @@ type PcmPlayerModule = {
   start(sampleRate: number, rate: number): void;
   feed(base64: string): void;
   fedSeconds(): number;
+  finish(): void;
   stop(): void;
 };
 
@@ -33,6 +34,11 @@ export function pcmFeed(b64: string): void {
 
 export function pcmFedSeconds(): number {
   return native?.fedSeconds() ?? 0;
+}
+
+/** The stream ended: releases an answer still held by the prebuffer. */
+export function pcmFinish(): void {
+  native?.finish();
 }
 
 export function pcmStop(): void {

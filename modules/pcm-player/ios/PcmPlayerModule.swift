@@ -23,6 +23,11 @@ public class PcmPlayerModule: Module {
   /// Seconds of audio handed to the player since start() — the JS side reads
   /// this to know when the queue has genuinely drained.
   private var fedSeconds: Double = 0
+  /// Playback holds until this much audio is queued — the jitter buffer that
+  /// keeps the FIRST word from stuttering while the stream ramps up. The
+  /// stream's producer outruns realtime once warm, so only the start needs it.
+  private var prebufferSeconds: Double = 0.5
+  private var playing = false
 
   public func definition() -> ModuleDefinition {
     Name("PcmPlayer")
@@ -43,7 +48,9 @@ public class PcmPlayerModule: Module {
       engine.connect(player, to: timePitch, format: format)
       engine.connect(timePitch, to: engine.mainMixerNode, format: format)
       try engine.start()
-      player.play()
+      // NOT playing yet: buffers queue silently until the prebuffer fills,
+      // so the first word starts whole instead of shaky. feed() starts it.
+      self.playing = false
       self.engine = engine
       self.player = player
       self.timePitch = timePitch
@@ -69,6 +76,19 @@ public class PcmPlayerModule: Module {
       }
       player.scheduleBuffer(buffer, completionHandler: nil)
       self.fedSeconds += Double(frames) / format.sampleRate
+      if !self.playing && self.fedSeconds >= self.prebufferSeconds {
+        player.play()
+        self.playing = true
+      }
+    }
+
+    Function("finish") {
+      // The stream is over. An answer shorter than the prebuffer would
+      // otherwise wait forever for a fill that is never coming.
+      if !self.playing, let player = self.player, self.fedSeconds > 0 {
+        player.play()
+        self.playing = true
+      }
     }
 
     Function("fedSeconds") { () -> Double in
@@ -88,5 +108,6 @@ public class PcmPlayerModule: Module {
     engine = nil
     format = nil
     fedSeconds = 0
+    playing = false
   }
 }
