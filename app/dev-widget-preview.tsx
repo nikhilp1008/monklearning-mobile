@@ -611,7 +611,12 @@ function PublishedLab() {
   const idx = SHOT_PUBLISHED >= 0 ? SHOT_PUBLISHED : sel;
   const gi = SHOT_PUBLISHED >= 0 ? SHOT_PUB_GROUP : grp;
   const slug = PUBLISHED_SLUGS[Math.min(idx, PUBLISHED_SLUGS.length - 1)];
-  const box = LAB_FRAMES[0];   // 343x236, the narrow shipping frame
+  // 343x236 is the narrow shipping frame and stays the default. It was
+  // HARDCODED here, so SHOT_FRAME changed the orientation and the fence while
+  // the board kept drawing at 343x236 — a 702x289 capture came out as a
+  // 343x236 board in a landscape framebuffer, and crop-shot refused it with
+  // the right numbers and the wrong diagnosis. It now follows SHOT_FRAME.
+  const box = LAB_FRAMES[SHOT_FRAME >= 0 ? (SHOT_FRAME as 0) : 0];
 
   useEffect(() => {
     let cancelled = false;

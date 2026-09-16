@@ -18,6 +18,7 @@ import {
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
@@ -122,6 +123,10 @@ export function AskFollowUpBar({
   /** Set when the sentence stream has finished, so a queue running dry between
    *  sentences is not mistaken for the end of the answer. */
   const streamDoneRef = useRef(false);
+  /** The gapless path has no didJustFinish: the end is computed from seconds
+   *  fed against seconds elapsed, checked when the stream closes. */
+  const pcmIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pcmStartedAtRef = useRef(0);
 
   const wake = useCallback(() => {
     if (lingerRef.current) clearTimeout(lingerRef.current);
@@ -151,6 +156,8 @@ export function AskFollowUpBar({
     abortRef.current = null;
     audioRef.current?.stop();
     audioRef.current = null;
+    pcmStop();
+    if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
     setPhase('idle');
   }, []);
 
@@ -158,6 +165,8 @@ export function AskFollowUpBar({
     () => () => {
       abortRef.current?.abort();
       audioRef.current?.stop();
+      pcmStop();
+      if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
       recorder.stop().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
       toPlayback();
@@ -173,6 +182,8 @@ export function AskFollowUpBar({
     // it — the student has clearly stopped listening.
     audioRef.current?.stop();
     audioRef.current = null;
+    pcmStop();
+    if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
     abortRef.current?.abort();
     abortRef.current = null;
     setPhase('listening');
@@ -289,10 +300,23 @@ export function AskFollowUpBar({
             if (spokeStarted) return;
             spokeStarted = true;
             spokenText = text;
-            // Inline audio needs a player, not a fetch; the fetch is only for
-            // servers from before the voice moved into the answer stream.
-            if (inlineVoice) inlinePlayer();
-            else void speak(text, controller);
+            // Three dialects, one decision, made here: gapless PCM when this
+            // build carries the native player, inline WAV clips otherwise,
+            // and the fetch only for servers from before the voice moved
+            // into the answer stream.
+            if (inlineVoice && pcmAvailable) {
+              pcmStart();
+              pcmStartedAtRef.current = Date.now();
+              setPhase('speaking');
+            } else if (inlineVoice) {
+              inlinePlayer();
+            } else {
+              void speak(text, controller);
+            }
+          },
+          onPcm: (b64) => {
+            if (controller.signal.aborted) return;
+            pcmFeed(b64);
           },
           onAudio: (wav) => {
             if (controller.signal.aborted) return;
@@ -306,6 +330,15 @@ export function AskFollowUpBar({
               return;
             }
             streamDoneRef.current = true;
+            if (pcmAvailable && pcmStartedAtRef.current) {
+              // No didJustFinish on the gapless path: the end is seconds fed
+              // (at the played rate) against seconds elapsed, plus a breath.
+              const played = (Date.now() - pcmStartedAtRef.current) / 1000;
+              const remains = pcmFedSeconds() / 1.15 - played + 0.5;
+              pcmIdleRef.current = setTimeout(() => {
+                if (!controller.signal.aborted) setPhase('idle');
+              }, Math.max(0, remains * 1000));
+            }
           },
         },
         controller.signal
