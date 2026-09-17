@@ -141,35 +141,69 @@ export default function HomeScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <ClassBlock styles={styles} scale={scale} onPress={() => router.push('/drona')} />
 
-          {/* Two cells of one strip, not two cards. A vertical rule between
-              them and a horizontal rule above and below: the pair reads as a
-              single row of the document, one rank below the block. */}
+          {/*
+            Two cells of one strip, not two cards. A vertical rule between them
+            and a horizontal rule above and below: the pair reads as a single
+            row of the document, one rank below the block.
+
+            THE ICON SITS ON AN INK PLATE, and the plate is the whole of why
+            this stopped looking generic. It was a 24pt outline glyph in the
+            same ink as the body copy, in the corner — the weight of a footnote,
+            directly beneath a black card with a white button on it.
+
+            NO PER-FEATURE COLOUR. A red plate for Snap and a green one for
+            Practice was colour-CODING something with no code: nothing about
+            practising is green, nothing about a camera is red, and a pastel
+            square with a matching glyph in it is the most templated component
+            on the internet. Both plates are identical; the DRAWING is what
+            separates the two cards, because that is the part carrying meaning.
+            What colour remains is the app's own marigold, already built into
+            both icons — the camera's aperture and the card's bullet — which is
+            why the glyph takes its stroke and that mark as separate colours
+            and can reverse onto the ink without losing the thing that signs it.
+          */}
           <View style={styles.strip}>
             <PressableScale
               style={[styles.stripCell, styles.stripCellLeft]}
               onPress={() => router.push('/snap-capture')}>
               <View style={styles.stripHead}>
-                <SnapIcon size={scale(24)} />
-                <ArrowRightIcon color={colors.ink} size={scale(16)} />
+                <View style={styles.stripPlate}>
+                  <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
+                </View>
+                <Text style={styles.stripTitle} numberOfLines={2}>
+                  Snap and Solve
+                </Text>
               </View>
-              <Text style={styles.stripTitle}>Snap and Solve</Text>
-              <Text style={styles.stripBody}>Up to 3 questions, solved step by step</Text>
+              {/* The arrow rides the LAST LINE of the copy rather than taking a
+                  row of its own. On its own row it cost forty points of height
+                  to say one thing, and read as a control that had been left
+                  over rather than one belonging to the text above it. */}
+              <View style={styles.stripFoot}>
+                <Text style={styles.stripBody}>Up to 3 questions, solved step by step</Text>
+                <ArrowRightIcon color={colors.ink} size={scale(15)} />
+              </View>
             </PressableScale>
             <PressableScale
               style={[styles.stripCell, styles.stripCellRight]}
               onPress={() => router.push('/practice')}>
               <View style={styles.stripHead}>
-                <PracticeIcon size={scale(24)} />
-                <ArrowRightIcon color={colors.ink} size={scale(16)} />
+                <View style={styles.stripPlate}>
+                  <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
+                </View>
+                <Text style={styles.stripTitle} numberOfLines={2}>
+                  Practice
+                </Text>
               </View>
-              <Text style={styles.stripTitle}>Practice</Text>
-              {/* 150 a day. NOTE: monklearning.com currently publishes 75
-                  ("50 doubt snaps and 75 practice questions a day") in three
-                  places, so the site needs the same number or the two disagree
-                  on one entitlement. Neither figure is enforced anywhere yet —
-                  /practice/* returns no daily/quota field, unlike Snap, which
-                  has daily_limit and used_today. */}
-              <Text style={styles.stripBody}>150 a day, across all subjects</Text>
+              <View style={styles.stripFoot}>
+                {/* 150 a day. NOTE: monklearning.com currently publishes 75
+                    ("50 doubt snaps and 75 practice questions a day") in three
+                    places, so the site needs the same number or the two
+                    disagree on one entitlement. Neither figure is enforced
+                    anywhere yet — /practice/* returns no daily/quota field,
+                    unlike Snap, which has daily_limit and used_today. */}
+                <Text style={styles.stripBody}>150 a day, across all subjects</Text>
+                <ArrowRightIcon color={colors.ink} size={scale(15)} />
+              </View>
             </PressableScale>
           </View>
 
@@ -379,22 +413,28 @@ function ProgressGlyph({ size }: { size: number }) {
   );
 }
 
-function SnapIcon({ size }: { size: number }) {
+/**
+ * Stroke and the marigold mark are separate colours, so the drawing can reverse
+ * onto an ink plate without losing the thing that signs it. The aperture is
+ * fractionally larger reversed: a 1.2 dot that held its own against white ink
+ * disappears against cream on dark.
+ */
+function SnapIcon({ size, stroke = colors.ink, dot = colors.marigold }: { size: number; stroke?: string; dot?: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={colors.ink} strokeWidth={1.7} />
-      <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={colors.ink} strokeWidth={1.7} />
-      <Circle cx={12} cy={13.2} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
-      <Circle cx={12} cy={13.2} r={1.2} fill={colors.marigold} />
+      <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={stroke} strokeWidth={1.8} />
+      <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={stroke} strokeWidth={1.8} />
+      <Circle cx={12} cy={13.2} r={3.6} stroke={stroke} strokeWidth={1.8} />
+      <Circle cx={12} cy={13.2} r={1.5} fill={dot} />
     </Svg>
   );
 }
 
-function PracticeIcon({ size }: { size: number }) {
+function PracticeIcon({ size, stroke = colors.ink, dot = colors.marigold }: { size: number; stroke?: string; dot?: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={colors.ink} strokeWidth={1.7} />
-      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={colors.ink} strokeWidth={1.7} />
+      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={stroke} strokeWidth={1.8} />
+      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={stroke} strokeWidth={1.8} />
       {/* The marigold marks the item ON the card, not a blob beside it.
           It used to sit at cx 17.4 -- the front card's stroke spans
           15.75-17.45, so the dot was centred on the border, half inside the
@@ -406,8 +446,8 @@ function PracticeIcon({ size }: { size: number }) {
           which is also how a plan row is drawn elsewhere in the app. Dot
           and line sit on 1.00 of clearance at each end of the card's
           interior, the round cap included. */}
-      <Circle cx={6.4} cy={12.4} r={1.15} fill={colors.marigold} />
-      <Path d="M10 12.4h3.9" stroke={colors.ink} strokeWidth={1.7} />
+      <Circle cx={6.4} cy={12.4} r={1.4} fill={dot} />
+      <Path d="M10 12.4h3.9" stroke={stroke} strokeWidth={1.8} />
     </Svg>
   );
 }
@@ -557,23 +597,49 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     stripHead: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: scale(11),
+      /**
+       * Two lines' worth, always. "Snap and Solve" wraps beside its plate and
+       * "Practice" does not, so without a floor the two cells started their
+       * copy at different heights and the strip read as slightly out of true.
+       * The taller of the two sets the line for both.
+       */
+      minHeight: scale(38),
     },
-    stripTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
-      color: colors.ink,
+    /** Ink, and the glyph reverses out of it. The plate is what makes the icon
+     *  the first thing read in the cell rather than the last. */
+    stripPlate: {
+      width: scale(36),
+      height: scale(36),
+      borderRadius: scale(11),
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.ink,
+    },
+    /** The copy and the arrow on one line, the arrow sitting at the end of the
+     *  last of it. `flex-end` puts them on the same baseline; the 2 lifts the
+     *  arrow off the text's descender space onto it. */
+    stripFoot: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: scale(10),
       marginTop: verticalScale(12),
     },
+    stripTitle: {
+      flex: 1,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(15),
+      lineHeight: scale(19),
+      letterSpacing: scale(-0.012 * 15),
+      color: colors.ink,
+    },
     stripBody: {
+      flex: 1,
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(18),
       color: colors.slate,
-      marginTop: verticalScale(4),
     },
 
     // The row closes itself with a hairline, matching the stats row below it,
