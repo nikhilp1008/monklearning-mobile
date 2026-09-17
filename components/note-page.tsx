@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { type NoteLine, type NoteSection } from '@/lib/note-page-model';
 
 /**
@@ -395,5 +396,107 @@ function createStyles() {
     keyRow: { flexDirection: 'row', gap: 6 },
     keyDot: { fontFamily: PEN, fontSize: 11, lineHeight: 19, color: INK },
     keyText: { flex: 1, fontFamily: PEN, fontSize: 12.5, lineHeight: 19, color: INK },
+  });
+}
+
+/**
+ * THE PAGE WHILE IT IS STILL COMING.
+ *
+ * It used the old design's skeleton — a bar, a centred topic, a row of jump
+ * chips — none of which the written page has, so the wait looked like a
+ * different screen that then became this one. A placeholder's whole job is to
+ * be the page with the words missing.
+ *
+ * So it is the same paper, the same ruling, the same red title with its
+ * squiggle already drawn under it, and the same margins. What is missing is
+ * only the writing. The squiggle and the rules are NOT dimmed with the rest,
+ * because they are things the page has before anything is written on it — a
+ * ruled sheet with a line drawn under a heading is exactly what a student's
+ * page looks like a second before they start.
+ *
+ * FOUR SECTIONS, SHORTENING. A real note runs long, and a placeholder that
+ * shows two even blocks reads as a short document; staggering the lines and
+ * tapering the last one says "there is more of this" without claiming a length.
+ */
+export function NotePageSkeleton({ onBack }: { onBack: () => void }) {
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(), []);
+  const bones = useMemo(() => createSkeletonStyles(), []);
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.rules} pointerEvents="none">
+        {Array.from({ length: 60 }).map((_, i) => (
+          <View key={i} style={[styles.rule, { top: (i + 1) * LH }]} />
+        ))}
+      </View>
+
+      <View style={[styles.body, { paddingTop: insets.top + 34 }]}>
+        <Skeleton style={bones.date} />
+        <Skeleton delay={50} style={bones.title} />
+        {/* Already drawn, because the paper has it before the writing does. */}
+        <Squiggle width={214} />
+
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={bones.section}>
+            <Skeleton delay={stagger(i, 120)} style={bones.heading} />
+            <SkeletonParagraph
+              lines={i === 3 ? 2 : 3}
+              lineHeight={13}
+              gap={9}
+              delay={stagger(i, 120) + 50}
+              widths={['96%', '99%', '61%']}
+            />
+          </View>
+        ))}
+      </View>
+
+      <LinearGradient
+        colors={[PAPER, PAPER, 'rgba(255,255,255,0)']}
+        locations={[0, 0.62, 1]}
+        style={[styles.topCover, { height: insets.top + 42 }]}
+        pointerEvents="none"
+      />
+      <Pressable
+        style={[styles.back, { top: insets.top + 4 }]}
+        onPress={onBack}
+        hitSlop={16}
+        accessibilityLabel="Back">
+        <Svg viewBox="0 0 24 24" width={21} height={21} fill="none">
+          <Path
+            d="M15 5l-7 7 7 7"
+            stroke={INK}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </Pressable>
+    </View>
+  );
+}
+
+function createSkeletonStyles() {
+  return StyleSheet.create({
+    /** Each block sits where its real counterpart will, so nothing jumps when
+     *  the words arrive. */
+    /**
+     * Sat where the date's BOX starts rather than where its glyphs do, which
+     * put it inside the tail of the top fade and left it looking half-erased.
+     * The real date is 12pt type on a 22pt line, so its ink sits about six down
+     * from the top of the box; the bone matches that and the two now occupy the
+     * same space.
+     */
+    date: {
+      width: 46,
+      height: 11,
+      borderRadius: 3,
+      alignSelf: 'flex-end',
+      marginTop: 6,
+      marginBottom: 5,
+    },
+    title: { width: '82%', height: 19, borderRadius: 4, marginBottom: 3 },
+    section: { marginTop: 20 },
+    heading: { width: '58%', height: 14, borderRadius: 4, marginBottom: 10 },
   });
 }

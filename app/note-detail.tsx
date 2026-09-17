@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BoardPageSkeleton } from '@/components/board-page';
-import { NotePage } from '@/components/note-page';
+import { NotePage, NotePageSkeleton } from '@/components/note-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DEMO_NOTE_CONTENT, DEMO_NOTE_ID } from '@/lib/demo-board';
@@ -83,7 +82,7 @@ export default function NoteDetailScreen() {
     return (
       <>
         <StatusBar style="dark" />
-        <BoardPageSkeleton onBack={() => router.back()} />
+        <NotePageSkeleton onBack={() => router.back()} />
       </>
     );
   }

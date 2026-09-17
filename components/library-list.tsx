@@ -37,6 +37,7 @@ import {
   DemoDoubtCard,
   DemoNoteCard,
 } from '@/lib/demo-board';
+import { noteRowLine } from '@/lib/note-row';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
 type SubjectFilter = 'All' | 'Physics' | 'Chemistry' | 'Maths' | 'Biology';
@@ -379,7 +380,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       (n) =>
         subjectMatches(n.subject, notesFilter) &&
         (!q ||
-          [n.concept, n.chapter, n.preview]
+          [n.concept, n.chapter]
             .filter(Boolean)
             .some((field) => field!.toLowerCase().includes(q)))
     );
@@ -594,16 +595,12 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             .filter(Boolean)
                             .join(' · ')}
                         </Text>
-                        {/* export-8a's third line reads "8 key points · 3
-                            formulas · 1 diagram". The API does not break the
-                            board down by type — /notes returns `preview`, its
-                            own one-line summary ("12 board items · 3 of 5
-                            parts"), and the breakdown only exists on a note's
-                            detail, one fetch per row. So the server's own line
-                            fills the slot rather than a count we would have to
-                            invent. */}
-                        {!!note.preview && (
-                          <Text style={styles.noteRowMeta}>{note.preview}</Text>
+                        {/* The chapter, and how far the class got if it did
+                            not finish. Not the server's `preview`, which
+                            counted board items — a number the note page no
+                            longer shows anywhere. See `noteRowLine`. */}
+                        {!!noteRowLine(note) && (
+                          <Text style={styles.noteRowMeta}>{noteRowLine(note)}</Text>
                         )}
                       </PressableScale>
                     </Erasable>
