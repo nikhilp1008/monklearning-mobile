@@ -146,21 +146,27 @@ export default function HomeScreen() {
             and a horizontal rule above and below: the pair reads as a single
             row of the document, one rank below the block.
 
-            THE ICON SITS ON AN INK PLATE, and the plate is the whole of why
-            this stopped looking generic. It was a 24pt outline glyph in the
-            same ink as the body copy, in the corner — the weight of a footnote,
-            directly beneath a black card with a white button on it.
+            THE LAYOUT IS THE ORIGINAL ONE. An inline head — plate beside the
+            title — was tried and reverted: beside a 36pt plate there is not
+            enough width left for "Snap and Solve" to hold one line, so it
+            wrapped while "Practice" did not, and the only ways out were a
+            smaller title or a shorter name. With the title on its own full
+            width it fits at 16pt, which is where it started.
 
-            NO PER-FEATURE COLOUR. A red plate for Snap and a green one for
-            Practice was colour-CODING something with no code: nothing about
-            practising is green, nothing about a camera is red, and a pastel
-            square with a matching glyph in it is the most templated component
-            on the internet. Both plates are identical; the DRAWING is what
-            separates the two cards, because that is the part carrying meaning.
-            What colour remains is the app's own marigold, already built into
-            both icons — the camera's aperture and the card's bullet — which is
-            why the glyph takes its stroke and that mark as separate colours
-            and can reverse onto the ink without losing the thing that signs it.
+            WHAT IS NOT REVERTED IS THE ICON. It was a 24pt outline in the same
+            colour as the body copy, sitting in a corner at the weight of a
+            footnote directly beneath a black card with a white button on it.
+            It reverses out of an ink plate now.
+
+            AND THERE IS NO PER-FEATURE COLOUR. A red plate for Snap and a
+            green one for Practice was colour-CODING something with no code:
+            nothing about practising is green, nothing about a camera is red,
+            and a pastel square with a matching glyph in it is the most
+            templated component on the internet. Both plates are identical; the
+            DRAWING is what separates the two cards, because that is the part
+            carrying meaning. The colour that remains is the app's own
+            marigold, already inside both icons — the camera's aperture and the
+            card's bullet.
           */}
           <View style={styles.strip}>
             <PressableScale
@@ -170,18 +176,10 @@ export default function HomeScreen() {
                 <View style={styles.stripPlate}>
                   <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
                 </View>
-                <Text style={styles.stripTitle} numberOfLines={2}>
-                  Snap and Solve
-                </Text>
+                <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
-              {/* The arrow rides the LAST LINE of the copy rather than taking a
-                  row of its own. On its own row it cost forty points of height
-                  to say one thing, and read as a control that had been left
-                  over rather than one belonging to the text above it. */}
-              <View style={styles.stripFoot}>
-                <Text style={styles.stripBody}>Up to 3 questions, solved step by step</Text>
-                <ArrowRightIcon color={colors.ink} size={scale(15)} />
-              </View>
+              <Text style={styles.stripTitle}>Snap and Solve</Text>
+              <Text style={styles.stripBody}>Up to 3 questions, solved step by step</Text>
             </PressableScale>
             <PressableScale
               style={[styles.stripCell, styles.stripCellRight]}
@@ -190,20 +188,16 @@ export default function HomeScreen() {
                 <View style={styles.stripPlate}>
                   <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
                 </View>
-                <Text style={styles.stripTitle} numberOfLines={2}>
-                  Practice
-                </Text>
+                <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
-              <View style={styles.stripFoot}>
-                {/* 150 a day. NOTE: monklearning.com currently publishes 75
-                    ("50 doubt snaps and 75 practice questions a day") in three
-                    places, so the site needs the same number or the two
-                    disagree on one entitlement. Neither figure is enforced
-                    anywhere yet — /practice/* returns no daily/quota field,
-                    unlike Snap, which has daily_limit and used_today. */}
-                <Text style={styles.stripBody}>150 a day, across all subjects</Text>
-                <ArrowRightIcon color={colors.ink} size={scale(15)} />
-              </View>
+              <Text style={styles.stripTitle}>Practice</Text>
+              {/* 150 a day. NOTE: monklearning.com currently publishes 75
+                  ("50 doubt snaps and 75 practice questions a day") in three
+                  places, so the site needs the same number or the two disagree
+                  on one entitlement. Neither figure is enforced anywhere yet —
+                  /practice/* returns no daily/quota field, unlike Snap, which
+                  has daily_limit and used_today. */}
+              <Text style={styles.stripBody}>150 a day, across all subjects</Text>
             </PressableScale>
           </View>
 
@@ -597,15 +591,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     stripHead: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(11),
-      /**
-       * Two lines' worth, always. "Snap and Solve" wraps beside its plate and
-       * "Practice" does not, so without a floor the two cells started their
-       * copy at different heights and the strip read as slightly out of true.
-       * The taller of the two sets the line for both.
-       */
-      minHeight: scale(38),
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
     },
     /** Ink, and the glyph reverses out of it. The plate is what makes the icon
      *  the first thing read in the cell rather than the last. */
@@ -617,29 +604,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
       backgroundColor: colors.ink,
     },
-    /** The copy and the arrow on one line, the arrow sitting at the end of the
-     *  last of it. `flex-end` puts them on the same baseline; the 2 lifts the
-     *  arrow off the text's descender space onto it. */
-    stripFoot: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: scale(10),
+    stripTitle: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.012 * 16),
+      color: colors.ink,
       marginTop: verticalScale(12),
     },
-    stripTitle: {
-      flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      lineHeight: scale(19),
-      letterSpacing: scale(-0.012 * 15),
-      color: colors.ink,
-    },
     stripBody: {
-      flex: 1,
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(18),
       color: colors.slate,
+      marginTop: verticalScale(4),
     },
 
     // The row closes itself with a hairline, matching the stats row below it,
