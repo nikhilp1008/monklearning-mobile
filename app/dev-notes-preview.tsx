@@ -40,11 +40,10 @@ import Svg, { Path } from 'react-native-svg';
  *   school note actually looks, and it is most of why a page reads as written
  *   rather than as typeset in one colour.
  *
- * THE TYPEFACE IS STILL WRONG AND IT IS THE ONE THING I CANNOT FIX HERE. Kalam
- * is the only handwriting face in the app and it slants; the reference is
- * upright, tight and neat. Rendered against the reference's own sentence,
- * Patrick Hand is the match — and it needs a package, so it needs asking. The
- * whole page reads through `PEN`, so the swap is one constant.
+ * THE HAND IS PATRICK HAND, picked by rendering eight candidates against the
+ * reference's own sentence — upright, tight and neat, where Kalam slanted. It
+ * has one weight, so nothing on this page is bold; headings are bigger, red, or
+ * underlined instead, which is all a pen can do.
  *
  * ONE THING THE REFERENCE QUIETLY GETS RIGHT: it spells Greek out — "Y = sigma
  * / epsilon", "p = h x rho x g", "(sigma y)". No handwriting face on Google
@@ -53,10 +52,15 @@ import Svg, { Path } from 'react-native-svg';
  * the word is not a workaround; it is what a student does anyway.
  */
 
-/** The only handwriting face loaded today. Patrick Hand replaces these two
- *  values if the package is approved, and nothing else on the page changes. */
-const PEN = 'Kalam_400Regular';
-const PEN_BOLD = 'Kalam_700Bold';
+/**
+ * ONE HAND, ONE WEIGHT. Patrick Hand ships 400 and nothing else, and that turns
+ * out to be right rather than limiting: a pen cannot embolden anything either.
+ * A heading here is bigger, or red, or underlined — never heavier. `PEN_BOLD`
+ * is kept as a separate name only so the places that WANT emphasis stay marked,
+ * and so a face with real weights could be dropped in later.
+ */
+const PEN = 'PatrickHand_400Regular';
+const PEN_BOLD = 'PatrickHand_400Regular';
 
 /** Red pen: section numbers, headings, labels, the notes in brackets. */
 const RED = '#C0392B';
@@ -204,10 +208,10 @@ export default function DevNotesPreviewScreen() {
             />
 
             <Text style={styles.section}>4. Hydraulic Compression</Text>
-            <Bullet>Solid sphere in fluid under high pressure ⟶ compressed uniformly on all sides</Bullet>
+            <Bullet>Solid sphere in fluid under high pressure → compressed uniformly on all sides</Bullet>
             <Bullet>Volume decreases, but no change in geometrical shape</Bullet>
             <Bullet>
-              Body develops internal restoring forces equal and opposite to the fluid’s ⟶
+              Body develops internal restoring forces equal and opposite to the fluid’s →
               regains its original shape and size when taken out
             </Bullet>
 
@@ -237,8 +241,9 @@ export default function DevNotesPreviewScreen() {
         </View>
 
         <Text style={styles.disclaimer}>
-          Kalam, because it is the only handwriting face in the app — and it slants. The
-          reference is upright and neat: Patrick Hand, which needs a package.
+          Patrick Hand. One weight, so nothing here is bold — a heading is bigger, red or
+          underlined instead, which is all a pen can do. Content condensed by hand; the
+          server still refuses to shorten a note by more than half.
         </Text>
       </ScrollView>
     </View>

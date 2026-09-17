@@ -43,16 +43,23 @@ import {
 // Devanagari table both depend on it being loaded. It is not a leftover of
 // the Anek Latin migration; it is a different script.
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
-// TRIAL, for `app/dev-notes-preview.tsx` — the handwritten-notes idea. Kalam
-// was removed with Anek Latin when nothing referenced it any more, and it is
-// back only while the three note variants are being judged. If the chosen
-// variant has no pen in it, this import and the two faces go again.
+// THE NOTE'S HAND, for the handwritten notes page. Chosen by rendering eight
+// candidates against the reference's own sentence: upright, tight and neat,
+// where Kalam — the face that used to be here on trial — slants. Kalam went
+// with the trial; nothing else in the app referenced it (`boardKalamNoteBase`
+// in lesson-player.tsx is a legacy NAME, and draws in Onest).
 //
-// Worth knowing when reading those variants: measured with fontTools against
-// the characters notes actually use, Kalam is missing 14 of 32 and Onest 18 of
-// 32 — and NEITHER has any Greek letter or any subscript, so `Δ₀` and `λ` fall
-// through to an iOS system face in today's notes already.
-import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
+// ONE WEIGHT, and that is the point rather than a limitation. Patrick Hand
+// ships 400 alone, so a heading cannot be bolder — it can only be bigger, or
+// red, or underlined. Which is exactly what a pen can do, and why the page
+// reads as written.
+//
+// Measured with fontTools against every character that page draws: it has the
+// superscript digits (10¹¹, m², 10⁸) and °, ×, ≈, •, — and the curly
+// apostrophe. It does NOT have the superscript MINUS (U+207B), so `m⁻²` takes
+// an iOS fallback for that one dash. Nor any Greek, which is why the page
+// spells Greek out the way the reference does.
+import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
@@ -103,9 +110,8 @@ export default function RootLayout() {
     // The one non-Latin face, and the reason it is not symmetrical with the
     // five above: it is loaded for its SCRIPT, not for a weight in a scale.
     AnekDevanagari_500Medium,
-    // On trial for the handwritten note; see the import.
-    Kalam_400Regular,
-    Kalam_700Bold,
+    // The handwritten note's hand; see the import.
+    PatrickHand_400Regular,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
