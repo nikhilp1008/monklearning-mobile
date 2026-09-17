@@ -8,41 +8,33 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from '@/constants/brand';
 
 /**
- * SNAP AND PRACTICE, FIVE WAYS. Preview only, nothing wired.
+ * THE PLATE, FIVE WAYS — AND NO BOXES. Preview only, nothing wired.
  *
- * WHAT IS WRONG WITH THEM TODAY, and it is worth being precise because the
- * brief was "generic" and "not clicky":
+ * Plate was the direction. The two notes on it were that the colours were too
+ * dark and that it must not become a box: the pair stays what it is today, two
+ * cells of one strip with a rule above, a rule below and a rule between. So
+ * every variant here keeps that exact frame and changes only the icon and how
+ * the space around it is used.
  *
- *   THEY HAVE NO SURFACE. They are not cards — they are two cells of a table,
- *   drawn with a rule above, a rule below and a rule between. Nothing about a
- *   hairline says "press me"; a rule is what you put between rows of data.
+ * ON THE COLOUR. The first plate was the full accent — #B4392B and #1C7A47 —
+ * which is the weight a primary button carries, and two of them side by side
+ * under a black hero made the top of Home three heavy objects in a row. These
+ * are all built the other way round: the plate takes the TINT and the glyph
+ * takes the ink. Same hue, a quarter of the weight, and the glyph is the thing
+ * that reads rather than the square behind it.
  *
- *   THE ICON IS THE WEAKEST MARK ON THE SCREEN. A 24pt, 1.7px outline glyph in
- *   the same ink as the body copy, sitting in the corner. It is drawn at the
- *   weight of a footnote directly under a black card with a white button on it.
- *
- *   THE ARROW IS DETACHED. Top-right, far from the title it belongs to, at the
- *   same weight as the icon — so the eye reads four small marks of equal
- *   importance and no hierarchy at all.
- *
- * Every variant below leaves the words alone and changes only the surface and
- * the icon, because that is the ask. They differ in ONE decision: what makes
- * the icon the loudest thing in the card.
- *
- *   1 · PLATE     A filled rounded square behind it, in the accent. The icon
- *                 reverses to white. The most common answer and the most
- *                 reliable.
- *   2 · SCALE     No container at all — the glyph simply gets much bigger and
- *                 takes the accent colour. Quietest, and the least like
- *                 every other app.
- *   3 · REVERSE   The whole card takes the accent; the icon and the words go
- *                 white on it. Loudest, and it makes the pair read as two
- *                 buttons rather than two panels.
- *   4 · BADGE     A circular badge that overlaps the card's top edge, lifted
- *                 on its own shadow. Depth rather than colour.
- *   5 · WASH      A tinted card with the glyph drawn LARGE and faint behind
- *                 the words, plus a small solid one on the line. The icon
- *                 becomes the card's texture instead of an ornament.
+ *   P1 · SOFT      The plate, in tint. The direct answer to both notes.
+ *   P2 · ROUND     The same, circular. A circle reads softer than a square at
+ *                  the same fill and is harder to mistake for a card.
+ *   P3 · INLINE    The plate beside the title rather than above it. The
+ *                  current layout leaves a whole line of empty width next to
+ *                  a 24pt icon; this spends it.
+ *   P4 · LARGE     A bigger plate and no arrow at all. The arrow was a second
+ *                  small mark competing with the icon, and the whole cell has
+ *                  always been the target — it was pointing at something that
+ *                  did not need pointing at.
+ *   P5 · RING      Tint fill with a hairline of the accent round it. Gives the
+ *                  plate an edge without giving it weight.
  */
 
 type Card = {
@@ -76,20 +68,22 @@ const CARDS: Card[] = [
   },
 ];
 
-type Variant = 'plate' | 'scale' | 'reverse' | 'badge' | 'wash';
+type Variant = 'soft' | 'round' | 'inline' | 'large' | 'ring';
 
 const VARIANTS: { id: Variant; label: string; note: string }[] = [
-  { id: 'plate', label: '1 · Plate', note: 'A filled square behind the icon; the glyph reverses to white.' },
-  { id: 'scale', label: '2 · Scale', note: 'No container. The glyph simply gets much bigger, in the accent.' },
-  { id: 'reverse', label: '3 · Reverse', note: 'The whole card takes the accent. Two buttons, not two panels.' },
-  { id: 'badge', label: '4 · Badge', note: 'A badge overlapping the top edge, lifted on its own shadow.' },
-  { id: 'wash', label: '5 · Wash', note: 'The glyph drawn large and faint behind the words, as texture.' },
+  { id: 'soft', label: 'P1 · Soft', note: 'The plate in tint, glyph in ink. Both notes answered, nothing else moved.' },
+  { id: 'round', label: 'P2 · Round', note: 'The same plate, circular — softer, and never mistakable for a card.' },
+  { id: 'inline', label: 'P3 · Inline', note: 'Plate beside the title, not above it. Spends the empty width.' },
+  { id: 'large', label: 'P4 · Large', note: 'A bigger plate, and the arrow dropped — the cell was always the target.' },
+  { id: 'ring', label: 'P5 · Ring', note: 'Tint fill with a hairline of the accent. An edge without weight.' },
 ];
 
 export default function DevHomeCardsScreen() {
-  const [variant, setVariant] = useState<Variant>('plate');
+  const [variant, setVariant] = useState<Variant>('soft');
   const styles = useMemo(() => createStyles(), []);
-  const active = VARIANTS.find((v) => v.id === variant)!;
+  /** Falls back rather than asserting: a hot reload keeps the old state
+   *  across a rename of these ids, and `!` turned that into a red screen. */
+  const active = VARIANTS.find((v) => v.id === variant) ?? VARIANTS[0];
 
   return (
     <View style={styles.screen}>
@@ -128,9 +122,14 @@ export default function DevHomeCardsScreen() {
           </View>
         </View>
 
-        <View style={styles.pair}>
-          {CARDS.map((c) => (
-            <CardView key={c.key} c={c} variant={variant} styles={styles} />
+        {/* THE STRIP, exactly as Home draws it: a rule above, a rule below,
+            a rule between. No card, no fill, no radius — that is the frame
+            these variants must live inside. */}
+        <View style={styles.strip}>
+          {CARDS.map((c, i) => (
+            <View key={c.key} style={[styles.cell, i === 0 ? styles.cellLeft : styles.cellRight]}>
+              <CardView c={c} variant={variant} styles={styles} />
+            </View>
           ))}
         </View>
 
@@ -143,67 +142,60 @@ export default function DevHomeCardsScreen() {
 }
 
 function CardView({ c, variant, styles }: { c: Card; variant: Variant; styles: Styles }) {
-  const reversed = variant === 'reverse';
-  const glyph = reversed ? '#FFFFFF' : variant === 'plate' ? '#FFFFFF' : c.accent;
-  const titleColor = reversed ? '#FFFFFF' : colors.ink;
-  const bodyColor = reversed ? 'rgba(255,255,255,0.82)' : colors.slate;
-
-  return (
+  const plate = (size: number, radius: number) => (
     <View
       style={[
-        styles.card,
-        variant === 'plate' && styles.cardPlain,
-        variant === 'scale' && styles.cardPlain,
-        variant === 'badge' && [styles.cardPlain, styles.cardBadge],
-        variant === 'wash' && [styles.cardWash, { backgroundColor: c.tint }],
-        reversed && { backgroundColor: c.accent },
+        styles.plate,
+        {
+          width: size,
+          height: size,
+          borderRadius: radius,
+          backgroundColor: c.tint,
+        },
+        variant === 'ring' && { borderWidth: 1, borderColor: c.accent },
       ]}>
-      {/* 5 · the glyph as the card's texture, behind the words. */}
-      {variant === 'wash' && (
-        <View style={styles.washArt} pointerEvents="none">
-          <Glyph k={c.key} size={132} color={c.accent} opacity={0.1} />
-        </View>
-      )}
-
-      {/* 4 · the badge breaks the top edge, so it reads as sitting ON the card
-             rather than inside it. */}
-      {variant === 'badge' && (
-        <View style={[styles.badge, { backgroundColor: c.accent }]}>
-          <Glyph k={c.key} size={22} color="#FFFFFF" />
-        </View>
-      )}
-
-      {variant === 'plate' && (
-        <View style={[styles.plate, { backgroundColor: c.accent }]}>
-          <Glyph k={c.key} size={21} color={glyph} />
-        </View>
-      )}
-
-      {variant === 'scale' && (
-        <View style={styles.scaleSlot}>
-          <Glyph k={c.key} size={40} color={c.accent} />
-        </View>
-      )}
-
-      {variant === 'reverse' && (
-        <View style={styles.reverseSlot}>
-          <Glyph k={c.key} size={26} color="#FFFFFF" />
-        </View>
-      )}
-
-      {variant === 'wash' && (
-        <View style={styles.scaleSlot}>
-          <Glyph k={c.key} size={24} color={c.onTint} />
-        </View>
-      )}
-
-      <Text style={[styles.title, { color: variant === 'wash' ? c.onTint : titleColor }]}>
-        {c.title}
-      </Text>
-      <Text style={[styles.body, { color: variant === 'wash' ? c.onTint : bodyColor }]}>
-        {c.body}
-      </Text>
+      {/* The glyph in the ink, not reversed out of a saturated square. It is
+          the thing meant to be seen; the plate is only the ground it sits on. */}
+      <Glyph k={c.key} size={size * 0.52} color={c.onTint} />
     </View>
+  );
+
+  if (variant === 'inline') {
+    return (
+      <>
+        <View style={styles.inlineHead}>
+          {plate(34, 10)}
+          <Text style={styles.titleInline} numberOfLines={2}>
+            {c.title}
+          </Text>
+        </View>
+        <Text style={styles.body}>{c.body}</Text>
+      </>
+    );
+  }
+
+  const size = variant === 'large' ? 46 : 38;
+  const radius = variant === 'round' ? 99 : variant === 'large' ? 14 : 11;
+
+  return (
+    <>
+      <View style={styles.head}>
+        {plate(size, radius)}
+        {/* P4 drops it: a second small mark competing with the icon, pointing
+            at a cell that was already the target. */}
+        {variant !== 'large' && <Arrow color={colors.faint} />}
+      </View>
+      <Text style={styles.title}>{c.title}</Text>
+      <Text style={styles.body}>{c.body}</Text>
+    </>
+  );
+}
+
+function Arrow({ color }: { color: string }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={16} height={16} fill="none">
+      <Path d="M3 8h10M9 4l4 4-4 4" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
   );
 }
 
@@ -292,49 +284,40 @@ function createStyles() {
     heroBtn: { alignSelf: 'flex-start', backgroundColor: '#FFFDF8', borderRadius: 99, paddingHorizontal: 22, paddingVertical: 12 },
     heroBtnText: { fontFamily: 'Onest_700Bold', fontSize: 15, color: colors.ink },
 
-    pair: { flexDirection: 'row', gap: 12 },
-    card: { flex: 1, borderRadius: 16, padding: 14, minHeight: 148, justifyContent: 'flex-start' },
-    /** White face, hairline, one soft lift. Enough to be an object. */
-    cardPlain: {
-      backgroundColor: '#FFFFFF',
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      boxShadow: [
-        { offsetX: 0, offsetY: 4, blurRadius: 12, spreadDistance: -6, color: 'rgba(28,26,22,0.22)' },
-      ],
-    },
-    cardBadge: { marginTop: 16, paddingTop: 26 },
-    cardWash: { overflow: 'hidden' },
+    /** Home's own strip, to the value. */
+    strip: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(28,26,22,.1)' },
+    cell: { flex: 1, paddingVertical: 20 },
+    cellLeft: { paddingRight: 20, borderRightWidth: 1, borderRightColor: 'rgba(28,26,22,.1)' },
+    cellRight: { paddingLeft: 20 },
 
-    plate: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 12,
-    },
-    scaleSlot: { marginBottom: 12 },
-    reverseSlot: { marginBottom: 12 },
-    badge: {
-      position: 'absolute',
-      top: -16,
-      left: 14,
-      width: 40,
-      height: 40,
-      borderRadius: 99,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 3,
-      borderColor: colors.paper,
-      boxShadow: [
-        { offsetX: 0, offsetY: 4, blurRadius: 10, spreadDistance: -3, color: 'rgba(28,26,22,0.35)' },
-      ],
-    },
-    washArt: { position: 'absolute', right: -26, bottom: -26 },
+    head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+    plate: { alignItems: 'center', justifyContent: 'center' },
 
-    title: { fontFamily: 'Onest_700Bold', fontSize: 16.5, letterSpacing: -0.3, marginBottom: 4 },
-    body: { fontFamily: 'Onest_400Regular', fontSize: 13, lineHeight: 18 },
+    inlineHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    titleInline: {
+      flex: 1,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 15,
+      lineHeight: 19,
+      letterSpacing: -0.2,
+      color: colors.ink,
+    },
+
+    title: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 16,
+      lineHeight: 22,
+      letterSpacing: -0.19,
+      color: colors.ink,
+      marginTop: 12,
+    },
+    body: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: 13.5,
+      lineHeight: 19,
+      color: colors.slate,
+      marginTop: 3,
+    },
 
     after: {
       marginTop: 22,
