@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BoardPage, BoardPageSkeleton } from '@/components/board-page';
+import { BoardPageSkeleton } from '@/components/board-page';
+import { NotePage } from '@/components/note-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { buildBoardContent } from '@/lib/board-sections';
-import { DEMO_BOARD, DEMO_NOTE_ID } from '@/lib/demo-board';
+import { DEMO_NOTE_CONTENT, DEMO_NOTE_ID } from '@/lib/demo-board';
+import { parseNotePage } from '@/lib/note-page-model';
 import { NoteDetail, getNote } from '@/lib/notes';
 
 export default function NoteDetailScreen() {
@@ -49,21 +50,34 @@ export default function NoteDetailScreen() {
     };
   }, [params.id, isDemo]);
 
-  // Board items when the server stored them — one section per lesson segment,
-  // which is the shape the design's section list wants — falling back to the
-  // flat content for notes saved before they were kept.
-  const board = useMemo(
-    () =>
-      isDemo
-        ? DEMO_BOARD
-        : buildBoardContent({
-        topic: note?.concept ?? note?.chapter ?? params.title ?? 'This note',
-        subject: note?.subject ?? params.subject ?? '',
-        boardItems: note?.board_items,
-        content: note?.content,
-      }),
-    [note, params.title, params.subject, isDemo]
+  /**
+   * THE NOTE THE SERVER ALREADY ORGANISED, not the raw board.
+   *
+   * This read `board_items` first and only fell back to `content` when there
+   * were none — so every note that stored its board printed the transcript and
+   * threw away the organised version sitting in the same payload.
+   * `structure_note_content` on the API spends a whole model pass grouping the
+   * board, ordering it for revision, lifting formulas onto their own lines and
+   * writing a QUICK REVISION summary. That is the note; the board items are the
+   * tape it was made from.
+   *
+   * It is also the only source the written page can be drawn from: its
+   * headings, bullets, formulas and summary ARE the page's parts, and a
+   * transcript has none of them.
+   */
+  const sections = useMemo(
+    () => parseNotePage(isDemo ? DEMO_NOTE_CONTENT : (note?.content ?? '')),
+    [note?.content, isDemo]
   );
+
+  /** Written at the top right of the page, the way a page gets dated. */
+  const savedAt = useMemo(() => {
+    const iso = isDemo ? null : note?.created_at;
+    if (!iso) return params.time ?? null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return params.time ?? null;
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  }, [note?.created_at, params.time, isDemo]);
 
   if (!isDemo && loading) {
     return (
@@ -90,8 +104,11 @@ export default function NoteDetailScreen() {
   return (
     <>
       <StatusBar style="dark" />
-      <BoardPage
-        board={board}
+      <NotePage
+        title={note?.concept ?? note?.chapter ?? params.title ?? 'This note'}
+        subject={note?.subject ?? params.subject ?? null}
+        savedAt={savedAt}
+        sections={sections}
         onBack={() => router.back()}
         emptyNote="Nothing was written to the board in this class."
       />

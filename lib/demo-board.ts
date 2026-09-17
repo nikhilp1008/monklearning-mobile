@@ -14,6 +14,43 @@ import { BoardContent } from '@/lib/board-sections';
 
 export const DEMO_NOTE_ID = 'demo-note-torque';
 
+/**
+ * The same torque class in the SERVER'S note vocabulary, for the written page.
+ *
+ * `DEMO_BOARD` is shaped like the old renderer's blocks; the written page reads
+ * the structured text a real note carries, so the demo needs the demo content
+ * in that shape too. Same lesson, same lines — rewritten into ALL-CAPS
+ * headings, "• " bullets and `$…$` formulas on their own line, which is exactly
+ * what `structure_note_content` emits. Including a QUICK REVISION, so the blue
+ * box has something in it here as well.
+ */
+export const DEMO_NOTE_CONTENT = [
+  'THE IDEA',
+  '',
+  'A force pointing straight at the hinge cannot turn anything. Only the part of the force perpendicular to the rod does the turning, and the further from the hinge it acts, the more it turns.',
+  '• Far from the hinge and perpendicular gives the biggest turn',
+  '',
+  'DERIVING TORQUE',
+  '',
+  'Split the force',
+  'Resolve F into a part along the rod and a part across it.',
+  '$F_parallel = F cos theta$',
+  '$F_perp = F sin theta$',
+  'Only the perpendicular part turns',
+  'The component along the rod pushes into the hinge. It does no turning at all.',
+  '$tau = r F_perp$',
+  'Put it together',
+  '$tau = r F sin theta$',
+  '• theta is measured between the rod and the force, not from the vertical',
+  '',
+  'QUICK REVISION',
+  '',
+  '• $tau = r F sin theta$',
+  '• Force through the hinge gives zero torque',
+  '• Perpendicular force at the far end gives the most',
+  '• theta is rod-to-force, never from the vertical',
+].join('\n');
+
 export const DEMO_BOARD: BoardContent = {
   topic: 'Rotational Motion · torque',
   subject: 'Physics',
