@@ -5,6 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StressStrainCurve } from '@/components/note-diagram';
+
 /**
  * A SAVED CLASS AS A PAGE SOMEBODY WROTE. Preview only, not wired to data.
  *
@@ -215,7 +217,34 @@ export default function DevNotesPreviewScreen() {
               regains its original shape and size when taken out
             </Bullet>
 
-            <Text style={styles.section}>5. Worked Example</Text>
+            {/* The sketch. A note can pass for a nicely typeset document right
+                up until it contains a drawing — nobody typesets a sketch. */}
+            <Text style={styles.section}>5. Stress-Strain Curve (Metal)</Text>
+            <Bullet>A test wire is stretched by a force increased in steps</Bullet>
+            <Bullet>Stress (force per unit area) plotted against strain (fractional change in length)</Bullet>
+            <View style={styles.figure}>
+              <StressStrainCurve width={318} />
+              <Text style={styles.figCaption}>stress-strain curve for a metal</Text>
+            </View>
+            <Table
+              styles={styles}
+              head={['Region', 'Behaviour']}
+              widths={[0.3, 0.7]}
+              rows={[
+                ['O to A', 'Linear — Hooke’s law obeyed; body regains its original dimensions when the force is removed'],
+                ['A to B', 'Not proportional, but the body still returns to its original dimensions on unloading'],
+                ['B', 'Yield point — the elastic limit; the stress here is the yield strength'],
+                ['B to D', 'Permanent set — plastic deformation; strain is not zero even when stress is'],
+                ['D', 'Ultimate tensile strength'],
+                ['Beyond D', 'Additional strain even under reduced force → fracture at E'],
+              ]}
+            />
+            <Text style={styles.pTight}>
+              <Text style={styles.term}>Brittle vs ductile</Text> : D and E close together →
+              brittle; far apart → ductile.
+            </Text>
+
+            <Text style={styles.section}>6. Worked Example</Text>
             <Work
               styles={styles}
               label="Steel rod"
@@ -460,6 +489,17 @@ function createStyles() {
       lineHeight: LH,
       color: RED,
       textAlign: 'right',
+    },
+
+    /** Centred, with air either side — a sketch on a page of notes is given
+     *  its own room, not wrapped in a card. */
+    figure: { alignItems: 'center', paddingTop: 4, paddingBottom: 2 },
+    figCaption: {
+      fontFamily: PEN,
+      fontSize: 11.5,
+      lineHeight: LH,
+      color: INK,
+      textAlign: 'center',
     },
 
     table: { marginTop: 3 },
