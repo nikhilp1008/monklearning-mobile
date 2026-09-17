@@ -57,6 +57,25 @@ export function parseReadingSize(raw: string | null | undefined): ReadingSize {
 }
 
 /**
+ * THE NEXT SIZE, WRAPPING. One button that steps through the three, because a
+ * reader wants a text-size control to be one thing in the bar rather than a
+ * row of them — and because three separate targets in a top bar are three
+ * small targets.
+ *
+ * Wrapping at the end is what makes one button workable: from large, the next
+ * tap is small, so no size is more than two taps away from any other.
+ */
+export function nextReadingSize(size: ReadingSize): ReadingSize {
+  const at = READING_SIZES.indexOf(size);
+  return READING_SIZES[(at + 1) % READING_SIZES.length];
+}
+
+/** The glyph's own size, so the button is drawn at the setting it selects. */
+export function sizeGlyph(size: ReadingSize): number {
+  return size === 'small' ? 11.5 : size === 'medium' ? 13.5 : 16;
+}
+
+/**
  * The label on each step. One letter, at three sizes, is the control — so
  * these are for the screen reader rather than for the eye.
  */

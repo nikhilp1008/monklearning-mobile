@@ -11,7 +11,13 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
+import Animated, {
+  SlideInLeft,
+  SlideInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -21,8 +27,9 @@ import { useReadingSize } from '@/hooks/use-reading-size';
 import {
   READING_SIZES,
   READING_SIZE_LABEL,
+  nextReadingSize,
   readingMultiplier,
-  type ReadingSize,
+  sizeGlyph,
 } from '@/lib/reading-size';
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
 import { kicker } from '@/components/textbook/theme';
@@ -75,7 +82,6 @@ export default function TextbookReaderScreen() {
   const [missing, setMissing] = useState(false);
   const [active, setActive] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [percent, setPercent] = useState(0);
   const [state, setState] = useState<BlockState>(EMPTY_BLOCK_STATE);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -116,7 +122,6 @@ export default function TextbookReaderScreen() {
       setActive((current) => {
         if (index === current) return current;
         setDirection(index > current ? 1 : -1);
-        setPercent(0);
         setReaderActive(index);
         scrollRef.current?.scrollTo({ y: 0, animated: false });
         return index;
@@ -137,11 +142,56 @@ export default function TextbookReaderScreen() {
   const topic = chapter?.topics[active];
   const blocks = useMemo(() => (topic ? groupBlocks(topic.blocks) : []), [topic]);
 
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    const scrollable = contentSize.height - layoutMeasurement.height;
-    setPercent(scrollable <= 0 ? 100 : Math.min(100, Math.max(0, (contentOffset.y / scrollable) * 100)));
-  };
+  /**
+   * THE TOPICS BAR GETS OUT OF THE WAY WHILE YOU READ.
+   *
+   * It floats over the column, so it was permanently sitting on a line of the
+   * text — not at the end of the page, which has padding for it, but on
+   * whatever line happened to be under it at the time. On a page you scroll
+   * through slowly that is one line of physics hidden the whole way down.
+   *
+   * Down hides it, up brings it back, which is the gesture every reading app
+   * has trained people to expect: reaching for the controls IS scrolling back.
+   * It also stays put at the very top and the very bottom, where it is not
+   * covering anything and where its disappearing would just look like a bug.
+   *
+   * The 6pt threshold is doing real work — without it the bar flickers on the
+   * sub-pixel jitter of a finger resting on a moving list.
+   */
+  const navAway = useSharedValue(0);
+  const lastY = useRef(0);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const y = contentOffset.y;
+      const dy = y - lastY.current;
+      if (Math.abs(dy) < 6) return;
+      lastY.current = y;
+      const nearTop = y < verticalScale(40);
+      const nearEnd = y + layoutMeasurement.height >= contentSize.height - verticalScale(40);
+      const hide = dy > 0 && !nearTop && !nearEnd;
+      navAway.value = withTiming(hide ? 1 : 0, { duration: 220 });
+    },
+    [navAway, verticalScale]
+  );
+  /**
+   * The distance is computed HERE, not in the worklet. `useAnimatedStyle` runs
+   * on the UI thread, where a plain JS closure like `verticalScale` is not
+   * callable — calling it there took the screen down on the first scroll. A
+   * captured number is fine; a captured function is not.
+   */
+  const navTravel = verticalScale(110);
+  const navStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: navAway.value * navTravel }],
+    opacity: 1 - navAway.value,
+  }));
+  /** Reset when the topic changes: a new page starts at the top, so the bar
+   *  belongs on screen even if the last one was left scrolled away. */
+  useEffect(() => {
+    lastY.current = 0;
+    navAway.value = withTiming(0, { duration: 160 });
+  }, [active, navAway]);
+
 
   if (missing) {
     return (
@@ -205,31 +255,35 @@ export default function TextbookReaderScreen() {
               Chapter {params.number || chapter.chapter} · {chapter.subject}
             </Text>
           </View>
-          {/* AT THE TOP, next to the progress, because a reader reaches for
-              text size in the first ten seconds and then never again — so it
-              has to be findable without being in the way of the words.
-              Three taps to three sizes, not a cycling button: cycling makes
-              getting back to medium a game of chance. */}
-          <View style={styles.sizeGroup}>
-            {READING_SIZES.map((s) => (
-              <Pressable
-                key={s}
-                onPress={() => chooseReadingSize(s)}
-                hitSlop={6}
-                accessibilityRole="button"
-                accessibilityState={{ selected: readingSize === s }}
-                accessibilityLabel={READING_SIZE_LABEL[s]}
-                style={[styles.sizeStep, readingSize === s && styles.sizeStepOn]}>
-                <Text style={[styles.sizeGlyph, sizeGlyphStyle(scale, s), readingSize === s && styles.sizeGlyphOn]}>
-                  A
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.percent}>{Math.round(percent)}%</Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${percent}%` }]} />
+          {/* ONE BUTTON, and the letter IS the setting: it is drawn at the
+              size it selects, so the control shows what it does rather than
+              describing it. Tapping steps to the next size and wraps.
+
+              The three ticks beside it are what make a cycling control
+              honest. Cycling alone hides two things — which of the sizes you
+              are on, and how many there are — so getting back to the middle
+              becomes guesswork. Three marks, the current one inked, answer
+              both without a word of label. */}
+          <Pressable
+            onPress={() => chooseReadingSize(nextReadingSize(readingSize))}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`Text size: ${READING_SIZE_LABEL[readingSize]}. Tap to change.`}
+            style={styles.sizeButton}>
+            <Text style={[styles.sizeGlyph, { fontSize: scale(sizeGlyph(readingSize)) }]}>A</Text>
+            <View style={styles.sizeTicks}>
+              {READING_SIZES.map((step, i) => (
+                <View
+                  key={step}
+                  style={[
+                    styles.sizeTick,
+                    { height: verticalScale(3 + i * 2) },
+                    step === readingSize && styles.sizeTickOn,
+                  ]}
+                />
+              ))}
+            </View>
+          </Pressable>
         </View>
 
         <ScrollView
@@ -273,7 +327,7 @@ export default function TextbookReaderScreen() {
       </SafeAreaView>
 
       <SafeAreaView edges={['bottom']} style={styles.navWrap} pointerEvents="box-none">
-        <View style={styles.nav}>
+        <Animated.View style={[styles.nav, navStyle]}>
           <Pressable style={styles.topicsButton} onPress={() => router.push('/textbook-topics')}>
             <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
               <Path
@@ -328,16 +382,10 @@ export default function TextbookReaderScreen() {
           {/* Balances the Topics button so the position pill sits optically
               centred rather than being pushed right by it. */}
           <View style={styles.navSpacer} />
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );
-}
-
-/** The control says what it does by being what it does: one letter, three
- *  sizes. A label reading "Medium" would need reading to be understood. */
-function sizeGlyphStyle(scale: (n: number) => number, size: ReadingSize) {
-  return { fontSize: scale(size === 'small' ? 11 : size === 'medium' ? 13.5 : 16) };
 }
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
@@ -356,22 +404,21 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     topBarText: { flex: 1 },
     chapterTitle: { fontFamily: 'Onest_700Bold', fontSize: scale(15), color: colors.ink },
     chapterMeta: { fontFamily: 'Onest_700Bold', fontSize: scale(12), color: colors.faint },
-    /** Tight, and no track behind the row — three small glyphs read as one
-     *  control by proximity, and a segmented pill here would out-shout the
-     *  chapter title beside it. */
-    sizeGroup: { flexDirection: 'row', alignItems: 'baseline', gap: scale(2) },
-    sizeStep: {
-      paddingHorizontal: scale(5),
-      paddingVertical: verticalScale(3),
-      borderRadius: scale(7),
+    /** No pill, no border. A framed control in the bar would out-shout the
+     *  chapter title beside it; the glyph and its ticks are legible on their
+     *  own and the touch target is made by hit-slop rather than by chrome. */
+    sizeButton: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: scale(5),
+      paddingLeft: scale(6),
+      paddingVertical: verticalScale(4),
     },
-    sizeStepOn: { backgroundColor: colors.tint },
-    sizeGlyph: { fontFamily: 'Onest_600SemiBold', color: colors.faint },
-    sizeGlyphOn: { color: colors.ink },
-
-    percent: { fontFamily: 'Onest_800ExtraBold', fontSize: scale(11), color: colors.faint },
-    progressTrack: { height: 2, backgroundColor: 'rgba(28,26,22,.1)' },
-    progressFill: { height: 2, backgroundColor: colors.marigold },
+    sizeGlyph: { fontFamily: 'Onest_600SemiBold', color: colors.ink, lineHeight: scale(18) },
+    /** Growing marks, so the row reads as a scale and not as three dots. */
+    sizeTicks: { flexDirection: 'row', alignItems: 'flex-end', gap: scale(2), paddingBottom: verticalScale(4) },
+    sizeTick: { width: scale(2.5), borderRadius: scale(2), backgroundColor: colors.disabled },
+    sizeTickOn: { backgroundColor: colors.marigold },
     scroll: { flex: 1 },
     scrollContent: { paddingTop: verticalScale(4), paddingBottom: verticalScale(120) },
     topicBody: { paddingHorizontal: scale(24), paddingTop: verticalScale(18), gap: verticalScale(20) },
