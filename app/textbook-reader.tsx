@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -18,7 +19,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
@@ -59,6 +60,13 @@ export default function TextbookReaderScreen() {
   const title = params.title ?? '';
 
   const { scale, verticalScale } = useScale();
+  /**
+   * The header is absolutely positioned, and Yoga lays an absolute child out
+   * against its parent's BORDER box — so `top: 0` inside a SafeAreaView landed
+   * it under the Dynamic Island rather than below it. It carries the inset as
+   * its own padding instead, and the scroll pads by the measured total.
+   */
+  const insets = useSafeAreaInsets();
   /**
    * The reader's own text size, as a second scale.
    *
@@ -182,6 +190,34 @@ export default function TextbookReaderScreen() {
     transform: [{ translateY: navAway.value * navTravel }],
     opacity: 1 - navAway.value,
   }));
+  /**
+   * THE HEADER GOES WITH IT. Hiding the foot bar and leaving the chapter name
+   * sitting at the top made the page look half-finished — one piece of
+   * furniture clearing out of the way while the other stayed put. Either the
+   * page is giving you the whole screen to read or it is not.
+   *
+   * It is measured rather than guessed: the bar's height depends on the safe
+   * area and on the two lines of text inside it, and a wrong constant either
+   * leaves a sliver on screen or slides it too far and takes the status bar's
+   * background with it.
+   */
+  /**
+   * Floored at a sane guess rather than starting at zero. The scroll pads
+   * itself by this, so a first frame of 0 renders the topic's own title
+   * underneath the bar — and on iOS the ScrollView does not always give that
+   * space back when the padding grows a frame later, which left the page
+   * opening on its second block with the heading lost above the bar.
+   *
+   * The guess is the bar's real construction: the inset, its 6 and 10 of
+   * padding, and two lines of 19 and 15. Replaced by the measurement on the
+   * first layout, so a different device or text setting corrects itself.
+   */
+  const [headHeight, setHeadHeight] = useState(0);
+  const headSpace = headHeight || insets.top + verticalScale(16) + verticalScale(34);
+  const headStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -navAway.value * headSpace }],
+    opacity: 1 - navAway.value,
+  }));
   /** Reset when the topic changes: a new page starts at the top, so the bar
    *  belongs on screen even if the last one was left scrolled away. */
   useEffect(() => {
@@ -226,8 +262,28 @@ export default function TextbookReaderScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.topBar}>
+      <View style={styles.safeArea}>
+        {/*
+          WHAT THE HIDING HEADER LEAVES BEHIND.
+          With the bar gone the page has the whole screen, which is the point —
+          but the writing then scrolled up under the status bar, with the clock
+          sitting on top of a line and the notch eating the middle of another.
+          So the top of the page always fades out into paper, underneath the
+          header rather than over it: when the bar is up it covers this, and
+          when the bar leaves this is what remains.
+          A fade and not a band, because a hard edge cuts a line of writing in
+          half.
+        */}
+        <LinearGradient
+          colors={[colors.reading, colors.reading, 'rgba(255,255,255,0)']}
+          locations={[0, 0.7, 1]}
+          style={[styles.topFade, { height: insets.top + verticalScale(10) }]}
+          pointerEvents="none"
+        />
+        <Animated.View
+          style={[styles.head, headStyle, { paddingTop: insets.top }]}
+          onLayout={(e) => setHeadHeight(Math.round(e.nativeEvent.layout.height))}>
+          <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
             <Svg viewBox="0 0 16 16" width={scale(16)} height={scale(16)} fill="none">
               <Path
@@ -270,12 +326,13 @@ export default function TextbookReaderScreen() {
             <Text style={styles.sizeSmall}>a</Text>
             <Text style={styles.sizeBig}>A</Text>
           </Pressable>
-        </View>
+          </View>
+        </Animated.View>
 
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: headSpace + verticalScale(4) }]}
           onScroll={onScroll}
           scrollEventThrottle={16}>
           <Animated.View
@@ -313,7 +370,7 @@ export default function TextbookReaderScreen() {
             ))}
           </Animated.View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       <SafeAreaView edges={['bottom']} style={styles.navWrap} pointerEvents="box-none">
         <Animated.View style={[styles.nav, navStyle]}>
@@ -381,6 +438,23 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.reading },
     safeArea: { flex: 1 },
+    /**
+     * Over the page, not above it. In the flow, translating it up collapsed
+     * the layout and the whole column jumped; as an overlay it slides over
+     * writing that stays exactly where it was. The scroll pads itself by the
+     * measured height so nothing starts underneath it.
+     */
+    topFade: { position: 'absolute', left: 0, right: 0, top: 0, zIndex: 1 },
+    head: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      zIndex: 2,
+      backgroundColor: colors.reading,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.08)',
+    },
     topBar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -409,7 +483,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     sizeSmall: { fontFamily: 'Onest_600SemiBold', fontSize: scale(11), color: colors.ink },
     sizeBig: { fontFamily: 'Onest_600SemiBold', fontSize: scale(16), color: colors.ink },
     scroll: { flex: 1 },
-    scrollContent: { paddingTop: verticalScale(4), paddingBottom: verticalScale(120) },
+    scrollContent: { paddingBottom: verticalScale(120) },
     topicBody: { paddingHorizontal: scale(24), paddingTop: verticalScale(18), gap: verticalScale(20) },
     topicHead: { borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,22,.1)', paddingBottom: verticalScale(14) },
     /**

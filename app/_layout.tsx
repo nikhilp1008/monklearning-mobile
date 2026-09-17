@@ -293,7 +293,12 @@ export default function RootLayout() {
             options={{
               headerShown: false,
               presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // NONE, because the sheet animates itself. The route's own
+              // slide_from_bottom moved the whole transparent screen — scrim
+              // included — so the dim arrived as a sliding edge rather than a
+              // fade, and the sheet could not be dragged out from under a
+              // navigator that owned its position.
+              animation: 'none',
             }}
           />
           <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
