@@ -25,14 +25,11 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import {
-  READING_SIZES,
   READING_SIZE_LABEL,
   nextReadingSize,
   readingMultiplier,
-  sizeGlyph,
 } from '@/lib/reading-size';
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
-import { kicker } from '@/components/textbook/theme';
 import { Chapter, groupBlocks, loadChapter } from '@/lib/textbooks';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
 
@@ -255,34 +252,23 @@ export default function TextbookReaderScreen() {
               Chapter {params.number || chapter.chapter} · {chapter.subject}
             </Text>
           </View>
-          {/* ONE BUTTON, and the letter IS the setting: it is drawn at the
-              size it selects, so the control shows what it does rather than
-              describing it. Tapping steps to the next size and wraps.
-
-              The three ticks beside it are what make a cycling control
-              honest. Cycling alone hides two things — which of the sizes you
-              are on, and how many there are — so getting back to the middle
-              becomes guesswork. Three marks, the current one inked, answer
-              both without a word of label. */}
+          {/* ONE BUTTON, and the page is its own readout.
+              The first version put three growing ticks beside it to show which
+              step you were on, and it read as a signal-strength meter — a
+              network icon in the middle of a textbook. It was also solving a
+              problem that does not exist: the effect of this control is the
+              size of every word on the screen behind it, so a student can
+              already see what it is set to. Nothing to indicate.
+              `aA` because it is the glyph everything from Safari to Kindle
+              uses for text size, so it needs no explaining. */}
           <Pressable
             onPress={() => chooseReadingSize(nextReadingSize(readingSize))}
-            hitSlop={10}
+            hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={`Text size: ${READING_SIZE_LABEL[readingSize]}. Tap to change.`}
             style={styles.sizeButton}>
-            <Text style={[styles.sizeGlyph, { fontSize: scale(sizeGlyph(readingSize)) }]}>A</Text>
-            <View style={styles.sizeTicks}>
-              {READING_SIZES.map((step, i) => (
-                <View
-                  key={step}
-                  style={[
-                    styles.sizeTick,
-                    { height: verticalScale(3 + i * 2) },
-                    step === readingSize && styles.sizeTickOn,
-                  ]}
-                />
-              ))}
-            </View>
+            <Text style={styles.sizeSmall}>a</Text>
+            <Text style={styles.sizeBig}>A</Text>
           </Pressable>
         </View>
 
@@ -297,14 +283,17 @@ export default function TextbookReaderScreen() {
             entering={(direction === 1 ? SlideInRight : SlideInLeft).duration(320)}
             style={styles.topicBody}>
             <View style={styles.topicHead}>
-              {/* The topic's own heading is CONTENT and grows with the body.
-                  The chapter title in the bar above is chrome and does not —
-                  a control that resized the furniture around the words would
-                  read as zooming the app rather than setting the text. */}
-              <Text style={kicker(type)}>
-                Topic {topic.n} / {String(chapter.topics.length).padStart(2, '0')}
-              </Text>
-              <Text style={[styles.topicTitle, { fontSize: type(25), lineHeight: type(28) }]}>
+              {/* No "TOPIC 01 / 05" overline. The bar at the foot of the page
+                  carries 1/5 and is on screen the whole time, so the heading
+                  was announcing its position twice — and an all-caps label
+                  above a heading is the most essay-like thing a page can open
+                  with.
+
+                  The heading itself is CONTENT and grows with the body. The
+                  chapter title in the bar above is chrome and does not: a
+                  control that resized the furniture would read as zooming the
+                  app rather than setting the text. */}
+              <Text style={[styles.topicTitle, { fontSize: type(25), lineHeight: type(30) }]}>
                 {topic.title}
               </Text>
             </View>
@@ -407,29 +396,36 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     /** No pill, no border. A framed control in the bar would out-shout the
      *  chapter title beside it; the glyph and its ticks are legible on their
      *  own and the touch target is made by hit-slop rather than by chrome. */
+    /** Baseline-aligned, and no frame. A pill here would out-shout the
+     *  chapter title beside it; two letters are legible on their own and the
+     *  touch target comes from hit-slop rather than from chrome. */
     sizeButton: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: scale(5),
-      paddingLeft: scale(6),
+      alignItems: 'baseline',
+      gap: scale(1.5),
+      paddingHorizontal: scale(6),
       paddingVertical: verticalScale(4),
     },
-    sizeGlyph: { fontFamily: 'Onest_600SemiBold', color: colors.ink, lineHeight: scale(18) },
-    /** Growing marks, so the row reads as a scale and not as three dots. */
-    sizeTicks: { flexDirection: 'row', alignItems: 'flex-end', gap: scale(2), paddingBottom: verticalScale(4) },
-    sizeTick: { width: scale(2.5), borderRadius: scale(2), backgroundColor: colors.disabled },
-    sizeTickOn: { backgroundColor: colors.marigold },
+    sizeSmall: { fontFamily: 'Onest_600SemiBold', fontSize: scale(11), color: colors.ink },
+    sizeBig: { fontFamily: 'Onest_600SemiBold', fontSize: scale(16), color: colors.ink },
     scroll: { flex: 1 },
     scrollContent: { paddingTop: verticalScale(4), paddingBottom: verticalScale(120) },
     topicBody: { paddingHorizontal: scale(24), paddingTop: verticalScale(18), gap: verticalScale(20) },
     topicHead: { borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,22,.1)', paddingBottom: verticalScale(14) },
+    /**
+     * MEDIUM, NOT BOLD. A bold 25pt heading over a column of 16.5pt prose is
+     * the shape of an essay title, and it shouts at a reader who has already
+     * chosen to open the page — they know what they came to read. At Medium it
+     * still leads by size and by the air around it, and the page starts
+     * quietly. The tracking eases off with the weight: -0.65 was tightening a
+     * bold face, and a lighter one at the same value looks cramped.
+     */
     topicTitle: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(25),
-      letterSpacing: scale(-0.65),
-      lineHeight: scale(28),
+      letterSpacing: scale(-0.4),
+      lineHeight: scale(30),
       color: colors.ink,
-      marginTop: verticalScale(5),
     },
     navWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     nav: {

@@ -16,6 +16,7 @@ import {
   makeBlockStyles,
   mathText,
 } from '@/components/textbook/theme';
+import { splitProse } from '@/lib/prose-paragraphs';
 import type { Block, RenderBlock } from '@/lib/textbooks';
 
 /**
@@ -100,8 +101,31 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       );
     }
 
-    case 'p':
-      return <Markup html={block.html} size={type(16.5)} style={s.body} />;
+    case 'p': {
+      /**
+       * BROKEN INTO PARAGRAPHS THE AUTHOR DID NOT WRITE, at boundaries the
+       * author did. The corpus's median prose block is 518 characters, which in
+       * this column is thirteen lines in one run — see `splitProse` for the
+       * measurements and for why this happens at render rather than in the
+       * content. A block short enough to read comes back as one piece, so this
+       * is a no-op on most of them.
+       *
+       * The gap between these is smaller than the gap between BLOCKS. They are
+       * one thought the author wrote long; a block is a different thought, and
+       * the page should say which is which.
+       */
+      const paras = splitProse(block.html);
+      if (paras.length === 1) {
+        return <Markup html={block.html} size={type(16.5)} style={s.body} />;
+      }
+      return (
+        <View style={st.proseGroup}>
+          {paras.map((para, i) => (
+            <Markup key={i} html={para} size={type(16.5)} style={s.body} />
+          ))}
+        </View>
+      );
+    }
 
     case 'think':
       return (
@@ -430,6 +454,9 @@ export type { Block };
 
 function makeStyles(scale: (n: number) => number, type = scale) {
   return StyleSheet.create({
+    /** Between paragraphs of ONE block. Smaller than the 20 between blocks,
+     *  because these are one thought written long and a block is a new one. */
+    proseGroup: { gap: type(11) },
     grow: { flex: 1 },
     /** Un-boxed blocks. A hairline on the left is enough to say "this is a
      *  unit" without drawing a container around it. */

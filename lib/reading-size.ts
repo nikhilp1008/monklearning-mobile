@@ -70,11 +70,6 @@ export function nextReadingSize(size: ReadingSize): ReadingSize {
   return READING_SIZES[(at + 1) % READING_SIZES.length];
 }
 
-/** The glyph's own size, so the button is drawn at the setting it selects. */
-export function sizeGlyph(size: ReadingSize): number {
-  return size === 'small' ? 11.5 : size === 'medium' ? 13.5 : 16;
-}
-
 /**
  * The label on each step. One letter, at three sizes, is the control — so
  * these are for the screen reader rather than for the eye.
