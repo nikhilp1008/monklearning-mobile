@@ -177,17 +177,23 @@ export function TextbooksPage({
 
       {/*
         THE CLAIM UNDER THE SHELF.
-        Not a disclaimer in tone — the opposite. A student who has been handed
-        a "textbook" inside an app will assume it is somebody else's book,
-        scanned; this says whose it is and how it was made, in a sentence that
-        is a boast rather than an apology.
-        It sits under the shelf rather than over it, because it answers a
-        question the covers have already raised.
+        Not a disclaimer in tone — the opposite. A student handed a "textbook"
+        inside an app assumes it is somebody else's, scanned; this says how it
+        was made, as a boast rather than an apology.
+
+        It opens on what WAS done rather than on what was not. The first
+        version led with "Not a scan of anyone else's book", which spends its
+        strongest position denying an accusation nobody has made yet — and
+        plants the idea in the reader who had not had it.
+
+        A hairline above it, and real air either side. Without the rule it read
+        as a stray paragraph that had slid off the last card; with it, it is
+        the foot of the page.
       */}
+      <View style={styles.noteRule} />
       <Text style={styles.note}>
-        Not a scan of anyone else&apos;s book. Every chapter here was written for Monk by the
-        strongest models available, then recomputed and checked against the syllabus — question
-        by question, formula by formula.
+        Every chapter here was written by the strongest models available, then recomputed and
+        checked against the syllabus, question by question and formula by formula.
       </Text>
     </View>
   );
@@ -203,13 +209,19 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingTop: verticalScale(20),
     },
     row: { flexDirection: 'row', gap: scale(16) },
+    noteRule: {
+      height: 1,
+      backgroundColor: colors.hairline,
+      marginHorizontal: scale(24),
+      marginTop: verticalScale(26),
+    },
     note: {
       paddingHorizontal: scale(24),
-      paddingTop: verticalScale(20),
-      paddingBottom: verticalScale(8),
+      paddingTop: verticalScale(14),
+      paddingBottom: verticalScale(10),
       fontFamily: 'Onest_400Regular',
       fontSize: scale(12.5),
-      lineHeight: scale(12.5 * 1.55),
+      lineHeight: scale(12.5 * 1.6),
       color: colors.faint,
     },
     filler: { flex: 1 },
