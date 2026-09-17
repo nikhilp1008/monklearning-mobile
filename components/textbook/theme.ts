@@ -51,12 +51,21 @@ export const CARD_GAP = 12;
  * the second. Scaling the boxes with the text pushed a 306pt card to 352 inside
  * a 342pt column and walked the content off the screen.
  */
-export function kicker(type: (n: number) => number, size = 10): TextStyle {
+export function kicker(type: (n: number) => number, size = 12): TextStyle {
   return {
-    fontFamily: 'Onest_800ExtraBold',
+    /**
+     * LOWERCASE, AND RETUNED FOR IT. This was 10pt ExtraBold with 0.11em of
+     * tracking and `textTransform: 'uppercase'` — a specification for capitals,
+     * where the extra weight and the wide letter-spacing are what stop a run of
+     * caps reading as a block. None of that applies to lowercase: at 10 it
+     * would be too small to read, ExtraBold too heavy for a quiet label, and
+     * 0.11em would pull the word apart. 12 at SemiBold with a hair of tracking
+     * instead. See `labelCase` for why they are lowercase and not sentence
+     * case.
+     */
+    fontFamily: 'Onest_600SemiBold',
     fontSize: type(size),
-    letterSpacing: type(size * 0.11),
-    textTransform: 'uppercase',
+    letterSpacing: type(size * 0.015),
     color: colors.faint,
   };
 }

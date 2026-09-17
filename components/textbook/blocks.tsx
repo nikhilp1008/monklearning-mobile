@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { StyleProp, TextStyle } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
@@ -16,6 +17,7 @@ import {
   makeBlockStyles,
   mathText,
 } from '@/components/textbook/theme';
+import { labelCase } from '@/lib/label-case';
 import { splitProse } from '@/lib/prose-paragraphs';
 import type { Block, RenderBlock } from '@/lib/textbooks';
 
@@ -78,6 +80,25 @@ function Chevron({ open, scale }: { open: boolean; scale: (n: number) => number 
   );
 }
 
+/**
+ * A SECTION LABEL, in one place so its case rule is in one place.
+ *
+ * It takes a string rather than children because the rule has to run ON the
+ * text — 1,515 of the authored labels are in full capitals, so a style alone
+ * cannot bring them down. See `labelCase`.
+ */
+function Kicker({
+  type,
+  style,
+  children,
+}: {
+  type: (n: number) => number;
+  style?: StyleProp<TextStyle>;
+  children: string;
+}) {
+  return <Text style={[kicker(type), style]}>{labelCase(children)}</Text>;
+}
+
 export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) {
   const { scale, type } = ctx;
   const s = makeBlockStyles(scale, type);
@@ -91,7 +112,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
           <Pressable
             onPress={() => ctx.set('hook', ctx.uid, !open)}
             style={({ pressed }) => [st.hookHead, pressed && st.pressed]}>
-            <Text style={[kicker(type), st.grow]}>Why this matters in the exam</Text>
+            <Kicker type={type} style={st.grow}>Why this matters in the exam</Kicker>
             <Chevron open={open} scale={scale} />
           </Pressable>
           {open && (
@@ -149,7 +170,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'def':
       return (
         <View style={st.plainBlock}>
-          <Text style={kicker(type)}>Definition</Text>
+          <Kicker type={type}>Definition</Kicker>
           <Markup html={block.term} size={type(15)} style={st.defTerm} />
           <Markup html={block.html} size={type(15)} style={[s.blockBody, st.defBody]} />
         </View>
@@ -158,7 +179,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'defgrid':
       return (
         <View>
-          <Text style={[kicker(type), st.gridTitle]}>{block.title}</Text>
+          <Kicker type={type} style={st.gridTitle}>{block.title}</Kicker>
           {block.rows.map((row, i) => (
             <View key={i} style={st.gridRow}>
               <Markup html={row.k} size={type(13)} style={st.gridKey} />
@@ -172,8 +193,8 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={s.card}>
           <View style={st.formulaHead}>
-            <Text style={[kicker(type), st.headLabel]}>{block.kicker}</Text>
-            {!!block.tag && <Text style={[kicker(type), st.tag]}>{block.tag}</Text>}
+            <Kicker type={type} style={st.headLabel}>{block.kicker}</Kicker>
+            {!!block.tag && <Kicker type={type} style={st.tag}>{block.tag}</Kicker>}
           </View>
           <Markup html={block.main} size={type(20)} style={[mathText(type, 20), st.formulaMain]} />
           <View style={st.formulaLegend}>
@@ -188,11 +209,11 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'proc':
       return (
         <View style={st.plainBlock}>
-          <Text style={kicker(type)}>How to · {block.title}</Text>
+          <Kicker type={type}>{`How to · ${block.title}`}</Kicker>
           <View style={st.procList}>
             {block.steps.map((step, i) => (
               <View key={i} style={st.procRow}>
-                <Text style={st.stepNum}>{String(i + 1).padStart(2, '0')}</Text>
+                <Text style={st.stepNum}>{i + 1}</Text>
                 <Markup html={step} size={type(14.5)} style={[s.blockBody, st.grow]} />
               </View>
             ))}
@@ -204,7 +225,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       const openStep = ctx.state.deriv[ctx.uid] ?? null;
       return (
         <View style={s.cardFlush}>
-          <Text style={[kicker(type), st.derivKicker]}>{block.kicker}</Text>
+          <Kicker type={type} style={st.derivKicker}>{block.kicker}</Kicker>
           {block.steps.map((step, i) => {
             const open = openStep === i;
             return (
@@ -216,7 +237,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                     open && st.derivHeadOpen,
                     pressed && st.pressed,
                   ]}>
-                  <Text style={st.derivNum}>{String(i + 1).padStart(2, '0')}</Text>
+                  <Text style={st.derivNum}>{i + 1}</Text>
                   <Markup
                     html={step.eq}
                     size={type(15.5)}
@@ -236,7 +257,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       const selected = ctx.state.diagram[ctx.uid] ?? 0;
       return (
         <View style={s.card}>
-          <Text style={[kicker(type), st.diaKicker]}>{block.kicker}</Text>
+          <Kicker type={type} style={st.diaKicker}>{block.kicker}</Kicker>
           <TextbookDiagram
             kind={block.kind}
             selected={selected}
@@ -263,16 +284,16 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
               <View style={st.swipeCard}>
                 <View style={st.formulaHead}>
-                  <Text style={[kicker(type), st.headLabel]}>
-                    Solved example · {i + 1} of {block.items.length}
-                  </Text>
+                  <Kicker type={type} style={st.headLabel}>
+                    {`Solved example · ${i + 1} of ${block.items.length}`}
+                  </Kicker>
                   <Text style={[kicker(type, 9.5), st.tag]}>{ex.tag}</Text>
                 </View>
                 <Markup html={ex.q} size={type(15)} style={st.cardQ} />
                 <View style={st.exSteps}>
                   {ex.steps.map((step, j) => (
                     <View key={j} style={st.procRow}>
-                      <Text style={st.stepNum}>{String(j + 1).padStart(2, '0')}</Text>
+                      <Text style={st.stepNum}>{j + 1}</Text>
                       <Markup html={step} size={type(13.5)} style={[st.exStep, st.grow]} />
                     </View>
                   ))}
@@ -303,9 +324,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             return (
               <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
-                  <Text style={kicker(type)}>
-                    Crack the MCQ · Q{i + 1} of {block.items.length}
-                  </Text>
+                  <Kicker type={type}>{`Crack the MCQ · Q${i + 1} of ${block.items.length}`}</Kicker>
                   <Markup html={q.q} size={type(15)} style={st.cardQ} />
                   <View style={st.opts}>
                     {q.opts.map((opt, oi) => {
@@ -372,9 +391,9 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
               <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
                   <View style={st.formulaHead}>
-                    <Text style={[kicker(type), st.headLabel]}>
-                      Practice · {i + 1} of {block.items.length}
-                    </Text>
+                    <Kicker type={type} style={st.headLabel}>
+                      {`Practice · ${i + 1} of ${block.items.length}`}
+                    </Kicker>
                     <Text style={[kicker(type, 9.5), st.tag]}>Try first</Text>
                   </View>
                   <Markup html={item.q} size={type(15)} style={[st.cardQ, st.practiceQ]} />
@@ -399,7 +418,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'mistakes':
       return (
         <View style={st.plainBlock}>
-          <Text style={kicker(type)}>Watch out</Text>
+          <Kicker type={type}>Watch out</Kicker>
           <View style={st.procList}>
             {block.items.map((item, i) => (
               <View key={i} style={st.procRow}>
@@ -414,7 +433,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'protip':
       return (
         <View style={st.protip}>
-          <Text style={kicker(type)}>Pro-tip</Text>
+          <Kicker type={type}>Pro-tip</Kicker>
           <Markup html={block.html} size={type(15.5)} style={[s.hand, st.protipText]} />
         </View>
       );
@@ -423,9 +442,9 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={st.snapshot}>
           <View style={st.snapHead}>
-            <Text style={[kicker(type), st.snapKicker]}>
-              Checkpoint · Topic {ctx.topicNumber} snapshot
-            </Text>
+            <Kicker type={type} style={st.snapKicker}>
+              {`Checkpoint · Topic ${ctx.topicNumber} snapshot`}
+            </Kicker>
             <Text style={st.snapTick}>✓</Text>
           </View>
           <View style={st.snapBody}>
@@ -458,13 +477,18 @@ function makeStyles(scale: (n: number) => number, type = scale) {
      *  because these are one thought written long and a block is a new one. */
     proseGroup: { gap: type(11) },
     grow: { flex: 1 },
-    /** Un-boxed blocks. A hairline on the left is enough to say "this is a
-     *  unit" without drawing a container around it. */
-    plainBlock: {
-      paddingLeft: scale(14),
-      borderLeftWidth: 2,
-      borderLeftColor: 'rgba(28,26,22,.10)',
-    },
+    /**
+     * NO RULE, AND NO INDENT EITHER.
+     *
+     * These blocks carried a 2pt line down the left and 14 of padding to clear
+     * it. On a numbered how-to that put a rule, then a gap, then the step
+     * number, then another gap, then the text — four things before a word, in a
+     * column already only 41 characters wide. The label above each block
+     * already says where it begins and the gap between blocks already says
+     * where it ends; the line was a third way of saying the same thing, paid
+     * for in measure.
+     */
+    plainBlock: {},
     pressed: { backgroundColor: colors.tint },
     hookHead: {
       flexDirection: 'row',
@@ -474,12 +498,10 @@ function makeStyles(scale: (n: number) => number, type = scale) {
       paddingHorizontal: scale(15),
     },
     hookBody: { paddingHorizontal: scale(15), paddingBottom: scale(13) },
-    think: {
-      paddingVertical: scale(2),
-      paddingLeft: scale(14),
-      borderLeftWidth: 2,
-      borderLeftColor: 'rgba(28,26,22,.16)',
-    },
+    /** The aside loses its rule too. It is already marked by its own voice —
+     *  lowercase, and set in slate rather than ink — so the line was decorating
+     *  a distinction the words had already made. */
+    think: { paddingVertical: scale(6) },
     thinkText: { fontSize: type(16), lineHeight: type(16 * 1.55) },
     defTerm: {
       fontFamily: 'Onest_700Bold',
