@@ -49,7 +49,10 @@ export const EMPTY_BLOCK_STATE: BlockState = {
 
 interface Ctx {
   uid: string;
+  /** Device scale. Boxes, radii, pads, icons, figure viewports. */
   scale: (n: number) => number;
+  /** Device scale × the reader's chosen text size. Font sizes only. */
+  type: (n: number) => number;
   state: BlockState;
   set: <K extends keyof BlockState>(key: K, id: string, value: BlockState[K][string]) => void;
   topicNumber: string;
@@ -75,9 +78,9 @@ function Chevron({ open, scale }: { open: boolean; scale: (n: number) => number 
 }
 
 export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) {
-  const { scale } = ctx;
-  const s = makeBlockStyles(scale);
-  const st = makeStyles(scale);
+  const { scale, type } = ctx;
+  const s = makeBlockStyles(scale, type);
+  const st = makeStyles(scale, type);
 
   switch (block.t) {
     case 'hook': {
@@ -87,25 +90,25 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
           <Pressable
             onPress={() => ctx.set('hook', ctx.uid, !open)}
             style={({ pressed }) => [st.hookHead, pressed && st.pressed]}>
-            <Text style={[kicker(scale), st.grow]}>Why this matters in the exam</Text>
+            <Text style={[kicker(type), st.grow]}>Why this matters in the exam</Text>
             <Chevron open={open} scale={scale} />
           </Pressable>
           {open && (
-            <Markup html={block.html} size={scale(14.5)} style={[s.blockBody, st.hookBody]} />
+            <Markup html={block.html} size={type(14.5)} style={[s.blockBody, st.hookBody]} />
           )}
         </View>
       );
     }
 
     case 'p':
-      return <Markup html={block.html} size={scale(16.5)} style={s.body} />;
+      return <Markup html={block.html} size={type(16.5)} style={s.body} />;
 
     case 'think':
       return (
         <View style={st.think}>
           <Markup
             html={`think about it this way… ${block.html}`}
-            size={scale(16)}
+            size={type(16)}
             style={[s.hand, st.thinkText]}
           />
         </View>
@@ -122,20 +125,20 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'def':
       return (
         <View style={st.plainBlock}>
-          <Text style={kicker(scale)}>Definition</Text>
-          <Markup html={block.term} size={scale(15)} style={st.defTerm} />
-          <Markup html={block.html} size={scale(15)} style={[s.blockBody, st.defBody]} />
+          <Text style={kicker(type)}>Definition</Text>
+          <Markup html={block.term} size={type(15)} style={st.defTerm} />
+          <Markup html={block.html} size={type(15)} style={[s.blockBody, st.defBody]} />
         </View>
       );
 
     case 'defgrid':
       return (
         <View>
-          <Text style={[kicker(scale), st.gridTitle]}>{block.title}</Text>
+          <Text style={[kicker(type), st.gridTitle]}>{block.title}</Text>
           {block.rows.map((row, i) => (
             <View key={i} style={st.gridRow}>
-              <Markup html={row.k} size={scale(13)} style={st.gridKey} />
-              <Markup html={row.v} size={scale(13.5)} style={st.gridVal} />
+              <Markup html={row.k} size={type(13)} style={st.gridKey} />
+              <Markup html={row.v} size={type(13.5)} style={st.gridVal} />
             </View>
           ))}
         </View>
@@ -145,15 +148,15 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={s.card}>
           <View style={st.formulaHead}>
-            <Text style={[kicker(scale), st.headLabel]}>{block.kicker}</Text>
-            {!!block.tag && <Text style={[kicker(scale), st.tag]}>{block.tag}</Text>}
+            <Text style={[kicker(type), st.headLabel]}>{block.kicker}</Text>
+            {!!block.tag && <Text style={[kicker(type), st.tag]}>{block.tag}</Text>}
           </View>
-          <Markup html={block.main} size={scale(20)} style={[mathText(scale, 20), st.formulaMain]} />
+          <Markup html={block.main} size={type(20)} style={[mathText(type, 20), st.formulaMain]} />
           <View style={st.formulaLegend}>
             {block.legend.map((line, i) => (
-              <Markup key={i} html={line} size={scale(13)} style={st.legendLine} />
+              <Markup key={i} html={line} size={type(13)} style={st.legendLine} />
             ))}
-            {!!block.note && <Markup html={block.note} size={scale(13)} style={st.formulaNote} />}
+            {!!block.note && <Markup html={block.note} size={type(13)} style={st.formulaNote} />}
           </View>
         </View>
       );
@@ -161,12 +164,12 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'proc':
       return (
         <View style={st.plainBlock}>
-          <Text style={kicker(scale)}>How to · {block.title}</Text>
+          <Text style={kicker(type)}>How to · {block.title}</Text>
           <View style={st.procList}>
             {block.steps.map((step, i) => (
               <View key={i} style={st.procRow}>
                 <Text style={st.stepNum}>{String(i + 1).padStart(2, '0')}</Text>
-                <Markup html={step} size={scale(14.5)} style={[s.blockBody, st.grow]} />
+                <Markup html={step} size={type(14.5)} style={[s.blockBody, st.grow]} />
               </View>
             ))}
           </View>
@@ -177,7 +180,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       const openStep = ctx.state.deriv[ctx.uid] ?? null;
       return (
         <View style={s.cardFlush}>
-          <Text style={[kicker(scale), st.derivKicker]}>{block.kicker}</Text>
+          <Text style={[kicker(type), st.derivKicker]}>{block.kicker}</Text>
           {block.steps.map((step, i) => {
             const open = openStep === i;
             return (
@@ -192,12 +195,12 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                   <Text style={st.derivNum}>{String(i + 1).padStart(2, '0')}</Text>
                   <Markup
                     html={step.eq}
-                    size={scale(15.5)}
-                    style={[mathText(scale, 15.5), st.grow]}
+                    size={type(15.5)}
+                    style={[mathText(type, 15.5), st.grow]}
                   />
                   <Chevron open={open} scale={scale} />
                 </Pressable>
-                {open && <Markup html={step.why} size={scale(13.5)} style={st.derivWhy} />}
+                {open && <Markup html={step.why} size={type(13.5)} style={st.derivWhy} />}
               </View>
             );
           })}
@@ -209,7 +212,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       const selected = ctx.state.diagram[ctx.uid] ?? 0;
       return (
         <View style={s.card}>
-          <Text style={[kicker(scale), st.diaKicker]}>{block.kicker}</Text>
+          <Text style={[kicker(type), st.diaKicker]}>{block.kicker}</Text>
           <TextbookDiagram
             kind={block.kind}
             selected={selected}
@@ -236,21 +239,21 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
               <View style={st.swipeCard}>
                 <View style={st.formulaHead}>
-                  <Text style={[kicker(scale), st.headLabel]}>
+                  <Text style={[kicker(type), st.headLabel]}>
                     Solved example · {i + 1} of {block.items.length}
                   </Text>
-                  <Text style={[kicker(scale, 9.5), st.tag]}>{ex.tag}</Text>
+                  <Text style={[kicker(type, 9.5), st.tag]}>{ex.tag}</Text>
                 </View>
-                <Markup html={ex.q} size={scale(15)} style={st.cardQ} />
+                <Markup html={ex.q} size={type(15)} style={st.cardQ} />
                 <View style={st.exSteps}>
                   {ex.steps.map((step, j) => (
                     <View key={j} style={st.procRow}>
                       <Text style={st.stepNum}>{String(j + 1).padStart(2, '0')}</Text>
-                      <Markup html={step} size={scale(13.5)} style={[st.exStep, st.grow]} />
+                      <Markup html={step} size={type(13.5)} style={[st.exStep, st.grow]} />
                     </View>
                   ))}
                 </View>
-                <Markup html={ex.ans} size={scale(14)} style={[s.tintPanel, st.exAns]} />
+                <Markup html={ex.ans} size={type(14)} style={[s.tintPanel, st.exAns]} />
               </View>
             </CarouselCard>
             ))
@@ -276,10 +279,10 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
             return (
               <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
-                  <Text style={kicker(scale)}>
+                  <Text style={kicker(type)}>
                     Crack the MCQ · Q{i + 1} of {block.items.length}
                   </Text>
-                  <Markup html={q.q} size={scale(15)} style={st.cardQ} />
+                  <Markup html={q.q} size={type(15)} style={st.cardQ} />
                   <View style={st.opts}>
                     {q.opts.map((opt, oi) => {
                       const right = oi === q.correct && answer.solved;
@@ -298,7 +301,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                             pressed && !answer.solved && st.optPressed,
                           ]}>
                           <Text style={st.optTag}>{'ABCD'[oi]}</Text>
-                          <Markup html={opt.label} size={scale(14)} style={[st.optLabel, st.grow]} />
+                          <Markup html={opt.label} size={type(14)} style={[st.optLabel, st.grow]} />
                           {(right || wrong) && (
                             <Text style={[st.optMark, { color: right ? colors.amberText : colors.red }]}>
                               {right ? '✓' : '✗'}
@@ -310,14 +313,14 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                   </View>
                   {!!nudge && (
                     <View style={[s.tintPanel, st.reveal]}>
-                      <Text style={kicker(scale, 9.5)}>Not quite. Here&apos;s the trap</Text>
-                      <Markup html={nudge} size={scale(13.5)} style={st.revealBody} />
+                      <Text style={kicker(type, 9.5)}>Not quite. Here&apos;s the trap</Text>
+                      <Markup html={nudge} size={type(13.5)} style={st.revealBody} />
                     </View>
                   )}
                   {answer.solved && (
                     <View style={[s.tintPanel, st.reveal]}>
-                      <Text style={[kicker(scale, 9.5), { color: colors.amberText }]}>Solved ✓</Text>
-                      <Markup html={q.solution} size={scale(13.5)} style={st.revealBody} />
+                      <Text style={[kicker(type, 9.5), { color: colors.amberText }]}>Solved ✓</Text>
+                      <Markup html={q.solution} size={type(13.5)} style={st.revealBody} />
                     </View>
                   )}
                 </View>
@@ -345,14 +348,14 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
               <CarouselCard key={i} index={i} offset={offset} step={step} scale={scale}>
                 <View style={st.swipeCard}>
                   <View style={st.formulaHead}>
-                    <Text style={[kicker(scale), st.headLabel]}>
+                    <Text style={[kicker(type), st.headLabel]}>
                       Practice · {i + 1} of {block.items.length}
                     </Text>
-                    <Text style={[kicker(scale, 9.5), st.tag]}>Try first</Text>
+                    <Text style={[kicker(type, 9.5), st.tag]}>Try first</Text>
                   </View>
-                  <Markup html={item.q} size={scale(15)} style={[st.cardQ, st.practiceQ]} />
+                  <Markup html={item.q} size={type(15)} style={[st.cardQ, st.practiceQ]} />
                   {shown ? (
-                    <Markup html={item.a} size={scale(13.5)} style={[s.tintPanel, st.exAns]} />
+                    <Markup html={item.a} size={type(13.5)} style={[s.tintPanel, st.exAns]} />
                   ) : (
                     <Pressable
                       onPress={() => ctx.set('practice', key, true)}
@@ -372,12 +375,12 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'mistakes':
       return (
         <View style={st.plainBlock}>
-          <Text style={kicker(scale)}>Watch out</Text>
+          <Text style={kicker(type)}>Watch out</Text>
           <View style={st.procList}>
             {block.items.map((item, i) => (
               <View key={i} style={st.procRow}>
                 <Text style={st.cross}>✗</Text>
-                <Markup html={item} size={scale(14)} style={[st.mistakeText, st.grow]} />
+                <Markup html={item} size={type(14)} style={[st.mistakeText, st.grow]} />
               </View>
             ))}
           </View>
@@ -387,8 +390,8 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
     case 'protip':
       return (
         <View style={st.protip}>
-          <Text style={kicker(scale)}>Pro-tip</Text>
-          <Markup html={block.html} size={scale(15.5)} style={[s.hand, st.protipText]} />
+          <Text style={kicker(type)}>Pro-tip</Text>
+          <Markup html={block.html} size={type(15.5)} style={[s.hand, st.protipText]} />
         </View>
       );
 
@@ -396,7 +399,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
       return (
         <View style={st.snapshot}>
           <View style={st.snapHead}>
-            <Text style={[kicker(scale), st.snapKicker]}>
+            <Text style={[kicker(type), st.snapKicker]}>
               Checkpoint · Topic {ctx.topicNumber} snapshot
             </Text>
             <Text style={st.snapTick}>✓</Text>
@@ -404,13 +407,13 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
           <View style={st.snapBody}>
             {block.rows.map((row, i) => (
               <View key={i} style={st.snapRow}>
-                <Markup html={row.f} size={scale(14.5)} style={mathText(scale, 14.5)} />
-                <Markup html={row.note} size={scale(13)} style={st.snapNote} />
+                <Markup html={row.f} size={type(14.5)} style={mathText(type, 14.5)} />
+                <Markup html={row.note} size={type(13)} style={st.snapNote} />
               </View>
             ))}
             <View style={st.snapAids}>
               {block.aids.map((aid, i) => (
-                <Markup key={i} html={aid} size={scale(14)} style={[s.hand, st.snapAid]} />
+                <Markup key={i} html={aid} size={type(14)} style={[s.hand, st.snapAid]} />
               ))}
             </View>
           </View>
@@ -425,7 +428,7 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
 /** Everything a block might need that the reader must supply. */
 export type { Block };
 
-function makeStyles(scale: (n: number) => number) {
+function makeStyles(scale: (n: number) => number, type = scale) {
   return StyleSheet.create({
     grow: { flex: 1 },
     /** Un-boxed blocks. A hairline on the left is enough to say "this is a
@@ -450,10 +453,10 @@ function makeStyles(scale: (n: number) => number) {
       borderLeftWidth: 2,
       borderLeftColor: 'rgba(28,26,22,.16)',
     },
-    thinkText: { fontSize: scale(16), lineHeight: scale(16 * 1.55) },
+    thinkText: { fontSize: type(16), lineHeight: type(16 * 1.55) },
     defTerm: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(17),
+      fontSize: type(17),
       letterSpacing: scale(-0.26),
       color: colors.ink,
       marginTop: scale(6),
@@ -470,15 +473,15 @@ function makeStyles(scale: (n: number) => number) {
     gridKey: {
       width: scale(116),
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      lineHeight: scale(13 * 1.45),
+      fontSize: type(13),
+      lineHeight: type(13 * 1.45),
       color: colors.ink,
     },
     gridVal: {
       flex: 1,
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(13.5 * 1.5),
+      fontSize: type(13.5),
+      lineHeight: type(13.5 * 1.5),
       color: colors.slate,
     },
     // Wraps rather than squeezing. Both children carry real text -- a label
@@ -504,21 +507,21 @@ function makeStyles(scale: (n: number) => number) {
     formulaLegend: { gap: scale(4), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)', paddingTop: scale(10) },
     legendLine: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(13 * 1.55),
+      fontSize: type(13),
+      lineHeight: type(13 * 1.55),
       color: colors.faint,
     },
     formulaNote: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(13 * 1.5),
+      fontSize: type(13),
+      lineHeight: type(13 * 1.5),
       color: colors.slate,
     },
     procList: { gap: scale(9), marginTop: scale(10) },
     procRow: { flexDirection: 'row', gap: scale(11) },
     stepNum: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.5),
+      fontSize: type(10.5),
       color: colors.quiet,
       paddingTop: scale(2),
     },
@@ -536,14 +539,14 @@ function makeStyles(scale: (n: number) => number) {
     derivHeadOpen: { backgroundColor: 'rgba(28,26,22,.03)' },
     derivNum: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.5),
+      fontSize: type(10.5),
       color: colors.quiet,
       width: scale(16),
     },
     derivWhy: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(13.5 * 1.55),
+      fontSize: type(13.5),
+      lineHeight: type(13.5 * 1.55),
       color: colors.slate,
       paddingLeft: scale(44),
       paddingRight: scale(16),
@@ -560,8 +563,8 @@ function makeStyles(scale: (n: number) => number) {
     },
     cardQ: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(15 * 1.6),
+      fontSize: type(15),
+      lineHeight: type(15 * 1.6),
       color: colors.ink,
       marginTop: scale(8),
     },
@@ -576,15 +579,15 @@ function makeStyles(scale: (n: number) => number) {
     },
     exStep: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(13.5 * 1.55),
+      fontSize: type(13.5),
+      lineHeight: type(13.5 * 1.55),
       color: colors.slate,
     },
     exAns: {
       marginTop: scale(10),
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(13.5 * 1.55),
+      fontSize: type(13.5),
+      lineHeight: type(13.5 * 1.55),
       color: colors.slate,
       overflow: 'hidden',
     },
@@ -605,21 +608,21 @@ function makeStyles(scale: (n: number) => number) {
     optPressed: { transform: [{ scale: 0.985 }] },
     optTag: {
       fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(10.5),
+      fontSize: type(10.5),
       color: colors.quiet,
     },
     optLabel: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      lineHeight: scale(14 * 1.45),
+      fontSize: type(14),
+      lineHeight: type(14 * 1.45),
       color: colors.ink,
     },
-    optMark: { fontFamily: 'Onest_700Bold', fontSize: scale(13.5) },
+    optMark: { fontFamily: 'Onest_700Bold', fontSize: type(13.5) },
     reveal: { marginTop: scale(9) },
     revealBody: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(13.5 * 1.55),
+      fontSize: type(13.5),
+      lineHeight: type(13.5 * 1.55),
       color: colors.slate,
       marginTop: scale(4),
     },
@@ -636,19 +639,19 @@ function makeStyles(scale: (n: number) => number) {
     checkBtnPressed: { transform: [{ scale: 0.97 }] },
     checkBtnText: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(13.5),
+      fontSize: type(13.5),
       color: colors.ink,
     },
     cross: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
+      fontSize: type(12),
       color: colors.red,
       paddingTop: scale(1),
     },
     mistakeText: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(14 * 1.55),
+      fontSize: type(14),
+      lineHeight: type(14 * 1.55),
       color: colors.slate,
     },
     protip: {
@@ -659,7 +662,7 @@ function makeStyles(scale: (n: number) => number) {
       paddingVertical: scale(13),
       paddingHorizontal: scale(16),
     },
-    protipText: { fontSize: scale(15.5), lineHeight: scale(15.5 * 1.5), marginTop: scale(6) },
+    protipText: { fontSize: type(15.5), lineHeight: type(15.5 * 1.5), marginTop: scale(6) },
     snapshot: {
       borderWidth: 1,
       borderColor: BORDER_STRONG,
@@ -678,10 +681,10 @@ function makeStyles(scale: (n: number) => number) {
       backgroundColor: colors.tint,
     },
     snapKicker: { color: colors.slate },
-    snapTick: { fontFamily: 'Onest_800ExtraBold', fontSize: scale(10), color: colors.amberText },
+    snapTick: { fontFamily: 'Onest_800ExtraBold', fontSize: type(10), color: colors.amberText },
     snapBody: { paddingVertical: scale(14), paddingHorizontal: scale(16) },
     snapRow: { flexDirection: 'row', alignItems: 'baseline', gap: scale(10), flexWrap: 'wrap', marginBottom: scale(8) },
-    snapNote: { fontFamily: 'Onest_400Regular', fontSize: scale(12), color: colors.faint },
+    snapNote: { fontFamily: 'Onest_400Regular', fontSize: type(12), color: colors.faint },
     snapAids: {
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.16)',
@@ -690,6 +693,6 @@ function makeStyles(scale: (n: number) => number) {
       paddingTop: scale(9),
       gap: scale(3),
     },
-    snapAid: { fontSize: scale(14) },
+    snapAid: { fontSize: type(14) },
   });
 }

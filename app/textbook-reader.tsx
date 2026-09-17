@@ -17,6 +17,13 @@ import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { useReadingSize } from '@/hooks/use-reading-size';
+import {
+  READING_SIZES,
+  READING_SIZE_LABEL,
+  readingMultiplier,
+  type ReadingSize,
+} from '@/lib/reading-size';
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
 import { kicker } from '@/components/textbook/theme';
 import { Chapter, groupBlocks, loadChapter } from '@/lib/textbooks';
@@ -48,6 +55,20 @@ export default function TextbookReaderScreen() {
   const title = params.title ?? '';
 
   const { scale, verticalScale } = useScale();
+  /**
+   * The reader's own text size, as a second scale.
+   *
+   * `type` is the device scale times the student's choice and is used for font
+   * sizes and line heights only; `scale` stays the device scale and keeps every
+   * box, radius, pad and figure viewport exactly where the layout put it. They
+   * were one function until a 1.15 multiplier grew a 306pt card to 352 inside a
+   * 342pt column.
+   */
+  const { size: readingSize, choose: chooseReadingSize } = useReadingSize();
+  const type = useCallback(
+    (n: number) => scale(n) * readingMultiplier(readingSize),
+    [scale, readingSize]
+  );
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
@@ -184,6 +205,27 @@ export default function TextbookReaderScreen() {
               Chapter {params.number || chapter.chapter} · {chapter.subject}
             </Text>
           </View>
+          {/* AT THE TOP, next to the progress, because a reader reaches for
+              text size in the first ten seconds and then never again — so it
+              has to be findable without being in the way of the words.
+              Three taps to three sizes, not a cycling button: cycling makes
+              getting back to medium a game of chance. */}
+          <View style={styles.sizeGroup}>
+            {READING_SIZES.map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => chooseReadingSize(s)}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityState={{ selected: readingSize === s }}
+                accessibilityLabel={READING_SIZE_LABEL[s]}
+                style={[styles.sizeStep, readingSize === s && styles.sizeStepOn]}>
+                <Text style={[styles.sizeGlyph, sizeGlyphStyle(scale, s), readingSize === s && styles.sizeGlyphOn]}>
+                  A
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <Text style={styles.percent}>{Math.round(percent)}%</Text>
         </View>
         <View style={styles.progressTrack}>
@@ -201,10 +243,16 @@ export default function TextbookReaderScreen() {
             entering={(direction === 1 ? SlideInRight : SlideInLeft).duration(320)}
             style={styles.topicBody}>
             <View style={styles.topicHead}>
-              <Text style={kicker(scale)}>
+              {/* The topic's own heading is CONTENT and grows with the body.
+                  The chapter title in the bar above is chrome and does not —
+                  a control that resized the furniture around the words would
+                  read as zooming the app rather than setting the text. */}
+              <Text style={kicker(type)}>
                 Topic {topic.n} / {String(chapter.topics.length).padStart(2, '0')}
               </Text>
-              <Text style={styles.topicTitle}>{topic.title}</Text>
+              <Text style={[styles.topicTitle, { fontSize: type(25), lineHeight: type(28) }]}>
+                {topic.title}
+              </Text>
             </View>
             {blocks.map((block, index) => (
               <TextbookBlock
@@ -213,6 +261,7 @@ export default function TextbookReaderScreen() {
                 ctx={{
                   uid: `${active}-${index}`,
                   scale,
+                  type,
                   state,
                   set,
                   topicNumber: topic.n,
@@ -285,6 +334,12 @@ export default function TextbookReaderScreen() {
   );
 }
 
+/** The control says what it does by being what it does: one letter, three
+ *  sizes. A label reading "Medium" would need reading to be understood. */
+function sizeGlyphStyle(scale: (n: number) => number, size: ReadingSize) {
+  return { fontSize: scale(size === 'small' ? 11 : size === 'medium' ? 13.5 : 16) };
+}
+
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.reading },
@@ -301,6 +356,19 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     topBarText: { flex: 1 },
     chapterTitle: { fontFamily: 'Onest_700Bold', fontSize: scale(15), color: colors.ink },
     chapterMeta: { fontFamily: 'Onest_700Bold', fontSize: scale(12), color: colors.faint },
+    /** Tight, and no track behind the row — three small glyphs read as one
+     *  control by proximity, and a segmented pill here would out-shout the
+     *  chapter title beside it. */
+    sizeGroup: { flexDirection: 'row', alignItems: 'baseline', gap: scale(2) },
+    sizeStep: {
+      paddingHorizontal: scale(5),
+      paddingVertical: verticalScale(3),
+      borderRadius: scale(7),
+    },
+    sizeStepOn: { backgroundColor: colors.tint },
+    sizeGlyph: { fontFamily: 'Onest_600SemiBold', color: colors.faint },
+    sizeGlyphOn: { color: colors.ink },
+
     percent: { fontFamily: 'Onest_800ExtraBold', fontSize: scale(11), color: colors.faint },
     progressTrack: { height: 2, backgroundColor: 'rgba(28,26,22,.1)' },
     progressFill: { height: 2, backgroundColor: colors.marigold },

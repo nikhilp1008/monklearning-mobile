@@ -43,26 +43,34 @@ export const DASH = 'rgba(28,26,22,.25)';
 export const CARD_W = 306;
 export const CARD_GAP = 12;
 
-export function kicker(scale: (n: number) => number, size = 10): TextStyle {
+/**
+ * THE TYPE FUNCTIONS TAKE `type`, NOT `scale`, and the distinction is the whole
+ * of how the reader's text-size presets work: `type` is the device scale times
+ * the reader's chosen multiplier, `scale` is the device scale alone. Font sizes
+ * and line heights go through the first; every box, radius and pad goes through
+ * the second. Scaling the boxes with the text pushed a 306pt card to 352 inside
+ * a 342pt column and walked the content off the screen.
+ */
+export function kicker(type: (n: number) => number, size = 10): TextStyle {
   return {
     fontFamily: 'Onest_800ExtraBold',
-    fontSize: scale(size),
-    letterSpacing: scale(size * 0.11),
+    fontSize: type(size),
+    letterSpacing: type(size * 0.11),
     textTransform: 'uppercase',
     color: colors.faint,
   };
 }
 
-export function mathText(scale: (n: number) => number, size: number): TextStyle {
+export function mathText(type: (n: number) => number, size: number): TextStyle {
   return {
     fontFamily: SERIF,
     fontStyle: 'italic',
-    fontSize: scale(size),
+    fontSize: type(size),
     color: colors.ink,
   };
 }
 
-export function makeBlockStyles(scale: (n: number) => number) {
+export function makeBlockStyles(scale: (n: number) => number, type = scale) {
   return StyleSheet.create({
     card: {
       backgroundColor: colors.readingCard,
@@ -81,14 +89,14 @@ export function makeBlockStyles(scale: (n: number) => number) {
     },
     body: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(16.5),
-      lineHeight: scale(16.5 * 1.66),
+      fontSize: type(16.5),
+      lineHeight: type(16.5 * 1.66),
       color: colors.ink,
     },
     blockBody: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(14.5),
-      lineHeight: scale(14.5 * 1.55),
+      fontSize: type(14.5),
+      lineHeight: type(14.5 * 1.55),
       color: colors.slate,
     },
     hand: {
