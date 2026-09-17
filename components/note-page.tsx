@@ -407,12 +407,15 @@ function createStyles() {
  * different screen that then became this one. A placeholder's whole job is to
  * be the page with the words missing.
  *
- * So it is the same paper, the same ruling, the same red title with its
- * squiggle already drawn under it, and the same margins. What is missing is
- * only the writing. The squiggle and the rules are NOT dimmed with the rest,
- * because they are things the page has before anything is written on it — a
- * ruled sheet with a line drawn under a heading is exactly what a student's
- * page looks like a second before they start.
+ * So it is the same paper, the same ruling, the same margins. The RULES stay
+ * undimmed, because ruling is on the sheet before anyone writes on it.
+ *
+ * THE SQUIGGLE IS NOT DRAWN, though it was at first, on the same argument. It
+ * was wrong twice over. A line under a heading that is not there yet is a line
+ * under nothing — and worse, the real one is measured from the title's own
+ * text, so a placeholder can only guess at its width and then visibly snap to
+ * the true one the instant the note arrives. Nothing here is allowed to move
+ * when the words land.
  *
  * FOUR SECTIONS, SHORTENING. A real note runs long, and a placeholder that
  * shows two even blocks reads as a short document; staggering the lines and
@@ -434,8 +437,6 @@ export function NotePageSkeleton({ onBack }: { onBack: () => void }) {
       <View style={[styles.body, { paddingTop: insets.top + 34 }]}>
         <Skeleton style={bones.date} />
         <Skeleton delay={50} style={bones.title} />
-        {/* Already drawn, because the paper has it before the writing does. */}
-        <Squiggle width={214} />
 
         {[0, 1, 2, 3].map((i) => (
           <View key={i} style={bones.section}>
@@ -495,7 +496,9 @@ function createSkeletonStyles() {
       marginTop: 6,
       marginBottom: 5,
     },
-    title: { width: '82%', height: 19, borderRadius: 4, marginBottom: 3 },
+    /** Holds the space the title AND its squiggle will take, so the first
+     *  section does not shift up when the writing arrives. */
+    title: { width: '82%', height: 19, borderRadius: 4, marginBottom: 12 },
     section: { marginTop: 20 },
     heading: { width: '58%', height: 14, borderRadius: 4, marginBottom: 10 },
   });
