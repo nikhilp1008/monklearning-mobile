@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/brand';
-import { DotGrid, SUBJECT_TILES, SubjectArt } from '@/components/textbook/subjects';
+import { SUBJECT_TILES, SubjectArt } from '@/components/textbook/subjects';
 import { getProfile } from '@/lib/profile';
 import { readyChapterCount, textbookSubjects } from '@/lib/textbooks';
 
@@ -93,7 +93,8 @@ export function TextbooksPage({
   }
 
   return (
-    <View style={styles.grid}>
+    <View>
+      <View style={styles.grid}>
       {rows.map((row, rowIndex) => (
         <View key={rowIndex} style={styles.row} onLayout={rowIndex === 0 ? onRowLayout : undefined}>
           {row.map((subject, columnIndex) => {
@@ -113,25 +114,81 @@ export function TextbooksPage({
                   { width: tileWidth, backgroundColor: tile.background, borderColor: tile.border },
                   pressed && styles.tilePressed,
                 ]}>
-                {/* The spine. React Native has no inset shadow, so the
-                    handoff's `box-shadow: inset 6px 0 0` is a real bar. */}
-                <View style={[styles.spine, { backgroundColor: tile.spine }]} />
-                <View style={[styles.panel, { borderColor: tile.border }]}>
-                  <DotGrid subject={subject} tile={tile} />
-                  <Text style={[styles.name, { color: tile.ink }]} numberOfLines={1}>
-                    {tile.label}
-                  </Text>
-                  <View style={styles.spacer} />
-                  <SubjectArt subject={subject} size={scale(104)} tile={tile} />
-                  <Text style={[styles.count, { color: tile.ink }]}>
-                    {ready > 0 ? `${ready} chapters` : 'coming soon'}
-                  </Text>
+                {/* THE BINDING. Cloth, full height, with the subject's name
+                    turned on it — the one thing that stops a rectangle reading
+                    as a category chip and starts it reading as a book.
+
+                    The name is CENTRED FIRST AND ROTATED SECOND, and that
+                    order is load-bearing. Rotating a `Text` that is still in
+                    the layout flow leaves Yoga measuring its unrotated box —
+                    150pt wide inside a 46pt spine — so the layout and the
+                    paint disagree, and the glyphs clip and collide with
+                    anything else on the cloth. Absolutely centred in the
+                    spine, the box is 150 x 26 and after rotation occupies 26
+                    across, which fits. */}
+                <View style={[styles.cloth, { backgroundColor: tile.ink }]}>
+                  <View style={styles.rotateSlot}>
+                    <Text
+                      style={[styles.spineName, { color: tile.background }]}
+                      numberOfLines={1}>
+                      {tile.label}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.block}>
+                  {/* The page edges, thinning as they recede. */}
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.pageEdge,
+                        { left: scale(5 + i * 3.5), opacity: 0.4 - i * 0.07, backgroundColor: tile.ink },
+                      ]}
+                    />
+                  ))}
+
+                  {/* The drawing fills the height the count used to leave
+                      empty. Inset past the page edges so it cannot sit on
+                      them. */}
+                  <View style={styles.art}>
+                    <SubjectArt subject={subject} size={scale(92)} tile={tile} />
+                  </View>
+
+                  {/* Set to the RIGHT, clear of the edges. It was at 14 from
+                      the left, which is exactly where the fourth and fifth
+                      page edges are drawn, so the type sat on top of them. */}
+                  <View style={styles.foot}>
+                    {/* One line, always. "coming soon" wrapped inside the
+                        narrower half of the block and pushed the class line
+                        down against the edge of the card. */}
+                    <Text style={[styles.count, { color: tile.ink }]} numberOfLines={1}>
+                      {ready > 0 ? `${ready} chapters` : 'coming soon'}
+                    </Text>
+                    <Text style={[styles.classes, { color: tile.ink }]}>Class 11 · 12</Text>
+                  </View>
                 </View>
               </Pressable>
             );
           })}
         </View>
       ))}
+      </View>
+
+      {/*
+        THE CLAIM UNDER THE SHELF.
+        Not a disclaimer in tone — the opposite. A student who has been handed
+        a "textbook" inside an app will assume it is somebody else's book,
+        scanned; this says whose it is and how it was made, in a sentence that
+        is a boast rather than an apology.
+        It sits under the shelf rather than over it, because it answers a
+        question the covers have already raised.
+      */}
+      <Text style={styles.note}>
+        Not a scan of anyone else&apos;s book. Every chapter here was written for Monk by the
+        strongest models available, then recomputed and checked against the syllabus — question
+        by question, formula by formula.
+      </Text>
     </View>
   );
 }
@@ -146,6 +203,15 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingTop: verticalScale(20),
     },
     row: { flexDirection: 'row', gap: scale(16) },
+    note: {
+      paddingHorizontal: scale(24),
+      paddingTop: verticalScale(20),
+      paddingBottom: verticalScale(8),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(12.5 * 1.55),
+      color: colors.faint,
+    },
     filler: { flex: 1 },
     tile: {
       // Width is set inline from the measured row; see `tileWidth`.
@@ -157,7 +223,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderTopRightRadius: scale(6),
       borderBottomRightRadius: scale(6),
       borderWidth: 1,
-      padding: scale(8),
+      flexDirection: 'row',
       overflow: 'hidden',
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(10) },
@@ -166,38 +232,40 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       elevation: 3,
     },
     tilePressed: { transform: [{ scale: 0.97 }] },
-    spine: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: scale(6),
+
+    /** The binding, and the name turned on it. */
+    cloth: { width: scale(46), position: 'relative' },
+    /** Centre first, rotate second — see the note at the call site. */
+    rotateSlot: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+    spineName: {
+      width: scale(150),
+      height: scale(26),
+      lineHeight: scale(26),
+      textAlign: 'center',
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(15.5),
+      letterSpacing: scale(0.5),
+      transform: [{ rotate: '-90deg' }],
     },
-    panel: {
+
+    /** The page block beside it. */
+    block: { flex: 1, position: 'relative' },
+    pageEdge: { position: 'absolute', top: 0, bottom: 0, width: 1 },
+    art: {
       flex: 1,
-      borderWidth: 1,
-      borderTopLeftRadius: scale(9),
-      borderBottomLeftRadius: scale(9),
-      borderTopRightRadius: scale(3),
-      borderBottomRightRadius: scale(3),
       alignItems: 'center',
-      paddingTop: verticalScale(16),
-      paddingBottom: verticalScale(14),
-      paddingHorizontal: scale(10),
-      overflow: 'hidden',
+      justifyContent: 'center',
+      paddingLeft: scale(26),
+      paddingRight: scale(12),
     },
-    name: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(22),
-      letterSpacing: scale(-0.44),
-      lineHeight: scale(23),
-      marginTop: verticalScale(8),
+    foot: {
+      alignItems: 'flex-end',
+      paddingRight: scale(14),
+      paddingBottom: verticalScale(13),
+      paddingLeft: scale(14),
+      gap: verticalScale(1),
     },
-    spacer: { flex: 1 },
-    count: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      marginTop: verticalScale(6),
-    },
+    count: { fontFamily: 'Onest_600SemiBold', fontSize: scale(13) },
+    classes: { fontFamily: 'Onest_400Regular', fontSize: scale(11), opacity: 0.75 },
   });
 }
