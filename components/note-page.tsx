@@ -1,6 +1,7 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { type NoteLine, type NoteSection } from '@/lib/note-page-model';
@@ -38,7 +39,6 @@ const INK = '#2A3550';
 const BLUE = '#3A5A8C';
 const PAPER = '#FFFFFF';
 const RULE = 'rgba(42,53,80,0.055)';
-const GROUND = '#F4EFE3';
 const QUIET = '#8A8577';
 
 const LH = 22;
@@ -59,6 +59,11 @@ export function NotePage({
   onBack: () => void;
   emptyNote: string;
 }) {
+  /**
+   * The paper runs under the status bar — paper behind a notch is right, and a
+   * white band above it would put the card back. Only the WRITING is inset.
+   */
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(), []);
   /** The squiggle runs the width of the title it sits under, so it has to wait
    *  for the title to be laid out — a fixed width underlines half a long topic
@@ -68,45 +73,35 @@ export function NotePage({
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView edges={['top']} style={styles.chromeSafe}>
-        <View style={styles.chrome}>
-          <Pressable onPress={onBack} hitSlop={14} accessibilityLabel="Back">
-            <Svg viewBox="0 0 24 24" width={22} height={22} fill="none">
-              <Path
-                d="M15 5l-7 7 7 7"
-                stroke={INK}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </Pressable>
-          <Text style={styles.chromeTitle} numberOfLines={1}>
-            {subject || 'Notes'}
-          </Text>
-          <View style={{ width: 22 }} />
-        </View>
-      </SafeAreaView>
-
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}>
         <View style={styles.page}>
           <View style={styles.rules} pointerEvents="none">
-            {Array.from({ length: 200 }).map((_, i) => (
+            {Array.from({ length: 260 }).map((_, i) => (
               <View key={i} style={[styles.rule, { top: (i + 1) * LH }]} />
             ))}
           </View>
 
-          <View style={styles.body}>
+          <View style={[styles.body, { paddingTop: insets.top + 34 }]}>
             {!!savedAt && <Text style={styles.date}>{savedAt}</Text>}
+            {/* MEASURED FROM THE TEXT'S OWN LINES, not from its box.
+                `onLayout` reports the container — a `Text` stretches to fill
+                it, and wrapping it in a shrink-to-fit view did not help either
+                — so the squiggle ran the whole column whatever the title said.
+                `onTextLayout` hands back the laid-out lines, and the widest of
+                them is the width of the writing. */}
             <Text
               style={styles.title}
-              onLayout={(e) => setTitleWidth(Math.round(e.nativeEvent.layout.width))}>
+              onTextLayout={(e) => {
+                const w = Math.max(0, ...e.nativeEvent.lines.map((l) => l.width));
+                setTitleWidth(Math.round(w));
+              }}>
               {title}
             </Text>
             {titleWidth > 0 && <Squiggle width={titleWidth} />}
+            {!!subject && <Text style={styles.subject}>{subject}</Text>}
 
             {sections.length === 0 ? (
               <Text style={styles.body0}>{emptyNote}</Text>
@@ -131,6 +126,43 @@ export function NotePage({
           <View style={styles.sheen} pointerEvents="none" />
         </View>
       </ScrollView>
+
+      {/*
+        THE COST OF A FULL-BLEED PAGE, PAID PROPERLY.
+        With the paper running under the status bar, scrolled writing ran under
+        it too — the clock sitting on top of a formula, a line half behind the
+        notch, and then the pinned arrow colliding with whatever slid past it.
+        So the top of the page fades out into paper.
+        A FADE RATHER THAN A BAND, for two reasons: a hard edge cuts a line of
+        writing in half, and an opaque band has no ruled lines in it, which
+        leaves a visible seam where the ruling stops. Solid where the arrow is,
+        gone by the time the writing starts.
+      */}
+      <LinearGradient
+        colors={[PAPER, PAPER, 'rgba(255,255,255,0)']}
+        locations={[0, 0.62, 1]}
+        style={[styles.topCover, { height: insets.top + 42 }]}
+        pointerEvents="none"
+      />
+
+      {/* And the way out stays where it is. On the paper it scrolled away with
+          the title, so leaving a long note meant scrolling back to the top of
+          it first. */}
+      <Pressable
+        style={[styles.back, { top: insets.top + 4 }]}
+        onPress={onBack}
+        hitSlop={16}
+        accessibilityLabel="Back">
+        <Svg viewBox="0 0 24 24" width={21} height={21} fill="none">
+          <Path
+            d="M15 5l-7 7 7 7"
+            stroke={INK}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </Pressable>
     </View>
   );
 }
@@ -251,51 +283,61 @@ function Rule() {
 
 function createStyles() {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: GROUND },
-    chromeSafe: { backgroundColor: GROUND },
-    chrome: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingBottom: 10,
-    },
-    chromeTitle: { flex: 1, textAlign: 'center', fontFamily: 'Onest_700Bold', fontSize: 15, color: '#1C1A16' },
-
+    /**
+     * THE PAPER IS THE SCREEN.
+     *
+     * It was a rounded card inset 12 either side on a warm ground, which read
+     * as a page lying on a desk — pleasant, and wrong for the only thing on the
+     * screen. A note is not an item in a list of notes; it is the surface you
+     * came to read, and giving it a border means every line of it is written in
+     * a column narrower than the phone. Full width, and the page's own padding
+     * is the margin.
+     */
+    screen: { flex: 1, backgroundColor: PAPER },
     scroll: { flex: 1 },
-    scrollInner: { paddingHorizontal: 12, paddingBottom: 36 },
-    page: {
-      backgroundColor: PAPER,
-      borderRadius: 16,
-      overflow: 'hidden',
-      boxShadow: [
-        { offsetX: 0, offsetY: 6, blurRadius: 18, spreadDistance: -8, color: 'rgba(42,53,80,0.18)' },
-      ],
-    },
+    scrollInner: { paddingBottom: 56 },
+    page: { flex: 1, backgroundColor: PAPER },
     rules: { ...StyleSheet.absoluteFillObject },
     rule: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: RULE },
+    /** A page under a light is never evenly lit. Fainter now that it covers the
+     *  whole screen rather than a card. */
     sheen: {
       position: 'absolute',
       top: 0,
       right: 0,
-      width: '55%',
+      width: '60%',
       height: '100%',
-      backgroundColor: 'rgba(255,255,255,0.07)',
-      transform: [{ rotate: '8deg' }, { translateX: 46 }],
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      transform: [{ rotate: '8deg' }, { translateX: 60 }],
     },
-    body: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 28 },
+    /** 22 rather than 18: at full width the text needs a real margin or it
+     *  runs to the bezel, and a wider measure wants more air beside it. */
+    body: { paddingHorizontal: 22, paddingBottom: 30 },
+
+    topCover: { position: 'absolute', left: 0, right: 0, top: 0, backgroundColor: PAPER },
+    /** A chevron on the paper, with no bar under it. */
+    back: { position: 'absolute', left: 18, padding: 6 },
 
     date: { fontFamily: PEN, fontSize: 12, lineHeight: LH, color: RED, textAlign: 'right' },
     title: {
       fontFamily: PEN,
-      fontSize: 18,
-      lineHeight: 24,
+      fontSize: 19,
+      lineHeight: 25,
       letterSpacing: 0.4,
       color: RED,
     },
+    /** The chapter this topic came from, under the title where a page names
+     *  itself — not in a bar above the page. */
+    subject: {
+      marginTop: 1,
+      fontFamily: PEN,
+      fontSize: 12,
+      lineHeight: LH,
+      color: QUIET,
+    },
 
     section: {
-      marginTop: 14,
+      marginTop: 18,
       marginBottom: 1,
       fontFamily: PEN,
       fontSize: 14.5,
