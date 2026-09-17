@@ -38,7 +38,7 @@ import { colors } from '@/constants/brand';
  * question about form, not about palette.
  */
 
-type Subject = {
+export type Subject = {
   key: string;
   label: string;
   /** The binding. */
@@ -52,7 +52,7 @@ type Subject = {
   classes: string;
 };
 
-const SUBJECTS: Subject[] = [
+export const PREVIEW_SUBJECTS: Subject[] = [
   {
     key: 'physics',
     label: 'Physics',
@@ -150,13 +150,13 @@ export default function DevTextbookCardsScreen() {
 
         {variant === 'shelf' ? (
           <View style={styles.rows}>
-            {SUBJECTS.map((s) => (
+            {PREVIEW_SUBJECTS.map((s) => (
               <ShelfRow key={s.key} s={s} styles={styles} />
             ))}
           </View>
         ) : (
           <View style={styles.grid}>
-            {SUBJECTS.map((s) =>
+            {PREVIEW_SUBJECTS.map((s) =>
               variant === 'spine' ? (
                 <SpineCard key={s.key} s={s} styles={styles} />
               ) : variant === 'cover' ? (
