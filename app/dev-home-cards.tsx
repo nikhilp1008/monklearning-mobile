@@ -8,78 +8,71 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from '@/constants/brand';
 
 /**
- * THE PLATE, FIVE WAYS — AND NO BOXES. Preview only, nothing wired.
+ * P3 REFINED — the inline plate, four ways of colouring it. Preview only.
  *
- * Plate was the direction. The two notes on it were that the colours were too
- * dark and that it must not become a box: the pair stays what it is today, two
- * cells of one strip with a rule above, a rule below and a rule between. So
- * every variant here keeps that exact frame and changes only the icon and how
- * the space around it is used.
+ * Three notes on P3, and the third is the substantial one.
  *
- * ON THE COLOUR. The first plate was the full accent — #B4392B and #1C7A47 —
- * which is the weight a primary button carries, and two of them side by side
- * under a black hero made the top of Home three heavy objects in a row. These
- * are all built the other way round: the plate takes the TINT and the glyph
- * takes the ink. Same hue, a quarter of the weight, and the glyph is the thing
- * that reads rather than the square behind it.
+ * "NOT CLICKABLE." The arrow was dropped in P4 and the reasoning carried over
+ * too far: the cell IS the target, but a target with no mark on it asks the
+ * student to guess. It is back, at the foot, with room above it.
  *
- *   P1 · SOFT      The plate, in tint. The direct answer to both notes.
- *   P2 · ROUND     The same, circular. A circle reads softer than a square at
- *                  the same fill and is harder to mistake for a card.
- *   P3 · INLINE    The plate beside the title rather than above it. The
- *                  current layout leaves a whole line of empty width next to
- *                  a 24pt icon; this spends it.
- *   P4 · LARGE     A bigger plate and no arrow at all. The arrow was a second
- *                  small mark competing with the icon, and the whole cell has
- *                  always been the target — it was pointing at something that
- *                  did not need pointing at.
- *   P5 · RING      Tint fill with a hairline of the accent round it. Gives the
- *                  plate an edge without giving it weight.
+ * "CONGESTED." The body sat 3pt under the title. It is 12 now, and the cell
+ * breathes at the bottom as well as between its lines — the inline head bought
+ * about forty points of height and the fix spends a third of it back as air.
+ *
+ * "THE COLOURS FEEL GENERIC AND AI-GENERATED." They do, and the cause is not
+ * the shade — it is that they are colour-CODING something that has no code.
+ * Red for Snap and green for Practice is arbitrary: nothing about practising is
+ * green, nothing about a camera is red, and a student learns nothing from
+ * either. A pastel square with a matching coloured glyph inside it is also the
+ * single most templated component on the internet, which is exactly why it
+ * reads as generated.
+ *
+ * So all four below drop the per-feature colour entirely. Both plates are
+ * identical and the only thing that differs between the two cards is the
+ * drawing — which is the thing that actually carries meaning. What colour
+ * remains is the app's OWN: ink, and one marigold detail that both icons
+ * already have built into them (the camera's aperture, the card's bullet).
+ * Restraint and a single accent is what the app does everywhere else, and it is
+ * what reads as considered rather than assembled.
+ *
+ *   1 · CREAM     Warm plate, ink glyph, the marigold left doing its job.
+ *   2 · INK       The plate goes dark and the glyph reverses. Echoes the hero
+ *                 card directly above it.
+ *   3 · OUTLINE   No fill at all — a hairline square, like a stamp on
+ *                 stationery. The quietest and the most stationery-like.
+ *   4 · MARIGOLD  Cream plate, and the ARROW takes the accent in a small solid
+ *                 disc, so the colour is spent on the control rather than on
+ *                 decoration.
  */
 
 type Card = {
   key: 'snap' | 'practice';
   title: string;
   body: string;
-  /** The accent this card is built on. */
-  accent: string;
-  /** The tint of that accent, for grounds. */
-  tint: string;
-  /** Ink for type on the tint. */
-  onTint: string;
 };
 
 const CARDS: Card[] = [
-  {
-    key: 'snap',
-    title: 'Snap and Solve',
-    body: 'Up to 3 questions, solved step by step',
-    accent: '#B4392B',
-    tint: '#FBEBE4',
-    onTint: '#A93425',
-  },
-  {
-    key: 'practice',
-    title: 'Practice',
-    body: '150 a day, across all subjects',
-    accent: '#1C7A47',
-    tint: '#EAF0EA',
-    onTint: '#157A45',
-  },
+  { key: 'snap', title: 'Snap and Solve', body: 'Up to 3 questions, solved step by step' },
+  { key: 'practice', title: 'Practice', body: '150 a day, across all subjects' },
 ];
 
-type Variant = 'soft' | 'round' | 'inline' | 'large' | 'ring';
+/** The app's own, and the only colours here. */
+const INK = '#1C1A16';
+const MARIGOLD = '#EEA31F';
+const CREAM = '#FCF4E0';
+
+type Variant = 'cream' | 'ink' | 'outline' | 'marigold';
 
 const VARIANTS: { id: Variant; label: string; note: string }[] = [
-  { id: 'soft', label: 'P1 · Soft', note: 'The plate in tint, glyph in ink. Both notes answered, nothing else moved.' },
-  { id: 'round', label: 'P2 · Round', note: 'The same plate, circular — softer, and never mistakable for a card.' },
-  { id: 'inline', label: 'P3 · Inline', note: 'Plate beside the title, not above it. Spends the empty width.' },
-  { id: 'large', label: 'P4 · Large', note: 'A bigger plate, and the arrow dropped — the cell was always the target.' },
-  { id: 'ring', label: 'P5 · Ring', note: 'Tint fill with a hairline of the accent. An edge without weight.' },
+  { id: 'cream', label: '1 · Cream', note: 'Warm plate, ink glyph, the marigold detail left doing its job.' },
+  { id: 'ink', label: '2 · Ink', note: 'The plate goes dark and the glyph reverses — the hero card\u2019s family.' },
+  { id: 'outline', label: '3 · Outline', note: 'No fill. A hairline square, like a stamp on stationery.' },
+  { id: 'marigold', label: '4 · Marigold', note: 'The arrow takes the accent, so colour is spent on the control.' },
 ];
 
 export default function DevHomeCardsScreen() {
-  const [variant, setVariant] = useState<Variant>('soft');
+  const [variant, setVariant] = useState<Variant>('cream');
   const styles = useMemo(() => createStyles(), []);
   /** Falls back rather than asserting: a hot reload keeps the old state
    *  across a rename of these ids, and `!` turned that into a red screen. */
@@ -142,101 +135,87 @@ export default function DevHomeCardsScreen() {
 }
 
 function CardView({ c, variant, styles }: { c: Card; variant: Variant; styles: Styles }) {
-  const plate = (size: number, radius: number) => (
-    <View
-      style={[
-        styles.plate,
-        {
-          width: size,
-          height: size,
-          borderRadius: radius,
-          backgroundColor: c.tint,
-        },
-        variant === 'ring' && { borderWidth: 1, borderColor: c.accent },
-      ]}>
-      {/* The glyph in the ink, not reversed out of a saturated square. It is
-          the thing meant to be seen; the plate is only the ground it sits on. */}
-      <Glyph k={c.key} size={size * 0.52} color={c.onTint} />
-    </View>
-  );
-
-  if (variant === 'inline') {
-    return (
-      <>
-        <View style={styles.inlineHead}>
-          {plate(34, 10)}
-          <Text style={styles.titleInline} numberOfLines={2}>
-            {c.title}
-          </Text>
-        </View>
-        <Text style={styles.body}>{c.body}</Text>
-      </>
-    );
-  }
-
-  const size = variant === 'large' ? 46 : 38;
-  const radius = variant === 'round' ? 99 : variant === 'large' ? 14 : 11;
+  const dark = variant === 'ink';
+  const stroke = dark ? '#FFFDF8' : INK;
 
   return (
     <>
-      <View style={styles.head}>
-        {plate(size, radius)}
-        {/* P4 drops it: a second small mark competing with the icon, pointing
-            at a cell that was already the target. */}
-        {variant !== 'large' && <Arrow color={colors.faint} />}
+      <View style={styles.inlineHead}>
+        <View
+          style={[
+            styles.plate,
+            variant === 'cream' && { backgroundColor: CREAM },
+            variant === 'marigold' && { backgroundColor: CREAM },
+            dark && { backgroundColor: INK },
+            variant === 'outline' && { borderWidth: 1, borderColor: 'rgba(28,26,22,.22)' },
+          ]}>
+          {/* The marigold stays its own colour in every variant. It is the one
+              mark the app signs everything with, and it is already inside both
+              of these drawings — the camera's aperture, the card's bullet. */}
+          <Glyph k={c.key} size={19} stroke={stroke} dot={MARIGOLD} />
+        </View>
+        <Text style={styles.titleInline} numberOfLines={2}>
+          {c.title}
+        </Text>
       </View>
-      <Text style={styles.title}>{c.title}</Text>
+
       <Text style={styles.body}>{c.body}</Text>
+
+      {/* AT THE FOOT, with room above it. Dropping it entirely asked the
+          student to guess that a cell with no mark on it could be pressed. */}
+      <View style={styles.footRow}>
+        {variant === 'marigold' ? (
+          <View style={styles.goDisc}>
+            <Arrow color="#FFFFFF" size={13} />
+          </View>
+        ) : (
+          <Arrow color={INK} size={16} />
+        )}
+      </View>
     </>
   );
 }
 
-function Arrow({ color }: { color: string }) {
+function Arrow({ color, size = 16 }: { color: string; size?: number }) {
   return (
-    <Svg viewBox="0 0 16 16" width={16} height={16} fill="none">
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
       <Path d="M3 8h10M9 4l4 4-4 4" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
-/** The two glyphs, with their colour opened up so a card can reverse them. */
+/** The two glyphs. Stroke and the marigold detail are separate, so the drawing
+ *  can reverse on a dark plate without losing the mark that signs it. */
 function Glyph({
   k,
   size,
-  color,
-  opacity = 1,
+  stroke,
+  dot,
 }: {
   k: 'snap' | 'practice';
   size: number;
-  color: string;
-  opacity?: number;
+  stroke: string;
+  dot: string;
 }) {
-  /**
-   * CONSTANT IN VIEWBOX UNITS, not proportional to the rendered size. The
-   * first pass used `size / 12`, which at 40pt gave a stroke of 3.3 inside a
-   * 24-unit box — the camera came out as a solid red blob with the line work
-   * gone. SVG already scales the stroke with the viewport; scaling it again
-   * destroys the drawing at exactly the size that was meant to show it off.
-   */
   const w = 1.8;
   if (k === 'snap') {
     return (
-      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" opacity={opacity}
+      <Svg viewBox="0 0 24 24" width={size} height={size} fill="none"
         strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={color} strokeWidth={w} />
-        <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={color} strokeWidth={w} />
-        <Circle cx={12} cy={13.2} r={3.6} stroke={color} strokeWidth={w} />
-        <Circle cx={12} cy={13.2} r={1.2} fill={color} />
+        <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={stroke} strokeWidth={w} />
+        <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={stroke} strokeWidth={w} />
+        <Circle cx={12} cy={13.2} r={3.6} stroke={stroke} strokeWidth={w} />
+        <Circle cx={12} cy={13.2} r={1.5} fill={dot} />
       </Svg>
     );
   }
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" opacity={opacity}
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none"
       strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={color} strokeWidth={w} />
-      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={color} strokeWidth={w} />
-      <Circle cx={6.4} cy={12.4} r={1.15} fill={color} />
-      <Path d="M10 12.4h3.9" stroke={color} strokeWidth={w} />
+      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={stroke} strokeWidth={w} />
+      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={stroke} strokeWidth={w} />
+      <Circle cx={6.4} cy={12.4} r={1.4} fill={dot} />
+      <Path d="M10 12.4h3.9" stroke={stroke} strokeWidth={w} />
     </Svg>
   );
 }
@@ -291,9 +270,9 @@ function createStyles() {
     cellRight: { paddingLeft: 20 },
 
     head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-    plate: { alignItems: 'center', justifyContent: 'center' },
 
-    inlineHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    inlineHead: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+    plate: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
     titleInline: {
       flex: 1,
       fontFamily: 'Onest_600SemiBold',
@@ -316,7 +295,19 @@ function createStyles() {
       fontSize: 13.5,
       lineHeight: 19,
       color: colors.slate,
-      marginTop: 3,
+      /** 12, not 3. The line sat directly under the head and the cell read as
+       *  one crowded block; the inline layout bought the height, so some of it
+       *  goes back as air. */
+      marginTop: 12,
+    },
+    footRow: { marginTop: 16 },
+    goDisc: {
+      width: 26,
+      height: 26,
+      borderRadius: 99,
+      backgroundColor: MARIGOLD,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
 
     after: {
