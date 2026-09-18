@@ -26,9 +26,17 @@ import {
 type QueueItem = { id: string; pcm: Uint8Array; sampleRate: number };
 
 const TICK_MS = 100;
-/** How far past the last fed sample the playhead must reach to call the
- *  queue drained — one tick of slack for the clock's own granularity. */
-const DRAIN_SLACK_S = 0.15;
+/** Float-comparison dust, nothing more. The old 0.15s "slack" fired the
+ *  drain EARLY — and the classroom mounts the checkpoint on that signal,
+ *  switching the audio session for the mic while the sentence's tail was
+ *  still sounding. The founder heard it as the teacher swallowing the last
+ *  two words of a sentence. */
+const DRAIN_EPS_S = 0.02;
+/** Rendered-to-audible settle: the completion callback fires when the last
+ *  buffer is consumed by the engine, a beat before it has fully left the
+ *  speaker. The drain waits this long past catch-up so nothing that follows
+ *  it can talk over the tail. */
+const DRAIN_GRACE_MS = 250;
 
 export class PcmPlaybackQueue {
   onItemStart?: (id: string) => void;
@@ -39,9 +47,10 @@ export class PcmPlaybackQueue {
   private pending: { id: string; startSec: number }[] = [];
   private ticker: ReturnType<typeof setInterval> | null = null;
   private drainedFired = true;
+  private drainTimer: ReturnType<typeof setTimeout> | null = null;
 
   get idle(): boolean {
-    return this.pending.length === 0 && pcmPlayedSeconds() >= this.fedSec - DRAIN_SLACK_S;
+    return this.pending.length === 0 && pcmPlayedSeconds() >= this.fedSec - DRAIN_EPS_S;
   }
 
   enqueue(item: QueueItem) {
@@ -60,6 +69,11 @@ export class PcmPlaybackQueue {
     this.fedSec += item.pcm.length / 2 / item.sampleRate;
     pcmFeedBytes(item.pcm);
     this.drainedFired = false;
+    if (this.drainTimer) {
+      // More audio arrived while the grace timer counted down: not drained.
+      clearTimeout(this.drainTimer);
+      this.drainTimer = null;
+    }
     if (!this.ticker) this.ticker = setInterval(this.tick, TICK_MS);
   }
 
@@ -69,10 +83,14 @@ export class PcmPlaybackQueue {
       const item = this.pending.shift()!;
       this.onItemStart?.(item.id);
     }
-    if (!this.pending.length && !this.drainedFired
-        && played >= this.fedSec - DRAIN_SLACK_S && this.fedSec > 0) {
-      this.drainedFired = true;
-      this.onQueueDrained?.();
+    if (!this.pending.length && !this.drainedFired && !this.drainTimer
+        && played >= this.fedSec - DRAIN_EPS_S && this.fedSec > 0) {
+      this.drainTimer = setTimeout(() => {
+        this.drainTimer = null;
+        if (this.drainedFired) return;
+        this.drainedFired = true;
+        this.onQueueDrained?.();
+      }, DRAIN_GRACE_MS);
     }
   };
 
@@ -92,6 +110,10 @@ export class PcmPlaybackQueue {
     this.fedSec = 0;
     this.pending = [];
     this.drainedFired = true;
+    if (this.drainTimer) {
+      clearTimeout(this.drainTimer);
+      this.drainTimer = null;
+    }
   }
 
   destroy() {
