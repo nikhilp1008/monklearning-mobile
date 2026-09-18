@@ -28,8 +28,8 @@ export const pcmAvailable = native != null;
  *  founder tuned 1.15 by ear and both paths must sound the same. */
 export const PCM_RATE = 1.15;
 
-export function pcmStart(): void {
-  native?.start(24000, PCM_RATE);
+export function pcmStart(rate: number = PCM_RATE): void {
+  native?.start(24000, rate);
 }
 
 export function pcmFeed(b64: string): void {

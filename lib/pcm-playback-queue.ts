@@ -46,7 +46,13 @@ export class PcmPlaybackQueue {
 
   enqueue(item: QueueItem) {
     if (!this.started) {
-      pcmStart();
+      // 1x, deliberately — NOT the follow-up's 1.15. A live class is paced
+      // by the teacher's own plan, and the founder heard 1.15 as rushed
+      // here. It also keeps the reveal clock honest: offsets are recorded
+      // in fed (real-time) seconds and compared against played seconds, so
+      // any rate other than 1 would drift the board late by exactly that
+      // factor over a turn.
+      pcmStart(1.0);
       this.started = true;
       this.fedSec = 0;
     }
