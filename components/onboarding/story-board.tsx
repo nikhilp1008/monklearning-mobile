@@ -79,8 +79,33 @@ export const BOARD_H = 340;
  * those.
  */
 const BOARD_CONTENT_H = 418;
-/** The design's own pose. A shorter screen gets less; see `fit` below. */
-const BOARD_SCALE = 1.12;
+/**
+ * THE POSE IS 1, NOT THE DESIGN'S 1.12, AND THAT IS NOT A SHRINK.
+ *
+ * The design scales the board by 1.12 inside a 430pt frame, which puts it at
+ * 330 × 1.12 = 370 across, or 86% of the screen's width. But `ds` — the scale
+ * function the whole onboarding flow runs on — divides by 390, not 430,
+ * because the flow's EARLIER handoff was transcribed that way. So `ds` is
+ * already carrying a factor of 430/390 = 1.10 before anything else happens,
+ * and the design's 1.12 was landing on top of it.
+ *
+ * Compounded, the board came out at 330 × (W/390) × 1.12 = 94.8% of the
+ * screen. It crowded the logo above it, pushed its own overhang into the
+ * caption below, and read as a board that did not fit the phone — which is
+ * exactly what it was.
+ *
+ * At 1, the width works out to 330/390 = 84.6% of the screen against the
+ * design's 86%. So 1 is the design's size, and 1.12 was the double count.
+ *
+ * AND THEN 0.87 ON TOP, which is a judgement rather than arithmetic. At the
+ * design's own size the board still filled the page edge to edge and read as
+ * something wedged into the screen; taking another 13% off lets it sit on the
+ * page with air around it, which is what a floating board is supposed to look
+ * like. The design was drawn on a 932pt frame and this is a phone.
+ */
+const BOARD_SCALE = 0.87;
+/** Clear air kept between the board's content and whatever is under it. */
+const BOARD_GUTTER = 14;
 
 /**
  * Measured with `getTotalLength()` off the same path data, because
@@ -122,7 +147,13 @@ export function StoryBoard({
   const unit = ds(1);
   const fit =
     stageHeight > 0
-      ? Math.min(BOARD_SCALE, stageHeight / (BOARD_CONTENT_H * unit))
+      ? Math.min(
+          BOARD_SCALE,
+          // Fit the content to the stage LESS a gutter top and bottom. Fitting
+          // it exactly leaves the student's question touching the caption,
+          // which reads as an overlap even when it is not one.
+          (stageHeight - 2 * BOARD_GUTTER * unit) / (BOARD_CONTENT_H * unit)
+        )
       : BOARD_SCALE;
   /**
    * And then lift it. Scaling happens about the box's centre at y 170, so the

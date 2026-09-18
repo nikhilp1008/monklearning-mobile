@@ -46,11 +46,21 @@ export default function WelcomeScreen() {
       {/* The page is white all the way up; the board never reaches the bar. */}
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        {/* The handoff's own lockup file is a generation behind the mark the
-            app ships, so this is the app's component rather than the asset
-            that came with the design. Same 26pt height it specifies. */}
+        {/*
+          The handoff's own lockup file is a generation behind the mark the app
+          ships, so this is the app's component rather than the asset that came
+          with the design — and the two do not take the same number.
+
+          The design sets its lockup 26pt tall, and in that file the symbol
+          fills all 120 units of its box. `MonkLogo` takes the height of the
+          MARK, and its viewBox crops to the inner 83 of those 120 — the box
+          has 18.5 units of padding a side. So `height={26}` draws a mark the
+          size of a 37.6pt reference symbol, about a half again too big, which
+          is what made it sit oddly over the board. 26 × 83/120 is the number
+          that matches the design.
+        */}
         <View style={styles.logoRow}>
-          <MonkLogo height={ds(26)} />
+          <MonkLogo height={ds(18)} />
         </View>
 
         <View
@@ -139,7 +149,21 @@ function createStyles(
     /** The board is centred in whatever is left between the logo and the
      *  captions, which is the handoff's `flex: 1` stage. */
     stage: { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' },
-    captions: { height: ds(112), marginHorizontal: ds(34), marginBottom: ds(20) },
+    /**
+     * 104, not the design's 112, and 14 under it rather than 20.
+     *
+     * The box is deliberately fixed so the board above never moves when a
+     * two-line sub-heading follows a one-line one — but 112 reserves more than
+     * any of the four captions uses. Measured on device, the tallest of them
+     * (a two-line headline over one line of sub) comes to 96pt, so 112 left
+     * 30pt of dead air inside the box and another 20 under it: 56pt between
+     * the last line of a caption and the progress row.
+     *
+     * 104 still clears the tallest caption by 11pt, which is the margin this
+     * can afford to keep. Anything tighter starts betting on the type metrics
+     * rather than measuring them.
+     */
+    captions: { height: ds(104), marginHorizontal: ds(34), marginBottom: ds(14) },
     head: {
       fontFamily: obFont.sb600,
       fontSize: fs(31),
