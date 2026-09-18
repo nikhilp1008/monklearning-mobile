@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
+import { pcmAvailable } from '@/lib/pcm-player';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -51,6 +52,13 @@ export type FollowUpHandlers = {
   /** The inline voice finished. Zero chunks means it came to nothing, and a
    *  fallback fetch to /speak-stream is worth making. */
   onVoiceDone?: (chunks: number) => void;
+  /**
+   * Raw PCM flush (base64 Int16/24kHz/mono), sent instead of `audio` WAVs
+   * when this build declared the native player. Handed on UNDECODED — the
+   * native side takes base64 directly, and decoding here would only be
+   * re-encoding there.
+   */
+  onPcm?: (b64: string) => void;
 };
 
 /** Everything after the last complete `\n\n`, left for the next chunk. */
@@ -95,6 +103,9 @@ export function askAboutDoubtAloud(
     type: 'audio/m4a',
   } as unknown as Blob);
   body.append('history', JSON.stringify(history));
+  // Which audio dialect this build can play. Declared per request, so a JS
+  // reload on an old binary keeps getting WAVs it can handle.
+  body.append('pcm', pcmAvailable ? '1' : '0');
   return streamAsk(doubtId, 'ask-voice', body, handlers, signal);
 }
 
@@ -306,6 +317,9 @@ function streamAsk(
               n: Number(payload.n ?? 0),
               text: String(payload.text ?? ''),
             });
+          } else if (frame.event === 'pcm') {
+            const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
+            if (b64) handlers.onPcm?.(b64);
           } else if (frame.event === 'audio') {
             const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
             if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);

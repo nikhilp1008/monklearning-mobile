@@ -21,7 +21,7 @@
  */
 module.exports = {
   preset: 'jest-expo',
-  setupFiles: ['react-native-reanimated/mock'],
+  setupFiles: ['react-native-reanimated/mock', '<rootDir>/jest/reanimated-missing-hooks.js'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.html$': '<rootDir>/jest/html-asset-mock.js',

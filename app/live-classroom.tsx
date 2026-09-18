@@ -7,7 +7,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,9 +20,12 @@ import Animated, {
   FadeInDown,
   FadeOut,
   FadeOutDown,
+  runOnJS,
   SlideInRight,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -50,7 +52,7 @@ import {
   RHYTHM,
   RuledGround,
   useChromeAutoHide,
-  ScrollIndicator,
+  AnimatedScrollIndicator,
 } from '@/components/classroom-chrome';
 import { colors } from '@/constants/brand';
 import { useOrientedScale } from '@/constants/scale';
@@ -884,12 +886,18 @@ export default function LiveClassroomScreen() {
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string | null>('Wrong answer');
   const [toastVisible, setToastVisible] = useState(false);
-  const [indicatorVisible, setIndicatorVisible] = useState(false);
-  const [indicatorTop, setIndicatorTop] = useState(0);
-  const [indicatorHeight, setIndicatorHeight] = useState(28);
+  /**
+   * Shared values, not state. These are written on every scroll event, and as
+   * state that meant three setState calls per frame at scrollEventThrottle={16}
+   * — re-rendering this screen (and the whole `board.map`) about sixty times a
+   * second while a student scrolled, to move a 3px pill. They now live on the
+   * UI thread and re-render nothing.
+   */
+  const indicatorTop = useSharedValue(0);
+  const indicatorHeight = useSharedValue(28);
+  const indicatorOpacity = useSharedValue(0);
 
-  const scrollRef = useRef<ScrollView>(null);
-  const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Chrome gets out of the way on its own after a few seconds, and comes back
@@ -920,7 +928,6 @@ export default function LiveClassroomScreen() {
 
   useEffect(() => {
     return () => {
-      if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
@@ -962,8 +969,15 @@ export default function LiveClassroomScreen() {
    * A drag is the one unambiguous signal that the student, not the board,
    * moved it. So `following` changes while a finger is down and when a fling
    * settles, and a glide leaves it alone.
+   *
+   * Mirrored as shared values because the scroll handler that reads them is a
+   * worklet now and cannot see a React ref. `followingShared` is what makes the
+   * per-frame `runOnJS` unnecessary: the worklet compares against its own copy
+   * and only crosses to JS when the answer actually changes.
    */
   const draggingRef = useRef(false);
+  const draggingShared = useSharedValue(false);
+  const followingShared = useSharedValue(true);
 
   // Chrome tuck: the header slides up out of frame and the rail slides right,
   // both on the spec's 0.35s. The edge tab is what brings them back.
@@ -1055,44 +1069,70 @@ export default function LiveClassroomScreen() {
     setChromeVisible((visible) => !visible);
   };
 
-  const onBoardScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    if (contentSize.height > 0) {
-      setIndicatorHeight(
-        Math.max(28, (layoutMeasurement.height * layoutMeasurement.height) / contentSize.height)
-      );
-      setIndicatorTop((contentOffset.y / contentSize.height) * layoutMeasurement.height);
-      setIndicatorVisible(true);
-      if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
-      /**
-       * NO RULE-SNAPPING ANY MORE. This used to settle the board onto the
-       * nearest 26pt multiple when scrolling stopped, "so a written line is
-       * never left half-cut by the top edge" — which was true while every
-       * line sat on the rule grid.
-       *
-       * The writing is spaced for reading now, not snapped to the rules, so a
-       * line's position is set by mixed sizes and margins and lands on no
-       * multiple of anything. Snapping to 26 aligned nothing: it just slid the
-       * board by up to 13pt, 900ms after the student stopped scrolling. A
-       * nudge with no purpose is worse than none.
-       */
-      indicatorTimerRef.current = setTimeout(() => setIndicatorVisible(false), 900);
-    }
-    if (draggingRef.current) {
-      const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
-      setFollowing(atBottom);
-    }
+  /**
+   * Runs on the UI thread, so nothing here can drop a frame on the JS one.
+   *
+   * NO RULE-SNAPPING ANY MORE. This used to settle the board onto the nearest
+   * 26pt multiple when scrolling stopped, "so a written line is never left
+   * half-cut by the top edge" — which was true while every line sat on the
+   * rule grid. The writing is spaced for reading now, not snapped to the
+   * rules, so a line's position is set by mixed sizes and margins and lands on
+   * no multiple of anything. Snapping to 26 aligned nothing: it just slid the
+   * board by up to 13pt, 900ms after the student stopped scrolling. A nudge
+   * with no purpose is worse than none.
+   *
+   * `following` still has to reach React — the Jump-to-live pill renders from
+   * it — but it is pushed across only when the boolean actually flips, rather
+   * than once per frame. The rule it encodes is unchanged and is explained on
+   * `draggingRef` above: a drag decides, a glide does not.
+   */
+  const onBoardScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e;
+      if (contentSize.height > 0) {
+        indicatorHeight.value = Math.max(
+          28,
+          (layoutMeasurement.height * layoutMeasurement.height) / contentSize.height
+        );
+        indicatorTop.value = (contentOffset.y / contentSize.height) * layoutMeasurement.height;
+        indicatorOpacity.value = 1;
+      }
+      if (draggingShared.value) {
+        const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
+        if (atBottom !== followingShared.value) {
+          followingShared.value = atBottom;
+          runOnJS(setFollowing)(atBottom);
+        }
+      }
+    },
+    // Both endings are covered: a drag that stops dead fires onEndDrag, a fling
+    // fires onMomentumEnd. Either way the pill fades 900ms later, which is the
+    // timer this replaces.
+    onEndDrag: () => {
+      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 180 }));
+    },
+    onMomentumEnd: () => {
+      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 180 }));
+    },
+  });
+
+  /** Both copies at once. The worklet above compares against `followingShared`
+   *  to decide whether to cross to JS, so a change made here that skipped it
+   *  would leave the two disagreeing and suppress the next real update. */
+  const applyFollowing = (next: boolean) => {
+    followingShared.value = next;
+    setFollowing(next);
   };
 
   /** A fling that has come to rest: the student's scroll is finished, so this
    *  is the moment to say whether they left the live edge or came back to it. */
   const onBoardSettled = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    setFollowing(contentOffset.y + layoutMeasurement.height >= contentSize.height - 40);
+    applyFollowing(contentOffset.y + layoutMeasurement.height >= contentSize.height - 40);
   };
 
   const jumpToLive = () => {
-    setFollowing(true);
+    applyFollowing(true);
     scrollRef.current?.scrollToEnd({ animated: true });
   };
 
@@ -1464,7 +1504,7 @@ export default function LiveClassroomScreen() {
           <RuledGround height={boardHeight} />
         </Pressable>
 
-        <ScrollView
+        <Animated.ScrollView
           ref={scrollRef}
           style={StyleSheet.absoluteFill}
           contentContainerStyle={styles.boardContent}
@@ -1474,9 +1514,11 @@ export default function LiveClassroomScreen() {
           onContentSizeChange={onBoardGrow}
           onScrollBeginDrag={() => {
             draggingRef.current = true;
+            draggingShared.value = true;
           }}
           onScrollEndDrag={(e) => {
             draggingRef.current = false;
+            draggingShared.value = false;
             onBoardSettled(e);
           }}
           onMomentumScrollEnd={onBoardSettled}
@@ -1501,9 +1543,13 @@ export default function LiveClassroomScreen() {
               ))
             )}
           </Pressable>
-        </ScrollView>
+        </Animated.ScrollView>
 
-        <ScrollIndicator top={indicatorTop} height={indicatorHeight} visible={indicatorVisible} />
+        <AnimatedScrollIndicator
+          top={indicatorTop}
+          height={indicatorHeight}
+          opacity={indicatorOpacity}
+        />
 
         {/* Header — tucks up and out on a board tap. */}
         {/* THE HEADER NEEDS A GROUND, and the reference gives it one.

@@ -76,15 +76,17 @@ export default function HomeScreen() {
       getTodayPlan().then((items) => {
         if (!cancelled) setPlanItems(items);
       });
-      getProgress()
-        .then((p) => {
+      // Concurrent, not nested. `classesTaken` is one AsyncStorage read and
+      // owes the network nothing, so waiting for the ~130KB /progress payload
+      // to land before starting it was pure serial cost — the observation can
+      // only be written once both have arrived either way.
+      Promise.all([getProgress(), classesTaken()])
+        .then(([p, classes]) => {
           if (cancelled) return;
           setStats(toStatsState(p.monk_score.display, p.ledger.questions_attempted));
           // The observation rides the same payload the stats do — one fetch,
           // and the numbers and the sentence about them can never disagree.
-          classesTaken().then((classes) => {
-            if (!cancelled) setNoticed(observe(p, classes));
-          });
+          setNoticed(observe(p, classes));
         })
         .catch(() => {
           if (cancelled) return;

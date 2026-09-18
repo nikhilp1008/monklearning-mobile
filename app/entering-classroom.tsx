@@ -16,7 +16,7 @@ import {
 import { useScale } from '@/constants/scale';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { useStagedStatus } from '@/hooks/use-staged-status';
-import { subjectForChapter } from '@/lib/drona';
+import { getCatalogue, subjectForChapter } from '@/lib/drona';
 import {
   checkDronaTopic,
   scopeDronaSession,
@@ -51,8 +51,54 @@ export default function EnteringClassroomScreen() {
     initialUtterance?: string;
   }>();
   const chapterTitle = params.chapterTitle || 'this chapter';
-  const chapterId = params.chapterId ?? '';
+  const paramChapterId = params.chapterId ?? '';
   const initialUtterance = params.initialUtterance ?? '';
+
+  /**
+   * NAMING THE CHAPTER IS THIS SCREEN'S JOB, NOT THE CALLER'S.
+   *
+   * Practice used to await `getCatalogue()` inside the button handler and only
+   * push once it had an id, so on a cold catalogue the tap did nothing at all —
+   * no pressed state, no navigation, nothing — until a network round trip came
+   * back. This screen is the one built to be looked at while something is
+   * loading, so the lookup happens here and the tap can be instant.
+   *
+   * Every other route in (Home, Progress, the topic sheet) already passes a
+   * real `chapterId`, so for them this resolves on the first render and costs
+   * nothing.
+   */
+  const [chapterId, setChapterId] = useState(paramChapterId);
+  const [chapterResolved, setChapterResolved] = useState(
+    Boolean(paramChapterId) || !params.chapterTitle
+  );
+  useEffect(() => {
+    if (chapterResolved) return;
+    let cancelled = false;
+    const settle = (id: string) => {
+      if (cancelled) return;
+      if (id) setChapterId(id);
+      setChapterResolved(true);
+    };
+    const wanted = chapterTitle.trim().toLowerCase();
+    getCatalogue()
+      .then((catalogue) => {
+        for (const subject of catalogue) {
+          const hit = subject.chapters.find((ch) => ch.name.trim().toLowerCase() === wanted);
+          if (hit) return settle(hit.id);
+        }
+        settle('');
+      })
+      // No catalogue, or no match: the title still names the chapter for
+      // scoping, which is what the chapterless route has always done.
+      .catch(() => settle(''));
+    // Backstop in the same spirit as the params timeout below — a slow
+    // catalogue may cost the chapter id, never the class.
+    const timer = setTimeout(() => settle(''), 3000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [chapterResolved, chapterTitle]);
   /**
    * Expo Router can render this screen once before its route params are
    * attached. The session used to start on that first frame, from a `[]`-deps
@@ -125,7 +171,10 @@ export default function EnteringClassroomScreen() {
   const startedRef = useRef(false);
 
   useEffect(() => {
-    if (startedRef.current || !paramsSettled) return;
+    // `chapterResolved` joins `paramsSettled` for the same reason it exists:
+    // starting before the chapter is known sends chapter_id: undefined, and a
+    // chapterless session drops the student into the scoping conversation.
+    if (startedRef.current || !paramsSettled || !chapterResolved) return;
     startedRef.current = true;
     let cancelled = false;
     // Baseline for the end-of-class moment: whatever is proven from here on
@@ -171,7 +220,7 @@ export default function EnteringClassroomScreen() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsSettled]);
+  }, [paramsSettled, chapterResolved]);
 
   /**
    * A student who backs out of scoping leaves a live socket behind, and the

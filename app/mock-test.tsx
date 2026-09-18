@@ -38,14 +38,6 @@ export default function MockTestScreen() {
   const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
   const [selectedOption, setSelectedOption] = useState<Option['letter'] | null>('C');
   const [markedForReview, setMarkedForReview] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(START_SECONDS);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const saveAndNext = () => {
     setSelectedOption(null);
@@ -60,10 +52,7 @@ export default function MockTestScreen() {
           <Pressable style={styles.exitButton} onPress={() => router.push('/mock-paused')}>
             <Text style={styles.exitButtonText}>Save & exit</Text>
           </Pressable>
-          <View style={styles.timerPill}>
-            <ClockIcon size={scale(13)} />
-            <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
-          </View>
+          <CountdownPill styles={styles} scale={scale} />
           <Pressable style={styles.submitButton} onPress={() => router.push('/progress')}>
             <Text style={styles.submitButtonText}>Submit test</Text>
           </Pressable>
@@ -172,6 +161,38 @@ export default function MockTestScreen() {
           </Pressable>
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/**
+ * The clock, and the only thing on this screen that ticks.
+ *
+ * `secondsLeft` was state on the screen component, so every second re-rendered
+ * the entire tree — the question card's 14-path RuledPaper included — to change
+ * eight characters inside one Text. Owning the interval here keeps the
+ * per-second work inside the pill, which is the only part that changed.
+ */
+function CountdownPill({
+  styles,
+  scale,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  scale: (n: number) => number;
+}) {
+  const [secondsLeft, setSecondsLeft] = useState(START_SECONDS);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <View style={styles.timerPill}>
+      <ClockIcon size={scale(13)} />
+      <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
     </View>
   );
 }

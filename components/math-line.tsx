@@ -40,15 +40,35 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
     (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup' || s.kind === 'matrix'
   );
   const hasMath = !!mathStyle && segments.some((s) => s.kind === 'math');
+  const hasBold = segments.some((s) => 'bold' in s && s.bold);
   const styles = useMemo(() => createStyles(fontSize, color), [fontSize, color]);
 
   // Nothing to stack and nothing to set apart: one Text, so line-height,
   // wrapping and selection behave exactly as they did before this component
   // existed.
-  if (!hasFraction && !hasMath) {
+  if (!hasFraction && !hasMath && !hasBold) {
     return (
       <Text style={style}>
         {segments.map((s) => ('text' in s ? s.text : '')).join('')}
+      </Text>
+    );
+  }
+
+  // Emphasis but no maths to lay out: still ONE Text, with the bold runs
+  // nested inside it. Nesting keeps the paragraph flowing and wrapping as
+  // prose — the `row` below is a flex line built for stacked fractions, and
+  // pushing a sentence through it breaks at every word instead of at the
+  // margin.
+  if (!hasFraction && !hasMath) {
+    return (
+      <Text style={style}>
+        {segments.map((s, i) =>
+          'text' in s ? (
+            <Text key={i} style={'bold' in s && s.bold ? styles.bold : undefined}>
+              {s.text}
+            </Text>
+          ) : null,
+        )}
       </Text>
     );
   }
@@ -93,6 +113,7 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
           ];
         }
         const voice = segment.kind === 'math' ? [style, mathStyle] : [style];
+        if ('bold' in segment && segment.bold) voice.push(styles.bold);
         return words(segment.text).map((word, j) => (
           <Text key={`t${i}-${j}`} style={[voice, styles.word]}>
             {word}
@@ -176,6 +197,12 @@ function createStyles(fontSize: number, color: string) {
       // The row centres its children, so the line-height that would space a
       // paragraph is not what spaces this one — see `row`'s alignItems.
       lineHeight: fontSize * 1.6,
+    },
+    // The emphasis a solution puts on the term a step turns on. Onest ships a
+    // 700 face and the rail already uses it for step titles, so this is the
+    // same voice one level down rather than a new one.
+    bold: {
+      fontFamily: 'Onest_700Bold',
     },
     script: {
       fontSize: fontSize * 0.68,

@@ -1,9 +1,25 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { useFollowUp } from '@/hooks/use-follow-up';
+import { SolutionSteps } from '@/components/solution-steps';
+import {
+  askAboutDoubtAloud,
+  speakFollowUpStreaming,
+  type FollowUpStep,
+  type FollowUpTurn,
+} from '@/lib/doubt-followup';
+import { FollowUpAudio } from '@/lib/followup-audio';
+import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
+import { parseSolutionStep } from '@/lib/solution-steps';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -20,13 +36,23 @@ import { useFollowUp } from '@/hooks/use-follow-up';
  * two surfaces cannot drift apart. Colourless at rest; the ring only wakes
  * while a student is actually using it.
  *
- * VOICE ONLY, DELIBERATELY. The server streams the answer's written steps as
- * well, and they are read here — but only to build the conversation history the
- * next question is sent with. Nothing is printed. The written answer is getting
- * its own surface, a board that is still being designed; until that exists,
- * half-showing the text would be a worse answer than not showing it, and would
- * have to be torn out again. `onStep` is where it will attach.
+ * THE BOARD ATTACHED AT `onStep`, exactly where the note below said it would.
+ * Voice carries every answer; the WRITTEN steps open a sheet only when the
+ * answer earns one — more than one step, or a long one. Conversation ("what's
+ * your name", "thanks") stays voice-plus-bar; an explanation of working gets
+ * the board, streaming word by word as the model writes it. One short step is
+ * spoken and kept for history but opens nothing: a board over the student's
+ * solution is furniture falling over unless there is working to put on it.
  */
+
+/** A follow-up answer opens the sheet past ONE short step — the same line
+ *  the model's own prompt draws ("the board is for working"). */
+const SHORT_ANSWER_CHARS = 240;
+
+/** How long the ring lingers after the last touch — the prototype's `hLeave`. */
+const LINGER_MS = 1500;
+
+type Phase = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 function MicIcon({ color }: { color: string }) {
   return (
@@ -62,18 +88,316 @@ function FlagIcon() {
 }
 
 export function AskFollowUpBar({
-  fu,
+  doubtId,
   onReport,
 }: {
-  /** The exchange, owned by the screen so the answer sheet can share it. */
-  fu: ReturnType<typeof useFollowUp>;
+  doubtId?: string | null;
   onReport?: () => void;
 }) {
-  const { phase, failure, linger, disabled } = fu;
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [phase, setPhase] = useState<Phase>('idle');
+  /**
+   * A FAILURE IS TWO WORDS, NOT A SENTENCE.
+   *
+   * This used to put whatever message came back into the hint line — "Monk
+   * could not answer that just now. Try again in a moment." sitting under a
+   * bar whose reference has no error line at all. A long apology in the one
+   * slot the design gives to "Hold to speak" reads as something bolted on,
+   * and naming the product while apologising for it makes it worse.
+   *
+   * So there are exactly two outcomes worth telling apart, because they ask
+   * different things of the student: press it again, or go and turn the
+   * microphone on. "Try again" would be a lie for the second — pressing again
+   * does nothing at all while permission is refused.
+   */
+  const [failure, setFailure] = useState<null | 'retry' | 'mic'>(null);
+  const [linger, setLinger] = useState(false);
+  /** The written answer, when it earned a board. Empty array = no board. */
+  const [boardSteps, setBoardSteps] = useState<FollowUpStep[]>([]);
+  const [boardOpen, setBoardOpen] = useState(false);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const audioRef = useRef<FollowUpAudio | null>(null);
+  const turnsRef = useRef<FollowUpTurn[]>([]);
+  const lingerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Set when the sentence stream has finished, so a queue running dry between
+   *  sentences is not mistaken for the end of the answer. */
+  const streamDoneRef = useRef(false);
+  /** The gapless path has no didJustFinish: the end is computed from seconds
+   *  fed against seconds elapsed, checked when the stream closes. */
+  const pcmIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pcmStartedAtRef = useRef(0);
+
+  const wake = useCallback(() => {
+    if (lingerRef.current) clearTimeout(lingerRef.current);
+    setLinger(true);
+    lingerRef.current = setTimeout(() => setLinger(false), LINGER_MS);
+  }, []);
+
+  /**
+   * Back to a playback session, always, and never left recording-shaped.
+   *
+   * `allowsRecording: true` puts iOS into `.playAndRecord`, and expo-audio has
+   * no `defaultToSpeaker` — so a session left that way sends every later sound
+   * in the app to the EARPIECE, including Drona in class. That outlives this
+   * screen, which is why it is restored on every exit from every path.
+   */
+  const toPlayback = useCallback(() => {
+    setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: 'mixWithOthers',
+    }).catch(() => {});
+  }, []);
+
+  const stopEverything = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    audioRef.current?.stop();
+    audioRef.current = null;
+    pcmStop();
+    if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
+    setPhase('idle');
+  }, []);
+
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      audioRef.current?.stop();
+      pcmStop();
+      if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
+      recorder.stop().catch(() => {});
+      if (lingerRef.current) clearTimeout(lingerRef.current);
+      toPlayback();
+    },
+    [recorder, toPlayback]
+  );
+
+  const beginHold = useCallback(async () => {
+    if (!doubtId) return;
+    wake();
+    setFailure(null);
+    // A second question interrupts the first answer rather than talking over
+    // it — the student has clearly stopped listening.
+    audioRef.current?.stop();
+    audioRef.current = null;
+    pcmStop();
+    if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setPhase('listening');
+    try {
+      const granted = await requestRecordingPermissionsAsync();
+      if (!granted.granted) {
+        setFailure('mic');
+        setPhase('idle');
+        return;
+      }
+      /**
+       * The session has to allow recording BEFORE `prepareToRecordAsync`, not
+       * after. Nothing else in the app leaves it that way — the classroom
+       * records through a different library and deliberately keeps expo-audio
+       * on playback so Drona is not routed to the earpiece — so every time
+       * this bar is pressed the session is on a category that refuses to
+       * record.
+       */
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        interruptionMode: 'mixWithOthers',
+      });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch {
+      setFailure('retry');
+      setPhase('idle');
+      toPlayback();
+    }
+  }, [doubtId, recorder, toPlayback, wake]);
+
+  const endHold = useCallback(async () => {
+    if (!doubtId) return;
+    wake();
+    let uri: string | null = null;
+    try {
+      await recorder.stop();
+      uri = recorder.uri ?? null;
+    } catch {
+      // A recorder that will not stop still has whatever it captured.
+    }
+    // Before the answer is spoken, never after: `.playAndRecord` would put the
+    // teacher's voice in the earpiece, which reads as broken rather than quiet.
+    toPlayback();
+    if (!uri) {
+      setFailure('retry');
+      setPhase('idle');
+      return;
+    }
+
+    setPhase('thinking');
+    const controller = new AbortController();
+    abortRef.current = controller;
+    streamDoneRef.current = false;
+    const arrived: FollowUpStep[] = [];
+    let asked = '';
+    let spokenText = '';
+    let spokeStarted = false;
+    setBoardSteps([]);
+    setBoardOpen(false);
+
+    // One writer for finished steps and the step mid-write. Partials carry
+    // full text-so-far and REPLACE their step — upsert by n, never append,
+    // or a step that streamed as six frames becomes six steps. The board
+    // opens the moment the answer has earned it: a second step, or a long
+    // first one. One short step is conversation and opens nothing.
+    const absorb = (step: FollowUpStep) => {
+      if (controller.signal.aborted) return;
+      const at = arrived.findIndex((s) => s.n === step.n);
+      if (at >= 0) arrived[at] = step;
+      else arrived.push(step);
+      arrived.sort((a, b) => a.n - b.n);
+      const body = arrived.map((s) => s.text).join(' ');
+      if (arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
+        setBoardSteps([...arrived]);
+        setBoardOpen(true);
+      }
+    };
+
+    // Clips the server synthesises into the SAME stream as the answer. The
+    // old contract fetched the voice back with a second request; on this
+    // server that means paying for the same voice twice.
+    const inlinePlayer = () => {
+      if (!audioRef.current) {
+        const audio = new FollowUpAudio(doubtId!);
+        audio.onIdle = () => {
+          if (streamDoneRef.current && !controller.signal.aborted) setPhase('idle');
+        };
+        audioRef.current = audio;
+        setPhase('speaking');
+      }
+      return audioRef.current;
+    };
+
+    try {
+      await askAboutDoubtAloud(
+        doubtId,
+        uri,
+        turnsRef.current,
+        {
+          // Kept for the history the next question is sent with. Not shown —
+          // the student knows what they just said.
+          onTranscript: (text) => {
+            asked = text;
+          },
+          onStep: absorb,
+          onStepPartial: absorb,
+          onSpoken: (text, inlineVoice) => {
+            // Once per answer. A server that emits `spoken` both early and at
+            // the end would otherwise build two players and put two voices in
+            // the air.
+            if (spokeStarted) return;
+            spokeStarted = true;
+            spokenText = text;
+            // Three dialects, one decision, made here: gapless PCM when this
+            // build carries the native player, inline WAV clips otherwise,
+            // and the fetch only for servers from before the voice moved
+            // into the answer stream.
+            if (inlineVoice && pcmAvailable) {
+              pcmStart();
+              pcmStartedAtRef.current = Date.now();
+              setPhase('speaking');
+            } else if (inlineVoice) {
+              inlinePlayer();
+            } else {
+              void speak(text, controller);
+            }
+          },
+          onPcm: (b64) => {
+            if (controller.signal.aborted) return;
+            pcmFeed(b64);
+          },
+          onAudio: (wav) => {
+            if (controller.signal.aborted) return;
+            inlinePlayer().enqueue(wav);
+          },
+          onVoiceDone: (chunks) => {
+            if (controller.signal.aborted) return;
+            if (chunks === 0 && spokenText) {
+              // The inline voice came to nothing; the old fetch still works.
+              void speak(spokenText, controller);
+              return;
+            }
+            streamDoneRef.current = true;
+            if (pcmAvailable && pcmStartedAtRef.current) {
+              // Release an answer still held by the jitter buffer.
+              pcmFinish();
+              // No didJustFinish on the gapless path: the end is seconds fed
+              // (at the played rate) against seconds elapsed, plus a breath.
+              const played = (Date.now() - pcmStartedAtRef.current) / 1000;
+              const remains = pcmFedSeconds() / 1.15 - played + 0.5;
+              pcmIdleRef.current = setTimeout(() => {
+                if (!controller.signal.aborted) setPhase('idle');
+              }, Math.max(0, remains * 1000));
+            }
+          },
+        },
+        controller.signal
+      );
+      if (controller.signal.aborted) return;
+      turnsRef.current = [
+        ...turnsRef.current,
+        { role: 'user', content: asked },
+        { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
+      ];
+      // No voice ever started. With a board on screen that is a quiet answer,
+      // not a failed one; with nothing printed either, there is nothing to
+      // show for the question at all.
+      if (!spokeStarted) {
+        if (arrived.length) {
+          setPhase('idle');
+        } else {
+          setFailure('retry');
+          setPhase('idle');
+        }
+      }
+    } catch {
+      if (controller.signal.aborted) return;
+      // The server's own message is deliberately not read: it is a sentence,
+      // and this is a two-word slot. What the student can DO about it is the
+      // same however it failed.
+      setFailure('retry');
+      setPhase('idle');
+    }
+
+    async function speak(spoken: string, ctl: AbortController) {
+      const audio = new FollowUpAudio(doubtId!);
+      audioRef.current = audio;
+      audio.onIdle = () => {
+        // A queue runs dry between sentences while the next is still being
+        // synthesised; only a finished stream makes an empty queue the end.
+        if (streamDoneRef.current && !ctl.signal.aborted) setPhase('idle');
+      };
+      setPhase('speaking');
+      try {
+        await speakFollowUpStreaming(
+          doubtId!,
+          spoken,
+          (wav) => {
+            if (!ctl.signal.aborted) audio.enqueue(wav);
+          },
+          ctl.signal
+        );
+      } finally {
+        streamDoneRef.current = true;
+      }
+    }
+  }, [doubtId, recorder, toPlayback, wake]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
+  const disabled = !doubtId;
 
   const label = listening
     ? 'Listening…'
@@ -110,16 +434,16 @@ export function AskFollowUpBar({
             accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
             onPressIn={() => {
               if (speaking || phase === 'thinking') return;
-              void fu.beginHold();
+              void beginHold();
             }}
             onPressOut={() => {
               if (phase !== 'listening') return;
-              void fu.endHold();
+              void endHold();
             }}
             onPress={() => {
               // Only meaningful while the answer is playing; a hold's own press
               // event arrives after `onPressOut` has already sent the question.
-              if (speaking) fu.stopEverything();
+              if (speaking) stopEverything();
             }}>
             <View style={[styles.thumb, listening && styles.thumbOn]}>
               {listening ? (
@@ -150,8 +474,44 @@ export function AskFollowUpBar({
       <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
         {hint}
       </Text>
+
+      {/* The board, when the answer earned one. A Modal rather than a layout
+          change so the bar — and the solution behind it — never move. Done
+          closes the board only; the voice keeps talking, and Stop on the bar
+          remains the way to silence it. */}
+      <Modal
+        visible={boardOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setBoardOpen(false)}>
+        <View style={styles.sheetScrim}>
+          <Pressable style={styles.sheetScrimTap} onPress={() => setBoardOpen(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Follow-up</Text>
+              <Pressable onPress={() => setBoardOpen(false)} hitSlop={10}>
+                <Text style={styles.sheetDone}>Done</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
+              <BoardRail steps={boardSteps} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
+}
+
+/** The written answer in the same numbered rail the solution uses. Parsed at
+ *  render because partials replace their step's text frame by frame. */
+function BoardRail({ steps }: { steps: FollowUpStep[] }) {
+  const rail = useMemo(
+    () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
+    [steps]
+  );
+  return <SolutionSteps steps={rail} size="compact" />;
 }
 
 /** The dock's plate, verbatim — negative spreads included, which is why this is
@@ -234,4 +594,32 @@ const styles = StyleSheet.create({
     color: INK_FAINT,
   },
   hintLive: { color: GREEN_INK },
+  sheetScrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,26,22,0.35)' },
+  sheetScrimTap: { ...StyleSheet.absoluteFillObject },
+  sheet: {
+    maxHeight: '72%',
+    backgroundColor: PAPER,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingBottom: 28,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 10,
+    backgroundColor: 'rgba(28,26,22,0.16)',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  sheetTitle: { fontFamily: 'Onest_700Bold', fontSize: 16, color: INK },
+  sheetDone: { fontFamily: 'Onest_700Bold', fontSize: 14, color: GREEN_INK },
+  sheetBody: { paddingHorizontal: 20 },
 });

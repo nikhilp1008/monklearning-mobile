@@ -6,8 +6,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { AskFollowUpBar } from '@/components/ask-follow-up';
-import { FollowUpAnswer } from '@/components/follow-up-answer';
-import { useFollowUp } from '@/hooks/use-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
@@ -239,7 +237,6 @@ export function SolutionScreen({
    * iOS, so a sheet rendered from inside the bar would appear and then refuse
    * to scroll or close.
    */
-  const fu = useFollowUp(question?.doubtId);
 
   /** Whether the student asked for the whole question, and whether there is
    *  more of it to ask for. */
@@ -339,11 +336,14 @@ export function SolutionScreen({
                 carrying one shows in full. */}
             {/* Their own page, when the server could cut it out: the question
                 as printed, rather than a transcription that has been through
-                OCR and back. The crop is the STEM and its figure only — the
-                choices are still drawn below, because the correct one is
-                marked and a picture cannot be. Falls through to the text
-                whenever no crop exists, which is a two-column page, a photo
-                with no usable geometry, or any doubt saved before crops. */}
+                OCR and back. The crop now INCLUDES the printed choices —
+                cut off originally because the row below marks the correct
+                one, until a chemistry page whose options were four drawn
+                molecules came back as "C, C, C" with the drawings cropped
+                away. The row below still carries the green; for text options
+                that repeats them, which is the acceptable cost. Falls through
+                to the text whenever no crop exists: a two-column page, no
+                usable geometry, or a doubt saved before crops. */}
             {question.questionImageUrl ? (
               /* Tappable now: 240pt is enough to recognise your question,
                  not always enough to READ it at arm's length. Same viewer
@@ -554,7 +554,6 @@ export function SolutionScreen({
       </SafeAreaView>
 
       {/* Above the actions, so the bar it rises out of stays visible under it. */}
-      <FollowUpAnswer open={fu.answerOpen} steps={fu.steps} onClose={fu.dismissAnswer} />
 
       <View style={styles.actions} pointerEvents="box-none">
         <LinearGradient
@@ -573,7 +572,7 @@ export function SolutionScreen({
             spoken answer — because a follow-up is a question about the working
             on this screen and must not navigate away from it. */}
         <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-          <AskFollowUpBar fu={fu} onReport={onReport} />
+          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} />
         </View>
       </View>
 

@@ -193,7 +193,15 @@ function mapAll(text: string, table: Record<string, string>): string | null {
   let out = '';
   for (const ch of text) {
     if (ch === ' ') continue;
-    const mapped = table[ch] ?? table[ch.toLowerCase()];
+    // Exact match only. This used to fall back to `table[ch.toLowerCase()]`,
+    // which silently changed case: `N_A` (Avogadro) came out `Nₐ` and `P_A`
+    // came out `Pₐ`, and a reader cannot tell whether the source said A or a.
+    //
+    // Worse, it was inconsistent WITHIN one formula. Unicode has no subscript
+    // b, c, d, f, g, q, w, y or z, so `P_B` failed the whole-run test and
+    // stayed literal — leaving `Pₐ` beside `P_B` in the same line of a
+    // partial-pressure question. Literal on both sides is plainer and honest.
+    const mapped = table[ch];
     if (!mapped) return null;
     out += mapped;
   }
@@ -400,6 +408,22 @@ const SCRIPT_CLOSE = '\u0018';
  * MATRIX_OPEN, a space standing for "none" (`cases` opens a brace and never
  * closes it). No delimiter is ever a space, so the slot cannot be misread.
  */
+/**
+ * Emphasis inside prose.
+ *
+ * Solutions mark the one term a step actually turns on — the law being
+ * applied, the quantity that must be the TOTAL and not the part. Stored as
+ * `<b>…</b>` because that cannot collide with maths the way `**` or `\textbf`
+ * can: `\textbf` is a TRANSPARENT_WRAPPER used throughout the question bank
+ * for typesetting, and repurposing it would bold things no one asked to bold.
+ *
+ * Converted to markers here so BOTH entry points agree: `latexToText` strips
+ * them (a plain <Text> must never print a literal tag) and `latexToSegments`
+ * turns them into `bold` runs.
+ */
+const BOLD_OPEN = '\u001D';
+const BOLD_CLOSE = '\u001E';
+
 const MATRIX_OPEN = '\u0019';
 const MATRIX_CELL = '\u001A';
 const MATRIX_ROW = '\u001B';
@@ -453,10 +477,10 @@ function fractionNeedsGuard(rendered: string, src: string, next: number): boolea
 
 /** One run of a converted line. */
 export type MathSegment =
-  /** Prose. */
-  | { kind: 'text'; text: string }
+  /** Prose. `bold` marks a `<b>…</b>` run the solution author emphasised. */
+  | { kind: 'text'; text: string; bold?: boolean }
   /** Came from maths — set in the maths voice wherever it appears. */
-  | { kind: 'math'; text: string }
+  | { kind: 'math'; text: string; bold?: boolean }
   /** A sub- or superscript with no Unicode character to spell it. */
   | { kind: 'sub'; text: string }
   | { kind: 'sup'; text: string }
@@ -484,14 +508,29 @@ export function latexToSegments(raw: string): MathSegment[] {
   const segments: MathSegment[] = [];
   let buffer = '';
   let inMath = 0;
+  let inBold = 0;
   const flush = () => {
     if (!buffer) return;
-    segments.push({ kind: inMath > 0 ? 'math' : 'text', text: buffer });
+    segments.push({
+      kind: inMath > 0 ? 'math' : 'text',
+      text: buffer,
+      ...(inBold > 0 ? { bold: true } : {}),
+    });
     buffer = '';
   };
 
   for (let i = 0; i < marked.length; i += 1) {
     const ch = marked[i];
+    if (ch === BOLD_OPEN) {
+      flush();
+      inBold += 1;
+      continue;
+    }
+    if (ch === BOLD_CLOSE) {
+      flush();
+      inBold = Math.max(0, inBold - 1);
+      continue;
+    }
     if (ch === MATH_OPEN) {
       flush();
       inMath += 1;
@@ -1063,7 +1102,14 @@ function unwrapSmiles(text: string): string {
  * PDF extraction, not real paragraph breaks.
  */
 export function latexToText(raw: string): string {
-  const arrowsResolved = unwrapSmiles(raw)
+  // Emphasis first, before anything can touch the angle brackets. When the
+  // caller wants segments the tags become markers the scanner reads; for plain
+  // text they vanish — a bare <Text> printing a literal "<b>" is the one
+  // outcome neither path may produce.
+  const emphasised = raw.replace(/<\/?b>/gi, (tag) =>
+    markSegments ? (tag.length === 3 ? BOLD_OPEN : BOLD_CLOSE) : '',
+  );
+  const arrowsResolved = unwrapSmiles(emphasised)
     .replace(
       // The OPTIONAL [below] argument is why this has a `(?:\[…\])?` in it.
       // LaTeX writes `\xrightarrow[below]{above}`, and the previous pattern

@@ -1,4 +1,6 @@
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
+import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
+import { pcmAvailable } from '@/lib/pcm-player';
 import { base64ToBytes } from '@/lib/audio-pcm';
 
 /**
@@ -186,7 +188,10 @@ export class DronaVoiceClient {
   private readonly getAccessToken: () => Promise<string | null>;
   private readonly wsBaseUrl: string;
   private handlers: DronaVoiceHandlers;
-  private readonly playback = new AudioPlaybackQueue();
+  /** Gapless stream when this binary carries the native player; the
+   *  file-based queue — gaps, watchdogs and all — otherwise. Same contract,
+   *  so everything downstream is none the wiser. */
+  private readonly playback = pcmAvailable ? new PcmPlaybackQueue() : new AudioPlaybackQueue();
 
   private manualDisconnect = false;
   private reconnectAttempt = 0;
@@ -350,7 +355,16 @@ export class DronaVoiceClient {
       return;
     }
 
-    const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(token)}`;
+    // stream_tts=1 asks the server for ~1s audio parts as Rumik produces
+    // them, instead of one frame per finished sentence. The server has
+    // supported it all along — the web client uses it — but this app never
+    // sent the flag, so every sentence waited out its FULL synthesis (4s
+    // measured on a 68-char sentence) before the first byte left the
+    // server. Requested only when the gapless player is aboard: the old
+    // file-based queue would play each 1s part as its own WAV, and a
+    // load-start gap every second is the one thing worse than waiting.
+    const parts = pcmAvailable ? '&stream_tts=1' : '';
+    const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(token)}${parts}`;
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;

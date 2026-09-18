@@ -100,6 +100,18 @@ export interface ProgressSummary {
  * indistinguishable from a fresh one to the student.
  */
 let cached: ProgressSummary | null = null;
+let cachedAt = 0;
+
+/**
+ * How long the cached payload counts as the answer rather than as a fallback.
+ *
+ * The comment above already claims a 30-second-old score is indistinguishable
+ * from a fresh one; this is that sentence enforced. Home and Progress both
+ * refetch on focus, so tabbing between them was fetching ~130KB a second time
+ * to repaint identical numbers. Within the window `getProgress` resolves
+ * without touching the network at all.
+ */
+const FRESH_MS = 30000;
 
 export function getCachedProgress(): ProgressSummary | null {
   return cached;
@@ -112,10 +124,26 @@ export function getCachedProgress(): ProgressSummary | null {
  */
 export function clearProgressCache(): void {
   cached = null;
+  cachedAt = 0;
 }
 
-export async function getProgress(): Promise<ProgressSummary> {
+/**
+ * `force` is for callers that need the truth rather than a fast repaint.
+ *
+ * The freshness window above is safe for anything that only *displays* the
+ * score, but proof (lib/proof.ts) does not display it — it DIFFS it, baseline
+ * against live, and a diff of a cached payload against itself is silently
+ * empty. A student finishing a short class would simply be told they had
+ * earned nothing. Same reasoning for the moment after an answer is graded:
+ * the score has demonstrably moved, so the window's premise ("30 seconds stale
+ * is indistinguishable from fresh") no longer holds.
+ */
+export async function getProgress(
+  options?: { force?: boolean },
+): Promise<ProgressSummary> {
+  if (!options?.force && cached && Date.now() - cachedAt < FRESH_MS) return cached;
   const fresh = await apiFetch<ProgressSummary>('/progress');
   cached = fresh;
+  cachedAt = Date.now();
   return fresh;
 }
