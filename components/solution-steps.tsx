@@ -35,8 +35,6 @@ const HAIR = 'rgba(28,26,22,0.12)';
  * in both themes and for a colour-blind reader, and the rule gives a hard left
  * edge -- a student revising can run down the formulas and skip every word.
  */
-const SLAB_GROUND = 'rgba(28,26,22,0.045)';
-const SLAB_RULE = INK;
 const GREEN = '#1C9B57';
 const GREEN_INK = '#14663A';
 const GREEN_WASH = 'rgba(28,155,87,0.11)';
@@ -258,20 +256,26 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       fontFamily: 'Onest_600SemiBold',
       color: INK,
     },
+    /**
+     * A FORMULA IS A LINE OF THE ANSWER, NOT A PANEL.
+     *
+     * This has carried a background for its whole life — an 11% marigold wash
+     * first, then a grey ground with a 2.5pt ink rule down its left edge. Both
+     * had the same problem, which is that a worked solution is ALREADY a
+     * numbered rail: every step has a marker and a hairline running down the
+     * column. Boxing the maths inside that put a second vertical line a few
+     * points from the first and a filled block between them, so three steps in
+     * a row read as three separate cards rather than one continuous working.
+     *
+     * The type carries it on its own. The formula is semibold and set larger
+     * than the prose around it, which is the whole of the distinction a reader
+     * needs, and it now starts on the same left edge as the sentence above it
+     * rather than indented behind a rule.
+     */
     mathWrap: {
       alignSelf: 'flex-start',
       maxWidth: '100%',
-      paddingVertical: size === 'full' ? 7 : 5,
-      paddingHorizontal: size === 'full' ? 12 : 10,
-      // Square against the rule, rounded away from it, so the left edge reads
-      // as one continuous line down a stack of steps.
-      borderTopLeftRadius: 0,
-      borderBottomLeftRadius: 0,
-      borderTopRightRadius: 6,
-      borderBottomRightRadius: 6,
-      borderLeftWidth: 2.5,
-      borderLeftColor: SLAB_RULE,
-      backgroundColor: SLAB_GROUND,
+      paddingVertical: size === 'full' ? 4 : 3,
     },
     mathText: {
       fontFamily: 'Onest_600SemiBold',
