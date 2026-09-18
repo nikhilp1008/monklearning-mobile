@@ -2,6 +2,7 @@
 // screen in design_handoff_onboarding_flow, so they live here once rather
 // than being re-derived per screen — that's what keeps the six screens
 // pixel-identical to each other.
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
@@ -35,7 +36,34 @@ type ObButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Spec: width 100%, height 62, radius 16, label 19px/600, arrow 17px, gap 10.
+/**
+ * THE BUTTON THE WHOLE FLOW TAPS, now the 3D ink key from the Live Board
+ * handoff.
+ *
+ * It was a flat ink box with a 14pt radius that dimmed to 85% opacity while
+ * held. The newer design draws the same button as a key you actually press: a
+ * top-lit gradient, a hairline of white along the top edge, a darker one along
+ * the bottom, and a solid 3pt ledge underneath that COLLAPSES when the face
+ * travels down onto it. The travel and the ledge are the same 3pt, so the face
+ * lands exactly where the ledge was — which is the whole reason it reads as a
+ * key rather than as a rectangle that fades.
+ *
+ * `0 3px 0` is a shadow with no blur, which is a ledge and not a shadow. RN
+ * implements both inset and zero-blur box shadows natively on iOS, so the
+ * whole button is one `boxShadow` array rather than a stack of views faking
+ * the edges.
+ *
+ * ONE PLACE, SEVEN SCREENS. Every screen in the flow reaches for this, so the
+ * newer material arrives everywhere at once and the seams cannot drift. The
+ * cream variant — one button, on the dark confirmation screen — takes the same
+ * geometry and the same ledge with its own light-to-cream face, because a flat
+ * cream slab beside six pressed keys reads as a different control.
+ *
+ * NOT REPLICATED: the design's 120ms ease on the press. `boxShadow` is not an
+ * animatable property, so easing the travel while the ledge collapsed on the
+ * frame would pull the face off its own ledge for a tenth of a second. Both
+ * switch together instead, which is what the app's other 3D key does.
+ */
 export function ObButton({
   label,
   onPress,
@@ -49,44 +77,43 @@ export function ObButton({
   const { ds, fs, tracking } = useDesignScale();
   const isCream = variant === 'cream';
 
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled || busy}
-      style={({ pressed }) => [
-        {
-          width: '100%',
-          height: ds(60),
-          // 14, as drawn. This was a pill on the argument that the app's own
-          // buttons are pills and onboarding's last tap lands on Home — but
-          // onboarding is seven screens of this button and one of Home, and the
-          // handoff draws a box every time.
-          borderRadius: ds(14),
-          // Disabled is an outline, not a dimmed fill.
-          //
-          // `opacity: .4` on an ink pill renders as a grey slab, and grey is
-          // not in this product's palette -- it reads as a different material
-          // rather than as the same button waiting. An outline says "not yet"
-          // without introducing a colour the app does not otherwise own, and
-          // it is the same answer Practice's Submit arrived at.
-          backgroundColor: disabled ? 'transparent' : isCream ? ob.cream : ob.ink,
-          borderWidth: disabled ? 1.5 : 0,
-          borderColor: isCream ? ob.creamRule : ob.hairline18,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: trailing ? 'space-between' : 'center',
-          paddingHorizontal: trailing ? ds(22) : 0,
-          gap: ds(10),
-          opacity: pressed && !disabled ? 0.85 : 1,
-        },
-        style,
-      ]}>
+  const face = (held: boolean) => ({
+    width: '100%' as const,
+    height: ds(60),
+    borderRadius: ds(18),
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: (trailing ? 'space-between' : 'center') as 'space-between' | 'center',
+    paddingHorizontal: trailing ? ds(22) : 0,
+    gap: ds(10),
+    transform: [{ translateY: held ? ds(3) : 0 }],
+    boxShadow: [
+      { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,.22)', inset: true },
+      { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,.4)', inset: true },
+      // The ledge, and what is left of it once the key is down.
+      { offsetX: 0, offsetY: held ? 0 : ds(3), blurRadius: 0, color: 'rgba(28,26,22,.35)' },
+      held
+        ? { offsetX: 0, offsetY: ds(3), blurRadius: ds(8), color: 'rgba(28,26,22,.2)' }
+        : { offsetX: 0, offsetY: ds(8), blurRadius: ds(18), color: 'rgba(28,26,22,.22)' },
+    ],
+  });
+
+  const labelColor = disabled
+    ? isCream
+      ? ob.creamDim
+      : ob.ink40
+    : isCream
+      ? ob.ink
+      : ob.cream;
+
+  const body = (
+    <>
       <Text
         style={{
-          fontFamily: obFont.m500,
-          fontSize: fs(17),
-          letterSpacing: tracking(-0.01, 17),
-          color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
+          fontFamily: obFont.sb600,
+          fontSize: fs(18),
+          letterSpacing: tracking(-0.01, 18),
+          color: labelColor,
         }}>
         {label}
       </Text>
@@ -99,14 +126,7 @@ export function ObButton({
         />
       )}
       {withArrow && !busy && (
-        <Text
-          style={{
-            fontFamily: obFont.m500,
-            fontSize: fs(15),
-            color: disabled ? (isCream ? ob.creamDim : ob.ink40) : isCream ? ob.ink : ob.cream,
-          }}>
-          →
-        </Text>
+        <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: labelColor }}>→</Text>
       )}
       {!!trailing && (
         <Text
@@ -115,8 +135,6 @@ export function ObButton({
             textAlign: 'right',
             fontFamily: obFont.r400,
             fontSize: fs(13),
-            // Disabled empties the fill to an outline over the page, so the
-            // "quiet on ink" white would be white on white. Follow the label.
             color: disabled
               ? isCream
                 ? ob.creamDim
@@ -128,6 +146,46 @@ export function ObButton({
           {trailing}
         </Text>
       )}
+    </>
+  );
+
+  return (
+    <Pressable onPress={onPress} disabled={disabled || busy} style={[{ width: '100%' }, style]}>
+      {({ pressed }) => {
+        const held = pressed && !disabled;
+        // Disabled stays an outline rather than a dimmed key: `opacity: .4` on
+        // an ink fill renders as a grey slab, and grey is not in this palette.
+        // A key with no ledge is also the clearest way to say "not yet".
+        if (disabled) {
+          return (
+            <View
+              style={{
+                width: '100%',
+                height: ds(60),
+                borderRadius: ds(18),
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: trailing ? 'space-between' : 'center',
+                paddingHorizontal: trailing ? ds(22) : 0,
+                gap: ds(10),
+                borderWidth: 1.5,
+                borderColor: isCream ? ob.creamRule : ob.hairline18,
+              }}>
+              {body}
+            </View>
+          );
+        }
+        return (
+          <LinearGradient
+            colors={isCream ? ['#FFFFFF', ob.cream] : ['#35302A', ob.ink]}
+            locations={[0, 0.6]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={face(held)}>
+            {body}
+          </LinearGradient>
+        );
+      }}
     </Pressable>
   );
 }

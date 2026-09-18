@@ -168,31 +168,6 @@ export const obFont = {
   xb800: 'Onest_800ExtraBold',
 } as const;
 
-// Full-bleed photo veils — README per-screen gradients, verbatim.
-export const WELCOME_1_VEIL = {
-  colors: [
-    'rgba(18,15,10,.72)',
-    'rgba(18,15,10,.38)',
-    'rgba(18,15,10,.16)',
-    'rgba(18,15,10,.52)',
-    'rgba(18,15,10,.9)',
-    'rgba(18,15,10,.96)',
-  ] as const,
-  locations: [0, 0.24, 0.4, 0.62, 0.84, 1] as const,
-};
-
-export const WELCOME_2_VEIL = {
-  colors: [
-    'rgba(18,15,10,.72)',
-    'rgba(18,15,10,.34)',
-    'rgba(18,15,10,.14)',
-    'rgba(18,15,10,.5)',
-    'rgba(18,15,10,.9)',
-    'rgba(18,15,10,.96)',
-  ] as const,
-  locations: [0, 0.2, 0.34, 0.54, 0.76, 1] as const,
-};
-
 /**
  * Syllabus data.
  *
