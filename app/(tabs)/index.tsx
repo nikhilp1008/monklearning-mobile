@@ -1,11 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { Grain } from '@/components/grain';
 import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
@@ -307,20 +308,43 @@ export default function HomeScreen() {
  * than a PressableScale is that a uniform scale cannot express it.
  */
 /**
+ * GRAIN CELLS PER POINT — one number, because the card and the plates want the
+ * same paper and only ever differed by accident.
+ *
+ * Both drew the same 420x240 PNG and neither could draw it plainly. The card
+ * stretched it across 342pt, so one source pixel covered about 2.4 device
+ * pixels; the plates could not stretch it at all, because fitting that sheet
+ * into a 36pt box is a four-fold reduction and downscaling noise averages it
+ * away, so it had to be pinned at exactly 140x80pt — its own size in device
+ * pixels — and clipped by the plate. One asset, two unrelated tricks, two
+ * different grains at the end of it.
+ *
+ * Skia evaluates the noise per pixel, so there is no sheet to fit and the
+ * question becomes what size the grain should be rather than how to stop it
+ * being resampled. 1.0 is a cell three device pixels across on a 3x screen,
+ * which is what the card was already showing and what the plates now match.
+ */
+const GRAIN_FREQ = 1.0;
+
+/**
+ * HOW MUCH OF IT, and these are measured rather than chosen. The PNG carried
+ * its strength in two places at once — a per-pixel alpha that was mostly near
+ * zero, and a view opacity over the top — so none of its numbers transfer to a
+ * shader whose grey sits at full alpha everywhere.
+ *
+ * These were solved against the screen that was signed off, by photographing
+ * both builds and subtracting the texture floor each surface has anyway from
+ * its own gradient dithering. The card lands at 0.689 against 0.685 at the
+ * scale the mottling lives on; the plates hold their high-frequency energy at
+ * 3.55 and 3.04 against 3.57 and 3.06. The intent of this change was the
+ * mechanism, not the look, so the look had to be shown not to have moved.
+ */
+const CARD_GRAIN = 0.13;
+const PLATE_GRAIN = 0.22;
+
+/**
  * THE PLATE'S GROUND — the live-class card's treatment, at a thirty-sixth of
  * the area: a warm glow in the lower-right and the same grain over it.
- *
- * THE GRAIN IS SAMPLED 1:1, and that is the whole difficulty of putting it on
- * something this small. The sheet is 420x240 source pixels drawn across a
- * 342pt card, so each of its pixels covers about 2.4 device pixels. Fitting
- * that same sheet into a 36pt box would ask for a FOUR-fold reduction, and
- * downscaling noise averages it away — the plate would come out a flat wash
- * with the texture gone.
- *
- * So the sheet is not fitted. It is laid at 140x80pt, which on a 3x screen is
- * 420x240 device pixels: exactly its own size, one source pixel to one device
- * pixel. The plate clips, and a 36pt window of true grain shows through. One
- * asset, two very different surfaces, no resampling on either.
  */
 function PlateGround() {
   return (
@@ -334,21 +358,10 @@ function PlateGround() {
         </Defs>
         <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#plateGlow)" />
       </Svg>
-      <Image source={require('@/assets/images/grain.png')} style={plateGrainStyle} />
+      <Grain freq={GRAIN_FREQ} strength={PLATE_GRAIN} />
     </>
   );
 }
-
-/** Its own size in points, so the pixels land 1:1. See `PlateGround`. */
-const plateGrainStyle = {
-  position: 'absolute' as const,
-  left: 0,
-  top: 0,
-  width: 140,
-  height: 80,
-  opacity: 0.38,
-  mixBlendMode: 'overlay' as const,
-};
 
 function ClassBlock({
   styles,
@@ -386,20 +399,12 @@ function ClassBlock({
         lays the gold over it, centred just past the bottom-right corner so the
         card catches the edge of the glow rather than containing its middle.
 
-        AND THE GRAIN IS A REAL IMAGE, tiled. `FeTurbulence` is the obvious way
-        to make noise in SVG and it is a no-op here: react-native-svg ships
-        `FeTurbulence.tsx` in JavaScript but there is no `RNSVGFeTurbulence` on
-        the Apple side at all — only Blend, ColorMatrix, Composite, Flood,
-        GaussianBlur, Merge and Offset are implemented natively. It would have
-        rendered nothing, silently, which is the same trap as `filter: blur()`.
-
-        It is ONE SHEET, not a repeated tile. `resizeMode="repeat"` drew a
-        single 128pt tile in the top-left with a hard edge down its right side
-        — measured, not guessed: high-frequency energy ran 5.7 in the left
-        third of the card against 1.3 in the right, and as a step rather than a
-        falloff. So the grain is generated at the card's own proportion and
-        drawn once, over everything, because grain that reads as grain has to be
-        ON the image rather than beside it.
+        AND THE GRAIN IS DRAWN, not fetched. It was a PNG for three commits and
+        every problem with it came from being one: a fixed sheet that had to be
+        stretched here and pinned to its own pixel size on the icon plates, and
+        a texture you could only change by regenerating the file. `Grain` is a
+        Skia noise shader evaluated per pixel at whatever size it lands on. See
+        `components/grain.tsx` for why SVG's `FeTurbulence` could not do it.
       */}
       <View style={styles.classGradient} pointerEvents="none">
         <LinearGradient
@@ -419,11 +424,7 @@ function ClassBlock({
           </Defs>
           <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#classGlow)" />
         </Svg>
-        <Image
-          source={require('@/assets/images/grain.png')}
-          style={styles.classGrain}
-          resizeMode="cover"
-        />
+        <Grain freq={GRAIN_FREQ} strength={CARD_GRAIN} />
       </View>
       <Text style={styles.classLine}>Pick a chapter and your teacher teaches it live.</Text>
       <View style={[styles.keyBase, held && styles.keyBaseHeld]}>
@@ -620,17 +621,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 10,
       marginBottom: verticalScale(32),
     },
-    /** Over everything, and it must not catch a touch. */
-    /**
-     * OVERLAY, not plain alpha. Laid on normally, grain is additive: a speck of
-     * 44 alpha over near-black is a large relative jump and the same speck over
-     * mid-gold is almost nothing, so the texture read strongly at the top of
-     * the card and thinned out into the glow — measured at 2.2x more
-     * high-frequency energy on the dark side than the bright. Overlay scales
-     * each speck against what is under it, which is how grain behaves in a
-     * photograph and what keeps it even across the whole face.
-     */
-    classGrain: { ...StyleSheet.absoluteFillObject, opacity: 0.44, mixBlendMode: 'overlay' },
     classGradient: {
       ...StyleSheet.absoluteFillObject,
       borderRadius: scale(21),
