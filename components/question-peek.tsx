@@ -2,9 +2,18 @@ import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { ImageStyle, Modal, Pressable, StyleSheet, Text, ViewStyle, StyleProp } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { useScale } from '@/constants/scale';
+
+/** expo-image doesn't ship an animated variant, so the zoom transform needs
+ *  one made here. Module scope: creating it per render remounts the image. */
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 /**
  * A question's photograph, tappable to read properly.
@@ -44,15 +53,39 @@ export function QuestionPeek({
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [open, setOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
 
-  const pinch = Gesture.Pinch().onUpdate((e) => {
-    setZoom(Math.min(Math.max(e.scale, 1), 5));
-  });
+  /**
+   * Zoom is a shared value, so the pinch runs on the UI thread.
+   *
+   * As React state this re-rendered the component and committed a new style on
+   * every frame of the gesture, which is why the zoom felt like it was catching
+   * up with the fingers rather than following them. `.onUpdate` is a worklet
+   * now — nothing crosses to JS while a student is pinching.
+   *
+   * The pinch is relative to where the last gesture left off (`start`), which
+   * also fixes a smaller bug: each new pinch used to jump back to the raw
+   * gesture scale, so zooming in twice reset to roughly 1× on the second try.
+   */
+  const zoom = useSharedValue(1);
+  const zoomStart = useSharedValue(1);
+
+  const pinch = Gesture.Pinch()
+    .onStart(() => {
+      zoomStart.value = zoom.value;
+    })
+    .onUpdate((e) => {
+      zoom.value = Math.min(Math.max(zoomStart.value * e.scale, 1), 5);
+    });
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
-    .onEnd(() => setZoom((z) => (z > 1.5 ? 1 : 2.5)));
+    .onEnd(() => {
+      zoom.value = withTiming(zoom.value > 1.5 ? 1 : 2.5, { duration: 180 });
+    });
   const composed = Gesture.Race(pinch, doubleTap);
+
+  const zoomStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: zoom.value }],
+  }));
 
   return (
     <>
@@ -62,7 +95,7 @@ export function QuestionPeek({
         style={frameStyle}
         disabled={disabled}
         onPress={() => {
-          setZoom(1);
+          zoom.value = 1;
           setOpen(true);
         }}>
         <Image
@@ -110,9 +143,9 @@ export function QuestionPeek({
                 it 85% of nothing — the viewer opened as scrim and a Close
                 button around an invisible image. */}
             <Pressable style={styles.fullFrame} onPress={(e) => e.stopPropagation()}>
-              <Image
+              <AnimatedImage
                 source={{ uri }}
-                style={[styles.fullImage, { transform: [{ scale: zoom }] }]}
+                style={[styles.fullImage, zoomStyle]}
                 contentFit="contain"
                 accessibilityLabel={label}
               />

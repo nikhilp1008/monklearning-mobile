@@ -14,6 +14,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathText } from '@/components/math-text';
+import { PressableScale } from '@/components/pressable-scale';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -37,7 +38,7 @@ import {
   takeQueuedQuestion,
 } from '@/lib/practice';
 import { ApiError } from '@/lib/api';
-import { examSubjects, getCatalogue } from '@/lib/drona';
+import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
@@ -175,25 +176,15 @@ export default function PracticeScreen() {
    * title-only push used to start a chapterless session on the blank
    * scoping screen.
    */
-  const goLearnChapter = async (chapterTitle: string | null) => {
-    const title = chapterTitle ?? 'this topic';
-    let chapterId: string | undefined;
-    try {
-      const catalogue = await getCatalogue();
-      const wanted = title.trim().toLowerCase();
-      for (const subj of catalogue) {
-        const hit = subj.chapters.find((ch) => ch.name.trim().toLowerCase() === wanted);
-        if (hit) {
-          chapterId = hit.id;
-          break;
-        }
-      }
-    } catch {
-      // No catalogue — the title still names the chapter for scoping.
-    }
+  const goLearnChapter = (chapterTitle: string | null) => {
+    // Pushes on the same tick as the tap. This used to await getCatalogue()
+    // first and push only once it had resolved a chapterId, so on a cold
+    // catalogue the button was simply dead — no press state, no transition —
+    // for the length of a network round trip. `entering-classroom` does that
+    // lookup now, where there is a loading screen to look at while it happens.
     router.push({
       pathname: '/entering-classroom',
-      params: chapterId ? { chapterId, chapterTitle: title } : { chapterTitle: title },
+      params: { chapterTitle: chapterTitle ?? 'this topic' },
     });
   };
 
@@ -238,7 +229,7 @@ export default function PracticeScreen() {
       });
     } catch (err) {
       console.error('[practice] could not start an explain session:', err);
-      await goLearnChapter(question.chapter_name);
+      goLearnChapter(question.chapter_name);
     } finally {
       setExplaining(false);
     }
@@ -694,13 +685,17 @@ export default function PracticeScreen() {
                 That&apos;s {stuck.run} in a row you haven&apos;t known. A lesson will get you
                 further than another question.
               </Text>
-              <Pressable
+              {/* PressableScale, and no `disabled`: the flag here was
+                  `explaining`, which only ever tracks the OTHER button on this
+                  screen, so it could grey this one out for a request it has
+                  nothing to do with. The push is synchronous now, so there is
+                  no in-flight state left to guard — only a press to show. */}
+              <PressableScale
                 style={styles.stuckButton}
-                disabled={explaining}
                 onPress={() => goLearnChapter(stuck.chapter)}>
                 <Text style={styles.stuckButtonText}>Learn it with Drona</Text>
                 <ArrowRightIcon size={scale(13)} color={colors.paper} />
-              </Pressable>
+              </PressableScale>
             </View>
           )}
 

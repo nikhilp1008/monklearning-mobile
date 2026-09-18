@@ -385,6 +385,31 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     );
   }, [notes, notesFilter, notesQuery]);
 
+  /**
+   * The readable form of each question, parsed once per fetch.
+   *
+   * `latexToText` is the 1,200-line regex chain in lib/latex-text.ts, and it
+   * was being called twice per row from inside the render — so every keystroke
+   * in the search field re-parsed all 60 doubts (120 passes) before the
+   * filtered list could paint, and so did every unrelated state change on this
+   * screen. Keyed on `doubts` alone, so typing never re-enters it.
+   *
+   * `components/math-text.tsx` already does exactly this with useMemo; the
+   * list was the one place calling the raw function.
+   */
+  const doubtText = useMemo(() => {
+    const byId = new Map<string, string | null>();
+    for (const doubt of doubts) {
+      // null, not '', when the row carries neither field — so the `??` at each
+      // call site still distinguishes "no question text" (show the fallback)
+      // from "question text that parses to nothing" (show nothing), exactly as
+      // the inline `stem ?? question_text ?? fallback` did.
+      const raw = doubt.stem ?? doubt.question_text;
+      byId.set(doubt.id, raw == null ? null : latexToText(raw));
+    }
+    return byId;
+  }, [doubts]);
+
   const visibleDoubts = useMemo(() => {
     const q = doubtsQuery.trim().toLowerCase();
     return doubts.filter(
@@ -728,7 +753,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                           {doubt.question_image_url ? (
                             <QuestionPeek
                               uri={doubt.question_image_url}
-                              label={latexToText(doubt.stem ?? doubt.question_text ?? 'Snapped question')}
+                              label={doubtText.get(doubt.id) ?? 'Snapped question'}
                               frameStyle={styles.doubtThumbImage}
                               disabled={eraseMode}
                             />
@@ -746,7 +771,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             </Text>
                           </View>
                           <Text style={styles.doubtRowQuestion} numberOfLines={2}>
-                            {latexToText(doubt.stem ?? doubt.question_text ?? '(photo doubt)')}
+                            {doubtText.get(doubt.id) ?? '(photo doubt)'}
                           </Text>
                         </View>
                       </PressableScale>
