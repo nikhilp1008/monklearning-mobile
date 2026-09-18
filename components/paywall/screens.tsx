@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
+import { SelectRow } from '@/components/select-row';
 import { ob, obFont, rupees, useDesignScale } from '@/constants/onboarding';
 import { BEST, INCLUDES, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
@@ -149,102 +150,79 @@ function Head({
   );
 }
 
-/** One row of the ledger. */
-function PlanRow({
-  plan,
-  selected,
-  onPress,
-  ds,
-  fs,
-  tracking,
-}: {
-  plan: Plan;
-  selected: boolean;
-  onPress: () => void;
-  ds: S;
-  fs: S;
-  tracking: (em: number, n: number) => number;
-}) {
-  const best = plan.id === BEST;
+/**
+ * THE ROWS ARE THE ONBOARDING ROWS — `components/select-row.tsx`, the same
+ * component the exam, year and pass screens choose with.
+ *
+ * These were a radio circle with a tick and a flat tint, which is a pattern
+ * from nowhere in this app. Onboarding makes a choice a different way: a 1.5pt
+ * border that turns amber, and an amber gradient that sweeps across the row
+ * over 260ms. It is a wipe rather than a fill, so selecting reads as something
+ * HAPPENING rather than something being coloured in, and there is no tick
+ * because the wash already says which row you are on.
+ *
+ * It also replays on a re-tap of the row already selected, which is why the
+ * parent bumps `playToken` on every press rather than only on a change.
+ *
+ * Its three slots take the plan exactly: `name` the duration, `note` the rate
+ * per month, `trailing` the total. Nothing had to be adapted.
+ */
+function planRow(plan: Plan, pick: Plan['id'], token: number, choose: (id: Plan['id']) => void) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: ds(12),
-        paddingVertical: ds(15),
-        paddingHorizontal: ds(16),
-        borderRadius: ds(16),
-        borderWidth: selected ? 1.5 : 1,
-        borderColor: selected ? ob.amber : ob.hairline12,
-        backgroundColor: selected ? ob.focusRing : 'transparent',
-      }}>
-      {/* A ring, not a checkbox. The row is the target; this only reports. */}
-      <View
-        style={{
-          width: ds(20),
-          height: ds(20),
-          borderRadius: ds(10),
-          borderWidth: selected ? 0 : 1.5,
-          borderColor: ob.hairline18,
-          backgroundColor: selected ? ob.amber : 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        {selected && <Tick size={ds(12)} color={ob.ink} />}
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: ds(7) }}>
-          <Text style={{ fontFamily: obFont.sb600, fontSize: fs(16.5), color: ob.ink }}>
-            {plan.name}
-          </Text>
-          {best && (
-            <View
-              style={{
-                paddingHorizontal: ds(7),
-                paddingVertical: ds(2),
-                borderRadius: ds(6),
-                backgroundColor: ob.amber,
-              }}>
-              <Text
-                style={{
-                  fontFamily: obFont.b700,
-                  fontSize: fs(9.5),
-                  letterSpacing: tracking(0.04, 9.5),
-                  color: ob.ink,
-                }}>
-                SAVE {savedPercent(plan)}%
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text style={{ marginTop: ds(2), fontFamily: obFont.r400, fontSize: fs(13), color: ob.ink80 }}>
-          {rupees(perMonth(plan))} a month
-        </Text>
-      </View>
-
-      <Text style={{ fontFamily: obFont.sb600, fontSize: fs(16.5), color: ob.ink }}>
-        {rupees(plan.price)}
-      </Text>
-    </Pressable>
+    <SelectRow
+      key={plan.id}
+      name={plan.name}
+      // The saving rides in the note rather than in `tag`. The tag slot sits
+      // immediately left of `trailing` under a space-between row, so a badge
+      // and a five-figure price collided on the one row that has both.
+      note={
+        plan.id === BEST
+          ? `${rupees(perMonth(plan))} a month · save ${savedPercent(plan)}%`
+          : `${rupees(perMonth(plan))} a month`
+      }
+      trailing={rupees(plan.price)}
+      selected={pick === plan.id}
+      playToken={token}
+      onPress={() => choose(plan.id)}
+    />
   );
+}
+
+/** Both variants share the footer, so the price line cannot drift between them. */
+function Foot({ plan, ds, fs }: { plan: Plan; ds: S; fs: S }) {
+  return (
+    <View style={{ paddingHorizontal: ds(26), paddingBottom: ds(18), gap: ds(10) }}>
+      <ObButton label={`Pay ${rupees(plan.price)}`} trailing={plan.name} onPress={() => {}} />
+      <Text
+        style={{ textAlign: 'center', fontFamily: obFont.r400, fontSize: fs(12.5), color: ob.ink55 }}>
+        One payment. Nothing renews on its own.
+      </Text>
+    </View>
+  );
+}
+
+/** The selection state both variants keep, including the replay token. */
+function usePick() {
+  const [pick, setPick] = useState<Plan['id']>(BEST);
+  const [token, setToken] = useState(0);
+  const choose = (id: Plan['id']) => {
+    setPick(id);
+    setToken((n) => n + 1);
+  };
+  return { pick, token, choose, plan: PLANS.find((p) => p.id === pick)! };
 }
 
 /**
  * VARIANT A — THE LEDGER.
  *
- * Four equal rows and no recommendation. It is the calmer of the two and it
- * is deliberately a sibling of "Choose a pass", so a student who has already
- * bought once is reading a screen they recognise rather than a sales page. The
- * per-month rate under each name is what does the persuading; nothing shouts
- * except the one badge.
+ * Four equal rows and no recommendation. The calmer of the two, and
+ * deliberately a sibling of "Choose a pass" — a student who has bought once
+ * already is reading a screen they recognise rather than a sales page. The
+ * rate under each name does the persuading; only one row carries a badge.
  */
 export function PaywallLedger({ onBack }: { onBack: () => void }) {
   const { ds, fs, tracking } = useDesignScale();
-  const [pick, setPick] = useState<Plan['id']>(BEST);
-  const plan = PLANS.find((p) => p.id === pick)!;
+  const { pick, token, choose, plan } = usePick();
   return (
     <View style={{ flex: 1, backgroundColor: ob.surface }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -253,32 +231,11 @@ export function PaywallLedger({ onBack }: { onBack: () => void }) {
           showsVerticalScrollIndicator={false}>
           <Head ds={ds} fs={fs} tracking={tracking} onBack={onBack} />
           <View style={{ gap: ds(10), marginTop: ds(24) }}>
-            {PLANS.map((p) => (
-              <PlanRow
-                key={p.id}
-                plan={p}
-                selected={pick === p.id}
-                onPress={() => setPick(p.id)}
-                ds={ds}
-                fs={fs}
-                tracking={tracking}
-              />
-            ))}
+            {PLANS.map((p) => planRow(p, pick, token, choose))}
           </View>
           <Includes ds={ds} fs={fs} tracking={tracking} />
         </ScrollView>
-        <View style={{ paddingHorizontal: ds(26), paddingBottom: ds(18), gap: ds(10) }}>
-          <ObButton label={`Pay ${rupees(plan.price)}`} trailing={plan.name} onPress={() => {}} />
-          <Text
-            style={{
-              textAlign: 'center',
-              fontFamily: obFont.r400,
-              fontSize: fs(12.5),
-              color: ob.ink55,
-            }}>
-            One payment. Nothing renews on its own.
-          </Text>
-        </View>
+        <Foot plan={plan} ds={ds} fs={fs} />
       </SafeAreaView>
     </View>
   );
@@ -287,23 +244,19 @@ export function PaywallLedger({ onBack }: { onBack: () => void }) {
 /**
  * VARIANT B — THE LEAD.
  *
- * The 11-month plan is given a card and an argument — its rate per month, what
- * that saves against paying monthly, and the fact that it covers a full
- * academic year — and the other three are filed underneath as a compact list.
+ * The same four rows, with the case for the longest plan made above them: its
+ * rate per month set large, and what that saves against paying monthly.
  *
- * This is the version that chooses for the student, and the reason it can is
- * the shape of the ladder: 11 months is the only plan whose rate is genuinely
- * different. Leading with it is an honest recommendation rather than a default
- * dressed up as one. It will convert better than the ledger and it reads more
- * like a sales screen, which on a hard takeover is a real cost.
+ * THE PANEL DOES NOT SELECT ANYTHING, and that is the correction. It was a
+ * card you could tap, which meant the screen had two different ways to choose
+ * a plan — a card and a row — and the card's was invented. The panel argues
+ * and the rows choose, so there is exactly one selector on the screen and it
+ * is the app's own.
  */
 export function PaywallLead({ onBack }: { onBack: () => void }) {
   const { ds, fs, tracking } = useDesignScale();
-  const [pick, setPick] = useState<Plan['id']>(BEST);
-  const plan = PLANS.find((p) => p.id === pick)!;
+  const { pick, token, choose, plan } = usePick();
   const hero = PLANS[PLANS.length - 1];
-  const rest = PLANS.slice(0, -1);
-  const heroPicked = pick === hero.id;
 
   return (
     <View style={{ flex: 1, backgroundColor: ob.surface }}>
@@ -313,72 +266,43 @@ export function PaywallLead({ onBack }: { onBack: () => void }) {
           showsVerticalScrollIndicator={false}>
           <Head ds={ds} fs={fs} tracking={tracking} onBack={onBack} />
 
-          {/* The recommended plan, as a card that argues for itself. */}
-          <Pressable
-            onPress={() => setPick(hero.id)}
+          <View
             style={{
-              marginTop: ds(24),
+              marginTop: ds(22),
               padding: ds(18),
-              borderRadius: ds(20),
-              borderWidth: heroPicked ? 1.5 : 1,
-              borderColor: heroPicked ? ob.amber : ob.hairline14,
-              backgroundColor: heroPicked ? ob.surfaceWarm : 'transparent',
+              borderRadius: ds(14),
+              backgroundColor: ob.surfaceWarm,
             }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text
+              style={{
+                fontFamily: obFont.b700,
+                fontSize: fs(10.5),
+                letterSpacing: tracking(0.08, 10.5),
+                color: ob.amberDark,
+              }}>
+              A FULL ACADEMIC YEAR
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: ds(6), marginTop: ds(10) }}>
               <Text
                 style={{
-                  fontFamily: obFont.b700,
-                  fontSize: fs(9.5),
-                  letterSpacing: tracking(0.08, 9.5),
-                  color: ob.amberDark,
-                }}>
-                A FULL ACADEMIC YEAR
-              </Text>
-              <View
-                style={{
-                  paddingHorizontal: ds(8),
-                  paddingVertical: ds(3),
-                  borderRadius: ds(6),
-                  backgroundColor: ob.amber,
-                }}>
-                <Text
-                  style={{
-                    fontFamily: obFont.b700,
-                    fontSize: fs(9.5),
-                    letterSpacing: tracking(0.04, 9.5),
-                    color: ob.ink,
-                  }}>
-                  SAVE {savedPercent(hero)}%
-                </Text>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: ds(6), marginTop: ds(12) }}>
-              <Text
-                style={{
-                  fontFamily: obFont.xb800,
-                  fontSize: fs(38),
-                  lineHeight: fs(40),
-                  letterSpacing: tracking(-0.03, 38),
+                  fontFamily: obFont.m500,
+                  fontSize: fs(36),
+                  lineHeight: fs(38),
+                  letterSpacing: tracking(-0.03, 36),
                   color: ob.ink,
                 }}>
                 {rupees(perMonth(hero))}
               </Text>
               <Text
-                style={{
-                  paddingBottom: ds(4),
-                  fontFamily: obFont.m500,
-                  fontSize: fs(15),
-                  color: ob.ink80,
-                }}>
+                style={{ paddingBottom: ds(4), fontFamily: obFont.m500, fontSize: fs(15), color: ob.ink80 }}>
                 a month
               </Text>
             </View>
             <Text style={{ marginTop: ds(4), fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink80 }}>
-              {hero.name} · {rupees(hero.price)} once ·{' '}
-              {rupees(PLANS[0].price * hero.months - hero.price)} less than paying monthly
+              On the {hero.name} plan — {rupees(PLANS[0].price * hero.months - hero.price)} less than
+              paying month by month.
             </Text>
-          </Pressable>
+          </View>
 
           <Text
             style={{
@@ -389,35 +313,14 @@ export function PaywallLead({ onBack }: { onBack: () => void }) {
               letterSpacing: tracking(0.08, 10.5),
               color: ob.ink55,
             }}>
-            OR A SHORTER PLAN
+            CHOOSE A PLAN
           </Text>
-          <View style={{ gap: ds(8) }}>
-            {rest.map((p) => (
-              <PlanRow
-                key={p.id}
-                plan={p}
-                selected={pick === p.id}
-                onPress={() => setPick(p.id)}
-                ds={ds}
-                fs={fs}
-                tracking={tracking}
-              />
-            ))}
+          <View style={{ gap: ds(10) }}>
+            {PLANS.map((p) => planRow(p, pick, token, choose))}
           </View>
           <Includes ds={ds} fs={fs} tracking={tracking} />
         </ScrollView>
-        <View style={{ paddingHorizontal: ds(26), paddingBottom: ds(18), gap: ds(10) }}>
-          <ObButton label={`Pay ${rupees(plan.price)}`} trailing={plan.name} onPress={() => {}} />
-          <Text
-            style={{
-              textAlign: 'center',
-              fontFamily: obFont.r400,
-              fontSize: fs(12.5),
-              color: ob.ink55,
-            }}>
-            One payment. Nothing renews on its own.
-          </Text>
-        </View>
+        <Foot plan={plan} ds={ds} fs={fs} />
       </SafeAreaView>
     </View>
   );
