@@ -10,12 +10,11 @@
 // onboarding, and it marks the seam between signing up and being a student.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
+import { Ring, Rise, Tick } from '@/components/confirm-motion';
 import { ObButton } from '@/components/onboarding-kit';
 import {
   EXAMS,
@@ -30,119 +29,6 @@ import {
 } from '@/constants/onboarding';
 import { revalidateAuthState } from '@/lib/auth';
 import { pushProfile } from '@/lib/profile';
-
-/** `mkRise` — 14px up, fading in. The handoff staggers the receipt rows out of
- *  the headline; each row gets its own delay. */
-function Rise({ delay, children }: { delay: number; children: React.ReactNode }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const run = Animated.timing(anim, {
-      toValue: 1,
-      duration: 480,
-      delay,
-      easing: Easing.bezier(0.2, 0.85, 0.2, 1),
-      useNativeDriver: true,
-    });
-    run.start();
-    return () => run.stop();
-  }, [anim, delay]);
-  return (
-    <Animated.View
-      style={{
-        opacity: anim,
-        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
-      }}>
-      {children}
-    </Animated.View>
-  );
-}
-
-/**
- * `mkRing` — an amber disc that expands out from under the tick and fades.
- * Two of them, staggered, so the confirmation has something moving in it
- * rather than four rows that are simply present. Runs once; this is a moment,
- * not a loop.
- */
-function Ring({ size, delay }: { size: number; delay: number }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const run = Animated.timing(anim, {
-      toValue: 1,
-      duration: 1400,
-      delay,
-      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
-      useNativeDriver: true,
-    });
-    run.start();
-    return () => run.stop();
-  }, [anim, delay]);
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: ob.amber,
-        opacity: anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.5, 0.1, 0] }),
-        transform: [
-          { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 2] }) },
-        ],
-      }}
-    />
-  );
-}
-
-/** The tick pops out of nothing at 1.08 before settling — `mkPop`. */
-function Tick({ size }: { size: number }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const run = Animated.timing(anim, {
-      toValue: 1,
-      duration: 620,
-      delay: 60,
-      easing: Easing.bezier(0.2, 0.9, 0.2, 1),
-      useNativeDriver: true,
-    });
-    run.start();
-    return () => run.stop();
-  }, [anim]);
-  return (
-    <Animated.View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: anim,
-        transform: [
-          { scale: anim.interpolate({ inputRange: [0, 0.62, 1], outputRange: [0.5, 1.08, 1] }) },
-        ],
-      }}>
-      {/* `linear-gradient(150deg, …)` in the handoff — light amber falling to
-          the deeper one, so the disc has some roundness under the tick rather
-          than reading as a flat sticker. */}
-      <LinearGradient
-        colors={[ob.amberLight, ob.amber]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <Svg viewBox="0 0 24 24" width={size * 0.46} height={size * 0.46} fill="none">
-        <Path
-          d="M5 12.5l4.5 4.5L19 7.5"
-          stroke={ob.ink}
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-    </Animated.View>
-  );
-}
 
 export default function PassActiveScreen() {
   const { ds, fs, tracking } = useDesignScale();

@@ -1,343 +1,308 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 
+import { Ring, Rise, Tick } from '@/components/confirm-motion';
 import { ObButton } from '@/components/onboarding-kit';
+import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
-import { ob, obFont, rupees, useDesignScale } from '@/constants/onboarding';
+import {
+  PROMO_CODE,
+  ob,
+  obFont,
+  promoDiscount,
+  rupees,
+  useDesignScale,
+} from '@/constants/onboarding';
 import { BEST, INCLUDES, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
 /**
- * THE PAYWALL, TWO WAYS — designs only. Nothing here is wired to the app's
- * gate, no payment sheet exists behind it, and the button does not charge.
+ * THE PAYWALL — designs only. Nothing imports these, the app's gate is
+ * untouched, and no payment provider exists behind the button.
  *
- * WHAT THE SCREEN HAS TO DO. It appears when a trial, day pass or week pass
- * has ended, and it is the whole app until it is answered. That makes it the
- * most demanding screen in the product: it is asking for ₹4,999 at the
- * cheapest, from a student who has had the teacher taken away, with no
- * navigation to escape into. So both variants do three things before they ask
- * for anything — say plainly that the pass ended, say that the student's own
- * work is still there, and say what the money buys.
+ * IT IS THE PASS SCREEN, WITH FOUR PLANS. Everything structural here is
+ * lifted from `app/(onboarding)/pass.tsx`: the 30pt gutters, the 22.5pt medium
+ * header, the sub line under it, the 10pt gap between option rows, the promo
+ * link with its amber arrow, the rules-and-overline includes block, and a
+ * footer whose button is honest about not being able to charge. A student who
+ * bought a day pass during onboarding and comes back to this a week later is
+ * looking at the same screen with different numbers, which is the point.
  *
- * WHY EACH ROW LEADS WITH A PER-MONTH RATE. It is the only number that
- * compares four different durations, and at this ladder it is also the only
- * number that makes the longest plan look like the best one. See `plans.ts`
- * for the two things about the ladder the screen cannot paper over.
+ * The rows are the app's own `SelectRow` — amber border, amber wash sweeping
+ * across on select, no tick.
  *
- * THE TWO VARIANTS DIFFER IN ONE DECISION: whether the screen chooses for the
- * student. `PaywallLedger` lays out four equal rows and lets them read; it is
- * the calmer screen and it is a sibling of the pass screen they have already
- * seen. `PaywallLead` puts the 11-month plan up as a card with its own
- * argument and files the rest underneath; it converts better and it is more
- * obviously a sales screen. That is the choice, not the styling.
+ * THE TOP-LEFT CONTROL IS AN EXIT, NOT A BACK. There is nowhere to go back
+ * to: this screen IS the app until it is answered. So the first press does not
+ * navigate, it offers a week at ₹200 off; "See the plans again" returns here;
+ * and a second press leaves the app. Two presses, because a student who
+ * mis-taps a chevron should not lose the app, and one who means it should not
+ * be trapped.
+ *
+ * WHAT WILL NOT WORK ON iOS: that second press. `BackHandler.exitApp()` is
+ * Android-only, and iOS has no sanctioned way for an app to terminate itself
+ * — `exit(0)` is grounds for rejection. The call is guarded by platform and
+ * does nothing on iOS, so the behaviour below is correct on Android and needs
+ * a different answer on iPhone. Flagged rather than faked.
  */
 
 type S = (n: number) => number;
+type T = (em: number, size: number) => number;
 
-function Chevron({ size }: { size: number }) {
+function ArrowGlyph({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path d="M10 3 5 8l5 5" stroke={ob.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M2 8h11M9 3.5 13.5 8 9 12.5" stroke={ob.link} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
-function Tick({ size, color }: { size: number; color: string }) {
+/** The header, laid out as `ObHeader` lays it out — but its chevron exits. */
+function ExitHeader({ title, ds, fs, tracking, onExit }: { title: string; ds: S; fs: S; tracking: T; onExit: () => void }) {
   return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path d="M3 8.5 6.5 12 13 4.5" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-/** The included-lines block, shared by both variants. */
-function Includes({ ds, fs, tracking }: { ds: S; fs: S; tracking: (em: number, n: number) => number }) {
-  return (
-    <View style={{ marginTop: ds(26) }}>
-      <Text
-        style={{
-          fontFamily: obFont.sb600,
-          fontSize: fs(10.5),
-          letterSpacing: tracking(0.08, 10.5),
-          color: ob.ink55,
-          marginBottom: ds(10),
-        }}>
-        EVERY PLAN INCLUDES
-      </Text>
-      {INCLUDES.map(([label, value], i) => (
-        <View
-          key={label}
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingVertical: ds(11),
-            borderBottomWidth: i === INCLUDES.length - 1 ? 0 : 1,
-            borderBottomColor: ob.rule,
-          }}>
-          <Text style={{ fontFamily: obFont.m500, fontSize: fs(14.5), color: ob.ink }}>{label}</Text>
-          <Text style={{ fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink80 }}>{value}</Text>
-        </View>
-      ))}
-      {/* The unified price, said once. A student preparing for both exams is
-          the case most likely to assume it costs more. */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ds(8), marginTop: ds(14) }}>
-        <Tick size={ds(14)} color={ob.amberDark} />
-        <Text style={{ flex: 1, fontFamily: obFont.m500, fontSize: fs(13.5), color: ob.amberDark }}>
-          JEE Main and NEET UG, both covered. One price.
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-/** The line every variant opens with. */
-function Head({
-  ds,
-  fs,
-  tracking,
-  onBack,
-}: {
-  ds: S;
-  fs: S;
-  tracking: (em: number, n: number) => number;
-  onBack: () => void;
-}) {
-  return (
-    <>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: ds(13), paddingHorizontal: ds(30), paddingTop: ds(34) }}>
       <Pressable
-        onPress={onBack}
-        hitSlop={12}
+        onPress={onExit}
+        hitSlop={16}
         accessibilityRole="button"
-        accessibilityLabel="Not now"
-        style={{
-          width: ds(44),
-          height: ds(44),
-          borderRadius: ds(22),
-          borderWidth: 1,
-          borderColor: ob.hairline14,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: ds(18),
-        }}>
-        <Chevron size={ds(18)} />
+        accessibilityLabel="Leave"
+        style={({ pressed }) => ({ opacity: pressed ? 0.45 : 1 })}>
+        <Svg viewBox="0 0 24 24" width={ds(19)} height={ds(19)} fill="none">
+          <Path d="M15 5l-7 7 7 7" stroke={ob.ink80} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
       </Pressable>
       <Text
         style={{
-          fontFamily: obFont.sb600,
-          fontSize: fs(30),
-          lineHeight: fs(33),
-          letterSpacing: tracking(-0.035, 30),
+          flex: 1,
+          fontFamily: obFont.m500,
+          fontSize: fs(22.5),
+          lineHeight: fs(28),
+          letterSpacing: tracking(-0.02, 22.5),
           color: ob.ink,
         }}>
-        Your pass has ended.
+        {title}
       </Text>
-      {/* Says the work survived before it says the price. This is the one
-          thing a student on this screen is actually anxious about. */}
+    </View>
+  );
+}
+
+/**
+ * THE SHELL BOTH VARIANTS SHARE.
+ *
+ * The exit ladder, the rows, the promo line, the includes block and the
+ * footer all live here, so the two variants cannot drift on anything except
+ * the one thing they are meant to differ on — whether the screen makes a
+ * recommendation before the rows.
+ */
+function Paywall({ lead, onExit }: { lead?: (hero: Plan) => React.ReactNode; onExit: () => void }) {
+  const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
+
+  const [pick, setPick] = useState<Plan['id']>(BEST);
+  /** Bumped on every press so the wash replays on a re-tap. */
+  const [token, setToken] = useState(0);
+  const [promo, setPromo] = useState('');
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [offer, setOffer] = useState(false);
+  /** The offer is made once. After that the exit means it. */
+  const [armed, setArmed] = useState(false);
+
+  const plan = PLANS.find((p) => p.id === pick)!;
+  const discount = promoDiscount(promo, plan.price);
+  const total = Math.max(0, plan.price - discount);
+  const paid = total === 0;
+
+  const exit = () => {
+    if (!armed) {
+      setArmed(true);
+      setOffer(true);
+      return;
+    }
+    onExit();
+  };
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <ExitHeader title="Your pass has ended" ds={ds} fs={fs} tracking={tracking} onExit={exit} />
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* The work survived. It is the first thing a student on this screen
+              wants to know and it costs one line. */}
+          <Text style={styles.sub}>
+            Your chapters, notes and progress are exactly where you left them. Pick a plan and
+            carry on from the same page.
+          </Text>
+
+          {lead?.(PLANS[PLANS.length - 1])}
+
+          <View style={styles.rows}>
+            {PLANS.map((p) => (
+              <SelectRow
+                key={p.id}
+                name={p.name}
+                // The saving rides in the note, not in `tag`: the tag slot sits
+                // immediately left of `trailing` under a space-between row, so
+                // a badge collided with a five-figure price.
+                note={
+                  p.id === BEST
+                    ? `${rupees(perMonth(p))} a month · save ${savedPercent(p)}%`
+                    : `${rupees(perMonth(p))} a month`
+                }
+                trailing={rupees(p.price)}
+                selected={pick === p.id}
+                playToken={token}
+                onPress={() => {
+                  setPick(p.id);
+                  setToken((n) => n + 1);
+                }}
+              />
+            ))}
+
+            {/* A line, not a field — the pass screen's own note. Onboarding
+                sends this to its own screen; inline here because a takeover
+                has nowhere to push to. */}
+            {promoOpen ? (
+              <View style={styles.promoField}>
+                <Text style={styles.promoLabel}>PROMO CODE</Text>
+                <TextInput
+                  value={promo}
+                  onChangeText={setPromo}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  placeholder="FIRST100"
+                  placeholderTextColor={ob.placeholder}
+                  style={styles.promoInput}
+                />
+              </View>
+            ) : (
+              <PressableScale style={styles.promoLink} hitSlop={10} onPress={() => setPromoOpen(true)}>
+                <Text style={styles.promoLinkText}>
+                  {discount ? `${promo.toUpperCase()} applied · −${rupees(discount)}` : 'Have a promo code?'}
+                </Text>
+                <ArrowGlyph size={ds(13)} />
+              </PressableScale>
+            )}
+          </View>
+
+          <View style={styles.included}>
+            <Text style={styles.overline}>EVERY PLAN INCLUDES</Text>
+            {INCLUDES.map(([label, value], i) => (
+              <View key={label} style={[styles.includedRow, i === INCLUDES.length - 1 && styles.includedRowLast]}>
+                <Text style={styles.includedLabel}>{label}</Text>
+                <Text style={styles.includedValue}>{value}</Text>
+              </View>
+            ))}
+            {/* One price for both exams, said once — the case most likely to
+                be assumed to cost more. */}
+            <Text style={styles.unified}>JEE Main and NEET UG, both covered. One price.</Text>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          {/* Dead until the total is zero, exactly as the pass screen is. A
+              live "Pay ₹43,999" that silently does nothing is worse than a
+              button that plainly waits. */}
+          <ObButton
+            label={paid ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
+            trailing={plan.name}
+            disabled={!paid}
+            withArrow={paid}
+            onPress={() => {}}
+          />
+          {!paid && (
+            <Text style={styles.footNote}>
+              Card payments aren’t live yet. Add the code{' '}
+              <Text style={styles.footNoteCode}>{PROMO_CODE}</Text> to continue.
+            </Text>
+          )}
+        </View>
+      </SafeAreaView>
+
+      {offer && (
+        <WinBack
+          onStay={() => setOffer(false)}
+          onTake={() => setOffer(false)}
+        />
+      )}
+    </View>
+  );
+}
+
+/** Leaving the app. Android can; iOS cannot — see the note at the top. */
+export function leaveApp() {
+  if (Platform.OS === 'android') BackHandler.exitApp();
+}
+
+/**
+ * VARIANT A — THE LEDGER. Four equal rows, no recommendation. The calmer of
+ * the two and the closer sibling of "Choose a pass".
+ */
+export function PaywallLedger({ onExit = leaveApp }: { onExit?: () => void }) {
+  return <Paywall onExit={onExit} />;
+}
+
+/**
+ * VARIANT B — THE LEAD. The same rows, with the case for the longest plan
+ * made above them. The panel argues; the rows choose. It does not select, so
+ * the screen has exactly one selector and it is the app's own.
+ */
+export function PaywallLead({ onExit = leaveApp }: { onExit?: () => void }) {
+  return <Paywall onExit={onExit} lead={(hero) => <Lead hero={hero} />} />;
+}
+
+function Lead({ hero }: { hero: Plan }) {
+  const { ds, fs, tracking } = useDesignScale();
+  return (
+    <View
+      style={{
+        marginTop: ds(22),
+        padding: ds(18),
+        borderRadius: ds(14),
+        backgroundColor: ob.surfaceWarm,
+      }}>
       <Text
         style={{
-          marginTop: ds(10),
-          fontFamily: obFont.r400,
-          fontSize: fs(16),
-          lineHeight: fs(22.4),
-          color: '#6B6559',
+          fontFamily: obFont.sb600,
+          fontSize: fs(10),
+          letterSpacing: tracking(0.14, 10),
+          color: ob.amberDark,
         }}>
-        Your chapters, notes and progress are exactly where you left them. Pick a plan and carry
-        on from the same page.
+        A FULL ACADEMIC YEAR
       </Text>
-    </>
-  );
-}
-
-/**
- * THE ROWS ARE THE ONBOARDING ROWS — `components/select-row.tsx`, the same
- * component the exam, year and pass screens choose with.
- *
- * These were a radio circle with a tick and a flat tint, which is a pattern
- * from nowhere in this app. Onboarding makes a choice a different way: a 1.5pt
- * border that turns amber, and an amber gradient that sweeps across the row
- * over 260ms. It is a wipe rather than a fill, so selecting reads as something
- * HAPPENING rather than something being coloured in, and there is no tick
- * because the wash already says which row you are on.
- *
- * It also replays on a re-tap of the row already selected, which is why the
- * parent bumps `playToken` on every press rather than only on a change.
- *
- * Its three slots take the plan exactly: `name` the duration, `note` the rate
- * per month, `trailing` the total. Nothing had to be adapted.
- */
-function planRow(plan: Plan, pick: Plan['id'], token: number, choose: (id: Plan['id']) => void) {
-  return (
-    <SelectRow
-      key={plan.id}
-      name={plan.name}
-      // The saving rides in the note rather than in `tag`. The tag slot sits
-      // immediately left of `trailing` under a space-between row, so a badge
-      // and a five-figure price collided on the one row that has both.
-      note={
-        plan.id === BEST
-          ? `${rupees(perMonth(plan))} a month · save ${savedPercent(plan)}%`
-          : `${rupees(perMonth(plan))} a month`
-      }
-      trailing={rupees(plan.price)}
-      selected={pick === plan.id}
-      playToken={token}
-      onPress={() => choose(plan.id)}
-    />
-  );
-}
-
-/** Both variants share the footer, so the price line cannot drift between them. */
-function Foot({ plan, ds, fs }: { plan: Plan; ds: S; fs: S }) {
-  return (
-    <View style={{ paddingHorizontal: ds(26), paddingBottom: ds(18), gap: ds(10) }}>
-      <ObButton label={`Pay ${rupees(plan.price)}`} trailing={plan.name} onPress={() => {}} />
-      <Text
-        style={{ textAlign: 'center', fontFamily: obFont.r400, fontSize: fs(12.5), color: ob.ink55 }}>
-        One payment. Nothing renews on its own.
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: ds(6), marginTop: ds(10) }}>
+        <Text
+          style={{
+            fontFamily: obFont.m500,
+            fontSize: fs(34),
+            lineHeight: fs(37),
+            letterSpacing: tracking(-0.03, 34),
+            color: ob.ink,
+          }}>
+          {rupees(perMonth(hero))}
+        </Text>
+        <Text style={{ paddingBottom: ds(4), fontFamily: obFont.r400, fontSize: fs(15), color: ob.ink80 }}>
+          a month
+        </Text>
+      </View>
+      <Text style={{ marginTop: ds(4), fontFamily: obFont.r400, fontSize: fs(13.5), lineHeight: fs(19), color: ob.ink80 }}>
+        On the {hero.name} plan — {rupees(PLANS[0].price * hero.months - hero.price)} less than
+        paying month by month.
       </Text>
     </View>
   );
 }
 
-/** The selection state both variants keep, including the replay token. */
-function usePick() {
-  const [pick, setPick] = useState<Plan['id']>(BEST);
-  const [token, setToken] = useState(0);
-  const choose = (id: Plan['id']) => {
-    setPick(id);
-    setToken((n) => n + 1);
-  };
-  return { pick, token, choose, plan: PLANS.find((p) => p.id === pick)! };
-}
-
 /**
- * VARIANT A — THE LEDGER.
+ * THE WIN-BACK, offered on the way out and only once.
  *
- * Four equal rows and no recommendation. The calmer of the two, and
- * deliberately a sibling of "Choose a pass" — a student who has bought once
- * already is reading a screen they recognise rather than a sales page. The
- * rate under each name does the persuading; only one row carries a badge.
- */
-export function PaywallLedger({ onBack }: { onBack: () => void }) {
-  const { ds, fs, tracking } = useDesignScale();
-  const { pick, token, choose, plan } = usePick();
-  return (
-    <View style={{ flex: 1, backgroundColor: ob.surface }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: ds(26), paddingTop: ds(12), paddingBottom: ds(20) }}
-          showsVerticalScrollIndicator={false}>
-          <Head ds={ds} fs={fs} tracking={tracking} onBack={onBack} />
-          <View style={{ gap: ds(10), marginTop: ds(24) }}>
-            {PLANS.map((p) => planRow(p, pick, token, choose))}
-          </View>
-          <Includes ds={ds} fs={fs} tracking={tracking} />
-        </ScrollView>
-        <Foot plan={plan} ds={ds} fs={fs} />
-      </SafeAreaView>
-    </View>
-  );
-}
-
-/**
- * VARIANT B — THE LEAD.
- *
- * The same four rows, with the case for the longest plan made above them: its
- * rate per month set large, and what that saves against paying monthly.
- *
- * THE PANEL DOES NOT SELECT ANYTHING, and that is the correction. It was a
- * card you could tap, which meant the screen had two different ways to choose
- * a plan — a card and a row — and the card's was invented. The panel argues
- * and the rows choose, so there is exactly one selector on the screen and it
- * is the app's own.
- */
-export function PaywallLead({ onBack }: { onBack: () => void }) {
-  const { ds, fs, tracking } = useDesignScale();
-  const { pick, token, choose, plan } = usePick();
-  const hero = PLANS[PLANS.length - 1];
-
-  return (
-    <View style={{ flex: 1, backgroundColor: ob.surface }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: ds(26), paddingTop: ds(12), paddingBottom: ds(20) }}
-          showsVerticalScrollIndicator={false}>
-          <Head ds={ds} fs={fs} tracking={tracking} onBack={onBack} />
-
-          <View
-            style={{
-              marginTop: ds(22),
-              padding: ds(18),
-              borderRadius: ds(14),
-              backgroundColor: ob.surfaceWarm,
-            }}>
-            <Text
-              style={{
-                fontFamily: obFont.b700,
-                fontSize: fs(10.5),
-                letterSpacing: tracking(0.08, 10.5),
-                color: ob.amberDark,
-              }}>
-              A FULL ACADEMIC YEAR
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: ds(6), marginTop: ds(10) }}>
-              <Text
-                style={{
-                  fontFamily: obFont.m500,
-                  fontSize: fs(36),
-                  lineHeight: fs(38),
-                  letterSpacing: tracking(-0.03, 36),
-                  color: ob.ink,
-                }}>
-                {rupees(perMonth(hero))}
-              </Text>
-              <Text
-                style={{ paddingBottom: ds(4), fontFamily: obFont.m500, fontSize: fs(15), color: ob.ink80 }}>
-                a month
-              </Text>
-            </View>
-            <Text style={{ marginTop: ds(4), fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink80 }}>
-              On the {hero.name} plan — {rupees(PLANS[0].price * hero.months - hero.price)} less than
-              paying month by month.
-            </Text>
-          </View>
-
-          <Text
-            style={{
-              marginTop: ds(22),
-              marginBottom: ds(10),
-              fontFamily: obFont.sb600,
-              fontSize: fs(10.5),
-              letterSpacing: tracking(0.08, 10.5),
-              color: ob.ink55,
-            }}>
-            CHOOSE A PLAN
-          </Text>
-          <View style={{ gap: ds(10) }}>
-            {PLANS.map((p) => planRow(p, pick, token, choose))}
-          </View>
-          <Includes ds={ds} fs={fs} tracking={tracking} />
-        </ScrollView>
-        <Foot plan={plan} ds={ds} fs={fs} />
-      </SafeAreaView>
-    </View>
-  );
-}
-
-/**
- * THE WIN-BACK, on the way out.
- *
- * The back control does not leave — there is nowhere to go, because this
- * screen IS the app until it is answered. What it does instead is admit that
- * ₹4,999 may be the wrong question and offer the smaller one: a week, at ₹200
- * off. The old price is shown struck through because a discount nobody can
- * see is not a discount.
- *
- * It is deliberately not a second paywall. One offer, one price, and the way
- * back to the plans is the larger of the two buttons — a student who came here
- * by mis-tapping the chevron should not have to think.
+ * The exit does not leave on the first press; it admits that ₹4,999 may be the
+ * wrong question and offers the smaller one — a week, ₹200 off, the only
+ * discount on the screen. The old price is struck through because a discount
+ * nobody can see is not a discount. "See the plans again" is the way back and
+ * is deliberately the quieter of the two, since a student who arrived here by
+ * mis-tapping the chevron needs it and nobody else does.
  */
 export function WinBack({ onStay, onTake }: { onStay: () => void; onTake: () => void }) {
   const { ds, fs, tracking } = useDesignScale();
@@ -346,38 +311,38 @@ export function WinBack({ onStay, onTake }: { onStay: () => void; onTake: () => 
       <View
         style={{
           backgroundColor: ob.surface,
-          borderTopLeftRadius: ds(26),
-          borderTopRightRadius: ds(26),
-          paddingHorizontal: ds(26),
-          paddingTop: ds(24),
-          paddingBottom: ds(34),
+          borderTopLeftRadius: ds(24),
+          borderTopRightRadius: ds(24),
+          paddingHorizontal: ds(30),
+          paddingTop: ds(26),
+          paddingBottom: ds(32),
         }}>
         <Text
           style={{
-            fontFamily: obFont.sb600,
-            fontSize: fs(24),
-            lineHeight: fs(27),
-            letterSpacing: tracking(-0.03, 24),
+            fontFamily: obFont.m500,
+            fontSize: fs(22.5),
+            lineHeight: fs(28),
+            letterSpacing: tracking(-0.02, 22.5),
             color: ob.ink,
           }}>
           Try a week instead?
         </Text>
         <Text
           style={{
-            marginTop: ds(8),
+            marginTop: ds(12),
             fontFamily: obFont.r400,
             fontSize: fs(15),
-            lineHeight: fs(21),
-            color: '#6B6559',
+            lineHeight: fs(22),
+            color: ob.ink80,
           }}>
           Seven more days with your teacher, at ₹200 off. Nothing renews.
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: ds(9), marginTop: ds(16) }}>
           <Text
             style={{
-              fontFamily: obFont.xb800,
-              fontSize: fs(30),
-              letterSpacing: tracking(-0.03, 30),
+              fontFamily: obFont.m500,
+              fontSize: fs(28),
+              letterSpacing: tracking(-0.03, 28),
               color: ob.ink,
             }}>
             {rupees(WINBACK.now)}
@@ -385,20 +350,20 @@ export function WinBack({ onStay, onTake }: { onStay: () => void; onTake: () => 
           <Text
             style={{
               fontFamily: obFont.r400,
-              fontSize: fs(16),
+              fontSize: fs(15),
               color: ob.ink55,
               textDecorationLine: 'line-through',
             }}>
             {rupees(WINBACK.was)}
           </Text>
-          <Text style={{ fontFamily: obFont.m500, fontSize: fs(14), color: ob.ink80 }}>
+          <Text style={{ fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink80 }}>
             · {WINBACK.name}
           </Text>
         </View>
-        <View style={{ marginTop: ds(20), gap: ds(10) }}>
+        <View style={{ marginTop: ds(22), gap: ds(6) }}>
           <ObButton label={`Get 7 days for ${rupees(WINBACK.now)}`} onPress={onTake} />
-          <Pressable onPress={onStay} hitSlop={8} style={{ alignItems: 'center', paddingVertical: ds(12) }}>
-            <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: ob.ink }}>
+          <Pressable onPress={onStay} hitSlop={8} style={{ alignItems: 'center', paddingVertical: ds(14) }}>
+            <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: ob.link }}>
               See the plans again
             </Text>
           </Pressable>
@@ -409,19 +374,20 @@ export function WinBack({ onStay, onTake }: { onStay: () => void; onTake: () => 
 }
 
 /**
- * THE SUCCESS SCREEN.
+ * THE CONFIRMATION — `pass-active`, for a plan.
  *
- * A sibling of `pass-active`, and it says the same three things a receipt
- * has to: what was bought, what was paid, and when it runs out. The date is
- * the one a student will actually want later, so it is a row rather than
- * fine print.
- *
- * No confetti. The moment is that the teacher is back, so the screen names
- * the teacher and gets out of the way with a single button into a class.
+ * Same dark ground, same tick popping to 1.08 out of two amber rings, same
+ * 14pt rise staggered down the receipt, same cream button. That screen marks
+ * the seam between signing up and being a student; this one marks the seam
+ * between a trial and a year, and there is no reason for them to look
+ * different. The motion is imported rather than copied — see
+ * `components/confirm-motion.tsx`.
  */
 export function PaywallSuccess({ planId = BEST }: { planId?: Plan['id'] }) {
   const { ds, fs, tracking } = useDesignScale();
+  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const plan = PLANS.find((p) => p.id === planId)!;
+
   const till = useMemo(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + plan.months);
@@ -430,70 +396,158 @@ export function PaywallSuccess({ planId = BEST }: { planId?: Plan['id'] }) {
 
   const rows: [string, string][] = [
     ['Plan', plan.name],
-    ['Paid', rupees(plan.price)],
-    ['Access until', till],
     ['Covers', 'JEE Main + NEET UG'],
+    ['Active till', till],
+    ['Paid', rupees(plan.price)],
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: ob.surface }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
-        <View style={{ flex: 1, paddingHorizontal: ds(26), paddingTop: ds(52) }}>
-          <View
-            style={{
-              width: ds(64),
-              height: ds(64),
-              borderRadius: ds(32),
-              backgroundColor: ob.amber,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Tick size={ds(30)} color={ob.ink} />
+    <View style={styles.nightScreen}>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.nightBody}>
+          <View style={styles.tickWrap}>
+            <Ring size={ds(64)} delay={160} />
+            <Ring size={ds(64)} delay={620} />
+            <Tick size={ds(64)} />
           </View>
-          <Text
-            style={{
-              marginTop: ds(24),
-              fontFamily: obFont.sb600,
-              fontSize: fs(32),
-              lineHeight: fs(35),
-              letterSpacing: tracking(-0.035, 32),
-              color: ob.ink,
-            }}>
-            You&apos;re in.
-          </Text>
-          <Text
-            style={{
-              marginTop: ds(10),
-              fontFamily: obFont.r400,
-              fontSize: fs(16),
-              lineHeight: fs(22.4),
-              color: '#6B6559',
-            }}>
-            Drona and Vedha are yours for the next {plan.name.toLowerCase()}. Everything you had
-            before is still here.
-          </Text>
 
-          <View style={{ marginTop: ds(30) }}>
-            {rows.map(([k, v], i) => (
-              <View
-                key={k}
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  paddingVertical: ds(13),
-                  borderBottomWidth: i === rows.length - 1 ? 0 : 1,
-                  borderBottomColor: ob.rule,
-                }}>
-                <Text style={{ fontFamily: obFont.r400, fontSize: fs(14.5), color: ob.ink80 }}>{k}</Text>
-                <Text style={{ fontFamily: obFont.m500, fontSize: fs(14.5), color: ob.ink }}>{v}</Text>
-              </View>
+          <View style={styles.headBlock}>
+            <Rise delay={300}>
+              <Text style={styles.nightHead}>You&apos;re in.</Text>
+            </Rise>
+            <Rise delay={420}>
+              <Text style={styles.nightSub}>
+                Drona and Vedha are at the board. Pick a chapter and the class begins.
+              </Text>
+            </Rise>
+          </View>
+
+          <View style={styles.ledger}>
+            {rows.map(([label, value], i) => (
+              <Rise key={label} delay={560 + i * 80}>
+                <View style={[styles.nightRow, i === rows.length - 1 && styles.nightRowLast]}>
+                  <Text style={styles.nightRowLabel}>{label}</Text>
+                  <Text style={styles.nightRowValue}>{value}</Text>
+                </View>
+              </Rise>
             ))}
           </View>
         </View>
-        <View style={{ paddingHorizontal: ds(26), paddingBottom: ds(18) }}>
-          <ObButton label="Start a live class" withArrow onPress={() => {}} />
+
+        <View style={styles.nightFooter}>
+          <Rise delay={900}>
+            <ObButton label="Start learning" variant="cream" withArrow onPress={() => {}} />
+          </Rise>
         </View>
       </SafeAreaView>
     </View>
   );
+}
+
+/** Transcribed from `pass.tsx` and `pass-active.tsx` so the screens match. */
+function createStyles(ds: S, fs: S, tracking: T) {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: ob.surface },
+    safeArea: { flex: 1 },
+    content: { paddingHorizontal: ds(30), paddingBottom: ds(24) },
+    sub: {
+      fontFamily: obFont.r400,
+      fontSize: fs(15),
+      lineHeight: fs(22),
+      color: ob.ink80,
+      marginTop: ds(14),
+    },
+    rows: { marginTop: ds(22), gap: ds(10) },
+    promoLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ds(6),
+      alignSelf: 'flex-start',
+      paddingVertical: ds(6),
+    },
+    promoLinkText: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.link },
+    promoField: {
+      borderRadius: ds(14),
+      borderWidth: 1.5,
+      borderColor: ob.fieldBorder,
+      paddingHorizontal: ds(20),
+      paddingVertical: ds(14),
+      gap: ds(4),
+    },
+    promoLabel: {
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
+      color: ob.ink55,
+    },
+    promoInput: {
+      fontFamily: obFont.m500,
+      fontSize: fs(19),
+      letterSpacing: tracking(-0.02, 19),
+      color: ob.ink,
+      padding: 0,
+    },
+    included: { marginTop: ds(26) },
+    overline: {
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
+      color: ob.ink55,
+      marginBottom: ds(8),
+    },
+    includedRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: ds(12),
+      paddingVertical: ds(9),
+      borderTopWidth: 1,
+      borderTopColor: ob.rule,
+    },
+    includedRowLast: { borderBottomWidth: 1, borderBottomColor: ob.rule },
+    includedLabel: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink80 },
+    includedValue: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink },
+    unified: {
+      marginTop: ds(12),
+      fontFamily: obFont.r400,
+      fontSize: fs(13),
+      lineHeight: fs(19),
+      color: ob.amberDark,
+    },
+    footer: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(10) },
+    footNote: {
+      fontFamily: obFont.r400,
+      fontSize: fs(13),
+      lineHeight: fs(19),
+      textAlign: 'center',
+      color: ob.ink55,
+    },
+    footNoteCode: { fontFamily: obFont.m500, color: ob.ink },
+
+    // The confirmation's dark ground.
+    nightScreen: { flex: 1, backgroundColor: ob.night },
+    nightBody: { flex: 1, paddingHorizontal: ds(30), paddingTop: ds(56) },
+    tickWrap: { width: ds(64), height: ds(64), alignItems: 'center', justifyContent: 'center' },
+    headBlock: { marginTop: ds(30), gap: ds(14) },
+    nightHead: {
+      fontFamily: obFont.r400,
+      fontSize: fs(32),
+      lineHeight: fs(36),
+      letterSpacing: tracking(-0.03, 32),
+      color: ob.cream,
+    },
+    nightSub: { fontFamily: obFont.r400, fontSize: fs(17), lineHeight: fs(25), color: ob.onNight },
+    ledger: { marginTop: ds(42) },
+    nightRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: ds(14),
+      borderTopWidth: 1,
+      borderTopColor: ob.nightRule,
+    },
+    nightRowLast: { borderBottomWidth: 1, borderBottomColor: ob.nightRule },
+    nightRowLabel: { fontFamily: obFont.r400, fontSize: fs(15), color: ob.onNightDim },
+    nightRowValue: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.cream },
+    nightFooter: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(12) },
+  });
 }
