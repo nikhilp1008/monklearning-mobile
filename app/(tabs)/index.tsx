@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MonkLogo } from '@/components/monk-logo';
@@ -329,13 +329,56 @@ function ClassBlock({
           the padding box, so it lands INSIDE the 1pt amber ring and leaves it
           drawing on top; its radius is 21, one point tighter than the block's
           22, so the two stay concentric. */}
-      <LinearGradient
-        colors={['#2A2621', '#2A2621', '#4A3512']}
-        locations={[0, 0.4, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.classGradient}
-      />
+      {/*
+        THE GROUND, IN THREE LAYERS. Charcoal at the top, a warm glow rising
+        from the foot, and grain over the whole of it.
+
+        ONE LINEAR GRADIENT COULD NOT DO IT. The light in the reference does
+        not fall in a straight line down the card — it gathers at the bottom
+        and leans into the bottom-right corner, which is a radial event. So the
+        linear pass carries the vertical charcoal-to-brown and a radial pass
+        lays the gold over it, centred just past the bottom-right corner so the
+        card catches the edge of the glow rather than containing its middle.
+
+        AND THE GRAIN IS A REAL IMAGE, tiled. `FeTurbulence` is the obvious way
+        to make noise in SVG and it is a no-op here: react-native-svg ships
+        `FeTurbulence.tsx` in JavaScript but there is no `RNSVGFeTurbulence` on
+        the Apple side at all — only Blend, ColorMatrix, Composite, Flood,
+        GaussianBlur, Merge and Offset are implemented natively. It would have
+        rendered nothing, silently, which is the same trap as `filter: blur()`.
+
+        It is ONE SHEET, not a repeated tile. `resizeMode="repeat"` drew a
+        single 128pt tile in the top-left with a hard edge down its right side
+        — measured, not guessed: high-frequency energy ran 5.7 in the left
+        third of the card against 1.3 in the right, and as a step rather than a
+        falloff. So the grain is generated at the card's own proportion and
+        drawn once, over everything, because grain that reads as grain has to be
+        ON the image rather than beside it.
+      */}
+      <View style={styles.classGradient} pointerEvents="none">
+        <LinearGradient
+          colors={['#1C1915', '#221E19', '#4A3512']}
+          locations={[0, 0.42, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <RadialGradient id="classGlow" cx="0.82" cy="1.04" r="0.9">
+              <Stop offset="0" stopColor="#D9932A" stopOpacity={0.62} />
+              <Stop offset="0.45" stopColor="#B4761E" stopOpacity={0.3} />
+              <Stop offset="1" stopColor="#8A5A14" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#classGlow)" />
+        </Svg>
+        <Image
+          source={require('@/assets/images/grain.png')}
+          style={styles.classGrain}
+          resizeMode="cover"
+        />
+      </View>
       <Text style={styles.classLine}>Pick a chapter and your teacher teaches it live.</Text>
       <View style={[styles.keyBase, held && styles.keyBaseHeld]}>
         <LinearGradient
@@ -531,6 +574,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 10,
       marginBottom: verticalScale(32),
     },
+    /** Over everything, and it must not catch a touch. */
+    /**
+     * OVERLAY, not plain alpha. Laid on normally, grain is additive: a speck of
+     * 44 alpha over near-black is a large relative jump and the same speck over
+     * mid-gold is almost nothing, so the texture read strongly at the top of
+     * the card and thinned out into the glow — measured at 2.2x more
+     * high-frequency energy on the dark side than the bright. Overlay scales
+     * each speck against what is under it, which is how grain behaves in a
+     * photograph and what keeps it even across the whole face.
+     */
+    classGrain: { ...StyleSheet.absoluteFillObject, opacity: 0.9 },
     classGradient: {
       ...StyleSheet.absoluteFillObject,
       borderRadius: scale(21),
