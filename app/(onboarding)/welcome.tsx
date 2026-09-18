@@ -155,7 +155,30 @@ function createStyles(
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: '#FFFFFF' },
     safeArea: { flex: 1 },
-    logoRow: { alignItems: 'center', paddingTop: ds(26) },
+    /**
+     * OPTICALLY CENTRED, WHICH IS NOT THE SAME AS CENTRED.
+     *
+     * The lockup was already centred and measured so: its ink spans 134.0 to
+     * 266.7 on a 402pt screen, a bounding-box centre of 200.3 against 201, and
+     * its ink AREA centres at 198.3. By both measures it was on the middle.
+     *
+     * It still read as sitting right, with a gap down the left, and the
+     * measurement says why. The mark and the space after it take up 25pt
+     * before the word begins, and the word is what the eye reads as the logo —
+     * "monklearning" alone centres at 212.8, nearly 12pt right of the middle.
+     * A small airy mark on the left does not balance a solid word on the
+     * right, whatever the bounding box says.
+     *
+     * So the row is nudged to the midpoint between the two readings: the
+     * bounding box goes a little left of centre, the word comes a little
+     * right, and neither is where it would sit alone. `translateX` rather than
+     * padding, so nothing in the layout moves — only the paint.
+     */
+    logoRow: {
+      alignItems: 'center',
+      paddingTop: ds(26),
+      transform: [{ translateX: -ds(5.5) }],
+    },
     /** The board is centred in whatever is left between the logo and the
      *  captions, which is the handoff's `flex: 1` stage. */
     stage: { flex: 1, minHeight: 0, alignItems: 'center', justifyContent: 'center' },
