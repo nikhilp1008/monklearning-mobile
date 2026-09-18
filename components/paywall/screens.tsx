@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
@@ -9,7 +9,6 @@ import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
 import {
-  PROMO_CODE,
   ob,
   obFont,
   promoDiscount,
@@ -33,18 +32,21 @@ import { BEST, INCLUDES, PLANS, WINBACK, perMonth, savedPercent, type Plan } fro
  * The rows are the app's own `SelectRow` — amber border, amber wash sweeping
  * across on select, no tick.
  *
- * THE TOP-LEFT CONTROL IS AN EXIT, NOT A BACK. There is nowhere to go back
- * to: this screen IS the app until it is answered. So the first press does not
- * navigate, it offers a week at ₹200 off; "See the plans again" returns here;
- * and a second press leaves the app. Two presses, because a student who
- * mis-taps a chevron should not lose the app, and one who means it should not
- * be trapped.
+ * THERE IS NO CONTROL IN THE TOP-LEFT, and that is the honest answer rather
+ * than a missing feature.
  *
- * WHAT WILL NOT WORK ON iOS: that second press. `BackHandler.exitApp()` is
- * Android-only, and iOS has no sanctioned way for an app to terminate itself
- * — `exit(0)` is grounds for rejection. The call is guarded by platform and
- * does nothing on iOS, so the behaviour below is correct on Android and needs
- * a different answer on iPhone. Flagged rather than faked.
+ * It was a back chevron, which was wrong — this screen IS the app until it is
+ * answered, so there is nothing behind it. It then became an exit: one press
+ * for an offer, a second to leave. That is a good pattern and it cannot be
+ * built, because `BackHandler.exitApp()` is Android-only and iOS gives an app
+ * no sanctioned way to terminate itself (`exit(0)` is grounds for rejection).
+ * A control whose whole purpose fails on one platform is worse than no
+ * control: it invites the press and then does nothing.
+ *
+ * So the way out moved to where it belongs — the bottom of the page, under
+ * the plans, as a smaller thing to buy rather than a door. A student who is
+ * not ready scrolls past four prices and finds a week for ₹549. Nothing is
+ * hidden behind a modal that only appears if you try to leave.
  */
 
 type S = (n: number) => number;
@@ -58,23 +60,16 @@ function ArrowGlyph({ size }: { size: number }) {
   );
 }
 
-/** The header, laid out as `ObHeader` lays it out — but its chevron exits. */
-function ExitHeader({ title, ds, fs, tracking, onExit }: { title: string; ds: S; fs: S; tracking: T; onExit: () => void }) {
+/** The header, laid out as `ObHeader` lays it out, minus the chevron. */
+function Head({ title, ds, fs, tracking }: { title: string; ds: S; fs: S; tracking: T }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: ds(13), paddingHorizontal: ds(30), paddingTop: ds(34) }}>
-      <Pressable
-        onPress={onExit}
-        hitSlop={16}
-        accessibilityRole="button"
-        accessibilityLabel="Leave"
-        style={({ pressed }) => ({ opacity: pressed ? 0.45 : 1 })}>
-        <Svg viewBox="0 0 24 24" width={ds(19)} height={ds(19)} fill="none">
-          <Path d="M15 5l-7 7 7 7" stroke={ob.ink80} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      </Pressable>
+    <View style={{ paddingHorizontal: ds(30), paddingTop: ds(34) }}>
+      {/* No `flex: 1`. It was there because ObHeader sets the title beside a
+          chevron in a ROW, where flex makes it take the remaining width. In a
+          plain column with no fixed height it collapses the text to nothing
+          instead, which is exactly what it did — the title vanished. */}
       <Text
         style={{
-          flex: 1,
           fontFamily: obFont.m500,
           fontSize: fs(22.5),
           lineHeight: fs(28),
@@ -95,7 +90,7 @@ function ExitHeader({ title, ds, fs, tracking, onExit }: { title: string; ds: S;
  * the one thing they are meant to differ on — whether the screen makes a
  * recommendation before the rows.
  */
-function Paywall({ lead, onExit }: { lead?: (hero: Plan) => React.ReactNode; onExit: () => void }) {
+function Paywall({ lead }: { lead?: (hero: Plan) => React.ReactNode }) {
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
@@ -104,29 +99,16 @@ function Paywall({ lead, onExit }: { lead?: (hero: Plan) => React.ReactNode; onE
   const [token, setToken] = useState(0);
   const [promo, setPromo] = useState('');
   const [promoOpen, setPromoOpen] = useState(false);
-  const [offer, setOffer] = useState(false);
-  /** The offer is made once. After that the exit means it. */
-  const [armed, setArmed] = useState(false);
 
   const plan = PLANS.find((p) => p.id === pick)!;
   const discount = promoDiscount(promo, plan.price);
   const total = Math.max(0, plan.price - discount);
-  const paid = total === 0;
-
-  const exit = () => {
-    if (!armed) {
-      setArmed(true);
-      setOffer(true);
-      return;
-    }
-    onExit();
-  };
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ExitHeader title="Your pass has ended" ds={ds} fs={fs} tracking={tracking} onExit={exit} />
+        <Head title="Your pass has ended" ds={ds} fs={fs} tracking={tracking} />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* The work survived. It is the first thing a student on this screen
               wants to know and it costs one line. */}
@@ -198,49 +180,64 @@ function Paywall({ lead, onExit }: { lead?: (hero: Plan) => React.ReactNode; onE
                 be assumed to cost more. */}
             <Text style={styles.unified}>JEE Main and NEET UG, both covered. One price.</Text>
           </View>
+
+          {/*
+            THE SMALLER THING TO BUY, at the foot of the page.
+            This was a modal that only appeared if you tried to leave, which
+            made the one honest option on the screen the hardest to find. Here
+            it is simply the last thing, under four prices: a student who is
+            not ready scrolls to it, and one who is never has to dismiss it.
+            It is set as a link rather than a second button on purpose — an ink
+            button beside the Pay button would be two primaries arguing.
+          */}
+          <View style={styles.offer}>
+            <Text style={styles.overline}>NOT READY FOR A PLAN?</Text>
+            <View style={styles.offerPrice}>
+              <Text style={styles.offerNow}>{rupees(WINBACK.now)}</Text>
+              <Text style={styles.offerWas}>{rupees(WINBACK.was)}</Text>
+              <Text style={styles.offerFor}>· {WINBACK.name}</Text>
+            </View>
+            <Text style={styles.offerLine}>
+              Seven more days with your teacher, at ₹200 off. Nothing renews.
+            </Text>
+            <PressableScale style={styles.promoLink} hitSlop={10} onPress={() => {}}>
+              <Text style={styles.promoLinkText}>Get 7 days</Text>
+              <ArrowGlyph size={ds(13)} />
+            </PressableScale>
+          </View>
         </ScrollView>
 
         <View style={styles.footer}>
-          {/* Dead until the total is zero, exactly as the pass screen is. A
-              live "Pay ₹43,999" that silently does nothing is worse than a
-              button that plainly waits. */}
+          {/*
+            LIVE, because a plan is always selected.
+            This carried pass.tsx's rule — dead until a promo brings the total
+            to zero — which that screen adopted because it can genuinely take
+            no money. Here it made the button render as the disabled outline on
+            arrival, so the screen showed its greyed-out state as its resting
+            state and never showed what choosing a plan looks like. These are
+            designs for a screen that will have a provider behind it, so the
+            button is the enabled key it will be. Whoever wires this before a
+            gateway exists must put pass.tsx's honesty back.
+          */}
           <ObButton
-            label={paid ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
+            label={total === 0 ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={plan.name}
-            disabled={!paid}
-            withArrow={paid}
+            withArrow
             onPress={() => {}}
           />
-          {!paid && (
-            <Text style={styles.footNote}>
-              Card payments aren’t live yet. Add the code{' '}
-              <Text style={styles.footNoteCode}>{PROMO_CODE}</Text> to continue.
-            </Text>
-          )}
+          <Text style={styles.footNote}>One payment. Nothing renews on its own.</Text>
         </View>
       </SafeAreaView>
-
-      {offer && (
-        <WinBack
-          onStay={() => setOffer(false)}
-          onTake={() => setOffer(false)}
-        />
-      )}
     </View>
   );
-}
-
-/** Leaving the app. Android can; iOS cannot — see the note at the top. */
-export function leaveApp() {
-  if (Platform.OS === 'android') BackHandler.exitApp();
 }
 
 /**
  * VARIANT A — THE LEDGER. Four equal rows, no recommendation. The calmer of
  * the two and the closer sibling of "Choose a pass".
  */
-export function PaywallLedger({ onExit = leaveApp }: { onExit?: () => void }) {
-  return <Paywall onExit={onExit} />;
+export function PaywallLedger() {
+  return <Paywall />;
 }
 
 /**
@@ -248,8 +245,8 @@ export function PaywallLedger({ onExit = leaveApp }: { onExit?: () => void }) {
  * made above them. The panel argues; the rows choose. It does not select, so
  * the screen has exactly one selector and it is the app's own.
  */
-export function PaywallLead({ onExit = leaveApp }: { onExit?: () => void }) {
-  return <Paywall onExit={onExit} lead={(hero) => <Lead hero={hero} />} />;
+export function PaywallLead() {
+  return <Paywall lead={(hero) => <Lead hero={hero} />} />;
 }
 
 function Lead({ hero }: { hero: Plan }) {
@@ -290,85 +287,6 @@ function Lead({ hero }: { hero: Plan }) {
         On the {hero.name} plan — {rupees(PLANS[0].price * hero.months - hero.price)} less than
         paying month by month.
       </Text>
-    </View>
-  );
-}
-
-/**
- * THE WIN-BACK, offered on the way out and only once.
- *
- * The exit does not leave on the first press; it admits that ₹4,999 may be the
- * wrong question and offers the smaller one — a week, ₹200 off, the only
- * discount on the screen. The old price is struck through because a discount
- * nobody can see is not a discount. "See the plans again" is the way back and
- * is deliberately the quieter of the two, since a student who arrived here by
- * mis-tapping the chevron needs it and nobody else does.
- */
-export function WinBack({ onStay, onTake }: { onStay: () => void; onTake: () => void }) {
-  const { ds, fs, tracking } = useDesignScale();
-  return (
-    <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(28,26,22,.42)', justifyContent: 'flex-end' }]}>
-      <View
-        style={{
-          backgroundColor: ob.surface,
-          borderTopLeftRadius: ds(24),
-          borderTopRightRadius: ds(24),
-          paddingHorizontal: ds(30),
-          paddingTop: ds(26),
-          paddingBottom: ds(32),
-        }}>
-        <Text
-          style={{
-            fontFamily: obFont.m500,
-            fontSize: fs(22.5),
-            lineHeight: fs(28),
-            letterSpacing: tracking(-0.02, 22.5),
-            color: ob.ink,
-          }}>
-          Try a week instead?
-        </Text>
-        <Text
-          style={{
-            marginTop: ds(12),
-            fontFamily: obFont.r400,
-            fontSize: fs(15),
-            lineHeight: fs(22),
-            color: ob.ink80,
-          }}>
-          Seven more days with your teacher, at ₹200 off. Nothing renews.
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: ds(9), marginTop: ds(16) }}>
-          <Text
-            style={{
-              fontFamily: obFont.m500,
-              fontSize: fs(28),
-              letterSpacing: tracking(-0.03, 28),
-              color: ob.ink,
-            }}>
-            {rupees(WINBACK.now)}
-          </Text>
-          <Text
-            style={{
-              fontFamily: obFont.r400,
-              fontSize: fs(15),
-              color: ob.ink55,
-              textDecorationLine: 'line-through',
-            }}>
-            {rupees(WINBACK.was)}
-          </Text>
-          <Text style={{ fontFamily: obFont.r400, fontSize: fs(14), color: ob.ink80 }}>
-            · {WINBACK.name}
-          </Text>
-        </View>
-        <View style={{ marginTop: ds(22), gap: ds(6) }}>
-          <ObButton label={`Get 7 days for ${rupees(WINBACK.now)}`} onPress={onTake} />
-          <Pressable onPress={onStay} hitSlop={8} style={{ alignItems: 'center', paddingVertical: ds(14) }}>
-            <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: ob.link }}>
-              See the plans again
-            </Text>
-          </Pressable>
-        </View>
-      </View>
     </View>
   );
 }
@@ -514,6 +432,35 @@ function createStyles(ds: S, fs: S, tracking: T) {
       lineHeight: fs(19),
       color: ob.amberDark,
     },
+    /** Separated by a rule and real air, so it reads as an aside to the
+     *  plans rather than a fifth one. */
+    offer: {
+      marginTop: ds(30),
+      paddingTop: ds(20),
+      borderTopWidth: 1,
+      borderTopColor: ob.rule,
+    },
+    offerPrice: { flexDirection: 'row', alignItems: 'baseline', gap: ds(8) },
+    offerNow: {
+      fontFamily: obFont.m500,
+      fontSize: fs(24),
+      letterSpacing: tracking(-0.03, 24),
+      color: ob.ink,
+    },
+    offerWas: {
+      fontFamily: obFont.r400,
+      fontSize: fs(14),
+      color: ob.ink55,
+      textDecorationLine: 'line-through',
+    },
+    offerFor: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink80 },
+    offerLine: {
+      marginTop: ds(6),
+      fontFamily: obFont.r400,
+      fontSize: fs(13.5),
+      lineHeight: fs(19),
+      color: ob.ink80,
+    },
     footer: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(10) },
     footNote: {
       fontFamily: obFont.r400,
@@ -522,7 +469,6 @@ function createStyles(ds: S, fs: S, tracking: T) {
       textAlign: 'center',
       color: ob.ink55,
     },
-    footNoteCode: { fontFamily: obFont.m500, color: ob.ink },
 
     // The confirmation's dark ground.
     nightScreen: { flex: 1, backgroundColor: ob.night },
