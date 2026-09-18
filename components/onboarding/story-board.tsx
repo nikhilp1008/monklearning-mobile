@@ -34,6 +34,14 @@ import { obFont } from '@/constants/onboarding';
  * radius. Putting `overflow: hidden` on the group would delete the pill's
  * left edge and the whole bubble.
  *
+ * LABELS AND HEADINGS DO NOT WRITE THEMSELVES. Every text element on this
+ * board originally arrived with the same left-to-right reveal, and six of them
+ * doing it in sequence read as a screen full of moving parts rather than as a
+ * lesson being written. The chapter label and the lesson's title are the page
+ * the working is written on — a hand does not draw those — so they hold, and
+ * only the working writes. Same in beats 3 and 4: the source line and the
+ * method hold, the solution writes.
+ *
  * ONE SURFACE FADES, THE OTHER STAYS. The dark board is a second surface over
  * the first whose opacity runs on the master clock rather than on a layer, so
  * it comes up once at 8s and holds through beats 3 AND 4. That is the whole
@@ -356,10 +364,10 @@ function BeatsOneTwo({
 }) {
   return (
     <Layer t={t} delay={0} long style={StyleSheet.absoluteFill}>
-      <Writes t={t} delay={0.2} kind="wrf2" left={ds(24)} top={ds(18)}
+      <Writes t={t} delay={0.2} kind="hold2" left={ds(24)} top={ds(18)}
         text="Ch 5 · Laws of Motion · live"
         style={type(fs, tracking, obFont.sb600, 12, 16, c.grey)} />
-      <Writes t={t} delay={0.5} kind="wr2" left={ds(24)} top={ds(40)}
+      <Writes t={t} delay={0.5} kind="hold2" left={ds(24)} top={ds(40)}
         text="Newton's second law"
         style={type(fs, tracking, obFont.sb600, 20, 26, c.ink, -0.01)} />
       <Writes t={t} delay={1} kind="wrf2" left={ds(24)} top={ds(74)}
@@ -592,10 +600,10 @@ function BeatThree({
           flash,
         ]}
       />
-      <Writes t={t} delay={8.9} kind="wr" left={ds(134)} top={ds(18)}
+      <Writes t={t} delay={8.9} kind="hold" left={ds(134)} top={ds(18)}
         text="from your book, Q12"
         style={type(fs, tracking, obFont.sb600, 12, 16, c.chalkDim)} />
-      <Writes t={t} delay={9.2} kind="wr" left={ds(134)} top={ds(40)}
+      <Writes t={t} delay={9.2} kind="hold" left={ds(134)} top={ds(40)}
         text="a = g sinθ"
         style={type(fs, tracking, obFont.b700, 22, 28, c.chalk, -0.02)} />
       <Writes t={t} delay={9.5} kind="wr" left={ds(134)} top={ds(74)} width={ds(176)}
@@ -699,7 +707,7 @@ function BeatFour({ t, ds, fs, tracking }: { t: SharedValue<number>; ds: S; fs: 
 
   return (
     <Layer t={t} delay={12} style={StyleSheet.absoluteFill}>
-      <Writes t={t} delay={12.1} kind="wr" left={ds(24)} top={ds(16)}
+      <Writes t={t} delay={12.1} kind="hold" left={ds(24)} top={ds(16)}
         text="Practice · Laws of Motion · medium"
         style={type(fs, tracking, obFont.sb600, 12, 16, c.chalkDim)} />
 

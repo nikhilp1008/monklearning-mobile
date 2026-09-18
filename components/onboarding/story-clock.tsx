@@ -116,12 +116,27 @@ export function Layer({
   return <Animated.View style={[style, anim]}>{children}</Animated.View>;
 }
 
-/** The four write-on speeds. `.grow` is where the reveal finishes. */
+/**
+ * THE WRITE-ON SPEEDS, and the one that does not write.
+ *
+ * `.grow` is where the reveal finishes. The `hold` pair is the design's own
+ * fourth keyframe — "element is already fully visible when its layer appears"
+ * — and it exists because not everything on a board is being written. A
+ * chapter label and the lesson's title are the page it is written ON; a hand
+ * does not draw those, and animating them the same way made the board read as
+ * six separate things moving instead of one lesson being taught.
+ *
+ * So labels and headings hold and the working writes. `hold` still fades in
+ * over its own 256ms at its own delay, because appearing between two frames
+ * is a cut, and a cut is more movement than a fade rather than less.
+ */
 const WRITE = {
   wr: { on: 0.006, grow: 0.08, off0: 0.255, off1: 0.26 },
   wrf: { on: 0.004, grow: 0.05, off0: 0.255, off1: 0.26 },
   wr2: { on: 0.006, grow: 0.08, off0: 0.505, off1: 0.51 },
   wrf2: { on: 0.004, grow: 0.05, off0: 0.505, off1: 0.51 },
+  hold: { on: 0, grow: 0.016, off0: 0.255, off1: 0.26 },
+  hold2: { on: 0, grow: 0.016, off0: 0.505, off1: 0.51 },
 } as const;
 
 export type WriteKind = keyof typeof WRITE;
@@ -167,13 +182,26 @@ export function Writes({
   const [measured, setMeasured] = useState(0);
   const w = width ?? measured;
   const k = WRITE[kind];
+  /** A held element needs no clip, and therefore no measuring pass either. */
+  const wipes = kind !== 'hold' && kind !== 'hold2';
   const anim = useAnimatedStyle(() => {
     const p = local(t.value, delay);
+    const leave = 1 - seg(p, k.off0, k.off1);
+    if (!wipes) return { opacity: seg(p, 0, k.grow) * leave };
     return {
       width: w * seg(p, k.on, k.grow),
-      opacity: p < k.on ? 0 : 1 - seg(p, k.off0, k.off1),
+      opacity: (p < k.on ? 0 : 1) * leave,
     };
   });
+
+  if (!wipes) {
+    return (
+      <Animated.View style={[{ position: 'absolute', left, top }, anim]} pointerEvents="none">
+        <Text style={[style, width === undefined ? null : { width }]}>{text}</Text>
+      </Animated.View>
+    );
+  }
+
   return (
     <View style={{ position: 'absolute', left, top }}>
       {width === undefined && (

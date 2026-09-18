@@ -26,6 +26,16 @@ import { StoryBoard } from '@/components/onboarding/story-board';
 import { Layer, seg, useStoryClock } from '@/components/onboarding/story-clock';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 
+/**
+ * The captions come down 3.5% off the spec's 31/16.
+ *
+ * Kept as a factor on the design's own numbers rather than folded into them,
+ * so the line above still reads against the handoff and this stays visible as
+ * a decision taken after seeing it on a phone: at 31 the headline was the
+ * loudest thing on a screen whose subject is the board above it.
+ */
+const CAPTION_TRIM = 0.965;
+
 /** The four beats, in the handoff's own words. */
 const CAPTIONS = [
   ['A teacher who teaches it live.', 'Pick any chapter. The board comes alive.'],
@@ -166,16 +176,16 @@ function createStyles(
     captions: { height: ds(104), marginHorizontal: ds(34), marginBottom: ds(14) },
     head: {
       fontFamily: obFont.sb600,
-      fontSize: fs(31),
-      lineHeight: fs(33.5),
-      letterSpacing: tracking(-0.03, 31),
+      fontSize: fs(31 * CAPTION_TRIM),
+      lineHeight: fs(33.5 * CAPTION_TRIM),
+      letterSpacing: tracking(-0.03, 31 * CAPTION_TRIM),
       color: ob.ink,
     },
     sub: {
       marginTop: ds(10),
       fontFamily: obFont.r400,
-      fontSize: fs(16),
-      lineHeight: fs(22.4),
+      fontSize: fs(16 * CAPTION_TRIM),
+      lineHeight: fs(22.4 * CAPTION_TRIM),
       color: '#6B6559',
     },
     foot: { paddingHorizontal: ds(34), paddingBottom: ds(36), gap: ds(22) },
