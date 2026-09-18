@@ -174,6 +174,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/snap-capture')}>
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
+                  <PlateGround />
                   <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
@@ -186,6 +187,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/practice')}>
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
+                  <PlateGround />
                   <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
@@ -304,6 +306,50 @@ export default function HomeScreen() {
  * travel the handoff specifies — the reason the block is one Pressable rather
  * than a PressableScale is that a uniform scale cannot express it.
  */
+/**
+ * THE PLATE'S GROUND — the live-class card's treatment, at a thirty-sixth of
+ * the area: a warm glow in the lower-right and the same grain over it.
+ *
+ * THE GRAIN IS SAMPLED 1:1, and that is the whole difficulty of putting it on
+ * something this small. The sheet is 420x240 source pixels drawn across a
+ * 342pt card, so each of its pixels covers about 2.4 device pixels. Fitting
+ * that same sheet into a 36pt box would ask for a FOUR-fold reduction, and
+ * downscaling noise averages it away — the plate would come out a flat wash
+ * with the texture gone.
+ *
+ * So the sheet is not fitted. It is laid at 140x80pt, which on a 3x screen is
+ * 420x240 device pixels: exactly its own size, one source pixel to one device
+ * pixel. The plate clips, and a 36pt window of true grain shows through. One
+ * asset, two very different surfaces, no resampling on either.
+ */
+function PlateGround() {
+  return (
+    <>
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <RadialGradient id="plateGlow" cx="0.85" cy="1.05" r="0.95">
+            <Stop offset="0" stopColor="#D9932A" stopOpacity={0.5} />
+            <Stop offset="1" stopColor="#8A5A14" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#plateGlow)" />
+      </Svg>
+      <Image source={require('@/assets/images/grain.png')} style={plateGrainStyle} />
+    </>
+  );
+}
+
+/** Its own size in points, so the pixels land 1:1. See `PlateGround`. */
+const plateGrainStyle = {
+  position: 'absolute' as const,
+  left: 0,
+  top: 0,
+  width: 140,
+  height: 80,
+  opacity: 0.5,
+  mixBlendMode: 'overlay' as const,
+};
+
 function ClassBlock({
   styles,
   scale,
@@ -670,6 +716,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.ink,
+      /** Clips the glow and the grain to the plate's corners — the same thing
+       *  the card needed once it held more than one layer. */
+      overflow: 'hidden',
     },
     stripTitle: {
       fontFamily: 'Onest_600SemiBold',
