@@ -9,13 +9,14 @@ import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
 import {
+  INCLUDED,
   ob,
   obFont,
   promoDiscount,
   rupees,
   useDesignScale,
 } from '@/constants/onboarding';
-import { BEST, INCLUDES, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
+import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
 /**
  * THE PAYWALL — designs only. Nothing imports these, the app's gate is
@@ -170,8 +171,8 @@ function Paywall({ lead }: { lead?: (hero: Plan) => React.ReactNode }) {
 
           <View style={styles.included}>
             <Text style={styles.overline}>EVERY PLAN INCLUDES</Text>
-            {INCLUDES.map(([label, value], i) => (
-              <View key={label} style={[styles.includedRow, i === INCLUDES.length - 1 && styles.includedRowLast]}>
+            {INCLUDED.map(([label, value], i) => (
+              <View key={label} style={[styles.includedRow, i === INCLUDED.length - 1 && styles.includedRowLast]}>
                 <Text style={styles.includedLabel}>{label}</Text>
                 <Text style={styles.includedValue}>{value}</Text>
               </View>

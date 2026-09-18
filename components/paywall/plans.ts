@@ -60,22 +60,6 @@ export const savedPercent = (p: Plan) =>
 export const BEST = PLANS[PLANS.length - 1].id;
 
 /**
- * What every plan carries.
- *
- * THE DAILY NUMBERS ARE 50 AND 150, and they disagree with two other places.
- * The pass screen in onboarding and the marketing site both say "50 snaps ·
- * 75 questions"; Home has always said 150 a day. 150 is the right number, so
- * this says 150 — which leaves the onboarding pass screen and three places on
- * the site still publishing 75. That is a content fix outside this file, and
- * a paywall is the worst possible screen on which to under-promise.
- */
-export const INCLUDES: [string, string][] = [
-  ['Class 11 & 12', 'Every chapter, taught aloud'],
-  ['Every day', '50 snaps · 150 practice questions'],
-  ['Teachers', 'Drona & Vedha · Eng / Hinglish'],
-];
-
-/**
  * THE WIN-BACK, offered only on the way out.
  *
  * A student who reaches for the back button has decided the plans are too

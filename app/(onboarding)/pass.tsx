@@ -19,6 +19,7 @@ import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import {
   EXAMS,
+  INCLUDED,
   PASSES,
   PROMO_CODE,
   ob,
@@ -30,12 +31,6 @@ import {
   type PassKey,
 } from '@/constants/onboarding';
 import { SelectRow } from '@/components/select-row';
-
-const INCLUDED: [string, string][] = [
-  ['Class 11 & 12', 'Every chapter, taught aloud'],
-  ['Every day', '50 snaps · 75 questions'],
-  ['Teachers', 'Drona & Vedha · Eng / Hinglish'],
-];
 
 function ArrowGlyph({ size }: { size: number }) {
   return (

@@ -130,6 +130,28 @@ export const PASSES = [
 export type PassKey = (typeof PASSES)[number]['id'];
 
 /**
+ * WHAT A PASS OR A PLAN INCLUDES — one list, because there are two screens.
+ *
+ * This lived in `pass.tsx` and was copied into the paywall's own module to
+ * stop the two drifting apart. It drifted anyway: the daily allowance was
+ * corrected to 150 on one and left at 75 on the other, which is the exact
+ * failure the copy was meant to prevent. A comment cannot keep two constants
+ * equal; one constant can.
+ *
+ * THE NUMBERS ARE 50 AND 150. monklearning.com still publishes 75 in three
+ * places, including the structured FAQ answer to "What exactly does a pass
+ * include?" that Google reads, and that file is in another repo. Home has
+ * always said 150. Neither figure is enforced on the server yet: /practice/*
+ * returns no daily or quota field at all, where Snap has `daily_limit` and
+ * `used_today`.
+ */
+export const INCLUDED: [string, string][] = [
+  ['Class 11 & 12', 'Every chapter, taught aloud'],
+  ['Every day', '50 snaps · 150 practice questions'],
+  ['Teachers', 'Drona & Vedha · Eng / Hinglish'],
+];
+
+/**
  * The one code that works, and it clears the balance rather than discounting
  * it.
  *

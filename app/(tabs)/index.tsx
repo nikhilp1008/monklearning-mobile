@@ -194,12 +194,13 @@ export default function HomeScreen() {
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
               <Text style={styles.stripTitle}>Practice</Text>
-              {/* 150 a day. NOTE: monklearning.com currently publishes 75
-                  ("50 doubt snaps and 75 practice questions a day") in three
-                  places, so the site needs the same number or the two disagree
-                  on one entitlement. Neither figure is enforced anywhere yet —
-                  /practice/* returns no daily/quota field, unlike Snap, which
-                  has daily_limit and used_today. */}
+              {/* 150 a day, and the app now says so everywhere — the pass
+                  screen and the paywall both read this off `INCLUDED` in
+                  constants/onboarding.ts. monklearning.com is still on 75 in
+                  three places, including the structured FAQ Google reads, and
+                  that file is in another repo. Neither figure is enforced on
+                  the server yet: /practice/* returns no daily or quota field,
+                  unlike Snap, which has daily_limit and used_today. */}
               <Text style={styles.stripBody}>150 a day, across all subjects</Text>
             </PressableScale>
           </View>
