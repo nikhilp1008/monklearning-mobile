@@ -23,6 +23,9 @@ public class PcmPlayerModule: Module {
   /// Seconds of audio handed to the player since start() — the JS side reads
   /// this to know when the queue has genuinely drained.
   private var fedSeconds: Double = 0
+  /// Seconds the hardware has ACTUALLY rendered — advanced only by
+  /// dataPlayedBack completions. Underruns and idle time add nothing.
+  private var consumedSeconds: Double = 0
   /// Playback holds until this much audio is queued — the jitter buffer that
   /// keeps the FIRST word from stuttering while the stream ramps up. The
   /// stream's producer outruns realtime once warm, so only the start needs it.
@@ -78,13 +81,12 @@ public class PcmPlayerModule: Module {
     }
 
     Function("playedSeconds") { () -> Double in
-      // The sample-accurate playhead: frozen across pauses, zero while the
-      // prebuffer holds. This is the clock the board reveals run on.
-      guard let player = self.player,
-            let nodeTime = player.lastRenderTime,
-            let playerTime = player.playerTime(forNodeTime: nodeTime),
-            playerTime.sampleRate > 0 else { return 0 }
-      return Double(playerTime.sampleTime) / playerTime.sampleRate
+      // Rendered audio only. AVAudioPlayerNode's own timeline keeps running
+      // through buffer underruns, so the previous clock raced through
+      // silence whenever synthesis lagged playback — and the board revealed
+      // lines whose audio had not sounded. Seen live, a class showing far
+      // more than it was teaching.
+      return self.consumedSeconds
     }
 
 
@@ -122,8 +124,12 @@ public class PcmPlayerModule: Module {
         }
       }
     }
-    player.scheduleBuffer(buffer, completionHandler: nil)
-    self.fedSeconds += Double(frames) / format.sampleRate
+    let seconds = Double(frames) / format.sampleRate
+    player.scheduleBuffer(buffer, at: nil, options: [],
+                          completionCallbackType: .dataPlayedBack) { [weak self] _ in
+      DispatchQueue.main.async { self?.consumedSeconds += seconds }
+    }
+    self.fedSeconds += seconds
     if !self.playing && self.fedSeconds >= self.prebufferSeconds {
       player.play()
       self.playing = true
@@ -138,6 +144,7 @@ public class PcmPlayerModule: Module {
     engine = nil
     format = nil
     fedSeconds = 0
+    consumedSeconds = 0
     playing = false
   }
 }
