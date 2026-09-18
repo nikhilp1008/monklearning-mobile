@@ -114,3 +114,44 @@ export function hapticRefused() {
   }
   fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
 }
+
+/**
+ * TICKING A PLAN ITEM OFF.
+ *
+ * The one place in the app where a student marks their OWN work done, and the
+ * screen's answer is a small box filling in — easy to miss with a thumb over
+ * it, and the one moment of the day worth feeling. Only on the way to done:
+ * un-ticking is a correction, and confirming a correction with the same tap
+ * that celebrates finishing gets the meaning backwards.
+ *
+ * `Success`, not an impact, because that is what it is — and Android has a
+ * named confirm for exactly this.
+ */
+export function hapticTicked() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    return;
+  }
+  fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+}
+
+/**
+ * CHANGING A SETTING THAT CHANGES THE TEACHER'S VOICE.
+ *
+ * Picking Drona over Vedha, or Hinglish over English, changes who speaks to
+ * you for every class after it — and on screen it is a row lighting up, which
+ * looks the same as a row being merely pressed. `selectionAsync` is iOS's own
+ * tick for a choice landing on a new value; it is deliberately lighter than
+ * anything above, because a preference is not an achievement.
+ *
+ * Nothing fires when the tapped row is the one already chosen. A tap that
+ * changes nothing should feel like nothing, or the tick stops meaning "that
+ * moved".
+ */
+export function hapticSwitched() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    return;
+  }
+  fire(() => Haptics.selectionAsync());
+}

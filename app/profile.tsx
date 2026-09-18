@@ -26,6 +26,7 @@ import { colors } from '@/constants/brand';
 import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { signOut } from '@/lib/auth';
+import { hapticSwitched } from '@/lib/haptics';
 import {
   getLanguagePreference,
   getTeacherPreference,
@@ -115,12 +116,16 @@ export default function ProfileScreen() {
     };
   }, []);
 
+  /** Both guarded on the value actually moving: a tap that changes nothing
+   *  should feel like nothing, or the tick stops meaning "that moved". */
   const chooseTeacher = (id: TeacherId) => {
+    if (id !== teacher) hapticSwitched();
     setTeacher(id);
     setTeacherPreference(id);
   };
 
   const chooseLanguage = (id: LanguageId) => {
+    if (id !== language) hapticSwitched();
     setLanguage(id);
     setLanguagePreference(id);
   };
