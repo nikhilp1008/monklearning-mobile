@@ -175,7 +175,7 @@ export default function HomeScreen() {
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
                   <PlateGround />
-                  <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
+                  <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
@@ -188,7 +188,7 @@ export default function HomeScreen() {
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
                   <PlateGround />
-                  <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.marigold} />
+                  <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
@@ -346,7 +346,7 @@ const plateGrainStyle = {
   top: 0,
   width: 140,
   height: 80,
-  opacity: 0.5,
+  opacity: 0.38,
   mixBlendMode: 'overlay' as const,
 };
 
@@ -630,7 +630,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
      * each speck against what is under it, which is how grain behaves in a
      * photograph and what keeps it even across the whole face.
      */
-    classGrain: { ...StyleSheet.absoluteFillObject, opacity: 0.9 },
+    classGrain: { ...StyleSheet.absoluteFillObject, opacity: 0.44, mixBlendMode: 'overlay' },
     classGradient: {
       ...StyleSheet.absoluteFillObject,
       borderRadius: scale(21),
