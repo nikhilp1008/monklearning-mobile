@@ -332,12 +332,13 @@ const GRAIN_FREQ = 1.0;
  * zero, and a view opacity over the top — so none of its numbers transfer to a
  * shader whose grey sits at full alpha everywhere.
  *
- * These were solved against the screen that was signed off, by photographing
- * both builds and subtracting the texture floor each surface has anyway from
- * its own gradient dithering. The card lands at 0.689 against 0.685 at the
- * scale the mottling lives on; the plates hold their high-frequency energy at
- * 3.55 and 3.04 against 3.57 and 3.06. The intent of this change was the
- * mechanism, not the look, so the look had to be shown not to have moved.
+ * The shader first reproduced the PNG exactly — 0.689 against 0.685 at the
+ * scale the mottling lives on — because that change was about the mechanism
+ * and the look had to be shown not to have moved. It then turned out the look
+ * itself was wrong: three rounds of reductions had compounded to the point
+ * where the texture was not visible at arm's length, only under a 4x crop.
+ * The card is at twice that now, which is where it reads as paper on a phone
+ * rather than in a screenshot.
  */
 /**
  * THE PLATE'S GROUND, and the two wrong ways to lighten it.
@@ -367,7 +368,7 @@ const GRAIN_FREQ = 1.0;
  */
 const PLATE_GROUND = '#2E2A24';
 
-const CARD_GRAIN = 0.13;
+const CARD_GRAIN = 0.26;
 const PLATE_GRAIN = 0.16;
 
 /**
