@@ -588,6 +588,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     classGradient: {
       ...StyleSheet.absoluteFillObject,
       borderRadius: scale(21),
+      /**
+       * CLIPS ITS CHILDREN, and it has to now that there are three of them.
+       * A radius alone shapes the view's own background; it does not shape
+       * what is painted inside it. While this WAS the gradient, that was
+       * enough — a gradient clips its own painting to its radius. As a wrapper
+       * holding a gradient, an SVG glow and a grain sheet, it left all three
+       * drawing square corners across the card's rounded amber border.
+       *
+       * Safe here, and only here: the drop shadow lives on `classBlock`
+       * outside this, so clipping costs nothing. Clipping the BLOCK would take
+       * the shadow with it, which is what the note there warns about.
+       */
+      overflow: 'hidden',
     },
     classLine: {
       fontFamily: 'Onest_400Regular',
