@@ -5,7 +5,7 @@ import {
   useAudioRecorder,
 } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
@@ -95,6 +95,10 @@ export function AskFollowUpBar({
   onReport?: () => void;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  /** The board is capped rather than free: it grows upward over the solution,
+   *  and past a little under half the screen there is nothing of the solution
+   *  left to read behind it. */
+  const { height: windowHeight } = useWindowDimensions();
   const [phase, setPhase] = useState<Phase>('idle');
   /**
    * A FAILURE IS TWO WORDS, NOT A SENTENCE.
@@ -425,6 +429,36 @@ export function AskFollowUpBar({
 
   return (
     <View style={styles.block}>
+      {/*
+        THE BOARD SITS ABOVE THE BAR, IN THE LAYOUT, NOT OVER IT.
+        It was a Modal, chosen so the bar and the solution behind it never
+        moved. They didn't — but a Modal is its own window anchored to the
+        bottom of the SCREEN, and the bar is at the bottom of the screen, so
+        the sheet landed squarely on top of the one control the student needed
+        next. Asking a second follow-up meant closing the answer to the first.
+        A Modal cannot be fixed by insetting it either: everything behind it is
+        untouchable, so a bar left visible under the scrim would still be dead.
+        So the board is an ordinary view now, rendered before the bar inside a
+        container that is anchored to the bottom and sizes to its content —
+        which means the board grows UPWARD over the solution and the bar does
+        not move a pixel. It keeps the property the Modal was chosen for, and
+        stops covering the thing it was covering.
+      */}
+      {boardOpen && (
+        <View style={[styles.board, { maxHeight: Math.round(windowHeight * 0.44) }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Follow-up</Text>
+            <Pressable onPress={() => setBoardOpen(false)} hitSlop={10}>
+              <Text style={styles.sheetDone}>Done</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
+            <BoardRail steps={boardSteps} />
+          </ScrollView>
+        </View>
+      )}
+
       <View style={styles.row}>
         <View style={styles.anchor}>
         <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
@@ -475,31 +509,6 @@ export function AskFollowUpBar({
         {hint}
       </Text>
 
-      {/* The board, when the answer earned one. A Modal rather than a layout
-          change so the bar — and the solution behind it — never move. Done
-          closes the board only; the voice keeps talking, and Stop on the bar
-          remains the way to silence it. */}
-      <Modal
-        visible={boardOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setBoardOpen(false)}>
-        <View style={styles.sheetScrim}>
-          <Pressable style={styles.sheetScrimTap} onPress={() => setBoardOpen(false)} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Follow-up</Text>
-              <Pressable onPress={() => setBoardOpen(false)} hitSlop={10}>
-                <Text style={styles.sheetDone}>Done</Text>
-              </Pressable>
-            </View>
-            <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
-              <BoardRail steps={boardSteps} />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -594,14 +603,22 @@ const styles = StyleSheet.create({
     color: INK_FAINT,
   },
   hintLive: { color: GREEN_INK },
-  sheetScrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,26,22,0.35)' },
-  sheetScrimTap: { ...StyleSheet.absoluteFillObject },
-  sheet: {
-    maxHeight: '72%',
+  /**
+   * A panel that floats above the bar, not a sheet stuck to the screen's edge.
+   * Rounded on all four corners because it no longer meets the bottom of the
+   * screen, and lifted on a shadow so it reads as sitting over the solution
+   * rather than being part of it.
+   */
+  board: {
     backgroundColor: PAPER,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingBottom: 28,
+    borderRadius: 22,
+    paddingBottom: 10,
+    marginBottom: 10,
+    overflow: 'hidden',
+    boxShadow: [
+      { offsetX: 0, offsetY: 10, blurRadius: 28, spreadDistance: -6, color: 'rgba(28,26,22,0.26)' },
+      { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(28,26,22,0.08)', inset: true },
+    ],
   },
   sheetHandle: {
     alignSelf: 'center',
