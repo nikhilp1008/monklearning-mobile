@@ -281,6 +281,13 @@ function createStyles(
      * "Verified" as a tag rather than a tick, and below the card rather than
      * inside it: the card is the answer, the tag is what we know about it.
      *
+     * RIGHT-ALIGNED, not left. On the left it sat under the start of the
+     * address with nothing to line up against, which read as a stray chip
+     * dropped in the gap between two fields. On the right it aligns to the
+     * card's own edge, so it reads as a stamp on that field. It stays below
+     * the card rather than moving into the label row because the address is
+     * long enough to need the card's whole width — see `cardWarm`.
+     *
      * Green because that is what the state is; the onboarding palette has no
      * success colour of its own, so these are the app's #1C9B57 at 12% with
      * the same #12703E the observation row uses for text on a green wash --
@@ -288,7 +295,7 @@ function createStyles(
      */
     verifiedTag: {
       marginTop: ds(8),
-      alignSelf: 'flex-start',
+      alignSelf: 'flex-end',
       paddingHorizontal: ds(8),
       paddingVertical: ds(2),
       borderRadius: 99,
