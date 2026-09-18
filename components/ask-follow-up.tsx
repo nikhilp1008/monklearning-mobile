@@ -6,6 +6,13 @@ import {
 } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
@@ -427,6 +434,37 @@ export function AskFollowUpBar({
    *  the dock's own two palettes, meaning the same two things. */
   const mood: RingMood = listening ? 'student' : 'teacher';
 
+  /**
+   * THE BOARD'S OWN OPEN AND CLOSE.
+   *
+   * It appeared and vanished between two frames, which on a panel this size
+   * reads as a glitch rather than as something arriving. `open` runs 0 to 1 and
+   * the board rises 34pt into place as it fades; closing runs it back down and
+   * only then unmounts, which is the part a plain `boardOpen &&` cannot do —
+   * the view is gone before any exit animation could play.
+   *
+   * Up is slower than down and eased differently: arriving is the thing worth
+   * watching, leaving should get out of the way. The same pair of curves the
+   * rest of the app uses for entrances and exits.
+   */
+  const open = useSharedValue(0);
+  const [boardMounted, setBoardMounted] = useState(false);
+  useEffect(() => {
+    if (boardOpen) {
+      setBoardMounted(true);
+      open.value = withTiming(1, { duration: 300, easing: Easing.bezier(0.2, 0.8, 0.2, 1) });
+      return;
+    }
+    open.value = withTiming(0, { duration: 210, easing: Easing.bezier(0.4, 0, 0.6, 1) }, (done) => {
+      if (done) runOnJS(setBoardMounted)(false);
+    });
+  }, [boardOpen, open]);
+
+  const boardStyle = useAnimatedStyle(() => ({
+    opacity: open.value,
+    transform: [{ translateY: (1 - open.value) * 34 }],
+  }));
+
   return (
     <View style={styles.block}>
       {/*
@@ -444,19 +482,30 @@ export function AskFollowUpBar({
         not move a pixel. It keeps the property the Modal was chosen for, and
         stops covering the thing it was covering.
       */}
-      {boardOpen && (
-        <View style={[styles.board, { maxHeight: Math.round(windowHeight * 0.44) }]}>
+      {boardMounted && (
+        <Animated.View
+          style={[styles.board, { maxHeight: Math.round(windowHeight * 0.44) }, boardStyle]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Follow-up</Text>
-            <Pressable onPress={() => setBoardOpen(false)} hitSlop={10}>
-              <Text style={styles.sheetDone}>Done</Text>
+            {/* A cross, not the word Done. "Done" claims the student finished
+                something; this board is an answer they are dismissing, and
+                nothing is completed by closing it. A cross also stops the
+                header competing with the green Report and Stop language used
+                for the controls that do act. */}
+            <Pressable
+              onPress={() => setBoardOpen(false)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Close the follow-up answer"
+              style={({ pressed }) => [styles.sheetClose, pressed && styles.sheetClosePressed]}>
+              <CloseIcon />
             </Pressable>
           </View>
           <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
             <BoardRail steps={boardSteps} />
           </ScrollView>
-        </View>
+        </Animated.View>
       )}
 
       <View style={styles.row}>
@@ -515,6 +564,19 @@ export function AskFollowUpBar({
 
 /** The written answer in the same numbered rail the solution uses. Parsed at
  *  render because partials replace their step's text frame by frame. */
+function CloseIcon() {
+  return (
+    <Svg viewBox="0 0 16 16" width={13} height={13} fill="none">
+      <Path
+        d="M4 4l8 8M12 4l-8 8"
+        stroke={INK_MUTED}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 function BoardRail({ steps }: { steps: FollowUpStep[] }) {
   const rail = useMemo(
     () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
@@ -637,6 +699,16 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   sheetTitle: { fontFamily: 'Onest_700Bold', fontSize: 16, color: INK },
-  sheetDone: { fontFamily: 'Onest_700Bold', fontSize: 14, color: GREEN_INK },
+  /** A disc, so the glyph has a target worth tapping and reads as a control
+   *  rather than as a mark printed in the corner. */
+  sheetClose: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(28,26,22,0.05)',
+  },
+  sheetClosePressed: { backgroundColor: 'rgba(28,26,22,0.11)' },
   sheetBody: { paddingHorizontal: 20 },
 });
