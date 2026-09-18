@@ -3,15 +3,19 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
+import Animated, {
+  runOnJS,
+  SlideInLeft,
+  SlideInRight,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -54,9 +58,14 @@ export default function TextbookReaderScreen() {
   const [missing, setMissing] = useState(false);
   const [active, setActive] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
+  /** `percent` is the label only. The bar reads `scrollPercent` straight off
+   *  the UI thread, and `lastShownPercent` is the worklet's copy of what the
+   *  label says, so it can tell whether crossing to JS would change anything. */
   const [percent, setPercent] = useState(0);
+  const scrollPercent = useSharedValue(0);
+  const lastShownPercent = useSharedValue(0);
   const [state, setState] = useState<BlockState>(EMPTY_BLOCK_STATE);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,12 +105,20 @@ export default function TextbookReaderScreen() {
         if (index === current) return current;
         setDirection(index > current ? 1 : -1);
         setPercent(0);
+        // The bar and the worklet's copy of the label reset with it. Scrolling
+        // to the top usually fires a scroll event that would do this anyway,
+        // but not when the reader is already at y=0 — and a stale
+        // lastShownPercent would then swallow the next genuine label change.
+        scrollPercent.value = 0;
+        lastShownPercent.value = 0;
         setReaderActive(index);
         scrollRef.current?.scrollTo({ y: 0, animated: false });
         return index;
       });
     },
-    []
+    // Shared values are stable refs, so listing them changes nothing at
+    // runtime — it just stops the rule from flagging a real reference.
+    [scrollPercent, lastShownPercent]
   );
 
   useReaderJump(goTo);
@@ -116,11 +133,32 @@ export default function TextbookReaderScreen() {
   const topic = chapter?.topics[active];
   const blocks = useMemo(() => (topic ? groupBlocks(topic.blocks) : []), [topic]);
 
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+  /**
+   * The bar moves on the UI thread; only the number crosses back to JS.
+   *
+   * As one setState per scroll event this re-rendered the reader — every block
+   * of the chapter — about sixty times a second, to move a 2px fill and change
+   * a label that has a hundred distinct values at most. The fill now reads a
+   * shared value directly, and the label is pushed over only when the rounded
+   * percentage actually changes, so a full scroll costs ~100 renders instead
+   * of several thousand.
+   */
+  const onScroll = useAnimatedScrollHandler((event) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event;
     const scrollable = contentSize.height - layoutMeasurement.height;
-    setPercent(scrollable <= 0 ? 100 : Math.min(100, Math.max(0, (contentOffset.y / scrollable) * 100)));
-  };
+    const next =
+      scrollable <= 0 ? 100 : Math.min(100, Math.max(0, (contentOffset.y / scrollable) * 100));
+    scrollPercent.value = next;
+    const rounded = Math.round(next);
+    if (rounded !== lastShownPercent.value) {
+      lastShownPercent.value = rounded;
+      runOnJS(setPercent)(rounded);
+    }
+  });
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${scrollPercent.value}%`,
+  }));
 
   if (missing) {
     return (
@@ -187,10 +225,10 @@ export default function TextbookReaderScreen() {
           <Text style={styles.percent}>{Math.round(percent)}%</Text>
         </View>
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${percent}%` }]} />
+          <Animated.View style={[styles.progressFill, progressStyle]} />
         </View>
 
-        <ScrollView
+        <Animated.ScrollView
           ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
@@ -220,7 +258,7 @@ export default function TextbookReaderScreen() {
               />
             ))}
           </Animated.View>
-        </ScrollView>
+        </Animated.ScrollView>
       </SafeAreaView>
 
       <SafeAreaView edges={['bottom']} style={styles.navWrap} pointerEvents="box-none">

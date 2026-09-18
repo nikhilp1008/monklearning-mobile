@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import { clearProgressCache } from '@/lib/progress';
 import { ParsedStep, parseSolutionSteps } from '@/lib/solution-steps';
 
 export type QuestionType = 'single_correct' | 'numerical' | string;
@@ -164,9 +165,16 @@ export function submitAnswer(params: {
    *  pace median — giving up is quick and solving is slow. */
   gave_up?: boolean;
 }): Promise<AnswerResult> {
-  return apiFetch('/practice/answer', {
+  return apiFetch<AnswerResult>('/practice/answer', {
     method: 'POST',
     body: JSON.stringify(params),
+  }).then((result) => {
+    // A graded answer is the one event that definitely moves the score, so the
+    // cached /progress payload is now wrong rather than merely old. Dropped
+    // here rather than on the Progress screen because every surface that shows
+    // the score — Home's stats row included — reads through the same cache.
+    clearProgressCache();
+    return result;
   });
 }
 

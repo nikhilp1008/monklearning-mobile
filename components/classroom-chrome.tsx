@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -284,6 +285,37 @@ export function ScrollIndicator({
       style={[groundStyles.indicator, { top, height, opacity: visible ? 1 : 0 }]}
       pointerEvents="none"
     />
+  );
+}
+
+/**
+ * The same pill, driven by shared values instead of React state.
+ *
+ * The board is the largest tree in the app, and the props version above has to
+ * be fed from an onScroll handler — which means three setState calls per scroll
+ * event, at scrollEventThrottle={16}, re-rendering the whole classroom ~60
+ * times a second for a 3px rectangle. This one is written from the UI thread
+ * and never re-renders anything.
+ *
+ * Kept alongside rather than replacing it: the lesson player still passes plain
+ * numbers, and its board is not live.
+ */
+export function AnimatedScrollIndicator({
+  top,
+  height,
+  opacity,
+}: {
+  top: SharedValue<number>;
+  height: SharedValue<number>;
+  opacity: SharedValue<number>;
+}) {
+  const style = useAnimatedStyle(() => ({
+    top: top.value,
+    height: height.value,
+    opacity: opacity.value,
+  }));
+  return (
+    <Animated.View style={[groundStyles.indicator, style]} pointerEvents="none" />
   );
 }
 

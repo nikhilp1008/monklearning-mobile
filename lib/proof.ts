@@ -252,7 +252,9 @@ async function writeSnapshot(data: ProgressSummary): Promise<void> {
  */
 export async function captureProof(data?: ProgressSummary): Promise<void> {
   try {
-    await writeSnapshot(data ?? (await getProgress()));
+    // Forced for the same reason as collectProof: a baseline taken from a
+    // cached payload is a baseline for a moment that has already passed.
+    await writeSnapshot(data ?? (await getProgress({ force: true })));
   } catch {
     // Offline at the start of a class simply means no baseline, and the next
     // diff reports only firsts. Silence is a valid outcome here.
@@ -381,7 +383,10 @@ export function rankEvents(events: ProofEvent[]): ProofEvent[] {
  */
 export async function collectProof(): Promise<ProofEvent[]> {
   const previous = await readSnapshot();
-  const current = await getProgress();
+  // Forced: this is a diff, not a display. A cached payload here would be the
+  // same object the baseline was taken from, and every moment the student just
+  // earned would difference away to nothing.
+  const current = await getProgress({ force: true });
   const events = await unseen(diffProof(previous, current));
   await writeSnapshot(current);
   return rankEvents(events);

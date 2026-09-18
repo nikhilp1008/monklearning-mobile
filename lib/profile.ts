@@ -93,11 +93,24 @@ export async function getStoredName(): Promise<string | null> {
   }
 }
 
+/**
+ * The resolved profile, held in memory.
+ *
+ * `getProfile` is an 8-key `multiGet` and it is asked on several screen mounts
+ * (Home, Practice, Textbooks, Drona, Exam scope) as well as inside
+ * `getCatalogue`, all for eight small strings that only this module ever
+ * writes. Same reasoning as `cachedTeacher` in lib/preferences.ts: every write
+ * goes through `saveProfile`/`clearProfile`, so the cache can be kept correct
+ * by updating it there rather than invalidated on a timer.
+ */
+let cached: StudentProfile | null = null;
+
 export async function getProfile(): Promise<StudentProfile> {
+  if (cached) return cached;
   try {
     const pairs = await AsyncStorage.multiGet(Object.values(KEYS));
     const map = Object.fromEntries(pairs) as Record<string, string | null>;
-    return {
+    const resolved: StudentProfile = {
       name: map[KEYS.name] ?? FALLBACK.name,
       email: map[KEYS.email] ?? FALLBACK.email,
       emailVerified: map[KEYS.emailVerified] === 'true',
@@ -107,7 +120,14 @@ export async function getProfile(): Promise<StudentProfile> {
       year: readYear(map[KEYS.year]),
       joined: map[KEYS.joined] ?? FALLBACK.joined,
     };
+    // `??=`, not `=`: a save or a clear that landed while this read was in
+    // flight is the newer truth, and a plain assignment would put the
+    // pre-write values back and keep them.
+    cached ??= resolved;
+    return cached;
   } catch {
+    // Not cached: a storage read that failed says nothing about what is
+    // stored, and freezing the fallback in would outlive the failure.
     return FALLBACK;
   }
 }
@@ -128,6 +148,16 @@ export async function saveProfile(patch: Partial<StudentProfile>): Promise<void>
   if (patch.year !== undefined) entries.push([KEYS.year, patch.year]);
   if (patch.joined !== undefined) entries.push([KEYS.joined, patch.joined]);
   if (!entries.length) return;
+  // Only when the cache is already warm — a patch is a few fields, not a
+  // profile, so a cold cache has nothing to merge into and must stay cold.
+  // `undefined` is filtered out because a spread would let an explicitly
+  // undefined field erase a real one, which the entries above never do.
+  if (cached) {
+    const given = Object.fromEntries(
+      Object.entries(patch).filter(([, value]) => value !== undefined)
+    ) as Partial<StudentProfile>;
+    cached = { ...cached, ...given };
+  }
   try {
     await AsyncStorage.multiSet(entries);
   } catch {
@@ -143,10 +173,17 @@ export async function saveProfile(patch: Partial<StudentProfile>): Promise<void>
  * the details step because a stored name already exists.
  */
 export async function clearProfile(): Promise<void> {
+  // Before the await, not after: the cache is the thing the next student would
+  // actually be shown, and leaving the previous one's name in it for the
+  // duration of a storage write is the same bug this function exists to stop.
+  cached = FALLBACK;
   try {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch {
-    // Nothing useful to do; the next sign-in overwrites these anyway.
+    // Nothing useful to do; the next sign-in overwrites these anyway. The
+    // cache is dropped rather than left claiming the keys are gone, so the
+    // next read goes back to storage and sees what actually survived.
+    cached = null;
   }
 }
 

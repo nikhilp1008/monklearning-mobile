@@ -1,3 +1,5 @@
+import type { Session } from '@supabase/supabase-js';
+
 import { supabase } from '@/lib/supabase';
 
 export class ApiError extends Error {
@@ -10,6 +12,90 @@ export class ApiError extends Error {
     this.status = status;
     this.data = data;
   }
+}
+
+/**
+ * The access token, held in memory.
+ *
+ * `supabase.auth.getSession()` reads the persisted session back out of
+ * AsyncStorage, so it is a bridge hop on *every* call — Home's focus effect
+ * fires several, and Practice one per question. The token itself is a short
+ * string that only changes when Supabase says it has, and Supabase does say:
+ * the client refreshes on its own and reports it, so the subscription below is
+ * what keeps this honest rather than a guessed TTL.
+ *
+ * `expires_at` is the JWT's own `exp`, in seconds. The margin cuts both ways —
+ * a token handed out a second before expiry can die in flight on a bad
+ * connection, and `getSession()` is what *triggers* a refresh, so falling back
+ * early is how the refresh gets asked for.
+ */
+const TOKEN_EXPIRY_MARGIN_S = 60;
+
+let cachedToken: string | null = null;
+/** 0 when the session didn't carry an `exp`, which reads as already expired
+ *  and sends every call back to `getSession()` — today's behaviour. */
+let cachedTokenExpiry = 0;
+
+function rememberSession(session: Session | null): void {
+  cachedToken = session?.access_token ?? null;
+  cachedTokenExpiry = session?.expires_at ?? 0;
+}
+
+/**
+ * Whether the cache may be trusted at all.
+ *
+ * The token is only safe to hold if something will tell us when it stops being
+ * valid, so the two are deliberately tied together: no working subscription,
+ * no caching. A stale token surviving a sign-out is the one failure here that
+ * is a security bug rather than a slow screen, and this makes that state
+ * unreachable instead of merely unlikely.
+ */
+let subscribed = false;
+let invalidationLive = false;
+
+/**
+ * Subscribed on first use, not at module scope.
+ *
+ * At module scope this runs the instant anything imports `apiFetch`, which is
+ * an import-time crash for any caller whose Supabase client isn't fully formed
+ * yet — a real hazard, and it took out the live-classroom tests on the way in.
+ * A token cache is an optimisation and must not be able to stop the module
+ * loading.
+ *
+ * Every event is handled, not just SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED:
+ * each one carries the session current as of that event, and a null session
+ * clears the cache — so sign-out is correct by construction rather than by
+ * enumerating the events that happen to matter today.
+ */
+function ensureInvalidation(): void {
+  if (subscribed) return;
+  subscribed = true;
+  try {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      rememberSession(session);
+    });
+    invalidationLive = true;
+  } catch {
+    // Left false on purpose: accessToken() then asks Supabase every time,
+    // which is exactly the behaviour this cache replaced. Slower, still right.
+    invalidationLive = false;
+  }
+}
+
+async function accessToken(): Promise<string | undefined> {
+  ensureInvalidation();
+  if (
+    invalidationLive &&
+    cachedToken &&
+    cachedTokenExpiry - Date.now() / 1000 > TOKEN_EXPIRY_MARGIN_S
+  ) {
+    return cachedToken;
+  }
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  rememberSession(session);
+  return session?.access_token;
 }
 
 /**
@@ -36,10 +122,7 @@ export async function apiFetch<T>(
     throw new ApiError('The app isn’t configured to reach the server yet.', 0);
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  const token = await accessToken();
 
   if (!token) {
     throw new ApiError('No authentication session found', 401);

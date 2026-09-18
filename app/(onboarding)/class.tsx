@@ -111,14 +111,18 @@ export default function ClassScreen() {
             label={year ? 'Continue' : 'Pick your year'}
             disabled={!year}
             withArrow
-            onPress={async () => {
+            onPress={() => {
               if (!year) return;
               // Saved locally only. The write that reaches the server -- and
               // with it the `display_name` the gate reads as "onboarded" --
               // now happens on the last screen, because three more steps
               // follow this one and a reload in between would otherwise drop
               // the student on Home with no pass.
-              await saveProfile({ year });
+              //
+              // Not awaited, same as the details step: nothing on the next
+              // screen reads `year`, so awaiting only put an AsyncStorage
+              // write between the tap and the transition.
+              saveProfile({ year });
               router.push({ pathname: '/pass', params: { exam: exam ?? 'jee' } });
             }}
           />
