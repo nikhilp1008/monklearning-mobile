@@ -339,8 +339,36 @@ const GRAIN_FREQ = 1.0;
  * 3.55 and 3.04 against 3.57 and 3.06. The intent of this change was the
  * mechanism, not the look, so the look had to be shown not to have moved.
  */
+/**
+ * THE PLATE'S GROUND, and the two wrong ways to lighten it.
+ *
+ * It began as `colors.ink` — the same near-black the body text is set in — and
+ * at 36pt square, twice, on a page that is otherwise warm off-white, two black
+ * chips read heavier than the live-class card above them, which is the thing
+ * actually asking to be pressed.
+ *
+ * DROPPING THE ALPHA was the first wrong answer. What shows through a
+ * translucent plate is the paper, and the paper is neutral, so the plate loses
+ * its warmth exactly as fast as it gains lightness. At half alpha it is a grey
+ * chip with a washed-out glyph.
+ *
+ * LIFTING THE FLAT COLOUR was the second, and it is the subtler mistake. The
+ * plate got lighter and looked WORSE — hazy rather than bright — for two
+ * reasons that only show up on screen. The glow had nothing dark left to read
+ * against, so the light stopped looking like light; and the grain, which is an
+ * overlay blend, bites far harder on a mid-tone than on near-black: measured
+ * at 1.375 against 0.627, more than twice the texture, on a surface that was
+ * supposed to be getting calmer.
+ *
+ * SO THE LIGHT DOES THE LIFTING. The ground stays dark enough to be a shadow
+ * and the glow below is what makes the plate read warm and bright — a lit
+ * object rather than a pale one. Lightness went up, contrast stayed, and the
+ * grain went back down to 0.16 because it no longer has to fight a grey field.
+ */
+const PLATE_GROUND = '#2E2A24';
+
 const CARD_GRAIN = 0.13;
-const PLATE_GRAIN = 0.22;
+const PLATE_GRAIN = 0.16;
 
 /**
  * THE PLATE'S GROUND — the live-class card's treatment, at a thirty-sixth of
@@ -351,8 +379,14 @@ function PlateGround() {
     <>
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
-          <RadialGradient id="plateGlow" cx="0.85" cy="1.05" r="0.95">
-            <Stop offset="0" stopColor="#D9932A" stopOpacity={0.5} />
+          {/* Bigger and brighter than it was, and with a stop in the middle.
+              Two stops fell off too fast and left the glow as a bright corner
+              on a dark chip; carrying #C4821F through the middle spreads the
+              warmth across most of the plate, which is what makes it read
+              lighter overall without the ground having to go pale. */}
+          <RadialGradient id="plateGlow" cx="0.85" cy="1.05" r="1.35">
+            <Stop offset="0" stopColor="#F0AE39" stopOpacity={0.95} />
+            <Stop offset="0.5" stopColor="#C4821F" stopOpacity={0.43} />
             <Stop offset="1" stopColor="#8A5A14" stopOpacity={0} />
           </RadialGradient>
         </Defs>
@@ -705,7 +739,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(11),
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.ink,
+      backgroundColor: PLATE_GROUND,
       /** Clips the glow and the grain to the plate's corners — the same thing
        *  the card needed once it held more than one layer. */
       overflow: 'hidden',
