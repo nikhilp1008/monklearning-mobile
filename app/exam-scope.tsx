@@ -31,15 +31,16 @@ import { hapticSwitched } from '@/lib/haptics';
 const EXAM_OPTIONS = ['JEE Main', 'NEET UG'] as const;
 
 /**
- * THE PAGE MOVES WITH THE TOGGLE, the way the Textbooks list does.
+ * THE CARD UNDER THE TOGGLE MOVES WITH IT — and nothing else does.
  *
- * Switching exam used to swap every number and card below in one frame while
- * the thumb slid above them — a moving control over a page that cut. Now
- * everything that belongs to the exam comes back in, top to bottom, on the
- * same entrance and stagger as the Textbooks chapter rows, so the two toggles
- * feel like one control in two places.
+ * Switching exam swapped the headline card in one frame while the thumb slid
+ * above it, so the card now comes back in on the Textbooks rows' entrance.
+ * Only that card: it sits right under the toggle and is what the toggle is
+ * about. Every card below animating too made each switch read as the whole
+ * page reshuffling, and flicking back and forth meant watching it again and
+ * again. Those just update in place.
  */
-const enter = (step: number) => FadeInDown.delay(step * 26).duration(320);
+const HEADLINE_ENTER = FadeInDown.duration(320);
 
 export default function ExamScopeScreen() {
   const { scale, verticalScale } = useScale();
@@ -102,7 +103,7 @@ export default function ExamScopeScreen() {
       </View>
 
       {/* What's in */}
-      <Animated.View key={`in-${exam}`} entering={enter(0)} style={styles.card}>
+      <Animated.View key={`in-${exam}`} entering={HEADLINE_ENTER} style={styles.card}>
         <Text style={styles.overline}>In {scope.label}</Text>
         <View style={styles.countRow}>
           <Text style={styles.countValue}>{scope.totalChapters}</Text>
@@ -132,11 +133,11 @@ export default function ExamScopeScreen() {
         quietly trimmed out, and what left the books in 2023.
       </Text>
       <View style={styles.subjectCards}>
-        {subjectDetails.map((detail, index) => {
+        {subjectDetails.map((detail) => {
           const trims = detail.chapters.filter((c) => c.trims?.length).length;
           return (
-            <Animated.View key={`${exam}-${detail.key}`} entering={enter(index + 1)}>
             <PressableScale
+              key={detail.key}
               style={styles.subjectCard}
               onPress={() =>
                 router.push({
@@ -162,15 +163,11 @@ export default function ExamScopeScreen() {
               </View>
               <ChevronIcon color={colors.faint} />
             </PressableScale>
-            </Animated.View>
           );
         })}
       </View>
 
-      <Animated.View
-        key={`drop-${exam}`}
-        entering={enter(subjectDetails.length + 1)}
-        style={styles.card}>
+      <View style={styles.card}>
         <Text style={styles.overline}>What you can drop</Text>
         <View style={styles.dropRow}>
           <View style={styles.dropItem}>
@@ -188,19 +185,16 @@ export default function ExamScopeScreen() {
           sits inside chapters you keep and is still board material, so weigh it lighter rather
           than skipping it. Both are named per subject below.
         </Text>
-      </Animated.View>
+      </View>
 
       {scope.boardOnlyChapters.length > 0 && (
-        <Animated.View
-          key={`board-${exam}`}
-          entering={enter(subjectDetails.length + 2)}
-          style={styles.noteCard}>
+        <View style={styles.noteCard}>
           <Text style={styles.noteCardText}>
             <Text style={styles.noteCardStrong}>{scope.boardOnlyChapters.join(', ')}</Text> is a
             live NCERT chapter and a board topic, but it isn&apos;t in the {scope.label} syllabus.
             Study it for school, not for the exam.
           </Text>
-        </Animated.View>
+        </View>
       )}
 
       {/* The anxiety question */}
