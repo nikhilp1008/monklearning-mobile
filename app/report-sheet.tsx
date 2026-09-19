@@ -16,13 +16,13 @@ import Animated, {
   Easing,
   FadeIn,
   interpolate,
+  interpolateColor,
   runOnJS,
   useAnimatedKeyboard,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -34,21 +34,18 @@ import { hapticCommitted, hapticSwitched } from '@/lib/haptics';
 import { reportPracticeQuestion } from '@/lib/practice';
 
 /**
- * REPORT A MISTAKE — the reasons, a note if there is more to say, and Send.
+ * REPORT A MISTAKE — the reasons, a note, and Send. Nothing else.
  *
- * WHAT IT WAS. A red flag badge, a quote of the question on a ruled-notebook
- * card, reasons as a wrap of pills that broke across two uneven lines, a notes
- * box always open, a line of reassurance, and a Send button that sat on the
- * home indicator with no room under it. Every part of that was either
- * repeating what the screen behind already shows — the student is looking at
- * the question they are reporting — or decoration.
+ * The sheet used to quote the question on a ruled-notebook card, label the
+ * reasons "WHAT'S WRONG?" under a title that already said it, add a line of
+ * reassurance, and leave Send sitting on the home indicator. The student is
+ * looking at the question on the screen behind, so all of that is gone; what
+ * stays is the red flag, the reasons as pills, the note box and Send, with
+ * room around each.
  *
- * WHAT IT IS. A title, five reasons as a list, and one button. The reasons are
- * rows rather than pills so they align on one edge and read top to bottom, and
- * the choice is shown by a soft marigold wash that glides to the row picked,
- * the radio filling as it arrives: the one piece of motion, and it is the one
- * that confirms the tap. The note is one quiet link away, and opens by itself
- * for "Something else", where a reason alone says nothing.
+ * MORE THAN ONE REASON. A wrong answer is often a confusing step too, and
+ * making a student pick one throws half the report away. The pills toggle,
+ * and the report carries every one that is on.
  *
  * IT MOVES LIKE THE TOPICS SHEET: up on a spring, down under the thumb, and
  * away on its own animation whether it was closed, flicked, tapped past or
@@ -61,7 +58,6 @@ import { reportPracticeQuestion } from '@/lib/practice';
  */
 
 const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
-const SOMETHING_ELSE = REASONS.length - 1;
 
 /** Drag distance or flick speed that closes the sheet — the topics sheet's. */
 const CLOSE_DISTANCE = 110;
@@ -70,7 +66,6 @@ const CLOSE_VELOCITY = 800;
 const SENT_HOLD_MS = 650;
 
 const OUT = { duration: 220, easing: Easing.bezier(0.4, 0, 0.9, 0.4) };
-const GLIDE = { damping: 22, stiffness: 320, mass: 0.7 };
 
 export default function ReportSheetScreen() {
   const params = useLocalSearchParams<{
@@ -85,14 +80,14 @@ export default function ReportSheetScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const rowHeight = verticalScale(50);
 
-  const [reason, setReason] = useState(0);
-  const [noteOpen, setNoteOpen] = useState(false);
-  const noteInput = useRef<TextInput>(null);
+  const [picked, setPicked] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [phase, setPhase] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [sendError, setSendError] = useState<string | null>(null);
+
+  /** Something to send: a reason, or a note that says it in words. */
+  const canSend = reportable && phase === 'idle' && (picked.length > 0 || !!note.trim());
 
   /* ---- the sheet's own motion ---- */
 
@@ -145,55 +140,24 @@ export default function ReportSheetScreen() {
     opacity: interpolate(y.value, [0, travel * 0.6], [1, 0], 'clamp'),
   }));
 
-  /* ---- choosing ---- */
+  /* ---- choosing and sending ---- */
 
-  /** Where the wash is, in rows; springs between them. */
-  const selected = useSharedValue(0);
-  const choose = (index: number) => {
+  const toggle = (reason: string) => {
     if (phase !== 'idle') return;
-    if (index !== reason) hapticSwitched();
-    setReason(index);
-    selected.value = withSpring(index, GLIDE);
-    if (index === SOMETHING_ELSE) openNote(false);
+    hapticSwitched();
+    setPicked((now) => (now.includes(reason) ? now.filter((r) => r !== reason) : [...now, reason]));
   };
-  const washStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: selected.value * rowHeight }],
-  }));
-
-  /**
-   * THE NOTE OPENS IN PLACE. Its slot grows from the link's height to the
-   * field's, and the two cross-fade inside it. Growing the slot — rather than
-   * animating the sheet's frame — keeps everything under it still: the sheet
-   * is pinned to the bottom, so it simply rises, and Send never moves.
-   */
-  const linkHeight = verticalScale(40);
-  const noteHeight = verticalScale(104);
-  const noteShown = useSharedValue(0);
-  const openNote = (focus: boolean) => {
-    if (noteOpen) return;
-    setNoteOpen(true);
-    noteShown.value = withTiming(1, { duration: 240, easing: Easing.bezier(0.2, 0.8, 0.2, 1) });
-    if (focus) setTimeout(() => noteInput.current?.focus(), 120);
-  };
-  const slotStyle = useAnimatedStyle(() => ({
-    height: linkHeight + (noteHeight - linkHeight) * noteShown.value,
-  }));
-  const linkStyle = useAnimatedStyle(() => ({ opacity: 1 - noteShown.value }));
-  const fieldStyle = useAnimatedStyle(() => ({
-    opacity: noteShown.value,
-    transform: [{ translateY: (1 - noteShown.value) * 8 }],
-  }));
-
-  /* ---- sending ---- */
 
   const send = async () => {
-    if (!reportable || phase !== 'idle') return;
+    if (!canSend) return;
     hapticCommitted();
     Keyboard.dismiss();
     setPhase('sending');
     setSendError(null);
     try {
-      const comment = [REASONS[reason], note.trim()].filter(Boolean).join(': ');
+      // In the order the list shows them, whatever order they were tapped.
+      const reasons = REASONS.filter((r) => picked.includes(r)).join(', ');
+      const comment = [reasons, note.trim()].filter(Boolean).join(': ');
       if (params.doubtId) await reportDoubt(params.doubtId, comment);
       else await reportPracticeQuestion(params.questionId!, comment);
       setPhase('sent');
@@ -227,152 +191,137 @@ export default function ReportSheetScreen() {
               <View style={styles.grabber} />
             </View>
             <View style={styles.head}>
-              <View style={styles.headText}>
-                <Text style={styles.title}>Report a mistake</Text>
-                <Text style={styles.subtitle}>What&apos;s wrong?</Text>
+              <View style={styles.flagChip}>
+                <FlagIcon size={scale(14)} color="#C53A2B" />
               </View>
+              <Text style={styles.title}>Report a mistake</Text>
               <Pressable
                 style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
                 onPress={dismiss}
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel="Close">
-                <CloseIcon size={scale(12)} />
+                <CloseIcon size={scale(11)} />
               </Pressable>
             </View>
           </View>
         </GestureDetector>
 
-        <View>
-          <View style={styles.list}>
-            <Animated.View
-              pointerEvents="none"
-              style={[styles.wash, { height: rowHeight }, washStyle]}
+        <View style={styles.chips}>
+          {REASONS.map((reason) => (
+            <ReasonChip
+              key={reason}
+              label={reason}
+              on={picked.includes(reason)}
+              onPress={() => toggle(reason)}
+              styles={styles}
             />
-            {REASONS.map((label, index) => (
-              <Pressable
-                key={label}
-                onPress={() => choose(index)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: index === reason }}
-                style={({ pressed }) => [
-                  styles.row,
-                  { height: rowHeight },
-                  pressed && index !== reason && styles.rowPressed,
-                ]}>
-                <Text style={styles.rowText}>{label}</Text>
-                <Radio index={index} selected={selected} size={scale(20)} />
-              </Pressable>
-            ))}
-          </View>
-
-          <Animated.View style={[styles.noteSlot, slotStyle]}>
-            <Animated.View
-              style={[styles.noteLayer, linkStyle]}
-              pointerEvents={noteOpen ? 'none' : 'auto'}>
-              <Pressable
-                onPress={() => openNote(true)}
-                hitSlop={8}
-                style={({ pressed }) => [styles.addNote, pressed && styles.addNotePressed]}>
-                <PlusIcon size={scale(12)} />
-                <Text style={styles.addNoteText}>Add a note</Text>
-              </Pressable>
-            </Animated.View>
-            <Animated.View
-              style={[styles.noteLayer, fieldStyle]}
-              pointerEvents={noteOpen ? 'auto' : 'none'}>
-              <TextInput
-                ref={noteInput}
-                style={styles.note}
-                value={note}
-                onChangeText={setNote}
-                placeholder="Tell us more (optional)"
-                placeholderTextColor={colors.faint}
-                multiline
-                maxLength={500}
-              />
-            </Animated.View>
-          </Animated.View>
-
-          {sendError ? (
-            <Animated.Text entering={FadeIn.duration(180)} style={styles.error}>
-              {sendError}
-            </Animated.Text>
-          ) : null}
-
-          <Pressable
-            onPress={send}
-            disabled={!reportable || phase !== 'idle'}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.send,
-              !reportable && styles.sendOff,
-              pressed && styles.sendPressed,
-            ]}>
-            {phase === 'sending' ? (
-              <ActivityIndicator color={colors.paper} size="small" />
-            ) : phase === 'sent' ? (
-              <Animated.View entering={FadeIn.duration(160)} style={styles.sentRow}>
-                <CheckIcon size={scale(15)} />
-                <Text style={styles.sendText}>Sent</Text>
-              </Animated.View>
-            ) : (
-              <Text style={styles.sendText}>Send report</Text>
-            )}
-          </Pressable>
+          ))}
         </View>
+
+        <TextInput
+          style={styles.note}
+          value={note}
+          onChangeText={setNote}
+          placeholder="Anything else we should know? (optional)"
+          placeholderTextColor={colors.faint}
+          multiline
+          maxLength={500}
+        />
+
+        {sendError ? (
+          <Animated.Text entering={FadeIn.duration(180)} style={styles.error}>
+            {sendError}
+          </Animated.Text>
+        ) : null}
+
+        <Pressable
+          onPress={send}
+          disabled={!canSend}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.send,
+            !canSend && phase === 'idle' && styles.sendOff,
+            pressed && styles.sendPressed,
+          ]}>
+          {phase === 'sending' ? (
+            <ActivityIndicator color={colors.paper} size="small" />
+          ) : phase === 'sent' ? (
+            <Animated.View entering={FadeIn.duration(160)} style={styles.sentRow}>
+              <CheckIcon size={scale(15)} />
+              <Text style={styles.sendText}>Sent</Text>
+            </Animated.View>
+          ) : (
+            <Text style={styles.sendText}>Send report</Text>
+          )}
+        </Pressable>
       </Animated.View>
     </View>
   );
 }
 
 /**
- * The radio fills as the wash ARRIVES, not when the finger lifts: it reads the
- * same spring the wash rides, so the dot grows under the moving highlight
- * instead of jumping ahead of it.
+ * A reason pill. Black when on, as it always was — but it fades there rather
+ * than snapping, and gives a little under the finger. The label keeps one
+ * weight in both states: a pill that turned bold when picked grew wider and
+ * shoved every pill after it along the row.
  */
-function Radio({
-  index,
-  selected,
-  size,
+function ReasonChip({
+  label,
+  on,
+  onPress,
+  styles,
 }: {
-  index: number;
-  selected: SharedValue<number>;
-  size: number;
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
 }) {
-  const ring = useAnimatedStyle(() => {
-    const on = interpolate(Math.abs(selected.value - index), [0, 0.7], [1, 0], 'clamp');
-    return { borderColor: on > 0.5 ? colors.marigold : 'rgba(28,26,22,.2)' };
-  });
-  const dot = useAnimatedStyle(() => {
-    const on = interpolate(Math.abs(selected.value - index), [0, 0.7], [1, 0], 'clamp');
-    return { opacity: on, transform: [{ scale: 0.4 + 0.6 * on }] };
-  });
+  const lit = useSharedValue(on ? 1 : 0);
+  const press = useSharedValue(1);
+  useEffect(() => {
+    lit.value = withTiming(on ? 1 : 0, { duration: 180, easing: Easing.out(Easing.quad) });
+  }, [on, lit]);
+
+  const chipStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(lit.value, [0, 1], ['#FFFFFF', colors.ink]),
+    borderColor: interpolateColor(lit.value, [0, 1], [colors.inputBorder, colors.ink]),
+    transform: [{ scale: press.value }],
+  }));
+  const textStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(lit.value, [0, 1], [colors.slate, colors.paper]),
+  }));
+
   return (
-    <Animated.View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: 1.6,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        ring,
-      ]}>
-      <Animated.View
-        style={[
-          {
-            width: size * 0.5,
-            height: size * 0.5,
-            borderRadius: size / 4,
-            backgroundColor: colors.marigold,
-          },
-          dot,
-        ]}
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => {
+        press.value = withTiming(0.95, { duration: 90 });
+      }}
+      onPressOut={() => {
+        press.value = withSpring(1, { damping: 14, stiffness: 320 });
+      }}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: on }}>
+      <Animated.View style={[styles.chip, chipStyle]}>
+        <Animated.Text style={[styles.chipText, textStyle]}>{label}</Animated.Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function FlagIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path d="M5 21V4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path
+        d="M5 4c4.2-2 8.8 2 14 0v10c-5.2 2-9.8-2-14 0"
+        stroke={color}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-    </Animated.View>
+    </Svg>
   );
 }
 
@@ -380,14 +329,6 @@ function CloseIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
       <Path d="M4 4l8 8M12 4l-8 8" stroke={colors.slate} strokeWidth={1.9} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-function PlusIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path d="M8 3v10M3 8h10" stroke={colors.amberText} strokeWidth={2} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -426,21 +367,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     head: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingTop: verticalScale(8),
-      paddingBottom: verticalScale(14),
+      gap: scale(10),
+      paddingTop: verticalScale(10),
+      paddingBottom: verticalScale(18),
     },
-    headText: { flex: 1 },
+    /** The red flag, on its own faint wash — the one mark that says report. */
+    flagChip: {
+      width: scale(32),
+      height: scale(32),
+      flexShrink: 0,
+      borderRadius: scale(10),
+      backgroundColor: 'rgba(221,68,51,.07)',
+      borderWidth: 1,
+      borderColor: 'rgba(221,68,51,.25)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     title: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.3),
+      flex: 1,
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(18),
       color: colors.ink,
-    },
-    subtitle: {
-      marginTop: verticalScale(2),
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.faint,
     },
     close: {
       width: scale(32),
@@ -453,53 +400,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     closePressed: { backgroundColor: 'rgba(28,26,22,.04)' },
 
-    /** The rows hang off one left edge, and the wash behind them is inset to
-     *  the same radius as the sheet's other rounded rows. */
-    list: { position: 'relative' },
-    wash: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 0,
-      borderRadius: scale(14),
-      backgroundColor: colors.tint,
-    },
-    row: {
+    chips: {
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: scale(8),
+    },
+    chip: {
+      paddingVertical: verticalScale(10),
       paddingHorizontal: scale(16),
-      borderRadius: scale(14),
+      borderRadius: scale(99),
+      borderWidth: 1,
     },
-    rowPressed: { backgroundColor: 'rgba(28,26,22,.035)' },
-    rowText: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(15.5),
-      color: colors.ink,
-    },
-
-    /** Clips while it grows, so the field fades in rather than spilling. */
-    noteSlot: { overflow: 'hidden' },
-    noteLayer: { position: 'absolute', top: 0, left: 0, right: 0 },
-    addNote: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'flex-start',
-      gap: scale(7),
-      marginTop: verticalScale(10),
-      marginLeft: scale(16),
-      paddingVertical: verticalScale(6),
-    },
-    addNotePressed: { opacity: 0.6 },
-    addNoteText: {
+    chipText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
-      color: colors.amberText,
     },
-    /** A fixed height, so its slot has one size to grow to; a long note
-     *  scrolls inside it. */
+
     note: {
-      marginTop: verticalScale(12),
+      marginTop: verticalScale(16),
       height: verticalScale(92),
       paddingTop: verticalScale(12),
       paddingBottom: verticalScale(12),
@@ -538,7 +456,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       elevation: 6,
     },
     sendPressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },
-    sendOff: { opacity: 0.4 },
+    sendOff: { opacity: 0.35, shadowOpacity: 0 },
     sendText: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(15),
