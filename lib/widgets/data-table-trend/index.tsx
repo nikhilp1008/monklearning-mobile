@@ -36,6 +36,7 @@ import {
   column,
   derive,
   formatCell,
+  wrapCell,
   type CellKind,
   type DataTableTrendParams,
 } from './trend-math';
@@ -69,7 +70,11 @@ const MAX_COLS_NUMERIC = 4;
 const MAX_COLS_CATEGORICAL = 3; // text cells are wider; 4 does not fit at 343
 const MAX_ROW_LABEL = 12;
 const MAX_COL_LABEL = 5;
+//: PER LINE. `wrapCell` gives a categorical cell two of them, so the string a
+//: payload may carry is twice this plus the space it breaks at. It was a flat
+//: 8-character slice, which made "Klystron" and "Radioact" the whole answer.
 const MAX_TEXT_CELL = 8;
+const MAX_TEXT_CELL_TOTAL = MAX_TEXT_CELL * 2 + 1;
 
 const KINDS: CellKind[] = ['numeric', 'categorical'];
 
@@ -146,7 +151,7 @@ function validate(raw: unknown): ValidationResult<DataTableTrendParams> {
       row_labels: (rowLabels as string[]).map((s) => s.slice(0, MAX_ROW_LABEL)),
       col_labels: (colLabels as string[]).map((s) => s.slice(0, MAX_COL_LABEL)),
       values: numeric ? (values as number[]) : [],
-      text_values: numeric ? [] : (textValues as string[]).map((s) => s.slice(0, MAX_TEXT_CELL)),
+      text_values: numeric ? [] : (textValues as string[]).map((s) => s.slice(0, MAX_TEXT_CELL_TOTAL)),
       trend_col: numeric ? (trendCol as number) : -1,
       highlight_row: hl as number,
       unit: isStr(r.unit) ? r.unit.slice(0, 10) : '',
@@ -304,23 +309,27 @@ function DataTableTrend({
           </SvgText>
           {params.col_labels.map((_, c) => {
             const idx = r * frame.cols + c;
-            const text =
+            const lines =
               params.cell_kind === 'numeric'
-                ? formatCell(params.values[idx])
-                : (params.text_values[idx] ?? '');
-            return (
+                ? [formatCell(params.values[idx])]
+                : wrapCell(params.text_values[idx] ?? '', MAX_TEXT_CELL);
+            // Two lines are centred about the row's middle, so a one-line cell
+            // sits exactly where it always did and a two-line cell grows
+            // symmetrically rather than pushing down into the row below.
+            const dy = lines.length === 1 ? CELL_SIZE * 0.35 : -CELL_SIZE * 0.15;
+            return lines.map((ln, li) => (
               <SvgText
-                key={`c${c}`}
+                key={`c${c}-${li}`}
                 x={colCentreX(c)}
-                y={rowCentreY(r) + CELL_SIZE * 0.35}
+                y={rowCentreY(r) + dy + li * CELL_SIZE}
                 fill={theme.inkMuted}
                 fontSize={CELL_SIZE}
                 fontFamily={theme.monoFontFamily}
                 textAnchor="middle"
               >
-                {text}
+                {ln}
               </SvgText>
-            );
+            ));
           })}
         </G>
       ))}
