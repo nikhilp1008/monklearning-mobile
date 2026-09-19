@@ -2,268 +2,176 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { type NoteLine, type NoteSection } from '@/lib/note-page-model';
 
 /**
- * A SAVED CLASS, AS A PAGE SOMEBODY WROTE. The real one, not the mock.
+ * A SAVED CLASS, AS A PAGE SOMEBODY WROTE.
  *
- * Same treatment the preview arrived at, driven by the server's own structured
- * note instead of hand-authored content — so what a student sees is whatever
- * their class actually produced. The design survives that in most places and
- * not in all of them, which is worth stating rather than hiding:
+ * The first version of this page was a handwriting font on ruled paper, and it
+ * read as print in a different typeface: every line sat exactly on its rule,
+ * every margin was identical, and one pen wrote the whole page. What makes a
+ * real page look written is not the letterforms — it is everything around
+ * them. So:
  *
- *   THERE ARE NO TABLES, because the note's text contract has no way to say
- *   "table". The reference's ruled columns came from content authored as a
- *   table; a class transcript reorganised into headings and bullets cannot
- *   become one without inventing the columns.
+ *   A PEN PER SECTION. Red, violet, green, ink, in turn, with a drawn star
+ *   beside the heading and a wavy line under it. A student reaching for
+ *   whichever pen is open is why a page has four colours in it.
  *
- *   THERE ARE NO DIAGRAMS, for the same reason and more sharply: a sketch is a
- *   component keyed by name, and nothing in a note names one. The drawing kit
- *   is built and waiting on a field that says which figure belongs here.
+ *   FORMULAS IN A BOX THEY DREW. Not a slab of tint: a rounded rectangle with
+ *   a pen, corners not quite meeting the ruler.
  *
- * What the real content DOES carry maps cleanly: headings become the red
- * numbered sections, bullets and formulas their own lines, and QUICK REVISION —
- * which the server already writes as the three to six most exam-relevant points
- * — becomes the blue box. That box is the part that most makes a page look
- * revised rather than transcribed, and it was already in the payload.
+ *   LINES THAT DO NOT SIT PERFECTLY. Each is nudged a point or two sideways,
+ *   seeded by its place on the page so it never reshuffles.
+ *
+ *   NOTHING IS BOLD. The headings are the same weight as the body and are
+ *   told apart by colour, the star and the underline — a bold face was the
+ *   last thing making the page look set rather than written.
+ *
+ * What the class produced maps onto it unchanged: headings become the
+ * coloured sections, bullets and formulas their own lines, QUICK REVISION the
+ * boxed key points, the rework section its red flag, and the divider the
+ * server writes where a class stopped stays a line drawn across the page.
  */
 
-const PEN = 'PatrickHand_400Regular';
-/** Red pen: section numbers, headings, flags. */
+const HAND = 'Kalam_400Regular';
+/** Red pen: the title, the flags. */
 const RED = '#C0392B';
 /** The everyday ink — blue-black, as a ballpoint is. Never pure black. */
 const INK = '#2A3550';
-/** The second pen, for the summary box. */
-const BLUE = '#3A5A8C';
-const PAPER = '#FFFFFF';
-const RULE = 'rgba(42,53,80,0.055)';
+const VIOLET = '#5B4BAE';
+const GREEN = '#1E7A46';
+const AMBER = '#B8860B';
+const PAPER = '#FFFEFB';
+const RULE = 'rgba(42,53,80,0.05)';
 const QUIET = '#8A8577';
+const LH = 26;
 
-const LH = 22;
+/** The pens on the desk, in the order a page picks them up. */
+const PENS = [RED, VIOLET, GREEN, INK];
 
-export function NotePage({
-  title,
-  subject,
-  savedAt,
-  sections,
-  onBack,
-  emptyNote,
-}: {
-  title: string;
-  subject?: string | null;
-  /** Written at the top right, the way a page gets dated. */
-  savedAt?: string | null;
-  sections: NoteSection[];
-  onBack: () => void;
-  emptyNote: string;
-}) {
-  /**
-   * The paper runs under the status bar — paper behind a notch is right, and a
-   * white band above it would put the card back. Only the WRITING is inset.
-   */
-  const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(), []);
-  /** The squiggle runs the width of the title it sits under, so it has to wait
-   *  for the title to be laid out — a fixed width underlines half a long topic
-   *  and overshoots a short one. */
-  const [titleWidth, setTitleWidth] = useState(0);
-  const firstSelfStudy = sections.findIndex((s) => s.kind === 'selfstudy');
-
-  return (
-    <View style={styles.screen}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollInner}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.page}>
-          <View style={styles.rules} pointerEvents="none">
-            {Array.from({ length: 260 }).map((_, i) => (
-              <View key={i} style={[styles.rule, { top: (i + 1) * LH }]} />
-            ))}
-          </View>
-
-          <View style={[styles.body, { paddingTop: insets.top + 34 }]}>
-            {!!savedAt && <Text style={styles.date}>{savedAt}</Text>}
-            {/* MEASURED FROM THE TEXT'S OWN LINES, not from its box.
-                `onLayout` reports the container — a `Text` stretches to fill
-                it, and wrapping it in a shrink-to-fit view did not help either
-                — so the squiggle ran the whole column whatever the title said.
-                `onTextLayout` hands back the laid-out lines, and the widest of
-                them is the width of the writing. */}
-            <Text
-              style={styles.title}
-              onTextLayout={(e) => {
-                const w = Math.max(0, ...e.nativeEvent.lines.map((l) => l.width));
-                setTitleWidth(Math.round(w));
-              }}>
-              {title}
-            </Text>
-            {titleWidth > 0 && <Squiggle width={titleWidth} />}
-            {!!subject && <Text style={styles.subject}>{subject}</Text>}
-
-            {sections.length === 0 ? (
-              <Text style={styles.body0}>{emptyNote}</Text>
-            ) : (
-              sections.map((s, i) => (
-                <Section
-                  key={i}
-                  section={s}
-                  /* The rule goes at the BOUNDARY, so only the first self-study
-                     section draws it. Per-section it would be drawn again
-                     before every remaining topic — a page ruled off four
-                     times over. */
-                  boundary={s.kind === 'selfstudy' && i === firstSelfStudy}
-                  styles={styles}
-                />
-              ))
-            )}
-          </View>
-
-          {/* A photographed page is never evenly lit, and this is the whole of
-              why it reads as paper rather than as a white rectangle. */}
-          <View style={styles.sheen} pointerEvents="none" />
-        </View>
-      </ScrollView>
-
-      {/*
-        THE COST OF A FULL-BLEED PAGE, PAID PROPERLY.
-        With the paper running under the status bar, scrolled writing ran under
-        it too — the clock sitting on top of a formula, a line half behind the
-        notch, and then the pinned arrow colliding with whatever slid past it.
-        So the top of the page fades out into paper.
-        A FADE RATHER THAN A BAND, for two reasons: a hard edge cuts a line of
-        writing in half, and an opaque band has no ruled lines in it, which
-        leaves a visible seam where the ruling stops. Solid where the arrow is,
-        gone by the time the writing starts.
-      */}
-      <LinearGradient
-        colors={[PAPER, PAPER, 'rgba(255,255,255,0)']}
-        locations={[0, 0.62, 1]}
-        style={[styles.topCover, { height: insets.top + 42 }]}
-        pointerEvents="none"
-      />
-
-      {/* And the way out stays where it is. On the paper it scrolled away with
-          the title, so leaving a long note meant scrolling back to the top of
-          it first. */}
-      <Pressable
-        style={[styles.back, { top: insets.top + 4 }]}
-        onPress={onBack}
-        hitSlop={16}
-        accessibilityLabel="Back">
-        <Svg viewBox="0 0 24 24" width={21} height={21} fill="none">
-          <Path
-            d="M15 5l-7 7 7 7"
-            stroke={INK}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-      </Pressable>
-    </View>
-  );
+/** Deterministic wobble, so a line is written the same way every render. */
+function n(seed: number, salt: number, amount: number): number {
+  const x = Math.sin(seed * 12.9898 + salt * 78.233) * 43758.5453;
+  return ((x - Math.floor(x)) * 2 - 1) * amount;
 }
 
-function Section({
-  section,
-  boundary,
-  styles,
+/** A line drawn under a heading: never quite straight, never quite level. */
+function Underline({
+  width,
+  color,
+  seed = 1,
+  double = false,
 }: {
-  section: NoteSection;
-  /** Whether this is where the class stopped, and so draws the rule. */
-  boundary: boolean;
-  styles: ReturnType<typeof createStyles>;
+  width: number;
+  color: string;
+  seed?: number;
+  double?: boolean;
 }) {
-  /** QUICK REVISION is a box, not a run of lines — it is the one section a
-   *  student draws a border round. */
-  if (section.kind === 'revision') {
-    return (
-      <View style={styles.keyBox}>
-        <Text style={styles.keyTitle}>{section.title}</Text>
-        <View style={styles.keyRule} />
-        {section.lines.map((l, i) => (
-          <View key={i} style={styles.keyRow}>
-            <Text style={styles.keyDot}>•</Text>
-            <Text style={styles.keyText}>{l.t}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  }
-
+  if (width <= 0) return null;
+  const path = (o: number) =>
+    `M ${n(seed, o, 2)} ${4 + o * 4 + n(seed, o + 1, 1)} Q ${width * 0.35} ${
+      4 + o * 4 + n(seed, o + 2, 2)
+    } ${width * 0.7} ${4 + o * 4 + n(seed, o + 3, 1.4)} T ${width + n(seed, o + 4, 3)} ${
+      4 + o * 4 + n(seed, o + 5, 1.2)
+    }`;
   return (
-    <View>
-      {/* Where the class stopped. Drawn across the page, because that is what
-          a student does when the lesson ends mid-topic. */}
-      {boundary && <Rule />}
-
-      {/* One mark beside the heading, not one per line. The server writes a
-          mistake as four lines — the checkpoint, what was asked, what the
-          student said, what the teacher said back — and flagging each of them
-          filed four marks against a single mistake. A student puts one big
-          mark in the margin beside the whole block. */}
-      <View style={styles.sectionRow}>
-        {section.kind === 'rework' && <Text style={styles.flagBig}>!</Text>}
-        <Text style={[styles.section, section.kind === 'rework' && styles.sectionRework]}>
-          {section.n !== null ? `${section.n}. ` : ''}
-          {section.title}
-        </Text>
-      </View>
-
-      {boundary && (
-        <Text style={styles.aside}>the class ended before this — to finish on your own</Text>
+    <Svg width={width + 8} height={double ? 16 : 10} pointerEvents="none">
+      <Path d={path(0)} stroke={color} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+      {double && (
+        <Path d={path(1)} stroke={color} strokeWidth={1} fill="none" strokeLinecap="round" />
       )}
+    </Svg>
+  );
+}
 
-      {section.lines.map((l, i) => (
-        <Line key={i} line={l} styles={styles} />
-      ))}
+/**
+ * The box a student draws round something, with a pen rather than a ruler.
+ *
+ * Measured rather than set in percentages: at "88%" the line ran through the
+ * tail of the formula it was meant to be round.
+ */
+function RoughBox({
+  color,
+  seed = 1,
+  box,
+}: {
+  color: string;
+  seed?: number;
+  box: { w: number; h: number };
+}) {
+  if (box.w <= 0 || box.h <= 0) return null;
+  return (
+    <Svg style={StyleSheet.absoluteFill} width={box.w} height={box.h} pointerEvents="none">
+      <Rect
+        x={1.5 + n(seed, 1, 1)}
+        y={1.5 + n(seed, 2, 1)}
+        width={box.w - 3 + n(seed, 3, 1.5)}
+        height={box.h - 3 + n(seed, 4, 1.5)}
+        rx={8}
+        stroke={color}
+        strokeWidth={1.3}
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+/** Anything with a drawn box round it: it measures itself so the box fits. */
+function Boxed({
+  color,
+  seed,
+  style,
+  children,
+}: {
+  color: string;
+  seed: number;
+  style: object;
+  children: React.ReactNode;
+}) {
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  return (
+    <View
+      style={style}
+      onLayout={(e) =>
+        setBox({
+          w: Math.round(e.nativeEvent.layout.width),
+          h: Math.round(e.nativeEvent.layout.height),
+        })
+      }>
+      <RoughBox color={color} seed={seed} box={box} />
+      {children}
     </View>
   );
 }
 
-function Line({
-  line,
-  styles,
-}: {
-  line: NoteLine;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  if (line.k === 'formula') {
-    return <Text style={styles.formula}>{line.t}</Text>;
-  }
-  if (line.k === 'sub') {
-    return (
-      <Text style={styles.sub}>
-        <Text style={styles.subInk}>{line.t}</Text>
-      </Text>
-    );
-  }
-  if (line.k === 'bullet') {
-    return (
-      <View style={styles.bulletRow}>
-        <Text style={styles.dot}>•</Text>
-        <Text style={styles.bulletText}>{line.t}</Text>
-      </View>
-    );
-  }
-  return <Text style={styles.body0}>{line.t}</Text>;
+/** The star beside a heading, drawn: the ✳ glyph comes out of the system
+ *  emoji font as a coloured tile. */
+function Asterisk({ color }: { color: string }) {
+  return (
+    <Svg width={13} height={13} viewBox="0 0 14 14">
+      <Path
+        d="M7 2.2v9.6M3 4.2l8 5.6M11 4.2l-8 5.6"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
 }
 
-/** The wobble under the page's title. Drawn, because a ruled line under a
- *  handwritten heading is the exact tell this is avoiding. */
-function Squiggle({ width }: { width: number }) {
-  const step = 7;
-  let d = 'M0 4';
-  for (let x = 0; x < width; x += step * 2) {
-    d += ` Q ${x + step / 2} 0, ${x + step} 4 Q ${x + step * 1.5} 8, ${x + step * 2} 4`;
-  }
+function Bulb({ color }: { color: string }) {
   return (
-    <Svg width={width} height={9} style={{ marginTop: 1, marginBottom: 2 }}>
-      <Path d={d} stroke={RED} strokeWidth={1.4} fill="none" strokeLinecap="round" />
+    <Svg width={15} height={15} viewBox="0 0 16 16">
+      <Path
+        d="M8 1.5a4.2 4.2 0 0 0-2.4 7.6c.5.4.8 1 .8 1.6h3.2c0-.6.3-1.2.8-1.6A4.2 4.2 0 0 0 8 1.5Z"
+        stroke={color}
+        strokeWidth={1.3}
+        fill="none"
+      />
+      <Path d="M6.4 12.4h3.2M7 14h2" stroke={color} strokeWidth={1.3} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -276,168 +184,280 @@ function Rule() {
     d += ` Q ${x + 4} 2, ${x + 8} 5 Q ${x + 12} 8, ${x + 16} 5`;
   }
   return (
-    <Svg width={w} height={10} style={{ marginTop: 14, marginBottom: 6, opacity: 0.5 }}>
+    <Svg width={w} height={10} style={styles.classRule}>
       <Path d={d} stroke={INK} strokeWidth={1.1} fill="none" strokeLinecap="round" />
     </Svg>
   );
 }
 
+export function NotePage({
+  title,
+  subject,
+  sections,
+  onBack,
+  emptyNote,
+}: {
+  title: string;
+  subject?: string | null;
+  sections: NoteSection[];
+  onBack: () => void;
+  emptyNote: string;
+}) {
+  /**
+   * The paper runs under the status bar — paper behind a notch is right, and a
+   * white band above it would put the card back. Only the WRITING is inset.
+   */
+  const insets = useSafeAreaInsets();
+  const s = useMemo(() => createStyles(), []);
+  /** The line under the title runs the width of the title it sits under, so it
+   *  has to wait for the title to be laid out. */
+  const [titleWidth, setTitleWidth] = useState(0);
+  const firstSelfStudy = sections.findIndex((x) => x.kind === 'selfstudy');
+
+  return (
+    <View style={s.screen}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollInner} showsVerticalScrollIndicator={false}>
+        <View style={s.page}>
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            {Array.from({ length: 120 }, (_, i) => (
+              <View key={i} style={[s.rule, { top: (i + 1) * LH }]} />
+            ))}
+          </View>
+
+          <View style={[s.body, { paddingTop: insets.top + 38 }]}>
+            <Text style={s.title} onLayout={(e) => setTitleWidth(e.nativeEvent.layout.width)}>
+              {title}
+            </Text>
+            <Underline width={Math.min(titleWidth, 300)} color={RED} seed={2} double />
+            {!!subject && <Text style={s.subject}>{subject}</Text>}
+
+            {sections.length === 0 ? (
+              <Text style={s.bodyLine}>{emptyNote}</Text>
+            ) : (
+              sections.map((section, i) => (
+                <Section
+                  key={i}
+                  section={section}
+                  index={i}
+                  styles={s}
+                  boundary={section.kind === 'selfstudy' && i === firstSelfStudy}
+                />
+              ))
+            )}
+          </View>
+
+          <View style={s.sheen} pointerEvents="none" />
+        </View>
+      </ScrollView>
+
+      <LinearGradient
+        colors={[PAPER, PAPER, 'rgba(255,254,251,0)']}
+        locations={[0, 0.62, 1]}
+        style={[s.topCover, { height: insets.top + 42 }]}
+        pointerEvents="none"
+      />
+      <Pressable
+        style={[s.back, { top: insets.top + 4 }]}
+        onPress={onBack}
+        hitSlop={16}
+        accessibilityLabel="Back">
+        <Svg viewBox="0 0 24 24" width={21} height={21} fill="none">
+          <Path d="M15 5l-7 7 7 7" stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </Pressable>
+    </View>
+  );
+}
+
+function Section({
+  section,
+  index,
+  styles: s,
+  boundary,
+}: {
+  section: NoteSection;
+  index: number;
+  styles: ReturnType<typeof createStyles>;
+  boundary: boolean;
+}) {
+  /** Measured, so the wavy line ends where the heading does rather than
+   *  underlining half of a long one and overshooting a short one. */
+  const [headWidth, setHeadWidth] = useState(0);
+  const colour = section.kind === 'rework' ? RED : PENS[index % PENS.length];
+
+  /** QUICK REVISION is a box, not a run of lines — it is the one section a
+   *  student draws a border round. */
+  if (section.kind === 'revision') {
+    return (
+      <Boxed color={AMBER} seed={index + 9} style={s.keyBox}>
+        <View style={s.keyHead}>
+          <Bulb color={AMBER} />
+          <Text style={s.keyTitle}>{section.title}</Text>
+        </View>
+        {section.lines.map((l, i) => (
+          <View key={i} style={s.bulletRow}>
+            <Text style={s.tick}>✓</Text>
+            <Text style={s.bulletText}>{l.t}</Text>
+          </View>
+        ))}
+      </Boxed>
+    );
+  }
+
+  return (
+    <View style={s.section}>
+      {/* Where the class stopped, drawn across the page — what a student does
+          when the lesson ends mid-topic. Otherwise the dashes that separate
+          one section from the next. */}
+      {boundary ? <Rule /> : index > 0 ? <View style={s.dashed} /> : null}
+
+      <View style={s.headRow}>
+        {/* One mark beside the heading, not one per line: the server writes a
+            mistake as four lines, and flagging each filed four marks against
+            a single mistake. */}
+        {section.kind === 'rework' ? <Text style={s.flag}>!</Text> : <Asterisk color={colour} />}
+        <Text
+          style={[s.heading, { color: colour }]}
+          onLayout={(e) => setHeadWidth(e.nativeEvent.layout.width)}>
+          {section.n !== null ? `${section.n}. ` : ''}
+          {section.title}
+        </Text>
+      </View>
+      <View style={s.headUnderline}>
+        <Underline width={Math.min(headWidth, 260)} color={colour} seed={index + 5} />
+      </View>
+
+      {boundary && <Text style={s.aside}>the class ended before this — to finish on your own</Text>}
+
+      {section.lines.map((line, i) => (
+        <Line key={i} line={line} index={i} colour={colour} styles={s} />
+      ))}
+    </View>
+  );
+}
+
+function Line({
+  line,
+  index,
+  colour,
+  styles: s,
+}: {
+  line: NoteLine;
+  index: number;
+  colour: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  /** A hand does not start every line on the same pixel. */
+  const nudge = { transform: [{ translateX: n(index, 3, 1.2) }] };
+
+  if (line.k === 'formula') {
+    return (
+      <Boxed color={VIOLET} seed={index + 3} style={[s.formulaBox, nudge]}>
+        <Text style={s.formulaText}>{line.t}</Text>
+      </Boxed>
+    );
+  }
+  if (line.k === 'sub') {
+    return <Text style={[s.sub, nudge]}>{line.t}</Text>;
+  }
+  if (line.k === 'bullet') {
+    return (
+      <View style={[s.bulletRow, nudge]}>
+        <Svg width={9} height={LH}>
+          <Circle cx={4} cy={LH / 2} r={2} fill={colour} />
+        </Svg>
+        <Text style={s.bulletText}>{line.t}</Text>
+      </View>
+    );
+  }
+  return <Text style={[s.bodyLine, nudge]}>{line.t}</Text>;
+}
+
+const styles = StyleSheet.create({
+  classRule: { marginTop: 14, marginBottom: 6, opacity: 0.5 },
+});
+
 function createStyles() {
   return StyleSheet.create({
     /**
-     * THE PAPER IS THE SCREEN.
-     *
-     * It was a rounded card inset 12 either side on a warm ground, which read
-     * as a page lying on a desk — pleasant, and wrong for the only thing on the
-     * screen. A note is not an item in a list of notes; it is the surface you
-     * came to read, and giving it a border means every line of it is written in
-     * a column narrower than the phone. Full width, and the page's own padding
-     * is the margin.
+     * THE PAPER IS THE SCREEN. Not a card inset on a ground: a note is the
+     * surface you came to read, and a border would write every line of it in
+     * a column narrower than the phone.
      */
     screen: { flex: 1, backgroundColor: PAPER },
     scroll: { flex: 1 },
     scrollInner: { paddingBottom: 56 },
     page: { flex: 1, backgroundColor: PAPER },
-    rules: { ...StyleSheet.absoluteFillObject },
     rule: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: RULE },
-    /** A page under a light is never evenly lit. Fainter now that it covers the
-     *  whole screen rather than a card. */
+    /** A page under a light is never evenly lit. */
     sheen: {
       position: 'absolute',
       top: 0,
       right: 0,
       width: '60%',
       height: '100%',
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      transform: [{ rotate: '8deg' }, { translateX: 60 }],
+      backgroundColor: 'rgba(255,255,255,0.35)',
+      opacity: 0.5,
     },
-    /** 22 rather than 18: at full width the text needs a real margin or it
-     *  runs to the bezel, and a wider measure wants more air beside it. */
-    body: { paddingHorizontal: 22, paddingBottom: 30 },
+    body: { paddingHorizontal: 24, paddingBottom: 30 },
 
-    topCover: { position: 'absolute', left: 0, right: 0, top: 0, backgroundColor: PAPER },
-    /** A chevron on the paper, with no bar under it. */
+    topCover: { position: 'absolute', left: 0, right: 0, top: 0, backgroundColor: 'transparent' },
     back: { position: 'absolute', left: 18, padding: 6 },
 
-    date: { fontFamily: PEN, fontSize: 12, lineHeight: LH, color: RED, textAlign: 'right' },
-    title: {
-      fontFamily: PEN,
-      fontSize: 19,
-      lineHeight: 25,
-      letterSpacing: 0.4,
-      color: RED,
-    },
-    /** The chapter this topic came from, under the title where a page names
-     *  itself — not in a bar above the page. */
-    subject: {
-      marginTop: 1,
-      fontFamily: PEN,
-      fontSize: 12,
-      lineHeight: LH,
-      color: QUIET,
-    },
+    /** The page's own name, in the red pen, at the same weight as everything
+     *  else — the colour and the double line under it are the emphasis. */
+    title: { fontFamily: HAND, fontSize: 22, lineHeight: 29, color: RED, letterSpacing: 0.2 },
+    subject: { fontFamily: HAND, fontSize: 13.5, lineHeight: LH, color: QUIET, marginTop: 2 },
 
-    section: {
-      marginTop: 18,
-      marginBottom: 1,
-      fontFamily: PEN,
-      fontSize: 14.5,
-      lineHeight: LH,
-      color: RED,
+    section: { marginTop: 18 },
+    dashed: {
+      borderTopWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: 'rgba(42,53,80,0.22)',
+      marginBottom: 16,
     },
-    sectionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
-    /** What to rework is the one heading that is not a step in the lesson, so
-     *  it is marked rather than numbered. */
-    sectionRework: { marginTop: 18 },
-    /** The mark in the margin, beside the whole block. */
-    flagBig: { marginTop: 18, fontFamily: PEN, fontSize: 18, lineHeight: LH, color: RED },
-    aside: { fontFamily: PEN, fontSize: 11.5, lineHeight: 18, color: QUIET, marginBottom: 3 },
+    headRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    heading: { flex: 1, fontFamily: HAND, fontSize: 16.5, lineHeight: 24 },
+    headUnderline: { marginLeft: 20, marginTop: -2, marginBottom: 2 },
+    flag: { fontFamily: HAND, fontSize: 17, lineHeight: 24, color: RED },
+    aside: { fontFamily: HAND, fontSize: 12.5, lineHeight: 20, color: QUIET, marginBottom: 6 },
 
-    body0: { fontFamily: PEN, fontSize: 13, lineHeight: LH, color: INK },
-    /** Underlined, because a pen has no bold. */
-    sub: { fontFamily: PEN, fontSize: 13, lineHeight: LH, color: INK, marginTop: 3 },
-    subInk: { textDecorationLine: 'underline' },
-    formula: {
-      fontFamily: PEN,
-      fontSize: 13.5,
+    bodyLine: { fontFamily: HAND, fontSize: 15, lineHeight: LH, color: INK },
+    sub: {
+      fontFamily: HAND,
+      fontSize: 15,
       lineHeight: LH,
       color: INK,
-      paddingLeft: 26,
+      textDecorationLine: 'underline',
     },
+    bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
+    bulletText: { flex: 1, fontFamily: HAND, fontSize: 15, lineHeight: LH, color: INK },
+    tick: { fontFamily: HAND, fontSize: 13, lineHeight: LH, color: GREEN },
 
-    bulletRow: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
-    dot: { fontFamily: PEN, fontSize: 13, lineHeight: LH, color: INK },
-    bulletText: { flex: 1, fontFamily: PEN, fontSize: 13, lineHeight: LH, color: INK },
+    formulaBox: {
+      alignSelf: 'flex-start',
+      maxWidth: '100%',
+      marginVertical: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+    },
+    formulaText: { fontFamily: HAND, fontSize: 16, lineHeight: 24, color: INK },
 
-    keyBox: {
-      marginTop: 16,
-      borderWidth: 1,
-      borderColor: BLUE,
-      paddingHorizontal: 11,
-      paddingTop: 5,
-      paddingBottom: 8,
-      backgroundColor: PAPER,
-    },
-    keyTitle: {
-      fontFamily: PEN,
-      fontSize: 13,
-      lineHeight: 20,
-      color: BLUE,
-      textAlign: 'center',
-    },
-    keyRule: {
-      height: 1,
-      width: 86,
-      alignSelf: 'center',
-      marginBottom: 4,
-      backgroundColor: BLUE,
-      opacity: 0.6,
-    },
-    keyRow: { flexDirection: 'row', gap: 6 },
-    keyDot: { fontFamily: PEN, fontSize: 11, lineHeight: 19, color: INK },
-    keyText: { flex: 1, fontFamily: PEN, fontSize: 12.5, lineHeight: 19, color: INK },
+    keyBox: { marginTop: 22, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
+    keyHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    keyTitle: { fontFamily: HAND, fontSize: 15.5, lineHeight: 24, color: AMBER },
   });
 }
 
-/**
- * THE PAGE WHILE IT IS STILL COMING.
- *
- * It used the old design's skeleton — a bar, a centred topic, a row of jump
- * chips — none of which the written page has, so the wait looked like a
- * different screen that then became this one. A placeholder's whole job is to
- * be the page with the words missing.
- *
- * So it is the same paper, the same ruling, the same margins. The RULES stay
- * undimmed, because ruling is on the sheet before anyone writes on it.
- *
- * THE SQUIGGLE IS NOT DRAWN, though it was at first, on the same argument. It
- * was wrong twice over. A line under a heading that is not there yet is a line
- * under nothing — and worse, the real one is measured from the title's own
- * text, so a placeholder can only guess at its width and then visibly snap to
- * the true one the instant the note arrives. Nothing here is allowed to move
- * when the words land.
- *
- * FOUR SECTIONS, SHORTENING. A real note runs long, and a placeholder that
- * shows two even blocks reads as a short document; staggering the lines and
- * tapering the last one says "there is more of this" without claiming a length.
- */
 export function NotePageSkeleton({ onBack }: { onBack: () => void }) {
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(), []);
+  const s = useMemo(() => createStyles(), []);
   const bones = useMemo(() => createSkeletonStyles(), []);
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.rules} pointerEvents="none">
-        {Array.from({ length: 60 }).map((_, i) => (
-          <View key={i} style={[styles.rule, { top: (i + 1) * LH }]} />
-        ))}
-      </View>
-
-      <View style={[styles.body, { paddingTop: insets.top + 34 }]}>
-        <Skeleton style={bones.date} />
-        <Skeleton delay={50} style={bones.title} />
-
+    <View style={s.screen}>
+      <View style={[s.body, { paddingTop: insets.top + 38 }]}>
+        <Skeleton style={bones.title} />
         {[0, 1, 2, 3].map((i) => (
           <View key={i} style={bones.section}>
             <Skeleton delay={stagger(i, 120)} style={bones.heading} />
@@ -452,25 +472,13 @@ export function NotePageSkeleton({ onBack }: { onBack: () => void }) {
         ))}
       </View>
 
-      <LinearGradient
-        colors={[PAPER, PAPER, 'rgba(255,255,255,0)']}
-        locations={[0, 0.62, 1]}
-        style={[styles.topCover, { height: insets.top + 42 }]}
-        pointerEvents="none"
-      />
       <Pressable
-        style={[styles.back, { top: insets.top + 4 }]}
+        style={[s.back, { top: insets.top + 4 }]}
         onPress={onBack}
         hitSlop={16}
         accessibilityLabel="Back">
         <Svg viewBox="0 0 24 24" width={21} height={21} fill="none">
-          <Path
-            d="M15 5l-7 7 7 7"
-            stroke={INK}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <Path d="M15 5l-7 7 7 7" stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </Pressable>
     </View>
@@ -481,24 +489,7 @@ function createSkeletonStyles() {
   return StyleSheet.create({
     /** Each block sits where its real counterpart will, so nothing jumps when
      *  the words arrive. */
-    /**
-     * Sat where the date's BOX starts rather than where its glyphs do, which
-     * put it inside the tail of the top fade and left it looking half-erased.
-     * The real date is 12pt type on a 22pt line, so its ink sits about six down
-     * from the top of the box; the bone matches that and the two now occupy the
-     * same space.
-     */
-    date: {
-      width: 46,
-      height: 11,
-      borderRadius: 3,
-      alignSelf: 'flex-end',
-      marginTop: 6,
-      marginBottom: 5,
-    },
-    /** Holds the space the title AND its squiggle will take, so the first
-     *  section does not shift up when the writing arrives. */
-    title: { width: '82%', height: 19, borderRadius: 4, marginBottom: 12 },
+    title: { width: '82%', height: 20, borderRadius: 4, marginBottom: 12 },
     section: { marginTop: 20 },
     heading: { width: '58%', height: 14, borderRadius: 4, marginBottom: 10 },
   });

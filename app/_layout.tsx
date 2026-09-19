@@ -60,6 +60,7 @@ import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 // an iOS fallback for that one dash. Nor any Greek, which is why the page
 // spells Greek out the way the reference does.
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
+import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { initTracking, trackScreen } from '@/lib/track';
@@ -113,6 +114,8 @@ export default function RootLayout() {
     AnekDevanagari_500Medium,
     // The handwritten note's hand; see the import.
     PatrickHand_400Regular,
+    Kalam_400Regular,
+    Kalam_700Bold,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
