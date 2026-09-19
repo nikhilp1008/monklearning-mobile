@@ -31,6 +31,7 @@ import Animated, {
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 import {
@@ -1303,6 +1304,10 @@ export default function LiveClassroomScreen() {
     const held = handRaisedRef.current;
     raiseHand();
     if (held) return;
+    // The class records for its whole length, so without this every tap below
+    // lands in iOS's silent-while-recording window and cannot be felt. Set on
+    // each press, not once: the session is reconfigured on interruptions.
+    allowHapticsWhileRecording();
     if (handRaisedRef.current) hapticFloorTaken();
     else hapticRefused();
   }, [raiseHand]);
@@ -1310,7 +1315,10 @@ export default function LiveClassroomScreen() {
   const onMicPressOut = useCallback(() => {
     const held = handRaisedRef.current;
     doneListening();
-    if (held) hapticFloorReleased();
+    if (held) {
+      allowHapticsWhileRecording();
+      hapticFloorReleased();
+    }
   }, [doneListening]);
 
   // `raiseHand`'s ceiling timer needs to call the *current* `doneListening`
