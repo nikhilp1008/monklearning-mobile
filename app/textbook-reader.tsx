@@ -33,6 +33,7 @@ import {
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
 import { Chapter, groupBlocks, loadChapter } from '@/lib/textbooks';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * One topic at a time.
@@ -318,7 +319,10 @@ export default function TextbookReaderScreen() {
               `aA` because it is the glyph everything from Safari to Kindle
               uses for text size, so it needs no explaining. */}
           <Pressable
-            onPress={() => chooseReadingSize(nextReadingSize(readingSize))}
+            onPress={() => {
+              hapticSwitched();
+              chooseReadingSize(nextReadingSize(readingSize));
+            }}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={`Text size: ${READING_SIZE_LABEL[readingSize]}. Tap to change.`}
@@ -389,7 +393,10 @@ export default function TextbookReaderScreen() {
           <View style={styles.navCentre}>
             <Pressable
               disabled={atFirst}
-              onPress={() => goTo(active - 1)}
+              onPress={() => {
+                hapticSwitched();
+                goTo(active - 1);
+              }}
               hitSlop={6}
               style={styles.navArrow}>
               <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
@@ -410,7 +417,10 @@ export default function TextbookReaderScreen() {
             </Pressable>
             <Pressable
               disabled={atLast}
-              onPress={() => goTo(active + 1)}
+              onPress={() => {
+                hapticSwitched();
+                goTo(active + 1);
+              }}
               hitSlop={6}
               style={styles.navArrow}>
               <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">

@@ -26,7 +26,7 @@ import { colors } from '@/constants/brand';
 import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { signOut } from '@/lib/auth';
-import { hapticSwitched } from '@/lib/haptics';
+import { hapticCommitted, hapticSwitched } from '@/lib/haptics';
 import {
   getLanguagePreference,
   getTeacherPreference,
@@ -314,7 +314,10 @@ export default function ProfileScreen() {
           {/* Ends the Supabase session and clears this student's local data;
               the root gate sees the change and routes to onboarding itself,
               so there is nothing to navigate to here. */}
-          <PressableScale style={styles.logOut} hitSlop={10} onPress={() => signOut()}>
+          <PressableScale style={styles.logOut} hitSlop={10} onPress={() => {
+              hapticCommitted();
+              signOut();
+            }}>
             <Text style={styles.logOutText}>Log out</Text>
           </PressableScale>
         </ScrollView>

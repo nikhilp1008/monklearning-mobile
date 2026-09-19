@@ -14,6 +14,7 @@ import { isChapterReady } from '@/lib/textbooks';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { SUBJECT_TILES } from '@/components/textbook/subjects';
 import { kicker } from '@/components/textbook/theme';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * Pick a chapter inside one subject.
@@ -88,7 +89,10 @@ export default function TextbookChaptersScreen() {
           <SlidingToggle
             options={CLASSES}
             value={activeClass}
-            onChange={setActiveClass}
+            onChange={(next) => {
+              if (next !== activeClass) hapticSwitched();
+              setActiveClass(next);
+            }}
             trackStyle={styles.classToggle}
             thumbStyle={styles.classThumb}
             pillStyle={styles.classPill}

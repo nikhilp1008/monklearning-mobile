@@ -148,6 +148,21 @@ export function hapticTicked() {
  * changes nothing should feel like nothing, or the tick stops meaning "that
  * moved".
  */
+/**
+ * A decision that changes where the student is — logging out.
+ *
+ * Firmer than a switch and not a success: leaving is not an achievement, and a
+ * Success notification on logout would congratulate someone for going. A
+ * medium impact is the tap of a button that did something that matters.
+ */
+export function hapticCommitted() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+}
+
 export function hapticSwitched() {
   if (Platform.OS === 'android') {
     fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));

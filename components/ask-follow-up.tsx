@@ -28,6 +28,7 @@ import {
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
+import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -221,6 +222,16 @@ export function AskFollowUpBar({
 
   const beginHold = useCallback(async () => {
     if (!doubtId) return;
+    /**
+     * The tap lands BEFORE the microphone opens, and that ordering is the
+     * whole reason it can be felt on an iPhone. iOS silences haptics while an
+     * app is recording from the mic unless the app opts back in, which nothing
+     * here does. This bar records only while held and only from
+     * `recorder.record()` below — after permission and setup — so a tap fired
+     * here is outside the silent window, exactly as WhatsApp's voice note is.
+     * The classroom mic is different: it records for the whole class.
+     */
+    hapticFloorTaken();
     wake();
     setFailure(null);
     // A second question interrupts the first answer rather than talking over
@@ -235,6 +246,7 @@ export function AskFollowUpBar({
     try {
       const granted = await requestRecordingPermissionsAsync();
       if (!granted.granted) {
+        hapticRefused();
         setFailure('mic');
         setPhase('idle');
         return;
@@ -272,6 +284,9 @@ export function AskFollowUpBar({
     } catch {
       // A recorder that will not stop still has whatever it captured.
     }
+    // After the stop, not before — the mic is closed by now, so this one can
+    // be felt too.
+    hapticFloorReleased();
     // Before the answer is spoken, never after: `.playAndRecord` would put the
     // teacher's voice in the earpiece, which reads as broken rather than quiet.
     toPlayback();
