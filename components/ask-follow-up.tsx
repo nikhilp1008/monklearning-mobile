@@ -80,11 +80,12 @@ import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/hapt
  *
  * It was 44% with 10pt between the board and the buttons, which read as the
  * board sitting ON the bar rather than floating above it — and on Practice,
- * where Next shares the row, as a crowded stack. 60% gives a three-step answer
- * room to be read without scrolling inside the board, and 16pt lets the
- * buttons below stand clear of it.
+ * where Next shares the row, as a crowded stack. At a fixed 60% it covered
+ * most of the solution the follow-up is about; 46% leaves that working in
+ * view above it, and anything longer scrolls. 16pt lets the buttons below
+ * stand clear of it.
  */
-const BOARD_SHARE = 0.6;
+const BOARD_SHARE = 0.46;
 
 /** How far the board reaches past the bar's own gutters on each side. The
  *  bar row is inset for its buttons; the board is a page of working, and at
