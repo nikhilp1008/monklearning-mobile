@@ -15,8 +15,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
+import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { HeardLine } from '@/components/voice-turn';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -71,6 +72,37 @@ const SHORT_ANSWER_CHARS = 240;
 
 /** How long the ring lingers after the last touch — the prototype's `hLeave`. */
 const LINGER_MS = 1500;
+
+/** How long a failure keeps the ring grey — the classroom dock's figure. */
+const FAILED_SHOW_MS = 2600;
+
+/** "You asked" stays this far into the answer, so it is never a flash. */
+const HEARD_LINGER_MS = 1800;
+
+/**
+ * Shorter than this is a tap, not a question. The server would transcribe
+ * silence and answer it, or say nothing, and either way the student would be
+ * left wondering what happened. Said here instead, at once.
+ */
+const MIN_HOLD_MS = 350;
+
+/**
+ * The recorder with metering on, so the ring's halo can move with the voice.
+ * A module constant because `useAudioRecorder` keys its recorder on the
+ * options — a fresh object each render would still hash the same, but there
+ * is no reason to make it.
+ */
+const RECORDING = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+
+/** How often the level is read while the mic is held. */
+const METER_MS = 80;
+
+/** iOS reports metering in dBFS, silence around -60 and speech at -30 to -10;
+ *  this is the stretch that reads as a voice getting louder. */
+function meterLevel(db: number | undefined): number {
+  if (db == null || !Number.isFinite(db)) return 0;
+  return Math.min(1, Math.max(0, (db + 55) / 45));
+}
 
 type Phase = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -136,7 +168,7 @@ export function AskFollowUpBar({
    */
   trailing?: ReactNode;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(RECORDING);
   /** The board is capped rather than free: it grows upward over the solution,
    *  and past a little under half the screen there is nothing of the solution
    *  left to read behind it. */
@@ -156,8 +188,12 @@ export function AskFollowUpBar({
    * microphone on. "Try again" would be a lie for the second — pressing again
    * does nothing at all while permission is refused.
    */
-  const [failure, setFailure] = useState<null | 'retry' | 'mic'>(null);
+  const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short'>(null);
   const [linger, setLinger] = useState(false);
+  /** What the teacher heard, shown while it works out the answer. */
+  const [heard, setHeard] = useState<string | null>(null);
+  /** The student's voice, 0–1, for the ring's halo while they hold. */
+  const voiceLevel = useSharedValue(0);
   /** The written answer, when it earned a board. Empty array = no board. */
   const [boardSteps, setBoardSteps] = useState<FollowUpStep[]>([]);
   const [boardOpen, setBoardOpen] = useState(false);
@@ -173,12 +209,46 @@ export function AskFollowUpBar({
    *  fed against seconds elapsed, checked when the stream closes. */
   const pcmIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pcmStartedAtRef = useRef(0);
+  /**
+   * THE HOLD, AS THE FINGER SEES IT — not as the recorder does.
+   *
+   * Opening the mic is three awaits (permission, audio session, prepare), and
+   * a release could land in the middle of them. `endHold` then stopped a
+   * recorder that had not started, and `beginHold` carried on and started it
+   * anyway — a microphone left recording with nobody holding the bar. The
+   * first press on a fresh install always did this, because the permission
+   * prompt takes the touch away. So the release is recorded here, the setup
+   * checks it after every await, and `endHold` waits for the setup to settle
+   * before it decides anything.
+   */
+  const pressedRef = useRef(false);
+  const pressedAtRef = useRef(0);
+  const setupRef = useRef<Promise<'recording' | 'released' | 'failed'> | null>(null);
+  const meterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const wake = useCallback(() => {
+  const wake = useCallback((ms: number = LINGER_MS) => {
     if (lingerRef.current) clearTimeout(lingerRef.current);
     setLinger(true);
-    lingerRef.current = setTimeout(() => setLinger(false), LINGER_MS);
+    lingerRef.current = setTimeout(() => setLinger(false), ms);
   }, []);
+
+  /** Every failure ends the same way: said under the bar, the ring gone grey
+   *  for a moment, and nothing of the question left on screen. */
+  const fail = useCallback(
+    (kind: 'retry' | 'mic' | 'short') => {
+      setFailure(kind);
+      setHeard(null);
+      setPhase('idle');
+      wake(FAILED_SHOW_MS);
+    },
+    [wake]
+  );
+
+  const stopMeter = useCallback(() => {
+    if (meterRef.current) clearInterval(meterRef.current);
+    meterRef.current = null;
+    voiceLevel.value = withTiming(0, { duration: 220 });
+  }, [voiceLevel]);
 
   /**
    * Back to a playback session, always, and never left recording-shaped.
@@ -215,6 +285,7 @@ export function AskFollowUpBar({
       if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
       recorder.stop().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
+      if (meterRef.current) clearInterval(meterRef.current);
       toPlayback();
     },
     [recorder, toPlayback]
@@ -231,9 +302,15 @@ export function AskFollowUpBar({
      * here is outside the silent window, exactly as WhatsApp's voice note is.
      * The classroom mic is different: it records for the whole class.
      */
+    // A release is still settling the last hold; a second press now would
+    // let that hold's setup see a finger down and start recording after all.
+    if (setupRef.current) return;
     hapticFloorTaken();
     wake();
     setFailure(null);
+    setHeard(null);
+    pressedRef.current = true;
+    pressedAtRef.current = Date.now();
     // A second question interrupts the first answer rather than talking over
     // it — the student has clearly stopped listening.
     audioRef.current?.stop();
@@ -243,40 +320,80 @@ export function AskFollowUpBar({
     abortRef.current?.abort();
     abortRef.current = null;
     setPhase('listening');
-    try {
-      const granted = await requestRecordingPermissionsAsync();
-      if (!granted.granted) {
-        hapticRefused();
-        setFailure('mic');
-        setPhase('idle');
-        return;
+    const setup = (async (): Promise<'recording' | 'released' | 'failed'> => {
+      try {
+        const granted = await requestRecordingPermissionsAsync();
+        if (!granted.granted) {
+          hapticRefused();
+          fail('mic');
+          // No release will come to clear it: the bar is idle again, so the
+          // lift of this finger is not a hold ending.
+          setupRef.current = null;
+          return 'failed';
+        }
+        if (!pressedRef.current) return 'released';
+        /**
+         * The session has to allow recording BEFORE `prepareToRecordAsync`, not
+         * after. Nothing else in the app leaves it that way — the classroom
+         * records through a different library and deliberately keeps expo-audio
+         * on playback so Drona is not routed to the earpiece — so every time
+         * this bar is pressed the session is on a category that refuses to
+         * record.
+         */
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: 'mixWithOthers',
+        });
+        if (!pressedRef.current) {
+          toPlayback();
+          return 'released';
+        }
+        await recorder.prepareToRecordAsync();
+        if (!pressedRef.current) {
+          toPlayback();
+          return 'released';
+        }
+        recorder.record();
+        meterRef.current = setInterval(() => {
+          voiceLevel.value = withTiming(meterLevel(recorder.getStatus().metering), {
+            duration: METER_MS,
+          });
+        }, METER_MS);
+        return 'recording';
+      } catch {
+        fail('retry');
+        toPlayback();
+        setupRef.current = null;
+        return 'failed';
       }
-      /**
-       * The session has to allow recording BEFORE `prepareToRecordAsync`, not
-       * after. Nothing else in the app leaves it that way — the classroom
-       * records through a different library and deliberately keeps expo-audio
-       * on playback so Drona is not routed to the earpiece — so every time
-       * this bar is pressed the session is on a category that refuses to
-       * record.
-       */
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-        interruptionMode: 'mixWithOthers',
-      });
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-    } catch {
-      setFailure('retry');
-      setPhase('idle');
-      toPlayback();
-    }
-  }, [doubtId, recorder, toPlayback, wake]);
+    })();
+    setupRef.current = setup;
+    await setup;
+  }, [doubtId, recorder, toPlayback, wake, fail, voiceLevel]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
     wake();
+    pressedRef.current = false;
+    const heldMs = Date.now() - pressedAtRef.current;
+    stopMeter();
+    const pending = setupRef.current;
+    const setup = await (pending ?? Promise.resolve('failed' as const));
+    if (setupRef.current === pending) setupRef.current = null;
+    // The setup already said why, and "Microphone is off" must not be
+    // overwritten by a guess.
+    if (setup === 'failed') return;
+    if (setup === 'released') {
+      hapticFloorReleased();
+      // A quick tap is told to hold longer. A release that was long but still
+      // beat the setup is the permission prompt taking the touch: nothing
+      // went wrong, the student just has to press again.
+      if (heldMs < MIN_HOLD_MS) fail('short');
+      else setPhase('idle');
+      return;
+    }
     let uri: string | null = null;
     try {
       await recorder.stop();
@@ -290,9 +407,12 @@ export function AskFollowUpBar({
     // Before the answer is spoken, never after: `.playAndRecord` would put the
     // teacher's voice in the earpiece, which reads as broken rather than quiet.
     toPlayback();
+    if (heldMs < MIN_HOLD_MS) {
+      fail('short');
+      return;
+    }
     if (!uri) {
-      setFailure('retry');
-      setPhase('idle');
+      fail('retry');
       return;
     }
 
@@ -346,10 +466,13 @@ export function AskFollowUpBar({
         uri,
         turnsRef.current,
         {
-          // Kept for the history the next question is sent with. Not shown —
-          // the student knows what they just said.
+          // Kept for the history the next question is sent with, and shown
+          // while the answer is worked out: "You asked" is the proof the
+          // question was heard, and catches a mishearing before the teacher
+          // answers the wrong question rather than after.
           onTranscript: (text) => {
             asked = text;
+            if (!controller.signal.aborted && text.trim()) setHeard(text);
           },
           onStep: absorb,
           onStepPartial: absorb,
@@ -419,8 +542,7 @@ export function AskFollowUpBar({
         if (arrived.length) {
           setPhase('idle');
         } else {
-          setFailure('retry');
-          setPhase('idle');
+          fail('retry');
         }
       }
     } catch {
@@ -428,8 +550,7 @@ export function AskFollowUpBar({
       // The server's own message is deliberately not read: it is a sentence,
       // and this is a two-word slot. What the student can DO about it is the
       // same however it failed.
-      setFailure('retry');
-      setPhase('idle');
+      fail('retry');
     }
 
     async function speak(spoken: string, ctl: AbortController) {
@@ -455,7 +576,7 @@ export function AskFollowUpBar({
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake, surface]);
+  }, [doubtId, recorder, toPlayback, wake, surface, fail, stopMeter]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
@@ -472,7 +593,9 @@ export function AskFollowUpBar({
   const hint = failure
     ? failure === 'mic'
       ? 'Microphone is off'
-      : 'Try again'
+      : failure === 'short'
+        ? 'Hold a little longer'
+        : 'Try again'
     : listening
       ? 'Release to stop'
       : phase === 'thinking'
@@ -481,9 +604,36 @@ export function AskFollowUpBar({
           ? 'Tap to stop'
           : 'Hold to speak';
 
-  /** Green while the student holds the floor, amber the rest of the time —
-   *  the dock's own two palettes, meaning the same two things. */
-  const mood: RingMood = listening ? 'student' : 'teacher';
+  /**
+   * THE RING CARRIES THE WHOLE EXCHANGE, the way the classroom dock's does.
+   *
+   * Green and moving with the voice while the student holds; amber and
+   * breathing slowly while the teacher works out the reply; grey for a moment
+   * when it failed. It used to be awake for the answer too, which put it on
+   * the bar all the way through the teacher's voice — the one stretch where
+   * the voice itself is the signal. Now it hands over: it goes when the
+   * teacher starts speaking, after a short linger, and the label says
+   * "Answering…" from there.
+   */
+  const thinking = phase === 'thinking';
+  const mood: RingMood = listening
+    ? 'student'
+    : thinking
+      ? 'thinking'
+      : failure
+        ? 'paused'
+        : 'teacher';
+  const ringAwake = listening || thinking || linger;
+
+  // "You asked" stays a moment into the answer, then goes. A board that opens
+  // takes over from it at once — the board is the answer, and the two should
+  // never be stacked over the solution together.
+  useEffect(() => {
+    if (!heard || listening || thinking) return;
+    const t = setTimeout(() => setHeard(null), HEARD_LINGER_MS);
+    return () => clearTimeout(t);
+  }, [heard, listening, thinking]);
+  const hintColor = listening ? styles.hintLive : thinking ? styles.hintThinking : null;
 
   /**
    * THE BOARD'S OWN OPEN AND CLOSE.
@@ -518,6 +668,7 @@ export function AskFollowUpBar({
 
   return (
     <View style={styles.block}>
+      {heard && !boardMounted ? <HeardLine text={heard} answered={false} style={styles.heard} /> : null}
       {/*
         THE BOARD SITS ABOVE THE BAR, IN THE LAYOUT, NOT OVER IT.
         It was a Modal, chosen so the bar and the solution behind it never
@@ -567,7 +718,7 @@ export function AskFollowUpBar({
         <View style={[styles.row, styles.rowSpread]}>
           <View style={styles.barColumn}>
             <View style={styles.anchor}>
-            <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
+            <DockRing mood={mood} awake={ringAwake} id="followup" level={voiceLevel} />
               <Pressable
                 style={[styles.face, disabled && styles.faceOff]}
                 disabled={disabled}
@@ -599,7 +750,7 @@ export function AskFollowUpBar({
                 </Text>
               </Pressable>
             </View>
-          <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
+          <Text style={[styles.hint, hintColor]} numberOfLines={1}>
             {hint}
           </Text>
           </View>
@@ -627,7 +778,7 @@ export function AskFollowUpBar({
         <>
         <View style={styles.row}>
           <View style={styles.anchor}>
-          <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
+          <DockRing mood={mood} awake={ringAwake} id="followup" level={voiceLevel} />
             <Pressable
               style={[styles.face, disabled && styles.faceOff]}
               disabled={disabled}
@@ -679,7 +830,7 @@ export function AskFollowUpBar({
             </Pressable>
           ) : null}
         </View>
-        <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
+        <Text style={[styles.hint, hintColor]} numberOfLines={1}>
           {hint}
         </Text>
         </>
@@ -797,6 +948,11 @@ const styles = StyleSheet.create({
     color: INK_FAINT,
   },
   hintLive: { color: GREEN_INK },
+  hintThinking: { color: DEEP_AMBER },
+  /** Floats above the whole block — bar and any trailing control together —
+   *  without taking a line of its own, so the bar does not move when it comes
+   *  and goes. */
+  heard: { position: 'absolute', bottom: '100%', marginBottom: 12 },
   /**
    * A panel that floats above the bar, not a sheet stuck to the screen's edge.
    * Rounded on all four corners because it no longer meets the bottom of the

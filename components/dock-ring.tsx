@@ -5,6 +5,8 @@ import Animated, {
   useAnimatedStyle,
   useFrameCallback,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -32,13 +34,21 @@ import Svg, { ClipPath, Defs, Ellipse, FeGaussianBlur, Filter, G, Rect } from 'r
  * implementation on both platforms.
  */
 
-export type RingMood = 'teacher' | 'student' | 'paused';
+/**
+ * `thinking` is the gap between a student letting go and the teacher starting
+ * to answer — the stretch where the server is transcribing, deciding and
+ * synthesising, and where the ring used to have already faded. It wears the
+ * teacher's colours, because it is the teacher's move now, but runs slower and
+ * breathes: attention, not activity.
+ */
+export type RingMood = 'teacher' | 'student' | 'paused' | 'thinking';
 
 /** The prototype's palettes verbatim — its `T2`, `S2` and `G2`. */
 const PALETTE: Record<RingMood, readonly [string, string, string, string]> = {
   teacher: ['#FFB13D', '#E8542F', '#FFD98A', '#FF7A3D'],
   student: ['#25B36A', '#12D6B8', '#B4F5D6', '#3FE0A0'],
   paused: ['#8A857A', '#B8B2A4', '#D6D1C4', '#A39D90'],
+  thinking: ['#FFB13D', '#E8542F', '#FFD98A', '#FF7A3D'],
 };
 
 /**
@@ -65,6 +75,12 @@ const BLOBS = [
 
 /** The prototype's `fast`: `d * .42` while the student holds the mic. */
 const FAST = 0.42;
+/** Thinking drifts at under half speed — calm enough to read as waiting. */
+const SLOW = 2.2;
+/** One breath of the thinking halo, in and out. */
+const BREATH_MS = 1100;
+/** How far the halo swells at full voice while the student is speaking. */
+const VOICE_SWELL = 0.08;
 /** Insets of the two layers from the pill's own edge, from the prototype. */
 const HAIR_INSET = 1.5;
 const HALO_INSET = 6;
@@ -343,6 +359,7 @@ function DockRingImpl({
   awake,
   vertical,
   id,
+  level,
 }: {
   mood: RingMood;
   /** True while a student is touching the dock, while the mic is held, and for
@@ -352,6 +369,12 @@ function DockRingImpl({
   vertical?: boolean;
   /** Unique across mounted rings — SVG ids are not scoped per `<Svg>`. */
   id: string;
+  /**
+   * The student's voice, 0–1, already smoothed by whoever writes it. While
+   * they speak, the halo brightens and swells with it — proof the mic is
+   * hearing them, not just that the button is down.
+   */
+  level?: SharedValue<number>;
 }) {
   const [ring, setRing] = useState<Field | null>(null);
   const onLayout = useCallback(
@@ -379,7 +402,7 @@ function DockRingImpl({
    */
   const speed = useSharedValue(1);
   useEffect(() => {
-    speed.value = mood === 'student' ? FAST : 1;
+    speed.value = mood === 'student' ? FAST : mood === 'thinking' ? SLOW : 1;
   }, [mood, speed]);
 
   const tick = useCallback(
@@ -431,10 +454,32 @@ function DockRingImpl({
   const glow = useSharedValue(0);
   useEffect(() => {
     reveal.value = withTiming(awake ? 1 : 0, { duration: REVEAL_MS });
-    glow.value = withTiming(awake ? HALO_OPACITY : 0, { duration: GLOW_MS });
-  }, [awake, reveal, glow]);
+    if (awake && mood === 'thinking') {
+      // Breathing: out to a third of full and back, for as long as the teacher
+      // is working out the reply. Replaced the moment the mood changes.
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(HALO_OPACITY, { duration: BREATH_MS }),
+          withTiming(HALO_OPACITY * 0.33, { duration: BREATH_MS })
+        ),
+        -1,
+        false
+      );
+    } else {
+      glow.value = withTiming(awake ? HALO_OPACITY : 0, { duration: GLOW_MS });
+    }
+  }, [awake, mood, reveal, glow]);
 
-  const haloStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+  const listening = mood === 'student';
+  const haloStyle = useAnimatedStyle(() => {
+    // Only the student's own voice moves the halo; every other mood ignores
+    // the level, so a stale value can never make the teacher's ring pulse.
+    const v = listening && level ? level.value : 0;
+    return {
+      opacity: glow.value * (listening && level ? 0.55 + 0.45 * v : 1),
+      transform: [{ scale: 1 + VOICE_SWELL * v }],
+    };
+  });
   /**
    * SLID, NOT RESIZED. An animated `height` is a Yoga layout pass on every
    * frame of the 550ms; a full-height cover translating up by its own height
