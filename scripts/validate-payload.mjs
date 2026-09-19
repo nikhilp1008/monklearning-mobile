@@ -162,7 +162,21 @@ function judge(p) {
   const mod = mods[widget];
   if (!mod) return { ok: false, widget, errors: [`"${widget}" is not in the registry`] };
   const r = mod.validate(p.params ?? {});
-  return { ok: r.ok, widget, errors: r.ok ? [] : r.errors };
+  if (!r.ok) return { ok: false, widget, errors: r.errors };
+  /* The DERIVED values, alongside the verdict.
+   *
+   * The API cannot compute these — the maths lives in the widget, and a second
+   * implementation in Python is precisely the drift this CLI exists to end.
+   * But a caption that asserts a number ("I = 3 A splits 1 A / 2 A", "C_eq =
+   * 6 uF") can only be checked AGAINST that number, and nine published boards
+   * carry a caption their own params contradict. So the verdict now carries
+   * the arithmetic with it and `board_claims.py` does the comparing. */
+  let derived = null;
+  try {
+    derived = typeof mod.computeDerived === 'function'
+      ? mod.computeDerived(r.params) : null;
+  } catch { derived = null; }
+  return { ok: true, widget, errors: [], derived };
 }
 
 const items = many ? Object.entries(raw) : [[file, raw]];
