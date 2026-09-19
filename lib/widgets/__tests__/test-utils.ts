@@ -53,14 +53,31 @@ export function motionStub(value: number): SharedValue<number> {
 
 /** Builds the full `motion` record a widget's Component expects, from a plain
  *  `{ key: value }` map — every `animatable` key must be present or the
- *  widget's own worklets will read `undefined`. */
+ *  widget's own worklets will read `undefined`.
+ *
+ *  A KEY NOT NAMED IN `values` FALLS BACK TO THE PARAM OF THE SAME NAME, not
+ *  to zero. That IS the resting state: `animatable: ['shade_to']` means
+ *  `motion.shade_to` drives what `params.shade_to` statically describes, so
+ *  the two are equal at rest and diverge only while a cue tweens.
+ *
+ *  It defaulted to 0 until 2026-09-19, and the review sheet was the casualty.
+ *  `emit-review-svgs` renders every board with `{}`, so `xy_plot` drew
+ *  `areaPath(params.shade_from, shadeSv.value = 0)` — the region between
+ *  `shade_from` and ZERO. Measured on a published board with
+ *  `shade_from: 0.5, shade_to: 3.5`: the sheet shaded 0.00..0.50 and the
+ *  simulator shaded 0.52..3.54. The READOUT was right on both ("area 1.88"),
+ *  because it is computed from params — a sheet whose number is right and
+ *  whose picture is wrong is the worst instrument of the three, and 140 of
+ *  193 review boards were drawn through it. */
 export function motionFor(
   animatable: readonly string[],
-  values: Record<string, number>
+  values: Record<string, number>,
+  resting: Readonly<Record<string, unknown>> = {}
 ): Record<string, SharedValue<number>> {
   const motion: Record<string, SharedValue<number>> = {};
   for (const key of animatable) {
-    motion[key] = motionStub(values[key] ?? 0);
+    const rest = resting[key];
+    motion[key] = motionStub(values[key] ?? (typeof rest === 'number' ? rest : 0));
   }
   return motion;
 }
@@ -90,7 +107,7 @@ export function renderWidgetTreeAt<P extends object>(
 ): unknown {
   const props: WidgetRenderProps<P> = {
     params,
-    motion: motionFor(mod.animatable, motionValues),
+    motion: motionFor(mod.animatable, motionValues, params as Record<string, unknown>),
     width,
     height,
     theme: TEST_THEME,
