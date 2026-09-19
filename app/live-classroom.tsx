@@ -31,7 +31,7 @@ import Animated, {
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { HeardLine, RailStatus, turnColor, turnWords, type VoiceTurn } from '@/components/voice-turn';
+import { turnColor, turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
@@ -130,8 +130,6 @@ const DOCK_SLEEP_MS = 1500;
 const REPLY_WAIT_MS = 12000;
 /** How long "Didn't catch that" stays before the dock returns to rest. */
 const FAILED_SHOW_MS = 2600;
-/** "You asked" outlives the handover by this much, so it is never a flash. */
-const HEARD_LINGER_MS = 1800;
 
 /**
  * How loud one mic frame is, 0–1, on the curve a voice actually uses.
@@ -520,10 +518,6 @@ export default function LiveClassroomScreen() {
         setCardPhase('writing');
         voiceTurnRef.current?.handOver();
       },
-      onTranscriptPartial: (text) => {
-        if (!text.trim()) return;
-        setHeard({ text, answered: answeringRef.current });
-      },
       // The whole turn's board lands here ahead of its audio. Nothing is shown
       // — reveal still belongs to each event's own chunk — but a figure's art
       // is a network object, and asking for it now gives it the length of the
@@ -562,7 +556,6 @@ export default function LiveClassroomScreen() {
         // the same sentence still writes after this and wins.
       },
       onTranscriptFinal: (text) => {
-        if (text.trim()) setHeard({ text, answered: answeringRef.current });
         // Speaking an answer counts the same as tapping a chip.
         if (text.trim()) {
           setCheckOptions([]);
@@ -927,18 +920,7 @@ export default function LiveClassroomScreen() {
    */
   const [turnAfter, setTurnAfter] = useState<'idle' | 'thinking' | 'failed'>('idle');
   const turnAfterRef = useRef<'idle' | 'thinking' | 'failed'>('idle');
-  /** What the teacher heard, for "You asked". */
-  const [heard, setHeard] = useState<{ text: string; answered: boolean } | null>(null);
-  /** Whether the hold that just ended was an answer to an open checkpoint —
-   *  read from `checkOpenRef` at the moment the mic goes down, because the
-   *  checkpoint itself is cleared as soon as the answer is transcribed. */
-  const answeringRef = useRef(false);
-  const checkOpenRef = useRef(false);
-  useEffect(() => {
-    checkOpenRef.current = checkOptions.length > 0;
-  }, [checkOptions]);
   const turnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** The student's voice, 0–1, for the ring's halo while they speak. */
   const voiceLevel = useSharedValue(0);
   /**
@@ -957,8 +939,6 @@ export default function LiveClassroomScreen() {
       };
       const fail = () => {
         clearTimers();
-        if (heardTimerRef.current) clearTimeout(heardTimerRef.current);
-        setHeard(null);
         set('failed');
         turnTimerRef.current = setTimeout(() => set('idle'), FAILED_SHOW_MS);
       };
@@ -978,14 +958,10 @@ export default function LiveClassroomScreen() {
           if (turnAfterRef.current !== 'thinking') return;
           clearTimers();
           set('idle');
-          if (heardTimerRef.current) clearTimeout(heardTimerRef.current);
-          heardTimerRef.current = setTimeout(() => setHeard(null), HEARD_LINGER_MS);
         },
         /** A new hold starts clean, whatever the last one left behind. */
         reset() {
           clearTimers();
-          if (heardTimerRef.current) clearTimeout(heardTimerRef.current);
-          setHeard(null);
           set('idle');
         },
       };
@@ -1383,7 +1359,6 @@ export default function LiveClassroomScreen() {
     handRaisedRef.current = true;
     setHandRaised(true);
     voiceTurnRef.current?.reset();
-    answeringRef.current = checkOpenRef.current;
     setChromeVisible(true);
     clientRef.current?.sendPttStart();
 
@@ -1854,7 +1829,6 @@ export default function LiveClassroomScreen() {
           for the whole class and only lights up when a student touches it. */}
       {isLandscape ? (
       <Animated.View style={[styles.rail, railStyle]} pointerEvents={chromeVisible ? 'auto' : 'none'}>
-        <RailStatus turn={turn} heard={heard?.text ?? null} answered={heard?.answered ?? false} />
         {/* `onTouchStart` on the wrapper, not a Pressable around it: it fires
             for touches on the buttons inside as well, which is how one gesture
             both wakes the ring and works the control — the prototype's
@@ -1916,11 +1890,6 @@ export default function LiveClassroomScreen() {
            animated wrapper that always resolves to translateY(0)/opacity(1)
            only looks like it does. */
         <View style={styles.dockWrap}>
-          {/* Only once any checkpoint has cleared: an open question and its
-              chips sit in this same space above the dock. */}
-          {heard && checkOptions.length === 0 ? (
-            <HeardLine text={heard.text} answered={heard.answered} style={styles.heardAbove} />
-          ) : null}
           <View style={styles.dockAnchor} onTouchStart={wakeDock}>
             <DockRing mood={ringMood} awake={ringAwake} vertical={false} id="dock" level={voiceLevel} />
             <View style={styles.dockPill}>
@@ -2714,8 +2683,6 @@ function createStyles(
       opacity: 0.55,
       boxShadow: [],
     },
-    /** "You asked" sits above the dock with a little air under it. */
-    heardAbove: { marginBottom: 12 },
     dockHint: {
       fontFamily: 'Onest_700Bold',
       fontSize: 10.5,

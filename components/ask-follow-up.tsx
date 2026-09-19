@@ -17,7 +17,6 @@ import Svg, { Path, Rect } from 'react-native-svg';
 
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { HeardLine } from '@/components/voice-turn';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -75,9 +74,6 @@ const LINGER_MS = 1500;
 
 /** How long a failure keeps the ring grey — the classroom dock's figure. */
 const FAILED_SHOW_MS = 2600;
-
-/** "You asked" stays this far into the answer, so it is never a flash. */
-const HEARD_LINGER_MS = 1800;
 
 /**
  * Shorter than this is a tap, not a question. The server would transcribe
@@ -190,8 +186,6 @@ export function AskFollowUpBar({
    */
   const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short'>(null);
   const [linger, setLinger] = useState(false);
-  /** What the teacher heard, shown while it works out the answer. */
-  const [heard, setHeard] = useState<string | null>(null);
   /** The student's voice, 0–1, for the ring's halo while they hold. */
   const voiceLevel = useSharedValue(0);
   /** The written answer, when it earned a board. Empty array = no board. */
@@ -232,12 +226,11 @@ export function AskFollowUpBar({
     lingerRef.current = setTimeout(() => setLinger(false), ms);
   }, []);
 
-  /** Every failure ends the same way: said under the bar, the ring gone grey
-   *  for a moment, and nothing of the question left on screen. */
+  /** Every failure ends the same way: said under the bar, and the ring gone
+   *  grey for a moment. */
   const fail = useCallback(
     (kind: 'retry' | 'mic' | 'short') => {
       setFailure(kind);
-      setHeard(null);
       setPhase('idle');
       wake(FAILED_SHOW_MS);
     },
@@ -308,7 +301,6 @@ export function AskFollowUpBar({
     hapticFloorTaken();
     wake();
     setFailure(null);
-    setHeard(null);
     pressedRef.current = true;
     pressedAtRef.current = Date.now();
     // A second question interrupts the first answer rather than talking over
@@ -466,13 +458,11 @@ export function AskFollowUpBar({
         uri,
         turnsRef.current,
         {
-          // Kept for the history the next question is sent with, and shown
-          // while the answer is worked out: "You asked" is the proof the
-          // question was heard, and catches a mishearing before the teacher
-          // answers the wrong question rather than after.
+          // Kept for the history the next question is sent with. Not shown —
+          // the student knows what they just said, and the ring is what tells
+          // them it was heard.
           onTranscript: (text) => {
             asked = text;
-            if (!controller.signal.aborted && text.trim()) setHeard(text);
           },
           onStep: absorb,
           onStepPartial: absorb,
@@ -624,15 +614,6 @@ export function AskFollowUpBar({
         ? 'paused'
         : 'teacher';
   const ringAwake = listening || thinking || linger;
-
-  // "You asked" stays a moment into the answer, then goes. A board that opens
-  // takes over from it at once — the board is the answer, and the two should
-  // never be stacked over the solution together.
-  useEffect(() => {
-    if (!heard || listening || thinking) return;
-    const t = setTimeout(() => setHeard(null), HEARD_LINGER_MS);
-    return () => clearTimeout(t);
-  }, [heard, listening, thinking]);
   const hintColor = listening ? styles.hintLive : thinking ? styles.hintThinking : null;
 
   /**
@@ -668,7 +649,6 @@ export function AskFollowUpBar({
 
   return (
     <View style={styles.block}>
-      {heard && !boardMounted ? <HeardLine text={heard} answered={false} style={styles.heard} /> : null}
       {/*
         THE BOARD SITS ABOVE THE BAR, IN THE LAYOUT, NOT OVER IT.
         It was a Modal, chosen so the bar and the solution behind it never
@@ -949,10 +929,6 @@ const styles = StyleSheet.create({
   },
   hintLive: { color: GREEN_INK },
   hintThinking: { color: DEEP_AMBER },
-  /** Floats above the whole block — bar and any trailing control together —
-   *  without taking a line of its own, so the bar does not move when it comes
-   *  and goes. */
-  heard: { position: 'absolute', bottom: '100%', marginBottom: 12 },
   /**
    * A panel that floats above the bar, not a sheet stuck to the screen's edge.
    * Rounded on all four corners because it no longer meets the bottom of the
