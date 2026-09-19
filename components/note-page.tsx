@@ -52,6 +52,21 @@ const LH = 26;
 /** The pens on the desk, in the order a page picks them up. */
 const PENS = [RED, VIOLET, GREEN, INK];
 
+/** How wide the writing actually is: the last line of it, which is the line
+ *  an underline sits under. A heading that wrapped underlines its second
+ *  line, as a hand would. */
+function lastLineWidth(lines: { width: number }[]): number {
+  if (!lines.length) return 0;
+  return Math.round(lines[lines.length - 1].width);
+}
+
+/** The title is ruled off under the whole of it, not under its last word:
+ *  "Charge Sharing and Common / Potential" with a line under "Potential"
+ *  reads as underlining the word rather than closing the title. */
+function widestLineWidth(lines: { width: number }[]): number {
+  return Math.round(lines.reduce((w, l) => Math.max(w, l.width), 0));
+}
+
 /** Deterministic wobble, so a line is written the same way every render. */
 function n(seed: number, salt: number, amount: number): number {
   const x = Math.sin(seed * 12.9898 + salt * 78.233) * 43758.5453;
@@ -209,8 +224,12 @@ export function NotePage({
    */
   const insets = useSafeAreaInsets();
   const s = useMemo(() => createStyles(), []);
-  /** The line under the title runs the width of the title it sits under, so it
-   *  has to wait for the title to be laid out. */
+  /**
+   * The line under the title runs the width of the WRITING, not of the box the
+   * writing sits in. `onLayout` reports the box — which is the whole column —
+   * so a short title got a line the width of the page. `onTextLayout` reports
+   * each line of text; the last one is what the underline sits beneath.
+   */
   const [titleWidth, setTitleWidth] = useState(0);
   const firstSelfStudy = sections.findIndex((x) => x.kind === 'selfstudy');
 
@@ -225,10 +244,12 @@ export function NotePage({
           </View>
 
           <View style={[s.body, { paddingTop: insets.top + 38 }]}>
-            <Text style={s.title} onLayout={(e) => setTitleWidth(e.nativeEvent.layout.width)}>
+            <Text
+              style={s.title}
+              onTextLayout={(e) => setTitleWidth(widestLineWidth(e.nativeEvent.lines))}>
               {title}
             </Text>
-            <Underline width={Math.min(titleWidth, 300)} color={RED} seed={2} double />
+            <Underline width={titleWidth} color={RED} seed={2} double />
             {!!subject && <Text style={s.subject}>{subject}</Text>}
 
             {sections.length === 0 ? (
@@ -280,8 +301,9 @@ function Section({
   styles: ReturnType<typeof createStyles>;
   boundary: boolean;
 }) {
-  /** Measured, so the wavy line ends where the heading does rather than
-   *  underlining half of a long one and overshooting a short one. */
+  /** The heading's own writing, so the wavy line ends where the words do —
+   *  the heading BOX is the full column, and underlining that ran a line
+   *  clear across the page under "4. Colour". */
   const [headWidth, setHeadWidth] = useState(0);
   const colour = section.kind === 'rework' ? RED : PENS[index % PENS.length];
 
@@ -318,13 +340,13 @@ function Section({
         {section.kind === 'rework' ? <Text style={s.flag}>!</Text> : <Asterisk color={colour} />}
         <Text
           style={[s.heading, { color: colour }]}
-          onLayout={(e) => setHeadWidth(e.nativeEvent.layout.width)}>
+          onTextLayout={(e) => setHeadWidth(lastLineWidth(e.nativeEvent.lines))}>
           {section.n !== null ? `${section.n}. ` : ''}
           {section.title}
         </Text>
       </View>
       <View style={s.headUnderline}>
-        <Underline width={Math.min(headWidth, 260)} color={colour} seed={index + 5} />
+        <Underline width={headWidth} color={colour} seed={index + 5} />
       </View>
 
       {boundary && <Text style={s.aside}>the class ended before this — to finish on your own</Text>}
