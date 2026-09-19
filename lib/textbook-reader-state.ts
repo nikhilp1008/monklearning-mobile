@@ -23,7 +23,8 @@ export interface ReaderTopic {
 let chapterTitle = '';
 let topics: ReaderTopic[] = [];
 let activeIndex = 0;
-const jumpListeners = new Set<(index: number) => void>();
+const jumpListeners = new Set<(index: number, held: boolean) => void>();
+const releaseListeners = new Set<() => void>();
 
 export function setReaderTopics(title: string, list: ReaderTopic[]): void {
   chapterTitle = title;
@@ -38,17 +39,32 @@ export function readerTopics(): { title: string; topics: ReaderTopic[]; active: 
   return { title: chapterTitle, topics, active: activeIndex };
 }
 
-export function jumpToTopic(index: number): void {
+/**
+ * `held` builds the new topic now but keeps it off-screen until
+ * `releaseTopicJump` — so the sheet can start the build the moment a topic is
+ * picked, and the page still does not move until the sheet has gone.
+ */
+export function jumpToTopic(index: number, held = false): void {
   activeIndex = index;
-  for (const listener of jumpListeners) listener(index);
+  for (const listener of jumpListeners) listener(index, held);
+}
+
+/** The sheet has gone: a held topic may slide in. */
+export function releaseTopicJump(): void {
+  for (const listener of releaseListeners) listener();
 }
 
 /** Subscribes the reader to the sheet's choice for as long as it is mounted. */
-export function useReaderJump(onJump: (index: number) => void): void {
+export function useReaderJump(
+  onJump: (index: number, held: boolean) => void,
+  onRelease: () => void
+): void {
   useEffect(() => {
     jumpListeners.add(onJump);
+    releaseListeners.add(onRelease);
     return () => {
       jumpListeners.delete(onJump);
+      releaseListeners.delete(onRelease);
     };
-  }, [onJump]);
+  }, [onJump, onRelease]);
 }

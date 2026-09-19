@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { jumpToTopic, readerTopics } from '@/lib/textbook-reader-state';
+import { jumpToTopic, readerTopics, releaseTopicJump } from '@/lib/textbook-reader-state';
 import { hapticSwitched } from '@/lib/haptics';
 
 /**
@@ -52,6 +52,9 @@ import { hapticSwitched } from '@/lib/haptics';
 const SHEET_TRAVEL = 520;
 const CLOSE_DISTANCE = 110;
 const CLOSE_VELOCITY = 800;
+/** How long the sheet takes to go down after a topic is picked. The page
+ *  moves only once it has gone, so this is the first half of the switch. */
+const PICK_OUT_MS = 200;
 
 export default function TextbookTopicsScreen() {
   const { scale, verticalScale } = useScale();
@@ -65,7 +68,16 @@ export default function TextbookTopicsScreen() {
     y.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.7 });
   }, [y]);
 
-  const leave = useCallback(() => router.back(), []);
+  /** Once only. A pick, a scrim tap and a flick can all end the sheet, and a
+   *  second `router.back()` would take the student out of the chapter too. */
+  const gone = useRef(false);
+  const leave = useCallback(() => {
+    if (gone.current) return;
+    gone.current = true;
+    // However the sheet went, a topic picked on the way is let go now.
+    releaseTopicJump();
+    router.back();
+  }, []);
 
   /** Out under its own animation, so the route unmounts on a finished slide
    *  rather than on the frame the finger lifted. */
@@ -106,10 +118,42 @@ export default function TextbookTopicsScreen() {
     opacity: interpolate(y.value, [0, SHEET_TRAVEL], [1, 0]),
   }));
 
+  /**
+   * DOWN FIRST, THEN THE PAGE MOVES.
+   *
+   * This switched the topic and removed the sheet on the same frame. The
+   * sheet did not go down — it was simply gone — and the page's slide ran
+   * underneath it, so the one piece of motion that says "you went forward"
+   * was half hidden and the rest looked like a jump cut.
+   *
+   * Now the pick is two moves in a row, each quick enough to be felt rather
+   * than watched: the sheet drops away with the scrim thinning as it goes,
+   * and only once it has gone does the page slide to the new topic, in full
+   * view. The tap is felt at once, so nothing about the half-second reads as
+   * the app catching up.
+   *
+   * The new topic is BUILT during the drop, not after it — `held` keeps it
+   * off-screen until `leave` lets it go. Built after, it cost a third of a
+   * second of nothing moving between the sheet going and the page sliding.
+   */
+  const picking = useRef(false);
+  const release = useCallback(() => {
+    picking.current = false;
+  }, []);
   const choose = (index: number) => {
+    if (picking.current) return;
+    picking.current = true;
     if (index !== active) hapticSwitched();
-    jumpToTopic(index);
-    leave();
+    jumpToTopic(index, true);
+    y.value = withTiming(
+      SHEET_TRAVEL,
+      { duration: PICK_OUT_MS, easing: Easing.bezier(0.4, 0, 0.9, 0.4) },
+      (done) => {
+        // Interrupted means a finger took the sheet mid-drop; it decides.
+        if (done) runOnJS(leave)();
+        else runOnJS(release)();
+      }
+    );
   };
 
   return (

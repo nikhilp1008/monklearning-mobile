@@ -10,14 +10,20 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import Animated, {
-  SlideInLeft,
-  SlideInRight,
+  cancelAnimation,
+  Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -34,6 +40,27 @@ import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textb
 import { Chapter, groupBlocks, loadChapter } from '@/lib/textbooks';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
 import { hapticSwitched } from '@/lib/haptics';
+
+/**
+ * HOW LONG A TOPIC TAKES TO CHANGE: the page leaving and the next arriving move
+ * together, edge to edge, over this long. Quick enough that nobody waits on it,
+ * long enough to be seen — the move is what tells a student which way they
+ * went. Used by the arrows and by a pick from the Topics sheet, which lands
+ * here only after the sheet has finished going down.
+ */
+const TOPIC_SLIDE_MS = 280;
+/** Even through the middle rather than front-loaded, so the travel itself is
+ *  what the eye catches — an ease-out spends most of its distance in the
+ *  first few frames, which is exactly where a busy frame lands. */
+const TOPIC_EASE = Easing.bezier(0.4, 0, 0.2, 1);
+/**
+ * How much of a topic is built for the move itself. A slide only ever shows
+ * the top of the page, and building the whole topic — every paragraph,
+ * formula and figure — is what made the switch wait. The rest is added the
+ * moment the slide lands, while nothing is moving, and well before anyone
+ * could scroll down to it.
+ */
+const FIRST_PAINT_BLOCKS = 8;
 
 /**
  * One topic at a time.
@@ -87,7 +114,45 @@ export default function TextbookReaderScreen() {
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [missing, setMissing] = useState(false);
   const [active, setActive] = useState(0);
-  const [direction, setDirection] = useState<1 | -1>(1);
+  const activeRef = useRef(0);
+  /**
+   * TWO PAGES, TWO SLOTS, AND THE SLIDE WAITS FOR THE PAGE.
+   *
+   * A topic is a lot to build — dozens of paragraphs, formulas and figures —
+   * and building it holds the screen for a beat. The slide used to start the
+   * moment the new page was created, so its clock ran through that beat and
+   * the first thing anyone saw was a page already most of the way in: a jump,
+   * not a slide.
+   *
+   * So a move is three steps. The new page is built off to the side while the
+   * old one stays exactly where it is; nothing moves yet. Once the new page
+   * has been laid out (`onArrived`), both slide together on one curve, edge
+   * to edge. Then the old page is let go.
+   *
+   * Each page keeps one slot, and so one position, for its whole life, and a
+   * new page always takes the slot the last departure freed. That is what
+   * lets the new page be parked off-screen before it exists, without the page
+   * still on screen — which holds the other slot — so much as twitching.
+   */
+  const slotA = useSharedValue(0);
+  const slotB = useSharedValue(0);
+  const activeSlotRef = useRef<0 | 1>(0);
+  const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
+  /** The page on its way out, kept on screen until it has gone. */
+  const [leaving, setLeaving] = useState<{ index: number; slot: 0 | 1 } | null>(null);
+  /** False from a move's start until its slide lands: only the top of the
+   *  new page is built while it moves. */
+  const [settled, setSettled] = useState(true);
+  const leavingRef = useRef<{ index: number; slot: 0 | 1 } | null>(null);
+  /** Set by a move, spent when the slide starts. */
+  const pendingDir = useRef<0 | 1 | -1>(0);
+  /** The new page has been laid out, so building it is over. */
+  const laidOut = useRef(false);
+  /** A pick from the Topics sheet: built already, but it waits for the sheet
+   *  to finish going down before it moves. */
+  const held = useRef(false);
+  const moveId = useRef(0);
+  const { width: pageWidth } = useWindowDimensions();
   const [state, setState] = useState<BlockState>(EMPTY_BLOCK_STATE);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -123,20 +188,92 @@ export default function TextbookReaderScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter]);
 
+  const letGo = useCallback(() => {
+    leavingRef.current = null;
+    setLeaving(null);
+    setSettled(true);
+  }, []);
+
+  /** Moves once the page is built AND nothing is holding it back. */
+  const slideIfReady = useCallback(() => {
+    const dir = pendingDir.current;
+    if (!dir || !laidOut.current || held.current) return;
+    pendingDir.current = 0;
+    const to = activeSlotRef.current;
+    const toX = to === 0 ? slotA : slotB;
+    const fromX = to === 0 ? slotB : slotA;
+    fromX.value = withTiming(-dir * pageWidth, { duration: TOPIC_SLIDE_MS, easing: TOPIC_EASE });
+    toX.value = withTiming(0, { duration: TOPIC_SLIDE_MS, easing: TOPIC_EASE }, (done) => {
+      if (done) runOnJS(letGo)();
+    });
+  }, [slotA, slotB, pageWidth, letGo]);
+
+  const onArrived = useCallback(() => {
+    laidOut.current = true;
+    slideIfReady();
+  }, [slideIfReady]);
+
+  const onRelease = useCallback(() => {
+    held.current = false;
+    slideIfReady();
+  }, [slideIfReady]);
+
   const goTo = useCallback(
-    (index: number) => {
-      setActive((current) => {
-        if (index === current) return current;
-        setDirection(index > current ? 1 : -1);
-        setReaderActive(index);
+    (index: number, hold = false) => {
+      const current = activeRef.current;
+      if (index === current) return;
+      const dir = index > current ? 1 : -1;
+      const from = activeSlotRef.current;
+      const to: 0 | 1 = from === 0 ? 1 : 0;
+      const fromX = from === 0 ? slotA : slotB;
+      const toX = to === 0 ? slotA : slotB;
+      // A move still running is finished at once rather than chased: the page
+      // that was arriving snaps home and leaves from there.
+      cancelAnimation(fromX);
+      cancelAnimation(toX);
+      fromX.value = 0;
+      toX.value = dir * pageWidth;
+      pendingDir.current = dir;
+      laidOut.current = false;
+      held.current = hold;
+      // Going straight back to the page still on its way out: that page is
+      // already built and keeps its slot, so it gets no fresh layout to wait
+      // for. It can move at once.
+      const returning = leavingRef.current?.index === index;
+      const departing = { index: current, slot: from };
+      activeRef.current = index;
+      activeSlotRef.current = to;
+      leavingRef.current = departing;
+      setReaderActive(index);
+      // One frame later, not now. The positions written above travel to the
+      // UI thread on the next tick, and a page drawn before they land is
+      // drawn at 0 — the new topic flashed over the old one for a frame
+      // before jumping off to the side.
+      requestAnimationFrame(() => {
+        // Not when going straight back: that page is already fully built,
+        // and trimming it would only mean building its lower half twice.
+        setSettled(returning);
+        setLeaving(departing);
+        setActiveSlot(to);
+        setActive(index);
         scrollRef.current?.scrollTo({ y: 0, animated: false });
-        return index;
+        if (returning) requestAnimationFrame(onArrived);
       });
+      // And if a layout or a release never comes for any other reason, the
+      // page still arrives rather than waiting off-screen. Spent by then in
+      // every normal move, so this does nothing.
+      const move = ++moveId.current;
+      setTimeout(() => {
+        if (moveId.current !== move) return;
+        laidOut.current = true;
+        held.current = false;
+        slideIfReady();
+      }, 900);
     },
-    []
+    [slotA, slotB, pageWidth, onArrived, slideIfReady]
   );
 
-  useReaderJump(goTo);
+  useReaderJump(goTo, onRelease);
 
   const set = useCallback(
     <K extends keyof BlockState>(key: K, id: string, value: BlockState[K][string]) => {
@@ -147,6 +284,11 @@ export default function TextbookReaderScreen() {
 
   const topic = chapter?.topics[active];
   const blocks = useMemo(() => (topic ? groupBlocks(topic.blocks) : []), [topic]);
+  const leavingTopic = leaving ? chapter?.topics[leaving.index] : undefined;
+  const leavingBlocks = useMemo(
+    () => (leavingTopic ? groupBlocks(leavingTopic.blocks) : []),
+    [leavingTopic]
+  );
 
   /**
    * THE TOPICS BAR GETS OUT OF THE WAY WHILE YOU READ.
@@ -257,6 +399,50 @@ export default function TextbookReaderScreen() {
     );
   }
 
+  /** One topic's page — its heading and its blocks. Keys carry the topic's
+   *  own index, so a page that starts leaving is the same page, not a copy. */
+  const renderPage = (
+    pageIndex: number,
+    pageTopic: NonNullable<typeof topic>,
+    allBlocks: typeof blocks,
+    limit?: number
+  ) => {
+    const pageBlocks = limit === undefined ? allBlocks : allBlocks.slice(0, limit);
+    return (
+    <>
+      <View style={styles.topicHead}>
+        {/* No "TOPIC 01 / 05" overline. The bar at the foot of the page
+            carries 1/5 and is on screen the whole time, so the heading
+            was announcing its position twice — and an all-caps label
+            above a heading is the most essay-like thing a page can open
+            with.
+
+            The heading itself is CONTENT and grows with the body. The
+            chapter title in the bar above is chrome and does not: a
+            control that resized the furniture would read as zooming the
+            app rather than setting the text. */}
+        <Text style={[styles.topicTitle, { fontSize: type(25), lineHeight: type(30) }]}>
+          {pageTopic.title}
+        </Text>
+      </View>
+      {pageBlocks.map((block, index) => (
+        <TextbookBlock
+          key={`${pageIndex}-${index}`}
+          block={block}
+          ctx={{
+            uid: `${pageIndex}-${index}`,
+            scale,
+            type,
+            state,
+            set,
+            topicNumber: pageTopic.n,
+          }}
+        />
+      ))}
+    </>
+    );
+  };
+
   const atFirst = active === 0;
   const atLast = active === chapter.topics.length - 1;
 
@@ -339,40 +525,26 @@ export default function TextbookReaderScreen() {
           contentContainerStyle={[styles.scrollContent, { paddingTop: headSpace + verticalScale(4) }]}
           onScroll={onScroll}
           scrollEventThrottle={16}>
-          <Animated.View
-            key={active}
-            entering={(direction === 1 ? SlideInRight : SlideInLeft).duration(320)}
-            style={styles.topicBody}>
-            <View style={styles.topicHead}>
-              {/* No "TOPIC 01 / 05" overline. The bar at the foot of the page
-                  carries 1/5 and is on screen the whole time, so the heading
-                  was announcing its position twice — and an all-caps label
-                  above a heading is the most essay-like thing a page can open
-                  with.
-
-                  The heading itself is CONTENT and grows with the body. The
-                  chapter title in the bar above is chrome and does not: a
-                  control that resized the furniture would read as zooming the
-                  app rather than setting the text. */}
-              <Text style={[styles.topicTitle, { fontSize: type(25), lineHeight: type(30) }]}>
-                {topic.title}
-              </Text>
-            </View>
-            {blocks.map((block, index) => (
-              <TextbookBlock
-                key={`${active}-${index}`}
-                block={block}
-                ctx={{
-                  uid: `${active}-${index}`,
-                  scale,
-                  type,
-                  state,
-                  set,
-                  topicNumber: topic.n,
-                }}
-              />
-            ))}
-          </Animated.View>
+          {/* Both pages share one box, so the leaving page can sit on top of
+              where it already was while the new one takes the flow. */}
+          <View>
+            {leaving && leavingTopic ? (
+              <TopicPage
+                key={leaving.index}
+                x={leaving.slot === 0 ? slotA : slotB}
+                leaving
+                style={styles.topicBody}>
+                {renderPage(leaving.index, leavingTopic, leavingBlocks)}
+              </TopicPage>
+            ) : null}
+            <TopicPage
+              key={active}
+              x={activeSlot === 0 ? slotA : slotB}
+              onLayout={onArrived}
+              style={styles.topicBody}>
+              {renderPage(active, topic, blocks, settled ? undefined : FIRST_PAINT_BLOCKS)}
+            </TopicPage>
+          </View>
         </ScrollView>
       </View>
 
@@ -443,6 +615,41 @@ export default function TextbookReaderScreen() {
     </View>
   );
 }
+
+/**
+ * A topic's page, positioned by its slot. Its own component so that its
+ * animated style is created when the page is: a page built for a move is born
+ * already parked off-screen, rather than drawn once in place and then moved.
+ */
+function TopicPage({
+  x,
+  leaving,
+  onLayout,
+  style,
+  children,
+}: {
+  x: SharedValue<number>;
+  leaving?: boolean;
+  onLayout?: (e: LayoutChangeEvent) => void;
+  style: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) {
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  return (
+    <Animated.View
+      style={[style, leaving && pageStyles.leaving, slide]}
+      pointerEvents={leaving ? 'none' : 'auto'}
+      onLayout={onLayout}>
+      {children}
+    </Animated.View>
+  );
+}
+
+const pageStyles = StyleSheet.create({
+  /** Out of the flow, over the spot it already occupied, so the new page can
+   *  take the flow without the old one moving by a pixel. */
+  leaving: { position: 'absolute', top: 0, left: 0, right: 0 },
+});
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
