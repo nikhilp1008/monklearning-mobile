@@ -56,12 +56,35 @@ export function SlidingToggle<T extends string>({
   const translateX = useRef(new Animated.Value(0)).current;
   const [thumbWidth, setThumbWidth] = useState(0);
   const [ready, setReady] = useState(false);
+  /**
+   * THE THUMB ANSWERS THE FINGER; THE PAGE FOLLOWS.
+   *
+   * The thumb used to wait for `value` — which meant it waited for the whole
+   * screen to re-render for the new choice before it moved at all. On both
+   * screens that use this, the choice rebuilds a list below it, and on a phone
+   * that is a visible beat between the tap and the slide. So the toggle keeps
+   * its own copy of the choice, moves on it at once, and hands the change to
+   * the page a frame later, when the slide is already running on the native
+   * side and a busy JavaScript thread can no longer hold it up.
+   */
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    // The page can still set the value itself (Exam scope opens on the
+    // student's own exam), and that must move the thumb too.
+    setShown(value);
+  }, [value]);
+
+  const choose = (option: T) => {
+    if (option === shown) return;
+    setShown(option);
+    requestAnimationFrame(() => onChange(option));
+  };
 
   const handlePillLayout = (option: T) => (event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
     const previous = layouts.get(option);
     layouts.set(option, { x, width });
-    if (option !== value) return;
+    if (option !== shown) return;
     // Re-seat the thumb on ANY layout change of the selected pill, not just
     // the first. A pill that sizes to its text measures once and never moves,
     // but a flex pill is measured before flex resolves and again after -- and
@@ -77,7 +100,7 @@ export function SlidingToggle<T extends string>({
 
   useEffect(() => {
     if (!ready) return;
-    const layout = layouts.get(value);
+    const layout = layouts.get(shown);
     if (!layout) return;
     setThumbWidth(layout.width);
     Animated.spring(translateX, {
@@ -88,7 +111,7 @@ export function SlidingToggle<T extends string>({
       mass: 0.8,
     }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, ready]);
+  }, [shown, ready]);
 
   return (
     <View style={trackStyle}>
@@ -113,8 +136,8 @@ export function SlidingToggle<T extends string>({
             key={option}
             style={pillStyle}
             onLayout={handlePillLayout(option)}
-            onPress={() => onChange(option)}>
-            <Text style={[textStyle, option === value && textActiveStyle]}>{option}</Text>
+            onPress={() => choose(option)}>
+            <Text style={[textStyle, option === shown && textActiveStyle]}>{option}</Text>
           </Pressable>
         ))}
       </View>

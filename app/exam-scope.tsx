@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
@@ -28,6 +29,17 @@ import { hapticSwitched } from '@/lib/haptics';
  */
 
 const EXAM_OPTIONS = ['JEE Main', 'NEET UG'] as const;
+
+/**
+ * THE PAGE MOVES WITH THE TOGGLE, the way the Textbooks list does.
+ *
+ * Switching exam used to swap every number and card below in one frame while
+ * the thumb slid above them — a moving control over a page that cut. Now
+ * everything that belongs to the exam comes back in, top to bottom, on the
+ * same entrance and stagger as the Textbooks chapter rows, so the two toggles
+ * feel like one control in two places.
+ */
+const enter = (step: number) => FadeInDown.delay(step * 26).duration(320);
 
 export default function ExamScopeScreen() {
   const { scale, verticalScale } = useScale();
@@ -90,7 +102,7 @@ export default function ExamScopeScreen() {
       </View>
 
       {/* What's in */}
-      <View style={styles.card}>
+      <Animated.View key={`in-${exam}`} entering={enter(0)} style={styles.card}>
         <Text style={styles.overline}>In {scope.label}</Text>
         <View style={styles.countRow}>
           <Text style={styles.countValue}>{scope.totalChapters}</Text>
@@ -108,7 +120,7 @@ export default function ExamScopeScreen() {
           Set by {scope.authority}. A chapter being in scope means it contains examinable
           material, not that every line of it is examined.
         </Text>
-      </View>
+      </Animated.View>
 
       {/* The way in to the chapter-level map, one subject at a time. */}
       <View style={styles.sectionHeadRow}>
@@ -120,11 +132,11 @@ export default function ExamScopeScreen() {
         quietly trimmed out, and what left the books in 2023.
       </Text>
       <View style={styles.subjectCards}>
-        {subjectDetails.map((detail) => {
+        {subjectDetails.map((detail, index) => {
           const trims = detail.chapters.filter((c) => c.trims?.length).length;
           return (
+            <Animated.View key={`${exam}-${detail.key}`} entering={enter(index + 1)}>
             <PressableScale
-              key={detail.key}
               style={styles.subjectCard}
               onPress={() =>
                 router.push({
@@ -150,11 +162,15 @@ export default function ExamScopeScreen() {
               </View>
               <ChevronIcon color={colors.faint} />
             </PressableScale>
+            </Animated.View>
           );
         })}
       </View>
 
-      <View style={styles.card}>
+      <Animated.View
+        key={`drop-${exam}`}
+        entering={enter(subjectDetails.length + 1)}
+        style={styles.card}>
         <Text style={styles.overline}>What you can drop</Text>
         <View style={styles.dropRow}>
           <View style={styles.dropItem}>
@@ -172,16 +188,19 @@ export default function ExamScopeScreen() {
           sits inside chapters you keep and is still board material, so weigh it lighter rather
           than skipping it. Both are named per subject below.
         </Text>
-      </View>
+      </Animated.View>
 
       {scope.boardOnlyChapters.length > 0 && (
-        <View style={styles.noteCard}>
+        <Animated.View
+          key={`board-${exam}`}
+          entering={enter(subjectDetails.length + 2)}
+          style={styles.noteCard}>
           <Text style={styles.noteCardText}>
             <Text style={styles.noteCardStrong}>{scope.boardOnlyChapters.join(', ')}</Text> is a
             live NCERT chapter and a board topic, but it isn&apos;t in the {scope.label} syllabus.
             Study it for school, not for the exam.
           </Text>
-        </View>
+        </Animated.View>
       )}
 
       {/* The anxiety question */}
@@ -256,22 +275,27 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: hairline(0.055),
       borderRadius: scale(99),
     },
+    /** Floats on a shadow, like the Textbooks thumb, rather than sitting in
+     *  the track on an outline — a raised thumb reads as the thing that moves. */
     toggleThumb: {
       backgroundColor: '#fff',
       borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: hairline(0.13),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(2) },
+      shadowOpacity: 0.12,
+      shadowRadius: scale(6),
+      elevation: 2,
     },
     /**
      * FIXED WIDTH, and equal, which is what makes the slide smooth.
      *
      * These sized to their labels, and "JEE Main" and "NEET UG" are not the
      * same width — so every switch made the thumb change size as well as
-     * place. Worse, the active label is set in bold, which is wider: choosing
-     * NEET UG grew its pill, the toggle re-measured it and jumped the thumb to
-     * the new position mid-spring. Textbooks' "Class 11" / "Class 12" only
-     * escape this because their widths differ by about a pixel. A fixed box
-     * cannot reflow, so the thumb just slides.
+     * place. Worse, the active label used to turn bold, which is wider:
+     * choosing NEET UG grew its pill, the toggle re-measured it and jumped the
+     * thumb to the new position mid-spring. Textbooks' "Class 11" / "Class 12"
+     * only escape this because their widths differ by about a pixel. A fixed
+     * box cannot reflow, so the thumb just slides.
      */
     togglePill: {
       width: scale(98),
@@ -279,13 +303,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingVertical: verticalScale(7),
       borderRadius: scale(99),
     },
+    /** Bold on both sides, and only the colour changes — as on Textbooks. The
+     *  active label used to switch weight the instant it was tapped, so the
+     *  word jumped to bold before the thumb had arrived under it. */
     togglePillText: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.slate,
     },
     togglePillTextActive: {
-      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     card: {
