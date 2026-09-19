@@ -117,6 +117,17 @@ export default function SessionSummaryScreen() {
     };
   }, [params.sessionId]);
 
+  /**
+   * Whether this class got far enough to have takeaways.
+   *
+   * The server decides, and says so in the payload — "no points" and "too early
+   * for points" are different things and only one is worth a line on screen.
+   * False until the payload lands, so the brief moment before it arrives looks
+   * like an ordinary class rather than flashing an "ended early" message at a
+   * student who had a full one.
+   */
+  const tooShort = summary?.too_short_for_summary === true;
+
   // The end payload names the chapter more authoritatively than the classroom
   // route did, but only once it arrives.
   const chapterTitle = summary?.chapter_name || params.chapterTitle || 'this class';
@@ -261,7 +272,11 @@ export default function SessionSummaryScreen() {
         <View style={styles.page}>
           <Animated.View entering={FadeInDown.duration(420)}>
             <Text style={styles.heading}>Class dismissed.</Text>
-            <Text style={styles.sub}>Good work today. Here&apos;s what you covered.</Text>
+            <Text style={styles.sub}>
+              {tooShort
+                ? 'That one ended early, so there’s nothing to sum up yet.'
+                : 'Good work today. Here’s what you covered.'}
+            </Text>
           </Animated.View>
 
           {/* One card, three rows: the two things the student chose on the way
@@ -304,7 +319,26 @@ export default function SessionSummaryScreen() {
                   covered. Renders nothing unless something actually was. */}
               <ProofMoment events={proof} />
 
-              {covered.length > 0 && (
+              {/* A class shorter than two segments has no takeaways, and is
+                  told so rather than shown an empty space where they would be.
+                  Deliberately not an apology and not a metric: the student did
+                  nothing wrong by stopping, and "1 of 2 segments" would read as
+                  a score. What is on offer is the way back in. */}
+              {tooShort && (
+                <>
+                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                    Too short to sum up
+                  </Text>
+                  <View style={[styles.line, styles.lineLast]}>
+                    <Text style={styles.lineText}>
+                      Takeaways start once you’ve finished a couple of segments.
+                      Pick the chapter back up whenever you’re ready.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {!tooShort && covered.length > 0 && (
                 <>
                   <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
                     What we covered
