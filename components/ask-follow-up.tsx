@@ -6,17 +6,22 @@ import {
 } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { Skeleton } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -28,6 +33,7 @@ import {
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
+import { colors } from '@/constants/brand';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 /**
@@ -52,6 +58,15 @@ import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/hapt
  * the board, streaming word by word as the model writes it. One short step is
  * spoken and kept for history but opens nothing: a board over the student's
  * solution is furniture falling over unless there is working to put on it.
+ *
+ * THE BOARD IS A THREAD, NOT A SLATE. It used to be wiped the moment the next
+ * question was asked — closed, emptied, and reopened for the new answer — so a
+ * student asking "and why is that?" lost the working the question was about.
+ * Now every answer that reaches the board stays on it, oldest first, and the
+ * next one is added below with its own heading; the board scrolls to the new
+ * one as it arrives and the old ones are a scroll away. Closing the board
+ * hides the thread, it does not clear it: the next answer that earns the board
+ * brings the whole thread back. Only leaving the screen ends it.
  */
 
 /**
@@ -63,7 +78,16 @@ import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/hapt
  * room to be read without scrolling inside the board, and 18pt lets the two
  * buttons below stand clear of it.
  */
-const BOARD_SHARE = 0.56;
+const BOARD_SHARE = 0.62;
+
+/** How far the board reaches past the bar's own gutters on each side. The
+ *  bar row is inset for its buttons; the board is a page of working, and at
+ *  the bar's width it read as a narrow card squeezed between two margins. */
+const BOARD_BLEED = 10;
+
+/** Drag distance or flick speed on the board's header that puts it away. */
+const BOARD_CLOSE_DISTANCE = 80;
+const BOARD_CLOSE_VELOCITY = 700;
 
 /** A follow-up answer opens the sheet past ONE short step — the same line
  *  the model's own prompt draws ("the board is for working"). */
@@ -189,9 +213,19 @@ export function AskFollowUpBar({
   const [linger, setLinger] = useState(false);
   /** The student's voice, 0–1, for the ring's halo while they hold. */
   const voiceLevel = useSharedValue(0);
-  /** The written answer, when it earned a board. Empty array = no board. */
-  const [boardSteps, setBoardSteps] = useState<FollowUpStep[]>([]);
+  /** Every answer that has reached the board this visit, oldest first. */
+  const [thread, setThread] = useState<{ id: number; steps: FollowUpStep[] }[]>([]);
   const [boardOpen, setBoardOpen] = useState(false);
+  /** Read from inside an answer's stream, which outlives the render it began in. */
+  const boardOpenRef = useRef(false);
+  useEffect(() => {
+    boardOpenRef.current = boardOpen;
+  }, [boardOpen]);
+  /** One id per question asked, so an answer's steps land in its own section. */
+  const questionIdRef = useRef(0);
+  /** The question being worked out while the board is already up — it gets a
+   *  placeholder section at once, rather than nothing until the first step. */
+  const [pendingTurn, setPendingTurn] = useState<number | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<FollowUpAudio | null>(null);
@@ -270,6 +304,25 @@ export function AskFollowUpBar({
     if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
     setPhase('idle');
   }, []);
+
+  /**
+   * A different question under the bar is a different conversation.
+   *
+   * Practice builds a fresh bar per question, but a snap holds up to three
+   * questions under ONE bar, switched by index — and the thread, like the
+   * history sent with each follow-up, would otherwise have carried the first
+   * question's answers into the second.
+   */
+  const lastDoubt = useRef(doubtId);
+  useEffect(() => {
+    if (lastDoubt.current === doubtId) return;
+    lastDoubt.current = doubtId;
+    stopEverything();
+    turnsRef.current = [];
+    setThread([]);
+    setPendingTurn(null);
+    setBoardOpen(false);
+  }, [doubtId, stopEverything]);
 
   useEffect(
     () => () => {
@@ -417,14 +470,17 @@ export function AskFollowUpBar({
     let asked = '';
     let spokenText = '';
     let spokeStarted = false;
-    setBoardSteps([]);
-    setBoardOpen(false);
+    // Nothing is cleared: the answers already on the board stay on it.
+    const turnId = ++questionIdRef.current;
+    if (boardOpenRef.current) setPendingTurn(turnId);
 
     // One writer for finished steps and the step mid-write. Partials carry
     // full text-so-far and REPLACE their step — upsert by n, never append,
     // or a step that streamed as six frames becomes six steps. The board
     // opens the moment the answer has earned it: a second step, or a long
-    // first one. One short step is conversation and opens nothing.
+    // first one. One short step is conversation and opens nothing — unless
+    // the board is already up, where every answer joins the thread.
+    let onBoard = false;
     const absorb = (step: FollowUpStep) => {
       if (controller.signal.aborted) return;
       const at = arrived.findIndex((s) => s.n === step.n);
@@ -432,8 +488,16 @@ export function AskFollowUpBar({
       else arrived.push(step);
       arrived.sort((a, b) => a.n - b.n);
       const body = arrived.map((s) => s.text).join(' ');
-      if (arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
-        setBoardSteps([...arrived]);
+      if (onBoard || boardOpenRef.current || arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
+        onBoard = true;
+        const steps = [...arrived];
+        setThread((prev) => {
+          const i = prev.findIndex((t) => t.id === turnId);
+          if (i < 0) return [...prev, { id: turnId, steps }];
+          const next = prev.slice();
+          next[i] = { id: turnId, steps };
+          return next;
+        });
         setBoardOpen(true);
       }
     };
@@ -631,22 +695,79 @@ export function AskFollowUpBar({
    * rest of the app uses for entrances and exits.
    */
   const open = useSharedValue(0);
+  /** How far below its place the board is: 40 as it arrives, 0 at rest. It
+   *  rises on a spring — a panel of working settling into place — and drops
+   *  on a plain ease, because leaving should just get out of the way. */
+  const rise = useSharedValue(40);
+  /** The finger's pull on the header, added on top. */
+  const drag = useSharedValue(0);
   const [boardMounted, setBoardMounted] = useState(false);
   useEffect(() => {
     if (boardOpen) {
       setBoardMounted(true);
-      open.value = withTiming(1, { duration: 300, easing: Easing.bezier(0.2, 0.8, 0.2, 1) });
+      drag.value = 0;
+      open.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
+      rise.value = withSpring(0, { damping: 20, stiffness: 210, mass: 0.8 });
       return;
     }
-    open.value = withTiming(0, { duration: 210, easing: Easing.bezier(0.4, 0, 0.6, 1) }, (done) => {
+    const out = { duration: 220, easing: Easing.bezier(0.4, 0, 0.6, 1) };
+    rise.value = withTiming(40, out);
+    open.value = withTiming(0, out, (done) => {
       if (done) runOnJS(setBoardMounted)(false);
     });
-  }, [boardOpen, open]);
+  }, [boardOpen, open, rise, drag]);
 
   const boardStyle = useAnimatedStyle(() => ({
     opacity: open.value,
-    transform: [{ translateY: (1 - open.value) * 34 }],
+    transform: [{ translateY: rise.value + drag.value }],
   }));
+
+  /** The grabber finally does what it says: pull the header down to put the
+   *  board away. A short pull springs back. */
+  const boardPan = Gesture.Pan()
+    .onUpdate((e) => {
+      drag.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > BOARD_CLOSE_DISTANCE || e.velocityY > BOARD_CLOSE_VELOCITY) {
+        runOnJS(setBoardOpen)(false);
+        return;
+      }
+      drag.value = withSpring(0, { damping: 22, stiffness: 260 });
+    });
+
+  /**
+   * SCROLL TO WHAT IS NEW, ONCE. When a section for a new question lays out —
+   * its placeholder first, then its answer in the same place — the board
+   * brings its heading to the top, so the student reads the answer from its
+   * first line while the voice starts on it. After that the scroll is theirs.
+   */
+  const boardScroll = useRef<ScrollView>(null);
+  const shownTurn = useRef(0);
+  const onSectionLayout = (id: number, y: number) => {
+    if (id <= shownTurn.current) return;
+    shownTurn.current = id;
+    boardScroll.current?.scrollTo({ y: Math.max(0, y - 6), animated: true });
+  };
+  const showPending =
+    boardOpen && thinking && pendingTurn !== null && !thread.some((t) => t.id === pendingTurn);
+  const sections = thread.length + (showPending ? 1 : 0);
+
+  /** The marigold dot by the title breathes while the teacher is answering. */
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value =
+      thinking || speaking
+        ? withRepeat(
+            withSequence(
+              withTiming(0.35, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+              withTiming(1, { duration: 700, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1
+          )
+        : withTiming(1, { duration: 200 });
+  }, [thinking, speaking, pulse]);
+  const dotStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
   return (
     <View style={styles.block}>
@@ -668,25 +789,52 @@ export function AskFollowUpBar({
       {boardMounted && (
         <Animated.View
           style={[styles.board, { maxHeight: Math.round(windowHeight * BOARD_SHARE) }, boardStyle]}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Follow-up</Text>
-            {/* A cross, not the word Done. "Done" claims the student finished
-                something; this board is an answer they are dismissing, and
-                nothing is completed by closing it. A cross also stops the
-                header competing with the green Report and Stop language used
-                for the controls that do act. */}
-            <Pressable
-              onPress={() => setBoardOpen(false)}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Close the follow-up answer"
-              style={({ pressed }) => [styles.sheetClose, pressed && styles.sheetClosePressed]}>
-              <CloseIcon />
-            </Pressable>
-          </View>
-          <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
-            <BoardRail steps={boardSteps} />
+          <GestureDetector gesture={boardPan}>
+            <View style={styles.boardHead}>
+              <View style={styles.boardGrab} />
+              <View style={styles.boardTitleRow}>
+                <Animated.View style={[styles.boardDot, dotStyle]} />
+                <Text style={styles.boardTitle}>Follow-up</Text>
+                {/* A cross, not the word Done. "Done" claims the student
+                    finished something; this board is an answer they are
+                    putting away, and nothing is completed by closing it. */}
+                <Pressable
+                  onPress={() => setBoardOpen(false)}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close the follow-up answer"
+                  style={({ pressed }) => [styles.boardClose, pressed && styles.boardClosePressed]}>
+                  <CloseIcon />
+                </Pressable>
+              </View>
+            </View>
+          </GestureDetector>
+          <ScrollView
+            ref={boardScroll}
+            style={styles.boardBody}
+            contentContainerStyle={styles.boardContent}
+            showsVerticalScrollIndicator={false}>
+            {thread.map((turn, index) => (
+              <View
+                key={turn.id}
+                style={index > 0 ? styles.turnAfter : null}
+                onLayout={(e) => onSectionLayout(turn.id, e.nativeEvent.layout.y)}>
+                {sections > 1 ? <TurnLabel n={index + 1} /> : null}
+                <BoardRail steps={turn.steps} />
+              </View>
+            ))}
+            {showPending && pendingTurn !== null ? (
+              <View
+                key={pendingTurn}
+                style={thread.length > 0 ? styles.turnAfter : null}
+                onLayout={(e) => onSectionLayout(pendingTurn, e.nativeEvent.layout.y)}>
+                <TurnLabel n={thread.length + 1} />
+                <View style={styles.pendingLines}>
+                  <Skeleton style={styles.pendingLineLong} />
+                  <Skeleton delay={80} style={styles.pendingLineShort} />
+                </View>
+              </View>
+            ) : null}
           </ScrollView>
         </Animated.View>
       )}
@@ -841,7 +989,15 @@ function BoardRail({ steps }: { steps: FollowUpStep[] }) {
     () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
     [steps]
   );
-  return <SolutionSteps steps={rail} size="compact" />;
+  // Full size, the solution's own: the board is where the working is read,
+  // and the compact size made it the smallest text on the screen.
+  return <SolutionSteps steps={rail} size="full" />;
+}
+
+/** Heads each answer once there is more than one, so a scroll through the
+ *  thread reads as a sequence rather than one long run of steps. */
+function TurnLabel({ n }: { n: number }) {
+  return <Text style={styles.turnLabel}>Follow-up {n}</Text>;
 }
 
 /** The dock's plate, verbatim — negative spreads included, which is why this is
@@ -931,49 +1087,69 @@ const styles = StyleSheet.create({
   hintLive: { color: GREEN_INK },
   hintThinking: { color: DEEP_AMBER },
   /**
-   * A panel that floats above the bar, not a sheet stuck to the screen's edge.
-   * Rounded on all four corners because it no longer meets the bottom of the
-   * screen, and lifted on a shadow so it reads as sitting over the solution
-   * rather than being part of it.
+   * A PAGE LIFTED OFF THE SOLUTION, in the bar's own material.
+   *
+   * It was cream on a white screen, ringed by an inset hairline under a heavy
+   * drop, and it read as a different object from the bar beneath it — another
+   * app's card. Now it is the dock's plate at page size: white, the same 1pt
+   * hairline, the same soft lifted shadow, so board and bar are one family and
+   * the board stands off the working behind it by lift alone. Rounded on all
+   * four corners because it floats; it never meets the screen's edge.
    */
   board: {
-    backgroundColor: PAPER,
-    borderRadius: 22,
-    paddingBottom: 10,
-    marginBottom: 18,
+    marginHorizontal: -BOARD_BLEED,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(28,26,22,.08)',
     overflow: 'hidden',
     boxShadow: [
-      { offsetX: 0, offsetY: 10, blurRadius: 28, spreadDistance: -6, color: 'rgba(28,26,22,0.26)' },
-      { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(28,26,22,0.08)', inset: true },
+      { offsetX: 0, offsetY: 20, blurRadius: 44, spreadDistance: -18, color: 'rgba(28,26,22,0.34)' },
+      { offsetX: 0, offsetY: 2, blurRadius: 8, spreadDistance: -2, color: 'rgba(28,26,22,0.08)' },
     ],
   },
-  sheetHandle: {
+  boardHead: { paddingTop: 9, paddingHorizontal: 22, paddingBottom: 10 },
+  boardGrab: {
     alignSelf: 'center',
-    width: 40,
+    width: 38,
     height: 4,
     borderRadius: 2,
-    marginTop: 10,
-    backgroundColor: 'rgba(28,26,22,0.16)',
+    backgroundColor: 'rgba(28,26,22,0.14)',
   },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  sheetTitle: { fontFamily: 'Onest_700Bold', fontSize: 16, color: INK },
-  /** A disc, so the glyph has a target worth tapping and reads as a control
-   *  rather than as a mark printed in the corner. */
-  sheetClose: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  boardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 12 },
+  /** The brand's focus dot — the one warm mark on the board. */
+  boardDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.marigold },
+  boardTitle: { flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: 17, letterSpacing: -0.2, color: INK },
+  /** The report sheet's close: a hairline disc, a target worth tapping. */
+  boardClose: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(28,26,22,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(28,26,22,0.05)',
   },
-  sheetClosePressed: { backgroundColor: 'rgba(28,26,22,0.11)' },
-  sheetBody: { paddingHorizontal: 20 },
+  boardClosePressed: { backgroundColor: 'rgba(28,26,22,0.05)' },
+  boardBody: { flexGrow: 0 },
+  boardContent: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 26 },
+  /** Each later answer starts below a hairline, with room above it. */
+  turnAfter: {
+    marginTop: 26,
+    paddingTop: 22,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(28,26,22,0.08)',
+  },
+  turnLabel: {
+    marginBottom: 14,
+    fontFamily: 'Onest_700Bold',
+    fontSize: 10.5,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+    color: INK_FAINT,
+  },
+  pendingLines: { gap: 10, paddingBottom: 4 },
+  pendingLineLong: { height: 14, width: '86%', borderRadius: 7 },
+  pendingLineShort: { height: 14, width: '54%', borderRadius: 7 },
 });
