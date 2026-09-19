@@ -22,6 +22,7 @@ import {
   askAboutDoubtAloud,
   speakFollowUpStreaming,
   type FollowUpStep,
+  type FollowUpSurface,
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
@@ -97,9 +98,19 @@ function FlagIcon() {
 export function AskFollowUpBar({
   doubtId,
   onReport,
+  surface = 'doubts',
 }: {
+  /** The thing being asked about — a doubt id, or a practice question id when
+   *  `surface` says so. Named for its first caller; it is an id either way. */
   doubtId?: string | null;
   onReport?: () => void;
+  /**
+   * Which store the id belongs to. Practice asks the same question of the same
+   * three endpoints under its own prefix, so the bar itself is unchanged —
+   * only where it sends. Defaults to doubts so every existing caller is
+   * untouched.
+   */
+  surface?: FollowUpSurface;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   /** The board is capped rather than free: it grows upward over the solution,
@@ -354,7 +365,8 @@ export function AskFollowUpBar({
             }
           },
         },
-        controller.signal
+        controller.signal,
+        surface
       );
       if (controller.signal.aborted) return;
       turnsRef.current = [
@@ -398,13 +410,14 @@ export function AskFollowUpBar({
           (wav) => {
             if (!ctl.signal.aborted) audio.enqueue(wav);
           },
-          ctl.signal
+          ctl.signal,
+          surface
         );
       } finally {
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake]);
+  }, [doubtId, recorder, toPlayback, wake, surface]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
@@ -546,13 +559,21 @@ export function AskFollowUpBar({
         {/* Report, as a disc matching the bar's own plate. It lives here rather
             than in the screen because 12a centres the PAIR: the bar is content
             sized, the disc is 52, and the two are centred together. Split
-            across two files the row could only be laid out by guesswork. */}
-        <Pressable
-          style={styles.disc}
-          onPress={onReport}
-          accessibilityLabel="Report a problem">
-          <FlagIcon />
-        </Pressable>
+            across two files the row could only be laid out by guesswork.
+
+            Only when there is somewhere to report TO. It used to render
+            whatever the props said, so a caller that passed no `onReport` —
+            Practice — got a flag that did nothing when pressed, and paid 62pt
+            of row width for it. A control with no handler is not a quiet
+            control, it is a broken one. */}
+        {onReport ? (
+          <Pressable
+            style={styles.disc}
+            onPress={onReport}
+            accessibilityLabel="Report a problem">
+            <FlagIcon />
+          </Pressable>
+        ) : null}
       </View>
       <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
         {hint}

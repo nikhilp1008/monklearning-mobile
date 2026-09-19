@@ -89,12 +89,24 @@ function parseFrames(chunk: string): { event: string; data: unknown }[] {
  * steps start arriving — a misheard question is worth catching before reading
  * three steps that answer something else.
  */
+/**
+ * Which surface the follow-up is about.
+ *
+ * Doubts and Practice ask the same question — "explain the working I am looking
+ * at" — of two different stores, so the server exposes the same three endpoints
+ * under each prefix and the only thing that varies here is the path. Passing
+ * the prefix rather than branching on it keeps every caller honest about which
+ * one it means.
+ */
+export type FollowUpSurface = 'doubts' | 'practice';
+
 export function askAboutDoubtAloud(
   doubtId: string,
   recordingUri: string,
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  surface: FollowUpSurface = 'doubts'
 ): Promise<void> {
   const body = new FormData();
   body.append('audio', {
@@ -106,7 +118,7 @@ export function askAboutDoubtAloud(
   // Which audio dialect this build can play. Declared per request, so a JS
   // reload on an old binary keeps getting WAVs it can handle.
   body.append('pcm', pcmAvailable ? '1' : '0');
-  return streamAsk(doubtId, 'ask-voice', body, handlers, signal);
+  return streamAsk(doubtId, 'ask-voice', body, handlers, signal, surface);
 }
 
 export function askAboutDoubt(
@@ -114,10 +126,11 @@ export function askAboutDoubt(
   question: string,
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  surface: FollowUpSurface = 'doubts'
 ): Promise<void> {
   return streamAsk(doubtId, 'ask', JSON.stringify({ question, history }),
-                   handlers, signal);
+                   handlers, signal, surface);
 }
 
 /**
@@ -183,7 +196,8 @@ export function speakFollowUpStreaming(
   doubtId: string,
   spoken: string,
   onChunk: (wav: Uint8Array, index: number) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  surface: FollowUpSurface = 'doubts'
 ): Promise<void> {
   return new Promise<void>((resolve) => {
     (async () => {
@@ -237,7 +251,7 @@ export function speakFollowUpStreaming(
         }
       };
 
-      xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/doubts/${doubtId}/speak-stream`);
+      xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/${surface}/${doubtId}/speak-stream`);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', 'text/event-stream');
@@ -259,7 +273,8 @@ function streamAsk(
   path: 'ask' | 'ask-voice',
   body: string | FormData,
   handlers: FollowUpHandlers,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  surface: FollowUpSurface = 'doubts'
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     (async () => {
@@ -333,7 +348,7 @@ function streamAsk(
         }
       };
 
-      xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/doubts/${doubtId}/${path}`);
+      xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/${surface}/${doubtId}/${path}`);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       // FormData sets its own multipart boundary; setting it by hand breaks it.
       if (typeof body === 'string') {
