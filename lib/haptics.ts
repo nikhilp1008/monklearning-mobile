@@ -149,7 +149,8 @@ export function hapticTicked() {
  * moved".
  */
 /**
- * A decision that changes where the student is — logging out.
+ * A decision that changes where the student is — logging out, and Start
+ * learning on the topic sheet, the step into the classroom.
  *
  * Firmer than a switch and not a success: leaving is not an achievement, and a
  * Success notification on logout would congratulate someone for going. A
