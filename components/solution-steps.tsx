@@ -74,19 +74,40 @@ const METRICS = {
    * oversized; at `compact` the board was the smallest text on the screen.
    */
   board: {
-    rail: 38,
-    railLeft: 11,
+    // A wider rail than `compact`: the gap between a number and its equation
+    // is most of what made a follow-up's steps read as crowded.
+    rail: 42,
+    railLeft: 11.5,
     marker: 24,
     markerRadius: 7,
     markerText: 11,
-    stepGap: 24,
-    lineGap: 10,
+    stepGap: 30,
+    lineGap: 12,
     title: 16.5,
-    prose: 15,
-    math: 15.5,
+    // Prose and maths a half-point under `compact`'s neighbours at full, so a
+    // long line keeps clear of the board's edge — and stays on one line —
+    // once the wider rail has taken its share. A follow-up line is usually a
+    // sentence carrying its maths inline, so the prose size is the one that
+    // decides where it wraps.
+    prose: 14.5,
+    math: 14.5,
     answer: 17,
   },
 } as const;
+
+/**
+ * How maths breathes, per size. A follow-up answer is mostly equations with
+ * one on each line, so the board sets them a little more loosely — taller
+ * lines and a touch of tracking — where the solution's formulas sit inside
+ * prose and stay as they were. `numTop` is where a step's number sits when
+ * the step opens on an equation of its own; a step opening on a sentence
+ * keeps the default 1.
+ */
+const MATH_AIR: Record<SolutionStepsSize, { leading: number; tracking: number; pad: number; numTop: number }> = {
+  full: { leading: 1.6, tracking: 0, pad: 4, numTop: 1 },
+  compact: { leading: 1.6, tracking: 0, pad: 3, numTop: 1 },
+  board: { leading: 1.75, tracking: 0.1, pad: 3, numTop: 3.5 },
+};
 
 type SolutionStepsProps = {
   steps: ParsedStep[];
@@ -134,7 +155,13 @@ export function SolutionSteps({
       {steps.map((step, i) => (
         <View key={i} style={styles.step}>
           {rail && (
-            <View style={styles.num}>
+            <View
+              style={[
+                styles.num,
+                // Level with an equation standing on its own first line,
+                // which sits lower than a sentence's first line does.
+                !step.title && step.lines[0]?.kind === 'math' && styles.numMath,
+              ]}>
               <Text style={styles.numText}>{String(i + 1).padStart(2, '0')}</Text>
             </View>
           )}
@@ -205,6 +232,7 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
    * nothing. Darker ink still sets the maths apart from the words.
    */
   const mathFace = size === 'board' ? 'Onest_500Medium' : 'Onest_600SemiBold';
+  const air = MATH_AIR[size];
   return StyleSheet.create({
     steps: {
       position: 'relative',
@@ -240,6 +268,7 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    numMath: { top: air.numTop },
     numText: {
       fontFamily: 'Onest_700Bold',
       fontSize: m.markerText,
@@ -301,12 +330,13 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
     mathWrap: {
       alignSelf: 'flex-start',
       maxWidth: '100%',
-      paddingVertical: size === 'full' ? 4 : 3,
+      paddingVertical: air.pad,
     },
     mathText: {
       fontFamily: mathFace,
       fontSize: m.math,
-      lineHeight: m.math * 1.6,
+      lineHeight: m.math * air.leading,
+      letterSpacing: air.tracking,
       color: INK,
     },
     finalLabel: {

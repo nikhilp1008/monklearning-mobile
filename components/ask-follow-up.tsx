@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   boardClosePressed: { backgroundColor: 'rgba(28,26,22,0.05)' },
   boardBody: { flex: 1 },
-  boardContent: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 26 },
+  boardContent: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 28 },
   /** Each later answer starts below a hairline, with room above it. */
   turnAfter: {
     marginTop: 26,
