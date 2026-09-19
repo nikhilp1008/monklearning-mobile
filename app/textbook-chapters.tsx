@@ -11,6 +11,7 @@ import { useScale } from '@/constants/scale';
 import { friendlyLoadError } from '@/lib/api';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
 import { isChapterReady } from '@/lib/textbooks';
+import { PressableScale } from '@/components/pressable-scale';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { SUBJECT_TILES } from '@/components/textbook/subjects';
 import { kicker } from '@/components/textbook/theme';
@@ -69,7 +70,7 @@ export default function TextbookChaptersScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.bar}>
-          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
+          <PressableScale onPress={() => router.back()} hitSlop={10} style={styles.back}>
             <Svg viewBox="0 0 16 16" width={scale(16)} height={scale(16)} fill="none">
               <Path
                 d="M10 3.5 5.5 8 10 12.5"
@@ -79,7 +80,7 @@ export default function TextbookChaptersScreen() {
                 strokeLinejoin="round"
               />
             </Svg>
-          </Pressable>
+          </PressableScale>
 
           {/* The same control Learn with Drona's chapter picker uses, not a
               lookalike: measured pills, a spring-driven thumb, and the app's

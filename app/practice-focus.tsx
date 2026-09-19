@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -99,6 +100,9 @@ export default function PracticeFocusScreen() {
       cancelled = true;
     };
   }, [subjectQuery]);
+
+  /** A mode is always applicable; a chapter needs the list it is looked up in. */
+  const canApply = pending.kind === 'mode' || !!chapters;
 
   const applyFocus = () => {
     if (pending.kind === 'mode') {
@@ -198,9 +202,17 @@ export default function PracticeFocusScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Pressable style={styles.applyButton} onPress={applyFocus}>
+          {/* `pending` is seeded to the applied chapter on mount, while
+              `chapters` is still null — and applyFocus bails out when it
+              cannot find the chapter. Tapping Apply in that window was a
+              total no-op: no feedback, no navigation, no error. It now looks
+              refused, and takes a press when it isn't. */}
+          <PressableScale
+            style={[styles.applyButton, !canApply && styles.applyButtonWaiting]}
+            disabled={!canApply}
+            onPress={applyFocus}>
             <Text style={styles.applyButtonText}>Apply focus</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       </SafeAreaView>
     </View>
@@ -387,6 +399,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(52),
       borderRadius: scale(99),
       backgroundColor: '#241A08',
+    },
+    /** Waiting on the chapter list, not permanently unavailable. */
+    applyButtonWaiting: {
+      opacity: 0.4,
     },
     applyButtonText: {
       fontFamily: 'Onest_700Bold',

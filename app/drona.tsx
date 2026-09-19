@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -122,10 +123,10 @@ export default function ChapterSelectorScreen() {
             at most, scanning beats typing, and it was taking a whole row. */}
         <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-          <Pressable style={styles.backButton} onPress={() => router.push('/')}>
+          <PressableScale style={styles.backButton} onPress={() => router.push('/')}>
             <BackArrowIcon size={scale(16)} />
-          </Pressable>
-          <Pressable
+          </PressableScale>
+          <PressableScale
             style={styles.subjectPicker}
             hitSlop={8}
             onPress={() => setSubjectMenu((open) => !open)}>
@@ -133,8 +134,8 @@ export default function ChapterSelectorScreen() {
             <View style={subjectMenu ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(15)} />
             </View>
-          </Pressable>
-          <Pressable
+          </PressableScale>
+          <PressableScale
             style={styles.classPicker}
             hitSlop={8}
             onPress={() => setClassMenu((open) => !open)}>
@@ -142,12 +143,12 @@ export default function ChapterSelectorScreen() {
             <View style={classMenu ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(13)} />
             </View>
-          </Pressable>
+          </PressableScale>
         </View>
         {subjectMenu && (
           <View style={[styles.menu, styles.subjectMenu]}>
             {subjects.map((name) => (
-              <Pressable
+              <PressableScale
                 key={name}
                 style={styles.menuRow}
                 onPress={() => {
@@ -158,14 +159,14 @@ export default function ChapterSelectorScreen() {
                   {name}
                 </Text>
                 {name === activeSubject && <CheckIcon size={scale(14)} />}
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
         )}
         {classMenu && (
           <View style={[styles.menu, styles.classMenu]}>
             {CLASSES.map((name) => (
-              <Pressable
+              <PressableScale
                 key={name}
                 style={styles.menuRow}
                 onPress={() => {
@@ -176,7 +177,7 @@ export default function ChapterSelectorScreen() {
                   {name}
                 </Text>
                 {name === activeClass && <CheckIcon size={scale(14)} />}
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
         )}
@@ -223,7 +224,7 @@ export default function ChapterSelectorScreen() {
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}>
                 {chapters.map((chapter) => (
-                  <Pressable
+                  <PressableScale
                     key={chapter.chapterId}
                     onPress={() =>
                       router.push({
@@ -256,7 +257,7 @@ export default function ChapterSelectorScreen() {
                         strokeLinejoin="round"
                       />
                     </Svg>
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </ScrollView>
               <LinearGradient

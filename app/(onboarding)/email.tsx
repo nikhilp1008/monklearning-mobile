@@ -257,7 +257,13 @@ export default function EmailScreen() {
                 label={busy ? 'Sending…' : 'Send the code'}
                 variant="ink"
                 withArrow
-                disabled={!ready || busy}
+                // `busy`, not `disabled` — the distinction ObButton documents.
+                // Folding it into `disabled` emptied the solid ink key to a
+                // faint outline the instant it was tapped, and held it there
+                // for the round trip: the tap read as the button breaking
+                // rather than working. `sendOtp` already guards re-entry.
+                disabled={!ready}
+                busy={busy}
                 onPress={sendOtp}
               />
             </View>
@@ -335,7 +341,11 @@ export default function EmailScreen() {
                 label={busy ? 'Verifying…' : 'Verify'}
                 variant="ink"
                 withArrow
-                disabled={code.length < CODE_LENGTH || busy}
+                // See the note on "Send the code" above: busy keeps the key,
+                // disabled hollows it out. `verify` already guards re-entry,
+                // and this one waits on three sequential network calls.
+                disabled={code.length < CODE_LENGTH}
+                busy={busy}
                 onPress={verify}
               />
             </View>

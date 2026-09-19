@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { BloomFace } from '@/components/gradient-select';
 import { colors } from '@/constants/brand';
@@ -168,18 +169,18 @@ export default function TopicSheetScreen() {
               </View>
             )}
 
-            <Pressable style={styles.freetalkRow} onPress={() => goToClassroom()}>
+            <PressableScale style={styles.freetalkRow} onPress={() => goToClassroom()}>
               <MicIcon size={scale(15)} />
               <Text style={styles.freetalkText}>
                 Can&apos;t find your topic? <Text style={styles.freetalkBold}>Just start talking</Text>
               </Text>
               <ArrowRightIcon color={colors.faint} size={scale(13)} />
-            </Pressable>
+            </PressableScale>
 
           </ScrollView>
 
           <View style={styles.footer}>
-            <Pressable
+            <PressableScale
               style={[styles.cta, !selected && styles.ctaDisabled]}
               disabled={!selected}
               onPress={() => goToClassroom(selected ?? undefined)}>
@@ -191,7 +192,7 @@ export default function TopicSheetScreen() {
                 Start learning
               </Text>
               {selected && <ArrowRightIcon color={colors.paper} size={scale(15)} />}
-            </Pressable>
+            </PressableScale>
           </View>
       </SafeAreaView>
     </View>

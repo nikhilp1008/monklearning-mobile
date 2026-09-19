@@ -338,14 +338,22 @@ export default function PracticeScreen() {
   /** What a queued question must match to be usable. */
   const scopeKey = questionScopeKey(SUBJECT_QUERY[activeSubject], focusChapterId);
 
-  /** Set while a prefetch is in the air, so two triggers cannot both fire. */
-  const prefetchInFlight = useRef(false);
+  /**
+   * The prefetch in the air, so two triggers cannot both fire — and so a tap
+   * on Next can WAIT on it instead of racing it.
+   *
+   * This was a boolean, which stopped a second prefetch but told `loadQuestion`
+   * nothing: a student tapping Next while the prefetch was still out found an
+   * empty queue and issued a competing `/practice/next`. That endpoint calls
+   * `record_serve`, so the race spent one of the day's 150 questions to fetch
+   * an answer the first request was already bringing back.
+   */
+  const prefetchInFlight = useRef<Promise<void> | null>(null);
 
   function prefetchNext() {
     const subject = SUBJECT_QUERY[activeSubject];
     if (!scope || prefetchInFlight.current || hasQueuedQuestion(scopeKey)) return;
-    prefetchInFlight.current = true;
-    getNextQuestion({ subject, ...scope, ...focusChapter })
+    prefetchInFlight.current = getNextQuestion({ subject, ...scope, ...focusChapter })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
         // question must never appear under the Chemistry pill. The subject it
@@ -357,7 +365,7 @@ export default function PracticeScreen() {
         clearQueuedQuestion();
       })
       .finally(() => {
-        prefetchInFlight.current = false;
+        prefetchInFlight.current = null;
       });
   }
 
@@ -389,7 +397,18 @@ export default function PracticeScreen() {
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
-    const ready = takeQueuedQuestion(scopeKey);
+    let ready = takeQueuedQuestion(scopeKey);
+
+    // Nothing queued yet, but a prefetch for this same scope is already out.
+    // Wait on that one rather than starting a second: see `prefetchInFlight`.
+    const inFlight = prefetchInFlight.current;
+    if (!ready && inFlight) {
+      setQuestion(null);
+      setLoading(true);
+      await inFlight;
+      ready = takeQueuedQuestion(scopeKey);
+    }
+
     if (ready) {
       setQuestion(ready);
       shownAt.current = Date.now();
@@ -398,6 +417,15 @@ export default function PracticeScreen() {
       return;
     }
 
+    // The answered question goes NOW, before the fetch starts.
+    //
+    // It used to stay mounted, and the skeleton is gated on `loading &&
+    // !question` — so tapping Next with an empty queue re-rendered the SAME
+    // question, un-revealed, with Submit greyed out, and held it there for the
+    // ~2.5s the call takes. The tap read as having done nothing. An empty
+    // queue is common: a fast Next, a failed prefetch, or the end of the daily
+    // quota, where it is guaranteed.
+    setQuestion(null);
     setLoading(true);
     try {
       // PracticeNextRequest accepts exam/class_level/subject and nothing else
@@ -646,11 +674,11 @@ export default function PracticeScreen() {
                 That&apos;s {stuck.run} in a row you haven&apos;t known. A lesson will get you
                 further than another question.
               </Text>
-              {/* PressableScale, and no `disabled`: the flag here was
-                  `explaining`, which only ever tracks the OTHER button on this
-                  screen, so it could grey this one out for a request it has
-                  nothing to do with. The push is synchronous now, so there is
-                  no in-flight state left to guard — only a press to show. */}
+              {/* PressableScale so the press is acknowledged: this used to be a
+                  bare Pressable that awaited the catalogue before navigating,
+                  so on a cold cache the tap showed nothing at all. The push is
+                  synchronous now — entering-classroom resolves the chapter —
+                  and there is no in-flight state to guard, only a press. */}
               <PressableScale
                 style={styles.stuckButton}
                 onPress={() => goLearnChapter(stuck.chapter)}>
