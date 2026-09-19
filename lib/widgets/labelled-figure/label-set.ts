@@ -214,7 +214,14 @@ export function validateLabelSet(raw: unknown): { ok: true; set: LabelSet } | { 
           e.push(`${at}.label must be an object with english and hinglish`);
           return;
         }
+        // A SOLE group may be unnamed. Its name is never drawn — the caption
+        // strip only renders when there are 2+ groups, because it exists to
+        // say "this is a subset". Requiring a name meant inventing one for 46
+        // sets that show no caption, and an invented name is a name that can
+        // only be wrong. Both keys must still be PRESENT.
+        const soleGroup = (s.groups as unknown[]).length === 1;
         for (const k of ['english', 'hinglish'] as const) {
+          if (soleGroup && lab[k] === '') continue;
           if (typeof lab[k] !== 'string' || !(lab[k] as string).trim()) {
             // Named explicitly, because the wrong-keys case is the one that
             // happens: a tool writing `en`/`hi` produces a label object that

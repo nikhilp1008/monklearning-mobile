@@ -23,7 +23,7 @@ import { CHAR_W, DEVA_MAX_CHAR_W, LABEL_SIZE, PAD_EDGE } from '../chrome';
 import { labelledFigure } from '../labelled-figure';
 import {
   FRAME_INSET, LEADER_MAX, LEADER_STUB, MAX_LABELS_PER_GROUP, MAX_TERM_DEVA,
-  MAX_TERM_LATIN, ROW,
+  MAX_TERM_LATIN, MAX_TERM_LINE, MAX_TERM_TOTAL, ROW,
   anchorAt, boardCapacity, fitRect, layoutFigure, rowsPerColumn, termCapFor,
   type LabelRecord, type LabelledFigureParams, type Lang,
 } from '../labelled-figure/figure-layout';
@@ -165,6 +165,23 @@ describe('term length caps, derived at 343x236', () => {
     expect(MAX_TERM_DEVA).toBe(11);
   });
 
+  test('the editorial ceiling is a SEPARATE number from the measured width', () => {
+    /*
+     * `MAX_TERM_LATIN` was briefly redefined to the literal 32 on 2026-09-19,
+     * which is how a measured width and an editorial limit came to share one
+     * name. The symptom: `termCapFor` returned 32 for every script, because
+     * 32 is below the 40 a full Latin row geometrically allows — so the
+     * per-script advance tables stopped affecting the answer at all.
+     *
+     * They are two numbers now. Geometry says what FITS; the ceiling says what
+     * is still a name rather than a sentence; validate takes the tighter.
+     */
+    expect(MAX_TERM_LINE).toBe(32);
+    expect(MAX_TERM_LATIN * 2).toBe(40);          // geometry allows more
+    expect(MAX_TERM_LINE).toBeLessThan(MAX_TERM_LATIN * 2);
+    expect(MAX_TERM_TOTAL).toBe(2 * MAX_TERM_LINE);
+  });
+
   test('the derivation is the two-columns-on-one-row budget', () => {
     const budget = 343 - 2 * PAD_EDGE - 2 * LEADER_STUB;
     expect(budget).toBe(307);
@@ -196,6 +213,9 @@ describe('term length caps, derived at 343x236', () => {
      * Devanagari term gets a LONGER cap than a Latin one, not a shorter one,
      * and the old guardrail had it backwards by 78%.
      */
+    // This broke for a day when `termCapFor` clamped to a literal ceiling:
+    // every script came back 32 and all three comparisons collapsed. The
+    // ceiling moved to validate(); this function is geometry again.
     const latin = termCapFor('Nucleus');
     const deva = termCapFor('नाभिक');
     const mixed = termCapFor('Nucleus नाभिक');
@@ -236,14 +256,47 @@ describe('validate', () => {
   });
 
   test('an over-cap term is REJECTED, never truncated', () => {
+    // A single word cannot wrap — `wrapTerm` splits at the last SPACE — so its
+    // longest line is the whole term, and 40 units is over the 32-unit
+    // ceiling.
     const labels = base.labels.map((l, i) =>
-      i === 0 ? { ...l, term: { ...l.term, english: 'Rough endoplasmic reticulum' } } : l
+      i === 0 ? { ...l, term: { ...l.term, english: 'a'.repeat(40) } } : l
     );
     const r = bad({ labels });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.join(' ')).toMatch(/over the 20-unit cap/);
-    // The failure mode this prevents: "Rough endoplasmic re" on a student's
-    // board, rendered confidently and wrong.
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/over the 32-unit cap/);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/not.*truncated at render time/);
+    // The failure mode this prevents: a confidently-rendered wrong label —
+    // 'Rough endoplasmic re' — on a student's board.
+  });
+
+  test('a term over the TOTAL is refused even when both its lines fit', () => {
+    // Each line inside the ceiling, the whole thing still prose.
+    const long = `${'a'.repeat(32)} ${'b'.repeat(32)}`;   // 32 | 32 lines, 65 total
+    expect(long.length).toBe(65);
+    const labels = base.labels.map((l, i) =>
+      i === 0 ? { ...l, term: { ...l.term, english: long } } : l
+    );
+    const r = bad({ labels });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/over the 64-unit total/);
+  });
+
+  test('a real multi-word term that WRAPS is accepted — this used to be refused', () => {
+    /*
+     * 'Rough endoplasmic reticulum' is 27 units unwrapped and was refused by a
+     * 20-unit cap measured on the raw string. It wraps at the last space to
+     * 'Rough endoplasmic' | 'reticulum', 17 and 9, comfortably inside the
+     * ceiling — and 'supra-oesophageal ganglion' and 'interventricular septum'
+     * are the same shape. Two published sets drew NO labels at all because the
+     * cap was measured on a string the widget never draws in one piece.
+     */
+    for (const term of ['Rough endoplasmic reticulum', 'supra-oesophageal ganglion',
+                        'interventricular septum', 'dumbbell-shaped guard cell']) {
+      const labels = base.labels.map((l, i) =>
+        i === 0 ? { ...l, term: { ...l.term, english: term } } : l);
+      expect(bad({ labels }).ok).toBe(true);
+    }
   });
 
   test('an over-cap DEVANAGARI term still fails, though no Devanagari ships today', () => {
@@ -257,13 +310,38 @@ describe('validate', () => {
     if (!r.ok) expect(r.errors.join(' ')).toMatch(/hinglish term/);
   });
 
-  test('a label naming an undeclared group is rejected', () => {
+  /* THESE TWO ASSERTED ok:false UNTIL 2026-09-18.
+   *
+   * A label fault was fatal, so one bad group id cost the student the PICTURE
+   * — the plate did not draw even though the art was already in cache. The
+   * Taenia shipped with `groups: []`, validate refused, and the board was
+   * blank while every gate reported green.
+   *
+   * The fault is still CAUGHT, and the publish gate still REFUSES it
+   * (apply_review.unfit, and gateLabelSet since the same day). What changed is
+   * that the runtime no longer punishes the reader for it: the bad label is
+   * dropped, the plate draws, and one warning names the set. */
+  test('a label naming an undeclared group is DROPPED, not fatal', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const labels = base.labels.map((l, i) => (i === 0 ? { ...l, group: 'cytoskeleton' } : l));
-    expect(bad({ labels }).ok).toBe(false);
+    const r = mod.validate({ ...base, labels });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.params.labels).toHaveLength(base.labels.length - 1);
+      expect(r.params.labels.map((l) => l.id)).not.toContain(base.labels[0].id);
+    }
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 
-  test('an unknown active_group is an error; an absent one starts the reveal', () => {
-    expect(bad({ active_group: 'nope' }).ok).toBe(false);
+  test('an unknown active_group falls back to the first group; an absent one starts the reveal', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const r1 = mod.validate({ ...base, active_group: 'nope' });
+    expect(r1.ok).toBe(true);
+    if (r1.ok) expect(r1.params.active_group).toBe(base.groups[0].id);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+
     const r = mod.validate({ ...base, active_group: undefined });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.params.active_group).toBe(base.groups[0].id);
@@ -287,18 +365,35 @@ describe('validate', () => {
     if (!r.ok) expect(r.errors.join(' ')).toMatch(/at most 10 are drawn at once/);
   });
 
-  test('two anchors under the 10pt glyph floor at 343x236 are rejected', () => {
-    // Assertion 8 would fire on the two r=3 anchor dots. The schema's legal
-    // range must be a SUBSET of what renders correctly, so this is caught in
-    // validate() rather than discovered by the gate.
+  test('two anchors under the 10pt glyph floor DROP the later label, not the plate', () => {
+    /*
+     * Assertion 8 would fire on the two r=3 anchor dots, so the floor is still
+     * enforced — but it enforces it PER LABEL now.
+     *
+     * This asserted ok:false until 2026-09-19, and that is what made the
+     * Taenia a blank board: `hook` and `sucker` are 5.6pt apart, validate
+     * refused the whole payload, and the student lost a plate that was already
+     * in cache over one unplaceable pill. The plate invariant says a problem
+     * with the LABELS must never cost the PICTURE.
+     *
+     * The publish gate is still strict — `gateSet` refuses a set with any
+     * dropped label, because a set we are about to freeze should place
+     * everything it declares. Runtime degrades; publish refuses.
+     */
     const first = base.labels[0];
     const labels = [
       ...base.labels,
       { ...first, id: 'too-close', anchor: { u: first.anchor.u + 0.005, v: first.anchor.v } },
     ];
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const r = bad({ labels });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.join(' ')).toMatch(/glyph floor/);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.params.labels.some((l) => l.id === 'too-close')).toBe(false);
+      expect(r.params.labels.some((l) => l.id === first.id)).toBe(true);
+    }
+    expect(warn.mock.calls.join(' ')).toMatch(/glyph floor/);
+    warn.mockRestore();
   });
 
   test('anchors close together in DIFFERENT groups are fine — they never co-exist', () => {
