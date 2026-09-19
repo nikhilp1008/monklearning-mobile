@@ -9,7 +9,7 @@ import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
-import { SolutionSteps } from '@/components/solution-steps';
+import { DoubtSolution } from '@/components/doubt-solution';
 import { DoubtOption } from '@/lib/doubts';
 import { ParsedStep } from '@/lib/solution-steps';
 
@@ -531,7 +531,7 @@ export function SolutionScreen({
             </View>
           ) : (
             <View style={styles.stepsBlock}>
-              <SolutionSteps
+              <DoubtSolution
                 steps={question.steps}
                 answer={question.answer}
                 answerRaw={question.answerRaw}
