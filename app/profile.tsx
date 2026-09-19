@@ -33,6 +33,7 @@ import {
   setLanguagePreference,
   setTeacherPreference,
 } from '@/lib/preferences';
+import { pullPersona, pushPersona } from '@/lib/persona-sync';
 import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
 import { SWITCH_EASING, TeacherOrb } from '@/components/teacher-orb';
 
@@ -105,6 +106,16 @@ export default function ProfileScreen() {
     // server — this is the screen most likely to be opened on a new device,
     // where the local copy is empty and `profiles` is the only source.
     getProfile().then((p) => !cancelled && setProfile(p));
+    // The server's copy of the persona is canonical — a teacher chosen on
+    // another device lands here, refreshing both the screen and the local
+    // cache the classroom reads at start.
+    pullPersona()
+      .then((persona) => {
+        if (cancelled || !persona) return;
+        if (persona.teacher) setTeacher(persona.teacher);
+        if (persona.language) setLanguage(persona.language);
+      })
+      .catch(() => {});
     pullProfile()
       .then(getProfile)
       .then((p) => !cancelled && setProfile(p))
@@ -122,12 +133,14 @@ export default function ProfileScreen() {
     if (id !== teacher) hapticSwitched();
     setTeacher(id);
     setTeacherPreference(id);
+    void pushPersona({ teacher: id });
   };
 
   const chooseLanguage = (id: LanguageId) => {
     if (id !== language) hapticSwitched();
     setLanguage(id);
     setLanguagePreference(id);
+    void pushPersona({ language: id });
   };
 
   const exam = profile ? EXAMS[profile.exam] : null;
