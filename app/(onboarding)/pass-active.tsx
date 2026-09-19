@@ -10,7 +10,7 @@
 // onboarding, and it marks the seam between signing up and being a student.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,6 +29,7 @@ import {
 } from '@/constants/onboarding';
 import { revalidateAuthState } from '@/lib/auth';
 import { pushProfile } from '@/lib/profile';
+import { hapticTicked } from '@/lib/haptics';
 
 export default function PassActiveScreen() {
   const { ds, fs, tracking } = useDesignScale();
@@ -42,6 +43,20 @@ export default function PassActiveScreen() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * The Success tap, landing with the tick.
+   *
+   * The tick pops 60ms in and settles over the next 620 (see `Tick` in
+   * components/confirm-motion.tsx), so the tap waits for the pop itself
+   * rather than firing on mount, before there is anything on screen to feel
+   * it about. Once — this is a moment, not a loop.
+   */
+  useEffect(() => {
+    const t = setTimeout(hapticTicked, 140);
+    return () => clearTimeout(t);
+  }, []);
+
 
   const till = useMemo(() => {
     const d = new Date();

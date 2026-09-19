@@ -7,7 +7,7 @@ import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } 
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Grain } from '@/components/grain';
-import { hapticTicked } from '@/lib/haptics';
+import { hapticKey, hapticTicked } from '@/lib/haptics';
 import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
@@ -420,7 +420,10 @@ function ClassBlock({
       accessibilityRole="button"
       accessibilityLabel="Start a live class"
       onPress={onPress}
-      onPressIn={() => setHeld(true)}
+      onPressIn={() => {
+        hapticKey();
+        setHeld(true);
+      }}
       onPressOut={() => setHeld(false)}
       style={styles.classBlock}>
       {/* An absolute fill, not a wrapper with `overflow: hidden`.

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { hapticKey } from '@/lib/haptics';
 
 type ObButtonProps = {
   label: string;
@@ -150,7 +151,15 @@ export function ObButton({
   );
 
   return (
-    <Pressable onPress={onPress} disabled={disabled || busy} style={[{ width: '100%' }, style]}>
+    <Pressable
+      onPress={onPress}
+      // The tap is the key bottoming out, so it lands on press-in, with the
+      // face — and never on a disabled or working key, which does not travel.
+      onPressIn={() => {
+        if (!disabled && !busy) hapticKey();
+      }}
+      disabled={disabled || busy}
+      style={[{ width: '100%' }, style]}>
       {({ pressed }) => {
         const held = pressed && !disabled;
         // Disabled stays an outline rather than a dimmed key: `opacity: .4` on

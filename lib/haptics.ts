@@ -163,6 +163,38 @@ export function hapticCommitted() {
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
 }
 
+/**
+ * A key going down — the buttons drawn as physical keys (Start a Live Class,
+ * the onboarding Continue) and Snap's shutter.
+ *
+ * Fired on press-IN, where the key visually travels down, rather than on
+ * release like a system button: the tap is the key bottoming out, and a tap
+ * that arrived after the face had already come back up would feel late.
+ */
+export function hapticKey() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Keyboard_Tap));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+}
+
+/**
+ * A wrong answer, acknowledged rather than punished.
+ *
+ * Not the Error notification: a triple buzz on a wrong answer is the phone
+ * telling the student off, on a screen that is about to show them the working.
+ * One light tap says "noted, here's how" — the correct answer gets the Success
+ * pattern, and the difference between the two is enough.
+ */
+export function hapticSoft() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+}
+
 export function hapticSwitched() {
   if (Platform.OS === 'android') {
     fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));

@@ -42,6 +42,7 @@ import { ApiError } from '@/lib/api';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
+import { hapticSoft, hapticSwitched, hapticTicked } from '@/lib/haptics';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -246,6 +247,12 @@ export default function PracticeScreen() {
     context: { gaveUp: boolean; chapter: string | null }
   ) {
     setAnswerResult(result);
+    // The verdict, felt. Only for an answer actually given: "I don't know" asked
+    // to be shown the working, and a tap for it would read as a mark against.
+    if (!context.gaveUp) {
+      if (result.is_correct) hapticTicked();
+      else hapticSoft();
+    }
     setSessionAttempted((n) => n + 1);
     if (result.is_correct) setSessionCorrect((n) => n + 1);
     // A run of give-ups in ONE chapter is the signal, not a daily total: five
@@ -698,7 +705,10 @@ export default function PracticeScreen() {
                 <Pressable
                   key={key}
                   disabled={revealed || submitting || loading}
-                  onPress={() => setSelectedOption(key)}
+                  onPress={() => {
+                    if (key !== selectedOption) hapticSwitched();
+                    setSelectedOption(key);
+                  }}
                   style={[
                     styles.optionRow,
                     revealed && styles.optionRowRevealed,

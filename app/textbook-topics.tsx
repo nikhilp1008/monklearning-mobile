@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { jumpToTopic, readerTopics } from '@/lib/textbook-reader-state';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * THE CHAPTER'S TOPICS, as a sheet you can throw away.
@@ -106,6 +107,7 @@ export default function TextbookTopicsScreen() {
   }));
 
   const choose = (index: number) => {
+    if (index !== active) hapticSwitched();
     jumpToTopic(index);
     leave();
   };

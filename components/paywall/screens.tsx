@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +8,7 @@ import { Ring, Rise, Tick } from '@/components/confirm-motion';
 import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
+import { hapticTicked } from '@/lib/haptics';
 import {
   INCLUDED,
   ob,
@@ -304,6 +305,11 @@ function Lead({ hero }: { hero: Plan }) {
  */
 export function PaywallSuccess({ planId = BEST }: { planId?: Plan['id'] }) {
   const { ds, fs, tracking } = useDesignScale();
+  // Same moment as the pass screen's receipt, so the same Success tap.
+  useEffect(() => {
+    const t = setTimeout(hapticTicked, 140);
+    return () => clearTimeout(t);
+  }, []);
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const plan = PLANS.find((p) => p.id === planId)!;
 
