@@ -9,7 +9,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
@@ -167,6 +168,9 @@ export default function PracticeScreen() {
   const [seen, setSeen] = useState(0);
 
   const revealed = answerResult !== null;
+  /** The pinned row clears the home indicator itself — this screen's
+   *  SafeAreaView only takes the top edge. */
+  const insets = useSafeAreaInsets();
 
   /**
    * Drona routes carry a real chapterId whenever the catalogue (cached,
@@ -551,7 +555,7 @@ export default function PracticeScreen() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, revealed && styles.scrollContentPinned]}
           showsVerticalScrollIndicator={false}>
           <Pressable
             style={styles.focusRow}
@@ -844,29 +848,6 @@ export default function PracticeScreen() {
                 )}
               </View>
 
-              {/* Ask about THIS working, without leaving it — standing exactly
-                  where "Go deeper with Drona" stood, with Next still on the
-                  right. That link opened a live session, which took the student
-                  away from the very solution they wanted explained and made a
-                  one-line question cost a whole classroom. The bar is the one
-                  Snap a Doubt uses: hold, ask out loud, the answer arrives as
-                  speech over the steps still on screen.
-
-                  It sits in the row rather than above it because it is content
-                  sized (~196pt, see `styles.block` in ask-follow-up) and never
-                  flexes, so the pair reads as the two things a finished
-                  question offers: ask about this one, or go to the next. */}
-              <View style={styles.revealedActions}>
-                {question?.question_id ? (
-                  <AskFollowUpBar doubtId={question.question_id} surface="practice" />
-                ) : (
-                  <View />
-                )}
-                <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                  <Text style={styles.nextButtonText}>Next</Text>
-                  <ArrowRightIcon size={scale(14)} color={colors.paper} />
-                </Pressable>
-              </View>
             </>
           )}
             </>
@@ -882,6 +863,50 @@ export default function PracticeScreen() {
             </Text>
           )}
         </ScrollView>
+
+        {/*
+          ASK OR MOVE ON, PINNED — the way Snap a Doubt pins it.
+          This row sat at the end of the scrolling solution, and the follow-up
+          board is laid out directly above the bar. Inside a scroll view that
+          meant the board had nowhere to float: opening it pushed the page and
+          the answer had to be scrolled to, off the steps it was answering.
+          Pinned here, the board grows UP over the working and neither the
+          page nor the buttons move. The fade behind is the same one Doubts
+          uses, so steps passing beneath the buttons dissolve instead of
+          colliding with them.
+        */}
+        {revealed && (
+          <View style={styles.pinned} pointerEvents="box-none">
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', '#fff', '#fff']}
+              locations={[0, 0.38, 1]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <View
+              style={[styles.pinnedInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
+              {question?.question_id ? (
+                <AskFollowUpBar
+                  doubtId={question.question_id}
+                  surface="practice"
+                  trailing={
+                    <Pressable style={styles.nextButton} onPress={loadQuestion}>
+                      <Text style={styles.nextButtonText}>Next</Text>
+                      <ArrowRightIcon size={scale(14)} color={colors.paper} />
+                    </Pressable>
+                  }
+                />
+              ) : (
+                <Pressable
+                  style={[styles.nextButton, styles.nextAlone]}
+                  onPress={loadQuestion}>
+                  <Text style={styles.nextButtonText}>Next</Text>
+                  <ArrowRightIcon size={scale(14)} color={colors.paper} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
 
         {menuOpen && (
           <Pressable
@@ -1614,17 +1639,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(13.5),
       color: colors.faint,
     },
-    revealedActions: {
-      flexDirection: 'row',
-      // Aligned to the TOP, not the centre. The follow-up bar is a 52pt pill
-      // with an uppercase hint line beneath it, so the block runs ~75pt; with
-      // `center` the Next button settled against the middle of bar-plus-hint
-      // and sat visibly below the pill it is meant to sit beside. Top aligned,
-      // with the offset below, the two controls share a centre line.
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(24),
-    },
     nextButton: {
       flexDirection: 'row',
       gap: scale(8),
@@ -1645,6 +1659,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(10),
       elevation: 4,
     },
+    /** Pinned to the screen's foot, full width, over the scrolling page. */
+    pinned: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    pinnedInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
+    /** Room under the solution so its last line and the day's tally can be
+     *  scrolled clear of the pinned row instead of sitting beneath it. */
+    scrollContentPinned: { paddingBottom: verticalScale(140) },
+    /** Next on its own — a question with no id cannot be asked about. */
+    nextAlone: { alignSelf: 'flex-end' },
     nextButtonText: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(14),

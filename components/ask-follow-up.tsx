@@ -4,7 +4,7 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
 } from 'expo-audio';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -53,6 +53,17 @@ import { parseSolutionStep } from '@/lib/solution-steps';
  * solution is furniture falling over unless there is working to put on it.
  */
 
+/**
+ * How much of the screen the board may take, and the air under it.
+ *
+ * It was 44% with 10pt between the board and the buttons, which read as the
+ * board sitting ON the bar rather than floating above it — and on Practice,
+ * where Next shares the row, as a crowded stack. 56% gives a three-step answer
+ * room to be read without scrolling inside the board, and 18pt lets the two
+ * buttons below stand clear of it.
+ */
+const BOARD_SHARE = 0.56;
+
 /** A follow-up answer opens the sheet past ONE short step — the same line
  *  the model's own prompt draws ("the board is for working"). */
 const SHORT_ANSWER_CHARS = 240;
@@ -99,6 +110,7 @@ export function AskFollowUpBar({
   doubtId,
   onReport,
   surface = 'doubts',
+  trailing,
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */
@@ -111,6 +123,17 @@ export function AskFollowUpBar({
    * untouched.
    */
   surface?: FollowUpSurface;
+  /**
+   * A control that shares the bar's row — Practice's Next.
+   *
+   * It lives INSIDE the bar's block rather than beside it in the screen,
+   * because the board is laid out in that block and takes its width from it.
+   * Beside the bar, the block was only as wide as the bar itself (~196pt), so
+   * Practice's board opened as a narrow column over one button instead of
+   * across the screen above both. Passed in, the block spans the row and the
+   * board spans with it.
+   */
+  trailing?: ReactNode;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   /** The board is capped rather than free: it grows upward over the solution,
@@ -497,7 +520,7 @@ export function AskFollowUpBar({
       */}
       {boardMounted && (
         <Animated.View
-          style={[styles.board, { maxHeight: Math.round(windowHeight * 0.44) }, boardStyle]}>
+          style={[styles.board, { maxHeight: Math.round(windowHeight * BOARD_SHARE) }, boardStyle]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Follow-up</Text>
@@ -521,63 +544,131 @@ export function AskFollowUpBar({
         </Animated.View>
       )}
 
-      <View style={styles.row}>
-        <View style={styles.anchor}>
-        <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
-          <Pressable
-            style={[styles.face, disabled && styles.faceOff]}
-            disabled={disabled}
-            accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
-            onPressIn={() => {
-              if (speaking || phase === 'thinking') return;
-              void beginHold();
-            }}
-            onPressOut={() => {
-              if (phase !== 'listening') return;
-              void endHold();
-            }}
-            onPress={() => {
-              // Only meaningful while the answer is playing; a hold's own press
-              // event arrives after `onPressOut` has already sent the question.
-              if (speaking) stopEverything();
-            }}>
-            <View style={[styles.thumb, listening && styles.thumbOn]}>
-              {listening ? (
-                <LevelBars color={PAPER} heights={[9, 17, 12]} />
-              ) : speaking ? (
-                <StopIcon color={PAPER} />
-              ) : (
-                <MicIcon color={PAPER} />
-              )}
+      {trailing ? (
+        // With a trailing control the bar and its hint stack as one column on
+        // the left and the control sits on the right, aligned to the bar's top
+        // — so Next lines up with the pill, not with the middle of pill-plus-
+        // hint, which is where `center` used to leave it.
+        <View style={[styles.row, styles.rowSpread]}>
+          <View style={styles.barColumn}>
+            <View style={styles.anchor}>
+            <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
+              <Pressable
+                style={[styles.face, disabled && styles.faceOff]}
+                disabled={disabled}
+                accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+                onPressIn={() => {
+                  if (speaking || phase === 'thinking') return;
+                  void beginHold();
+                }}
+                onPressOut={() => {
+                  if (phase !== 'listening') return;
+                  void endHold();
+                }}
+                onPress={() => {
+                  // Only meaningful while the answer is playing; a hold's own press
+                  // event arrives after `onPressOut` has already sent the question.
+                  if (speaking) stopEverything();
+                }}>
+                <View style={[styles.thumb, listening && styles.thumbOn]}>
+                  {listening ? (
+                    <LevelBars color={PAPER} heights={[9, 17, 12]} />
+                  ) : speaking ? (
+                    <StopIcon color={PAPER} />
+                  ) : (
+                    <MicIcon color={PAPER} />
+                  )}
+                </View>
+                <Text style={styles.label} numberOfLines={1}>
+                  {label}
+                </Text>
+              </Pressable>
             </View>
-            <Text style={styles.label} numberOfLines={1}>
-              {label}
-            </Text>
-          </Pressable>
+          <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
+            {hint}
+          </Text>
+          </View>
+          {/* Report, as a disc matching the bar's own plate. It lives here rather
+              than in the screen because 12a centres the PAIR: the bar is content
+              sized, the disc is 52, and the two are centred together. Split
+              across two files the row could only be laid out by guesswork.
+
+              Only when there is somewhere to report TO. It used to render
+              whatever the props said, so a caller that passed no `onReport` —
+              Practice — got a flag that did nothing when pressed, and paid 62pt
+              of row width for it. A control with no handler is not a quiet
+              control, it is a broken one. */}
+          {onReport ? (
+            <Pressable
+              style={styles.disc}
+              onPress={onReport}
+              accessibilityLabel="Report a problem">
+              <FlagIcon />
+            </Pressable>
+          ) : null}
+          {trailing}
         </View>
+      ) : (
+        <>
+        <View style={styles.row}>
+          <View style={styles.anchor}>
+          <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
+            <Pressable
+              style={[styles.face, disabled && styles.faceOff]}
+              disabled={disabled}
+              accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+              onPressIn={() => {
+                if (speaking || phase === 'thinking') return;
+                void beginHold();
+              }}
+              onPressOut={() => {
+                if (phase !== 'listening') return;
+                void endHold();
+              }}
+              onPress={() => {
+                // Only meaningful while the answer is playing; a hold's own press
+                // event arrives after `onPressOut` has already sent the question.
+                if (speaking) stopEverything();
+              }}>
+              <View style={[styles.thumb, listening && styles.thumbOn]}>
+                {listening ? (
+                  <LevelBars color={PAPER} heights={[9, 17, 12]} />
+                ) : speaking ? (
+                  <StopIcon color={PAPER} />
+                ) : (
+                  <MicIcon color={PAPER} />
+                )}
+              </View>
+              <Text style={styles.label} numberOfLines={1}>
+                {label}
+              </Text>
+            </Pressable>
+          </View>
 
-        {/* Report, as a disc matching the bar's own plate. It lives here rather
-            than in the screen because 12a centres the PAIR: the bar is content
-            sized, the disc is 52, and the two are centred together. Split
-            across two files the row could only be laid out by guesswork.
+          {/* Report, as a disc matching the bar's own plate. It lives here rather
+              than in the screen because 12a centres the PAIR: the bar is content
+              sized, the disc is 52, and the two are centred together. Split
+              across two files the row could only be laid out by guesswork.
 
-            Only when there is somewhere to report TO. It used to render
-            whatever the props said, so a caller that passed no `onReport` —
-            Practice — got a flag that did nothing when pressed, and paid 62pt
-            of row width for it. A control with no handler is not a quiet
-            control, it is a broken one. */}
-        {onReport ? (
-          <Pressable
-            style={styles.disc}
-            onPress={onReport}
-            accessibilityLabel="Report a problem">
-            <FlagIcon />
-          </Pressable>
-        ) : null}
-      </View>
-      <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
-        {hint}
-      </Text>
+              Only when there is somewhere to report TO. It used to render
+              whatever the props said, so a caller that passed no `onReport` —
+              Practice — got a flag that did nothing when pressed, and paid 62pt
+              of row width for it. A control with no handler is not a quiet
+              control, it is a broken one. */}
+          {onReport ? (
+            <Pressable
+              style={styles.disc}
+              onPress={onReport}
+              accessibilityLabel="Report a problem">
+              <FlagIcon />
+            </Pressable>
+          ) : null}
+        </View>
+        <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
+          {hint}
+        </Text>
+        </>
+      )}
 
     </View>
   );
@@ -630,6 +721,11 @@ const styles = StyleSheet.create({
    */
   block: { gap: 9 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  /** The row with a trailing control: bar column left, control right, both
+   *  hung from the top so the control levels with the pill, not the hint. */
+  rowSpread: { justifyContent: 'space-between', alignItems: 'flex-start' },
+  /** The bar and its "Hold to speak" line, stacked and centred on each other. */
+  barColumn: { alignItems: 'center', gap: 9 },
   /** Holds ring and face together and sizes itself to the face, so the ring's
    *  -1.5 and -6 insets are measured off the bar's own edge. */
   anchor: { position: 'relative' },
@@ -696,7 +792,7 @@ const styles = StyleSheet.create({
     backgroundColor: PAPER,
     borderRadius: 22,
     paddingBottom: 10,
-    marginBottom: 10,
+    marginBottom: 18,
     overflow: 'hidden',
     boxShadow: [
       { offsetX: 0, offsetY: 10, blurRadius: 28, spreadDistance: -6, color: 'rgba(28,26,22,0.26)' },
