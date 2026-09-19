@@ -701,8 +701,25 @@ export default function PracticeScreen() {
 
           {question.question_type === 'numerical' ? (
             <View style={styles.numericRow}>
+              {/* A graded numerical answer said nothing about itself. An MCQ
+                  marks the option you picked and the one that was right, so
+                  the reveal is obvious; this input just went un-editable, and
+                  a wrong answer looked exactly like a correct one. Same two
+                  colours the options use, so it reads as the same event.
+
+                  A give-up with nothing typed stays neutral: an empty box
+                  outlined in red is an accusation about an answer that was
+                  never given. */}
               <TextInput
-                style={styles.numericInput}
+                style={[
+                  styles.numericInput,
+                  revealed &&
+                    (answerResult?.is_correct
+                      ? styles.numericInputCorrect
+                      : numericInput.trim()
+                        ? styles.numericInputWrong
+                        : null),
+                ]}
                 value={numericInput}
                 onChangeText={setNumericInput}
                 editable={!revealed}
@@ -1519,6 +1536,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
+    },
+    /** The graded numerical answer, in exactly the vocabulary optionRowCorrect
+     *  and optionRowWrong already use — including the 1.6 border the options
+     *  step up to on reveal, so both kinds of question grade with the same
+     *  weight rather than one shouting louder than the other. */
+    numericInputCorrect: {
+      borderWidth: scale(1.6),
+      borderColor: '#1C9B57',
+      backgroundColor: 'rgba(28,155,87,.07)',
+    },
+    numericInputWrong: {
+      borderWidth: scale(1.6),
+      borderColor: 'rgba(221,68,51,.5)',
+      backgroundColor: 'rgba(221,68,51,.05)',
     },
     optionRow: {
       flexDirection: 'row',

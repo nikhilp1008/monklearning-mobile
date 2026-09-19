@@ -365,6 +365,15 @@ export class DronaVoiceClient {
     // load-start gap every second is the one thing worse than waiting.
     const parts = pcmAvailable ? '&stream_tts=1' : '';
     const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(token)}${parts}`;
+    // One socket per client, enforced at the source. A second connect while
+    // one is still open — a screen remount, an eager prewarm — would put two
+    // sockets in the air from one device; the server's takeover would retire
+    // one, but the right number to CREATE is one, not two-minus-one.
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
+      this.ws.onclose = null;
+      try { this.ws.close(); } catch { /* already closing */ }
+      this.ws = null;
+    }
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
