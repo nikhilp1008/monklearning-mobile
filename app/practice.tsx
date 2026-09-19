@@ -1616,7 +1616,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     revealedActions: {
       flexDirection: 'row',
-      alignItems: 'center',
+      // Aligned to the TOP, not the centre. The follow-up bar is a 52pt pill
+      // with an uppercase hint line beneath it, so the block runs ~75pt; with
+      // `center` the Next button settled against the middle of bar-plus-hint
+      // and sat visibly below the pill it is meant to sit beside. Top aligned,
+      // with the offset below, the two controls share a centre line.
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       marginTop: verticalScale(24),
     },
@@ -1624,6 +1629,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       gap: scale(8),
       height: verticalScale(48),
+      // Centres this button on the 52pt follow-up pill beside it. The pill is
+      // fixed points while this scales, so the difference is computed rather
+      // than written down, and floored at 0 on a display where the button is
+      // the taller of the two.
+      marginTop: Math.max(0, (52 - verticalScale(48)) / 2),
       paddingHorizontal: scale(22),
       borderRadius: scale(99),
       backgroundColor: colors.ink,

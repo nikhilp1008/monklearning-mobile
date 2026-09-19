@@ -476,13 +476,21 @@ export function AskFollowUpBar({
         {/* Report, as a disc matching the bar's own plate. It lives here rather
             than in the screen because 12a centres the PAIR: the bar is content
             sized, the disc is 52, and the two are centred together. Split
-            across two files the row could only be laid out by guesswork. */}
-        <Pressable
-          style={styles.disc}
-          onPress={onReport}
-          accessibilityLabel="Report a problem">
-          <FlagIcon />
-        </Pressable>
+            across two files the row could only be laid out by guesswork.
+
+            Only when there is somewhere to report TO. It used to render
+            whatever the props said, so a caller that passed no `onReport` —
+            Practice — got a flag that did nothing when pressed, and paid 62pt
+            of row width for it. A control with no handler is not a quiet
+            control, it is a broken one. */}
+        {onReport ? (
+          <Pressable
+            style={styles.disc}
+            onPress={onReport}
+            accessibilityLabel="Report a problem">
+            <FlagIcon />
+          </Pressable>
+        ) : null}
       </View>
       <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
         {hint}
