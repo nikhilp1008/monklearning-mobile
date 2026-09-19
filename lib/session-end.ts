@@ -39,14 +39,20 @@ export function startSessionEnd(sessionId: string): void {
  *
  * Keyed by session so a summary screen can never await the previous class's
  * end — which would show one lesson's takeaways under another's heading.
- * Cleared on read: the summary screen is the only consumer, and holding a
- * resolved payload after it has been shown just keeps a stale class alive.
+ *
+ * READ-ONLY, AND THAT MATTERS. This cleared the slot on read, which cost a
+ * real class its summary: React re-runs an effect in development, so the first
+ * call consumed the promise while its own cleanup marked the result discarded,
+ * and the second call found nothing. The screen then had no payload, no params
+ * to fall back on, and rendered an empty space where the summary belonged.
+ *
+ * Reading it any number of times is now the same as reading it once. Nothing
+ * needs clearing: `startSessionEnd` overwrites the slot when the next class
+ * ends, and a resolved payload sitting in memory until then costs nothing.
  */
-export function takeSessionEnd(sessionId: string): Promise<DronaSessionEnd | null> | null {
+export function peekSessionEnd(sessionId: string): Promise<DronaSessionEnd | null> | null {
   if (!pending || pending.sessionId !== sessionId) return null;
-  const { promise } = pending;
-  pending = null;
-  return promise;
+  return pending.promise;
 }
 
 /** Drops anything in flight. For sign-out, where the session is not ours. */

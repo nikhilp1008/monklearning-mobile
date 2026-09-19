@@ -15,9 +15,9 @@ import Svg, { Path } from 'react-native-svg';
 import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { saveNote } from '@/lib/notes';
-import { type DronaSessionEnd } from '@/lib/drona-live';
+import { endDronaSession, type DronaSessionEnd } from '@/lib/drona-live';
 import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
-import { takeSessionEnd } from '@/lib/session-end';
+import { peekSessionEnd } from '@/lib/session-end';
 
 /**
  * CLASS DISMISSED — what the student sees the moment a live class ends.
@@ -103,14 +103,25 @@ export default function SessionSummaryScreen() {
    * nothing moves when it lands.
    */
   const [summary, setSummary] = useState<DronaSessionEnd | null>(null);
+  const [summaryFailed, setSummaryFailed] = useState(false);
   useEffect(() => {
     const sessionId = params.sessionId;
     if (!sessionId) return;
-    const pending = takeSessionEnd(sessionId);
-    if (!pending) return;
     let cancelled = false;
+    // The classroom's in-flight call when there is one. FETCHED HERE WHEN THERE
+    // IS NOT — arriving without it is not exotic: a reload while the screen is
+    // open, a deep link, or the classroom having been unmounted before it could
+    // start one. Ending twice is harmless; the endpoint sets phase to complete
+    // and recomputes the same summary. Without this the screen has nothing to
+    // show and nothing to say, which is exactly what it did.
+    const pending = peekSessionEnd(sessionId) ?? endDronaSession(sessionId).catch(() => null);
     pending.then((result) => {
-      if (!cancelled && result) setSummary(result);
+      if (cancelled) return;
+      if (result) setSummary(result);
+      // Recorded rather than left as "still loading" forever: the section below
+      // renders nothing while pending, and a failure that never resolves into a
+      // state is how this screen came to show an empty space at all.
+      else setSummaryFailed(true);
     });
     return () => {
       cancelled = true;
@@ -333,6 +344,23 @@ export default function SessionSummaryScreen() {
                     <Text style={styles.lineText}>
                       Takeaways start once you’ve finished a couple of segments.
                       Pick the chapter back up whenever you’re ready.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {/* The summary never arrived — offline, or the call failed. Said
+                  plainly, because the alternative is what this screen actually
+                  did: an empty space under a heading promising a summary. */}
+              {summaryFailed && !tooShort && covered.length === 0 && (
+                <>
+                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                    Summary unavailable
+                  </Text>
+                  <View style={[styles.line, styles.lineLast]}>
+                    <Text style={styles.lineText}>
+                      The class is saved — this part just couldn’t be loaded.
+                      Your notes still have everything that was on the board.
                     </Text>
                   </View>
                 </>
