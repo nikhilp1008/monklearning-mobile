@@ -1217,15 +1217,14 @@ export default function LiveClassroomScreen() {
       }
     },
     // Both endings are covered: a drag that stops dead fires onEndDrag, a fling
-    // fires onMomentumEnd. Either way the pill disappears 900ms later, which is
-    // the timer this replaces — duration 0, because the old timeout flipped
-    // opacity outright and this move is about which thread runs, not how the
-    // pill looks.
+    // fires onMomentumEnd. Either way the pill fades 900ms later, which is the
+    // timer this replaces. A fade, not the old timeout's outright flip: a
+    // marker that blinks out reads as a glitch, one that fades as going away.
     onEndDrag: () => {
-      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 0 }));
+      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 180 }));
     },
     onMomentumEnd: () => {
-      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 0 }));
+      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 180 }));
     },
   });
 
