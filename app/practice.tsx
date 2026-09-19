@@ -18,6 +18,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
+import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -25,7 +26,6 @@ import {
   AnswerResult,
   NextQuestion,
   PracticeStats,
-  explainWithDrona,
   clearQueuedQuestion,
   getNextQuestion,
   getPracticeStats,
@@ -40,7 +40,6 @@ import {
 import { ApiError } from '@/lib/api';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
-import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -129,7 +128,6 @@ export default function PracticeScreen() {
    *  the ungradeable-question swap below. */
   const [notice, setNotice] = useState<string | null>(null);
   /** Set while a question-scoped Drona session is being created. */
-  const [explaining, setExplaining] = useState(false);
 
   /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
    *  serving more of the same and offers the lesson instead — an offer, never
@@ -189,51 +187,14 @@ export default function PracticeScreen() {
   };
 
   /**
-   * A lesson about THIS question, not about its chapter.
+   * "Go deeper with Drona" stood here, opening a live classroom seeded with
+   * this question. Removed with the follow-up bar: a student reading a
+   * solution wants to ask about THAT, and a live session takes the solution
+   * off the screen in order to answer a question about it.
    *
-   * `/practice/explain` seeds the session with the stem, the options, what the
-   * student answered and the worked solution, and hands back a session already
-   * in `phase: "teaching"` — so this goes straight to `/live-classroom`, with
-   * no scoping screen, and Drona opens talking about the question they are
-   * looking at. `goLearnChapter` stays for the genuinely chapter-level route.
-   *
-   * Falls back to the chapter lesson if the session cannot be created: the
-   * student asked to be taught, and a chapter lesson is a worse answer than
-   * this one but a much better answer than an error.
+   * `/practice/explain` is still on the server, and `goLearnChapter` above
+   * still covers the genuinely chapter-level route from the stuck nudge.
    */
-  const explainThisQuestion = async () => {
-    if (!question || explaining) return;
-    setExplaining(true);
-    try {
-      const [language, teacher] = await Promise.all([
-        getLanguagePreference(),
-        getTeacherPreference(),
-      ]);
-      const chosenValue = parseFloat(numericInput);
-      const session = await explainWithDrona({
-        question_id: question.question_id,
-        ...(selectedOption ? { chosen_option: selectedOption } : {}),
-        ...(question.question_type === 'numerical' && !Number.isNaN(chosenValue)
-          ? { chosen_value: chosenValue }
-          : {}),
-        language,
-        voice: teacherToVoice(teacher),
-      });
-      router.push({
-        pathname: '/live-classroom',
-        params: {
-          sessionId: session.session_id,
-          chapterTitle: question.chapter_name ?? 'this question',
-          subtopic: question.concept ?? 'This question',
-        },
-      });
-    } catch (err) {
-      console.error('[practice] could not start an explain session:', err);
-      goLearnChapter(question.chapter_name);
-    } finally {
-      setExplaining(false);
-    }
-  };
 
   const solutionSteps = useMemo(
     () => (answerResult ? parseAnswerSolution(answerResult.solution) : []),
@@ -883,12 +844,17 @@ export default function PracticeScreen() {
                 )}
               </View>
 
+              {/* Ask about THIS working, without leaving it.
+                  "Go deeper with Drona" opened a live session — which took the
+                  student away from the very solution they wanted explained, and
+                  made a one-line question cost a whole classroom. The bar is
+                  the same one Snap a Doubt uses: hold, ask out loud, the answer
+                  arrives as speech over the steps still on screen. */}
+              {question?.question_id ? (
+                <AskFollowUpBar doubtId={question.question_id} surface="practice" />
+              ) : null}
+
               <View style={styles.revealedActions}>
-                <Pressable hitSlop={8} disabled={explaining} onPress={explainThisQuestion}>
-                  <Text style={styles.deeperLinkText}>
-                    {explaining ? 'Starting…' : 'Go deeper with Drona →'}
-                  </Text>
-                </Pressable>
                 <Pressable style={styles.nextButton} onPress={loadQuestion}>
                   <Text style={styles.nextButtonText}>Next</Text>
                   <ArrowRightIcon size={scale(14)} color={colors.paper} />

@@ -15,6 +15,7 @@ import {
   askAboutDoubtAloud,
   speakFollowUpStreaming,
   type FollowUpStep,
+  type FollowUpSurface,
   type FollowUpTurn,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
@@ -90,9 +91,19 @@ function FlagIcon() {
 export function AskFollowUpBar({
   doubtId,
   onReport,
+  surface = 'doubts',
 }: {
+  /** The thing being asked about — a doubt id, or a practice question id when
+   *  `surface` says so. Named for its first caller; it is an id either way. */
   doubtId?: string | null;
   onReport?: () => void;
+  /**
+   * Which store the id belongs to. Practice asks the same question of the same
+   * three endpoints under its own prefix, so the bar itself is unchanged —
+   * only where it sends. Defaults to doubts so every existing caller is
+   * untouched.
+   */
+  surface?: FollowUpSurface;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -343,7 +354,8 @@ export function AskFollowUpBar({
             }
           },
         },
-        controller.signal
+        controller.signal,
+        surface
       );
       if (controller.signal.aborted) return;
       turnsRef.current = [
@@ -387,13 +399,14 @@ export function AskFollowUpBar({
           (wav) => {
             if (!ctl.signal.aborted) audio.enqueue(wav);
           },
-          ctl.signal
+          ctl.signal,
+          surface
         );
       } finally {
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake]);
+  }, [doubtId, recorder, toPlayback, wake, surface]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
