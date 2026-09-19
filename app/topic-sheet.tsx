@@ -170,7 +170,13 @@ export default function TopicSheetScreen() {
               </View>
             )}
 
-            <PressableScale style={styles.freetalkRow} onPress={() => goToClassroom()}>
+            <PressableScale
+              style={styles.freetalkRow}
+              onPress={() => {
+                // The other way into the same classroom, so the same tap.
+                hapticCommitted();
+                goToClassroom();
+              }}>
               <MicIcon size={scale(15)} />
               <Text style={styles.freetalkText}>
                 Can&apos;t find your topic? <Text style={styles.freetalkBold}>Just start talking</Text>
