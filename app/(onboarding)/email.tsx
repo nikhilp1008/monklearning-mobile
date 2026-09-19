@@ -32,6 +32,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
+import { hapticCodeComplete, hapticDigit } from '@/lib/haptics';
 import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
 
 const CODE_LENGTH = 6;
@@ -74,6 +75,9 @@ export default function EmailScreen() {
     Array.from({ length: CODE_LENGTH }, () => new Animated.Value(1)),
   ).current;
   const prevCodeLength = useRef(0);
+  /** Taps waiting on their digit's pop, dropped if the screen goes first. */
+  const tickTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => tickTimers.current.forEach(clearTimeout), []);
 
   // Keep the caret where the OS keyboard is pointing.
   useEffect(() => {
@@ -93,16 +97,27 @@ export default function EmailScreen() {
   const handleCodeChange = (text: string) => {
     const next = onlyDigits(text, CODE_LENGTH);
     const from = prevCodeLength.current;
+    // A code that arrives whole (autofill, paste) is felt as a ripple: one
+    // tick per box as it pops, landing a beat into each pop where the digit
+    // shows, and a firmer click on the last. A typed digit ticks at once.
+    const batch = next.length - from;
     for (let i = from; i < next.length; i += 1) {
       const anim = popAnims[i];
+      const delay = 50 + (i - from) * 80;
       anim.setValue(0);
       Animated.timing(anim, {
         toValue: 1,
         duration: 350,
-        delay: 50 + (i - from) * 80,
+        delay,
         easing: Easing.ease,
         useNativeDriver: true,
       }).start();
+      tickTimers.current.push(
+        setTimeout(
+          i === CODE_LENGTH - 1 ? hapticCodeComplete : hapticDigit,
+          batch > 1 ? delay + 40 : 0
+        )
+      );
     }
     prevCodeLength.current = next.length;
     setCode(next);

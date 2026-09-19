@@ -33,7 +33,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { DockRing, type RingMood } from '@/components/dock-ring';
 import { turnColor, turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
-import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
+import { hapticCommitted, hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 import {
   AMBER,
@@ -1728,7 +1728,19 @@ export default function LiveClassroomScreen() {
             <ReportIcon size={12} color={INK_MUTED} />
             {isLandscape && <Text style={styles.topReportText}>Report</Text>}
           </Pressable>
-          <Pressable style={styles.topEndButton} onPress={endClass} disabled={ending}>
+          <Pressable
+            style={styles.topEndButton}
+            onPress={() => {
+              if (ending) return;
+              // The classroom holds the mic open for the whole class, and iOS
+              // mutes haptics while it does unless this opts back in first.
+              // Only here, not inside endClass: the server can end a class
+              // too, and that should not tap the student's hand.
+              allowHapticsWhileRecording();
+              hapticCommitted();
+              void endClass();
+            }}
+            disabled={ending}>
             <View style={styles.topEndSquare} />
             <Text style={styles.topEndText}>{ending ? 'Ending…' : 'End'}</Text>
           </Pressable>

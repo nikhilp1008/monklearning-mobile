@@ -7,7 +7,7 @@ import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } 
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Grain } from '@/components/grain';
-import { hapticKey, hapticTicked } from '@/lib/haptics';
+import { hapticKey, hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
@@ -105,9 +105,10 @@ export default function HomeScreen() {
   );
 
   const togglePlanItem = (id: string) => {
-    // Only on the way to done. Un-ticking is a correction, and confirming a
-    // correction with the tap that marks finishing reads as the wrong answer.
-    if (!planItems.find((item) => item.id === id)?.done) hapticTicked();
+    // Two different taps. Done gets the Success; un-ticking is a correction,
+    // and gets a soft one — felt, but never the tap that marks finishing.
+    if (planItems.find((item) => item.id === id)?.done) hapticUnticked();
+    else hapticTicked();
     const next = planItems.map((item) => (item.id === id ? { ...item, done: !item.done } : item));
     setPlanItems(next);
     saveTodayPlan(next);
