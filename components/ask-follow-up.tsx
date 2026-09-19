@@ -87,10 +87,15 @@ import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/hapt
  */
 const BOARD_SHARE = 0.46;
 
-/** How far the board reaches past the bar's own gutters on each side. The
- *  bar row is inset for its buttons; the board is a page of working, and at
- *  the bar's width it read as a narrow card squeezed between two margins. */
-const BOARD_BLEED = 10;
+/**
+ * Where the board's sides sit, measured from the screen's edge. The bar row
+ * is inset for its buttons; the board is a page of working, and at the bar's
+ * width it read as a narrow card squeezed between two margins — so it reaches
+ * past them to this. Measured from the SCREEN rather than as a fixed bleed
+ * because the two hosts pad the row differently (Doubts 24, Practice 20), and
+ * a fixed bleed put the same board in two different places.
+ */
+const BOARD_EDGE = 14;
 
 /** Drag distance or flick speed on the board's header that puts it away. */
 const BOARD_CLOSE_DISTANCE = 80;
@@ -172,6 +177,7 @@ export function AskFollowUpBar({
   onReport,
   surface = 'doubts',
   trailing,
+  gutter = 24,
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */
@@ -195,6 +201,9 @@ export function AskFollowUpBar({
    * board spans with it.
    */
   trailing?: ReactNode;
+  /** The side padding of the container the bar sits in, so the board can land
+   *  at BOARD_EDGE from the screen whichever screen it is on. */
+  gutter?: number;
 }) {
   const recorder = useAudioRecorder(RECORDING);
   /** The board is capped rather than free: it grows upward over the solution,
@@ -809,7 +818,14 @@ export function AskFollowUpBar({
       */}
       {boardMounted && (
         <Animated.View
-          style={[styles.board, { height: Math.round(windowHeight * BOARD_SHARE) }, boardStyle]}>
+          style={[
+            styles.board,
+            {
+              height: Math.round(windowHeight * BOARD_SHARE),
+              marginHorizontal: -Math.max(0, gutter - BOARD_EDGE),
+            },
+            boardStyle,
+          ]}>
           <GestureDetector gesture={boardPan}>
             <View style={styles.boardHead}>
               <View style={styles.boardGrab} />
@@ -1130,7 +1146,6 @@ const styles = StyleSheet.create({
    * four corners because it floats; it never meets the screen's edge.
    */
   board: {
-    marginHorizontal: -BOARD_BLEED,
     marginBottom: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 24,

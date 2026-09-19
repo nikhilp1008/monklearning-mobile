@@ -963,6 +963,7 @@ export default function PracticeScreen() {
                 <AskFollowUpBar
                   doubtId={question.question_id}
                   surface="practice"
+                  gutter={scale(20)}
                   trailing={
                     <Pressable style={styles.nextButton} onPress={loadQuestion}>
                       <Text style={styles.nextButtonText}>Next</Text>
