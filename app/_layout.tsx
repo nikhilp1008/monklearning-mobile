@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, router, useRootNavigationState, useSegments } from 'expo-router';
+import { Stack, router, useRootNavigationState, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -62,6 +62,7 @@ import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
+import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -155,6 +156,28 @@ export default function RootLayout() {
    */
   const segments = useSegments();
   const inOnboarding = segments[0] === '(onboarding)';
+
+  /**
+   * Telemetry, started once and deliberately outside every startup gate.
+   *
+   * Not behind `ready` or `navigatorReady`: this file already carries a 15s
+   * failsafe because a startup gate hung the splash screen once, and adding
+   * analytics to the set of things that must succeed before the app renders
+   * would be the same mistake with a worse excuse. initTracking() catches its
+   * own errors and does no I/O on this path — it queues in memory and flushes
+   * later — so the worst case is no events, not no app.
+   */
+  useEffect(() => initTracking(), []);
+
+  // Screen views, which is the whole onboarding funnel for free: every step is
+  // its own expo-router route. Only after the navigator is up, or the first
+  // pathname is whatever expo-router reports mid-mount rather than a screen a
+  // student actually looked at.
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!navigatorReady || !pathname) return;
+    trackScreen(pathname);
+  }, [navigatorReady, pathname]);
   const needsOnboardingFlow = authState === 'signed_out' || authState === 'needs_onboarding';
   const gateSettled =
     ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding);
