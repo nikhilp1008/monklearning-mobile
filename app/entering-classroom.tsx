@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EnteringCardScreen } from '@/components/entering-card';
+import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import {
   LONG_WAIT_TEXT,
@@ -134,6 +135,17 @@ export default function EnteringClassroomScreen() {
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  /**
+   * Which option chip was pressed, so THAT chip can show it was.
+   *
+   * Tapping a chip runs a scoping model call plus a planner invocation on the
+   * server — seconds — and the only busy indicator on this screen was the
+   * spinner inside the Go button beside the text field, a control the student
+   * never touched and may not be looking at. The chip itself stayed inert, so
+   * the tap read as ignored. Same swap the Go button already does: label out,
+   * spinner in.
+   */
+  const [pendingOption, setPendingOption] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   /**
@@ -256,6 +268,7 @@ export default function EnteringClassroomScreen() {
           setStatusNote(check.message);
           setInput('');
           setSubmitting(false);
+          setPendingOption(null);
           setStage('scoping');
           return;
         }
@@ -305,6 +318,7 @@ export default function EnteringClassroomScreen() {
       }
     } finally {
       setSubmitting(false);
+      setPendingOption(null);
     }
   }
 
@@ -388,13 +402,20 @@ export default function EnteringClassroomScreen() {
             {options.length > 0 && (
               <View style={styles.optionsRow}>
                 {options.slice(0, 6).map((option) => (
-                  <Pressable
+                  <PressableScale
                     key={option}
                     style={styles.optionChip}
                     disabled={submitting}
-                    onPress={() => submit(option, { skipCheck: true })}>
-                    <Text style={styles.optionChipText}>{option}</Text>
-                  </Pressable>
+                    onPress={() => {
+                      setPendingOption(option);
+                      submit(option, { skipCheck: true });
+                    }}>
+                    {pendingOption === option ? (
+                      <ActivityIndicator color={colors.ink} size="small" />
+                    ) : (
+                      <Text style={styles.optionChipText}>{option}</Text>
+                    )}
+                  </PressableScale>
                 ))}
               </View>
             )}

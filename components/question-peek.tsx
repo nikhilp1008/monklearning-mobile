@@ -2,11 +2,7 @@ import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { ImageStyle, Modal, Pressable, StyleSheet, Text, ViewStyle, StyleProp } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { useScale } from '@/constants/scale';
@@ -79,7 +75,10 @@ export function QuestionPeek({
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      zoom.value = withTiming(zoom.value > 1.5 ? 1 : 2.5, { duration: 180 });
+      // Set outright, as the setState version did. The point of the shared
+      // value is that the PINCH no longer round-trips to JS per frame; the
+      // double-tap was never slow and does not need easing it never had.
+      zoom.value = zoom.value > 1.5 ? 1 : 2.5;
     });
   const composed = Gesture.Race(pinch, doubleTap);
 

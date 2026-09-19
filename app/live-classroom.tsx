@@ -331,6 +331,15 @@ export default function LiveClassroomScreen() {
     },
     [wantLandscape, settled, rotateReady]
   );
+  /**
+   * Whether a rotate tap would actually do anything.
+   *
+   * The guard above is right, but it was invisible: the two rotate controls had
+   * no `disabled` and no pressed state, so for the 650ms after every rotation a
+   * student who changed their mind got an absolute no-op that looked identical
+   * to a working button. Refusing a tap is fine; refusing it silently is not.
+   */
+  const canRotate = settled && rotateReady;
 
 
 
@@ -1208,13 +1217,15 @@ export default function LiveClassroomScreen() {
       }
     },
     // Both endings are covered: a drag that stops dead fires onEndDrag, a fling
-    // fires onMomentumEnd. Either way the pill fades 900ms later, which is the
-    // timer this replaces.
+    // fires onMomentumEnd. Either way the pill disappears 900ms later, which is
+    // the timer this replaces — duration 0, because the old timeout flipped
+    // opacity outright and this move is about which thread runs, not how the
+    // pill looks.
     onEndDrag: () => {
-      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 180 }));
+      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 0 }));
     },
     onMomentumEnd: () => {
-      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 180 }));
+      indicatorOpacity.value = withDelay(900, withTiming(0, { duration: 0 }));
     },
   });
 
@@ -1867,8 +1878,9 @@ export default function LiveClassroomScreen() {
             {/* Back to upright. The same slot CC used to hold — captions are
                 gone and this is the control that earns it. */}
             <Pressable
-              style={styles.railCtrl}
+              style={[styles.railCtrl, !canRotate && styles.ctrlUnavailable]}
               onPress={() => requestOrientation(false)}
+              disabled={!canRotate}
               hitSlop={8}
               accessibilityLabel="Rotate to portrait">
               <RotateIcon size={19} color={INK_MUTED} portrait />
@@ -1919,8 +1931,9 @@ export default function LiveClassroomScreen() {
               </Pressable>
 
               <Pressable
-                style={styles.dockCtrl}
+                style={[styles.dockCtrl, !canRotate && styles.ctrlUnavailable]}
                 onPress={() => requestOrientation(true)}
+                disabled={!canRotate}
                 hitSlop={8}
                 accessibilityLabel="Rotate to landscape">
                 <RotateIcon size={21} color={INK_MUTED} />
@@ -2587,6 +2600,12 @@ function createStyles(
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+
+    /** A control that would refuse the tap, saying so. Same 0.4 the passed-over
+     *  ask chips step back to, rather than a new idea for "unavailable". */
+    ctrlUnavailable: {
+      opacity: 0.4,
     },
 
     /**
