@@ -138,6 +138,8 @@ export type SolutionQuestion = {
   answerLabels?: string[] | null;
   /** The one-line takeaway, in the app's handwriting. */
   keyIdea?: string | null;
+  /** `keyIdea` before conversion — spaced and stacked like the steps. */
+  keyIdeaRaw?: string | null;
   /**
    * Shown above the working when the API kept the steps but withheld the
    * answer — a disagreement with the printed key, an answer that is not among
@@ -546,7 +548,15 @@ export function SolutionScreen({
 
           {/* The app's existing handwriting for a takeaway. */}
           {!question.pending && !!question.keyIdea && (
-            <Text style={styles.keyIdea}>{question.keyIdea}</Text>
+            <View style={styles.keyIdea}>
+              <MathLine
+                text={question.keyIdeaRaw ?? question.keyIdea}
+                style={styles.keyIdeaText}
+                mathStyle={styles.keyIdeaText}
+                fontSize={16}
+                color={KEY_IDEA_INK}
+              />
+            </View>
           )}
 
           {!!footerNote && <Text style={[styles.meta, styles.footerNote]}>{footerNote}</Text>}
@@ -799,12 +809,17 @@ function createStyles() {
       lineHeight: 15 * 1.6,
       color: INK_70,
     },
+    /** The takeaway, at the page's one size: set apart by weight, not by
+     *  being the one bold 15pt line on a page of regular 16. Aligned to the
+     *  step text, past the rail. */
     keyIdea: {
       marginTop: 26,
-      paddingLeft: 44,
-      fontFamily: 'Onest_700Bold',
-      fontSize: 15,
-      lineHeight: 15 * 1.5,
+      paddingLeft: 34,
+    },
+    keyIdeaText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: 16,
+      lineHeight: 16 * 1.55,
       color: KEY_IDEA_INK,
     },
     stepsBlock: {
@@ -814,7 +829,7 @@ function createStyles() {
     // not pushed off its own rail.
     pendingNow: {
       marginBottom: 18,
-      paddingLeft: 44,
+      paddingLeft: 34,
     },
     meta: {
       fontFamily: 'Onest_600SemiBold',
@@ -942,7 +957,7 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 }
 
 function createSkeletonStyles() {
-  const RAIL = 44;
+  const RAIL = 34;
   return StyleSheet.create({
     // Mirrors SolutionSteps' own rail geometry so the placeholder lands where
     // the real steps will.
@@ -950,11 +965,11 @@ function createSkeletonStyles() {
       position: 'relative',
       marginTop: 24,
       paddingLeft: RAIL,
-      gap: 30,
+      gap: 26,
     },
     rail: {
       position: 'absolute',
-      left: 13,
+      left: 10.5,
       top: 10,
       bottom: 10,
       width: 1,
@@ -962,7 +977,7 @@ function createSkeletonStyles() {
     },
     step: {
       position: 'relative',
-      gap: 12,
+      gap: 10,
       alignItems: 'flex-start',
       alignSelf: 'stretch',
     },
@@ -971,13 +986,13 @@ function createSkeletonStyles() {
       position: 'absolute',
       left: -RAIL,
       top: 1,
-      width: 28,
-      height: 28,
-      borderRadius: 8,
+      width: 22,
+      height: 22,
+      borderRadius: 6,
     },
     stepTitle: {
       width: '62%',
-      height: 18,
+      height: 15,
     },
     math: {
       width: '46%',

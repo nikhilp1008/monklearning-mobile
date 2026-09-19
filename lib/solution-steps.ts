@@ -13,14 +13,20 @@ export type SolutionLine = {
 };
 /** Named to avoid colliding with lib/doubts.ts's `SolutionStep`, which is the
  *  API's raw `{n, text}` shape rather than this rendered one. */
-export type ParsedStep = { title: string; lines: SolutionLine[] };
+export type ParsedStep = {
+  title: string;
+  /** The title before conversion, so its maths is set — and spaced — the way
+   *  the step's own maths is. Absent when the title had no maths to keep. */
+  titleRaw?: string;
+  lines: SolutionLine[];
+};
 
 /** "Step 3:" / "Step 3." / "3." at the head of a step — the rail already
  *  numbers each step, so repeating it in the copy is noise. */
 const STEP_PREFIX = /^\s*(?:step\s*)?\d+\s*[:.)-]\s*/i;
 
-/** Roughly two lines of the 19px title at phone width. Past this a "heading"
- *  stops looking like one. */
+/** Roughly two lines of a title at phone width. Past this a "heading" stops
+ *  looking like one. */
 const MAX_TITLE_CHARS = 64;
 
 function splitSentences(prose: string): string[] {
@@ -81,6 +87,7 @@ export function parseSolutionStep(raw: string): ParsedStep {
   // four lines of bold above a single line of explanation, which inverts the
   // hierarchy and reads worse than no heading at all. Long openers stay prose.
   let title = '';
+  let titleRaw: string | undefined;
   if (lines[0]?.kind === 'text') {
     const sentences = splitSentences(lines[0].text);
     const first = sentences[0]?.replace(/[.:]$/, '') ?? '';
@@ -94,11 +101,15 @@ export function parseSolutionStep(raw: string): ParsedStep {
       title = first;
       // The remainder is already converted, so it is its own raw.
       if (remainder) lines[0] = { kind: 'text', text: remainder, raw: remainder };
-      else lines.shift();
+      else {
+        // The whole first line is the title: keep its source, maths and all.
+        titleRaw = lines[0].raw.replace(/[.:]\s*$/, '');
+        lines.shift();
+      }
     }
   }
 
-  return { title, lines };
+  return titleRaw ? { title, titleRaw, lines } : { title, lines };
 }
 
 /**

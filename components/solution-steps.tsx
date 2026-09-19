@@ -42,18 +42,30 @@ const GREEN_WASH = 'rgba(28,155,87,0.11)';
 export type SolutionStepsSize = 'full' | 'compact' | 'board';
 
 const METRICS = {
+  /**
+   * ONE SIZE ON THE PAGE. Titles, prose, maths and the final answer are all
+   * 16: the page used to set a 19pt bold title over 16pt prose with 17pt
+   * semibold maths and a 19pt answer, four sizes in one column, and scrolling
+   * it read as a series of headlines rather than one argument. Weight and ink
+   * now do the separating — a title is semibold, maths is medium and darker,
+   * prose is regular — at a single size.
+   *
+   * The markers are smaller and the rail narrower (22 in 34, from 28 in 44):
+   * the numbers are for finding your place, and at 28 they were the loudest
+   * thing on every step.
+   */
   full: {
-    rail: 44,
-    railLeft: 13,
-    marker: 28,
-    markerRadius: 8,
-    markerText: 12,
-    stepGap: 30,
-    lineGap: 12,
-    title: 19,
+    rail: 34,
+    railLeft: 10.5,
+    marker: 22,
+    markerRadius: 6,
+    markerText: 10.5,
+    stepGap: 26,
+    lineGap: 8,
+    title: 16,
     prose: 16,
-    math: 17,
-    answer: 19,
+    math: 16,
+    answer: 16,
   },
   compact: {
     rail: 34,
@@ -104,7 +116,7 @@ const METRICS = {
  * keeps the default 1.
  */
 const MATH_AIR: Record<SolutionStepsSize, { leading: number; tracking: number; pad: number; numTop: number }> = {
-  full: { leading: 1.6, tracking: 0, pad: 4, numTop: 1 },
+  full: { leading: 1.55, tracking: 0, pad: 2, numTop: 2 },
   compact: { leading: 1.6, tracking: 0, pad: 3, numTop: 1 },
   board: { leading: 1.75, tracking: 0.1, pad: 3, numTop: 3.5 },
 };
@@ -165,7 +177,20 @@ export function SolutionSteps({
               <Text style={styles.numText}>{String(i + 1).padStart(2, '0')}</Text>
             </View>
           )}
-          {!!step.title && <Text style={styles.stepTitle}>{step.title}</Text>}
+          {!!step.title &&
+            (step.titleRaw ? (
+              // A title with maths in it sets that maths the way the step
+              // does — spaced, fractions stacked — at the title's weight.
+              <MathLine
+                text={step.titleRaw}
+                style={styles.stepTitle}
+                mathStyle={styles.stepTitle}
+                fontSize={m.title}
+                color={INK}
+              />
+            ) : (
+              <Text style={styles.stepTitle}>{step.title}</Text>
+            ))}
           {step.lines.map((line, j) =>
             line.kind === 'math' ? (
               // Hugs its own text rather than stretching to a full-width bar —
@@ -231,7 +256,11 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
    * every line of it came out bold, which is emphasis on everything and so on
    * nothing. Darker ink still sets the maths apart from the words.
    */
-  const mathFace = size === 'board' ? 'Onest_500Medium' : 'Onest_600SemiBold';
+  const mathFace = size === 'compact' ? 'Onest_600SemiBold' : 'Onest_500Medium';
+  /** Prose leading: a little tighter on the doubt page, where every line is
+   *  now the same size and 1.6 read as gaps between lines rather than lines. */
+  const leading = size === 'full' ? 1.55 : 1.6;
+  const one = size === 'full';
   const air = MATH_AIR[size];
   return StyleSheet.create({
     steps: {
@@ -283,20 +312,30 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       fontSize: m.markerText + 1,
       color: GREEN,
     },
-    stepTitle: {
-      alignSelf: 'stretch',
-      paddingTop: 4,
-      fontFamily: 'Onest_700Bold',
-      fontSize: m.title,
-      letterSpacing: -0.02 * m.title,
-      lineHeight: m.title * 1.3,
-      color: INK,
-    },
+    stepTitle: one
+      ? {
+          // Body size, set apart by weight alone: semibold ink over regular
+          // grey. Its leading is the prose's, so title and body share a rhythm.
+          alignSelf: 'stretch',
+          fontFamily: 'Onest_600SemiBold',
+          fontSize: m.title,
+          lineHeight: m.title * leading,
+          color: INK,
+        }
+      : {
+          alignSelf: 'stretch',
+          paddingTop: 4,
+          fontFamily: 'Onest_700Bold',
+          fontSize: m.title,
+          letterSpacing: -0.02 * m.title,
+          lineHeight: m.title * 1.3,
+          color: INK,
+        },
     proseText: {
       alignSelf: 'stretch',
       fontFamily: 'Onest_400Regular',
       fontSize: m.prose,
-      lineHeight: m.prose * 1.6,
+      lineHeight: m.prose * leading,
       color: INK_70,
     },
     /**
@@ -339,14 +378,22 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       letterSpacing: air.tracking,
       color: INK,
     },
-    finalLabel: {
-      alignSelf: 'stretch',
-      paddingTop: 4,
-      fontFamily: 'Onest_700Bold',
-      fontSize: m.title,
-      letterSpacing: -0.02 * m.title,
-      color: GREEN,
-    },
+    finalLabel: one
+      ? {
+          alignSelf: 'stretch',
+          fontFamily: 'Onest_600SemiBold',
+          fontSize: m.title,
+          lineHeight: m.title * leading,
+          color: GREEN,
+        }
+      : {
+          alignSelf: 'stretch',
+          paddingTop: 4,
+          fontFamily: 'Onest_700Bold',
+          fontSize: m.title,
+          letterSpacing: -0.02 * m.title,
+          color: GREEN,
+        },
     answerPick: {
       fontFamily: 'Onest_800ExtraBold',
       fontSize: m.answer,
@@ -358,13 +405,13 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       gap: 8,
       alignSelf: 'flex-start',
       maxWidth: '100%',
-      paddingVertical: size === 'full' ? 8 : 6,
-      paddingHorizontal: size === 'full' ? 13 : 11,
+      paddingVertical: 6,
+      paddingHorizontal: size === 'full' ? 12 : 11,
       borderRadius: 6,
       backgroundColor: GREEN_WASH,
     },
     answerText: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: one ? 'Onest_600SemiBold' : 'Onest_700Bold',
       fontSize: m.answer,
       color: GREEN_INK,
     },
