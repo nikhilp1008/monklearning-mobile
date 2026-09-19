@@ -19,7 +19,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { AskFollowUpBar } from '@/components/ask-follow-up';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -38,6 +38,7 @@ import {
   submitAnswer,
   takeQueuedQuestion,
 } from '@/lib/practice';
+import { latexToText } from '@/lib/latex-text';
 import { ApiError } from '@/lib/api';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
@@ -565,6 +566,33 @@ export default function PracticeScreen() {
               <ChevronDownIcon size={scale(13)} />
             </View>
           </Pressable>
+          {/* REPORT, up here in the corner the header left empty. It used to be
+              a disc beside Ask follow-up, where it cost the bottom row width it
+              needed for Next. Only while a question is on screen: there is
+              nothing to report on a loading card or an empty pool. */}
+          {question ? (
+            <Pressable
+              style={styles.reportButton}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Report a mistake in this question"
+              onPress={() =>
+                router.push({
+                  pathname: '/report-sheet',
+                  params: {
+                    questionId: question.question_id,
+                    // As readable text: the sheet quotes with a plain Text,
+                    // which printed "$x$" and "\mathrm{Vm}^{-1}" as typed.
+                    quote: latexToText(question.question_text ?? ''),
+                    // The chapter alone, as the doubt screens pass it — the
+                    // subject is already in this screen's title.
+                    context: question.chapter_name ?? '',
+                  },
+                })
+              }>
+              <FlagIcon size={scale(16)} />
+            </Pressable>
+          ) : null}
         </View>
 
         {menuOpen && (
@@ -1113,6 +1141,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: scale(4),
+    },
+    /** The back button's twin on the other side, pushed right by `auto`. */
+    reportButton: {
+      width: scale(36),
+      height: scale(36),
+      flexShrink: 0,
+      marginLeft: 'auto',
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerRow: {
       flexDirection: 'row',

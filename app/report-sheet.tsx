@@ -9,11 +9,18 @@ import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { reportDoubt } from '@/lib/doubts';
+import { reportPracticeQuestion } from '@/lib/practice';
 
 const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
 
 export default function ReportSheetScreen() {
-  const params = useLocalSearchParams<{ context?: string; quote?: string; doubtId?: string }>();
+  const params = useLocalSearchParams<{
+    context?: string;
+    quote?: string;
+    doubtId?: string;
+    /** A practice question instead of a doubt — see `reportPracticeQuestion`. */
+    questionId?: string;
+  }>();
   /**
    * THE QUOTE IS THE QUESTION BEING REPORTED, and until now it was neither.
    *
@@ -40,21 +47,29 @@ export default function ReportSheetScreen() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // This screen is reused from snap-solved.tsx and doubt-detail.tsx, both of
-  // which always pass a real doubtId — live-classroom.tsx has its own
+  // Reached from snap-solved.tsx and doubt-detail.tsx with a doubtId, and
+  // from practice.tsx with a questionId. live-classroom.tsx has its own
   // separate, in-file report drawer for session mistakes, not this screen.
-  const canSubmit = !!params.doubtId && !sending;
+  const practice = !params.doubtId && !!params.questionId;
+  const canSubmit = (!!params.doubtId || practice) && !sending;
 
   async function sendReport() {
-    if (!params.doubtId || sending) return;
+    if (!canSubmit) return;
     setSending(true);
     setSendError(null);
     try {
       const comment = [selectedReason, notes.trim()].filter(Boolean).join(': ');
-      await reportDoubt(params.doubtId, comment || undefined);
+      if (params.doubtId) await reportDoubt(params.doubtId, comment || undefined);
+      else await reportPracticeQuestion(params.questionId!, comment || undefined);
       router.back();
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Could not send that report. Try again.');
+      // A practice report fails with the server's bare "Not Found" until its
+      // endpoint exists, which says nothing to a student.
+      setSendError(
+        !practice && err instanceof Error
+          ? err.message
+          : 'Could not send that report. Try again.'
+      );
     } finally {
       setSending(false);
     }
@@ -127,7 +142,9 @@ export default function ReportSheetScreen() {
             {/* Was "Reporting won't interrupt your class." There is no class
                 to interrupt from here, and the reassurance that matters is
                 that the solution stays where it is. */}
-            <Text style={styles.footerHint}>Your solution stays saved.</Text>
+            <Text style={styles.footerHint}>
+              {practice ? 'Your question stays where it is.' : 'Your solution stays saved.'}
+            </Text>
             <Pressable
               style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
               disabled={!canSubmit}

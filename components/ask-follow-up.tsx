@@ -124,10 +124,11 @@ function StopIcon({ color }: { color: string }) {
 }
 
 /** The reference's own flag: an upright staff with a pennant, in muted ink so
- *  Report reads as the quieter of the two controls. */
-function FlagIcon() {
+ *  Report reads as the quieter of the two controls. Practice's header uses it
+ *  too, so a report looks like a report wherever it is. */
+export function FlagIcon({ size = 18 }: { size?: number }) {
   return (
-    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke={INK_MUTED}
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={INK_MUTED}
       strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M5 21V4" />
       <Path d="M5 4h11l-1.5 4L16 12H5" />
