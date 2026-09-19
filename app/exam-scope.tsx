@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
@@ -11,6 +11,7 @@ import { useScale } from '@/constants/scale';
 import { EXAM_SCOPE, SCOPE_SOURCE_NOTE, SCOPE_TIMELINE, type ScopeExam } from '@/lib/exam-scope';
 import { subjectScope, subjectsFor } from '@/lib/exam-scope-chapters';
 import { getProfile } from '@/lib/profile';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * Exam scope — the page that answers "what is actually examined?".
@@ -71,8 +72,14 @@ export default function ExamScopeScreen() {
           options={EXAM_OPTIONS}
           value={exam === 'jee' ? 'JEE Main' : 'NEET UG'}
           onChange={(value) => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setExam(value === 'NEET UG' ? 'neet' : 'jee');
+            const next = value === 'NEET UG' ? 'neet' : 'jee';
+            if (next !== exam) hapticSwitched();
+            // No LayoutAnimation here. It animates EVERY layout change on the
+            // screen in the next frame, and one of those was the toggle's own
+            // thumb resizing — on an ease curve, while its position ran on a
+            // spring. The thumb stretched and lagged behind itself. The page
+            // below now swaps the way the Textbooks list does.
+            setExam(next);
           }}
           trackStyle={styles.toggleTrack}
           thumbStyle={styles.toggleThumb}
@@ -255,9 +262,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: 1,
       borderColor: hairline(0.13),
     },
+    /**
+     * FIXED WIDTH, and equal, which is what makes the slide smooth.
+     *
+     * These sized to their labels, and "JEE Main" and "NEET UG" are not the
+     * same width — so every switch made the thumb change size as well as
+     * place. Worse, the active label is set in bold, which is wider: choosing
+     * NEET UG grew its pill, the toggle re-measured it and jumped the thumb to
+     * the new position mid-spring. Textbooks' "Class 11" / "Class 12" only
+     * escape this because their widths differ by about a pixel. A fixed box
+     * cannot reflow, so the thumb just slides.
+     */
     togglePill: {
+      width: scale(98),
+      alignItems: 'center',
       paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(16),
       borderRadius: scale(99),
     },
     togglePillText: {
