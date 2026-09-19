@@ -950,6 +950,24 @@ function readPieces(
     for (const k of ['a', 'b', 'c'] as const) {
       if (o[k] !== undefined && !finite(o[k])) errors.push(`pieces[${i}].${k} must be a finite number`);
     }
+    /* A KEY THIS PARSER DOES NOT READ IS AN AUTHORING ERROR, not spare data.
+     *
+     * `a` defaults to 1 when it is absent, so a piece that carries its shape
+     * in some OTHER key is silently a slope-1 line. Measured 2026-09-19: a
+     * repair for a board labelled y = |x| came back as
+     *   [{from:-2,to:0,expression:"-x"},{from:0,to:3,expression:"x"}]
+     * which parses to a:1 on BOTH halves — a straight line through the
+     * origin, the very defect the repair was asked to fix, and it validated.
+     *
+     * Same family as `b` on a line: an ignored key that reads as intent. */
+    const UNREAD = Object.keys(o).filter(
+      (k) => !['from', 'to', 'curve', 'a', 'b', 'c'].includes(k));
+    if (UNREAD.length > 0) {
+      errors.push(
+        `pieces[${i}] carries ${UNREAD.join(', ')}, which this widget does not read — ` +
+        `a piece is {from, to, curve, a, b, c} and its shape must be in a, b and c. ` +
+        `With a absent it defaults to 1, so the piece would silently draw a slope-1 line.`);
+    }
     pieces.push({
       from: o.from,
       to: o.to,
