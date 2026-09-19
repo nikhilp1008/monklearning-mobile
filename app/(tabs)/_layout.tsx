@@ -11,13 +11,12 @@ export default function TabLayout() {
   /**
    * The tabs are the app's portrait ground, and they say so.
    *
-   * Three screens lock landscape — the lesson player and the two classroom
-   * screens — and the only thing that ever put the app back was the unmount
-   * grace timer inside the lock. That covers a back-navigation and nothing
-   * else: quit the app from a lesson, or come back to it after the OS has
-   * killed it, and the tabs mount with the device still rotated and nobody
-   * asking otherwise, so Lessons renders sideways until you enter and leave a
-   * lesson again.
+   * The classroom screens lock landscape, and the only thing that ever put
+   * the app back was the unmount grace timer inside the lock. That covers a
+   * back-navigation and nothing else: quit the app from a class, or come back
+   * to it after the OS has killed it, and the tabs mount with the device still
+   * rotated and nobody asking otherwise. (The Lessons player was a third
+   * landscape screen; it was removed on 2026-09-19.)
    *
    * Declaring it here is what the lock's own design asks for — every screen
    * states the orientation it wants — and it makes the restore deterministic
@@ -59,7 +58,6 @@ export default function TabLayout() {
         <Tabs.Screen name="notes" options={{ title: 'Notes' }} />
         {/* Lessons is on hold, not deleted -- the screen stays routable so the
             work survives, but nothing in the bar points at it. */}
-        <Tabs.Screen name="lessons" options={{ href: null }} />
       </Tabs>
     </>
   );
