@@ -20,8 +20,9 @@ export type Piece = { kind: 'text' | 'display'; raw: string };
 const MATH_SPAN = /\$[^$]+\$/g;
 const RELATION = /=|\\Rightarrow|\\implies|\\approx|\\le|\\ge|\\neq|\\to|<|>/;
 const WORKING = /\\frac|\\int|\\sum|\\sqrt|[+\-*/^]|\\times|\\cdot/;
-/** `u=29.4`, `a=-g=-9.8`: a chain of plain assignments. */
-const ASSIGNMENT = /^[A-Za-z][A-Za-z0-9_']*(=-?[A-Za-z0-9.\\{}]+)+$/;
+/** `u=29.4`, `a=-g=-9.8`, `a=-9.8 m/s²`: a chain of plain assignments, each
+ *  side a quantity — a name, a number, a unit, an exponent on the unit. */
+const ASSIGNMENT = /^[A-Za-z][A-Za-z0-9_']*(=[-−]?[A-Za-z0-9.^{}\\]+)+$/;
 
 const UNITS = new Set([
   'm', 's', 'cm', 'mm', 'km', 'kg', 'g', 'N', 'J', 'W', 'V', 'A', 'Ω', 'K', 'Hz', 'Pa',
@@ -29,7 +30,11 @@ const UNITS = new Set([
 ]);
 
 export function isDisplayWorthy(tex: string): boolean {
-  const t = tex.replace(/\\[,;!: ]|\s+/g, '');
+  // A unit set in \mathrm or \text is not working: `u=29.4\,\mathrm{m/s}`
+  // is a quantity, and its slash is a unit's slash, not a division.
+  const t = tex
+    .replace(/\\(?:mathrm|text|textrm|rm|operatorname)\s*\{[^{}]*\}/g, 'U')
+    .replace(/\\[,;!: ]|\s+/g, '');
   if (!RELATION.test(t)) return false;
   if (/\\frac|\\int|\\sum|\\sqrt/.test(t)) return true;
   if (ASSIGNMENT.test(t)) return false;
@@ -79,5 +84,26 @@ export function splitDisplay(
     at = end;
   });
   pushText(raw.slice(at));
-  return pieces.length ? pieces : [{ kind: 'text', raw }];
+  return tidy(pieces.length ? pieces : [{ kind: 'text', raw }]);
+}
+
+/** A word or two joining two equations — "so", "which gives" — is not a line
+ *  of prose. It rides on the equation it introduces. */
+const CONNECTIVE = /^[a-z][\w' ]{0,14}$/;
+
+function tidy(pieces: Piece[]): Piece[] {
+  const out: Piece[] = [];
+  pieces.forEach((piece) => {
+    const last = out[out.length - 1];
+    if (
+      piece.kind === 'display' &&
+      last?.kind === 'text' &&
+      CONNECTIVE.test(last.raw.trim())
+    ) {
+      out[out.length - 1] = { kind: 'display', raw: `${last.raw.trim()} ${piece.raw}` };
+      return;
+    }
+    out.push(piece);
+  });
+  return out;
 }

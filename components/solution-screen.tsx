@@ -354,7 +354,9 @@ export function SolutionScreen({
                 uri={question.questionImageUrl}
                 label={question.text}
                 frameStyle={styles.questionImage}
-                contentFit="contain"
+                contentFit="cover"
+                fromTop
+                fadeTo={PAPER}
               />
             ) : hasStackableFraction ? (
               <MathLine
@@ -762,14 +764,20 @@ function createStyles() {
       borderRadius: 8,
       backgroundColor: PAPER,
     },
+    /**
+     * A WINDOW ONTO THE PAGE, NOT THE WHOLE PAGE SHRUNK INTO A BOX.
+     *
+     * This used to `contain` the photo: the entire sheet scaled down to fit
+     * 240pt, which on a full A4 page made the writing too small to read and
+     * left bands of empty paper around it, ending on a hard edge. Now the
+     * picture fills the frame from its top edge — the question starts where
+     * the photo starts — and the foot of it fades into the page. What is cut
+     * off is the part a tap opens, which is what the chevron has always said.
+     */
     questionImage: {
       width: '100%',
-      // Taller than a figure, and for a different reason: this one carries
-      // WORDS. A figure only has to be recognisable; a stem has to be read at
-      // arm's length. `contain` keeps the page's own aspect ratio, so a short
-      // question simply leaves room at top and bottom rather than stretching.
       height: 240,
-      borderRadius: 8,
+      borderRadius: 12,
       backgroundColor: PAPER,
       overflow: 'hidden',
     },

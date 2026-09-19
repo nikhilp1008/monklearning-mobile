@@ -8,6 +8,9 @@ describe('isDisplayWorthy', () => {
     ['s(1)=1-6+9=4', true],
     // Quantities and plain assignments stay in the sentence.
     ['u=29.4', false],
+    // A unit is not working: these are quantities, whatever is in the braces.
+    ['u=29.4\\,\\mathrm{m/s}', false],
+    ['a=-g=-9.8\\,\\text{m/s}^2', false],
     ['a=-g=-9.8', false],
     ['t=1', false],
     ['[0,1], [1,3], [3,4]', false],
@@ -42,6 +45,16 @@ describe('splitDisplay', () => {
 
   test('\\( \\) is read as maths too', () => {
     expect(splitDisplay('So \\(v^2=u^2+2as\\).').map((p) => p.kind)).toEqual(['text', 'display']);
+  });
+
+  test('a connective rides on the equation it introduces', () => {
+    expect(
+      splitDisplay('Substituting gives $0=(29.4)^2+2(-9.8)h$, so $h=\\frac{(29.4)^2}{2\\times 9.8}$.')
+    ).toEqual([
+      { kind: 'text', raw: 'Substituting gives' },
+      { kind: 'display', raw: '$0=(29.4)^2+2(-9.8)h$' },
+      { kind: 'display', raw: 'so $h=\\frac{(29.4)^2}{2\\times 9.8}$' },
+    ]);
   });
 
   test('pick can lift just the last one', () => {
