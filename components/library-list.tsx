@@ -31,12 +31,6 @@ import {
   listDoubts,
   subjectMatches,
 } from '@/lib/doubts';
-import {
-  DEMO_DOUBT_CARDS,
-  DEMO_NOTE_CARDS,
-  DemoDoubtCard,
-  DemoNoteCard,
-} from '@/lib/demo-board';
 import { noteRowLine } from '@/lib/note-row';
 import { NoteSummary, deleteNote, listNotes } from '@/lib/notes';
 
@@ -75,6 +69,107 @@ const DOUBT_HINTS = NOTE_HINTS.map((h) => h.replace('your notes', 'your doubts')
  * copies of five hundred lines would have drifted apart the first time either
  * was touched.
  */
+/**
+ * NOTHING HERE YET, SAID PROPERLY.
+ *
+ * Both lists used to stand in demo cards while the real list was empty —
+ * scaffolding so the Library could be judged on a phone before anything real
+ * existed. On a new account that reads as notes the student never wrote.
+ *
+ * An empty list is not a failure state here, it is the first day. So it gets a
+ * drawn mark, one sentence saying what will fill it, and the button that fills
+ * it — which is the only screen in the app where the next action is genuinely
+ * unambiguous.
+ *
+ */
+
+function EmptyState({
+  kind,
+  scale,
+  verticalScale,
+}: {
+  kind: 'notes' | 'doubts';
+  scale: (n: number) => number;
+  verticalScale: (n: number) => number;
+}) {
+  const notes = kind === 'notes';
+  const head = notes ? 'Your notes start with a class.' : 'Stuck on a question?';
+  const line = notes
+    ? 'Take one and the whole board is written up for you — every step, in your own notebook.'
+    : 'Photograph it and you get the full working, step by step, not just the answer.';
+  const cta = notes ? 'Start a live class' : 'Snap a question';
+  const go = () => router.push(notes ? '/drona' : '/snap-capture');
+
+  const art = (
+    <Svg viewBox="0 0 64 64" width={scale(56)} height={scale(56)} fill="none">
+      {notes ? (
+        <>
+          <Rect x={14} y={8} width={36} height={48} rx={5} stroke={colors.hairline} strokeWidth={2} />
+          {[20, 28, 36, 44].map((y) => (
+            <Path key={y} d={`M22 ${y} H42`} stroke={colors.hairline} strokeWidth={2} strokeLinecap="round" />
+          ))}
+          <Circle cx={44} cy={48} r={7} fill={colors.marigold} />
+        </>
+      ) : (
+        <>
+          <Rect x={8} y={18} width={48} height={34} rx={6} stroke={colors.hairline} strokeWidth={2} />
+          <Path d="M24 18l4-6h8l4 6" stroke={colors.hairline} strokeWidth={2} strokeLinejoin="round" />
+          <Circle cx={32} cy={35} r={9} stroke={colors.hairline} strokeWidth={2} />
+          <Circle cx={32} cy={35} r={3.5} fill={colors.marigold} />
+        </>
+      )}
+    </Svg>
+  );
+
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        paddingTop: verticalScale(54),
+        paddingHorizontal: scale(28),
+      }}>
+      {art}
+      <Text
+        style={{
+          marginTop: verticalScale(18),
+          fontFamily: 'Onest_600SemiBold',
+          fontSize: scale(19),
+          letterSpacing: scale(-0.3),
+          color: colors.ink,
+          textAlign: 'center',
+        }}>
+        {head}
+      </Text>
+      <Text
+        style={{
+          marginTop: verticalScale(8),
+          fontFamily: 'Onest_400Regular',
+          fontSize: scale(14),
+          lineHeight: scale(20),
+          color: colors.slate,
+          textAlign: 'center',
+        }}>
+        {line}
+      </Text>
+      <PressableScale
+        onPress={go}
+        style={{
+          marginTop: verticalScale(22),
+          paddingHorizontal: scale(22),
+          height: verticalScale(46),
+          borderRadius: 999,
+          backgroundColor: colors.ink,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+        <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(15), color: colors.paper }}>
+          {cta}
+        </Text>
+      </PressableScale>
+    </View>
+  );
+}
+
 export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -96,9 +191,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const [eraseMode, setEraseMode] = useState(false);
   /** The last removal, held so UNDO can put it back where it was. */
   const [undoState, setUndoState] = useState<
-    | { kind: 'sample'; index: number; item: DemoNoteCard }
     | { kind: 'note'; index: number; item: NoteSummary }
-    | { kind: 'doubtSample'; index: number; item: DemoDoubtCard }
     | { kind: 'doubt'; index: number; item: DoubtSummary }
     | null
   >(null);
@@ -155,14 +248,12 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const [doubts, setDoubts] = useState<DoubtSummary[]>([]);
   // DEMO_ — the same trick Notes uses: sample cards so the erase gesture can
   // be tried while the real list is empty. Removing one is local only.
-  const [sampleDoubts, setSampleDoubts] = useState<DemoDoubtCard[]>(DEMO_DOUBT_CARDS);
   const [doubtsLoading, setDoubtsLoading] = useState(true);
   const [doubtsError, setDoubtsError] = useState<string | null>(null);
 
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   // DEMO_ — sample cards so the erase gesture can be tried while the real
   // Notes list is empty. Removing one is local only; there is nothing saved.
-  const [sampleNotes, setSampleNotes] = useState<DemoNoteCard[]>(DEMO_NOTE_CARDS);
   const [notesLoading, setNotesLoading] = useState(true);
   const [notesError, setNotesError] = useState<string | null>(null);
 
@@ -251,13 +342,13 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
 
   // The sample cards stand in only while nothing real is saved.
   const showingSamples = notes.length === 0 && notesFilter === 'All';
-  const hasErasableNotes = showingSamples ? sampleNotes.length > 0 : notes.length > 0;
+  const hasErasableNotes = notes.length > 0;
   // Same rule as the notes samples: they stand in only while nothing real
   // exists, and never instead of a filtered-empty result — "no Chemistry
   // doubts yet" is a true answer and samples would contradict it.
 
   const showingDoubtSamples = doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
-  const hasErasableDoubts = showingDoubtSamples ? sampleDoubts.length > 0 : doubts.length > 0;
+  const hasErasableDoubts = doubts.length > 0;
 
   const toggleErase = useCallback(() => {
     setEraseMode((on) => {
@@ -283,15 +374,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   // The index is read here rather than inside the state updater: an updater
   // has to be pure, and arming the undo row from inside one silently dropped
   // it on the first removal.
-  const removeSample = useCallback(
-    (id: string) => {
-      const index = sampleNotes.findIndex((n) => n.id === id);
-      if (index < 0) return;
-      armUndo({ kind: 'sample', index, item: sampleNotes[index] });
-      setSampleNotes((prev) => prev.filter((n) => n.id !== id));
-    },
-    [armUndo, sampleNotes]
-  );
 
   const removeNote = useCallback(
     (id: string) => {
@@ -306,15 +388,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     [armUndo, notes]
   );
 
-  const removeDoubtSample = useCallback(
-    (id: string) => {
-      const index = sampleDoubts.findIndex((d) => d.id === id);
-      if (index < 0) return;
-      armUndo({ kind: 'doubtSample', index, item: sampleDoubts[index] });
-      setSampleDoubts((prev) => prev.filter((d) => d.id !== id));
-    },
-    [armUndo, sampleDoubts]
-  );
 
   const removeDoubt = useCallback(
     (id: string) => {
@@ -339,19 +412,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     setUndoState((state) => {
       if (!state) return null;
       // Back at its original index, not appended to the end.
-      if (state.kind === 'sample') {
-        setSampleNotes((prev) => {
-          const next = prev.slice();
-          next.splice(state.index, 0, state.item);
-          return next;
-        });
-      } else if (state.kind === 'doubtSample') {
-        setSampleDoubts((prev) => {
-          const next = prev.slice();
-          next.splice(state.index, 0, state.item);
-          return next;
-        });
-      } else if (state.kind === 'doubt') {
+      if (state.kind === 'doubt') {
         setDoubts((prev) => {
           const next = prev.slice();
           next.splice(state.index, 0, state.item);
@@ -462,6 +523,9 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
 
   /** The chip's own wording, so the empty state says "No Math doubts yet"
    *  rather than the stored key. */
+
+  /** The chip's own wording, so the empty state says "No Math doubts yet"
+   *  rather than the stored key. */
   const doubtsFilterLabel = useMemo(
     () => doubtsFilters.find((c) => c.key === doubtsFilter)?.label ?? doubtsFilter,
     [doubtsFilters, doubtsFilter]
@@ -553,27 +617,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // Cards only: they don't open a note page, and erasing one
                 // removes it from this list and nothing else.
                 showingSamples ? (
-                  <View style={styles.notesRows}>
-                    {sampleNotes.map((card, i) => (
-                      <Erasable
-                        key={card.id}
-                        enabled={eraseMode}
-                        onRemove={() => removeSample(card.id)}>
-                        <View
-                          style={[
-                            styles.noteRow,
-                            eraseMode && styles.noteCardErasing,
-                            i > 0 && styles.noteRowDivided,
-                          ]}>
-                          <Text style={styles.noteRowTitle}>{card.title}</Text>
-                          <Text style={styles.noteRowMeta}>
-                            {card.subject} · {card.time}
-                          </Text>
-                          <Text style={styles.noteRowMeta}>{card.body}</Text>
-                        </View>
-                      </Erasable>
-                    ))}
-                  </View>
+                  <EmptyState kind="notes" scale={scale} verticalScale={verticalScale} />
                 ) : (
                   <View style={styles.stateBlock}>
                     <Text style={styles.stateText}>
@@ -676,40 +720,13 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   <Text style={styles.stateText}>{doubtsError}</Text>
                 </View>
               ) : showingDoubtSamples ? (
-                // DEMO_ — sample cards so the tab can be read before anything
-                // is snapped. Both came off one photo and carry different
-                // subjects, which is the case that makes one card per question
-                // the right unit.
-                <View style={styles.doubtsRows}>
-                  <Text style={styles.doubtsSampleNote}>
-                    Nothing snapped yet. These two came off one photo, and each stands alone so
-                    you can find and erase them separately.
-                  </Text>
-                  {sampleDoubts.map((card) => (
-                    <Erasable
-                      key={card.id}
-                      enabled={eraseMode}
-                      onRemove={() => removeDoubtSample(card.id)}>
-                      <View style={[styles.doubtRow, eraseMode && styles.noteCardErasing]}>
-                        <View style={styles.doubtThumb}>
-                          <PagePlaceholder subject={card.subject} />
-                        </View>
-                        <View style={styles.doubtRowBody}>
-                          <View style={styles.doubtRowMeta}>
-                            <Text style={styles.doubtRowSubject} numberOfLines={1}>
-                              {card.chapter}
-                            </Text>
-                            <Text style={styles.doubtRowTime}>{card.time}</Text>
-                          </View>
-                          <Text style={styles.doubtRowQuestion} numberOfLines={2}>
-                            {card.question}
-                          </Text>
-                        </View>
-                      </View>
-                    </Erasable>
-                  ))}
-                </View>
+                // Nothing snapped and no filter applied: the first day.
+                <EmptyState kind="doubts" scale={scale} verticalScale={verticalScale} />
               ) : visibleDoubts.length === 0 ? (
+                // Filtered or searched to nothing, which is a different answer
+                // and must not be replaced by the first-run invitation — "no
+                // Chemistry doubts yet" is true and the empty state would
+                // contradict it.
                 <View style={styles.stateBlock}>
                   <Text style={styles.stateText}>
                     {doubtsQuery.trim()
