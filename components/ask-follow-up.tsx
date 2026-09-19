@@ -1150,7 +1150,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(28,26,22,.08)',
+    // Twice the dock's own hairline. White on a white screen, the board's
+    // edge is the only thing separating it from the solution behind, and at
+    // 8% it disappeared wherever the shadow was thin — along the top.
+    borderColor: 'rgba(28,26,22,.16)',
     overflow: 'hidden',
     boxShadow: [
       { offsetX: 0, offsetY: 20, blurRadius: 44, spreadDistance: -18, color: 'rgba(28,26,22,0.34)' },
