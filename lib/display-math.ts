@@ -90,6 +90,9 @@ export function splitDisplay(
 /** A word or two joining two equations — "so", "which gives" — is not a line
  *  of prose. It rides on the equation it introduces. */
 const CONNECTIVE = /^[a-z][\w' ]{0,14}$/;
+/** The same, left dangling at the end of the words above: "Reading a point:
+ *  at". The preposition belongs to the equation, not to the line it ends. */
+const TRAILING = /\s+((?:at|of|is|to|by|as|with|so|and|then|where)\s*)$/i;
 
 function tidy(pieces: Piece[]): Piece[] {
   const out: Piece[] = [];
@@ -101,6 +104,13 @@ function tidy(pieces: Piece[]): Piece[] {
       CONNECTIVE.test(last.raw.trim())
     ) {
       out[out.length - 1] = { kind: 'display', raw: `${last.raw.trim()} ${piece.raw}` };
+      return;
+    }
+    const dangling = piece.kind === 'display' && last?.kind === 'text' && TRAILING.exec(last.raw);
+    if (dangling && last) {
+      last.raw = last.raw.slice(0, dangling.index).trim();
+      out.push({ kind: 'display', raw: `${dangling[1].trim()} ${piece.raw}` });
+      if (!last.raw) out.splice(out.length - 2, 1);
       return;
     }
     out.push(piece);

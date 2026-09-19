@@ -775,9 +775,15 @@ function createStyles() {
      * off is the part a tap opens, which is what the chevron has always said.
      */
     questionImage: {
-      width: '100%',
-      height: 240,
-      borderRadius: 12,
+      // Inset from the column and a little shorter than it was: at full width
+      // and 240 the photo was the loudest thing on the page, and the working
+      // is what the page is for. The air on three sides is what makes it read
+      // as a picture OF the question rather than as the page's header.
+      alignSelf: 'center',
+      width: '90%',
+      height: 206,
+      marginTop: 8,
+      borderRadius: 14,
       backgroundColor: PAPER,
       overflow: 'hidden',
     },

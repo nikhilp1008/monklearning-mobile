@@ -57,12 +57,21 @@ describe('splitDisplay', () => {
     ]);
   });
 
+  test('a preposition left dangling goes with its equation', () => {
+    expect(splitDisplay('Reading a point: at $\\sigma=20+3$ N.')).toEqual([
+      { kind: 'text', raw: 'Reading a point:' },
+      { kind: 'display', raw: 'at $\\sigma=20+3$ N' },
+    ]);
+  });
+
   test('pick can lift just the last one', () => {
     const pieces = splitDisplay(
       'So $s(1)=1-6+9=4$ and $s(3)=27-54+27=0$.',
       (k, n) => k === n - 1
     );
     expect(pieces.map((p) => p.kind)).toEqual(['text', 'display']);
-    expect(pieces[0].raw).toBe('So $s(1)=1-6+9=4$ and');
+    // The trailing "and" goes with the equation it introduces.
+    expect(pieces[0].raw).toBe('So $s(1)=1-6+9=4$');
+    expect(pieces[1].raw).toBe('and $s(3)=27-54+27=0$');
   });
 });
