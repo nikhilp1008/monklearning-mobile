@@ -602,7 +602,11 @@ describe('xy_plot area_between corners', () => {
         expect(typeof e).toBe('string');
         expect(e.length).toBeGreaterThan(20);
       }
-      expect(`${name}: ${r.errors.join(' | ')}`).toMatch(/edge|gridline|curve|interval|spacing/);
+      // `slope` and `piece` were already in the twin of this list in
+      // v3-trees.test.tsx; this copy had drifted behind it. A refusal naming
+      // the coefficient to move IS actionable — that is the whole test.
+      expect(`${name}: ${r.errors.join(' | ')}`)
+        .toMatch(/edge|gridline|curve|interval|spacing|piece|domain|slope|readout/);
     }
   });
 

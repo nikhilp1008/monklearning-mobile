@@ -70,8 +70,11 @@ describe('the emitted review sheet', () => {
   test.each([
     ['area',         { mode: 'area', curve: 'parabola', a: -0.5, b: 0.5, c: 2,
                        x_min: 0, x_max: 4, shade_from: 0.5, shade_to: 3.5 }],
+    // y = 2x as a2, NOT as b2: `line` is a*x + c and a non-zero `b` is now
+    // refused outright. This case was copied from the published board and
+    // carried its defect, which is how the new rule found it.
     ['area_between', { mode: 'area_between', curve: 'parabola', a: 1, b: 0, c: 0,
-                       curve2: 'line', a2: 1, b2: 2, c2: 0,
+                       curve2: 'line', a2: 2, b2: 0, c2: 0,
                        x_min: -1, x_max: 3, shade_from: 0, shade_to: 2 }],
     ['area, x_min < 0', { mode: 'area', curve: 'line', a: 1, b: 0, c: 0,
                        x_min: -2, x_max: 3, shade_from: -2, shade_to: 3 }],

@@ -1094,6 +1094,31 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
     }
   }
 
+  /* A `line` CARRYING A NON-ZERO `b` IS ALWAYS AN AUTHORING ERROR.
+   *
+   * `evalCurve`'s line is `a*x + c`; `b` is not read. `parabola` is
+   * `a*x^2 + b*x + c`, so an author reaching for a slope writes it into `b`
+   * by analogy and the widget silently draws a different line.
+   *
+   * Measured across the published corpus on 2026-09-19: EIGHT boards. The
+   * intended y = 2x drew as y = x (computed area 1.0000 against the 4/3 the
+   * caption claimed, confirmed on the simulator); a Q = mcDT board with the
+   * slope 8372 in `b` drew Q = 0 for every DT. Every one of them rendered
+   * perfectly and passed every gate.
+   *
+   * It is refused rather than repaired — `b` could mean a slope the author
+   * wanted or an intercept they misplaced, and guessing between them is how
+   * a wrong line becomes a confident one. The message names the fix, so the
+   * planner's existing repair loop can act on it. */
+  for (const [k, kind, bv] of [['b', curve, b], ['b2', curve2, b2]] as const) {
+    if (kind === 'line' && bv !== 0) {
+      errors.push(
+        `${k} is ${bv} on a line, and a line is a*x + c — ${k} is never read, so ` +
+        `this draws a different line from the one intended. Put the slope in ` +
+        `${k === 'b' ? 'a' : 'a2'} and the intercept in ${k === 'b' ? 'c' : 'c2'}.`);
+    }
+  }
+
   const parsedPieces = readPieces(r.pieces, xMin, xMax);
   errors.push(...parsedPieces.errors);
   const pieces = parsedPieces.pieces;
