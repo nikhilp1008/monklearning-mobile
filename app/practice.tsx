@@ -844,17 +844,24 @@ export default function PracticeScreen() {
                 )}
               </View>
 
-              {/* Ask about THIS working, without leaving it.
-                  "Go deeper with Drona" opened a live session — which took the
-                  student away from the very solution they wanted explained, and
-                  made a one-line question cost a whole classroom. The bar is
-                  the same one Snap a Doubt uses: hold, ask out loud, the answer
-                  arrives as speech over the steps still on screen. */}
-              {question?.question_id ? (
-                <AskFollowUpBar doubtId={question.question_id} surface="practice" />
-              ) : null}
+              {/* Ask about THIS working, without leaving it — standing exactly
+                  where "Go deeper with Drona" stood, with Next still on the
+                  right. That link opened a live session, which took the student
+                  away from the very solution they wanted explained and made a
+                  one-line question cost a whole classroom. The bar is the one
+                  Snap a Doubt uses: hold, ask out loud, the answer arrives as
+                  speech over the steps still on screen.
 
+                  It sits in the row rather than above it because it is content
+                  sized (~196pt, see `styles.block` in ask-follow-up) and never
+                  flexes, so the pair reads as the two things a finished
+                  question offers: ask about this one, or go to the next. */}
               <View style={styles.revealedActions}>
+                {question?.question_id ? (
+                  <AskFollowUpBar doubtId={question.question_id} surface="practice" />
+                ) : (
+                  <View />
+                )}
                 <Pressable style={styles.nextButton} onPress={loadQuestion}>
                   <Text style={styles.nextButtonText}>Next</Text>
                   <ArrowRightIcon size={scale(14)} color={colors.paper} />
@@ -1612,11 +1619,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'space-between',
       marginTop: verticalScale(24),
-    },
-    deeperLinkText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.amberText,
     },
     nextButton: {
       flexDirection: 'row',
