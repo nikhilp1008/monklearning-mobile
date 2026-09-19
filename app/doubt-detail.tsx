@@ -116,17 +116,12 @@ export default function DoubtDetailScreen() {
         index={index}
         onSelect={setIndex}
         onBack={() => router.back()}
-        // The question itself travels with the id, so the sheet can quote the
-        // thing being reported instead of a placeholder. `chapter` is the
-        // doubt's own chapter or concept, whichever the solve carried.
+        // Only the id: the sheet no longer quotes the question — the student
+        // is looking at it on the screen behind.
         onReport={() =>
           router.push({
             pathname: '/report-sheet',
-            params: {
-              doubtId: current?.id ?? params.id ?? '',
-              quote: questions[index]?.text ?? '',
-              context: questions[index]?.chapter ?? '',
-            },
+            params: { doubtId: current?.id ?? params.id ?? '' },
           })
         }
       />

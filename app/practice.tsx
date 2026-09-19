@@ -38,7 +38,6 @@ import {
   submitAnswer,
   takeQueuedQuestion,
 } from '@/lib/practice';
-import { latexToText } from '@/lib/latex-text';
 import { ApiError } from '@/lib/api';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
@@ -579,15 +578,7 @@ export default function PracticeScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/report-sheet',
-                  params: {
-                    questionId: question.question_id,
-                    // As readable text: the sheet quotes with a plain Text,
-                    // which printed "$x$" and "\mathrm{Vm}^{-1}" as typed.
-                    quote: latexToText(question.question_text ?? ''),
-                    // The chapter alone, as the doubt screens pass it — the
-                    // subject is already in this screen's title.
-                    context: question.chapter_name ?? '',
-                  },
+                  params: { questionId: question.question_id },
                 })
               }>
               <FlagIcon size={scale(16)} />

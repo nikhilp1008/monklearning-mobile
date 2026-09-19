@@ -283,7 +283,9 @@ export default function RootLayout() {
             options={{
               headerShown: false,
               presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // NONE, as for textbook-topics: the sheet animates itself, and a
+              // route slide carried the scrim up with it as a sliding edge.
+              animation: 'none',
             }}
           />
           <Stack.Screen name="textbook-chapters" options={{ headerShown: false }} />
