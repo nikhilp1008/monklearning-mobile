@@ -39,7 +39,7 @@ const GREEN = '#1C9B57';
 const GREEN_INK = '#14663A';
 const GREEN_WASH = 'rgba(28,155,87,0.11)';
 
-export type SolutionStepsSize = 'full' | 'compact';
+export type SolutionStepsSize = 'full' | 'compact' | 'board';
 
 const METRICS = {
   full: {
@@ -67,6 +67,24 @@ const METRICS = {
     prose: 14,
     math: 15,
     answer: 16,
+  },
+  /**
+   * The follow-up board: between the two. At `full` the markers and text were
+   * the solution's own size inside a panel two-thirds as tall, and read as
+   * oversized; at `compact` the board was the smallest text on the screen.
+   */
+  board: {
+    rail: 38,
+    railLeft: 11,
+    marker: 24,
+    markerRadius: 7,
+    markerText: 11,
+    stepGap: 24,
+    lineGap: 10,
+    title: 16.5,
+    prose: 15,
+    math: 15.5,
+    answer: 17,
   },
 } as const;
 
@@ -179,6 +197,14 @@ export function SolutionSteps({
 
 function createStyles(size: SolutionStepsSize, rail: boolean) {
   const m = METRICS[size];
+  /**
+   * Maths is set a step heavier than the prose so a student can scan a step
+   * for its numbers. On the follow-up board that step is a medium, not a
+   * semibold: a spoken follow-up is mostly equations, and at semibold nearly
+   * every line of it came out bold, which is emphasis on everything and so on
+   * nothing. Darker ink still sets the maths apart from the words.
+   */
+  const mathFace = size === 'board' ? 'Onest_500Medium' : 'Onest_600SemiBold';
   return StyleSheet.create({
     steps: {
       position: 'relative',
@@ -253,7 +279,7 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
      * line, which made one formula look like two different things.
      */
     inlineMath: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: mathFace,
       color: INK,
     },
     /**
@@ -278,7 +304,7 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       paddingVertical: size === 'full' ? 4 : 3,
     },
     mathText: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: mathFace,
       fontSize: m.math,
       lineHeight: m.math * 1.6,
       color: INK,

@@ -5,15 +5,19 @@ import {
   useAudioRecorder,
 } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
+  runOnUI,
+  scrollTo,
+  useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
+  useScrollOffset,
   useSharedValue,
-  withRepeat,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -33,7 +37,6 @@ import {
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
-import { colors } from '@/constants/brand';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 /**
@@ -70,15 +73,18 @@ import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/hapt
  */
 
 /**
- * How much of the screen the board may take, and the air under it.
+ * How much of the screen the board takes — always, not at most. It used to
+ * size to its content up to this cap, so the first answer opened a short
+ * board and the second made it grow: the panel changed shape under the
+ * student every time they asked. One height, and the thread scrolls inside.
  *
  * It was 44% with 10pt between the board and the buttons, which read as the
  * board sitting ON the bar rather than floating above it — and on Practice,
- * where Next shares the row, as a crowded stack. 56% gives a three-step answer
- * room to be read without scrolling inside the board, and 18pt lets the two
+ * where Next shares the row, as a crowded stack. 60% gives a three-step answer
+ * room to be read without scrolling inside the board, and 16pt lets the
  * buttons below stand clear of it.
  */
-const BOARD_SHARE = 0.62;
+const BOARD_SHARE = 0.6;
 
 /** How far the board reaches past the bar's own gutters on each side. The
  *  bar row is inset for its buttons; the board is a page of working, and at
@@ -742,32 +748,46 @@ export function AskFollowUpBar({
    * brings its heading to the top, so the student reads the answer from its
    * first line while the voice starts on it. After that the scroll is theirs.
    */
-  const boardScroll = useRef<ScrollView>(null);
+  const boardScroll = useAnimatedRef<Animated.ScrollView>();
+  const scrolled = useScrollOffset(boardScroll);
+  /** Where the glide is taking the board, driven on the UI thread: the
+   *  native animated scroll is a short fixed tween, and this is meant to feel
+   *  like the page settling rather than being yanked. -1 is at rest. */
+  const glideTo = useSharedValue(-1);
+  useAnimatedReaction(
+    () => glideTo.value,
+    (y) => {
+      if (y >= 0) scrollTo(boardScroll, 0, y, false);
+    }
+  );
+  /** The student's own drag ends any glide in progress — the scroll is theirs. */
+  const stopGlide = () => {
+    cancelAnimation(glideTo);
+    glideTo.value = -1;
+  };
   const shownTurn = useRef(0);
   const onSectionLayout = (id: number, y: number) => {
     if (id <= shownTurn.current) return;
     shownTurn.current = id;
-    boardScroll.current?.scrollTo({ y: Math.max(0, y - 6), animated: true });
+    const target = Math.max(0, y - 6);
+    runOnUI(() => {
+      'worklet';
+      glideTo.value = scrolled.value;
+      glideTo.value = withTiming(
+        target,
+        { duration: 560, easing: Easing.bezier(0.25, 0.8, 0.25, 1) },
+        () => {
+          glideTo.value = -1;
+        }
+      );
+    })();
   };
+  /** The scroll area's own height, so the newest section can be made tall
+   *  enough to be scrolled up to the top however short its answer is. */
+  const [viewport, setViewport] = useState(0);
   const showPending =
     boardOpen && thinking && pendingTurn !== null && !thread.some((t) => t.id === pendingTurn);
   const sections = thread.length + (showPending ? 1 : 0);
-
-  /** The marigold dot by the title breathes while the teacher is answering. */
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value =
-      thinking || speaking
-        ? withRepeat(
-            withSequence(
-              withTiming(0.35, { duration: 700, easing: Easing.inOut(Easing.ease) }),
-              withTiming(1, { duration: 700, easing: Easing.inOut(Easing.ease) })
-            ),
-            -1
-          )
-        : withTiming(1, { duration: 200 });
-  }, [thinking, speaking, pulse]);
-  const dotStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
   return (
     <View style={styles.block}>
@@ -788,12 +808,11 @@ export function AskFollowUpBar({
       */}
       {boardMounted && (
         <Animated.View
-          style={[styles.board, { maxHeight: Math.round(windowHeight * BOARD_SHARE) }, boardStyle]}>
+          style={[styles.board, { height: Math.round(windowHeight * BOARD_SHARE) }, boardStyle]}>
           <GestureDetector gesture={boardPan}>
             <View style={styles.boardHead}>
               <View style={styles.boardGrab} />
               <View style={styles.boardTitleRow}>
-                <Animated.View style={[styles.boardDot, dotStyle]} />
                 <Text style={styles.boardTitle}>Follow-up</Text>
                 {/* A cross, not the word Done. "Done" claims the student
                     finished something; this board is an answer they are
@@ -809,15 +828,25 @@ export function AskFollowUpBar({
               </View>
             </View>
           </GestureDetector>
-          <ScrollView
+          <Animated.ScrollView
             ref={boardScroll}
             style={styles.boardBody}
             contentContainerStyle={styles.boardContent}
+            onLayout={(e) => setViewport(Math.round(e.nativeEvent.layout.height))}
+            onScrollBeginDrag={stopGlide}
             showsVerticalScrollIndicator={false}>
             {thread.map((turn, index) => (
               <View
                 key={turn.id}
-                style={index > 0 ? styles.turnAfter : null}
+                style={[
+                  index > 0 ? styles.turnAfter : null,
+                  // The newest answer is always tall enough to sit at the top
+                  // of the board, so the glide to it can land its heading
+                  // there instead of stopping short at the end of the content.
+                  index === thread.length - 1 && !showPending && viewport
+                    ? { minHeight: viewport - 20 }
+                    : null,
+                ]}
                 onLayout={(e) => onSectionLayout(turn.id, e.nativeEvent.layout.y)}>
                 {sections > 1 ? <TurnLabel n={index + 1} /> : null}
                 <BoardRail steps={turn.steps} />
@@ -826,7 +855,10 @@ export function AskFollowUpBar({
             {showPending && pendingTurn !== null ? (
               <View
                 key={pendingTurn}
-                style={thread.length > 0 ? styles.turnAfter : null}
+                style={[
+                  thread.length > 0 ? styles.turnAfter : null,
+                  viewport ? { minHeight: viewport - 20 } : null,
+                ]}
                 onLayout={(e) => onSectionLayout(pendingTurn, e.nativeEvent.layout.y)}>
                 <TurnLabel n={thread.length + 1} />
                 <View style={styles.pendingLines}>
@@ -835,7 +867,7 @@ export function AskFollowUpBar({
                 </View>
               </View>
             ) : null}
-          </ScrollView>
+          </Animated.ScrollView>
         </Animated.View>
       )}
 
@@ -989,9 +1021,9 @@ function BoardRail({ steps }: { steps: FollowUpStep[] }) {
     () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
     [steps]
   );
-  // Full size, the solution's own: the board is where the working is read,
-  // and the compact size made it the smallest text on the screen.
-  return <SolutionSteps steps={rail} size="full" />;
+  // Its own size, between the two: `full` markers and text read as oversized
+  // in a panel this height, and `compact` was the smallest text on screen.
+  return <SolutionSteps steps={rail} size="board" />;
 }
 
 /** Heads each answer once there is more than one, so a scroll through the
@@ -1117,9 +1149,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(28,26,22,0.14)',
   },
-  boardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 12 },
-  /** The brand's focus dot — the one warm mark on the board. */
-  boardDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.marigold },
+  boardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   boardTitle: { flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: 17, letterSpacing: -0.2, color: INK },
   /** The report sheet's close: a hairline disc, a target worth tapping. */
   boardClose: {
@@ -1132,7 +1162,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boardClosePressed: { backgroundColor: 'rgba(28,26,22,0.05)' },
-  boardBody: { flexGrow: 0 },
+  boardBody: { flex: 1 },
   boardContent: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 26 },
   /** Each later answer starts below a hairline, with room above it. */
   turnAfter: {
