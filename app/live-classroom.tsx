@@ -73,6 +73,7 @@ import {
 } from '@/lib/drona-voice-client';
 import { BoardBlockView } from '@/components/board-text';
 import { apiFetch } from '@/lib/api';
+import { REPORT_REASONS, sendReport as postReport } from '@/lib/reports';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
 import { setBoardFrame, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
@@ -107,7 +108,8 @@ const BOARD_RIGHT_GUTTER = 116;
  */
 const CARD_CEILING_MS = 30000;
 
-const REPORT_REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
+// Imported rather than redeclared: this file used to hold its own identical
+// copy, which is how two surfaces drift into reasons that almost group.
 /** Half the rail's own height, so it can be centred with a transform. */
 /**
  * Half the rail's height, for centring it. 84, because 8b's pill is 168 tall:
@@ -989,6 +991,9 @@ export default function LiveClassroomScreen() {
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string | null>('Wrong answer');
   const [toastVisible, setToastVisible] = useState(false);
+  const [reportSending, setReportSending] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportNotes, setReportNotes] = useState('');
   /**
    * Shared values, not state. These are written on every scroll event, and as
    * state that meant three setState calls per frame at scrollEventThrottle={16}
@@ -1493,13 +1498,51 @@ export default function LiveClassroomScreen() {
 
   const closeReport = () => setReportOpen(false);
 
-  const sendReport = () => {
-    // Report submission isn't wired to a real endpoint yet — no
-    // session-report API was part of this build's scope. UI-only for now.
-    setReportOpen(false);
-    setToastVisible(true);
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
+  /**
+   * Actually send it.
+   *
+   * This used to close the drawer and show "Report sent. Drona's team will
+   * check this class." without making a single request. Students were told
+   * their report had been received; none ever was, and the dashboard showed
+   * live classes as the one surface with no problems.
+   *
+   * The toast now waits for the server. A failure says so — a thank-you for
+   * something that did not send is the bug being fixed, and repeating it in a
+   * nicer shape would be worse than an error message.
+   */
+  const sendReport = async () => {
+    if (reportSending) return;
+    setReportSending(true);
+    setReportError(null);
+    try {
+      await postReport({
+        surface: 'live',
+        reason: selectedReason,
+        comment: reportNotes.trim() || null,
+        sessionId: sessionId || null,
+        subject: params.subject || null,
+        chapter: params.chapterTitle || null,
+        // What was on screen when they hit report. For a live class this is
+        // most of the diagnosis: it says what Drona actually said, which no
+        // id recovers once the session transcript ages out.
+        quote: caption || null,
+        context: {
+          card_phase: cardPhase,
+          chapter_id: params.chapterId ?? null,
+          subtopic: params.subtopic ?? null,
+        },
+      });
+      setReportSending(false);
+      setReportOpen(false);
+      setToastVisible(true);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
+    } catch (err) {
+      setReportSending(false);
+      setReportError(
+        err instanceof Error ? err.message : 'Could not send that. Try again.'
+      );
+    }
   };
 
   /**
@@ -2058,14 +2101,24 @@ export default function LiveClassroomScreen() {
                 style={styles.rnotesInput}
                 placeholder="Anything else? (optional)"
                 placeholderTextColor={colors.faint}
+                value={reportNotes}
+                onChangeText={setReportNotes}
+                editable={!reportSending}
                 multiline
               />
             </View>
 
             <View style={styles.rfooter}>
-              <Text style={styles.rfooterHint}>Reporting won&apos;t interrupt your class.</Text>
-              <Pressable style={styles.rsendButton} onPress={sendReport}>
-                <Text style={styles.rsendButtonText}>Send report</Text>
+              <Text style={styles.rfooterHint}>
+                {reportError || 'Reporting won\u2019t interrupt your class.'}
+              </Text>
+              <Pressable
+                style={[styles.rsendButton, reportSending && { opacity: 0.6 }]}
+                disabled={reportSending}
+                onPress={sendReport}>
+                <Text style={styles.rsendButtonText}>
+                  {reportSending ? 'Sending\u2026' : reportError ? 'Try again' : 'Send report'}
+                </Text>
               </Pressable>
             </View>
           </Animated.View>

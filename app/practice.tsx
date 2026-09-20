@@ -886,6 +886,34 @@ export default function PracticeScreen() {
                 )}
               </View>
 
+              {/* Report, AFTER the solution and not before it.
+                  This screen deliberately had no Report button: the note by the
+                  give-up control explains that it had nowhere to post, and that
+                  a button which silently does nothing is worse than an absent
+                  one — which is exactly what the live classroom's own report
+                  drawer had quietly become. It has somewhere to post now
+                  (POST /reports), so it can exist.
+                  Here rather than in the pinned bar because the complaint is
+                  almost always about the WORKING just above it, and because
+                  that bar is already carrying the two things a finished
+                  question offers. */}
+              {question?.question_id && (
+                <Pressable
+                  hitSlop={10}
+                  style={styles.reportButton}
+                  onPress={() => router.push({
+                    pathname: '/report-sheet',
+                    params: {
+                      surface: 'practice',
+                      questionId: question.question_id,
+                      chapter: question.chapter_name ?? '',
+                      quote: question.question_text ?? '',
+                    },
+                  })}>
+                  <Text style={styles.reportText}>Report a mistake</Text>
+                </Pressable>
+              )}
+
             </>
           )}
             </>
@@ -1613,6 +1641,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(40),
       justifyContent: 'center',
       paddingHorizontal: scale(4),
+    },
+    // Quiet on purpose: there for the student who needs it, not competing with
+    // Next for the one who doesn't.
+    reportButton: {
+      alignSelf: 'center',
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(8),
+    },
+    reportText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12.5),
+      color: colors.faint,
     },
     giveUpText: {
       fontFamily: 'Onest_600SemiBold',

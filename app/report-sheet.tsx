@@ -8,12 +8,22 @@ import Svg, { Path } from 'react-native-svg';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { reportDoubt } from '@/lib/doubts';
+import { REPORT_REASONS, sendReport as postReport, type ReportSurface } from '@/lib/reports';
 
-const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
+// One list, shared with live-classroom.tsx via lib/reports.ts. They used to be
+// two identical literals in two files, which is how a vocabulary drifts into
+// reasons that almost group on the dashboard.
+const REASONS = [...REPORT_REASONS];
 
 export default function ReportSheetScreen() {
-  const params = useLocalSearchParams<{ context?: string; quote?: string; doubtId?: string }>();
+  const params = useLocalSearchParams<{
+    context?: string; quote?: string; doubtId?: string;
+    /** Which part of the app is reporting. Defaults to 'snap' so the two
+     *  original callers keep working without passing anything new. */
+    surface?: ReportSurface;
+    sessionId?: string; questionId?: string;
+    subject?: string; chapter?: string;
+  }>();
   /**
    * THE QUOTE IS THE QUESTION BEING REPORTED, and until now it was neither.
    *
@@ -40,18 +50,34 @@ export default function ReportSheetScreen() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // This screen is reused from snap-solved.tsx and doubt-detail.tsx, both of
-  // which always pass a real doubtId — live-classroom.tsx has its own
-  // separate, in-file report drawer for session mistakes, not this screen.
-  const canSubmit = !!params.doubtId && !sending;
+  // Reused from snap-solved.tsx and doubt-detail.tsx (which pass a doubtId)
+  // and now from practice.tsx (which passes a questionId). A report needs
+  // something to be about, but WHICH something depends on the surface.
+  const surface: ReportSurface = params.surface || 'snap';
+  const target = params.doubtId || params.questionId || params.sessionId;
+  const canSubmit = !!target && !sending;
 
   async function sendReport() {
-    if (!params.doubtId || sending) return;
+    if (!target || sending) return;
     setSending(true);
     setSendError(null);
     try {
-      const comment = [selectedReason, notes.trim()].filter(Boolean).join(': ');
-      await reportDoubt(params.doubtId, comment || undefined);
+      // The reason travels as a REASON now, not as a prefix on the comment.
+      // It used to be `[reason, notes].join(': ')`, which meant the one
+      // question worth asking — "which of the five, and where?" — needed a
+      // LIKE over every row and broke the moment a student's own notes began
+      // with the word "Wrong".
+      await postReport({
+        surface,
+        reason: selectedReason || null,
+        comment: notes.trim() || null,
+        doubtId: params.doubtId || null,
+        sessionId: params.sessionId || null,
+        questionId: params.questionId || null,
+        subject: params.subject || null,
+        chapter: params.chapter || null,
+        quote,
+      });
       router.back();
     } catch (err) {
       setSendError(err instanceof Error ? err.message : 'Could not send that report. Try again.');
