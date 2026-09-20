@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
+import { clearPass } from '@/lib/pass';
 import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
 import { clearProgressCache } from '@/lib/progress';
@@ -126,6 +127,8 @@ export async function signOut(): Promise<void> {
     clearProofState(),
     clearTodayPlan(),
     clearPreferences(),
+    // A pass belongs to the student who bought it, not to the phone.
+    clearPass(),
   ]);
 }
 

@@ -1,10 +1,12 @@
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
-import { useMemo } from 'react';
 import { useScale } from '@/constants/scale';
+import { PASS_NAME, passStatus, type PassStatus } from '@/lib/pass';
 
 /**
  * Your plan.
@@ -31,47 +33,19 @@ import { useScale } from '@/constants/scale';
 const GREEN = '#157A45';
 const GREEN_DOT = '#1C9B57';
 
-interface Purchase {
-  id: string;
-  /** What was bought, e.g. "JEE Main · 6 months". */
-  title: string;
-  paidOn: string;
-  amount: string;
-  invoiceNo: string;
-}
-
-interface PlanState {
-  track: string;
-  duration: string;
-  startedOn: string;
-  endsOn: string;
-  daysLeft: number;
-  totalDays: number;
-  amount: string;
-  purchases: Purchase[];
-}
-
 /**
- * PLACEHOLDER — there is no plans/purchases endpoint on the API yet (the
- * router table is doubts, drona, notes, practice, progress and nothing else),
- * so this screen renders from a fixed object. The amounts here are NOT
- * confirmed pricing: monklearning.com was unreachable when this was built, so
- * every figure below is waiting on the real price list. Replace this whole
- * object with the API response — the components read nothing else.
+ * WHAT THIS READS, AND WHAT IT STILL CANNOT.
+ *
+ * It was a fixed object: a six-month plan bought on 2 June with 107 days left
+ * and two invoices, none of it true for anybody. It now reads the student's
+ * real pass from `lib/pass` — what they took, when it started, when it ends,
+ * how long is left, and the code that made it free.
+ *
+ * PAYMENTS ARE NOT LISTED, because there have been none. No provider is wired
+ * and every pass so far exists because a promo code brought a price to zero;
+ * a list of invoices would be a list of fictions. The block returns when the
+ * server has purchases to return.
  */
-const PLAN: PlanState = {
-  track: 'JEE Main',
-  duration: '6 months',
-  startedOn: '2 Jun 2026',
-  endsOn: '2 Dec 2026',
-  daysLeft: 107,
-  totalDays: 183,
-  amount: '₹—',
-  purchases: [
-    { id: 'p1', title: 'JEE Main · 6 months', paidOn: '2 Jun 2026', amount: '₹—', invoiceNo: 'ML-2026-0412' },
-    { id: 'p2', title: 'Day Pass', paidOn: '19 May 2026', amount: '₹249', invoiceNo: 'ML-2026-0288' },
-  ],
-};
 
 const INCLUDED = [
   'Live classes with Drona or Vedha, in English or Hinglish',
@@ -80,59 +54,99 @@ const INCLUDED = [
   'Every note and doubt you save, kept and exportable',
 ];
 
+const asDate = (d: Date) =>
+  d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
 export default function SubscriptionScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const elapsed = Math.max(0, Math.min(1, 1 - PLAN.daysLeft / PLAN.totalDays));
-  const expiringSoon = PLAN.daysLeft <= 14;
+  const [status, setStatus] = useState<PassStatus | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    passStatus().then((s) => !cancelled && setStatus(s));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const active = status?.state === 'active' ? status : null;
+  const record = status && status.state !== 'none' ? status.record : null;
+  const endsAt = status && status.state !== 'none' ? status.endsAt : null;
+  const totalDays = record
+    ? Math.max(1, Math.round((endsAt!.getTime() - new Date(record.startedAt).getTime()) / 86400000))
+    : 1;
+  const daysLeft = active?.daysLeft ?? 0;
+  const elapsed = Math.max(0, Math.min(1, 1 - daysLeft / totalDays));
+  const expiringSoon = !!active && daysLeft <= 3;
 
   return (
     <SettingsPage title="Your plan">
       {/* What you have, and how long it has left. */}
       <View style={styles.planCard}>
         <View style={styles.planTopRow}>
-          <View style={styles.statusPill}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>ACTIVE</Text>
+          <View style={[styles.statusPill, !active && styles.statusPillOff]}>
+            <View style={[styles.statusDot, !active && styles.statusDotOff]} />
+            <Text style={[styles.statusText, !active && styles.statusTextOff]}>
+              {active ? 'ACTIVE' : status?.state === 'expired' ? 'ENDED' : 'NO PASS'}
+            </Text>
           </View>
-          <Text style={styles.daysLeft}>
-            {PLAN.daysLeft} <Text style={styles.daysLeftUnit}>days left</Text>
-          </Text>
+          {active && (
+            <Text style={styles.daysLeft}>
+              {/* Under a day is said in hours: "1 day left" on a pass with two
+                  hours in it is the kind of thing a student plans around. */}
+              {active.daysLeft > 1 ? active.daysLeft : active.hoursLeft}{' '}
+              <Text style={styles.daysLeftUnit}>
+                {active.daysLeft > 1 ? 'days left' : 'hours left'}
+              </Text>
+            </Text>
+          )}
         </View>
 
-        <Text style={styles.planTitle}>{PLAN.track}</Text>
-        <Text style={styles.planDuration}>{PLAN.duration} of full access</Text>
+        <Text style={styles.planTitle}>
+          {record ? PASS_NAME[record.kind] : 'No pass yet'}
+        </Text>
+        <Text style={styles.planDuration}>
+          {record
+            ? `${record.promo ? `${record.promo} · ` : ''}JEE Main and NEET UG, both covered`
+            : 'Take one to start classes, snaps and practice'}
+        </Text>
 
         {/* One bar, because a date alone doesn't tell you where you are in it. */}
         <View style={styles.track}>
           <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
         </View>
 
-        <View style={styles.datesRow}>
-          <View>
-            <Text style={styles.dateLabel}>STARTED</Text>
-            <Text style={styles.dateValue}>{PLAN.startedOn}</Text>
+        {!!record && !!endsAt && (
+          <View style={styles.datesRow}>
+            <View>
+              <Text style={styles.dateLabel}>STARTED</Text>
+              <Text style={styles.dateValue}>{asDate(new Date(record.startedAt))}</Text>
+            </View>
+            <View style={styles.dateRight}>
+              <Text style={styles.dateLabel}>{active ? 'ENDS' : 'ENDED'}</Text>
+              <Text style={styles.dateValue}>{asDate(endsAt)}</Text>
+            </View>
           </View>
-          <View style={styles.dateRight}>
-            <Text style={styles.dateLabel}>ENDS</Text>
-            <Text style={styles.dateValue}>{PLAN.endsOn}</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       {/* The thing students get wrong about one-time plans, said before they
           have to wonder about it. */}
       <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
         <Text style={styles.noticeText}>
-          {expiringSoon
-            ? `Your access ends on ${PLAN.endsOn}. Nothing renews on its own. Extend it when you're ready.`
-            : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'}
+          {active
+            ? expiringSoon
+              ? `Your access ends on ${asDate(endsAt!)}. Nothing renews on its own — take another when you're ready.`
+              : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'
+            : 'Your notes and doubts stay yours either way. Only new classes, snaps and practice wait on a pass.'}
         </Text>
       </View>
 
-      <Pressable style={styles.primaryButton} onPress={() => {}}>
-        <Text style={styles.primaryButtonText}>Extend my access</Text>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/plans')}>
+        <Text style={styles.primaryButtonText}>
+          {active ? 'Extend my access' : 'Get a pass'}
+        </Text>
       </Pressable>
 
       <Text style={styles.overline}>WHAT&apos;S INCLUDED</Text>
@@ -145,30 +159,8 @@ export default function SubscriptionScreen() {
         ))}
       </View>
 
-      {/* Receipts. GST invoices matter to parents paying for this. */}
-      <Text style={styles.overline}>PAYMENTS</Text>
-      <View style={styles.card}>
-        {PLAN.purchases.map((purchase, i) => (
-          <View
-            key={purchase.id}
-            style={[styles.payRow, i === PLAN.purchases.length - 1 && styles.rowLast]}>
-            <View style={styles.payTextBlock}>
-              <Text style={styles.payTitle}>{purchase.title}</Text>
-              <Text style={styles.paySub}>
-                {purchase.paidOn} · {purchase.invoiceNo}
-              </Text>
-            </View>
-            <Text style={styles.payAmount}>{purchase.amount}</Text>
-            <Pressable style={styles.invoiceButton} onPress={() => {}}>
-              <DownloadIcon size={scale(13)} />
-              <Text style={styles.invoiceButtonText}>Invoice</Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-
       <Text style={styles.footNote}>
-        Invoices include GST and are emailed to you as well. Questions about a payment? Write to{' '}
+        Questions about a payment? Write to{' '}
         <Text
           style={styles.link}
           onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
@@ -191,20 +183,6 @@ function TickIcon({ size }: { size: number }) {
         d="M4 12.5 9.5 18 20 6.5"
         stroke={GREEN}
         strokeWidth={2.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function DownloadIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3v12M7 11l5 5 5-5M4 20h16"
-        stroke={colors.ink}
-        strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -248,6 +226,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       letterSpacing: scale(0.85),
       color: GREEN,
     },
+    /** Ended, or never taken: the same pill, off. Grey would read as broken;
+     *  this is simply the state without the green. */
+    statusPillOff: { backgroundColor: 'rgba(28,26,22,.06)' },
+    statusDotOff: { backgroundColor: colors.faint },
+    statusTextOff: { color: colors.slate },
     daysLeft: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(15),

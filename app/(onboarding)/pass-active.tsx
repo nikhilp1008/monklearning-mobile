@@ -28,6 +28,7 @@ import {
   type PassKey,
 } from '@/constants/onboarding';
 import { revalidateAuthState } from '@/lib/auth';
+import { startPass } from '@/lib/pass';
 import { pushProfile } from '@/lib/profile';
 import { hapticTicked } from '@/lib/haptics';
 
@@ -69,6 +70,11 @@ export default function PassActiveScreen() {
     setSaving(true);
     setError(null);
     try {
+      // The pass's clock starts here, where it was actually bought — not at
+      // first use, and not on a screen that only displayed the end date and
+      // forgot it. Before the profile write, because this is the one thing
+      // that cannot be recovered from the server on the next launch.
+      await startPass(passId, params.promo ?? null);
       await pushProfile();
     } catch {
       // Do NOT wave them through. Without this write there is no

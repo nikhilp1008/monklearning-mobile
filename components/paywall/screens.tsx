@@ -17,11 +17,17 @@ import {
   rupees,
   useDesignScale,
 } from '@/constants/onboarding';
+import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
 import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
 /**
- * THE PAYWALL — designs only. Nothing imports these, the app's gate is
- * untouched, and no payment provider exists behind the button.
+ * THE PAYWALL — shown when a pass has ended, and the way back in.
+ *
+ * It was designs only. It is wired now: `app/plans.tsx` renders it when
+ * `lib/pass` says the student has no live pass, and `onComplete` starts the
+ * new one. What it still cannot do is take money — there is no provider — so
+ * `pass.tsx`'s honesty is back, exactly as the note at the footer asked:
+ * the button stays dead until a promo code brings the total to zero.
  *
  * IT IS THE PASS SCREEN, WITH FOUR PLANS. Everything structural here is
  * lifted from `app/(onboarding)/pass.tsx`: the 30pt gutters, the 22.5pt medium
@@ -92,19 +98,35 @@ function Head({ title, ds, fs, tracking }: { title: string; ds: S; fs: S; tracki
  * the one thing they are meant to differ on — whether the screen makes a
  * recommendation before the rows.
  */
-function Paywall({ lead }: { lead?: (hero: Plan) => React.ReactNode }) {
+type Bought = { kind: PassKind; promo: string };
+
+function Paywall({
+  lead,
+  onComplete,
+}: {
+  lead?: (hero: Plan) => React.ReactNode;
+  /** What the screen is for: the pass the student just took, and the code
+   *  that made it free. Absent in the design previews. */
+  onComplete?: (bought: Bought) => void;
+}) {
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
-  const [pick, setPick] = useState<Plan['id']>(BEST);
+  /** The week at the foot of the page is a fifth thing to buy, so it is a
+   *  fifth thing to pick — the footer reads from one selection, not two. */
+  const [pick, setPick] = useState<Plan['id'] | 'week'>(BEST);
   /** Bumped on every press so the wash replays on a re-tap. */
   const [token, setToken] = useState(0);
   const [promo, setPromo] = useState('');
   const [promoOpen, setPromoOpen] = useState(false);
 
-  const plan = PLANS.find((p) => p.id === pick)!;
-  const discount = promoDiscount(promo, plan.price);
-  const total = Math.max(0, plan.price - discount);
+  const plan = PLANS.find((p) => p.id === pick) ?? PLANS[0];
+  const week = pick === 'week';
+  const price = week ? WINBACK.now : plan.price;
+  const name = week ? WINBACK.name : plan.name;
+  const discount = promoDiscount(promo, price);
+  const total = Math.max(0, price - discount);
+  const free = total === 0 && discount > 0;
 
   return (
     <View style={styles.screen}>
@@ -202,8 +224,17 @@ function Paywall({ lead }: { lead?: (hero: Plan) => React.ReactNode }) {
             <Text style={styles.offerLine}>
               Seven more days with your teacher, at ₹200 off. Nothing renews.
             </Text>
-            <PressableScale style={styles.promoLink} hitSlop={10} onPress={() => {}}>
-              <Text style={styles.promoLinkText}>Get 7 days</Text>
+            <PressableScale
+              style={styles.promoLink}
+              hitSlop={10}
+              onPress={() => {
+                setPick('week');
+                setToken((n) => n + 1);
+                setPromoOpen(true);
+              }}>
+              <Text style={[styles.promoLinkText, week && styles.promoLinkOn]}>
+                {week ? '7 days selected' : 'Get 7 days'}
+              </Text>
               <ArrowGlyph size={ds(13)} />
             </PressableScale>
           </View>
@@ -222,12 +253,23 @@ function Paywall({ lead }: { lead?: (hero: Plan) => React.ReactNode }) {
             gateway exists must put pass.tsx's honesty back.
           */}
           <ObButton
-            label={total === 0 ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
-            trailing={plan.name}
+            label={free ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
+            trailing={name}
             withArrow
-            onPress={() => {}}
+            // Dead until a code brings the total to zero: there is no
+            // provider, and a live "Pay ₹43,999" that silently does nothing
+            // is worse than a button that plainly waits.
+            disabled={!onComplete || !free}
+            onPress={() => {
+              if (!onComplete || !free) return;
+              onComplete({ kind: week ? 'week' : (plan.id as PassKind), promo });
+            }}
           />
-          <Text style={styles.footNote}>One payment. Nothing renews on its own.</Text>
+          <Text style={styles.footNote}>
+            {free
+              ? 'One payment. Nothing renews on its own.'
+              : 'Payments open soon. A promo code works today.'}
+          </Text>
         </View>
       </SafeAreaView>
     </View>
@@ -238,8 +280,8 @@ function Paywall({ lead }: { lead?: (hero: Plan) => React.ReactNode }) {
  * VARIANT A — THE LEDGER. Four equal rows, no recommendation. The calmer of
  * the two and the closer sibling of "Choose a pass".
  */
-export function PaywallLedger() {
-  return <Paywall />;
+export function PaywallLedger({ onComplete }: { onComplete?: (b: Bought) => void }) {
+  return <Paywall onComplete={onComplete} />;
 }
 
 /**
@@ -247,8 +289,8 @@ export function PaywallLedger() {
  * made above them. The panel argues; the rows choose. It does not select, so
  * the screen has exactly one selector and it is the app's own.
  */
-export function PaywallLead() {
-  return <Paywall lead={(hero) => <Lead hero={hero} />} />;
+export function PaywallLead({ onComplete }: { onComplete?: (b: Bought) => void }) {
+  return <Paywall lead={(hero) => <Lead hero={hero} />} onComplete={onComplete} />;
 }
 
 function Lead({ hero }: { hero: Plan }) {
@@ -303,7 +345,16 @@ function Lead({ hero }: { hero: Plan }) {
  * different. The motion is imported rather than copied — see
  * `components/confirm-motion.tsx`.
  */
-export function PaywallSuccess({ planId = BEST }: { planId?: Plan['id'] }) {
+export function PaywallSuccess({
+  kind = BEST,
+  paid = 0,
+}: {
+  /** What was actually taken — a plan, or the week at the foot of the page. */
+  kind?: PassKind;
+  /** What it actually cost. Zero, while a promo code is the only way through:
+   *  a receipt reading ₹43,999 for a free pass is a receipt that lies. */
+  paid?: number;
+}) {
   const { ds, fs, tracking } = useDesignScale();
   // Same moment as the pass screen's receipt, so the same Success tap.
   useEffect(() => {
@@ -311,19 +362,23 @@ export function PaywallSuccess({ planId = BEST }: { planId?: Plan['id'] }) {
     return () => clearTimeout(t);
   }, []);
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
-  const plan = PLANS.find((p) => p.id === planId)!;
-
-  const till = useMemo(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + plan.months);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  }, [plan.months]);
+  /** Read off the same clock the rest of the app reads, rather than counted
+   *  again here — two answers to "when does this end" is one too many. */
+  const till = useMemo(
+    () =>
+      endsAtFor({ kind, startedAt: new Date().toISOString() }).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }),
+    [kind]
+  );
 
   const rows: [string, string][] = [
-    ['Plan', plan.name],
+    ['Plan', PASS_NAME[kind]],
     ['Covers', 'JEE Main + NEET UG'],
     ['Active till', till],
-    ['Paid', rupees(plan.price)],
+    ['Paid', rupees(paid)],
   ];
 
   return (
@@ -392,6 +447,8 @@ function createStyles(ds: S, fs: S, tracking: T) {
       paddingVertical: ds(6),
     },
     promoLinkText: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.link },
+    /** The week, once it is the thing being bought. */
+    promoLinkOn: { color: ob.ink },
     promoField: {
       borderRadius: ds(14),
       borderWidth: 1.5,
