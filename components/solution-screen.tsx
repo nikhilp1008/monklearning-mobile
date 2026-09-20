@@ -2,6 +2,14 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -81,21 +89,28 @@ const QUESTION_MAX_LINES = 5;
  * Rotation is positional rather than random: random repeats, and the same
  * phrase twice in a row is exactly what makes a screen look stuck.
  */
-const PENDING_COPY = [
-  'working it out…',
-  'thinking it through…',
-  'finding the method…',
-  'setting it up…',
-  'working through it…',
-  'choosing an approach…',
-  'putting it in order…',
-  'getting it down…',
-  'still going…',
-  'nearly there…',
+/**
+ * WHAT IS HAPPENING, CONTINUED FROM THE SCAN SCREEN.
+ *
+ * This was ten lowercase fragments on a 2.5s carousel — "working it out…",
+ * "still going…", "nearly there…" — which is filler dressed as status. Worse,
+ * it restarted the story: the scan screen a second earlier was on "Working out
+ * the method", in sentence case, and the handover threw that away for a
+ * different voice saying the same thing.
+ *
+ * These are the back half of `SNAP_STAGES`, in the same words, and they move
+ * FORWARD ONLY: the line advances and then holds on the last one, the way the
+ * scan screen holds. A status that loops back to its first line tells a
+ * student the work restarted.
+ */
+const PENDING_STAGES = [
+  'Working out the method',
+  'Writing the steps',
+  'Checking the answer',
 ] as const;
 
 /** How long each line holds before the next. */
-const PENDING_ROTATE_MS = 2500;
+const PENDING_STEP_MS = 4500;
 const QUESTION_MAX_HEIGHT = Math.round(QUESTION_LINE * QUESTION_MAX_LINES);
 
 export type SolutionQuestion = {
@@ -249,10 +264,13 @@ export function SolutionScreen({
   // Advances only while something is actually pending, so a finished page is
   // not re-rendering on a timer it has no use for.
   const anyPending = questions.some((q) => q.pending);
-  const [tick, setTick] = useState(0);
+  const [stage, setStage] = useState(0);
   useEffect(() => {
     if (!anyPending) return;
-    const id = setInterval(() => setTick((n) => n + 1), PENDING_ROTATE_MS);
+    const id = setInterval(
+      () => setStage((n) => (n >= PENDING_STAGES.length - 1 ? n : n + 1)),
+      PENDING_STEP_MS
+    );
     return () => clearInterval(id);
   }, [anyPending]);
   const hasStackableFraction = !!question.textRaw && /\\[dt]?frac/.test(question.textRaw);
@@ -523,9 +541,10 @@ export function SolutionScreen({
                   worth watching was the one part you had to scroll for.
                   Offset by the question so two pending panels never say the
                   same thing at the same moment. */}
-              <Text style={[styles.meta, styles.pendingNow]}>
-                {PENDING_COPY[(tick + index) % PENDING_COPY.length]}
-              </Text>
+              <View style={styles.pendingNow}>
+                <PendingDot />
+                <Text style={styles.pendingText}>{PENDING_STAGES[stage]}</Text>
+              </View>
               <StepsPlaceholder />
             </View>
           ) : question.failureNote ? (
@@ -846,9 +865,20 @@ function createStyles() {
     },
     // Sits where the first step's text will, so the placeholder underneath is
     // not pushed off its own rail.
+    /** On the rail, level with where step one will be, so the line reads as
+     *  the first thing on the list rather than a caption floating above it. */
     pendingNow: {
-      marginBottom: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      marginBottom: 20,
       paddingLeft: 34,
+    },
+    pendingText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 13.5,
+      letterSpacing: -0.1,
+      color: AMBER_INK,
     },
     meta: {
       fontFamily: 'Onest_600SemiBold',
@@ -926,23 +956,74 @@ function createStyles() {
  * a placeholder that stops halfway leaves the lower half blank, which reads as
  * "this is all there is" and then jumps when it isn't.
  */
+/**
+ * The one moving thing on the page while a solve runs.
+ *
+ * A pulse rather than a spinner: a spinner on a page that already carries the
+ * student's own question reads as "loading the page", when the page is here
+ * and it is the answer that is still coming.
+ */
+function PendingDot() {
+  const glow = useSharedValue(0.35);
+  useEffect(() => {
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 760, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.35, { duration: 760, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => ({ opacity: glow.value }));
+  return (
+    <Animated.View
+      style={[{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#EEA31F' }, style]}
+    />
+  );
+}
+
+/**
+ * THE STRUCTURE IS REAL; ONLY THE WORDS ARE MISSING.
+ *
+ * It was four blocks of pale bars — a grey square where the step number goes,
+ * a title bar, two body lines and a wide block for the maths — pulsing on a
+ * rail, with 26pt between them. On a phone that reads as a page that failed
+ * to load: too much air, nothing recognisable, and a fourth step that runs
+ * under the follow-up bar.
+ *
+ * The rail and the numbered markers are now drawn exactly as `DoubtSolution`
+ * draws them, numbers included, because they are known before the answer is:
+ * a solve always comes back as numbered steps on this rail. Only the text
+ * inside each step is a placeholder, and it sits at the real line heights, so
+ * when the answer lands the page fills in rather than rebuilding itself.
+ *
+ * Three steps, not four: the typical solve is five or six, so any count is a
+ * guess, and three fits above the follow-up bar on the smallest phone we
+ * support.
+ */
 function StepsPlaceholder() {
   const skeleton = useMemo(() => createSkeletonStyles(), []);
   return (
     <View style={skeleton.steps}>
       <View style={skeleton.rail} />
-      {[0, 1, 2, 3].map((i) => (
+      {[0, 1, 2].map((i) => (
         <View key={i} style={skeleton.step}>
-          <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
-          <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />
+          <View style={skeleton.num}>
+            <Text style={skeleton.numText}>{String(i + 1).padStart(2, '0')}</Text>
+          </View>
+          <Skeleton delay={stagger(i, 140)} style={skeleton.stepTitle} />
+          {/* These bars were invisible until `SkeletonParagraph` learned to
+              stretch — see the note there — which is most of why the step read
+              as a title, a gap, and a block of maths. */}
           <SkeletonParagraph
             lines={2}
-            lineHeight={13}
-            gap={9}
-            delay={stagger(i, 120) + 60}
-            widths={['100%', '72%']}
+            lineHeight={14}
+            gap={8}
+            delay={stagger(i, 140) + 70}
+            widths={['100%', '84%']}
           />
-          <Skeleton delay={stagger(i, 120) + 180} style={skeleton.math} />
+          <Skeleton delay={stagger(i, 140) + 200} style={skeleton.math} />
         </View>
       ))}
     </View>
@@ -968,7 +1049,11 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
             <SkeletonParagraph lines={3} lineHeight={14} gap={10} widths={['100%', '96%', '54%']} />
           </View>
 
-          <StepsPlaceholder />
+          {/* Its own air here: in the pending case the steps sit directly
+              under the status line, which brings its own 20. */}
+          <View style={{ marginTop: 20 }}>
+            <StepsPlaceholder />
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -977,12 +1062,13 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 
 function createSkeletonStyles() {
   const RAIL = 34;
+  const MARKER = 22;
   return StyleSheet.create({
-    // Mirrors SolutionSteps' own rail geometry so the placeholder lands where
-    // the real steps will.
+    // DoubtSolution's own rail geometry, so the placeholder stands exactly
+    // where the real steps will and nothing shifts when they land.
     steps: {
       position: 'relative',
-      marginTop: 24,
+      marginTop: 6,
       paddingLeft: RAIL,
       gap: 26,
     },
@@ -996,27 +1082,37 @@ function createSkeletonStyles() {
     },
     step: {
       position: 'relative',
-      gap: 10,
+      gap: 9,
       alignItems: 'flex-start',
       alignSelf: 'stretch',
     },
-    // Sits exactly where the numbered badge will.
+    /** The real marker, number and all: a solve always arrives as numbered
+     *  steps, so this much is known before the answer is. */
     num: {
       position: 'absolute',
       left: -RAIL,
-      top: 1,
-      width: 22,
-      height: 22,
+      top: 2,
+      width: MARKER,
+      height: MARKER,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,0.16)',
       borderRadius: 6,
+      backgroundColor: '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
+    numText: { fontFamily: 'Onest_700Bold', fontSize: 10.5, color: 'rgba(87,83,75,0.5)' },
     stepTitle: {
-      width: '62%',
-      height: 15,
+      width: '58%',
+      height: 16,
+      borderRadius: 5,
     },
+    /** Indented like a display equation, because that is what lands here. */
     math: {
-      width: '46%',
-      height: 34,
-      borderRadius: 8,
+      marginLeft: 10,
+      width: '44%',
+      height: 26,
+      borderRadius: 7,
     },
   });
 }
