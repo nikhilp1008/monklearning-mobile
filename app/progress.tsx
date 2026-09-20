@@ -279,8 +279,8 @@ export default function ProgressScreen() {
           {data && !started && (
             <FirstDayCard
               glyph={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
-              head="Your score is still taking shape."
-              line="It appears once there is enough behind it — a class sat, a doubt solved, questions answered."
+              head="No score yet"
+              line="Take a class, solve a doubt, answer a few questions. Your score shows up after that."
             />
           )}
 
@@ -402,11 +402,14 @@ export default function ProgressScreen() {
                       setExpandedChapter(null);
                       setShowAllChapters(false);
                     }}>
+                    {/* NO NUMBER ON THESE. They carried a per-subject score
+                        out of 1000, which on a new account is three cards
+                        reading 0 /1000 before a student has answered anything
+                        — the most discouraging way to say "not yet". The
+                        score that matters is the one at the top of the page,
+                        and the detail is the chapter list below. These are
+                        what they are used as: the selector for that list. */}
                     <Text style={styles.subjectName}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
-                    <View style={styles.subjectScoreRow}>
-                      <Text style={styles.subjectScore}>{s.score}</Text>
-                      <Text style={styles.subjectScoreMax}>/1000</Text>
-                    </View>
                   </PressableScale>
                 );
               })}
@@ -868,8 +871,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: 1,
       borderColor: hairline(0.16),
       borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(14),
+      paddingVertical: verticalScale(13),
+      paddingHorizontal: scale(10),
+      alignItems: 'center',
+      justifyContent: 'center',
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(4) },
       shadowOpacity: 0.06,
@@ -882,25 +887,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     subjectName: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
+      fontSize: scale(14.5),
+      lineHeight: scale(20),
+      letterSpacing: scale(-0.2),
       color: colors.ink,
-    },
-    subjectScoreRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      gap: scale(3),
-      marginTop: verticalScale(4),
-    },
-    subjectScore: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(18),
-      letterSpacing: scale(-0.27),
-      color: colors.ink,
-    },
-    subjectScoreMax: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(10),
-      color: colors.faint,
+      textAlign: 'center',
     },
     chapterHint: {
       fontFamily: 'Onest_400Regular',
