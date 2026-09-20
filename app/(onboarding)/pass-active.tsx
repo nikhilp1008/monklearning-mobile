@@ -27,9 +27,7 @@ import {
   type ExamKey,
   type PassKey,
 } from '@/constants/onboarding';
-import { revalidateAuthState } from '@/lib/auth';
 import { startPass } from '@/lib/pass';
-import { pushProfile } from '@/lib/profile';
 import { hapticTicked } from '@/lib/haptics';
 
 export default function PassActiveScreen() {
@@ -65,33 +63,28 @@ export default function PassActiveScreen() {
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   }, [passId]);
 
+  /**
+   * THE RECEIPT IS NOT THE END OF THE FLOW ANY MORE.
+   *
+   * This screen used to write the profile and drop the student on Home. Two
+   * screens follow it now — the teacher they will hear, and what the pass
+   * opens — so the button reads "Continue" and this does the one thing that
+   * belongs to the purchase: start the pass's clock, where it was bought.
+   * The profile write and the handover to the app moved to the last of those
+   * screens; see app/(onboarding)/inside.tsx.
+   */
   const finish = async () => {
     if (saving) return;
     setSaving(true);
     setError(null);
     try {
-      // The pass's clock starts here, where it was actually bought — not at
-      // first use, and not on a screen that only displayed the end date and
-      // forgot it. Before the profile write, because this is the one thing
-      // that cannot be recovered from the server on the next launch.
       await startPass(passId, params.promo ?? null);
-      await pushProfile();
     } catch {
-      // Do NOT wave them through. Without this write there is no
-      // `display_name` on the server, so every later launch reads as "never
-      // onboarded" and sends them round again — a loop they cannot escape and
-      // we would never hear about. Better to stop here, where retrying costs
-      // one tap.
       setSaving(false);
-      setError('Couldn’t save your details. Check your connection and try again.');
+      setError('Couldn’t start your pass. Check your connection and try again.');
       return;
     }
-    // The gate still believes onboarding is owed — it recomputes on Supabase
-    // auth events and this was a write to `profiles`. Awaited before navigating
-    // so the tabs are never asked to paint while the answer is still the old
-    // one.
-    await revalidateAuthState();
-    router.replace('/(tabs)');
+    router.push('/teacher');
   };
 
   const rows: [string, string][] = [
@@ -145,7 +138,7 @@ export default function PassActiveScreen() {
                 ground meant the cream button turned black the instant it was
                 tapped. */}
             <ObButton
-              label="Start learning"
+              label="Continue"
               variant="cream"
               withArrow
               busy={saving}
