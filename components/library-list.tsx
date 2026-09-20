@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
+import { EmptyState } from '@/components/library-empty';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -70,140 +71,6 @@ const DOUBT_HINTS = NOTE_HINTS.map((h) => h.replace('your notes', 'your doubts')
  * copies of five hundred lines would have drifted apart the first time either
  * was touched.
  */
-/**
- * NOTHING HERE YET, SAID PROPERLY.
- *
- * Both lists used to stand in demo cards while the real list was empty —
- * scaffolding so the Library could be judged on a phone before anything real
- * existed. On a new account that reads as notes the student never wrote.
- *
- * An empty list is not a failure state here, it is the first day. So it gets a
- * drawn mark, one sentence saying what will fill it, and the button that fills
- * it — which is the only screen in the app where the next action is genuinely
- * unambiguous.
- *
- */
-
-function EmptyState({
-  kind,
-  scale,
-  verticalScale,
-}: {
-  kind: 'notes' | 'doubts';
-  scale: (n: number) => number;
-  verticalScale: (n: number) => number;
-}) {
-  const notes = kind === 'notes';
-  /**
-   * One line, and the button says the rest.
-   *
-   * There was a sentence of explanation under each heading and it was two
-   * lines of prose on a screen whose entire message is "there is nothing here
-   * yet". The mark shows what arrives, the heading says when, and the button
-   * is the thing to press — a paragraph between them was the app explaining
-   * itself to someone who had not asked a question.
-   */
-  // Both sit on one line at this width. The longer "Snap anything you're stuck
-  // on." wrapped and left "on." alone on a second line, which on a centred
-  // block of two elements is the only typographic fault there is room for.
-  const head = notes ? 'Your notes start with a class.' : 'Stuck on a question?';
-  const cta = notes ? 'Start a live class' : 'Snap a question';
-  const go = () => router.push(notes ? '/drona' : '/snap-capture');
-
-  /**
-   * THE ART IS THE PRODUCT, NOT A PICTOGRAM.
-   *
-   * These were a generic document outline and a generic camera — the icons any
-   * app would reach for, which is exactly why they said nothing about this one.
-   * Both are drawn from what the student actually gets.
-   *
-   * NOTES is a ruled page with a hand-drawn amber rule under a line of
-   * writing: the notes in this app ARE handwritten pages on ruled paper, and
-   * the squiggle is the same gesture the real note page draws under its
-   * heading. DOUBTS is a torn page held inside amber corner brackets — the
-   * brackets that close around a question in the onboarding board the moment
-   * it is snapped. A student who watched that loop has already seen this.
-   *
-   * Drawn at 96 so they carry the screen. An empty state with a small mark on
-   * it reads as something missing; at this size the mark IS the content.
-   */
-  const art = notes ? (
-    <Svg viewBox="0 0 96 96" width={scale(96)} height={scale(96)} fill="none">
-      {/* The page, tilted a few degrees so it sits like paper rather than an icon. */}
-      <Rect
-        x={22} y={10} width={52} height={70} rx={6}
-        transform="rotate(-4 48 45)"
-        fill={colors.paper} stroke={colors.ink} strokeWidth={2.2}
-      />
-      {[26, 38, 50].map((y) => (
-        <Path key={y} d={`M31 ${y} H64`} transform="rotate(-4 48 45)"
-          stroke={colors.hairline} strokeWidth={2} strokeLinecap="round" />
-      ))}
-      {/* The written line, and the rule drawn under it by hand. */}
-      <Path d="M31 62 H57" transform="rotate(-4 48 45)"
-        stroke={colors.ink} strokeWidth={2.4} strokeLinecap="round" />
-      <Path d="M30 69 C40 66 50 72 59 67" transform="rotate(-4 48 45)"
-        stroke={colors.marigold} strokeWidth={2.6} strokeLinecap="round" />
-    </Svg>
-  ) : (
-    <Svg viewBox="0 0 96 96" width={scale(96)} height={scale(96)} fill="none">
-      {/* The question, on its page. */}
-      <Rect x={26} y={22} width={44} height={52} rx={5}
-        fill={colors.paper} stroke={colors.ink} strokeWidth={2.2} />
-      <Path d="M34 34 H58 M34 43 H62 M34 52 H50"
-        stroke={colors.hairline} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M56 60 h6" stroke={colors.ink} strokeWidth={2.4} strokeLinecap="round" />
-      {/* And the brackets closing on it — the snap, from the onboarding board. */}
-      {[
-        'M14 28 V18 H24',
-        'M72 18 H82 V28',
-        'M82 68 V78 H72',
-        'M24 78 H14 V68',
-      ].map((d) => (
-        <Path key={d} d={d} stroke={colors.marigold} strokeWidth={3}
-          strokeLinecap="round" strokeLinejoin="round" />
-      ))}
-    </Svg>
-  );
-
-  return (
-    <View
-      style={{
-        alignItems: 'center',
-        paddingTop: verticalScale(54),
-        paddingHorizontal: scale(28),
-      }}>
-      {art}
-      <Text
-        style={{
-          marginTop: verticalScale(20),
-          fontFamily: 'Onest_600SemiBold',
-          fontSize: scale(20),
-          letterSpacing: scale(-0.3),
-          color: colors.ink,
-          textAlign: 'center',
-        }}>
-        {head}
-      </Text>
-      <PressableScale
-        onPress={go}
-        style={{
-          marginTop: verticalScale(24),
-          paddingHorizontal: scale(22),
-          height: verticalScale(46),
-          borderRadius: 999,
-          backgroundColor: colors.ink,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(15), color: colors.paper }}>
-          {cta}
-        </Text>
-      </PressableScale>
-    </View>
-  );
-}
-
 export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -381,7 +248,8 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   // exists, and never instead of a filtered-empty result — "no Chemistry
   // doubts yet" is a true answer and samples would contradict it.
 
-  const showingDoubtSamples = doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
+  const showingDoubtSamples =
+    doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
   const hasErasableDoubts = doubts.length > 0;
 
   const toggleErase = useCallback(() => {
@@ -651,7 +519,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // Cards only: they don't open a note page, and erasing one
                 // removes it from this list and nothing else.
                 showingSamples ? (
-                  <EmptyState kind="notes" scale={scale} verticalScale={verticalScale} />
+                  <EmptyState kind="notes" />
                 ) : (
                   <View style={styles.stateBlock}>
                     <Text style={styles.stateText}>
@@ -755,7 +623,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </View>
               ) : showingDoubtSamples ? (
                 // Nothing snapped and no filter applied: the first day.
-                <EmptyState kind="doubts" scale={scale} verticalScale={verticalScale} />
+                <EmptyState kind="doubts" />
               ) : visibleDoubts.length === 0 ? (
                 // Filtered or searched to nothing, which is a different answer
                 // and must not be replaced by the first-run invitation — "no
