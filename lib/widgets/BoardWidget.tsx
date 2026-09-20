@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { Text, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+
+import { isBoardSequence, stepAt, type BoardStep } from './board-sequence';
+import { validateSequence } from './board-sequence-validate';
 
 import { labelledFigure } from './labelled-figure';
 import type { FigureResolver } from './labelled-figure/figure-resolver';
@@ -7,6 +11,7 @@ import { lookup } from './registry';
 import { useCueTrack } from './use-cue-track';
 import type {
   ResolutionTier,
+  WidgetModule,
   WidgetPayload,
   WidgetServices,
   WidgetTheme,
@@ -109,9 +114,25 @@ export function BoardWidget({
   );
   const figureRecord = useSyncExternalStore(subscribeFigure, snapshotFigure, snapshotFigure);
 
-  const resolved = useMemo(() => {
+  const resolved = useMemo((): {
+    mod?: WidgetModule<object>; params?: object; steps?: readonly BoardStep[];
+  } | null => {
     const { payload } = event;
     if (!payload) return null;
+
+    /*
+     * TIER 1, SEQUENCE. Checked before anything else because a sequence is a
+     * frame around payloads, not a payload: its `widget` field names no
+     * widget and every dispatch below would miss it.
+     */
+    if (isBoardSequence(payload)) {
+      const v = validateSequence(payload);
+      if (!v.ok) {
+        onGap?.('sequence_refused', v.errors.join('; '));
+        return null;
+      }
+      return { steps: v.steps };
+    }
 
     /*
      * TIER: illustration.
@@ -204,6 +225,60 @@ export function BoardWidget({
     return null;
   }
 
+  /*
+   * A SEQUENCE: 1-3 boards on this segment, revealed in turn. `resolved.steps`
+   * is set only when the payload is a board_sequence; everything below is the
+   * ordinary single-board path and is untouched by this, which is the point —
+   * one step must behave exactly as no sequence at all.
+   */
+  if (resolved.steps) {
+    const at = stepAt(resolved.steps, activeSeq);
+    const step = resolved.steps[at];
+    const mod = step.payload.widget
+      ? lookup(step.payload.widget, step.payload.version)
+      : null;
+    const strip = (
+      <SequenceStrip
+        at={at}
+        total={resolved.steps.length}
+        caption={step.caption}
+        width={width}
+        theme={theme}
+      />
+    );
+    // This step fell to tier 3 — its widget could not draw it and it carried
+    // an SVG. The strip stays: the student must still see which case this is
+    // and that another is coming.
+    if (!mod) {
+      return (
+        <View style={{ width, height }}>
+          {step.fallback_svg
+            ? <SvgXml xml={step.fallback_svg} width={width} height={height - STRIP_H} />
+            : null}
+          {strip}
+        </View>
+      );
+    }
+    return (
+      <View style={{ width, height }}>
+        <WidgetHost
+          key={`${mod.id}@${mod.version}#${at}`}
+          mod={mod}
+          params={step.payload.params as object}
+          cues={step.payload.cues}
+          activeSeq={activeSeq}
+          width={width}
+          height={height - STRIP_H}
+          theme={theme}
+          services={services}
+          onCaption={onCaption}
+        />
+        {strip}
+      </View>
+    );
+  }
+
+  if (!resolved.mod || !resolved.params) return null;
   return (
     <WidgetHost
       key={`${resolved.mod.id}@${resolved.mod.version}`}
@@ -217,6 +292,43 @@ export function BoardWidget({
       services={services}
       onCaption={onCaption}
     />
+  );
+}
+
+/** Height the n/N strip takes out of the board box. One line of chrome. */
+const STRIP_H = 22;
+
+/**
+ * "2/3" and the step's caption.
+ *
+ * The counter is not decoration: a student who cannot see that a second case
+ * is coming reads the first one as the whole answer, which is the exact
+ * failure the sequence exists to fix. It is rendered even at 1/1, because a
+ * strip that appears and disappears between segments is itself a signal, and
+ * a misleading one.
+ */
+function SequenceStrip({ at, total, caption, width, theme }: {
+  at: number; total: number; caption: string; width: number; theme: WidgetTheme;
+}) {
+  return (
+    <View
+      style={{
+        width, height: STRIP_H, flexDirection: 'row', alignItems: 'center',
+        gap: 8, paddingHorizontal: 4,
+      }}
+    >
+      <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent,
+                     fontFamily: theme.fontFamily }}>
+        {`${at + 1}/${total}`}
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={{ flex: 1, fontSize: 11, color: theme.inkMuted,
+                 fontFamily: theme.fontFamily }}
+      >
+        {caption}
+      </Text>
+    </View>
   );
 }
 

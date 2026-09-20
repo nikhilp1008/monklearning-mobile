@@ -130,8 +130,15 @@ module.exports = stub;
   }
 }
 
-const OUT = loadTs(Object.values(WIDGETS).map(([dir]) => `lib/widgets/${dir}/index.tsx`));
+const OUT = loadTs([
+  ...Object.values(WIDGETS).map(([dir]) => `lib/widgets/${dir}/index.tsx`),
+  // The sequence gate. It reaches the registry, which reaches every widget —
+  // all already stubbed above, so this costs nothing extra to load.
+  'lib/widgets/board-sequence-validate.ts',
+]);
 writeStubs(OUT);
+
+const { gateSequence } = await import(join(OUT, 'lib/widgets/board-sequence-validate.js'));
 
 const mods = {};
 for (const [id, [dir, exportName]] of Object.entries(WIDGETS)) {
@@ -156,6 +163,15 @@ try {
 }
 
 function judge(p) {
+  // A BOARD SEQUENCE is a frame around payloads, not a payload: it names no
+  // widget, so every branch below would miss it. Judged by its own gate, which
+  // runs each step through that step's widget and refuses a dropped step —
+  // at publish time a case that will not draw is a refusal, not a loss.
+  if (p && p.kind === 'board_sequence') {
+    const g = gateSequence(p);
+    return { ok: g.ok, widget: 'board_sequence', errors: g.ok ? [] : [g.why],
+             derived: null, steps: (p.steps || []).length };
+  }
   const widget = p?.widget;
   if (!widget) return { ok: false, widget: null, errors: ['payload has no `widget`'] };
   if (UNJUDGEABLE[widget]) return { ok: null, widget, errors: [UNJUDGEABLE[widget]] };
