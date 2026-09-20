@@ -255,10 +255,20 @@ export default function HomeScreen() {
               </View>
             </View>
             {planItems.length === 0 ? (
-              <Text style={styles.planEmptyText}>
-                Nothing planned yet. Tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
-                today&apos;s plans.
-              </Text>
+              /*
+                A row, not a sentence. "Nothing planned yet. Tap + Add…" was a
+                line of grey prose pointing at a control in the corner, on the
+                one section of Home a student is supposed to fill in
+                themselves. This is the shape the first plan will take — a
+                dashed open box where its checkbox goes — and the whole thing
+                is the button, so the instruction is the tap.
+              */
+              <PressableScale style={styles.planEmptyRow} onPress={() => router.push('/plan-sheet')}>
+                <View style={styles.planEmptyCheck}>
+                  <Text style={styles.planEmptyPlus}>+</Text>
+                </View>
+                <Text style={styles.planEmptyLabel}>Set your first plan for today</Text>
+              </PressableScale>
             ) : (
               <View style={styles.planRows}>
                 {planItems.map((item) => (
@@ -853,15 +863,40 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(18),
       color: colors.ink,
     },
-    planEmptyText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22),
-      color: colors.slate,
+    planEmptyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
       marginTop: verticalScale(12),
+      paddingVertical: verticalScale(12),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(14),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      backgroundColor: colors.paper,
     },
-    planEmptyAccent: {
+    /** Where the checkbox goes, drawn open: dashed, because the row is an
+     *  invitation rather than an item that can be ticked. */
+    planEmptyCheck: {
+      width: scale(20),
+      height: scale(20),
+      borderRadius: scale(10),
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: 'rgba(28,26,22,.28)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    planEmptyPlus: {
       fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      lineHeight: scale(15),
+      color: colors.slate,
+    },
+    planEmptyLabel: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14.5),
+      lineHeight: scale(20),
       color: colors.ink,
     },
     planRows: {

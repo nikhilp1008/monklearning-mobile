@@ -4,6 +4,8 @@ import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { FirstDayCard } from '@/components/first-day-card';
+import { PracticeIcon } from '@/components/monk-icons';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -267,7 +269,24 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {data && score && (
+          {/*
+            THE FIRST DAY. A student who has answered nothing used to get this
+            page as a 0 / 1000, an empty pace card and a hidden ledger — three
+            pieces of furniture explaining a number that does not exist yet.
+            One card instead, the same one the Doubts and Notes tabs show, and
+            every piece above returns the moment there is something to say.
+          */}
+          {data && !started && (
+            <FirstDayCard
+              glyph={(size, color) => <PracticeIcon size={size} color={color} accent={color} />}
+              head="Your score starts at your first question."
+              line="Answer a few and this page fills in: what you know, what is shaky, and what to do next."
+              cta="Start practising"
+              onPress={() => router.push('/practice')}
+            />
+          )}
+
+          {data && score && started && (
             <View style={styles.card}>
               <View style={styles.scoreHeaderRow}>
                 <View style={styles.scoreOverlineRow}>
@@ -366,7 +385,9 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {data && subjects.length > 0 && (
+          {/* Three strips reading 0/1000 are three ways of saying the same
+              nothing. They arrive with the first answered question. */}
+          {data && started && subjects.length > 0 && (
             <View style={styles.subjectsRow}>
               {subjects.map((s, i) => {
                 const selected = i === subjectIndex;
@@ -447,8 +468,9 @@ export default function ProgressScreen() {
 
           {/* Pace. Real numbers now — the card no longer ships sample rows,
               and a subject the student has not done enough of is simply
-              absent rather than estimated. */}
-          <View style={styles.card}>
+              absent rather than estimated. Nothing to pace before the first
+              question, so on day one it is not there at all. */}
+          <View style={[styles.card, !started && styles.hidden]}>
             <View style={styles.scoreHeaderRow}>
               <Text style={styles.overline}>Pace · typical time per question</Text>
             </View>
@@ -1110,6 +1132,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // A student who has taken a class but answered nothing has a milestone and
     // an empty ledger, so the strip collapses rather than showing four zeros.
+    hidden: { display: 'none' },
     ledgerStripHidden: {
       display: 'none',
     },
