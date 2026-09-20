@@ -950,6 +950,24 @@ function readPieces(
     for (const k of ['a', 'b', 'c'] as const) {
       if (o[k] !== undefined && !finite(o[k])) errors.push(`pieces[${i}].${k} must be a finite number`);
     }
+    /* A KEY THIS PARSER DOES NOT READ IS AN AUTHORING ERROR, not spare data.
+     *
+     * `a` defaults to 1 when it is absent, so a piece that carries its shape
+     * in some OTHER key is silently a slope-1 line. Measured 2026-09-19: a
+     * repair for a board labelled y = |x| came back as
+     *   [{from:-2,to:0,expression:"-x"},{from:0,to:3,expression:"x"}]
+     * which parses to a:1 on BOTH halves — a straight line through the
+     * origin, the very defect the repair was asked to fix, and it validated.
+     *
+     * Same family as `b` on a line: an ignored key that reads as intent. */
+    const UNREAD = Object.keys(o).filter(
+      (k) => !['from', 'to', 'curve', 'a', 'b', 'c'].includes(k));
+    if (UNREAD.length > 0) {
+      errors.push(
+        `pieces[${i}] carries ${UNREAD.join(', ')}, which this widget does not read — ` +
+        `a piece is {from, to, curve, a, b, c} and its shape must be in a, b and c. ` +
+        `With a absent it defaults to 1, so the piece would silently draw a slope-1 line.`);
+    }
     pieces.push({
       from: o.from,
       to: o.to,
@@ -1091,6 +1109,31 @@ function validate(raw: unknown): ValidationResult<XyPlotParams> {
   for (const [k, kind] of [['curve', curve], ['curve2', mode === 'area_between' ? curve2 : 'line']] as const) {
     if (kind === 'reciprocal' && xMin <= 0 && xMax >= 0) {
       errors.push(`${k} is a reciprocal and cannot span x = 0; keep the domain on one side of it`);
+    }
+  }
+
+  /* A `line` CARRYING A NON-ZERO `b` IS ALWAYS AN AUTHORING ERROR.
+   *
+   * `evalCurve`'s line is `a*x + c`; `b` is not read. `parabola` is
+   * `a*x^2 + b*x + c`, so an author reaching for a slope writes it into `b`
+   * by analogy and the widget silently draws a different line.
+   *
+   * Measured across the published corpus on 2026-09-19: EIGHT boards. The
+   * intended y = 2x drew as y = x (computed area 1.0000 against the 4/3 the
+   * caption claimed, confirmed on the simulator); a Q = mcDT board with the
+   * slope 8372 in `b` drew Q = 0 for every DT. Every one of them rendered
+   * perfectly and passed every gate.
+   *
+   * It is refused rather than repaired — `b` could mean a slope the author
+   * wanted or an intercept they misplaced, and guessing between them is how
+   * a wrong line becomes a confident one. The message names the fix, so the
+   * planner's existing repair loop can act on it. */
+  for (const [k, kind, bv] of [['b', curve, b], ['b2', curve2, b2]] as const) {
+    if (kind === 'line' && bv !== 0) {
+      errors.push(
+        `${k} is ${bv} on a line, and a line is a*x + c — ${k} is never read, so ` +
+        `this draws a different line from the one intended. Put the slope in ` +
+        `${k === 'b' ? 'a' : 'a2'} and the intercept in ${k === 'b' ? 'c' : 'c2'}.`);
     }
   }
 

@@ -36,6 +36,7 @@ import {
   column,
   derive,
   formatCell,
+  wrapCell,
   type CellKind,
   type DataTableTrendParams,
 } from './trend-math';
@@ -68,8 +69,15 @@ const MAX_ROWS = 8; // period 2 is Li..Ne — exactly 8
 const MAX_COLS_NUMERIC = 4;
 const MAX_COLS_CATEGORICAL = 3; // text cells are wider; 4 does not fit at 343
 const MAX_ROW_LABEL = 12;
+//: PER LINE — headers wrap to two, like categorical cells. A flat 5-character
+//: slice put two columns of the EM spectrum board under the same word.
 const MAX_COL_LABEL = 5;
+const MAX_COL_LABEL_TOTAL = MAX_COL_LABEL * 2 + 1;
+//: PER LINE. `wrapCell` gives a categorical cell two of them, so the string a
+//: payload may carry is twice this plus the space it breaks at. It was a flat
+//: 8-character slice, which made "Klystron" and "Radioact" the whole answer.
 const MAX_TEXT_CELL = 8;
+const MAX_TEXT_CELL_TOTAL = MAX_TEXT_CELL * 2 + 1;
 
 const KINDS: CellKind[] = ['numeric', 'categorical'];
 
@@ -144,9 +152,9 @@ function validate(raw: unknown): ValidationResult<DataTableTrendParams> {
     params: {
       cell_kind: kind as CellKind,
       row_labels: (rowLabels as string[]).map((s) => s.slice(0, MAX_ROW_LABEL)),
-      col_labels: (colLabels as string[]).map((s) => s.slice(0, MAX_COL_LABEL)),
+      col_labels: (colLabels as string[]).map((s) => s.slice(0, MAX_COL_LABEL_TOTAL)),
       values: numeric ? (values as number[]) : [],
-      text_values: numeric ? [] : (textValues as string[]).map((s) => s.slice(0, MAX_TEXT_CELL)),
+      text_values: numeric ? [] : (textValues as string[]).map((s) => s.slice(0, MAX_TEXT_CELL_TOTAL)),
       trend_col: numeric ? (trendCol as number) : -1,
       highlight_row: hl as number,
       unit: isStr(r.unit) ? r.unit.slice(0, 10) : '',
@@ -261,20 +269,26 @@ function DataTableTrend({
         fill={theme.accent}
       />
 
-      {/* Header labels. */}
-      {params.col_labels.map((c, i) => (
-        <SvgText
-          key={`h${i}`}
-          x={colCentreX(i)}
-          y={frame.top + HEADER_SIZE}
-          fill={theme.inkMuted}
-          fontSize={HEADER_SIZE}
-          fontFamily={theme.monoFontFamily}
-          textAnchor="middle"
-        >
-          {c}
-        </SvgText>
-      ))}
+      {/* Header labels, wrapped rather than cut.
+          A 5-character slice gave the published EM-spectrum board TWO columns
+          both headed "Typic" — from "Typical wavelength" and "Typical
+          frequency". A reader cannot tell those columns apart, which is worse
+          than a cut cell: it makes the whole table ambiguous. */}
+      {params.col_labels.flatMap((c, i) =>
+        wrapCell(c, MAX_COL_LABEL).map((ln, li, all) => (
+          <SvgText
+            key={`h${i}-${li}`}
+            x={colCentreX(i)}
+            y={frame.top + HEADER_SIZE + (li - (all.length - 1) / 2) * HEADER_SIZE}
+            fill={theme.inkMuted}
+            fontSize={HEADER_SIZE}
+            fontFamily={theme.monoFontFamily}
+            textAnchor="middle"
+          >
+            {ln}
+          </SvgText>
+        ))
+      )}
 
       {/* TWO rules minimum, and this is not decoration. verify-render's
           boundsOf understands Path/Circle/Line/Rect but NOT text, so a table
@@ -304,23 +318,27 @@ function DataTableTrend({
           </SvgText>
           {params.col_labels.map((_, c) => {
             const idx = r * frame.cols + c;
-            const text =
+            const lines =
               params.cell_kind === 'numeric'
-                ? formatCell(params.values[idx])
-                : (params.text_values[idx] ?? '');
-            return (
+                ? [formatCell(params.values[idx])]
+                : wrapCell(params.text_values[idx] ?? '', MAX_TEXT_CELL);
+            // Two lines are centred about the row's middle, so a one-line cell
+            // sits exactly where it always did and a two-line cell grows
+            // symmetrically rather than pushing down into the row below.
+            const dy = lines.length === 1 ? CELL_SIZE * 0.35 : -CELL_SIZE * 0.15;
+            return lines.map((ln, li) => (
               <SvgText
-                key={`c${c}`}
+                key={`c${c}-${li}`}
                 x={colCentreX(c)}
-                y={rowCentreY(r) + CELL_SIZE * 0.35}
+                y={rowCentreY(r) + dy + li * CELL_SIZE}
                 fill={theme.inkMuted}
                 fontSize={CELL_SIZE}
                 fontFamily={theme.monoFontFamily}
                 textAnchor="middle"
               >
-                {text}
+                {ln}
               </SvgText>
-            );
+            ));
           })}
         </G>
       ))}

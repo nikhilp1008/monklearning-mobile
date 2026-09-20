@@ -61,6 +61,18 @@ export interface DronaSessionEnd {
   duration_minutes: number;
   questions_answered: number;
   chapter_name: string;
+  /**
+   * The class did not get far enough to have takeaways worth showing.
+   *
+   * Said by the server rather than inferred from an empty `summary_points`:
+   * "no points" and "too early for points" are different things, and only one
+   * of them is worth telling the student about. Optional because a client can
+   * meet a server that predates it, where absent reads as false — the old
+   * behaviour.
+   */
+  too_short_for_summary?: boolean;
+  segments_completed?: number;
+  segments_needed_for_summary?: number;
 }
 
 export function startDronaSession(params: {

@@ -325,7 +325,51 @@ export const SMALLEST_BOARD = { width: 343, height: 236 } as const;
  * mixed-script term gets a cap that reflects its actual mixture instead of
  * being charged the Devanagari rate for its Latin half.
  */
+/**
+ * The GEOMETRIC two-labels-sharing-one-row figure, at 343x236. Derived.
+ *
+ * This briefly became a literal 32 on 2026-09-19 and that was a mistake worth
+ * writing down: 32 is an EDITORIAL ceiling ("a label is a name, not a
+ * sentence") and this is a MEASURED width, and giving one name to both meant
+ * the editorial number silently re-defined `MAX_TERM_DEVA`'s reference point
+ * and flattened `termCapFor`'s per-script pricing to a constant — the exact
+ * script-blind behaviour the measured advance tables were introduced to end.
+ * The ceiling now lives in `MAX_TERM_LINE`, where it can be argued about on
+ * its own terms.
+ */
 export const MAX_TERM_LATIN = maxTermChars(CHAR_W);
+
+/**
+ * The editorial ceiling on ONE WRAPPED LINE, in code units.
+ *
+ * Not geometry — geometry allows more. A full row at 343 fits 40 Latin units
+ * (`maxTermChars(CHAR_W) * 2`), and `layoutFigure` is what actually decides
+ * whether a pill places. This exists only so a label stays a name: past about
+ * this length the thing under the leader is a sentence, and the student reads
+ * prose instead of a term.
+ *
+ * MEASURED against the corpus it governs: the longest wrapped line across all
+ * 116 published sets is 22 units ("region of meristematic" | "activity"). 32
+ * clears every real label with room, and sits below the 40 that geometry would
+ * allow. It was 20 before 2026-09-19 — the two-per-row figure misapplied to a
+ * single line — which refused "dumbbell-shaped guard | cell" at 21 and took
+ * every other label on that plate down with it.
+ */
+export const MAX_TERM_LINE = 32;
+
+/**
+ * The longest a term may be IN TOTAL, across both wrapped lines.
+ *
+ * `wrapTerm` produces at most two lines, so this is the line ceiling twice
+ * over: it bounds the whole string even when both lines are at the limit.
+ *
+ * Raised from an effective 20 on 2026-09-19. At 20 the cap was applied to the
+ * UNWRAPPED term and refused "supra-oesophageal ganglion" (26) and
+ * "interventricular septum" (23), both of which wrap to lines well inside the
+ * per-line ceiling. Two published sets drew no labels at all because of it.
+ */
+export const MAX_TERM_TOTAL = 2 * MAX_TERM_LINE;
+
 export const MAX_TERM_DEVA = maxTermChars(DEVA_MAX_CHAR_W);
 
 function maxTermChars(charW: number): number {
@@ -342,7 +386,20 @@ function maxTermChars(charW: number): number {
  * script-flag version could not represent at all.
  */
 export function termCapFor(text: string): number {
-  return text.length === 0 ? MAX_TERM_LATIN : maxTermChars(charWidthFor(text));
+  // ONE label may use the row, not half of it.
+  //
+  // `maxTermChars` divides the board by `2 * LABEL_SIZE * charW`, and that 2 is
+  // the worst case of a left and a right label sharing one row. As a PER-LINE
+  // cap it was far too tight: "dumbbell-shaped guard | cell" has a 21-unit
+  // first line and was refused, taking the other four labels on that plate
+  // with it. Whether two pills actually fit side by side is decided by
+  // `layoutFigure`, which measures them.
+  //
+  // PURE GEOMETRY, deliberately. The editorial ceiling is applied on top of
+  // this by validate(), not folded in here: clamping inside this function made
+  // it return the same number for every script, which is precisely the
+  // script-blind answer `charWidthFor`'s measured tables exist to replace.
+  return maxTermChars(charWidthFor(text || 'x')) * 2;
 }
 
 /**
@@ -588,6 +645,12 @@ export function layoutFigure(
   H: number
 ): FigureLayout {
   const fit = fitRect(W, H, params.art.intrinsic_w, params.art.intrinsic_h);
+  // A SINGLE-GROUP SET SHOWS NO CAPTION, and already did — the strip says
+  // "you are looking at a SUBSET", and with one group there is no subset, so
+  // "1/1" would be noise. Sets of <=5 labels are published with one group,
+  // id "all", and an EMPTY name on the strength of this: there is no name to
+  // invent because no caption is drawn. Pinned by
+  // __tests__/single-group-caption.test.tsx so it cannot drift.
   const multi = params.groups.length > 1;
   const drawn = activeLabels(params);
 
@@ -812,7 +875,8 @@ export interface SetViolation {
   frame: string;
   /** The label that could not be placed, or the pair that collided. */
   labels: string[];
-  reason: 'overlap' | 'exits-frame' | 'leader-too-long';
+  reason: 'overlap' | 'exits-frame' | 'leader-too-long'
+    | 'no-group' | 'empty-group' | 'never-placed';
   detail: string;
 }
 
@@ -847,9 +911,43 @@ export function gateLabelSet(
 ): SetViolation[] {
   const out: SetViolation[] = [];
 
+  /* "CLEAR" MUST MEAN EVERY LABEL WAS PLACED SOMEWHERE, NOT THAT NOTHING WAS
+   * TRIED. This loop is over GROUPS, so before 2026-09-18 a label belonging to
+   * no group was never iterated and an empty group hit a bare `continue` — a
+   * set with `groups: []` produced ZERO violations and was reported clear. 45
+   * of 116 published sets were in that state, 140 labels that could never be
+   * drawn, and the gate said every one of them was fine. */
+  const groupIds = new Set(groups.map((g) => g.id));
+  for (const l of labels) {
+    if (!l.group || !groupIds.has(l.group)) {
+      out.push({
+        group: l.group ?? '(none)', frame: 'all', labels: [l.id], reason: 'no-group',
+        detail: `"${l.id}" belongs to ${l.group ? `group "${l.group}", which the set `
+          + `does not declare` : 'no group'} — the board draws the ACTIVE GROUP, so it `
+          + `can never appear`,
+      });
+    }
+  }
+  if (labels.length > 0 && groups.length === 0) {
+    out.push({
+      group: '(none)', frame: 'all', labels: labels.map((l) => l.id), reason: 'no-group',
+      detail: `the set declares no groups at all, so none of its ${labels.length} `
+        + `label(s) can ever be drawn`,
+    });
+  }
+
+  const placedEver = new Set<string>();
+
   for (const g of groups) {
     const inGroup = labels.filter((l) => l.group === g.id);
-    if (inGroup.length === 0) continue;
+    if (inGroup.length === 0) {
+      out.push({
+        group: g.id, frame: 'all', labels: [], reason: 'empty-group',
+        detail: `group "${g.id}" has no labels; selecting it shows a plate with nothing `
+          + `on it`,
+      });
+      continue;
+    }
 
     for (const f of GATE_FRAMES) {
       const frame = `${f.w}x${f.h}`;
@@ -859,6 +957,7 @@ export function gateLabelSet(
       const placed = layoutFigure(params, f.w, f.h).labels;
 
       for (const l of placed) {
+        placedEver.add(l.id);
         if (l.overlapped) {
           out.push({
             group: g.id, frame, labels: [l.id], reason: 'overlap',
@@ -900,6 +999,19 @@ export function gateLabelSet(
       }
     }
   }
+  // A label the layout never emitted at ANY frame in ANY group. Distinct from
+  // `overlapped`, which records that the search gave up while still returning
+  // the label: this catches the case where it never appeared at all.
+  for (const l of labels) {
+    if (!placedEver.has(l.id) && l.group && groupIds.has(l.group)) {
+      out.push({
+        group: l.group, frame: 'all', labels: [l.id], reason: 'never-placed',
+        detail: `"${l.id}" was never laid out at any frame — clear must mean every `
+          + `label was placed somewhere, not that nothing was tried`,
+      });
+    }
+  }
+
   return out;
 }
 

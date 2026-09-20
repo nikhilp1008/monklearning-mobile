@@ -15,7 +15,9 @@ import Svg, { Path } from 'react-native-svg';
 import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { saveNote } from '@/lib/notes';
+import { endDronaSession, type DronaSessionEnd } from '@/lib/drona-live';
 import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
+import { peekSessionEnd } from '@/lib/session-end';
 
 /**
  * CLASS DISMISSED — what the student sees the moment a live class ends.
@@ -86,9 +88,67 @@ export default function SessionSummaryScreen() {
     questionsAnswered?: string;
   }>();
 
-  const chapterTitle = params.chapterTitle || 'this class';
+  /**
+   * The end-of-class payload, awaited HERE rather than in the classroom.
+   *
+   * The classroom used to hold the student in front of the board for the whole
+   * call — 1-2.5s after they had decided to leave — so that this screen could
+   * be handed a finished summary through route params. It starts the call and
+   * leaves now, and the promise travels in lib/session-end.ts.
+   *
+   * So this screen opens with what the classroom already knew (the chapter, the
+   * topic, how many questions were put) and the server's half arrives a moment
+   * later. Everything below reads `summary?.x ?? <what we knew>`, so the first
+   * paint is complete and correct — nothing is blank waiting to be filled, and
+   * nothing moves when it lands.
+   */
+  const [summary, setSummary] = useState<DronaSessionEnd | null>(null);
+  const [summaryFailed, setSummaryFailed] = useState(false);
+  useEffect(() => {
+    const sessionId = params.sessionId;
+    if (!sessionId) return;
+    let cancelled = false;
+    // The classroom's in-flight call when there is one. FETCHED HERE WHEN THERE
+    // IS NOT — arriving without it is not exotic: a reload while the screen is
+    // open, a deep link, or the classroom having been unmounted before it could
+    // start one. Ending twice is harmless; the endpoint sets phase to complete
+    // and recomputes the same summary. Without this the screen has nothing to
+    // show and nothing to say, which is exactly what it did.
+    const pending = peekSessionEnd(sessionId) ?? endDronaSession(sessionId).catch(() => null);
+    pending.then((result) => {
+      if (cancelled) return;
+      if (result) setSummary(result);
+      // Recorded rather than left as "still loading" forever: the section below
+      // renders nothing while pending, and a failure that never resolves into a
+      // state is how this screen came to show an empty space at all.
+      else setSummaryFailed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.sessionId]);
+
+  /**
+   * Whether this class got far enough to have takeaways.
+   *
+   * The server decides, and says so in the payload — "no points" and "too early
+   * for points" are different things and only one is worth a line on screen.
+   * False until the payload lands, so the brief moment before it arrives looks
+   * like an ordinary class rather than flashing an "ended early" message at a
+   * student who had a full one.
+   */
+  const tooShort = summary?.too_short_for_summary === true;
+
+  // The end payload names the chapter more authoritatively than the classroom
+  // route did, but only once it arrives.
+  const chapterTitle = summary?.chapter_name || params.chapterTitle || 'this class';
   const topicTitle = params.topicTitle?.trim() || null;
-  const questionsAnswered = Number(params.questionsAnswered) || 0;
+  // `|| 0` and not `?? 0`: `??` does not catch NaN, and the classroom passes
+  // questionsAsked WITHOUT questionsAnswered — so `Number(undefined)` made this
+  // NaN whenever the end payload had not arrived. NaN then poisoned
+  // questionsAsked through Math.max, and since `NaN === 0` is false the
+  // rowLast style quietly stopped applying. Same idiom as the line below.
+  const questionsAnswered = summary?.questions_answered ?? (Number(params.questionsAnswered) || 0);
   /**
    * THE DENOMINATOR IS COUNTED IN THE CLASSROOM, because the session's end
    * frame reports how many questions were answered and never how many were
@@ -102,6 +162,11 @@ export default function SessionSummaryScreen() {
   /** Only the first two, until the student asks for the rest. */
   const [expanded, setExpanded] = useState(false);
   const covered = useMemo(() => {
+    // The server's, once it lands. `summaryPoints` in the params is the legacy
+    // route — still read so a deep link or an older navigation keeps working.
+    if (summary?.summary_points) {
+      return summary.summary_points.filter((p): p is string => typeof p === 'string');
+    }
     if (!params.summaryPoints) return [];
     try {
       const parsed = JSON.parse(params.summaryPoints);
@@ -109,7 +174,7 @@ export default function SessionSummaryScreen() {
     } catch {
       return [];
     }
-  }, [params.summaryPoints]);
+  }, [params.summaryPoints, summary]);
 
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -223,7 +288,11 @@ export default function SessionSummaryScreen() {
         <View style={styles.page}>
           <Animated.View entering={FadeInDown.duration(420)}>
             <Text style={styles.heading}>Class dismissed.</Text>
-            <Text style={styles.sub}>Good work today. Here&apos;s what you covered.</Text>
+            <Text style={styles.sub}>
+              {tooShort
+                ? 'That one ended early, so there’s nothing to sum up yet.'
+                : 'Good work today. Here’s what you covered.'}
+            </Text>
           </Animated.View>
 
           {/* One card, three rows: the two things the student chose on the way
@@ -266,7 +335,43 @@ export default function SessionSummaryScreen() {
                   covered. Renders nothing unless something actually was. */}
               <ProofMoment events={proof} />
 
-              {covered.length > 0 && (
+              {/* A class shorter than two segments has no takeaways, and is
+                  told so rather than shown an empty space where they would be.
+                  Deliberately not an apology and not a metric: the student did
+                  nothing wrong by stopping, and "1 of 2 segments" would read as
+                  a score. What is on offer is the way back in. */}
+              {tooShort && (
+                <>
+                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                    Too short to sum up
+                  </Text>
+                  <View style={[styles.line, styles.lineLast]}>
+                    <Text style={styles.lineText}>
+                      Takeaways start once you’ve finished a couple of segments.
+                      Pick the chapter back up whenever you’re ready.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {/* The summary never arrived — offline, or the call failed. Said
+                  plainly, because the alternative is what this screen actually
+                  did: an empty space under a heading promising a summary. */}
+              {summaryFailed && !tooShort && covered.length === 0 && (
+                <>
+                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                    Summary unavailable
+                  </Text>
+                  <View style={[styles.line, styles.lineLast]}>
+                    <Text style={styles.lineText}>
+                      The class is saved — this part just couldn’t be loaded.
+                      Your notes still have everything that was on the board.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {!tooShort && covered.length > 0 && (
                 <>
                   <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
                     What we covered

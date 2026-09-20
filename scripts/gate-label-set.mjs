@@ -26,8 +26,13 @@
  *
  * WHAT IT DOES NOT DO. It does not validate licence, provenance, anchors
  * against the art, or reviewed_by. Those are `apply_review.py`'s job and it
- * keeps them. This answers exactly one question: does every group of this set
- * place clear at every gate frame?
+ * keeps them. This answers exactly one question: would this set draw, whole,
+ * at every gate frame?
+ *
+ * THE DECISION IS NOT IN THIS FILE. It is `gateSet` in
+ * lib/widgets/labelled-figure/gate.ts, so that it can be run over the whole
+ * served corpus from jest instead of only one set at a time through a spawned
+ * node. This file is the CLI: read the bytes, call it, print, set an exit code.
  */
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -65,14 +70,22 @@ function loadTs(relPaths) {
 }
 
 const OUT = loadTs([
+  // `gate.ts` pulls in figure-layout, label-set and validate through its own
+  // imports; listing the entry point alone would leave the emitted requires
+  // pointing at files that were never emitted.
   'lib/widgets/labelled-figure/figure-layout.ts',
   'lib/widgets/labelled-figure/label-set.ts',
+  // The widget's own validate() — the step the gate was missing. It is
+  // imported from ./validate, not ./index, because index.tsx pulls
+  // react-native-svg into the graph and node cannot resolve it. That is the
+  // whole reason the function was lifted out: see the header of validate.ts.
+  'lib/widgets/labelled-figure/validate.ts',
+  'lib/widgets/labelled-figure/gate.ts',
 ]);
 
-const { GATE_FRAMES, describeViolations, gateLabelSet } =
+const { GATE_FRAMES } =
   await import(join(OUT, 'lib/widgets/labelled-figure/figure-layout.js'));
-const { toFigureRecord, validateLabelSet } =
-  await import(join(OUT, 'lib/widgets/labelled-figure/label-set.js'));
+const { gateSet } = await import(join(OUT, 'lib/widgets/labelled-figure/gate.js'));
 
 const [, , file, ...flags] = process.argv;
 const asJson = flags.includes('--json');
@@ -80,15 +93,6 @@ const asJson = flags.includes('--json');
 if (!file) {
   console.error('usage: node scripts/gate-label-set.mjs <set.json> [--json]');
   process.exit(2);
-}
-
-function out(verdict, ok, extra = {}) {
-  if (asJson) {
-    console.log(JSON.stringify({ ok, verdict, frames: GATE_FRAMES.map((f) => `${f.w}x${f.h}`), ...extra }));
-  } else {
-    console.log(verdict);
-  }
-  process.exit(ok ? 0 : 1);
 }
 
 let raw;
@@ -99,32 +103,12 @@ try {
   process.exit(2);
 }
 
-/*
- * The set is validated with the CLIENT'S OWN validator before it is laid out.
- * A set that the resolver would reject has no meaningful layout verdict, and
- * reporting "places clear" for something that will never be drawn is the
- * false-confidence failure this whole gate exists to prevent.
- */
-const checked = validateLabelSet(raw);
-if (!checked.ok) {
-  out(`refused by validateLabelSet: ${checked.errors.join('; ')}`, false,
-      { stage: 'validate', errors: checked.errors });
+const { ok, verdict, ...rest } = gateSet(raw);
+if (asJson) {
+  console.log(JSON.stringify({
+    ok, verdict, frames: GATE_FRAMES.map((f) => `${f.w}x${f.h}`), ...rest,
+  }));
+} else {
+  console.log(verdict);
 }
-
-const set = checked.set;
-// `toFigureRecord` is what the widget actually draws from, so the gate runs on
-// the converted record rather than on the wire format — the same bytes the
-// board would see.
-const record = toFigureRecord(set, 1);
-const violations = gateLabelSet(record.labels, record.groups, record.art);
-const verdict = describeViolations(violations);
-
-out(verdict, violations.length === 0, {
-  stage: 'layout',
-  asset_slug: set.asset_slug,
-  labels: record.labels.length,
-  groups: record.groups.length,
-  violations: violations.map((v) => ({
-    group: v.group, frame: v.frame, reason: v.reason, labels: v.labels, detail: v.detail,
-  })),
-});
+process.exit(ok ? 0 : 1);

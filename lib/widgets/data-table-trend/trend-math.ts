@@ -146,9 +146,77 @@ export function derive(p: DataTableTrendParams): TrendDerived {
 }
 
 /** Compact cell text — keeps a 4-column numeric row inside the small board. */
+//: Unicode superscripts, because this app has no LaTeX renderer and never
+//: will — `\ce{}` and friends leak their own markup onto the board.
+const SUP = ['\u2070', '\u00b9', '\u00b2', '\u00b3', '\u2074',
+             '\u2075', '\u2076', '\u2077', '\u2078', '\u2079'];
+
+function superscript(n: number): string {
+  const sign = n < 0 ? '\u207b' : '';
+  return sign + String(Math.abs(n)).split('').map((d) => SUP[Number(d)]).join('');
+}
+
+/** The window inside which a plain decimal is the clearest thing to print. */
+const PLAIN_MIN = 1e-3;
+const PLAIN_MAX = 1e6;
+
+/**
+ * One table cell.
+ *
+ * ROUNDING TO TWO DECIMALS DESTROYS THE DATA OUTSIDE A NARROW BAND, and it did:
+ * nine published boards printed a correct value as "0". An amine table's Kb
+ * column — 1.8e-05, 4.4e-04, 4.3e-10, right to three significant figures —
+ * rendered as 0, 0, 0; an electromagnetic spectrum whose seven rows all
+ * satisfy c = f*lambda showed five wavelengths as 0. The payloads were never
+ * wrong. This function was.
+ *
+ * Outside [1e-3, 1e6] the value is printed in scientific notation with two
+ * significant figures, which is how both of those tables are written in the
+ * textbook anyway. Inside it, nothing changes.
+ */
 export function formatCell(v: number): string {
-  if (!Number.isFinite(v)) return '—';
-  if (Number.isInteger(v)) return String(v);
-  const r = Math.round(v * 100) / 100;
-  return Number.isInteger(r) ? String(r) : String(r);
+  if (!Number.isFinite(v)) return '\u2014';
+  if (v === 0) return '0';
+  const mag = Math.abs(v);
+  if (mag >= PLAIN_MIN && mag <= PLAIN_MAX) {
+    if (Number.isInteger(v)) return String(v);
+    const r = Math.round(v * 100) / 100;
+    // THE GUARD, not the band, is what actually stops a value printing as 0.
+    // 0.001 is inside [1e-3, 1e6] and still rounds to 0 at two decimals, so a
+    // boundary alone would have left the defect sitting exactly on the edge.
+    if (r !== 0) return String(r);
+  }
+  const exp = Math.floor(Math.log10(mag));
+  const mantissa = v / 10 ** exp;
+  // Two significant figures, and a bare mantissa of 1 is dropped: 1e20 reads
+  // better as 10^20 than as 1x10^20.
+  const m = Math.round(mantissa * 10) / 10;
+  const head = Math.abs(m) === 1 ? (m < 0 ? '-' : '') : `${m}\u00d7`;
+  return `${head}10${superscript(exp)}`;
+}
+
+
+/**
+ * One categorical cell, wrapped to at most two lines instead of cut.
+ *
+ * Cells were sliced at 8 characters, full stop, and the two match-the-band
+ * boards in the published corpus were unreadable because of it: "Antenna ",
+ * "Oscillat", "Klystron", "Driven e", "Radioact", "Nuclear ", "Delocali",
+ * "In aroma". Each of those is a correct answer the student cannot read.
+ *
+ * Split at the LAST space that keeps the first line inside `max` — the same
+ * rule labelled_figure's `wrapTerm` uses, and for the same reason: the final
+ * word is the one that carries the meaning, so it should stand alone rather
+ * than be the half that gets cut.
+ */
+export function wrapCell(text: string, max: number): [string] | [string, string] {
+  const t = (text ?? '').trim();
+  if (t.length <= max) return [t];
+  const head = t.slice(0, max + 1);
+  const cut = head.lastIndexOf(' ');
+  if (cut <= 0) {
+    // One long word. Two lines of it still beat one truncated line.
+    return [t.slice(0, max), t.slice(max, max * 2)];
+  }
+  return [t.slice(0, cut), t.slice(cut + 1, cut + 1 + max)];
 }

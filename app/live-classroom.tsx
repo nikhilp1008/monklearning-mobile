@@ -63,6 +63,7 @@ import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudi
 
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
+import { startSessionEnd } from '@/lib/session-end';
 import { claimDronaClient } from '@/lib/drona-prewarm';
 import {
   BoardEvent,
@@ -76,10 +77,14 @@ import { apiFetch } from '@/lib/api';
 import { REPORT_REASONS, sendReport as postReport } from '@/lib/reports';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
-import { setBoardFrame, setChapterAssets } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import { placeholderFigureResolver } from '@/lib/widgets/labelled-figure/placeholder-figure';
-import { ASSETS_BASE_URL, r2FigureResolver } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
+import {
+  ASSETS_BASE_URL,
+  r2FigureResolver,
+  setBoardFrame,
+  setChapterAssets,
+} from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
 import { EnteringCardScreen } from '@/components/entering-card';
 import {
@@ -1558,11 +1563,11 @@ export default function LiveClassroomScreen() {
     if (ending) return;
     setEnding(true);
     clientRef.current?.disconnect();
-    try {
-      if (sessionId) await endDronaSession(sessionId);
-    } catch {
-      // Best effort: the student is already on their way out.
-    }
+    // Not awaited: the comment below already said this is best effort, and the
+    // student was still made to watch it finish. Nothing here reads the result,
+    // and `router.back()` does not need the session to be closed first — the
+    // request outlives this screen either way.
+    if (sessionId) endDronaSession(sessionId).catch(() => {});
     router.back();
   };
 
@@ -1572,33 +1577,42 @@ export default function LiveClassroomScreen() {
     // Close an open turn cleanly before the socket goes; the recorder itself
     // is torn down by the mount effect's cleanup on unmount.
     doneListening();
+
+    // STARTED HERE, AWAITED ON THE NEXT SCREEN.
+    //
+    // This used to await the end call before navigating, so the board, the
+    // dock and the whole classroom stayed in front of a student who had
+    // already decided to leave — 1-2.5s of it, every single class. Dropping
+    // the call was never an option: it sets the session's phase, and a session
+    // that is never closed stays open forever. So the promise travels instead
+    // (lib/session-end.ts), and `session-summary` picks it up.
+    //
+    // Before the recorder teardown, deliberately: stopRecording is 100-400ms
+    // of AVAudioEngine work that the network call has no reason to queue
+    // behind.
+    if (sessionId) startSessionEnd(sessionId);
+
     try {
       await recorder.stopRecording();
     } catch {
       // Never started, or already stopped.
     }
     clientRef.current?.disconnect();
-    try {
-      const summary = sessionId ? await endDronaSession(sessionId) : null;
-      router.replace({
-        pathname: '/session-summary',
-        params: {
-          sessionId,
-          chapterTitle: summary?.chapter_name || chapterTitle,
-          // The topic the student chose on the way in. The server's end payload
-          // has no notion of it — it knows the chapter, not which corner of it
-          // was asked for.
-          topicTitle: params.subtopic ?? '',
-          summaryPoints: JSON.stringify(summary?.summary_points ?? []),
-          questionsAsked: String(askedRef.current),
-          mistakesCount: String(summary?.mistakes_count ?? 0),
-          questionsAnswered: String(summary?.questions_answered ?? 0),
-          durationMinutes: String(summary?.duration_minutes ?? 0),
-        },
-      });
-    } catch {
-      router.replace('/session-summary');
-    }
+
+    router.replace({
+      pathname: '/session-summary',
+      params: {
+        sessionId,
+        // What this screen already knows. The end payload's own chapter_name
+        // replaces this on the summary screen if it says something different.
+        chapterTitle,
+        // The topic the student chose on the way in. The server's end payload
+        // has no notion of it — it knows the chapter, not which corner of it
+        // was asked for.
+        topicTitle: params.subtopic ?? '',
+        questionsAsked: String(askedRef.current),
+      },
+    });
   };
 
   // Keeps the socket's onSessionEnded callback pointed at the current
