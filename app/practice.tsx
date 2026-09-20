@@ -22,6 +22,7 @@ import { Skeleton, stagger } from '@/components/skeleton';
 import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import {
   AnswerResult,
@@ -1155,21 +1156,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(20),
       zIndex: 8,
     },
-    heading: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      lineHeight: scale(29),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
     /** The subject keeps the weight -- it is the part that changes. */
-    headingSubject: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      lineHeight: scale(29),
-      color: colors.ink,
-    },
+    /** The subject, same tier. It used to be the bold half of a medium title; the title tier is bold now, so the row is one weight and the dropdown chevron marks the part that changes. */
+    headingSubject: pageTitle(scale),
     subjectButton: {
       flexDirection: 'row',
       alignItems: 'center',

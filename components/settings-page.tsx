@@ -14,6 +14,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 
 /**
@@ -230,14 +231,8 @@ function createShellStyles(
      * longest title here, "Personal information", is 233pt in 308pt of space,
      * so nothing truncates at this size.
      */
-    headerTitle: {
-      flex: 1,
-      minWidth: 0,
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    headerTitle: { flex: 1, minWidth: 0, ...pageTitle(scale) },
     headerHairline: {
       position: 'absolute',
       left: 0,

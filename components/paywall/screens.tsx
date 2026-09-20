@@ -18,6 +18,7 @@ import {
   rupees,
   useDesignScale,
 } from '@/constants/onboarding';
+import { obPageTitle } from '@/constants/page-title';
 import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
 import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
@@ -70,23 +71,16 @@ function ArrowGlyph({ size }: { size: number }) {
 }
 
 /** The header, laid out as `ObHeader` lays it out, minus the chevron. */
-function Head({ title, ds, fs, tracking }: { title: string; ds: S; fs: S; tracking: T }) {
+function Head({ title, ds, fs }: { title: string; ds: S; fs: S }) {
   return (
     <View style={{ paddingHorizontal: ds(30), paddingTop: ds(34) }}>
-      {/* No `flex: 1`. It was there because ObHeader sets the title beside a
-          chevron in a ROW, where flex makes it take the remaining width. In a
-          plain column with no fixed height it collapses the text to nothing
-          instead, which is exactly what it did — the title vanished. */}
-      <Text
-        style={{
-          fontFamily: obFont.m500,
-          fontSize: fs(22.5),
-          lineHeight: fs(28),
-          letterSpacing: tracking(-0.02, 22.5),
-          color: ob.ink,
-        }}>
-        {title}
-      </Text>
+      {/* The app's page-title tier, not onboarding's: a student meets this
+          screen in the middle of using the app, so it matches the screens it
+          interrupts rather than the flow it borrows its layout from.
+          No `flex: 1` — ObHeader sets its title beside a chevron in a ROW,
+          where flex takes the remaining width; in a plain column with no fixed
+          height it collapses the text to nothing, which is what it once did. */}
+      <Text style={obPageTitle(fs, ds, ob.ink)}>{title}</Text>
     </View>
   );
 }
@@ -149,7 +143,7 @@ function Paywall({
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <Head title="Your pass has ended" ds={ds} fs={fs} tracking={tracking} />
+        <Head title="Your pass has ended" ds={ds} fs={fs} />
         <View style={styles.body}>
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             {/* The work survived. It is the first thing a student on this screen

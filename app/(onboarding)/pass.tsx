@@ -163,13 +163,6 @@ function createStyles(
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
     content: { paddingHorizontal: ds(30), paddingBottom: ds(24) },
-    heading: {
-      fontFamily: obFont.m500,
-      fontSize: fs(22.5),
-      lineHeight: fs(28),
-      letterSpacing: tracking(-0.02, 22.5),
-      color: ob.ink,
-    },
     sub: {
       fontFamily: obFont.r400,
       fontSize: fs(15),

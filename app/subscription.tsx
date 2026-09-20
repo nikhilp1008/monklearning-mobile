@@ -251,10 +251,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12.5),
       color: colors.faint,
     },
+    /** One step under the page title (24/700), not over it: this is the
+     *  answer on the card, not the name of the screen. */
     planTitle: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(25),
-      letterSpacing: scale(-0.75),
+      fontSize: scale(21),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
       marginTop: verticalScale(14),
     },

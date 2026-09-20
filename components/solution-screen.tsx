@@ -12,6 +12,7 @@ import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { DoubtSolution } from '@/components/doubt-solution';
 import { DoubtOption } from '@/lib/doubts';
 import { ParsedStep } from '@/lib/solution-steps';
+import { PAGE_TITLE } from '@/constants/page-title';
 
 /**
  * Snap It Out — solution screen, ported from snap-solution-6b/.
@@ -630,10 +631,14 @@ function createStyles() {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    /** The app's page-title tier. Raw, not scaled: every size in this file
+     *  is raw (see the header), so the numbers come from PAGE_TITLE rather
+     *  than a second set drifting beside it. */
     title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 21,
-      letterSpacing: -0.03 * 21,
+      fontFamily: PAGE_TITLE.family,
+      fontSize: PAGE_TITLE.size,
+      lineHeight: PAGE_TITLE.lineHeight,
+      letterSpacing: PAGE_TITLE.tracking,
       color: INK,
     },
     chips: {

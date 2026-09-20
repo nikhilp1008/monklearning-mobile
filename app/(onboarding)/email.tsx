@@ -462,13 +462,6 @@ function createStyles(
 
     // padding:52px 34px 0
     headBlock: { paddingTop: ds(52), paddingHorizontal: ds(34) },
-    headline: {
-      fontFamily: obFont.sb600,
-      fontSize: fs(44),
-      lineHeight: ds(44 * 1.02),
-      letterSpacing: tracking(-0.035, 44),
-      color: ob.ink,
-    },
     headlineStrong: { fontFamily: obFont.xb800 },
     // 14pt under the title — `padding:14px 30px 0` in the handoff. This
     // briefly carried a paddingTop AND a marginTop of 14 each, which is the

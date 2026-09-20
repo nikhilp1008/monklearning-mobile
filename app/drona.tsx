@@ -8,6 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, examSubjects, getCatalogue } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
@@ -338,13 +339,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     // export-5a: the subject IS the heading, at the 28/700 Doubts and Notes use.
-    headerTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(28),
-      letterSpacing: scale(-0.78),
-      lineHeight: scale(29.4),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    headerTitle: pageTitle(scale),
     subjectPicker: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: scale(8) },
     classPicker: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: scale(5) },
     classPickerText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(14), color: colors.ink },

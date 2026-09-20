@@ -22,6 +22,7 @@ import { Skeleton, stagger } from '@/components/skeleton';
 import { friendlyLoadError } from '@/lib/api';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import {
   DoubtSubjectChip,
@@ -1042,13 +1043,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /** export-8a's title: 28/700 at -0.028em. Larger and heavier than the
      *  24/Medium the other tabs use — see the note in the commit. */
-    heading: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(28),
-      letterSpacing: scale(-0.78),
-      lineHeight: scale(29.4),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
     /**
      * A bare line, not a pill: 44pt tall on a single rule.
      *

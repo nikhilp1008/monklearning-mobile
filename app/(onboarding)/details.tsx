@@ -214,13 +214,6 @@ function createStyles(
       paddingHorizontal: ds(34),
     },
     // 44px / 600 / lh 1.02 / -.035em
-    headline: {
-      fontFamily: obFont.sb600,
-      fontSize: fs(44),
-      lineHeight: ds(44 * 1.02),
-      letterSpacing: tracking(-0.035, 44),
-      color: ob.ink,
-    },
     headlineBold: {
       fontFamily: obFont.xb800,
     },

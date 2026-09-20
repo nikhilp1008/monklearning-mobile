@@ -469,9 +469,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     name: {
       flex: 1,
       fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      lineHeight: scale(26.4),
-      letterSpacing: scale(-0.02 * 24),
+      fontSize: scale(21),
+      lineHeight: scale(24),
+      letterSpacing: scale(-0.02 * 21),
       color: colors.ink,
     },
     yearPill: {
@@ -666,9 +666,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     rateHeadline: {
       marginTop: verticalScale(6),
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(28),
-      lineHeight: scale(30.2),
-      letterSpacing: scale(-0.028 * 28),
+      fontSize: scale(22),
+      lineHeight: scale(26),
+      letterSpacing: scale(-0.028 * 22),
       color: CREAM,
       textAlign: 'center',
     },
