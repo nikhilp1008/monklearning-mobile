@@ -3,11 +3,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Path, RadialGradient, Rect as SvgRect, Stop } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Grain } from '@/components/grain';
-import { ProgressGlyph } from '@/components/monk-icons';
+import { PracticeIcon, ProgressGlyph, SnapADoubtIcon } from '@/components/monk-icons';
 import { hapticKey, hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
@@ -184,7 +184,7 @@ export default function HomeScreen() {
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
                   <PlateGround />
-                  <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.paper} />
+                  <SnapADoubtIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
@@ -197,7 +197,7 @@ export default function HomeScreen() {
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
                   <PlateGround />
-                  <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.paper} />
+                  <PracticeIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
@@ -533,45 +533,6 @@ function PersonIcon({ size }: { size: number }) {
         strokeWidth={1.7}
         strokeLinecap="round"
       />
-    </Svg>
-  );
-}
-
-/**
- * Stroke and the marigold mark are separate colours, so the drawing can reverse
- * onto an ink plate without losing the thing that signs it. The aperture is
- * fractionally larger reversed: a 1.2 dot that held its own against white ink
- * disappears against cream on dark.
- */
-function SnapIcon({ size, stroke = colors.ink, dot = colors.marigold }: { size: number; stroke?: string; dot?: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={stroke} strokeWidth={1.8} />
-      <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={stroke} strokeWidth={1.8} />
-      <Circle cx={12} cy={13.2} r={3.6} stroke={stroke} strokeWidth={1.8} />
-      <Circle cx={12} cy={13.2} r={1.5} fill={dot} />
-    </Svg>
-  );
-}
-
-function PracticeIcon({ size, stroke = colors.ink, dot = colors.marigold }: { size: number; stroke?: string; dot?: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={stroke} strokeWidth={1.8} />
-      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={stroke} strokeWidth={1.8} />
-      {/* The marigold marks the item ON the card, not a blob beside it.
-          It used to sit at cx 17.4 -- the front card's stroke spans
-          15.75-17.45, so the dot was centred on the border, half inside the
-          card and half in the channel, cutting the back card's edge on its
-          way past. It read as a smudge welded to the corner.
-
-          Snap's marigold is the aperture: inside the form, concentric,
-          doing a job. This one is now the bullet on the card's one line,
-          which is also how a plan row is drawn elsewhere in the app. Dot
-          and line sit on 1.00 of clearance at each end of the card's
-          interior, the round cap included. */}
-      <Circle cx={6.4} cy={12.4} r={1.4} fill={dot} />
-      <Path d="M10 12.4h3.9" stroke={stroke} strokeWidth={1.8} />
     </Svg>
   );
 }
