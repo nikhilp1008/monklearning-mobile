@@ -865,14 +865,19 @@ function createStyles() {
     },
     // Sits where the first step's text will, so the placeholder underneath is
     // not pushed off its own rail.
-    /** On the rail, level with where step one will be, so the line reads as
-     *  the first thing on the list rather than a caption floating above it. */
+    /**
+     * At the page's own left margin, not the rail's.
+     *
+     * It was indented 34 to sit over the step text, which put it under the
+     * question with a hand's width of white to its left and made it read as a
+     * caption belonging to the placeholder. It is a status line about the
+     * whole page, so it starts where the page starts.
+     */
     pendingNow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 9,
-      marginBottom: 20,
-      paddingLeft: 34,
+      gap: 8,
+      marginBottom: 22,
     },
     pendingText: {
       fontFamily: 'Onest_600SemiBold',
@@ -984,46 +989,43 @@ function PendingDot() {
 }
 
 /**
- * THE STRUCTURE IS REAL; ONLY THE WORDS ARE MISSING.
+ * WHAT A WAIT SHOULD WEIGH.
  *
- * It was four blocks of pale bars — a grey square where the step number goes,
- * a title bar, two body lines and a wide block for the maths — pulsing on a
- * rail, with 26pt between them. On a phone that reads as a page that failed
- * to load: too much air, nothing recognisable, and a fourth step that runs
- * under the follow-up bar.
+ * Two earlier versions were wrong in opposite directions. The first was four
+ * blocks of pale bars with 26pt of air between them and no structure at all,
+ * which read as a page that had failed to load. The second drew the real
+ * numbered markers — 01, 02, 03 — on the real rail, which fixed the structure
+ * and bought a new problem: it states as fact that there will be three steps
+ * and invites a student to read numbers that are not answers to anything.
  *
- * The rail and the numbered markers are now drawn exactly as `DoubtSolution`
- * draws them, numbers included, because they are known before the answer is:
- * a solve always comes back as numbered steps on this rail. Only the text
- * inside each step is a placeholder, and it sits at the real line heights, so
- * when the answer lands the page fills in rather than rebuilding itself.
- *
- * Three steps, not four: the typical solve is five or six, so any count is a
- * guess, and three fits above the follow-up bar on the smallest phone we
- * support.
+ * This is the third: the rail, a small open mark where each step will begin,
+ * and two or three light bars for the words. No numbers before there are any.
+ * Lighter fill than the app's default skeleton, fewer bars per step, and no
+ * slab standing in for an equation — a page that is waiting should weigh less
+ * than the page that arrives, not the same.
  */
 function StepsPlaceholder() {
   const skeleton = useMemo(() => createSkeletonStyles(), []);
   return (
     <View style={skeleton.steps}>
       <View style={skeleton.rail} />
-      {[0, 1, 2].map((i) => (
-        <View key={i} style={skeleton.step}>
-          <View style={skeleton.num}>
-            <Text style={skeleton.numText}>{String(i + 1).padStart(2, '0')}</Text>
-          </View>
-          <Skeleton delay={stagger(i, 140)} style={skeleton.stepTitle} />
-          {/* These bars were invisible until `SkeletonParagraph` learned to
-              stretch — see the note there — which is most of why the step read
-              as a title, a gap, and a block of maths. */}
-          <SkeletonParagraph
-            lines={2}
-            lineHeight={14}
-            gap={8}
-            delay={stagger(i, 140) + 70}
-            widths={['100%', '84%']}
-          />
-          <Skeleton delay={stagger(i, 140) + 200} style={skeleton.math} />
+      {[0, 1, 2, 3].map((i) => (
+        // The fourth is half-lit. A solve is usually five or six steps, so the
+        // block has to reach down the page or it reads as "this is all there
+        // is" and then jumps — but four steps at full weight is a grey page.
+        // It fades out instead, which says "and more" without drawing it.
+        <View key={i} style={[skeleton.step, i === 3 && skeleton.stepFading]}>
+          <View style={skeleton.mark} />
+          <Skeleton delay={stagger(i, 150)} style={skeleton.stepTitle} />
+          {i < 3 && (
+            <SkeletonParagraph
+              lines={i === 2 ? 1 : 2}
+              lineHeight={11}
+              gap={9}
+              delay={stagger(i, 150) + 80}
+              widths={['100%', '74%']}
+            />
+          )}
         </View>
       ))}
     </View>
@@ -1062,57 +1064,51 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 
 function createSkeletonStyles() {
   const RAIL = 34;
-  const MARKER = 22;
+  /** Lighter than SKELETON_FILL: this placeholder covers most of a page, and
+   *  at the app's usual weight that much of it reads as a grey screen. */
+  const FILL = 'rgba(28,26,22,.055)';
   return StyleSheet.create({
-    // DoubtSolution's own rail geometry, so the placeholder stands exactly
-    // where the real steps will and nothing shifts when they land.
+    // DoubtSolution's own rail geometry, so the words land where these bars
+    // are and nothing shifts when the answer arrives.
     steps: {
       position: 'relative',
       marginTop: 6,
       paddingLeft: RAIL,
-      gap: 26,
+      gap: 30,
     },
     rail: {
       position: 'absolute',
       left: 10.5,
-      top: 10,
-      bottom: 10,
+      top: 8,
+      bottom: 16,
       width: 1,
-      backgroundColor: HAIR,
+      backgroundColor: 'rgba(28,26,22,.07)',
     },
     step: {
       position: 'relative',
-      gap: 9,
+      gap: 10,
       alignItems: 'flex-start',
       alignSelf: 'stretch',
     },
-    /** The real marker, number and all: a solve always arrives as numbered
-     *  steps, so this much is known before the answer is. */
-    num: {
+    /** Where the numbered marker will be, drawn as an open ring: it holds the
+     *  place without claiming to know what goes in it. */
+    mark: {
       position: 'absolute',
-      left: -RAIL,
-      top: 2,
-      width: MARKER,
-      height: MARKER,
+      left: -RAIL + 5,
+      top: 4,
+      width: 11,
+      height: 11,
+      borderRadius: 5.5,
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,0.16)',
-      borderRadius: 6,
+      borderColor: 'rgba(28,26,22,.14)',
       backgroundColor: '#FFFFFF',
-      alignItems: 'center',
-      justifyContent: 'center',
     },
-    numText: { fontFamily: 'Onest_700Bold', fontSize: 10.5, color: 'rgba(87,83,75,0.5)' },
+    stepFading: { opacity: 0.45 },
     stepTitle: {
-      width: '58%',
-      height: 16,
-      borderRadius: 5,
-    },
-    /** Indented like a display equation, because that is what lands here. */
-    math: {
-      marginLeft: 10,
-      width: '44%',
-      height: 26,
-      borderRadius: 7,
+      width: '46%',
+      height: 12,
+      borderRadius: 4,
+      backgroundColor: FILL,
     },
   });
 }
