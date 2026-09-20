@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  LayoutAnimation,
   ScrollView,
   StyleSheet,
   Text,
@@ -252,7 +253,29 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     doubts.length === 0 && doubtsFilter === 'All' && !doubtsQuery.trim();
   const hasErasableDoubts = doubts.length > 0;
 
+  /**
+   * ERASE MODE OPENS AND CLOSES AS A MOVE, NOT A CUT.
+   *
+   * Entering it inserts a line into the fixed header, which shoved the whole
+   * list down a row's worth in a single frame, and leaving it snapped
+   * everything back. That jump is what made a convenience feel like a
+   * commitment. One eased layout pass carries the shift; the line and the
+   * amber wash fade in over it rather than arriving at full strength on the
+   * frame the list moves.
+   *
+   * 220ms, and `opacity` named for create and delete so the two views that
+   * come and go are faded rather than popped. Not Reanimated's entering and
+   * exiting: this file draws with React Native's own Animated, and mixing
+   * the two animation systems on one screen is how a screen ends up with two
+   * clocks.
+   */
   const toggleErase = useCallback(() => {
+    LayoutAnimation.configureNext({
+      duration: 220,
+      create: { type: 'easeInEaseOut', property: 'opacity' },
+      update: { type: 'easeInEaseOut' },
+      delete: { type: 'easeInEaseOut', property: 'opacity' },
+    });
     setEraseMode((on) => {
       if (!on) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       return !on;
@@ -476,6 +499,12 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
             <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Doubts'}</Text>
             {canErase && <EraseTool active={eraseMode} onPress={toggleErase} />}
           </View>
+          {/* THE ONLY ONE OF THESE.
+              The same line was also rendered inside each list, under the
+              search field, so erase mode opened saying "rub any card to
+              erase it" twice, a few points apart, each with its own DONE.
+              This is the copy that stays: pinned to the header, it is still
+              on screen after a student scrolls to the card they want gone. */}
           {eraseMode && <EraseModeLine onDone={toggleErase} />}
         </View>
 
@@ -504,8 +533,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   )}
                 </View>
               </View>
-
-              {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
 
               {notesLoading ? (
                 <ListSkeleton styles={styles} kind="notes" count={5} />
@@ -614,7 +641,6 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </PressableScale>
               </View>
 
-              {eraseMode && <EraseModeLine onDone={() => setEraseMode(false)} />}
               {doubtsLoading ? (
                 <ListSkeleton styles={styles} kind="doubts" count={5} />
               ) : doubtsError ? (
