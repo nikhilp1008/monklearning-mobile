@@ -23,6 +23,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'reac
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
+import { TEACHERS } from '@/constants/teachers';
 import { pageTitle } from '@/constants/page-title';
 import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
@@ -33,6 +34,8 @@ import {
   getTeacherPreference,
   setLanguagePreference,
   setTeacherPreference,
+  type LanguageId,
+  type TeacherId,
 } from '@/lib/preferences';
 import { pullPersona, pushPersona } from '@/lib/persona-sync';
 import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
@@ -45,32 +48,12 @@ const CREAM_66 = 'rgba(251,249,242,.66)';
 const IDLE_INK = '#8A857A';
 const IDLE_QUIET = '#B4AC9B';
 
-type TeacherId = 'drona' | 'vedha';
-type LanguageId = 'hinglish' | 'english';
-
 /**
  * The orb palettes are 24A's two conic gradients, read in order. React Native
  * has no conic-gradient, so each is a rotating linear sweep clipped by a
  * circle -- the same fallback this screen already used for the old selection
  * ring, and the reason the stop list starts and ends on the same colour.
  */
-const TEACHERS: {
-  id: TeacherId;
-  name: string;
-  trait: string;
-}[] = [
-  {
-    id: 'drona',
-    name: 'Drona',
-    trait: 'calm · measured · exacting',
-  },
-  {
-    id: 'vedha',
-    name: 'Vedha',
-    trait: 'warm · quick · encouraging',
-  },
-];
-
 // English first, as 24A draws the toggle.
 const LANGUAGES: { id: LanguageId; label: string; speech: string }[] = [
   { id: 'english', label: 'English', speech: 'Everything in English, start to finish.' },
