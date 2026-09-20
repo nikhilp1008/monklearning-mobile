@@ -175,9 +175,12 @@ export default function SubscriptionScreen() {
         </Text>. We reply within 24 hours.
       </Text>
 
+      {/* "Exportable" was a promise the app does not keep: notes and doubts can
+          be read and searched in the app, and nothing can be downloaded out of
+          it. This says what actually happens, in the words a student uses. */}
       <Text style={styles.footNote}>
-        If your plan lapses, your notes and doubts stay yours and stay exportable. Only new
-        classes, snaps and practice pause.
+        When your plan ends, your notes and doubts are still here, and you can still read them.
+        Only new classes, snaps and practice stop.
       </Text>
     </SettingsPage>
   );
