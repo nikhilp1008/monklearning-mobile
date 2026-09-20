@@ -23,6 +23,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'reac
 
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { signOut } from '@/lib/auth';
@@ -445,13 +446,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       alignItems: 'center',
       justifyContent: 'center',
     },
-    headerTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(22),
-      lineHeight: scale(24.2),
-      letterSpacing: scale(-0.02 * 22),
-      color: colors.ink,
-    },
+    /** The app's one page-title tier — see constants/page-title.ts. */
+    headerTitle: pageTitle(scale),
 
     scrollContent: { paddingHorizontal: scale(24), paddingBottom: verticalScale(40) },
 
@@ -466,12 +462,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderBottomWidth: 1,
       borderBottomColor: RULE,
     },
+    /** Two steps under the title. It was 24 — the old title tier exactly —
+     *  so the first line of the body read as the heading of the page. */
     name: {
       flex: 1,
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(21),
-      lineHeight: scale(24),
-      letterSpacing: scale(-0.02 * 21),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(18),
+      lineHeight: scale(22),
+      letterSpacing: scale(-0.02 * 18),
       color: colors.ink,
     },
     yearPill: {
@@ -483,7 +481,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderColor: OUTLINE,
     },
     yearPillText: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13),
       lineHeight: scale(18),
       color: colors.ink,
@@ -505,9 +503,11 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       lineHeight: scale(22),
       color: colors.slate,
     },
+    /** 15, like the label beside it. At 16 the answer was a size larger
+     *  than the question, which is why the row read as two systems. */
     rowValue: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
+      fontSize: scale(15),
       lineHeight: scale(22),
       letterSpacing: scale(-0.012 * 16),
       color: colors.ink,
@@ -545,9 +545,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       marginTop: verticalScale(12),
     },
     manageText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      lineHeight: scale(18),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.amberText,
     },
 
@@ -586,12 +586,16 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       // says 56 over 14.
       marginTop: scale(14),
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
+      fontSize: scale(15),
       lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
+      letterSpacing: scale(-0.012 * 15),
       color: colors.ink,
     },
     teacherNameIdle: { color: IDLE_INK },
+    /** The one number off the ladder, and it has to be. Both traits are 26
+     *  characters in a ~157pt cell: at 13 the right-hand one hits
+     *  `adjustsFontSizeToFit` and shrinks, so the two cells would render at
+     *  different sizes side by side. 12.5 fits both without shrinking. */
     teacherTrait: {
       marginTop: scale(3),
       fontFamily: 'Onest_400Regular',
@@ -626,8 +630,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     toggleHalf: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     toggleLabel: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      lineHeight: scale(20),
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.slate,
     },
     toggleLabelOn: { fontFamily: 'Onest_700Bold', color: colors.ink },
