@@ -129,6 +129,12 @@ test('every registry entry is either verified below or explicitly skipped', () =
     // GATE_FRAMES and checks its maths against NCERT's worked answers before
     // checking it against itself. Same claim as the others, made in its own file.
     'conic_plot',
+    // comparison_table was wired 2026-09-20. Its own suite
+    // (comparison-table/__tests__) runs every refusal the spec names and
+    // renders at all five GATE_FRAMES. Same claim as the others, in its own
+    // file — and the guard did its job again: it failed the moment the
+    // registry grew, naming the one widget nobody had listed.
+    'comparison_table',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));

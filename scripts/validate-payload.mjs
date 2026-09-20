@@ -60,6 +60,7 @@ const WIDGETS = {
   circuit_network: ['circuit-network', 'circuitNetwork'],
   conic_plot: ['conic-plot', 'conicPlot'],
   lines_planes_3d: ['lines-planes-3d', 'linesPlanes3d'],
+  comparison_table: ['comparison-table', 'comparisonTable'],
   // molecule_3d renders a WebView, not SVG; its validate() is reachable but
   // the module pulls an HTML asset through require(). Listed as unjudgeable
   // rather than silently absent — see UNJUDGEABLE below.
