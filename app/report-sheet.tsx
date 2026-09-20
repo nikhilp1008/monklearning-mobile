@@ -29,9 +29,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { reportDoubt } from '@/lib/doubts';
 import { hapticCommitted, hapticSwitched } from '@/lib/haptics';
-import { reportPracticeQuestion } from '@/lib/practice';
+import { REPORT_REASONS, sendReport as postReport, type ReportSurface } from '@/lib/reports';
 
 /**
  * REPORT A MISTAKE — the reasons, a note, and Send. Nothing else.
@@ -57,7 +56,10 @@ import { reportPracticeQuestion } from '@/lib/practice';
  * in-file report drawer for session mistakes, not this screen.
  */
 
-const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
+// One vocabulary, shared with the live classroom's own drawer through
+// lib/reports.ts. They used to be two identical literals in two files, which
+// is how a list drifts into reasons that almost group on a dashboard.
+const REASONS = [...REPORT_REASONS];
 
 /** Drag distance or flick speed that closes the sheet — the topics sheet's. */
 const CLOSE_DISTANCE = 110;
@@ -70,11 +72,19 @@ const OUT = { duration: 220, easing: Easing.bezier(0.4, 0, 0.9, 0.4) };
 export default function ReportSheetScreen() {
   const params = useLocalSearchParams<{
     doubtId?: string;
-    /** A practice question instead of a doubt — see `reportPracticeQuestion`. */
+    /** A practice question instead of a doubt. */
     questionId?: string;
+    sessionId?: string;
+    subject?: string;
+    chapter?: string;
+    quote?: string;
+    /** Which part of the app is reporting; defaults from whatever id arrived. */
+    surface?: ReportSurface;
   }>();
   const practice = !params.doubtId && !!params.questionId;
-  const reportable = !!params.doubtId || practice;
+  const surface: ReportSurface = params.surface ?? (practice ? 'practice' : 'snap');
+  const target = params.doubtId || params.questionId || params.sessionId;
+  const reportable = !!target;
 
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -156,21 +166,36 @@ export default function ReportSheetScreen() {
     setSendError(null);
     try {
       // In the order the list shows them, whatever order they were tapped.
-      const reasons = REASONS.filter((r) => picked.includes(r)).join(', ');
-      const comment = [reasons, note.trim()].filter(Boolean).join(': ');
-      if (params.doubtId) await reportDoubt(params.doubtId, comment);
-      else await reportPracticeQuestion(params.questionId!, comment);
+      const reasons = REASONS.filter((r) => picked.includes(r));
+      /**
+       * THE FIRST ONE IS THE REASON; THE REST TRAVEL WITH IT.
+       *
+       * `POST /reports` takes a single `reason`, and it takes it as a column
+       * precisely so the dashboard can group by it — the bug that replaced
+       * was a reason glued to the front of the comment, which needed a LIKE
+       * over every row to answer "which of the five?". This sheet lets a
+       * student tick more than one, so the first ticked is the reason and the
+       * whole set rides in `context`, where it groups nothing and loses
+       * nothing. If multi-select turns out to be the common case, the field
+       * should become an array server-side rather than a joined string here.
+       */
+      await postReport({
+        surface,
+        reason: reasons[0] ?? null,
+        comment: note.trim() || null,
+        doubtId: params.doubtId || null,
+        questionId: params.questionId || null,
+        sessionId: params.sessionId || null,
+        subject: params.subject || null,
+        chapter: params.chapter || null,
+        quote: params.quote || null,
+        context: reasons.length > 1 ? { reasons } : null,
+      });
       setPhase('sent');
       setTimeout(dismiss, SENT_HOLD_MS);
     } catch (err) {
       setPhase('idle');
-      // A practice report fails with the server's bare "Not Found" until its
-      // endpoint exists, which says nothing to a student.
-      setSendError(
-        !practice && err instanceof Error && err.message
-          ? err.message
-          : "Couldn't send that. Try again."
-      );
+      setSendError(err instanceof Error && err.message ? err.message : "Couldn't send that. Try again.");
     }
   };
 
