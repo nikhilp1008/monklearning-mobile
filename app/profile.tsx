@@ -1,6 +1,6 @@
 // 24A Profile — rebuilt from "MonkLearning Profile 24A.html".
 //
-// Only this screen changes. Personal information, privacy policy, manage exam,
+// Only this screen changes. Personal information, privacy policy, manage plan,
 // terms and about us keep the layout and the shared `SettingsHeader` they
 // already have.
 //
@@ -207,11 +207,14 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* "Manage plan", because that is where it goes: Your plan, which
+              says what pass is running and when it ends. The exam is set
+              above this row, not behind it. */}
           <PressableScale
             style={styles.manageLink}
             hitSlop={10}
             onPress={() => router.push('/subscription')}>
-            <Text style={styles.manageText}>Manage exam</Text>
+            <Text style={styles.manageText}>Manage plan</Text>
             <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
               <Path
                 d="M2 8h11M9 3.5 13.5 8 9 12.5"
