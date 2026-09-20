@@ -81,8 +81,10 @@ export function FirstDayCard({
   glyph: (size: number, color: string) => React.ReactNode;
   head: string;
   line: string;
-  cta: string;
-  onPress: () => void;
+  /** Omit both to state a fact rather than ask for a tap — Progress does,
+   *  because the thing that fills it in is the whole app, not one screen. */
+  cta?: string;
+  onPress?: () => void;
   style?: object;
 }) {
   const { scale, verticalScale } = useScale();
@@ -94,9 +96,11 @@ export function FirstDayCard({
       </Plate>
       <Text style={s.head}>{head}</Text>
       <Text style={s.line}>{line}</Text>
-      <View style={s.buttonWrap}>
-        <ObButton compact label={cta} withArrow onPress={onPress} />
-      </View>
+      {!!cta && !!onPress && (
+        <View style={s.buttonWrap}>
+          <ObButton compact label={cta} withArrow onPress={onPress} />
+        </View>
+      )}
     </View>
   );
 }

@@ -108,3 +108,29 @@ export function PracticeIcon({
     </Svg>
   );
 }
+
+/**
+ * The bars from the old Progress tab: Home's app-bar control and the mark on
+ * the Progress page's own first-day card, so the two are recognisably the
+ * same thing. `accent` reverses to the stroke colour on an ink plate, where a
+ * marigold dot on dark disappears.
+ */
+export function ProgressGlyph({
+  size = 22,
+  color = colors.ink,
+  accent = AMBER_ACCENT,
+  strokeWidth = 1.75,
+}: MonkIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4.5 19h15" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Path
+        d="M8 19v-4.5M12 19v-8M16 19V7.5"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      <Circle cx={16} cy={4.6} r={1.8} fill={accent} />
+    </Svg>
+  );
+}

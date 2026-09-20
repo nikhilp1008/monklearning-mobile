@@ -7,6 +7,7 @@ import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } 
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Grain } from '@/components/grain';
+import { ProgressGlyph } from '@/components/monk-icons';
 import { hapticKey, hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
@@ -532,23 +533,6 @@ function PersonIcon({ size }: { size: number }) {
         strokeWidth={1.7}
         strokeLinecap="round"
       />
-    </Svg>
-  );
-}
-
-/** The bars from the old Progress tab, at app-bar size. Same shape, so the
- *  control is recognisable in its new home. */
-function ProgressGlyph({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d="M4.5 19h15" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
-      <Path
-        d="M8 19v-4.5M12 19v-8M16 19V7.5"
-        stroke={colors.ink}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-      />
-      <Circle cx={16} cy={4.6} r={1.8} fill={colors.marigold} />
     </Svg>
   );
 }

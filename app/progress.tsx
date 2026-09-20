@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { FirstDayCard } from '@/components/first-day-card';
-import { PracticeIcon } from '@/components/monk-icons';
+import { ProgressGlyph } from '@/components/monk-icons';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -278,11 +278,9 @@ export default function ProgressScreen() {
           */}
           {data && !started && (
             <FirstDayCard
-              glyph={(size, color) => <PracticeIcon size={size} color={color} accent={color} />}
-              head="Your score starts at your first question."
-              line="Answer a few and this page fills in: what you know, what is shaky, and what to do next."
-              cta="Start practising"
-              onPress={() => router.push('/practice')}
+              glyph={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
+              head="Your score is still taking shape."
+              line="It appears once there is enough behind it — a class sat, a doubt solved, questions answered."
             />
           )}
 
@@ -385,9 +383,12 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {/* Three strips reading 0/1000 are three ways of saying the same
-              nothing. They arrive with the first answered question. */}
-          {data && started && subjects.length > 0 && (
+          {/* THE STRIPS STAY ON DAY ONE, zeros and all. They read 0/1000
+              before a student has answered anything, which is honest, and
+              they are also the subject selector for the chapter list below —
+              hiding them left a new student on Physics with no way to reach
+              Chemistry or Maths. */}
+          {data && subjects.length > 0 && (
             <View style={styles.subjectsRow}>
               {subjects.map((s, i) => {
                 const selected = i === subjectIndex;
