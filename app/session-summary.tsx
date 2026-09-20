@@ -143,7 +143,12 @@ export default function SessionSummaryScreen() {
   // route did, but only once it arrives.
   const chapterTitle = summary?.chapter_name || params.chapterTitle || 'this class';
   const topicTitle = params.topicTitle?.trim() || null;
-  const questionsAnswered = summary?.questions_answered ?? Number(params.questionsAnswered) ?? 0;
+  // `|| 0` and not `?? 0`: `??` does not catch NaN, and the classroom passes
+  // questionsAsked WITHOUT questionsAnswered — so `Number(undefined)` made this
+  // NaN whenever the end payload had not arrived. NaN then poisoned
+  // questionsAsked through Math.max, and since `NaN === 0` is false the
+  // rowLast style quietly stopped applying. Same idiom as the line below.
+  const questionsAnswered = summary?.questions_answered ?? (Number(params.questionsAnswered) || 0);
   /**
    * THE DENOMINATOR IS COUNTED IN THE CLASSROOM, because the session's end
    * frame reports how many questions were answered and never how many were

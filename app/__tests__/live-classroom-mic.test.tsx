@@ -22,6 +22,23 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 // renders the rail these assertions are about.
 process.env.EXPO_PUBLIC_API_URL = 'https://classroom.test';
 
+/**
+ * The default 5s budget is not enough to mount this screen from cold.
+ *
+ * Whichever test runs FIRST pays the one-time cost of transforming and
+ * evaluating `../live-classroom` and its whole import graph, and that is not
+ * small: on a cleared jest cache, with the other suites competing for workers,
+ * this file took 57.9s against the 14-19s it takes warm — and the first test
+ * alone exceeded 5000ms and threw a timeout. Every later test reuses the
+ * module registry and finishes in milliseconds, which is why the failure always
+ * landed on the first test and looked like a property of that one case.
+ *
+ * A timeout, not a mock or a flush, so it is worth being explicit: nothing here
+ * waits on wall-clock time deliberately. This only buys room for a cold
+ * transform, and a genuinely hung probe still fails fast via `settle`'s bound.
+ */
+jest.setTimeout(30_000);
+
 const mockStartRecording = jest.fn((_options: Record<string, unknown>) => Promise.resolve());
 const mockStopRecording = jest.fn(() => Promise.resolve());
 const mockGetPermissions = jest.fn(() => Promise.resolve({ granted: true, canAskAgain: false }));
@@ -129,10 +146,15 @@ function allText(node: unknown, out: string[] = []): string[] {
  * chain is exactly one microtask tier deep. It is not: permissions resolve,
  * then devices enumerate, then the decision commits, and each hop is its own
  * tier. On an unloaded machine one flush happened to be enough; under full
- * suite load this case failed roughly one run in three, and it was the only
- * one that ever failed because it is the only one whose mocks all resolve
- * EMPTY — nothing else in the file depends this tightly on the chain being
- * complete before the assertion runs.
+ * suite load it was not, and this case failed roughly one run in three.
+ *
+ * The clause that used to sit here — that this case failed because it is the
+ * only one whose mocks all resolve EMPTY — was wrong, and worth correcting
+ * because it points at the mocks instead of at the clock. The residual failures
+ * after this helper landed were the 5s test timeout, which this file now raises
+ * at the top: the failure follows whichever test runs FIRST and pays for the
+ * cold module load, not the case whose devices come back empty. Flushing to a
+ * fixpoint is still right on its own merits; it just was not the whole story.
  *
  * So: flush until the probe stops doing anything, judged by the probe's own
  * observable — how many times it has called out. A fixpoint, not a guess.
