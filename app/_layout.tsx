@@ -160,7 +160,9 @@ export default function RootLayout() {
    */
   const segments = useSegments();
   const inOnboarding = segments[0] === '(onboarding)';
-  const onPlans = segments[0] === 'plans';
+  // The promo screen is part of the takeover, not a way out of it: a gate that
+  // fired there would bounce the student back mid-code.
+  const onPlans = segments[0] === 'plans' || segments[0] === 'plans-promo';
 
   /**
    * Telemetry, started once and deliberately outside every startup gate.
@@ -389,6 +391,8 @@ export default function RootLayout() {
             name="plans"
             options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}
           />
+          {/* Pushed from it, so it keeps its back chevron and its slide. */}
+          <Stack.Screen name="plans-promo" options={{ headerShown: false }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />

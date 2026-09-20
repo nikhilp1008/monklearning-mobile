@@ -5,6 +5,10 @@ import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
+// The same three lines as onboarding and the plans screen. This list was its
+// own, written once and left behind: it promised exportable notes and mock
+// tests "as chapters unlock", neither of which is what we sell.
+import { INCLUDED } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { PASS_NAME, passStatus, type PassStatus } from '@/lib/pass';
 
@@ -39,20 +43,14 @@ const GREEN_DOT = '#1C9B57';
  * It was a fixed object: a six-month plan bought on 2 June with 107 days left
  * and two invoices, none of it true for anybody. It now reads the student's
  * real pass from `lib/pass` — what they took, when it started, when it ends,
- * how long is left, and the code that made it free.
+ * and how long is left. Not the promo code: `lib/pass` still keeps it, but a
+ * student checking their plan is checking time, not how the bill was settled.
  *
  * PAYMENTS ARE NOT LISTED, because there have been none. No provider is wired
  * and every pass so far exists because a promo code brought a price to zero;
  * a list of invoices would be a list of fictions. The block returns when the
  * server has purchases to return.
  */
-
-const INCLUDED = [
-  'Live classes with Drona or Vedha, in English or Hinglish',
-  'Snap a doubt, up to 3 questions a photo',
-  'Unlimited practice, and mock tests as chapters unlock',
-  'Every note and doubt you save, kept and exportable',
-];
 
 const asDate = (d: Date) =>
   d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -79,6 +77,8 @@ export default function SubscriptionScreen() {
   const daysLeft = active?.daysLeft ?? 0;
   const elapsed = Math.max(0, Math.min(1, 1 - daysLeft / totalDays));
   const expiringSoon = !!active && daysLeft <= 3;
+  /** The last fortnight, where extending stops being a sales pitch. */
+  const nearingEnd = !!active && daysLeft <= 15;
 
   return (
     <SettingsPage title="Your plan">
@@ -103,14 +103,13 @@ export default function SubscriptionScreen() {
           )}
         </View>
 
-        <Text style={styles.planTitle}>
-          {record ? PASS_NAME[record.kind] : 'No pass yet'}
-        </Text>
-        <Text style={styles.planDuration}>
-          {record
-            ? `${record.promo ? `${record.promo} · ` : ''}JEE Main and NEET UG, both covered`
-            : 'Take one to start classes, snaps and practice'}
-        </Text>
+        <Text style={styles.planTitle}>{record ? PASS_NAME[record.kind] : 'No pass yet'}</Text>
+        {/* No code, and no "both exams covered". The code is a detail of how
+            the bill was settled, and what a pass covers is the list further
+            down the page — neither is what this line is for. */}
+        {!record && (
+          <Text style={styles.planDuration}>Take one to start classes, snaps and practice</Text>
+        )}
 
         {/* One bar, because a date alone doesn't tell you where you are in it. */}
         <View style={styles.track}>
@@ -143,18 +142,26 @@ export default function SubscriptionScreen() {
         </Text>
       </View>
 
-      <Pressable style={styles.primaryButton} onPress={() => router.push('/plans')}>
-        <Text style={styles.primaryButtonText}>
-          {active ? 'Extend my access' : 'Get a pass'}
-        </Text>
-      </Pressable>
+      {/* A student with nine months left is not shopping. The button appears in
+          the last fortnight, when extending is a real decision, and whenever
+          there is no live pass at all. */}
+      {(!active || nearingEnd) && (
+        <Pressable style={styles.primaryButton} onPress={() => router.push('/plans')}>
+          <Text style={styles.primaryButtonText}>{active ? 'Extend my access' : 'Get a pass'}</Text>
+        </Pressable>
+      )}
 
       <Text style={styles.overline}>WHAT&apos;S INCLUDED</Text>
       <View style={styles.card}>
-        {INCLUDED.map((line, i) => (
-          <View key={line} style={[styles.includedRow, i === INCLUDED.length - 1 && styles.rowLast]}>
+        {INCLUDED.map(([label, value], i) => (
+          <View
+            key={label}
+            style={[styles.includedRow, i === INCLUDED.length - 1 && styles.rowLast]}>
             <TickIcon size={scale(13)} />
-            <Text style={styles.includedText}>{line}</Text>
+            <Text style={styles.includedText}>
+              <Text style={styles.includedLabel}>{label}</Text>
+              {` — ${value}`}
+            </Text>
           </View>
         ))}
       </View>
@@ -346,6 +353,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     rowLast: {
       borderBottomWidth: 0,
     },
+    includedLabel: { fontFamily: 'Onest_500Medium', color: colors.ink },
     includedText: {
       flex: 1,
       fontFamily: 'Onest_400Regular',
