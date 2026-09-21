@@ -92,3 +92,44 @@ describe('categorical cells', () => {
     }
   });
 });
+
+describe('labels are REFUSED, not sliced', () => {
+  const base = {
+    ...dataTableTrend.defaults, cell_kind: 'numeric' as const,
+    row_labels: ['Radio', 'Microwave'], col_labels: ['nm'],
+    values: [1, 2], text_values: [],
+  };
+
+  test('an over-long column header is refused with the measurement', () => {
+    // The hand review of 2026-09-21 found this on fifteen of seventeen
+    // published tables: "Frequency range" drawn as "Frequency r".
+    const r = dataTableTrend.validate({ ...base, col_labels: ['Frequency range'] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors.join(' ')).toMatch(/col_labels\[0\].*4 over the 11/);
+      expect(r.errors.join(' ')).toMatch(/never truncated at render time/);
+    }
+  });
+
+  test('an over-long row label is refused', () => {
+    // Row labels get 12 per line, so 25 across two. 26 is one over.
+    const r = dataTableTrend.validate({ ...base, row_labels: ['x'.repeat(26), 'b'] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/row_labels\[0\]/);
+  });
+
+  test('a label that FITS two lines still passes', () => {
+    expect(dataTableTrend.validate({ ...base, col_labels: ['Wavelength'] }).ok).toBe(true);
+    expect(dataTableTrend.validate({
+      ...base, row_labels: ['Electromagnet', 'b'] }).ok).toBe(true);
+  });
+
+  test('nothing is silently shortened any more', () => {
+    const r = dataTableTrend.validate({ ...base, col_labels: ['Wavelength'] });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect((r.params as unknown as { col_labels: string[] }).col_labels[0])
+        .toBe('Wavelength');
+    }
+  });
+});

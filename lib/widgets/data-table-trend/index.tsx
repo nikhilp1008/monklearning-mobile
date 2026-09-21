@@ -68,7 +68,11 @@ const GUTTER_W = 22;
 const MAX_ROWS = 8; // period 2 is Li..Ne — exactly 8
 const MAX_COLS_NUMERIC = 4;
 const MAX_COLS_CATEGORICAL = 3; // text cells are wider; 4 does not fit at 343
+//: PER LINE, like the others — row labels wrap to two as well. The flat 12
+//: was a single line and was SLICED, which cut "Energy effect" to
+//: "Energy effec" on a published board.
 const MAX_ROW_LABEL = 12;
+const MAX_ROW_LABEL_TOTAL = MAX_ROW_LABEL * 2 + 1;
 //: PER LINE — headers wrap to two, like categorical cells. A flat 5-character
 //: slice put two columns of the EM spectrum board under the same word.
 const MAX_COL_LABEL = 5;
@@ -145,16 +149,42 @@ function validate(raw: unknown): ValidationResult<DataTableTrendParams> {
   if (!(isInt(hl) && (hl === -1 || (hl >= 0 && hl < rows)))) {
     errors.push(`highlight_row must be -1 or an integer in 0..${rows - 1}`);
   }
+
+  /* REFUSED, NOT SLICED. These three used to be `.slice(0, cap)`, and the
+   * hand review of 2026-09-21 found the result on fifteen of seventeen
+   * published tables: "Frequency range" drawn as "Frequency r", "Shared
+   * Characters" as "Shared Char", "Energy effect" as "Energy effec". A cut
+   * word in a header is a wrong header, and this widget already refuses a
+   * value it cannot print — `comparison_table` refuses labels for exactly
+   * this reason and the two disagreed about the same rule.
+   *
+   * The cap is per LINE and each of these wraps to two, so the budget is
+   * twice the line plus the space it breaks at. */
+  const tooLong = (what: string, xs: readonly string[], cap: number) => {
+    xs.forEach((x, i) => {
+      if (typeof x === 'string' && x.length > cap) {
+        errors.push(
+          `${what}[${i}] "${x}" is ${x.length} characters, ${x.length - cap} over ` +
+          `the ${cap} this board can print across two lines at 343x236. Shorten it ` +
+          `in the vocabulary — it is never truncated at render time, because a cut ` +
+          `word in a table header is a wrong header.`);
+      }
+    });
+  };
+  tooLong('col_labels', (colLabels as string[]) ?? [], MAX_COL_LABEL_TOTAL);
+  tooLong('row_labels', (rowLabels as string[]) ?? [], MAX_ROW_LABEL_TOTAL);
+  if (!numeric) tooLong('text_values', (textValues as string[]) ?? [], MAX_TEXT_CELL_TOTAL);
+
   if (errors.length > 0) return { ok: false, errors };
 
   return {
     ok: true,
     params: {
       cell_kind: kind as CellKind,
-      row_labels: (rowLabels as string[]).map((s) => s.slice(0, MAX_ROW_LABEL)),
-      col_labels: (colLabels as string[]).map((s) => s.slice(0, MAX_COL_LABEL_TOTAL)),
+      row_labels: rowLabels as string[],
+      col_labels: colLabels as string[],
       values: numeric ? (values as number[]) : [],
-      text_values: numeric ? [] : (textValues as string[]).map((s) => s.slice(0, MAX_TEXT_CELL_TOTAL)),
+      text_values: numeric ? [] : (textValues as string[]),
       trend_col: numeric ? (trendCol as number) : -1,
       highlight_row: hl as number,
       unit: isStr(r.unit) ? r.unit.slice(0, 10) : '',
