@@ -8,8 +8,10 @@
  */
 import { comparisonTable, validate } from '../index';
 import {
-  MAX_CELL, MAX_COLUMNS, MAX_COL_LABEL, MAX_ROWS, MAX_ROW_LABEL, USABLE_W, fits,
+  CELL_PAD, CELL_SIZE, MAX_COLUMNS, MAX_ROWS, USABLE_W, colLabelCap,
+  colWidthAt, fits, rowLabelCap,
 } from '../table-layout';
+import { CHAR_W } from '../../chrome';
 import { renderWidgetTreeAt } from '../../__tests__/test-utils';
 
 const GATE_FRAMES = [
@@ -25,17 +27,60 @@ const good = {
   caption: 'Aldehydes oxidise; ketones resist',
 };
 
-describe('the caps come from the 319pt budget, not from taste', () => {
+describe('the caps come from the width budget, not from taste', () => {
   test('usable width at 343 is 323pt, not the spec\'s 319', () => {
     // The spec said 319, assuming 12pt padding. chrome.ts's PAD_EDGE is 10,
     // so it is 343 - 20 = 323. Taken from the constant rather than from the
     // document, because the document is where the assumption was.
     expect(USABLE_W).toBe(323);
   });
-  test('a 3-column cell cap of 14 characters falls out of it', () => {
-    // 323 / 3 = 107.7pt per column; 107.7 / (12 * 0.602) = 14.9 -> 14.
-    // The four-point difference does not move the cap.
-    expect(MAX_COL_LABEL).toBe(14);
+
+  test('the cap is derived from the SAME formula the layout uses', () => {
+    // Not restated. `colWidthAt` is what `layoutTable` divides by, so the cap
+    // and the layout cannot disagree about how wide a column is.
+    expect(colLabelCap(3)).toBe(
+      Math.floor((colWidthAt(3) - CELL_PAD) / (CELL_SIZE * CHAR_W)));
+  });
+
+  test('the cap DEPENDS on the column count — 13 at two, 9 at three', () => {
+    // A single cap derived at the worst case and applied to every table held
+    // a 2-column table with 107.7pt columns to the 80.75pt figure, and all
+    // fifteen of the first authored tables were refused on labels that fit
+    // their own board.
+    expect(colLabelCap(2)).toBe(13);
+    expect(colLabelCap(3)).toBe(9);
+    expect(colLabelCap(2)).toBeGreaterThan(colLabelCap(3));
+    expect(rowLabelCap(2)).toBe(13);
+  });
+
+  test('a 2-column table may use a label a 3-column table may not', () => {
+    const thirteen = 'Grazing (GFC)';
+    expect(thirteen).toHaveLength(13);
+    const two = validate({ ...good, columns: [thirteen, 'Detritus'] });
+    expect(two.ok).toBe(true);
+    const three = validate({ ...good, columns: [thirteen, 'Detritus', 'Mixed'],
+      cells: Array(9).fill('x') });
+    expect(three.ok).toBe(false);
+  });
+
+  test('the cell padding is SUBTRACTED, which it was not at first', () => {
+    // The cap came out at 14, `fits()` then priced the same string at the
+    // measured advance PLUS 8pt of padding, and all fifteen of the first
+    // authored tables were refused — "Detritus (DFC)" is exactly 14
+    // characters and needs 114.2pt against 107.7. A pre-filter looser than
+    // the gate it precedes is a second opinion the author hears first.
+    const withoutPad = Math.floor(colWidthAt(3) / (CELL_SIZE * CHAR_W));
+    expect(colLabelCap(3)).toBeLessThan(withoutPad);
+  });
+
+  test('a string AT the cap actually fits the measured layout', () => {
+    // The point of the change: the pre-filter must not admit what the gate
+    // refuses. Lower-case is the favourable case and must pass.
+    const at = 'm'.repeat(colLabelCap(3));
+    const problems = fits(
+      { columns: [at, at, at], rows: ['r1', 'r2'],
+        cells: Array(6).fill('x') }, 343, 236);
+    expect(problems.filter((p) => p.where.startsWith('column'))).toEqual([]);
   });
 });
 
@@ -97,17 +142,17 @@ describe('the refusals the spec requires', () => {
   });
 
   test('an over-long cell is REFUSED, never truncated, and says by how much', () => {
-    const long = 'x'.repeat(MAX_CELL + 7);
+    const long = 'x'.repeat(colLabelCap(2) + 7);
     const r = validate({ ...good, cells: [long, 'b', 'c', 'd', 'e', 'f'] });
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.errors.join(' ')).toMatch(/7 over the 24-character cap/);
+      expect(r.errors.join(' ')).toMatch(/7 over the 13-character cap/);
       expect(r.errors.join(' ')).toMatch(/never truncated at render time/);
     }
   });
 
   test('an over-long row label is refused', () => {
-    const r = validate({ ...good, rows: ['y'.repeat(MAX_ROW_LABEL + 1), 'b', 'c'] });
+    const r = validate({ ...good, rows: ['y'.repeat(rowLabelCap(2) + 1), 'b', 'c'] });
     expect(r.ok).toBe(false);
   });
 
@@ -117,25 +162,37 @@ describe('the refusals the spec requires', () => {
     if (!r.ok) expect(r.errors.join(' ')).toMatch(/outside the 3x2 grid/);
   });
 
-  test('a cell INSIDE the character cap can still be refused for WIDTH', () => {
-    // The caps are a pre-filter; the measured layout is the gate.
-    // reaction_scheme raised its caps 10 -> 20 and only 2 of 38 payloads
-    // moved, because width was always the binding limit.
-    const wide = 'MMMMMMMMMMMMMMMMMMMMMMM';           // 23 chars, under the 24 cap
-    expect(wide.length).toBeLessThanOrEqual(MAX_CELL);
-    const problems = fits(
-      { columns: ['a', 'b', 'c'], rows: ['r1', 'r2'],
-        cells: [wide, 'b', 'c', 'd', 'e', 'f'] }, 343, 236);
-    expect(problems.length).toBeGreaterThan(0);
-    expect(problems[0].needPt).toBeGreaterThan(problems[0].havePt);
+  test('the cap and the MEASURED width agree at the boundary', () => {
+    // They must, and they did not at first: the cap ignored the 8pt of cell
+    // padding `fits()` charges, so a string the cap admitted the gate refused.
+    //
+    // Note what this also says about the width model. `textWidth` prices
+    // "MMMMMMMMM" and "mmmmmmmmm" identically — 68.3pt each — so the advance
+    // is uniform per character at this face. With a uniform advance the
+    // character cap IS the width check for text, and `fits()` cannot fire on
+    // a string at or under the cap. It still earns its place for the caption
+    // and for HEIGHT, and it would earn it again the day the width model
+    // becomes per-glyph, which is why it measures rather than counts.
+    const cap = colLabelCap(3);
+    const at = 'm'.repeat(cap);
+    const over = 'm'.repeat(cap + 1);
+    const body = { columns: ['a', 'b', 'c'], rows: ['r1', 'r2'] };
+    expect(fits({ ...body, cells: [at, ...Array(5).fill('x')] }, 343, 236)
+      .filter((p) => p.where.startsWith('cell'))).toEqual([]);
+    expect(fits({ ...body, cells: [over, ...Array(5).fill('x')] }, 343, 236)
+      .filter((p) => p.where.startsWith('cell')).length).toBe(1);
   });
 
-  test('and the refusal carries the measurement, so it can be repaired against', () => {
-    const r = validate({ ...good, columns: ['a', 'b', 'c'],
-      cells: ['MMMMMMMMMMMMMMMMMMMMMMM', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.join(' ')).toMatch(/needs [\d.]+pt but only [\d.]+pt/);
+  test('fits() catches a HEIGHT overflow the character caps cannot see', () => {
+    // Four rows plus a header plus a caption is the ceiling at 236pt. No
+    // per-string cap can know that; only the laid-out table can.
+    const tall = { columns: ['a', 'b'], rows: ['r1', 'r2', 'r3', 'r4'],
+                   cells: Array(8).fill('x') };
+    expect(fits(tall, 343, 236).filter((p) => p.where === 'the table')).toEqual([]);
+    const problems = fits(tall, 343, 120);
+    expect(problems.some((p) => p.where === 'the table')).toBe(true);
   });
+
 });
 
 describe('it renders at every gate frame', () => {

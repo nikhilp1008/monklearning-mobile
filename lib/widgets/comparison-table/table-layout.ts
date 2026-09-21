@@ -29,6 +29,10 @@ export const REF_H = 236;
 /** Usable width after the board's own padding: 343 - 2*12 = 319pt. */
 export const USABLE_W = REF_W - 2 * PAD_EDGE;
 
+/** Each cell's own breathing room, taken out of the column before anything
+ *  is priced. `fits()` charges the same 8pt, so the two agree. */
+export const CELL_PAD = 8;
+
 export const CELL_SIZE = LABEL_SIZE;
 export const HEADER_SIZE = LABEL_SIZE;
 /** One text band: the glyph plus the gutter under it. */
@@ -37,21 +41,48 @@ export const GUTTER = 6;
 export const CAPTION_SIZE = 11;
 
 /**
- * Characters a cell may hold, at the WIDEST table.
+ * Characters that fit a column of `widthPt`, at the body face.
  *
- *   319pt / 3 columns = 106.3pt per column
- *   106.3 / (13 * 0.60205) = 13.6 -> 14 characters
+ * THE CAPS DEPEND ON THE COLUMN COUNT, and at first they did not. A single
+ * cap was derived at three columns — the worst case — and then applied to
+ * every table, so a TWO-column table with 107.7pt per column was held to the
+ * 80.75pt cap. All fifteen of the first authored tables were refused, several
+ * on labels like "Grazing (GFC)" that fit their own board comfortably.
  *
- * Derived at 3 columns because that is the worst case; a 2-column table has
- * more room and is bounded by `fits()` rather than by this.
+ * The padding is subtracted here because `fits()` charges it too. A cap
+ * looser than the gate it precedes is not a pre-filter; it is a second
+ * opinion the author hears first.
  */
-export const MAX_COL_LABEL = Math.floor(
-  (USABLE_W / MAX_COLUMNS) / (CELL_SIZE * CHAR_W));
+export function capFor(widthPt: number): number {
+  return Math.max(1, Math.floor((widthPt - CELL_PAD) / (CELL_SIZE * CHAR_W)));
+}
 
-/** The row-label gutter is wider: it carries a property name, not a value. */
-export const MAX_ROW_LABEL = 18;
-export const MAX_CELL = 24;
+/** The column-label and cell cap at `cols` columns: 13 at two, 10 at three. */
+export function colLabelCap(cols: number): number {
+  return capFor(colWidthAt(cols));
+}
+
+/** The row-label gutter is a whole column wide at two columns, less at three. */
+export function rowLabelCap(cols: number): number {
+  return capFor(USABLE_W / (cols + 1));
+}
+
+/** Kept for the corpus sweep and for callers that want the tightest case. */
+export const MAX_COL_LABEL = colLabelCap(MAX_COLUMNS);
+export const MAX_ROW_LABEL = rowLabelCap(MAX_COLUMNS);
+/** A cell sits in a value column, so it is bounded by exactly the same width
+ *  as a column label. The spec's separate 24 was never reachable: 24
+ *  characters need 181pt and the widest column here is 107.7. */
+export const MAX_CELL = MAX_COL_LABEL;
 export const MAX_CAPTION = 40;
+
+/** The width one value column gets, at `cols` columns, on the reference board.
+ *  `layoutTable` divides the same way — one formula, so the cap and the
+ *  layout cannot disagree about how wide a column is. */
+export function colWidthAt(cols: number, usable: number = USABLE_W): number {
+  const labelW = usable / (cols + 1);
+  return (usable - labelW) / cols;
+}
 
 export interface TableFrame {
   rows: number;
@@ -74,7 +105,7 @@ export function layoutTable(rows: number, cols: number,
   // so the value columns stay equal and readable rather than the labels
   // squeezing them.
   const labelW = usable / (cols + 1);
-  const colW = (usable - labelW) / cols;
+  const colW = colWidthAt(cols, usable);
   const top = PAD_EDGE;
   const headerY = top + BAND_H;
   const rowH = BAND_H + GUTTER;
@@ -92,10 +123,19 @@ export interface FitProblem {
 /**
  * Does the laid-out table actually fit? Measured, per cell, at a real frame.
  *
- * This is the gate. Every string is priced at the face that draws it —
- * `textWidth` reads the measured advance tables — so a cell inside the
- * character cap can still be refused for being wide, which is the case the
- * character cap cannot see.
+ * WHAT THIS ACTUALLY CATCHES TODAY, stated because the first version of this
+ * comment claimed more. `textWidth` prices "MMMMMMMMM" and "mmmmmmmmm"
+ * identically at this face — 68.3pt each — so the advance is UNIFORM per
+ * character, and once the caps were derived from that same width there is no
+ * string that passes a cap and fails this check. For text, the cap IS the
+ * width check.
+ *
+ * So the load-bearing part here is HEIGHT — four rows plus a header plus a
+ * caption against 236pt, which no per-string cap can know. The width pass
+ * stays because it is the half that keeps the two honest: it measures where
+ * the caps count, and the day the width model becomes per-glyph, or a face
+ * with real kerning ships, it will start catching things again without
+ * anything else having to change.
  */
 export function fits(p: {
   columns: readonly string[];
@@ -105,7 +145,7 @@ export function fits(p: {
 }, width: number, height: number): FitProblem[] {
   const f = layoutTable(p.rows.length, p.columns.length, width, height);
   const out: FitProblem[] = [];
-  const pad = 8;                      // the cell's own breathing room
+  const pad = CELL_PAD;
 
   const check = (where: string, text: string, have: number) => {
     const need = textWidth(text, CELL_SIZE) + pad;

@@ -25,9 +25,9 @@ import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
 import { PAD_EDGE } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
-  BAND_H, CAPTION_SIZE, CELL_SIZE, HEADER_SIZE, MAX_CAPTION, MAX_CELL,
-  MAX_COLUMNS, MAX_COL_LABEL, MAX_ROWS, MAX_ROW_LABEL, MIN_COLUMNS, MIN_ROWS,
-  REF_H, REF_W, RULE_STROKE, fits, layoutTable,
+  BAND_H, CAPTION_SIZE, CELL_SIZE, HEADER_SIZE, MAX_CAPTION, MAX_COLUMNS,
+  MAX_ROWS, MIN_COLUMNS, MIN_ROWS, REF_H, REF_W, RULE_STROKE, colLabelCap,
+  fits, layoutTable, rowLabelCap,
 } from './table-layout';
 
 export interface ComparisonTableParams {
@@ -81,10 +81,18 @@ export function validate(raw: unknown): ValidationResult<ComparisonTableParams> 
   }
   const r = raw as Record<string, unknown>;
 
+  // THE CAPS DEPEND ON HOW MANY COLUMNS THIS TABLE HAS. A two-column table
+  // gets 107.7pt per column and a three-column one 80.75, so holding both to
+  // the tighter figure refused labels that fit their own board — which is
+  // what happened to all fifteen of the first authored tables.
+  const nCols = Array.isArray(r.columns) ? r.columns.length : MAX_COLUMNS;
+  const colCap = colLabelCap(nCols);
+  const rowCap = rowLabelCap(nCols);
+
   const columns = readStrings(r.columns, 'columns', MIN_COLUMNS, MAX_COLUMNS,
-                              MAX_COL_LABEL, errors);
+                              colCap, errors);
   const rows = readStrings(r.rows, 'rows', MIN_ROWS, MAX_ROWS,
-                           MAX_ROW_LABEL, errors);
+                           rowCap, errors);
 
   let cells: string[] | null = null;
   if (columns && rows) {
@@ -101,7 +109,8 @@ export function validate(raw: unknown): ValidationResult<ComparisonTableParams> 
         `rows; got ${r.cells.length}` +
         (Array.isArray(r.cells[0]) ? ' (this looks like an array of rows)' : ''));
     } else {
-      cells = readStrings(r.cells, 'cells', want, want, MAX_CELL, errors);
+      // A cell sits in a value column: the same width as a column label.
+      cells = readStrings(r.cells, 'cells', want, want, colCap, errors);
     }
   }
 
