@@ -62,8 +62,11 @@ describe('numeric cells', () => {
 describe('categorical cells', () => {
   test.each([
     ['Antenna circuits', ['Antenna', 'circuits']],
-    ['Oscillating charges', ['Oscillat', 'ing char']],
-    ['Radioactive decay', ['Radioact', 'ive deca']],
+    // LOSSLESS: the second line carries the rest, even when it overflows.
+    // It used to read ['Oscillat', 'ing char'] — the wrap was itself
+    // truncating, in a widget whose whole rule is that nothing is cut.
+    ['Oscillating charges', ['Oscillat', 'ing charges']],
+    ['Radioactive decay', ['Radioact', 'ive decay']],
     ['Hot bodies', ['Hot', 'bodies']],
   ])('%p wraps instead of being cut', (text, want) => {
     expect(wrapCell(text as string, 8)).toEqual(want);

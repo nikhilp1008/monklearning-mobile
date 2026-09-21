@@ -214,9 +214,12 @@ export function wrapCell(text: string, max: number): [string] | [string, string]
   if (t.length <= max) return [t];
   const head = t.slice(0, max + 1);
   const cut = head.lastIndexOf(' ');
-  if (cut <= 0) {
-    // One long word. Two lines of it still beat one truncated line.
-    return [t.slice(0, max), t.slice(max, max * 2)];
-  }
-  return [t.slice(0, cut), t.slice(cut + 1, cut + 1 + max)];
+  // LOSSLESS. The second line carries EVERYTHING that is left, even when that
+  // overflows — because this widget's contract is that nothing is truncated,
+  // and `slice(max, max * 2)` quietly dropped the 19th character of a
+  // 19-character word while reporting a clean two-line wrap. Whether the
+  // remainder actually fits is a measurement, and the measurement belongs to
+  // the caller: `fits()` prices the longest line and refuses with the number.
+  if (cut <= 0) return [t.slice(0, max), t.slice(max)];
+  return [t.slice(0, cut), t.slice(cut + 1)];
 }

@@ -67,6 +67,45 @@ export function rowLabelCap(cols: number): number {
   return capFor(USABLE_W / (cols + 1));
 }
 
+/** A cell or label may take TWO lines, so the string it may carry is twice
+ *  the per-line cap plus the space it breaks at.
+ *
+ *  This is the same answer `data_table_trend` needed and for the same reason:
+ *  at 343pt a one-line cap is 13 characters at two columns, and "Stratification"
+ *  is 14. Refusing every natural term by one or two characters is not a budget,
+ *  it is a widget nobody can author for. Wrapping is not truncating — nothing
+ *  is lost, the row simply gets taller, and `fits()` already checks the height. */
+export const LINES_PER_CELL = 2;
+
+export function colLabelTotal(cols: number): number {
+  return colLabelCap(cols) * LINES_PER_CELL + 1;
+}
+
+export function rowLabelTotal(cols: number): number {
+  return rowLabelCap(cols) * LINES_PER_CELL + 1;
+}
+
+/**
+ * One cell, wrapped to at most two lines. Splits at the LAST space that keeps
+ * the first line inside `max` — labelled_figure's rule, for its reason: the
+ * final word carries the meaning and should stand alone rather than be the
+ * half that gets cut.
+ */
+export function wrapCell(text: string, max: number): string[] {
+  const t = (text ?? '').trim();
+  if (t.length <= max) return [t];
+  const head = t.slice(0, max + 1);
+  const cut = head.lastIndexOf(' ');
+  // LOSSLESS. The second line carries EVERYTHING that is left, even when that
+  // overflows — because this widget's contract is that nothing is truncated,
+  // and `slice(max, max * 2)` quietly dropped the 19th character of a
+  // 19-character word while reporting a clean two-line wrap. Whether the
+  // remainder fits is a measurement, and it belongs to `fits()`, which prices
+  // the longest line and refuses with the number.
+  if (cut <= 0) return [t.slice(0, max), t.slice(max)];
+  return [t.slice(0, cut), t.slice(cut + 1)];
+}
+
 /** Kept for the corpus sweep and for callers that want the tightest case. */
 export const MAX_COL_LABEL = colLabelCap(MAX_COLUMNS);
 export const MAX_ROW_LABEL = rowLabelCap(MAX_COLUMNS);
@@ -108,8 +147,13 @@ export function layoutTable(rows: number, cols: number,
   const colW = colWidthAt(cols, usable);
   const top = PAD_EDGE;
   const headerY = top + BAND_H;
-  const rowH = BAND_H + GUTTER;
-  const needH = BAND_H + rows * rowH + GUTTER + CAPTION_SIZE + PAD_EDGE;
+  // A row holds up to two lines, so its band is twice the glyph plus the
+  // gutter. The header is one line by construction — a column label that
+  // wraps takes the second line out of the header band, which `needH`
+  // accounts for below.
+  const rowH = BAND_H * LINES_PER_CELL + GUTTER;
+  const needH = BAND_H * LINES_PER_CELL + rows * rowH + GUTTER
+              + CAPTION_SIZE + PAD_EDGE;
   return { rows, cols, labelW, colW, left, top, headerY, rowH, needH };
 }
 
@@ -147,8 +191,13 @@ export function fits(p: {
   const out: FitProblem[] = [];
   const pad = CELL_PAD;
 
+  // PRICED PER WRAPPED LINE, not per raw string — the same correction
+  // labelled_figure's term cap needed. A cell is refused for the width of its
+  // LONGEST LINE, because that is the only thing that can run off the board.
   const check = (where: string, text: string, have: number) => {
-    const need = textWidth(text, CELL_SIZE) + pad;
+    const lines = wrapCell(text, capFor(have));
+    const longest = lines.reduce((a, b) => (a.length >= b.length ? a : b), '');
+    const need = textWidth(longest, CELL_SIZE) + pad;
     if (need > have) out.push({ where, text, needPt: need, havePt: have });
   };
 

@@ -9,7 +9,7 @@
 import { comparisonTable, validate } from '../index';
 import {
   CELL_PAD, CELL_SIZE, MAX_COLUMNS, MAX_ROWS, USABLE_W, colLabelCap,
-  colWidthAt, fits, rowLabelCap,
+  colLabelTotal, colWidthAt, fits, rowLabelCap, rowLabelTotal, wrapCell,
 } from '../table-layout';
 import { CHAR_W } from '../../chrome';
 import { renderWidgetTreeAt } from '../../__tests__/test-utils';
@@ -54,13 +54,28 @@ describe('the caps come from the width budget, not from taste', () => {
   });
 
   test('a 2-column table may use a label a 3-column table may not', () => {
-    const thirteen = 'Grazing (GFC)';
-    expect(thirteen).toHaveLength(13);
-    const two = validate({ ...good, columns: [thirteen, 'Detritus'] });
+    // 27 characters against 19, both across two lines.
+    expect(colLabelTotal(2)).toBe(27);
+    expect(colLabelTotal(3)).toBe(19);
+    // Both LINES must fit, not just the total: this wraps to
+    // ['Grazing chain', 'food'] at two columns and has no 9-character split
+    // at three.
+    const long = 'Grazing chain food';            // 18
+    const two = validate({ ...good, columns: [long, 'Stratification'] });
     expect(two.ok).toBe(true);
-    const three = validate({ ...good, columns: [thirteen, 'Detritus', 'Mixed'],
-      cells: Array(9).fill('x') });
+    const three = validate({ ...good, columns: [long, 'Stratification', 'Mixed'],
+      rows: ['a', 'b'], cells: Array(6).fill('x') });
     expect(three.ok).toBe(false);
+  });
+
+  test('a term one character over a LINE is wrapped, not refused', () => {
+    // "Stratification" is 14 against a 13-character line. Refusing every
+    // natural term by one or two characters is not a budget; it is a widget
+    // nobody can author for.
+    expect('Stratification').toHaveLength(14);
+    expect(wrapCell('Stratification', colLabelCap(2))).toHaveLength(2);
+    expect(validate({ ...good, columns: ['Stratification', 'Species'] }).ok)
+      .toBe(true);
   });
 
   test('the cell padding is SUBTRACTED, which it was not at first', () => {
@@ -141,18 +156,19 @@ describe('the refusals the spec requires', () => {
     if (!r.ok) expect(r.errors.join(' ')).toMatch(new RegExp(`${MAX_ROWS}`));
   });
 
-  test('an over-long cell is REFUSED, never truncated, and says by how much', () => {
-    const long = 'x'.repeat(colLabelCap(2) + 7);
+  test('a cell over TWO LINES is REFUSED, never truncated, and says by how much', () => {
+    // Wrapping buys two lines, not unlimited prose.
+    const long = 'x'.repeat(colLabelTotal(2) + 7);
     const r = validate({ ...good, cells: [long, 'b', 'c', 'd', 'e', 'f'] });
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.errors.join(' ')).toMatch(/7 over the 13-character cap/);
+      expect(r.errors.join(' ')).toMatch(/7 over the 27-character cap/);
       expect(r.errors.join(' ')).toMatch(/never truncated at render time/);
     }
   });
 
   test('an over-long row label is refused', () => {
-    const r = validate({ ...good, rows: ['y'.repeat(rowLabelCap(2) + 1), 'b', 'c'] });
+    const r = validate({ ...good, rows: ['y'.repeat(rowLabelTotal(2) + 1), 'b', 'c'] });
     expect(r.ok).toBe(false);
   });
 
@@ -173,13 +189,15 @@ describe('the refusals the spec requires', () => {
     // a string at or under the cap. It still earns its place for the caption
     // and for HEIGHT, and it would earn it again the day the width model
     // becomes per-glyph, which is why it measures rather than counts.
+    // `fits()` prices the LONGEST WRAPPED LINE, so a string of two full lines
+    // passes and a single unbreakable word longer than one line does not.
     const cap = colLabelCap(3);
-    const at = 'm'.repeat(cap);
-    const over = 'm'.repeat(cap + 1);
+    const twoLines = `${'m'.repeat(cap)} ${'m'.repeat(cap)}`;
+    const oneLongWord = 'm'.repeat(cap * 2 + 1);
     const body = { columns: ['a', 'b', 'c'], rows: ['r1', 'r2'] };
-    expect(fits({ ...body, cells: [at, ...Array(5).fill('x')] }, 343, 236)
+    expect(fits({ ...body, cells: [twoLines, ...Array(5).fill('x')] }, 343, 236)
       .filter((p) => p.where.startsWith('cell'))).toEqual([]);
-    expect(fits({ ...body, cells: [over, ...Array(5).fill('x')] }, 343, 236)
+    expect(fits({ ...body, cells: [oneLongWord, ...Array(5).fill('x')] }, 343, 236)
       .filter((p) => p.where.startsWith('cell')).length).toBe(1);
   });
 

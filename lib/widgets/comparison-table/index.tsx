@@ -27,7 +27,7 @@ import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types
 import {
   BAND_H, CAPTION_SIZE, CELL_SIZE, HEADER_SIZE, MAX_CAPTION, MAX_COLUMNS,
   MAX_ROWS, MIN_COLUMNS, MIN_ROWS, REF_H, REF_W, RULE_STROKE, colLabelCap,
-  fits, layoutTable, rowLabelCap,
+  colLabelTotal, fits, layoutTable, rowLabelCap, rowLabelTotal, wrapCell,
 } from './table-layout';
 
 export interface ComparisonTableParams {
@@ -86,8 +86,12 @@ export function validate(raw: unknown): ValidationResult<ComparisonTableParams> 
   // the tighter figure refused labels that fit their own board — which is
   // what happened to all fifteen of the first authored tables.
   const nCols = Array.isArray(r.columns) ? r.columns.length : MAX_COLUMNS;
-  const colCap = colLabelCap(nCols);
-  const rowCap = rowLabelCap(nCols);
+  // The TOTAL a string may carry — two lines' worth. The per-line cap is what
+  // `fits()` measures against; a term one character over a single line is
+  // wrapped, not refused, because refusing "Stratification" by one character
+  // is a widget nobody can author for.
+  const colCap = colLabelTotal(nCols);
+  const rowCap = rowLabelTotal(nCols);
 
   const columns = readStrings(r.columns, 'columns', MIN_COLUMNS, MAX_COLUMNS,
                               colCap, errors);
@@ -186,36 +190,46 @@ function ComparisonTable({ params, width, height, theme }:
         />
       )}
 
-      {params.columns.map((c, i) => (
-        <SvgText
-          key={`h${i}`} x={colX(i)} y={f.top + HEADER_SIZE}
-          fill={theme.ink} fontSize={HEADER_SIZE} fontWeight="700"
-          fontFamily={theme.fontFamily} textAnchor="middle"
-        >
-          {c}
-        </SvgText>
-      ))}
+      {params.columns.flatMap((c, i) =>
+        wrapCell(c, colLabelCap(f.cols)).map((ln, li, all) => (
+          <SvgText
+            key={`h${i}-${li}`} x={colX(i)}
+            y={f.top + HEADER_SIZE + (li - (all.length - 1) / 2) * HEADER_SIZE}
+            fill={theme.ink} fontSize={HEADER_SIZE} fontWeight="700"
+            fontFamily={theme.fontFamily} textAnchor="middle"
+          >
+            {ln}
+          </SvgText>
+        ))
+      )}
 
       <Line x1={f.left} y1={f.headerY} x2={width - PAD_EDGE} y2={f.headerY}
             stroke={theme.rule} strokeWidth={RULE_STROKE} />
 
       {params.rows.map((r, i) => (
         <React.Fragment key={`r${i}`}>
-          <SvgText
-            x={f.left} y={rowY(i) + CELL_SIZE * 0.35}
-            fill={theme.inkMuted} fontSize={CELL_SIZE} fontFamily={theme.fontFamily}
-          >
-            {r}
-          </SvgText>
-          {params.columns.map((_, c) => (
+          {wrapCell(r, rowLabelCap(f.cols)).map((ln, li, all) => (
             <SvgText
-              key={`c${c}`} x={colX(c)} y={rowY(i) + CELL_SIZE * 0.35}
-              fill={theme.ink} fontSize={CELL_SIZE} fontFamily={theme.fontFamily}
-              textAnchor="middle"
+              key={`rl${li}`} x={f.left}
+              y={rowY(i) + CELL_SIZE * 0.35 + (li - (all.length - 1) / 2) * CELL_SIZE}
+              fill={theme.inkMuted} fontSize={CELL_SIZE} fontFamily={theme.fontFamily}
             >
-              {params.cells[i * f.cols + c]}
+              {ln}
             </SvgText>
           ))}
+          {params.columns.flatMap((_, c) =>
+            wrapCell(params.cells[i * f.cols + c], colLabelCap(f.cols))
+              .map((ln, li, all) => (
+                <SvgText
+                  key={`c${c}-${li}`} x={colX(c)}
+                  y={rowY(i) + CELL_SIZE * 0.35 + (li - (all.length - 1) / 2) * CELL_SIZE}
+                  fill={theme.ink} fontSize={CELL_SIZE} fontFamily={theme.fontFamily}
+                  textAnchor="middle"
+                >
+                  {ln}
+                </SvgText>
+              ))
+          )}
           {i < params.rows.length - 1 && (
             <Line x1={f.left} y1={rowY(i) + f.rowH / 2}
                   x2={width - PAD_EDGE} y2={rowY(i) + f.rowH / 2}
