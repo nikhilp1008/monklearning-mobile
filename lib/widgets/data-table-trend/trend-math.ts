@@ -220,6 +220,17 @@ export function wrapCell(text: string, max: number): [string] | [string, string]
   // 19-character word while reporting a clean two-line wrap. Whether the
   // remainder actually fits is a measurement, and the measurement belongs to
   // the caller: `fits()` prices the longest line and refuses with the number.
-  if (cut <= 0) return [t.slice(0, max), t.slice(max)];
+  // No space to break at. Split with a HYPHEN, so a mid-word break reads as
+  // one word continuing rather than as two short words: "Wavelength" at an
+  // 8-character line is "Wavelen-" / "gth", not "Waveleng" / "th", which the
+  // eye parses as a word ending. Still lossless — the hyphen is added, no
+  // character is dropped — and `capFor` leaves room for it.
+  //
+  // Refusing these instead was considered and rejected: "Wavelength",
+  // "Frequency" and "Absorption" are the vocabulary, not sloppy authoring,
+  // and a widget that cannot print them is not one anybody can write a
+  // physics table for.
+  if (cut <= 0) return [`${t.slice(0, max - 1)}-`, t.slice(max - 1)];
   return [t.slice(0, cut), t.slice(cut + 1)];
 }
+

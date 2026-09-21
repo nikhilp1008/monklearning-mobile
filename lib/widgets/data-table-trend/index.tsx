@@ -27,7 +27,7 @@ import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {
-  ARROW_LEN, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE, PAD_EDGE, PAD_SIDE,
+  ARROW_LEN, CHAR_W, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE, PAD_EDGE, PAD_SIDE,
   READOUT_BAND, READOUT_SIZE, TICK_R, bandFor, fitReadout, maxChars, vArrowHead,
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
@@ -73,15 +73,27 @@ const MAX_COLS_CATEGORICAL = 3; // text cells are wider; 4 does not fit at 343
 //: "Energy effec" on a published board.
 const MAX_ROW_LABEL = 12;
 const MAX_ROW_LABEL_TOTAL = MAX_ROW_LABEL * 2 + 1;
-//: PER LINE — headers wrap to two, like categorical cells. A flat 5-character
-//: slice put two columns of the EM spectrum board under the same word.
-const MAX_COL_LABEL = 5;
-const MAX_COL_LABEL_TOTAL = MAX_COL_LABEL * 2 + 1;
-//: PER LINE. `wrapCell` gives a categorical cell two of them, so the string a
-//: payload may carry is twice this plus the space it breaks at. It was a flat
-//: 8-character slice, which made "Klystron" and "Radioact" the whole answer.
-const MAX_TEXT_CELL = 8;
-const MAX_TEXT_CELL_TOTAL = MAX_TEXT_CELL * 2 + 1;
+/**
+ * Characters per LINE in one data column, derived from the SAME formula
+ * `frameFor` lays the grid out with — never restated as a literal.
+ *
+ * It was a literal, and it was 5, and 5 was never measured: it began life as
+ * the length of a `.slice()` and was reinterpreted as a per-line budget when
+ * the slice became a wrap. The real figure at 343x236 is 8 at three
+ * categorical columns and 6 at four numeric ones, so the literal was
+ * refusing, or mangling, headers that fit their own board with room to spare
+ * — and it refused them IDENTICALLY at two columns and at four, which is the
+ * cap-derived-at-the-worst-case bug comparison_table shipped and fixed.
+ *
+ * `labelW` is taken at its 0.32*width clamp, which is where it sits for any
+ * row label of ~14 characters or more. That is the NARROWEST the data
+ * columns ever get, so a cap derived here holds for every shorter row label.
+ */
+export function colLabelCap(cols: number, width = 343): number {
+  const labelW = 0.32 * width;
+  const colW = Math.max(1, (width - PAD_SIDE - GUTTER_W - (PAD_SIDE + labelW)) / cols);
+  return Math.max(1, Math.floor(colW / (LABEL_SIZE * CHAR_W)));
+}
 
 const KINDS: CellKind[] = ['numeric', 'categorical'];
 
@@ -160,9 +172,11 @@ function validate(raw: unknown): ValidationResult<DataTableTrendParams> {
    *
    * The cap is per LINE and each of these wraps to two, so the budget is
    * twice the line plus the space it breaks at. */
-  const tooLong = (what: string, xs: readonly string[], cap: number) => {
+  const tooLong = (what: string, xs: readonly string[], line: number) => {
+    const cap = line * 2 + 1;
     xs.forEach((x, i) => {
-      if (typeof x === 'string' && x.length > cap) {
+      if (typeof x !== 'string') return;
+      if (x.length > cap) {
         errors.push(
           `${what}[${i}] "${x}" is ${x.length} characters, ${x.length - cap} over ` +
           `the ${cap} this board can print across two lines at 343x236. Shorten it ` +
@@ -171,9 +185,19 @@ function validate(raw: unknown): ValidationResult<DataTableTrendParams> {
       }
     });
   };
-  tooLong('col_labels', (colLabels as string[]) ?? [], MAX_COL_LABEL_TOTAL);
-  tooLong('row_labels', (rowLabels as string[]) ?? [], MAX_ROW_LABEL_TOTAL);
-  if (!numeric) tooLong('text_values', (textValues as string[]) ?? [], MAX_TEXT_CELL_TOTAL);
+  // Derived at the ACTUAL column count, because a four-column board's
+  // columns are two thirds the width of a two-column board's and a single
+  // cap cannot be right for both.
+  tooLong('col_labels', (colLabels as string[]) ?? [],
+    colLabelCap(Math.max(1, (colLabels as string[])?.length ?? 1)));
+  tooLong('row_labels', (rowLabels as string[]) ?? [], MAX_ROW_LABEL);
+  // A text cell sits in the SAME column as its header and is set at the same
+  // size, so it gets the same derived cap. The two were separate literals (5
+  // and 8) describing one width.
+  if (!numeric) {
+    tooLong('text_values', (textValues as string[]) ?? [],
+      colLabelCap(Math.max(1, (colLabels as string[])?.length ?? 1)));
+  }
 
   if (errors.length > 0) return { ok: false, errors };
 
@@ -303,9 +327,14 @@ function DataTableTrend({
           A 5-character slice gave the published EM-spectrum board TWO columns
           both headed "Typic" — from "Typical wavelength" and "Typical
           frequency". A reader cannot tell those columns apart, which is worse
-          than a cut cell: it makes the whole table ambiguous. */}
+          than a cut cell: it makes the whole table ambiguous.
+
+          Wrapped at the cap for the board this is ACTUALLY on: validate()
+          guarantees the label fits 343, and a wider board gets wider columns,
+          so a 900pt board should use them rather than wrap where the phone
+          had to. */}
       {params.col_labels.flatMap((c, i) =>
-        wrapCell(c, MAX_COL_LABEL).map((ln, li, all) => (
+        wrapCell(c, colLabelCap(params.col_labels.length, width)).map((ln, li, all) => (
           <SvgText
             key={`h${i}-${li}`}
             x={colCentreX(i)}
@@ -351,7 +380,7 @@ function DataTableTrend({
             const lines =
               params.cell_kind === 'numeric'
                 ? [formatCell(params.values[idx])]
-                : wrapCell(params.text_values[idx] ?? '', MAX_TEXT_CELL);
+                : wrapCell(params.text_values[idx] ?? '', colLabelCap(params.col_labels.length, width));
             // Two lines are centred about the row's middle, so a one-line cell
             // sits exactly where it always did and a two-line cell grows
             // symmetrically rather than pushing down into the row below.
