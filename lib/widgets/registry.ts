@@ -11,6 +11,7 @@ import { moleculeStruct } from './molecule-struct';
 import { circuitNetwork } from './circuit-network';
 import { comparisonTable } from './comparison-table';
 import { conicPlot } from './conic-plot';
+import { lcrResonance } from './lcr-resonance';
 import { linesPlanes3d } from './lines-planes-3d';
 
 /**
@@ -35,6 +36,7 @@ export const REGISTRY = {
   conic_plot: conicPlot,
   lines_planes_3d: linesPlanes3d,
   comparison_table: comparisonTable,
+  lcr_resonance: lcrResonance,
   // labelled_figure is deliberately ABSENT. The registry is the closed set the
   // MODEL may name and fill parameters for; a labelled figure is an asset a
   // subject author prepared offline, and its payload names a slug rather than

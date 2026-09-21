@@ -135,6 +135,11 @@ test('every registry entry is either verified below or explicitly skipped', () =
     // file — and the guard did its job again: it failed the moment the
     // registry grew, naming the one widget nobody had listed.
     'comparison_table',
+    // lcr_resonance was wired 2026-09-21. Its own suite runs all four views
+    // at all five GATE_FRAMES, refuses a window that excludes f0, and checks
+    // the maths against NCERT Examples 7.7 and 7.8 before checking it against
+    // itself.
+    'lcr_resonance',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
