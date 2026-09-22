@@ -62,6 +62,15 @@ const WIDGETS = {
   lines_planes_3d: ['lines-planes-3d', 'linesPlanes3d'],
   comparison_table: ['comparison-table', 'comparisonTable'],
   lcr_resonance: ['lcr-resonance', 'lcrResonance'],
+  // N3, 2026-09-22. This map is a SECOND list of the registry and it does not
+  // derive from registry.ts — adding a widget there and not here makes the
+  // server's gate refuse every payload for it, with a message that looks like
+  // an authoring fault. That is exactly what happened: 24 re-routed boards
+  // came back "19 refused, 5 declined, 0 authored", and the cause was three
+  // missing lines in this object, not one bad board.
+  vector_sum: ['vector-sum', 'vectorSum'],
+  flux_surface: ['flux-surface', 'fluxSurface'],
+  region_plot: ['region-plot', 'regionPlot'],
   // molecule_3d renders a WebView, not SVG; its validate() is reachable but
   // the module pulls an HTML asset through require(). Listed as unjudgeable
   // rather than silently absent — see UNJUDGEABLE below.
