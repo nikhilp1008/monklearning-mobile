@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
 import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 import { pcmAvailable } from '@/lib/pcm-player';
@@ -364,7 +366,19 @@ export class DronaVoiceClient {
     // file-based queue would play each 1s part as its own WAV, and a
     // load-start gap every second is the one thing worse than waiting.
     const parts = pcmAvailable ? '&stream_tts=1' : '';
-    const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(token)}${parts}`;
+    // The token travels as an `Authorization` header, not in the URL. A
+    // ?token= is part of the request line, and request lines are what edge
+    // infrastructure logs — a live bearer token per connect, readable by
+    // anyone with log access (security assessment, finding 5). React
+    // Native's WebSocket takes a headers option; a browser's does not, so
+    // the web fallback below keeps the query parameter the server still
+    // accepts for it. `null`, not `undefined`, for the protocols slot — RN
+    // only reads the options argument when protocols is explicitly null.
+    const canSendHeaders = Platform.OS !== 'web';
+    const base = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live`;
+    const url = canSendHeaders
+      ? `${base}${pcmAvailable ? '?stream_tts=1' : ''}`
+      : `${base}?token=${encodeURIComponent(token)}${parts}`;
     // One socket per client, enforced at the source. A second connect while
     // one is still open — a screen remount, an eager prewarm — would put two
     // sockets in the air from one device; the server's takeover would retire
@@ -374,7 +388,11 @@ export class DronaVoiceClient {
       try { this.ws.close(); } catch { /* already closing */ }
       this.ws = null;
     }
-    const ws = new WebSocket(url);
+    const ws = canSendHeaders
+      ? new (WebSocket as unknown as {
+          new (u: string, p: string[] | null, o: { headers: Record<string, string> }): WebSocket;
+        })(url, null, { headers: { Authorization: `Bearer ${token}` } })
+      : new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
 
