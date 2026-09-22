@@ -140,6 +140,26 @@ test('every registry entry is either verified below or explicitly skipped', () =
     // the maths against NCERT Examples 7.7 and 7.8 before checking it against
     // itself.
     'lcr_resonance',
+    // N3, 2026-09-22: three builds against the three gaps that cleared the
+    // five-objective bar. Each has its own suite, and each of those runs the
+    // REAL `scripts/verify-render.mjs` binary — not a re-implementation of its
+    // assertions — over every mode and corner at all five GATE_FRAMES. The
+    // guard did its job a third time: it failed the moment the registry grew,
+    // naming all three.
+    //
+    // vector_sum (G6): the parallelogram law. R is DERIVED and cannot be
+    // authored; checked against Cartesian addition rather than against a
+    // rearrangement of the cosine rule.
+    'vector_sum',
+    // flux_surface (G8): Φ = E A cos θ with the normal and the projection
+    // drawn, and the cube. The face fluxes are checked by summing the face
+    // LIST against Gauss's law, which a wrong vertex split fails while the
+    // arithmetic stays perfect.
+    'flux_surface',
+    // region_plot (G9): two boundaries on one set of axes with the region
+    // between them shaded. Areas checked against π, π/4, 1/6 and 2 — closed
+    // forms its own Simpson quadrature knows nothing about.
+    'region_plot',
     ...Object.keys(SKIP),
   ]);
   const missing = Object.keys(REGISTRY).filter((id) => !covered.has(id));
