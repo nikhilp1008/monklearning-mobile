@@ -8,22 +8,28 @@
  * pass covers both exams"), so this brings the product in line with it rather
  * than inventing a policy.
  *
- * TWO THINGS ABOUT THIS LADDER THAT THE SCREEN CANNOT HIDE, recorded here
- * because they are pricing decisions rather than design ones:
+ * THE LADDER NOW FALLS AT EVERY STEP: ₹4,999 / ₹4,500 / ₹4,250 / ₹4,000,
+ * which is 0% / 10% / 15% / 20% off the monthly rate.
  *
- *   1. 3 months and 6 months are the same rate per month — ₹4,666 either way,
- *      because 27,999 is exactly twice 13,999. Committing for six months
- *      instead of three buys no further discount, so a "save 7%" badge would
- *      land identically on both. Only 11 months breaks the pattern, at 20%.
+ * It did not used to. 3 months and 6 months were ₹13,999 and ₹27,999 —
+ * exactly twice — so both worked out at ₹4,666 a month and committing for six
+ * months instead of three bought nothing at all. A student comparing the two
+ * rows found no reason to pick the longer one, and the screen had no way to
+ * hide that because the rows lead with the per-month rate.
  *
- *   2. Every plan costs more per month than renewing the existing passes.
- *      A week pass works out at ₹3,210 a month against ₹4,000 on the longest
- *      plan and ₹4,999 on the shortest. A student who does that arithmetic
- *      finds the cheapest option is the one this screen does not offer.
+ * ONE THING STILL UNRESOLVED, recorded because it is a pricing decision rather
+ * than a design one:
  *
- * Neither is this file's decision to make. They are why the rows below lead
- * with the per-month rate: it is the honest comparator, and if the ladder
- * changes the screen needs no edit.
+ *   Every plan still costs more per month than renewing the existing passes.
+ *   A week pass is ₹749, which is ₹3,210 a month; the win-back below is ₹549,
+ *   or ₹2,353 a month. Both undercut the ₹4,000 that the longest and
+ *   best-value plan asks for. A student who does that arithmetic finds the
+ *   cheapest option is the one this screen does not sell — and the win-back
+ *   hands it to them at the exact moment they are leaving.
+ *
+ * That is not this file's call to make. It is why the rows lead with the
+ * per-month rate: it is the honest comparator, and if the ladder changes again
+ * the screen needs no edit.
  */
 
 export type Plan = {
@@ -36,8 +42,8 @@ export type Plan = {
 
 export const PLANS: Plan[] = [
   { id: '1m', name: '1 month', months: 1, price: 4999 },
-  { id: '3m', name: '3 months', months: 3, price: 13999 },
-  { id: '6m', name: '6 months', months: 6, price: 27999 },
+  { id: '3m', name: '3 months', months: 3, price: 13499 },
+  { id: '6m', name: '6 months', months: 6, price: 25499 },
   { id: '11m', name: '11 months', months: 11, price: 43999 },
 ];
 
@@ -53,9 +59,11 @@ export const savedPercent = (p: Plan) =>
 /**
  * The longest plan, and the only one carrying a badge.
  *
- * Badging 3 and 6 months would print "Save 7%" twice, identically, which
- * invites exactly the comparison that makes the middle of the ladder look
- * arbitrary. One badge on the one plan whose saving is genuinely different.
+ * Every step now saves a different amount (10 / 15 / 20), so badging the
+ * middle rows would no longer print the same number twice — the reason this
+ * was one badge rather than three has gone. It stays one badge anyway: three
+ * competing "save X%" flags turn a ladder into a puzzle, and the per-month
+ * rate on every row already does the comparing.
  */
 export const BEST = PLANS[PLANS.length - 1].id;
 
