@@ -80,15 +80,33 @@ function latinCharWidth(family) {
   return measured * SAFETY_MARGIN;
 }
 
-/** Total advance of `text` in em, priced per code unit by script. */
+/**
+ * One code unit's advance in em, charged to the face that will DRAW it.
+ *
+ * MUST STAY IDENTICAL TO chrome.ts's `charAdvance`. The two are halves of one
+ * contract — the schema's legal range has to be a subset of what renders — and
+ * `render-trees` asserts character by character that they agree. They drifted
+ * for exactly one commit on 2026-09-22, when chrome.ts started pricing the
+ * companion face and this file still charged everything the Latin mean, and
+ * that test is what said so.
+ */
+function charAdvance(cp, latin, family) {
+  const comp = ADVANCE.companion[String(cp)];
+  if (comp !== undefined) return comp * SAFETY_MARGIN;
+  if (cp >= 0x0900 && cp <= 0x097f) {
+    return (ADVANCE.devanagari[String(cp)] ?? DEVA_MAX) * SAFETY_MARGIN;
+  }
+  const own = family === undefined ? undefined
+    : ADVANCE.perChar[family]?.[String(cp)];
+  return own === undefined ? latin : own * SAFETY_MARGIN;
+}
+
+/** Total advance of `text` in em, priced per code unit by the drawing face. */
 function advanceEm(text, family) {
   const latin = latinCharWidth(family);
   let total = 0;
   for (let i = 0; i < text.length; i++) {
-    const cp = text.charCodeAt(i);
-    total += cp >= 0x0900 && cp <= 0x097f
-      ? (ADVANCE.devanagari[String(cp)] ?? DEVA_MAX) * SAFETY_MARGIN
-      : latin;
+    total += charAdvance(text.charCodeAt(i), latin, family);
   }
   return total;
 }

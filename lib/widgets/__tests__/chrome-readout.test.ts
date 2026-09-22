@@ -9,7 +9,7 @@
  * do.
  */
 import {
-  CHAR_W, READOUT_ELLIPSIS, READOUT_SEP, READOUT_SIZE, fitReadout, maxChars,
+  CHAR_W, READOUT_ELLIPSIS, READOUT_SEP, READOUT_SIZE, fitReadout, boxCapacity, maxChars,
 } from '../chrome';
 
 /** The board this app is written against, minus circuit_network's gutters. */
@@ -43,7 +43,13 @@ describe('fitReadout tapers the caption instead of dropping it', () => {
    */
   test('one more character of value never costs more than one character of caption', () => {
     const width = INNER_343;
-    const cap = maxChars(width, READOUT_SIZE, caption + 'x');
+    // A SWEEP BOUND — how many characters of value the box could hold — not
+    // a cut of any particular string, so `boxCapacity`. It asked `maxChars`
+    // while the two were the same arithmetic; once glyphs are priced
+    // individually `maxChars` never exceeds the length of the string handed
+    // to it, the sweep collapsed to two states, and the vacuity guard below
+    // caught it. That guard is doing exactly what its comment says.
+    const cap = boxCapacity(width, READOUT_SIZE);
     const shown = (valueLen: number): string => {
       const line = fitReadout(caption, 'x'.repeat(valueLen), width);
       const i = line.indexOf(READOUT_SEP);
@@ -161,6 +167,15 @@ describe('fitReadout never shows part of a number', () => {
     // at the assumed 0.58, and the value is paid for first. The property this
     // test exists for is unchanged — the τ term is dropped WHOLE, so no
     // number is shown with its unit missing.
+    //
+    // THIS LINE DID NOT MOVE when the companion face landed on 2026-09-22,
+    // and an earlier draft of that change moved it to a bare ellipsis, which
+    // was WRONG and is worth recording. This readout is drawn in
+    // `theme.monoFontFamily` — Menlo — which HAS the ohm sign and the micro
+    // sign and draws both at its uniform 0.60205 em. Only `theme.fontFamily`
+    // (Onest) lacks them. Pricing every Ω from the companion face regardless
+    // of family measured this string in a face it is never drawn in, and cost
+    // it a character of caption for a width it does not have.
     expect(line).toBe(`R${READOUT_ELLIPSIS}   Req 20 kΩ   Ceq 5 µF   I 600 µA`);
   });
 });

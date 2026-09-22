@@ -13,7 +13,8 @@
      [re-read against field_lines v2 on 2026-09-07, was gap_equipotential_surfaces] equipotential_uniform; renders at 343x236, 495x270 and 900x430 as build
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 
 import {
   EMPHASIS_STROKE, GLYPH_R, HAIRLINE_STROKE, LABEL_SIZE,

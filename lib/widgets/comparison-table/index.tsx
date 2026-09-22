@@ -20,7 +20,8 @@
  * with the measurement, and the author shortens it once, in the vocabulary.
  */
 import React, { useMemo } from 'react';
-import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Line, Rect } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 
 import { PAD_EDGE } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';

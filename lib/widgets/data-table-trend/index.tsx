@@ -23,7 +23,8 @@
      Chunk 1 is a 7-row table (Radio..Gamma) x 4 columns (wavelength, frequency, produced by, uses) closing "The trend is what matters: lambda falls, f and
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {

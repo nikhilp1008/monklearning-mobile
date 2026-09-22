@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, router, useRootNavigationState, useSegments } from 'expo-router';
+import { Stack, router, useRootNavigationState, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -17,15 +17,33 @@ import 'react-native-reanimated';
 // render trees actually draw (fontTools, cmap of Onest 400 vs Anek Latin 400):
 //
 //   Ω µ Δ Φ  — Onest has NO Greek block and no U+00B5 at all. Anek Latin had
-//             Ω, Δ and µ. This is NOT a regression on the board, because every
-//             one of those 298 occurrences is drawn in `theme.monoFontFamily`
-//             (Menlo), which covers them — but it IS a live trap for any
-//             future label moved onto `theme.fontFamily`.
+//             Ω, Δ and µ. Not a regression where those are drawn in
+//             `theme.monoFontFamily` (Menlo covers them); a live trap
+//             anywhere they reach `theme.fontFamily`.
 //   θ φ     — drawn in Onest today (lines_planes_3d's angle labels, 6
 //             occurrences) and covered by NEITHER family: they fell through to
 //             an iOS system fallback under Anek Latin too. Pre-existing, and
 //             worth knowing, because a fallback face has metrics
 //             lib/widgets/advance-widths.json does not model.
+//
+// THE TRAP WAS LIVE. Measured over the stored corpus 2026-09-22: 40 of 260
+// boards carry a character Onest cannot draw, and comparison_table and
+// lcr_resonance set all their text in `theme.fontFamily`. Every one of those
+// characters was reaching the iOS per-glyph fallback — rendering, in a second
+// typeface, at metrics nothing modelled.
+//
+// Inter is bundled as the COMPANION FACE and lib/widgets/chrome.ts splits a
+// string into runs by coverage, so each run is drawn and measured in a face
+// this code chose. Inter over Noto Sans on two measurements: it covers 23 of
+// the 26 characters the corpus needs against 22, and its mean Latin advance
+// is within 2.4% of Onest's where Noto Sans is 8.6% narrower — a visible step
+// mid-string at 12pt.
+//
+// Only 400 is loaded, and that is not an oversight: the board's
+// `theme.fontFamily` is `Onest_400Regular` and nothing else, so a companion
+// run is always regular weight. The day a board draws body text at another
+// weight, this needs the matching Inter weight or the run will be visibly
+// lighter than the text around it.
 //
 // Re-run that check before the next family swap; it is the thing that would
 // catch a migration silently dropping the ohm sign.
@@ -43,6 +61,8 @@ import {
 // Devanagari table both depend on it being loaded. It is not a leftover of
 // the Anek Latin migration; it is a different script.
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
+// The companion face — see the note above. Greek, sub/superscripts, µ and Ω.
+import { Inter_400Regular } from '@expo-google-fonts/inter';
 // THE NOTE'S HAND, for the handwritten notes page. Chosen by rendering eight
 // candidates against the reference's own sentence: upright, tight and neat,
 // where Kalam — the face that used to be here on trial — slants. Kalam went
@@ -62,6 +82,7 @@ import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
+import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -110,6 +131,9 @@ export default function RootLayout() {
     // The one non-Latin face, and the reason it is not symmetrical with the
     // five above: it is loaded for its SCRIPT, not for a weight in a scale.
     AnekDevanagari_500Medium,
+    // Loaded for its COVERAGE, like the line above, not for a weight in a
+    // scale: it draws the characters Onest has no glyph for.
+    Inter_400Regular,
     // The handwritten note's hand; see the import.
     PatrickHand_400Regular,
   });
@@ -155,6 +179,28 @@ export default function RootLayout() {
    */
   const segments = useSegments();
   const inOnboarding = segments[0] === '(onboarding)';
+
+  /**
+   * Telemetry, started once and deliberately outside every startup gate.
+   *
+   * Not behind `ready` or `navigatorReady`: this file already carries a 15s
+   * failsafe because a startup gate hung the splash screen once, and adding
+   * analytics to the set of things that must succeed before the app renders
+   * would be the same mistake with a worse excuse. initTracking() catches its
+   * own errors and does no I/O on this path — it queues in memory and flushes
+   * later — so the worst case is no events, not no app.
+   */
+  useEffect(() => initTracking(), []);
+
+  // Screen views, which is the whole onboarding funnel for free: every step is
+  // its own expo-router route. Only after the navigator is up, or the first
+  // pathname is whatever expo-router reports mid-mount rather than a screen a
+  // student actually looked at.
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!navigatorReady || !pathname) return;
+    trackScreen(pathname);
+  }, [navigatorReady, pathname]);
   const needsOnboardingFlow = authState === 'signed_out' || authState === 'needs_onboarding';
   const gateSettled =
     ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding);

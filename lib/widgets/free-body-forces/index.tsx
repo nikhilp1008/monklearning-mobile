@@ -19,7 +19,8 @@
      Figure 13.2 caption in c1259/c1260: 'a simple pendulum displaced by small angle theta, showing the string of length L, the bob, gravity mg ... resolve
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 
 import { LABEL_SIZE, LINE_STROKE, EMPHASIS_STROKE, HAIRLINE_STROKE, bandFor, dirArrowHead, textWidth } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';

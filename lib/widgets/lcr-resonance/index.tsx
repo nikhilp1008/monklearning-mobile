@@ -14,7 +14,8 @@
  * with three different y-units on one axis is a graph that teaches nothing.
  */
 import React, { useMemo } from 'react';
-import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import { HAIRLINE_STROKE, LABEL_SIZE, PAD_EDGE, READOUT_SIZE } from '../chrome';

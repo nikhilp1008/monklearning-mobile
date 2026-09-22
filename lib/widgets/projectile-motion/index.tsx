@@ -7,7 +7,8 @@
      c222/c223 render Figure 3.4: one parabola launched from origin O at angle theta with speed u, landing at B on level ground; no height, no second body.
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import { textWidth } from '../chrome';

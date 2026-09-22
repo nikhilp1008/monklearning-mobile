@@ -79,6 +79,31 @@ LATIN_FONTS = {
     'AnekDevanagari_500Medium': f'{GF}/anek-devanagari/500Medium/AnekDevanagari_500Medium.ttf',
 }
 
+# THE COMPANION FACE. Onest has no glyph for any Greek letter, subscript
+# digit, superscript sign, micro sign or Ohm sign, and 40 of the 260 stored
+# boards use one. iOS substitutes per glyph, so those characters render in the
+# system face while the rest of the caption renders in Onest — a board set in
+# two typefaces, which lib/widgets/CLAUDE.md names as reading like a bug.
+#
+# Inter over Noto Sans, measured 2026-09-22 against the 26 characters the
+# corpus actually needs:
+#
+#                  covers   mean Latin advance   vs Onest    x-height
+#   Onest            0/26         0.5931             --        0.527
+#   Inter           23/26         0.6071          +2.4%        0.546
+#   Noto Sans       22/26         0.5423          -8.6%        0.536
+#
+# Inter covers more AND sits within 2.4% of Onest's advance, so a companion
+# run does not visibly change the rhythm of a line. Noto Sans is 8.6% narrower,
+# which is a visible step mid-string at 12pt and would make every mixed cap
+# measure short.
+#
+# The three Inter does not cover are U+2225, U+222E and U+2640, one use each
+# in the whole corpus. They are REFUSED by name rather than bundled for, and
+# the three boards re-authored — see companion_table's note in chrome.ts.
+COMPANION_FONT = ('Inter_400Regular',
+                  f'{GF}/inter/400Regular/Inter_400Regular.ttf')
+
 DEVA_FONT = ('AnekDevanagari_500Medium',
              f'{GF}/anek-devanagari/500Medium/AnekDevanagari_500Medium.ttf')
 
@@ -130,9 +155,109 @@ def devanagari_table():
     return name, table
 
 
+def companion_table():
+    """Per-codepoint advances for every character Onest cannot draw.
+
+    Per CODEPOINT, not a mean. A Latin mean is defensible for Latin because
+    the advances cluster; it is not defensible here, where the set spans a
+    subscript digit and a capital Phi. Measured: U+2080 is 0.398 em and
+    U+03A6 is 0.769 em in Inter, a 1.9x spread, and charging either at the
+    0.607 mean is wrong by a quarter of a character in one direction or the
+    other.
+
+    Keyed the same way `devanagari` is — decimal codepoint as a string — so
+    chrome.ts reads both with one lookup shape.
+    """
+    name, path = COMPANION_FONT
+    f = TTFont(path, lazy=True)
+    upm = f['head'].unitsPerEm
+    cmap = f.getBestCmap()
+    hmtx = f['hmtx']
+    board = TTFont(LATIN_FONTS['Onest_400Regular'], lazy=True).getBestCmap()
+    table = {}
+    # Everything Inter maps that Onest does not, restricted to the ranges a
+    # board can plausibly use. Shipping Inter's whole cmap would put ~2800
+    # entries in a file read at module load for no benefit.
+    ranges = [(0x00B5, 0x00B5), (0x0370, 0x03FF),          # micro, Greek
+              (0x1D62, 0x1D6A),                             # Latin subscripts
+              (0x2070, 0x209F),                             # super/subscripts
+              (0x2200, 0x22FF),                             # maths operators
+              (0x2190, 0x21FF)]                             # arrows
+    for lo, hi in ranges:
+        for cp in range(lo, hi + 1):
+            if cp in board:          # Onest draws it; not a companion run
+                continue
+            g = cmap.get(cp)
+            if g is None:
+                continue
+            table[str(cp)] = round(hmtx[g][0] / upm, 4)
+    return name, table
+
+
+def board_coverage_ranges():
+    """Onest's own coverage, as ranges, so the runtime can tell SUPPORTED from
+    UNSUPPORTED without shipping a cmap.
+
+    Needed because the companion table answers only "does Inter have this and
+    Onest not". It cannot answer "does anything have this", and that is the
+    question a refusal has to ask. Without it a character in neither face
+    would fall through to the board family's Latin mean and be drawn as tofu —
+    the exact failure this whole change exists to remove, reintroduced one
+    level down.
+
+    Ranges rather than a list: Onest maps 1000-odd codepoints and the run-length
+    form is about 90 pairs.
+    """
+    cmap = TTFont(LATIN_FONTS['Onest_400Regular'], lazy=True).getBestCmap()
+    cps = sorted(cp for cp in cmap if cp >= 0x80)
+    out, lo, prev = [], None, None
+    for cp in cps:
+        if lo is None:
+            lo = prev = cp
+        elif cp == prev + 1:
+            prev = cp
+        else:
+            out.append([lo, prev]); lo = prev = cp
+    if lo is not None:
+        out.append([lo, prev])
+    return out
+
+
+def per_char_tables():
+    """Per-codepoint advances for every family the board can draw Latin in.
+
+    The `latin` means stay — callers that need ONE number for a family still
+    use them, and an unmeasured codepoint still falls back to them. But a mean
+    is a bad model of a real string: measured 2026-09-22, the Onest mean prices
+    "3.2 x 10^-3" 27% high and "lambda = c/f" 30% high, because the mean is
+    taken over A-Z a-z 0-9 while real strings are full of spaces, points,
+    slashes and equals signs that are half that wide.
+
+    Over-charging is the safe direction, so nothing was broken by it — it just
+    meant captions were cut that would have fitted, and every cap derived from
+    a mean was tighter than the board really is.
+    """
+    out = {}
+    for name, path in sorted(LATIN_FONTS.items()):
+        f = TTFont(path, lazy=True)
+        upm = f['head'].unitsPerEm
+        cmap = f.getBestCmap()
+        hmtx = f['hmtx']
+        t = {}
+        for cp in list(range(0x20, 0x250)) + [0x2013, 0x2014, 0x2018, 0x2019,
+                                              0x201C, 0x201D, 0x2022, 0x2026,
+                                              0x00B0, 0x00B7, 0x00D7, 0x2212]:
+            g = cmap.get(cp)
+            if g is not None:
+                t[str(cp)] = round(hmtx[g][0] / upm, 4)
+        out[name] = t
+    return out
+
+
 def build():
     menlo, menlo_src = menlo_mean()
     deva_family, deva = devanagari_table()
+    comp_family, comp = companion_table()
     latin = {n: latin_mean(p) for n, p in sorted(LATIN_FONTS.items())}
     latin['Menlo'] = menlo
     return {
@@ -155,6 +280,28 @@ def build():
         'devanagariFamily': deva_family,
         'latin': latin,
         'devanagari': deva,
+        '_companion_note': (
+            'per-codepoint advance in em from Inter_400Regular hmtx, for every '
+            'codepoint Onest does NOT map. A string is split into runs by '
+            'coverage and each run is drawn AND measured in the face that has '
+            'the glyph, so no character reaches the iOS per-glyph fallback. '
+            'A codepoint in neither face is refused by the widget, not '
+            'substituted.'),
+        'companionFamily': comp_family,
+        'companion': comp,
+        '_board_coverage_note': (
+            'Onest_400Regular cmap above U+007F, run-length encoded. Answers '
+            '"can the board face draw this", which the companion table cannot: '
+            'that one only says "can Inter draw what Onest cannot". A codepoint '
+            'in neither is REFUSED rather than drawn, because drawing it means '
+            'tofu or a third typeface.'),
+        'boardCoverage': board_coverage_ranges(),
+        '_per_char_note': (
+            'per-codepoint advance in em, per family, U+0020-U+024F plus the '
+            'punctuation a board actually uses. Falls back to the family mean '
+            'in `latin` for anything not listed. Menlo is monospaced and is '
+            'therefore its mean exactly, which is why it is not tabulated.'),
+        'perChar': per_char_tables(),
     }
 
 
@@ -173,6 +320,10 @@ def main():
     print(f'wrote {OUT}')
     for k, v in data['latin'].items():
         print(f'  latin  {k:26s} {v}')
+    print(f'  per-char    ' + ', '.join(f'{k} {len(v)}' for k, v in data['perChar'].items()))
+    print(f'  board cov.  {len(data["boardCoverage"])} ranges above U+007F')
+    print(f'  companion   {len(data["companion"])} codepoints from '
+          f'{data["companionFamily"]}')
     print(f'  devanagari  {len(data["devanagari"])} codepoints, '
           f'{sum(1 for v in data["devanagari"].values() if v == 0)} zero-advance')
     return 0

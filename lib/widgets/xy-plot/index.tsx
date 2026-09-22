@@ -223,7 +223,8 @@ ROUTES-FROM-COLUMN:END */
  *                     by the product of the partitions for no syllabus gain.
  */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {

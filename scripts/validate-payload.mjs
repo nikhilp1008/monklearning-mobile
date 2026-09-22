@@ -137,10 +137,14 @@ const OUT = loadTs([
   // The sequence gate. It reaches the registry, which reaches every widget —
   // all already stubbed above, so this costs nothing extra to load.
   'lib/widgets/board-sequence-validate.ts',
+  // `undrawableChars`. Every widget already pulls chrome.ts in, so this only
+  // names it as an entry point rather than adding to the graph.
+  'lib/widgets/chrome.ts',
 ]);
 writeStubs(OUT);
 
 const { gateSequence } = await import(join(OUT, 'lib/widgets/board-sequence-validate.js'));
+const { undrawableChars } = await import(join(OUT, 'lib/widgets/chrome.js'));
 
 const mods = {};
 for (const [id, [dir, exportName]] of Object.entries(WIDGETS)) {
@@ -181,6 +185,31 @@ function judge(p) {
   if (!mod) return { ok: false, widget, errors: [`"${widget}" is not in the registry`] };
   const r = mod.validate(p.params ?? {});
   if (!r.ok) return { ok: false, widget, errors: r.errors };
+  /* A CHARACTER NO BUNDLED FACE CAN DRAW.
+   *
+   * Checked here, once, rather than in fourteen `validate()`s. It is not a
+   * per-widget rule — it is a property of what the app ships, and the answer
+   * is the same whatever widget is asking.
+   *
+   * The app bundles Onest for the board and Inter as the companion face, and
+   * `chrome.splitRuns` sends each run to whichever has the glyph. What NEITHER
+   * has would reach the iOS per-glyph fallback and draw in a third typeface,
+   * or as a hollow box — which is the failure the companion face exists to
+   * remove, so admitting it here would reintroduce it one level down.
+   *
+   * Three existed in 260 stored boards, one use each: "anti-∥ to m",
+   * "∮E·dl", "dependent on ♀". Bundling a fourth face for three glyphs buys
+   * three glyphs. Refusing buys an author who writes "anti-parallel", which
+   * is the better board anyway — so the message says that. */
+  const bad = undrawableChars(JSON.stringify(r.params));
+  if (bad.length > 0) {
+    return { ok: false, widget, errors: [
+      `the params carry ${bad.map((c) => `"${c}" (U+${c.codePointAt(0)
+        .toString(16).toUpperCase().padStart(4, '0')})`).join(', ')}, which `
+      + `neither bundled face can draw — it would render as a hollow box or `
+      + `in a third typeface. Write the word instead: "anti-parallel" for `
+      + `"anti-∥", "line integral of E.dl" for "∮E·dl", "female" for "♀".`] };
+  }
   /* The DERIVED values, alongside the verdict.
    *
    * The API cannot compute these — the maths lives in the widget, and a second

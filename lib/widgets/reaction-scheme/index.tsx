@@ -49,7 +49,8 @@
      Chunks describe the artifact: the 'aniline wheel' with 'Ar-N2+Cl- at the hub, with spokes to products... Each spoke labelled with reagent and product'
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { G, Line, Path, Rect } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {
