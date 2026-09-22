@@ -75,6 +75,27 @@ export function rowLabelCap(cols: number): number {
  *  is 14. Refusing every natural term by one or two characters is not a budget,
  *  it is a widget nobody can author for. Wrapping is not truncating — nothing
  *  is lost, the row simply gets taller, and `fits()` already checks the height. */
+/**
+ * Baseline-to-baseline distance for a wrapped cell, as a multiple of the font
+ * size.
+ *
+ * It was 1.0 — zero leading — and that is not a tight line, it is an
+ * OVERLAPPING one. scripts/verify-render.mjs models a text line's box as
+ * `fontSize * 1.15`, so two lines spaced exactly one font size apart overlap
+ * by 0.15 of a line, and the gate reports them as colliding labels. Every
+ * two-line cell in this widget did, by construction.
+ *
+ * It went unnoticed because the gate is run per payload and the corpus pass
+ * that covers all five frames only started on 2026-09-22: at 343x236 the
+ * columns are wide enough that most cells do not wrap at all, and 340x340 —
+ * the narrow-and-tall frame — is where they do. Sixteen stored boards failed
+ * there and nowhere else.
+ *
+ * 1.2 rather than 1.15 so the two models are not exactly equal: a bound that
+ * only just clears is one rounding change away from not clearing.
+ */
+export const LINE_LEADING = 1.2;
+
 export const LINES_PER_CELL = 2;
 
 export function colLabelTotal(cols: number): number {

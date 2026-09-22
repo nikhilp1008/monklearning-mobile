@@ -18,7 +18,9 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
-import { HAIRLINE_STROKE, LABEL_SIZE, PAD_EDGE, READOUT_SIZE } from '../chrome';
+import {
+  fitReadout, HAIRLINE_STROKE, LABEL_SIZE, PAD_EDGE, READOUT_SIZE,
+} from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   bandwidth, capacitiveReactance, current, halfPowerFrequencies, impedance,
@@ -203,6 +205,10 @@ function LcrResonance({ params, motion, width, height, theme }:
     : params.view === 'phase' ? 'phase (rad)'
     : 'X (ohm)';
 
+  const readout = `f0 ${(frame.w0 / (2 * Math.PI)).toFixed(1)} Hz`
+    + `   Q ${qFactor(params.r_ohm, params.l_henry, params.c_farad).toFixed(2)}`
+    + `   BW ${bandwidth(params.r_ohm, params.l_henry).toFixed(1)} rad/s`;
+
   return (
     <Svg width={width} height={height}>
       <Line x1={frame.left} y1={frame.bottom} x2={frame.right} y2={frame.bottom}
@@ -213,7 +219,13 @@ function LcrResonance({ params, motion, width, height, theme }:
       {/* f0, always drawn — the window is guaranteed to contain it. */}
       <Line x1={frame.x(frame.w0)} y1={frame.top} x2={frame.x(frame.w0)} y2={frame.bottom}
             stroke={theme.accent} strokeWidth={HAIRLINE_STROKE} strokeDasharray="4 4" />
-      <SvgText x={frame.x(frame.w0)} y={frame.top + LABEL_SIZE} fill={theme.accent}
+      {/* One line BELOW the axis-unit label, not level with it. Both sat at
+          `frame.top + LABEL_SIZE`, so whenever f0 fell near the left of the
+          window they overlapped — which it does at 340x340, the narrow frame,
+          where the plot is least wide. Separating them by a line costs
+          nothing and cannot collide at any window position. */}
+      <SvgText x={frame.x(frame.w0)} y={frame.top + LABEL_SIZE * 2.4}
+               fill={theme.accent}
                fontSize={LABEL_SIZE} fontFamily={theme.fontFamily} textAnchor="middle">
         f0
       </SvgText>
@@ -233,9 +245,20 @@ function LcrResonance({ params, motion, width, height, theme }:
                fontSize={LABEL_SIZE} fontFamily={theme.fontFamily}>
         {unit}
       </SvgText>
+      {/* Through `fitReadout`, like every other widget's readout. It was
+          emitted raw, so at 340x340 — the narrow frame — the three terms ran
+          off the right edge and the gate refused the board. `fitReadout`
+          drops a WHOLE term rather than cutting a number away from its unit,
+          which is the difference between showing "BW 1000.0 rad/s" and
+          showing "BW 1000.0". */}
       <SvgText x={frame.left} y={height - PAD_EDGE} fill={theme.inkMuted}
                fontSize={READOUT_SIZE} fontFamily={theme.monoFontFamily}>
-        {`f0 ${(frame.w0 / (2 * Math.PI)).toFixed(1)} Hz   Q ${qFactor(params.r_ohm, params.l_henry, params.c_farad).toFixed(2)}   BW ${bandwidth(params.r_ohm, params.l_henry).toFixed(1)} rad/s`}
+        {/* From `frame.left`, which is where it is ANCHORED — not from the
+            page padding. `width - 2 * PAD_EDGE` is the full content width and
+            this string starts inboard of it, so that budget was too generous
+            by the whole left gutter and the last term still ran off. */}
+        {fitReadout('', readout, width - PAD_EDGE - frame.left, READOUT_SIZE,
+                    theme.monoFontFamily)}
       </SvgText>
     </Svg>
   );

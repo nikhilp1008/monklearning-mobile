@@ -28,7 +28,8 @@ import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types
 import {
   BAND_H, CAPTION_SIZE, CELL_SIZE, HEADER_SIZE, MAX_CAPTION, MAX_COLUMNS,
   MAX_ROWS, MIN_COLUMNS, MIN_ROWS, REF_H, REF_W, RULE_STROKE, colLabelCap,
-  colLabelTotal, fits, layoutTable, rowLabelCap, rowLabelTotal, wrapCell,
+  colLabelTotal, fits, layoutTable, LINE_LEADING, rowLabelCap, rowLabelTotal,
+  wrapCell,
 } from './table-layout';
 
 export interface ComparisonTableParams {
@@ -195,7 +196,7 @@ function ComparisonTable({ params, width, height, theme }:
         wrapCell(c, colLabelCap(f.cols)).map((ln, li, all) => (
           <SvgText
             key={`h${i}-${li}`} x={colX(i)}
-            y={f.top + HEADER_SIZE + (li - (all.length - 1) / 2) * HEADER_SIZE}
+            y={f.top + HEADER_SIZE + (li - (all.length - 1) / 2) * HEADER_SIZE * LINE_LEADING}
             fill={theme.ink} fontSize={HEADER_SIZE} fontWeight="700"
             fontFamily={theme.fontFamily} textAnchor="middle"
           >
@@ -212,7 +213,7 @@ function ComparisonTable({ params, width, height, theme }:
           {wrapCell(r, rowLabelCap(f.cols)).map((ln, li, all) => (
             <SvgText
               key={`rl${li}`} x={f.left}
-              y={rowY(i) + CELL_SIZE * 0.35 + (li - (all.length - 1) / 2) * CELL_SIZE}
+              y={rowY(i) + CELL_SIZE * 0.35 + (li - (all.length - 1) / 2) * CELL_SIZE * LINE_LEADING}
               fill={theme.inkMuted} fontSize={CELL_SIZE} fontFamily={theme.fontFamily}
             >
               {ln}
@@ -223,7 +224,7 @@ function ComparisonTable({ params, width, height, theme }:
               .map((ln, li, all) => (
                 <SvgText
                   key={`c${c}-${li}`} x={colX(c)}
-                  y={rowY(i) + CELL_SIZE * 0.35 + (li - (all.length - 1) / 2) * CELL_SIZE}
+                  y={rowY(i) + CELL_SIZE * 0.35 + (li - (all.length - 1) / 2) * CELL_SIZE * LINE_LEADING}
                   fill={theme.ink} fontSize={CELL_SIZE} fontFamily={theme.fontFamily}
                   textAnchor="middle"
                 >
