@@ -1702,18 +1702,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
       paddingHorizontal: scale(4),
     },
-    // Quiet on purpose: available to the student who needs it, not competing
-    // with Next for the one who doesn't.
-    reportButton: {
-      alignSelf: 'center',
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(8),
-    },
-    reportText: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12.5),
-      color: colors.faint,
-    },
     giveUpText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13.5),
