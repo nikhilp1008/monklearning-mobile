@@ -73,6 +73,7 @@ import {
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 import { BoardBlockView } from '@/components/board-text';
+import { applyContinuity, boardRowKey } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
 import { REPORT_REASONS, sendReport as postReport } from '@/lib/reports';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
@@ -1716,8 +1717,15 @@ export default function LiveClassroomScreen() {
                 </Text>
               </View>
             ) : (
-              board.map((event, i) => (
-                <BoardLine key={`${event.seq}-${i}`}>
+              /* P4 — one board per picture, not one per segment.
+                 `applyContinuity` drops a diagram that repeats the previous
+                 diagram and merges its REVEAL into the row already on the
+                 board, so three segments about one plate leave one plate
+                 whose label group changes under the narration. The key comes
+                 from the picture's signature, so the component instance
+                 survives that change and animates instead of remounting. */
+              applyContinuity(board).map((event, i) => (
+                <BoardLine key={boardRowKey(event, i)}>
                   <BoardBlockView
                     event={event}
                     diagramBox={diagramBox}

@@ -44,6 +44,9 @@ export function BoardBlockView({
     theme: WidgetTheme;
     services: WidgetServices;
     figures: FigureResolver;
+    /** P3. The chapter's own SVG — the last rung of BoardWidget's fallback
+     *  chain, read from the plan rather than sent per turn. */
+    chapterFallbackSvg?: string;
     onGap: (reason: string, detail: unknown) => void;
   };
 }) {
@@ -75,7 +78,19 @@ export function BoardBlockView({
     if (event.payload) {
       return (
         <BoardWidget
-          event={{ seq: event.seq, payload: event.payload, tier: event.tier ?? 'precomputed' }}
+          /*
+           * THE WHOLE EVENT'S FALLBACKS TRAVEL WITH IT.
+           *
+           * This used to build `{seq, payload, tier}` and drop `svg` — so
+           * BoardWidget's fallback chain could never see one, and a payload
+           * the build could not draw became a blank board with no way back.
+           * P3 added rungs to that chain; without this line two of them were
+           * unreachable in the only place that matters.
+           */
+          event={{ seq: event.seq, payload: event.payload,
+                   svg: event.svg, illustration_slug: event.illustration_slug,
+                   tier: event.tier ?? 'precomputed' }}
+          chapterFallbackSvg={widgetHost.chapterFallbackSvg}
           activeSeq={widgetHost.activeSeq}
           width={diagramBox.availableWidth}
           height={diagramBox.maxHeight}

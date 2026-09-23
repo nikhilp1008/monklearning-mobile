@@ -23,6 +23,13 @@ export interface BoardEvent {
   payload?: WidgetPayload;
   /** Legacy / fallback path — the inline SVG string the board already renders. */
   svg?: string;
+  /**
+   * P3. The concept's bound plate, if it has one, sent ALONGSIDE a widget
+   * payload rather than instead of it. The server picks one slot per turn, so
+   * this is normally absent; it is here for the case the server could not
+   * foresee — a build that cannot draw the widget the server chose.
+   */
+  illustration_slug?: string;
   tier: ResolutionTier;
 }
 
@@ -51,6 +58,11 @@ export interface BoardWidgetProps {
    * this path and no way to introduce one. See ./labelled-figure/figure-resolver.
    */
   figures?: FigureResolver;
+  /**
+   * P3. The chapter's own SVG, the last thing between an undrawable payload
+   * and an empty board. Supplied by the host from the plan, not per turn.
+   */
+  chapterFallbackSvg?: string;
   onGap?: (reason: string, detail: unknown) => void;
   /** The active cue's caption, already {{token}}-interpolated — render it in
    *  the board's own caption strip, not a new surface. Called with `null`
@@ -79,6 +91,7 @@ export function BoardWidget({
   theme,
   services,
   figures,
+  chapterFallbackSvg,
   onGap,
   onCaption,
 }: BoardWidgetProps) {
@@ -219,9 +232,75 @@ export function BoardWidget({
   }, [event, figures, onGap, figureRecord]);
 
   if (!resolved) {
+    /*
+     * P3 — THE CHAIN, AND IT IS EXHAUSTIVE ON PURPOSE.
+     *
+     * This used to be two lines: draw `event.svg` if there is one, else
+     * return null. Null is a BLANK BOARD, and on 2026-09-23 that is exactly
+     * what an Ecosystem turn gave the 19 Sep build — eleven times, because a
+     * slot-1 board event carries a payload and never an svg, so the `if`
+     * never fired and the `return null` always did.
+     *
+     * P1 fixes the cause server-side: a widget slot is not served to a client
+     * that cannot draw it. This is the belt and braces for every build P1
+     * cannot reach — one already installed, one talking to an older API, one
+     * whose manifest did not arrive.
+     *
+     * Each rung logs its OWN gap. A board that fell two rungs and a board
+     * that fell none look identical on screen and must not look identical in
+     * the feed, because the feed is what says whether P1 is working.
+     */
     if (event.svg) {
       return <SvgXml xml={event.svg} width={width} height={height} />;
     }
+    if (event.illustration_slug) {
+      const rec = figures?.get(event.illustration_slug);
+      if (rec) {
+        const checked = labelledFigure.validate(rec);
+        if (checked.ok) {
+          onGap?.('fell_back_to_illustration',
+                  { widget: event.payload?.widget, slug: event.illustration_slug });
+          return (
+            <WidgetHost
+              key={`ill-${event.illustration_slug}`}
+              mod={labelledFigure as unknown as WidgetModule<object>}
+              params={checked.params as object} cues={undefined}
+              activeSeq={activeSeq} width={width} height={height}
+              theme={theme} services={services} onCaption={onCaption} />
+          );
+        }
+      } else {
+        // Cache-only, like every other read of this resolver — ask, and let
+        // the subscription redraw when it lands.
+        void figures?.prefetch([event.illustration_slug]);
+      }
+    }
+    if (chapterFallbackSvg) {
+      onGap?.('fell_back_to_chapter_svg', { widget: event.payload?.widget });
+      return <SvgXml xml={chapterFallbackSvg} width={width} height={height} />;
+    }
+    /*
+     * Nothing left — but PENDING is not MISSING.
+     *
+     * A labelled-figure payload whose record has not landed yet has already
+     * logged `figure_not_cached` and asked for the slug; the subscription
+     * will redraw this instance when it arrives. Calling that a missing
+     * fallback would double-log a transient state and, worse, would put a
+     * terminal-sounding gap in the feed for a board that is about to appear.
+     * The feed is how P1's effect is measured, so it has to distinguish "this
+     * will resolve" from "there is nothing here".
+     */
+    if (event.payload?.widget === labelledFigure.id && !figureRecord) {
+      return null;
+    }
+    // A DATA gap, not a dispatch one — a payload this build cannot draw and
+    // no picture of any kind behind it — logged under its own name so it can
+    // be counted and fixed at the source rather than disappearing into
+    // `unknown_widget`.
+    onGap?.('no_fallback_available', {
+      widget: event.payload?.widget, version: event.payload?.version,
+      hadIllustration: Boolean(event.illustration_slug),
+    });
     return null;
   }
 

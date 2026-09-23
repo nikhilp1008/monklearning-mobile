@@ -1,0 +1,192 @@
+/**
+ * P4 — the same board twice is one board.
+ *
+ * Three consecutive segments teaching from one plate used to produce three
+ * board events, and three board events produce three MOUNTS: the plate is
+ * torn down and redrawn between sentences that are about the same picture.
+ * On a figure that is the whole point of the segment — a labelled plate, a
+ * field-line configuration held across an explanation — the student sees a
+ * flicker exactly where they are being asked to look.
+ *
+ * What SHOULD change across those three segments is the reveal: the active
+ * label group, or the cue. That is an animation of one figure, not three
+ * figures.
+ *
+ * So a board event is reduced to a SIGNATURE of everything that decides which
+ * picture it is, deliberately EXCLUDING the things that decide what is
+ * highlighted on it. Consecutive events with equal signatures are the same
+ * board; the later ones carry only their reveal.
+ *
+ * This file is pure and has no React in it, because the rule is the thing
+ * under test and a rule tangled into a component cannot be tested without a
+ * class, a socket and a plan.
+ */
+
+/** The fields that change the REVEAL, never the picture. */
+const REVEAL_KEYS = new Set([
+  'active_group',   // labelled_figure: which label group is lit
+  'lang',           // labelled_figure: which script the pills are in
+  'highlight_row',  // data_table_trend
+  'highlight',      // comparison_table
+  'active_node',    // process_flow
+  'highlight_step', // reaction_scheme
+  'probe_rel',      // lcr_resonance
+  'step_progress',  // reaction_scheme
+  't_frac',         // circuit_network
+]);
+
+export interface ContinuityEvent {
+  seq: number;
+  type?: string;
+  tier?: string;
+  svg?: string;
+  illustration_slug?: string;
+  payload?: { widget?: string; version?: number; kind?: string;
+              params?: Record<string, unknown>; steps?: unknown[] };
+}
+
+/** Stable JSON: object keys sorted, so `{a,b}` and `{b,a}` are one string. */
+function stable(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null';
+  if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
+  const o = v as Record<string, unknown>;
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(',')}}`;
+}
+
+/**
+ * What makes this board THIS board.
+ *
+ * Returns null for an event that is not a picture — those are never
+ * collapsed, because two identical lines of text are two lines of text.
+ */
+export function boardSignature(e: ContinuityEvent): string | null {
+  if (e.type && e.type !== 'diagram') return null;
+  if (e.payload) {
+    const p = e.payload;
+    if (p.kind === 'board_sequence') {
+      // A sequence's identity is its steps. It carries its own reveal (the
+      // step index), which is exactly the case this rule exists for.
+      return `seq:${stable(p.steps ?? [])}`;
+    }
+    const params = { ...(p.params ?? {}) };
+    for (const k of Object.keys(params)) {
+      if (REVEAL_KEYS.has(k)) delete params[k];
+    }
+    return `w:${p.widget}@${p.version ?? 1}:${stable(params)}`;
+  }
+  if (e.illustration_slug) return `ill:${e.illustration_slug}`;
+  if (e.svg) return `svg:${e.svg.length}:${e.svg.slice(0, 200)}`;
+  return null;
+}
+
+/** The reveal half — what MAY change while the board stays put. */
+export function revealOf(e: ContinuityEvent): Record<string, unknown> {
+  const params = e.payload?.params ?? {};
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(params)) {
+    if (REVEAL_KEYS.has(k)) out[k] = params[k];
+  }
+  return out;
+}
+
+export interface CollapsedBoard {
+  /** The event that DRAWS — the first of its run. */
+  readonly event: ContinuityEvent;
+  /** Its signature, and the React key that must stay stable across the run. */
+  readonly signature: string;
+  /** Every reveal in the run, in order. `[0]` belongs to the draw itself. */
+  readonly reveals: readonly Record<string, unknown>[];
+  /** The `seq` of each event in the run, for the cue track. */
+  readonly seqs: readonly number[];
+}
+
+/**
+ * Collapse consecutive identical boards into one draw plus its reveals.
+ *
+ * Only CONSECUTIVE runs collapse. A plate, then a graph, then the same plate
+ * again is two draws of that plate — the student looked away in between, and
+ * redrawing is honest there.
+ */
+export function collapseBoards(events: readonly ContinuityEvent[]): CollapsedBoard[] {
+  const out: CollapsedBoard[] = [];
+  for (const e of events) {
+    const sig = boardSignature(e);
+    if (sig === null) continue;
+    const last = out[out.length - 1];
+    if (last && last.signature === sig) {
+      (last.reveals as Record<string, unknown>[]).push(revealOf(e));
+      (last.seqs as number[]).push(e.seq);
+      continue;
+    }
+    out.push({ event: e, signature: sig, reveals: [revealOf(e)], seqs: [e.seq] });
+  }
+  return out;
+}
+
+/**
+ * How many times the board is actually MOUNTED for a run of events.
+ *
+ * The number the P4 fixture asserts: three segments on one plate is one draw.
+ */
+export function drawCount(events: readonly ContinuityEvent[]): number {
+  return collapseBoards(events).length;
+}
+
+
+/**
+ * The board list as it should RENDER: one row per run, carrying the latest
+ * reveal.
+ *
+ * `collapseBoards` answers "how many boards are there"; this answers "what
+ * goes on screen". A diagram that repeats the previous diagram is DROPPED
+ * from the list and its reveal is merged into the row that is already there,
+ * so the plate stays where it first appeared and its label group changes
+ * under the narration instead of a second plate appearing below the first.
+ *
+ * NON-DIAGRAM EVENTS ARE TRANSPARENT. Three segments about one plate are not
+ * three adjacent diagram events — there are board lines between them — and a
+ * rule that only collapsed literally-adjacent events would never fire in a
+ * real class. Text passes through untouched and does not break a run.
+ */
+export function applyContinuity<T extends ContinuityEvent>(
+  events: readonly T[],
+): T[] {
+  const out: T[] = [];
+  let lastSig: string | null = null;
+  let lastIdx = -1;
+  for (const e of events) {
+    const sig = boardSignature(e);
+    if (sig === null) {          // text, heading, formula — passes through
+      out.push(e);
+      continue;
+    }
+    if (sig === lastSig && lastIdx >= 0) {
+      // Same picture: merge the reveal into the row already on the board.
+      const prev = out[lastIdx];
+      out[lastIdx] = {
+        ...prev,
+        payload: prev.payload
+          ? { ...prev.payload,
+              params: { ...(prev.payload.params ?? {}), ...revealOf(e) } }
+          : prev.payload,
+      } as T;
+      continue;
+    }
+    lastSig = sig;
+    lastIdx = out.length;
+    out.push(e);
+  }
+  return out;
+}
+
+/**
+ * The React key for a board row.
+ *
+ * Signature-based for a picture, so the component instance SURVIVES a reveal
+ * change and animates instead of remounting. `seq`-based for everything else,
+ * which is what the list has always used.
+ */
+export function boardRowKey(e: ContinuityEvent, index: number): string {
+  const sig = boardSignature(e);
+  return sig === null ? `${e.seq}-${index}` : `board-${sig}`;
+}

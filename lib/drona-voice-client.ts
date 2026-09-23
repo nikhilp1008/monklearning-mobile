@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
+
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
 import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 import { pcmAvailable } from '@/lib/pcm-player';
@@ -37,6 +39,12 @@ export interface BoardEvent {
   /** `diagram` events only: complete, self-contained, server-validated SVG.
    *  See `components/board-diagram.tsx` for what the host owes it. */
   svg?: string;
+  /**
+   * P3. The concept's bound plate, sent ALONGSIDE a widget payload so a build
+   * that cannot draw the widget has something to fall back to. Normally
+   * absent — the server picks one slot per turn.
+   */
+  illustration_slug?: string;
   /** `diagram` events only: an optional one-line gloss under the figure. */
   caption?: string;
   /**
@@ -376,9 +384,23 @@ export class DronaVoiceClient {
     // only reads the options argument when protocols is explicitly null.
     const canSendHeaders = Platform.OS !== 'web';
     const base = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live`;
+    // P1 — TELL THE SERVER WHAT THIS BUILD CAN DRAW.
+    //
+    // Until this existed the server sent whatever it had stored and an old
+    // build either drew it or drew NOTHING: a payload naming a widget the
+    // build does not carry misses `lookup()` and BoardWidget returns null
+    // with no picture behind it, because a slot-1 board event carries a
+    // payload and never an svg. Measured on the 19 Sep build against
+    // Ecosystem: eleven comparison_table segments, eleven blank boards.
+    //
+    // Sent on the QUERY STRING rather than as a first message because the
+    // server needs it before the first turn resolves a board, and a
+    // handshake message would race the first utterance.
+    const widgets = `&widgets=${encodeURIComponent(
+      REGISTRY_MANIFEST.map((m) => `${m.id}@${m.version}`).join(','))}`;
     const url = canSendHeaders
-      ? `${base}${pcmAvailable ? '?stream_tts=1' : ''}`
-      : `${base}?token=${encodeURIComponent(token)}${parts}`;
+      ? `${base}?${pcmAvailable ? 'stream_tts=1' : ''}${widgets}`
+      : `${base}?token=${encodeURIComponent(token)}${parts}${widgets}`;
     // One socket per client, enforced at the source. A second connect while
     // one is still open — a screen remount, an eager prewarm — would put two
     // sockets in the air from one device; the server's takeover would retire
