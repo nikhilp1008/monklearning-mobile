@@ -4,6 +4,7 @@ import { AccessibilityInfo, LayoutChangeEvent, Pressable, StyleSheet, Text, View
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  interpolateColor,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -105,19 +106,48 @@ function EraserMark({ active }: { active: boolean }) {
  * unusual, so the way in deliberately isn't — it is a labelled button.
  */
 export function EraseTool({ active, onPress }: { active: boolean; onPress: () => void }) {
+  /**
+   * THE PILL TURNS; IT DOES NOT FLIP.
+   *
+   * Picking up the eraser swapped an outlined pill for a solid ink one in a
+   * single frame — border, fill, label colour and the mark's fill all at
+   * once. That hard cut is most of why a convenience felt like a commitment:
+   * the loudest thing on the screen changed state faster than the eye can
+   * follow, so the mode arrived as a shock rather than a move. 200ms of
+   * colour carries it instead.
+   *
+   * The label still swaps on the frame the mode changes — "Erase" to
+   * "Erasing" cross-fading would be legible as neither for 100ms — but by
+   * then the pill it sits in is already halfway to ink.
+   */
+  const on = useSharedValue(active ? 1 : 0);
+  useEffect(() => {
+    on.value = withTiming(active ? 1 : 0, { duration: 200, easing: Easing.out(Easing.ease) });
+  }, [active, on]);
+
+  const fill = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(on.value, [0, 1], ['rgba(28,26,22,0)', INK]),
+    borderColor: interpolateColor(on.value, [0, 1], [HAIRLINE, INK]),
+  }));
+  const ink = useAnimatedStyle(() => ({
+    color: interpolateColor(on.value, [0, 1], [INK_MUTED, PAPER]),
+  }));
+
   return (
-    <Pressable
-      style={[toolStyles.pill, active && toolStyles.pillActive]}
+    <AnimatedPressable
+      style={[toolStyles.pill, fill]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={active ? 'Stop erasing' : 'Erase notes'}>
       <EraserMark active={active} />
-      <Text style={[toolStyles.label, active && toolStyles.labelActive]}>
+      <Animated.Text style={[toolStyles.label, ink]}>
         {active ? 'Erasing' : 'Erase'}
-      </Text>
-    </Pressable>
+      </Animated.Text>
+    </AnimatedPressable>
   );
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * Once the eraser is down, this says exactly what to do. It sits directly

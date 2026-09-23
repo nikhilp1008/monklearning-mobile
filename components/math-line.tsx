@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactElement } from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 
 import { MathSegment, latexToSegments } from '@/lib/latex-text';
+import { spaceOperators } from '@/lib/math-spacing';
 
 /**
  * One line of a solution, with its fractions drawn as fractions.
@@ -35,7 +36,15 @@ type MathLineProps = {
 };
 
 export function MathLine({ text, style, fontSize, color, mathStyle }: MathLineProps) {
-  const segments = useMemo(() => latexToSegments(text), [text]);
+  // Maths gets spaces round its operators before anything else sees it — see
+  // `spaceOperators`. Prose segments are never touched.
+  const segments = useMemo(
+    () =>
+      latexToSegments(text).map((s) =>
+        s.kind === 'math' ? { ...s, text: spaceOperators(s.text) } : s
+      ),
+    [text]
+  );
   const hasFraction = segments.some(
     (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup' || s.kind === 'matrix'
   );
@@ -73,61 +82,111 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
     );
   }
 
+  /**
+   * THE ROW IS BUILT FROM WORDS, AND A WORD KEEPS ITS OWN SPACE.
+   *
+   * A flex row wraps between its children, so each word is one. The spaces
+   * between words used to be children too — and a line could then begin with
+   * one, which is why wrapped lines opened on a stray space (" sign:",
+   * " s(3)"). A space now rides on the END of the word before it, where a
+   * line break swallows it.
+   *
+   * And a word is everything between two spaces, whatever voice its pieces
+   * are in: "4" in maths and "," in prose with nothing between them are one
+   * word, so the comma can never start a line on its own. A short unit after
+   * a number — "4 m.", "29.4 m/s" — is kept on the number's line too, so an
+   * answer never ends with its unit orphaned below it.
+   */
+  type Run = { text: string; voice: StyleProp<TextStyle>[]; math: boolean };
+  const items: (Run[] | ReactElement)[] = [];
+  const lastWord = () => {
+    const last = items[items.length - 1];
+    return Array.isArray(last) ? last : null;
+  };
+  const addText = (text: string, voice: StyleProp<TextStyle>[], math: boolean) => {
+    // Split on ordinary whitespace only: `\s` would also match the no-break
+    // spaces `spaceOperators` puts inside brackets, and split the group apart.
+    for (const part of text.split(/([ \t\n]+)/)) {
+      if (!part) continue;
+      const word = lastWord();
+      if (/^[ \t\n]+$/.test(part)) {
+        if (word) word[word.length - 1].text += part;
+        else items.push([{ text: part, voice, math }]);
+        continue;
+      }
+      const end = word?.[word.length - 1];
+      const joined = !!end && !/[ \t\n]$/.test(end.text);
+      // A unit after a number, in either voice: "4 m." in prose after maths,
+      // or "−9.8 m/s²" written inside the maths itself.
+      const unit = !!end && end.math && /\d[ \t\n]*$/.test(end.text) && UNIT.test(part);
+      if (word && (joined || unit)) word.push({ text: part, voice, math });
+      else items.push([{ text: part, voice, math }]);
+    }
+  };
+
+  segments.forEach((segment, i) => {
+    if (segment.kind === 'fraction') {
+      items.push(
+        <Fraction key={`f${i}`} segment={segment} styles={styles} style={[style, mathStyle]} />
+      );
+      return;
+    }
+    if (segment.kind === 'sub' || segment.kind === 'sup') {
+      // Drawn rather than spelled: there is no subscript `y` in Unicode,
+      // so it is set small and shifted off the baseline.
+      items.push(
+        <Text
+          key={`s${i}`}
+          style={[
+            style,
+            mathStyle,
+            styles.script,
+            segment.kind === 'sub' ? styles.scriptDown : styles.scriptUp,
+          ]}>
+          {segment.text}
+        </Text>
+      );
+      return;
+    }
+    if (segment.kind === 'matrix') {
+      items.push(
+        <Matrix key={`m${i}`} segment={segment} styles={styles} style={[style, mathStyle]} />
+      );
+      return;
+    }
+    const voice: StyleProp<TextStyle>[] = segment.kind === 'math' ? [style, mathStyle] : [style];
+    if ('bold' in segment && segment.bold) voice.push(styles.bold);
+    addText(segment.text, voice, segment.kind === 'math');
+  });
+
   return (
     <View style={styles.row}>
-      {segments.flatMap((segment, i) => {
-        if (segment.kind === 'fraction') {
-          return [
-            <Fraction
-              key={`f${i}`}
-              segment={segment}
-              styles={styles}
-              style={[style, mathStyle]}
-            />,
-          ];
+      {items.map((item, i) => {
+        if (!Array.isArray(item)) return item;
+        if (item.length === 1) {
+          return (
+            <Text key={`w${i}`} style={[item[0].voice, styles.word]}>
+              {item[0].text}
+            </Text>
+          );
         }
-        if (segment.kind === 'sub' || segment.kind === 'sup') {
-          // Drawn rather than spelled: there is no subscript `y` in Unicode,
-          // so it is set small and shifted off the baseline.
-          return [
-            <Text
-              key={`s${i}`}
-              style={[
-                style,
-                mathStyle,
-                styles.script,
-                segment.kind === 'sub' ? styles.scriptDown : styles.scriptUp,
-              ]}>
-              {segment.text}
-            </Text>,
-          ];
-        }
-        if (segment.kind === 'matrix') {
-          return [
-            <Matrix
-              key={`m${i}`}
-              segment={segment}
-              styles={styles}
-              style={[style, mathStyle]}
-            />,
-          ];
-        }
-        const voice = segment.kind === 'math' ? [style, mathStyle] : [style];
-        if ('bold' in segment && segment.bold) voice.push(styles.bold);
-        return words(segment.text).map((word, j) => (
-          <Text key={`t${i}-${j}`} style={[voice, styles.word]}>
-            {word}
+        // Mixed voices in one word: nested, so the word wraps as one piece.
+        return (
+          <Text key={`w${i}`} style={[item[0].voice, styles.word]}>
+            {item.map((run, j) => (
+              <Text key={j} style={run.voice}>
+                {run.text}
+              </Text>
+            ))}
           </Text>
-        ));
+        );
       })}
     </View>
   );
 }
 
-/** Keeps the spaces, so "x = 1" does not become "x=1" once split. */
-function words(text: string): string[] {
-  return text.split(/(\s+)/).filter((part) => part !== '');
-}
+/** A unit or a closing mark short enough to stay on its number's line. */
+const UNIT = /^[A-Za-zμΩ°%/²³⁻¹]{1,5}[.,;:)]?$/u;
 
 function Fraction({
   segment,

@@ -40,7 +40,7 @@ const AMBER_ACCENT = '#EEA31F';
  * is one constant at every size. Revert to 1.9 here if the designer wants the
  * original optical weight back.
  */
-const STROKE = 2.1;
+/** The two remaining icons drawn at the older, heavier weight. */
 
 /**
  * The chip these icons sit in — white, with an ink hairline.
@@ -73,11 +73,20 @@ export interface MonkIconProps {
   strokeWidth?: number;
 }
 
+/**
+ * THE MARIGOLD IS THE APERTURE, not a flash in the corner.
+ *
+ * This drawing carried its accent dot at 17.8, 9.9 — off in the top-right of
+ * the body, where it read as a smudge welded to the case. Home fixed that in
+ * its own local copy and this one never caught up, so the app shipped two
+ * Snap marks: the corrected one on the tile a student presses, and this one
+ * anywhere else it was imported. One drawing now, Home's.
+ */
 export function SnapADoubtIcon({
   size = 22,
   color = colors.ink,
   accent = AMBER_ACCENT,
-  strokeWidth = STROKE,
+  strokeWidth = 1.8,
 }: MonkIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -86,25 +95,60 @@ export function SnapADoubtIcon({
         <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} />
         <Circle cx={12} cy={13.2} r={3.6} />
       </G>
-      <Circle cx={17.8} cy={9.9} r={1.4} fill={accent} />
+      <Circle cx={12} cy={13.2} r={1.5} fill={accent} />
     </Svg>
   );
 }
 
+/**
+ * THE MARIGOLD IS THE BULLET ON THE CARD'S LINE.
+ *
+ * Same story as Snap: this copy kept the dot at 7.2, 16.2 with the line
+ * running the full width above it, and Home's copy had already moved the dot
+ * onto the line as its bullet — the way a plan row is drawn elsewhere in the
+ * app — with both sitting on 1.00 of clearance inside the card. Home's is the
+ * drawing; this is now it.
+ */
 export function PracticeIcon({
   size = 22,
   color = colors.ink,
   accent = AMBER_ACCENT,
-  strokeWidth = STROKE,
+  strokeWidth = 1.8,
 }: MonkIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <G stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" />
         <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} />
-        <Path d="M6.4 12.4h7.2" />
+        <Path d="M10 12.4h3.9" />
       </G>
-      <Circle cx={7.2} cy={16.2} r={1.6} fill={accent} />
+      <Circle cx={6.4} cy={12.4} r={1.4} fill={accent} />
+    </Svg>
+  );
+}
+
+/**
+ * The bars from the old Progress tab: Home's app-bar control and the mark on
+ * the Progress page's own first-day card, so the two are recognisably the
+ * same thing. `accent` reverses to the stroke colour on an ink plate, where a
+ * marigold dot on dark disappears.
+ */
+export function ProgressGlyph({
+  size = 22,
+  color = colors.ink,
+  accent = AMBER_ACCENT,
+  strokeWidth = 1.75,
+}: MonkIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4.5 19h15" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Path
+        d="M8 19v-4.5M12 19v-8M16 19V7.5"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      <Circle cx={16} cy={4.6} r={1.8} fill={accent} />
     </Svg>
   );
 }

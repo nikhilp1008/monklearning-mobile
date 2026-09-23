@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TextbooksPage } from '@/components/textbook/textbooks-page';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 
 /**
@@ -73,12 +74,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
      * a smaller, lighter title starting 4pt further left. Three tabs, one
      * title tier.
      */
-    heading: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(28),
-      letterSpacing: scale(-0.78),
-      lineHeight: scale(29.4),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
   });
 }

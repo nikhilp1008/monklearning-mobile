@@ -13,6 +13,7 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
+import { hapticKey } from '@/lib/haptics';
 
 type Phase = 'opening' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
 
@@ -132,6 +133,10 @@ export default function SnapCaptureScreen() {
       setPhase('idle');
       return;
     }
+    // The shutter belongs to iOS's camera screen, which gives its own
+    // feedback. This is the moment the photo lands back here — the snap, as
+    // far as this app can feel it.
+    hapticKey();
     const asset = result.assets[0];
     const picked: DoubtPhoto = {
       uri: asset.uri,

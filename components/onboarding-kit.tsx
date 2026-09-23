@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { hapticKey } from '@/lib/haptics';
 
 type ObButtonProps = {
   label: string;
@@ -33,6 +34,15 @@ type ObButtonProps = {
   /** A quiet right-hand label. The pass screen names the pass being bought
    *  beside the amount, as the handoff draws it. */
   trailing?: string;
+  /**
+   * The same key, smaller and hugging its label.
+   *
+   * The flow's key is a 60pt full-bleed slab because it is the only thing on
+   * the screen. Inside a card — the Doubts and Notes empty states — that slab
+   * IS the card, so this keeps every part that makes it a key (the ledge, the
+   * inset edges, the travel, the haptic) at a size that sits in one.
+   */
+  compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -72,19 +82,23 @@ export function ObButton({
   disabled = false,
   busy = false,
   trailing,
+  compact = false,
   style,
 }: ObButtonProps) {
   const { ds, fs, tracking } = useDesignScale();
   const isCream = variant === 'cream';
+  const height = compact ? ds(48) : ds(60);
+  const radius = compact ? ds(15) : ds(18);
+  const labelSize = compact ? 15.5 : 18;
 
   const face = (held: boolean) => ({
-    width: '100%' as const,
-    height: ds(60),
-    borderRadius: ds(18),
+    width: compact ? undefined : ('100%' as const),
+    height,
+    borderRadius: radius,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: (trailing ? 'space-between' : 'center') as 'space-between' | 'center',
-    paddingHorizontal: trailing ? ds(22) : 0,
+    paddingHorizontal: trailing ? ds(22) : compact ? ds(26) : 0,
     gap: ds(10),
     transform: [{ translateY: held ? ds(3) : 0 }],
     boxShadow: [
@@ -111,8 +125,8 @@ export function ObButton({
       <Text
         style={{
           fontFamily: obFont.sb600,
-          fontSize: fs(18),
-          letterSpacing: tracking(-0.01, 18),
+          fontSize: fs(labelSize),
+          letterSpacing: tracking(-0.01, labelSize),
           color: labelColor,
         }}>
         {label}
@@ -150,7 +164,15 @@ export function ObButton({
   );
 
   return (
-    <Pressable onPress={onPress} disabled={disabled || busy} style={[{ width: '100%' }, style]}>
+    <Pressable
+      onPress={onPress}
+      // The tap is the key bottoming out, so it lands on press-in, with the
+      // face — and never on a disabled or working key, which does not travel.
+      onPressIn={() => {
+        if (!disabled && !busy) hapticKey();
+      }}
+      disabled={disabled || busy}
+      style={[compact ? { alignSelf: 'center' } : { width: '100%' }, style]}>
       {({ pressed }) => {
         const held = pressed && !disabled;
         // Disabled stays an outline rather than a dimmed key: `opacity: .4` on
@@ -160,13 +182,13 @@ export function ObButton({
           return (
             <View
               style={{
-                width: '100%',
-                height: ds(60),
-                borderRadius: ds(18),
+                width: compact ? undefined : '100%',
+                height,
+                borderRadius: radius,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: trailing ? 'space-between' : 'center',
-                paddingHorizontal: trailing ? ds(22) : 0,
+                paddingHorizontal: trailing ? ds(22) : compact ? ds(26) : 0,
                 gap: ds(10),
                 borderWidth: 1.5,
                 borderColor: isCream ? ob.creamRule : ob.hairline18,

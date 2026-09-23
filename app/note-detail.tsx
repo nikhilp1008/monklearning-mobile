@@ -69,15 +69,6 @@ export default function NoteDetailScreen() {
     [note?.content, isDemo]
   );
 
-  /** Written at the top right of the page, the way a page gets dated. */
-  const savedAt = useMemo(() => {
-    const iso = isDemo ? null : note?.created_at;
-    if (!iso) return params.time ?? null;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return params.time ?? null;
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  }, [note?.created_at, params.time, isDemo]);
-
   if (!isDemo && loading) {
     return (
       <>
@@ -106,7 +97,6 @@ export default function NoteDetailScreen() {
       <NotePage
         title={note?.concept ?? note?.chapter ?? params.title ?? 'This note'}
         subject={note?.subject ?? params.subject ?? null}
-        savedAt={savedAt}
         sections={sections}
         onBack={() => router.back()}
         emptyNote="Nothing was written to the board in this class."

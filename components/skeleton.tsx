@@ -81,7 +81,12 @@ export function SkeletonParagraph({
   widths?: (number | `${number}%`)[];
 }) {
   return (
-    <View style={{ gap }}>
+    // `alignSelf: 'stretch'`, because the lines below are set in percentages
+    // and a parent laying its children out at flex-start gives this View an
+    // auto width — against which 100% resolves to nothing, and the paragraph
+    // renders as empty space. It did exactly that inside the solution
+    // screen's step placeholder, where the bars have never been visible.
+    <View style={{ gap, alignSelf: 'stretch' }}>
       {Array.from({ length: lines }, (_, i) => (
         <Skeleton
           key={i}

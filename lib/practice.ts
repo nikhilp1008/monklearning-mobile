@@ -208,6 +208,28 @@ let queued: { question: NextQuestion; scope: string } | null = null;
  * handed out after the student pinned a chapter in Focus mode, which is
  * exactly the promise Focus mode makes and the one thing it must not break.
  */
+/**
+ * Reports a practice question as wrong — the practice twin of `reportDoubt`.
+ *
+ * THE SERVER DOES NOT TAKE THIS YET (2026-09-19). Only `/doubts/{id}/report`
+ * exists, and a practice question is not a doubt, so until the endpoint below
+ * is live the report sheet shows its "could not send" line rather than
+ * pretending a report went somewhere. Written as a copy of the doubt call so
+ * the server side can be a copy of that one too:
+ *
+ *   POST /practice/{question_id}/report   { comment: string | null }
+ *     → { reported: true }
+ */
+export function reportPracticeQuestion(
+  questionId: string,
+  comment?: string
+): Promise<{ reported: boolean }> {
+  return apiFetch(`/practice/${questionId}/report`, {
+    method: 'POST',
+    body: JSON.stringify({ comment: comment ?? null }),
+  });
+}
+
 export function questionScopeKey(subject: string, chapterId?: string | null): string {
   return `${subject}|${chapterId ?? ''}`;
 }

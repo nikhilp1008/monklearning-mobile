@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
+import { hapticSoft, hapticTicked } from '@/lib/haptics';
 import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
@@ -47,6 +48,35 @@ export default function SnapSolvedScreen() {
   // Dropped on the way out so coming back never shows a stale answer. A solve
   // still running is deliberately left alone — see clearFinishedSnapJob.
   useEffect(() => clearFinishedSnapJob, []);
+
+  /**
+   * THE HANDOVER, FELT.
+   *
+   * The capture screen replaces itself with this one mid-solve, on a timer the
+   * student did not start: the scan animation is running, and then it is a
+   * different screen. A light tap at the moment it changes is what a page turn
+   * gets everywhere else in the app, and it tells a student who has looked
+   * away that their question is through.
+   */
+  useEffect(() => {
+    hapticSoft();
+  }, []);
+
+  /**
+   * AND THE ANSWER LANDING, ONCE.
+   *
+   * The first solved question is the thing they are waiting for, so it gets
+   * the Success tap — the same one a saved note and a completed pass get. Only
+   * the first: three questions solving one after another would otherwise buzz
+   * three times at a student who is already reading.
+   */
+  const solvedCount = job.status === 'solving' ? job.solved.length : 0;
+  const announced = useRef(false);
+  useEffect(() => {
+    if (announced.current || solvedCount === 0) return;
+    announced.current = true;
+    hapticTicked();
+  }, [solvedCount]);
 
   // One mapper for both screens, so Snap and the Library's doubt detail cannot
   // drift apart again — which is how both came to drop the MCQ options and the
@@ -179,13 +209,7 @@ export default function SnapSolvedScreen() {
         onReport={() =>
           router.push({
             pathname: '/report-sheet',
-            params: {
-              doubtId: questions[index]?.doubtId ?? '',
-              // What is being reported, so the sheet quotes it rather than a
-              // leftover sentence about a door hinge.
-              quote: questions[index]?.text ?? '',
-              context: questions[index]?.chapter ?? '',
-            },
+            params: { doubtId: questions[index]?.doubtId ?? '' },
           })
         }
       />

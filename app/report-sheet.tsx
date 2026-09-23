@@ -1,148 +1,337 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  FadeIn,
+  interpolate,
+  interpolateColor,
+  runOnJS,
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { reportDoubt } from '@/lib/doubts';
+import { hapticCommitted, hapticSwitched } from '@/lib/haptics';
+import { REPORT_REASONS, sendReport as postReport, type ReportSurface } from '@/lib/reports';
 
-const REASONS = ['Wrong answer', 'Confusing step', 'Audio glitch', 'Wrong language', 'Something else'];
+/**
+ * REPORT A MISTAKE — the reasons, a note, and Send. Nothing else.
+ *
+ * The sheet used to quote the question on a ruled-notebook card, label the
+ * reasons "WHAT'S WRONG?" under a title that already said it, add a line of
+ * reassurance, and leave Send sitting on the home indicator. The student is
+ * looking at the question on the screen behind, so all of that is gone; what
+ * stays is the red flag, the reasons as pills, the note box and Send, with
+ * room around each.
+ *
+ * MORE THAN ONE REASON. A wrong answer is often a confusing step too, and
+ * making a student pick one throws half the report away. The pills toggle,
+ * and the report carries every one that is on.
+ *
+ * IT MOVES LIKE THE TOPICS SHEET: up on a spring, down under the thumb, and
+ * away on its own animation whether it was closed, flicked, tapped past or
+ * sent — never cut. The route itself does not animate (see `_layout.tsx`),
+ * because a navigator-owned slide moved the scrim with the sheet.
+ *
+ * Reached from snap-solved.tsx and doubt-detail.tsx with a doubtId, and from
+ * practice.tsx with a questionId. live-classroom.tsx has its own separate,
+ * in-file report drawer for session mistakes, not this screen.
+ */
+
+// One vocabulary, shared with the live classroom's own drawer through
+// lib/reports.ts. They used to be two identical literals in two files, which
+// is how a list drifts into reasons that almost group on a dashboard.
+const REASONS = [...REPORT_REASONS];
+
+/** Drag distance or flick speed that closes the sheet — the topics sheet's. */
+const CLOSE_DISTANCE = 110;
+const CLOSE_VELOCITY = 800;
+/** How long "Sent" stays on the button before the sheet goes. */
+const SENT_HOLD_MS = 650;
+
+const OUT = { duration: 220, easing: Easing.bezier(0.4, 0, 0.9, 0.4) };
 
 export default function ReportSheetScreen() {
-  const params = useLocalSearchParams<{ context?: string; quote?: string; doubtId?: string }>();
-  /**
-   * THE QUOTE IS THE QUESTION BEING REPORTED, and until now it was neither.
-   *
-   * These two had hardcoded fallbacks left over from a design where the sheet
-   * belonged to a live class — `'Rotational Motion'` and a sentence about
-   * torque. Both callers pass only `doubtId`, so the fallbacks always won:
-   * every student reporting anything, on any subject, was shown somebody
-   * else's sentence about a door hinge and told it came "from this class".
-   *
-   * What was SENT was always right — `reportDoubt` takes the real id — so the
-   * reports themselves are fine. But a student who reads a quote that is not
-   * their question has every reason to think the report will go against the
-   * wrong one, and not send it.
-   *
-   * No fallbacks now. A missing quote shows no quote, because an empty card is
-   * honest and a borrowed one is not.
-   */
-  const context = params.context?.trim() || null;
-  const quote = params.quote?.trim() || null;
+  const params = useLocalSearchParams<{
+    doubtId?: string;
+    /** A practice question instead of a doubt. */
+    questionId?: string;
+    sessionId?: string;
+    subject?: string;
+    chapter?: string;
+    quote?: string;
+    /** Which part of the app is reporting; defaults from whatever id arrived. */
+    surface?: ReportSurface;
+  }>();
+  const practice = !params.doubtId && !!params.questionId;
+  const surface: ReportSurface = params.surface ?? (practice ? 'practice' : 'snap');
+  const target = params.doubtId || params.questionId || params.sessionId;
+  const reportable = !!target;
+
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [selectedReason, setSelectedReason] = useState('Wrong answer');
-  const [notes, setNotes] = useState('');
-  const [sending, setSending] = useState(false);
+
+  const [picked, setPicked] = useState<string[]>([]);
+  const [note, setNote] = useState('');
+  const [phase, setPhase] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // This screen is reused from snap-solved.tsx and doubt-detail.tsx, both of
-  // which always pass a real doubtId — live-classroom.tsx has its own
-  // separate, in-file report drawer for session mistakes, not this screen.
-  const canSubmit = !!params.doubtId && !sending;
+  /** Something to send: a reason, or a note that says it in words. */
+  const canSend = reportable && phase === 'idle' && (picked.length > 0 || !!note.trim());
 
-  async function sendReport() {
-    if (!params.doubtId || sending) return;
-    setSending(true);
+  /* ---- the sheet's own motion ---- */
+
+  /** 0 is open; `travel` is fully off the bottom of the screen. */
+  const travel = windowHeight;
+  const y = useSharedValue(travel);
+  useEffect(() => {
+    y.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.7 });
+  }, [y]);
+
+  /** Once only: a close, a flick and a send can all end the sheet, and a
+   *  second `router.back()` would take the student off the screen behind. */
+  const gone = useRef(false);
+  const leave = useCallback(() => {
+    if (gone.current) return;
+    gone.current = true;
+    router.back();
+  }, []);
+  const dismiss = useCallback(() => {
+    Keyboard.dismiss();
+    y.value = withTiming(travel, OUT, (done) => {
+      if (done) runOnJS(leave)();
+    });
+  }, [y, travel, leave]);
+
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      // Downward only; there is nothing above the sheet to reveal.
+      y.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > CLOSE_DISTANCE || e.velocityY > CLOSE_VELOCITY) {
+        y.value = withTiming(travel, OUT, (done) => {
+          if (done) runOnJS(leave)();
+        });
+        return;
+      }
+      y.value = withSpring(0, { damping: 24, stiffness: 260, mass: 0.7 });
+    });
+
+  /** Rides up with the keyboard, less the home-indicator room the keyboard
+   *  now covers, so Send keeps the same gap above the keys as above the bar. */
+  const keyboard = useAnimatedKeyboard();
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: y.value - Math.max(0, keyboard.height.value - insets.bottom) },
+    ],
+  }));
+  const scrimStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [0, travel * 0.6], [1, 0], 'clamp'),
+  }));
+
+  /* ---- choosing and sending ---- */
+
+  const toggle = (reason: string) => {
+    if (phase !== 'idle') return;
+    hapticSwitched();
+    setPicked((now) => (now.includes(reason) ? now.filter((r) => r !== reason) : [...now, reason]));
+  };
+
+  const send = async () => {
+    if (!canSend) return;
+    hapticCommitted();
+    Keyboard.dismiss();
+    setPhase('sending');
     setSendError(null);
     try {
-      const comment = [selectedReason, notes.trim()].filter(Boolean).join(': ');
-      await reportDoubt(params.doubtId, comment || undefined);
-      router.back();
+      // In the order the list shows them, whatever order they were tapped.
+      const reasons = REASONS.filter((r) => picked.includes(r));
+      /**
+       * THE FIRST ONE IS THE REASON; THE REST TRAVEL WITH IT.
+       *
+       * `POST /reports` takes a single `reason`, and it takes it as a column
+       * precisely so the dashboard can group by it — the bug that replaced
+       * was a reason glued to the front of the comment, which needed a LIKE
+       * over every row to answer "which of the five?". This sheet lets a
+       * student tick more than one, so the first ticked is the reason and the
+       * whole set rides in `context`, where it groups nothing and loses
+       * nothing. If multi-select turns out to be the common case, the field
+       * should become an array server-side rather than a joined string here.
+       */
+      await postReport({
+        surface,
+        reason: reasons[0] ?? null,
+        comment: note.trim() || null,
+        doubtId: params.doubtId || null,
+        questionId: params.questionId || null,
+        sessionId: params.sessionId || null,
+        subject: params.subject || null,
+        chapter: params.chapter || null,
+        quote: params.quote || null,
+        context: reasons.length > 1 ? { reasons } : null,
+      });
+      setPhase('sent');
+      setTimeout(dismiss, SENT_HOLD_MS);
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Could not send that report. Try again.');
-    } finally {
-      setSending(false);
+      setPhase('idle');
+      setSendError(err instanceof Error && err.message ? err.message : "Couldn't send that. Try again.");
     }
-  }
+  };
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
-      <Pressable style={styles.scrim} onPress={() => router.back()} />
-      <View style={styles.sheet}>
-        <SafeAreaView style={styles.flex} edges={['bottom']}>
-          <View style={styles.handle} />
+      <StatusBar style="light" />
+      <Animated.View style={[styles.scrim, scrimStyle]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityLabel="Close" />
+      </Animated.View>
 
-          <View style={styles.headerRow}>
-            <View style={styles.iconChip}>
-              <FlagIcon size={scale(14)} color="#C53A2B" />
+      <Animated.View
+        style={[styles.sheet, { paddingBottom: insets.bottom + verticalScale(12) }, sheetStyle]}>
+        {/* The whole top of the sheet is the drag target, not only the
+            grabber: a 38pt bar is something you have to aim at. */}
+        <GestureDetector gesture={pan}>
+          <View>
+            <View style={styles.grabRow}>
+              <View style={styles.grabber} />
             </View>
-            <Text style={styles.title}>Report a mistake</Text>
-            <Pressable style={styles.closeButton} onPress={() => router.back()}>
-              <Text style={styles.closeGlyph}>✕</Text>
-            </Pressable>
+            <View style={styles.head}>
+              <View style={styles.flagChip}>
+                <FlagIcon size={scale(14)} color="#C53A2B" />
+              </View>
+              <Text style={styles.title}>Report a mistake</Text>
+              <Pressable
+                style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
+                onPress={dismiss}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Close">
+                <CloseIcon size={scale(11)} />
+              </Pressable>
+            </View>
           </View>
+        </GestureDetector>
 
-          {/* Only when there is something real to show. "From this class" is
-              gone with it: the live classroom reports through its own drawer,
-              so this sheet is only ever reached from a doubt and was never
-              looking at a class. */}
-          {quote && (
-            <View style={styles.quoteCard}>
-              <RuledPaper step={verticalScale(23)} color="rgba(28,26,22,.06)" count={20} />
-              <View style={styles.quoteRule} />
-              <Text style={styles.quoteLabel}>
-                {context ? `The question · ${context}` : 'The question'}
-              </Text>
-              <Text style={styles.quoteText} numberOfLines={4}>
-                &quot;{quote}&quot;
-              </Text>
-            </View>
+        <View style={styles.chips}>
+          {REASONS.map((reason) => (
+            <ReasonChip
+              key={reason}
+              label={reason}
+              on={picked.includes(reason)}
+              onPress={() => toggle(reason)}
+              styles={styles}
+            />
+          ))}
+        </View>
+
+        <TextInput
+          style={styles.note}
+          value={note}
+          onChangeText={setNote}
+          placeholder="Anything else we should know? (optional)"
+          placeholderTextColor={colors.faint}
+          multiline
+          maxLength={500}
+        />
+
+        {sendError ? (
+          <Animated.Text entering={FadeIn.duration(180)} style={styles.error}>
+            {sendError}
+          </Animated.Text>
+        ) : null}
+
+        <Pressable
+          onPress={send}
+          disabled={!canSend}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.send,
+            !canSend && phase === 'idle' && styles.sendOff,
+            pressed && styles.sendPressed,
+          ]}>
+          {phase === 'sending' ? (
+            <ActivityIndicator color={colors.paper} size="small" />
+          ) : phase === 'sent' ? (
+            <Animated.View entering={FadeIn.duration(160)} style={styles.sentRow}>
+              <CheckIcon size={scale(15)} />
+              <Text style={styles.sendText}>Sent</Text>
+            </Animated.View>
+          ) : (
+            <Text style={styles.sendText}>Send report</Text>
           )}
-
-          <Text style={styles.whatsWrong}>What&apos;s wrong?</Text>
-          <View style={styles.chipsRow}>
-            {REASONS.map((reason) => {
-              const selected = selectedReason === reason;
-              return (
-                <Pressable
-                  key={reason}
-                  style={[styles.chip, selected && styles.chipSelected]}
-                  onPress={() => setSelectedReason(reason)}>
-                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                    {reason}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <TextInput
-            style={styles.notesInput}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Anything else Drona's team should know? (optional)"
-            placeholderTextColor={colors.faint}
-            multiline
-          />
-
-          {sendError && <Text style={styles.sendErrorText}>{sendError}</Text>}
-
-          <View style={styles.footerRow}>
-            {/* Was "Reporting won't interrupt your class." There is no class
-                to interrupt from here, and the reassurance that matters is
-                that the solution stays where it is. */}
-            <Text style={styles.footerHint}>Your solution stays saved.</Text>
-            <Pressable
-              style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
-              disabled={!canSubmit}
-              onPress={sendReport}>
-              {sending ? (
-                <ActivityIndicator color={colors.paper} size="small" />
-              ) : (
-                <Text style={styles.sendButtonText}>Send report</Text>
-              )}
-            </Pressable>
-          </View>
-
-        </SafeAreaView>
-      </View>
+        </Pressable>
+      </Animated.View>
     </View>
+  );
+}
+
+/**
+ * A reason pill. Black when on, as it always was — but it fades there rather
+ * than snapping, and gives a little under the finger. The label keeps one
+ * weight in both states: a pill that turned bold when picked grew wider and
+ * shoved every pill after it along the row.
+ */
+function ReasonChip({
+  label,
+  on,
+  onPress,
+  styles,
+}: {
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const lit = useSharedValue(on ? 1 : 0);
+  const press = useSharedValue(1);
+  useEffect(() => {
+    lit.value = withTiming(on ? 1 : 0, { duration: 180, easing: Easing.out(Easing.quad) });
+  }, [on, lit]);
+
+  const chipStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(lit.value, [0, 1], ['#FFFFFF', colors.ink]),
+    borderColor: interpolateColor(lit.value, [0, 1], [colors.inputBorder, colors.ink]),
+    transform: [{ scale: press.value }],
+  }));
+  const textStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(lit.value, [0, 1], [colors.slate, colors.paper]),
+  }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => {
+        press.value = withTiming(0.95, { duration: 90 });
+      }}
+      onPressOut={() => {
+        press.value = withSpring(1, { damping: 14, stiffness: 320 });
+      }}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: on }}>
+      <Animated.View style={[styles.chip, chipStyle]}>
+        <Animated.Text style={[styles.chipText, textStyle]}>{label}</Animated.Text>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -161,48 +350,54 @@ function FlagIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
+function CloseIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path d="M4 4l8 8M12 4l-8 8" stroke={colors.slate} strokeWidth={1.9} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function CheckIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path
+        d="M3.5 8.5l3 3 6-7"
+        stroke={colors.paper}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    root: {
-      flex: 1,
-    },
-    flex: {
-      flex: 1,
-    },
-    scrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(28,26,22,.42)',
-    },
+    root: { flex: 1, justifyContent: 'flex-end' },
+    scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(28,26,22,.34)' },
     sheet: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
       backgroundColor: '#fff',
-      borderTopLeftRadius: scale(24),
-      borderTopRightRadius: scale(24),
+      borderTopLeftRadius: scale(26),
+      borderTopRightRadius: scale(26),
       paddingHorizontal: scale(20),
-      shadowColor: '#16130E',
-      shadowOffset: { width: 0, height: verticalScale(-10) },
-      shadowOpacity: 0.25,
-      shadowRadius: scale(20),
-      elevation: 12,
+      boxShadow: [
+        { offsetX: 0, offsetY: -6, blurRadius: 24, spreadDistance: -8, color: 'rgba(28,26,22,0.24)' },
+      ],
     },
-    handle: {
-      width: scale(40),
-      height: verticalScale(5),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,26,22,.18)',
-      alignSelf: 'center',
-      marginTop: verticalScale(10),
-      marginBottom: verticalScale(14),
-    },
-    headerRow: {
+
+    grabRow: { alignItems: 'center', paddingTop: verticalScale(9), paddingBottom: verticalScale(3) },
+    grabber: { width: scale(38), height: 4, borderRadius: 99, backgroundColor: 'rgba(28,26,22,.16)' },
+
+    head: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
+      paddingTop: verticalScale(10),
+      paddingBottom: verticalScale(18),
     },
-    iconChip: {
+    /** The red flag, on its own faint wash — the one mark that says report. */
+    flagChip: {
       width: scale(32),
       height: scale(32),
       flexShrink: 0,
@@ -216,148 +411,82 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     title: {
       flex: 1,
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(17),
+      fontSize: scale(18),
       color: colors.ink,
     },
-    closeButton: {
-      width: scale(30),
-      height: scale(30),
-      borderRadius: scale(15),
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
+    close: {
+      width: scale(32),
+      height: scale(32),
+      borderRadius: scale(16),
+      borderWidth: 1,
+      borderColor: colors.hairline,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    closeGlyph: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.slate,
-    },
-    quoteCard: {
-      position: 'relative',
-      backgroundColor: '#FFFEFB',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
-      borderRadius: scale(12),
-      paddingTop: verticalScale(11),
-      paddingRight: scale(13),
-      paddingBottom: verticalScale(10),
-      paddingLeft: scale(30),
-      marginTop: verticalScale(12),
-      overflow: 'hidden',
-    },
-    quoteRule: {
-      position: 'absolute',
-      top: verticalScale(9),
-      bottom: verticalScale(9),
-      left: scale(20),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
-    },
-    quoteLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.68),
-      textTransform: 'uppercase',
-      color: '#C53A2B',
-    },
-    quoteText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      lineHeight: scale(18),
-      color: colors.ink,
-      marginTop: verticalScale(4),
-    },
-    whatsWrong: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-      marginTop: verticalScale(14),
-      marginBottom: verticalScale(8),
-    },
-    chipsRow: {
+    closePressed: { backgroundColor: 'rgba(28,26,22,.04)' },
+
+    chips: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: scale(7),
+      gap: scale(8),
     },
     chip: {
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(14),
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(16),
       borderRadius: scale(99),
       borderWidth: 1,
-      borderColor: colors.inputBorder,
-      backgroundColor: '#fff',
-    },
-    chipSelected: {
-      borderWidth: 0,
-      backgroundColor: colors.ink,
     },
     chipText: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
+      fontSize: scale(14),
     },
-    chipTextSelected: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.paper,
-    },
-    notesInput: {
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.inputBorder,
+
+    note: {
+      marginTop: verticalScale(16),
+      height: verticalScale(92),
+      paddingTop: verticalScale(12),
+      paddingBottom: verticalScale(12),
+      paddingHorizontal: scale(16),
       borderRadius: scale(14),
-      paddingVertical: verticalScale(12),
-      paddingHorizontal: scale(14),
-      marginTop: verticalScale(14),
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
+      fontSize: scale(15),
+      lineHeight: scale(21),
       color: colors.ink,
-      minHeight: verticalScale(44),
       textAlignVertical: 'top',
     },
-    sendErrorText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
+
+    error: {
+      marginTop: verticalScale(12),
+      textAlign: 'center',
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(13),
       color: colors.red,
-      marginTop: verticalScale(8),
     },
-    footerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      marginTop: verticalScale(14),
-    },
-    footerHint: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11),
-      lineHeight: scale(15.4),
-      color: colors.faint,
-    },
-    sendButton: {
-      flexShrink: 0,
+
+    /** Topic sheet's Start learning, so the two primary keys in the app's
+     *  sheets are the same key. */
+    send: {
+      marginTop: verticalScale(20),
+      height: verticalScale(52),
+      borderRadius: scale(99),
       alignItems: 'center',
       justifyContent: 'center',
-      height: verticalScale(46),
-      paddingHorizontal: scale(24),
-      borderRadius: scale(99),
       backgroundColor: colors.ink,
       shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(5) },
-      shadowOpacity: 0.28,
-      shadowRadius: scale(9),
-      elevation: 4,
+      shadowOffset: { width: 0, height: verticalScale(6) },
+      shadowOpacity: 0.3,
+      shadowRadius: scale(10),
+      elevation: 6,
     },
-    sendButtonDisabled: {
-      opacity: 0.5,
-    },
-    sendButtonText: {
+    sendPressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },
+    sendOff: { opacity: 0.35, shadowOpacity: 0 },
+    sendText: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
+      fontSize: scale(15),
       color: colors.paper,
     },
+    sentRow: { flexDirection: 'row', alignItems: 'center', gap: scale(7) },
   });
 }

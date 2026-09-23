@@ -9,6 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtPhoto } from '@/lib/doubts';
+import { hapticCommitted } from '@/lib/haptics';
 
 /**
  * Crop the shot before sending it.
@@ -190,6 +191,8 @@ export function SnapCrop({
 
   const confirm = async () => {
     if (!crop || !frame || !shown || !source || busy) return;
+    // The photo is going off to be solved: the snap's second, deciding tap.
+    hapticCommitted();
     setBusy(true);
     try {
       // Display points -> pixels of the ROTATED image, which is the space the

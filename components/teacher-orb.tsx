@@ -3,8 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, Ellipse, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -209,24 +211,80 @@ export function TeacherOrb({
   size: number;
 }) {
   const palette = ORB_PALETTES[teacher];
+  const reduceMotion = useReducedMotion();
   const swirl = useSharedValue(0);
   const halo = useSharedValue(0);
+  /** 0 → 1 → 0. The slosh both layers ride, out of phase. */
+  const breath = useSharedValue(0);
+  /** The catch-light's orbit, in radians. */
+  const drift = useSharedValue(0);
   /** 0 chosen, 1 unchosen. Drives the cross-fade on the UI thread. */
   const off = useSharedValue(dimmed ? 1 : 0);
 
+  /**
+   * IT HAS TO BE SEEN TO BE ALIVE.
+   *
+   * The orb turned two layers at 6s and 9s and nothing else, and at 56pt that
+   * is invisible: the conic ramp is blurred over 30 degrees and is nearly
+   * symmetric, so rotating it moves almost no contrast across the face. What
+   * the eye catches in a voice orb is not rotation, it is SHAPE changing —
+   * the thing swelling, the light sliding across it, two layers moving at
+   * different rates so the surface looks liquid rather than spun.
+   *
+   * So: the sweep runs at 4.2s and the halo counter-runs at 6.4s (both
+   * roughly half what they were), each layer breathes on its own scale out of
+   * phase with the other, and the specular catch-light — which was painted on
+   * and static — now orbits a small ellipse. Four motions, none of them fast,
+   * and together they read from across a room.
+   *
+   * REDUCED MOTION stops the breath and the drift and leaves the two
+   * rotations, which is the calmest version of the same object rather than a
+   * dead one.
+   */
   useEffect(() => {
-    swirl.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false);
-    // Negative: `ringSpin` runs the other way, which is what stops the two
+    swirl.value = withRepeat(withTiming(360, { duration: 4200, easing: Easing.linear }), -1, false);
+    // Negative: the halo runs the other way, which is what stops the two
     // layers locking together into one rigid pattern.
-    halo.value = withRepeat(withTiming(-360, { duration: 9000, easing: Easing.linear }), -1, false);
-  }, [swirl, halo]);
+    halo.value = withRepeat(withTiming(-360, { duration: 6400, easing: Easing.linear }), -1, false);
+    if (reduceMotion) return;
+    breath.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      false
+    );
+    drift.value = withRepeat(
+      withTiming(Math.PI * 2, { duration: 5200, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [swirl, halo, breath, drift, reduceMotion]);
 
   useEffect(() => {
     off.value = withTiming(dimmed ? 1 : 0, { duration: 320, easing: SWITCH_EASING });
   }, [dimmed, off]);
 
-  const swirlTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${swirl.value}deg` }] }));
-  const haloTurn = useAnimatedStyle(() => ({ transform: [{ rotate: `${halo.value}deg` }] }));
+  const swirlTurn = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${swirl.value}deg` },
+      // Swells as the halo shrinks, so the two never agree on the surface.
+      { scale: 1 + 0.06 * breath.value },
+    ],
+  }));
+  const haloTurn = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${halo.value}deg` }, { scale: 1.06 - 0.08 * breath.value }],
+    opacity: 0.8 + 0.2 * breath.value,
+  }));
+  /** The light slides; it does not blink. A small ellipse, wider than tall,
+   *  because a circle reads as a rotation and a slide reads as a surface. */
+  const specDrift = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: size * 0.05 * Math.cos(drift.value) },
+      { translateY: size * 0.035 * Math.sin(drift.value) },
+    ],
+  }));
   const greyFade = useAnimatedStyle(() => ({ opacity: off.value }));
   const colourFade = useAnimatedStyle(() => ({ opacity: 1 - off.value }));
 
@@ -315,7 +373,8 @@ export function TeacherOrb({
         </Animated.View>
       </Animated.View>
 
-      {/* Layer 3 — the specular catch-light, static, as on the site. */}
+      {/* Layer 3 — the specular catch-light, on its slow orbit. */}
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, specDrift]}>
       <Svg
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
@@ -330,6 +389,7 @@ export function TeacherOrb({
         </Defs>
         <Ellipse cx={36} cy={25} rx={20} ry={15} fill={`url(#spec-${teacher})`} />
       </Svg>
+      </Animated.View>
     </View>
   );
 }

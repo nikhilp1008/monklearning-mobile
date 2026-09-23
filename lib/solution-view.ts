@@ -96,6 +96,8 @@ export function solutionView(
     // converted `answer` above is what plain-text callers still use.
     answerRaw: source.answer ?? null,
     keyIdea: source.key_idea ? latexToText(source.key_idea) : null,
+    // Unconverted too, so the screen sets its maths the way the steps' is.
+    keyIdeaRaw: source.key_idea ?? null,
     // The server writes "Monk" into these because it does not know which
     // teacher this student picked. They picked one.
     caution: unsure

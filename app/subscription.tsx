@@ -1,10 +1,16 @@
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
-import { useMemo } from 'react';
+// The same three lines as onboarding and the plans screen. This list was its
+// own, written once and left behind: it promised exportable notes and mock
+// tests "as chapters unlock", neither of which is what we sell.
+import { INCLUDED } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
+import { PASS_NAME, passStatus, type PassStatus } from '@/lib/pass';
 
 /**
  * Your plan.
@@ -31,144 +37,137 @@ import { useScale } from '@/constants/scale';
 const GREEN = '#157A45';
 const GREEN_DOT = '#1C9B57';
 
-interface Purchase {
-  id: string;
-  /** What was bought, e.g. "JEE Main · 6 months". */
-  title: string;
-  paidOn: string;
-  amount: string;
-  invoiceNo: string;
-}
-
-interface PlanState {
-  track: string;
-  duration: string;
-  startedOn: string;
-  endsOn: string;
-  daysLeft: number;
-  totalDays: number;
-  amount: string;
-  purchases: Purchase[];
-}
-
 /**
- * PLACEHOLDER — there is no plans/purchases endpoint on the API yet (the
- * router table is doubts, drona, notes, practice, progress and nothing else),
- * so this screen renders from a fixed object. The amounts here are NOT
- * confirmed pricing: monklearning.com was unreachable when this was built, so
- * every figure below is waiting on the real price list. Replace this whole
- * object with the API response — the components read nothing else.
+ * WHAT THIS READS, AND WHAT IT STILL CANNOT.
+ *
+ * It was a fixed object: a six-month plan bought on 2 June with 107 days left
+ * and two invoices, none of it true for anybody. It now reads the student's
+ * real pass from `lib/pass` — what they took, when it started, when it ends,
+ * and how long is left. Not the promo code: `lib/pass` still keeps it, but a
+ * student checking their plan is checking time, not how the bill was settled.
+ *
+ * PAYMENTS ARE NOT LISTED, because there have been none. No provider is wired
+ * and every pass so far exists because a promo code brought a price to zero;
+ * a list of invoices would be a list of fictions. The block returns when the
+ * server has purchases to return.
  */
-const PLAN: PlanState = {
-  track: 'JEE Main',
-  duration: '6 months',
-  startedOn: '2 Jun 2026',
-  endsOn: '2 Dec 2026',
-  daysLeft: 107,
-  totalDays: 183,
-  amount: '₹—',
-  purchases: [
-    { id: 'p1', title: 'JEE Main · 6 months', paidOn: '2 Jun 2026', amount: '₹—', invoiceNo: 'ML-2026-0412' },
-    { id: 'p2', title: 'Day Pass', paidOn: '19 May 2026', amount: '₹249', invoiceNo: 'ML-2026-0288' },
-  ],
-};
 
-const INCLUDED = [
-  'Live classes with Drona or Vedha, in English or Hinglish',
-  'Snap a doubt, up to 3 questions a photo',
-  'Unlimited practice, and mock tests as chapters unlock',
-  'Every note and doubt you save, kept and exportable',
-];
+const asDate = (d: Date) =>
+  d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function SubscriptionScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const elapsed = Math.max(0, Math.min(1, 1 - PLAN.daysLeft / PLAN.totalDays));
-  const expiringSoon = PLAN.daysLeft <= 14;
+  const [status, setStatus] = useState<PassStatus | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    passStatus().then((s) => !cancelled && setStatus(s));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const active = status?.state === 'active' ? status : null;
+  const record = status && status.state !== 'none' ? status.record : null;
+  const endsAt = status && status.state !== 'none' ? status.endsAt : null;
+  const totalDays = record
+    ? Math.max(1, Math.round((endsAt!.getTime() - new Date(record.startedAt).getTime()) / 86400000))
+    : 1;
+  const daysLeft = active?.daysLeft ?? 0;
+  const elapsed = Math.max(0, Math.min(1, 1 - daysLeft / totalDays));
+  const expiringSoon = !!active && daysLeft <= 3;
+  /** The last fortnight, where extending stops being a sales pitch. */
+  const nearingEnd = !!active && daysLeft <= 15;
 
   return (
     <SettingsPage title="Your plan">
       {/* What you have, and how long it has left. */}
       <View style={styles.planCard}>
         <View style={styles.planTopRow}>
-          <View style={styles.statusPill}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>ACTIVE</Text>
+          <View style={[styles.statusPill, !active && styles.statusPillOff]}>
+            <View style={[styles.statusDot, !active && styles.statusDotOff]} />
+            <Text style={[styles.statusText, !active && styles.statusTextOff]}>
+              {active ? 'ACTIVE' : status?.state === 'expired' ? 'ENDED' : 'NO PASS'}
+            </Text>
           </View>
-          <Text style={styles.daysLeft}>
-            {PLAN.daysLeft} <Text style={styles.daysLeftUnit}>days left</Text>
-          </Text>
+          {active && (
+            <Text style={styles.daysLeft}>
+              {/* Under a day is said in hours: "1 day left" on a pass with two
+                  hours in it is the kind of thing a student plans around. */}
+              {active.daysLeft > 1 ? active.daysLeft : active.hoursLeft}{' '}
+              <Text style={styles.daysLeftUnit}>
+                {active.daysLeft > 1 ? 'days left' : 'hours left'}
+              </Text>
+            </Text>
+          )}
         </View>
 
-        <Text style={styles.planTitle}>{PLAN.track}</Text>
-        <Text style={styles.planDuration}>{PLAN.duration} of full access</Text>
+        <Text style={styles.planTitle}>{record ? PASS_NAME[record.kind] : 'No pass yet'}</Text>
+        {/* No code, and no "both exams covered". The code is a detail of how
+            the bill was settled, and what a pass covers is the list further
+            down the page — neither is what this line is for. */}
+        {!record && (
+          <Text style={styles.planDuration}>Take one to start classes, snaps and practice</Text>
+        )}
 
         {/* One bar, because a date alone doesn't tell you where you are in it. */}
         <View style={styles.track}>
           <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
         </View>
 
-        <View style={styles.datesRow}>
-          <View>
-            <Text style={styles.dateLabel}>STARTED</Text>
-            <Text style={styles.dateValue}>{PLAN.startedOn}</Text>
+        {!!record && !!endsAt && (
+          <View style={styles.datesRow}>
+            <View>
+              <Text style={styles.dateLabel}>STARTED</Text>
+              <Text style={styles.dateValue}>{asDate(new Date(record.startedAt))}</Text>
+            </View>
+            <View style={styles.dateRight}>
+              <Text style={styles.dateLabel}>{active ? 'ENDS' : 'ENDED'}</Text>
+              <Text style={styles.dateValue}>{asDate(endsAt)}</Text>
+            </View>
           </View>
-          <View style={styles.dateRight}>
-            <Text style={styles.dateLabel}>ENDS</Text>
-            <Text style={styles.dateValue}>{PLAN.endsOn}</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       {/* The thing students get wrong about one-time plans, said before they
           have to wonder about it. */}
       <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
         <Text style={styles.noticeText}>
-          {expiringSoon
-            ? `Your access ends on ${PLAN.endsOn}. Nothing renews on its own. Extend it when you're ready.`
-            : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'}
+          {active
+            ? expiringSoon
+              ? `Your access ends on ${asDate(endsAt!)}. Nothing renews on its own — take another when you're ready.`
+              : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'
+            : 'Your notes and doubts stay yours either way. Only new classes, snaps and practice wait on a pass.'}
         </Text>
       </View>
 
-      <Pressable style={styles.primaryButton} onPress={() => {}}>
-        <Text style={styles.primaryButtonText}>Extend my access</Text>
-      </Pressable>
+      {/* A student with nine months left is not shopping. The button appears in
+          the last fortnight, when extending is a real decision, and whenever
+          there is no live pass at all. */}
+      {(!active || nearingEnd) && (
+        <Pressable style={styles.primaryButton} onPress={() => router.push('/plans')}>
+          <Text style={styles.primaryButtonText}>{active ? 'Extend my access' : 'Get a pass'}</Text>
+        </Pressable>
+      )}
 
       <Text style={styles.overline}>WHAT&apos;S INCLUDED</Text>
       <View style={styles.card}>
-        {INCLUDED.map((line, i) => (
-          <View key={line} style={[styles.includedRow, i === INCLUDED.length - 1 && styles.rowLast]}>
-            <TickIcon size={scale(13)} />
-            <Text style={styles.includedText}>{line}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Receipts. GST invoices matter to parents paying for this. */}
-      <Text style={styles.overline}>PAYMENTS</Text>
-      <View style={styles.card}>
-        {PLAN.purchases.map((purchase, i) => (
+        {INCLUDED.map(([label, value], i) => (
           <View
-            key={purchase.id}
-            style={[styles.payRow, i === PLAN.purchases.length - 1 && styles.rowLast]}>
-            <View style={styles.payTextBlock}>
-              <Text style={styles.payTitle}>{purchase.title}</Text>
-              <Text style={styles.paySub}>
-                {purchase.paidOn} · {purchase.invoiceNo}
-              </Text>
-            </View>
-            <Text style={styles.payAmount}>{purchase.amount}</Text>
-            <Pressable style={styles.invoiceButton} onPress={() => {}}>
-              <DownloadIcon size={scale(13)} />
-              <Text style={styles.invoiceButtonText}>Invoice</Text>
-            </Pressable>
+            key={label}
+            style={[styles.includedRow, i === INCLUDED.length - 1 && styles.rowLast]}>
+            <TickIcon size={scale(13)} />
+            <Text style={styles.includedText}>
+              <Text style={styles.includedLabel}>{label}</Text>
+              {` — ${value}`}
+            </Text>
           </View>
         ))}
       </View>
 
       <Text style={styles.footNote}>
-        Invoices include GST and are emailed to you as well. Questions about a payment? Write to{' '}
+        Questions about a payment? Write to{' '}
         <Text
           style={styles.link}
           onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
@@ -176,9 +175,12 @@ export default function SubscriptionScreen() {
         </Text>. We reply within 24 hours.
       </Text>
 
+      {/* "Exportable" was a promise the app does not keep: notes and doubts can
+          be read and searched in the app, and nothing can be downloaded out of
+          it. This says what actually happens, in the words a student uses. */}
       <Text style={styles.footNote}>
-        If your plan lapses, your notes and doubts stay yours and stay exportable. Only new
-        classes, snaps and practice pause.
+        When your plan ends, your notes and doubts are still here, and you can still read them.
+        Only new classes, snaps and practice stop.
       </Text>
     </SettingsPage>
   );
@@ -191,20 +193,6 @@ function TickIcon({ size }: { size: number }) {
         d="M4 12.5 9.5 18 20 6.5"
         stroke={GREEN}
         strokeWidth={2.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function DownloadIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3v12M7 11l5 5 5-5M4 20h16"
-        stroke={colors.ink}
-        strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -248,6 +236,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       letterSpacing: scale(0.85),
       color: GREEN,
     },
+    /** Ended, or never taken: the same pill, off. Grey would read as broken;
+     *  this is simply the state without the green. */
+    statusPillOff: { backgroundColor: 'rgba(28,26,22,.06)' },
+    statusDotOff: { backgroundColor: colors.faint },
+    statusTextOff: { color: colors.slate },
     daysLeft: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(15),
@@ -258,10 +251,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12.5),
       color: colors.faint,
     },
+    /** One step under the page title (24/700), not over it: this is the
+     *  answer on the card, not the name of the screen. */
     planTitle: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(25),
-      letterSpacing: scale(-0.75),
+      fontSize: scale(21),
+      letterSpacing: scale(-0.6),
       color: colors.ink,
       marginTop: verticalScale(14),
     },
@@ -363,6 +358,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     rowLast: {
       borderBottomWidth: 0,
     },
+    includedLabel: { fontFamily: 'Onest_500Medium', color: colors.ink },
     includedText: {
       flex: 1,
       fontFamily: 'Onest_400Regular',

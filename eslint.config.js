@@ -5,7 +5,10 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*'],
+    // `.claude/` is tool state — including, at times, a full second checkout
+    // of this repo left by a worktree. Git already excludes it; linting it
+    // counted every problem in the app twice over.
+    ignores: ['dist/*', '.claude/**'],
   },
   {
     // The board scenes are ported from the webpage and carry their teaching

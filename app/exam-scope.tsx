@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { PressableScale } from '@/components/pressable-scale';
@@ -11,6 +12,7 @@ import { useScale } from '@/constants/scale';
 import { EXAM_SCOPE, SCOPE_SOURCE_NOTE, SCOPE_TIMELINE, type ScopeExam } from '@/lib/exam-scope';
 import { subjectScope, subjectsFor } from '@/lib/exam-scope-chapters';
 import { getProfile } from '@/lib/profile';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * Exam scope — the page that answers "what is actually examined?".
@@ -27,6 +29,18 @@ import { getProfile } from '@/lib/profile';
  */
 
 const EXAM_OPTIONS = ['JEE Main', 'NEET UG'] as const;
+
+/**
+ * THE CARD UNDER THE TOGGLE MOVES WITH IT — and nothing else does.
+ *
+ * Switching exam swapped the headline card in one frame while the thumb slid
+ * above it, so the card now comes back in on the Textbooks rows' entrance.
+ * Only that card: it sits right under the toggle and is what the toggle is
+ * about. Every card below animating too made each switch read as the whole
+ * page reshuffling, and flicking back and forth meant watching it again and
+ * again. Those just update in place.
+ */
+const HEADLINE_ENTER = FadeInDown.duration(320);
 
 export default function ExamScopeScreen() {
   const { scale, verticalScale } = useScale();
@@ -71,8 +85,14 @@ export default function ExamScopeScreen() {
           options={EXAM_OPTIONS}
           value={exam === 'jee' ? 'JEE Main' : 'NEET UG'}
           onChange={(value) => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setExam(value === 'NEET UG' ? 'neet' : 'jee');
+            const next = value === 'NEET UG' ? 'neet' : 'jee';
+            if (next !== exam) hapticSwitched();
+            // No LayoutAnimation here. It animates EVERY layout change on the
+            // screen in the next frame, and one of those was the toggle's own
+            // thumb resizing — on an ease curve, while its position ran on a
+            // spring. The thumb stretched and lagged behind itself. The page
+            // below now swaps the way the Textbooks list does.
+            setExam(next);
           }}
           trackStyle={styles.toggleTrack}
           thumbStyle={styles.toggleThumb}
@@ -83,7 +103,7 @@ export default function ExamScopeScreen() {
       </View>
 
       {/* What's in */}
-      <View style={styles.card}>
+      <Animated.View key={`in-${exam}`} entering={HEADLINE_ENTER} style={styles.card}>
         <Text style={styles.overline}>In {scope.label}</Text>
         <View style={styles.countRow}>
           <Text style={styles.countValue}>{scope.totalChapters}</Text>
@@ -101,7 +121,7 @@ export default function ExamScopeScreen() {
           Set by {scope.authority}. A chapter being in scope means it contains examinable
           material, not that every line of it is examined.
         </Text>
-      </View>
+      </Animated.View>
 
       {/* The way in to the chapter-level map, one subject at a time. */}
       <View style={styles.sectionHeadRow}>
@@ -249,24 +269,43 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: hairline(0.055),
       borderRadius: scale(99),
     },
+    /** Floats on a shadow, like the Textbooks thumb, rather than sitting in
+     *  the track on an outline — a raised thumb reads as the thing that moves. */
     toggleThumb: {
       backgroundColor: '#fff',
       borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: hairline(0.13),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(2) },
+      shadowOpacity: 0.12,
+      shadowRadius: scale(6),
+      elevation: 2,
     },
+    /**
+     * FIXED WIDTH, and equal, which is what makes the slide smooth.
+     *
+     * These sized to their labels, and "JEE Main" and "NEET UG" are not the
+     * same width — so every switch made the thumb change size as well as
+     * place. Worse, the active label used to turn bold, which is wider:
+     * choosing NEET UG grew its pill, the toggle re-measured it and jumped the
+     * thumb to the new position mid-spring. Textbooks' "Class 11" / "Class 12"
+     * only escape this because their widths differ by about a pixel. A fixed
+     * box cannot reflow, so the thumb just slides.
+     */
     togglePill: {
+      width: scale(98),
+      alignItems: 'center',
       paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(16),
       borderRadius: scale(99),
     },
+    /** Bold on both sides, and only the colour changes — as on Textbooks. The
+     *  active label used to switch weight the instant it was tapped, so the
+     *  word jumped to bold before the thumb had arrived under it. */
     togglePillText: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_700Bold',
       fontSize: scale(13),
       color: colors.slate,
     },
     togglePillTextActive: {
-      fontFamily: 'Onest_700Bold',
       color: colors.ink,
     },
     card: {

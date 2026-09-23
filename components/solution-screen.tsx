@@ -2,6 +2,14 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -9,9 +17,10 @@ import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
-import { SolutionSteps } from '@/components/solution-steps';
+import { DoubtSolution } from '@/components/doubt-solution';
 import { DoubtOption } from '@/lib/doubts';
 import { ParsedStep } from '@/lib/solution-steps';
+import { PAGE_TITLE } from '@/constants/page-title';
 
 /**
  * Snap It Out — solution screen, ported from snap-solution-6b/.
@@ -80,21 +89,28 @@ const QUESTION_MAX_LINES = 5;
  * Rotation is positional rather than random: random repeats, and the same
  * phrase twice in a row is exactly what makes a screen look stuck.
  */
-const PENDING_COPY = [
-  'working it out…',
-  'thinking it through…',
-  'finding the method…',
-  'setting it up…',
-  'working through it…',
-  'choosing an approach…',
-  'putting it in order…',
-  'getting it down…',
-  'still going…',
-  'nearly there…',
+/**
+ * WHAT IS HAPPENING, CONTINUED FROM THE SCAN SCREEN.
+ *
+ * This was ten lowercase fragments on a 2.5s carousel — "working it out…",
+ * "still going…", "nearly there…" — which is filler dressed as status. Worse,
+ * it restarted the story: the scan screen a second earlier was on "Working out
+ * the method", in sentence case, and the handover threw that away for a
+ * different voice saying the same thing.
+ *
+ * These are the back half of `SNAP_STAGES`, in the same words, and they move
+ * FORWARD ONLY: the line advances and then holds on the last one, the way the
+ * scan screen holds. A status that loops back to its first line tells a
+ * student the work restarted.
+ */
+const PENDING_STAGES = [
+  'Working out the method',
+  'Writing the steps',
+  'Checking the answer',
 ] as const;
 
 /** How long each line holds before the next. */
-const PENDING_ROTATE_MS = 2500;
+const PENDING_STEP_MS = 4500;
 const QUESTION_MAX_HEIGHT = Math.round(QUESTION_LINE * QUESTION_MAX_LINES);
 
 export type SolutionQuestion = {
@@ -138,6 +154,8 @@ export type SolutionQuestion = {
   answerLabels?: string[] | null;
   /** The one-line takeaway, in the app's handwriting. */
   keyIdea?: string | null;
+  /** `keyIdea` before conversion — spaced and stacked like the steps. */
+  keyIdeaRaw?: string | null;
   /**
    * Shown above the working when the API kept the steps but withheld the
    * answer — a disagreement with the printed key, an answer that is not among
@@ -246,10 +264,13 @@ export function SolutionScreen({
   // Advances only while something is actually pending, so a finished page is
   // not re-rendering on a timer it has no use for.
   const anyPending = questions.some((q) => q.pending);
-  const [tick, setTick] = useState(0);
+  const [stage, setStage] = useState(0);
   useEffect(() => {
     if (!anyPending) return;
-    const id = setInterval(() => setTick((n) => n + 1), PENDING_ROTATE_MS);
+    const id = setInterval(
+      () => setStage((n) => (n >= PENDING_STAGES.length - 1 ? n : n + 1)),
+      PENDING_STEP_MS
+    );
     return () => clearInterval(id);
   }, [anyPending]);
   const hasStackableFraction = !!question.textRaw && /\\[dt]?frac/.test(question.textRaw);
@@ -352,7 +373,9 @@ export function SolutionScreen({
                 uri={question.questionImageUrl}
                 label={question.text}
                 frameStyle={styles.questionImage}
-                contentFit="contain"
+                contentFit="cover"
+                fromTop
+                fadeTo={PAPER}
               />
             ) : hasStackableFraction ? (
               <MathLine
@@ -518,9 +541,10 @@ export function SolutionScreen({
                   worth watching was the one part you had to scroll for.
                   Offset by the question so two pending panels never say the
                   same thing at the same moment. */}
-              <Text style={[styles.meta, styles.pendingNow]}>
-                {PENDING_COPY[(tick + index) % PENDING_COPY.length]}
-              </Text>
+              <View style={styles.pendingNow}>
+                <PendingDot />
+                <Text style={styles.pendingText}>{PENDING_STAGES[stage]}</Text>
+              </View>
               <StepsPlaceholder />
             </View>
           ) : question.failureNote ? (
@@ -529,7 +553,7 @@ export function SolutionScreen({
             </View>
           ) : (
             <View style={styles.stepsBlock}>
-              <SolutionSteps
+              <DoubtSolution
                 steps={question.steps}
                 answer={question.answer}
                 answerRaw={question.answerRaw}
@@ -546,7 +570,15 @@ export function SolutionScreen({
 
           {/* The app's existing handwriting for a takeaway. */}
           {!question.pending && !!question.keyIdea && (
-            <Text style={styles.keyIdea}>{question.keyIdea}</Text>
+            <View style={styles.keyIdea}>
+              <MathLine
+                text={question.keyIdeaRaw ?? question.keyIdea}
+                style={styles.keyIdeaText}
+                mathStyle={styles.keyIdeaText}
+                fontSize={16}
+                color={KEY_IDEA_INK}
+              />
+            </View>
           )}
 
           {!!footerNote && <Text style={[styles.meta, styles.footerNote]}>{footerNote}</Text>}
@@ -618,10 +650,14 @@ function createStyles() {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    /** The app's page-title tier. Raw, not scaled: every size in this file
+     *  is raw (see the header), so the numbers come from PAGE_TITLE rather
+     *  than a second set drifting beside it. */
     title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: 21,
-      letterSpacing: -0.03 * 21,
+      fontFamily: PAGE_TITLE.family,
+      fontSize: PAGE_TITLE.size,
+      lineHeight: PAGE_TITLE.lineHeight,
+      letterSpacing: PAGE_TITLE.tracking,
       color: INK,
     },
     chips: {
@@ -752,14 +788,26 @@ function createStyles() {
       borderRadius: 8,
       backgroundColor: PAPER,
     },
+    /**
+     * A WINDOW ONTO THE PAGE, NOT THE WHOLE PAGE SHRUNK INTO A BOX.
+     *
+     * This used to `contain` the photo: the entire sheet scaled down to fit
+     * 240pt, which on a full A4 page made the writing too small to read and
+     * left bands of empty paper around it, ending on a hard edge. Now the
+     * picture fills the frame from its top edge — the question starts where
+     * the photo starts — and the foot of it fades into the page. What is cut
+     * off is the part a tap opens, which is what the chevron has always said.
+     */
     questionImage: {
-      width: '100%',
-      // Taller than a figure, and for a different reason: this one carries
-      // WORDS. A figure only has to be recognisable; a stem has to be read at
-      // arm's length. `contain` keeps the page's own aspect ratio, so a short
-      // question simply leaves room at top and bottom rather than stretching.
-      height: 240,
-      borderRadius: 8,
+      // Inset from the column and a little shorter than it was: at full width
+      // and 240 the photo was the loudest thing on the page, and the working
+      // is what the page is for. The air on three sides is what makes it read
+      // as a picture OF the question rather than as the page's header.
+      alignSelf: 'center',
+      width: '90%',
+      height: 206,
+      marginTop: 8,
+      borderRadius: 14,
       backgroundColor: PAPER,
       overflow: 'hidden',
     },
@@ -799,12 +847,17 @@ function createStyles() {
       lineHeight: 15 * 1.6,
       color: INK_70,
     },
+    /** The takeaway, at the page's one size: set apart by weight, not by
+     *  being the one bold 15pt line on a page of regular 16. Aligned to the
+     *  step text, past the rail. */
     keyIdea: {
       marginTop: 26,
-      paddingLeft: 44,
-      fontFamily: 'Onest_700Bold',
-      fontSize: 15,
-      lineHeight: 15 * 1.5,
+      paddingLeft: 34,
+    },
+    keyIdeaText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: 16,
+      lineHeight: 16 * 1.55,
       color: KEY_IDEA_INK,
     },
     stepsBlock: {
@@ -812,9 +865,25 @@ function createStyles() {
     },
     // Sits where the first step's text will, so the placeholder underneath is
     // not pushed off its own rail.
+    /**
+     * At the page's own left margin, not the rail's.
+     *
+     * It was indented 34 to sit over the step text, which put it under the
+     * question with a hand's width of white to its left and made it read as a
+     * caption belonging to the placeholder. It is a status line about the
+     * whole page, so it starts where the page starts.
+     */
     pendingNow: {
-      marginBottom: 18,
-      paddingLeft: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 22,
+    },
+    pendingText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 13.5,
+      letterSpacing: -0.1,
+      color: AMBER_INK,
     },
     meta: {
       fontFamily: 'Onest_600SemiBold',
@@ -892,23 +961,71 @@ function createStyles() {
  * a placeholder that stops halfway leaves the lower half blank, which reads as
  * "this is all there is" and then jumps when it isn't.
  */
+/**
+ * The one moving thing on the page while a solve runs.
+ *
+ * A pulse rather than a spinner: a spinner on a page that already carries the
+ * student's own question reads as "loading the page", when the page is here
+ * and it is the answer that is still coming.
+ */
+function PendingDot() {
+  const glow = useSharedValue(0.35);
+  useEffect(() => {
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 760, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.35, { duration: 760, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => ({ opacity: glow.value }));
+  return (
+    <Animated.View
+      style={[{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#EEA31F' }, style]}
+    />
+  );
+}
+
+/**
+ * WHAT A WAIT SHOULD WEIGH.
+ *
+ * Two earlier versions were wrong in opposite directions. The first was four
+ * blocks of pale bars with 26pt of air between them and no structure at all,
+ * which read as a page that had failed to load. The second drew the real
+ * numbered markers — 01, 02, 03 — on the real rail, which fixed the structure
+ * and bought a new problem: it states as fact that there will be three steps
+ * and invites a student to read numbers that are not answers to anything.
+ *
+ * This is the third: the rail, a small open mark where each step will begin,
+ * and two or three light bars for the words. No numbers before there are any.
+ * Lighter fill than the app's default skeleton, fewer bars per step, and no
+ * slab standing in for an equation — a page that is waiting should weigh less
+ * than the page that arrives, not the same.
+ */
 function StepsPlaceholder() {
   const skeleton = useMemo(() => createSkeletonStyles(), []);
   return (
     <View style={skeleton.steps}>
       <View style={skeleton.rail} />
       {[0, 1, 2, 3].map((i) => (
-        <View key={i} style={skeleton.step}>
-          <Skeleton delay={stagger(i, 120)} style={skeleton.num} />
-          <Skeleton delay={stagger(i, 120)} style={skeleton.stepTitle} />
-          <SkeletonParagraph
-            lines={2}
-            lineHeight={13}
-            gap={9}
-            delay={stagger(i, 120) + 60}
-            widths={['100%', '72%']}
-          />
-          <Skeleton delay={stagger(i, 120) + 180} style={skeleton.math} />
+        // The fourth is half-lit. A solve is usually five or six steps, so the
+        // block has to reach down the page or it reads as "this is all there
+        // is" and then jumps — but four steps at full weight is a grey page.
+        // It fades out instead, which says "and more" without drawing it.
+        <View key={i} style={[skeleton.step, i === 3 && skeleton.stepFading]}>
+          <View style={skeleton.mark} />
+          <Skeleton delay={stagger(i, 150)} style={skeleton.stepTitle} />
+          {i < 3 && (
+            <SkeletonParagraph
+              lines={i === 2 ? 1 : 2}
+              lineHeight={11}
+              gap={9}
+              delay={stagger(i, 150) + 80}
+              widths={['100%', '74%']}
+            />
+          )}
         </View>
       ))}
     </View>
@@ -934,7 +1051,11 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
             <SkeletonParagraph lines={3} lineHeight={14} gap={10} widths={['100%', '96%', '54%']} />
           </View>
 
-          <StepsPlaceholder />
+          {/* Its own air here: in the pending case the steps sit directly
+              under the status line, which brings its own 20. */}
+          <View style={{ marginTop: 20 }}>
+            <StepsPlaceholder />
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -942,47 +1063,52 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 }
 
 function createSkeletonStyles() {
-  const RAIL = 44;
+  const RAIL = 34;
+  /** Lighter than SKELETON_FILL: this placeholder covers most of a page, and
+   *  at the app's usual weight that much of it reads as a grey screen. */
+  const FILL = 'rgba(28,26,22,.055)';
   return StyleSheet.create({
-    // Mirrors SolutionSteps' own rail geometry so the placeholder lands where
-    // the real steps will.
+    // DoubtSolution's own rail geometry, so the words land where these bars
+    // are and nothing shifts when the answer arrives.
     steps: {
       position: 'relative',
-      marginTop: 24,
+      marginTop: 6,
       paddingLeft: RAIL,
       gap: 30,
     },
     rail: {
       position: 'absolute',
-      left: 13,
-      top: 10,
-      bottom: 10,
+      left: 10.5,
+      top: 8,
+      bottom: 16,
       width: 1,
-      backgroundColor: HAIR,
+      backgroundColor: 'rgba(28,26,22,.07)',
     },
     step: {
       position: 'relative',
-      gap: 12,
+      gap: 10,
       alignItems: 'flex-start',
       alignSelf: 'stretch',
     },
-    // Sits exactly where the numbered badge will.
-    num: {
+    /** Where the numbered marker will be, drawn as an open ring: it holds the
+     *  place without claiming to know what goes in it. */
+    mark: {
       position: 'absolute',
-      left: -RAIL,
-      top: 1,
-      width: 28,
-      height: 28,
-      borderRadius: 8,
+      left: -RAIL + 5,
+      top: 4,
+      width: 11,
+      height: 11,
+      borderRadius: 5.5,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
+      backgroundColor: '#FFFFFF',
     },
+    stepFading: { opacity: 0.45 },
     stepTitle: {
-      width: '62%',
-      height: 18,
-    },
-    math: {
       width: '46%',
-      height: 34,
-      borderRadius: 8,
+      height: 12,
+      borderRadius: 4,
+      backgroundColor: FILL,
     },
   });
 }

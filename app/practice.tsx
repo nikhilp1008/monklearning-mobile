@@ -9,7 +9,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
@@ -18,9 +19,10 @@ import { PressableScale } from '@/components/pressable-scale';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { AskFollowUpBar } from '@/components/ask-follow-up';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import {
   AnswerResult,
@@ -42,6 +44,7 @@ import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 import { sampleWeakChapterId } from '@/lib/weak-focus';
+import { hapticSoft, hapticSwitched, hapticTicked } from '@/lib/haptics';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -168,6 +171,9 @@ export default function PracticeScreen() {
   const [seen, setSeen] = useState(0);
 
   const revealed = answerResult !== null;
+  /** The pinned row clears the home indicator itself — this screen's
+   *  SafeAreaView only takes the top edge. */
+  const insets = useSafeAreaInsets();
 
   /**
    * Drona routes carry a real chapterId whenever the catalogue (cached,
@@ -243,6 +249,12 @@ export default function PracticeScreen() {
     context: { gaveUp: boolean; chapter: string | null }
   ) {
     setAnswerResult(result);
+    // The verdict, felt. Only for an answer actually given: "I don't know" asked
+    // to be shown the working, and a tap for it would read as a mark against.
+    if (!context.gaveUp) {
+      if (result.is_correct) hapticTicked();
+      else hapticSoft();
+    }
     setSessionAttempted((n) => n + 1);
     if (result.is_correct) setSessionCorrect((n) => n + 1);
     // A run of give-ups in ONE chapter is the signal, not a daily total: five
@@ -588,6 +600,25 @@ export default function PracticeScreen() {
               <ChevronDownIcon size={scale(13)} />
             </View>
           </Pressable>
+          {/* REPORT, up here in the corner the header left empty. It used to be
+              a disc beside Ask follow-up, where it cost the bottom row width it
+              needed for Next. Only while a question is on screen: there is
+              nothing to report on a loading card or an empty pool. */}
+          {question ? (
+            <Pressable
+              style={styles.reportButton}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Report a mistake in this question"
+              onPress={() =>
+                router.push({
+                  pathname: '/report-sheet',
+                  params: { questionId: question.question_id },
+                })
+              }>
+              <FlagIcon size={scale(16)} />
+            </Pressable>
+          ) : null}
         </View>
 
         {menuOpen && (
@@ -613,7 +644,7 @@ export default function PracticeScreen() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, revealed && styles.scrollContentPinned]}
           showsVerticalScrollIndicator={false}>
           <Pressable
             style={styles.focusRow}
@@ -773,7 +804,10 @@ export default function PracticeScreen() {
                 <Pressable
                   key={key}
                   disabled={revealed || submitting || loading}
-                  onPress={() => setSelectedOption(key)}
+                  onPress={() => {
+                    if (key !== selectedOption) hapticSwitched();
+                    setSelectedOption(key);
+                  }}
                   style={[
                     styles.optionRow,
                     revealed && styles.optionRowRevealed,
@@ -923,56 +957,6 @@ export default function PracticeScreen() {
                 )}
               </View>
 
-              {/* Ask about THIS working, without leaving it — standing exactly
-                  where "Go deeper with Drona" stood, with Next still on the
-                  right. That link opened a live session, which took the student
-                  away from the very solution they wanted explained and made a
-                  one-line question cost a whole classroom. The bar is the one
-                  Snap a Doubt uses: hold, ask out loud, the answer arrives as
-                  speech over the steps still on screen.
-
-                  It sits in the row rather than above it because it is content
-                  sized (~196pt, see `styles.block` in ask-follow-up) and never
-                  flexes, so the pair reads as the two things a finished
-                  question offers: ask about this one, or go to the next. */}
-              <View style={styles.revealedActions}>
-                {question?.question_id ? (
-                  <AskFollowUpBar doubtId={question.question_id} surface="practice" />
-                ) : (
-                  <View />
-                )}
-                <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                  <Text style={styles.nextButtonText}>Next</Text>
-                  <ArrowRightIcon size={scale(14)} color={colors.paper} />
-                </Pressable>
-              </View>
-
-              {/* Report, AFTER the solution and not before it.
-                  This screen deliberately had no Report button: the note above
-                  the give-up control explains that it had nowhere to post, and
-                  that a button which silently does nothing is worse than an
-                  absent one — which is exactly what the live classroom's own
-                  report drawer had quietly become.
-                  It has somewhere to post now (POST /reports), so it can exist.
-                  Placed here because the complaint is almost always about the
-                  WORKING — "that step is wrong" — and before submitting there
-                  is no working to be wrong. */}
-              {question?.question_id && (
-                <Pressable
-                  hitSlop={10}
-                  style={styles.reportButton}
-                  onPress={() => router.push({
-                    pathname: '/report-sheet',
-                    params: {
-                      surface: 'practice',
-                      questionId: question.question_id,
-                      chapter: question.chapter_name ?? '',
-                      quote: question.question_text ?? '',
-                    },
-                  })}>
-                  <Text style={styles.reportText}>Report a mistake</Text>
-                </Pressable>
-              )}
             </>
           )}
             </>
@@ -988,6 +972,51 @@ export default function PracticeScreen() {
             </Text>
           )}
         </ScrollView>
+
+        {/*
+          ASK OR MOVE ON, PINNED — the way Snap a Doubt pins it.
+          This row sat at the end of the scrolling solution, and the follow-up
+          board is laid out directly above the bar. Inside a scroll view that
+          meant the board had nowhere to float: opening it pushed the page and
+          the answer had to be scrolled to, off the steps it was answering.
+          Pinned here, the board grows UP over the working and neither the
+          page nor the buttons move. The fade behind is the same one Doubts
+          uses, so steps passing beneath the buttons dissolve instead of
+          colliding with them.
+        */}
+        {revealed && (
+          <View style={styles.pinned} pointerEvents="box-none">
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', '#fff', '#fff']}
+              locations={[0, 0.38, 1]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <View
+              style={[styles.pinnedInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
+              {question?.question_id ? (
+                <AskFollowUpBar
+                  doubtId={question.question_id}
+                  surface="practice"
+                  gutter={scale(20)}
+                  trailing={
+                    <Pressable style={styles.nextButton} onPress={loadQuestion}>
+                      <Text style={styles.nextButtonText}>Next</Text>
+                      <ArrowRightIcon size={scale(14)} color={colors.paper} />
+                    </Pressable>
+                  }
+                />
+              ) : (
+                <Pressable
+                  style={[styles.nextButton, styles.nextAlone]}
+                  onPress={loadQuestion}>
+                  <Text style={styles.nextButtonText}>Next</Text>
+                  <ArrowRightIcon size={scale(14)} color={colors.paper} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
 
         {menuOpen && (
           <Pressable
@@ -1140,6 +1169,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
       marginRight: scale(4),
     },
+    /** The back button's twin on the other side, pushed right by `auto`. */
+    reportButton: {
+      width: scale(36),
+      height: scale(36),
+      flexShrink: 0,
+      marginLeft: 'auto',
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1149,21 +1190,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(20),
       zIndex: 8,
     },
-    heading: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      lineHeight: scale(29),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
     /** The subject keeps the weight -- it is the part that changes. */
-    headingSubject: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      lineHeight: scale(29),
-      color: colors.ink,
-    },
+    /** The subject, same tier. It used to be the bold half of a medium title; the title tier is bold now, so the row is one weight and the dropdown chevron marks the part that changes. */
+    headingSubject: pageTitle(scale),
     subjectButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1746,17 +1777,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(13.5),
       color: colors.faint,
     },
-    revealedActions: {
-      flexDirection: 'row',
-      // Aligned to the TOP, not the centre. The follow-up bar is a 52pt pill
-      // with an uppercase hint line beneath it, so the block runs ~75pt; with
-      // `center` the Next button settled against the middle of bar-plus-hint
-      // and sat visibly below the pill it is meant to sit beside. Top aligned,
-      // with the offset below, the two controls share a centre line.
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(24),
-    },
     nextButton: {
       flexDirection: 'row',
       gap: scale(8),
@@ -1777,6 +1797,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(10),
       elevation: 4,
     },
+    /** Pinned to the screen's foot, full width, over the scrolling page. */
+    pinned: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    pinnedInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
+    /** Room under the solution so its last line and the day's tally can be
+     *  scrolled clear of the pinned row instead of sitting beneath it. */
+    scrollContentPinned: { paddingBottom: verticalScale(140) },
+    /** Next on its own — a question with no id cannot be asked about. */
+    nextAlone: { alignSelf: 'flex-end' },
     nextButtonText: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(14),

@@ -4,7 +4,7 @@ import { Stack, router, useRootNavigationState, usePathname, useSegments } from 
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -80,8 +80,10 @@ import { Inter_400Regular } from '@expo-google-fonts/inter';
 // an iOS fallback for that one dash. Nor any Greek, which is why the page
 // spells Greek out the way the reference does.
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
+import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
+import { passStatus } from '@/lib/pass';
 import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
@@ -136,6 +138,8 @@ export default function RootLayout() {
     Inter_400Regular,
     // The handwritten note's hand; see the import.
     PatrickHand_400Regular,
+    Kalam_400Regular,
+    Kalam_700Bold,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
@@ -179,6 +183,9 @@ export default function RootLayout() {
    */
   const segments = useSegments();
   const inOnboarding = segments[0] === '(onboarding)';
+  // The promo screen is part of the takeover, not a way out of it: a gate that
+  // fired there would bounce the student back mid-code.
+  const onPlans = segments[0] === 'plans' || segments[0] === 'plans-promo';
 
   /**
    * Telemetry, started once and deliberately outside every startup gate.
@@ -213,6 +220,43 @@ export default function RootLayout() {
     // the first unanswered question rather than starting over.
     router.replace(authState === 'signed_out' ? '/welcome' : '/details');
   }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, authState]);
+
+  /**
+   * THE PASS GATE. A day after a one-day pass, the app stops being the app.
+   *
+   * It runs only for a student who is signed in and past onboarding, and only
+   * outside the plans screen itself. Onboarding finishes by starting a pass,
+   * so a student who just completed it is never sent straight here.
+   *
+   * It checks on every foreground as well as at launch: a pass that runs out
+   * while the phone is in a pocket should be out when the phone comes back,
+   * not at the next cold start.
+   *
+   * NO PASS AT ALL reads the same as an expired one. That covers students from
+   * before any of this was recorded — they see the plans screen, put the same
+   * promo code in, and carry on; nothing of theirs is lost or deleted. It is
+   * the safe direction to fail in either case: the wrong answer costs one tap,
+   * where wrongly letting someone through costs a paying student nothing to
+   * notice.
+   */
+  const passGateReady = ready && navigatorReady && authState === 'signed_in' && !inOnboarding;
+  useEffect(() => {
+    if (!passGateReady || onPlans) return;
+    let cancelled = false;
+    const check = async () => {
+      const status = await passStatus();
+      if (cancelled || status.state === 'active') return;
+      router.replace('/plans');
+    };
+    void check();
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') void check();
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, [passGateReady, onPlans]);
 
   useEffect(() => {
     // `failsafeTripped` overrides it. Waiting on the gate without that escape
@@ -329,7 +373,9 @@ export default function RootLayout() {
             options={{
               headerShown: false,
               presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              // NONE, as for textbook-topics: the sheet animates itself, and a
+              // route slide carried the scrim up with it as a sliding edge.
+              animation: 'none',
             }}
           />
           <Stack.Screen name="textbook-chapters" options={{ headerShown: false }} />
@@ -347,7 +393,6 @@ export default function RootLayout() {
               animation: 'none',
             }}
           />
-          <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope" options={{ headerShown: false }} />
           <Stack.Screen name="exam-scope-subject" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
@@ -363,6 +408,14 @@ export default function RootLayout() {
           <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen name="subscription" options={{ headerShown: false }} />
+          {/* The takeover when a pass has ended: no header, and no gesture
+              back to the screen it replaced. */}
+          <Stack.Screen
+            name="plans"
+            options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}
+          />
+          {/* Pushed from it, so it keeps its back chevron and its slide. */}
+          <Stack.Screen name="plans-promo" options={{ headerShown: false }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />

@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import { ImageStyle, Modal, Pressable, StyleSheet, Text, ViewStyle, StyleProp } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { useScale } from '@/constants/scale';
@@ -33,6 +34,8 @@ export function QuestionPeek({
   frameStyle,
   imageStyle,
   contentFit = 'cover',
+  fromTop = false,
+  fadeTo,
   disabled = false,
 }: {
   uri: string;
@@ -40,12 +43,36 @@ export function QuestionPeek({
   /** The closed-state frame — size it like the thing it replaces. */
   frameStyle?: StyleProp<ViewStyle>;
   imageStyle?: StyleProp<ImageStyle>;
-  /** 'cover' fills the list thumbnail; the solution screen passes 'contain'
-   *  because its image carries words and the page's own aspect must hold. */
+  /** 'cover' fills the frame; 'contain' fits the whole picture inside it. */
   contentFit?: 'cover' | 'contain';
+  /** Hold the picture's TOP edge when it is cropped, so a photographed
+   *  question starts at its first line rather than at its middle. */
+  fromTop?: boolean;
+  /**
+   * The colour under the frame. Given one, the foot of the picture dissolves
+   * into it rather than ending on a cut line — the cue that there is more of
+   * the page than the frame is showing, and that tapping opens it.
+   */
+  fadeTo?: string;
   /** Erase mode on the list: the row's gestures own the touch. */
   disabled?: boolean;
 }) {
+  /**
+   * WHETHER THERE IS ANYTHING BELOW THE FRAME, measured rather than assumed.
+   *
+   * A page photographed portrait is taller than the frame, so it is filled
+   * from its top edge and faded at the foot: the fade is the cue that the
+   * rest is a tap away. A crop that is WIDER than the frame has nothing
+   * below — filling would only cut its sides — so it is fitted whole and the
+   * fade stays off. A fade over a question with nothing behind it is just a
+   * line of the question greyed out for no reason.
+   */
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [frame, setFrame] = useState<{ w: number; h: number } | null>(null);
+  const overflows =
+    !!fromTop && !!natural && !!frame && natural.h / natural.w > frame.h / frame.w + 0.02;
+  const fit = fromTop ? (overflows ? 'cover' : 'contain') : contentFit;
+
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [open, setOpen] = useState(false);
@@ -75,10 +102,10 @@ export function QuestionPeek({
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      // Set outright, as the setState version did. The point of the shared
-      // value is that the PINCH no longer round-trips to JS per frame; the
-      // double-tap was never slow and does not need easing it never had.
-      zoom.value = zoom.value > 1.5 ? 1 : 2.5;
+      // Eased, not set outright. The setState version snapped, but a jump
+      // from 1x to 2.5x in one frame reads as the photo being swapped rather
+      // than zoomed; 180ms is enough to see where the zoom went.
+      zoom.value = withTiming(zoom.value > 1.5 ? 1 : 2.5, { duration: 180 });
     });
   const composed = Gesture.Race(pinch, doubleTap);
 
@@ -92,6 +119,9 @@ export function QuestionPeek({
         accessibilityRole="imagebutton"
         accessibilityLabel={`${label} — tap to enlarge`}
         style={frameStyle}
+        onLayout={(e) =>
+          setFrame({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
+        }
         disabled={disabled}
         onPress={() => {
           zoom.value = 1;
@@ -100,10 +130,23 @@ export function QuestionPeek({
         <Image
           source={{ uri }}
           style={[styles.image, imageStyle]}
-          contentFit={contentFit}
+          contentFit={fit}
+          contentPosition={overflows ? 'top center' : 'center'}
           transition={120}
           accessibilityLabel={label}
+          onLoad={(e) => setNatural({ w: e.source.width, h: e.source.height })}
         />
+        {/* Transparent for most of its height and only solid at the very
+            foot, so the fade reads as the page running out rather than as a
+            grey band laid over the words. */}
+        {!!fadeTo && overflows && (
+          <LinearGradient
+            colors={[`${fadeTo}00`, `${fadeTo}66`, `${fadeTo}E6`, fadeTo]}
+            locations={[0, 0.5, 0.85, 1]}
+            style={styles.fade}
+            pointerEvents="none"
+          />
+        )}
         {/* The invitation: a small chevron at the image's foot. */}
         <Svg
           style={styles.chevron}
@@ -161,6 +204,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     image: {
       width: '100%',
       height: '100%',
+    },
+    /** Deep enough to be a fade rather than an edge, shallow enough to leave
+     *  most of the picture untouched. */
+    fade: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      // Deep enough to read as a fade; strong only over the last few points,
+      // so a line of the question sitting at the edge is dimmed rather than
+      // erased.
+      height: scale(52),
     },
     chevron: {
       position: 'absolute',

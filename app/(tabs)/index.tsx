@@ -3,11 +3,12 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Rect as SvgRect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Path, RadialGradient, Rect as SvgRect, Stop } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { Grain } from '@/components/grain';
-import { hapticTicked } from '@/lib/haptics';
+import { PracticeIcon, ProgressGlyph, SnapADoubtIcon } from '@/components/monk-icons';
+import { hapticKey, hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { MonkLogo } from '@/components/monk-logo';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
@@ -105,9 +106,10 @@ export default function HomeScreen() {
   );
 
   const togglePlanItem = (id: string) => {
-    // Only on the way to done. Un-ticking is a correction, and confirming a
-    // correction with the tap that marks finishing reads as the wrong answer.
-    if (!planItems.find((item) => item.id === id)?.done) hapticTicked();
+    // Two different taps. Done gets the Success; un-ticking is a correction,
+    // and gets a soft one — felt, but never the tap that marks finishing.
+    if (planItems.find((item) => item.id === id)?.done) hapticUnticked();
+    else hapticTicked();
     const next = planItems.map((item) => (item.id === id ? { ...item, done: !item.done } : item));
     setPlanItems(next);
     saveTodayPlan(next);
@@ -182,7 +184,7 @@ export default function HomeScreen() {
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
                   <PlateGround />
-                  <SnapIcon size={scale(19)} stroke={colors.paper} dot={colors.paper} />
+                  <SnapADoubtIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
@@ -195,7 +197,7 @@ export default function HomeScreen() {
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
                   <PlateGround />
-                  <PracticeIcon size={scale(19)} stroke={colors.paper} dot={colors.paper} />
+                  <PracticeIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
@@ -254,10 +256,20 @@ export default function HomeScreen() {
               </View>
             </View>
             {planItems.length === 0 ? (
-              <Text style={styles.planEmptyText}>
-                Nothing planned yet. Tap <Text style={styles.planEmptyAccent}>+ Add</Text> to set
-                today&apos;s plans.
-              </Text>
+              /*
+                A row, not a sentence. "Nothing planned yet. Tap + Add…" was a
+                line of grey prose pointing at a control in the corner, on the
+                one section of Home a student is supposed to fill in
+                themselves. This is the shape the first plan will take — a
+                dashed open box where its checkbox goes — and the whole thing
+                is the button, so the instruction is the tap.
+              */
+              <PressableScale style={styles.planEmptyRow} onPress={() => router.push('/plan-sheet')}>
+                <View style={styles.planEmptyCheck}>
+                  <Text style={styles.planEmptyPlus}>+</Text>
+                </View>
+                <Text style={styles.planEmptyLabel}>Set your first plan for today</Text>
+              </PressableScale>
             ) : (
               <View style={styles.planRows}>
                 {planItems.map((item) => (
@@ -420,7 +432,10 @@ function ClassBlock({
       accessibilityRole="button"
       accessibilityLabel="Start a live class"
       onPress={onPress}
-      onPressIn={() => setHeld(true)}
+      onPressIn={() => {
+        hapticKey();
+        setHeld(true);
+      }}
       onPressOut={() => setHeld(false)}
       style={styles.classBlock}>
       {/* An absolute fill, not a wrapper with `overflow: hidden`.
@@ -518,62 +533,6 @@ function PersonIcon({ size }: { size: number }) {
         strokeWidth={1.7}
         strokeLinecap="round"
       />
-    </Svg>
-  );
-}
-
-/** The bars from the old Progress tab, at app-bar size. Same shape, so the
- *  control is recognisable in its new home. */
-function ProgressGlyph({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path d="M4.5 19h15" stroke={colors.ink} strokeWidth={1.75} strokeLinecap="round" />
-      <Path
-        d="M8 19v-4.5M12 19v-8M16 19V7.5"
-        stroke={colors.ink}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-      />
-      <Circle cx={16} cy={4.6} r={1.8} fill={colors.marigold} />
-    </Svg>
-  );
-}
-
-/**
- * Stroke and the marigold mark are separate colours, so the drawing can reverse
- * onto an ink plate without losing the thing that signs it. The aperture is
- * fractionally larger reversed: a 1.2 dot that held its own against white ink
- * disappears against cream on dark.
- */
-function SnapIcon({ size, stroke = colors.ink, dot = colors.marigold }: { size: number; stroke?: string; dot?: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3" stroke={stroke} strokeWidth={1.8} />
-      <Rect x={2.8} y={6.4} width={18.4} height={13.5} rx={3.2} stroke={stroke} strokeWidth={1.8} />
-      <Circle cx={12} cy={13.2} r={3.6} stroke={stroke} strokeWidth={1.8} />
-      <Circle cx={12} cy={13.2} r={1.5} fill={dot} />
-    </Svg>
-  );
-}
-
-function PracticeIcon({ size, stroke = colors.ink, dot = colors.marigold }: { size: number; stroke?: string; dot?: string }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M7 5.6h11.4a2 2 0 0 1 2 2v9.2" stroke={stroke} strokeWidth={1.8} />
-      <Rect x={3.4} y={8.2} width={13.2} height={11.8} rx={2} stroke={stroke} strokeWidth={1.8} />
-      {/* The marigold marks the item ON the card, not a blob beside it.
-          It used to sit at cx 17.4 -- the front card's stroke spans
-          15.75-17.45, so the dot was centred on the border, half inside the
-          card and half in the channel, cutting the back card's edge on its
-          way past. It read as a smudge welded to the corner.
-
-          Snap's marigold is the aperture: inside the form, concentric,
-          doing a job. This one is now the bullet on the card's one line,
-          which is also how a plan row is drawn elsewhere in the app. Dot
-          and line sit on 1.00 of clearance at each end of the card's
-          interior, the round cap included. */}
-      <Circle cx={6.4} cy={12.4} r={1.4} fill={dot} />
-      <Path d="M10 12.4h3.9" stroke={stroke} strokeWidth={1.8} />
     </Svg>
   );
 }
@@ -849,15 +808,40 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(18),
       color: colors.ink,
     },
-    planEmptyText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22),
-      color: colors.slate,
+    planEmptyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
       marginTop: verticalScale(12),
+      paddingVertical: verticalScale(12),
+      paddingHorizontal: scale(14),
+      borderRadius: scale(14),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      backgroundColor: colors.paper,
     },
-    planEmptyAccent: {
+    /** Where the checkbox goes, drawn open: dashed, because the row is an
+     *  invitation rather than an item that can be ticked. */
+    planEmptyCheck: {
+      width: scale(20),
+      height: scale(20),
+      borderRadius: scale(10),
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: 'rgba(28,26,22,.28)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    planEmptyPlus: {
       fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      lineHeight: scale(15),
+      color: colors.slate,
+    },
+    planEmptyLabel: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14.5),
+      lineHeight: scale(20),
       color: colors.ink,
     },
     planRows: {

@@ -4,12 +4,28 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
 } from 'expo-audio';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  runOnJS,
+  runOnUI,
+  scrollTo,
+  useAnimatedReaction,
+  useAnimatedRef,
+  useAnimatedStyle,
+  useScrollOffset,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
+import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { Skeleton } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -21,6 +37,7 @@ import {
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
+import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -44,7 +61,45 @@ import { parseSolutionStep } from '@/lib/solution-steps';
  * the board, streaming word by word as the model writes it. One short step is
  * spoken and kept for history but opens nothing: a board over the student's
  * solution is furniture falling over unless there is working to put on it.
+ *
+ * THE BOARD IS A THREAD, NOT A SLATE. It used to be wiped the moment the next
+ * question was asked — closed, emptied, and reopened for the new answer — so a
+ * student asking "and why is that?" lost the working the question was about.
+ * Now every answer that reaches the board stays on it, oldest first, and the
+ * next one is added below with its own heading; the board scrolls to the new
+ * one as it arrives and the old ones are a scroll away. Closing the board
+ * hides the thread, it does not clear it: the next answer that earns the board
+ * brings the whole thread back. Only leaving the screen ends it.
  */
+
+/**
+ * How much of the screen the board takes — always, not at most. It used to
+ * size to its content up to this cap, so the first answer opened a short
+ * board and the second made it grow: the panel changed shape under the
+ * student every time they asked. One height, and the thread scrolls inside.
+ *
+ * It was 44% with 10pt between the board and the buttons, which read as the
+ * board sitting ON the bar rather than floating above it — and on Practice,
+ * where Next shares the row, as a crowded stack. At a fixed 60% it covered
+ * most of the solution the follow-up is about; 46% leaves that working in
+ * view above it, and anything longer scrolls. 16pt lets the buttons below
+ * stand clear of it.
+ */
+const BOARD_SHARE = 0.46;
+
+/**
+ * Where the board's sides sit, measured from the screen's edge. The bar row
+ * is inset for its buttons; the board is a page of working, and at the bar's
+ * width it read as a narrow card squeezed between two margins — so it reaches
+ * past them to this. Measured from the SCREEN rather than as a fixed bleed
+ * because the two hosts pad the row differently (Doubts 24, Practice 20), and
+ * a fixed bleed put the same board in two different places.
+ */
+const BOARD_EDGE = 14;
+
+/** Drag distance or flick speed on the board's header that puts it away. */
+const BOARD_CLOSE_DISTANCE = 80;
+const BOARD_CLOSE_VELOCITY = 700;
 
 /** A follow-up answer opens the sheet past ONE short step — the same line
  *  the model's own prompt draws ("the board is for working"). */
@@ -52,6 +107,34 @@ const SHORT_ANSWER_CHARS = 240;
 
 /** How long the ring lingers after the last touch — the prototype's `hLeave`. */
 const LINGER_MS = 1500;
+
+/** How long a failure keeps the ring grey — the classroom dock's figure. */
+const FAILED_SHOW_MS = 2600;
+
+/**
+ * Shorter than this is a tap, not a question. The server would transcribe
+ * silence and answer it, or say nothing, and either way the student would be
+ * left wondering what happened. Said here instead, at once.
+ */
+const MIN_HOLD_MS = 350;
+
+/**
+ * The recorder with metering on, so the ring's halo can move with the voice.
+ * A module constant because `useAudioRecorder` keys its recorder on the
+ * options — a fresh object each render would still hash the same, but there
+ * is no reason to make it.
+ */
+const RECORDING = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+
+/** How often the level is read while the mic is held. */
+const METER_MS = 80;
+
+/** iOS reports metering in dBFS, silence around -60 and speech at -30 to -10;
+ *  this is the stretch that reads as a voice getting louder. */
+function meterLevel(db: number | undefined): number {
+  if (db == null || !Number.isFinite(db)) return 0;
+  return Math.min(1, Math.max(0, (db + 55) / 45));
+}
 
 type Phase = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -77,10 +160,11 @@ function StopIcon({ color }: { color: string }) {
 }
 
 /** The reference's own flag: an upright staff with a pennant, in muted ink so
- *  Report reads as the quieter of the two controls. */
-function FlagIcon() {
+ *  Report reads as the quieter of the two controls. Practice's header uses it
+ *  too, so a report looks like a report wherever it is. */
+export function FlagIcon({ size = 18 }: { size?: number }) {
   return (
-    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke={INK_MUTED}
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={INK_MUTED}
       strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M5 21V4" />
       <Path d="M5 4h11l-1.5 4L16 12H5" />
@@ -92,6 +176,8 @@ export function AskFollowUpBar({
   doubtId,
   onReport,
   surface = 'doubts',
+  trailing,
+  gutter = 24,
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */
@@ -104,8 +190,26 @@ export function AskFollowUpBar({
    * untouched.
    */
   surface?: FollowUpSurface;
+  /**
+   * A control that shares the bar's row — Practice's Next.
+   *
+   * It lives INSIDE the bar's block rather than beside it in the screen,
+   * because the board is laid out in that block and takes its width from it.
+   * Beside the bar, the block was only as wide as the bar itself (~196pt), so
+   * Practice's board opened as a narrow column over one button instead of
+   * across the screen above both. Passed in, the block spans the row and the
+   * board spans with it.
+   */
+  trailing?: ReactNode;
+  /** The side padding of the container the bar sits in, so the board can land
+   *  at BOARD_EDGE from the screen whichever screen it is on. */
+  gutter?: number;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(RECORDING);
+  /** The board is capped rather than free: it grows upward over the solution,
+   *  and past a little under half the screen there is nothing of the solution
+   *  left to read behind it. */
+  const { height: windowHeight } = useWindowDimensions();
   const [phase, setPhase] = useState<Phase>('idle');
   /**
    * A FAILURE IS TWO WORDS, NOT A SENTENCE.
@@ -121,11 +225,23 @@ export function AskFollowUpBar({
    * microphone on. "Try again" would be a lie for the second — pressing again
    * does nothing at all while permission is refused.
    */
-  const [failure, setFailure] = useState<null | 'retry' | 'mic'>(null);
+  const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short'>(null);
   const [linger, setLinger] = useState(false);
-  /** The written answer, when it earned a board. Empty array = no board. */
-  const [boardSteps, setBoardSteps] = useState<FollowUpStep[]>([]);
+  /** The student's voice, 0–1, for the ring's halo while they hold. */
+  const voiceLevel = useSharedValue(0);
+  /** Every answer that has reached the board this visit, oldest first. */
+  const [thread, setThread] = useState<{ id: number; steps: FollowUpStep[] }[]>([]);
   const [boardOpen, setBoardOpen] = useState(false);
+  /** Read from inside an answer's stream, which outlives the render it began in. */
+  const boardOpenRef = useRef(false);
+  useEffect(() => {
+    boardOpenRef.current = boardOpen;
+  }, [boardOpen]);
+  /** One id per question asked, so an answer's steps land in its own section. */
+  const questionIdRef = useRef(0);
+  /** The question being worked out while the board is already up — it gets a
+   *  placeholder section at once, rather than nothing until the first step. */
+  const [pendingTurn, setPendingTurn] = useState<number | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<FollowUpAudio | null>(null);
@@ -138,12 +254,45 @@ export function AskFollowUpBar({
    *  fed against seconds elapsed, checked when the stream closes. */
   const pcmIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pcmStartedAtRef = useRef(0);
+  /**
+   * THE HOLD, AS THE FINGER SEES IT — not as the recorder does.
+   *
+   * Opening the mic is three awaits (permission, audio session, prepare), and
+   * a release could land in the middle of them. `endHold` then stopped a
+   * recorder that had not started, and `beginHold` carried on and started it
+   * anyway — a microphone left recording with nobody holding the bar. The
+   * first press on a fresh install always did this, because the permission
+   * prompt takes the touch away. So the release is recorded here, the setup
+   * checks it after every await, and `endHold` waits for the setup to settle
+   * before it decides anything.
+   */
+  const pressedRef = useRef(false);
+  const pressedAtRef = useRef(0);
+  const setupRef = useRef<Promise<'recording' | 'released' | 'failed'> | null>(null);
+  const meterRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const wake = useCallback(() => {
+  const wake = useCallback((ms: number = LINGER_MS) => {
     if (lingerRef.current) clearTimeout(lingerRef.current);
     setLinger(true);
-    lingerRef.current = setTimeout(() => setLinger(false), LINGER_MS);
+    lingerRef.current = setTimeout(() => setLinger(false), ms);
   }, []);
+
+  /** Every failure ends the same way: said under the bar, and the ring gone
+   *  grey for a moment. */
+  const fail = useCallback(
+    (kind: 'retry' | 'mic' | 'short') => {
+      setFailure(kind);
+      setPhase('idle');
+      wake(FAILED_SHOW_MS);
+    },
+    [wake]
+  );
+
+  const stopMeter = useCallback(() => {
+    if (meterRef.current) clearInterval(meterRef.current);
+    meterRef.current = null;
+    voiceLevel.value = withTiming(0, { duration: 220 });
+  }, [voiceLevel]);
 
   /**
    * Back to a playback session, always, and never left recording-shaped.
@@ -172,6 +321,25 @@ export function AskFollowUpBar({
     setPhase('idle');
   }, []);
 
+  /**
+   * A different question under the bar is a different conversation.
+   *
+   * Practice builds a fresh bar per question, but a snap holds up to three
+   * questions under ONE bar, switched by index — and the thread, like the
+   * history sent with each follow-up, would otherwise have carried the first
+   * question's answers into the second.
+   */
+  const lastDoubt = useRef(doubtId);
+  useEffect(() => {
+    if (lastDoubt.current === doubtId) return;
+    lastDoubt.current = doubtId;
+    stopEverything();
+    turnsRef.current = [];
+    setThread([]);
+    setPendingTurn(null);
+    setBoardOpen(false);
+  }, [doubtId, stopEverything]);
+
   useEffect(
     () => () => {
       abortRef.current?.abort();
@@ -180,6 +348,7 @@ export function AskFollowUpBar({
       if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
       recorder.stop().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
+      if (meterRef.current) clearInterval(meterRef.current);
       toPlayback();
     },
     [recorder, toPlayback]
@@ -187,8 +356,23 @@ export function AskFollowUpBar({
 
   const beginHold = useCallback(async () => {
     if (!doubtId) return;
+    /**
+     * The tap lands BEFORE the microphone opens, and that ordering is the
+     * whole reason it can be felt on an iPhone. iOS silences haptics while an
+     * app is recording from the mic unless the app opts back in, which nothing
+     * here does. This bar records only while held and only from
+     * `recorder.record()` below — after permission and setup — so a tap fired
+     * here is outside the silent window, exactly as WhatsApp's voice note is.
+     * The classroom mic is different: it records for the whole class.
+     */
+    // A release is still settling the last hold; a second press now would
+    // let that hold's setup see a finger down and start recording after all.
+    if (setupRef.current) return;
+    hapticFloorTaken();
     wake();
     setFailure(null);
+    pressedRef.current = true;
+    pressedAtRef.current = Date.now();
     // A second question interrupts the first answer rather than talking over
     // it — the student has clearly stopped listening.
     audioRef.current?.stop();
@@ -198,39 +382,80 @@ export function AskFollowUpBar({
     abortRef.current?.abort();
     abortRef.current = null;
     setPhase('listening');
-    try {
-      const granted = await requestRecordingPermissionsAsync();
-      if (!granted.granted) {
-        setFailure('mic');
-        setPhase('idle');
-        return;
+    const setup = (async (): Promise<'recording' | 'released' | 'failed'> => {
+      try {
+        const granted = await requestRecordingPermissionsAsync();
+        if (!granted.granted) {
+          hapticRefused();
+          fail('mic');
+          // No release will come to clear it: the bar is idle again, so the
+          // lift of this finger is not a hold ending.
+          setupRef.current = null;
+          return 'failed';
+        }
+        if (!pressedRef.current) return 'released';
+        /**
+         * The session has to allow recording BEFORE `prepareToRecordAsync`, not
+         * after. Nothing else in the app leaves it that way — the classroom
+         * records through a different library and deliberately keeps expo-audio
+         * on playback so Drona is not routed to the earpiece — so every time
+         * this bar is pressed the session is on a category that refuses to
+         * record.
+         */
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: 'mixWithOthers',
+        });
+        if (!pressedRef.current) {
+          toPlayback();
+          return 'released';
+        }
+        await recorder.prepareToRecordAsync();
+        if (!pressedRef.current) {
+          toPlayback();
+          return 'released';
+        }
+        recorder.record();
+        meterRef.current = setInterval(() => {
+          voiceLevel.value = withTiming(meterLevel(recorder.getStatus().metering), {
+            duration: METER_MS,
+          });
+        }, METER_MS);
+        return 'recording';
+      } catch {
+        fail('retry');
+        toPlayback();
+        setupRef.current = null;
+        return 'failed';
       }
-      /**
-       * The session has to allow recording BEFORE `prepareToRecordAsync`, not
-       * after. Nothing else in the app leaves it that way — the classroom
-       * records through a different library and deliberately keeps expo-audio
-       * on playback so Drona is not routed to the earpiece — so every time
-       * this bar is pressed the session is on a category that refuses to
-       * record.
-       */
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-        interruptionMode: 'mixWithOthers',
-      });
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-    } catch {
-      setFailure('retry');
-      setPhase('idle');
-      toPlayback();
-    }
-  }, [doubtId, recorder, toPlayback, wake]);
+    })();
+    setupRef.current = setup;
+    await setup;
+  }, [doubtId, recorder, toPlayback, wake, fail, voiceLevel]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
     wake();
+    pressedRef.current = false;
+    const heldMs = Date.now() - pressedAtRef.current;
+    stopMeter();
+    const pending = setupRef.current;
+    const setup = await (pending ?? Promise.resolve('failed' as const));
+    if (setupRef.current === pending) setupRef.current = null;
+    // The setup already said why, and "Microphone is off" must not be
+    // overwritten by a guess.
+    if (setup === 'failed') return;
+    if (setup === 'released') {
+      hapticFloorReleased();
+      // A quick tap is told to hold longer. A release that was long but still
+      // beat the setup is the permission prompt taking the touch: nothing
+      // went wrong, the student just has to press again.
+      if (heldMs < MIN_HOLD_MS) fail('short');
+      else setPhase('idle');
+      return;
+    }
     let uri: string | null = null;
     try {
       await recorder.stop();
@@ -238,12 +463,18 @@ export function AskFollowUpBar({
     } catch {
       // A recorder that will not stop still has whatever it captured.
     }
+    // After the stop, not before — the mic is closed by now, so this one can
+    // be felt too.
+    hapticFloorReleased();
     // Before the answer is spoken, never after: `.playAndRecord` would put the
     // teacher's voice in the earpiece, which reads as broken rather than quiet.
     toPlayback();
+    if (heldMs < MIN_HOLD_MS) {
+      fail('short');
+      return;
+    }
     if (!uri) {
-      setFailure('retry');
-      setPhase('idle');
+      fail('retry');
       return;
     }
 
@@ -255,8 +486,9 @@ export function AskFollowUpBar({
     let asked = '';
     let spokenText = '';
     let spokeStarted = false;
-    setBoardSteps([]);
-    setBoardOpen(false);
+    // Nothing is cleared: the answers already on the board stay on it.
+    const turnId = ++questionIdRef.current;
+    if (boardOpenRef.current) setPendingTurn(turnId);
 
     // THE VOICE LEADS, THE BOARD FOLLOWS — the classroom's own order.
     // Steps stream in well before Rumik's first sound (board ~2s, voice
@@ -283,7 +515,10 @@ export function AskFollowUpBar({
     // full text-so-far and REPLACE their step — upsert by n, never append,
     // or a step that streamed as six frames becomes six steps. The board
     // is EARNED the moment the answer has more than one step, or a long
-    // first one; when it OPENS is the reveal schedule's decision above.
+    // first one — unless the board is already up, where every answer joins
+    // the thread. WHEN a first opening happens is the reveal schedule's
+    // decision above: the voice leads, the board follows.
+    let onBoard = false;
     const absorb = (step: FollowUpStep) => {
       if (controller.signal.aborted) return;
       const at = arrived.findIndex((s) => s.n === step.n);
@@ -291,10 +526,21 @@ export function AskFollowUpBar({
       else arrived.push(step);
       arrived.sort((a, b) => a.n - b.n);
       const body = arrived.map((s) => s.text).join(' ');
-      if (arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
-        setBoardSteps([...arrived]);
+      if (onBoard || boardOpenRef.current || arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
+        onBoard = true;
+        const steps = [...arrived];
+        setThread((prev) => {
+          const i = prev.findIndex((t) => t.id === turnId);
+          if (i < 0) return [...prev, { id: turnId, steps }];
+          const next = prev.slice();
+          next[i] = { id: turnId, steps };
+          return next;
+        });
+        // The FIRST opening waits for the reveal schedule (armed by the
+        // first audio frame, with safety valves); a board already up stays
+        // live — later answers join the thread instantly.
         boardEarned = true;
-        if (boardRevealed) setBoardOpen(true);
+        if (boardRevealed || boardOpenRef.current) setBoardOpen(true);
       }
     };
 
@@ -320,7 +566,8 @@ export function AskFollowUpBar({
         turnsRef.current,
         {
           // Kept for the history the next question is sent with. Not shown —
-          // the student knows what they just said.
+          // the student knows what they just said, and the ring is what tells
+          // them it was heard.
           onTranscript: (text) => {
             asked = text;
           },
@@ -403,8 +650,7 @@ export function AskFollowUpBar({
         if (arrived.length) {
           setPhase('idle');
         } else {
-          setFailure('retry');
-          setPhase('idle');
+          fail('retry');
         }
       }
     } catch {
@@ -412,8 +658,7 @@ export function AskFollowUpBar({
       // The server's own message is deliberately not read: it is a sentence,
       // and this is a two-word slot. What the student can DO about it is the
       // same however it failed.
-      setFailure('retry');
-      setPhase('idle');
+      fail('retry');
     }
 
     async function speak(spoken: string, ctl: AbortController) {
@@ -439,7 +684,7 @@ export function AskFollowUpBar({
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake, surface]);
+  }, [doubtId, recorder, toPlayback, wake, surface, fail, stopMeter]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
@@ -456,7 +701,9 @@ export function AskFollowUpBar({
   const hint = failure
     ? failure === 'mic'
       ? 'Microphone is off'
-      : 'Try again'
+      : failure === 'short'
+        ? 'Hold a little longer'
+        : 'Try again'
     : listening
       ? 'Release to stop'
       : phase === 'thinking'
@@ -465,107 +712,378 @@ export function AskFollowUpBar({
           ? 'Tap to stop'
           : 'Hold to speak';
 
-  /** Green while the student holds the floor, amber the rest of the time —
-   *  the dock's own two palettes, meaning the same two things. */
-  const mood: RingMood = listening ? 'student' : 'teacher';
+  /**
+   * THE RING CARRIES THE WHOLE EXCHANGE, the way the classroom dock's does.
+   *
+   * Green and moving with the voice while the student holds; amber and
+   * breathing slowly while the teacher works out the reply; grey for a moment
+   * when it failed. It used to be awake for the answer too, which put it on
+   * the bar all the way through the teacher's voice — the one stretch where
+   * the voice itself is the signal. Now it hands over: it goes when the
+   * teacher starts speaking, after a short linger, and the label says
+   * "Answering…" from there.
+   */
+  const thinking = phase === 'thinking';
+  const mood: RingMood = listening
+    ? 'student'
+    : thinking
+      ? 'thinking'
+      : failure
+        ? 'paused'
+        : 'teacher';
+  const ringAwake = listening || thinking || linger;
+  const hintColor = listening ? styles.hintLive : thinking ? styles.hintThinking : null;
+
+  /**
+   * THE BOARD'S OWN OPEN AND CLOSE.
+   *
+   * It appeared and vanished between two frames, which on a panel this size
+   * reads as a glitch rather than as something arriving. `open` runs 0 to 1 and
+   * the board rises 34pt into place as it fades; closing runs it back down and
+   * only then unmounts, which is the part a plain `boardOpen &&` cannot do —
+   * the view is gone before any exit animation could play.
+   *
+   * Up is slower than down and eased differently: arriving is the thing worth
+   * watching, leaving should get out of the way. The same pair of curves the
+   * rest of the app uses for entrances and exits.
+   */
+  const open = useSharedValue(0);
+  /** How far below its place the board is: 40 as it arrives, 0 at rest. It
+   *  rises on a spring — a panel of working settling into place — and drops
+   *  on a plain ease, because leaving should just get out of the way. */
+  const rise = useSharedValue(40);
+  /** The finger's pull on the header, added on top. */
+  const drag = useSharedValue(0);
+  const [boardMounted, setBoardMounted] = useState(false);
+  useEffect(() => {
+    if (boardOpen) {
+      setBoardMounted(true);
+      drag.value = 0;
+      open.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
+      rise.value = withSpring(0, { damping: 20, stiffness: 210, mass: 0.8 });
+      return;
+    }
+    const out = { duration: 220, easing: Easing.bezier(0.4, 0, 0.6, 1) };
+    rise.value = withTiming(40, out);
+    open.value = withTiming(0, out, (done) => {
+      if (done) runOnJS(setBoardMounted)(false);
+    });
+  }, [boardOpen, open, rise, drag]);
+
+  const boardStyle = useAnimatedStyle(() => ({
+    opacity: open.value,
+    transform: [{ translateY: rise.value + drag.value }],
+  }));
+
+  /** The grabber finally does what it says: pull the header down to put the
+   *  board away. A short pull springs back. */
+  const boardPan = Gesture.Pan()
+    .onUpdate((e) => {
+      drag.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      if (e.translationY > BOARD_CLOSE_DISTANCE || e.velocityY > BOARD_CLOSE_VELOCITY) {
+        runOnJS(setBoardOpen)(false);
+        return;
+      }
+      drag.value = withSpring(0, { damping: 22, stiffness: 260 });
+    });
+
+  /**
+   * SCROLL TO WHAT IS NEW, ONCE. When a section for a new question lays out —
+   * its placeholder first, then its answer in the same place — the board
+   * brings its heading to the top, so the student reads the answer from its
+   * first line while the voice starts on it. After that the scroll is theirs.
+   */
+  const boardScroll = useAnimatedRef<Animated.ScrollView>();
+  const scrolled = useScrollOffset(boardScroll);
+  /** Where the glide is taking the board, driven on the UI thread: the
+   *  native animated scroll is a short fixed tween, and this is meant to feel
+   *  like the page settling rather than being yanked. -1 is at rest. */
+  const glideTo = useSharedValue(-1);
+  useAnimatedReaction(
+    () => glideTo.value,
+    (y) => {
+      if (y >= 0) scrollTo(boardScroll, 0, y, false);
+    }
+  );
+  /** The student's own drag ends any glide in progress — the scroll is theirs. */
+  const stopGlide = () => {
+    cancelAnimation(glideTo);
+    glideTo.value = -1;
+  };
+  const shownTurn = useRef(0);
+  const onSectionLayout = (id: number, y: number) => {
+    if (id <= shownTurn.current) return;
+    shownTurn.current = id;
+    const target = Math.max(0, y - 6);
+    runOnUI(() => {
+      'worklet';
+      glideTo.value = scrolled.value;
+      glideTo.value = withTiming(
+        target,
+        { duration: 560, easing: Easing.bezier(0.25, 0.8, 0.25, 1) },
+        () => {
+          glideTo.value = -1;
+        }
+      );
+    })();
+  };
+  /** The scroll area's own height, so the newest section can be made tall
+   *  enough to be scrolled up to the top however short its answer is. */
+  const [viewport, setViewport] = useState(0);
+  const showPending =
+    boardOpen && thinking && pendingTurn !== null && !thread.some((t) => t.id === pendingTurn);
+  const sections = thread.length + (showPending ? 1 : 0);
 
   return (
     <View style={styles.block}>
-      <View style={styles.row}>
-        <View style={styles.anchor}>
-        <DockRing mood={mood} awake={phase !== 'idle' || linger} id="followup" />
-          <Pressable
-            style={[styles.face, disabled && styles.faceOff]}
-            disabled={disabled}
-            accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
-            onPressIn={() => {
-              if (speaking || phase === 'thinking') return;
-              void beginHold();
-            }}
-            onPressOut={() => {
-              if (phase !== 'listening') return;
-              void endHold();
-            }}
-            onPress={() => {
-              // Only meaningful while the answer is playing; a hold's own press
-              // event arrives after `onPressOut` has already sent the question.
-              if (speaking) stopEverything();
-            }}>
-            <View style={[styles.thumb, listening && styles.thumbOn]}>
-              {listening ? (
-                <LevelBars color={PAPER} heights={[9, 17, 12]} />
-              ) : speaking ? (
-                <StopIcon color={PAPER} />
-              ) : (
-                <MicIcon color={PAPER} />
-              )}
+      {/*
+        THE BOARD SITS ABOVE THE BAR, IN THE LAYOUT, NOT OVER IT.
+        It was a Modal, chosen so the bar and the solution behind it never
+        moved. They didn't — but a Modal is its own window anchored to the
+        bottom of the SCREEN, and the bar is at the bottom of the screen, so
+        the sheet landed squarely on top of the one control the student needed
+        next. Asking a second follow-up meant closing the answer to the first.
+        A Modal cannot be fixed by insetting it either: everything behind it is
+        untouchable, so a bar left visible under the scrim would still be dead.
+        So the board is an ordinary view now, rendered before the bar inside a
+        container that is anchored to the bottom and sizes to its content —
+        which means the board grows UPWARD over the solution and the bar does
+        not move a pixel. It keeps the property the Modal was chosen for, and
+        stops covering the thing it was covering.
+      */}
+      {boardMounted && (
+        <Animated.View
+          style={[
+            styles.board,
+            {
+              height: Math.round(windowHeight * BOARD_SHARE),
+              marginHorizontal: -Math.max(0, gutter - BOARD_EDGE),
+            },
+            boardStyle,
+          ]}>
+          <GestureDetector gesture={boardPan}>
+            <View style={styles.boardHead}>
+              <View style={styles.boardGrab} />
+              <View style={styles.boardTitleRow}>
+                <Text style={styles.boardTitle}>Follow-up</Text>
+                {/* A cross, not the word Done. "Done" claims the student
+                    finished something; this board is an answer they are
+                    putting away, and nothing is completed by closing it. */}
+                <Pressable
+                  onPress={() => setBoardOpen(false)}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close the follow-up answer"
+                  style={({ pressed }) => [styles.boardClose, pressed && styles.boardClosePressed]}>
+                  <CloseIcon />
+                </Pressable>
+              </View>
             </View>
-            <Text style={styles.label} numberOfLines={1}>
-              {label}
-            </Text>
-          </Pressable>
-        </View>
+          </GestureDetector>
+          <Animated.ScrollView
+            ref={boardScroll}
+            style={styles.boardBody}
+            contentContainerStyle={styles.boardContent}
+            onLayout={(e) => setViewport(Math.round(e.nativeEvent.layout.height))}
+            onScrollBeginDrag={stopGlide}
+            showsVerticalScrollIndicator={false}>
+            {thread.map((turn, index) => (
+              <View
+                key={turn.id}
+                style={[
+                  index > 0 ? styles.turnAfter : null,
+                  // The newest answer is always tall enough to sit at the top
+                  // of the board, so the glide to it can land its heading
+                  // there instead of stopping short at the end of the content.
+                  index === thread.length - 1 && !showPending && viewport
+                    ? { minHeight: viewport - 20 }
+                    : null,
+                ]}
+                onLayout={(e) => onSectionLayout(turn.id, e.nativeEvent.layout.y)}>
+                {sections > 1 ? <TurnLabel n={index + 1} /> : null}
+                <BoardRail steps={turn.steps} />
+              </View>
+            ))}
+            {showPending && pendingTurn !== null ? (
+              <View
+                key={pendingTurn}
+                style={[
+                  thread.length > 0 ? styles.turnAfter : null,
+                  viewport ? { minHeight: viewport - 20 } : null,
+                ]}
+                onLayout={(e) => onSectionLayout(pendingTurn, e.nativeEvent.layout.y)}>
+                <TurnLabel n={thread.length + 1} />
+                <View style={styles.pendingLines}>
+                  <Skeleton style={styles.pendingLineLong} />
+                  <Skeleton delay={80} style={styles.pendingLineShort} />
+                </View>
+              </View>
+            ) : null}
+          </Animated.ScrollView>
+        </Animated.View>
+      )}
 
-        {/* Report, as a disc matching the bar's own plate. It lives here rather
-            than in the screen because 12a centres the PAIR: the bar is content
-            sized, the disc is 52, and the two are centred together. Split
-            across two files the row could only be laid out by guesswork.
-
-            Only when there is somewhere to report TO. It used to render
-            whatever the props said, so a caller that passed no `onReport` —
-            Practice — got a flag that did nothing when pressed, and paid 62pt
-            of row width for it. A control with no handler is not a quiet
-            control, it is a broken one. */}
-        {onReport ? (
-          <Pressable
-            style={styles.disc}
-            onPress={onReport}
-            accessibilityLabel="Report a problem">
-            <FlagIcon />
-          </Pressable>
-        ) : null}
-      </View>
-      <Text style={[styles.hint, listening && styles.hintLive]} numberOfLines={1}>
-        {hint}
-      </Text>
-
-      {/* The board, when the answer earned one. A Modal rather than a layout
-          change so the bar — and the solution behind it — never move. Done
-          closes the board only; the voice keeps talking, and Stop on the bar
-          remains the way to silence it. */}
-      <Modal
-        visible={boardOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setBoardOpen(false)}>
-        <View style={styles.sheetScrim}>
-          <Pressable style={styles.sheetScrimTap} onPress={() => setBoardOpen(false)} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Follow-up</Text>
-              <Pressable onPress={() => setBoardOpen(false)} hitSlop={10}>
-                <Text style={styles.sheetDone}>Done</Text>
+      {trailing ? (
+        // With a trailing control the bar and its hint stack as one column on
+        // the left and the control sits on the right, aligned to the bar's top
+        // — so Next lines up with the pill, not with the middle of pill-plus-
+        // hint, which is where `center` used to leave it.
+        <View style={[styles.row, styles.rowSpread]}>
+          <View style={styles.barColumn}>
+            <View style={styles.anchor}>
+            <DockRing mood={mood} awake={ringAwake} id="followup" level={voiceLevel} />
+              <Pressable
+                style={[styles.face, disabled && styles.faceOff]}
+                disabled={disabled}
+                accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+                onPressIn={() => {
+                  if (speaking || phase === 'thinking') return;
+                  void beginHold();
+                }}
+                onPressOut={() => {
+                  if (phase !== 'listening') return;
+                  void endHold();
+                }}
+                onPress={() => {
+                  // Only meaningful while the answer is playing; a hold's own press
+                  // event arrives after `onPressOut` has already sent the question.
+                  if (speaking) stopEverything();
+                }}>
+                <View style={[styles.thumb, listening && styles.thumbOn]}>
+                  {listening ? (
+                    <LevelBars color={PAPER} heights={[9, 17, 12]} />
+                  ) : speaking ? (
+                    <StopIcon color={PAPER} />
+                  ) : (
+                    <MicIcon color={PAPER} />
+                  )}
+                </View>
+                <Text style={styles.label} numberOfLines={1}>
+                  {label}
+                </Text>
               </Pressable>
             </View>
-            <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
-              <BoardRail steps={boardSteps} />
-            </ScrollView>
+          <Text style={[styles.hint, hintColor]} numberOfLines={1}>
+            {hint}
+          </Text>
           </View>
+          {/* Report, as a disc matching the bar's own plate. It lives here rather
+              than in the screen because 12a centres the PAIR: the bar is content
+              sized, the disc is 52, and the two are centred together. Split
+              across two files the row could only be laid out by guesswork.
+
+              Only when there is somewhere to report TO. It used to render
+              whatever the props said, so a caller that passed no `onReport` —
+              Practice — got a flag that did nothing when pressed, and paid 62pt
+              of row width for it. A control with no handler is not a quiet
+              control, it is a broken one. */}
+          {onReport ? (
+            <Pressable
+              style={styles.disc}
+              onPress={onReport}
+              accessibilityLabel="Report a problem">
+              <FlagIcon />
+            </Pressable>
+          ) : null}
+          {trailing}
         </View>
-      </Modal>
+      ) : (
+        <>
+        <View style={styles.row}>
+          <View style={styles.anchor}>
+          <DockRing mood={mood} awake={ringAwake} id="followup" level={voiceLevel} />
+            <Pressable
+              style={[styles.face, disabled && styles.faceOff]}
+              disabled={disabled}
+              accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+              onPressIn={() => {
+                if (speaking || phase === 'thinking') return;
+                void beginHold();
+              }}
+              onPressOut={() => {
+                if (phase !== 'listening') return;
+                void endHold();
+              }}
+              onPress={() => {
+                // Only meaningful while the answer is playing; a hold's own press
+                // event arrives after `onPressOut` has already sent the question.
+                if (speaking) stopEverything();
+              }}>
+              <View style={[styles.thumb, listening && styles.thumbOn]}>
+                {listening ? (
+                  <LevelBars color={PAPER} heights={[9, 17, 12]} />
+                ) : speaking ? (
+                  <StopIcon color={PAPER} />
+                ) : (
+                  <MicIcon color={PAPER} />
+                )}
+              </View>
+              <Text style={styles.label} numberOfLines={1}>
+                {label}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Report, as a disc matching the bar's own plate. It lives here rather
+              than in the screen because 12a centres the PAIR: the bar is content
+              sized, the disc is 52, and the two are centred together. Split
+              across two files the row could only be laid out by guesswork.
+
+              Only when there is somewhere to report TO. It used to render
+              whatever the props said, so a caller that passed no `onReport` —
+              Practice — got a flag that did nothing when pressed, and paid 62pt
+              of row width for it. A control with no handler is not a quiet
+              control, it is a broken one. */}
+          {onReport ? (
+            <Pressable
+              style={styles.disc}
+              onPress={onReport}
+              accessibilityLabel="Report a problem">
+              <FlagIcon />
+            </Pressable>
+          ) : null}
+        </View>
+        <Text style={[styles.hint, hintColor]} numberOfLines={1}>
+          {hint}
+        </Text>
+        </>
+      )}
+
     </View>
   );
 }
 
 /** The written answer in the same numbered rail the solution uses. Parsed at
  *  render because partials replace their step's text frame by frame. */
+function CloseIcon() {
+  return (
+    <Svg viewBox="0 0 16 16" width={13} height={13} fill="none">
+      <Path
+        d="M4 4l8 8M12 4l-8 8"
+        stroke={INK_MUTED}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 function BoardRail({ steps }: { steps: FollowUpStep[] }) {
   const rail = useMemo(
     () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
     [steps]
   );
-  return <SolutionSteps steps={rail} size="compact" />;
+  // Its own size, between the two: `full` markers and text read as oversized
+  // in a panel this height, and `compact` was the smallest text on screen.
+  return <SolutionSteps steps={rail} size="board" />;
+}
+
+/** Heads each answer once there is more than one, so a scroll through the
+ *  thread reads as a sequence rather than one long run of steps. */
+function TurnLabel({ n }: { n: number }) {
+  return <Text style={styles.turnLabel}>Follow-up {n}</Text>;
 }
 
 /** The dock's plate, verbatim — negative spreads included, which is why this is
@@ -592,6 +1110,11 @@ const styles = StyleSheet.create({
    */
   block: { gap: 9 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  /** The row with a trailing control: bar column left, control right, both
+   *  hung from the top so the control levels with the pill, not the hint. */
+  rowSpread: { justifyContent: 'space-between', alignItems: 'flex-start' },
+  /** The bar and its "Hold to speak" line, stacked and centred on each other. */
+  barColumn: { alignItems: 'center', gap: 9 },
   /** Holds ring and face together and sizes itself to the face, so the ring's
    *  -1.5 and -6 insets are measured off the bar's own edge. */
   anchor: { position: 'relative' },
@@ -648,32 +1171,71 @@ const styles = StyleSheet.create({
     color: INK_FAINT,
   },
   hintLive: { color: GREEN_INK },
-  sheetScrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,26,22,0.35)' },
-  sheetScrimTap: { ...StyleSheet.absoluteFillObject },
-  sheet: {
-    maxHeight: '72%',
-    backgroundColor: PAPER,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingBottom: 28,
+  hintThinking: { color: DEEP_AMBER },
+  /**
+   * A PAGE LIFTED OFF THE SOLUTION, in the bar's own material.
+   *
+   * It was cream on a white screen, ringed by an inset hairline under a heavy
+   * drop, and it read as a different object from the bar beneath it — another
+   * app's card. Now it is the dock's plate at page size: white, the same 1pt
+   * hairline, the same soft lifted shadow, so board and bar are one family and
+   * the board stands off the working behind it by lift alone. Rounded on all
+   * four corners because it floats; it never meets the screen's edge.
+   */
+  board: {
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    // Twice the dock's own hairline. White on a white screen, the board's
+    // edge is the only thing separating it from the solution behind, and at
+    // 8% it disappeared wherever the shadow was thin — along the top.
+    borderColor: 'rgba(28,26,22,.16)',
+    overflow: 'hidden',
+    boxShadow: [
+      { offsetX: 0, offsetY: 20, blurRadius: 44, spreadDistance: -18, color: 'rgba(28,26,22,0.34)' },
+      { offsetX: 0, offsetY: 2, blurRadius: 8, spreadDistance: -2, color: 'rgba(28,26,22,0.08)' },
+    ],
   },
-  sheetHandle: {
+  boardHead: { paddingTop: 9, paddingHorizontal: 22, paddingBottom: 10 },
+  boardGrab: {
     alignSelf: 'center',
-    width: 40,
+    width: 38,
     height: 4,
     borderRadius: 2,
-    marginTop: 10,
-    backgroundColor: 'rgba(28,26,22,0.16)',
+    backgroundColor: 'rgba(28,26,22,0.14)',
   },
-  sheetHeader: {
-    flexDirection: 'row',
+  boardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  boardTitle: { flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: 17, letterSpacing: -0.2, color: INK },
+  /** The report sheet's close: a hairline disc, a target worth tapping. */
+  boardClose: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(28,26,22,0.12)',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
+    justifyContent: 'center',
   },
-  sheetTitle: { fontFamily: 'Onest_700Bold', fontSize: 16, color: INK },
-  sheetDone: { fontFamily: 'Onest_700Bold', fontSize: 14, color: GREEN_INK },
-  sheetBody: { paddingHorizontal: 20 },
+  boardClosePressed: { backgroundColor: 'rgba(28,26,22,0.05)' },
+  boardBody: { flex: 1 },
+  boardContent: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 28 },
+  /** Each later answer starts below a hairline, with room above it. */
+  turnAfter: {
+    marginTop: 26,
+    paddingTop: 22,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(28,26,22,0.08)',
+  },
+  turnLabel: {
+    marginBottom: 14,
+    fontFamily: 'Onest_700Bold',
+    fontSize: 10.5,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+    color: INK_FAINT,
+  },
+  pendingLines: { gap: 10, paddingBottom: 4 },
+  pendingLineLong: { height: 14, width: '86%', borderRadius: 7 },
+  pendingLineShort: { height: 14, width: '54%', borderRadius: 7 },
 });

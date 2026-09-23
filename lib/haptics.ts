@@ -121,8 +121,9 @@ export function hapticRefused() {
  * The one place in the app where a student marks their OWN work done, and the
  * screen's answer is a small box filling in — easy to miss with a thumb over
  * it, and the one moment of the day worth feeling. Only on the way to done:
- * un-ticking is a correction, and confirming a correction with the same tap
- * that celebrates finishing gets the meaning backwards.
+ * un-ticking is a correction and gets its own softer tap (`hapticUnticked`),
+ * because confirming a correction with the tap that celebrates finishing gets
+ * the meaning backwards.
  *
  * `Success`, not an impact, because that is what it is — and Android has a
  * named confirm for exactly this.
@@ -148,10 +149,106 @@ export function hapticTicked() {
  * changes nothing should feel like nothing, or the tick stops meaning "that
  * moved".
  */
+/**
+ * A decision that changes where the student is — logging out, both ways
+ * into the classroom from the topic sheet (Start learning, Just start
+ * talking), ending a class, and sending a cropped snap off to be solved.
+ *
+ * Firmer than a switch and not a success: leaving is not an achievement, and a
+ * Success notification on logout would congratulate someone for going. A
+ * medium impact is the tap of a button that did something that matters.
+ */
+export function hapticCommitted() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+}
+
+/**
+ * A key going down — the buttons drawn as physical keys (Start a Live Class,
+ * the onboarding Continue) and Snap's shutter.
+ *
+ * Fired on press-IN, where the key visually travels down, rather than on
+ * release like a system button: the tap is the key bottoming out, and a tap
+ * that arrived after the face had already come back up would feel late.
+ */
+export function hapticKey() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Keyboard_Tap));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+}
+
+/**
+ * A wrong answer, acknowledged rather than punished.
+ *
+ * Not the Error notification: a triple buzz on a wrong answer is the phone
+ * telling the student off, on a screen that is about to show them the working.
+ * One light tap says "noted, here's how" — the correct answer gets the Success
+ * pattern, and the difference between the two is enough.
+ */
+export function hapticSoft() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+}
+
 export function hapticSwitched() {
   if (Platform.OS === 'android') {
     fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
     return;
   }
   fire(() => Haptics.selectionAsync());
+}
+
+/**
+ * UN-TICKING A PLAN ITEM — a different tap from ticking it, on purpose.
+ *
+ * It used to be silent, so a student who un-ticked felt nothing and could not
+ * be sure it had registered. But it must not be the tick's Success either:
+ * un-ticking is a correction, and the tap that celebrates finishing would say
+ * the opposite of what just happened. A soft, cushioned single tap — felt,
+ * clearly acknowledged, and plainly not a celebration.
+ */
+export function hapticUnticked() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
+}
+
+/**
+ * A DIGIT OF THE SIGN-IN CODE LANDING IN ITS BOX.
+ *
+ * Timed to the box's own pop, not to the key: a typed digit ticks as it
+ * appears, and an autofilled code — all six arriving at once — ripples six
+ * ticks across the boxes at the pace they pop in, so the code is felt
+ * arriving rather than simply being there. Light, because the keyboard may
+ * already be tapping under the thumb.
+ */
+export function hapticDigit() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+}
+
+/**
+ * The sixth digit: the code is whole. A crisp click, firmer than a digit, to
+ * close the ripple — and deliberately not Success, because a complete code is
+ * not yet a correct one.
+ */
+export function hapticCodeComplete() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    return;
+  }
+  fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid));
 }

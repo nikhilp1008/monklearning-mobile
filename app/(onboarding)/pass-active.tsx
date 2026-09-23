@@ -10,7 +10,7 @@
 // onboarding, and it marks the seam between signing up and being a student.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -27,8 +27,8 @@ import {
   type ExamKey,
   type PassKey,
 } from '@/constants/onboarding';
-import { revalidateAuthState } from '@/lib/auth';
-import { pushProfile } from '@/lib/profile';
+import { startPass } from '@/lib/pass';
+import { hapticTicked } from '@/lib/haptics';
 
 export default function PassActiveScreen() {
   const { ds, fs, tracking } = useDesignScale();
@@ -43,34 +43,48 @@ export default function PassActiveScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The Success tap, landing with the tick.
+   *
+   * The tick pops 60ms in and settles over the next 620 (see `Tick` in
+   * components/confirm-motion.tsx), so the tap waits for the pop itself
+   * rather than firing on mount, before there is anything on screen to feel
+   * it about. Once — this is a moment, not a loop.
+   */
+  useEffect(() => {
+    const t = setTimeout(hapticTicked, 140);
+    return () => clearTimeout(t);
+  }, []);
+
+
   const till = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + (passId === 'day' ? 1 : 7));
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   }, [passId]);
 
+  /**
+   * THE RECEIPT IS NOT THE END OF THE FLOW ANY MORE.
+   *
+   * This screen used to write the profile and drop the student on Home. Two
+   * screens follow it now — the teacher they will hear, and what the pass
+   * opens — so the button reads "Continue" and this does the one thing that
+   * belongs to the purchase: start the pass's clock, where it was bought.
+   * The profile write and the handover to the app moved to the last of those
+   * screens; see app/(onboarding)/inside.tsx.
+   */
   const finish = async () => {
     if (saving) return;
     setSaving(true);
     setError(null);
     try {
-      await pushProfile();
+      await startPass(passId, params.promo ?? null);
     } catch {
-      // Do NOT wave them through. Without this write there is no
-      // `display_name` on the server, so every later launch reads as "never
-      // onboarded" and sends them round again — a loop they cannot escape and
-      // we would never hear about. Better to stop here, where retrying costs
-      // one tap.
       setSaving(false);
-      setError('Couldn’t save your details. Check your connection and try again.');
+      setError('Couldn’t start your pass. Check your connection and try again.');
       return;
     }
-    // The gate still believes onboarding is owed — it recomputes on Supabase
-    // auth events and this was a write to `profiles`. Awaited before navigating
-    // so the tabs are never asked to paint while the answer is still the old
-    // one.
-    await revalidateAuthState();
-    router.replace('/(tabs)');
+    router.push('/teacher');
   };
 
   const rows: [string, string][] = [
@@ -124,7 +138,7 @@ export default function PassActiveScreen() {
                 ground meant the cream button turned black the instant it was
                 tapped. */}
             <ObButton
-              label="Start learning"
+              label="Continue"
               variant="cream"
               withArrow
               busy={saving}

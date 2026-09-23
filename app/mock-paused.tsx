@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 
 const SUBJECTS = ['Physics', 'Chemistry', 'Maths'] as const;
@@ -125,12 +126,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
     },
-    heading: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',

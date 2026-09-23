@@ -12,6 +12,7 @@ import { BloomFace } from '@/components/gradient-select';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+import { hapticCommitted } from '@/lib/haptics';
 
 // Matched to practice-focus.tsx, the app's other bottom sheet — a flick
 // dismisses even if the sheet barely moved, so a quick swipe down doesn't need
@@ -169,7 +170,13 @@ export default function TopicSheetScreen() {
               </View>
             )}
 
-            <PressableScale style={styles.freetalkRow} onPress={() => goToClassroom()}>
+            <PressableScale
+              style={styles.freetalkRow}
+              onPress={() => {
+                // The other way into the same classroom, so the same tap.
+                hapticCommitted();
+                goToClassroom();
+              }}>
               <MicIcon size={scale(15)} />
               <Text style={styles.freetalkText}>
                 Can&apos;t find your topic? <Text style={styles.freetalkBold}>Just start talking</Text>
@@ -183,7 +190,13 @@ export default function TopicSheetScreen() {
             <PressableScale
               style={[styles.cta, !selected && styles.ctaDisabled]}
               disabled={!selected}
-              onPress={() => goToClassroom(selected ?? undefined)}>
+              onPress={() => {
+                // The step into the classroom — felt, the way Home's Start a
+                // Live Class is. Only when a topic is chosen: a disabled
+                // button never gets here, so it never taps.
+                hapticCommitted();
+                goToClassroom(selected ?? undefined);
+              }}>
               {/* Static, per export-6c. It used to read "Start with <topic>",
                   and real subtopic names run long enough ("Electric Current,
                   Ohm's Law & Drift Velocity") that the label had to be

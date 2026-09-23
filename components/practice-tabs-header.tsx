@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 
 type PracticeTabsHeaderProps = {
@@ -40,11 +40,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(12),
       minHeight: verticalScale(38),
     },
-    heading: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
   });
 }

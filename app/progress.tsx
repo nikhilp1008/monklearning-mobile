@@ -4,9 +4,12 @@ import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { FirstDayCard } from '@/components/first-day-card';
+import { ProgressGlyph } from '@/components/monk-icons';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import {
   MasteryState,
@@ -31,12 +34,48 @@ const hairline = (alpha: number) => `rgba(${INK_RGB},${alpha})`;
 
 const NOT_STARTED_GREY = '#C2BCAF';
 
+/** What every subject has to clear before any of them prints a score. */
+const SUBJECT_SCORE_FLOOR = 10;
+
 const STATE_COLOR: Record<MasteryState, string> = {
   strong: colors.masteryStrong,
   improving: colors.masteryBuilding,
   needs_revision: colors.masteryWeak,
   not_started: NOT_STARTED_GREY,
 };
+
+/**
+ * A VERDICT NEEDS EVIDENCE, AND TWO CONCEPTS IS NOT EVIDENCE.
+ *
+ * `state` arrives per chapter from the API and it is computed off the
+ * concepts a student has actually touched, with no weight on how much of the
+ * chapter that is. Measured on a real account: "Units & Measurements" has
+ * eight concepts, two of them answered and shaky, six never seen — and the
+ * chapter reads "Revise". Half the Physics list was red for the same reason,
+ * while the untouched chapters sat quiet and grey. It told a student they
+ * were behind on exactly the chapters they had started, and said nothing
+ * about the ones they had not opened.
+ *
+ * So the chip waits for coverage: half the chapter's concepts, or four of
+ * them, whichever is fewer. Under that the row says "Started", which is the
+ * only thing that is true. Nothing is hidden — the concepts inside the
+ * chapter carry their own colours, so a student who opens the row still sees
+ * which two are shaky.
+ *
+ * THE REAL FIX IS SERVER-SIDE: `state` should weigh coverage before it calls
+ * a chapter weak, and the same flags cap the Monk Score ("concepts flagged
+ * needs revision cap it until you refresh them"), where this gate cannot
+ * reach. This keeps the page honest until that lands.
+ */
+function hasEnoughSeen(chapter: ProgressChapter): boolean {
+  const total = chapter.concepts?.length ?? 0;
+  if (total === 0) return true;
+  const seen = chapter.concepts.filter((c) => c.state !== 'not_started').length;
+  return seen >= Math.min(4, Math.ceil(total / 2));
+}
+
+/** What a chapter is called before it has been seen enough to judge. */
+const STARTED_LABEL = 'Started';
 
 const STATE_LABEL: Record<MasteryState, string> = {
   strong: 'Strong',
@@ -159,6 +198,20 @@ export default function ProgressScreen() {
     (data.monk_score.display > 0 ||
       data.ledger.questions_attempted > 0 ||
       data.monk_score.flagged_concepts > 0);
+  /**
+   * ALL THREE, OR NONE.
+   *
+   * These cards carried a score each. On a new account that is three of them
+   * reading 0 /1000 before a single question has been answered — the most
+   * discouraging way to say "not yet" — and a row where Physics reads 10 and
+   * the other two read 0 is worse: it looks like the other two are broken
+   * rather than untouched. So the numbers appear together, once every subject
+   * has one worth printing, and until then the cards are what they are used
+   * for: the selector for the chapter list.
+   */
+  const showSubjectScores =
+    subjects.length > 0 && subjects.every((s) => s.score >= SUBJECT_SCORE_FLOOR);
+
   const ledgerHasAnything =
     !!data &&
     (data.ledger.doubts_solved > 0 ||
@@ -266,7 +319,22 @@ export default function ProgressScreen() {
             </View>
           )}
 
-          {data && score && (
+          {/*
+            THE FIRST DAY. A student who has answered nothing used to get this
+            page as a 0 / 1000, an empty pace card and a hidden ledger — three
+            pieces of furniture explaining a number that does not exist yet.
+            One card instead, the same one the Doubts and Notes tabs show, and
+            every piece above returns the moment there is something to say.
+          */}
+          {data && !started && (
+            <FirstDayCard
+              glyph={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
+              head="No score yet"
+              line="Take a class, solve a doubt, answer a few questions. Your score shows up after that."
+            />
+          )}
+
+          {data && score && started && (
             <View style={styles.card}>
               <View style={styles.scoreHeaderRow}>
                 <View style={styles.scoreOverlineRow}>
@@ -365,6 +433,11 @@ export default function ProgressScreen() {
             </View>
           )}
 
+          {/* THE STRIPS STAY ON DAY ONE, zeros and all. They read 0/1000
+              before a student has answered anything, which is honest, and
+              they are also the subject selector for the chapter list below —
+              hiding them left a new student on Physics with no way to reach
+              Chemistry or Maths. */}
           {data && subjects.length > 0 && (
             <View style={styles.subjectsRow}>
               {subjects.map((s, i) => {
@@ -380,10 +453,12 @@ export default function ProgressScreen() {
                       setShowAllChapters(false);
                     }}>
                     <Text style={styles.subjectName}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
-                    <View style={styles.subjectScoreRow}>
-                      <Text style={styles.subjectScore}>{s.score}</Text>
-                      <Text style={styles.subjectScoreMax}>/1000</Text>
-                    </View>
+                    {showSubjectScores && (
+                      <View style={styles.subjectScoreRow}>
+                        <Text style={styles.subjectScore}>{s.score}</Text>
+                        <Text style={styles.subjectScoreMax}>/1000</Text>
+                      </View>
+                    )}
                   </PressableScale>
                 );
               })}
@@ -396,8 +471,8 @@ export default function ProgressScreen() {
                 {SUBJECT_LABEL[subject.subject] ?? subject.subject} · chapter by chapter
               </Text>
               <Text style={styles.chapterHint}>
-                Tap a chapter to see its concepts. Grey means not started yet. The syllabus
-                itself is complete everywhere.
+                Tap a chapter to see its concepts. Grey means not started, and a chapter is
+                only called strong or shaky once you have seen enough of it.
               </Text>
 
               {visibleChapters.map((chapter, index) => {
@@ -446,8 +521,9 @@ export default function ProgressScreen() {
 
           {/* Pace. Real numbers now — the card no longer ships sample rows,
               and a subject the student has not done enough of is simply
-              absent rather than estimated. */}
-          <View style={styles.card}>
+              absent rather than estimated. Nothing to pace before the first
+              question, so on day one it is not there at all. */}
+          <View style={[styles.card, !started && styles.hidden]}>
             <View style={styles.scoreHeaderRow}>
               <Text style={styles.overline}>Pace · typical time per question</Text>
             </View>
@@ -591,6 +667,11 @@ function ChapterRow({
   styles: ReturnType<typeof createStyles>;
 }) {
   const touched = chapter.state !== 'not_started';
+  // Judged, or merely begun — see `hasEnoughSeen`.
+  const judged = touched && hasEnoughSeen(chapter);
+  const chipColor = judged ? STATE_COLOR[chapter.state] : colors.masteryBuilding;
+  const chipWash = judged ? STATE_WASH[chapter.state] : 'rgba(238,163,31,.14)';
+  const chipLabel = judged ? STATE_LABEL[chapter.state] : STARTED_LABEL;
   return (
     <View>
       <PressableScale style={styles.chapterRow} onPress={onToggle}>
@@ -598,11 +679,9 @@ function ChapterRow({
           {chapter.name}
         </Text>
         {touched ? (
-          <View style={[styles.stateChip, { backgroundColor: STATE_WASH[chapter.state] }]}>
-            <View style={[styles.stateChipDot, { backgroundColor: STATE_COLOR[chapter.state] }]} />
-            <Text style={[styles.stateChipText, { color: STATE_COLOR[chapter.state] }]}>
-              {STATE_LABEL[chapter.state]}
-            </Text>
+          <View style={[styles.stateChip, { backgroundColor: chipWash }]}>
+            <View style={[styles.stateChipDot, { backgroundColor: chipColor }]} />
+            <Text style={[styles.stateChipText, { color: chipColor }]}>{chipLabel}</Text>
           </View>
         ) : (
           <View style={styles.quietDot} />
@@ -697,12 +776,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    heading: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    heading: pageTitle(scale),
     subtitle: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
@@ -848,8 +923,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: 1,
       borderColor: hairline(0.16),
       borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(14),
+      paddingVertical: verticalScale(13),
+      paddingHorizontal: scale(10),
+      alignItems: 'center',
+      justifyContent: 'center',
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: verticalScale(4) },
       shadowOpacity: 0.06,
@@ -862,14 +939,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     subjectName: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
+      fontSize: scale(14),
+      lineHeight: scale(19),
+      letterSpacing: scale(-0.2),
       color: colors.ink,
+      textAlign: 'center',
     },
     subjectScoreRow: {
       flexDirection: 'row',
       alignItems: 'baseline',
       gap: scale(3),
-      marginTop: verticalScale(4),
+      marginTop: verticalScale(3),
     },
     subjectScore: {
       fontFamily: 'Onest_700Bold',
@@ -1113,6 +1193,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     // A student who has taken a class but answered nothing has a milestone and
     // an empty ledger, so the strip collapses rather than showing four zeros.
+    hidden: { display: 'none' },
     ledgerStripHidden: {
       display: 'none',
     },

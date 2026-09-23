@@ -8,6 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { CatalogueChapter, getCatalogue } from '@/lib/drona';
 import { normalizePracticeSubject, usePracticeFocus } from '@/lib/practice-focus-context';
@@ -300,13 +301,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    title: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(24),
-      letterSpacing: scale(-0.6),
-      lineHeight: scale(29),
-      color: colors.ink,
-    },
+    /** The app’s one page-title tier — see constants/page-title.ts. */
+    title: pageTitle(scale),
     scroll: {
       flex: 1,
     },

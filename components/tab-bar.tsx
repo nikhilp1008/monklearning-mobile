@@ -81,7 +81,7 @@ function TextbooksIcon({ color, size }: IconProps) {
  * the card. Centred by construction -- the glyph spans 7.54 to 16.46, the
  * card's interior 4.60 to 19.40, both on 12.00.
  */
-function DoubtsIcon({ color, size }: IconProps) {
+export function DoubtsIcon({ color, size }: IconProps) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Rect x={4.2} y={3.8} width={15.6} height={16.4} rx={2.6} stroke={color} strokeWidth={1.6} />
@@ -95,7 +95,7 @@ function DoubtsIcon({ color, size }: IconProps) {
   );
 }
 
-function NotesIcon({ color, size }: IconProps) {
+export function NotesIcon({ color, size }: IconProps) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
       <Rect x={5} y={3.75} width={14} height={16.5} rx={2.2} stroke={color} strokeWidth={1.6} />

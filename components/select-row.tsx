@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * The option row every choice in onboarding is made with: exam, year, and now
@@ -89,7 +90,14 @@ export function SelectRow({
   }));
 
   return (
-    <Pressable onPress={onPress} style={[styles.row, selected ? styles.rowSelected : styles.rowIdle]}>
+    <Pressable
+      onPress={() => {
+        // A new choice ticks; re-tapping the chosen row replays its wipe but
+        // changes nothing, so it stays silent.
+        if (!selected) hapticSwitched();
+        onPress();
+      }}
+      style={[styles.row, selected ? styles.rowSelected : styles.rowIdle]}>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Animated.View style={[styles.washClip, washStyle]}>
           <LinearGradient
