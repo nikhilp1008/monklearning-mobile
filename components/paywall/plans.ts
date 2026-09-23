@@ -8,29 +8,31 @@
  * pass covers both exams"), so this brings the product in line with it rather
  * than inventing a policy.
  *
- * THE LADDER NOW FALLS AT EVERY STEP: ₹4,999 / ₹4,500 / ₹4,250 / ₹4,000,
- * which is 0% / 10% / 15% / 20% off the monthly rate.
+ * THE LADDER FALLS AT EVERY STEP: ₹2,999 / ₹2,666 / ₹2,500 / ₹2,273,
+ * which is 0% / 11% / 17% / 24% off the monthly rate.
  *
- * It did not used to. 3 months and 6 months were ₹13,999 and ₹27,999 —
- * exactly twice — so both worked out at ₹4,666 a month and committing for six
- * months instead of three bought nothing at all. A student comparing the two
- * rows found no reason to pick the longer one, and the screen had no way to
- * hide that because the rows lead with the per-month rate.
+ * It did not always. 3 months and 6 months were ₹13,999 and ₹27,999 — exactly
+ * twice — so both worked out at ₹4,666 a month and committing for six months
+ * instead of three bought nothing at all. A student comparing the two rows
+ * found no reason to pick the longer one, and the screen had no way to hide it
+ * because the rows lead with the per-month rate.
  *
- * ONE THING STILL UNRESOLVED, recorded because it is a pricing decision rather
- * than a design one:
+ * AND THE PASSES NO LONGER UNDERCUT THE PLANS. This was the other flaw
+ * recorded here, and it is the one the price cut actually fixed:
  *
- *   Every plan still costs more per month than renewing the existing passes.
- *   A week pass is ₹749, which is ₹3,210 a month; the win-back below is ₹549,
- *   or ₹2,353 a month. Both undercut the ₹4,000 that the longest and
- *   best-value plan asks for. A student who does that arithmetic finds the
- *   cheapest option is the one this screen does not sell — and the win-back
- *   hands it to them at the exact moment they are leaving.
+ *   7-day pass      ₹749  =  ₹3,210 a month
+ *   7-day win-back  ₹549  =  ₹2,353 a month
+ *   longest plan            ₹2,273 a month
  *
- * That is not this file's call to make. It is why the rows lead with the
- * per-month rate: it is the honest comparator, and if the ladder changes again
- * the screen needs no edit.
- */
+ * At ₹4,999 a month both passes were CHEAPER per month than every plan on this
+ * screen, so a student who did the arithmetic found the best rate was the one
+ * the paywall does not sell — and the win-back handed it to them at the moment
+ * they were leaving. At ₹2,999 the longest plan is finally the cheapest way to
+ * stay, which is the only arrangement in which a ladder means anything.
+ *
+ * The ₹24,999 top rung is what makes that true: ₹25,999 would sit above the
+ * win-back's ₹2,353 and leave the inversion half-standing.
+  */
 
 export type Plan = {
   id: '1m' | '3m' | '6m' | '11m';
@@ -41,10 +43,10 @@ export type Plan = {
 };
 
 export const PLANS: Plan[] = [
-  { id: '1m', name: '1 month', months: 1, price: 4999 },
-  { id: '3m', name: '3 months', months: 3, price: 13499 },
-  { id: '6m', name: '6 months', months: 6, price: 25499 },
-  { id: '11m', name: '11 months', months: 11, price: 43999 },
+  { id: '1m', name: '1 month', months: 1, price: 2999 },
+  { id: '3m', name: '3 months', months: 3, price: 7999 },
+  { id: '6m', name: '6 months', months: 6, price: 14999 },
+  { id: '11m', name: '11 months', months: 11, price: 24999 },
 ];
 
 /** The reference the rest of the ladder is measured against. */
