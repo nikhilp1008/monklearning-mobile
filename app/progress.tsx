@@ -606,6 +606,13 @@ export default function ProgressScreen() {
                         <Text style={styles.recButtonText}>Revise with Drona</Text>
                         <ArrowIcon color={colors.paper} size={scale(13)} />
                       </PressableScale>
+                    ) : rec.role === 'exam_craft' ? (
+                      <PressableScale
+                        style={styles.recButton}
+                        onPress={() => router.push('/mock-ready')}>
+                        <Text style={styles.recButtonText}>Sit a mock test</Text>
+                        <ArrowIcon color={colors.paper} size={scale(13)} />
+                      </PressableScale>
                     ) : (
                       <PressableScale
                         style={[styles.recButton, styles.recButtonQuiet]}

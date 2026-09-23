@@ -368,6 +368,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="mock-paused" options={{ headerShown: false }} />
+          <Stack.Screen name="mock-result" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen
             name="report-sheet"
             options={{
