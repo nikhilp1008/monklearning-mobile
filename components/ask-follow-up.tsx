@@ -258,11 +258,32 @@ export function AskFollowUpBar({
     setBoardSteps([]);
     setBoardOpen(false);
 
+    // THE VOICE LEADS, THE BOARD FOLLOWS — the classroom's own order.
+    // Steps stream in well before Rumik's first sound (board ~2s, voice
+    // ~4-5s), and opening the sheet immediately meant the student read the
+    // whole answer in silence and the voice arrived narrating stale news.
+    // Content still accumulates the moment it streams; only the OPENING
+    // waits for the voice, and a safety valve opens it regardless — an
+    // answer whose voice fails must never hold its content hostage.
+    let boardEarned = false;
+    let boardRevealed = false;
+    let revealTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const revealBoard = () => {
+      if (boardRevealed || controller.signal.aborted) return;
+      boardRevealed = true;
+      if (boardEarned) setBoardOpen(true);
+    };
+    const scheduleReveal = (ms: number) => {
+      if (revealTimer || boardRevealed) return;
+      revealTimer = setTimeout(revealBoard, ms);
+    };
+
     // One writer for finished steps and the step mid-write. Partials carry
     // full text-so-far and REPLACE their step — upsert by n, never append,
     // or a step that streamed as six frames becomes six steps. The board
-    // opens the moment the answer has earned it: a second step, or a long
-    // first one. One short step is conversation and opens nothing.
+    // is EARNED the moment the answer has more than one step, or a long
+    // first one; when it OPENS is the reveal schedule's decision above.
     const absorb = (step: FollowUpStep) => {
       if (controller.signal.aborted) return;
       const at = arrived.findIndex((s) => s.n === step.n);
@@ -272,7 +293,8 @@ export function AskFollowUpBar({
       const body = arrived.map((s) => s.text).join(' ');
       if (arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
         setBoardSteps([...arrived]);
-        setBoardOpen(true);
+        boardEarned = true;
+        if (boardRevealed) setBoardOpen(true);
       }
     };
 
@@ -328,10 +350,15 @@ export function AskFollowUpBar({
           onPcm: (b64) => {
             if (controller.signal.aborted) return;
             pcmFeed(b64);
+            // First frame -> audible ~0.5s later (the anti-shake prebuffer);
+            // the board follows about a second after the voice is heard.
+            scheduleReveal(1500);
           },
           onAudio: (wav) => {
             if (controller.signal.aborted) return;
             inlinePlayer().enqueue(wav);
+            // WAV clips start playing almost immediately once enqueued.
+            scheduleReveal(1000);
           },
           onVoiceDone: (chunks) => {
             if (controller.signal.aborted) return;
@@ -341,6 +368,9 @@ export function AskFollowUpBar({
               return;
             }
             streamDoneRef.current = true;
+            // Voice is over (or never was): whatever the board holds shows
+            // within a beat.
+            scheduleReveal(1000);
             if (pcmAvailable && pcmStartedAtRef.current) {
               // Release an answer still held by the jitter buffer.
               pcmFinish();
@@ -358,6 +388,9 @@ export function AskFollowUpBar({
         surface
       );
       if (controller.signal.aborted) return;
+      // The stream is done. If nothing above ever revealed the board — no
+      // voice started at all — this is the valve that shows the answer.
+      scheduleReveal(1500);
       turnsRef.current = [
         ...turnsRef.current,
         { role: 'user', content: asked },
