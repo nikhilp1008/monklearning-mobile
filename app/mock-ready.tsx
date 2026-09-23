@@ -99,7 +99,19 @@ export default function MockReadyScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          <PracticeTabsHeader />
+          <View style={styles.topRow}>
+            <Pressable
+              style={styles.backButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}>
+              <BackArrowIcon size={scale(16)} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <PracticeTabsHeader />
+            </View>
+          </View>
 
           <View style={styles.headerRow}>
             <View style={styles.iconChip}>
@@ -193,6 +205,20 @@ export default function MockReadyScreen() {
   );
 }
 
+function BackArrowIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function CheckIcon({ size }: { size: number }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -235,6 +261,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minHeight: 0,
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+    },
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      flexShrink: 0,
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerRow: {
       flexDirection: 'row',

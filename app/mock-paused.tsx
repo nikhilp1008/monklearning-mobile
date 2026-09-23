@@ -110,6 +110,15 @@ export default function MockPausedScreen() {
             <Text style={styles.resumeButtonText}>Resume mock test</Text>
             <ArrowRightIcon size={scale(15)} />
           </Pressable>
+          {/* The way OUT. Without this, Save & exit -> Resume was a closed
+              loop and the rest of the app was unreachable mid-paper. The
+              session stays; mock-ready's button reads Resume until the
+              clock runs out or the paper is submitted. */}
+          <Pressable
+            style={styles.leaveButton}
+            onPress={() => router.dismissTo('/progress')}>
+            <Text style={styles.leaveButtonText}>Leave it running</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     </View>
@@ -357,6 +366,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.paper,
+    },
+    leaveButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: verticalScale(44),
+      marginTop: verticalScale(8),
+      borderRadius: scale(99),
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+    },
+    leaveButtonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(13),
+      color: colors.slate,
     },
   });
 }
