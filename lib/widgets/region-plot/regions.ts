@@ -97,20 +97,36 @@ export function domain(bd: Boundary, lo: number, hi: number): [number, number] {
  * about one. Bisection is one routine whose correctness does not depend on
  * which pair it is given — and the tests check it against the closed forms
  * that ARE known, which is the independent route.
+ *
+ * TOUCHES COUNT AS CROSSINGS. The first version looked only for sign changes,
+ * which finds every crossing and misses every touch — and a touch is a split.
+ * See the second loop.
  */
 export function crossings(up: Boundary, low: Boundary,
                           lo: number, hi: number, steps = 400): number[] {
   const f = (x: number) => yAt(up, x) - yAt(low, x);
   const out: number[] = [];
-  let prevX = lo;
-  let prevV = f(lo);
-  for (let i = 1; i <= steps; i++) {
+  const xs: number[] = [];
+  const vs: number[] = [];
+  for (let i = 0; i <= steps; i++) {
     const x = lo + ((hi - lo) * i) / steps;
     const v = f(x);
-    if (Number.isFinite(prevV) && Number.isFinite(v) && prevV !== 0
-        && Math.sign(v) !== Math.sign(prevV)) {
-      let a = prevX;
-      let b = x;
+    if (Number.isFinite(v)) { xs.push(x); vs.push(v); }
+  }
+  if (xs.length < 3) return out;
+
+  // The scale the tolerance is relative to. A difference is "zero" when it is
+  // a millionth of how far the two boundaries get apart anywhere in the
+  // window — absolute tolerances are meaningless here, where one board is in
+  // metres and the next in units of a.
+  const scale = Math.max(...vs.map(Math.abs)) || 1;
+
+  for (let i = 1; i < xs.length; i++) {
+    const a0 = vs[i - 1];
+    const b0 = vs[i];
+    if (a0 !== 0 && Math.sign(b0) !== Math.sign(a0)) {
+      let a = xs[i - 1];
+      let b = xs[i];
       for (let k = 0; k < 60; k++) {
         const m = (a + b) / 2;
         if (Math.sign(f(m)) === Math.sign(f(a))) a = m;
@@ -118,9 +134,40 @@ export function crossings(up: Boundary, low: Boundary,
       }
       out.push((a + b) / 2);
     }
-    if (Number.isFinite(v)) { prevV = v; prevX = x; }
   }
-  return out;
+
+  // A SPLIT WHERE THE BOUNDARIES TOUCH WITHOUT CROSSING.
+  //
+  // The sign-change scan above finds every crossing and misses every TOUCH,
+  // and a touch is a split too. |x| against y = 0 is the case that found
+  // this: the difference is zero at the origin and positive either side, so
+  // nothing changed sign, no split line was drawn — and that split is the
+  // whole of "find the area under a modulus curve by splitting the interval
+  // at points where the inside expression changes sign".
+  //
+  // A touch is a local minimum of |difference| that reaches zero. Ternary
+  // refinement rather than bisection, because bisection needs a sign change
+  // and this is the case that has none.
+  for (let i = 1; i < xs.length - 1; i++) {
+    const prev = Math.abs(vs[i - 1]);
+    const here = Math.abs(vs[i]);
+    const next = Math.abs(vs[i + 1]);
+    if (!(here <= prev && here <= next)) continue;
+    let a = xs[i - 1];
+    let b = xs[i + 1];
+    for (let k = 0; k < 80; k++) {
+      const m1 = a + (b - a) / 3;
+      const m2 = b - (b - a) / 3;
+      if (Math.abs(f(m1)) < Math.abs(f(m2))) b = m2;
+      else a = m1;
+    }
+    const x = (a + b) / 2;
+    if (Math.abs(f(x)) > 1e-6 * scale) continue;
+    if (out.some((c) => Math.abs(c - x) < (hi - lo) / steps)) continue;
+    out.push(x);
+  }
+
+  return out.sort((p, q) => p - q);
 }
 
 /**

@@ -67,6 +67,46 @@ describe('crossings, against algebra done by hand', () => {
     expect(c[0]).toBeCloseTo(want, 4);
   });
 
+  test('a TOUCH is a split too — |x| against y = 0 at the origin', () => {
+    // O2, 2026-09-23. The first version looked only for sign changes, which
+    // finds every crossing and misses every touch. |x| − 0 is zero at the
+    // origin and positive either side, so nothing changed sign, no split line
+    // was drawn — and that split is the WHOLE of "find the area under a
+    // modulus curve by splitting the interval at points where the inside
+    // expression changes sign". The board was judged n for it.
+    const c = crossings(bd('abs', { a: 1, c: 0 }), bd('line', { a: 0, c: 0 }), -2, 3);
+    expect(c).toHaveLength(1);
+    expect(c[0]).toBeCloseTo(0, 6);
+  });
+
+  test('a touch OFF THE SAMPLE GRID is found', () => {
+    // THE TEST THAT ACTUALLY EXERCISES THE TOUCH LOOP, and the reason it is
+    // written this way is worth keeping.
+    //
+    // The first two touch fixtures — |x| at the origin over [-2,3], and
+    // (x−1)² over [-1,3] — both put the touch EXACTLY on a sample point.
+    // `f` is then exactly 0 there, `Math.sign(0)` is 0, that differs from the
+    // sign either side, and the ordinary sign-change branch fires. Both
+    // passed with the touch loop deleted. They were testing the sampling's
+    // luck, not the code.
+    //
+    // (x − 1/3)² over [-1, 3] at 400 steps has its touch at 0.3333…, and the
+    // grid lands on -1 + 0.01i, so no sample is exactly zero and the
+    // sign-change branch cannot see it.
+    const c = crossings(bd('parabola', { a: 1, b: -2 / 3, c: 1 / 9 }),
+                        bd('line', { a: 0, c: 0 }), -1, 3);
+    expect(c).toHaveLength(1);
+    expect(c[0]).toBeCloseTo(1 / 3, 4);
+  });
+
+  test('a near-miss is NOT reported as a split', () => {
+    // The other direction, and the one a tolerance gets wrong: y = x² + 0.5
+    // against y = 2x − 1 never reaches zero — the minimum gap is 1.5 — and a
+    // loose tolerance would invent a split at the point of closest approach.
+    expect(crossings(bd('parabola', { a: 1, b: 0, c: 0.5 }),
+                     bd('line', { a: 2, c: -1 }), -1, 3)).toEqual([]);
+  });
+
   test('curves that never meet report no crossing', () => {
     expect(crossings(bd('line', { a: 0, c: 3 }), bd('line', { a: 0, c: 1 }), -2, 2))
       .toEqual([]);
