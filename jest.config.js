@@ -22,6 +22,8 @@
 module.exports = {
   preset: 'jest-expo',
   setupFiles: ['react-native-reanimated/mock', '<rootDir>/jest/reanimated-missing-hooks.js'],
+  //: AsyncStorage cannot be imported outside a native runtime; see the file.
+  setupFilesAfterEnv: ['<rootDir>/jest/async-storage.js'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.html$': '<rootDir>/jest/html-asset-mock.js',

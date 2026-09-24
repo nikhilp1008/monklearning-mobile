@@ -97,6 +97,7 @@ import { useStagedStatus } from '@/hooks/use-staged-status';
 import { MicStatus, probeMicAvailability } from '@/lib/mic-availability';
 import { spokenMathToNotation } from '@/lib/spoken-math';
 import { supabase } from '@/lib/supabase';
+import { track } from '@/lib/track';
 
 
 /** Clearance kept to the right of every board line so the thumb rail never
@@ -831,7 +832,29 @@ export default function LiveClassroomScreen() {
    *  0021_board_widgets.sql is run and board_gaps exists. */
   const onWidgetGap = useCallback((reason: string, detail: unknown) => {
     console.warn('[board-gap]', reason, detail);
-  }, []);
+    // IT NOW LEAVES THE DEVICE. `console.warn` was the whole implementation, so
+    // every gap since the runtime shipped went to a log nobody reads and
+    // `scripts/gap_report.py` on the API had no rows to count. `app_events` has
+    // `props` NULL in all 1,170 of its rows for the same reason: the only
+    // `track()` calls in the tree are inside lib/track.ts itself.
+    //
+    // The comment above promised `board_gaps` "once 0021_board_widgets.sql is
+    // run". The migration that declares that table is 0031, and the table does
+    // not exist in the database under either number — `POST /events` is the
+    // channel that does. It already stores `props` as jsonb and stamps
+    // `app_version`/`platform`, so this needs no server change and no migration.
+    //
+    // `detail` spreads FIRST: `reason` and `chapter_id` are the two keys the
+    // report groups by and must not be shadowed by a widget's detail bag.
+    // `track` queues and never throws, so a gap cannot cost a student a frame.
+    track('board_gap', {
+      ...(detail && typeof detail === 'object' && !Array.isArray(detail)
+        ? (detail as Record<string, unknown>)
+        : { detail }),
+      reason,
+      chapter_id: params.chapterId ?? null,
+    }, '/live-classroom');
+  }, [params.chapterId]);
 
   /**
    * The clock a live session actually has: not seconds, but how far the
