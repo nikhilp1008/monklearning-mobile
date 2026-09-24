@@ -27,6 +27,67 @@ import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
  * the grid on any device whose width is not the reference 390.
  */
 
+/**
+ * Everything `BoardWidget` needs beyond the event itself and its share of the
+ * board box.
+ *
+ * Optional on `BoardBlockView`, so a surface can draw the board's writing
+ * without standing up a widget runtime — the alternative is every caller
+ * inventing a stub theme and resolver. What a host-less surface gives up is
+ * the registry and the illustration cache, NOT figures in general: an event
+ * carrying its own `svg` needs none of this and is drawn either way. It used
+ * to give up every figure, and `app/dev-board-preview.tsx` — the one screen
+ * whose entire purpose is judging what a board looks like — passes no host.
+ */
+export interface BoardWidgetHost {
+  activeSeq: number | null;
+  theme: WidgetTheme;
+  services: WidgetServices;
+  figures: FigureResolver;
+  /** P3. The chapter's own SVG — the last rung of BoardWidget's fallback
+   *  chain, read from the plan rather than sent per turn. */
+  chapterFallbackSvg?: string;
+  onGap: (reason: string, detail: unknown) => void;
+}
+
+/**
+ * The event types this component knows how to WRITE — and the reason there is
+ * now a branch for everything outside the set.
+ *
+ * `BoardEvent.type` ends in `| string` (lib/drona-voice-client.ts), open on
+ * purpose, because the server may name a type this build does not carry.
+ * Nothing here honoured that: the figure branch tested `type === 'diagram'`
+ * and every other name fell past all four text branches into the default
+ * `<Text>` at the bottom — which, for an event with no `text`, is
+ * `<Text>{''}</Text>`. So an event typed `figure`, `image` or `illustration`,
+ * payload and all, rendered an invisible row of the right height and logged
+ * nothing. That is worse than a blank board: a blank board is at least
+ * visible.
+ */
+const TEXT_TYPES: ReadonlySet<string> = new Set(['text', 'heading', 'note', 'formula']);
+
+/**
+ * A gap has to land somewhere even on a surface with no gap sink.
+ *
+ * `onGap` arrives on `widgetHost`, and the host-less surfaces are exactly the
+ * ones where a blank row is hardest to attribute — so a missing host must not
+ * also mean a missing measurement. The classroom's own `onGap` is itself a
+ * `console.warn('[board-gap]', …)` (app/live-classroom.tsx), so this is the
+ * same destination by a shorter route rather than a second channel.
+ *
+ * Called during render, as BoardWidget's own `onGap` calls are: both are
+ * reached on paths that render nothing, so there is no commit to hang an
+ * effect on that would not also need its own unmount bookkeeping, and the
+ * host's implementation is a log rather than a setState.
+ */
+function reportGap(host: BoardWidgetHost | undefined, reason: string, detail: unknown) {
+  if (host) {
+    host.onGap(reason, detail);
+    return;
+  }
+  console.warn('[board-gap]', reason, detail);
+}
+
 export function BoardBlockView({
   event,
   diagramBox,
@@ -34,24 +95,20 @@ export function BoardBlockView({
 }: {
   event: BoardEvent;
   diagramBox: { availableWidth: number; maxHeight: number };
-  /**
-   * Optional, so a text-only surface can use this without standing up a widget
-   * runtime. A `diagram` event with no host draws nothing rather than throwing
-   * — the alternative is every caller inventing a stub theme and resolver.
-   */
-  widgetHost?: {
-    activeSeq: number | null;
-    theme: WidgetTheme;
-    services: WidgetServices;
-    figures: FigureResolver;
-    /** P3. The chapter's own SVG — the last rung of BoardWidget's fallback
-     *  chain, read from the plan rather than sent per turn. */
-    chapterFallbackSvg?: string;
-    onGap: (reason: string, detail: unknown) => void;
-  };
+  widgetHost?: BoardWidgetHost;
 }) {
-  const raw =
-    event.type === 'formula' ? event.latex ?? '' : event.type === 'diagram' ? '' : event.text ?? '';
+  /**
+   * WHAT MAKES AN EVENT A FIGURE IS WHAT IT CARRIES, NOT WHAT IT IS CALLED.
+   *
+   * See TEXT_TYPES for the row this replaces. A type with no branch of its own
+   * is routed by its contents: one carrying a payload, an `svg` or a slug is a
+   * picture and goes down the figure path; one carrying only words is still
+   * words and is written as prose below.
+   */
+  const hasFigure = Boolean(event.payload || event.svg || event.illustration_slug);
+  const isFigure = event.type === 'diagram' || (!TEXT_TYPES.has(event.type) && hasFigure);
+
+  const raw = isFigure ? '' : event.type === 'formula' ? event.latex ?? '' : event.text ?? '';
   /**
    * The board was the one surface in the app painting its source.
    *
@@ -70,12 +127,49 @@ export function BoardBlockView({
   const text = useMemo(() => latexToText(raw), [raw]);
   // A figure, not a line of writing — it owns its own sizing and never goes
   // near the LaTeX converter.
-  if (event.type === 'diagram') {
-    if (!widgetHost) return null;
-    // A payload beats markup wherever both exist: the registry draws the
-    // real curve from live parameters, an `svg` string draws an
-    // approximation the model produced by hand.
-    if (event.payload) {
+  if (isFigure) {
+    /*
+     * A BOX WITH NO AREA IS THE THIRD WAY TO DRAW NOTHING, and it is the one
+     * this component cannot fix from here.
+     *
+     * Every renderer below sizes itself from `diagramBox`, so at 0x0 they all
+     * paint an empty row — `BoardDiagram` computes `min(0, …)`, a widget gets a
+     * 0x0 canvas — and none of them can tell that apart from a figure that
+     * failed. `app/dev-board-preview.tsx` passes `{ availableWidth: 0,
+     * maxHeight: 0 }` today, deliberately (its comment: figures "snap to no
+     * grid, which is a separate job from the writing"), so the screen meant for
+     * judging boards needs a real box before it can show one. What this can do
+     * is say so instead of showing a gap in the writing and nothing else.
+     *
+     * The classroom's own box cannot be zero — `boardHeight` starts at 390 and
+     * `availableWidth` comes from the window, not from a layout pass — so this
+     * does not fire on a mounting frame there.
+     */
+    if (!(diagramBox.availableWidth > 0) || !(diagramBox.maxHeight > 0)) {
+      reportGap(widgetHost, 'no_diagram_space', {
+        seq: event.seq,
+        type: event.type,
+        availableWidth: diagramBox.availableWidth,
+        maxHeight: diagramBox.maxHeight,
+      });
+      return null;
+    }
+    /*
+     * A PAYLOAD **OR A SLUG** GOES THROUGH BoardWidget.
+     *
+     * The gate here was `event.payload` alone, with `if (!event.svg) return
+     * null` immediately behind it — so an event carrying ONLY an
+     * `illustration_slug` (a real shape: `lib/widgets/board-continuity.ts`
+     * signs one as `ill:${slug}`, and BoardWidget documents the server sending
+     * it) returned null one line above the fallback rung built to draw it. P3
+     * added that rung; for the events it exists for, nothing in the classroom
+     * could reach it.
+     *
+     * A payload still beats markup wherever both exist: the registry draws the
+     * real curve from live parameters, an `svg` string draws an approximation
+     * the model produced by hand.
+     */
+    if (widgetHost && (event.payload || event.illustration_slug)) {
       return (
         <BoardWidget
           /*
@@ -101,15 +195,61 @@ export function BoardBlockView({
         />
       );
     }
-    if (!event.svg) return null;
-    return (
-      <BoardDiagram
-        svg={event.svg}
-        caption={event.caption}
-        availableWidth={diagramBox.availableWidth}
-        maxHeight={diagramBox.maxHeight}
-      />
-    );
+    /*
+     * MARKUP NEEDS NO WIDGET RUNTIME, so a host-less surface is no reason to
+     * draw nothing. `if (!widgetHost) return null` was that reason, and it sat
+     * above everything: `BoardDiagram` takes no theme, no services and no
+     * resolver, which is precisely why the prop is optional in the first place.
+     *
+     * It is also the better renderer for a bare `svg` than BoardWidget's own
+     * tier-3 rung, which hands the string to a raw `SvgXml`: this one remaps
+     * the generator's neutral palette to the board's, attaches the board's own
+     * face and fits the aspect to the box. Hence markup-only events come here
+     * whether or not there is a host.
+     */
+    if (event.svg) {
+      /*
+       * A payload skipped for want of a runtime is a tier-3 render in all but
+       * name — the student gets the model's hand-drawn approximation where the
+       * registry would have computed the real curve — so it is counted like
+       * one. lib/widgets/CLAUDE.md §2: tier 3 is a measurement, not a failure.
+       * This is the one way it happens without BoardWidget ever being asked,
+       * which is exactly why it needs saying out loud here.
+       */
+      if (!widgetHost && (event.payload || event.illustration_slug)) {
+        reportGap(widgetHost, 'no_widget_host', {
+          seq: event.seq,
+          type: event.type,
+          drew: 'svg',
+          hasPayload: Boolean(event.payload),
+          hasIllustration: Boolean(event.illustration_slug),
+        });
+      }
+      return (
+        <BoardDiagram
+          svg={event.svg}
+          caption={event.caption}
+          availableWidth={diagramBox.availableWidth}
+          maxHeight={diagramBox.maxHeight}
+        />
+      );
+    }
+    /*
+     * Nothing drawable is left, and this is the one figure case that is
+     * honestly a no-op. It is not a SILENT one: a blank row with no gap cannot
+     * be told apart from a row that never arrived, and the gap feed is the only
+     * instrument the diagram tiers have (lib/widgets/CLAUDE.md §2). The two
+     * reasons are separate because their fixes are — one is a surface missing a
+     * runtime, the other an event missing a picture.
+     */
+    reportGap(widgetHost, hasFigure ? 'no_widget_host' : 'empty_diagram_event', {
+      seq: event.seq,
+      type: event.type,
+      drew: 'nothing',
+      hasPayload: Boolean(event.payload),
+      hasIllustration: Boolean(event.illustration_slug),
+    });
+    return null;
   }
   if (event.type === 'heading') {
     return <Text style={styles.boardHeading}>{text}</Text>;
@@ -124,6 +264,21 @@ export function BoardBlockView({
   if (event.type === 'note') {
     return <Text style={styles.boardNote}>{text}</Text>;
   }
+  /*
+   * A type with no branch of its own, carrying words rather than a picture.
+   *
+   * Written as prose, because visible beats invisible and prose is what an
+   * event with text in it is — but LOGGED, because the type was a guess and
+   * the only way it ever gets a branch of its own is if someone can see it
+   * arrived. The empty case returns null rather than the `<Text>{''}</Text>`
+   * it used to fall into: a row with no glyphs still takes its 20pt of
+   * marginTop, so the board grew a gap nothing in the plan asked for and
+   * nothing in the log explained.
+   */
+  if (!TEXT_TYPES.has(event.type)) {
+    reportGap(widgetHost, 'unknown_event_type', { seq: event.seq, type: event.type });
+    if (!text) return null;
+  }
   /**
    * Bold on `key` or `high` only.
    *
@@ -136,7 +291,6 @@ export function BoardBlockView({
   const emphasised = event.emphasis === 'key' || event.emphasis === 'high';
   return <Text style={[styles.boardBody, emphasised && styles.boardBodyBold]}>{text}</Text>;
 }
-
 /**
  * SPACING AND SIZE, NOT THE RULE GRID.
  *

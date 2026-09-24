@@ -6,8 +6,9 @@
  */
 import {
   applyContinuity, boardRowKey, boardSignature, collapseBoards, drawCount,
-  revealOf, type ContinuityEvent,
+  REVEAL_KEYS, revealOf, type ContinuityEvent,
 } from '../board-continuity';
+import { REGISTRY, REGISTRY_MANIFEST } from '../registry';
 
 const plate = (seq: number, group: string): ContinuityEvent => ({
   seq, type: 'diagram', tier: 'precomputed',
@@ -66,24 +67,115 @@ describe('what counts as the same picture', () => {
     expect(drawCount([a, b])).toBe(1);
   });
 
-  test('every reveal key is excluded from the signature, by name', () => {
-    // One assertion per widget that has a reveal, because a key missing from
-    // REVEAL_KEYS silently reintroduces the flicker for that widget only —
-    // the kind of gap that survives a spot check.
-    const cases: [string, string, unknown, unknown][] = [
-      ['data_table_trend', 'highlight_row', -1, 2],
-      ['comparison_table', 'highlight', null, [0, 1]],
-      ['process_flow', 'active_node', -1, 3],
-      ['reaction_scheme', 'highlight_step', -1, 1],
-      ['lcr_resonance', 'probe_rel', 1.0, 1.2],
-      ['circuit_network', 't_frac', 0, 0.5],
-    ];
-    for (const [widget, key, before, after] of cases) {
-      const mk = (v: unknown): ContinuityEvent => ({
-        seq: 1, type: 'diagram',
-        payload: { widget, version: 1, params: { shared: 'x', [key]: v } } });
-      expect(boardSignature(mk(before))).toBe(boardSignature(mk(after)));
+});
+
+/**
+ * This block used to be six HAND-WRITTEN cases, one per widget that had a
+ * reveal. A hand-written list cannot fail for the key nobody thought of, and
+ * that is how it failed: an audit found SEVEN animatable params with no entry
+ * in REVEAL_KEYS — `molecule_struct.highlight_site`, `circuit_network.
+ * bridge_delta`, xy_plot's three, `lcr_resonance.r_ohm` and
+ * `projectile_motion.launch_angle_deg` — while all six hand-written cases
+ * stayed green, because every one of them was a key somebody had already
+ * remembered. Derived from REGISTRY_MANIFEST, an unclassified animatable param
+ * fails HERE, on the commit that registers the widget.
+ *
+ * `animatable` is the right list to derive from because it is exactly the set
+ * of params a cue may move CONTINUOUSLY — move one and the widget is expected
+ * to still be the same widget, mid-tween, or the tween is meaningless.
+ */
+describe('reveal completeness, derived from the registry', () => {
+  const animatable = REGISTRY_MANIFEST.flatMap(({ id, animatable: keys }) =>
+    keys.map((key) => ({ id, key: key as string })));
+
+  /**
+   * Animatable params that are the picture's IDENTITY, so they must NOT be
+   * reveal keys. Every entry states why, because an unexplained entry here is
+   * indistinguishable from a REVEAL_KEY somebody forgot — which is the failure
+   * this whole block exists to catch.
+   */
+  const IDENTITY_NOT_REVEAL: Record<string, string> = {
+    // conic_plot, all four. An ellipse with different semi-axes is a different
+    // conic, not the same conic with something lit up; collapsing them would
+    // keep the first event's curve on the board while the readout it carries
+    // (area, eccentricity) described the second one's.
+    a: 'conic_plot: semi-axis',
+    b: 'conic_plot: semi-axis',
+    cx: 'conic_plot: centre',
+    line_c: "conic_plot: the chord's offset",
+  };
+
+  /**
+   * Reveals that SNAP, and therefore cannot be derived from any `animatable`
+   * list. `comparison_table.highlight` is a box that has nothing to
+   * interpolate through and `reaction_scheme.highlight_step` is an index;
+   * labelled_figure is absent from REGISTRY altogether, deliberately — see
+   * registry.ts's own comment: a plate names an asset an author prepared, it
+   * is not a drawing the model fills parameters for. So these four are named
+   * rather than derived, and `active_group` / `lang` being absent from the
+   * manifest is NOT evidence that they are dead keys.
+   */
+  const SNAP_REVEALS: [string, string, unknown, unknown][] = [
+    ['comparison_table', 'highlight', null, [0, 1]],
+    ['reaction_scheme', 'highlight_step', -1, 1],
+    ['labelled_figure', 'active_group', 'skeleton', 'digestive'],
+    ['labelled_figure', 'lang', 'english', 'hinglish'],
+  ];
+
+  /** Two events alike but for `key`. Equal signatures = `key` is a reveal. */
+  const collapsesOn = (widget: string, key: string, before: unknown, after: unknown) => {
+    const mk = (v: unknown): ContinuityEvent => ({
+      seq: 1, type: 'diagram',
+      payload: { widget, version: 1, params: { shared: 'x', [key]: v } } });
+    return boardSignature(mk(before)) === boardSignature(mk(after));
+  };
+
+  test('the manifest is actually being read', () => {
+    // A derived suite that iterates an empty list passes every assertion below
+    // for the wrong reason, which is the way a derived check rots.
+    expect(REGISTRY_MANIFEST.length).toBeGreaterThan(10);
+    expect(animatable.map((c) => `${c.id}.${c.key}`))
+      .toContain('molecule_struct.highlight_site');
+  });
+
+  test('every animatable param is a reveal, or excluded on purpose', () => {
+    const unclassified = animatable
+      .filter(({ id, key }) =>
+        !(key in IDENTITY_NOT_REVEAL) && !collapsesOn(id, key, 0, 1))
+      .map(({ id, key }) => `${id}.${key}`);
+    // Each of these redraws the board mid-cue. Add it to REVEAL_KEYS with a
+    // comment, or to IDENTITY_NOT_REVEAL with the reason it is the picture.
+    expect(unclassified).toEqual([]);
+  });
+
+  test('the excluded params really do redraw', () => {
+    // Without this the exclusion list is a way to silence the check above.
+    const wronglyCollapsing = animatable
+      .filter(({ id, key }) => key in IDENTITY_NOT_REVEAL && collapsesOn(id, key, 0, 1))
+      .map(({ id, key }) => `${id}.${key}`);
+    expect(wronglyCollapsing).toEqual([]);
+    expect(Object.keys(IDENTITY_NOT_REVEAL).sort()).toEqual(['a', 'b', 'cx', 'line_c']);
+  });
+
+  test('the snap reveals collapse too', () => {
+    for (const [widget, key, before, after] of SNAP_REVEALS) {
+      expect(collapsesOn(widget, key, before, after)).toBe(true);
     }
+  });
+
+  test('no reveal key is dead', () => {
+    // A key left in REVEAL_KEYS after its widget renamed the param collapses
+    // nothing and reads as covered. The forward check cannot see it: the new
+    // name fails there, the old name just sits here looking deliberate.
+    const registeredParams = new Set(
+      Object.values(REGISTRY).flatMap((m) =>
+        Object.keys((m as { defaults: object }).defaults)));
+    const unregisteredWidgets = SNAP_REVEALS
+      .filter(([widget]) => !(widget in REGISTRY))
+      .map(([, key]) => key);
+    const dead = [...REVEAL_KEYS].filter(
+      (key) => !registeredParams.has(key) && !unregisteredWidgets.includes(key));
+    expect(dead).toEqual([]);
   });
 });
 
