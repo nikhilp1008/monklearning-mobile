@@ -270,6 +270,24 @@ export default function ProgressScreen() {
     return null;
   };
 
+  /**
+   * The SELECTED subject's own highest lever — the same headroom number
+   * (exam weightage x weakness) the API's global recommendation maximises,
+   * narrowed to the tab on screen. The server's pick spans all subjects, so
+   * with Physics selected the card used to advertise a Maths chapter; now
+   * the card follows the pill, and the API's global pick is only the
+   * fallback for a subject with nothing curated to recommend.
+   */
+  const subjectLever = (() => {
+    if (!subject) return null;
+    let best = null as (typeof subject.chapters)[number] | null;
+    for (const ch of subject.chapters) {
+      if (!ch.curated || ch.headroom <= 0) continue;
+      if (!best || ch.headroom > best.headroom) best = ch;
+    }
+    return best;
+  })();
+
   const animateNext = () => LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
   return (
@@ -582,18 +600,32 @@ export default function ProgressScreen() {
               </View>
               {data.recommendations.map((rec) => {
                 const resolved = chapterName(rec.chapter_id);
+                // The lever card follows the subject pill; every other card
+                // keeps the server's own words.
+                const lever =
+                  rec.role === 'highest_lever' && subject && subjectLever
+                    ? { chapter: subjectLever, subject: subject.subject }
+                    : rec.role === 'highest_lever'
+                      ? resolved
+                      : null;
                 return (
                   <View key={rec.role} style={[styles.card, styles.recCard]}>
-                    <Text style={styles.recTitle}>{rec.title}</Text>
-                    <Text style={styles.recReason}>{rec.reason}</Text>
-                    {rec.role === 'highest_lever' && resolved ? (
+                    <Text style={styles.recTitle}>
+                      {lever ? `Practice ${lever.chapter.name}` : rec.title}
+                    </Text>
+                    <Text style={styles.recReason}>
+                      {lever
+                        ? `Most score headroom in ${SUBJECT_LABEL[lever.subject] ?? lever.subject} right now.`
+                        : rec.reason}
+                    </Text>
+                    {rec.role === 'highest_lever' && lever ? (
                       <PressableScale
                         style={styles.recButton}
                         onPress={() =>
                           goPractiseChapter(
-                            resolved.chapter.chapter_id,
-                            resolved.subject,
-                            resolved.chapter.name
+                            lever.chapter.chapter_id,
+                            lever.subject,
+                            lever.chapter.name
                           )
                         }>
                         <Text style={styles.recButtonText}>Practise this</Text>
