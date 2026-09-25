@@ -62,7 +62,6 @@ export interface BoardWidgetProps {
    * P3. The chapter's own SVG, the last thing between an undrawable payload
    * and an empty board. Supplied by the host from the plan, not per turn.
    */
-  chapterFallbackSvg?: string;
   onGap?: (reason: string, detail: unknown) => void;
   /** The active cue's caption, already {{token}}-interpolated — render it in
    *  the board's own caption strip, not a new surface. Called with `null`
@@ -121,7 +120,6 @@ export function BoardWidget({
   theme,
   services,
   figures,
-  chapterFallbackSvg,
   onGap,
   onCaption,
 }: BoardWidgetProps) {
@@ -395,9 +393,26 @@ export function BoardWidget({
       }
     }
 
-    const fromChapter = svgRung(
-      chapterFallbackSvg, boxH, 'chapterFallbackSvg', 'fell_back_to_chapter_svg', about);
-    if (fromChapter) return fromChapter;
+    /*
+     * THE `chapterFallbackSvg` RUNG WAS HERE. It is gone — S3, 2026-09-24.
+     *
+     * P3 added it as the chain's last rung, "the chapter's own SVG, read from
+     * the plan rather than sent per turn". Nothing ever read it from the plan.
+     * Grepped across the whole app: the prop was declared on `BoardWidgetHost`,
+     * threaded through `BoardBlockView`, and passed here — and the classroom's
+     * `widgetHost` (app/live-classroom.tsx) never set it, so every live board
+     * for the life of the feature reached this line with `undefined` and fell
+     * straight past it.
+     *
+     * A rung nothing feeds is worse than no rung: it reads, in review and in
+     * this file's own comments, as a safety net that is there. The real net is
+     * `event.svg`, and S2 made the server attach it to LIVE widget events too,
+     * not just precomputed ones — so the case this was imagined for is covered
+     * by a rung that is actually fed.
+     *
+     * If a chapter-level plate ever does become available on the client, this
+     * comes back WITH its source wired in the same commit.
+     */
 
     /*
      * Nothing left — but PENDING is not MISSING.

@@ -64,7 +64,6 @@ const NO_BOX = { availableWidth: 0, maxHeight: 0 };
 
 type HostOpts = {
   figures?: FigureResolver;
-  chapterFallbackSvg?: string;
   box?: { availableWidth: number; maxHeight: number };
 };
 
@@ -86,7 +85,6 @@ function draw(event: BoardEvent, host?: HostOpts, box = BOX) {
         theme: TEST_THEME,
         services: TEST_SERVICES,
         figures: host.figures ?? placeholderFigureResolver,
-        chapterFallbackSvg: host.chapterFallbackSvg,
         onGap: (reason: string, detail: unknown) => gaps.push([reason, detail]),
       }
     : undefined;

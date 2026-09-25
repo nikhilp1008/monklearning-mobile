@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
@@ -166,6 +166,106 @@ function parseViewBox(svg: string): Box | null {
   if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
   if (!(width > 0) || !(height > 0)) return null;
   return { minX, minY, width, height };
+}
+
+/** `width="640"` / `height="260"` on the root, in user units. */
+const ROOT_LENGTH = (svg: string, name: 'width' | 'height'): number | null => {
+  const root = /<svg\b[^>]*>/i.exec(svg);
+  if (!root) return null;
+  const m = new RegExp(`\\b${name}\\s*=\\s*["']\\s*([\\d.]+)\\s*(px)?\\s*["']`, 'i').exec(root[0]);
+  if (!m) return null;
+  const v = Number(m[1]);
+  return v > 0 ? v : null;
+};
+
+/** Every coordinate the shape primitives name, as a bounding box. */
+const CONTENT_NUMBERS = [
+  /<rect\b[^>]*?\bx\s*=\s*["']([-\d.]+)["'][^>]*?\by\s*=\s*["']([-\d.]+)["'][^>]*?\bwidth\s*=\s*["']([\d.]+)["'][^>]*?\bheight\s*=\s*["']([\d.]+)["']/gi,
+];
+
+function contentBox(svg: string): Box | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const see = (x: number, y: number) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (x < minX) minX = x; if (y < minY) minY = y;
+    if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+  };
+  for (const re of CONTENT_NUMBERS) {
+    re.lastIndex = 0;
+    for (let m = re.exec(svg); m; m = re.exec(svg)) {
+      const x = Number(m[1]), y = Number(m[2]);
+      see(x, y); see(x + Number(m[3]), y + Number(m[4]));
+    }
+  }
+  for (const [re, cx, cy, r] of [
+    [/<circle\b[^>]*>/gi, 'cx', 'cy', 'r'],
+    [/<ellipse\b[^>]*>/gi, 'cx', 'cy', 'rx'],
+  ] as const) {
+    re.lastIndex = 0;
+    for (let m = re.exec(svg); m; m = re.exec(svg)) {
+      const num = (n: string) => {
+        const a = new RegExp(`\\b${n}\\s*=\\s*["']([-\\d.]+)["']`, 'i').exec(m![0]);
+        return a ? Number(a[1]) : NaN;
+      };
+      const x = num(cx), y = num(cy), rad = Math.abs(num(r)) || 0;
+      see(x - rad, y - rad); see(x + rad, y + rad);
+    }
+  }
+  // `line`, `polyline`, `polygon` and `path` are read as bare coordinate runs:
+  // a bounding box only needs the extremes, and a control point of a Bezier is
+  // still inside the box the curve is drawn in (it bounds it, never clips it).
+  for (const re of [/<(?:line|polyline|polygon|path)\b[^>]*>/gi]) {
+    re.lastIndex = 0;
+    for (let m = re.exec(svg); m; m = re.exec(svg)) {
+      const geom = /\b(?:d|points|x1|y1|x2|y2)\s*=\s*["']([^"']*)["']/gi;
+      for (let g = geom.exec(m[0]); g; g = geom.exec(m[0])) {
+        const nums = (g[1].match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+        for (let i = 0; i + 1 < nums.length; i += 2) see(nums[i], nums[i + 1]);
+      }
+    }
+  }
+  if (!Number.isFinite(minX) || maxX <= minX || maxY <= minY) return null;
+  return { minX, minY, width: maxX - minX, height: maxY - minY };
+}
+
+/**
+ * The box to draw this figure in, and WHY IT IS NOT JUST THE viewBox.
+ *
+ * S3, 2026-09-24. An SVG with no readable `viewBox` was dropped — `return null`
+ * with no gap event, so the board went blank and the feed said nothing at all.
+ * That is the worst shape a failure can take here: `gap_report.py` counts what
+ * the client reports, and a silent blank is invisible to the one instrument
+ * the diagram tiers have. It is also not hypothetical — `verify-fixtures` and
+ * the corpus audit both key on `viewBox`, so anything reaching the board
+ * without one had already slipped past every check upstream.
+ *
+ * Three sources, in descending order of how much the author told us:
+ *
+ *   1. `viewBox` — what the author computed the geometry against;
+ *   2. the root `width`/`height` — the same aspect, stated a different way.
+ *      An SVG with `width="640" height="260"` and no viewBox is well-formed
+ *      and unambiguous: the user-space origin is (0,0) by definition;
+ *   3. the bounding box of the CONTENT. A guess, and labelled one: `derived`
+ *      is returned so the caller can report it. It cannot distort the figure
+ *      (the aspect comes from the drawing itself) but it can crop a stroke
+ *      that sits outside every coordinate it names, so it is last.
+ *
+ * Nothing left means the figure genuinely cannot be sized, and THAT is now a
+ * reported `svg_invalid` rather than a silent null.
+ */
+export type BoxSource = 'viewBox' | 'width-height' | 'content-bounds';
+
+export function diagramBox(svg: string): { box: Box; source: BoxSource } | null {
+  const fromViewBox = parseViewBox(svg);
+  if (fromViewBox) return { box: fromViewBox, source: 'viewBox' };
+
+  const w = ROOT_LENGTH(svg, 'width');
+  const h = ROOT_LENGTH(svg, 'height');
+  if (w && h) return { box: { minX: 0, minY: 0, width: w, height: h }, source: 'width-height' };
+
+  const fromContent = contentBox(svg);
+  if (fromContent) return { box: fromContent, source: 'content-bounds' };
+  return null;
 }
 
 function attrValue(attrs: string, name: string): string | null {
@@ -758,23 +858,47 @@ export function BoardDiagram({
   caption,
   availableWidth,
   maxHeight,
+  onGap,
 }: {
   svg: string;
   caption?: string;
+  /** Same contract as BoardWidget's: a figure that cannot be drawn says so. */
+  onGap?: (reason: string, detail: unknown) => void;
   /** Board content width — the widest the figure may be drawn. */
   availableWidth: number;
   /** The tallest it may be drawn, so it cannot swallow the whole board. */
   maxHeight: number;
 }) {
-  const prepared = useMemo(() => prepareDiagramSvg(svg), [svg]);
+  const sized = useMemo(() => diagramBox(svg), [svg]);
 
-  const box = useMemo(() => parseViewBox(svg), [svg]);
+  const prepared = useMemo(() => {
+    const out = prepareDiagramSvg(svg);
+    if (!sized || sized.source === 'viewBox') return out;
+    // A DERIVED box has to be written INTO the markup, not just used for
+    // layout: `SvgXml` sizes the drawing from the root element, and a figure
+    // with no viewBox renders at its intrinsic size inside whatever width and
+    // height we pass, which is how a 640x260 plate ends up as a dot in the
+    // corner of the board.
+    const { minX, minY, width, height } = sized.box;
+    return out.replace(/<svg\b/i, `<svg viewBox="${minX} ${minY} ${width} ${height}"`);
+  }, [svg, sized]);
 
-  // A diagram whose viewBox cannot be read cannot be sized, and drawing it at a
-  // guessed aspect would distort the geometry the author computed. Drop it —
-  // the board reads fine without a figure, which is the normal case for 83% of
-  // concepts anyway.
-  if (!box) return null;
+  // Reported, not swallowed. `onGap` is called from an effect rather than
+  // during render: `BoardWidget`'s own gaps are render-time calls and this
+  // component is reached from the same tree, but this one can fire on the very
+  // first commit of a figure that never changes, and a setState in a parent
+  // during render is the one thing that turns a missing picture into a broken
+  // screen.
+  useEffect(() => {
+    if (!sized) onGap?.('svg_invalid', { reason: 'no viewBox, no width/height, no content bounds', bytes: svg.length });
+    else if (sized.source !== 'viewBox') onGap?.('svg_viewbox_derived', { source: sized.source, ...sized.box });
+  }, [sized, svg.length, onGap]);
+
+  // Genuinely unsizable: drawing it at a guessed aspect would distort the
+  // geometry the author computed. The caller has been told, so this is a
+  // reported fall rather than the silent blank it used to be.
+  if (!sized) return null;
+  const box = sized.box;
 
   /**
    * Height is the binding constraint here, which inverts the web app's problem.

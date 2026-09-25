@@ -154,14 +154,13 @@ describe('the chain, rung by rung', () => {
     expect(json).not.toBeNull();
   });
 
-  test('rung 3: with no svg, the chapter fallback is drawn', () => {
-    const { json, gaps } = draw(
-      { seq: 1, tier: 'precomputed', payload: UNDRAWABLE },
-      { chapterFallbackSvg: SVG });
-    expect(json).not.toBeNull();
-    expect(gaps).toContain('unknown_widget');
-    expect(gaps).toContain('fell_back_to_chapter_svg');
-  });
+  /* `rung 3: with no svg, the chapter fallback is drawn` WAS HERE. The
+   * chapterFallbackSvg rung is gone (S3) — nothing in the app ever set it, so
+   * it was a rung that had never once fired in production. See BoardWidget.tsx
+   * where it used to be. What replaced it is not another rung but a FED one:
+   * the server now attaches the stored SVG to LIVE widget events too, so
+   * `event.svg` covers the case this was imagined for. That is rung 1, tested
+   * directly above. */
 
   test('THE REGRESSION: no svg and no fallback used to be a silent blank', () => {
     // It is still blank — there is genuinely nothing to draw — but it is no
@@ -178,12 +177,11 @@ describe('the chain, rung by rung', () => {
     // on screen. The feed is how P1's effect gets measured, so they must not
     // look identical there.
     const withSvg = draw({ seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: SVG });
-    const withChapter = draw({ seq: 1, tier: 'precomputed', payload: UNDRAWABLE },
-                             { chapterFallbackSvg: SVG });
     const withNothing = draw({ seq: 1, tier: 'precomputed', payload: UNDRAWABLE });
-    expect(withSvg.gaps).not.toContain('fell_back_to_chapter_svg');
-    expect(withChapter.gaps).toContain('fell_back_to_chapter_svg');
+    expect(withSvg.gaps).toContain('fell_back_to_event_svg');
+    expect(withSvg.gaps).not.toContain('no_fallback_available');
     expect(withNothing.gaps).toContain('no_fallback_available');
+    expect(withNothing.gaps).not.toContain('fell_back_to_event_svg');
   });
 });
 
@@ -248,35 +246,31 @@ describe('a malformed svg is not a fallback', () => {
     expect(r.toJSON()).not.toBeNull();
   });
 
-  test('rung 1: a malformed event.svg falls THROUGH to the chapter plate', () => {
-    // Was: `SvgXml` caught the throw, console.error'd, returned null, and the
-    // chapter SVG sat unused in props — a blank board on an event that had two
-    // more rungs to try.
-    const { json, text, gaps } = draw(
-      { seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: BROKEN_SVG },
-      { chapterFallbackSvg: CHAPTER_SVG });
-    expect(json).not.toBeNull();
-    expect(text).toContain(CHAPTER_MARK);
-    expect(gaps).toContain('svg_parse_failed');
-    expect(gaps).toContain('fell_back_to_chapter_svg');
-    expect(gaps).not.toContain('fell_back_to_event_svg');
-    expect(gaps).not.toContain('no_fallback_available');
-    expect(draw({ seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: BROKEN_SVG },
-                { chapterFallbackSvg: CHAPTER_SVG }).detail('svg_parse_failed')!.rung)
-      .toBe('event.svg');
-  });
-
-  test('rung 3: a malformed chapter svg does not get to claim it saved the board', () => {
-    // Was: `fell_back_to_chapter_svg` logged, then nothing drawn — the feed
-    // said the board was rescued and the student saw blank paper. A wrong
-    // entry in the feed is worse than a missing one: it is what P1 is
-    // measured by.
-    const { json, gaps } = draw(
-      { seq: 1, tier: 'precomputed', payload: UNDRAWABLE },
-      { chapterFallbackSvg: BROKEN_SVG });
+  test('rung 1: a malformed event.svg is REFUSED and named, not silently drawn', () => {
+    // Was: `SvgXml` caught the throw, console.error'd and returned null, and
+    // the board went blank on an event that looked like it had a picture.
+    // With the chapter rung gone (S3) there is nothing below this one, so the
+    // outcome is an honest `no_fallback_available` — the point preserved here
+    // is that the REFUSAL is detected and attributed to the right rung.
+    const { json, gaps, detail } = draw(
+      { seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: BROKEN_SVG });
     expect(json).toBeNull();
     expect(gaps).toContain('svg_parse_failed');
-    expect(gaps).not.toContain('fell_back_to_chapter_svg');
+    expect(gaps).not.toContain('fell_back_to_event_svg');
+    expect(gaps).toContain('no_fallback_available');
+    expect(detail('svg_parse_failed')!.rung).toBe('event.svg');
+  });
+
+  test('a rung that REFUSED does not get to claim it saved the board', () => {
+    // Was: the rung logged `fell_back_to_*` and then drew nothing — the feed
+    // said the board was rescued and the student saw blank paper. A wrong
+    // entry in the feed is worse than a missing one: it is what P1 is measured
+    // by. Asserted on `event.svg` now that it is the only svg rung.
+    const { json, gaps } = draw(
+      { seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: BROKEN_SVG });
+    expect(json).toBeNull();
+    expect(gaps).toContain('svg_parse_failed');
+    expect(gaps).not.toContain('fell_back_to_event_svg');
     expect(gaps).toContain('no_fallback_available');
   });
 
@@ -341,12 +335,16 @@ describe('a rung that DREW says so', () => {
     } as never;
     const { text, gaps, detail } = draw(
       { seq: 1, tier: 'precomputed', payload: UNDRAWABLE, illustration_slug: 'test--plate' },
-      { figures, chapterFallbackSvg: CHAPTER_SVG });
+      { figures });
     expect(gaps).toContain('illustration_refused');
     expect((detail('illustration_refused')!.errors as string[]).join(' ')).toContain('art');
-    // And it kept going: a refused plate is not the end of the chain.
-    expect(gaps).toContain('fell_back_to_chapter_svg');
-    expect(text).toContain(CHAPTER_MARK);
+    // NO `svg` on this event ON PURPOSE: `event.svg` is rung 1 and would
+    // short-circuit before the plate is ever tried, so a fixture carrying one
+    // could not test the plate's refusal at all. With the chapter rung gone
+    // (S3) the refusal is now terminal, and it still says so rather than
+    // going quiet — which is the thing under test.
+    expect(text).toBe('null');
+    expect(gaps).toContain('no_fallback_available');
   });
 
   test('rung 2 SUCCESS is a fall, and the feed says which slug', () => {
@@ -407,10 +405,10 @@ describe('a sequence that cannot draw falls into the same chain', () => {
     // deniable failure in this file, because the strip makes the board look
     // deliberate.
     const { json, text, gaps } = draw(
-      sequence(BROKEN_SVG), { activeSeq: 4, chapterFallbackSvg: CHAPTER_SVG });
+      { ...sequence(BROKEN_SVG), svg: CHAPTER_SVG }, { activeSeq: 4 });
     expect(json).not.toBeNull();
     expect(gaps).toContain('svg_parse_failed');
-    expect(gaps).toContain('fell_back_to_chapter_svg');
+    expect(gaps).toContain('fell_back_to_event_svg');
     expect(text).toContain(CHAPTER_MARK);
     // The strip survives the fall: a student who cannot see that a second
     // case exists reads the first as the whole answer.
@@ -429,11 +427,11 @@ describe('a sequence that cannot draw falls into the same chain', () => {
       .mockImplementation((m?: unknown) => { warns.push(String(m)); });
     try {
       const { text, gaps } = draw(
-        sequence(undefined), { activeSeq: 4, chapterFallbackSvg: CHAPTER_SVG });
+        { ...sequence(undefined), svg: CHAPTER_SVG }, { activeSeq: 4 });
       expect(text).toContain('1/1');
       expect(text).toContain('Zn-Hg / HCl');
       expect(text).not.toContain(CHAPTER_MARK);
-      expect(gaps).not.toContain('fell_back_to_chapter_svg');
+      expect(gaps).not.toContain('fell_back_to_event_svg');
       expect(warns.join(' ')).toContain('comparison_table');
     } finally {
       spy.mockRestore();
@@ -442,9 +440,9 @@ describe('a sequence that cannot draw falls into the same chain', () => {
 
   test('a step that CAN draw its own svg says so and does not fall further', () => {
     const { text, gaps } = draw(
-      sequence(SVG), { activeSeq: 4, chapterFallbackSvg: CHAPTER_SVG });
+      { ...sequence(SVG), svg: CHAPTER_SVG }, { activeSeq: 4 });
     expect(gaps).toContain('step_fell_back_to_svg');
-    expect(gaps).not.toContain('fell_back_to_chapter_svg');
+    expect(gaps).not.toContain('fell_back_to_event_svg');
     expect(text).not.toContain(CHAPTER_MARK);
     expect(text).toContain('2/2');
   });
@@ -452,7 +450,7 @@ describe('a sequence that cannot draw falls into the same chain', () => {
   test('a sequence whose visible step draws is untouched by all of this', () => {
     const { text, gaps } = draw(sequence(SVG), { activeSeq: 1 });
     expect(text).toContain('Zn-Hg / HCl');
-    expect(gaps).not.toContain('fell_back_to_chapter_svg');
+    expect(gaps).not.toContain('fell_back_to_event_svg');
     expect(gaps).not.toContain('no_fallback_available');
   });
 
@@ -525,11 +523,11 @@ describe('a resolution that named no module', () => {
     // Was: a bare `return null` one line below the chain. Blank board, no
     // gap, chapter SVG unused — the exact defect P3 was written to remove,
     // reachable through any widget whose validator loses its params.
-    const { json, text, gaps, detail } = draw(SLOPPY_EVENT, { chapterFallbackSvg: CHAPTER_SVG });
+    const { json, text, gaps, detail } = draw({ ...SLOPPY_EVENT, svg: CHAPTER_SVG });
     expect(json).not.toBeNull();
     expect(text).toContain(CHAPTER_MARK);
     expect(gaps).toContain('resolved_without_module');
-    expect(gaps).toContain('fell_back_to_chapter_svg');
+    expect(gaps).toContain('fell_back_to_event_svg');
     const d = detail('resolved_without_module')!;
     expect(d.widget).toBe('sloppy_widget');
     expect(d.hadMod).toBe(true);

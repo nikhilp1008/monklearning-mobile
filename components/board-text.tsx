@@ -44,9 +44,6 @@ export interface BoardWidgetHost {
   theme: WidgetTheme;
   services: WidgetServices;
   figures: FigureResolver;
-  /** P3. The chapter's own SVG — the last rung of BoardWidget's fallback
-   *  chain, read from the plan rather than sent per turn. */
-  chapterFallbackSvg?: string;
   onGap: (reason: string, detail: unknown) => void;
 }
 
@@ -184,7 +181,6 @@ export function BoardBlockView({
           event={{ seq: event.seq, payload: event.payload,
                    svg: event.svg, illustration_slug: event.illustration_slug,
                    tier: event.tier ?? 'precomputed' }}
-          chapterFallbackSvg={widgetHost.chapterFallbackSvg}
           activeSeq={widgetHost.activeSeq}
           width={diagramBox.availableWidth}
           height={diagramBox.maxHeight}
@@ -231,6 +227,11 @@ export function BoardBlockView({
           caption={event.caption}
           availableWidth={diagramBox.availableWidth}
           maxHeight={diagramBox.maxHeight}
+          /* S3. This was the last renderer on the board with no gap channel:
+           * an unsizable SVG returned null and nothing anywhere heard about
+           * it. `reportGap` is the same sink BoardWidget's misses use, so an
+           * `svg_invalid` lands in the same feed `gap_report.py` counts. */
+          onGap={(reason, detail) => reportGap(widgetHost, reason, detail)}
         />
       );
     }
