@@ -260,7 +260,9 @@ export default function MocksScreen() {
     // exist: a report on this phone for a paper the server no longer has (a
     // deleted test paper, another account's leftover) is not shown. The
     // phone's copies only stand in when the list could not be read.
-    const known = new Set((runs ?? []).map((r) => r.id));
+    // Submitted only: a paper the server has since marked abandoned (or one
+    // never finished) is not a paper the student sat, whatever this phone kept.
+    const known = new Set((runs ?? []).filter((r) => r.status === 'submitted').map((r) => r.id));
     for (const r of saved) {
       if (runsLoaded && !known.has(r.run_id)) continue;
       rows.set(r.run_id, {

@@ -148,7 +148,7 @@ export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {
 export interface MockRunRow {
   id: string;
   exam: 'jee' | 'neet';
-  status: 'in_progress' | 'submitted';
+  status: 'in_progress' | 'submitted' | 'abandoned';
   created_at: string;
   submitted_at: string | null;
   score: {
