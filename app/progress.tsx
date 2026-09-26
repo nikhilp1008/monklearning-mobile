@@ -12,6 +12,17 @@ import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import {
+  earnedTowardNext,
+  getMockSession,
+  mockSecondsLeft,
+  getMockStatus,
+  listMockRuns,
+  resumeActiveSession,
+  type MockRunRow,
+  type MockStatus,
+} from '@/lib/mock';
+import { formatDay } from '@/lib/mock-report';
+import {
   MasteryState,
   ProgressChapter,
   ProgressSubject,
@@ -19,7 +30,6 @@ import {
   getCachedProgress,
   getProgress,
 } from '@/lib/progress';
-import { MockStatus, getMockSession, getMockStatus } from '@/lib/mock';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -161,13 +171,68 @@ export default function ProgressScreen() {
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
   const [showAllChapters, setShowAllChapters] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  /** The mock gate, so the card can show the count rather than send a
+   *  student to a screen that refuses them. Null until it is known. */
+  const [mockStatus, setMockStatus] = useState<MockStatus | null>(null);
+  /** The newest finished paper, so the card can say how it went and open its
+   *  report. Without it the card read the same the day after a mock as the
+   *  day before: a gate for the next paper, and nothing about the last. */
+  const [lastPaper, setLastPaper] = useState<MockRunRow | null>(null);
+  const [resuming, setResuming] = useState(false);
+
+  /**
+   * A paper still open. A live one in memory (the student backed out of it
+   * this session) counts as well as one the server holds after a restart;
+   * either way the card must say Resume, not offer to earn another.
+   */
+  const live = getMockSession();
+  const waiting: NonNullable<MockStatus['active_paper']> | null =
+    live && !live.result
+      ? {
+          mock_run_id: live.paper.mock_run_id,
+          deadline: new Date(live.deadline).toISOString(),
+          seconds_left: mockSecondsLeft(live),
+          expired: mockSecondsLeft(live) <= 0,
+        }
+      : (mockStatus?.active_paper ?? null);
+
+  const resumePaper = async () => {
+    if (resuming) return;
+    const exam = state.kind === 'ready' && String(state.data.exam).includes('neet') ? 'neet' : 'jee';
+    setResuming(true);
+    try {
+      // Rebuilds the paper from the server with this phone's saved answers,
+      // or keeps the live one when it is already in memory.
+      const resumed = await resumeActiveSession(exam);
+      router.push(resumed && !resumed.expired ? '/mock-test' : '/mocks');
+    } catch {
+      router.push('/mocks');
+    } finally {
+      setResuming(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       getProgress()
         .then((data) => {
-          if (!cancelled) setState({ kind: 'ready', data });
+          if (cancelled) return;
+          setState({ kind: 'ready', data });
+          // The gate is per exam, and the exam is whatever this summary was
+          // built for — never a guess made on this screen.
+          const exam = String(data.exam).toLowerCase().includes('neet') ? 'neet' : 'jee';
+          getMockStatus(exam)
+            .then((next) => !cancelled && setMockStatus(next))
+            .catch(() => undefined);
+          listMockRuns()
+            .then((runs) => {
+              if (cancelled) return;
+              // Newest first from the server; the exam view this page shows.
+              const done = runs.find((r) => r.exam === exam && r.status === 'submitted' && r.score);
+              setLastPaper(done ?? null);
+            })
+            .catch(() => undefined);
         })
         .catch(() => {
           if (cancelled) return;
@@ -179,35 +244,6 @@ export default function ProgressScreen() {
       };
     }, [])
   );
-
-  // The mock card's unlock line. Read per focus, like the page itself, and
-  // keyed on the exam view the payload resolved (always jee or neet). A
-  // failed read just leaves the server's own card copy in place.
-  const examView = state.kind === 'ready' ? state.data.exam : null;
-  const [mockStatus, setMockStatus] = useState<MockStatus | null>(null);
-  const [mockRunning, setMockRunning] = useState(false);
-  useFocusEffect(
-    useCallback(() => {
-      const session = getMockSession();
-      setMockRunning(!!session && !session.result);
-      if (examView !== 'jee' && examView !== 'neet') return;
-      let cancelled = false;
-      getMockStatus(examView)
-        .then((next) => {
-          if (!cancelled) setMockStatus(next);
-        })
-        .catch(() => {
-          if (!cancelled) setMockStatus(null);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [examView])
-  );
-  const mockLocked = !mockRunning && !!mockStatus && mockStatus.credits_available <= 0;
-  const mockEarnedSoFar = mockStatus
-    ? Math.max(0, Math.min(mockStatus.threshold, mockStatus.threshold - mockStatus.correct_to_next))
-    : 0;
 
   const retry = () => {
     setState({ kind: 'loading' });
@@ -643,38 +679,27 @@ export default function ProgressScreen() {
                     <Text style={styles.recTitle}>
                       {lever ? `Practice ${lever.chapter.name}` : rec.title}
                     </Text>
+                    {/* THE MOCK CARD SAYS WHAT A MOCK IS, IN WORDS.
+                        The server's line here reads "mock answers · 1.15x
+                        exam conditions" — a ratio out of the scoring model,
+                        printed at a seventeen year old who has never sat one.
+                        Every other card keeps the server's own words; this
+                        one is ours, because what it describes is a three
+                        hour commitment and the student has to know what they
+                        are agreeing to. */}
                     <Text style={styles.recReason}>
                       {lever
                         ? `Most score headroom in ${SUBJECT_LABEL[lever.subject] ?? lever.subject} right now.`
-                        : rec.role === 'exam_craft' && mockRunning
-                          ? 'Your paper is waiting, and its clock is still running.'
-                          : rec.role === 'exam_craft' && mockLocked && mockStatus
-                            ? `Get ${mockStatus.correct_to_next} more Practice ${
-                                mockStatus.correct_to_next === 1 ? 'question' : 'questions'
-                              } right to unlock your next mock.`
-                            : rec.role === 'exam_craft' && mockStatus
-                              ? `${
-                                  mockStatus.credits_available === 1
-                                    ? 'You have 1 mock ready.'
-                                    : `You have ${mockStatus.credits_available} mocks ready.`
-                                } Mock answers earn a 1.15× exam-conditions premium.`
-                              : rec.reason}
+                        : rec.role === 'exam_craft' && waiting
+                          ? waiting.expired
+                            ? "Your paper's time ran out while you were away. Open it and it is marked on the answers you gave."
+                            : `Your paper is waiting, with ${formatLeft(waiting.seconds_left)} left on its clock.`
+                        : rec.role === 'exam_craft'
+                          ? mockStatus && mockStatus.credits_available === 0
+                            ? `A full paper, on the clock, marked the way the real one is. You earn one by answering ${mockStatus.threshold} practice questions correctly.`
+                            : 'A full paper, on the clock, marked the way the real one is. It shows where you run out of time and which mistakes cost you marks.'
+                          : rec.reason}
                     </Text>
-                    {rec.role === 'exam_craft' && mockLocked && mockStatus ? (
-                      <View style={styles.mockGateRow}>
-                        <View style={styles.mockGateTrack}>
-                          <View
-                            style={[
-                              styles.mockGateFill,
-                              { width: `${(mockEarnedSoFar / mockStatus.threshold) * 100}%` },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.mockGateCount}>
-                          {mockEarnedSoFar} / {mockStatus.threshold}
-                        </Text>
-                      </View>
-                    ) : null}
                     {rec.role === 'highest_lever' && lever ? (
                       <PressableScale
                         style={styles.recButton}
@@ -696,22 +721,80 @@ export default function ProgressScreen() {
                         <ArrowIcon color={colors.paper} size={scale(13)} />
                       </PressableScale>
                     ) : rec.role === 'exam_craft' ? (
-                      <PressableScale
-                        style={styles.recButton}
-                        onPress={() =>
-                          router.push(
-                            mockRunning ? '/mock-test' : mockLocked ? '/practice' : '/mock-ready'
-                          )
-                        }>
-                        <Text style={styles.recButtonText}>
-                          {mockRunning
-                            ? 'Resume mock test'
-                            : mockLocked
-                              ? 'Practise to unlock'
-                              : 'Sit a mock test'}
-                        </Text>
-                        <ArrowIcon color={colors.paper} size={scale(13)} />
-                      </PressableScale>
+                      <>
+                        {/* THE GATE, ON THE CARD THAT OFFERS THE PAPER.
+                            A mock is earned: one per 75 practice questions
+                            answered correctly for the first time. A student
+                            who tapped this used to find that out from a
+                            failed request on the next screen. The count is
+                            here, where the offer is made, and the key says
+                            which of the two things it does. */}
+                        {lastPaper?.score && (
+                          <Pressable
+                            style={styles.lastPaper}
+                            accessibilityRole="button"
+                            accessibilityLabel="See the report for your last paper"
+                            onPress={() => router.push(`/mock-report?run=${lastPaper.id}`)}>
+                            <View style={styles.lastPaperMain}>
+                              <Text style={styles.lastPaperLabel}>
+                                Last paper · {formatDay(lastPaper.submitted_at ?? lastPaper.created_at)}
+                              </Text>
+                              <Text style={styles.lastPaperScore}>
+                                {lastPaper.score.total_marks}
+                                <Text style={styles.lastPaperMax}>
+                                  {' '}
+                                  / {lastPaper.score.max_marks}
+                                </Text>
+                              </Text>
+                            </View>
+                            <Text style={styles.lastPaperLink}>See report</Text>
+                            <ArrowIcon color={colors.ink} size={scale(12)} />
+                          </Pressable>
+                        )}
+                        {!waiting && mockStatus && mockStatus.credits_available === 0 && (
+                          <View style={styles.mockGate}>
+                            <View style={styles.mockTrack}>
+                              <View
+                                style={[
+                                  styles.mockFill,
+                                  {
+                                    width: `${Math.min(
+                                      100,
+                                      Math.round(
+                                        (earnedTowardNext(mockStatus) /
+                                          mockStatus.threshold) *
+                                          100
+                                      )
+                                    )}%`,
+                                  },
+                                ]}
+                              />
+                            </View>
+                            <Text style={styles.mockCount}>
+                              {earnedTowardNext(mockStatus)} of{' '}
+                              {mockStatus.threshold} correct
+                            </Text>
+                          </View>
+                        )}
+                        <PressableScale
+                          style={styles.recButton}
+                          onPress={() =>
+                            waiting && !waiting.expired ? resumePaper() : router.push('/mocks')
+                          }>
+                          <Text style={styles.recButtonText}>
+                            {waiting
+                              ? waiting.expired
+                                ? 'Mark my paper'
+                                : resuming
+                                  ? 'Opening your paper…'
+                                  : 'Resume mock test'
+                              : !mockStatus || mockStatus.credits_available === 0
+                                ? 'See mock tests'
+                                : 'Start mock test'}
+                          </Text>
+                          <ArrowIcon color={colors.paper} size={scale(13)} />
+                        </PressableScale>
+                      </>
                     ) : (
                       <PressableScale
                         style={[styles.recButton, styles.recButtonQuiet]}
@@ -1257,35 +1340,67 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(18),
       color: colors.ink,
     },
-    mockGateRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      marginTop: verticalScale(10),
-    },
-    mockGateTrack: {
-      flex: 1,
-      height: verticalScale(6),
-      borderRadius: scale(99),
-      backgroundColor: '#EEE6D4',
-      overflow: 'hidden',
-    },
-    mockGateFill: {
-      height: '100%',
-      borderRadius: scale(99),
-      backgroundColor: '#1C9B57',
-    },
-    mockGateCount: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
-    },
     recReason: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
       lineHeight: scale(19.5),
       color: colors.slate,
       marginTop: verticalScale(4),
+    },
+    lastPaper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
+      marginTop: verticalScale(12),
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(12),
+      borderRadius: scale(12),
+      borderWidth: 1,
+      borderColor: hairline(0.1),
+    },
+    lastPaperMain: {
+      flex: 1,
+      gap: verticalScale(2),
+    },
+    lastPaperLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(11.5),
+      color: colors.faint,
+    },
+    lastPaperScore: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(17),
+      color: colors.ink,
+    },
+    lastPaperMax: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(12),
+      color: colors.faint,
+    },
+    lastPaperLink: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(12.5),
+      color: colors.ink,
+    },
+    mockGate: {
+      marginTop: verticalScale(12),
+      gap: verticalScale(6),
+    },
+    mockTrack: {
+      height: verticalScale(6),
+      borderRadius: scale(99),
+      backgroundColor: hairline(0.07),
+      overflow: 'hidden',
+    },
+    mockFill: {
+      height: '100%',
+      borderRadius: scale(99),
+      backgroundColor: colors.marigold,
+    },
+    mockCount: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(11.5),
+      color: colors.faint,
     },
     recButton: {
       alignSelf: 'flex-start',
@@ -1371,4 +1486,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.paper,
     },
   });
+}
+
+/** "2h 14m", "38m", "under a minute". */
+function formatLeft(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m`;
+  return 'under a minute';
 }

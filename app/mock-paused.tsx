@@ -3,19 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { getMockSession } from '@/lib/mock';
+import { getMockSession, mockSecondsLeft } from '@/lib/mock';
 
-const SUBJECT_LABEL: Record<string, string> = {
-  physics: 'Physics',
-  chemistry: 'Chemistry',
-  mathematics: 'Maths',
-  biology: 'Biology',
-};
 
 function formatTime(totalSeconds: number) {
   const h = Math.floor(totalSeconds / 3600);
@@ -31,7 +25,7 @@ export default function MockPausedScreen() {
   const session = getMockSession();
 
   useEffect(() => {
-    if (!session) router.replace('/mock-ready');
+    if (!session) router.replace('/mocks');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -44,18 +38,12 @@ export default function MockPausedScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          <Text style={styles.heading}>Mock test</Text>
+          {/* One heading. This was "Mock test", then a green chip, then
+              "Stepped away", then "Your paper is waiting" — four pieces of
+              chrome stacked above the one card a student came here to read. */}
+          <Text style={styles.heading}>Your paper is waiting</Text>
 
-          <View style={styles.headerRow}>
-            <View style={styles.iconChip}>
-              <PauseIcon size={scale(21)} />
-            </View>
-            <View style={styles.textBlock}>
-              <Text style={styles.overline}>Stepped away</Text>
-              <Text style={styles.title}>Your paper is waiting</Text>
-            </View>
-          </View>
-
+          <View style={styles.body}>
           <View style={styles.statusCard}>
             <View style={styles.statusTopRow}>
               <Text style={styles.statusTitle}>Test in progress</Text>
@@ -79,30 +67,10 @@ export default function MockPausedScreen() {
             </View>
           </View>
 
-          <View style={styles.patternCard}>
-            <Text style={styles.patternOverline}>
-              Paper pattern · {session.paper.exam === 'jee' ? 'JEE Main' : 'NEET UG'}
-            </Text>
-            {session.paper.sections.map((section) => (
-              <View key={section.subject} style={styles.patternRow}>
-                <Text style={styles.patternRowLabel}>
-                  {SUBJECT_LABEL[section.subject] ?? section.subject}
-                </Text>
-                <Text style={styles.patternRowValue}>{section.questions} questions</Text>
-              </View>
-            ))}
-            <View style={styles.patternTotalRow}>
-              <Text style={styles.patternTotalLabel}>Total</Text>
-              <Text style={styles.patternTotalValue}>
-                {session.paper.total_questions} Q · {session.paper.duration_minutes / 60} hours
-              </Text>
-            </View>
-          </View>
-
           <Text style={styles.hint}>
-            Real conditions: the clock keeps running while you are away, exactly like exam
-            day.
+            The clock keeps running while you are away, like exam day.
           </Text>
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -112,7 +80,7 @@ export default function MockPausedScreen() {
           </Pressable>
           {/* The way OUT. Without this, Save & exit -> Resume was a closed
               loop and the rest of the app was unreachable mid-paper. The
-              session stays; mock-ready's button reads Resume until the
+              session stays; the Mock tests page reads Resume until the
               clock runs out or the paper is submitted. */}
           <Pressable
             style={styles.leaveButton}
@@ -132,7 +100,10 @@ function TimeLeft({
   styles: ReturnType<typeof createStyles>;
   deadline: number;
 }) {
-  const remaining = () => Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  const remaining = () => {
+    const s = getMockSession();
+    return s ? mockSecondsLeft(s) : Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  };
   const [secondsLeft, setSecondsLeft] = useState(remaining);
   useEffect(() => {
     const id = setInterval(() => setSecondsLeft(remaining()), 1000);
@@ -142,20 +113,6 @@ function TimeLeft({
   return <Text style={styles.statusValueMono}>{formatTime(secondsLeft)}</Text>;
 }
 
-function PauseIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Circle cx={12} cy={12} r={9} stroke="#157A45" strokeWidth={2} />
-      <Path
-        d="M12 7v5l3.5 2"
-        stroke="#157A45"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function ArrowRightIcon({ size }: { size: number }) {
   return (
@@ -173,9 +130,10 @@ function ArrowRightIcon({ size }: { size: number }) {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /** White, like every other page in the app. */
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -187,46 +145,28 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /** The app’s one page-title tier — see constants/page-title.ts. */
     heading: pageTitle(scale),
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(13),
-      marginTop: verticalScale(18),
-    },
-    iconChip: {
-      width: scale(44),
-      height: scale(44),
-      borderRadius: scale(13),
-      backgroundColor: 'rgba(28,155,87,.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.3)',
-      alignItems: 'center',
+    body: {
+      flex: 1,
+      minHeight: 0,
       justifyContent: 'center',
+      paddingBottom: verticalScale(24),
     },
-    textBlock: {
-      flexShrink: 1,
-    },
-    overline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.19),
-      color: colors.ink,
-    },
+    /** White with the app's hairline, like the paper-pattern card on the
+     *  start screen. It was a filled amber block, which on a white page was
+     *  the loudest thing in the mock flow and the only card in it that was
+     *  not white. The urgency lives in the badge. */
     statusCard: {
-      backgroundColor: '#FCF4E0',
+      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.45)',
+      borderColor: 'rgba(28,26,22,.08)',
       borderRadius: scale(16),
       paddingVertical: verticalScale(16),
       paddingHorizontal: scale(18),
-      marginTop: verticalScale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     statusTopRow: {
       flexDirection: 'row',
@@ -239,7 +179,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     pausedBadge: {
-      backgroundColor: '#fff',
+      backgroundColor: '#FCF4E0',
       borderWidth: 1,
       borderColor: 'rgba(238,163,31,.5)',
       borderRadius: scale(99),
@@ -275,64 +215,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(15),
       color: colors.ink,
     },
-    patternCard: {
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(16),
-      paddingHorizontal: scale(18),
-      marginTop: verticalScale(12),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    patternOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-      marginBottom: verticalScale(8),
-    },
-    patternRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: verticalScale(8),
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.1)',
-      borderStyle: 'dashed',
-    },
-    patternRowLabel: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    patternRowValue: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
-    },
-    patternTotalRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingTop: verticalScale(10),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.16)',
-      borderStyle: 'dashed',
-    },
-    patternTotalLabel: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    patternTotalValue: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
     hint: {
       textAlign: 'center',
       fontFamily: 'Onest_400Regular',
@@ -356,11 +238,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(52),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
     },
     resumeButtonText: {
       fontFamily: 'Onest_600SemiBold',
