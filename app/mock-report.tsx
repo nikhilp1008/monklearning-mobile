@@ -25,6 +25,7 @@ import {
   mockInsights,
   type MockReport,
   type MockReportQuestion,
+  formatDay,
 } from '@/lib/mock-report';
 import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
 
@@ -347,7 +348,9 @@ function ReportHeader({
         )}
         <View style={styles.standRow}>
           <Text style={styles.standLabel}>Lost to wrong answers</Text>
-          <Text style={styles.standValue}>−{insights.lostToWrong}</Text>
+          <Text style={styles.standValue}>
+            {insights.lostToWrong ? `−${insights.lostToWrong}` : '0'}
+          </Text>
         </View>
         <View style={styles.standRow}>
           <Text style={styles.standLabel}>Left on the table</Text>
@@ -531,15 +534,6 @@ function QuestionRow({
       )}
     </View>
   );
-}
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function formatDay(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const stem = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-  return d.getFullYear() === new Date().getFullYear() ? stem : `${stem} ${d.getFullYear()}`;
 }
 
 function BackArrowIcon({ size }: { size: number }) {

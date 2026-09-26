@@ -11,7 +11,8 @@ import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { getMockStatus, type MockStatus } from '@/lib/mock';
+import { getMockStatus, listMockRuns, type MockRunRow, type MockStatus } from '@/lib/mock';
+import { formatDay } from '@/lib/mock-report';
 import {
   MasteryState,
   ProgressChapter,
@@ -164,6 +165,10 @@ export default function ProgressScreen() {
   /** The mock gate, so the card can show the count rather than send a
    *  student to a screen that refuses them. Null until it is known. */
   const [mockStatus, setMockStatus] = useState<MockStatus | null>(null);
+  /** The newest finished paper, so the card can say how it went and open its
+   *  report. Without it the card read the same the day after a mock as the
+   *  day before: a gate for the next paper, and nothing about the last. */
+  const [lastPaper, setLastPaper] = useState<MockRunRow | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -174,8 +179,17 @@ export default function ProgressScreen() {
           setState({ kind: 'ready', data });
           // The gate is per exam, and the exam is whatever this summary was
           // built for — never a guess made on this screen.
-          getMockStatus(String(data.exam).toLowerCase().includes('neet') ? 'neet' : 'jee')
+          const exam = String(data.exam).toLowerCase().includes('neet') ? 'neet' : 'jee';
+          getMockStatus(exam)
             .then((next) => !cancelled && setMockStatus(next))
+            .catch(() => undefined);
+          listMockRuns()
+            .then((runs) => {
+              if (cancelled) return;
+              // Newest first from the server; the exam view this page shows.
+              const done = runs.find((r) => r.exam === exam && r.status === 'submitted' && r.score);
+              setLastPaper(done ?? null);
+            })
             .catch(() => undefined);
         })
         .catch(() => {
@@ -669,6 +683,28 @@ export default function ProgressScreen() {
                             failed request on the next screen. The count is
                             here, where the offer is made, and the key says
                             which of the two things it does. */}
+                        {lastPaper?.score && (
+                          <Pressable
+                            style={styles.lastPaper}
+                            accessibilityRole="button"
+                            accessibilityLabel="See the report for your last paper"
+                            onPress={() => router.push(`/mock-report?run=${lastPaper.id}`)}>
+                            <View style={styles.lastPaperMain}>
+                              <Text style={styles.lastPaperLabel}>
+                                Last paper · {formatDay(lastPaper.submitted_at ?? lastPaper.created_at)}
+                              </Text>
+                              <Text style={styles.lastPaperScore}>
+                                {lastPaper.score.total_marks}
+                                <Text style={styles.lastPaperMax}>
+                                  {' '}
+                                  / {lastPaper.score.max_marks}
+                                </Text>
+                              </Text>
+                            </View>
+                            <Text style={styles.lastPaperLink}>See report</Text>
+                            <ArrowIcon color={colors.ink} size={scale(12)} />
+                          </Pressable>
+                        )}
                         {mockStatus && mockStatus.credits_available === 0 && (
                           <View style={styles.mockGate}>
                             <View style={styles.mockTrack}>
@@ -1256,6 +1292,41 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(19.5),
       color: colors.slate,
       marginTop: verticalScale(4),
+    },
+    lastPaper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(8),
+      marginTop: verticalScale(12),
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(12),
+      borderRadius: scale(12),
+      borderWidth: 1,
+      borderColor: hairline(0.1),
+    },
+    lastPaperMain: {
+      flex: 1,
+      gap: verticalScale(2),
+    },
+    lastPaperLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(11.5),
+      color: colors.faint,
+    },
+    lastPaperScore: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(17),
+      color: colors.ink,
+    },
+    lastPaperMax: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(12),
+      color: colors.faint,
+    },
+    lastPaperLink: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(12.5),
+      color: colors.ink,
     },
     mockGate: {
       marginTop: verticalScale(12),

@@ -242,3 +242,13 @@ export function formatSpan(ms: number): string {
   if (m) return `${m}m ${s}s`;
   return `${s}s`;
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "24 Sep", and "24 Sep 2025" once the year is not this one. */
+export function formatDay(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const stem = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return d.getFullYear() === new Date().getFullYear() ? stem : `${stem} ${d.getFullYear()}`;
+}

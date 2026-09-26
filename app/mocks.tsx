@@ -22,7 +22,7 @@ import {
   type MockRunRow,
   type MockStatus,
 } from '@/lib/mock';
-import { loadReport, savedReportIds, type MockReport } from '@/lib/mock-report';
+import { formatDay, loadReport, savedReportIds, type MockReport } from '@/lib/mock-report';
 import { getProfile } from '@/lib/profile';
 
 /**
@@ -469,30 +469,6 @@ export default function MocksScreen() {
       </SafeAreaView>
     </View>
   );
-}
-
-const MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-/** "24 Sep", and "24 Sep 2025" once the year is not this one. */
-export function formatDay(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const now = new Date();
-  const stem = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-  return d.getFullYear() === now.getFullYear() ? stem : `${stem} ${d.getFullYear()}`;
 }
 
 function BackArrowIcon({ size }: { size: number }) {
