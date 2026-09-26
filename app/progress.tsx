@@ -19,6 +19,7 @@ import {
   getCachedProgress,
   getProgress,
 } from '@/lib/progress';
+import { MockStatus, getMockSession, getMockStatus } from '@/lib/mock';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -178,6 +179,35 @@ export default function ProgressScreen() {
       };
     }, [])
   );
+
+  // The mock card's unlock line. Read per focus, like the page itself, and
+  // keyed on the exam view the payload resolved (always jee or neet). A
+  // failed read just leaves the server's own card copy in place.
+  const examView = state.kind === 'ready' ? state.data.exam : null;
+  const [mockStatus, setMockStatus] = useState<MockStatus | null>(null);
+  const [mockRunning, setMockRunning] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      const session = getMockSession();
+      setMockRunning(!!session && !session.result);
+      if (examView !== 'jee' && examView !== 'neet') return;
+      let cancelled = false;
+      getMockStatus(examView)
+        .then((next) => {
+          if (!cancelled) setMockStatus(next);
+        })
+        .catch(() => {
+          if (!cancelled) setMockStatus(null);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [examView])
+  );
+  const mockLocked = !mockRunning && !!mockStatus && mockStatus.credits_available <= 0;
+  const mockEarnedSoFar = mockStatus
+    ? Math.max(0, Math.min(mockStatus.threshold, mockStatus.threshold - mockStatus.correct_to_next))
+    : 0;
 
   const retry = () => {
     setState({ kind: 'loading' });
@@ -616,8 +646,35 @@ export default function ProgressScreen() {
                     <Text style={styles.recReason}>
                       {lever
                         ? `Most score headroom in ${SUBJECT_LABEL[lever.subject] ?? lever.subject} right now.`
-                        : rec.reason}
+                        : rec.role === 'exam_craft' && mockRunning
+                          ? 'Your paper is waiting, and its clock is still running.'
+                          : rec.role === 'exam_craft' && mockLocked && mockStatus
+                            ? `Get ${mockStatus.correct_to_next} more Practice ${
+                                mockStatus.correct_to_next === 1 ? 'question' : 'questions'
+                              } right to unlock your next mock.`
+                            : rec.role === 'exam_craft' && mockStatus
+                              ? `${
+                                  mockStatus.credits_available === 1
+                                    ? 'You have 1 mock ready.'
+                                    : `You have ${mockStatus.credits_available} mocks ready.`
+                                } Mock answers earn a 1.15× exam-conditions premium.`
+                              : rec.reason}
                     </Text>
+                    {rec.role === 'exam_craft' && mockLocked && mockStatus ? (
+                      <View style={styles.mockGateRow}>
+                        <View style={styles.mockGateTrack}>
+                          <View
+                            style={[
+                              styles.mockGateFill,
+                              { width: `${(mockEarnedSoFar / mockStatus.threshold) * 100}%` },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.mockGateCount}>
+                          {mockEarnedSoFar} / {mockStatus.threshold}
+                        </Text>
+                      </View>
+                    ) : null}
                     {rec.role === 'highest_lever' && lever ? (
                       <PressableScale
                         style={styles.recButton}
@@ -641,8 +698,18 @@ export default function ProgressScreen() {
                     ) : rec.role === 'exam_craft' ? (
                       <PressableScale
                         style={styles.recButton}
-                        onPress={() => router.push('/mock-ready')}>
-                        <Text style={styles.recButtonText}>Sit a mock test</Text>
+                        onPress={() =>
+                          router.push(
+                            mockRunning ? '/mock-test' : mockLocked ? '/practice' : '/mock-ready'
+                          )
+                        }>
+                        <Text style={styles.recButtonText}>
+                          {mockRunning
+                            ? 'Resume mock test'
+                            : mockLocked
+                              ? 'Practise to unlock'
+                              : 'Sit a mock test'}
+                        </Text>
                         <ArrowIcon color={colors.paper} size={scale(13)} />
                       </PressableScale>
                     ) : (
@@ -1189,6 +1256,29 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(18),
       color: colors.ink,
+    },
+    mockGateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(10),
+      marginTop: verticalScale(10),
+    },
+    mockGateTrack: {
+      flex: 1,
+      height: verticalScale(6),
+      borderRadius: scale(99),
+      backgroundColor: '#EEE6D4',
+      overflow: 'hidden',
+    },
+    mockGateFill: {
+      height: '100%',
+      borderRadius: scale(99),
+      backgroundColor: '#1C9B57',
+    },
+    mockGateCount: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(12),
+      color: colors.faint,
     },
     recReason: {
       fontFamily: 'Onest_400Regular',
