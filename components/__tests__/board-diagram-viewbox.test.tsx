@@ -14,7 +14,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
-import { BoardDiagram, diagramBox } from '../board-diagram';
+import { BoardDiagram, diagramBox, diagramVerdict } from '../board-diagram';
 
 const draw = (svg: string) => {
   const gaps: { reason: string; detail: unknown }[] = [];
@@ -80,6 +80,27 @@ describe('where the box comes from', () => {
     expect(json).toBeNull();
     expect(gaps).toEqual(['svg_invalid']);
     expect(String(detail.reason)).toContain('no viewBox');
+  });
+
+  test('U5: markup that will not PARSE is svg_invalid too, and SvgXml never sees it', () => {
+    // An unclosed <g>: sizable (it has a viewBox) and still undrawable. This
+    // used to reach SvgXml, whose `fallback` drew an empty View and whose
+    // `onError` only warned — a blank with no gap.
+    const svg = '<svg viewBox="0 0 640 260"><g><rect x="1" y="1" width="9" height="9"/></svg>';
+    const { json, gaps, detail, xml } = draw(svg);
+    expect(json).toBeNull();
+    expect(xml).toBeUndefined();
+    expect(gaps).toEqual(['svg_invalid']);
+    expect(detail).toMatchObject({ bytes: svg.length, reason: 'does not parse' });
+    expect(String(detail.error)).toMatch(/closing tag/);
+  });
+
+  test('bytes are UTF-8, not UTF-16 code units', () => {
+    // `°` is one code unit and two bytes; the corpus check measures bytes.
+    const svg = '<svg><title>30°</title></svg>';
+    const got = diagramVerdict(svg);
+    expect(got.ok).toBe(false);
+    expect(!got.ok && got.bytes).toBe(svg.length + 1);
   });
 
   test('a zero-width viewBox is refused rather than divided by', () => {

@@ -445,3 +445,109 @@ describe('the figure record the plate is drawn from', () => {
     expect(JSON.stringify(rec.art.source)).not.toMatch(/https?:/);
   });
 });
+
+/* ------------------------------------------------ U5: a malformed stored svg */
+
+/**
+ * U5. An svg-only event whose markup does not parse — here an unclosed `<g>`,
+ * the shape the offline corpus check found — went to `BoardDiagram`, whose
+ * `SvgXml` caught the parser's throw, `console.warn`ed and drew its `fallback`:
+ * an empty View. No gap of any kind, so `gap_report.py` could not see a board
+ * the student saw as blank paper.
+ *
+ * Now the string is put through react-native-svg's OWN `parse` before anything
+ * is rendered — the function `SvgXml` would call on it — and a refusal is an
+ * `svg_invalid` gap followed by the next rung, or by the chain's terminal gap
+ * when there is none.
+ */
+const MALFORMED_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430">' +
+  '<g><circle cx="450" cy="215" r="80" fill="#2563eb"/></svg>';
+
+describe('a stored svg that will not parse (U5)', () => {
+  test('liveness: the fixture really is malformed, and only by its <g>', () => {
+    // Without this, every refusal below could be passing against a string
+    // the parser was never going to refuse, or refusing for another reason.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { parse } = require('react-native-svg') as typeof import('react-native-svg');
+    expect(() => parse(MALFORMED_SVG)).toThrow(/closing tag/);
+    expect(parse(MALFORMED_SVG.replace('</svg>', '</g></svg>'))).not.toBeNull();
+  });
+
+  test('THE REGRESSION: an svg-only event is an svg_invalid gap, not a silent blank', () => {
+    const { json, gaps, detail, otherWarnings } = draw(
+      { seq: 40, type: 'diagram', svg: MALFORMED_SVG }, {}
+    );
+    expect(drewSvg(json)).toBe(false);
+    expect(json).toBeNull();
+    // Refused, THEN the chain's own no-fallback reason: nothing else can draw.
+    expect(gaps).toEqual(['svg_invalid', 'no_fallback_available']);
+    expect(detail('svg_invalid')).toMatchObject({
+      seq: 40, rung: 'event.svg', bytes: MALFORMED_SVG.length,
+    });
+    expect(String((detail('svg_invalid') as { error: string }).error))
+      .toMatch(/closing tag/);
+    expect(detail('no_fallback_available')).toMatchObject({
+      seq: 40, hadIllustration: false,
+    });
+    // SvgXml was never handed the string, so its own error path never ran.
+    expect(otherWarnings).toEqual([]);
+  });
+
+  test('the same event on a host-less surface is reported through the warn sink', () => {
+    const { json, warnedGaps } = draw({ seq: 41, type: 'diagram', svg: MALFORMED_SVG });
+    expect(json).toBeNull();
+    expect(warnedGaps).toEqual(['svg_invalid', 'no_fallback_available']);
+  });
+
+  test('with an illustration behind it, the plate is drawn instead', () => {
+    const { json, gaps, detail } = draw(
+      { seq: 42, type: 'diagram', svg: MALFORMED_SVG, illustration_slug: PLACEHOLDER_SLUG },
+      {}
+    );
+    expect(drewSvg(json)).toBe(true);
+    expect(gaps).toEqual(['svg_invalid', 'fell_back_to_illustration']);
+    expect(detail('svg_invalid')).toMatchObject({ rung: 'event.svg', bytes: MALFORMED_SVG.length });
+  });
+
+  test('under a widget this build lacks: svg_invalid, then the next rung', () => {
+    const toPlate = draw(
+      { seq: 43, type: 'diagram', tier: 'precomputed', payload: UNDRAWABLE,
+        svg: MALFORMED_SVG, illustration_slug: PLACEHOLDER_SLUG },
+      {}
+    );
+    expect(drewSvg(toPlate.json)).toBe(true);
+    expect(toPlate.gaps).toEqual(['unknown_widget', 'svg_invalid', 'fell_back_to_illustration']);
+
+    const toNothing = draw(
+      { seq: 44, type: 'diagram', tier: 'precomputed', payload: UNDRAWABLE, svg: MALFORMED_SVG },
+      {}
+    );
+    expect(toNothing.json).toBeNull();
+    expect(toNothing.gaps).toEqual(['unknown_widget', 'svg_invalid', 'no_fallback_available']);
+    expect(toNothing.detail('svg_invalid')).toMatchObject({ rung: 'event.svg', seq: 44 });
+  });
+
+  test('beside an unhostable payload, the svg no longer claims it drew', () => {
+    // `no_widget_host` with `drew: 'svg'` is what gap_report counts as DREW.
+    // A refused svg drew nothing, so the host-less terminal says so.
+    const { json, warnedGaps, warnedDetail } = draw({
+      seq: 45, type: 'diagram', payload: UNDRAWABLE, svg: MALFORMED_SVG, tier: 'precomputed',
+    });
+    expect(json).toBeNull();
+    expect(warnedGaps).toEqual(['svg_invalid', 'no_widget_host']);
+    expect(warnedDetail('no_widget_host')).toMatchObject({ drew: 'nothing', hasPayload: true });
+  });
+
+  test('THE GUARD: a valid svg draws and logs nothing, hosted or not', () => {
+    for (const host of [{}, undefined]) {
+      const { json, gaps, warnedGaps, otherWarnings } = draw(
+        { seq: 46, type: 'diagram', svg: SVG }, host
+      );
+      expect(drewSvg(json)).toBe(true);
+      expect(gaps).toEqual([]);
+      expect(warnedGaps).toEqual([]);
+      expect(otherWarnings).toEqual([]);
+    }
+  });
+});

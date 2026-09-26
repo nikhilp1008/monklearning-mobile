@@ -255,10 +255,14 @@ describe('a malformed svg is not a fallback', () => {
     const { json, gaps, detail } = draw(
       { seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: BROKEN_SVG });
     expect(json).toBeNull();
-    expect(gaps).toContain('svg_parse_failed');
+    expect(gaps).toContain('svg_invalid');
     expect(gaps).not.toContain('fell_back_to_event_svg');
     expect(gaps).toContain('no_fallback_available');
-    expect(detail('svg_parse_failed')!.rung).toBe('event.svg');
+    expect(detail('svg_invalid')!.rung).toBe('event.svg');
+    // U5: the detail says which figure and why — its UTF-8 size and the
+    // parser's own message — so the corpus row it came from can be found.
+    expect(detail('svg_invalid')!.bytes).toBe(BROKEN_SVG.length);   // ASCII
+    expect(String(detail('svg_invalid')!.error)).toMatch(/closing tag/);
   });
 
   test('a rung that REFUSED does not get to claim it saved the board', () => {
@@ -269,7 +273,7 @@ describe('a malformed svg is not a fallback', () => {
     const { json, gaps } = draw(
       { seq: 1, tier: 'precomputed', payload: UNDRAWABLE, svg: BROKEN_SVG });
     expect(json).toBeNull();
-    expect(gaps).toContain('svg_parse_failed');
+    expect(gaps).toContain('svg_invalid');
     expect(gaps).not.toContain('fell_back_to_event_svg');
     expect(gaps).toContain('no_fallback_available');
   });
@@ -280,7 +284,7 @@ describe('a malformed svg is not a fallback', () => {
         svg: BROKEN_SVG, illustration_slug: PLACEHOLDER_SLUG },
       { figures: placeholderFigureResolver });
     expect(json).not.toBeNull();
-    expect(gaps).toContain('svg_parse_failed');
+    expect(gaps).toContain('svg_invalid');
     expect(gaps).toContain('fell_back_to_illustration');
     expect(text).toContain('Cell wall');
   });
@@ -407,7 +411,7 @@ describe('a sequence that cannot draw falls into the same chain', () => {
     const { json, text, gaps } = draw(
       { ...sequence(BROKEN_SVG), svg: CHAPTER_SVG }, { activeSeq: 4 });
     expect(json).not.toBeNull();
-    expect(gaps).toContain('svg_parse_failed');
+    expect(gaps).toContain('svg_invalid');
     expect(gaps).toContain('fell_back_to_event_svg');
     expect(text).toContain(CHAPTER_MARK);
     // The strip survives the fall: a student who cannot see that a second
@@ -486,7 +490,7 @@ describe('a sequence that cannot draw falls into the same chain', () => {
 
   test('a gap from inside a sequence names WHICH case of how many', () => {
     const { detail } = draw(sequence(BROKEN_SVG), { activeSeq: 4 });
-    const d = detail('svg_parse_failed')!;
+    const d = detail('svg_invalid')!;
     expect(d.widget).toBe('board_sequence');
     expect(d.step).toBe('2/2');
     expect(d.rung).toBe('step.fallback_svg');

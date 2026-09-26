@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Text, View } from 'react-native';
-import { parse as parseSvgXml, SvgXml } from 'react-native-svg';
+import { SvgXml } from 'react-native-svg';
 
 import { isBoardSequence, stepAt, type BoardStep } from './board-sequence';
 import { validateSequence } from './board-sequence-validate';
@@ -8,6 +8,7 @@ import { validateSequence } from './board-sequence-validate';
 import { labelledFigure } from './labelled-figure';
 import type { FigureResolver } from './labelled-figure/figure-resolver';
 import { lookup } from './registry';
+import { svgParseError, utf8ByteLength } from './svg-parse';
 import { useCueTrack } from './use-cue-track';
 import type {
   ResolutionTier,
@@ -68,36 +69,6 @@ export interface BoardWidgetProps {
    *  when no cue is active, so the caller can fall back to the narration
    *  caption. */
   onCaption?: (caption: string | null) => void;
-}
-
-/**
- * Whether `SvgXml` will actually draw this string, asked BEFORE it is handed one.
- *
- * `SvgXml` (react-native-svg 15.12.1, `src/xml.tsx`) wraps its parse in a
- * try/catch: on a throw it calls `onError` — by default a bare
- * `console.error` — and returns `fallback ?? null`, and it renders nothing at
- * all when the parse returns null, which is what a string with no root
- * element does. Either way the board is BLANK and the rung below it never
- * runs, because the child has already returned by the time the parent could
- * react. `fallback` can put an element in that hole; it cannot make the next
- * rung of the chain render, which is the only thing that helps here.
- *
- * Measured against this version's own parser: `''`, `'not svg at all'`,
- * `'<svg><g></svg>'` and `'<svg><rect</svg>'` all throw — the second with a
- * TypeError from inside the parser rather than its own error path, which no
- * amount of shape-checking the string in advance would have predicted. So the
- * check is the library's OWN exported `parse`, the same function `SvgXml` will
- * call on the same string; the two cannot disagree about a malformed rung.
- *
- * Cost is one extra parse per fallback render, on a path that by construction
- * only runs when the board is already in trouble.
- */
-function svgWillDraw(xml: string): boolean {
-  try {
-    return parseSvgXml(xml) !== null;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -283,11 +254,18 @@ export function BoardWidget({
   /**
    * One rung of the chain that is an SVG STRING, drawn only if it will draw.
    *
-   * Answers null — and logs `svg_parse_failed` — for a string that cannot
-   * parse, so the caller carries on DOWN the chain instead of handing the
-   * student blank paper. That is the part `components/board-diagram.tsx`'s
-   * `fallback`/`onError` pair cannot do: a fallback ELEMENT fills the hole,
-   * it does not let the next rung run.
+   * Answers null — and logs `svg_invalid` — for a string that cannot parse,
+   * so the caller carries on DOWN the chain instead of handing the student
+   * blank paper. A fallback ELEMENT on `SvgXml` fills the hole; it does not
+   * let the next rung run. The check is `svgParseError` (./svg-parse): the
+   * library's own `parse`, run before render, so the refusal is decided, not
+   * hoped for from an `onError`.
+   *
+   * `svg_invalid`, not the `svg_parse_failed` this used to log (U5): the
+   * board-text/BoardDiagram path refuses the same strings under that name,
+   * and one refusal under two names is two rows in `gap_report.py` for one
+   * defect. The detail carries the rung, the UTF-8 size and the parser's own
+   * message, so the corpus check can find the stored figure it came from.
    *
    * `onError` is passed anyway, so a throw is a gap in the feed rather than
    * the library's default `console.error` that nobody reads. `fallback` is
@@ -309,8 +287,9 @@ export function BoardWidget({
     about: Record<string, unknown>
   ): React.ReactElement | null => {
     if (!xml) return null;
-    if (!svgWillDraw(xml)) {
-      onGap?.('svg_parse_failed', { ...about, rung });
+    const error = svgParseError(xml);
+    if (error !== null) {
+      onGap?.('svg_invalid', { ...about, rung, bytes: utf8ByteLength(xml), error });
       return null;
     }
     onGap?.(drew, { ...about, rung });
@@ -319,7 +298,9 @@ export function BoardWidget({
         xml={xml}
         width={width}
         height={boxH}
-        onError={(err) => onGap?.('svg_parse_failed', { ...about, rung, error: String(err) })}
+        onError={(err) => onGap?.('svg_invalid', {
+          ...about, rung, bytes: utf8ByteLength(xml), error: String(err),
+        })}
       />
     );
   };

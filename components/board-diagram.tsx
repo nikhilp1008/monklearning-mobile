@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 import { INK, INK_MUTED } from '@/components/classroom-chrome';
+import { svgParseError, utf8ByteLength } from '@/lib/widgets/svg-parse';
 
 /**
  * A figure sent by the API as one `diagram` board event.
@@ -853,6 +854,70 @@ export function prepareDiagramSvg(svg: string): string {
   return withFont(housePalette(remapWhitePaint(svg).svg));
 }
 
+/**
+ * WILL THIS FIGURE DRAW — decided before anything is rendered, and the same
+ * answer for every caller.
+ *
+ * Two ways a stored svg is refused, both reported as `svg_invalid`:
+ *
+ *   - it does not PARSE (U5). Put through react-native-svg's own `parse` — the
+ *     function `SvgXml` would call — via `svgParseError`. This used to be left
+ *     to `SvgXml`'s `fallback`/`onError`, which caught the throw, printed a
+ *     warning and drew an empty View: a silent blank that `gap_report.py`
+ *     could not see, found by the offline corpus check on an unclosed `<g>`.
+ *     Asking first makes the outcome deterministic and lets the CALLER fall to
+ *     its next rung, which a fallback element never can;
+ *   - it cannot be SIZED (S3): no viewBox, no root width/height, no content.
+ *
+ * The stored string is parsed first, so the parser's offsets point into what
+ * the corpus holds; the prepared string — what `SvgXml` actually receives —
+ * is parsed too, and a failure there is labelled as ours, not the author's.
+ *
+ * `reason` stays a readable phrase (S3's detail already carried one) and
+ * `error` is the parser's own message; `bytes` is UTF-8, matching the column
+ * the corpus check measures.
+ */
+export const SVG_UNSIZABLE = 'no viewBox, no width/height, no content bounds';
+
+export type DiagramVerdict =
+  | { ok: true; xml: string; box: Box; source: BoxSource }
+  | { ok: false; bytes: number; reason: string; error?: string };
+
+/** The `svg_invalid` detail for a refusal, shared with `BoardBlockView` so
+ *  both report the same shape. */
+export function svgInvalidDetail(
+  refused: Extract<DiagramVerdict, { ok: false }>,
+): { bytes: number; reason: string; error?: string } {
+  return refused.error === undefined
+    ? { bytes: refused.bytes, reason: refused.reason }
+    : { bytes: refused.bytes, reason: refused.reason, error: refused.error };
+}
+
+export function diagramVerdict(svg: string): DiagramVerdict {
+  const bytes = utf8ByteLength(svg);
+  const stored = svgParseError(svg);
+  if (stored !== null) return { ok: false, bytes, reason: 'does not parse', error: stored };
+
+  const sized = diagramBox(svg);
+  if (!sized) return { ok: false, bytes, reason: SVG_UNSIZABLE };
+
+  let xml = prepareDiagramSvg(svg);
+  if (sized.source !== 'viewBox') {
+    // A DERIVED box has to be written INTO the markup, not just used for
+    // layout: `SvgXml` sizes the drawing from the root element, and a figure
+    // with no viewBox renders at its intrinsic size inside whatever width and
+    // height we pass, which is how a 640x260 plate ends up as a dot in the
+    // corner of the board.
+    const { minX, minY, width, height } = sized.box;
+    xml = xml.replace(/<svg\b/i, `<svg viewBox="${minX} ${minY} ${width} ${height}"`);
+  }
+  const prepared = svgParseError(xml);
+  if (prepared !== null) {
+    return { ok: false, bytes, reason: 'does not parse after board preparation', error: prepared };
+  }
+  return { ok: true, xml, box: sized.box, source: sized.source };
+}
+
 export function BoardDiagram({
   svg,
   caption,
@@ -869,19 +934,7 @@ export function BoardDiagram({
   /** The tallest it may be drawn, so it cannot swallow the whole board. */
   maxHeight: number;
 }) {
-  const sized = useMemo(() => diagramBox(svg), [svg]);
-
-  const prepared = useMemo(() => {
-    const out = prepareDiagramSvg(svg);
-    if (!sized || sized.source === 'viewBox') return out;
-    // A DERIVED box has to be written INTO the markup, not just used for
-    // layout: `SvgXml` sizes the drawing from the root element, and a figure
-    // with no viewBox renders at its intrinsic size inside whatever width and
-    // height we pass, which is how a 640x260 plate ends up as a dot in the
-    // corner of the board.
-    const { minX, minY, width, height } = sized.box;
-    return out.replace(/<svg\b/i, `<svg viewBox="${minX} ${minY} ${width} ${height}"`);
-  }, [svg, sized]);
+  const verdict = useMemo(() => diagramVerdict(svg), [svg]);
 
   // Reported, not swallowed. `onGap` is called from an effect rather than
   // during render: `BoardWidget`'s own gaps are render-time calls and this
@@ -889,16 +942,25 @@ export function BoardDiagram({
   // first commit of a figure that never changes, and a setState in a parent
   // during render is the one thing that turns a missing picture into a broken
   // screen.
+  //
+  // `BoardBlockView` asks `diagramVerdict` itself before mounting this, so on
+  // the board a refused figure never reaches here and is reported THERE, with
+  // its rung and the chain's terminal gap after it. This effect is the guard
+  // for any other caller: it still refuses to hand `SvgXml` a string that will
+  // not draw, and still says so.
   useEffect(() => {
-    if (!sized) onGap?.('svg_invalid', { reason: 'no viewBox, no width/height, no content bounds', bytes: svg.length });
-    else if (sized.source !== 'viewBox') onGap?.('svg_viewbox_derived', { source: sized.source, ...sized.box });
-  }, [sized, svg.length, onGap]);
+    if (!verdict.ok) {
+      onGap?.('svg_invalid', svgInvalidDetail(verdict));
+    } else if (verdict.source !== 'viewBox') {
+      onGap?.('svg_viewbox_derived', { source: verdict.source, ...verdict.box });
+    }
+  }, [verdict, onGap]);
 
-  // Genuinely unsizable: drawing it at a guessed aspect would distort the
-  // geometry the author computed. The caller has been told, so this is a
-  // reported fall rather than the silent blank it used to be.
-  if (!sized) return null;
-  const box = sized.box;
+  // Unsizable or unparseable: drawing it would either distort the geometry the
+  // author computed or hand the renderer a string it will throw on. The caller
+  // has been told, so this is a reported fall rather than a silent blank.
+  if (!verdict.ok) return null;
+  const box = verdict.box;
 
   /**
    * Height is the binding constraint here, which inverts the web app's problem.
@@ -921,12 +983,12 @@ export function BoardDiagram({
           outside the viewBox, and clipping cuts it off mid-word.
 
           `fallback`/`onError` are the library's own guard against a parse that
-          throws. The server promises well-formed XML and drops anything that
-          is not, so this should never fire — but it runs mid-class, and a
+          throws. `diagramVerdict` has already run the same parser on this
+          exact string, so this is unreachable — but it runs mid-class, and a
           figure failing to draw must cost the student a figure, not the
           lesson. */}
       <SvgXml
-        xml={prepared}
+        xml={verdict.xml}
         width={width}
         height={height}
         fallback={<View />}
