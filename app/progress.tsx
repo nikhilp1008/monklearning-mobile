@@ -11,7 +11,14 @@ import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { getMockStatus, listMockRuns, type MockRunRow, type MockStatus } from '@/lib/mock';
+import {
+  getMockSession,
+  getMockStatus,
+  listMockRuns,
+  resumeActiveSession,
+  type MockRunRow,
+  type MockStatus,
+} from '@/lib/mock';
 import { formatDay } from '@/lib/mock-report';
 import {
   MasteryState,
@@ -169,6 +176,39 @@ export default function ProgressScreen() {
    *  report. Without it the card read the same the day after a mock as the
    *  day before: a gate for the next paper, and nothing about the last. */
   const [lastPaper, setLastPaper] = useState<MockRunRow | null>(null);
+  const [resuming, setResuming] = useState(false);
+
+  /**
+   * A paper still open. A live one in memory (the student backed out of it
+   * this session) counts as well as one the server holds after a restart;
+   * either way the card must say Resume, not offer to earn another.
+   */
+  const live = getMockSession();
+  const waiting: NonNullable<MockStatus['active_paper']> | null =
+    live && !live.result
+      ? {
+          mock_run_id: live.paper.mock_run_id,
+          deadline: new Date(live.deadline).toISOString(),
+          seconds_left: Math.max(0, Math.floor((live.deadline - Date.now()) / 1000)),
+          expired: live.deadline <= Date.now(),
+        }
+      : (mockStatus?.active_paper ?? null);
+
+  const resumePaper = async () => {
+    if (resuming) return;
+    const exam = state.kind === 'ready' && String(state.data.exam).includes('neet') ? 'neet' : 'jee';
+    setResuming(true);
+    try {
+      // Rebuilds the paper from the server with this phone's saved answers,
+      // or keeps the live one when it is already in memory.
+      const resumed = await resumeActiveSession(exam);
+      router.push(resumed && !resumed.expired ? '/mock-test' : '/mocks');
+    } catch {
+      router.push('/mocks');
+    } finally {
+      setResuming(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -648,6 +688,10 @@ export default function ProgressScreen() {
                     <Text style={styles.recReason}>
                       {lever
                         ? `Most score headroom in ${SUBJECT_LABEL[lever.subject] ?? lever.subject} right now.`
+                        : rec.role === 'exam_craft' && waiting
+                          ? waiting.expired
+                            ? "Your paper's time ran out while you were away. Open it and it is marked on the answers you gave."
+                            : `Your paper is waiting, with ${formatLeft(waiting.seconds_left)} left on its clock.`
                         : rec.role === 'exam_craft'
                           ? mockStatus && mockStatus.credits_available === 0
                             ? `A full paper, on the clock, marked the way the real one is. You earn one by answering ${mockStatus.threshold} practice questions correctly.`
@@ -705,7 +749,7 @@ export default function ProgressScreen() {
                             <ArrowIcon color={colors.ink} size={scale(12)} />
                           </Pressable>
                         )}
-                        {mockStatus && mockStatus.credits_available === 0 && (
+                        {!waiting && mockStatus && mockStatus.credits_available === 0 && (
                           <View style={styles.mockGate}>
                             <View style={styles.mockTrack}>
                               <View
@@ -732,11 +776,19 @@ export default function ProgressScreen() {
                         )}
                         <PressableScale
                           style={styles.recButton}
-                          onPress={() => router.push('/mocks')}>
+                          onPress={() =>
+                            waiting && !waiting.expired ? resumePaper() : router.push('/mocks')
+                          }>
                           <Text style={styles.recButtonText}>
-                            {mockStatus && mockStatus.credits_available === 0
-                              ? 'See mock tests'
-                              : 'Start mock test'}
+                            {waiting
+                              ? waiting.expired
+                                ? 'Mark my paper'
+                                : resuming
+                                  ? 'Opening your paper…'
+                                  : 'Resume mock test'
+                              : mockStatus && mockStatus.credits_available === 0
+                                ? 'See mock tests'
+                                : 'Start mock test'}
                           </Text>
                           <ArrowIcon color={colors.paper} size={scale(13)} />
                         </PressableScale>
@@ -1432,4 +1484,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.paper,
     },
   });
+}
+
+/** "2h 14m", "38m", "under a minute". */
+function formatLeft(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m`;
+  return 'under a minute';
 }

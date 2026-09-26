@@ -127,6 +127,15 @@ export interface MockStatus {
   /** Papers the student may sit right now. */
   credits_available: number;
   correct_to_next: number;
+  /** An unfinished paper, if one is waiting (the app was closed mid-paper).
+   *  `expired` means its clock ran out while away; opening Mock tests marks
+   *  it. Absent from API builds before 21884e2. */
+  active_paper?: {
+    mock_run_id: string;
+    deadline: string;
+    seconds_left: number;
+    expired: boolean;
+  } | null;
 }
 
 export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {
