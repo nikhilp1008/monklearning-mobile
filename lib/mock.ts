@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
 import type { DiagramFigure } from '@/lib/practice';
 
 /**
@@ -65,6 +65,33 @@ export interface MockSubmitResult {
   mock_run_id: string;
   score: MockScore;
   questions: MockReviewQuestion[];
+}
+
+/**
+ * The unlock gate. Every `threshold` DISTINCT practice questions answered
+ * correctly for this exam (75 JEE, 100 NEET) earns one mock, and starting a
+ * paper spends it. Mock answers never count toward it.
+ */
+export interface MockStatus {
+  exam: 'jee' | 'neet';
+  threshold: number;
+  unique_correct: number;
+  credits_earned: number;
+  mocks_used: number;
+  credits_available: number;
+  /** 0 while a credit is available. */
+  correct_to_next: number;
+}
+
+export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {
+  return apiFetch(`/mock/status?exam=${exam}`);
+}
+
+/** POST /mock/paper answers 403 with this detail when no credit is left. */
+export function lockedStatusFrom(err: unknown): MockStatus | null {
+  if (!(err instanceof ApiError) || err.status !== 403) return null;
+  const detail = (err.data as { detail?: { code?: string } } | undefined)?.detail;
+  return detail?.code === 'mock_locked' ? (detail as unknown as MockStatus) : null;
 }
 
 /** Generation reads the whole light bank per subject and composes 75-180

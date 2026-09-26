@@ -1,14 +1,21 @@
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { PracticeTabsHeader } from '@/components/practice-tabs-header';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { createMockPaper, getMockSession, startMockSession } from '@/lib/mock';
+import {
+  MockStatus,
+  createMockPaper,
+  getMockSession,
+  getMockStatus,
+  lockedStatusFrom,
+  startMockSession,
+} from '@/lib/mock';
 import { getProfile } from '@/lib/profile';
 
 /**
@@ -50,6 +57,10 @@ export default function MockReadyScreen() {
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasActivePaper, setHasActivePaper] = useState(false);
+  // The unlock gate. Null while loading or if the read failed; a failed read
+  // leaves Start enabled and lets the server's own 403 decide, rather than
+  // locking a student out because a status call timed out.
+  const [status, setStatus] = useState<MockStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,10 +84,38 @@ export default function MockReadyScreen() {
     }, [])
   );
 
+  // Re-read on every focus: coming back from Practice is exactly when the
+  // count has moved.
+  useFocusEffect(
+    useCallback(() => {
+      if (hasActivePaper) return;
+      let cancelled = false;
+      getMockStatus(exam)
+        .then((next) => {
+          if (!cancelled) setStatus(next);
+        })
+        .catch(() => {
+          if (!cancelled) setStatus(null);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [exam, hasActivePaper])
+  );
+
+  const locked = !hasActivePaper && !!status && status.credits_available <= 0;
+  const earnedSoFar = status
+    ? Math.max(0, Math.min(status.threshold, status.threshold - status.correct_to_next))
+    : 0;
+
   const start = async () => {
     if (building) return;
     if (hasActivePaper) {
       router.push('/mock-test');
+      return;
+    }
+    if (locked) {
+      router.push('/practice');
       return;
     }
     setBuilding(true);
@@ -85,8 +124,10 @@ export default function MockReadyScreen() {
       const paper = await createMockPaper(exam);
       startMockSession(paper);
       router.push('/mock-test');
-    } catch {
-      setError('Could not set your paper just now. Check your connection and try again.');
+    } catch (err) {
+      const lockedNow = lockedStatusFrom(err);
+      if (lockedNow) setStatus(lockedNow);
+      else setError('Could not set your paper just now. Check your connection and try again.');
     } finally {
       setBuilding(false);
     }
@@ -98,7 +139,7 @@ export default function MockReadyScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
+        <ScrollView style={styles.contentScroll} contentContainerStyle={styles.content}>
           <View style={styles.topRow}>
             <Pressable
               style={styles.backButton}
@@ -144,11 +185,47 @@ export default function MockReadyScreen() {
           <View style={styles.dronaCallCard}>
             <Text style={styles.dronaCallOverline}>How your paper is built</Text>
             <Text style={styles.dronaCallBody}>
-              One in five questions comes straight from real past-paper masters you&apos;ve
-              never seen, one in five re-asks what you got wrong in Practice, and the rest
-              are fresh — under real exam conditions and marking.
+              Chapters and difficulty are weighted like the real paper. One in five
+              questions is a real past-paper master you&apos;ve never seen, and one in five
+              re-tests the Practice mistakes that cost you the most marks.
             </Text>
           </View>
+
+          {!hasActivePaper && status ? (
+            <View style={[styles.gateCard, locked && styles.gateCardLocked]}>
+              <Text style={styles.gateOverline}>
+                {locked ? 'Unlock your next mock' : 'Mock unlocked'}
+              </Text>
+              {locked ? (
+                <>
+                  <Text style={styles.gateValue}>
+                    {earnedSoFar}
+                    <Text style={styles.gateValueCeiling}> / {status.threshold}</Text>
+                  </Text>
+                  <View style={styles.gateTrack}>
+                    <View
+                      style={[
+                        styles.gateFill,
+                        { width: `${(earnedSoFar / status.threshold) * 100}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.gateBody}>
+                    Get {status.correct_to_next} more Practice{' '}
+                    {status.correct_to_next === 1 ? 'question' : 'questions'} right to earn it.
+                    Each question counts once.
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.gateBody}>
+                  {status.credits_available === 1
+                    ? 'You have 1 mock ready. Starting it uses it up.'
+                    : `You have ${status.credits_available} mocks ready. Starting one uses it up.`}{' '}
+                  Every {status.threshold} Practice questions you get right earns another.
+                </Text>
+              )}
+            </View>
+          ) : null}
 
           <View style={styles.patternCard}>
             <Text style={styles.patternOverline}>Paper pattern · {pattern.label}</Text>
@@ -170,7 +247,7 @@ export default function MockReadyScreen() {
                 <Text style={styles.patternTagText}>−1 wrong</Text>
               </View>
               <View style={styles.patternTag}>
-                <Text style={styles.patternTagText}>Pause &amp; resume</Text>
+                <Text style={styles.patternTagText}>3 hours, real clock</Text>
               </View>
             </View>
           </View>
@@ -179,9 +256,11 @@ export default function MockReadyScreen() {
             {error ??
               (hasActivePaper
                 ? 'The clock kept running while you were away.'
-                : 'Once you start, the timer runs, but you can pause and resume any time.')}
+                : locked
+                  ? 'Mocks are earned in Practice, so every paper you sit is one you are ready for.'
+                  : 'Once you start, the clock runs like exam day. You can step away and come back, but it keeps counting.')}
           </Text>
-        </View>
+        </ScrollView>
 
         <View style={styles.footer}>
           <Pressable style={styles.startButton} onPress={start}>
@@ -193,7 +272,11 @@ export default function MockReadyScreen() {
             ) : (
               <>
                 <Text style={styles.startButtonText}>
-                  {hasActivePaper ? 'Resume mock test' : 'Start mock test'}
+                  {hasActivePaper
+                    ? 'Resume mock test'
+                    : locked
+                      ? 'Practise to unlock'
+                      : 'Start mock test'}
                 </Text>
                 <ArrowRightIcon size={scale(15)} />
               </>
@@ -256,11 +339,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
-    content: {
+    contentScroll: {
       flex: 1,
       minHeight: 0,
+    },
+    content: {
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(12),
     },
     topRow: {
       flexDirection: 'row',
@@ -362,6 +448,55 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(14),
       lineHeight: scale(21),
       color: colors.ink,
+    },
+    gateCard: {
+      backgroundColor: 'rgba(28,155,87,.07)',
+      borderWidth: 1,
+      borderColor: 'rgba(28,155,87,.3)',
+      borderRadius: scale(14),
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
+      marginTop: verticalScale(14),
+    },
+    gateCardLocked: {
+      backgroundColor: '#fff',
+      borderColor: 'rgba(28,26,22,.1)',
+    },
+    gateOverline: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(9.0),
+      letterSpacing: scale(1.05),
+      textTransform: 'uppercase',
+      color: colors.faint,
+      marginBottom: verticalScale(6),
+    },
+    gateValue: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(26),
+      color: colors.ink,
+    },
+    gateValueCeiling: {
+      fontSize: scale(15),
+      color: colors.faint,
+    },
+    gateTrack: {
+      height: verticalScale(8),
+      borderRadius: scale(99),
+      backgroundColor: '#EEE6D4',
+      marginTop: verticalScale(8),
+      overflow: 'hidden',
+    },
+    gateFill: {
+      height: '100%',
+      borderRadius: scale(99),
+      backgroundColor: '#1C9B57',
+    },
+    gateBody: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19),
+      color: colors.slate,
+      marginTop: verticalScale(8),
     },
     patternCard: {
       backgroundColor: '#fff',

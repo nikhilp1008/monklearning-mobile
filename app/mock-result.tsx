@@ -91,7 +91,7 @@ export default function MockResultScreen() {
               <View key={subject} style={styles.subjectRow}>
                 <Text style={styles.subjectName}>{SUBJECT_LABEL[subject] ?? subject}</Text>
                 <Text style={styles.subjectDetail}>
-                  {stats ? `${stats.correct}✓ ${stats.wrong}✗ ${stats.unanswered}·` : '—'}
+                  {stats ? `${stats.correct}✓ ${stats.wrong}✗ ${stats.unanswered}·` : 'No questions'}
                 </Text>
                 <Text style={styles.subjectMarks}>{stats ? stats.marks : 0}</Text>
               </View>
@@ -100,7 +100,7 @@ export default function MockResultScreen() {
 
           <Text style={styles.hint}>
             Every answer here counts toward your Monk Score at the 1.15× exam-conditions
-            premium — Progress updates in a few minutes.
+            premium. Progress updates in a few minutes.
           </Text>
         </ScrollView>
 
