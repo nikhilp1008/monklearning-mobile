@@ -443,3 +443,14 @@ export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
   await saveReport(buildReport(s, result)).catch(() => undefined);
   return result;
 }
+
+/**
+ * How far into the current batch toward the next paper, for a count and a
+ * bar: always 0..threshold. The server's `correct_to_next` can exceed one
+ * threshold when more papers were used than earned — papers started before
+ * the gate, or a threshold that was later raised — and the raw subtraction
+ * then printed "-141 of 75 correct".
+ */
+export function earnedTowardNext(s: Pick<MockStatus, 'threshold' | 'correct_to_next'>): number {
+  return Math.max(0, Math.min(s.threshold, s.threshold - s.correct_to_next));
+}

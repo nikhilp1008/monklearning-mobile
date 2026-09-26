@@ -12,6 +12,7 @@ import { useScale } from '@/constants/scale';
 import { ApiError } from '@/lib/api';
 import {
   createMockPaper,
+  earnedTowardNext,
   getMockSession,
   getMockStatus,
   listMockRuns,
@@ -367,7 +368,7 @@ export default function MocksScreen() {
                   {/* From `correct_to_next`, not from `unique_correct` modulo
                       the threshold: the server owns how a credit is counted,
                       and the two disagree the moment it changes its mind. */}
-                  <Text style={styles.count}>{status.threshold - status.correct_to_next}</Text>
+                  <Text style={styles.count}>{earnedTowardNext(status)}</Text>
                   <Text style={styles.countOf}>of {status.threshold} correct</Text>
                 </View>
                 <View style={styles.track}>
@@ -378,7 +379,7 @@ export default function MocksScreen() {
                         width: `${Math.min(
                           100,
                           Math.round(
-                            ((status.threshold - status.correct_to_next) / status.threshold) * 100
+                            (earnedTowardNext(status) / status.threshold) * 100
                           )
                         )}%`,
                       },

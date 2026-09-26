@@ -12,6 +12,7 @@ import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import {
+  earnedTowardNext,
   getMockSession,
   getMockStatus,
   listMockRuns,
@@ -759,7 +760,7 @@ export default function ProgressScreen() {
                                     width: `${Math.min(
                                       100,
                                       Math.round(
-                                        ((mockStatus.threshold - mockStatus.correct_to_next) /
+                                        (earnedTowardNext(mockStatus) /
                                           mockStatus.threshold) *
                                           100
                                       )
@@ -769,7 +770,7 @@ export default function ProgressScreen() {
                               />
                             </View>
                             <Text style={styles.mockCount}>
-                              {mockStatus.threshold - mockStatus.correct_to_next} of{' '}
+                              {earnedTowardNext(mockStatus)} of{' '}
                               {mockStatus.threshold} correct
                             </Text>
                           </View>

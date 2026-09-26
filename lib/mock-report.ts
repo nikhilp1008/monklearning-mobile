@@ -215,8 +215,12 @@ export function mockInsights(report: MockReport): MockInsights {
   const attempted = report.questions.filter((q) => q.answered);
   return {
     subjects,
-    strongest: ranked.length > 1 ? ranked[0] : null,
-    weakest: ranked.length > 1 ? ranked[ranked.length - 1] : null,
+    // Only a real gap is a strongest and a weakest. With every subject on
+    // the same accuracy (five right out of five, spread over three
+    // subjects), the old ranking printed "To improve: Maths 100%".
+    ...(ranked.length > 1 && (ranked[0].accuracy ?? 0) > (ranked[ranked.length - 1].accuracy ?? 0)
+      ? { strongest: ranked[0], weakest: ranked[ranked.length - 1] }
+      : { strongest: null, weakest: null }),
     lostToWrong: Math.abs(report.wrong * report.marks_wrong),
     leftOnTable: report.unanswered * report.marks_correct,
     attempted: attempted.length,
