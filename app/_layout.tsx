@@ -357,7 +357,7 @@ export default function RootLayout() {
               animation: 'slide_from_right',
             }}
           />
-          <Stack.Screen name="mock-ready" options={{ headerShown: false }} />
+          <Stack.Screen name="mocks" options={{ headerShown: false }} />
           <Stack.Screen name="mock-test" options={{ headerShown: false }} />
           {/* A full page that slides up, not a transparent modal over the
               paper: every other screen in the mock flow is a page. */}
@@ -366,7 +366,9 @@ export default function RootLayout() {
             options={{ headerShown: false, animation: 'slide_from_bottom' }}
           />
           <Stack.Screen name="mock-paused" options={{ headerShown: false }} />
-          <Stack.Screen name="mock-result" options={{ headerShown: false, gestureEnabled: false }} />
+          {/* No swipe-back off a freshly submitted paper: the gesture would
+              land on the palette of a paper that no longer exists. */}
+          <Stack.Screen name="mock-report" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen
             name="report-sheet"
             options={{

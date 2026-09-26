@@ -25,7 +25,7 @@ export default function MockPausedScreen() {
   const session = getMockSession();
 
   useEffect(() => {
-    if (!session) router.replace('/mock-ready');
+    if (!session) router.replace('/mocks');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,7 +80,7 @@ export default function MockPausedScreen() {
           </Pressable>
           {/* The way OUT. Without this, Save & exit -> Resume was a closed
               loop and the rest of the app was unreachable mid-paper. The
-              session stays; mock-ready's button reads Resume until the
+              session stays; the Mock tests page reads Resume until the
               clock runs out or the paper is submitted. */}
           <Pressable
             style={styles.leaveButton}

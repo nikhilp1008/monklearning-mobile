@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api';
+import { buildReport, saveReport } from '@/lib/mock-report';
 import type { DiagramFigure } from '@/lib/practice';
 
 /**
@@ -96,6 +97,55 @@ export interface MockLock {
   correct_to_next: number;
 }
 
+/**
+ * THE GATE, ASKED BEFORE THE DOOR IS TRIED.
+ *
+ * GET /mock/status answers the same numbers as the 403 above, without
+ * attempting to build a paper. The app used to learn the rule only by
+ * breaking it: tap Start, wait, get refused. Every screen that mentions a
+ * mock now reads this first, so a student sees how far off they are before
+ * they reach for anything.
+ */
+export interface MockStatus {
+  exam: string;
+  /** Unique correct practice answers one paper costs. */
+  threshold: number;
+  unique_correct: number;
+  credits_earned: number;
+  mocks_used: number;
+  /** Papers the student may sit right now. */
+  credits_available: number;
+  correct_to_next: number;
+}
+
+export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {
+  return apiFetch(`/mock/status?exam=${encodeURIComponent(exam)}`);
+}
+
+/** One row of GET /mock/runs. The score is the summary only — the
+ *  question-by-question review exists in the submit response and nowhere
+ *  else, which is why finishing a paper writes it to the device. */
+export interface MockRunRow {
+  id: string;
+  exam: 'jee' | 'neet';
+  status: 'in_progress' | 'submitted';
+  created_at: string;
+  submitted_at: string | null;
+  score: {
+    correct: number;
+    wrong: number;
+    unanswered: number;
+    total_marks: number;
+    max_marks: number;
+    per_subject: Record<string, MockSubjectScore>;
+  } | null;
+}
+
+export async function listMockRuns(): Promise<MockRunRow[]> {
+  const data = await apiFetch<{ runs?: MockRunRow[] }>('/mock/runs');
+  return data.runs ?? [];
+}
+
 export function mockLockFrom(err: unknown): MockLock | null {
   const data = (err as { status?: number; data?: { detail?: unknown } } | null)?.data?.detail;
   if (!data || typeof data !== 'object') return null;
@@ -129,6 +179,18 @@ export interface MockSession {
   index: number;
   /** Epoch ms when the clock runs out; fixed at start. */
   deadline: number;
+  /**
+   * Milliseconds spent on each question, by question id.
+   *
+   * Kept here because nowhere else can hold it: `MockAnswer` on the API has
+   * no `elapsed_ms` field (practice's does), so a mock's timing exists on
+   * this device or not at all. It is what turns a scorecard into a report —
+   * a student who scores 180 needs to know whether they ran out of time or
+   * ran out of method.
+   */
+  elapsed: Map<string, number>;
+  /** Epoch ms the question on screen was shown. */
+  shownAt: number;
   result: MockSubmitResult | null;
 }
 
@@ -141,9 +203,34 @@ export function startMockSession(paper: MockPaper): MockSession {
     marked: new Set(),
     index: 0,
     deadline: Date.now() + paper.duration_minutes * 60_000,
+    elapsed: new Map(),
+    shownAt: Date.now(),
     result: null,
   };
   return session;
+}
+
+/**
+ * Charge the time since the last switch to the question that was on screen.
+ *
+ * Called on every move between questions, when the paper loses focus (the
+ * palette and the paused screen are not time spent on question 12), and once
+ * more at submit. Reading the clock at these four moments is the whole of the
+ * timing: no interval, nothing ticking, nothing to leak.
+ */
+export function chargeElapsed(): void {
+  const s = session;
+  if (!s) return;
+  const now = Date.now();
+  const q = s.paper.questions[s.index];
+  if (q) s.elapsed.set(q.id, (s.elapsed.get(q.id) ?? 0) + Math.max(0, now - s.shownAt));
+  s.shownAt = now;
+}
+
+/** Restart the stopwatch without charging anything — coming back to the
+ *  paper after the palette or a pause. */
+export function resumeElapsed(): void {
+  if (session) session.shownAt = Date.now();
 }
 
 export function getMockSession(): MockSession | null {
@@ -185,7 +272,18 @@ export function sessionAnswersPayload(
 export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
   const s = session;
   if (!s) return null;
+  // The last question was still on screen when Submit was pressed.
+  chargeElapsed();
   const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s));
   s.result = result;
+  /**
+   * WRITE THE REPORT NOW OR NEVER.
+   *
+   * This response is the only time the server sends the question-by-question
+   * review; there is no GET that returns a finished run's questions. Saving
+   * here rather than on the results screen means it is kept even if the app
+   * is killed on the way there.
+   */
+  await saveReport(buildReport(s, result)).catch(() => undefined);
   return result;
 }

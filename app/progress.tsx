@@ -11,6 +11,7 @@ import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
+import { getMockStatus, type MockStatus } from '@/lib/mock';
 import {
   MasteryState,
   ProgressChapter,
@@ -160,13 +161,22 @@ export default function ProgressScreen() {
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
   const [showAllChapters, setShowAllChapters] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  /** The mock gate, so the card can show the count rather than send a
+   *  student to a screen that refuses them. Null until it is known. */
+  const [mockStatus, setMockStatus] = useState<MockStatus | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       getProgress()
         .then((data) => {
-          if (!cancelled) setState({ kind: 'ready', data });
+          if (cancelled) return;
+          setState({ kind: 'ready', data });
+          // The gate is per exam, and the exam is whatever this summary was
+          // built for — never a guess made on this screen.
+          getMockStatus(String(data.exam).toLowerCase().includes('neet') ? 'neet' : 'jee')
+            .then((next) => !cancelled && setMockStatus(next))
+            .catch(() => undefined);
         })
         .catch(() => {
           if (cancelled) return;
@@ -625,7 +635,9 @@ export default function ProgressScreen() {
                       {lever
                         ? `Most score headroom in ${SUBJECT_LABEL[lever.subject] ?? lever.subject} right now.`
                         : rec.role === 'exam_craft'
-                          ? 'A full paper, on the clock, marked the way the real one is. It shows where you run out of time and which mistakes cost you marks.'
+                          ? mockStatus && mockStatus.credits_available === 0
+                            ? `A full paper, on the clock, marked the way the real one is. You earn one by answering ${mockStatus.threshold} practice questions correctly.`
+                            : 'A full paper, on the clock, marked the way the real one is. It shows where you run out of time and which mistakes cost you marks.'
                           : rec.reason}
                     </Text>
                     {rec.role === 'highest_lever' && lever ? (
@@ -649,12 +661,50 @@ export default function ProgressScreen() {
                         <ArrowIcon color={colors.paper} size={scale(13)} />
                       </PressableScale>
                     ) : rec.role === 'exam_craft' ? (
-                      <PressableScale
-                        style={styles.recButton}
-                        onPress={() => router.push('/mock-ready')}>
-                        <Text style={styles.recButtonText}>Start mock test</Text>
-                        <ArrowIcon color={colors.paper} size={scale(13)} />
-                      </PressableScale>
+                      <>
+                        {/* THE GATE, ON THE CARD THAT OFFERS THE PAPER.
+                            A mock is earned: one per 75 practice questions
+                            answered correctly for the first time. A student
+                            who tapped this used to find that out from a
+                            failed request on the next screen. The count is
+                            here, where the offer is made, and the key says
+                            which of the two things it does. */}
+                        {mockStatus && mockStatus.credits_available === 0 && (
+                          <View style={styles.mockGate}>
+                            <View style={styles.mockTrack}>
+                              <View
+                                style={[
+                                  styles.mockFill,
+                                  {
+                                    width: `${Math.min(
+                                      100,
+                                      Math.round(
+                                        ((mockStatus.threshold - mockStatus.correct_to_next) /
+                                          mockStatus.threshold) *
+                                          100
+                                      )
+                                    )}%`,
+                                  },
+                                ]}
+                              />
+                            </View>
+                            <Text style={styles.mockCount}>
+                              {mockStatus.threshold - mockStatus.correct_to_next} of{' '}
+                              {mockStatus.threshold} correct
+                            </Text>
+                          </View>
+                        )}
+                        <PressableScale
+                          style={styles.recButton}
+                          onPress={() => router.push('/mocks')}>
+                          <Text style={styles.recButtonText}>
+                            {mockStatus && mockStatus.credits_available === 0
+                              ? 'See mock tests'
+                              : 'Start mock test'}
+                          </Text>
+                          <ArrowIcon color={colors.paper} size={scale(13)} />
+                        </PressableScale>
+                      </>
                     ) : (
                       <PressableScale
                         style={[styles.recButton, styles.recButtonQuiet]}
@@ -1206,6 +1256,26 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(19.5),
       color: colors.slate,
       marginTop: verticalScale(4),
+    },
+    mockGate: {
+      marginTop: verticalScale(12),
+      gap: verticalScale(6),
+    },
+    mockTrack: {
+      height: verticalScale(6),
+      borderRadius: scale(99),
+      backgroundColor: hairline(0.07),
+      overflow: 'hidden',
+    },
+    mockFill: {
+      height: '100%',
+      borderRadius: scale(99),
+      backgroundColor: colors.marigold,
+    },
+    mockCount: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(11.5),
+      color: colors.faint,
     },
     recButton: {
       alignSelf: 'flex-start',

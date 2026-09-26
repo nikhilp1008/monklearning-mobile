@@ -19,7 +19,7 @@ import { MathText } from '@/components/math-text';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { getMockSession, submitCurrentSession } from '@/lib/mock';
+import { chargeElapsed, getMockSession, resumeElapsed, submitCurrentSession } from '@/lib/mock';
 
 function BackArrowIcon({ size }: { size: number }) {
   return (
@@ -95,11 +95,15 @@ export default function MockTestScreen() {
       const s = getMockSession();
       if (!s || s.result) {
         // Deep link or a stale back-gesture after submit: there is no paper
-        // to show, and the honest place to land is the start screen.
-        router.replace('/mock-ready');
+        // to show, and the honest place to land is the mock tests page.
+        router.replace('/mocks');
         return;
       }
       setIndexState(s.index);
+      // The stopwatch runs only while the paper is on screen: the palette and
+      // the paused page are not time spent on question 12.
+      resumeElapsed();
+      return () => chargeElapsed();
     }, [])
   );
 
@@ -127,6 +131,7 @@ export default function MockTestScreen() {
   const goTo = (i: number) => {
     const s = getMockSession();
     if (!s) return;
+    chargeElapsed();
     const clamped = Math.max(0, Math.min(s.paper.questions.length - 1, i));
     s.index = clamped;
     setIndexState(clamped);
@@ -144,8 +149,8 @@ export default function MockTestScreen() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await submitCurrentSession();
-      router.replace('/mock-result');
+      const result = await submitCurrentSession();
+      router.replace(`/mock-report?run=${result?.mock_run_id ?? ''}`);
     } catch {
       setSubmitting(false);
       Alert.alert(

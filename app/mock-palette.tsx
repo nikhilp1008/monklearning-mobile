@@ -59,8 +59,8 @@ export default function MockPaletteScreen() {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await submitCurrentSession();
-      router.replace('/mock-result');
+      const result = await submitCurrentSession();
+      router.replace(`/mock-report?run=${result?.mock_run_id ?? ''}`);
     } catch {
       setSubmitting(false);
       Alert.alert(
