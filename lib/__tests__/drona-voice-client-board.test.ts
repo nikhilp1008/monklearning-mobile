@@ -28,6 +28,7 @@ import {
   applyBoardReplay,
   DronaVoiceClient,
   type BoardEvent,
+  type DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 
 jest.mock('@/lib/widgets/registry', () => ({ REGISTRY_MANIFEST: [] }));
@@ -147,9 +148,10 @@ async function flushMicrotasks() {
 }
 
 /** A connected client whose board is built exactly the way the classroom builds it. */
-async function joinClass() {
+async function joinClass(extra: DronaVoiceHandlers = {}) {
   let board: BoardEvent[] = [];
   const client = new DronaVoiceClient('session-1', async () => 'token', 'https://api.test', {
+    ...extra,
     onBoardReveal: (event) => {
       board = appendBoardEvent(board, event);
     },
@@ -485,6 +487,137 @@ describe('a reconnect that cuts a turn off', () => {
     c.queue.playToEnd();
 
     expect(c.lines()).toEqual(['Line A', 'Line B', 'Line C']);
+  });
+});
+
+/**
+ * V4: the server's "sentence" is a TTS chunk, which can speak several of the
+ * model's sentences — so one audio_chunk can carry several lines, on the
+ * additive `board_events` list (monk-learning-api, live_session_ws.py
+ * `send_sentence_streamed`; app/drona/board_pairing.py). `board_event` still
+ * carries the first of them, for builds that read nothing else.
+ */
+const sayMany = (sentenceId: string, events: BoardEvent[], audio: string | null = 'AAAAAAAA') => ({
+  ...say(sentenceId, events[0] ?? null),
+  audio,
+  board_events: events,
+});
+
+describe('a chunk that carries several lines', () => {
+  it('writes them all when its clip starts, in order, and never again', async () => {
+    const c = await joinClass();
+    // bc0e4157 turn 1, chunk 4: the model's sentences 5 and 6 are both in it.
+    const turn = [line(4, 'a : N -> R'), line(5, 'Formally, a function'), line(6, 'a1, a2, a3'), line(7, GENERAL_TERM)];
+    c.send({ type: 'board_events', events: turn });
+    c.send(sayMany('t_7_s3', [turn[0]]));
+    c.send(sayMany('t_7_s4', [turn[1], turn[2]]));
+    c.send(sayMany('t_7_s5', [turn[3]]));
+    c.send({ type: 'turn_complete' });
+
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['a : N -> R']);
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3']);
+    c.queue.playToEnd();
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', GENERAL_TERM]);
+  });
+
+  it('writes a silent chunk\'s lines at once, with its text', async () => {
+    const captions: string[] = [];
+    const c = await joinClass({ onCaptionReveal: (text) => captions.push(text) });
+    const turn = [line(5, 'Line E'), line(6, 'Line F')];
+    c.send({ type: 'board_events', events: turn });
+    // TTS failed on this sentence: the server sends its caption and its lines
+    // with no audio, in its place in the turn.
+    c.send(sayMany('t_8_s3', turn, null));
+    expect(c.lines()).toEqual(['Line E', 'Line F']);
+    expect(captions).toEqual(['(t_8_s3)']);
+    c.send({ type: 'turn_complete' });
+    c.queue.playToEnd();
+    expect(c.lines()).toEqual(['Line E', 'Line F']);
+  });
+
+  it('still reveals a line no chunk carried — the server\'s orphan — once, at the end', async () => {
+    const c = await joinClass();
+    const turn = [line(1, 'Line A'), line(12, 'Named a sentence the speech never reached')];
+    c.send({ type: 'board_events', events: turn });
+    c.send(sayMany('t_9_s1', [turn[0]]));
+    c.send({ type: 'turn_complete' });
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['Line A']);
+    c.queue.playToEnd();
+    expect(c.lines()).toEqual(['Line A', 'Named a sentence the speech never reached']);
+  });
+
+  it('reads the list over the singular field, and the singular field alone from an older server', async () => {
+    const c = await joinClass();
+    const turn = [line(2, 'Line B'), line(3, 'Line C'), line(4, 'Line D')];
+    c.send({ type: 'board_events', events: turn });
+    c.send(sayMany('t_10_s1', [turn[0], turn[1]]));
+    c.send(say('t_10_s2', turn[2])); // no `board_events`: a server before V4
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['Line B', 'Line C']);
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['Line B', 'Line C', 'Line D']);
+  });
+});
+
+describe('the reveal probe', () => {
+  const ENV = process.env.EXPO_PUBLIC_REVEAL_PROBE;
+  afterEach(() => {
+    process.env.EXPO_PUBLIC_REVEAL_PROBE = ENV;
+  });
+
+  it('logs, per line, the sentence that carried it and when its audio arrived, started and the line went up', async () => {
+    process.env.EXPO_PUBLIC_REVEAL_PROBE = '1';
+    const logs: string[] = [];
+    const spy = jest.spyOn(console, 'log').mockImplementation((line: unknown) => {
+      logs.push(String(line));
+    });
+    let Client: typeof DronaVoiceClient = DronaVoiceClient;
+    let Queue: { instances: FakeQueue[] } = { instances: [] };
+    // Fresh module registry: REVEAL_PROBE is read once, when the module loads.
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      Client = (require('@/lib/drona-voice-client') as { DronaVoiceClient: typeof DronaVoiceClient })
+        .DronaVoiceClient;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      Queue = (require('@/lib/audio-playback-queue') as { AudioPlaybackQueue: { instances: FakeQueue[] } })
+        .AudioPlaybackQueue;
+    });
+    const client = new Client('session-1', async () => 'token', 'https://api.test', {});
+    openClients.push(client);
+    client.connect();
+    await flushMicrotasks();
+    const socket = FakeSocket.all[FakeSocket.all.length - 1];
+    socket.open();
+    const queue = Queue.instances[Queue.instances.length - 1];
+
+    jest.setSystemTime(1_000_000);
+    const turn = [line(4, 'Line D'), line(5, 'Line E'), line(9, 'Line I')];
+    socket.receive({ type: 'board_events', events: turn });
+    socket.receive(sayMany('t_1_s2', [turn[0], turn[1]]));
+    jest.setSystemTime(1_000_250);
+    queue.startNext();
+    socket.receive({ type: 'turn_complete' });
+    queue.playToEnd();
+    spy.mockRestore();
+
+    const probe = logs.filter((l) => l.startsWith('[reveal-probe]'));
+    expect(probe).toContainEqual(expect.stringMatching(/AUDIO_RECV sentence=t_1_s2 at=1000000 audio=yes lines=\d+:4,\d+:5/));
+    expect(probe).toContainEqual(expect.stringMatching(/AUDIO_START sentence=t_1_s2 playback=t_1_s2-\d+ at=1000250 recvAt=1000000/));
+    const revealed = probe.filter((l) => l.includes('REVEALED'));
+    expect(revealed).toHaveLength(3);
+    for (const seq of [4, 5]) {
+      expect(revealed).toContainEqual(
+        expect.stringMatching(
+          new RegExp(`REVEALED seq=${seq} .* sentence=t_1_s2 audioRecvAt=1000000 audioStartAt=1000250 revealedAt=1000250 gapMs=0`)
+        )
+      );
+    }
+    expect(revealed).toContainEqual(
+      expect.stringMatching(/REVEALED seq=9 .*carriedBy=END_OF_TURN_FLUSH sentence=- audioRecvAt=- audioStartAt=- revealedAt=\d+ gapMs=-/)
+    );
   });
 });
 

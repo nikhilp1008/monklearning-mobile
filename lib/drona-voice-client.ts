@@ -21,6 +21,38 @@ const REVEAL_PROBE = __DEV__ && process.env.EXPO_PUBLIC_REVEAL_PROBE === '1';
 const probe = (line: string) => {
   if (REVEAL_PROBE) console.log(`[reveal-probe] ${line}`);
 };
+/**
+ * The probe's client half of V4's acceptance run: per board line, the sentence
+ * that carried it and three epoch-ms stamps — when that sentence's audio frame
+ * ARRIVED (`AUDIO_RECV … at=`), when its clip STARTED playing (`AUDIO_START …
+ * at=`), and when the line was REVEALED (`REVEALED … revealedAt=`), with
+ * `gapMs` = revealedAt − audioStartAt. Joined to the server's `board_line_sent`
+ * log on sentence_id. `-` wherever a stamp does not apply (an end-of-turn
+ * flush has no sentence; a silent chunk has no clip, so it starts on arrival).
+ */
+interface RevealTiming {
+  sentenceId: string;
+  receivedAt: number;
+  startedAt: number;
+}
+
+/**
+ * The lines one audio chunk carries.
+ *
+ * `board_events` (V4, additive): every line the chunk's sentences name —
+ * several to a chunk, since the server's "sentence" is a TTS chunk of 100+
+ * characters that can hold more than one of the model's sentences. Else the
+ * singular `board_event`, which every server sends (the first of the list, for
+ * builds that read nothing else) and older servers send alone.
+ */
+export function chunkBoardEvents(msg: Record<string, unknown>): BoardEvent[] {
+  const many = msg.board_events;
+  if (Array.isArray(many) && many.length > 0) {
+    return many.filter((e): e is BoardEvent => !!e && typeof e === 'object');
+  }
+  const one = msg.board_event as BoardEvent | null | undefined;
+  return one && typeof one === 'object' ? [one] : [];
+}
 
 export interface BoardEvent {
   seq: number;
@@ -319,7 +351,13 @@ export class DronaVoiceClient {
    *  reveal — and, for `durationMs`, how long the clip it just started runs. */
   private chunkMeta = new Map<
     string,
-    { speech?: string; board?: BoardEntry | null; durationMs?: number }
+    {
+      speech?: string;
+      board?: BoardEntry[];
+      durationMs?: number;
+      sentenceId?: string;
+      receivedAt?: number;
+    }
   >();
   /** Monotonic suffix so continuation parts sharing one sentence_id get
    *  distinct playback ids — they otherwise collide on the queue's
@@ -363,8 +401,21 @@ export class DronaVoiceClient {
       // the checkpoint over the top of it. See DRAIN_WATCHDOG_MS.
       if (this.awaitingDrain) this.armDrainWatchdog();
       const meta = this.chunkMeta.get(id);
+      const startedAt = Date.now();
+      if (meta?.board?.length || meta?.speech) {
+        probe(
+          `AUDIO_START sentence=${meta.sentenceId ?? '-'} playback=${id} at=${startedAt}` +
+            ` recvAt=${meta.receivedAt ?? '-'} lines=${meta.board?.map((e) => e.key).join(',') || '-'}`
+        );
+      }
       if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
-      if (meta?.board) this.revealBoardEntry(meta.board, `onItemStart(${id})`);
+      for (const entry of meta?.board ?? []) {
+        this.revealBoardEntry(entry, `onItemStart(${id})`, {
+          sentenceId: meta?.sentenceId ?? '-',
+          receivedAt: meta?.receivedAt ?? startedAt,
+          startedAt,
+        });
+      }
       // Survives the delete below so `playingChunkDurationMs` can be read
       // after the reveal fires. Nothing consumes it yet — see the getter.
       this.currentChunkDurationMs = meta?.durationMs ?? null;
@@ -911,16 +962,20 @@ export class DronaVoiceClient {
    * showed the line twice. That pairing is the server's to fix; the board
    * holding each event once is this client's.
    */
-  private revealBoardEntry(entry: BoardEntry, carrier: string) {
+  private revealBoardEntry(entry: BoardEntry, carrier: string, timing?: RevealTiming) {
     const { event } = entry;
     if (this.revealedBoardKeys.has(entry.key)) {
       probe(`REPEAT seq=${event.seq} key=${entry.key} carriedBy=${carrier} — already on the board, not written again`);
       return;
     }
     this.revealedBoardKeys.add(entry.key);
+    const revealedAt = Date.now();
     probe(
       `REVEALED seq=${event.seq} key=${entry.key} type=${event.type}` +
-        ` widget=${event.payload?.widget ?? '-'} carriedBy=${carrier}`
+        ` widget=${event.payload?.widget ?? '-'} carriedBy=${carrier}` +
+        ` sentence=${timing?.sentenceId ?? '-'} audioRecvAt=${timing?.receivedAt ?? '-'}` +
+        ` audioStartAt=${timing?.startedAt ?? '-'} revealedAt=${revealedAt}` +
+        ` gapMs=${timing ? revealedAt - timing.startedAt : '-'}`
     );
     this.handlers.onBoardReveal?.({ ...event, key: entry.key });
   }
@@ -983,8 +1038,9 @@ export class DronaVoiceClient {
   private handleAudioChunk(msg: Record<string, unknown>) {
     const sentenceId = String(msg.sentence_id ?? '');
     const audioBase64 = String(msg.audio ?? '');
-    const boardEvent = (msg.board_event as BoardEvent | null) ?? null;
+    const boardEvents = chunkBoardEvents(msg);
     const speech = msg.speech as string | undefined;
+    const receivedAt = Date.now();
     // Measured playback length of THIS frame's PCM, computed server-side from
     // the synthesized byte count (len(pcm) / (24000 * 2) * 1000) — never
     // estimated from the caption's word count. Optional: a server built before
@@ -995,33 +1051,49 @@ export class DronaVoiceClient {
         ? rawDuration
         : undefined;
 
-    const entry = boardEvent ? this.resolveBoardEntry(boardEvent) : null;
-    if (entry) {
+    const entries: BoardEntry[] = [];
+    for (const event of boardEvents) {
+      const entry = this.resolveBoardEntry(event);
+      if (!entries.includes(entry)) entries.push(entry);
+    }
+    if (entries.length > 0) {
       if (RESUMED_SENTENCE.test(sentenceId)) {
         // A resumed lesson's parked events come back as their own frame; the
         // first resumed sentence marks that frame for what it is.
-        const at = this.boardBatches.findIndex((b) => b.serial === entry.batch);
+        const at = this.boardBatches.findIndex((b) => b.serial === entries[0].batch);
         if (at > 0) this.adoptKeys(this.boardBatches[at], this.boardBatches.slice(0, at).reverse());
       }
-      // Claimed: the audio will reveal it, so the flush must not. By KEY —
+      // Claimed: the audio will reveal them, so the flush must not. By KEY —
       // this used to filter by seq, and seq repeats across turns and within
       // one, so claiming one event quietly dropped another turn's.
-      this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => e.key !== entry.key);
+      const claimed = new Set(entries.map((e) => e.key));
+      this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => !claimed.has(e.key));
     }
+    probe(
+      `AUDIO_RECV sentence=${sentenceId || '-'} at=${receivedAt} audio=${audioBase64 ? 'yes' : 'none'}` +
+        ` lines=${entries.map((e) => e.key).join(',') || '-'}`
+    );
 
-    // Checkpoint questions arrive as a silent chunk — caption and board line,
-    // no audio. Returning early here (the previous behaviour) dropped the
-    // question text and its board line entirely, so the class appeared to
-    // stall with nothing on screen to answer.
+    // A sentence with no audio — a checkpoint question whose synthesis failed,
+    // or any sentence whose TTS failed — arrives as a silent chunk: caption
+    // and board lines, no audio. Returning early here (the previous
+    // behaviour) dropped the text and its lines entirely, so the class
+    // appeared to stall with nothing on screen to answer.
     if (!audioBase64) {
       if (speech) this.handlers.onCaptionReveal?.(speech);
-      if (entry) this.revealBoardEntry(entry, `audio_chunk(${sentenceId})`);
+      for (const entry of entries) {
+        this.revealBoardEntry(entry, `audio_chunk(${sentenceId})`, {
+          sentenceId: sentenceId || '-',
+          receivedAt,
+          startedAt: receivedAt,
+        });
+      }
       return;
     }
     if (!sentenceId) return;
 
     const playbackId = `${sentenceId}-${this.chunkSeq++}`;
-    this.chunkMeta.set(playbackId, { speech, board: entry, durationMs });
+    this.chunkMeta.set(playbackId, { speech, board: entries, durationMs, sentenceId, receivedAt });
 
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
