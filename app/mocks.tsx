@@ -16,7 +16,9 @@ import {
   getMockStatus,
   listMockRuns,
   mockLockFrom,
+  resumeActiveSession,
   startMockSession,
+  submitCurrentSession,
   type MockRunRow,
   type MockStatus,
 } from '@/lib/mock';
@@ -101,6 +103,9 @@ export default function MocksScreen() {
   const [saved, setSaved] = useState<MockReport[]>([]);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Said once, after a paper whose clock ran out while the app was closed
+   *  has been marked from the answers this phone kept. */
+  const [notice, setNotice] = useState<string | null>(null);
   const [hasActivePaper, setHasActivePaper] = useState(false);
 
   useEffect(() => {
@@ -131,20 +136,53 @@ export default function MocksScreen() {
       const s = getMockSession();
       setHasActivePaper(!!s && !s.result);
       if (s && !s.result) setExam(s.paper.exam);
-
       let cancelled = false;
-      getMockStatus(s?.paper.exam ?? exam)
-        .then((next) => !cancelled && setStatus(next))
-        .catch(() => undefined);
-      listMockRuns()
-        .then((next) => !cancelled && setRuns(next))
-        .catch(() => !cancelled && setRuns([]));
-      savedReportIds()
-        .then((ids) => Promise.all(ids.map(loadReport)))
-        .then((reports) => {
-          if (!cancelled) setSaved(reports.filter((r): r is MockReport => !!r));
-        })
-        .catch(() => undefined);
+      // The gate, the server's list and this device's reports. Read on focus,
+      // and again after a paper is marked below, so it appears at once.
+      const loadLists = () => {
+        getMockStatus(s?.paper.exam ?? exam)
+          .then((next) => !cancelled && setStatus(next))
+          .catch(() => undefined);
+        listMockRuns()
+          .then((next) => !cancelled && setRuns(next))
+          .catch(() => !cancelled && setRuns([]));
+        savedReportIds()
+          .then((ids) => Promise.all(ids.map(loadReport)))
+          .then((reports) => {
+            if (!cancelled) setSaved(reports.filter((r): r is MockReport => !!r));
+          })
+          .catch(() => undefined);
+      };
+      /**
+       * AN UNFINISHED PAPER COMES BACK.
+       *
+       * With nothing live in memory — the app was closed mid-paper — the
+       * server is asked for the student's unfinished paper, and this device's
+       * saved answers are laid back onto it. The key turns into Resume. If the
+       * clock ran out while the app was away, the paper is marked now from
+       * what was saved rather than left hanging with its credit spent.
+       */
+      if (!s || s.result) {
+        resumeActiveSession(exam)
+          .then(async (resumed) => {
+            if (cancelled || !resumed) return;
+            if (!resumed.expired) {
+              setHasActivePaper(true);
+              return;
+            }
+            const answered = resumed.session.answers.size;
+            await submitCurrentSession();
+            if (cancelled) return;
+            setNotice(
+              answered
+                ? `Your last paper's time ran out while the app was closed, so it has been marked on the ${answered} ${answered === 1 ? 'answer' : 'answers'} you had given.`
+                : "Your last paper's time ran out while the app was closed, so it has been marked as it stood."
+            );
+            loadLists();
+          })
+          .catch(() => undefined);
+      }
+      loadLists();
       return () => {
         cancelled = true;
       };
@@ -339,6 +377,7 @@ export default function MocksScreen() {
           )}
 
           {!!error && <Text style={styles.error}>{error}</Text>}
+          {!!notice && <Text style={styles.notice}>{notice}</Text>}
 
           {/* PAPERS YOU HAVE SAT. The list is the server's (GET /mock/runs);
               the report behind each row is written to this device when the
@@ -626,6 +665,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     cardHint: {
       marginTop: verticalScale(10),
       fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+    },
+    notice: {
+      marginTop: verticalScale(12),
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(12.5),
       lineHeight: scale(18),
       color: colors.slate,

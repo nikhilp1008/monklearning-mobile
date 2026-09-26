@@ -1,3 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
+
 import { apiFetch } from '@/lib/api';
 import { buildReport, saveReport } from '@/lib/mock-report';
 import type { DiagramFigure } from '@/lib/practice';
@@ -36,6 +39,14 @@ export interface MockPaper {
   max_marks: number;
   sections: { subject: string; questions: number }[];
   questions: MockQuestion[];
+  /** The server's clock for this paper (ISO). A resumed paper runs against
+   *  this, not against a fresh duration from whenever the app came back.
+   *  Absent from API builds that predate GET /mock/active. */
+  started_at?: string;
+  deadline?: string;
+  seconds_left?: number;
+  /** Only on GET /mock/active: the deadline passed while the app was away. */
+  expired?: boolean;
 }
 
 export interface MockSubjectScore {
@@ -197,17 +208,128 @@ export interface MockSession {
 let session: MockSession | null = null;
 
 export function startMockSession(paper: MockPaper): MockSession {
+  const serverDeadline = paper.deadline ? Date.parse(paper.deadline) : NaN;
   session = {
     paper,
     answers: new Map(),
     marked: new Set(),
     index: 0,
-    deadline: Date.now() + paper.duration_minutes * 60_000,
+    deadline: Number.isFinite(serverDeadline)
+      ? serverDeadline
+      : Date.now() + paper.duration_minutes * 60_000,
     elapsed: new Map(),
     shownAt: Date.now(),
     result: null,
   };
   return session;
+}
+
+/**
+ * THE PAPER OUTLIVES THE APP.
+ *
+ * A mock's credit is spent when the paper is created, and the paper used to
+ * live only in this module — so a crash, a force-quit or a flat battery an
+ * hour in threw the credit away. The server now holds the paper (GET
+ * /mock/active) and this device holds what the student has done with it:
+ * answers, flags, the question they were on, and the time charged to each
+ * question. Together they rebuild the session exactly.
+ *
+ * Writes are coalesced — a student typing a numerical answer changes the
+ * draft on every keystroke — and flushed at once when the app leaves the
+ * foreground, which is the moment that matters.
+ */
+const PROGRESS_KEY = 'mock:progress:';
+const SAVE_DEBOUNCE_MS = 400;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+interface StoredProgress {
+  run_id: string;
+  answers: [string, MockAnswerDraft][];
+  marked: string[];
+  index: number;
+  elapsed: [string, number][];
+}
+
+async function writeProgress(): Promise<void> {
+  const s = session;
+  if (!s || s.result) return;
+  const stored: StoredProgress = {
+    run_id: s.paper.mock_run_id,
+    answers: [...s.answers.entries()],
+    marked: [...s.marked],
+    index: s.index,
+    elapsed: [...s.elapsed.entries()],
+  };
+  await AsyncStorage.setItem(PROGRESS_KEY + stored.run_id, JSON.stringify(stored));
+}
+
+/** Call after any change to the live paper. Cheap to call often. */
+export function saveProgress(): void {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    writeProgress().catch(() => undefined);
+  }, SAVE_DEBOUNCE_MS);
+}
+
+function flushProgress(): void {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  writeProgress().catch(() => undefined);
+}
+
+// Whatever is pending must reach storage before iOS reclaims a backgrounded
+// process. (Per-question timing across app switches is the paper screen's
+// job: only it knows whether a question is actually on screen.)
+AppState.addEventListener('change', (next) => {
+  if (next !== 'active') {
+    flushProgress();
+    writeProgress().catch(() => undefined);
+  }
+});
+
+function forgetProgress(runId: string): void {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  AsyncStorage.removeItem(PROGRESS_KEY + runId).catch(() => undefined);
+}
+
+export function getActivePaper(exam: 'jee' | 'neet'): Promise<{ paper: MockPaper | null }> {
+  return apiFetch(`/mock/active?exam=${encodeURIComponent(exam)}`);
+}
+
+/**
+ * Put the student back in their unfinished paper, if they have one.
+ *
+ * Returns the session (now the live one) and whether its clock ran out while
+ * the app was away. An in-memory session for the same paper wins: it is at
+ * least as fresh as anything on disk.
+ */
+export async function resumeActiveSession(
+  exam: 'jee' | 'neet'
+): Promise<{ session: MockSession; expired: boolean } | null> {
+  const { paper } = await getActivePaper(exam);
+  if (!paper) return null;
+  if (session && !session.result && session.paper.mock_run_id === paper.mock_run_id) {
+    return { session, expired: !!paper.expired };
+  }
+  const s = startMockSession(paper);
+  try {
+    const raw = await AsyncStorage.getItem(PROGRESS_KEY + paper.mock_run_id);
+    if (raw) {
+      const stored = JSON.parse(raw) as StoredProgress;
+      s.answers = new Map(stored.answers);
+      s.marked = new Set(stored.marked);
+      s.index = Math.max(0, Math.min(paper.questions.length - 1, stored.index ?? 0));
+      s.elapsed = new Map(stored.elapsed);
+    }
+  } catch {
+    // Unreadable progress is not a reason to refuse the paper: the student
+    // gets it back unanswered, on the right clock, rather than not at all.
+  }
+  s.shownAt = Date.now();
+  return { session: s, expired: !!paper.expired };
 }
 
 /**
@@ -225,6 +347,9 @@ export function chargeElapsed(): void {
   const q = s.paper.questions[s.index];
   if (q) s.elapsed.set(q.id, (s.elapsed.get(q.id) ?? 0) + Math.max(0, now - s.shownAt));
   s.shownAt = now;
+  // Every move between questions passes through here, so this is also what
+  // keeps the saved position current.
+  saveProgress();
 }
 
 /** Restart the stopwatch without charging anything — coming back to the
@@ -238,6 +363,7 @@ export function getMockSession(): MockSession | null {
 }
 
 export function clearMockSession(): void {
+  if (session) forgetProgress(session.paper.mock_run_id);
   session = null;
 }
 
@@ -276,6 +402,7 @@ export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
   chargeElapsed();
   const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s));
   s.result = result;
+  forgetProgress(s.paper.mock_run_id);
   /**
    * WRITE THE REPORT NOW OR NEVER.
    *

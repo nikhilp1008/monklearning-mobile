@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,7 +20,13 @@ import { MathText } from '@/components/math-text';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { chargeElapsed, getMockSession, resumeElapsed, submitCurrentSession } from '@/lib/mock';
+import {
+  chargeElapsed,
+  getMockSession,
+  resumeElapsed,
+  saveProgress,
+  submitCurrentSession,
+} from '@/lib/mock';
 
 function BackArrowIcon({ size }: { size: number }) {
   return (
@@ -103,7 +110,17 @@ export default function MockTestScreen() {
       // The stopwatch runs only while the paper is on screen: the palette and
       // the paused page are not time spent on question 12.
       resumeElapsed();
-      return () => chargeElapsed();
+      // Time with the app in the background is not time on the question —
+      // and backgrounding is also the last chance to save before iOS may
+      // kill the process, which chargeElapsed's save covers.
+      const sub = AppState.addEventListener('change', (next) => {
+        if (next === 'active') resumeElapsed();
+        else chargeElapsed();
+      });
+      return () => {
+        sub.remove();
+        chargeElapsed();
+      };
     }, [])
   );
 
@@ -294,6 +311,7 @@ export default function MockTestScreen() {
               onChangeText={(value) => {
                 session.answers.set(question.id, { value });
                 if (!value.trim()) session.answers.delete(question.id);
+                saveProgress();
                 bump();
               }}
               placeholder="Your answer"
@@ -310,6 +328,7 @@ export default function MockTestScreen() {
                     key={key}
                     onPress={() => {
                       session.answers.set(question.id, { option: key });
+                      saveProgress();
                       bump();
                     }}
                     style={[styles.optionRow, isSelected && styles.optionRowSelected]}>
@@ -340,6 +359,7 @@ export default function MockTestScreen() {
               onPress={() => {
                 if (session.marked.has(question.id)) session.marked.delete(question.id);
                 else session.marked.add(question.id);
+                saveProgress();
                 bump();
               }}>
               <Text
@@ -353,6 +373,7 @@ export default function MockTestScreen() {
             <Pressable
               onPress={() => {
                 session.answers.delete(question.id);
+                saveProgress();
                 bump();
               }}>
               <Text style={styles.markRowText}>Clear</Text>

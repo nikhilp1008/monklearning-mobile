@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { getMockSession, submitCurrentSession } from '@/lib/mock';
+import { getMockSession, saveProgress, submitCurrentSession } from '@/lib/mock';
 
 const SUBJECT_LABEL: Record<string, string> = {
   physics: 'Physics',
@@ -42,6 +42,7 @@ export default function MockPaletteScreen() {
 
   const jump = (i: number) => {
     session.index = i;
+    saveProgress();
     router.back();
   };
 
