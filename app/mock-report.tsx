@@ -955,7 +955,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
     },
     verdictTextRight: { color: '#157A45' },
-    verdictTextWrong: { color: '#B5301F' },
+    // #C53A2B, not a near-miss of it. The app has one red for text on a red
+    // tint — report-sheet, practice, the library list and the classroom all
+    // use it — and this screen shipped with its own, three shades off.
+    verdictTextWrong: { color: '#C53A2B' },
     qStem: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
