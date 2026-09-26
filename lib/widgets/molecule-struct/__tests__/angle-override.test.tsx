@@ -29,7 +29,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { maxChars, PAD_SIDE, READOUT_SIZE } from '../../chrome';
+import { boxCapacity, maxChars, PAD_SIDE, READOUT_SIZE } from '../../chrome';
 import { renderWidgetTree, renderWidgetTreeAt } from '../../__tests__/test-utils';
 import { moleculeStruct } from '../index';
 import {
@@ -292,7 +292,13 @@ describe('the readout names where its angle came from, at every board', () => {
    * ladder exists for; the last one just lands lower.
    */
   test('the ladder drops the hybridisation first and the shape last, at 36 chars', () => {
-    const cap343 = maxChars(SPEC_SMALL.width - 2 * PAD_SIDE, READOUT_SIZE, 'latin');
+    // `boxCapacity`, not `maxChars`. This asks how many characters the BOX
+    // holds; it used to ask `maxChars` by passing the literal 'latin' as the
+    // string to cut, which answered the same number only while every glyph
+    // had one advance. Once glyphs are priced individually, `maxChars` cuts
+    // the string it is given and the sentinel answers 5 — the length of the
+    // word "latin".
+    const cap343 = boxCapacity(SPEC_SMALL.width - 2 * PAD_SIDE, READOUT_SIZE);
     expect(cap343).toBe(36);
 
     // Rung 1 — everything fits: 'sp3   bent   104.5°   VSEPR ideal' = 33.

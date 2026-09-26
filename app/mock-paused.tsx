@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -8,12 +8,36 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
+import { getMockSession } from '@/lib/mock';
 
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths'] as const;
+const SUBJECT_LABEL: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  biology: 'Biology',
+};
+
+function formatTime(totalSeconds: number) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const sec = totalSeconds % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+}
 
 export default function MockPausedScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const session = getMockSession();
+
+  useEffect(() => {
+    if (!session) router.replace('/mock-ready');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!session) return <View style={styles.screen} />;
+
+  const answered = session.paper.questions.filter((q) => session.answers.has(q.id)).length;
 
   return (
     <View style={styles.screen}>
@@ -27,7 +51,7 @@ export default function MockPausedScreen() {
               <PauseIcon size={scale(21)} />
             </View>
             <View style={styles.textBlock}>
-              <Text style={styles.overline}>Paused</Text>
+              <Text style={styles.overline}>Stepped away</Text>
               <Text style={styles.title}>Your paper is waiting</Text>
             </View>
           </View>
@@ -36,51 +60,86 @@ export default function MockPausedScreen() {
             <View style={styles.statusTopRow}>
               <Text style={styles.statusTitle}>Test in progress</Text>
               <View style={styles.pausedBadge}>
-                <Text style={styles.pausedBadgeText}>PAUSED</Text>
+                <Text style={styles.pausedBadgeText}>CLOCK RUNNING</Text>
               </View>
             </View>
             <View style={[styles.statusRow, styles.statusRowFirst]}>
               <Text style={styles.statusLabel}>Time left</Text>
-              <Text style={styles.statusValueMono}>02:14:08</Text>
+              <TimeLeft styles={styles} deadline={session.deadline} />
             </View>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Answered</Text>
-              <Text style={styles.statusValue}>38 of 135</Text>
+              <Text style={styles.statusValue}>
+                {answered} of {session.paper.questions.length}
+              </Text>
             </View>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Marked for review</Text>
-              <Text style={styles.statusValue}>4</Text>
+              <Text style={styles.statusValue}>{session.marked.size}</Text>
             </View>
           </View>
 
           <View style={styles.patternCard}>
-            <Text style={styles.patternOverline}>Paper pattern · JEE</Text>
-            {SUBJECTS.map((subject) => (
-              <View key={subject} style={styles.patternRow}>
-                <Text style={styles.patternRowLabel}>{subject}</Text>
-                <Text style={styles.patternRowValue}>45 questions</Text>
+            <Text style={styles.patternOverline}>
+              Paper pattern · {session.paper.exam === 'jee' ? 'JEE Main' : 'NEET UG'}
+            </Text>
+            {session.paper.sections.map((section) => (
+              <View key={section.subject} style={styles.patternRow}>
+                <Text style={styles.patternRowLabel}>
+                  {SUBJECT_LABEL[section.subject] ?? section.subject}
+                </Text>
+                <Text style={styles.patternRowValue}>{section.questions} questions</Text>
               </View>
             ))}
             <View style={styles.patternTotalRow}>
               <Text style={styles.patternTotalLabel}>Total</Text>
-              <Text style={styles.patternTotalValue}>135 Q · 3 hours</Text>
+              <Text style={styles.patternTotalValue}>
+                {session.paper.total_questions} Q · {session.paper.duration_minutes / 60} hours
+              </Text>
             </View>
           </View>
 
           <Text style={styles.hint}>
-            Your timer paused when you left. It picks up exactly where it stopped.
+            Real conditions: the clock keeps running while you are away, exactly like exam
+            day.
           </Text>
         </View>
 
         <View style={styles.footer}>
-          <Pressable style={styles.resumeButton} onPress={() => router.push('/mock-test')}>
+          <Pressable style={styles.resumeButton} onPress={() => router.back()}>
             <Text style={styles.resumeButtonText}>Resume mock test</Text>
             <ArrowRightIcon size={scale(15)} />
+          </Pressable>
+          {/* The way OUT. Without this, Save & exit -> Resume was a closed
+              loop and the rest of the app was unreachable mid-paper. The
+              session stays; mock-ready's button reads Resume until the
+              clock runs out or the paper is submitted. */}
+          <Pressable
+            style={styles.leaveButton}
+            onPress={() => router.dismissTo('/progress')}>
+            <Text style={styles.leaveButtonText}>Leave it running</Text>
           </Pressable>
         </View>
       </SafeAreaView>
     </View>
   );
+}
+
+function TimeLeft({
+  styles,
+  deadline,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  deadline: number;
+}) {
+  const remaining = () => Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  const [secondsLeft, setSecondsLeft] = useState(remaining);
+  useEffect(() => {
+    const id = setInterval(() => setSecondsLeft(remaining()), 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deadline]);
+  return <Text style={styles.statusValueMono}>{formatTime(secondsLeft)}</Text>;
 }
 
 function PauseIcon({ size }: { size: number }) {
@@ -307,6 +366,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
       color: colors.paper,
+    },
+    leaveButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: verticalScale(44),
+      marginTop: verticalScale(8),
+      borderRadius: scale(99),
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+    },
+    leaveButtonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(13),
+      color: colors.slate,
     },
   });
 }

@@ -17,7 +17,8 @@
  * is the failure no gate catches unless it is checked at this layer.
  */
 import React from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 
 import {
   ARROW_LEN, DOT_R, EMPHASIS_STROKE, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE,

@@ -1,3 +1,7 @@
+import { Platform } from 'react-native';
+
+import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
+
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
 import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 import { pcmAvailable } from '@/lib/pcm-player';
@@ -35,6 +39,12 @@ export interface BoardEvent {
   /** `diagram` events only: complete, self-contained, server-validated SVG.
    *  See `components/board-diagram.tsx` for what the host owes it. */
   svg?: string;
+  /**
+   * P3. The concept's bound plate, sent ALONGSIDE a widget payload so a build
+   * that cannot draw the widget has something to fall back to. Normally
+   * absent — the server picks one slot per turn.
+   */
+  illustration_slug?: string;
   /** `diagram` events only: an optional one-line gloss under the figure. */
   caption?: string;
   /**
@@ -364,7 +374,33 @@ export class DronaVoiceClient {
     // file-based queue would play each 1s part as its own WAV, and a
     // load-start gap every second is the one thing worse than waiting.
     const parts = pcmAvailable ? '&stream_tts=1' : '';
-    const url = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live?token=${encodeURIComponent(token)}${parts}`;
+    // The token travels as an `Authorization` header, not in the URL. A
+    // ?token= is part of the request line, and request lines are what edge
+    // infrastructure logs — a live bearer token per connect, readable by
+    // anyone with log access (security assessment, finding 5). React
+    // Native's WebSocket takes a headers option; a browser's does not, so
+    // the web fallback below keeps the query parameter the server still
+    // accepts for it. `null`, not `undefined`, for the protocols slot — RN
+    // only reads the options argument when protocols is explicitly null.
+    const canSendHeaders = Platform.OS !== 'web';
+    const base = `${this.wsBaseUrl}/drona/session/${this.sessionId}/live`;
+    // P1 — TELL THE SERVER WHAT THIS BUILD CAN DRAW.
+    //
+    // Until this existed the server sent whatever it had stored and an old
+    // build either drew it or drew NOTHING: a payload naming a widget the
+    // build does not carry misses `lookup()` and BoardWidget returns null
+    // with no picture behind it, because a slot-1 board event carries a
+    // payload and never an svg. Measured on the 19 Sep build against
+    // Ecosystem: eleven comparison_table segments, eleven blank boards.
+    //
+    // Sent on the QUERY STRING rather than as a first message because the
+    // server needs it before the first turn resolves a board, and a
+    // handshake message would race the first utterance.
+    const widgets = `&widgets=${encodeURIComponent(
+      REGISTRY_MANIFEST.map((m) => `${m.id}@${m.version}`).join(','))}`;
+    const url = canSendHeaders
+      ? `${base}?${pcmAvailable ? 'stream_tts=1' : ''}${widgets}`
+      : `${base}?token=${encodeURIComponent(token)}${parts}${widgets}`;
     // One socket per client, enforced at the source. A second connect while
     // one is still open — a screen remount, an eager prewarm — would put two
     // sockets in the air from one device; the server's takeover would retire
@@ -374,7 +410,11 @@ export class DronaVoiceClient {
       try { this.ws.close(); } catch { /* already closing */ }
       this.ws = null;
     }
-    const ws = new WebSocket(url);
+    const ws = canSendHeaders
+      ? new (WebSocket as unknown as {
+          new (u: string, p: string[] | null, o: { headers: Record<string, string> }): WebSocket;
+        })(url, null, { headers: { Authorization: `Bearer ${token}` } })
+      : new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
 

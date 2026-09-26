@@ -9,7 +9,8 @@
      Chunks 3 and 4 are Fig 3.9 (R1,R2,R3 in a line with battery V, drops V1,V2,V3) and Fig 3.10 (three parallel branches, I splitting into I1,I2,I3).
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {

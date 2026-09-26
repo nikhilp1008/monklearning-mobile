@@ -60,6 +60,17 @@ const WIDGETS = {
   circuit_network: ['circuit-network', 'circuitNetwork'],
   conic_plot: ['conic-plot', 'conicPlot'],
   lines_planes_3d: ['lines-planes-3d', 'linesPlanes3d'],
+  comparison_table: ['comparison-table', 'comparisonTable'],
+  lcr_resonance: ['lcr-resonance', 'lcrResonance'],
+  // N3, 2026-09-22. This map is a SECOND list of the registry and it does not
+  // derive from registry.ts — adding a widget there and not here makes the
+  // server's gate refuse every payload for it, with a message that looks like
+  // an authoring fault. That is exactly what happened: 24 re-routed boards
+  // came back "19 refused, 5 declined, 0 authored", and the cause was three
+  // missing lines in this object, not one bad board.
+  vector_sum: ['vector-sum', 'vectorSum'],
+  flux_surface: ['flux-surface', 'fluxSurface'],
+  region_plot: ['region-plot', 'regionPlot'],
   // molecule_3d renders a WebView, not SVG; its validate() is reachable but
   // the module pulls an HTML asset through require(). Listed as unjudgeable
   // rather than silently absent — see UNJUDGEABLE below.
@@ -130,8 +141,19 @@ module.exports = stub;
   }
 }
 
-const OUT = loadTs(Object.values(WIDGETS).map(([dir]) => `lib/widgets/${dir}/index.tsx`));
+const OUT = loadTs([
+  ...Object.values(WIDGETS).map(([dir]) => `lib/widgets/${dir}/index.tsx`),
+  // The sequence gate. It reaches the registry, which reaches every widget —
+  // all already stubbed above, so this costs nothing extra to load.
+  'lib/widgets/board-sequence-validate.ts',
+  // `undrawableChars`. Every widget already pulls chrome.ts in, so this only
+  // names it as an entry point rather than adding to the graph.
+  'lib/widgets/chrome.ts',
+]);
 writeStubs(OUT);
+
+const { gateSequence } = await import(join(OUT, 'lib/widgets/board-sequence-validate.js'));
+const { undrawableChars } = await import(join(OUT, 'lib/widgets/chrome.js'));
 
 const mods = {};
 for (const [id, [dir, exportName]] of Object.entries(WIDGETS)) {
@@ -156,6 +178,15 @@ try {
 }
 
 function judge(p) {
+  // A BOARD SEQUENCE is a frame around payloads, not a payload: it names no
+  // widget, so every branch below would miss it. Judged by its own gate, which
+  // runs each step through that step's widget and refuses a dropped step —
+  // at publish time a case that will not draw is a refusal, not a loss.
+  if (p && p.kind === 'board_sequence') {
+    const g = gateSequence(p);
+    return { ok: g.ok, widget: 'board_sequence', errors: g.ok ? [] : [g.why],
+             derived: null, steps: (p.steps || []).length };
+  }
   const widget = p?.widget;
   if (!widget) return { ok: false, widget: null, errors: ['payload has no `widget`'] };
   if (UNJUDGEABLE[widget]) return { ok: null, widget, errors: [UNJUDGEABLE[widget]] };
@@ -163,6 +194,31 @@ function judge(p) {
   if (!mod) return { ok: false, widget, errors: [`"${widget}" is not in the registry`] };
   const r = mod.validate(p.params ?? {});
   if (!r.ok) return { ok: false, widget, errors: r.errors };
+  /* A CHARACTER NO BUNDLED FACE CAN DRAW.
+   *
+   * Checked here, once, rather than in fourteen `validate()`s. It is not a
+   * per-widget rule — it is a property of what the app ships, and the answer
+   * is the same whatever widget is asking.
+   *
+   * The app bundles Onest for the board and Inter as the companion face, and
+   * `chrome.splitRuns` sends each run to whichever has the glyph. What NEITHER
+   * has would reach the iOS per-glyph fallback and draw in a third typeface,
+   * or as a hollow box — which is the failure the companion face exists to
+   * remove, so admitting it here would reintroduce it one level down.
+   *
+   * Three existed in 260 stored boards, one use each: "anti-∥ to m",
+   * "∮E·dl", "dependent on ♀". Bundling a fourth face for three glyphs buys
+   * three glyphs. Refusing buys an author who writes "anti-parallel", which
+   * is the better board anyway — so the message says that. */
+  const bad = undrawableChars(JSON.stringify(r.params));
+  if (bad.length > 0) {
+    return { ok: false, widget, errors: [
+      `the params carry ${bad.map((c) => `"${c}" (U+${c.codePointAt(0)
+        .toString(16).toUpperCase().padStart(4, '0')})`).join(', ')}, which `
+      + `neither bundled face can draw — it would render as a hollow box or `
+      + `in a third typeface. Write the word instead: "anti-parallel" for `
+      + `"anti-∥", "line integral of E.dl" for "∮E·dl", "female" for "♀".`] };
+  }
   /* The DERIVED values, alongside the verdict.
    *
    * The API cannot compute these — the maths lives in the widget, and a second

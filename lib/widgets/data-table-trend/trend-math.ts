@@ -214,9 +214,23 @@ export function wrapCell(text: string, max: number): [string] | [string, string]
   if (t.length <= max) return [t];
   const head = t.slice(0, max + 1);
   const cut = head.lastIndexOf(' ');
-  if (cut <= 0) {
-    // One long word. Two lines of it still beat one truncated line.
-    return [t.slice(0, max), t.slice(max, max * 2)];
-  }
-  return [t.slice(0, cut), t.slice(cut + 1, cut + 1 + max)];
+  // LOSSLESS. The second line carries EVERYTHING that is left, even when that
+  // overflows — because this widget's contract is that nothing is truncated,
+  // and `slice(max, max * 2)` quietly dropped the 19th character of a
+  // 19-character word while reporting a clean two-line wrap. Whether the
+  // remainder actually fits is a measurement, and the measurement belongs to
+  // the caller: `fits()` prices the longest line and refuses with the number.
+  // No space to break at. Split with a HYPHEN, so a mid-word break reads as
+  // one word continuing rather than as two short words: "Wavelength" at an
+  // 8-character line is "Wavelen-" / "gth", not "Waveleng" / "th", which the
+  // eye parses as a word ending. Still lossless — the hyphen is added, no
+  // character is dropped — and `capFor` leaves room for it.
+  //
+  // Refusing these instead was considered and rejected: "Wavelength",
+  // "Frequency" and "Absorption" are the vocabulary, not sloppy authoring,
+  // and a widget that cannot print them is not one anybody can write a
+  // physics table for.
+  if (cut <= 0) return [`${t.slice(0, max - 1)}-`, t.slice(max - 1)];
+  return [t.slice(0, cut), t.slice(cut + 1)];
 }
+

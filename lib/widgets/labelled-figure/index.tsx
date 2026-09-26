@@ -21,7 +21,8 @@
  *  - No WebView. CLAUDE.md forbids it by name outside `molecule_3d`.
  */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Image as SvgImage, Line, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Image as SvgImage, Line, Rect } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 
 import { HAIRLINE_STROKE, LABEL_SIZE, READOUT_SIZE, hasDevanagari } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';

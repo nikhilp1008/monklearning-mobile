@@ -7,7 +7,8 @@
      Chunks give steric number -> hybridisation -> shape with the full ligand/lone-pair set: AB3E pyramidal NH3 107deg, AB2E2 bent H2O 104.5, AB4E seesaw S
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {

@@ -43,6 +43,7 @@ import { ApiError } from '@/lib/api';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
+import { sampleWeakChapterId } from '@/lib/weak-focus';
 import { hapticSoft, hapticSwitched, hapticTicked } from '@/lib/haptics';
 
 /**
@@ -346,9 +347,31 @@ export default function PracticeScreen() {
     focus.subject === SUBJECT_QUERY[activeSubject]
       ? focus.chapterId
       : null;
-  const focusChapter = focusChapterId ? { chapter_id: focusChapterId } : {};
-  /** What a queued question must match to be usable. */
-  const scopeKey = questionScopeKey(SUBJECT_QUERY[activeSubject], focusChapterId);
+  const weakMode = focus.mode === 'weak';
+  /**
+   * The chapter filter for the next request. Chapter mode pins one id; weak
+   * mode samples a fresh one per request from the headroom ranking — exam
+   * weightage x weakness, the same number Progress's "Practise this" card
+   * maximises — so the session rotates through the weak chapters instead of
+   * locking onto one. `exclude` lets a retry skip a chapter that just came
+   * back pool_empty.
+   */
+  const nextChapterFilter = (exclude?: string[]): { chapter_id?: string } => {
+    if (focusChapterId) return { chapter_id: focusChapterId };
+    if (weakMode) {
+      const id = sampleWeakChapterId(SUBJECT_QUERY[activeSubject], exclude);
+      if (id) return { chapter_id: id };
+    }
+    return {};
+  };
+  /** What a queued question must match to be usable. Weak-mode questions
+   *  share one scope regardless of which chapter was sampled — any weak
+   *  chapter's question honours the "weak areas" promise, and keying on the
+   *  sampled id would throw away almost every prefetch. */
+  const scopeKey = questionScopeKey(
+    SUBJECT_QUERY[activeSubject],
+    focusChapterId ?? (weakMode ? 'weak' : null)
+  );
 
   /**
    * The prefetch in the air, so two triggers cannot both fire — and so a tap
@@ -365,7 +388,7 @@ export default function PracticeScreen() {
   function prefetchNext() {
     const subject = SUBJECT_QUERY[activeSubject];
     if (!scope || prefetchInFlight.current || hasQueuedQuestion(scopeKey)) return;
-    prefetchInFlight.current = getNextQuestion({ subject, ...scope, ...focusChapter })
+    prefetchInFlight.current = getNextQuestion({ subject, ...scope, ...nextChapterFilter() })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
         // question must never appear under the Chemistry pill. The subject it
@@ -440,18 +463,29 @@ export default function PracticeScreen() {
     setQuestion(null);
     setLoading(true);
     try {
-      // PracticeNextRequest accepts exam/class_level/subject and nothing else
-      // — there is still no chapter or concept field server-side, so `focus`
-      // cannot be sent. It drives this effect's re-fetch and the chip label
-      // below, and making it real needs the backend to add scoping first.
-      // A single fetch, not a retry-until-MCQ loop — the numerical UI renders
-      // those natively, and extra round-trips just to avoid them added real
-      // latency to every question load.
-      const result = await getNextQuestion({
+      // A single fetch per question — no retry-until-MCQ loop; the numerical
+      // UI renders those natively. The one exception is weak mode sampling a
+      // chapter whose pool is spent: that retries once against a different
+      // weak chapter (or unfiltered when none is left to offer). A pool_empty
+      // response serves nothing, so the retry costs none of the daily 150.
+      const filter = nextChapterFilter();
+      let result = await getNextQuestion({
         subject: SUBJECT_QUERY[activeSubject],
         ...scope,
-        ...focusChapter,
+        ...filter,
       });
+      if (
+        'exhausted' in result &&
+        result.reason === 'pool_empty' &&
+        weakMode &&
+        filter.chapter_id
+      ) {
+        result = await getNextQuestion({
+          subject: SUBJECT_QUERY[activeSubject],
+          ...scope,
+          ...nextChapterFilter([filter.chapter_id]),
+        });
+      }
       if ('exhausted' in result) {
         if (result.questions_used_today != null && result.daily_limit != null) {
           setQuota({ used: result.questions_used_today, limit: result.daily_limit });

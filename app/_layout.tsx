@@ -17,15 +17,33 @@ import 'react-native-reanimated';
 // render trees actually draw (fontTools, cmap of Onest 400 vs Anek Latin 400):
 //
 //   Ω µ Δ Φ  — Onest has NO Greek block and no U+00B5 at all. Anek Latin had
-//             Ω, Δ and µ. This is NOT a regression on the board, because every
-//             one of those 298 occurrences is drawn in `theme.monoFontFamily`
-//             (Menlo), which covers them — but it IS a live trap for any
-//             future label moved onto `theme.fontFamily`.
+//             Ω, Δ and µ. Not a regression where those are drawn in
+//             `theme.monoFontFamily` (Menlo covers them); a live trap
+//             anywhere they reach `theme.fontFamily`.
 //   θ φ     — drawn in Onest today (lines_planes_3d's angle labels, 6
 //             occurrences) and covered by NEITHER family: they fell through to
 //             an iOS system fallback under Anek Latin too. Pre-existing, and
 //             worth knowing, because a fallback face has metrics
 //             lib/widgets/advance-widths.json does not model.
+//
+// THE TRAP WAS LIVE. Measured over the stored corpus 2026-09-22: 40 of 260
+// boards carry a character Onest cannot draw, and comparison_table and
+// lcr_resonance set all their text in `theme.fontFamily`. Every one of those
+// characters was reaching the iOS per-glyph fallback — rendering, in a second
+// typeface, at metrics nothing modelled.
+//
+// Inter is bundled as the COMPANION FACE and lib/widgets/chrome.ts splits a
+// string into runs by coverage, so each run is drawn and measured in a face
+// this code chose. Inter over Noto Sans on two measurements: it covers 23 of
+// the 26 characters the corpus needs against 22, and its mean Latin advance
+// is within 2.4% of Onest's where Noto Sans is 8.6% narrower — a visible step
+// mid-string at 12pt.
+//
+// Only 400 is loaded, and that is not an oversight: the board's
+// `theme.fontFamily` is `Onest_400Regular` and nothing else, so a companion
+// run is always regular weight. The day a board draws body text at another
+// weight, this needs the matching Inter weight or the run will be visibly
+// lighter than the text around it.
 //
 // Re-run that check before the next family swap; it is the thing that would
 // catch a migration silently dropping the ohm sign.
@@ -43,6 +61,8 @@ import {
 // Devanagari table both depend on it being loaded. It is not a leftover of
 // the Anek Latin migration; it is a different script.
 import { AnekDevanagari_500Medium } from '@expo-google-fonts/anek-devanagari';
+// The companion face — see the note above. Greek, sub/superscripts, µ and Ω.
+import { Inter_400Regular } from '@expo-google-fonts/inter';
 // THE NOTE'S HAND, for the handwritten notes page. Chosen by rendering eight
 // candidates against the reference's own sentence: upright, tight and neat,
 // where Kalam — the face that used to be here on trial — slants. Kalam went
@@ -113,6 +133,9 @@ export default function RootLayout() {
     // The one non-Latin face, and the reason it is not symmetrical with the
     // five above: it is loaded for its SCRIPT, not for a weight in a scale.
     AnekDevanagari_500Medium,
+    // Loaded for its COVERAGE, like the line above, not for a weight in a
+    // scale: it draws the characters Onest has no glyph for.
+    Inter_400Regular,
     // The handwritten note's hand; see the import.
     PatrickHand_400Regular,
     Kalam_400Regular,
@@ -345,6 +368,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="mock-paused" options={{ headerShown: false }} />
+          <Stack.Screen name="mock-result" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen
             name="report-sheet"
             options={{

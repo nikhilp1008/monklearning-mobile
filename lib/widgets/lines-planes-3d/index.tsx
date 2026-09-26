@@ -21,7 +21,8 @@
      [gap closed 2026-09-07] lines_planes_3d@1 mode `two_lines`; renders at 343x236, 495x270 and 900x430 as build/trees/lines_planes_3d@1.skew_lines.*. Top
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 
 import {
   EMPHASIS_STROKE, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE, PAD_EDGE, PAD_SIDE,

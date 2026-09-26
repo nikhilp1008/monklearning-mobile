@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import 'react-native-url-polyfill/auto';
+
+import { secureSessionStore } from '@/lib/secure-session-store';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -19,7 +22,16 @@ const noopStorage = {
   setItem: async () => {},
   removeItem: async () => {},
 };
-const authStorage = typeof window === 'undefined' ? noopStorage : AsyncStorage;
+// On native the session — refresh token included — lives Keychain-encrypted
+// (see lib/secure-session-store.ts, which also migrates a plaintext session
+// left by earlier builds). Web has no SecureStore, and a browser session is
+// localStorage territory anyway, so it keeps the AsyncStorage shim there.
+const authStorage =
+  typeof window === 'undefined'
+    ? noopStorage
+    : Platform.OS === 'web'
+      ? AsyncStorage
+      : secureSessionStore;
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {

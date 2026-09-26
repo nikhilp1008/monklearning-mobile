@@ -80,13 +80,34 @@ export function friendlyAuthError(message: string): string {
   if (m.includes('signups not allowed') || m.includes('disabled')) {
     return 'This email isn’t on the early-access list yet.';
   }
+  // The server's alias-signup hook (monk-learning-api migrations/0075)
+  // refuses +tags and dot-variants of an existing Gmail account. Its
+  // messages are already written for the student — pass them through
+  // rather than flattening them into the generic connection line.
+  if (m.includes('plain email address') || m.includes('inbox already has an account')) {
+    return message;
+  }
   return 'Couldn’t reach the server. Check your connection and try again.';
+}
+
+/**
+ * Trimmed and lowercased, nothing more.
+ *
+ * Deliberately NOT stripping Gmail dots or +tags here: an existing student
+ * who signed up as ra.asikh@gmail.com is found by that exact string, and a
+ * "canonicalised" spelling would read as a brand-new user and lock them
+ * out. Alias abuse is refused where it can't be dodged — the server's
+ * before-user-created hook (monk-learning-api migrations/0075), which only
+ * ever fires for NEW accounts.
+ */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 /** Sends the six-digit code, creating the account if this is a new address. */
 export async function sendEmailOtp(email: string): Promise<void> {
   const { error } = await supabase.auth.signInWithOtp({
-    email: email.trim(),
+    email: normalizeEmail(email),
     options: { shouldCreateUser: true },
   });
   if (error) throw new Error(error.message);
@@ -101,7 +122,7 @@ export async function sendEmailOtp(email: string): Promise<void> {
  */
 export async function verifyEmailOtp(email: string, token: string): Promise<void> {
   const { error } = await supabase.auth.verifyOtp({
-    email: email.trim(),
+    email: normalizeEmail(email),
     token: token.trim(),
     type: 'email',
   });

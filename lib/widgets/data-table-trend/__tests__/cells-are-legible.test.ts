@@ -14,7 +14,8 @@
  *                boards read "Antenna ", "Oscillat", "Klystron", "Radioact".
  */
 import { formatCell, wrapCell } from '../trend-math';
-import { dataTableTrend } from '../index';
+import { colLabelCap, dataTableTrend } from '../index';
+import { CHAR_W } from '../../chrome';
 
 describe('numeric cells', () => {
   test.each([
@@ -62,8 +63,15 @@ describe('numeric cells', () => {
 describe('categorical cells', () => {
   test.each([
     ['Antenna circuits', ['Antenna', 'circuits']],
-    ['Oscillating charges', ['Oscillat', 'ing char']],
-    ['Radioactive decay', ['Radioact', 'ive deca']],
+    // LOSSLESS: the second line carries the rest, even when it overflows.
+    // It used to read ['Oscillat', 'ing char'] — the wrap was itself
+    // truncating, in a widget whose whole rule is that nothing is cut.
+    //
+    // HYPHENATED where there is no space inside the cap to break at, so the
+    // break reads as one word continuing. Without it "Radioact" / "ive decay"
+    // presents a word that ends, and the eye takes "Radioact" for the term.
+    ['Oscillating charges', ['Oscilla-', 'ting charges']],
+    ['Radioactive decay', ['Radioac-', 'tive decay']],
     ['Hot bodies', ['Hot', 'bodies']],
   ])('%p wraps instead of being cut', (text, want) => {
     expect(wrapCell(text as string, 8)).toEqual(want);
@@ -86,6 +94,80 @@ describe('categorical cells', () => {
       const cell = (r.params as unknown as { text_values: string[] }).text_values[0];
       expect(cell).toBe('Antenna circuits');       // not 'Antenna '
       expect(wrapCell(cell, 8)).toHaveLength(2);
+    }
+  });
+});
+
+describe('labels are REFUSED, not sliced', () => {
+  const base = {
+    ...dataTableTrend.defaults, cell_kind: 'numeric' as const,
+    row_labels: ['Radio', 'Microwave'], col_labels: ['nm'],
+    values: [1, 2], text_values: [],
+  };
+
+  test('an over-long column header is refused with the measurement', () => {
+    // The hand review of 2026-09-21 found a cut header on fifteen of
+    // seventeen published tables. Measured at THREE columns, where a column
+    // is 62.4pt and holds 8 characters a line, so 17 across two.
+    const three = {
+      ...base, cell_kind: 'categorical' as const,
+      col_labels: ['a', 'b', 'c'], values: [],
+      text_values: ['1', '2', '3', '4', '5', '6'], trend_col: -1,
+    };
+    const r = dataTableTrend.validate({
+      ...three, col_labels: ['Electromagnetic wave', 'b', 'c'] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors.join(' ')).toMatch(/col_labels\[0\].*3 over the 17/);
+      expect(r.errors.join(' ')).toMatch(/never truncated at render time/);
+    }
+  });
+
+  test('the cap is DERIVED from the column count, not a literal', () => {
+    // It was the literal 5, and 5 was never measured — it was the length of
+    // the old `.slice()`, reinterpreted as a per-line budget when the slice
+    // became a wrap. Three categorical columns are 62.4pt and hold 8; four
+    // numeric columns are 46.8pt and hold 6; two columns hold more than
+    // either. A single cap cannot be right for all three.
+    expect(colLabelCap(3)).toBe(8);
+    expect(colLabelCap(4)).toBe(6);
+    expect(colLabelCap(2)).toBeGreaterThan(colLabelCap(3));
+    // and it agrees with the formula the layout actually divides by
+    expect(colLabelCap(3)).toBe(
+      Math.floor(((343 - 12 - 22 - (12 + 0.32 * 343)) / 3) / (12 * CHAR_W)));
+  });
+
+  test('a header the OLD literal refused fits its own board', () => {
+    // "Wavelength" is 10 characters. The literal 5 gave it a budget of 11
+    // and split it mid-word at 5; the measured cap at three columns is 8, so
+    // it wraps once, with a hyphen, and nothing is lost.
+    const three = {
+      ...base, cell_kind: 'categorical' as const,
+      col_labels: ['Wavelength', 'Source'], values: [],
+      text_values: ['1', '2', '3', '4'], trend_col: -1,
+    };
+    expect(dataTableTrend.validate(three).ok).toBe(true);
+  });
+
+  test('an over-long row label is refused', () => {
+    // Row labels get 12 per line, so 25 across two. 26 is one over.
+    const r = dataTableTrend.validate({ ...base, row_labels: ['x'.repeat(26), 'b'] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join(' ')).toMatch(/row_labels\[0\]/);
+  });
+
+  test('a label that FITS two lines still passes', () => {
+    expect(dataTableTrend.validate({ ...base, col_labels: ['Wavelength'] }).ok).toBe(true);
+    expect(dataTableTrend.validate({
+      ...base, row_labels: ['Electromagnet', 'b'] }).ok).toBe(true);
+  });
+
+  test('nothing is silently shortened any more', () => {
+    const r = dataTableTrend.validate({ ...base, col_labels: ['Wavelength'] });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect((r.params as unknown as { col_labels: string[] }).col_labels[0])
+        .toBe('Wavelength');
     }
   });
 });

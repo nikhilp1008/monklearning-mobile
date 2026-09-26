@@ -1,0 +1,1119 @@
+[
+ {
+  "id": "Amines__reactions-of-diazonium-salts-sandmeyer-gattermann-and-coupling__2",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Reagent",
+    "Product",
+    "Yield",
+    "Scope"
+   ],
+   "cells": [
+    "CuCl/HCl or CuBr/HBr",
+    "Cu powder + HCl/HBr",
+    "ArCl or ArBr + N₂",
+    "ArCl or ArBr + N₂",
+    "Higher",
+    "Lower",
+    "Cl, Br, CN",
+    "Cl, Br only"
+   ],
+   "caption": "Sandmeyer vs Gattermann",
+   "columns": [
+    "Sandmeyer",
+    "Gattermann"
+   ],
+   "highlight": null
+  },
+  "chapter": "Amines",
+  "sub": "reactions-of-diazonium-salts-sandmeyer-gattermann-and-coupling"
+ },
+ {
+  "id": "Ecosystem__ecosystem-structure-components-stratification-and-functions__3",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "What it is",
+    "Type",
+    "Units",
+    "Analogy"
+   ],
+   "cells": [
+    "Rate of build",
+    "Biomass stock",
+    "Flow",
+    "Stock",
+    "g m⁻² yr⁻¹",
+    "g m⁻² dry",
+    "Income",
+    "Savings"
+   ],
+   "caption": "Productivity vs standing crop",
+   "columns": [
+    "Productivity",
+    "Standing crop"
+   ],
+   "highlight": null
+  },
+  "chapter": "Ecosystem",
+  "sub": "ecosystem-structure-components-stratification-and-functions"
+ },
+ {
+  "id": "Electric_Charges_and_Fields__electric-flux__5",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Field formula",
+    "Active sides",
+    "Field inside"
+   ],
+   "cells": [
+    "σ/(2ε₀)",
+    "σ/ε₀",
+    "Both sides",
+    "One side only",
+    "σ/(2ε₀) uniform",
+    "Zero"
+   ],
+   "caption": "Sheet vs conductor field",
+   "columns": [
+    "Non-conducting sheet",
+    "Conductor surface"
+   ],
+   "highlight": null
+  },
+  "chapter": "Electric Charges and Fields",
+  "sub": "electric-flux"
+ },
+ {
+  "id": "Coordination_Compounds__stability-of-complexes-and-stability-constants__4",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Denticity",
+    "log K",
+    "ΔS on binding",
+    "Stability"
+   ],
+   "cells": [
+    "2 donor N",
+    "1 donor N",
+    "15.4",
+    "11.6",
+    "positive",
+    "~zero",
+    "higher",
+    "lower"
+   ],
+   "caption": "Chelate effect: en vs NH3",
+   "columns": [
+    "en (bidentate)",
+    "NH3 (monodentate)"
+   ],
+   "highlight": [
+    3,
+    0
+   ]
+  },
+  "chapter": "Coordination Compounds",
+  "sub": "stability-of-complexes-and-stability-constants"
+ },
+ {
+  "id": "Magnetism_and_Matter__bar-magnet-and-magnetic-dipole-moment__3",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Field expression",
+    "Direction vs m",
+    "Magnitude ratio"
+   ],
+   "cells": [
+    "μ0/4π · 2m/r³",
+    "μ0/4π · m/r³",
+    "parallel to m",
+    "anti-parallel to m",
+    "2",
+    "1"
+   ],
+   "caption": "Short bar magnet (r >> l)",
+   "columns": [
+    "Axial line",
+    "Equatorial line"
+   ],
+   "highlight": null
+  },
+  "chapter": "Magnetism and Matter",
+  "sub": "bar-magnet-and-magnetic-dipole-moment"
+ },
+ {
+  "id": "Current_Electricity__measuring-instruments__4",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Balance length",
+    "EMF relation",
+    "Null condition"
+   ],
+   "cells": [
+    "l₁",
+    "l₂",
+    "E₁ = k l₁",
+    "E₂ = k l₂",
+    "No current drawn",
+    "No current drawn"
+   ],
+   "caption": "Comparing two EMFs",
+   "columns": [
+    "Cell 1",
+    "Cell 2"
+   ],
+   "highlight": null
+  },
+  "chapter": "Current Electricity",
+  "sub": "measuring-instruments"
+ },
+ {
+  "id": "Wave_Optics__diffraction-of-light__2",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Fringe type",
+    "Condition",
+    "Symbol",
+    "Spacing"
+   ],
+   "cells": [
+    "BRIGHT",
+    "DARK (minimum)",
+    "d sinθ = mλ",
+    "a sinθ = mλ",
+    "d = slit separation",
+    "a = slit width",
+    "equally spaced",
+    "central max 2× wide"
+   ],
+   "caption": "Same form, opposite meaning",
+   "columns": [
+    "YDSE (double slit)",
+    "Single-slit diffraction"
+   ],
+   "highlight": [
+    1,
+    1
+   ]
+  },
+  "chapter": "Wave Optics",
+  "sub": "diffraction-of-light"
+ },
+ {
+  "id": "Wave_Optics__diffraction-of-light__5",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Wavefronts",
+    "Setup",
+    "Formula"
+   ],
+   "cells": [
+    "Plane",
+    "Curved",
+    "Source & screen at ∞",
+    "Source or screen near",
+    "a sinθ = mλ",
+    "No simple formula"
+   ],
+   "caption": "Fraunhofer vs Fresnel diffraction",
+   "columns": [
+    "Fraunhofer",
+    "Fresnel"
+   ],
+   "highlight": null
+  },
+  "chapter": "Wave Optics",
+  "sub": "diffraction-of-light"
+ },
+ {
+  "id": "Wave_Optics__diffraction-of-light__8",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Source",
+    "Fringe spacing",
+    "Condition",
+    "Central max"
+   ],
+   "cells": [
+    "2 coherent slits",
+    "1 wide slit",
+    "Equal spacing",
+    "Wide central, uneven",
+    "d sinθ = mλ → BRIGHT",
+    "a sinθ = mλ → DARK",
+    "Width λ/a",
+    "Width 2λ/a"
+   ],
+   "caption": "Interference vs Diffraction",
+   "columns": [
+    "Interference (YDSE)",
+    "Diffraction (1 slit)"
+   ],
+   "highlight": null
+  },
+  "chapter": "Wave Optics",
+  "sub": "diffraction-of-light"
+ },
+ {
+  "id": "Amines__gabriel-phthalimide-and-hofmann-bromamide-synthesis__2",
+  "widget": "reaction_scheme",
+  "params": {
+   "caption": "Gabriel works only for 1° R-X (SN2)",
+   "species": [
+    "PhthN⁻",
+    "BuBr",
+    "BuNH2"
+   ],
+   "step_to": [
+    1,
+    2
+   ],
+   "step_from": [
+    0,
+    1
+   ],
+   "step_kind": [
+    "plain",
+    "plain"
+   ],
+   "step_reagent": [
+    "SN2",
+    "H2N-NH2"
+   ],
+   "step_progress": 1,
+   "highlight_step": 0
+  },
+  "chapter": "Amines",
+  "sub": "gabriel-phthalimide-and-hofmann-bromamide-synthesis"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__nucleophilic-addition-reactions-of-aldehydes-and-ketones__0",
+  "widget": "reaction_scheme",
+  "params": {
+   "caption": "Nu⁻ attacks δ+ carbon, π bond breaks to O",
+   "species": [
+    "Nu⁻",
+    ">C=O",
+    ">C(Nu)-O⁻"
+   ],
+   "step_to": [
+    1,
+    2
+   ],
+   "step_from": [
+    0,
+    1
+   ],
+   "step_kind": [
+    "plain",
+    "plain"
+   ],
+   "step_reagent": [
+    "attack at C",
+    ""
+   ],
+   "step_progress": 0.0,
+   "highlight_step": -1
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "nucleophilic-addition-reactions-of-aldehydes-and-ketones"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__nucleophilic-addition-reactions-of-aldehydes-and-ketones__4",
+  "widget": "reaction_scheme",
+  "params": {
+   "caption": "Grignard addition: 2 steps",
+   "species": [
+    "RMgX",
+    ">C=O",
+    ">C(R)-O⁻",
+    ">C(R)-OH"
+   ],
+   "step_to": [
+    1,
+    2,
+    3
+   ],
+   "step_from": [
+    0,
+    1,
+    2
+   ],
+   "step_kind": [
+    "plain",
+    "plain",
+    "plain"
+   ],
+   "step_reagent": [
+    "",
+    "",
+    "H₃O⁺"
+   ],
+   "step_progress": 0,
+   "highlight_step": -1
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "nucleophilic-addition-reactions-of-aldehydes-and-ketones"
+ },
+ {
+  "id": "Amines__physical-properties-and-hydrogen-bonding-in-amines__4",
+  "widget": "data_table_trend",
+  "params": {
+   "unit": "",
+   "values": [
+    46,
+    78,
+    45,
+    17
+   ],
+   "caption": "Boiling points at similar molar mass",
+   "cell_kind": "numeric",
+   "trend_col": 1,
+   "col_labels": [
+    "Mᵣ",
+    "b.p. / °C"
+   ],
+   "row_labels": [
+    "ethanol",
+    "ethylamine"
+   ],
+   "highlight_row": -1
+  },
+  "chapter": "Amines",
+  "sub": "physical-properties-and-hydrogen-bonding-in-amines"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__acidity-of-carboxylic-acids-and-substituent-effects__2",
+  "widget": "data_table_trend",
+  "params": {
+   "unit": "",
+   "values": [
+    2.87,
+    4.05
+   ],
+   "caption": "Same halogen (Cl), different position: alpha-Cl gives a stronger acid (lower pKa) than beta-Cl.",
+   "cell_kind": "numeric",
+   "trend_col": 0,
+   "col_labels": [
+    "pKa"
+   ],
+   "row_labels": [
+    "ClCH₂COOH",
+    "ClCH₂CH₂COOH"
+   ],
+   "highlight_row": -1
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "acidity-of-carboxylic-acids-and-substituent-effects"
+ },
+ {
+  "id": "Alternating_Current__resonance-and-q-factor__2",
+  "widget": "xy_plot",
+  "params": {
+   "a": 1,
+   "b": 0,
+   "c": 0,
+   "mode": "curve",
+   "curve": "reciprocal",
+   "x_max": 3,
+   "x_min": 0.2,
+   "x_label": "ω",
+   "y_label": "|Z|",
+   "shade_to": 1.1,
+   "shade_from": 0.9
+  },
+  "chapter": "Alternating Current",
+  "sub": "resonance-and-q-factor"
+ },
+ {
+  "id": "Alternating_Current__resonance-and-q-factor__3",
+  "widget": "lcr_resonance",
+  "params": {
+   "view": "impedance",
+   "r_ohm": 10,
+   "c_farad": 1e-06,
+   "caption": "|Z| vs ω, f₀ marked, half-power points shown",
+   "l_henry": 0.01,
+   "source_v": 1,
+   "probe_rel": 1.0,
+   "w_max_rel": 1.5,
+   "w_min_rel": 0.5,
+   "show_half_power": true
+  },
+  "chapter": "Alternating Current",
+  "sub": "resonance-and-q-factor"
+ },
+ {
+  "id": "Alternating_Current__resonance-and-q-factor__4",
+  "widget": "xy_plot",
+  "params": {
+   "a": 1,
+   "b": 0,
+   "c": 0,
+   "mode": "curve",
+   "curve": "reciprocal",
+   "x_max": 5,
+   "x_min": 0.2,
+   "values": [],
+   "x_label": "ω",
+   "y_label": "i_m"
+  },
+  "chapter": "Alternating Current",
+  "sub": "resonance-and-q-factor"
+ },
+ {
+  "id": "Alternating_Current__resonance-and-q-factor__5",
+  "widget": "xy_plot",
+  "params": {
+   "a": 1,
+   "b": 1,
+   "c": 0,
+   "mode": "curve",
+   "curve": "sine",
+   "x_max": 12.6,
+   "x_min": 0,
+   "values": [],
+   "x_label": "ωt",
+   "y_label": "v"
+  },
+  "chapter": "Alternating Current",
+  "sub": "resonance-and-q-factor"
+ },
+ {
+  "id": "Alternating_Current__resonance-and-q-factor__7",
+  "widget": "lcr_resonance",
+  "params": {
+   "view": "impedance",
+   "r_ohm": 40,
+   "c_farad": 8e-06,
+   "caption": "|Z| vs ω for L=2.0 H, C=8.0 µF, R=40 Ω",
+   "l_henry": 2.0,
+   "source_v": 20,
+   "probe_rel": 1.0,
+   "w_max_rel": 10.0,
+   "w_min_rel": 0.1,
+   "show_half_power": true
+  },
+  "chapter": "Alternating Current",
+  "sub": "resonance-and-q-factor"
+ },
+ {
+  "id": "Dual_Nature_of_Radiation_and_Matter__davisson-germer-experiment__5",
+  "widget": "data_table_trend",
+  "params": {
+   "unit": "Å",
+   "values": [
+    1.67,
+    1.65
+   ],
+   "caption": "de Broglie vs crystal: 1.67 vs 1.65 Å",
+   "cell_kind": "numeric",
+   "trend_col": 0,
+   "col_labels": [
+    "λ (Å)"
+   ],
+   "row_labels": [
+    "Theory",
+    "Experiment"
+   ],
+   "highlight_row": -1
+  },
+  "chapter": "Dual Nature of Radiation and Matter",
+  "sub": "davisson-germer-experiment"
+ },
+ {
+  "id": "Current_Electricity__series-and-parallel-combination-of-resistors__6",
+  "widget": "circuit_network",
+  "params": {
+   "t_frac": 0,
+   "caption": "2Ω series with 6Ω||3Ω → 2Ω+2Ω=4Ω",
+   "elements": [
+    {
+     "kind": "resistor",
+     "name": "R1",
+     "value": 2
+    },
+    {
+     "kind": "resistor",
+     "name": "R2",
+     "value": 6
+    },
+    {
+     "kind": "resistor",
+     "name": "R3",
+     "value": 3
+    },
+    {
+     "kind": "resistor",
+     "name": "R4",
+     "value": 2
+    }
+   ],
+   "source_v": 12,
+   "topology": "series_parallel",
+   "internal_r": 0,
+   "bridge_delta": 0,
+   "show_current": false
+  },
+  "chapter": "Current Electricity",
+  "sub": "series-and-parallel-combination-of-resistors"
+ },
+ {
+  "id": "Structural_Organisation_in_Animals__cockroach-circulatory-respiratory-and-excretory-systems__3",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Type",
+    "Resp. pigment",
+    "O₂ transport"
+   ],
+   "cells": [
+    "Closed",
+    "Open",
+    "Haemoglobin in plasma",
+    "None (colourless)",
+    "Blood in vessels",
+    "Tracheal system"
+   ],
+   "caption": "Circulatory systems compared",
+   "columns": [
+    "Earthworm",
+    "Cockroach"
+   ],
+   "highlight": null
+  },
+  "chapter": "Structural Organisation in Animals",
+  "sub": "cockroach-circulatory-respiratory-and-excretory-systems"
+ },
+ {
+  "id": "Sequences_&_Series__sequences-general-term-and-recursive-definitions__0",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Order",
+    "Repetition",
+    "Notation"
+   ],
+   "cells": [
+    "Matters",
+    "Does not matter",
+    "Allowed",
+    "Not allowed",
+    "a₁, a₂, a₃, …",
+    "{1, 2, 3, …}"
+   ],
+   "caption": "Sequence vs. Set",
+   "columns": [
+    "Sequence",
+    "Set"
+   ],
+   "highlight": null
+  },
+  "chapter": "Sequences & Series",
+  "sub": "sequences-general-term-and-recursive-definitions"
+ },
+ {
+  "id": "Dual_Nature_of_Radiation_and_Matter__photoelectric-effect-experimental-laws-and-observations__3",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Controls",
+    "Effect on current",
+    "Effect on Kmax / V0",
+    "In Einstein eqn"
+   ],
+   "cells": [
+    "number of photons",
+    "energy per photon",
+    "saturation current",
+    "no change",
+    "no change",
+    "raises Kmax, V0",
+    "absent",
+    "present as hν"
+   ],
+   "caption": "Intensity vs frequency: two knobs",
+   "columns": [
+    "Intensity",
+    "Frequency"
+   ],
+   "highlight": null
+  },
+  "chapter": "Dual Nature of Radiation and Matter",
+  "sub": "photoelectric-effect-experimental-laws-and-observations"
+ },
+ {
+  "id": "Motion_in_a_Plane__vector-products-dot-and-cross__0",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Question",
+    "Formula",
+    "Result",
+    "Parallel/Perp"
+   ],
+   "cells": [
+    "How much along?",
+    "How much across?",
+    "AB cos θ",
+    "AB sin θ",
+    "Scalar",
+    "Vector",
+    "Max at 0°, zero at 90°",
+    "Zero at 0°, max at 90°"
+   ],
+   "caption": "Dot vs cross: different questions",
+   "columns": [
+    "Dot product",
+    "Cross product"
+   ],
+   "highlight": null
+  },
+  "chapter": "Motion in a Plane",
+  "sub": "vector-products-dot-and-cross"
+ },
+ {
+  "id": "Thermal_Properties_of_Matter__calorimetry-and-specific-heat__1",
+  "widget": "xy_plot",
+  "params": {
+   "a": 8372,
+   "c": 0,
+   "mode": "curve",
+   "curve": "line",
+   "x_max": 60,
+   "x_min": 0,
+   "caption": "Q = mcΔT for 2 kg water: slope = mc = 8372 J/K",
+   "x_label": "ΔT (K)",
+   "y_label": "Q (J)"
+  },
+  "chapter": "Thermal Properties of Matter",
+  "sub": "calorimetry-and-specific-heat"
+ },
+ {
+  "id": "Electromagnetic_Waves__electromagnetic-spectrum-and-applications__1",
+  "widget": "data_table_trend",
+  "params": {
+   "unit": "",
+   "caption": "Across the EM spectrum: frequency, wavelength and photon energy",
+   "cell_kind": "categorical",
+   "trend_col": 0,
+   "col_labels": [
+    "f trend",
+    "λ trend",
+    "E trend"
+   ],
+   "row_labels": [
+    "Radio",
+    "Microwave",
+    "Infrared",
+    "Visible",
+    "UV",
+    "X-ray",
+    "Gamma"
+   ],
+   "text_values": [
+    "low f",
+    "long λ",
+    "low E",
+    "↓",
+    "↑",
+    "↓",
+    "↓",
+    "↑",
+    "↓",
+    "↓",
+    "↑",
+    "↓",
+    "↑",
+    "↓",
+    "↑",
+    "↑",
+    "↓",
+    "↑",
+    "high f",
+    "short λ",
+    "high E"
+   ],
+   "highlight_row": -1
+  },
+  "chapter": "Electromagnetic Waves",
+  "sub": "electromagnetic-spectrum-and-applications"
+ },
+ {
+  "id": "Electromagnetic_Waves__electromagnetic-spectrum-and-applications__3",
+  "widget": "data_table_trend",
+  "params": {
+   "unit": "",
+   "values": [
+    700,
+    300000000000.0,
+    0.0012,
+    400,
+    400000000000000.0,
+    1.65
+   ],
+   "caption": "IR vs Visible: energy rises with frequency",
+   "cell_kind": "numeric",
+   "trend_col": 2,
+   "col_labels": [
+    "λ range",
+    "f range",
+    "E (eV)"
+   ],
+   "row_labels": [
+    "Infrared",
+    "Visible"
+   ],
+   "highlight_row": -1
+  },
+  "chapter": "Electromagnetic Waves",
+  "sub": "electromagnetic-spectrum-and-applications"
+ },
+ {
+  "id": "Electromagnetic_Waves__electromagnetic-spectrum-and-applications__4",
+  "widget": "data_table_trend",
+  "params": {
+   "unit": "",
+   "values": [
+    275,
+    1090000000000000.0,
+    4.5,
+    0.05,
+    6000000000000000000,
+    25000,
+    0.005,
+    60000000000000000000,
+    250000
+   ],
+   "caption": "High-energy bands: shorter λ, higher f, higher E",
+   "cell_kind": "numeric",
+   "trend_col": 2,
+   "col_labels": [
+    "λ (nm)",
+    "f (Hz)",
+    "E (eV)"
+   ],
+   "row_labels": [
+    "UV",
+    "X-rays",
+    "Gamma"
+   ],
+   "highlight_row": -1
+  },
+  "chapter": "Electromagnetic Waves",
+  "sub": "electromagnetic-spectrum-and-applications"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__reactions-of-carboxylic-acids__1",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "pKa",
+    "With NaOH",
+    "With NaHCO₃"
+   ],
+   "cells": [
+    "~4.76",
+    "~10",
+    "Salt + water",
+    "Salt + water",
+    "CO₂ brisk",
+    "No reaction"
+   ],
+   "caption": "Distinguishing acid from phenol",
+   "columns": [
+    "Carboxylic acid",
+    "Phenol"
+   ],
+   "highlight": [
+    2,
+    0
+   ]
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "reactions-of-carboxylic-acids"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__reactions-of-carboxylic-acids__3",
+  "widget": "reaction_scheme",
+  "params": {
+   "caption": "C–OH cleavage: acyl chlorides & anhydride",
+   "species": [
+    "RCOOH",
+    "RCOCl",
+    "RCOCl",
+    "RCOCl",
+    "(RCO)2O"
+   ],
+   "step_to": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "step_from": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "step_kind": [
+    "plain",
+    "plain",
+    "plain",
+    "plain"
+   ],
+   "step_reagent": [
+    "SOCl2",
+    "PCl5",
+    "PCl3",
+    "H2SO4, Δ"
+   ],
+   "step_progress": 0,
+   "highlight_step": -1
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "reactions-of-carboxylic-acids"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__reactions-of-carboxylic-acids__5",
+  "widget": "reaction_scheme",
+  "params": {
+   "caption": "Decarboxylation and HVZ α-halogenation",
+   "species": [
+    "RCOONa",
+    "R-H",
+    "RCH2COOH",
+    "RCH(Br)COOH"
+   ],
+   "step_to": [
+    1,
+    3
+   ],
+   "step_from": [
+    0,
+    2
+   ],
+   "step_kind": [
+    "plain",
+    "plain"
+   ],
+   "step_reagent": [
+    "NaOH/CaO, Δ",
+    "Br2/red P"
+   ],
+   "step_progress": 0,
+   "highlight_step": -1
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "reactions-of-carboxylic-acids"
+ },
+ {
+  "id": "Electrostatic_Potential_and_Capacitance__combination-of-capacitors__3",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Shared Qty",
+    "Voltage",
+    "Charge",
+    "Formula"
+   ],
+   "cells": [
+    "Charge Q",
+    "Voltage V",
+    "V adds",
+    "V same",
+    "Q same",
+    "Q adds",
+    "1/C = Σ 1/Ci",
+    "C = Σ Ci"
+   ],
+   "caption": "Series vs Parallel Capacitors",
+   "columns": [
+    "Series",
+    "Parallel"
+   ],
+   "highlight": null
+  },
+  "chapter": "Electrostatic Potential and Capacitance",
+  "sub": "combination-of-capacitors"
+ },
+ {
+  "id": "Electrostatic_Potential_and_Capacitance__combination-of-capacitors__4",
+  "widget": "circuit_network",
+  "params": {
+   "t_frac": 0,
+   "caption": "C1 = 4 µF (charged to 100 V) and C2 = 6 µF (charged to 50 V) joined plate-to-plate; both settle at the common potential Vc = 70 V",
+   "elements": [
+    {
+     "kind": "capacitor",
+     "name": "C1",
+     "value": 4
+    },
+    {
+     "kind": "capacitor",
+     "name": "C2",
+     "value": 6
+    }
+   ],
+   "source_v": 70,
+   "topology": "parallel",
+   "internal_r": 0,
+   "show_current": false
+  },
+  "chapter": "Electrostatic Potential and Capacitance",
+  "sub": "combination-of-capacitors"
+ },
+ {
+  "id": "Electrostatic_Potential_and_Capacitance__combination-of-capacitors__7",
+  "widget": "circuit_network",
+  "params": {
+   "t_frac": 0,
+   "caption": "C1=3μF, C2=6μF series; C3=4μF parallel; 12V",
+   "elements": [
+    {
+     "kind": "capacitor",
+     "name": "C1",
+     "value": 3
+    },
+    {
+     "kind": "capacitor",
+     "name": "C2",
+     "value": 6
+    },
+    {
+     "kind": "capacitor",
+     "name": "C3",
+     "value": 4
+    },
+    {
+     "kind": "cell",
+     "name": "V",
+     "value": 12
+    }
+   ],
+   "source_v": 12,
+   "topology": "series_parallel",
+   "internal_r": 0,
+   "show_current": false
+  },
+  "chapter": "Electrostatic Potential and Capacitance",
+  "sub": "combination-of-capacitors"
+ },
+ {
+  "id": "Aldehydes,_Ketones_&_Carboxylic_Acids__aldol-condensation__8",
+  "widget": "reaction_scheme",
+  "params": {
+   "caption": "Ethanal: alpha-H present, so aldol",
+   "species": [
+    "CH3CHO",
+    "CH3CH=CHCHO"
+   ],
+   "step_to": [
+    1
+   ],
+   "step_from": [
+    0
+   ],
+   "step_kind": [
+    "major"
+   ],
+   "step_reagent": [
+    "dil. NaOH, then Δ"
+   ],
+   "step_progress": 1,
+   "highlight_step": 0
+  },
+  "chapter": "Aldehydes, Ketones & Carboxylic Acids",
+  "sub": "aldol-condensation"
+ },
+ {
+  "id": "Dual_Nature_of_Radiation_and_Matter__photoelectric-effect-graphs__3",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Saturation current",
+    "Stopping potential",
+    "Photon energy",
+    "Electron Kmax"
+   ],
+   "cells": [
+    "Smaller",
+    "Larger",
+    "Same -V0",
+    "Same -V0",
+    "Same hν",
+    "Same hν",
+    "Same Kmax",
+    "Same Kmax"
+   ],
+   "caption": "Same frequency, different intensity",
+   "columns": [
+    "Low Intensity",
+    "High Intensity"
+   ],
+   "highlight": null
+  },
+  "chapter": "Dual Nature of Radiation and Matter",
+  "sub": "photoelectric-effect-graphs"
+ },
+ {
+  "id": "Dual_Nature_of_Radiation_and_Matter__photoelectric-effect-graphs__4",
+  "widget": "comparison_table",
+  "params": {
+   "kind": "comparison",
+   "rows": [
+    "Intensity",
+    "Kmax",
+    "V₀",
+    "Sat. curr."
+   ],
+   "cells": [
+    "Fixed",
+    "Fixed",
+    "Smaller",
+    "Larger",
+    "Less neg.",
+    "More neg.",
+    "≈ Same",
+    "≈ Same"
+   ],
+   "caption": "Same intensity, different nu",
+   "columns": [
+    "Nu low",
+    "Nu high"
+   ],
+   "highlight": [
+    2,
+    1
+   ]
+  },
+  "chapter": "Dual Nature of Radiation and Matter",
+  "sub": "photoelectric-effect-graphs"
+ }
+]

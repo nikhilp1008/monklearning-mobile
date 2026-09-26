@@ -1,28 +1,32 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { QuestionDiagram } from '@/components/question-diagram';
+import { QuestionStem } from '@/components/question-stem';
+import { MathText } from '@/components/math-text';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { getMockSession, sessionAnswersPayload, submitMockPaper } from '@/lib/mock';
 
-const START_SECONDS = 2 * 3600 + 47 * 60 + 12;
-
-type Option = { letter: 'A' | 'B' | 'C' | 'D'; text: string };
-
-const OPTIONS: Option[] = [
-  { letter: 'A', text: '0 m/s²' },
-  { letter: 'B', text: '2.5 m/s²' },
-  { letter: 'C', text: '5 m/s²' },
-  { letter: 'D', text: '7.5 m/s²' },
-];
-
-const SUBJECTS = ['Physics', 'Chemistry', 'Maths'] as const;
-
-const PALETTE_DOTS = ['#1C9B57', '#1C9B57', 'rgba(28,26,22,.2)', '#EEA31F', 'rgba(28,26,22,.2)', '#1C9B57'];
+const SUBJECT_LABEL: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  biology: 'Biology',
+};
 
 function formatTime(totalSeconds: number) {
   const h = Math.floor(totalSeconds / 3600);
@@ -35,14 +39,119 @@ function formatTime(totalSeconds: number) {
 export default function MockTestScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [activeSubject, setActiveSubject] = useState<(typeof SUBJECTS)[number]>('Physics');
-  const [selectedOption, setSelectedOption] = useState<Option['letter'] | null>('C');
-  const [markedForReview, setMarkedForReview] = useState(false);
 
-  const saveAndNext = () => {
-    setSelectedOption(null);
-    setMarkedForReview(false);
+  // The session is module state shared with ready/palette/paused; this
+  // screen mirrors the index into React state so navigation re-renders, and
+  // bumps `tick` when it mutates answers/marks in place.
+  const session = getMockSession();
+  const [index, setIndexState] = useState(session?.index ?? 0);
+  const [, setTick] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const bump = () => setTick((t) => t + 1);
+
+  useFocusEffect(
+    useCallback(() => {
+      const s = getMockSession();
+      if (!s || s.result) {
+        // Deep link or a stale back-gesture after submit: there is no paper
+        // to show, and the honest place to land is the start screen.
+        router.replace('/mock-ready');
+        return;
+      }
+      setIndexState(s.index);
+    }, [])
+  );
+
+  /** Within-subject numbering ("Physics · Q 3 / 25") and pill jump targets. */
+  const layout = useMemo(() => {
+    if (!session) return null;
+    const bySubject = new Map<string, number>();
+    const positions = session.paper.questions.map((q) => {
+      const n = (bySubject.get(q.subject) ?? 0) + 1;
+      bySubject.set(q.subject, n);
+      return n;
+    });
+    const firstIndex = new Map<string, number>();
+    session.paper.questions.forEach((q, i) => {
+      if (!firstIndex.has(q.subject)) firstIndex.set(q.subject, i);
+    });
+    return {
+      positions,
+      totals: bySubject,
+      firstIndex,
+      subjects: [...firstIndex.keys()],
+    };
+  }, [session]);
+
+  const goTo = (i: number) => {
+    const s = getMockSession();
+    if (!s) return;
+    const clamped = Math.max(0, Math.min(s.paper.questions.length - 1, i));
+    s.index = clamped;
+    setIndexState(clamped);
   };
+
+  const doSubmit = async (auto = false) => {
+    const s = getMockSession();
+    if (!s || submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s));
+      s.result = result;
+      router.replace('/mock-result');
+    } catch {
+      setSubmitting(false);
+      Alert.alert(
+        auto ? 'Time is up' : 'Could not submit',
+        'Your answers are safe on this device. Check your connection and submit again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const confirmSubmit = () => {
+    const s = getMockSession();
+    if (!s) return;
+    const answered = sessionAnswersPayload(s).length;
+    const total = s.paper.questions.length;
+    Alert.alert(
+      'Submit test?',
+      `${answered} answered · ${total - answered} unanswered. Unanswered questions score 0.`,
+      [
+        { text: 'Keep going', style: 'cancel' },
+        { text: 'Submit', style: 'destructive', onPress: () => doSubmit() },
+      ]
+    );
+  };
+
+  // Time up: one automatic submit, exactly once.
+  const expired = useRef(false);
+  const onExpire = useCallback(() => {
+    if (expired.current) return;
+    expired.current = true;
+    doSubmit(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!session || !layout) {
+    return <View style={styles.screen} />;
+  }
+
+  const question = session.paper.questions[index];
+  const draft = session.answers.get(question.id);
+  const activeSubject = question.subject;
+  const isNumerical = question.question_type === 'numerical';
+  const optionEntries = question.options
+    ? Object.entries(question.options).sort(([a], [b]) => a.localeCompare(b))
+    : [];
+
+  const statusDot = (q: { id: string }) =>
+    session.marked.has(q.id)
+      ? '#EEA31F'
+      : session.answers.has(q.id)
+        ? '#1C9B57'
+        : 'rgba(28,26,22,.2)';
+  const paletteDots = session.paper.questions.slice(index, index + 6);
 
   return (
     <View style={styles.screen}>
@@ -50,21 +159,23 @@ export default function MockTestScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
           <Pressable style={styles.exitButton} onPress={() => router.push('/mock-paused')}>
-            <Text style={styles.exitButtonText}>Save & exit</Text>
+            <Text style={styles.exitButtonText}>Save &amp; exit</Text>
           </Pressable>
-          <CountdownPill styles={styles} scale={scale} />
-          <Pressable style={styles.submitButton} onPress={() => router.push('/progress')}>
-            <Text style={styles.submitButtonText}>Submit test</Text>
+          <CountdownPill styles={styles} scale={scale} deadline={session.deadline} onExpire={onExpire} />
+          <Pressable style={styles.submitButton} onPress={confirmSubmit}>
+            <Text style={styles.submitButtonText}>
+              {submitting ? 'Submitting…' : 'Submit test'}
+            </Text>
           </Pressable>
         </View>
 
         <View style={styles.subjectRow}>
           <View style={styles.subjectTrack}>
-            {SUBJECTS.map((subject) => (
+            {layout.subjects.map((subject) => (
               <Pressable
                 key={subject}
                 style={styles.subjectPillWrap}
-                onPress={() => setActiveSubject(subject)}>
+                onPress={() => goTo(layout.firstIndex.get(subject) ?? 0)}>
                 <View
                   style={[
                     styles.subjectPill,
@@ -75,7 +186,7 @@ export default function MockTestScreen() {
                       styles.subjectPillText,
                       activeSubject === subject && styles.subjectPillTextActive,
                     ]}>
-                    {subject}
+                    {SUBJECT_LABEL[subject] ?? subject}
                   </Text>
                 </View>
               </Pressable>
@@ -83,81 +194,142 @@ export default function MockTestScreen() {
           </View>
         </View>
 
-        <View style={styles.content}>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>Physics · Q 12 / 45</Text>
+            <Text style={styles.metaText}>
+              {SUBJECT_LABEL[activeSubject] ?? activeSubject} · Q {layout.positions[index]} /{' '}
+              {layout.totals.get(activeSubject)}
+            </Text>
             <View style={styles.markingPill}>
-              <Text style={styles.markingPillText}>+4 / −1</Text>
+              <Text style={styles.markingPillText}>
+                +{session.paper.marks_correct} / {session.paper.marks_wrong}
+              </Text>
             </View>
           </View>
 
           <View style={styles.questionCard}>
             <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
             <View style={styles.questionRule} />
-            <Text style={styles.questionBody}>
-              A block of mass 2 kg is pushed up a frictionless incline of 30° with a force of
-              20 N parallel to the incline. Its acceleration (g = 10 m/s²) is:
-            </Text>
+            <QuestionStem
+              text={question.question_text ?? ''}
+              fontSize={scale(15)}
+              lineHeight={scale(23.25)}
+              style={styles.questionBody}
+            />
           </View>
+          {question.diagram?.map((figure, i) => (
+            <QuestionDiagram
+              key={figure.r2_key ?? figure.url}
+              figure={figure}
+              index={i}
+              total={question.diagram?.length ?? 1}
+            />
+          ))}
 
-          <View style={styles.optionsList}>
-            {OPTIONS.map((option) => {
-              const isSelected = selectedOption === option.letter;
-              return (
-                <Pressable
-                  key={option.letter}
-                  onPress={() => setSelectedOption(option.letter)}
-                  style={[styles.optionRow, isSelected && styles.optionRowSelected]}>
-                  <View style={[styles.optionBadge, isSelected && styles.optionBadgeSelected]}>
-                    <Text
-                      style={[
-                        styles.optionBadgeText,
-                        isSelected && styles.optionBadgeTextSelected,
-                      ]}>
-                      {option.letter}
-                    </Text>
-                  </View>
-                  <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                    {option.text}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {isNumerical ? (
+            <TextInput
+              style={styles.numericInput}
+              value={draft?.value ?? ''}
+              onChangeText={(value) => {
+                session.answers.set(question.id, { value });
+                if (!value.trim()) session.answers.delete(question.id);
+                bump();
+              }}
+              placeholder="Your answer"
+              placeholderTextColor={colors.faint}
+              keyboardType="numbers-and-punctuation"
+              returnKeyType="done"
+            />
+          ) : (
+            <View style={styles.optionsList}>
+              {optionEntries.map(([key, text]) => {
+                const isSelected = draft?.option === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => {
+                      session.answers.set(question.id, { option: key });
+                      bump();
+                    }}
+                    style={[styles.optionRow, isSelected && styles.optionRowSelected]}>
+                    <View style={[styles.optionBadge, isSelected && styles.optionBadgeSelected]}>
+                      <Text
+                        style={[
+                          styles.optionBadgeText,
+                          isSelected && styles.optionBadgeTextSelected,
+                        ]}>
+                        {key.toUpperCase()}
+                      </Text>
+                    </View>
+                    <MathText
+                      text={String(text)}
+                      fontSize={scale(14)}
+                      lineHeight={scale(20)}
+                      color={colors.ink}
+                      style={styles.optionText}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
           <View style={styles.markRow}>
-            <Pressable onPress={() => setMarkedForReview((v) => !v)}>
-              <Text style={[styles.markRowText, markedForReview && styles.markRowTextActive]}>
+            <Pressable
+              onPress={() => {
+                if (session.marked.has(question.id)) session.marked.delete(question.id);
+                else session.marked.add(question.id);
+                bump();
+              }}>
+              <Text
+                style={[
+                  styles.markRowText,
+                  session.marked.has(question.id) && styles.markRowTextActive,
+                ]}>
                 ⚑ Mark for review
               </Text>
             </Pressable>
-            <Pressable onPress={() => setSelectedOption(null)}>
+            <Pressable
+              onPress={() => {
+                session.answers.delete(question.id);
+                bump();
+              }}>
               <Text style={styles.markRowText}>Clear</Text>
             </Pressable>
           </View>
-        </View>
+        </ScrollView>
 
         <View style={styles.bottomNav}>
-          <View style={styles.prevButton}>
+          <Pressable
+            style={[styles.prevButton, index === 0 && styles.prevButtonDisabled]}
+            onPress={() => goTo(index - 1)}>
             <Text style={styles.prevButtonText}>← Prev</Text>
-          </View>
+          </Pressable>
           <Pressable style={styles.paletteButton} onPress={() => router.push('/mock-palette')}>
             <View style={styles.paletteDots}>
               <View style={styles.paletteDotsRow}>
-                {PALETTE_DOTS.slice(0, 3).map((dotColor, i) => (
-                  <View key={i} style={[styles.paletteDot, { backgroundColor: dotColor }]} />
+                {paletteDots.slice(0, 3).map((q) => (
+                  <View key={q.id} style={[styles.paletteDot, { backgroundColor: statusDot(q) }]} />
                 ))}
               </View>
               <View style={styles.paletteDotsRow}>
-                {PALETTE_DOTS.slice(3, 6).map((dotColor, i) => (
-                  <View key={i} style={[styles.paletteDot, { backgroundColor: dotColor }]} />
+                {paletteDots.slice(3, 6).map((q) => (
+                  <View key={q.id} style={[styles.paletteDot, { backgroundColor: statusDot(q) }]} />
                 ))}
               </View>
             </View>
             <Text style={styles.paletteButtonText}>Palette</Text>
           </Pressable>
-          <Pressable style={styles.nextButton} onPress={saveAndNext}>
-            <Text style={styles.nextButtonText}>Save & Next →</Text>
+          <Pressable
+            style={styles.nextButton}
+            onPress={() =>
+              index === session.paper.questions.length - 1
+                ? router.push('/mock-palette')
+                : goTo(index + 1)
+            }>
+            <Text style={styles.nextButtonText}>
+              {index === session.paper.questions.length - 1 ? 'Review →' : 'Save & Next →'}
+            </Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -176,18 +348,29 @@ export default function MockTestScreen() {
 function CountdownPill({
   styles,
   scale,
+  deadline,
+  onExpire,
 }: {
   styles: ReturnType<typeof createStyles>;
   scale: (n: number) => number;
+  deadline: number;
+  onExpire: () => void;
 }) {
-  const [secondsLeft, setSecondsLeft] = useState(START_SECONDS);
+  const remaining = () => Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  const [secondsLeft, setSecondsLeft] = useState(remaining);
 
   useEffect(() => {
     const id = setInterval(() => {
-      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+      const left = remaining();
+      setSecondsLeft(left);
+      if (left <= 0) {
+        clearInterval(id);
+        onExpire();
+      }
     }, 1000);
     return () => clearInterval(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deadline]);
 
   return (
     <View style={styles.timerPill}>
@@ -309,7 +492,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     content: {
       flex: 1,
       minHeight: 0,
+    },
+    contentInner: {
       paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(16),
     },
     metaRow: {
       flexDirection: 'row',
@@ -363,6 +549,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(23.25),
       color: colors.ink,
     },
+    numericInput: {
+      marginTop: verticalScale(12),
+      backgroundColor: '#fff',
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.12)',
+      borderRadius: scale(12),
+      paddingVertical: verticalScale(13),
+      paddingHorizontal: scale(14),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      color: colors.ink,
+    },
     optionsList: {
       flexDirection: 'column',
       gap: verticalScale(8),
@@ -412,9 +610,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(14),
       color: colors.ink,
     },
-    optionTextSelected: {
-      fontFamily: 'Onest_700Bold',
-    },
     markRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -450,6 +645,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderWidth: scale(1.4),
       borderColor: 'rgba(28,26,22,.16)',
       backgroundColor: '#fff',
+    },
+    prevButtonDisabled: {
+      opacity: 0.4,
     },
     prevButtonText: {
       fontFamily: 'Onest_700Bold',

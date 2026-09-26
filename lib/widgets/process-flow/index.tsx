@@ -69,7 +69,8 @@
      c1003/c1004: 'Figure 11.2 A flow chart with five connected boxes: Thermal contact via diathermic wall -> Variables settle -> Equilibrium is transitive
 ROUTES-FROM-COLUMN:END */
 import React, { useMemo } from 'react';
-import Svg, { G, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { G, Path, Rect } from 'react-native-svg';
+import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {

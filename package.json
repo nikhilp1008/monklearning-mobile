@@ -22,6 +22,7 @@
   "dependencies": {
     "@expo-google-fonts/anek-devanagari": "^0.4.1",
     "@expo-google-fonts/anek-latin": "^0.4.2",
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/kalam": "^0.4.1",
     "@expo-google-fonts/onest": "^0.4.2",
     "@expo-google-fonts/patrick-hand": "^0.4.1",
@@ -33,6 +34,7 @@
     "@shopify/react-native-skia": "2.2.12",
     "@siteed/audio-studio": "^3.2.1",
     "@supabase/supabase-js": "^2.112.3",
+    "aes-js": "^3.1.2",
     "expo": "~54.0.35",
     "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
@@ -50,6 +52,7 @@
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
     "expo-screen-orientation": "~9.0.9",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
@@ -70,6 +73,7 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@types/aes-js": "^3.1.4",
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
     "@types/react-test-renderer": "^19.1.0",

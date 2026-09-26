@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
-import { SvgXml } from 'react-native-svg';
+import { Text, View } from 'react-native';
+import { parse as parseSvgXml, SvgXml } from 'react-native-svg';
+
+import { isBoardSequence, stepAt, type BoardStep } from './board-sequence';
+import { validateSequence } from './board-sequence-validate';
 
 import { labelledFigure } from './labelled-figure';
 import type { FigureResolver } from './labelled-figure/figure-resolver';
@@ -7,6 +11,7 @@ import { lookup } from './registry';
 import { useCueTrack } from './use-cue-track';
 import type {
   ResolutionTier,
+  WidgetModule,
   WidgetPayload,
   WidgetServices,
   WidgetTheme,
@@ -18,6 +23,13 @@ export interface BoardEvent {
   payload?: WidgetPayload;
   /** Legacy / fallback path — the inline SVG string the board already renders. */
   svg?: string;
+  /**
+   * P3. The concept's bound plate, if it has one, sent ALONGSIDE a widget
+   * payload rather than instead of it. The server picks one slot per turn, so
+   * this is normally absent; it is here for the case the server could not
+   * foresee — a build that cannot draw the widget the server chose.
+   */
+  illustration_slug?: string;
   tier: ResolutionTier;
 }
 
@@ -46,12 +58,46 @@ export interface BoardWidgetProps {
    * this path and no way to introduce one. See ./labelled-figure/figure-resolver.
    */
   figures?: FigureResolver;
+  /**
+   * P3. The chapter's own SVG, the last thing between an undrawable payload
+   * and an empty board. Supplied by the host from the plan, not per turn.
+   */
   onGap?: (reason: string, detail: unknown) => void;
   /** The active cue's caption, already {{token}}-interpolated — render it in
    *  the board's own caption strip, not a new surface. Called with `null`
    *  when no cue is active, so the caller can fall back to the narration
    *  caption. */
   onCaption?: (caption: string | null) => void;
+}
+
+/**
+ * Whether `SvgXml` will actually draw this string, asked BEFORE it is handed one.
+ *
+ * `SvgXml` (react-native-svg 15.12.1, `src/xml.tsx`) wraps its parse in a
+ * try/catch: on a throw it calls `onError` — by default a bare
+ * `console.error` — and returns `fallback ?? null`, and it renders nothing at
+ * all when the parse returns null, which is what a string with no root
+ * element does. Either way the board is BLANK and the rung below it never
+ * runs, because the child has already returned by the time the parent could
+ * react. `fallback` can put an element in that hole; it cannot make the next
+ * rung of the chain render, which is the only thing that helps here.
+ *
+ * Measured against this version's own parser: `''`, `'not svg at all'`,
+ * `'<svg><g></svg>'` and `'<svg><rect</svg>'` all throw — the second with a
+ * TypeError from inside the parser rather than its own error path, which no
+ * amount of shape-checking the string in advance would have predicted. So the
+ * check is the library's OWN exported `parse`, the same function `SvgXml` will
+ * call on the same string; the two cannot disagree about a malformed rung.
+ *
+ * Cost is one extra parse per fallback render, on a path that by construction
+ * only runs when the board is already in trouble.
+ */
+function svgWillDraw(xml: string): boolean {
+  try {
+    return parseSvgXml(xml) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -109,9 +155,25 @@ export function BoardWidget({
   );
   const figureRecord = useSyncExternalStore(subscribeFigure, snapshotFigure, snapshotFigure);
 
-  const resolved = useMemo(() => {
+  const resolved = useMemo((): {
+    mod?: WidgetModule<object>; params?: object; steps?: readonly BoardStep[];
+  } | null => {
     const { payload } = event;
     if (!payload) return null;
+
+    /*
+     * TIER 1, SEQUENCE. Checked before anything else because a sequence is a
+     * frame around payloads, not a payload: its `widget` field names no
+     * widget and every dispatch below would miss it.
+     */
+    if (isBoardSequence(payload)) {
+      const v = validateSequence(payload);
+      if (!v.ok) {
+        onGap?.('sequence_refused', v.errors.join('; '));
+        return null;
+      }
+      return { steps: v.steps };
+    }
 
     /*
      * TIER: illustration.
@@ -197,13 +259,288 @@ export function BoardWidget({
     return { mod, params: checked.params };
   }, [event, figures, onGap, figureRecord]);
 
-  if (!resolved) {
-    if (event.svg) {
-      return <SvgXml xml={event.svg} width={width} height={height} />;
+  /*
+   * WHO A GAP IS ABOUT, and it has to be answerable for every payload shape.
+   *
+   * Every gap below this point used to be attributed to
+   * `event.payload?.widget`. A SEQUENCE payload has no `widget` field at all —
+   * it carries `kind`/`steps`, see ./board-sequence — so the terminal gap for
+   * a refused sequence arrived as `{ widget: undefined }`: a feed row that
+   * cannot be counted, grouped or traced back to a board, on the one payload
+   * shape whose failure looks like a "2/3" strip over blank paper. `seq` and
+   * `tier` are on every board event whatever its payload is, so they are on
+   * every gap from here down.
+   */
+  const subject: Record<string, unknown> = event.payload
+    ? isBoardSequence(event.payload)
+      ? { widget: 'board_sequence', seq: event.seq, tier: event.tier }
+      : {
+          widget: event.payload.widget, version: event.payload.version,
+          seq: event.seq, tier: event.tier,
+        }
+    : { widget: '(no payload)', seq: event.seq, tier: event.tier };
+
+  /**
+   * One rung of the chain that is an SVG STRING, drawn only if it will draw.
+   *
+   * Answers null — and logs `svg_parse_failed` — for a string that cannot
+   * parse, so the caller carries on DOWN the chain instead of handing the
+   * student blank paper. That is the part `components/board-diagram.tsx`'s
+   * `fallback`/`onError` pair cannot do: a fallback ELEMENT fills the hole,
+   * it does not let the next rung run.
+   *
+   * `onError` is passed anyway, so a throw is a gap in the feed rather than
+   * the library's default `console.error` that nobody reads. `fallback` is
+   * NOT, and deliberately, though board-diagram passes one: `SvgXml` spreads
+   * its own props onto the `Svg` element it renders (`<SvgAst override={override
+   * || props} />`), so a fallback ELEMENT lands in the rendered tree's props,
+   * and a React element there is a circular structure that `JSON.stringify`
+   * throws on. Every assertion this repo makes about a board goes through that
+   * stringify — `assertGolden` and `scaffoldingDiffs` in
+   * `__tests__/test-utils.ts` — so passing one turned nine of the tests below
+   * into `Converting circular structure to JSON`. It guards a branch the
+   * pre-check has already made unreachable; the tree is worth more.
+   */
+  const svgRung = (
+    xml: string | undefined,
+    boxH: number,
+    rung: string,
+    drew: string,
+    about: Record<string, unknown>
+  ): React.ReactElement | null => {
+    if (!xml) return null;
+    if (!svgWillDraw(xml)) {
+      onGap?.('svg_parse_failed', { ...about, rung });
+      return null;
     }
+    onGap?.(drew, { ...about, rung });
+    return (
+      <SvgXml
+        xml={xml}
+        width={width}
+        height={boxH}
+        onError={(err) => onGap?.('svg_parse_failed', { ...about, rung, error: String(err) })}
+      />
+    );
+  };
+
+  /*
+   * P3 — THE CHAIN, AND IT IS EXHAUSTIVE ON PURPOSE.
+   *
+   * This used to be two lines: draw `event.svg` if there is one, else
+   * return null. Null is a BLANK BOARD, and on 2026-09-23 that is exactly
+   * what an Ecosystem turn gave the 19 Sep build — eleven times, because a
+   * slot-1 board event carries a payload and never an svg, so the `if`
+   * never fired and the `return null` always did.
+   *
+   * P1 fixes the cause server-side: a widget slot is not served to a client
+   * that cannot draw it. This is the belt and braces for every build P1
+   * cannot reach — one already installed, one talking to an older API, one
+   * whose manifest did not arrive.
+   *
+   * Each rung logs its OWN gap, on the way past AND on the way in. A board
+   * that fell two rungs and a board that fell none look identical on screen
+   * and must not look identical in the feed, because the feed is what says
+   * whether P1 is working — and a rung that DREW logged nothing at all until
+   * the review of 2026-09-23, so "drew its own svg" and "drew the widget the
+   * server chose" were the same feed entry: none.
+   *
+   * IT IS A FUNCTION because there are three ways in, not one. An
+   * unresolvable payload was the only one wired up; a SEQUENCE whose visible
+   * step cannot draw, and a resolution that named no module, both sat BELOW
+   * this block with a `return null` of their own. All three are the same kind
+   * of nothing and degrade the same way now.
+   *
+   * `boxH` rather than `height` because a sequence keeps its strip: the
+   * student must still see which case this is and that another is coming.
+   */
+  const chain = (boxH: number, about: Record<string, unknown>): React.ReactElement | null => {
+    const fromEvent = svgRung(event.svg, boxH, 'event.svg', 'fell_back_to_event_svg', about);
+    if (fromEvent) return fromEvent;
+
+    if (event.illustration_slug) {
+      const rec = figures?.get(event.illustration_slug);
+      if (rec) {
+        const checked = labelledFigure.validate(rec);
+        if (checked.ok) {
+          onGap?.('fell_back_to_illustration', { ...about, slug: event.illustration_slug });
+          return (
+            <WidgetHost
+              key={`ill-${event.illustration_slug}`}
+              mod={labelledFigure as unknown as WidgetModule<object>}
+              params={checked.params as object} cues={undefined}
+              activeSeq={activeSeq} width={width} height={boxH}
+              theme={theme} services={services} onCaption={onCaption} />
+          );
+        }
+        // A plate that IS in the cache and still cannot be drawn is a content
+        // defect, not a cold cache, and it was the one rung-2 outcome nothing
+        // logged: a board that fell past a broken plate and a board that never
+        // had a plate arrived in the feed identically, so the repair queue
+        // could not tell "re-author this label set" from "bind a plate".
+        onGap?.('illustration_refused',
+                { ...about, slug: event.illustration_slug, errors: checked.errors });
+      } else {
+        // Cache-only, like every other read of this resolver. NOTE that
+        // nothing subscribes to THIS slug — the `useSyncExternalStore` above
+        // is keyed to the payload's own `asset_slug`, which on this path is a
+        // different slug or none — so the landing does not itself redraw;
+        // the next board event's re-render is what picks it up. Logged either
+        // way, because an uncached plate and a refused one need different
+        // fixes.
+        onGap?.('illustration_not_cached', { ...about, slug: event.illustration_slug });
+        void figures?.prefetch([event.illustration_slug]);
+      }
+    }
+
+    /*
+     * THE `chapterFallbackSvg` RUNG WAS HERE. It is gone — S3, 2026-09-24.
+     *
+     * P3 added it as the chain's last rung, "the chapter's own SVG, read from
+     * the plan rather than sent per turn". Nothing ever read it from the plan.
+     * Grepped across the whole app: the prop was declared on `BoardWidgetHost`,
+     * threaded through `BoardBlockView`, and passed here — and the classroom's
+     * `widgetHost` (app/live-classroom.tsx) never set it, so every live board
+     * for the life of the feature reached this line with `undefined` and fell
+     * straight past it.
+     *
+     * A rung nothing feeds is worse than no rung: it reads, in review and in
+     * this file's own comments, as a safety net that is there. The real net is
+     * `event.svg`, and S2 made the server attach it to LIVE widget events too,
+     * not just precomputed ones — so the case this was imagined for is covered
+     * by a rung that is actually fed.
+     *
+     * If a chapter-level plate ever does become available on the client, this
+     * comes back WITH its source wired in the same commit.
+     */
+
+    /*
+     * Nothing left — but PENDING is not MISSING.
+     *
+     * A labelled-figure payload whose record has not landed yet has already
+     * logged `figure_not_cached` and asked for the slug; the subscription
+     * will redraw this instance when it arrives. Calling that a missing
+     * fallback would double-log a transient state and, worse, would put a
+     * terminal-sounding gap in the feed for a board that is about to appear.
+     * The feed is how P1's effect is measured, so it has to distinguish "this
+     * will resolve" from "there is nothing here".
+     */
+    if (event.payload?.widget === labelledFigure.id && !figureRecord) {
+      return null;
+    }
+    // A DATA gap, not a dispatch one — a payload this build cannot draw and
+    // no picture of any kind behind it — logged under its own name so it can
+    // be counted and fixed at the source rather than disappearing into
+    // `unknown_widget`.
+    onGap?.('no_fallback_available', {
+      ...about,
+      hadIllustration: Boolean(event.illustration_slug),
+    });
     return null;
+  };
+
+  if (!resolved) return chain(height, subject);
+
+  /*
+   * A SEQUENCE: 1-3 boards on this segment, revealed in turn. `resolved.steps`
+   * is set only when the payload is a board_sequence; everything below is the
+   * ordinary single-board path and is untouched by this, which is the point —
+   * one step must behave exactly as no sequence at all.
+   */
+  if (resolved.steps) {
+    const at = stepAt(resolved.steps, activeSeq);
+    const step = resolved.steps[at];
+    /*
+     * WHICH CASE OF HOW MANY, on every gap this branch logs. "The sequence
+     * could not draw" and "the second of its three cases could not draw" send
+     * the repair to different places, and a step whose widget `validateSequence`
+     * rewrote to `''` to keep it for its SVG cannot name itself any more.
+     */
+    const about: Record<string, unknown> = {
+      ...subject,
+      step: `${at + 1}/${resolved.steps.length}`,
+      stepWidget: step?.payload.widget || '(rewritten to svg)',
+    };
+    // `stepAt` answers -1 for an empty list, and `validateSequence` refuses a
+    // sequence with nothing left, so this is unreachable today. The guard is
+    // here because the alternative is a TypeError on `step.payload` mid-class,
+    // which is worse than a blank board and much worse than the chain.
+    if (!step) return chain(height, about);
+    const mod = step.payload.widget
+      ? lookup(step.payload.widget, step.payload.version)
+      : null;
+    const strip = (
+      <SequenceStrip
+        at={at}
+        total={resolved.steps.length}
+        caption={step.caption}
+        width={width}
+        theme={theme}
+      />
+    );
+    /*
+     * THIS STEP FELL TO TIER 3 — or past it. `validateSequence` keeps a step
+     * whose widget this build lacks by rewriting it to `widget: ''` for the
+     * sake of its `fallback_svg`, so this branch IS that step.
+     *
+     * It used to return the strip and, whenever that SVG did not parse,
+     * nothing under it: a "2/3" over blank paper and no gap of any kind, on
+     * the one path in this component that never consulted `event.svg`,
+     * `illustration_slug` or `chapterFallbackSvg` — the strip is what makes
+     * that blank look deliberate. The `!step.fallback_svg` half is a different
+     * story and is not reachable from a validated sequence: a step with no art
+     * is DROPPED by `validateSequence`'s degrade rule, not kept. The strip
+     * stays either way — the student must still see which case this is and
+     * that another is coming — but what sits under it is now the same chain as
+     * everywhere else.
+     */
+    if (!mod) {
+      const drawn =
+        svgRung(step.fallback_svg, height - STRIP_H, 'step.fallback_svg',
+                'step_fell_back_to_svg', about)
+        ?? chain(height - STRIP_H, about);
+      return (
+        <View style={{ width, height }}>
+          {drawn}
+          {strip}
+        </View>
+      );
+    }
+    return (
+      <View style={{ width, height }}>
+        <WidgetHost
+          key={`${mod.id}@${mod.version}#${at}`}
+          mod={mod}
+          params={step.payload.params as object}
+          cues={step.payload.cues}
+          activeSeq={activeSeq}
+          width={width}
+          height={height - STRIP_H}
+          theme={theme}
+          services={services}
+          onCaption={onCaption}
+        />
+        {strip}
+      </View>
+    );
   }
 
+  /*
+   * A RESOLUTION THAT NAMED NO MODULE. This was a bare `return null` sitting
+   * BELOW the chain, so the one thing that reaches it got exactly the blank
+   * board P3 exists to remove: a widget whose `validate()` answers ok without
+   * `params` — a validator that forgot its own happy path — drew nothing,
+   * logged nothing, with the chapter SVG sitting unused in props one line
+   * above. Unreachable through today's registry is not the same as
+   * unreachable, and a silent blank is the failure mode this whole file is
+   * about.
+   */
+  if (!resolved.mod || !resolved.params) {
+    onGap?.('resolved_without_module', {
+      ...subject, hadMod: Boolean(resolved.mod), hadParams: Boolean(resolved.params),
+    });
+    return chain(height, subject);
+  }
   return (
     <WidgetHost
       key={`${resolved.mod.id}@${resolved.mod.version}`}
@@ -217,6 +554,43 @@ export function BoardWidget({
       services={services}
       onCaption={onCaption}
     />
+  );
+}
+
+/** Height the n/N strip takes out of the board box. One line of chrome. */
+const STRIP_H = 22;
+
+/**
+ * "2/3" and the step's caption.
+ *
+ * The counter is not decoration: a student who cannot see that a second case
+ * is coming reads the first one as the whole answer, which is the exact
+ * failure the sequence exists to fix. It is rendered even at 1/1, because a
+ * strip that appears and disappears between segments is itself a signal, and
+ * a misleading one.
+ */
+function SequenceStrip({ at, total, caption, width, theme }: {
+  at: number; total: number; caption: string; width: number; theme: WidgetTheme;
+}) {
+  return (
+    <View
+      style={{
+        width, height: STRIP_H, flexDirection: 'row', alignItems: 'center',
+        gap: 8, paddingHorizontal: 4,
+      }}
+    >
+      <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent,
+                     fontFamily: theme.fontFamily }}>
+        {`${at + 1}/${total}`}
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={{ flex: 1, fontSize: 11, color: theme.inkMuted,
+                 fontFamily: theme.fontFamily }}
+      >
+        {caption}
+      </Text>
+    </View>
   );
 }
 

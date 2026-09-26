@@ -77,8 +77,36 @@
     ]
   },
   {
+    "id": "flux_surface",
+    "version": 1,
+    "animatable": []
+  },
+  {
+    "id": "region_plot",
+    "version": 1,
+    "animatable": []
+  },
+  {
+    "id": "vector_sum",
+    "version": 1,
+    "animatable": []
+  },
+  {
     "id": "lines_planes_3d",
     "version": 1,
     "animatable": []
+  },
+  {
+    "id": "comparison_table",
+    "version": 1,
+    "animatable": []
+  },
+  {
+    "id": "lcr_resonance",
+    "version": 1,
+    "animatable": [
+      "r_ohm",
+      "probe_rel"
+    ]
   }
 ]

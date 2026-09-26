@@ -181,6 +181,164 @@ const LATIN_ADVANCE: Readonly<Record<string, number>> = ADVANCE.latin;
 const DEVA_ADVANCE: Readonly<Record<string, number>> = ADVANCE.devanagari;
 
 /**
+ * Per-codepoint advances for every character the BOARD face cannot draw.
+ *
+ * Onest has no glyph for any Greek letter, subscript digit, superscript sign,
+ * micro sign or Ohm sign. Measured 2026-09-22: 40 of the 260 stored boards use
+ * at least one — lambda in seven places, subscript two in six, Delta in five,
+ * omega in five, superscript minus in four. `data_table_trend`'s own
+ * scientific notation emits U+207B, so every negative exponent on a numeric
+ * table hits this.
+ *
+ * Nothing was visibly broken, which is why it survived: iOS substitutes a
+ * system face PER GLYPH, so the text appears. It appears in two typefaces.
+ * lib/widgets/CLAUDE.md: "A diagram in a different typeface than the board
+ * around it reads as a bug."
+ *
+ * So a string is SPLIT INTO RUNS by coverage and each run is drawn, and
+ * measured, in the face that actually has the glyph. Per codepoint, not at a
+ * mean: U+2080 is 0.398 em in Inter and U+03A6 is 0.769 em, a 1.9x spread that
+ * no single number represents.
+ */
+const COMPANION_ADVANCE: Readonly<Record<string, number>> = ADVANCE.companion;
+
+/**
+ * Per-codepoint advances for the board faces themselves.
+ *
+ * The `latin` means are still here and still the fallback, but a mean is a
+ * poor model of a real string: it is taken over A-Z a-z 0-9, and real strings
+ * are full of spaces, points, slashes and equals signs at half that width.
+ * Measured 2026-09-22 against the font files, the Onest mean prices
+ * "3.2 × 10⁻³" 27% high and "λ = c/f" 30% high.
+ *
+ * Over-charging is the safe direction, which is why nothing looked broken —
+ * it only meant captions were cut that would have fitted and every cap
+ * derived from a mean was tighter than the board actually is.
+ *
+ * Menlo is absent on purpose: it is monospaced, so its mean IS its per-glyph
+ * advance and a table would be 384 copies of one number.
+ */
+const PER_CHAR: Readonly<Record<string, Readonly<Record<string, number>>>> =
+  ADVANCE.perChar;
+
+/** Onest's own coverage above U+007F, run-length encoded. */
+const BOARD_COVERAGE: ReadonlyArray<ReadonlyArray<number>> = ADVANCE.boardCoverage;
+
+/**
+ * The face that draws what the board face cannot. Inter, because it covers 23
+ * of the 26 characters the corpus needs against Noto Sans's 22, AND its mean
+ * Latin advance is within 2.4% of Onest's where Noto Sans is 8.6% narrower —
+ * a visible step mid-string at 12pt.
+ */
+export const COMPANION_FAMILY = ADVANCE.companionFamily;
+
+const DEVA_LO = 0x0900;
+const DEVA_HI = 0x097f;
+
+function boardCovers(cp: number): boolean {
+  if (cp < 0x80) return true;
+  for (const range of BOARD_COVERAGE) {
+    const lo = range[0]; const hi = range[1];
+    if (cp < lo) return false;      // ranges are sorted
+    if (cp <= hi) return true;
+  }
+  return false;
+}
+
+/**
+ * The characters in `text` that NO bundled face can draw.
+ *
+ * Three exist in the whole corpus — U+2225, U+222E, U+2640, one use each —
+ * and they are refused by name rather than bundled for. A fourth typeface for
+ * three glyphs buys three glyphs; a refusal buys an author who writes
+ * "anti-parallel" where they wrote "anti-∥", which is the better board
+ * anyway.
+ *
+ * This exists because the companion table answers only "does Inter have what
+ * Onest lacks". Without this, a character in neither face falls through to the
+ * board family and is drawn as tofu — the very failure the run split removes,
+ * reintroduced one level down.
+ */
+export function undrawableChars(text: string): string[] {
+  const out: string[] = [];
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (boardCovers(cp)) continue;
+    if (COMPANION_ADVANCE[String(cp)] !== undefined) continue;
+    if (cp >= DEVA_LO && cp <= DEVA_HI) continue;
+    if (!out.includes(ch)) out.push(ch);
+  }
+  return out;
+}
+
+/** One stretch of text that a single face draws. */
+export interface TextRun { readonly text: string; readonly family: string | undefined; }
+
+/**
+ * Split `text` into the fewest runs such that every run is drawn by ONE face.
+ *
+ * Adjacent characters wanting the same face stay in one run, so "3.2 × 10⁻³"
+ * is two runs and not eleven — SVG <tspan> count is what this costs at render
+ * time, and a run per character would triple the node count of every caption.
+ */
+/*
+ * `family` is NOT defaulted to FALLBACK_FAMILY the way the measuring functions
+ * default it, and the difference matters. Measurement defaults to the WIDEST
+ * family so an unspecified caller over-estimates. Rendering must default to
+ * NOTHING, so a board run inherits whatever face the parent <Text> carries —
+ * defaulting it to Menlo here would have silently re-set every widget that
+ * does not name a family, which is most of them, into a monospace face.
+ */
+export function splitRuns(text: string, family?: string): TextRun[] {
+  const runs: TextRun[] = [];
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0;
+    const face = faceFor(cp, family);
+    const f = face === 'companion' ? COMPANION_FAMILY
+      : face === 'deva' ? DEVANAGARI_FAMILY
+      : family;
+    const last = runs[runs.length - 1];
+    if (last && last.family === f) runs[runs.length - 1] = { text: last.text + ch, family: f };
+    else runs.push({ text: ch, family: f });
+  }
+  return runs;
+}
+
+/**
+ * Which face will draw `cp` when the caller asks for `family`.
+ *
+ * ONE function, used by both `splitRuns` and `charAdvance`, so the board
+ * cannot measure a character in a face other than the one it draws it in.
+ * Two copies of this rule would be two chances to disagree, and disagreeing
+ * is the whole defect being fixed.
+ *
+ * The family matters, and assuming it did not was wrong for half the corpus.
+ * `theme.monoFontFamily` is Menlo, which HAS the Greek block, the ohm sign and
+ * the micro sign, and draws every one of them at its uniform 0.6021 em —
+ * field_lines and data_table_trend set all their text in it and were never
+ * broken. Only `theme.fontFamily`, which is Onest, lacks them, and that is
+ * where comparison_table and lcr_resonance draw. Sending a Menlo-set omega to
+ * the companion face would have measured it in a face it is never drawn in.
+ *
+ * A family with no per-character table is one this repo does not ship and
+ * cannot measure per glyph — Menlo, a system face. Those keep their measured
+ * mean, which for a monospaced face is exact for every glyph it has.
+ */
+function faceFor(cp: number, family?: string): 'own' | 'companion' | 'deva' {
+  if (cp >= DEVA_LO && cp <= DEVA_HI) return 'deva';
+  const table = family === undefined ? undefined : PER_CHAR[family];
+  // Not a face we measured per glyph (Menlo, or unknown): it draws what it
+  // draws, and its mean is the best — and for Menlo the exact — answer.
+  if (table === undefined) return 'own';
+  if (table[String(cp)] !== undefined) return 'own';
+  // Measured face, unmeasured codepoint. `boardCovers` is Onest's own cmap,
+  // so a character it maps but the table does not list (an arrow, an em dash)
+  // still belongs to the board face and is priced at its mean.
+  if (boardCovers(cp)) return 'own';
+  return COMPANION_ADVANCE[String(cp)] !== undefined ? 'companion' : 'own';
+}
+
+/**
  * 5% headroom over the measured mean. NOT a measurement — see above.
  *
  * Lives in the generated JSON so chrome.ts and verify-render.mjs cannot
@@ -278,12 +436,32 @@ function advanceEm(text: string, family: string): number {
   const latin = latinCharWidth(family);
   let total = 0;
   for (let i = 0; i < text.length; i++) {
-    const cp = text.charCodeAt(i);
-    total += cp >= 0x0900 && cp <= 0x097f
-      ? (DEVA_ADVANCE[String(cp)] ?? DEVA_MAX) * SAFETY_MARGIN
-      : latin;
+    total += charAdvance(text.charCodeAt(i), latin, family);
   }
   return total;
+}
+
+/**
+ * One code unit's advance, in em, charged to the face that will DRAW it.
+ *
+ * The three cases are the three faces. A companion codepoint is priced from
+ * Inter's own hmtx rather than from the board family's Latin mean — which is
+ * the whole point of measuring it, and which the mean got wrong in both
+ * directions at once: U+2080 costs 0.398 em where the Onest mean charges
+ * 0.570 (44% over) and U+03A6 costs 0.769 (26% under). Under-charging is the
+ * dangerous half: it admits a string the board cannot fit.
+ */
+function charAdvance(cp: number, latin: number, family?: string): number {
+  switch (faceFor(cp, family)) {
+    case 'deva':
+      return (DEVA_ADVANCE[String(cp)] ?? DEVA_MAX) * SAFETY_MARGIN;
+    case 'companion':
+      return COMPANION_ADVANCE[String(cp)] * SAFETY_MARGIN;
+    default: {
+      const own = family === undefined ? undefined : PER_CHAR[family]?.[String(cp)];
+      return own === undefined ? latin : own * SAFETY_MARGIN;
+    }
+  }
 }
 
 /**
@@ -315,10 +493,7 @@ function widestCharWidth(text: string, family: string): number {
   const latin = latinCharWidth(family);
   let widest = 0;
   for (let i = 0; i < text.length; i++) {
-    const cp = text.charCodeAt(i);
-    const w = cp >= 0x0900 && cp <= 0x097f
-      ? (DEVA_ADVANCE[String(cp)] ?? DEVA_MAX) * SAFETY_MARGIN
-      : latin;
+    const w = charAdvance(text.charCodeAt(i), latin, family);
     if (w > widest) widest = w;
   }
   return widest === 0 ? latin : widest;
@@ -372,7 +547,54 @@ export function maxChars(
   text: string,
   family: string = FALLBACK_FAMILY
 ): number {
-  return Math.max(0, Math.floor(width / (fontSize * widestCharWidth(text, family))));
+  // EXACT, not "the widest character, repeated".
+  //
+  // It used to be `floor(width / (fontSize * widestCharWidth(text)))`, which
+  // is exact only while every character has the SAME advance — and under the
+  // old model every non-Devanagari character did, because they were all
+  // charged one Latin mean. Per-glyph advances broke that silently: one Phi
+  // in a 39-character label raises the widest advance from 0.632 em to 0.791,
+  // so the budget falls from 39 characters to 31 and the label is cut at 31
+  // — while the string's MEASURED width is 299.4pt against a 303pt box.
+  //
+  // Three field-lines labels were elided that way the moment the companion
+  // face landed, each losing the "Φ = 0" that is the whole claim of the
+  // figure, and the comments beside them record the same thing happening once
+  // before for a different reason.
+  //
+  // So walk the string and stop where it actually stops fitting. This can
+  // only return the same answer or a LARGER one than the old formula, never
+  // smaller, so no caller can start overflowing because of it.
+  const budget = width / fontSize;
+  const latin = latinCharWidth(family);
+  let used = 0;
+  for (let i = 0; i < text.length; i++) {
+    used += charAdvance(text.charCodeAt(i), latin, family);
+    if (used > budget) return i;
+  }
+  return text.length;
+}
+
+/**
+ * How many characters of TYPICAL Latin text fit in `width` — a box capacity,
+ * not a fit for any particular string.
+ *
+ * Split out from `maxChars` because the two questions are different and one
+ * caller was asking this one through that one, by passing the literal string
+ * `'latin'` as the text to be cut. That worked only while every character had
+ * the same advance, which made "how wide is this string" and "how wide is the
+ * box in characters" the same arithmetic. They are not the same once glyphs
+ * are priced individually, and the sentinel then answered "five", because five
+ * is the length of the word "latin".
+ *
+ * Use this when sizing a BOX. Use `maxChars` when cutting a STRING.
+ */
+export function boxCapacity(
+  width: number,
+  fontSize: number,
+  family: string = FALLBACK_FAMILY
+): number {
+  return Math.max(0, Math.floor(width / (fontSize * latinCharWidth(family))));
 }
 
 /** The gap between a readout's caption and the value it introduces. */
