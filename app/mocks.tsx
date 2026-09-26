@@ -438,7 +438,7 @@ export default function MocksScreen() {
             <Skeleton delay={160} style={styles.skeletonRow} />
           ) : sat.length === 0 ? (
             <Text style={styles.emptyLine}>
-              None yet. When you finish a paper, its full report lives here — every question, what
+              None yet. When you finish a paper, its full report lives here: every question, what
               you put, and why the right answer is right.
             </Text>
           ) : (
