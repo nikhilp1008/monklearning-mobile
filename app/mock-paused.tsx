@@ -8,7 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { getMockSession } from '@/lib/mock';
+import { getMockSession, mockSecondsLeft } from '@/lib/mock';
 
 
 function formatTime(totalSeconds: number) {
@@ -100,7 +100,10 @@ function TimeLeft({
   styles: ReturnType<typeof createStyles>;
   deadline: number;
 }) {
-  const remaining = () => Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  const remaining = () => {
+    const s = getMockSession();
+    return s ? mockSecondsLeft(s) : Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  };
   const [secondsLeft, setSecondsLeft] = useState(remaining);
   useEffect(() => {
     const id = setInterval(() => setSecondsLeft(remaining()), 1000);

@@ -350,7 +350,7 @@ export default function MocksScreen() {
                     <Text style={styles.tagText}>−1 wrong</Text>
                   </View>
                   <View style={styles.tag}>
-                    <Text style={styles.tagText}>Pause &amp; resume</Text>
+                    <Text style={styles.tagText}>Clock never stops</Text>
                   </View>
                 </View>
               </View>
@@ -389,8 +389,8 @@ export default function MocksScreen() {
                   />
                 </View>
                 <Text style={styles.cardHint}>
-                  {status.correct_to_next} more to go. Only first-time correct answers count, so
-                  the same question twice does not.
+                  {status.correct_to_next} more to go. Each question counts once, even one you
+                  got wrong the first time.
                 </Text>
               </View>
             </>

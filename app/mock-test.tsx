@@ -23,6 +23,7 @@ import { useScale } from '@/constants/scale';
 import {
   chargeElapsed,
   getMockSession,
+  mockSecondsLeft,
   resumeElapsed,
   saveProgress,
   submitCurrentSession,
@@ -431,7 +432,10 @@ function CountdownPill({
   deadline: number;
   onExpire: () => void;
 }) {
-  const remaining = () => Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  const remaining = () => {
+    const s = getMockSession();
+    return s ? mockSecondsLeft(s) : 0;
+  };
   const [secondsLeft, setSecondsLeft] = useState(remaining);
 
   useEffect(() => {

@@ -227,20 +227,41 @@ export interface MockSession {
   /** Epoch ms the question on screen was shown. */
   shownAt: number;
   result: MockSubmitResult | null;
+  /** performance.now() at which the clock runs out. See mockSecondsLeft. */
+  deadlineMono: number;
 }
 
 let session: MockSession | null = null;
 
+/**
+ * Seconds left on the paper, from the device's MONOTONIC clock.
+ *
+ * The countdown used Date.now(), so turning the phone's clock back gave a
+ * student extra time, and the server does not re-check time on submit
+ * (a late submit is legitimate; see /active). performance.now() ignores
+ * wall-clock changes. It restarts with the app, which is fine: every way
+ * back into a paper after a restart goes through GET /mock/active, whose
+ * seconds_left re-anchors the clock to the server's own.
+ */
+export function mockSecondsLeft(s: MockSession): number {
+  return Math.max(0, Math.floor((s.deadlineMono - performance.now()) / 1000));
+}
+
 export function startMockSession(paper: MockPaper): MockSession {
-  const serverDeadline = paper.deadline ? Date.parse(paper.deadline) : NaN;
+  // The server's seconds_left, never its absolute deadline read against this
+  // phone's clock: a phone set an hour wrong would otherwise start the paper
+  // an hour short, or an hour long.
+  const msLeft =
+    typeof paper.seconds_left === 'number'
+      ? paper.seconds_left * 1000
+      : paper.duration_minutes * 60_000;
   session = {
     paper,
     answers: new Map(),
     marked: new Set(),
     index: 0,
-    deadline: Number.isFinite(serverDeadline)
-      ? serverDeadline
-      : Date.now() + paper.duration_minutes * 60_000,
+    deadline: Date.now() + msLeft,
+    deadlineMono: performance.now() + msLeft,
     elapsed: new Map(),
     shownAt: Date.now(),
     result: null,

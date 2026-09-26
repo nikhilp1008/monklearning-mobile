@@ -62,6 +62,7 @@ function session(): MockSession {
     marked: new Set(['physics-3']),
     index: 0,
     deadline: Date.now() + 1000,
+    deadlineMono: performance.now() + 1000,
     elapsed: new Map([
       ['physics-0', 20_000],
       ['physics-1', 60_000],

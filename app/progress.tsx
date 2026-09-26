@@ -14,6 +14,7 @@ import { useScale } from '@/constants/scale';
 import {
   earnedTowardNext,
   getMockSession,
+  mockSecondsLeft,
   getMockStatus,
   listMockRuns,
   resumeActiveSession,
@@ -190,8 +191,8 @@ export default function ProgressScreen() {
       ? {
           mock_run_id: live.paper.mock_run_id,
           deadline: new Date(live.deadline).toISOString(),
-          seconds_left: Math.max(0, Math.floor((live.deadline - Date.now()) / 1000)),
-          expired: live.deadline <= Date.now(),
+          seconds_left: mockSecondsLeft(live),
+          expired: mockSecondsLeft(live) <= 0,
         }
       : (mockStatus?.active_paper ?? null);
 
@@ -787,7 +788,7 @@ export default function ProgressScreen() {
                                 : resuming
                                   ? 'Opening your paper…'
                                   : 'Resume mock test'
-                              : mockStatus && mockStatus.credits_available === 0
+                              : !mockStatus || mockStatus.credits_available === 0
                                 ? 'See mock tests'
                                 : 'Start mock test'}
                           </Text>
