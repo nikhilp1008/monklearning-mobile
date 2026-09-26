@@ -20,6 +20,7 @@ import {
   type MockRunRow,
   type MockStatus,
 } from '@/lib/mock';
+import { loadReport, savedReportIds, type MockReport } from '@/lib/mock-report';
 import { getProfile } from '@/lib/profile';
 
 /**
@@ -67,6 +68,19 @@ const PATTERNS = {
 
 type ExamKey = keyof typeof PATTERNS;
 
+/** One finished paper, however the app came to know about it. */
+interface SatRow {
+  id: string;
+  exam: 'jee' | 'neet';
+  /** ISO. Submitted, falling back to created. */
+  when: string;
+  correct: number;
+  wrong: number;
+  unanswered: number;
+  marks: number;
+  perSubject: Record<string, number>;
+}
+
 const SUBJECT_SHORT: Record<string, string> = {
   physics: 'Phy',
   chemistry: 'Chem',
@@ -81,6 +95,10 @@ export default function MocksScreen() {
   const [exam, setExam] = useState<ExamKey>('jee');
   const [status, setStatus] = useState<MockStatus | null>(null);
   const [runs, setRuns] = useState<MockRunRow[] | null>(null);
+  /** Papers whose full report is on this device. They are listed even when
+   *  the server's list cannot be reached, which is the one case where a
+   *  student has the whole paper in their hand and would be shown nothing. */
+  const [saved, setSaved] = useState<MockReport[]>([]);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasActivePaper, setHasActivePaper] = useState(false);
@@ -121,10 +139,15 @@ export default function MocksScreen() {
       listMockRuns()
         .then((next) => !cancelled && setRuns(next))
         .catch(() => !cancelled && setRuns([]));
+      savedReportIds()
+        .then((ids) => Promise.all(ids.map(loadReport)))
+        .then((reports) => {
+          if (!cancelled) setSaved(reports.filter((r): r is MockReport => !!r));
+        })
+        .catch(() => undefined);
       return () => {
         cancelled = true;
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [exam])
   );
 
@@ -168,7 +191,52 @@ export default function MocksScreen() {
   };
 
   const pattern = PATTERNS[exam];
-  const sat = (runs ?? []).filter((r) => r.status === 'submitted' && r.score);
+
+  /**
+   * ONE LIST, TWO SOURCES.
+   *
+   * The server knows which papers exist; this device knows which of them it
+   * can explain question by question. A row appears if either says so —
+   * saved-only rows cover a flight with no signal, and server-only rows are
+   * papers sat before reports were kept, or on another phone.
+   *
+   * In-progress runs are left out on purpose: nothing can resume a paper
+   * once the app has been closed, so a row that cannot be opened would only
+   * be a reproach.
+   */
+  const sat: SatRow[] = useMemo(() => {
+    const rows = new Map<string, SatRow>();
+    for (const r of saved) {
+      rows.set(r.run_id, {
+        id: r.run_id,
+        exam: r.exam,
+        when: r.submitted_at,
+        correct: r.correct,
+        wrong: r.wrong,
+        unanswered: r.unanswered,
+        marks: r.total_marks,
+        perSubject: Object.fromEntries(
+          Object.entries(r.per_subject).map(([k, v]) => [k, v.marks])
+        ),
+      });
+    }
+    for (const r of runs ?? []) {
+      if (r.status !== 'submitted' || !r.score || rows.has(r.id)) continue;
+      rows.set(r.id, {
+        id: r.id,
+        exam: r.exam,
+        when: r.submitted_at ?? r.created_at,
+        correct: r.score.correct,
+        wrong: r.score.wrong,
+        unanswered: r.score.unanswered,
+        marks: r.score.total_marks,
+        perSubject: Object.fromEntries(
+          Object.entries(r.score.per_subject).map(([k, v]) => [k, v.marks])
+        ),
+      });
+    }
+    return [...rows.values()].sort((a, b) => b.when.localeCompare(a.when));
+  }, [runs, saved]);
 
   return (
     <View style={styles.screen}>
@@ -280,7 +348,7 @@ export default function MocksScreen() {
             <Text style={styles.sectionTitle}>Papers you have sat</Text>
           </View>
 
-          {runs === null ? (
+          {runs === null && !saved.length ? (
             <Skeleton delay={160} style={styles.skeletonRow} />
           ) : sat.length === 0 ? (
             <Text style={styles.emptyLine}>
@@ -296,22 +364,20 @@ export default function MocksScreen() {
                 onPress={() => router.push(`/mock-report?run=${run.id}`)}>
                 <View style={styles.runMain}>
                   <Text style={styles.runDate}>
-                    {formatDay(run.submitted_at ?? run.created_at)} ·{' '}
-                    {run.exam === 'neet' ? 'NEET UG' : 'JEE Main'}
+                    {formatDay(run.when)} · {run.exam === 'neet' ? 'NEET UG' : 'JEE Main'}
                   </Text>
                   <Text style={styles.runDetail}>
-                    {run.score!.correct} right · {run.score!.wrong} wrong ·{' '}
-                    {run.score!.unanswered} skipped
+                    {run.correct} right · {run.wrong} wrong · {run.unanswered} skipped
                   </Text>
                   <View style={styles.runSubjects}>
-                    {Object.entries(run.score!.per_subject).map(([subject, s]) => (
+                    {Object.entries(run.perSubject).map(([subject, marks]) => (
                       <Text key={subject} style={styles.runSubject}>
-                        {SUBJECT_SHORT[subject] ?? subject} {s.marks}
+                        {SUBJECT_SHORT[subject] ?? subject} {marks}
                       </Text>
                     ))}
                   </View>
                 </View>
-                <Text style={styles.runMarks}>{run.score!.total_marks}</Text>
+                <Text style={styles.runMarks}>{run.marks}</Text>
                 <ChevronIcon size={scale(15)} />
               </Pressable>
             ))
