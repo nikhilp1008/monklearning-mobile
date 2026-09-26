@@ -43,6 +43,7 @@ export default function MockPausedScreen() {
               chrome stacked above the one card a student came here to read. */}
           <Text style={styles.heading}>Your paper is waiting</Text>
 
+          <View style={styles.body}>
           <View style={styles.statusCard}>
             <View style={styles.statusTopRow}>
               <Text style={styles.statusTitle}>Test in progress</Text>
@@ -67,8 +68,9 @@ export default function MockPausedScreen() {
           </View>
 
           <Text style={styles.hint}>
-            The clock keeps running while you are away, exactly like exam day.
+            The clock keeps running while you are away, like exam day.
           </Text>
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -125,9 +127,10 @@ function ArrowRightIcon({ size }: { size: number }) {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /** White, like every other page in the app. */
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -139,14 +142,28 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /** The app’s one page-title tier — see constants/page-title.ts. */
     heading: pageTitle(scale),
+    body: {
+      flex: 1,
+      minHeight: 0,
+      justifyContent: 'center',
+      paddingBottom: verticalScale(24),
+    },
+    /** White with the app's hairline, like the paper-pattern card on the
+     *  start screen. It was a filled amber block, which on a white page was
+     *  the loudest thing in the mock flow and the only card in it that was
+     *  not white. The urgency lives in the badge. */
     statusCard: {
-      backgroundColor: '#FCF4E0',
+      backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.45)',
+      borderColor: 'rgba(28,26,22,.08)',
       borderRadius: scale(16),
       paddingVertical: verticalScale(16),
       paddingHorizontal: scale(18),
-      marginTop: verticalScale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
     },
     statusTopRow: {
       flexDirection: 'row',
@@ -159,7 +176,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     pausedBadge: {
-      backgroundColor: '#fff',
+      backgroundColor: '#FCF4E0',
       borderWidth: 1,
       borderColor: 'rgba(238,163,31,.5)',
       borderRadius: scale(99),
@@ -218,11 +235,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(52),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
     },
     resumeButtonText: {
       fontFamily: 'Onest_600SemiBold',

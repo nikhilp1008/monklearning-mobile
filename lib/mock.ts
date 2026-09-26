@@ -74,6 +74,35 @@ export function createMockPaper(exam: 'jee' | 'neet'): Promise<MockPaper> {
   return apiFetch('/mock/paper', { method: 'POST', body: JSON.stringify({ exam }) });
 }
 
+/**
+ * WHY A PAPER CAN BE REFUSED, AND WHAT THE SERVER SAYS WHEN IT IS.
+ *
+ * `POST /mock/paper` answers 403 with a body rather than an error string when
+ * the student has not earned one yet: mocks are unlocked by practice, one
+ * credit per `threshold` unique correct answers. The client had no idea this
+ * rule existed, so every locked student was told "check your connection" —
+ * for a request that had reached the server and been answered precisely.
+ */
+export interface MockLock {
+  code: 'mock_locked';
+  exam: string;
+  /** Unique correct answers one credit costs. */
+  threshold: number;
+  unique_correct: number;
+  credits_earned: number;
+  mocks_used: number;
+  credits_available: number;
+  /** How many more correct answers until the next credit. */
+  correct_to_next: number;
+}
+
+export function mockLockFrom(err: unknown): MockLock | null {
+  const data = (err as { status?: number; data?: { detail?: unknown } } | null)?.data?.detail;
+  if (!data || typeof data !== 'object') return null;
+  const detail = data as Partial<MockLock>;
+  return detail.code === 'mock_locked' ? (detail as MockLock) : null;
+}
+
 export function submitMockPaper(
   runId: string,
   answers: { question_id: string; chosen_option?: string; chosen_value?: number }[]
@@ -143,4 +172,20 @@ export function sessionAnswersPayload(
     }
   }
   return out;
+}
+
+/**
+ * END THE LIVE PAPER, from wherever it is ended.
+ *
+ * Two screens finish a mock: the clock running out on the paper itself, and
+ * the Submit button, which now lives on the review page rather than beside
+ * the timer on every question. Both need the same three steps, so they share
+ * them instead of keeping two copies that can drift.
+ */
+export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
+  const s = session;
+  if (!s) return null;
+  const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s));
+  s.result = result;
+  return result;
 }

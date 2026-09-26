@@ -613,10 +613,20 @@ export default function ProgressScreen() {
                     <Text style={styles.recTitle}>
                       {lever ? `Practice ${lever.chapter.name}` : rec.title}
                     </Text>
+                    {/* THE MOCK CARD SAYS WHAT A MOCK IS, IN WORDS.
+                        The server's line here reads "mock answers · 1.15x
+                        exam conditions" — a ratio out of the scoring model,
+                        printed at a seventeen year old who has never sat one.
+                        Every other card keeps the server's own words; this
+                        one is ours, because what it describes is a three
+                        hour commitment and the student has to know what they
+                        are agreeing to. */}
                     <Text style={styles.recReason}>
                       {lever
                         ? `Most score headroom in ${SUBJECT_LABEL[lever.subject] ?? lever.subject} right now.`
-                        : rec.reason}
+                        : rec.role === 'exam_craft'
+                          ? 'A full paper, on the clock, marked the way the real one is. It shows where you run out of time and which mistakes cost you marks.'
+                          : rec.reason}
                     </Text>
                     {rec.role === 'highest_lever' && lever ? (
                       <PressableScale
@@ -642,7 +652,7 @@ export default function ProgressScreen() {
                       <PressableScale
                         style={styles.recButton}
                         onPress={() => router.push('/mock-ready')}>
-                        <Text style={styles.recButtonText}>Sit a mock test</Text>
+                        <Text style={styles.recButtonText}>Start mock test</Text>
                         <ArrowIcon color={colors.paper} size={scale(13)} />
                       </PressableScale>
                     ) : (

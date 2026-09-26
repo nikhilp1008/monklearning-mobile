@@ -8,7 +8,14 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { createMockPaper, getMockSession, startMockSession } from '@/lib/mock';
+import { ApiError } from '@/lib/api';
+import {
+  createMockPaper,
+  getMockSession,
+  mockLockFrom,
+  startMockSession,
+  type MockLock,
+} from '@/lib/mock';
 import { getProfile } from '@/lib/profile';
 
 /**
@@ -45,18 +52,27 @@ export default function MockReadyScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [exam, setExam] = useState<ExamKey>('jee');
-  // A 'both' student sits both papers, so they pick which one this sitting is.
-  const [showExamPicker, setShowExamPicker] = useState(false);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the server says this student has not earned a paper yet. */
+  const [lock, setLock] = useState<MockLock | null>(null);
   const [hasActivePaper, setHasActivePaper] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    /**
+     * THE EXAM IS THE STUDENT'S, NOT A CHOICE MADE HERE.
+     *
+     * This screen used to offer a JEE Main / NEET UG toggle. The student
+     * already told us which exam they are sitting, on their second onboarding
+     * screen, and it is on their profile — asking again on the way into a
+     * three-hour paper reads as the app having forgotten. A 'both' student sits
+     * the JEE pattern here; the paper itself is the same question bank either
+     * way, and one door is better than a fork.
+     */
     getProfile().then(({ exam: profileExam }) => {
       if (cancelled) return;
-      if (profileExam === 'both') setShowExamPicker(true);
-      else setExam(profileExam === 'neet' ? 'neet' : 'jee');
+      setExam(profileExam === 'neet' ? 'neet' : 'jee');
     });
     return () => {
       cancelled = true;
@@ -85,8 +101,26 @@ export default function MockReadyScreen() {
       const paper = await createMockPaper(exam);
       startMockSession(paper);
       router.push('/mock-test');
-    } catch {
-      setError('Could not set your paper just now. Check your connection and try again.');
+    } catch (err) {
+      /**
+       * A REFUSAL IS NOT A NETWORK FAILURE.
+       *
+       * Every failure here said "check your connection". The commonest one by
+       * far is 403 mock_locked — the server answering precisely, from a rule
+       * the client did not know: a mock costs one credit, and a credit is
+       * earned per `threshold` unique correct practice answers. A student with
+       * none was told their internet was broken.
+       */
+      const lock = mockLockFrom(err);
+      if (lock) {
+        setLock(lock);
+        return;
+      }
+      setError(
+        err instanceof ApiError && err.status >= 500
+          ? 'The server could not build a paper just now. Try again in a moment.'
+          : 'Could not set your paper just now. Check your connection and try again.'
+      );
     } finally {
       setBuilding(false);
     }
@@ -113,67 +147,101 @@ export default function MockReadyScreen() {
               <BackArrowIcon size={scale(16)} />
             </Pressable>
             <Text style={styles.title}>
-              {hasActivePaper ? 'Your paper is waiting' : 'Sit a full paper'}
+              {hasActivePaper ? 'Your paper is waiting' : 'Mock test'}
             </Text>
           </View>
 
-          {showExamPicker && !hasActivePaper ? (
-            <View style={styles.examPickerRow}>
-              {(Object.keys(PATTERNS) as ExamKey[]).map((key) => (
-                <Pressable
-                  key={key}
-                  style={[styles.examPill, exam === key && styles.examPillActive]}
-                  onPress={() => setExam(key)}>
-                  <Text
-                    style={[styles.examPillText, exam === key && styles.examPillTextActive]}>
-                    {PATTERNS[key].label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
+          {/* The page is a heading, one object and a key. Top-aligned it left
+              a hand's width of nothing between the card and the button, on a
+              screen whose whole job is "yes, start". Centred, the object a
+              student is reading sits where they are looking. */}
+          <View style={styles.body}>
+          {lock ? (
+            /**
+             * EARNED, NOT REFUSED.
+             *
+             * The server locks a paper until a student has answered enough
+             * practice questions correctly — one credit per `threshold`. The
+             * app knew nothing about it, so a locked student got "check your
+             * connection" on a request the server had answered exactly. This
+             * says what the rule is, where they are in it, and the one thing
+             * that moves them along.
+             */
+            <>
+              <Text style={styles.builtLine}>
+                A full paper is earned. Answer {lock.threshold} practice questions correctly
+                and one unlocks.
+              </Text>
+              <View style={styles.lockCard}>
+                <Text style={styles.patternOverline}>Toward your next paper</Text>
+                <View style={styles.lockCountRow}>
+                  <Text style={styles.lockCount}>{lock.unique_correct}</Text>
+                  <Text style={styles.lockCountOf}>of {lock.threshold} correct</Text>
+                </View>
+                <View style={styles.lockTrack}>
+                  <View
+                    style={[
+                      styles.lockFill,
+                      {
+                        width: `${Math.min(100, Math.round((lock.unique_correct / Math.max(1, lock.threshold)) * 100))}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.lockHint}>
+                  {lock.correct_to_next} more to go. Only first-time correct answers count, so
+                  the same question twice does not.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              {/* One line, not four. The card here read as a brochure: "one in
+                  five from past-paper masters, one in five re-asking what you
+                  got wrong, the rest fresh, under real conditions and marking"
+                  — all true, all said again by the table below it. */}
+              <Text style={styles.builtLine}>
+                Past-paper questions, your own Practice mistakes, and fresh ones.
+              </Text>
 
-          {/* One line, not four. The card here read as a brochure: "one in
-              five from past-paper masters, one in five re-asking what you got
-              wrong, the rest fresh, under real conditions and marking" — all
-              true, all said again by the table below it. */}
-          <Text style={styles.builtLine}>
-            Past-paper questions, your own Practice mistakes, and fresh ones.
-          </Text>
+              <View style={styles.patternCard}>
+                <Text style={styles.patternOverline}>Paper pattern · {pattern.label}</Text>
+                {pattern.rows.map((row) => (
+                  <View key={row.label} style={styles.patternRow}>
+                    <Text style={styles.patternRowLabel}>{row.label}</Text>
+                    <Text style={styles.patternRowValue}>{row.value}</Text>
+                  </View>
+                ))}
+                <View style={styles.patternTotalRow}>
+                  <Text style={styles.patternTotalLabel}>Total</Text>
+                  <Text style={styles.patternTotalValue}>{pattern.total}</Text>
+                </View>
+                <View style={styles.patternTagsRow}>
+                  <View style={styles.patternTag}>
+                    <Text style={styles.patternTagText}>+4 correct</Text>
+                  </View>
+                  <View style={styles.patternTag}>
+                    <Text style={styles.patternTagText}>−1 wrong</Text>
+                  </View>
+                  <View style={styles.patternTag}>
+                    <Text style={styles.patternTagText}>Pause &amp; resume</Text>
+                  </View>
+                </View>
+              </View>
 
-          <View style={styles.patternCard}>
-            <Text style={styles.patternOverline}>Paper pattern · {pattern.label}</Text>
-            {pattern.rows.map((row) => (
-              <View key={row.label} style={styles.patternRow}>
-                <Text style={styles.patternRowLabel}>{row.label}</Text>
-                <Text style={styles.patternRowValue}>{row.value}</Text>
-              </View>
-            ))}
-            <View style={styles.patternTotalRow}>
-              <Text style={styles.patternTotalLabel}>Total</Text>
-              <Text style={styles.patternTotalValue}>{pattern.total}</Text>
-            </View>
-            <View style={styles.patternTagsRow}>
-              <View style={styles.patternTag}>
-                <Text style={styles.patternTagText}>+4 correct</Text>
-              </View>
-              <View style={styles.patternTag}>
-                <Text style={styles.patternTagText}>−1 wrong</Text>
-              </View>
-              <View style={styles.patternTag}>
-                <Text style={styles.patternTagText}>Pause &amp; resume</Text>
-              </View>
-            </View>
+              <Text style={styles.hint}>
+                {error ?? (hasActivePaper ? 'The clock kept running while you were away.' : null)}
+              </Text>
+            </>
+          )}
           </View>
-
-          <Text style={styles.hint}>
-            {error ??
-              (hasActivePaper ? 'The clock kept running while you were away.' : null)}
-          </Text>
         </View>
 
         <View style={styles.footer}>
-          <Pressable style={styles.startButton} onPress={start}>
+          {/* Locked, the one useful button is the one that unlocks it. */}
+          <Pressable
+            style={styles.startButton}
+            onPress={lock ? () => router.replace('/practice') : start}>
             {building ? (
               <>
                 <ActivityIndicator color={colors.paper} />
@@ -182,7 +250,7 @@ export default function MockReadyScreen() {
             ) : (
               <>
                 <Text style={styles.startButtonText}>
-                  {hasActivePaper ? 'Resume mock test' : 'Start mock test'}
+                  {lock ? 'Practise now' : hasActivePaper ? 'Resume mock test' : 'Start mock test'}
                 </Text>
                 <ArrowRightIcon size={scale(15)} />
               </>
@@ -225,9 +293,16 @@ function ArrowRightIcon({ size }: { size: number }) {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /**
+     * WHITE, like the rest of the app.
+     *
+     * These five screens were the only ones on the warm paper tone, which made
+     * the whole mock flow read as a different app bolted on — most visible on
+     * the seam where a white Practice page pushed a cream one.
+     */
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -237,6 +312,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       minHeight: 0,
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
+    },
+    body: {
+      flex: 1,
+      minHeight: 0,
+      justifyContent: 'center',
+      paddingBottom: verticalScale(24),
     },
     topRow: {
       flexDirection: 'row',
@@ -257,42 +338,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
     /** One line about what is in the paper, where a four-line card was. */
     builtLine: {
-      marginTop: verticalScale(14),
       fontFamily: 'Onest_400Regular',
       fontSize: scale(14),
       lineHeight: scale(20),
       color: colors.slate,
-    },
-    examPickerRow: {
-      flexDirection: 'row',
-      gap: scale(3),
-      padding: scale(3),
-      backgroundColor: 'rgba(28,26,22,.055)',
-      borderRadius: scale(99),
-      marginTop: verticalScale(14),
-    },
-    examPill: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: verticalScale(7),
-      borderRadius: scale(99),
-    },
-    examPillActive: {
-      backgroundColor: '#fff',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
-    },
-    examPillText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    examPillTextActive: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
     },
     patternCard: {
       backgroundColor: '#fff',
@@ -367,6 +416,57 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(11),
       color: colors.slate,
     },
+    /** The locked panel: one count, one bar, one sentence. */
+    lockCard: {
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.08)',
+      borderRadius: scale(16),
+      paddingVertical: verticalScale(16),
+      paddingHorizontal: scale(18),
+      marginTop: verticalScale(16),
+      shadowColor: colors.ink,
+      shadowOffset: { width: 0, height: verticalScale(1.5) },
+      shadowOpacity: 0.05,
+      shadowRadius: scale(2),
+      elevation: 1,
+    },
+    lockCountRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: scale(7),
+    },
+    lockCount: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(30),
+      lineHeight: scale(34),
+      letterSpacing: scale(-0.8),
+      color: colors.ink,
+    },
+    lockCountOf: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      color: colors.faint,
+    },
+    lockTrack: {
+      height: verticalScale(6),
+      borderRadius: scale(99),
+      backgroundColor: 'rgba(28,26,22,.07)',
+      overflow: 'hidden',
+      marginTop: verticalScale(12),
+    },
+    lockFill: {
+      height: '100%',
+      borderRadius: scale(99),
+      backgroundColor: colors.marigold,
+    },
+    lockHint: {
+      marginTop: verticalScale(10),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+    },
     hint: {
       textAlign: 'center',
       fontFamily: 'Onest_400Regular',
@@ -390,11 +490,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(52),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
     },
     startButtonText: {
       fontFamily: 'Onest_600SemiBold',

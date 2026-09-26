@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
@@ -19,7 +19,7 @@ import { MathText } from '@/components/math-text';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { getMockSession, sessionAnswersPayload, submitMockPaper } from '@/lib/mock';
+import { getMockSession, submitCurrentSession } from '@/lib/mock';
 
 function BackArrowIcon({ size }: { size: number }) {
   return (
@@ -31,6 +31,33 @@ function BackArrowIcon({ size }: { size: number }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </Svg>
+  );
+}
+
+function ArrowRightIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path
+        d="M2 8h11M9 3.5 13.5 8 9 12.5"
+        stroke={colors.paper}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** The palette, as its own shape: nine cells, which is what the page is. */
+function GridIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 12 12" width={size} height={size} fill="none">
+      {[0, 4.5, 9].map((y) =>
+        [0, 4.5, 9].map((x) => (
+          <Rect key={`${x}-${y}`} x={x} y={y} width={3} height={3} rx={0.8} fill={colors.ink} />
+        ))
+      )}
     </Svg>
   );
 }
@@ -105,37 +132,28 @@ export default function MockTestScreen() {
     setIndexState(clamped);
   };
 
-  const doSubmit = async (auto = false) => {
-    const s = getMockSession();
-    if (!s || submitting) return;
+  /**
+   * Only the clock ends a paper from this screen now.
+   *
+   * Submit used to be a button in the top bar, a thumb's width from the timer
+   * a student checks every minute, on all 75 questions. It lives on the
+   * review page — reached by the Palette, and by the last question's own
+   * "Review" key — which is where a student can see what they are submitting.
+   */
+  const doSubmit = async () => {
+    if (submitting) return;
     setSubmitting(true);
     try {
-      const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s));
-      s.result = result;
+      await submitCurrentSession();
       router.replace('/mock-result');
     } catch {
       setSubmitting(false);
       Alert.alert(
-        auto ? 'Time is up' : 'Could not submit',
+        'Time is up',
         'Your answers are safe on this device. Check your connection and submit again.',
         [{ text: 'OK' }]
       );
     }
-  };
-
-  const confirmSubmit = () => {
-    const s = getMockSession();
-    if (!s) return;
-    const answered = sessionAnswersPayload(s).length;
-    const total = s.paper.questions.length;
-    Alert.alert(
-      'Submit test?',
-      `${answered} answered · ${total - answered} unanswered. Unanswered questions score 0.`,
-      [
-        { text: 'Keep going', style: 'cancel' },
-        { text: 'Submit', style: 'destructive', onPress: () => doSubmit() },
-      ]
-    );
   };
 
   // Time up: one automatic submit, exactly once.
@@ -143,7 +161,7 @@ export default function MockTestScreen() {
   const onExpire = useCallback(() => {
     if (expired.current) return;
     expired.current = true;
-    doSubmit(true);
+    doSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,27 +177,20 @@ export default function MockTestScreen() {
     ? Object.entries(question.options).sort(([a], [b]) => a.localeCompare(b))
     : [];
 
-  const statusDot = (q: { id: string }) =>
-    session.marked.has(q.id)
-      ? '#EEA31F'
-      : session.answers.has(q.id)
-        ? '#1C9B57'
-        : 'rgba(28,26,22,.2)';
-  const paletteDots = session.paper.questions.slice(index, index + 6);
-
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/*
-          THREE CONTROLS, ONE OF THEM DANGEROUS.
-          This row was "Save & exit" as a pill, the clock, and "Submit test"
+          A WAY OUT AND A CLOCK.
+          This row held "Save & exit" as a pill, the clock, and "Submit test"
           as a filled ink button — two ways out, and the irreversible one
-          drawn as the loudest thing on an exam screen, a thumb's width from
-          the timer a student keeps checking. Leaving is the circled chevron
-          every pushed screen in the app uses (it still saves), and Submit is
-          an outline: reachable, deliberate, and no longer arguing with
-          "Save & Next" at the bottom right.
+          drawn as the loudest thing on an exam screen. Then it was three
+          controls, which still read as a toolbar. Leaving is the circled
+          chevron every pushed screen in the app uses (it still saves), and
+          Submit has moved to the review page, where a student can see what
+          they are submitting before they do it. The spacer keeps the clock
+          optically centred rather than shunted left by the chevron.
         */}
         <View style={styles.topBar}>
           <Pressable
@@ -191,11 +202,7 @@ export default function MockTestScreen() {
             <BackArrowIcon size={scale(16)} />
           </Pressable>
           <CountdownPill styles={styles} scale={scale} deadline={session.deadline} onExpire={onExpire} />
-          <Pressable style={styles.submitButton} onPress={confirmSubmit}>
-            <Text style={styles.submitButtonText}>
-              {submitting ? 'Submitting…' : 'Submit'}
-            </Text>
-          </Pressable>
+          <View style={styles.topBarSpacer} />
         </View>
 
         <View style={styles.subjectRow}>
@@ -224,20 +231,36 @@ export default function MockTestScreen() {
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+          {/*
+            WHERE YOU ARE, AND THE WAY TO EVERYWHERE ELSE.
+
+            The subject is already lit in the segmented control directly
+            above, so naming it again here was the same word twice in two
+            lines. The marking scheme pill is gone with it: +4 / −1 is on the
+            start screen, thirty seconds earlier, and on an exam page it is
+            furniture.
+
+            The palette lives here now, beside the counter that says which
+            question this is — that is where a student looks to know where
+            they are. It was a third button wedged between Prev and Save &
+            Next, carrying a 2x3 grid of coloured dots, and it squeezed that
+            row until the labels in it had nowhere to go.
+          */}
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
-              {SUBJECT_LABEL[activeSubject] ?? activeSubject} · Q {layout.positions[index]} /{' '}
-              {layout.totals.get(activeSubject)}
+              Q {layout.positions[index]} of {layout.totals.get(activeSubject)}
             </Text>
-            {/* On the first question only. The scheme does not change between
-                questions, and repeated on all 75 it is furniture. */}
-            {index === 0 && (
-              <View style={styles.markingPill}>
-                <Text style={styles.markingPillText}>
-                  +{session.paper.marks_correct} / {session.paper.marks_wrong}
-                </Text>
-              </View>
-            )}
+            <Pressable
+              style={styles.paletteChip}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="All questions"
+              onPress={() => router.push('/mock-palette')}>
+              <GridIcon size={scale(11)} />
+              <Text style={styles.paletteChipText}>
+                All {session.paper.questions.length}
+              </Text>
+            </Pressable>
           </View>
 
           <View style={styles.questionCard}>
@@ -332,26 +355,18 @@ export default function MockTestScreen() {
           </View>
         </ScrollView>
 
+        {/* ONE WAY BACK, ONE WAY ON. Three buttons shared this row and the
+            widest of them had a grid of dots inside it; at 402pt there was
+            nothing left for the labels. Back is the same circle as the top
+            bar's, and forward is the app's own ink key at its own size. */}
         <View style={styles.bottomNav}>
           <Pressable
             style={[styles.prevButton, index === 0 && styles.prevButtonDisabled]}
+            disabled={index === 0}
+            accessibilityRole="button"
+            accessibilityLabel="Previous question"
             onPress={() => goTo(index - 1)}>
-            <Text style={styles.prevButtonText}>← Prev</Text>
-          </Pressable>
-          <Pressable style={styles.paletteButton} onPress={() => router.push('/mock-palette')}>
-            <View style={styles.paletteDots}>
-              <View style={styles.paletteDotsRow}>
-                {paletteDots.slice(0, 3).map((q) => (
-                  <View key={q.id} style={[styles.paletteDot, { backgroundColor: statusDot(q) }]} />
-                ))}
-              </View>
-              <View style={styles.paletteDotsRow}>
-                {paletteDots.slice(3, 6).map((q) => (
-                  <View key={q.id} style={[styles.paletteDot, { backgroundColor: statusDot(q) }]} />
-                ))}
-              </View>
-            </View>
-            <Text style={styles.paletteButtonText}>Palette</Text>
+            <BackArrowIcon size={scale(16)} />
           </Pressable>
           <Pressable
             style={styles.nextButton}
@@ -361,8 +376,9 @@ export default function MockTestScreen() {
                 : goTo(index + 1)
             }>
             <Text style={styles.nextButtonText}>
-              {index === session.paper.questions.length - 1 ? 'Review →' : 'Save & Next →'}
+              {index === session.paper.questions.length - 1 ? 'Review answers' : 'Save & next'}
             </Text>
+            <ArrowRightIcon size={scale(15)} />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -424,9 +440,11 @@ function ClockIcon({ size }: { size: number }) {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /** White, like every other page in the app. The mock flow was the only
+     *  corner of it on the warm paper tone, which read as a different app. */
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -451,18 +469,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    exitButton: {
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(13),
-      borderRadius: scale(99),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.14)',
-      backgroundColor: '#fff',
-    },
-    exitButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.slate,
+    topBarSpacer: {
+      width: scale(36),
+      flexShrink: 0,
     },
     /** Hugs its own time, centred between the chevron and Submit. It used to
      *  take the whole middle of the row, which made a clock the width of the
@@ -487,20 +496,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Menlo',
       fontWeight: '700',
       fontSize: scale(15),
-      color: colors.ink,
-    },
-    submitButton: {
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(99),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.20)',
-      backgroundColor: '#fff',
-    },
-    submitButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12.5),
-      letterSpacing: scale(0.2),
       color: colors.ink,
     },
     subjectRow: {
@@ -564,18 +559,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       textTransform: 'uppercase',
       color: colors.faint,
     },
-    markingPill: {
-      backgroundColor: '#FCF4E0',
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.4)',
+    /** An outline chip on the app's own hairline, at the size of every
+     *  other small chip we draw. */
+    paletteChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(6),
+      height: verticalScale(28),
+      paddingHorizontal: scale(11),
       borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(9),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
     },
-    markingPillText: {
+    paletteChipText: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(11),
-      color: '#9A6A12',
+      fontSize: scale(11.5),
+      color: colors.ink,
     },
     questionCard: {
       position: 'relative',
@@ -682,78 +682,44 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(10),
+      gap: scale(12),
       paddingTop: verticalScale(12),
       paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(6),
+      paddingBottom: verticalScale(12),
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.08)',
-      backgroundColor: 'rgba(255,255,255,.92)',
+      backgroundColor: '#fff',
     },
+    /** The same circle as the top bar's, because it is the same gesture. */
     prevButton: {
+      width: verticalScale(52),
+      height: verticalScale(52),
+      flexShrink: 0,
       alignItems: 'center',
       justifyContent: 'center',
-      height: verticalScale(46),
-      paddingHorizontal: scale(16),
-      borderRadius: scale(99),
+      borderRadius: verticalScale(26),
       borderWidth: scale(1.4),
       borderColor: 'rgba(28,26,22,.16)',
       backgroundColor: '#fff',
     },
     prevButtonDisabled: {
-      opacity: 0.4,
+      opacity: 0.35,
     },
-    prevButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.ink,
-    },
-    paletteButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(8),
-      height: verticalScale(46),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(99),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
-    },
-    paletteDots: {
-      flexDirection: 'column',
-      gap: scale(2),
-    },
-    paletteDotsRow: {
-      flexDirection: 'row',
-      gap: scale(2),
-    },
-    paletteDot: {
-      width: scale(4),
-      height: scale(4),
-      borderRadius: scale(1),
-    },
-    paletteButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
+    /** The app's primary key: an ink pill, 52pt, no drop shadow — the same
+     *  button Practice, the paywall and the start screen all use. */
     nextButton: {
       flex: 1,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      height: verticalScale(46),
+      gap: scale(9),
+      height: verticalScale(52),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(5) },
-      shadowOpacity: 0.28,
-      shadowRadius: scale(9),
-      elevation: 4,
     },
     nextButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(16),
       color: colors.paper,
     },
   });

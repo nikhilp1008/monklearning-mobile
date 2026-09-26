@@ -116,9 +116,10 @@ export default function MockResultScreen() {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /** White, like every other page in the app. */
     screen: {
       flex: 1,
-      backgroundColor: colors.paper,
+      backgroundColor: '#fff',
     },
     safeArea: {
       flex: 1,
@@ -264,11 +265,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: verticalScale(52),
       borderRadius: scale(99),
       backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
     },
     doneButtonText: {
       fontFamily: 'Onest_600SemiBold',
