@@ -97,6 +97,9 @@ export default function MocksScreen() {
   const [exam, setExam] = useState<ExamKey>('jee');
   const [status, setStatus] = useState<MockStatus | null>(null);
   const [runs, setRuns] = useState<MockRunRow[] | null>(null);
+  /** Whether `runs` is the server's answer or the empty fallback after a
+   *  failed read — the two look the same and mean opposite things. */
+  const [runsLoaded, setRunsLoaded] = useState(false);
   /** Papers whose full report is on this device. They are listed even when
    *  the server's list cannot be reached, which is the one case where a
    *  student has the whole paper in their hand and would be shown nothing. */
@@ -144,8 +147,16 @@ export default function MocksScreen() {
           .then((next) => !cancelled && setStatus(next))
           .catch(() => undefined);
         listMockRuns()
-          .then((next) => !cancelled && setRuns(next))
-          .catch(() => !cancelled && setRuns([]));
+          .then((next) => {
+            if (cancelled) return;
+            setRuns(next);
+            setRunsLoaded(true);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setRuns([]);
+            setRunsLoaded(false);
+          });
         savedReportIds()
           .then((ids) => Promise.all(ids.map(loadReport)))
           .then((reports) => {
@@ -244,7 +255,13 @@ export default function MocksScreen() {
    */
   const sat: SatRow[] = useMemo(() => {
     const rows = new Map<string, SatRow>();
+    // When the server's list arrived it is the authority on which papers
+    // exist: a report on this phone for a paper the server no longer has (a
+    // deleted test paper, another account's leftover) is not shown. The
+    // phone's copies only stand in when the list could not be read.
+    const known = new Set((runs ?? []).map((r) => r.id));
     for (const r of saved) {
+      if (runsLoaded && !known.has(r.run_id)) continue;
       rows.set(r.run_id, {
         id: r.run_id,
         exam: r.exam,
@@ -274,7 +291,7 @@ export default function MocksScreen() {
       });
     }
     return [...rows.values()].sort((a, b) => b.when.localeCompare(a.when));
-  }, [runs, saved]);
+  }, [runs, runsLoaded, saved]);
 
   return (
     <View style={styles.screen}>

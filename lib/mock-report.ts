@@ -19,10 +19,11 @@ import type { MockSession, MockSubjectScore, MockSubmitResult } from '@/lib/mock
  * solution, and how long each question took. The run list stays the
  * authority for WHICH papers exist; this is what makes one readable.
  *
- * The consequence is honest and worth stating in the UI: on a new phone, or
- * after a reinstall, an old paper still shows its score and cannot show its
- * questions. The fix is server-side — a GET for one run's review — and is on
- * the backend punch list.
+ * The server can rebuild any finished paper now (GET /mock/{id}/review, see
+ * fetchReport in lib/mock.ts), so the copy here is a cache rather than the only record: it
+ * makes a paper open instantly and offline, and a paper it does not hold —
+ * another phone, a reinstall, older than the last dozen — is fetched and
+ * then kept.
  */
 
 const KEY_PREFIX = 'monklearning.mock.report.';

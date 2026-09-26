@@ -11,7 +11,13 @@ import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { clearMockSession, getMockSession, listMockRuns, type MockRunRow } from '@/lib/mock';
+import {
+  clearMockSession,
+  fetchReport,
+  getMockSession,
+  listMockRuns,
+  type MockRunRow,
+} from '@/lib/mock';
 import {
   buildReport,
   formatSpan,
@@ -81,7 +87,11 @@ export default function MockReportScreen() {
       setLoading(false);
       return;
     }
-    loadReport(runId).then(async (r) => {
+    loadReport(runId).then(async (saved) => {
+      if (cancelled) return;
+      // Not on this phone: the server rebuilds it. Only when that fails too
+      // (no connection) does the page fall back to the score summary.
+      const r = saved ?? (await fetchReport(runId).catch(() => null));
       if (cancelled) return;
       setReport(r);
       if (!r) {
@@ -189,12 +199,12 @@ export default function MockReportScreen() {
             ) : null}
             <Text style={styles.missingHead}>
               {row?.score
-                ? 'The questions from this paper are not on this phone'
-                : 'This paper is not on this phone'}
+                ? "This paper's questions could not be loaded"
+                : 'This paper could not be loaded'}
             </Text>
             <Text style={styles.missingBody}>
-              A question-by-question report is kept on the device that sat the paper. Papers you sit
-              from now on keep theirs.
+              Check your connection and open it again. Every question, your answer and the worked
+              solution come back once you are online.
             </Text>
           </ScrollView>
         ) : (
@@ -202,6 +212,10 @@ export default function MockReportScreen() {
             style={styles.list}
             contentContainerStyle={styles.listInner}
             data={shown}
+            // FlatList re-renders rows only when `data` changes. Without this
+            // the open question never re-rendered, and "Why that is the
+            // answer" did nothing when tapped.
+            extraData={open}
             keyExtractor={(q) => q.id}
             initialNumToRender={6}
             windowSize={7}

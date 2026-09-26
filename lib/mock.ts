@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
-import { buildReport, saveReport } from '@/lib/mock-report';
+import { buildReport, saveReport, type MockReport } from '@/lib/mock-report';
 import type { DiagramFigure } from '@/lib/practice';
 
 /**
@@ -164,13 +164,28 @@ export function mockLockFrom(err: unknown): MockLock | null {
   return detail.code === 'mock_locked' ? (detail as MockLock) : null;
 }
 
+/**
+ * A finished paper's review from the server — the same MockReport shape —
+ * for a paper this phone does not hold: sat on another device, before a
+ * reinstall, or older than the last dozen kept here. Saved on the way back,
+ * so opening it again works without a connection.
+ */
+export async function fetchReport(runId: string): Promise<MockReport> {
+  const report = await apiFetch<MockReport>(`/mock/${encodeURIComponent(runId)}/review`);
+  await saveReport(report).catch(() => undefined);
+  return report;
+}
+
 export function submitMockPaper(
   runId: string,
-  answers: { question_id: string; chosen_option?: string; chosen_value?: number }[]
+  answers: { question_id: string; chosen_option?: string; chosen_value?: number }[],
+  /** What only this device saw. Kept by the server so the review is complete
+   *  when it is opened on another phone (GET /mock/{id}/review). */
+  extra: { marked?: string[]; elapsed_ms?: Record<string, number> } = {}
 ): Promise<MockSubmitResult> {
   return apiFetch(`/mock/${runId}/submit`, {
     method: 'POST',
-    body: JSON.stringify({ answers }),
+    body: JSON.stringify({ answers, ...extra }),
   });
 }
 
@@ -400,7 +415,12 @@ export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
   if (!s) return null;
   // The last question was still on screen when Submit was pressed.
   chargeElapsed();
-  const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s));
+  const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s), {
+    marked: [...s.marked],
+    elapsed_ms: Object.fromEntries(
+      [...s.elapsed.entries()].map(([id, ms]) => [id, Math.round(ms)])
+    ),
+  });
   s.result = result;
   forgetProgress(s.paper.mock_run_id);
   /**
