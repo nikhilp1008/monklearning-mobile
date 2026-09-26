@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Svg, { Path } from 'react-native-svg';
 import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,14 +49,26 @@ export default function MockPaletteScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
-      <Pressable style={styles.scrim} onPress={() => router.back()} />
       <View style={styles.sheet}>
-        <SafeAreaView style={styles.flex} edges={['bottom']}>
-          <View style={styles.handle} />
-          {/* No clock here. It is already running in the bar behind this
-              sheet, and a second one in a sheet you open to jump between
-              questions is a third thing ticking at a student mid-exam. */}
-          <Text style={styles.title}>Question palette</Text>
+        <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+          {/* A PAGE, NOT A SHEET. It was a card over a scrim with a drag
+              handle — the only screen in the mock flow that behaved like a
+              popup, while ready, the paper, paused and the scorecard are all
+              full pages. It still slides up from the bottom, because that is
+              where it is opened from.
+              No clock on it: one is already running on the paper behind, and
+              a second here would be a third thing ticking at a student. */}
+          <View style={styles.headRow}>
+            <Pressable
+              style={styles.backButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Back to the paper"
+              onPress={() => router.back()}>
+              <BackArrowIcon size={scale(16)} />
+            </Pressable>
+            <Text style={styles.title}>Question palette</Text>
+          </View>
           <Text style={styles.subtitle}>
             {answered} of {session.paper.questions.length} answered · tap any number to jump
           </Text>
@@ -130,6 +143,20 @@ export default function MockPaletteScreen() {
 
 const GRID_COLUMNS = 9;
 
+function BackArrowIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   const gridGap = scale(6);
   // Content width is the 390pt reference minus the sheet's own 20px horizontal
@@ -149,18 +176,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     flex: {
       flex: 1,
     },
-    scrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(28,26,22,.42)',
-    },
     sheet: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
+      flex: 1,
       backgroundColor: '#fff',
-      borderTopLeftRadius: scale(24),
-      borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
       shadowColor: '#16130E',
       shadowOffset: { width: 0, height: verticalScale(-10) },
@@ -168,17 +186,24 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       shadowRadius: scale(20),
       elevation: 12,
     },
-    handle: {
-      width: scale(40),
-      height: verticalScale(5),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,26,22,.18)',
-      alignSelf: 'center',
-      marginTop: verticalScale(10),
-      marginBottom: verticalScale(14),
-    },
     /** The app's page-title tier — see constants/page-title.ts. */
-    title: pageTitle(scale),
+    headRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(13),
+      paddingTop: verticalScale(10),
+    },
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.12)',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
     subtitle: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),

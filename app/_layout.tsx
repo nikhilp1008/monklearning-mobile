@@ -359,13 +359,11 @@ export default function RootLayout() {
           />
           <Stack.Screen name="mock-ready" options={{ headerShown: false }} />
           <Stack.Screen name="mock-test" options={{ headerShown: false }} />
+          {/* A full page that slides up, not a transparent modal over the
+              paper: every other screen in the mock flow is a page. */}
           <Stack.Screen
             name="mock-palette"
-            options={{
-              headerShown: false,
-              presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
-            }}
+            options={{ headerShown: false, animation: 'slide_from_bottom' }}
           />
           <Stack.Screen name="mock-paused" options={{ headerShown: false }} />
           <Stack.Screen name="mock-result" options={{ headerShown: false, gestureEnabled: false }} />
