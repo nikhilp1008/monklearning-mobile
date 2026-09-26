@@ -3,9 +3,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { clearMockSession, getMockSession } from '@/lib/mock';
 
@@ -51,15 +51,10 @@ export default function MockResultScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
-          <View style={styles.headerRow}>
-            <View style={styles.iconChip}>
-              <FlagIcon size={scale(21)} />
-            </View>
-            <View>
-              <Text style={styles.overline}>Mock test · submitted</Text>
-              <Text style={styles.title}>Your scorecard</Text>
-            </View>
-          </View>
+          {/* One heading on the app's own tier. This was a green icon chip —
+              an object the app draws nowhere else, in the colour it reserves
+              for "correct" — beside an overline and a title. */}
+          <Text style={styles.title}>Your scorecard</Text>
 
           <View style={styles.scoreCard}>
             <Text style={styles.scoreValue}>
@@ -91,16 +86,20 @@ export default function MockResultScreen() {
               <View key={subject} style={styles.subjectRow}>
                 <Text style={styles.subjectName}>{SUBJECT_LABEL[subject] ?? subject}</Text>
                 <Text style={styles.subjectDetail}>
-                  {stats ? `${stats.correct}✓ ${stats.wrong}✗ ${stats.unanswered}·` : '—'}
+                  {stats
+                    ? `${stats.correct} right · ${stats.wrong} wrong · ${stats.unanswered} skipped`
+                    : '—'}
                 </Text>
                 <Text style={styles.subjectMarks}>{stats ? stats.marks : 0}</Text>
               </View>
             ))}
           </View>
 
+          {/* "at the 1.15x exam-conditions premium" was in here: our own
+              scoring arithmetic, printed at a student who has just finished
+              three hours of exam. What they need to know is that it counted. */}
           <Text style={styles.hint}>
-            Every answer here counts toward your Monk Score at the 1.15× exam-conditions
-            premium — Progress updates in a few minutes.
+            This counts toward your Monk Score. Progress updates in a few minutes.
           </Text>
         </ScrollView>
 
@@ -114,19 +113,6 @@ export default function MockResultScreen() {
   );
 }
 
-function FlagIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M5 21V4m0 1h12l-2.5 3.5L17 12H5"
-        stroke="#157A45"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
@@ -145,34 +131,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(20),
       paddingBottom: verticalScale(20),
     },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(13),
-    },
-    iconChip: {
-      width: scale(44),
-      height: scale(44),
-      borderRadius: scale(13),
-      backgroundColor: 'rgba(28,155,87,.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.3)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    overline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.19),
-      color: colors.ink,
-    },
+    /** The app's one page-title tier — see constants/page-title.ts. */
+    title: pageTitle(scale),
     scoreCard: {
       alignItems: 'center',
       backgroundColor: '#fff',

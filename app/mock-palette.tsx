@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { getMockSession } from '@/lib/mock';
 
@@ -18,13 +18,6 @@ const SUBJECT_LABEL: Record<string, string> = {
 
 type Status = 'answered' | 'marked' | 'current' | 'not-answered';
 
-function formatTime(totalSeconds: number) {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const sec = totalSeconds % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
-}
 
 export default function MockPaletteScreen() {
   const { scale, verticalScale } = useScale();
@@ -59,10 +52,10 @@ export default function MockPaletteScreen() {
       <View style={styles.sheet}>
         <SafeAreaView style={styles.flex} edges={['bottom']}>
           <View style={styles.handle} />
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>Question palette</Text>
-            <TimerPill styles={styles} scale={scale} deadline={session.deadline} />
-          </View>
+          {/* No clock here. It is already running in the bar behind this
+              sheet, and a second one in a sheet you open to jump between
+              questions is a third thing ticking at a student mid-exam. */}
+          <Text style={styles.title}>Question palette</Text>
           <Text style={styles.subtitle}>
             {answered} of {session.paper.questions.length} answered · tap any number to jump
           </Text>
@@ -133,38 +126,7 @@ export default function MockPaletteScreen() {
   );
 }
 
-function TimerPill({
-  styles,
-  scale,
-  deadline,
-}: {
-  styles: ReturnType<typeof createStyles>;
-  scale: (n: number) => number;
-  deadline: number;
-}) {
-  const remaining = () => Math.max(0, Math.floor((deadline - Date.now()) / 1000));
-  const [secondsLeft, setSecondsLeft] = useState(remaining);
-  useEffect(() => {
-    const id = setInterval(() => setSecondsLeft(remaining()), 1000);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deadline]);
-  return (
-    <View style={styles.timerPill}>
-      <ClockIcon size={scale(11)} />
-      <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
-    </View>
-  );
-}
 
-function ClockIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Circle cx={12} cy={13} r={8} stroke={colors.paper} strokeWidth={1.9} />
-      <Path d="M12 9v4l3 2M9 2h6" stroke={colors.paper} strokeWidth={1.9} strokeLinecap="round" />
-    </Svg>
-  );
-}
 
 const GRID_COLUMNS = 9;
 
@@ -215,32 +177,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(10),
       marginBottom: verticalScale(14),
     },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(17),
-      letterSpacing: scale(-0.17),
-      color: colors.ink,
-    },
-    timerPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      backgroundColor: colors.ink,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(5),
-      paddingHorizontal: scale(12),
-    },
-    timerText: {
-      fontFamily: 'Menlo',
-      fontWeight: '700',
-      fontSize: scale(13),
-      color: colors.paper,
-    },
+    /** The app's page-title tier — see constants/page-title.ts. */
+    title: pageTitle(scale),
     subtitle: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
@@ -269,9 +207,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: cellSize,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: scale(8),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.14)',
+      /** 10, like every other small chip in the app. The grid itself stays
+       *  square and dense on purpose: it is the shape a student already
+       *  knows from the real exam hall, and familiarity there is worth more
+       *  than making it look like the rest of our screens. */
+      borderRadius: scale(10),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.12)',
       backgroundColor: '#fff',
     },
     cellAnswered: {

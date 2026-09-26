@@ -21,6 +21,20 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { getMockSession, sessionAnswersPayload, submitMockPaper } from '@/lib/mock';
 
+function BackArrowIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 const SUBJECT_LABEL: Record<string, string> = {
   physics: 'Physics',
   chemistry: 'Chemistry',
@@ -157,14 +171,29 @@ export default function MockTestScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/*
+          THREE CONTROLS, ONE OF THEM DANGEROUS.
+          This row was "Save & exit" as a pill, the clock, and "Submit test"
+          as a filled ink button — two ways out, and the irreversible one
+          drawn as the loudest thing on an exam screen, a thumb's width from
+          the timer a student keeps checking. Leaving is the circled chevron
+          every pushed screen in the app uses (it still saves), and Submit is
+          an outline: reachable, deliberate, and no longer arguing with
+          "Save & Next" at the bottom right.
+        */}
         <View style={styles.topBar}>
-          <Pressable style={styles.exitButton} onPress={() => router.push('/mock-paused')}>
-            <Text style={styles.exitButtonText}>Save &amp; exit</Text>
+          <Pressable
+            style={styles.backButton}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Save and exit"
+            onPress={() => router.push('/mock-paused')}>
+            <BackArrowIcon size={scale(16)} />
           </Pressable>
           <CountdownPill styles={styles} scale={scale} deadline={session.deadline} onExpire={onExpire} />
           <Pressable style={styles.submitButton} onPress={confirmSubmit}>
             <Text style={styles.submitButtonText}>
-              {submitting ? 'Submitting…' : 'Submit test'}
+              {submitting ? 'Submitting…' : 'Submit'}
             </Text>
           </Pressable>
         </View>
@@ -200,11 +229,15 @@ export default function MockTestScreen() {
               {SUBJECT_LABEL[activeSubject] ?? activeSubject} · Q {layout.positions[index]} /{' '}
               {layout.totals.get(activeSubject)}
             </Text>
-            <View style={styles.markingPill}>
-              <Text style={styles.markingPillText}>
-                +{session.paper.marks_correct} / {session.paper.marks_wrong}
-              </Text>
-            </View>
+            {/* On the first question only. The scheme does not change between
+                questions, and repeated on all 75 it is furniture. */}
+            {index === 0 && (
+              <View style={styles.markingPill}>
+                <Text style={styles.markingPillText}>
+                  +{session.paper.marks_correct} / {session.paper.marks_wrong}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.questionCard}>
@@ -402,9 +435,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: scale(8),
       paddingTop: verticalScale(6),
       paddingHorizontal: scale(20),
+    },
+    /** The same 36pt circled chevron every pushed screen in the app uses. */
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.12)',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     exitButton: {
       paddingVertical: verticalScale(9),
@@ -419,8 +464,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: colors.slate,
     },
+    /** Hugs its own time, centred between the chevron and Submit. It used to
+     *  take the whole middle of the row, which made a clock the width of the
+     *  screen — the one thing on an exam page that should not shout. */
     timerPill: {
       flex: 1,
+      maxWidth: scale(132),
+      alignSelf: 'center',
+      marginHorizontal: 'auto',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -440,14 +491,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     submitButton: {
       paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(15),
+      paddingHorizontal: scale(14),
       borderRadius: scale(99),
-      backgroundColor: colors.ink,
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.20)',
+      backgroundColor: '#fff',
     },
     submitButtonText: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.paper,
+      fontSize: scale(12.5),
+      letterSpacing: scale(0.2),
+      color: colors.ink,
     },
     subjectRow: {
       flexShrink: 0,

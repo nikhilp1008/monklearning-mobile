@@ -5,8 +5,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { PracticeTabsHeader } from '@/components/practice-tabs-header';
 import { colors } from '@/constants/brand';
+import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { createMockPaper, getMockSession, startMockSession } from '@/lib/mock';
 import { getProfile } from '@/lib/profile';
@@ -99,6 +99,10 @@ export default function MockReadyScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
+          {/* The app's one header: a circled chevron and the page-title tier
+              every other pushed screen uses. This carried Practice's tab
+              header AND a second title of its own under a green icon chip —
+              two headings and an object the app draws nowhere else. */}
           <View style={styles.topRow}>
             <Pressable
               style={styles.backButton}
@@ -108,21 +112,9 @@ export default function MockReadyScreen() {
               onPress={() => router.back()}>
               <BackArrowIcon size={scale(16)} />
             </Pressable>
-            <View style={{ flex: 1 }}>
-              <PracticeTabsHeader />
-            </View>
-          </View>
-
-          <View style={styles.headerRow}>
-            <View style={styles.iconChip}>
-              <CheckIcon size={scale(21)} />
-            </View>
-            <View style={styles.textBlock}>
-              <Text style={styles.overline}>Mock test</Text>
-              <Text style={styles.title}>
-                {hasActivePaper ? 'Your paper is waiting' : 'Sit a full paper'}
-              </Text>
-            </View>
+            <Text style={styles.title}>
+              {hasActivePaper ? 'Your paper is waiting' : 'Sit a full paper'}
+            </Text>
           </View>
 
           {showExamPicker && !hasActivePaper ? (
@@ -141,14 +133,13 @@ export default function MockReadyScreen() {
             </View>
           ) : null}
 
-          <View style={styles.dronaCallCard}>
-            <Text style={styles.dronaCallOverline}>How your paper is built</Text>
-            <Text style={styles.dronaCallBody}>
-              One in five questions comes straight from real past-paper masters you&apos;ve
-              never seen, one in five re-asks what you got wrong in Practice, and the rest
-              are fresh — under real exam conditions and marking.
-            </Text>
-          </View>
+          {/* One line, not four. The card here read as a brochure: "one in
+              five from past-paper masters, one in five re-asking what you got
+              wrong, the rest fresh, under real conditions and marking" — all
+              true, all said again by the table below it. */}
+          <Text style={styles.builtLine}>
+            Past-paper questions, your own Practice mistakes, and fresh ones.
+          </Text>
 
           <View style={styles.patternCard}>
             <Text style={styles.patternOverline}>Paper pattern · {pattern.label}</Text>
@@ -177,9 +168,7 @@ export default function MockReadyScreen() {
 
           <Text style={styles.hint}>
             {error ??
-              (hasActivePaper
-                ? 'The clock kept running while you were away.'
-                : 'Once you start, the timer runs, but you can pause and resume any time.')}
+              (hasActivePaper ? 'The clock kept running while you were away.' : null)}
           </Text>
         </View>
 
@@ -219,19 +208,6 @@ function BackArrowIcon({ size }: { size: number }) {
   );
 }
 
-function CheckIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M5 13l4 4L19 7"
-        stroke="#157A45"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function ArrowRightIcon({ size }: { size: number }) {
   return (
@@ -277,37 +253,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(13),
-      marginTop: verticalScale(18),
-    },
-    iconChip: {
-      width: scale(44),
-      height: scale(44),
-      borderRadius: scale(13),
-      backgroundColor: 'rgba(28,155,87,.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(28,155,87,.3)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    textBlock: {
-      flexShrink: 1,
-    },
-    overline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    title: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.19),
-      color: colors.ink,
+    /** The app's one page-title tier — see constants/page-title.ts. */
+    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    /** One line about what is in the paper, where a four-line card was. */
+    builtLine: {
+      marginTop: verticalScale(14),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
     },
     examPickerRow: {
       flexDirection: 'row',
@@ -338,29 +292,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     examPillTextActive: {
       fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-    },
-    dronaCallCard: {
-      backgroundColor: '#FCF4E0',
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.4)',
-      borderRadius: scale(14),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(16),
-      marginTop: verticalScale(14),
-    },
-    dronaCallOverline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: '#9A6A12',
-      marginBottom: verticalScale(5),
-    },
-    dronaCallBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
       color: colors.ink,
     },
     patternCard: {
