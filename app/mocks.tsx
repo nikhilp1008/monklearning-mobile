@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { ScoreTrend } from '@/components/score-trend';
 import { Skeleton } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
@@ -296,6 +297,16 @@ export default function MocksScreen() {
     return [...rows.values()].sort((a, b) => b.when.localeCompare(a.when));
   }, [runs, runsLoaded, saved]);
 
+  const trend = useMemo(
+    () =>
+      sat
+        .filter((r) => r.exam === exam)
+        .slice()
+        .reverse()
+        .map((r) => ({ id: r.id, when: r.when, marks: r.marks })),
+    [sat, exam]
+  );
+
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
@@ -398,6 +409,22 @@ export default function MocksScreen() {
 
           {!!error && <Text style={styles.error}>{error}</Text>}
           {!!notice && <Text style={styles.notice}>{notice}</Text>}
+
+          {/* YOUR SCORES. Only once there is a trend to show: two or more
+              papers for this student's exam, oldest to newest. The list
+              below is its table view. */}
+          {trend.length >= 2 && (
+            <View style={styles.card}>
+              <Text style={styles.overline}>Your scores</Text>
+              <ScoreTrend
+                // A different set of papers starts again on the latest one.
+                key={trend.map((p) => p.id).join()}
+                points={trend}
+                maxMarks={exam === 'neet' ? 720 : 300}
+                onOpen={(id) => router.push(`/mock-report?run=${id}`)}
+              />
+            </View>
+          )}
 
           {/* PAPERS YOU HAVE SAT. The list is the server's (GET /mock/runs);
               the report behind each row is written to this device when the
