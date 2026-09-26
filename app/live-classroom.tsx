@@ -66,6 +66,8 @@ import { endDronaSession } from '@/lib/drona-live';
 import { startSessionEnd } from '@/lib/session-end';
 import { claimDronaClient } from '@/lib/drona-prewarm';
 import {
+  appendBoardEvent,
+  applyBoardReplay,
   BoardEvent,
   ConnectionStatus,
   DronaState,
@@ -553,9 +555,12 @@ export default function LiveClassroomScreen() {
         // Drona is actually speaking: this fires when the first clip starts
         // playing. That is the handoff — the card goes, the board takes over.
         dismissCard();
-        setBoard((prev) => [...prev, event]);
+        // Keyed, never a bare `[...prev, event]`: the same event can be handed
+        // over twice, and was — two lines of a maths class written twice.
+        setBoard((prev) => appendBoardEvent(prev, event));
       },
-      onBoardReplay: (events) => setBoard(events),
+      // Merged on the same key, never replacing: see `applyBoardReplay`.
+      onBoardReplay: (events) => setBoard((prev) => applyBoardReplay(prev, events)),
       // Drona is no longer thinking once she is visibly talking. This used to
       // hang on `onTurnComplete`, which is now deliberately deferred until the
       // turn's audio has drained — leaving it there would have pinned "Drona is
