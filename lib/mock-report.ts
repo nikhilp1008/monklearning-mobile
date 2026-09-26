@@ -53,6 +53,9 @@ export interface MockReportQuestion {
   marked: boolean;
   elapsed_ms: number;
   solution: unknown;
+  /** Null on reports saved before chapters were sent. */
+  chapter_id?: string | null;
+  chapter_name?: string | null;
 }
 
 export interface MockReport {
@@ -106,6 +109,8 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
         marked: session.marked.has(q.id),
         elapsed_ms: session.elapsed.get(q.id) ?? 0,
         solution: r?.solution ?? null,
+        chapter_id: r?.chapter_id ?? null,
+        chapter_name: r?.chapter_name ?? null,
       };
     }),
   };
@@ -154,8 +159,29 @@ export interface SubjectStanding {
   medianMs: number | null;
 }
 
+export interface ChapterStanding {
+  chapterId: string;
+  name: string;
+  subject: string;
+  questions: number;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  /** Marks this chapter could have given and did not: 4 per question, less
+   *  what was scored (a wrong answer costs its 4 and the 1 taken off). */
+  lost: number;
+}
+
 export interface MockInsights {
   subjects: SubjectStanding[];
+  /**
+   * Chapters to work on: those with at least one WRONG answer, worst first
+   * (most wrong, then lowest accuracy, then most marks lost). Skips alone
+   * don't qualify, because a skip says the student ran out of time or chose
+   * not to guess, not that the chapter beat them. Empty when the paper
+   * carries no chapters (saved before they were sent) or nothing was wrong.
+   */
+  weakChapters: ChapterStanding[];
   strongest: SubjectStanding | null;
   weakest: SubjectStanding | null;
   /** Marks handed back by wrong answers — always a positive number here. */
@@ -213,8 +239,38 @@ export function mockInsights(report: MockReport): MockInsights {
   ranked.sort((a, b) => (b.accuracy ?? 0) - (a.accuracy ?? 0));
 
   const attempted = report.questions.filter((q) => q.answered);
+
+  const byChapter = new Map<string, ChapterStanding>();
+  for (const q of report.questions) {
+    if (!q.chapter_id || !q.chapter_name) continue;
+    const c = byChapter.get(q.chapter_id) ?? {
+      chapterId: q.chapter_id,
+      name: q.chapter_name,
+      subject: q.subject,
+      questions: 0,
+      correct: 0,
+      wrong: 0,
+      skipped: 0,
+      lost: 0,
+    };
+    c.questions += 1;
+    if (!q.answered) c.skipped += 1;
+    else if (q.is_correct) c.correct += 1;
+    else c.wrong += 1;
+    byChapter.set(q.chapter_id, c);
+  }
+  for (const c of byChapter.values()) {
+    const scored = c.correct * report.marks_correct + c.wrong * report.marks_wrong;
+    c.lost = c.questions * report.marks_correct - scored;
+  }
+  const accuracy = (c: ChapterStanding) => c.correct / Math.max(1, c.correct + c.wrong);
+  const weakChapters = [...byChapter.values()]
+    .filter((c) => c.wrong > 0)
+    .sort((a, b) => b.wrong - a.wrong || accuracy(a) - accuracy(b) || b.lost - a.lost);
+
   return {
     subjects,
+    weakChapters,
     // Only a real gap is a strongest and a weakest. With every subject on
     // the same accuracy (five right out of five, spread over three
     // subjects), the old ranking printed "To improve: Maths 100%".

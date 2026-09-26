@@ -181,3 +181,34 @@ describe('formatSpan', () => {
     expect(formatSpan(6_480_000)).toBe('1h 48m');
   });
 });
+
+describe('weakChapters', () => {
+  // physics-1 and physics-2 wrong (Kinematics 1, Optics 1), physics-0 right
+  // (Kinematics), physics-3 skipped (Optics); chemistry-0 right, rest skipped.
+  const chapterOf: Record<string, [string, string]> = {
+    'physics-0': ['ch-kin', 'Kinematics'],
+    'physics-1': ['ch-kin', 'Kinematics'],
+    'physics-2': ['ch-opt', 'Ray Optics'],
+    'physics-3': ['ch-opt', 'Ray Optics'],
+  };
+  const withChapters = (): MockSubmitResult => {
+    const r = result();
+    r.questions = r.questions.map((q) => {
+      const [chapter_id, chapter_name] = chapterOf[q.question_id] ?? ['ch-mole', 'Mole Concept'];
+      return { ...q, chapter_id, chapter_name };
+    });
+    return r;
+  };
+
+  it('lists only chapters with a wrong answer, worst accuracy first', () => {
+    const weak = mockInsights(buildReport(session(), withChapters())).weakChapters;
+    expect(weak.map((c) => c.name)).toEqual(['Ray Optics', 'Kinematics']);
+    const optics = weak[0];
+    expect([optics.questions, optics.correct, optics.wrong, optics.skipped]).toEqual([2, 0, 1, 1]);
+    expect(optics.lost).toBe(9); // 8 available, scored -1
+  });
+
+  it('is empty for a report saved before chapters were sent', () => {
+    expect(mockInsights(buildReport(session(), result())).weakChapters).toEqual([]);
+  });
+});

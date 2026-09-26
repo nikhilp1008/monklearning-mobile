@@ -71,6 +71,9 @@ export interface MockReviewQuestion {
   correct_option: string | null;
   correct_value: number | null;
   solution: unknown;
+  /** From API bea9961; absent from older servers. */
+  chapter_id?: string | null;
+  chapter_name?: string | null;
 }
 
 export interface MockSubmitResult {

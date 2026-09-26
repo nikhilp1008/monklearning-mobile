@@ -28,6 +28,7 @@ import {
   formatDay,
 } from '@/lib/mock-report';
 import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
+import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
  * THE PAPER, EXPLAINED — the day it is sat and any day after.
@@ -92,7 +93,14 @@ export default function MockReportScreen() {
       if (cancelled) return;
       // Not on this phone: the server rebuilds it. Only when that fails too
       // (no connection) does the page fall back to the score summary.
-      const r = saved ?? (await fetchReport(runId).catch(() => null));
+      // A copy saved before questions carried their chapter has no weak
+      // chapters to show; the server's copy does, so it replaces the saved
+      // one (fetchReport saves it). Offline, the old copy still opens.
+      const stale = !!saved && !saved.questions.some((q) => q.chapter_id);
+      const r =
+        saved && !stale
+          ? saved
+          : ((await fetchReport(runId).catch(() => null)) ?? saved);
       if (cancelled) return;
       setReport(r);
       if (!r) {
@@ -282,6 +290,16 @@ function ReportHeader({
   setFilter: (f: Filter) => void;
   scale: (n: number) => number;
 }) {
+  const { setFocus } = usePracticeFocus();
+  const [allChapters, setAllChapters] = useState(false);
+  const weak = insights.weakChapters;
+  const shownChapters = allChapters ? weak : weak.slice(0, 3);
+  // Straight into Practice on that chapter, the same way Progress's
+  // "Practise this" does; Practice lands on the chapter's own subject.
+  const practise = (c: (typeof weak)[number]) => {
+    setFocus({ mode: 'chapter', subject: c.subject, chapterId: c.chapterId, chapterName: c.name });
+    router.push('/practice');
+  };
   const filters: { key: Filter; label: string }[] = [
     { key: 'all', label: 'All' },
     { key: 'wrong', label: 'Wrong' },
@@ -361,6 +379,45 @@ function ReportHeader({
           the {report.unanswered} you skipped were worth.
         </Text>
       </View>
+
+      {/* CHAPTERS TO WORK ON. Below subject level, where a student can act:
+          the chapters with wrong answers, worst first, each one tap from
+          Practice on exactly that chapter. */}
+      {weak.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.overline}>Chapters to work on</Text>
+          {shownChapters.map((c) => (
+            <View key={c.chapterId} style={styles.chapterRow}>
+              <View style={styles.chapterMain}>
+                <Text style={styles.chapterName}>{c.name}</Text>
+                <Text style={styles.chapterDetail}>
+                  {SUBJECT_LABEL[c.subject] ?? c.subject} · {c.correct} of {c.questions} right
+                  {c.wrong ? ` · ${c.wrong} wrong` : ''}
+                  {c.skipped ? ` · ${c.skipped} skipped` : ''}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.chapterKey}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={`Practise ${c.name}`}
+                onPress={() => practise(c)}>
+                <Text style={styles.chapterKeyText}>Practise</Text>
+              </Pressable>
+            </View>
+          ))}
+          {weak.length > 3 && (
+            <Pressable hitSlop={6} onPress={() => setAllChapters((v) => !v)}>
+              <Text style={styles.chapterMore}>
+                {allChapters ? 'Show fewer' : `Show all ${weak.length}`}
+              </Text>
+            </Pressable>
+          )}
+          <Text style={styles.cardFootnote}>
+            Chapters where you got at least one answer wrong, the most wrong first.
+          </Text>
+        </View>
+      )}
 
       {/* TIME. The device's own stopwatch — see lib/mock-report.ts. */}
       {timed && (
@@ -687,6 +744,47 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_500Medium',
       fontSize: scale(11),
       color: colors.faint,
+    },
+    chapterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+      paddingVertical: verticalScale(9),
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: 'rgba(28,26,22,.1)',
+    },
+    chapterMain: {
+      flex: 1,
+      minWidth: 0,
+      gap: verticalScale(2),
+    },
+    chapterName: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(14),
+      color: colors.ink,
+    },
+    chapterDetail: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12),
+      color: colors.faint,
+    },
+    chapterKey: {
+      paddingVertical: verticalScale(6),
+      paddingHorizontal: scale(12),
+      borderRadius: scale(99),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+    },
+    chapterKeyText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(12),
+      color: colors.ink,
+    },
+    chapterMore: {
+      marginTop: verticalScale(8),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(12.5),
+      color: colors.ink,
     },
     standRow: {
       flexDirection: 'row',
