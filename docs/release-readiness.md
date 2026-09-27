@@ -1,7 +1,7 @@
 # Release readiness — board widget runtime (2026-09-26)
 
-Verdict: **NO-GO today.** GO once blockers 2 and 3 below are closed and the
-branch is merged. Nothing
+Verdict: **NO-GO today.** GO once blocker 3 below is closed and the branch is
+merged. Nothing
 here needs a migration or a credential from Claude.
 
 ## What the release is
@@ -58,9 +58,10 @@ restored, no duplicate lines.
    this branch on 2026-09-26). `board-widget-runtime` now merges into `main`
    cleanly and is 0 commits behind it. What remains is the merge itself and
    cutting the build from `main`. **Owner: Raasikh.**
-2. **Adopted chapters still depend on live drawing for 430 segments** (401 after
-   the pilot chapter). The stored-SVG backfill is in its re-pilot; the full run
-   follows Raasikh's go. **Owner: Raasikh (go), Claude (run).**
+2. ~~Adopted chapters depend on live drawing~~ — **closed 2026-09-26.** 847
+   session-authored stored SVGs written (every one independently reviewed),
+   0 invalid, 0 failed; `corpus_check` green on all six checks; the three-manifest
+   sweep shows 0 live-dependent segments in adopted chapters and 0 blank boards.
 3. **Audio queue froze mid-turn once in 8 simulator classes**, right after the
    simulator was rotated during playback: audio kept arriving, nothing played,
    every later line stayed buffered. Not reproduced yet; may predate this
