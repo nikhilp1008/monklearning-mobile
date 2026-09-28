@@ -1,7 +1,7 @@
 # Release readiness — board widget runtime (2026-09-26)
 
-Verdict: **NO-GO today.** GO once blocker 3 below is closed and the branch is
-merged. Nothing
+Verdict: **NO-GO today.** GO once blocker 3 below (audio-route recovery) is
+fixed and device-checked, and the branch is merged. Nothing
 here needs a migration or a credential from Claude.
 
 ## What the release is
@@ -62,11 +62,23 @@ restored, no duplicate lines.
    session-authored stored SVGs written (every one independently reviewed),
    0 invalid, 0 failed; `corpus_check` green on all six checks; the three-manifest
    sweep shows 0 live-dependent segments in adopted chapters and 0 blank boards.
-3. **Audio queue froze mid-turn once in 8 simulator classes**, right after the
-   simulator was rotated during playback: audio kept arriving, nothing played,
-   every later line stayed buffered. Not reproduced yet; may predate this
-   branch. Needs one reproduction on a device before release. **Owner: client
-   audio (triage).**
+3. **Audio stops for good after an audio-route change** (was filed as "after
+   rotation"). Rotation was not the cause: 73 rotations on the simulator, 0
+   stalls. The stall on 2026-09-26 came from the Mac's audio output switching
+   (AirPlay turned off) 1 s before the rotate tap. iOS stopped the
+   AVAudioEngine, and the dev client, built 09-24, before `2eff0e6` ("The
+   voice recovers…"), never restarted it. The WebSocket stayed alive the
+   whole time. The same thing will happen on a phone when Bluetooth, AirPlay,
+   headphones or a call change the route. `2eff0e6` is on this branch, but it
+   still has two gaps:
+   - the flushed completions are counted before the engine-change
+     notification, so lines are revealed in a burst and the audio is skipped;
+   - `engine.start()` is not retried.
+   **Fix to land before release:** the JS dead-engine watchdog in
+   `lib/pcm-playback-queue.ts` (prototype with 5 tests; it also protects
+   binaries already in the field) plus the native follow-up (count a
+   completion only while the engine runs, retry start with backoff). Then a
+   device check: switch the audio route mid-sentence. **Owner: client audio.**
 
 ## Open decisions (not blockers, not Claude's)
 
