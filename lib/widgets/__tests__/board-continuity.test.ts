@@ -287,3 +287,26 @@ describe('applyContinuity — what actually goes on screen', () => {
     expect(JSON.stringify(list)).toBe(before);
   });
 });
+
+describe('two different SVGs are never the same board', () => {
+  // Held Probability, complementary-events seg 2 -> 3: two different figures,
+  // both 2,774 chars and identical for the first 205. The old signature
+  // (length + first 200 chars) folded them into one draw.
+  const head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 280">' + 'x'.repeat(200);
+  const a: ContinuityEvent = { seq: 1, type: 'diagram', svg: head + '<circle r="4"/></svg>' };
+  const b: ContinuityEvent = { seq: 2, type: 'diagram', svg: head + '<circle r="5"/></svg>' };
+
+  test('same length and same 200-char prefix, different content -> different signatures', () => {
+    expect(a.svg!.length).toBe(b.svg!.length);
+    expect(a.svg!.slice(0, 200)).toBe(b.svg!.slice(0, 200));
+    expect(boardSignature(a)).not.toBe(boardSignature(b));
+  });
+
+  test('...so both are drawn', () => {
+    expect(drawCount([a, b])).toBe(2);
+  });
+
+  test('the identical SVG sent twice is still one board', () => {
+    expect(drawCount([a, { ...a, seq: 2 }])).toBe(1);
+  });
+});

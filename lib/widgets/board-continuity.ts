@@ -92,6 +92,22 @@ function stable(v: unknown): string {
  * Returns null for an event that is not a picture — those are never
  * collapsed, because two identical lines of text are two lines of text.
  */
+/**
+ * FNV-1a (32-bit) over the string's UTF-16 code units — a content hash, so
+ * two DIFFERENT SVGs never read as one board. Length plus the first 200
+ * characters was not enough: two held-Probability segment figures (2,774
+ * chars each, identical for the first 205) collapsed into one draw and the
+ * second never appeared.
+ */
+function contentHash(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
 export function boardSignature(e: ContinuityEvent): string | null {
   if (e.type && e.type !== 'diagram') return null;
   if (e.payload) {
@@ -108,7 +124,7 @@ export function boardSignature(e: ContinuityEvent): string | null {
     return `w:${p.widget}@${p.version ?? 1}:${stable(params)}`;
   }
   if (e.illustration_slug) return `ill:${e.illustration_slug}`;
-  if (e.svg) return `svg:${e.svg.length}:${e.svg.slice(0, 200)}`;
+  if (e.svg) return `svg:${e.svg.length}:${contentHash(e.svg)}`;
   return null;
 }
 

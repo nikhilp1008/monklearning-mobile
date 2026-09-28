@@ -21,7 +21,15 @@
  */
 module.exports = {
   preset: 'jest-expo',
-  setupFiles: ['react-native-reanimated/mock', '<rootDir>/jest/reanimated-missing-hooks.js'],
+  //: No test may reach production: the run refuses to start if the environment
+  //: names it, and every file's fetch/XHR/WebSocket refuse its hosts. Keep the
+  //: guard LAST in setupFiles, so it wraps whatever the preset installed.
+  globalSetup: '<rootDir>/jest/production-guard-global.js',
+  setupFiles: [
+    'react-native-reanimated/mock',
+    '<rootDir>/jest/reanimated-missing-hooks.js',
+    '<rootDir>/jest/production-guard.js',
+  ],
   //: AsyncStorage cannot be imported outside a native runtime; see the file.
   setupFilesAfterEnv: ['<rootDir>/jest/async-storage.js'],
   moduleNameMapper: {
