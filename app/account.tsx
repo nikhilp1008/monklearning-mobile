@@ -6,6 +6,8 @@ import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { EXAMS, YEARS, type YearKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
+import { apiFetch } from '@/lib/api';
+import { getSessionEmail, signOut } from '@/lib/auth';
 import { StudentProfile, getProfile, pullProfile, saveProfile } from '@/lib/profile';
 
 /**
@@ -72,6 +74,45 @@ export default function AccountScreen() {
   }, []);
 
   const email = profile?.email ?? '';
+
+  // ── Delete account ────────────────────────────────────────────────────────
+  // App Store 5.1.1(v): deletion must be reachable in the app. The server
+  // (POST /account/erase) is the authority — it re-checks the typed email and
+  // refuses admin accounts — so this UI is honesty, not enforcement. Typing
+  // the address is the confirmation, exactly as /admin does it; in place, no
+  // sheet, same as the class picker above.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const confirmMatches = confirmText.trim().toLowerCase() === email.trim().toLowerCase();
+
+  const deleteForever = useCallback(async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      // The token's email is what the server checks against; the profile copy
+      // is only display. Sent lowercased because the server compares that way.
+      const sessionEmail = (await getSessionEmail()) ?? email;
+      await apiFetch<{ ok: boolean }>('/account/erase', {
+        method: 'POST',
+        body: JSON.stringify({ confirm: sessionEmail.trim().toLowerCase() }),
+        // Erasure walks every table and the photo bucket; give it room.
+        timeoutMs: 120000,
+      });
+      // The account no longer exists; the local session is the last trace.
+      // signOut clears it and everything device-local, and the auth gate
+      // lands on onboarding — nothing to navigate to from here.
+      await signOut();
+    } catch (err) {
+      setDeleteError(err instanceof Error && err.message
+        ? err.message
+        : 'Deletion didn’t finish. Please try again.');
+      setDeleting(false);
+    }
+  }, [deleting, email]);
 
   return (
     <SettingsPage title="Personal information" keyboardAware>
@@ -184,6 +225,56 @@ export default function AccountScreen() {
             )}
           </View>
         </View>
+      </View>
+
+      <View style={styles.dangerCard}>
+        <Pressable
+          disabled={deleting}
+          onPress={() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setDeleteOpen((open) => !open);
+            setConfirmText('');
+            setDeleteError(null);
+          }}>
+          <Text style={styles.fieldLabel}>DELETE ACCOUNT</Text>
+          <View style={styles.rowValue}>
+            <Text style={styles.dangerTitle}>Delete my account</Text>
+            <Text style={styles.changeText}>{deleteOpen ? 'Keep it' : 'Delete'}</Text>
+          </View>
+        </Pressable>
+
+        {deleteOpen && (
+          <View style={styles.dangerBody}>
+            <Text style={styles.fieldNote}>
+              This permanently deletes your account — your notes, doubts, photos,
+              progress and profile. It cannot be undone. Type your email address
+              to confirm.
+            </Text>
+            <TextInput
+              style={styles.dangerInput}
+              value={confirmText}
+              onChangeText={(next) => {
+                setConfirmText(next);
+                setDeleteError(null);
+              }}
+              placeholder={email || 'your email address'}
+              placeholderTextColor={colors.faint}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              editable={!deleting}
+            />
+            <Pressable
+              style={[styles.dangerButton, (!confirmMatches || deleting) && styles.dangerButtonOff]}
+              disabled={!confirmMatches || deleting}
+              onPress={deleteForever}>
+              <Text style={styles.dangerButtonText}>
+                {deleting ? 'Deleting…' : 'Delete permanently'}
+              </Text>
+            </Pressable>
+            {deleteError && <Text style={styles.dangerError}>{deleteError}</Text>}
+          </View>
+        )}
       </View>
 
     </SettingsPage>
@@ -338,6 +429,58 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_700Bold',
       fontSize: scale(12),
       color: colors.paper,
+    },
+    // The one destructive act on this page, kept in its own card so nothing
+    // routine sits next to it.
+    dangerCard: {
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(221,68,51,.35)',
+      borderRadius: scale(18),
+      paddingHorizontal: scale(18),
+      paddingVertical: verticalScale(14),
+      marginTop: verticalScale(16),
+    },
+    dangerTitle: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(15.5),
+      color: colors.red,
+    },
+    dangerBody: {
+      marginTop: verticalScale(4),
+    },
+    dangerInput: {
+      marginTop: verticalScale(12),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(15.5),
+      color: colors.ink,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
+      borderRadius: scale(12),
+      paddingVertical: verticalScale(10),
+      paddingHorizontal: scale(12),
+    },
+    dangerButton: {
+      marginTop: verticalScale(12),
+      alignItems: 'center',
+      paddingVertical: verticalScale(11),
+      borderRadius: scale(12),
+      backgroundColor: colors.red,
+    },
+    dangerButtonOff: {
+      opacity: 0.35,
+    },
+    dangerButtonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(13.5),
+      color: '#fff',
+    },
+    dangerError: {
+      marginTop: verticalScale(10),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(13 * 1.5),
+      color: colors.red,
     },
     otpBlock: {
       marginTop: verticalScale(12),
