@@ -2,6 +2,7 @@ import {
   pcmFeedBytes,
   pcmPause,
   pcmPlayedSeconds,
+  pcmRecoveries,
   pcmResume,
   pcmStart,
   pcmStop,
@@ -49,7 +50,9 @@ const DRAIN_GRACE_MS = 250;
  * retires their generation, and a failed engine.start() is never retried.
  * The native follow-up closes both (a completion counts only while the engine
  * runs; the start is retried with backoff), so on a current binary this is
- * the fallback, for an engine that stays dead. Without a native recovery JS
+ * the fallback, for an engine that stays dead — and it stands down whenever
+ * the native side reports a restart (`pcmRecoveries`), because a native
+ * replay is a still playhead too. Without a native recovery JS
  * sees one of two shapes, and both used to end the class's voice for good:
  *
  * - JUMP: `pcmPlayedSeconds` counts `.dataPlayedBack` completions, and a
@@ -119,6 +122,8 @@ export class PcmPlaybackQueue {
   private rebuild: { reason: Reason; heardUpTo: number; announced: Set<string>; failures: number } | null =
     null;
   private recoveries: number[] = [];
+  /** The native player's restart count as of the last tick; see tick(). */
+  private nativeRecoveries = pcmRecoveries();
 
   get idle(): boolean {
     return (
@@ -170,7 +175,19 @@ export class PcmPlaybackQueue {
     const played = pcmPlayedSeconds();
     const now = Date.now();
 
-    if (this.started && !this.paused) {
+    const nativeRecoveries = pcmRecoveries();
+    if (nativeRecoveries !== this.nativeRecoveries) {
+      // The native player has just restarted its engine and is replaying from
+      // the start of the buffer it was cut off in, so the playhead stands still
+      // for that buffer again — a replay, not a dead engine. Start the stall
+      // clock over and skip this tick's checks: judged on the old clock, a
+      // restart that needed retries looked frozen and JS rebuilt the stream on
+      // top of it (W5 #14), playing the cut-off part three times.
+      this.nativeRecoveries = nativeRecoveries;
+      this.lastPlayed = played;
+      this.lastMoveAt = now;
+      probe(`native restart seen (recoveries=${nativeRecoveries}) played=${played.toFixed(2)}s — stall clock restarted`);
+    } else if (this.started && !this.paused) {
       const sinceMoveS = (now - this.lastMoveAt) / 1000;
       if (played - this.lastPlayed > sinceMoveS + JUMP_SLACK_S) {
         // Checked BEFORE anything is announced: the leap is audio nobody

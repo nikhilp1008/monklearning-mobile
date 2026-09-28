@@ -55,6 +55,12 @@ public class PcmPlayerModule: Module {
   /// The student paused (a live class's pause). Recovery restores the engine
   /// but must not undo a pause somebody chose.
   private var userPaused = false
+  /// Successful engine restarts by recover(), ever (never reset). The JS
+  /// watchdog reads it: a change means the player is replaying the cut-off
+  /// buffer from its start, so a still playhead is the replay, not a dead
+  /// engine — without it JS rebuilt the stream on top of a native recovery
+  /// that had needed retries, and the cut-off part played three times.
+  private var recoveries = 0
 
   public func definition() -> ModuleDefinition {
     Name("PcmPlayer")
@@ -135,6 +141,10 @@ public class PcmPlayerModule: Module {
       return self.fedSeconds
     }
 
+    Function("recoveries") { () -> Int in
+      return self.recoveries
+    }
+
     Function("stop") {
       self.teardown()
     }
@@ -175,26 +185,40 @@ public class PcmPlayerModule: Module {
   private func enqueue(_ item: Pending, on player: AVAudioPlayerNode) {
     let gen = generation
     player.scheduleBuffer(item.buffer, at: nil, options: [],
-                          completionCallbackType: .dataPlayedBack) { [weak self, weak engine = self.engine, weak player] _ in
-      // When iOS stops the engine for a route change it flushes the player,
-      // and every queued buffer "completes" right there — measured on the
-      // simulator ~120ms BEFORE AVAudioEngineConfigurationChange is posted,
-      // so the generation bump in that observer is too late: the flush was
-      // counted as heard, the reveal clock leapt over the whole backlog (the
-      // board wrote a dozen lines at once) and recover() had nothing left in
-      // `pending` to replay. A completion is only a playback if it landed
-      // while the engine was still running; read that here, on the callback's
-      // own thread, not later on main.
-      let engineRunning = engine?.isRunning ?? false
-      let playerPlaying = player?.isPlaying ?? false
+                          completionCallbackType: .dataPlayedBack) { [weak self] _ in
+      // NOTHING in here may call AVAudioEngine or AVAudioPlayerNode. This runs
+      // on AVFoundation's completion-handler queue while it holds the player's
+      // message lock, and a player.stop() on another thread (teardown() on the
+      // JS thread, recover() on main) holds the ENGINE's lock while it waits
+      // for this queue. Reading engine.isRunning here took the two locks in
+      // the opposite order and hung the app: pcmStop() on a running engine
+      // with buffers scheduled — a barge-in or leaving mid-sentence — never
+      // returned (W5 #14). The only job here is to hop to main.
       DispatchQueue.main.async {
         guard let self = self, gen == self.generation else { return }
-        // A student's pause can land between a buffer finishing and its
-        // completion running, so the player reads "not playing" for a buffer
-        // that was heard. The engine is still running then, which a system
-        // stop never leaves it; without this, a pause landing in that window
-        // would retire the generation, freeze the reveal clock and fake a
-        // dead engine.
+        // When iOS stops the engine for a route change it flushes the player,
+        // and every queued buffer "completes" right there — measured on the
+        // simulator ~120ms BEFORE AVAudioEngineConfigurationChange is posted,
+        // so the generation bump in that observer is too late: the flush was
+        // counted as heard, the reveal clock leapt over the whole backlog (the
+        // board wrote a dozen lines at once) and recover() had nothing left in
+        // `pending` to replay. A completion is only a playback if the engine is
+        // still running when it is handled, and reading that here, on main, is
+        // exact for a flush: the configuration-change observer is registered on
+        // the main queue, so a flush's blocks reach main (FIFO) before the
+        // notification's block and before recover() — the engine is still
+        // stopped when they run, and they read "not heard". Anything that
+        // restarts the engine (recover(), start()) retires the generation
+        // first, so a flush handled after a restart is dropped by the guard.
+        //
+        // A student's pause can land between a buffer finishing and this block
+        // running, so the player reads "not playing" for a buffer that was
+        // heard. The engine is still running then, which a system stop never
+        // leaves it; without the userPaused term, a pause landing in that
+        // window would retire the generation, freeze the reveal clock and fake
+        // a dead engine.
+        let engineRunning = self.engine?.isRunning ?? false
+        let playerPlaying = self.player?.isPlaying ?? false
         let heard = engineRunning && (playerPlaying || self.userPaused)
         guard heard else {
           // Retire this generation now so the rest of the flush is ignored
@@ -292,6 +316,7 @@ public class PcmPlayerModule: Module {
     for item in pending {
       enqueue(item, on: player)
     }
+    recoveries += 1
     NSLog("[PcmPlayer] recovered after %@, replaying %d buffer(s)", reason, pending.count)
     if (playing || fedSeconds >= prebufferSeconds) && !userPaused {
       player.play()

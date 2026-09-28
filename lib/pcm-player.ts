@@ -18,6 +18,8 @@ type PcmPlayerModule = {
   resume(): void;
   finish(): void;
   stop(): void;
+  /** Absent on binaries built before it existed — see pcmRecoveries. */
+  recoveries?(): number;
 };
 
 const native = requireOptionalNativeModule<PcmPlayerModule>('PcmPlayer');
@@ -56,6 +58,16 @@ export function pcmFeedBytes(data: Uint8Array): void {
 /** Sample-accurate playhead: frozen across pauses, 0 while prebuffering. */
 export function pcmPlayedSeconds(): number {
   return native?.playedSeconds() ?? 0;
+}
+
+/**
+ * How many times the native player has restarted its engine after iOS stopped
+ * it (a route change, an interruption) and replayed what was not heard. Never
+ * reset. 0 on a binary that predates the counter, which is exactly "the native
+ * side never recovers", so an old binary keeps the JS watchdog's behaviour.
+ */
+export function pcmRecoveries(): number {
+  return native?.recoveries?.() ?? 0;
 }
 
 export function pcmPause(): void {

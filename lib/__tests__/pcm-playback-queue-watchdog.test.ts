@@ -13,7 +13,8 @@
  *   announced in one tick, and the next turn never started.
  * - NEW NATIVE (the follow-up): the flush is not counted, the buffers are
  *   kept, and the native side restarts the engine itself, replaying the head
- *   buffer from its start. The watchdog must stay out of the way.
+ *   buffer from its start, and counts the restart (`pcmRecoveries`). The
+ *   watchdog must stay out of the way.
  */
 import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 
@@ -33,6 +34,8 @@ const mockFake = {
   engineId: 0,
   /** The next N `pcmStart()` calls throw, as a start on a settling route does. */
   startFailures: 0,
+  /** The native restart counter (`pcmRecoveries`); stays 0 on an old binary. */
+  recoveries: 0,
 };
 function mockNow() {
   return Date.now();
@@ -78,6 +81,7 @@ jest.mock('@/lib/pcm-player', () => ({
     }
   },
   pcmPlayedSeconds: () => mockFake.consumed,
+  pcmRecoveries: () => mockFake.recoveries,
   pcmFedSeconds: () => mockFake.fed,
   pcmPause: () => {},
   pcmResume: () => {},
@@ -106,15 +110,25 @@ function killEngine() {
 }
 
 /** NEW NATIVE: nothing is counted or lost; the engine is restarted natively
- *  after `restartAfterMs` and the head buffer plays again from its start. */
-function killEngineRecoveredNatively(restartAfterMs: number) {
+ *  after `restartAfterMs` and the head buffer plays again from its start. The
+ *  restart is counted unless `counted` is false (a binary without the counter). */
+function killEngineRecoveredNatively(restartAfterMs: number, counted = true) {
   mockFake.alive = false;
   const engine = mockFake.engineId;
   setTimeout(() => {
     if (mockFake.engineId !== engine) return;
     mockFake.alive = true;
     mockFake.headStartedAt = mockNow();
+    if (counted) mockFake.recoveries += 1;
   }, restartAfterMs);
+}
+
+/** Runs until a buffer completes, then `intoMs` more: a stop placed that far
+ *  into the next part. W5 #14 was 1006ms into a 1024ms part. */
+function runIntoPart(intoMs: number) {
+  const before = mockFake.consumed;
+  for (let i = 0; i < 300 && mockFake.consumed === before; i += 1) run(10);
+  run(intoMs);
 }
 
 const part = (sec = 1.024) => new Uint8Array(Math.round(sec * 24000) * 2);
@@ -134,6 +148,7 @@ beforeEach(() => {
     stops: 0,
     engineId: 0,
     startFailures: 0,
+    recoveries: 0,
   });
 });
 afterEach(() => jest.useRealTimers());
@@ -270,4 +285,86 @@ test('new native: the engine restarts itself — the watchdog stays out, nothing
   expect(started.map((s) => s.id)).toEqual(ids('n', 12));
   expectNoBurst(started);
   expect(drained()).toBe(1);
+});
+
+describe('the native restart counter (pcmRecoveries)', () => {
+  test('it moves during a stall: a slow native recovery late in a part is not rebuilt on top (W5 #14)', () => {
+    mockFake.native = 'new';
+    const { q, started, recovered, drained } = setup();
+    for (let i = 0; i < 12; i += 1) q.enqueue({ id: `k${i}`, pcm: part(), sampleRate: 24000 });
+    run(2_000);
+    // The #14 pattern: the stop lands at the very end of a part, and the
+    // native restart needs two failed starts (0.12 + 0.25 + 0.5s), so the
+    // replayed part cannot finish inside the old part + 1.5s stall allowance.
+    runIntoPart(1_000);
+    killEngineRecoveredNatively(930);
+    run(15_000);
+    expect(mockFake.recoveries).toBe(1);
+    expect(recovered).toHaveLength(0);
+    expect(mockFake.stops).toBe(0);
+    expect(mockFake.starts).toBe(1);
+    expect(started.map((s) => s.id)).toEqual(ids('k', 12));
+    expectNoBurst(started);
+    expect(drained()).toBe(1);
+  });
+
+  test('it never moves because the native side stays dead: FROZEN still rebuilds', () => {
+    mockFake.native = 'new';
+    const { q, started, recovered } = setup();
+    for (let i = 0; i < 12; i += 1) q.enqueue({ id: `d${i}`, pcm: part(), sampleRate: 24000 });
+    run(2_600);
+    mockFake.alive = false; // stopped, no notification, no retry that works
+    run(4_000);
+    expect(mockFake.recoveries).toBe(0);
+    expect(recovered).toEqual([expect.objectContaining({ reason: 'frozen' })]);
+    expect(mockFake.stops).toBe(1);
+    run(15_000);
+    expect(started.map((s) => s.id)).toEqual(ids('d', 12));
+    expectNoBurst(started);
+  });
+
+  test('a counter that moved once does not hide a later death', () => {
+    mockFake.native = 'new';
+    const { q, started, recovered } = setup();
+    for (let i = 0; i < 16; i += 1) q.enqueue({ id: `e${i}`, pcm: part(), sampleRate: 24000 });
+    run(2_000);
+    killEngineRecoveredNatively(150); // recovered natively, counted
+    run(4_000);
+    expect(recovered).toHaveLength(0);
+    mockFake.alive = false; // then dies for good
+    run(5_000);
+    expect(recovered).toEqual([expect.objectContaining({ reason: 'frozen' })]);
+    run(20_000);
+    expect(started.map((s) => s.id)).toEqual(ids('e', 16));
+  });
+
+  test('absent (a binary without it): the same slow recovery is rebuilt on top, as before', () => {
+    mockFake.native = 'new';
+    const { q, started, recovered } = setup();
+    for (let i = 0; i < 12; i += 1) q.enqueue({ id: `a${i}`, pcm: part(), sampleRate: 24000 });
+    run(2_000);
+    runIntoPart(1_000);
+    killEngineRecoveredNatively(930, false); // restarts, but nothing counts it
+    run(15_000);
+    // Unchanged behaviour: the old clock fires, JS rebuilds (a replayed part
+    // repeats), and every part is still announced once, in order.
+    expect(mockFake.recoveries).toBe(0);
+    expect(recovered).toEqual([expect.objectContaining({ reason: 'frozen' })]);
+    expect(started.map((s) => s.id)).toEqual(ids('a', 12));
+    expectNoBurst(started);
+  });
+
+  test('absent at the binding: pcmRecoveries reads 0 when the native function is missing', () => {
+    for (const [native, want] of [
+      [null, 0],
+      [{ playedSeconds: () => 0 }, 0],
+      [{ playedSeconds: () => 0, recoveries: () => 3 }, 3],
+    ] as const) {
+      jest.isolateModules(() => {
+        jest.doMock('expo-modules-core', () => ({ requireOptionalNativeModule: () => native }));
+        const real = jest.requireActual('@/lib/pcm-player') as typeof import('@/lib/pcm-player');
+        expect(real.pcmRecoveries()).toBe(want);
+      });
+    }
+  });
 });
