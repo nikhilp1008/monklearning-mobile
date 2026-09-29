@@ -5,11 +5,15 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Information we collect',
-    body: 'Account basics like your name, email, phone and password; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up classroom audio and transcripts, which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data (device, OS, app version, IP address and region, crash logs) comes along for the ride too.',
+    body: 'Account basics like your name, email, phone and password; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up classroom audio and transcripts, which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, crash logs, and the state you’re studying from.',
+  },
+  {
+    title: 'Your device and location',
+    body: 'We work out your state (and a rough city) from your internet connection’s IP address, on our own servers. We keep only the state and city, never the address itself, and we never send it to anyone else to look up. We don’t use GPS and never ask for your location. Your phone’s make, model and OS version come from the phone itself; we don’t collect its serial number, advertising ID or anything else that identifies the handset.',
   },
   {
     title: 'How we use it',
-    body: 'To actually run your classes, track what you’ve mastered, and decide what Drona or Vedha teaches you next. We also use it to keep the service running, to improve monklearning through de-identified analysis, and to catch fraud. We don’t sell your data, and we don’t use it to train anything outside your own account.',
+    body: 'To actually run your classes, track what you’ve mastered, and decide what Drona or Vedha teaches you next. Device and state tell us which phones to test on and which regions we’re reaching, and are only ever looked at in aggregate. We also use it to keep the service running, to improve monklearning through de-identified analysis, and to catch fraud. We don’t sell your data, and we don’t use it to train anything outside your own account.',
   },
   {
     title: 'Who we share it with',
@@ -38,7 +42,7 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <SettingsPage title="Privacy policy">
-      <Text style={styles.eyebrow}>Last updated · July 2026</Text>
+      <Text style={styles.eyebrow}>Last updated · September 2026</Text>
 
       {SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
