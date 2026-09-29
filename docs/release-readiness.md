@@ -18,8 +18,8 @@ document (a docs-only commit on top; the app is byte-identical). It is `origin/m
 The last build in students' hands is the **19 Sep iOS build** (mobile `76393a4`).
 
 **Server-only — already live, no app release needed.** The API deploys from `main` on push.
-Production reports `/version` commit `d7006c3`, validator `present`, `widget_negotiation` on,
-row verdicts 66 loaded / 61 adopted, 4 workers on Redis. Live since 19 Sep, among others:
+Production reports `/version` commit `2bcb9b4e` (deployed 2026-09-29), validator `present` and pinned
+to mobile `b5fb645`, `widget_negotiation` on, row verdicts 66 loaded / 61 adopted, 4 workers on Redis. Live since 19 Sep, among others:
 - board lines ride the sentence that says them; no line waits for the end of a turn (W4: 0 of
   2,499 lines in a 735-turn replay, was 1.23%);
 - turn 1 teaches the lesson's first slice (the client's "Begin lesson segment" is no longer
@@ -74,7 +74,7 @@ Old builds are protected by negotiation (a client with no manifest is served onl
 | corpus_check (mobile `6265a70`) | green: every stored SVG sizes and parses in the client; every adopted segment has a board |
 | V5 sweep (API `2f9e4dc4`, mobile `6265a70`; 30 chapters × 3 manifests) | on target: 0 blank, 0 live-dependent in adopted chapters, 0 leaks, 0 held-chapter widgets, 0 resolver bugs, 0 true repeats. Widget boards: current client 83 (55 stored + 29 archetype, minus `adfd3853:5`, which the new client refuses and draws from its stored SVG until its payload fix lands), 19 Sep client 52 |
 | Legibility scan, tightened band (all 2,238 stored SVGs) | segment figures (2,143): 31 with a label crossed by a line (redraws waiting), 5 deliberate strike-throughs; 14 are legible but stored re-spaced rather than as approved (restores waiting). Concept figures (95): 74 fail, none served (the 18 segments still on a concept figure all use clean ones) |
-| V8 production | `/version` = `d7006c3`, validator present (pinned to mobile `55e899bd`), negotiation on. The five API commits above are tested but NOT deployed: a push to API main is a production deploy and waits for the owner. The build does not depend on them — on `d7006c3` the one payload the new client refuses (`adfd3853:5`) draws its stored SVG |
+| V8 production | `/version` = `2bcb9b4e`, validator present, pinned to mobile `b5fb645` (manifest the same), negotiation on; 4 workers started, 4× "Redis configured", 0 errors after the deploy |
 
 **Audio proof (simulator, 2026-09-28).** A temporary debug build forced the engine stop iOS makes on
 a route change (reverted afterwards). Phase 4, on the fixed code: 22 of 22 pass — route-change
@@ -133,11 +133,11 @@ Board content:
 
 - **CI (W8):** `corpus-check.yml` still fails only on missing repository secrets `DATABASE_URL` and
   `MOBILE_REPO_TOKEN`. Once they are added, re-run it; mark it required on `main` after it is green.
-- **`diagram_author.repair_layout`** (API): fixed and committed (`2bcb9b4e`), not deployed. It measures
-  labels in Onest, and moves nothing but labels and a label's own lone underline; any other mark pins its
-  label. The 14 figures the old nudger moved come through byte for byte, 0 of 2,238 stored figures move,
-  and three rounds of independent review closed every case where a mark could leave its word. Until the
-  push, the live path keeps the old nudger, and the 45-figure write waits for it.
+- **`diagram_author.repair_layout`** (API): fixed and live (`2bcb9b4e`). It measures labels in Onest, and
+  moves nothing but labels and a label's own lone underline; any other mark pins its label. The 14 figures
+  the old nudger moved come through byte for byte, 0 of 2,238 stored figures move, and three rounds of
+  independent review closed every case where a mark could leave its word. The 45-figure write now only
+  waits for the owner's line.
 - **Content:** a full audit of all 290 plans is planned and costed (API `docs/content-audit-plan.md`,
   not run); calibration found ~4 confirmed issues per segment, ~0.8 of them serious.
 - **Cosmetic, for the widgets' owner:** a formula line with `x_{\text{edges}}` shows `x_(edges)`, and
