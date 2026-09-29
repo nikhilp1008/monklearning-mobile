@@ -5,7 +5,7 @@
  * must be ONE draw and TWO group reveals.
  */
 import {
-  applyContinuity, boardRowKey, boardSignature, collapseBoards, drawCount,
+  applyContinuity, boardRowKey, boardRowKeys, boardSignature, collapseBoards, drawCount,
   REVEAL_KEYS, revealOf, type ContinuityEvent,
 } from '../board-continuity';
 import { REGISTRY, REGISTRY_MANIFEST } from '../registry';
@@ -285,5 +285,68 @@ describe('applyContinuity — what actually goes on screen', () => {
     const before = JSON.stringify(list);
     applyContinuity(list);
     expect(JSON.stringify(list)).toBe(before);
+  });
+});
+
+describe('boardRowKeys — one key per row, never two rows on one key', () => {
+  const line = (seq: number): ContinuityEvent => ({ seq, type: 'text' });
+  const graph = (seq: number): ContinuityEvent => ({ seq, type: 'diagram', payload: {
+    widget: 'xy_plot', version: 4, params: { curve: 'line', a: 1 } } });
+
+  test('a plate, a graph, then the plate again: two draws, two different keys (X1)', () => {
+    const rows = applyContinuity([plate(1, 'a'), line(2), graph(3), line(4), plate(5, 'b')]);
+    expect(rows.filter((e) => e.type === 'diagram')).toHaveLength(3);
+    const keys = boardRowKeys(rows);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test('the first draw keeps its signature key; the second gets #2', () => {
+    const rows = applyContinuity([plate(1, 'a'), graph(2), plate(3, 'b')]);
+    expect(boardRowKeys(rows)).toEqual([
+      boardRowKey(rows[0], 0), boardRowKey(rows[1], 1), `${boardRowKey(rows[2], 2)}#2`,
+    ]);
+  });
+
+  test('appending rows never changes the key of a row already on the board', () => {
+    const before = boardRowKeys(applyContinuity([plate(1, 'a'), graph(2), plate(3, 'b')]));
+    const after = boardRowKeys(applyContinuity(
+      [plate(1, 'a'), graph(2), plate(3, 'b'), line(4), graph(5), line(6)]));
+    expect(after.slice(0, before.length)).toEqual(before);
+    expect(new Set(after).size).toBe(after.length);
+  });
+
+  test('a reveal merged into the second draw keeps its key, so it still animates', () => {
+    const drawn = boardRowKeys(applyContinuity([plate(1, 'a'), graph(2), plate(3, 'b')]));
+    const revealed = boardRowKeys(applyContinuity(
+      [plate(1, 'a'), graph(2), plate(3, 'b'), line(4), plate(5, 'c')]));
+    expect(revealed[2]).toBe(drawn[2]);
+  });
+
+  test('text rows keep the keys boardRowKey gives them', () => {
+    const rows = [line(1), line(1), plate(2, 'a')];
+    expect(boardRowKeys(rows).slice(0, 2)).toEqual([boardRowKey(rows[0], 0), boardRowKey(rows[1], 1)]);
+  });
+});
+
+describe('two different SVGs are never the same board', () => {
+  // Held Probability, complementary-events seg 2 -> 3: two different figures,
+  // both 2,774 chars and identical for the first 205. The old signature
+  // (length + first 200 chars) folded them into one draw.
+  const head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 280">' + 'x'.repeat(200);
+  const a: ContinuityEvent = { seq: 1, type: 'diagram', svg: head + '<circle r="4"/></svg>' };
+  const b: ContinuityEvent = { seq: 2, type: 'diagram', svg: head + '<circle r="5"/></svg>' };
+
+  test('same length and same 200-char prefix, different content -> different signatures', () => {
+    expect(a.svg!.length).toBe(b.svg!.length);
+    expect(a.svg!.slice(0, 200)).toBe(b.svg!.slice(0, 200));
+    expect(boardSignature(a)).not.toBe(boardSignature(b));
+  });
+
+  test('...so both are drawn', () => {
+    expect(drawCount([a, b])).toBe(2);
+  });
+
+  test('the identical SVG sent twice is still one board', () => {
+    expect(drawCount([a, { ...a, seq: 2 }])).toBe(1);
   });
 });

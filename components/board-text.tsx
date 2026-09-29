@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BoardDiagram } from '@/components/board-diagram';
+import { BoardDiagram, diagramVerdict, svgInvalidDetail } from '@/components/board-diagram';
 import { DEEP_AMBER, INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
 import { latexToText } from '@/lib/latex-text';
@@ -122,6 +122,24 @@ export function BoardBlockView({
    * also missing (`10^5 m/s` reads as 10⁵ m/s now).
    */
   const text = useMemo(() => latexToText(raw), [raw]);
+  /**
+   * U5. Whether `BoardDiagram` could draw this event's svg, asked HERE, before
+   * it is mounted, because only this component knows what else the event
+   * carries. `BoardDiagram` left to itself handed a malformed string to
+   * `SvgXml`, which swallowed the parser's throw and drew an empty View — a
+   * silent blank. Refused here, it is an `svg_invalid` gap and the event falls
+   * to whatever comes next, exactly as a refused rung does inside BoardWidget.
+   *
+   * Only computed for the events that would go to `BoardDiagram`; a hosted
+   * payload or slug goes to BoardWidget, whose own `event.svg` rung runs the
+   * same parser.
+   */
+  const toDiagram = isFigure && Boolean(event.svg)
+    && !(widgetHost && (event.payload || event.illustration_slug));
+  const svgVerdict = useMemo(
+    () => (toDiagram && event.svg ? diagramVerdict(event.svg) : null),
+    [toDiagram, event.svg],
+  );
   // A figure, not a line of writing — it owns its own sizing and never goes
   // near the LaTeX converter.
   if (isFigure) {
@@ -203,7 +221,7 @@ export function BoardBlockView({
      * face and fits the aspect to the box. Hence markup-only events come here
      * whether or not there is a host.
      */
-    if (event.svg) {
+    if (event.svg && svgVerdict?.ok !== false) {
       /*
        * A payload skipped for want of a runtime is a tier-3 render in all but
        * name — the student gets the model's hand-drawn approximation where the
@@ -236,20 +254,48 @@ export function BoardBlockView({
       );
     }
     /*
+     * The svg was REFUSED (U5, or S3's unsizable case). Reported as the rung it
+     * is — the same name, rung and detail shape BoardWidget's `svgRung` uses —
+     * and then the event falls on to the terminal gap below, because there is
+     * no rung after `event.svg` on this path: a slug or payload with a host
+     * never came here, and one without a host cannot be drawn.
+     */
+    if (svgVerdict && !svgVerdict.ok) {
+      reportGap(widgetHost, 'svg_invalid', {
+        seq: event.seq,
+        type: event.type,
+        rung: 'event.svg',
+        ...svgInvalidDetail(svgVerdict),
+      });
+    }
+    /*
      * Nothing drawable is left, and this is the one figure case that is
      * honestly a no-op. It is not a SILENT one: a blank row with no gap cannot
      * be told apart from a row that never arrived, and the gap feed is the only
-     * instrument the diagram tiers have (lib/widgets/CLAUDE.md §2). The two
-     * reasons are separate because their fixes are — one is a surface missing a
-     * runtime, the other an event missing a picture.
+     * instrument the diagram tiers have (lib/widgets/CLAUDE.md §2). The three
+     * reasons are separate because their fixes are — a surface missing a
+     * runtime, an event whose only picture was refused, an event missing a
+     * picture.
      */
-    reportGap(widgetHost, hasFigure ? 'no_widget_host' : 'empty_diagram_event', {
+    const blank = {
       seq: event.seq,
       type: event.type,
       drew: 'nothing',
       hasPayload: Boolean(event.payload),
       hasIllustration: Boolean(event.illustration_slug),
-    });
+    };
+    if (event.payload || event.illustration_slug) {
+      // Only reachable without a host: with one, these went to BoardWidget.
+      reportGap(widgetHost, 'no_widget_host', blank);
+    } else if (event.svg) {
+      // An svg-only event whose svg was refused. The chain's own terminal
+      // name, so `gap_report.py` counts it where it counts BoardWidget's.
+      reportGap(widgetHost, 'no_fallback_available', {
+        ...blank, rung: 'event.svg', hadIllustration: false,
+      });
+    } else {
+      reportGap(widgetHost, 'empty_diagram_event', blank);
+    }
     return null;
   }
   if (event.type === 'heading') {

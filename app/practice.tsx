@@ -79,7 +79,23 @@ export default function PracticeScreen() {
   // chapters it asks the student to clear are their real needs_revision
   // chapters, not an invented list.
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chem', 'Maths']);
-  const [activeSubject, setActiveSubject] = useState<string>('Physics');
+  const { focus, setFocus } = usePracticeFocus();
+  /**
+   * Seeded from the applied focus, not hardcoded to Physics: Progress's
+   * "Practise this" sets a chapter focus and THEN navigates here, and the
+   * guard effect below clears any chapter focus whose subject doesn't match
+   * the active pill — so a Maths chapter arriving onto a Physics default was
+   * wiped on mount and the card's promise quietly became "All chapters".
+   */
+  const [activeSubject, setActiveSubject] = useState<string>(() => {
+    if (focus.mode === 'chapter' && focus.subject) {
+      const label = Object.keys(SUBJECT_QUERY).find(
+        (k) => SUBJECT_QUERY[k] === focus.subject
+      );
+      if (label) return label;
+    }
+    return 'Physics';
+  });
 
   /**
    * The exam and class this student is actually sitting.
@@ -117,7 +133,6 @@ export default function PracticeScreen() {
       cancelled = true;
     };
   }, []);
-  const { focus, setFocus } = usePracticeFocus();
 
   const [question, setQuestion] = useState<NextQuestion | null>(null);
   const [poolMessage, setPoolMessage] = useState<string | null>(null);
@@ -272,6 +287,19 @@ export default function PracticeScreen() {
     // question, so Next feels instant.
     prefetchNext();
   }
+
+  // The other direction: a chapter focus set from OUTSIDE (Progress's
+  // "Practise this") while this screen is already mounted on another
+  // subject. The mount-time seed above can't see it, and without this the
+  // guard below would read the mismatch as a pill switch and wipe the focus.
+  // Moving the pill first makes subject and focus agree, so the guard lets
+  // it stand.
+  useEffect(() => {
+    if (focus.mode !== 'chapter' || !focus.subject) return;
+    const label = Object.keys(SUBJECT_QUERY).find((k) => SUBJECT_QUERY[k] === focus.subject);
+    if (label && label !== activeSubject) setActiveSubject(label);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus.mode, focus.subject, focus.chapterId]);
 
   // A chapter picked under one subject stops applying the moment the
   // student switches subject pills — it can't describe questions from a

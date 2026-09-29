@@ -32,6 +32,36 @@ public class PcmPlayerModule: Module {
   private var prebufferSeconds: Double = 0.5
   private var playing = false
 
+  /// Buffers scheduled but not yet heard, in order. Kept so an interruption
+  /// (a call, Siri, an alarm) or a route change (headphones out) can put them
+  /// back on the player instead of losing them: iOS stops the engine for
+  /// either, and a stopped engine never restarts on its own. Before this,
+  /// the reveal clock froze, the drain never fired, and the answer or the
+  /// class hung silent until the app was killed.
+  private struct Pending {
+    let id: Int
+    let buffer: AVAudioPCMBuffer
+    let seconds: Double
+  }
+  private var pending: [Pending] = []
+  private var nextBufferId = 0
+  /// Bumped whenever the player is stopped out from under us. AVFoundation
+  /// fires the completion of EVERY queued buffer when a player stops, played
+  /// or not, so a completion from an older generation is ignored — counting
+  /// it would move the reveal clock through audio nobody heard.
+  private var generation = 0
+  private var observers: [NSObjectProtocol] = []
+  private var interrupted = false
+  /// The student paused (a live class's pause). Recovery restores the engine
+  /// but must not undo a pause somebody chose.
+  private var userPaused = false
+  /// Successful engine restarts by recover(), ever (never reset). The JS
+  /// watchdog reads it: a change means the player is replaying the cut-off
+  /// buffer from its start, so a still playhead is the replay, not a dead
+  /// engine — without it JS rebuilt the stream on top of a native recovery
+  /// that had needed retries, and the cut-off part played three times.
+  private var recoveries = 0
+
   public func definition() -> ModuleDefinition {
     Name("PcmPlayer")
 
@@ -59,6 +89,7 @@ public class PcmPlayerModule: Module {
       self.timePitch = timePitch
       self.format = format
       self.fedSeconds = 0
+      self.observeInterruptions()
     }
 
     Function("feed") { (base64: String) in
@@ -73,11 +104,16 @@ public class PcmPlayerModule: Module {
     }
 
     Function("pause") {
+      self.userPaused = true
       self.player?.pause()
     }
 
     Function("resume") {
-      if self.playing { self.player?.play() }
+      self.userPaused = false
+      // play() on a stopped engine raises "player started when engine not
+      // running" and kills the app. A route change can stop the engine while
+      // paused and a restart can still be retrying; recover() plays it then.
+      if self.playing, self.engine?.isRunning == true { self.player?.play() }
     }
 
     Function("playedSeconds") { () -> Double in
@@ -94,7 +130,8 @@ public class PcmPlayerModule: Module {
     Function("finish") {
       // The stream is over. An answer shorter than the prebuffer would
       // otherwise wait forever for a fill that is never coming.
-      if !self.playing, let player = self.player, self.fedSeconds > 0 {
+      if !self.playing, let player = self.player, self.fedSeconds > 0,
+         self.engine?.isRunning == true {
         player.play()
         self.playing = true
       }
@@ -102,6 +139,10 @@ public class PcmPlayerModule: Module {
 
     Function("fedSeconds") { () -> Double in
       return self.fedSeconds
+    }
+
+    Function("recoveries") { () -> Int in
+      return self.recoveries
     }
 
     Function("stop") {
@@ -125,18 +166,179 @@ public class PcmPlayerModule: Module {
       }
     }
     let seconds = Double(frames) / format.sampleRate
-    player.scheduleBuffer(buffer, at: nil, options: [],
-                          completionCallbackType: .dataPlayedBack) { [weak self] _ in
-      DispatchQueue.main.async { self?.consumedSeconds += seconds }
-    }
+    let item = Pending(id: nextBufferId, buffer: buffer, seconds: seconds)
+    nextBufferId += 1
+    pending.append(item)
+    enqueue(item, on: player)
     self.fedSeconds += seconds
-    if !self.playing && self.fedSeconds >= self.prebufferSeconds {
+    // While interrupted, or stopped by a route change and not yet restarted,
+    // the engine is not running; queue now, play on recovery (play() on a
+    // stopped engine raises and kills the app).
+    if !self.interrupted && !self.playing && self.fedSeconds >= self.prebufferSeconds
+        && self.engine?.isRunning == true {
       player.play()
       self.playing = true
     }
   }
 
+  /// Puts one buffer on the player, stamped with the current generation.
+  private func enqueue(_ item: Pending, on player: AVAudioPlayerNode) {
+    let gen = generation
+    player.scheduleBuffer(item.buffer, at: nil, options: [],
+                          completionCallbackType: .dataPlayedBack) { [weak self] _ in
+      // NOTHING in here may call AVAudioEngine or AVAudioPlayerNode. This runs
+      // on AVFoundation's completion-handler queue while it holds the player's
+      // message lock, and a player.stop() on another thread (teardown() on the
+      // JS thread, recover() on main) holds the ENGINE's lock while it waits
+      // for this queue. Reading engine.isRunning here took the two locks in
+      // the opposite order and hung the app: pcmStop() on a running engine
+      // with buffers scheduled — a barge-in or leaving mid-sentence — never
+      // returned (W5 #14). The only job here is to hop to main.
+      DispatchQueue.main.async {
+        guard let self = self, gen == self.generation else { return }
+        // When iOS stops the engine for a route change it flushes the player,
+        // and every queued buffer "completes" right there — measured on the
+        // simulator ~120ms BEFORE AVAudioEngineConfigurationChange is posted,
+        // so the generation bump in that observer is too late: the flush was
+        // counted as heard, the reveal clock leapt over the whole backlog (the
+        // board wrote a dozen lines at once) and recover() had nothing left in
+        // `pending` to replay. A completion is only a playback if the engine is
+        // still running when it is handled, and reading that here, on main, is
+        // exact for a flush: the configuration-change observer is registered on
+        // the main queue, so a flush's blocks reach main (FIFO) before the
+        // notification's block and before recover() — the engine is still
+        // stopped when they run, and they read "not heard". Anything that
+        // restarts the engine (recover(), start()) retires the generation
+        // first, so a flush handled after a restart is dropped by the guard.
+        //
+        // A student's pause can land between a buffer finishing and this block
+        // running, so the player reads "not playing" for a buffer that was
+        // heard. The engine is still running then, which a system stop never
+        // leaves it; without the userPaused term, a pause landing in that
+        // window would retire the generation, freeze the reveal clock and fake
+        // a dead engine.
+        let engineRunning = self.engine?.isRunning ?? false
+        let playerPlaying = self.player?.isPlaying ?? false
+        let heard = engineRunning && (playerPlaying || self.userPaused)
+        guard heard else {
+          // Retire this generation now so the rest of the flush is ignored
+          // too; the buffers stay in `pending` for recover() to replay.
+          self.generation += 1
+          NSLog("[PcmPlayer] engine stopped under the player; %d buffer(s) kept for replay",
+                self.pending.count)
+          return
+        }
+        self.consumedSeconds += item.seconds
+        self.pending.removeAll { $0.id == item.id }
+      }
+    }
+  }
+
+  private func observeInterruptions() {
+    removeObservers()
+    let center = NotificationCenter.default
+    observers.append(center.addObserver(
+      forName: AVAudioSession.interruptionNotification,
+      object: AVAudioSession.sharedInstance(), queue: .main
+    ) { [weak self] note in
+      guard let self = self,
+            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+      if type == .began {
+        // The system has already stopped the engine. Retire this
+        // generation now, before the stopped player's completions land.
+        self.interrupted = true
+        self.generation += 1
+        NSLog("[PcmPlayer] interrupted with %d buffer(s) unplayed", self.pending.count)
+      } else {
+        // Recover whether or not iOS sets .shouldResume. The voice is the
+        // answer the student asked for; staying silent is never right, and
+        // the JS side has no control to resume it.
+        self.recover(reason: "interruption ended")
+      }
+    })
+    if let engine = engine {
+      // Headphones out, Bluetooth dropping, a new output: the engine stops
+      // itself and waits to be restarted on the new route.
+      observers.append(center.addObserver(
+        forName: .AVAudioEngineConfigurationChange,
+        object: engine, queue: .main
+      ) { [weak self] _ in
+        guard let self = self else { return }
+        self.generation += 1
+        self.recover(reason: "audio route changed")
+      })
+    }
+  }
+
+  /// Restart the engine and replay everything that had not been heard.
+  /// A buffer cut off mid-way plays again from its start, so up to about a
+  /// second may repeat — better than a sentence with a hole in it.
+  private func recover(reason: String, attempt: Int = 0) {
+    guard let engine = engine, let player = player,
+          let timePitch = timePitch, let format = format else { return }
+    interrupted = false
+    generation += 1
+    do {
+      try AVAudioSession.sharedInstance().setActive(true)
+    } catch {
+      NSLog("[PcmPlayer] could not reactivate the audio session: %@", "\(error)")
+    }
+    player.stop()
+    // Connections survive a stop, but a route change can leave the output
+    // expecting another format. Re-making them is cheap and always valid.
+    engine.connect(player, to: timePitch, format: format)
+    engine.connect(timePitch, to: engine.mainMixerNode, format: format)
+    do {
+      try engine.start()
+    } catch {
+      // The route is often still settling when the notification lands (the
+      // simulator logs HALC _StartIO "Start failed" in that window). Giving
+      // up here is the old bug again: a stopped engine, nothing retrying,
+      // silence until the app is killed. Back off and try again.
+      NSLog("[PcmPlayer] engine restart failed after %@ (attempt %d): %@", reason, attempt + 1, "\(error)")
+      if attempt < 4 {
+        let delay = 0.25 * pow(2.0, Double(attempt))
+        NSLog("[PcmPlayer] engine start retry %d/4 in %.2fs after %@", attempt + 1, delay, reason)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak engine] in
+          // Stale if the stream was rebuilt in the meantime (a JS stop/start
+          // makes a new engine) or a later notification already restarted
+          // this one — a second restart would only replay a second again.
+          guard let self = self, let engine = engine, self.engine === engine,
+                !engine.isRunning else { return }
+          self.recover(reason: reason, attempt: attempt + 1)
+        }
+      } else {
+        NSLog("[PcmPlayer] engine start retries exhausted after %@; the JS watchdog rebuilds the stream", reason)
+      }
+      return
+    }
+    for item in pending {
+      enqueue(item, on: player)
+    }
+    recoveries += 1
+    NSLog("[PcmPlayer] recovered after %@, replaying %d buffer(s)", reason, pending.count)
+    if (playing || fedSeconds >= prebufferSeconds) && !userPaused {
+      player.play()
+      playing = true
+    }
+  }
+
+  private func removeObservers() {
+    for token in observers {
+      NotificationCenter.default.removeObserver(token)
+    }
+    observers.removeAll()
+  }
+
   private func teardown() {
+    removeObservers()
+    // Retire the generation first: stop() fires every queued completion,
+    // and none of those belong to whatever starts next.
+    generation += 1
+    pending.removeAll()
+    interrupted = false
+    userPaused = false
     player?.stop()
     engine?.stop()
     player = nil

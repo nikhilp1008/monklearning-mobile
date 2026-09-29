@@ -1517,7 +1517,7 @@ const FLOW_CASES: { label: string; expect: string; params: ProcessFlowParams }[]
   },
   {
     label: 'Bio 11 Ch14 · glycolysis (EMP pathway)',
-    expect: '10 boxes serpentine over 2+ rows, no return edge · "9 steps · open"',
+    expect: '10 boxes serpentine over 2+ rows, no return edge · "10 steps · open"',
     params: {
       layout: 'chain',
       nodes: ['Glucose', 'G-6-P', 'F-6-P', 'F-1,6-bP', 'DHAP', 'G-3-P',
@@ -1545,7 +1545,7 @@ const FLOW_CASES: { label: string; expect: string; params: ProcessFlowParams }[]
   },
   {
     label: 'Bio 11 Ch13 · NON-cyclic photophosphorylation',
-    expect: 'same shape, NO return edge · "6 steps · open"',
+    expect: 'same shape, NO return edge · "7 steps · open"',
     params: {
       layout: 'chain',
       nodes: ['PS II', 'PQ', 'Cyt b6f', 'PC', 'PS I', 'Ferredoxin', 'NADP+'],
@@ -1554,7 +1554,7 @@ const FLOW_CASES: { label: string; expect: string; params: ProcessFlowParams }[]
   },
   {
     label: 'Bio 11 Ch14 · fate of pyruvate (branch point)',
-    expect: 'an amber spur leaves the Pyruvate box · "3 steps · open · 1 branch"',
+    expect: 'an amber spur leaves the Pyruvate box · "4 steps · open · 1 branch"',
     params: {
       layout: 'chain',
       nodes: ['Glucose', 'Pyruvate', 'Acetyl-CoA', 'Krebs cycle'],

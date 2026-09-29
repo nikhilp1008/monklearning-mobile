@@ -169,9 +169,12 @@ export function validate(raw: unknown): ValidationResult<ComparisonTableParams> 
 
 function ComparisonTable({ params, width, height, theme }:
                          WidgetRenderProps<ComparisonTableParams>) {
+  // The tallest column label, so the header rule can sit under its last line.
+  const headerLines = params.columns.reduce(
+    (m, c) => Math.max(m, wrapCell(c, colLabelCap(params.columns.length)).length), 1);
   const f = useMemo(
-    () => layoutTable(params.rows.length, params.columns.length, width, height),
-    [params.rows.length, params.columns.length, width, height]
+    () => layoutTable(params.rows.length, params.columns.length, width, height, headerLines),
+    [params.rows.length, params.columns.length, width, height, headerLines]
   );
   const colX = (c: number) => f.left + f.labelW + f.colW * (c + 0.5);
   const rowY = (r: number) => f.headerY + f.rowH * (r + 0.5);

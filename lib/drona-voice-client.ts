@@ -21,6 +21,38 @@ const REVEAL_PROBE = __DEV__ && process.env.EXPO_PUBLIC_REVEAL_PROBE === '1';
 const probe = (line: string) => {
   if (REVEAL_PROBE) console.log(`[reveal-probe] ${line}`);
 };
+/**
+ * The probe's client half of V4's acceptance run: per board line, the sentence
+ * that carried it and three epoch-ms stamps — when that sentence's audio frame
+ * ARRIVED (`AUDIO_RECV … at=`), when its clip STARTED playing (`AUDIO_START …
+ * at=`), and when the line was REVEALED (`REVEALED … revealedAt=`), with
+ * `gapMs` = revealedAt − audioStartAt. Joined to the server's `board_line_sent`
+ * log on sentence_id. `-` wherever a stamp does not apply (an end-of-turn
+ * flush has no sentence; a silent chunk has no clip, so it starts on arrival).
+ */
+interface RevealTiming {
+  sentenceId: string;
+  receivedAt: number;
+  startedAt: number;
+}
+
+/**
+ * The lines one audio chunk carries.
+ *
+ * `board_events` (V4, additive): every line the chunk's sentences name —
+ * several to a chunk, since the server's "sentence" is a TTS chunk of 100+
+ * characters that can hold more than one of the model's sentences. Else the
+ * singular `board_event`, which every server sends (the first of the list, for
+ * builds that read nothing else) and older servers send alone.
+ */
+export function chunkBoardEvents(msg: Record<string, unknown>): BoardEvent[] {
+  const many = msg.board_events;
+  if (Array.isArray(many) && many.length > 0) {
+    return many.filter((e): e is BoardEvent => !!e && typeof e === 'object');
+  }
+  const one = msg.board_event as BoardEvent | null | undefined;
+  return one && typeof one === 'object' ? [one] : [];
+}
 
 export interface BoardEvent {
   seq: number;
@@ -55,7 +87,103 @@ export interface BoardEvent {
    */
   payload?: import('@/lib/widgets/types').WidgetPayload;
   tier?: import('@/lib/widgets/types').ResolutionTier;
+  /**
+   * Which event this is, for the life of one client. Stamped HERE, never sent
+   * by the server, on everything `onBoardReveal` and `onBoardReplay` deliver.
+   *
+   * `seq` cannot do this job. The server numbers it per TURN
+   * (app/drona/tutor.py: `"seq": i`, `len(board_events_out) + 1`), so seq 1
+   * recurs every turn — and a line the teacher genuinely restates in a later
+   * turn, same seq and same words, is a second line and has to be written
+   * again. So a live event's key is `<turn>:<seq>`: the turn is the
+   * `board_events` frame it arrived in, counted by this client, since that
+   * frame is the one thing every delivery of the turn's board has in common.
+   * A turn that gives one sentence two events (same seq, different content)
+   * gets `<turn>:<seq>:2` for the second. Replayed history is `h:<row>`.
+   *
+   * The same event delivered twice — two sentences carrying it, a flush after
+   * its audio, a resumed lesson or a re-taught turn re-sending it — resolves to
+   * ONE key, and `appendBoardEvent` holds a key once. See
+   * lib/__tests__/drona-voice-client-board.test.ts for each of those paths.
+   */
+  key?: string;
 }
+
+/**
+ * The board's append, idempotent on `key`: an event already on the board is
+ * not written again, and the SAME array comes back so the screen does not
+ * re-render for nothing.
+ *
+ * It used to be `[...prev, event]`, which wrote whatever it was handed — and
+ * the transport hands the same event over more than once when the server pairs
+ * it with two sentences (live_session_ws.py:493-495). That is how a maths
+ * class came to show two lines twice.
+ */
+export function appendBoardEvent(board: BoardEvent[], event: BoardEvent): BoardEvent[] {
+  if (event.key !== undefined && board.some((row) => row.key === event.key)) return board;
+  return [...board, event];
+}
+
+/**
+ * A replay, merged on the same key: rows already on the board stay where they
+ * are, rows it lacks are added in replay order, and nothing is dropped.
+ *
+ * It used to REPLACE the board. The server's replay is not the board the
+ * student watched — it leaves out every diagram, drops a line a later turn
+ * restated, and carries the model's own board_events for a planned turn rather
+ * than the authored lines that were shown (live_session_ws.py:416-435 reads
+ * `raw_response`) — so replacing wiped figures off the board, and the audio
+ * still queued from before the drop then wrote its lines a second time.
+ */
+export function applyBoardReplay(board: BoardEvent[], events: BoardEvent[]): BoardEvent[] {
+  let next = board;
+  for (const event of events) next = appendBoardEvent(next, event);
+  return next;
+}
+
+/**
+ * One board event as the client holds it between arrival and reveal.
+ *
+ * Several entries can share a key: a resumed lesson and a re-taught turn
+ * re-deliver events the client already holds, and adopt their keys.
+ */
+interface BoardEntry {
+  key: string;
+  /** The `board_events` frame it arrived in — what bounds the end-of-turn flush. */
+  batch: number;
+  /** The event as the server sent it, in stable JSON. Two deliveries of one
+   *  event are byte-identical: a chunk's `board_event` IS an element of the
+   *  turn's list (live_session_ws.py:493-495, 510). */
+  fingerprint: string;
+  event: BoardEvent;
+}
+
+interface BoardBatch {
+  serial: number;
+  entries: BoardEntry[];
+  /** Keys already matched against an earlier batch — done at most once. */
+  reconciled: boolean;
+}
+
+/** Object keys sorted, so key order is never a difference between two events. */
+function stableJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  const obj = value as Record<string, unknown>;
+  return `{${Object.keys(obj)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${stableJson(obj[k])}`)
+    .join(',')}}`;
+}
+
+/**
+ * A sentence of a parked lesson being replayed: the server names them
+ * `<turn>_resume_s<n>` (live_session_ws.py:719, 492).
+ */
+const RESUMED_SENTENCE = /_resume_s\d+$/;
+/** How many recent turns a late or re-delivered event is matched against. A
+ *  resumed lesson reaches back two (interrupted turn, then the answer). */
+const BOARD_HISTORY_BATCHES = 16;
 
 export interface DronaState {
   phase: string;
@@ -85,12 +213,16 @@ export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed'
 export interface DronaVoiceHandlers {
   onConnectionChange?: (status: ConnectionStatus) => void;
   onState?: (state: DronaState) => void;
-  /** Board items revealed one at a time, synced to when their paired sentence starts playing. */
+  /** Board items revealed one at a time, synced to when their paired sentence
+   *  starts playing. At most once per `key` — append with `appendBoardEvent`. */
   onBoardReveal?: (event: BoardEvent) => void;
   /** The whole turn's board, at buffer time — ahead of any audio. For warming
    *  caches only; nothing here is shown until its own reveal. */
   onBoardBuffered?: (events: BoardEvent[]) => void;
-  /** Full board history re-painted on reconnect — no reveal pacing, render immediately. */
+  /** The server's board history, for a board this client has not started
+   *  writing: a fresh mount, a rejoin. No reveal pacing — render immediately,
+   *  merged with `applyBoardReplay`. Not forwarded once the client has a turn
+   *  of its own; see the `board_replay` case for why. */
   onBoardReplay?: (events: BoardEvent[]) => void;
   onCaptionReveal?: (text: string) => void;
   onTranscriptPartial?: (text: string) => void;
@@ -214,12 +346,18 @@ export class DronaVoiceClient {
   /** Consecutive sockets that opened and died before proving themselves. */
   private diedYoung = 0;
 
-  /** Playback id -> {speech, board_event, duration_ms} for chunks currently
+  /** Playback id -> {speech, board entry, duration_ms} for chunks currently
    *  queued/playing, so the playback queue's onItemStart can look up what to
    *  reveal — and, for `durationMs`, how long the clip it just started runs. */
   private chunkMeta = new Map<
     string,
-    { speech?: string; boardEvent?: BoardEvent | null; durationMs?: number }
+    {
+      speech?: string;
+      board?: BoardEntry[];
+      durationMs?: number;
+      sentenceId?: string;
+      receivedAt?: number;
+    }
   >();
   /** Monotonic suffix so continuation parts sharing one sentence_id get
    *  distinct playback ids — they otherwise collide on the queue's
@@ -263,15 +401,20 @@ export class DronaVoiceClient {
       // the checkpoint over the top of it. See DRAIN_WATCHDOG_MS.
       if (this.awaitingDrain) this.armDrainWatchdog();
       const meta = this.chunkMeta.get(id);
-      if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
-      if (meta?.boardEvent) {
+      const startedAt = Date.now();
+      if (meta?.board?.length || meta?.speech) {
         probe(
-          `REVEALED seq=${meta.boardEvent.seq}` +
-            ` type=${meta.boardEvent.type}` +
-            ` widget=${meta.boardEvent.payload?.widget ?? '-'}` +
-            ` carriedBy=onItemStart(${id})`
+          `AUDIO_START sentence=${meta.sentenceId ?? '-'} playback=${id} at=${startedAt}` +
+            ` recvAt=${meta.receivedAt ?? '-'} lines=${meta.board?.map((e) => e.key).join(',') || '-'}`
         );
-        this.handlers.onBoardReveal?.(meta.boardEvent);
+      }
+      if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
+      for (const entry of meta?.board ?? []) {
+        this.revealBoardEntry(entry, `onItemStart(${id})`, {
+          sentenceId: meta?.sentenceId ?? '-',
+          receivedAt: meta?.receivedAt ?? startedAt,
+          startedAt,
+        });
       }
       // Survives the delete below so `playingChunkDurationMs` can be read
       // after the reveal fires. Nothing consumes it yet — see the getter.
@@ -409,6 +552,7 @@ export class DronaVoiceClient {
       this.ws.onclose = null;
       try { this.ws.close(); } catch { /* already closing */ }
       this.ws = null;
+      this.noteSocketLost();
     }
     const ws = canSendHeaders
       ? new (WebSocket as unknown as {
@@ -433,7 +577,9 @@ export class DronaVoiceClient {
     // deliver a close event on every platform, and without this the socket
     // would sit dead with the UI still saying "Connecting".
     ws.onerror = () => {
-      if (!this.manualDisconnect) this.scheduleReconnect();
+      if (this.manualDisconnect) return;
+      this.noteSocketLost();
+      this.scheduleReconnect();
     };
     ws.onclose = (event) => {
       this.handlers.onConnectionChange?.('closed');
@@ -456,8 +602,25 @@ export class DronaVoiceClient {
         );
         return;
       }
+      this.noteSocketLost();
       this.scheduleReconnect();
     };
+  }
+
+  /**
+   * A socket went while the server was mid-turn. That turn is over: the old
+   * connection's cleanup cancels it (live_session_ws.py:1329-1331; the
+   * takeover at :230-239 does the same), and if it had not been saved yet the
+   * phase is still `teaching`, so the new connection teaches it again from the
+   * top (:1142-1145) — the same authored lines, sent as a new turn.
+   * Remembered so that turn can be recognised as a re-delivery rather than a
+   * restatement; see `bufferBoardEvents`. Idempotent, because `onerror` and
+   * `onclose` can both fire for one drop.
+   */
+  private noteSocketLost() {
+    if (!this.serverTurnOpen) return;
+    this.serverTurnOpen = false;
+    this.cutOffBatch = this.boardBatches[this.boardBatches.length - 1] ?? null;
   }
 
   private scheduleReconnect() {
@@ -534,15 +697,40 @@ export class DronaVoiceClient {
       case 'board_events':
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
+        this.serverTurnOpen = true;
         this.clearTurnErrorRecovery();
         this.bufferBoardEvents((msg.events as BoardEvent[]) ?? []);
         break;
-      case 'board_replay':
-        this.handlers.onBoardReplay?.((msg.events as BoardEvent[]) ?? []);
+      case 'board_replay': {
+        /**
+         * History, for a board this client has not started writing.
+         *
+         * The server sends it on every connect (live_session_ws.py:416-435),
+         * reconnects included — and on a reconnect this client already has
+         * the board, a better copy than the replay: the replay leaves out
+         * every diagram (its dedupe key is text/latex only), drops a line a
+         * later turn restated, and carries the model's own board_events for a
+         * planned turn instead of the authored lines that were shown (it reads
+         * `raw_response`). None of that can be matched back to what is on
+         * screen, and the lines of the turn cut off by the drop are still
+         * queued here to be revealed by their own audio.
+         *
+         * So a replay is forwarded only until this client's first turn. Its
+         * rows are keyed by position in the server's history, which a longer
+         * replay of the same session reproduces, so two replays merge.
+         */
+        const events = (msg.events as BoardEvent[]) ?? [];
+        if (this.batchSerial > 0) {
+          probe(`REPLAY NOT APPLIED rows=${events.length} — this client's own board is newer`);
+          break;
+        }
+        this.handlers.onBoardReplay?.(events.map((event, row) => ({ ...event, key: `h:${row}` })));
         break;
+      }
       case 'audio_chunk':
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
+        this.serverTurnOpen = true;
         this.clearTurnErrorRecovery();
         this.handleAudioChunk(msg);
         break;
@@ -576,6 +764,10 @@ export class DronaVoiceClient {
          * queue here already knows when it runs dry, which is the same answer
          * without the arithmetic.
          */
+        this.serverTurnOpen = false;
+        // The turn being held owns every board frame received up to now; a
+        // frame after this belongs to the next turn. See flushHeldTurn.
+        this.heldThroughBatch = this.batchSerial;
         if (this.playback.idle) {
           // Nothing to wait for: a checkpoint delivered as a silent chunk, or
           // a turn whose audio already finished playing.
@@ -593,6 +785,9 @@ export class DronaVoiceClient {
         if (this.turnErrorRecoveryTimer) clearTimeout(this.turnErrorRecoveryTimer);
         this.turnErrorRecoveryTimer = setTimeout(() => {
           this.turnErrorRecoveryTimer = null;
+          // No turn_complete is coming to say what the turn owns, and any
+          // frame would have cancelled this timer: everything held is its.
+          this.heldThroughBatch = this.batchSerial;
           if (this.turnInFlight || this.pendingState) this.flushHeldTurn();
         }, TURN_ERROR_RECOVERY_MS);
         break;
@@ -666,7 +861,7 @@ export class DronaVoiceClient {
     }
     this.clearTurnErrorRecovery();
     this.turnInFlight = false;
-    this.flushPendingBoardEvents();
+    this.flushPendingBoardEvents(this.heldThroughBatch);
     if (this.pendingState) {
       this.handlers.onState?.(this.pendingState);
       this.pendingState = null;
@@ -674,24 +869,143 @@ export class DronaVoiceClient {
     this.handlers.onTurnComplete?.();
   }
 
+  // --- The board: one key per event, one reveal per key ---
+
+  /** Board frames received so far — each is one turn's board. */
+  private batchSerial = 0;
+  /** Recent frames, newest last, for matching a chunk's `board_event` to the
+   *  entry it is and a re-delivered frame to the one it repeats. */
+  private boardBatches: BoardBatch[] = [];
+  /** Keys `onBoardReveal` has fired for. The one check every reveal path —
+   *  audio start, silent chunk, end-of-turn flush — goes through. */
+  private revealedBoardKeys = new Set<string>();
+  /** The newest frame the turn being held owns; the flush stops there. */
+  private heldThroughBatch = 0;
+  /** A board frame or audio has arrived since the last `turn_complete`: the
+   *  server is mid-turn. Only a lost socket reads it — see `noteSocketLost`. */
+  private serverTurnOpen = false;
+  /** The frame of a turn a lost socket cut off, until the next frame arrives. */
+  private cutOffBatch: BoardBatch | null = null;
+
+  private openBatch(events: BoardEvent[]): BoardBatch {
+    const batch: BoardBatch = { serial: ++this.batchSerial, entries: [], reconciled: false };
+    for (const event of events) batch.entries.push(this.makeEntry(batch, event));
+    this.boardBatches.push(batch);
+    if (this.boardBatches.length > BOARD_HISTORY_BATCHES) this.boardBatches.shift();
+    return batch;
+  }
+
+  private makeEntry(batch: BoardBatch, event: BoardEvent): BoardEntry {
+    // A sentence may generate two events (prompts/tutor.md: seq is "the
+    // sentence number in `speech` that generated it"), and both are kept by
+    // the server — so seq alone would fold the second into the first.
+    const same = batch.entries.filter((e) => e.event.seq === event.seq).length;
+    const key = same === 0 ? `${batch.serial}:${event.seq}` : `${batch.serial}:${event.seq}:${same + 1}`;
+    return { key, batch: batch.serial, fingerprint: stableJson(event), event };
+  }
+
+  /**
+   * The entry an audio chunk's `board_event` is: the newest frame holding the
+   * identical event. Newest first because a later turn may legitimately
+   * repeat an older one word for word, and a chunk belongs to its own turn,
+   * whose frame always arrives just ahead of it.
+   */
+  private resolveBoardEntry(event: BoardEvent): BoardEntry {
+    const fingerprint = stableJson(event);
+    for (let i = this.boardBatches.length - 1; i >= 0; i -= 1) {
+      const hit = this.boardBatches[i].entries.find((e) => e.fingerprint === fingerprint);
+      if (hit) return hit;
+    }
+    // Carried by a chunk but never announced in a board frame. The server
+    // does not do this today; kept as an entry anyway so a second carrier of
+    // it still resolves to the same key.
+    const batch = this.boardBatches[this.boardBatches.length - 1] ?? this.openBatch([]);
+    const entry = this.makeEntry(batch, event);
+    batch.entries.push(entry);
+    return entry;
+  }
+
+  /**
+   * A frame that re-delivers events this client already holds takes their
+   * keys, so whatever of it is already on the board is not written again.
+   *
+   * Two server paths send one: a resumed lesson (the parked remainder of the
+   * interrupted turn, re-sent verbatim — live_session_ws.py:722-725) and the
+   * turn a lost socket cut off, taught again on the new connection. Matching
+   * is exact (the same seq and the same content), and only against the
+   * frame(s) the re-delivery can have come from.
+   */
+  private adoptKeys(batch: BoardBatch, sources: BoardBatch[]) {
+    if (batch.reconciled) return;
+    batch.reconciled = true;
+    for (const entry of batch.entries) {
+      for (const source of sources) {
+        const twin = source.entries.find((e) => e.fingerprint === entry.fingerprint);
+        if (twin) {
+          entry.key = twin.key;
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   * THE reveal. Every path that puts a board event on screen comes through
+   * here, and a key is revealed once.
+   *
+   * The same event does arrive more than once. The server pairs sentence N
+   * with the event whose seq is N, else with the Nth event BY POSITION
+   * (live_session_ws.py:493-495), so a turn whose seqs skip a number — the
+   * model numbers them by sentence, and the server's own dedupe drops events
+   * — carries one event on two sentences. The reveal probe caught exactly
+   * that: seq 6 carried by both `_s3` and `_s6` of one turn, and the board
+   * showed the line twice. That pairing is the server's to fix; the board
+   * holding each event once is this client's.
+   */
+  private revealBoardEntry(entry: BoardEntry, carrier: string, timing?: RevealTiming) {
+    const { event } = entry;
+    if (this.revealedBoardKeys.has(entry.key)) {
+      probe(`REPEAT seq=${event.seq} key=${entry.key} carriedBy=${carrier} — already on the board, not written again`);
+      return;
+    }
+    this.revealedBoardKeys.add(entry.key);
+    const revealedAt = Date.now();
+    probe(
+      `REVEALED seq=${event.seq} key=${entry.key} type=${event.type}` +
+        ` widget=${event.payload?.widget ?? '-'} carriedBy=${carrier}` +
+        ` sentence=${timing?.sentenceId ?? '-'} audioRecvAt=${timing?.receivedAt ?? '-'}` +
+        ` audioStartAt=${timing?.startedAt ?? '-'} revealedAt=${revealedAt}` +
+        ` gapMs=${timing ? revealedAt - timing.startedAt : '-'}`
+    );
+    this.handlers.onBoardReveal?.({ ...event, key: entry.key });
+  }
+
   /** Board items for the whole turn arrive ahead of their audio — held here,
-   *  not shown yet, until each item's paired audio_chunk starts playing. */
-  private pendingBoardEvents: BoardEvent[] = [];
+   *  not shown yet, until each item's paired audio_chunk starts playing. An
+   *  entry leaves this list when a chunk claims it, not when it is revealed. */
+  private pendingBoardEvents: BoardEntry[] = [];
   private bufferBoardEvents(events: BoardEvent[]) {
+    const batch = this.openBatch(events);
+    if (this.cutOffBatch) {
+      // The first turn after a drop that cut one off: if it is that turn
+      // taught again, its lines are that turn's lines. See `noteSocketLost`.
+      this.adoptKeys(batch, [this.cutOffBatch]);
+      this.cutOffBatch = null;
+    }
     // INSTRUMENTATION, temporary and deliberately verbose. The question this
     // answers: which board events ever get carried by an audio chunk, and
     // which sit in this queue until the end-of-turn safety net. A figure has
     // no sentence of its own, so the suspicion is that it is never carried —
     // but that is a suspicion, and the reveal path is not somewhere to change
     // code on one.
-    for (const e of events) {
+    for (const { event: e, key } of batch.entries) {
       probe(
-        `BUFFERED seq=${e.seq} type=${e.type}` +
+        `BUFFERED seq=${e.seq} key=${key} type=${e.type}` +
           ` revealAt=${(e as { revealAt?: number }).revealAt ?? '(none)'}` +
           ` widget=${e.payload?.widget ?? '-'}`
       );
     }
-    this.pendingBoardEvents.push(...events);
+    this.pendingBoardEvents.push(...batch.entries);
     // BUFFER TIME IS THE EARLIEST HONEST MOMENT TO FETCH. The whole turn's
     // board arrives here, ahead of its audio, and a figure's art is a network
     // object — so asking for it now gives it the length of the preceding
@@ -702,24 +1016,31 @@ export class DronaVoiceClient {
     // knows nothing about figures. The screen owns the resolver and wires it.
     this.handlers.onBoardBuffered?.(events);
   }
-  /** Safety net for a sentence whose TTS failed to synthesize — its board
-   *  event would otherwise never get revealed since nothing ever plays for it. */
-  private flushPendingBoardEvents() {
-    for (const event of this.pendingBoardEvents) {
-      probe(
-        `REVEALED seq=${event.seq} type=${event.type}` +
-          ` widget=${event.payload?.widget ?? '-'} carriedBy=END_OF_TURN_FLUSH`
-      );
-      this.handlers.onBoardReveal?.(event);
+  /**
+   * Safety net for a sentence whose TTS failed to synthesize — its board
+   * event would otherwise never get revealed since nothing ever plays for it.
+   *
+   * Only the held turn's own frames. The server auto-advances into the next
+   * turn the moment this one completes (live_session_ws.py:881-883), so that
+   * turn's frame is often already here, unclaimed, when this turn's audio
+   * drains. Flushing it too wrote the whole next board ahead of its audio in
+   * one burst — and then its audio wrote every line again.
+   */
+  private flushPendingBoardEvents(throughBatch: number) {
+    const later: BoardEntry[] = [];
+    for (const entry of this.pendingBoardEvents) {
+      if (entry.batch > throughBatch) later.push(entry);
+      else this.revealBoardEntry(entry, 'END_OF_TURN_FLUSH');
     }
-    this.pendingBoardEvents = [];
+    this.pendingBoardEvents = later;
   }
 
   private handleAudioChunk(msg: Record<string, unknown>) {
     const sentenceId = String(msg.sentence_id ?? '');
     const audioBase64 = String(msg.audio ?? '');
-    const boardEvent = (msg.board_event as BoardEvent | null) ?? null;
+    const boardEvents = chunkBoardEvents(msg);
     const speech = msg.speech as string | undefined;
+    const receivedAt = Date.now();
     // Measured playback length of THIS frame's PCM, computed server-side from
     // the synthesized byte count (len(pcm) / (24000 * 2) * 1000) — never
     // estimated from the caption's word count. Optional: a server built before
@@ -730,30 +1051,49 @@ export class DronaVoiceClient {
         ? rawDuration
         : undefined;
 
-    if (boardEvent) {
-      this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => e.seq !== boardEvent.seq);
+    const entries: BoardEntry[] = [];
+    for (const event of boardEvents) {
+      const entry = this.resolveBoardEntry(event);
+      if (!entries.includes(entry)) entries.push(entry);
     }
+    if (entries.length > 0) {
+      if (RESUMED_SENTENCE.test(sentenceId)) {
+        // A resumed lesson's parked events come back as their own frame; the
+        // first resumed sentence marks that frame for what it is.
+        const at = this.boardBatches.findIndex((b) => b.serial === entries[0].batch);
+        if (at > 0) this.adoptKeys(this.boardBatches[at], this.boardBatches.slice(0, at).reverse());
+      }
+      // Claimed: the audio will reveal them, so the flush must not. By KEY —
+      // this used to filter by seq, and seq repeats across turns and within
+      // one, so claiming one event quietly dropped another turn's.
+      const claimed = new Set(entries.map((e) => e.key));
+      this.pendingBoardEvents = this.pendingBoardEvents.filter((e) => !claimed.has(e.key));
+    }
+    probe(
+      `AUDIO_RECV sentence=${sentenceId || '-'} at=${receivedAt} audio=${audioBase64 ? 'yes' : 'none'}` +
+        ` lines=${entries.map((e) => e.key).join(',') || '-'}`
+    );
 
-    // Checkpoint questions arrive as a silent chunk — caption and board line,
-    // no audio. Returning early here (the previous behaviour) dropped the
-    // question text and its board line entirely, so the class appeared to
-    // stall with nothing on screen to answer.
+    // A sentence with no audio — a checkpoint question whose synthesis failed,
+    // or any sentence whose TTS failed — arrives as a silent chunk: caption
+    // and board lines, no audio. Returning early here (the previous
+    // behaviour) dropped the text and its lines entirely, so the class
+    // appeared to stall with nothing on screen to answer.
     if (!audioBase64) {
       if (speech) this.handlers.onCaptionReveal?.(speech);
-      if (boardEvent) {
-        probe(
-          `REVEALED seq=${boardEvent.seq} type=${boardEvent.type}` +
-            ` widget=${boardEvent.payload?.widget ?? '-'}` +
-            ` carriedBy=audio_chunk(${sentenceId})`
-        );
-        this.handlers.onBoardReveal?.(boardEvent);
+      for (const entry of entries) {
+        this.revealBoardEntry(entry, `audio_chunk(${sentenceId})`, {
+          sentenceId: sentenceId || '-',
+          receivedAt,
+          startedAt: receivedAt,
+        });
       }
       return;
     }
     if (!sentenceId) return;
 
     const playbackId = `${sentenceId}-${this.chunkSeq++}`;
-    this.chunkMeta.set(playbackId, { speech, boardEvent, durationMs });
+    this.chunkMeta.set(playbackId, { speech, board: entries, durationMs, sentenceId, receivedAt });
 
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
@@ -821,6 +1161,11 @@ export class DronaVoiceClient {
     this.turnInFlight = false;
     this.pendingState = null;
     this.pendingBoardEvents = [];
+    // The server aborts its turn too (no turn_complete follows), and whatever
+    // the student said makes the next turn an answer to it — never the
+    // cut-off turn taught again.
+    this.serverTurnOpen = false;
+    this.cutOffBatch = null;
     // The abandoned turn's drain is no longer a signal to mount anything —
     // `playback.clear()` does not fire onQueueDrained, but the watchdog would
     // still be armed and would flush an empty turn on top of the next one.

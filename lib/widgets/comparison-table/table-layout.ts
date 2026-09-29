@@ -110,7 +110,8 @@ export function rowLabelTotal(cols: number): number {
  * One cell, wrapped to at most two lines. Splits at the LAST space that keeps
  * the first line inside `max` — labelled_figure's rule, for its reason: the
  * final word carries the meaning and should stand alone rather than be the
- * half that gets cut.
+ * half that gets cut. With no space to split at, it hyphenates —
+ * data_table_trend's rule, so the two tables break a word the same way.
  */
 export function wrapCell(text: string, max: number): string[] {
   const t = (text ?? '').trim();
@@ -123,7 +124,14 @@ export function wrapCell(text: string, max: number): string[] {
   // 19-character word while reporting a clean two-line wrap. Whether the
   // remainder fits is a measurement, and it belongs to `fits()`, which prices
   // the longest line and refuses with the number.
-  if (cut <= 0) return [t.slice(0, max), t.slice(max)];
+  //
+  // No space to break at: split with a HYPHEN, never bare. The bare cut drew
+  // "Mineralisation" as "Mineralisatio" / "n" and "Directional" as
+  // "Direction" / "al", a real word, and `fits()` passed both because each
+  // half was short. The hyphen takes the line's last slot, so the second line
+  // is one character longer: a word of exactly two full lines no longer fits
+  // and is refused, which is right — it could only be drawn cut bare.
+  if (cut <= 0) return [`${t.slice(0, max - 1)}-`, t.slice(max - 1)];
   return [t.slice(0, cut), t.slice(cut + 1)];
 }
 
@@ -158,7 +166,8 @@ export interface TableFrame {
 }
 
 export function layoutTable(rows: number, cols: number,
-                            width: number, height: number): TableFrame {
+                            width: number, height: number,
+                            headerLines = 1): TableFrame {
   const left = PAD_EDGE;
   const usable = width - 2 * PAD_EDGE;
   // The row-label gutter takes a third at two columns and a quarter at three,
@@ -167,11 +176,18 @@ export function layoutTable(rows: number, cols: number,
   const labelW = usable / (cols + 1);
   const colW = colWidthAt(cols, usable);
   const top = PAD_EDGE;
-  const headerY = top + BAND_H;
+  // The rule moves down with a wrapped column label. It sat at `top + BAND_H`
+  // whatever the header held, and a two-line label — centred on the one-line
+  // baseline, so at 14.8 and 29.2 — had its second line drawn THROUGH the
+  // rule at 28: 15 of the 39 stored tables, at every frame. Each extra line
+  // reaches half a line below the one-line baseline, so the rule comes down
+  // by that and keeps the one-line clearance under it.
+  const headerY = top + BAND_H + (headerLines - 1) * HEADER_SIZE * LINE_LEADING / 2;
   // A row holds up to two lines, so its band is twice the glyph plus the
-  // gutter. The header is one line by construction — a column label that
-  // wraps takes the second line out of the header band, which `needH`
-  // accounts for below.
+  // gutter. `needH` has always budgeted two header bands where a one-line
+  // header uses the top pad and one — 8pt spare — and the 7.2pt the rule
+  // moves for a wrapped label fits inside that, so what validates is
+  // unchanged.
   const rowH = BAND_H * LINES_PER_CELL + GUTTER;
   const needH = BAND_H * LINES_PER_CELL + rows * rowH + GUTTER
               + CAPTION_SIZE + PAD_EDGE;

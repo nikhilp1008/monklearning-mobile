@@ -31,12 +31,26 @@
  * whole behaviour wanted here; nested `Text` restarts at the parent's anchor
  * and stacks the runs on top of each other. Verified against the trees in
  * __tests__, not assumed.
+ *
+ * BUT ONLY WHEN THE TEXT IS ANCHORED AT ITS START. On iOS, react-native-svg
+ * 15.12.1 misplaces the runs of a text anchored `middle` or `end`: a cell
+ * "d sinθ = mλ" drew its θ over the "=" and its λ a space to the right, in
+ * every comparison table with a Greek letter (X1, 2026-09-29, on the
+ * simulator — and the same split drawn in ONE face broke the same way, so it
+ * is the anchor, not the fonts). A test renderer cannot see this: the trees
+ * were right, the pixels were not. Anchored at `start`, the same runs chain
+ * correctly. So a text of several runs is anchored HERE — its start moved by
+ * the width this file already measures it at, in the face that draws each run
+ * — and handed to the renderer as `start`. A text that cannot be measured
+ * (x or fontSize not a plain number) is drawn as one string instead: iOS then
+ * substitutes a face per glyph, which is the second typeface this file exists
+ * to avoid, but it is drawn where it belongs.
  */
 import React from 'react';
 import { Text as SvgText, TSpan } from 'react-native-svg';
 import type { TextProps } from 'react-native-svg';
 
-import { splitRuns } from './chrome';
+import { SAFETY_MARGIN, splitRuns, textWidth } from './chrome';
 
 export interface BoardTextProps extends TextProps {
   /** The face the caller draws in. Runs the board face cannot draw are
@@ -68,13 +82,34 @@ export function BoardText({ children, fontFamily, ...rest }: BoardTextProps) {
     return <SvgText fontFamily={fontFamily} {...rest}>{text}</SvgText>;
   }
 
+  const anchored = anchorAtStart(rest, text, fontFamily);
+  if (anchored === null) {
+    return <SvgText fontFamily={fontFamily} {...rest}>{text}</SvgText>;
+  }
   return (
-    <SvgText fontFamily={fontFamily} {...rest}>
+    <SvgText fontFamily={fontFamily} {...anchored}>
       {runs.map((run, i) => (
         <TSpan key={i} fontFamily={run.family}>{run.text}</TSpan>
       ))}
     </SvgText>
   );
+}
+
+/**
+ * `props` re-anchored at the text's start, or null when the text cannot be
+ * measured. The width is `textWidth` without its safety margin — the drawn
+ * advance, so a centred string is centred — measured the way the gate measures
+ * it: the whole string in the caller's face, each companion character priced
+ * in the face that draws it.
+ */
+export function anchorAtStart(props: TextProps, text: string, family?: string): TextProps | null {
+  const anchor = props.textAnchor ?? 'start';
+  if (anchor === 'start') return props;
+  const x = typeof props.x === 'number' ? props.x : Number.NaN;
+  const size = typeof props.fontSize === 'number' ? props.fontSize : Number.NaN;
+  if (!Number.isFinite(x) || !Number.isFinite(size)) return null;
+  const width = textWidth(text, size, family) / SAFETY_MARGIN;
+  return { ...props, x: anchor === 'middle' ? x - width / 2 : x - width, textAnchor: 'start' };
 }
 
 export default BoardText;
