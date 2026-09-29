@@ -239,3 +239,30 @@ export function boardRowKey(e: ContinuityEvent, index: number): string {
   const sig = boardSignature(e);
   return sig === null ? `${e.seq}-${index}` : `board-${sig}`;
 }
+
+/**
+ * The React keys for a whole rendered board list — `boardRowKey` per row,
+ * made unique.
+ *
+ * A plate, a graph, then the same plate again is two draws of that plate
+ * (`collapseBoards`), and both rows carry the plate's signature key. Two
+ * siblings with one key are unsupported in React: it warned on every render
+ * of such a board (57 times in one class, 2026-09-29), and on any update that
+ * is not a plain append it may drop or duplicate a row. A board resumed after
+ * a remount rebuilds from the server's replay and repeats pictures this way
+ * too.
+ *
+ * The first draw keeps the bare signature key and a later draw of the same
+ * picture gets `#2`, `#3`. The board only ever grows at the end, so a row's
+ * draw number never changes and neither does its key: a reveal merged into
+ * either draw still animates instead of remounting.
+ */
+export function boardRowKeys(events: readonly ContinuityEvent[]): string[] {
+  const draws = new Map<string, number>();
+  return events.map((e, i) => {
+    const key = boardRowKey(e, i);
+    const n = (draws.get(key) ?? 0) + 1;
+    draws.set(key, n);
+    return n === 1 ? key : `${key}#${n}`;
+  });
+}

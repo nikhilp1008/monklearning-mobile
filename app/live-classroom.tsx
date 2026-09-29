@@ -64,6 +64,7 @@ import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudi
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
 import { startSessionEnd } from '@/lib/session-end';
+import { createFollowTracker, isFling } from '@/lib/board-follow';
 import { claimDronaClient } from '@/lib/drona-prewarm';
 import {
   appendBoardEvent,
@@ -75,7 +76,7 @@ import {
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
 import { BoardBlockView } from '@/components/board-text';
-import { applyContinuity, boardRowKey } from '@/lib/widgets/board-continuity';
+import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
 import { REPORT_REASONS, sendReport as postReport } from '@/lib/reports';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
@@ -1095,9 +1096,14 @@ export default function LiveClassroomScreen() {
    */
   const followingRef = useRef(following);
   followingRef.current = following;
+  // Whose motion is it — the student's or the board's own glide (lib/board-follow.ts).
+  const followTracker = useRef(createFollowTracker()).current;
   const onBoardGrow = useCallback(() => {
-    if (followingRef.current) scrollRef.current?.scrollToEnd({ animated: true });
-  }, []);
+    if (followingRef.current) {
+      followTracker.programmaticScroll();
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [followTracker]);
   /**
    * WHO SCROLLED DECIDES WHETHER WE ARE STILL FOLLOWING — not where we are.
    *
@@ -1275,14 +1281,28 @@ export default function LiveClassroomScreen() {
     setFollowing(next);
   };
 
-  /** A fling that has come to rest: the student's scroll is finished, so this
-   *  is the moment to say whether they left the live edge or came back to it. */
-  const onBoardSettled = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const atLiveEdge = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    applyFollowing(contentOffset.y + layoutMeasurement.height >= contentSize.height - 40);
+    return contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
+  };
+
+  /** The student lifted their finger: a drag always decides whether they left
+   *  the live edge or came back to it. */
+  const onBoardDragEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    applyFollowing(followTracker.dragEnded(atLiveEdge(e), isFling(e.nativeEvent.velocity?.y)));
+  };
+
+  /** A scroll came to rest. Only the student's fling decides here: on iOS the
+   *  board's own glide to a new line also ends in a momentum end, and when the
+   *  board grew during that glide it ends short of the bottom — reading that as
+   *  "the student left" is what stopped the board following (X1). */
+  const onBoardMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = followTracker.momentumEnded(atLiveEdge(e));
+    if (next !== null) applyFollowing(next);
   };
 
   const jumpToLive = () => {
+    followTracker.programmaticScroll();
     applyFollowing(true);
     scrollRef.current?.scrollToEnd({ animated: true });
   };
@@ -1705,6 +1725,11 @@ export default function LiveClassroomScreen() {
     );
   }
 
+  // The board as it renders (P4), and one React key per row, never two rows on
+  // one key — see `boardRowKeys`.
+  const boardRows = applyContinuity(board);
+  const boardKeys = boardRowKeys(boardRows);
+
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
@@ -1728,13 +1753,14 @@ export default function LiveClassroomScreen() {
           onScrollBeginDrag={() => {
             draggingRef.current = true;
             draggingShared.value = true;
+            followTracker.dragBegan();
           }}
           onScrollEndDrag={(e) => {
             draggingRef.current = false;
             draggingShared.value = false;
-            onBoardSettled(e);
+            onBoardDragEnd(e);
           }}
-          onMomentumScrollEnd={onBoardSettled}
+          onMomentumScrollEnd={onBoardMomentumEnd}
           showsVerticalScrollIndicator={false}>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
             {board.length === 0 ? (
@@ -1751,9 +1777,10 @@ export default function LiveClassroomScreen() {
                  board, so three segments about one plate leave one plate
                  whose label group changes under the narration. The key comes
                  from the picture's signature, so the component instance
-                 survives that change and animates instead of remounting. */
-              applyContinuity(board).map((event, i) => (
-                <BoardLine key={boardRowKey(event, i)}>
+                 survives that change and animates instead of remounting; a
+                 picture drawn a second time gets its own key (`boardRowKeys`). */
+              boardRows.map((event, i) => (
+                <BoardLine key={boardKeys[i]}>
                   <BoardBlockView
                     event={event}
                     diagramBox={diagramBox}
