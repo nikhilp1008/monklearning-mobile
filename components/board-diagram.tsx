@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
+import { SvgAst, parse } from 'react-native-svg';
 
 import { INK, INK_MUTED } from '@/components/classroom-chrome';
 import { svgParseError, utf8ByteLength } from '@/lib/widgets/svg-parse';
@@ -844,6 +844,57 @@ function withFont(svg: string): string {
 }
 
 /**
+ * XML CHARACTER REFERENCES IN TEXT, DECODED.
+ *
+ * react-native-svg's parser copies the text between tags verbatim — it never
+ * decodes `&lt;`, `&gt;`, `&amp;` or numeric references — so a figure labelled
+ * `λ/a &lt;&lt; 1` or `&#8594;` drew those characters literally on the phone
+ * while every browser drew `<<` and `→` (X1, 2026-09-29: 178 of 2,238 stored
+ * figures, and any live one with <, > or & in a label). The text cannot be
+ * decoded in the string (a raw `<` would open a tag), so it is decoded in the
+ * parsed tree, before the tree becomes elements: `parse`'s middleware.
+ */
+const NAMED_ENTITIES: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" };
+
+export function decodeXmlEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|lt|gt|amp|quot|apos);/g, (whole, ref: string) => {
+    if (ref[0] !== '#') return NAMED_ENTITIES[ref] ?? whole;
+    const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+    return Number.isInteger(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+  });
+}
+
+type ParsedNode = { children: (ParsedNode | string)[] };
+
+/** `parse` middleware: decodes every text child in the tree, in place. */
+export function decodeTextNodes<T extends ParsedNode>(node: T): T {
+  node.children = node.children.map((child) =>
+    typeof child === 'string' ? decodeXmlEntities(child) : decodeTextNodes(child)
+  );
+  return node;
+}
+
+/**
+ * `SvgXml`, with the text decoded: the judged string in, a drawing out. It
+ * keeps `SvgXml`'s shape — the string arrives as `xml` — so what reaches the
+ * renderer is still the one prop the tests read. A throw is unreachable
+ * (`diagramVerdict` ran the same parser on this string), but it runs
+ * mid-class, and a figure failing to draw must cost the student a figure, not
+ * the lesson.
+ */
+function DiagramXml({ xml, width, height }: { xml: string; width: number; height: number }) {
+  const ast = useMemo(() => {
+    try {
+      return parse(xml, decodeTextNodes);
+    } catch (err) {
+      console.warn('[board-diagram] could not draw a figure:', err);
+      return null;
+    }
+  }, [xml]);
+  return ast ? <SvgAst ast={ast} override={{ width, height }} /> : <View />;
+}
+
+/**
  * The whole string transform, in order: white paint first, so it reads the nine
  * authored colours rather than their house replacements, then the flat palette
  * swap (which cannot touch `#1C1A16` or `transparent`), then the font.
@@ -982,18 +1033,10 @@ export function BoardDiagram({
       {/* No overflow:hidden anywhere on this path. A label can sit a hair
           outside the viewBox, and clipping cuts it off mid-word.
 
-          `fallback`/`onError` are the library's own guard against a parse that
-          throws. `diagramVerdict` has already run the same parser on this
-          exact string, so this is unreachable — but it runs mid-class, and a
-          figure failing to draw must cost the student a figure, not the
-          lesson. */}
-      <SvgXml
-        xml={verdict.xml}
-        width={width}
-        height={height}
-        fallback={<View />}
-        onError={(err) => console.warn('[board-diagram] could not draw a figure:', err)}
-      />
+          `DiagramXml` draws the judged string, as `SvgXml` did, decoding its
+          text on the way; a parse that throws there costs the student a
+          figure, never the lesson. */}
+      <DiagramXml xml={verdict.xml} width={width} height={height} />
       {caption ? <Text style={styles.caption}>{caption}</Text> : null}
     </View>
   );
