@@ -1,115 +1,108 @@
-# Release readiness — board widget runtime (2026-09-26)
+# Release readiness — board widget runtime (2026-09-29)
 
-Verdict: **NO-GO today.** GO once blocker 3 below (audio-route recovery) is
-fixed and device-checked, and the branch is merged. Nothing
-here needs a migration or a credential from Claude.
+Verdict: **GO to cut the build; release once the device checklist below passes on a real iPhone.**
+Every blocker Claude can close is closed. The branch still has to be merged and the build cut
+(owner), and one check needs a real device: an audio-route change mid-sentence.
 
 ## What the release is
 
-The last build in students' hands is the **19 Sep iOS build**, cut from mobile
-`76393a4`. Everything since splits into two kinds.
+The last build in students' hands is the **19 Sep iOS build** (mobile `76393a4`).
 
-**Server-only — already live, no app release needed.** The API deploys from
-`main` on push; production reports `/version` commit = pushed HEAD, validator
-`present` (vendored bundle pinned to mobile `55e899b`), `widget_negotiation`
-on, row verdicts 66 loaded / 61 adopted. Since 19 Sep: P1–P3, Q1–Q4, S1–S3,
-T1–T5, U1–U5, V1 (`b3720de`), V3, V4 (`ddeface`), V5 (`c1f474f`), backfill
-tooling (`26a48b9`). Old builds are protected by negotiation: a client that
-sends no manifest is treated as `BASELINE_MANIFEST_2026_09_19` (12 widgets),
-so it is never sent a widget it cannot draw (V5 sweep: 0 leaks, 0 blank, all
-30 chapters, all three manifests).
+**Server-only — already live, no app release needed.** The API deploys from `main` on push.
+Production reports `/version` commit `d7006c3`, validator `present`, `widget_negotiation` on,
+row verdicts 66 loaded / 61 adopted, 4 workers on Redis. Live since 19 Sep, among others:
+- board lines ride the sentence that says them; no line waits for the end of a turn (W4: 0 of
+  2,499 lines in a 735-turn replay, was 1.23%);
+- turn 1 teaches the lesson's first slice (the client's "Begin lesson segment" is no longer
+  answered as a question), and a reply that answers nothing no longer uses up a slice (W6);
+- content: 2,238 stored board figures, all legible (832 redrawn and reviewed 2026-09-28), 0
+  consecutive repeated boards except deliberate ones, 106 lesson segments' factual errors fixed,
+  and all 290 plans accepted as the reviewed baseline.
+Old builds are protected by negotiation (a client with no manifest is served only the 12-widget
+19 Sep baseline): sweep 2026-09-29, 0 leaks, 0 blank boards, all 30 chapters, all three manifests.
 
-**Client-side — needs this build.** 98 mobile commits since `76393a4`, 32 of
-them on the board path. The ones a student sees:
+**Client-side — needs this build. Native code changed, so it cannot ship over the air.**
+- **Audio survives a route change** (Bluetooth, headphones, AirPlay, a call, Siri). `3b1c02c` +
+  `a2cef11`:
+  - native `PcmPlayerModule.swift`: a buffer counts as heard only while the engine runs; engine
+    restart retried at 0.25/0.5/1/2 s; `play()` never on a stopped engine; no lock taken on
+    AVFoundation's completion queue (the deadlock found in testing: a barge-in could hang the app);
+    `recoveries()` counter;
+  - JS `pcm-playback-queue.ts`: dead-engine watchdog (JUMP/FROZEN) that rebuilds and replays what
+    was not heard, and stands down while the native side is replaying.
+- **Two different figures are never one board** (`fea84f5`, `board-continuity.ts`): the SVG
+  signature hashes the whole SVG instead of its first 200 characters.
+- Everything listed on 2026-09-26: five new widgets (17-widget manifest), the manifest on the WS
+  query string, widget fallback pictures, `(frame, seq)` board events and reconnect replay, a chunk
+  reveals every line it carries, `board_gap` telemetry, Keychain tokens, mock tests,
+  report-a-mistake.
 
-- five new widgets: `comparison_table`, `lcr_resonance`, `flux_surface`,
-  `region_plot`, `vector_sum` (the 17-widget manifest);
-- the manifest itself on the WS query string (`&widgets=id@ver,…`) — without
-  it the server must assume the 12-widget baseline;
-- a widget always carries its fallback picture; a malformed stored SVG reports
-  `svg_invalid` and falls back instead of drawing blank (U5);
-- board events keyed `(frame, seq)`, written once; reconnect replay merges (T4);
-- a chunk reveals every line it carries (`board_events` list, V4) — old builds
-  read only `board_event` and get the rest at end of turn, exactly once;
-- `board_gap` telemetry (`onWidgetGap → track('board_gap')`) — **no released
-  build sends it**, so the daily gap report is blind until this ships;
-- Keychain session tokens, WS token out of the URL; mock tests; report-a-mistake.
-
-## Checks on `board-widget-runtime` @ `ab246f8`
+## Checks
 
 | Check | Result |
 |---|---|
-| jest | 2317 passed, 3 skipped, 0 failed |
+| jest (`a2cef11`, rebased on `8c2be0d`) | 2341 passed, 3 skipped, 0 failed (with the production-isolation guard) |
 | `tsc --noEmit` | 0 errors |
 | `expo lint` | 0 errors, 3 warnings |
-| manifest on WS query | sent; server logs `widget manifest: 17 widgets` on every connect |
-| manifest == what the build renders | `lib/__tests__/drona-socket-manifest.test.ts` (registry ↔ `build/registry-manifest.json`) |
-| API pytest (main) | 1951 passed, 32 skipped, 0 failed |
+| API pytest (`d7006c3`) | 2182 passed, 36 skipped, 0 failed; network guard on, 0 production attempts |
+| corpus_check | green: every stored SVG sizes and parses in the client; every adopted segment has a board |
+| V5 sweep (30 chapters × 3 manifests) | on target: 0 blank, 0 live-dependent in adopted chapters, 0 leaks, 0 held-chapter widgets, 0 resolver bugs, 0 true repeats |
+| Legibility scan (all 2,238 stored SVGs) | 0 faults except 5 deliberate strike-throughs |
+| V8 production | `/version` = `d7006c3`, validator present, negotiation on, 4× Redis, no errors |
 
-Simulator (production API, 2026-09-26): 8 classes across Physics, Chemistry,
-Maths — every board line revealed with its own sentence's audio, gap 0–2 ms
-client-side and 0 ms server-side, 0 orphans; held chapters served no widget;
-three real mid-class redeploys reconnected with the board and pending question
-restored, no duplicate lines.
+**Audio proof (simulator, 2026-09-28).** A temporary debug build forced the engine stop iOS makes on
+a route change (reverted afterwards). Phase 4, on the fixed code: 22 of 22 pass — route-change
+stop ×7, silent stop ×5, restart failures ×5 (all late in a part), real barge-ins ×7 including 2
+within 20 ms of a recovery. Audio resumed, unheard audio replayed in order, no burst of board lines,
+no hang, 0 JS rebuilds on top of a native recovery. Then four normal classes (Physics, Chemistry,
+Maths, Biology) on the clean build: 0 recoveries of any kind, and turn 1 put slice 1 (4/4 items) on
+the board in every subject. The Simulator's own audio-output switch cannot trigger the stop (all its
+outputs are 48 kHz), so the real route change is checked on a device (below).
 
-## Blockers
+## Device checklist (real iPhone, this build, production API)
 
-1. ~~Merge to `main` conflicts~~ — **resolved** (`ab246f8`, main merged into
-   this branch on 2026-09-26). `board-widget-runtime` now merges into `main`
-   cleanly and is 0 commits behind it. What remains is the merge itself and
-   cutting the build from `main`. **Owner: Raasikh.**
-2. ~~Adopted chapters depend on live drawing~~ — **closed 2026-09-26.** 847
-   session-authored stored SVGs written (every one independently reviewed),
-   0 invalid, 0 failed; `corpus_check` green on all six checks; the three-manifest
-   sweep shows 0 live-dependent segments in adopted chapters and 0 blank boards.
-3. **Audio stops for good after an audio-route change** (was filed as "after
-   rotation"). Rotation was not the cause: 73 rotations on the simulator, 0
-   stalls. The stall on 2026-09-26 came from the Mac's audio output switching
-   (AirPlay turned off) 1 s before the rotate tap. iOS stopped the
-   AVAudioEngine, and the dev client, built 09-24, before `2eff0e6` ("The
-   voice recovers…"), never restarted it. The WebSocket stayed alive the
-   whole time. The same thing will happen on a phone when Bluetooth, AirPlay,
-   headphones or a call change the route. `2eff0e6` is on this branch, but it
-   still has two gaps:
-   - the flushed completions are counted before the engine-change
-     notification, so lines are revealed in a burst and the audio is skipped;
-   - `engine.start()` is not retried.
-   **Fix to land before release:** the JS dead-engine watchdog in
-   `lib/pcm-playback-queue.ts` (prototype with 5 tests; it also protects
-   binaries already in the field) plus the native follow-up (count a
-   completion only while the engine runs, retry start with backoff). Then a
-   device check: switch the audio route mid-sentence. **Owner: client audio.**
+Audio route — mid-sentence, while Drona is speaking a long answer:
+- [ ] Connect Bluetooth headphones/AirPods; then disconnect them. Each time: audio pauses about a
+      second, then carries on from the start of the part it was in; no lines burst onto the board.
+- [ ] Plug in / unplug wired headphones (or a USB-C/Lightning adapter). Same expectations.
+- [ ] Trigger Siri; dismiss. Audio resumes; the class carries on.
+- [ ] Receive a phone call (decline it; another time, answer and hang up). Audio resumes after.
+- [ ] Barge in (tap to talk) mid-sentence 3 times; the app never freezes, audio stops cleanly.
+Rotation:
+- [ ] Rotate portrait ↔ landscape mid-sentence several times: audio continues, the board re-lays out,
+      no line lost or duplicated.
+Network:
+- [ ] Wi-Fi off mid-class for ~10 s, then on: the class reconnects, the board and any pending
+      question come back as they were, no duplicate lines.
+Board content:
+- [ ] One class per subject (suggested: Wave Optics, Aldehydes/Ketones, Application of Integrals,
+      Plant Kingdom): figures legible, no label crossed by a line, each figure matches what is said.
+- [ ] Plant Kingdom / Structural Organisation: the labelled illustration shows its plate labels,
+      and consecutive segments show the intended plate (cues are set for every illustration segment).
+- [ ] An adopted chapter shows widgets; a held chapter shows none.
 
-## Open decisions (not blockers, not Claude's)
+## Open items (not blockers)
 
-- `components/paywall/plans.ts`: the uncommitted price change that sat in the
-  working checkout is now identical to the branch tip (main's ₹2,999 ladder,
-  `7f2e675`, came in with `ab246f8`). Nothing to decide. **Owner: Raasikh.**
-- Probability `complementary-events…` segments 2→3: two different SVGs share a
-  length and first 200 characters, so `boardSignature` treats them as one board
-  and would not draw segment 3. Dormant (chapter held). **Owner: cofounder
-  (`board-continuity.ts`).**
-- 357 consecutive repeated boards across the corpus (figure `a` with no cue;
-  shared concept SVG). Content, not resolver. **Owner: Raasikh.**
+- **CI (W8):** `corpus-check.yml` still fails only on missing repository secrets `DATABASE_URL` and
+  `MOBILE_REPO_TOKEN`. Once they are added, re-run it; mark it required on `main` after it is green.
+- **`diagram_author.repair_layout`** (API) moves labels that don't actually overlap — it
+  overestimates text width ~25-40% for the app font and moves text away from the lines and brackets
+  it belongs to. It damaged 13 reviewed figures at write (all re-written). The live model-drawn path
+  uses the same function. Fix proposed in `docs/svg-repair-2026-09-28.md`; not made.
+- **Content:** every review pass found a few factual errors in lesson text outside what it was asked
+  to check; 106 segments are fixed, but a full content audit is the systematic fix.
+- **Questions mid-class** get a spoken answer but no figure of their own (by design today).
 
 ## Proposed version
 
-`app.json` version `1.0.0` → **`1.1.0`** (new widgets, new mock flow, new
-telemetry). Build number is EAS-managed (`appVersionSource: remote`,
-`autoIncrement`), so it is whatever EAS assigns next; Claude cannot read it
-(no EAS credentials).
-
-## After it ships
-
-- Turn on `scripts/gap_report.py --require-events` and delete its banner.
-- Once the 19 Sep build is gone from the field, add a new baseline constant
-  (never edit `BASELINE_MANIFEST_2026_09_19`).
+`app.json` version `1.0.0` → **`1.1.0`**. Build number is EAS-managed (`appVersionSource: remote`,
+`autoIncrement`): whatever EAS assigns next.
 
 ## Release notes (draft)
 
-> **Sharper boards in live classes.** Diagrams now appear exactly when your
-> teacher says them, and five new interactive figures join the board
-> (comparison tables, LCR resonance, flux through a surface, shaded regions,
-> vector sums). If your connection drops mid-class, the board comes back as you
-> left it. Also new: full mock tests with review, and a way to report a mistake
-> from anywhere in the app.
+> **Sharper, clearer boards in live classes.** Diagrams appear exactly when your teacher says them,
+> and hundreds of diagrams have been redrawn to be clean and correct on your phone. Five new
+> interactive figures join the board (comparison tables, LCR resonance, flux through a surface,
+> shaded regions, vector sums). Your teacher's voice now carries on if you connect headphones or
+> Bluetooth, get a call, or use Siri mid-class. If your connection drops, the board comes back as
+> you left it. Also new: full mock tests with review, and a way to report a mistake from anywhere.
