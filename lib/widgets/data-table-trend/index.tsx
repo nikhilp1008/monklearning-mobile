@@ -29,7 +29,8 @@ import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
 import {
   ARROW_LEN, CHAR_W, HAIRLINE_STROKE, LABEL_SIZE, LINE_STROKE, PAD_EDGE, PAD_SIDE,
-  READOUT_BAND, READOUT_SIZE, TICK_R, bandFor, fitReadout, maxChars, vArrowHead,
+  READOUT_BAND, READOUT_ELLIPSIS, READOUT_SIZE, TICK_R, bandFor, fitReadout, maxChars,
+  vArrowHead,
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
@@ -50,6 +51,12 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
  */
 const CELL_SIZE = LABEL_SIZE;
 const HEADER_SIZE = LABEL_SIZE;
+/** Baseline-to-baseline for a wrapped header or cell, as a multiple of the
+ *  font size. It was 1.0 — zero leading — and verify-render boxes a line at
+ *  1.15 of the size, so the two lines of every wrapped cell overlapped by
+ *  1.8pt and were reported as colliding labels. comparison_table's
+ *  LINE_LEADING, for the same reason. */
+const LINE_LEADING = 1.2;
 const RULE_STROKE = HAIRLINE_STROKE;
 const ARROW_STROKE = LINE_STROKE;
 const ANOMALY_R = TICK_R;
@@ -239,7 +246,12 @@ function DataTableTrend({
     const labelW = Math.min(0.32 * width, maxLabelChars * CELL_SIZE * 0.58 + 12);
     const gridLeft = left + labelW;
     const colW = Math.max(1, (right - gridLeft) / cols);
-    const headerY = top + HEADER_H;
+    // The header band grows DOWN by one line per wrapped line, and the rule
+    // with it. It was fixed at one band, so a two-line label's second line
+    // sat on the rule; and it cannot grow up, because the readout is there.
+    const headerLines = params.col_labels.reduce(
+      (m, c) => Math.max(m, wrapCell(c, colLabelCap(cols, width)).length), 1);
+    const headerY = top + HEADER_H + (headerLines - 1) * HEADER_SIZE * LINE_LEADING;
     const rowH = Math.max(1, (bottom - headerY) / rows);
 
     const v = column(params.values, cols, params.trend_col, rows);
@@ -269,7 +281,14 @@ function DataTableTrend({
     const w = frame.right - frame.left;
     if (params.cell_kind !== 'numeric') {
       const cap = params.caption || 'comparison';
-      return cap.slice(0, maxChars(w, READOUT_SIZE, cap));
+      const fit = maxChars(w, READOUT_SIZE, cap);
+      if (cap.length <= fit) return cap;
+      // Cut on a WORD, and mark the cut. A plain slice drew "Discontinuity
+      // types by limit beha" at 343 — half a word that reads as the whole
+      // caption. One slot goes to the ellipsis, as in `fitReadout`.
+      const head = cap.slice(0, Math.max(0, fit - 1));
+      const space = head.lastIndexOf(' ');
+      return `${(space > 0 ? head.slice(0, space) : head).trimEnd()}${READOUT_ELLIPSIS}`;
     }
     const sign = d.netChange > 0 ? '+' : '';
     const unit = params.unit ? ` ${params.unit}` : '';
@@ -335,11 +354,11 @@ function DataTableTrend({
           so a 900pt board should use them rather than wrap where the phone
           had to. */}
       {params.col_labels.flatMap((c, i) =>
-        wrapCell(c, colLabelCap(params.col_labels.length, width)).map((ln, li, all) => (
+        wrapCell(c, colLabelCap(params.col_labels.length, width)).map((ln, li) => (
           <SvgText
             key={`h${i}-${li}`}
             x={colCentreX(i)}
-            y={frame.top + HEADER_SIZE + (li - (all.length - 1) / 2) * HEADER_SIZE}
+            y={frame.top + HEADER_SIZE + li * HEADER_SIZE * LINE_LEADING}
             fill={theme.inkMuted}
             fontSize={HEADER_SIZE}
             fontFamily={theme.monoFontFamily}
@@ -384,13 +403,14 @@ function DataTableTrend({
                 : wrapCell(params.text_values[idx] ?? '', colLabelCap(params.col_labels.length, width));
             // Two lines are centred about the row's middle, so a one-line cell
             // sits exactly where it always did and a two-line cell grows
-            // symmetrically rather than pushing down into the row below.
-            const dy = lines.length === 1 ? CELL_SIZE * 0.35 : -CELL_SIZE * 0.15;
+            // symmetrically rather than pushing down into the row below —
+            // one LINE_LEADING apart, not one font size, or they overlap.
+            const dy = CELL_SIZE * 0.35 - (lines.length - 1) * CELL_SIZE * LINE_LEADING / 2;
             return lines.map((ln, li) => (
               <SvgText
                 key={`c${c}-${li}`}
                 x={colCentreX(c)}
-                y={rowCentreY(r) + dy + li * CELL_SIZE}
+                y={rowCentreY(r) + dy + li * CELL_SIZE * LINE_LEADING}
                 fill={theme.inkMuted}
                 fontSize={CELL_SIZE}
                 fontFamily={theme.monoFontFamily}

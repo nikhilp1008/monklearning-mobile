@@ -340,10 +340,15 @@ function ProcessFlow({ params, motion, width, height, theme }: WidgetRenderProps
    * not scale; how many characters FIT is legitimately a function of the box,
    * which is what `fitReadout` is for. The structural numbers are never
    * dropped; the caption gives up its characters first.
+   *
+   * "N steps" counts NODES — `nodes` is one label per step. It printed
+   * `stepCount`, the arrows, so an open chain of five read "4 steps · open"
+   * under "Five steps of decomposition". A closed loop reads the same either
+   * way: its return edge is the n-th arrow.
    */
   const readout = useMemo(() => {
     const value =
-      `${d.stepCount} steps · ${d.closes === 1 ? 'closed loop' : 'open'}` +
+      `${d.nodeCount} steps · ${d.closes === 1 ? 'closed loop' : 'open'}` +
       (d.branchAt >= 0 ? ' · 1 branch' : '');
     return fitReadout(params.caption, value, width - 2 * PAD_SIDE);
   }, [params.caption, d, width]);
