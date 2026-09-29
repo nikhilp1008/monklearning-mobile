@@ -70,11 +70,11 @@ Old builds are protected by negotiation (a client with no manifest is served onl
 | `tsc --noEmit` | 0 errors |
 | `expo lint` | 0 errors, 3 warnings (all three predate this build) |
 | `verify:render` (519 trees) | 516 pass; the 3 `free_body_forces` phone-frame trees are checked at 900x430 and read as "degenerate" — a gate-harness frame mismatch that predates this build, not a widget defect |
-| API pytest (`2f9e4dc4` = `d7006c3` + X4, X5, backfill override, validator re-pin) | 2192 passed, 36 skipped, 0 failed; network guard on, 0 production attempts |
+| API pytest (`2bcb9b4e` = `d7006c3` + X4, X5, backfill override, validator re-pin, repair_layout fix) | 2307 passed, 36 skipped, 0 failed; network guard on, 0 production attempts |
 | corpus_check (mobile `6265a70`) | green: every stored SVG sizes and parses in the client; every adopted segment has a board |
 | V5 sweep (API `2f9e4dc4`, mobile `6265a70`; 30 chapters × 3 manifests) | on target: 0 blank, 0 live-dependent in adopted chapters, 0 leaks, 0 held-chapter widgets, 0 resolver bugs, 0 true repeats. Widget boards: current client 83 (55 stored + 29 archetype, minus `adfd3853:5`, which the new client refuses and draws from its stored SVG until its payload fix lands), 19 Sep client 52 |
 | Legibility scan, tightened band (all 2,238 stored SVGs) | segment figures (2,143): 31 with a label crossed by a line (redraws waiting), 5 deliberate strike-throughs; 14 are legible but stored re-spaced rather than as approved (restores waiting). Concept figures (95): 74 fail, none served (the 18 segments still on a concept figure all use clean ones) |
-| V8 production | `/version` = `d7006c3`, validator present (pinned to mobile `55e899bd`), negotiation on. The four API commits above are tested but NOT deployed: a push to API main is a production deploy and waits for the owner. The build does not depend on them — on `d7006c3` the one payload the new client refuses (`adfd3853:5`) draws its stored SVG |
+| V8 production | `/version` = `d7006c3`, validator present (pinned to mobile `55e899bd`), negotiation on. The five API commits above are tested but NOT deployed: a push to API main is a production deploy and waits for the owner. The build does not depend on them — on `d7006c3` the one payload the new client refuses (`adfd3853:5`) draws its stored SVG |
 
 **Audio proof (simulator, 2026-09-28).** A temporary debug build forced the engine stop iOS makes on
 a route change (reverted afterwards). Phase 4, on the fixed code: 22 of 22 pass — route-change
@@ -133,7 +133,11 @@ Board content:
 
 - **CI (W8):** `corpus-check.yml` still fails only on missing repository secrets `DATABASE_URL` and
   `MOBILE_REPO_TOKEN`. Once they are added, re-run it; mark it required on `main` after it is green.
-- **`diagram_author.repair_layout`** (API): the fix is in its third review round, not deployed. Rounds 1–2 moved it to the measured Onest width model, stopped it moving labels off the lines they belong to, and fixed parsing, totality and speed; round 3 removes the last case where structural drawing (a fraction bar, a bond, a stacked bar) could move with a label, and caps the gate's allowance for long labels. Until it ships the live path keeps the old nudger, and the 45-figure write waits for it (under the old code all 14 restores would be moved again).
+- **`diagram_author.repair_layout`** (API): fixed and committed (`2bcb9b4e`), not deployed. It measures
+  labels in Onest, and moves nothing but labels and a label's own lone underline; any other mark pins its
+  label. The 14 figures the old nudger moved come through byte for byte, 0 of 2,238 stored figures move,
+  and three rounds of independent review closed every case where a mark could leave its word. Until the
+  push, the live path keeps the old nudger, and the 45-figure write waits for it.
 - **Content:** a full audit of all 290 plans is planned and costed (API `docs/content-audit-plan.md`,
   not run); calibration found ~4 confirmed issues per segment, ~0.8 of them serious.
 - **Cosmetic, for the widgets' owner:** a formula line with `x_{\text{edges}}` shows `x_(edges)`, and
