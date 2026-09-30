@@ -145,16 +145,47 @@ Board content:
   put a hyphen inside a formula (only in a payload the review already judged wrong).
 - **Questions mid-class** get a spoken answer but no figure of their own (by design today).
 
-## Proposed version
+## Version
 
-`app.json` version `1.0.0` → **`1.1.0`**. Build number is EAS-managed (`appVersionSource: remote`,
-`autoIncrement`): whatever EAS assigns next.
+`app.json` (and `package.json`) **`1.1.0`**; the 19 Sep build was `1.0.0`. The build number is EAS-managed
+(`appVersionSource: remote`, `autoIncrement` on the production profile): whatever EAS assigns next.
+There is no over-the-air path: `expo-updates` is not installed and no `runtimeVersion` is set, so no
+JavaScript can reach a 1.0.0 binary; and no GitHub or EAS workflow runs on a push to `main`.
 
-## Release notes (draft)
+## Release notes
 
 > **Sharper, clearer boards in live classes.** Diagrams appear exactly when your teacher says them,
-> and hundreds of diagrams have been redrawn to be clean and correct on your phone. Five new
-> interactive figures join the board (comparison tables, LCR resonance, flux through a surface,
-> shaded regions, vector sums). Your teacher's voice now carries on if you connect headphones or
-> Bluetooth, get a call, or use Siri mid-class. If your connection drops, the board comes back as
-> you left it. Also new: full mock tests with review, and a way to report a mistake from anywhere.
+> and hundreds have been redrawn to be clean and correct on your phone; formulas with Greek letters
+> and symbols now read properly in tables and figures. Five new interactive figures join the board
+> (comparison tables, LCR resonance, flux through a surface, shaded regions, vector sums), and the
+> board keeps up with the lesson on its own. Your teacher's voice carries on if you connect
+> headphones or Bluetooth, get a call, or use Siri mid-class, and if your connection drops the board
+> comes back as you left it.
+>
+> **Full mock tests.** Sit a timed paper that survives the app closing, review every answer, see
+> your scores over time, and go straight from your report to the chapters to work on in Practice.
+> Practice can now put your weak areas first.
+>
+> **Your account.** You can delete your account yourself, from Personal information. Sign-in is
+> kept in the iPhone's Keychain. And you can report a mistake from anywhere in the app.
+>
+> **Privacy.** To see which phones students use, the app now sends its model and iOS version with
+> its usage events, and our server works out which state you are in from your connection — no GPS,
+> and no location permission.
+
+## Privacy (for the App Store privacy details)
+
+What the app sends, all of it to our own API (`monk-learning-api`, over HTTPS, with the student's
+sign-in token) and stored in our own database (`public.app_events`); no third-party analytics SDK,
+no advertising, no tracking across other companies' apps:
+
+| Collected | Exactly what | Linked to the student | Purpose |
+|---|---|---|---|
+| Usage events | `app_open`, `app_foreground`, `app_background`, `screen_view` (screen name), `board_gap` (a figure that could not be drawn: the reason, its detail and the chapter); a per-launch id, the event time, app version, platform | yes — the account id, taken from the sign-in token | analytics (the admin dashboard), app functionality (which figures fail) |
+| Device | brand, model name ("iPhone 15"), OS version, phone or tablet — from the phone, no permission prompt | yes | analytics |
+| Coarse location | country ("IN" or "outside India"), state, and city (approximate) — worked out on our server from the request's IP address with a local copy of DB-IP's free database | yes | analytics |
+
+Not collected: GPS or precise location, the IP address itself (used once on our server for the lookup,
+never stored, logged or sent to another service), serial number, advertising ID, IDFV, contacts,
+photos (Snap and Solve sends only the photo the student chooses, for solving). Deleting the account
+deletes all of these rows (`app_events.user_id` cascades from the account).
