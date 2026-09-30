@@ -19,6 +19,9 @@ import { ParsedStep } from '@/lib/solution-steps';
 const INK = '#1C1A16';
 const INK_70 = '#4A463D';
 const INK_30 = '#B5B0A4';
+/** Practice's formula ground — ink at 4.5%, a shade off the page rather
+ *  than a colour. See `mathWrap`. */
+const SLAB_GROUND = 'rgba(28,26,22,0.045)';
 const PAPER = '#FFFFFF';
 const HAIR = 'rgba(28,26,22,0.12)';
 /**
@@ -251,12 +254,17 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
   const m = METRICS[size];
   /**
    * Maths is set a step heavier than the prose so a student can scan a step
-   * for its numbers. On the follow-up board that step is a medium, not a
-   * semibold: a spoken follow-up is mostly equations, and at semibold nearly
-   * every line of it came out bold, which is emphasis on everything and so on
-   * nothing. Darker ink still sets the maths apart from the words.
+   * for its numbers — a medium against the prose's regular, never a semibold.
+   *
+   * The follow-up board learned this first: a spoken follow-up is mostly
+   * equations, and at semibold nearly every line came out bold, which is
+   * emphasis on everything and so on nothing. Practice now has the same
+   * problem for a different reason — the slab under its formulas already
+   * separates them, so weight was doing the job twice and the result read as
+   * shouting. One device per distinction: the panel on Practice, the weight
+   * and the darker ink everywhere else.
    */
-  const mathFace = size === 'compact' ? 'Onest_600SemiBold' : 'Onest_500Medium';
+  const mathFace = 'Onest_500Medium';
   /** Prose leading: a little tighter on the doubt page, where every line is
    *  now the same size and 1.6 read as gaps between lines rather than lines. */
   const leading = size === 'full' ? 1.55 : 1.6;
@@ -370,6 +378,31 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       alignSelf: 'flex-start',
       maxWidth: '100%',
       paddingVertical: air.pad,
+      /**
+       * PRACTICE ONLY, and deliberately not the doubt page or the board.
+       *
+       * The paragraphs above explain why the panel was wrong where it was
+       * removed, and that reasoning is untouched: the doubt page and the
+       * follow-up board keep the type-only distinction. Practice is a
+       * different read. A student there answers, glances at the working and
+       * moves to the next question inside a minute, and the one thing they
+       * come back for is the arithmetic — so the formulas get a left edge to
+       * run down. The doubt page is read once, slowly, from the top.
+       *
+       * Scoped by size rather than by a flag because the three surfaces
+       * already differ by size, and a second axis would let them drift apart
+       * on something other than the one thing that is meant to differ.
+       */
+      ...(size === 'compact'
+        ? {
+            paddingHorizontal: 10,
+            borderTopRightRadius: 6,
+            borderBottomRightRadius: 6,
+            borderLeftWidth: 2.5,
+            borderLeftColor: INK,
+            backgroundColor: SLAB_GROUND,
+          }
+        : null),
     },
     mathText: {
       fontFamily: mathFace,
