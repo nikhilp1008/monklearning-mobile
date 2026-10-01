@@ -11,8 +11,10 @@
  *
  * The load-bearing fact this encodes: after the 2023 NCERT rationalisation,
  * every chapter still printed in the books is examinable. The interesting
- * information is the handful of exceptions — trims inside live chapters, and
- * the chapters that left the books entirely.
+ * information is the handful of exceptions — trims inside live chapters, the
+ * chapters that left the books entirely, and the two chemistry units the
+ * exams examine WITHOUT a book chapter (p-block, and JEE's practical unit),
+ * which the research document pre-dates and the catalogue now carries.
  */
 
 import type { ScopeExam } from '@/lib/exam-scope';
@@ -47,8 +49,9 @@ export interface SubjectScope {
 }
 
 /* ------------------------------------------------------------------ *
- * Chapters shared by both exams. Physics and Chemistry are identical
- * at chapter level for JEE Main and NEET UG — only the trims differ.
+ * Chapters shared by both exams. Physics is identical at chapter level
+ * for JEE Main and NEET UG, and Chemistry differs by exactly one chapter
+ * (JEE's practical unit) — otherwise only the trims differ.
  * ------------------------------------------------------------------ */
 
 function physicsChapters(exam: ScopeExam): ScopeChapter[] {
@@ -120,6 +123,17 @@ function chemistryChapters(exam: ScopeExam): ScopeChapter[] {
     { name: 'Solutions', classLevel: 12 },
     { name: 'Electrochemistry', classLevel: 12, heavy: jee },
     { name: 'Chemical Kinetics', classLevel: 12 },
+    // Left the books in 2023 but not the exams: both still carry a
+    // "p-Block Elements: Group 13 to 18" unit, taught here since the
+    // catalogue's migration 0084 (September 2026). NEET examines it at
+    // trends level; the compound-level chemistry survives on the JEE side.
+    {
+      name: 'The p-Block Elements',
+      classLevel: 12,
+      ...(jee
+        ? { kept: ['Compounds: diborane, silicones, oxoacids, xenon fluorides'] }
+        : { trims: ['Compounds: diborane, silicones, oxoacids, xenon fluorides'] }),
+    },
     { name: 'The d- and f-Block Elements', classLevel: 12 },
     { name: 'Coordination Compounds', classLevel: 12, heavy: true },
     { name: 'Haloalkanes and Haloarenes', classLevel: 12 },
@@ -127,6 +141,10 @@ function chemistryChapters(exam: ScopeExam): ScopeChapter[] {
     { name: 'Aldehydes, Ketones and Carboxylic Acids', classLevel: 12 },
     { name: 'Amines', classLevel: 12 },
     { name: 'Biomolecules', classLevel: 12 },
+    // JEE Main's Unit 20. Laboratory-manual content, so it has no NCERT
+    // chapter and NEET has no such unit; taught to JEE students since the
+    // catalogue's migration 0089 (September 2026).
+    ...(jee ? [{ name: 'Principles Related to Practical Chemistry', classLevel: 12 as const }] : []),
   ];
 }
 
