@@ -33,9 +33,16 @@ type MathLineProps = {
   color: string;
   /** Applied to every maths run — inline or on its own line. */
   mathStyle?: StyleProp<TextStyle>;
+  /**
+   * Where a laid-out line sits. `textAlign` in `style` centres the one-Text
+   * paths, but a line with something drawn in it is a row of words, which
+   * `textAlign` cannot move — the board's boxed formula is centred, so it
+   * says so here.
+   */
+  align?: 'start' | 'center';
 };
 
-export function MathLine({ text, style, fontSize, color, mathStyle }: MathLineProps) {
+export function MathLine({ text, style, fontSize, color, mathStyle, align = 'start' }: MathLineProps) {
   // Maths gets spaces round its operators before anything else sees it — see
   // `spaceOperators`. Prose segments are never touched.
   const segments = useMemo(
@@ -160,7 +167,7 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
   });
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, align === 'center' && styles.rowCentred]}>
       {items.map((item, i) => {
         if (!Array.isArray(item)) return item;
         if (item.length === 1) {
@@ -251,6 +258,9 @@ function createStyles(fontSize: number, color: string) {
       flexWrap: 'wrap',
       alignItems: 'center',
       alignSelf: 'stretch',
+    },
+    rowCentred: {
+      justifyContent: 'center',
     },
     word: {
       // The row centres its children, so the line-height that would space a

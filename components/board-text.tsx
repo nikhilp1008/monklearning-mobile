@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BoardDiagram, diagramVerdict, svgInvalidDetail } from '@/components/board-diagram';
 import { DEEP_AMBER, INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
-import { latexToText } from '@/lib/latex-text';
+import { MathLine } from '@/components/math-line';
+import { latexToSegments, latexToText } from '@/lib/latex-text';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
@@ -122,6 +123,19 @@ export function BoardBlockView({
    * also missing (`10^5 m/s` reads as 10⁵ m/s now).
    */
   const text = useMemo(() => latexToText(raw), [raw]);
+  /**
+   * DRAWN WHERE UNICODE RUNS OUT.
+   *
+   * `latexToText` spells a script in Unicode when every character has one, and
+   * otherwise writes it out flat: there is no subscript c, q, g or β, so
+   * Ampère's law reached the board as "μ₀ I_(enc)", a fringe width as "θ_β",
+   * a limit as "lim_(h → 0⁺)" — 1,032 of the stored formula lines on
+   * 2026-10-02, with every \dfrac flattened to "a/b" besides. MathLine draws
+   * exactly those pieces (a script set small and shifted, a fraction stacked),
+   * as it already does for every solution. A line with nothing to draw keeps
+   * its one <Text> below, so most of the board renders as it did.
+   */
+  const drawn = useMemo(() => hasDrawnParts(raw), [raw]);
   /**
    * U5. Whether `BoardDiagram` could draw this event's svg, asked HERE, before
    * it is mounted, because only this component knows what else the event
@@ -304,12 +318,24 @@ export function BoardBlockView({
   if (event.type === 'formula') {
     return (
       <View style={styles.boardFormulaRow}>
-        <Text style={styles.boardEquation}>{text}</Text>
+        {drawn ? (
+          <MathLine text={raw} style={styles.boardEquation} fontSize={18} color={INK} align="center" />
+        ) : (
+          <Text style={styles.boardEquation}>{text}</Text>
+        )}
       </View>
     );
   }
   if (event.type === 'note') {
-    return <Text style={styles.boardNote}>{text}</Text>;
+    // MathLine sets its style on every word of a drawn line, so the note's
+    // indent and spacing go on a box round it rather than on the words.
+    return drawn ? (
+      <View style={styles.boardNoteBox}>
+        <MathLine text={raw} style={styles.boardNoteText} fontSize={13.5} color={INK_MUTED} />
+      </View>
+    ) : (
+      <Text style={styles.boardNote}>{text}</Text>
+    );
   }
   /*
    * A type with no branch of its own, carrying words rather than a picture.
@@ -336,7 +362,28 @@ export function BoardBlockView({
    * has always made.
    */
   const emphasised = event.emphasis === 'key' || event.emphasis === 'high';
+  if (drawn) {
+    return (
+      <View style={styles.boardBodyBox}>
+        <MathLine
+          text={raw}
+          style={[styles.boardBodyText, emphasised && styles.boardBodyBold]}
+          fontSize={16}
+          color={emphasised ? INK : INK_MUTED}
+        />
+      </View>
+    );
+  }
   return <Text style={[styles.boardBody, emphasised && styles.boardBodyBold]}>{text}</Text>;
+}
+
+/** Whether a line has a piece `latexToText` can only flatten: a fraction, a grid,
+ *  or a script with no Unicode characters to spell it. */
+function hasDrawnParts(raw: string): boolean {
+  if (!raw) return false;
+  return latexToSegments(raw).some(
+    (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup' || s.kind === 'matrix',
+  );
 }
 /**
  * SPACING AND SIZE, NOT THE RULE GRID.
@@ -440,6 +487,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Onest_600SemiBold',
     color: INK,
   },
+  /** A drawn line (see `drawn`): the spacing on the box, the type on the words. */
+  boardBodyBox: {
+    marginTop: 20,
+  },
+  boardBodyText: {
+    fontFamily: 'Onest_400Regular',
+    fontSize: 16,
+    lineHeight: 26,
+    color: INK_MUTED,
+  },
 
   /**
    * The formula, boxed on a hairline. Centred, a full line of air above it,
@@ -500,6 +557,16 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginTop: 22,
     paddingLeft: 16,
+    color: INK_MUTED,
+  },
+  boardNoteBox: {
+    marginTop: 22,
+    paddingLeft: 16,
+  },
+  boardNoteText: {
+    fontFamily: 'Onest_500Medium',
+    fontSize: 13.5,
+    lineHeight: 21,
     color: INK_MUTED,
   },
 });

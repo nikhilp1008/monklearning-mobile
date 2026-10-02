@@ -129,6 +129,24 @@ const BOARD: BoardEvent[] = [
     text: 'Two car batteries in parallel crank a heavy engine; two in series would just be 24 V.',
     emphasis: 'high',
   },
+  // Scripts Unicode has no characters for, drawn rather than written flat
+  // ("I_(enc)", "θ_β", "lim_(h → 0⁺)"): four formulas as stored lessons write
+  // them (Ampère's law, Wave Optics, Continuity, Alternating Current).
+  { seq: 18, type: 'heading', text: 'Drawn scripts and fractions', emphasis: 'normal' },
+  { seq: 19, type: 'formula', latex: '\\oint \\vec{B} \\cdot d\\vec{l} = \\mu_0 I_{enc}', emphasis: 'key' },
+  { seq: 20, type: 'formula', latex: '\\theta_{\\beta} = \\dfrac{\\beta}{D} = \\dfrac{\\lambda}{d}', emphasis: 'normal' },
+  {
+    seq: 21,
+    type: 'formula',
+    latex: "f'(a) = \\lim_{h \\to 0^+} \\dfrac{f(a+h) - f(a)}{h}",
+    emphasis: 'normal',
+  },
+  {
+    seq: 22,
+    type: 'text',
+    text: 'Average power over a cycle is $P_{avg} = V_{rms} I_{rms} \\cos\\phi$, the line the meter reads.',
+    emphasis: 'normal',
+  },
 ];
 
 /** The portrait classroom's own gutters, so the line measure matches exactly.
