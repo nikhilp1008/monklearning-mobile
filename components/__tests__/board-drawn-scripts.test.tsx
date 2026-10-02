@@ -98,3 +98,33 @@ test('a plain prose line is one Text with the body style, unchanged', () => {
   const style = StyleSheet.flatten(texts[0].props.style as never) as { marginTop?: number };
   expect(style.marginTop).toBe(20);
 });
+
+
+test('a script whose argument is an unbraced Greek command is drawn like the braced one', () => {
+  // `S_\infty`, `r_\alpha`, `\theta_\beta`: held as prose they showed "S_∞", "r_α", "θ_β".
+  for (const [latex, script] of [
+    ['S_\\infty = \\dfrac{a}{1 - r}', '∞'],
+    ['\\theta_\\beta = \\dfrac{\\beta}{D}', 'β'],
+    ['\\dfrac{r_\\alpha}{r_p}', 'α'],
+  ] as const) {
+    const json = draw({ seq: 4, type: 'formula', latex });
+    expect(textOf(json)).not.toMatch(/_/);
+    expect(scripts(json, script).length).toBeGreaterThan(0);
+  }
+});
+
+test('a script Unicode cannot spell inside a fraction is drawn, not jammed onto its base', () => {
+  // \dfrac{R_T - R_0}{R_0 (T - T_0)} showed "RT − R₀" over "R₀ (T − T₀)": 201 stored board formulas.
+  const json = draw({ seq: 4, type: 'formula', latex: '\\alpha = \\dfrac{R_T - R_0}{R_0\\,(T - T_0)}' });
+  // Its own lowered Text node, beside the R: the old half was one string "RT − R₀".
+  expect(scripts(json, 'T')).toHaveLength(1);
+  // The halves that need nothing drawn stay plain text.
+  const plain = draw({ seq: 4, type: 'formula', latex: '\\dfrac{a}{b}' });
+  expect(scripts(plain, 'a')).toHaveLength(0);
+  expect(textOf(plain)).toBe('ab');
+});
+
+test('a fraction half with a multi-letter script keeps every letter, in order', () => {
+  const json = draw({ seq: 4, type: 'formula', latex: 'R_A = \\dfrac{R_{AB} R_{CA}}{R_{AB} + R_{BC} + R_{CA}}' });
+  for (const word of ['AB', 'CA', 'BC']) expect(scripts(json, word).length).toBeGreaterThan(0);
+});

@@ -475,6 +475,9 @@ function fractionNeedsGuard(rendered: string, src: string, next: number): boolea
   return /[A-Za-z0-9\\(]/.test(src[next] ?? '');
 }
 
+/** A piece of a fraction's half: plain text, or a script to draw lowered/raised. */
+export type ScriptPart = { text: string; script?: 'sub' | 'sup' };
+
 /** One run of a converted line. */
 export type MathSegment =
   /** Prose. `bold` marks a `<b>…</b>` run the solution author emphasised. */
@@ -484,7 +487,16 @@ export type MathSegment =
   /** A sub- or superscript with no Unicode character to spell it. */
   | { kind: 'sub'; text: string }
   | { kind: 'sup'; text: string }
-  | { kind: 'fraction'; numerator: string; denominator: string }
+  | {
+      kind: 'fraction';
+      numerator: string;
+      denominator: string;
+      /** Present only when that half carries a script Unicode cannot spell
+       *  (R_T, R_{AB}); the half is then drawn from these pieces. Without them
+       *  `numerator` has the script's markers stripped and reads "RT". */
+      numeratorParts?: ScriptPart[];
+      denominatorParts?: ScriptPart[];
+    }
   /** A grid, with the delimiters it is written between. */
   | { kind: 'matrix'; rows: string[][]; open: string; close: string };
 
@@ -585,10 +597,14 @@ export function latexToSegments(raw: string): MathSegment[] {
         continue;
       }
       flush();
+      const numeratorParts = scriptParts(marked.slice(i + 1, sep));
+      const denominatorParts = scriptParts(marked.slice(sep + 1, close));
       segments.push({
         kind: 'fraction',
         numerator: strip(marked.slice(i + 1, sep)),
         denominator: strip(marked.slice(sep + 1, close)),
+        ...(numeratorParts ? { numeratorParts } : {}),
+        ...(denominatorParts ? { denominatorParts } : {}),
       });
       i = close;
       continue;
@@ -597,6 +613,35 @@ export function latexToSegments(raw: string): MathSegment[] {
   }
   flush();
   return segments;
+}
+
+/**
+ * A fraction half split into text and scripts, or undefined when it has no script
+ * to draw. A half used to be flattened with `strip`, which drops the script
+ * markers and jams the script onto its base: `\\dfrac{R_T - R_0}{R_0}` read "RT − R₀"
+ * over "R₀", on 201 stored board formulas.
+ */
+function scriptParts(marked: string): ScriptPart[] | undefined {
+  const parts: ScriptPart[] = [];
+  let buffer = '';
+  let any = false;
+  for (let i = 0; i < marked.length; i += 1) {
+    const ch = marked[i];
+    if (ch === SUB_OPEN || ch === SUP_OPEN) {
+      const close = marked.indexOf(SCRIPT_CLOSE, i);
+      if (close !== -1) {
+        if (buffer) parts.push({ text: strip(buffer) });
+        buffer = '';
+        parts.push({ text: strip(marked.slice(i + 1, close)), script: ch === SUB_OPEN ? 'sub' : 'sup' });
+        any = true;
+        i = close;
+        continue;
+      }
+    }
+    buffer += ch;
+  }
+  if (buffer) parts.push({ text: strip(buffer) });
+  return any ? parts : undefined;
 }
 
 /** A fraction's halves are rendered as plain text, so any marker that rode
@@ -1040,8 +1085,13 @@ const BARE_COMMAND = /\\[a-zA-Z]+/;
  *
  * A subscript is a SINGLE character with nothing word-like after it: `v_y=`
  * subscripts, `snake_case` does not, because the `c` is followed by more word.
+ *
+ * And a backslash straight after the underscore is always a script: `S_\infty`,
+ * `r_\alpha`, `\theta_\beta` are maths, and no identifier or filename has a
+ * backslash there. Held as prose, 18 stored board formulas showed "S_∞" and
+ * "θ_β" beside the same symbols' braced spelling (`S_{\infty}`) drawn properly.
  */
-const PROSE_UNDERSCORE = /_(?!\{|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
+const PROSE_UNDERSCORE = /_(?!\{|\\|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
 const UNDERSCORE_HOLD = '\u0000US\u0000';
 
 /**

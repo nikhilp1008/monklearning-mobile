@@ -141,6 +141,13 @@ const BOARD: BoardEvent[] = [
     latex: "f'(a) = \\lim_{h \\to 0^+} \\dfrac{f(a+h) - f(a)}{h}",
     emphasis: 'normal',
   },
+  { seq: 23, type: 'formula', latex: '\\alpha = \\dfrac{R_T - R_0}{R_0\\,(T - T_0)}', emphasis: 'normal' },
+  {
+    seq: 24,
+    type: 'formula',
+    latex: 'R_A = \\dfrac{R_{AB} \\, R_{CA}}{R_{AB} + R_{BC} + R_{CA}}',
+    emphasis: 'normal',
+  },
   {
     seq: 22,
     type: 'text',

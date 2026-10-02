@@ -1,7 +1,7 @@
 import { useMemo, type ReactElement } from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 
-import { MathSegment, latexToSegments } from '@/lib/latex-text';
+import { MathSegment, ScriptPart, latexToSegments } from '@/lib/latex-text';
 import { spaceOperators } from '@/lib/math-spacing';
 
 /**
@@ -206,9 +206,43 @@ function Fraction({
 }) {
   return (
     <View style={styles.fraction}>
-      <Text style={[style, styles.half]}>{segment.numerator}</Text>
+      <FractionHalf text={segment.numerator} parts={segment.numeratorParts} styles={styles} style={style} />
       <View style={styles.rule} />
-      <Text style={[style, styles.half]}>{segment.denominator}</Text>
+      <FractionHalf text={segment.denominator} parts={segment.denominatorParts} styles={styles} style={style} />
+    </View>
+  );
+}
+
+/** One half of a fraction. Plain text stays one Text; a half with a script Unicode cannot
+ *  spell (R_T, R_{AB}) is a row of pieces, the script set small and shifted as at the
+ *  top level, so it does not read "RT". */
+function FractionHalf({
+  text,
+  parts,
+  styles,
+  style,
+}: {
+  text: string;
+  parts?: ScriptPart[];
+  styles: ReturnType<typeof createStyles>;
+  style?: StyleProp<TextStyle>;
+}) {
+  if (!parts) return <Text style={[style, styles.half]}>{text}</Text>;
+  return (
+    <View style={styles.halfRow}>
+      {parts.map((part, i) => (
+        <Text
+          key={i}
+          style={[
+            style,
+            styles.half,
+            part.script && styles.halfScript,
+            part.script === 'sub' && styles.halfDown,
+            part.script === 'sup' && styles.halfUp,
+          ]}>
+          {part.text}
+        </Text>
+      ))}
     </View>
   );
 }
@@ -321,6 +355,20 @@ function createStyles(fontSize: number, color: string) {
       fontSize: fontSize * 0.82,
       lineHeight: fontSize * 0.98,
       textAlign: 'center',
+    },
+    halfRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    halfScript: {
+      fontSize: fontSize * 0.82 * 0.68,
+    },
+    halfDown: {
+      transform: [{ translateY: fontSize * 0.1 }],
+    },
+    halfUp: {
+      transform: [{ translateY: -fontSize * 0.16 }],
     },
     rule: {
       alignSelf: 'stretch',
