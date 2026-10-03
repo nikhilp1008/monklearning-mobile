@@ -49,6 +49,21 @@ const SYMBOLS: Record<string, string> = {
   // Arrows
   rightarrow: '→', to: '→', leftarrow: '←', leftrightarrow: '↔',
   Rightarrow: '⇒', Leftarrow: '⇐', Leftrightarrow: '⇔', longrightarrow: '⟶',
+  /**
+   * Found by rendering all 33,247 stored board lines and counting the commands
+   * whose NAME reached the screen as a word: "A iff B" (44 lines), "p implies q"
+   * (39), "Longleftrightarrow" (13), "Longrightarrow" (8), "longleftrightarrow"
+   * (7), and one line each of "longleftarrow", "mapsto", "subsetneq" and "lnot".
+   * A dimensional check ended in the bare word "checkmark" twice. Each is the
+   * symbol the author meant, so each prints that symbol. The siblings with no
+   * line in the corpus yet (impliedby, Longleftarrow, longmapsto, supsetneq,
+   * neg, bigtriangleup) are the same defect waiting for the next lesson that
+   * uses one, so they are closed with the rest.
+   */
+  longleftarrow: '⟵', longleftrightarrow: '⟷', Longrightarrow: '⟹',
+  Longleftarrow: '⟸', Longleftrightarrow: '⟺', implies: '⟹', impliedby: '⟸',
+  iff: '⟺', mapsto: '↦', longmapsto: '⟼', checkmark: '✓',
+  subsetneq: '⊊', supsetneq: '⊋', lnot: '¬', neg: '¬', bigtriangleup: '△',
   // Negated relations. Their ABSENCE is worse than a missing symbol: a board
   // line reading "Same Class nRightarrow Same Order" is noise, and a reader
   // skimming it can take the opposite of what it says. Measured on the
@@ -213,13 +228,57 @@ interface Script {
   /** Already converted, so `^\pi` arrives here as "π". */
   inner: string;
   next: number;
+  /** Written in parentheses (`e^(-t/τ)`). The flat form then keeps them, so
+   *  reading that flat form again gives it back instead of dropping a bracket. */
+  paren?: boolean;
+}
+
+/** Reads a `( … )` group starting at `i` (which must point at `(`), balanced so
+ *  `(1/(n+1))` is one group. Null when it never closes or holds nothing, which
+ *  leaves the caller on its old single-character reading. */
+function readParen(src: string, i: number): { body: string; next: number } | null {
+  let depth = 0;
+  for (let j = i; j < src.length; j++) {
+    if (src[j] === '(') depth++;
+    else if (src[j] === ')') {
+      depth--;
+      if (depth === 0) {
+        const body = src.slice(i + 1, j);
+        return body.trim() ? { body, next: j + 1 } : null;
+      }
+    }
+  }
+  return null;
+}
+
+/** Where the one thing a bare radical covers ends: `√x`, `√2`, `√(x+1)`. Null
+ *  when `√` is the last thing in the string or stands before something else. */
+function radicandEnd(src: string, i: number): number | null {
+  if (src[i] === '(') return readParen(src, i)?.next ?? null;
+  const run = /^(?:[0-9]+(?:\.[0-9]+)?|[A-Za-z](?![A-Za-z0-9]))/.exec(src.slice(i));
+  return run ? i + run[0].length : null;
 }
 
 /** Reads one `^…` / `_…`, starting at the marker itself. */
 function readScript(src: string, at: number): Script {
   const kind = src[at] as '^' | '_';
+  // `e^(-t/τ)`, `x^(1/3)`, `(b/a)^(1/(n+1))`: parentheses straight after a caret
+  // are the exponent, the way a plain-text author writes one. LaTeX would raise
+  // only the "(" and leave the rest on the line, which is never what was meant:
+  // 13 stored board lines wrote exponents this way and showed the caret and both
+  // brackets. Only a caret does this. An underscore followed by "(" is the
+  // converter's OWN flat form ("I_(enc)"), and has to stay readable as itself.
+  if (kind === '^' && src[at + 1] === '(') {
+    const group = readParen(src, at + 1);
+    if (group) return { kind, inner: convertMath(group.body), next: group.next, paren: true };
+  }
   let i = at + 1;
   while (src[i] === ' ') i++;
+  // `e^√x`: a radical and the one thing it covers are the exponent.
+  if (kind === '^' && src[i] === '√') {
+    const end = radicandEnd(src, i + 1);
+    if (end !== null) return { kind, inner: convertMath(src.slice(i, end)), next: end };
+  }
   // A run of digits, with its sign, is the whole script: `10^-7`, `K^-1`, `10^23`, `a_12`. Read one
   // character at a time, the minus alone was raised and the digits stayed on the line ("10⁻7", "10²3"):
   // 272 stored board lines and takeaways write exponents this way.
@@ -250,9 +309,14 @@ function isBracketed(text: string): boolean {
 
 /** Parenthesises a multi-character script so `x_net` cannot be read as
  *  `x_n` followed by "et" — unless it is bracketed already, which is what
- *  printed `E_{(Cu)}` as the doubled-up `E_((Cu))`. */
-function wrapScript(inner: string): string {
-  return inner.length <= 1 || isBracketed(inner) ? inner : `(${inner})`;
+ *  printed `E_{(Cu)}` as the doubled-up `E_((Cu))`.
+ *
+ *  A script the author already wrote in parentheses (`x^(A)`) keeps them even
+ *  when it is one character, because that flat form is read back as a bracketed
+ *  argument: without them `x^(A)` came back as `x^A`, so converting the
+ *  converter's own output was not a no-op. */
+function wrapScript(inner: string, written = false): string {
+  return !written && (inner.length <= 1 || isBracketed(inner)) ? inner : `(${inner})`;
 }
 
 /**
@@ -288,6 +352,20 @@ function renderChem(body: string): string {
         i += 1;
         continue;
       }
+      // A wrapper takes its argument with it. `\text{base}` in an arrow's label was
+      // handed over as a bare `\text`, which prints nothing, and the braces after
+      // it were left behind as "({base})", "({then } H₃O⁺)", "({dry HCl})".
+      if (TRANSPARENT_WRAPPERS.has(name[0]) && name[0] !== 'left' && name[0] !== 'right') {
+        let at = i + 1 + name[0].length;
+        while (body[at] === ' ') at += 1;
+        if (body[at] === '{') {
+          const group = readGroup(body, at);
+          out += convertMath(`\\${name[0]}{${group.body}}`);
+          i = group.next;
+          digitsAreSubscript = false;
+          continue;
+        }
+      }
       out += convertMath(`\\${name[0]}`);
       i += 1 + name[0].length;
       digitsAreSubscript = false;
@@ -317,7 +395,9 @@ function renderChem(body: string): string {
     // this cannot just call readGroup and take one character.
     if (ch === '^' || ch === '_') {
       let raw: string;
-      if (body[i + 1] === '{') {
+      if (body[i + 1] === '{' || body[i + 1] === '\\') {
+        // `^{\delta+}`, and `^\circ` with no braces at all: readGroup takes a
+        // command as the whole argument.
         const group = readGroup(body, i + 1);
         raw = group.body;
         i = group.next;
@@ -326,7 +406,19 @@ function renderChem(body: string): string {
         i += 1 + raw.length;
       }
       const table = ch === '^' ? SUPERSCRIPT : SUBSCRIPT;
-      out += mapAll(raw, table) ?? `${ch}${raw}`;
+      // A command in the argument is converted first. `mapAll` has no entry for a
+      // backslash, so `C^{\delta+}=O^{\delta-}` (the partial charges on a carbonyl)
+      // went through whole and printed "C^\delta+=O^\delta-", and `(1^\circ)` kept
+      // its caret: "(1^°)".
+      const inner = raw.includes('\\') ? convertMath(raw) : raw;
+      const spelled = mapAll(inner, table);
+      if (spelled !== null) out += spelled;
+      // Already raised, as `45^\circ` is outside \ce.
+      else if (ch === '^' && ALREADY_RAISED.has(inner)) out += inner;
+      // No Unicode character for it (there is no superscript δ): drawn, the way
+      // every other script Unicode cannot spell is, rather than written out flat.
+      else if (inner && markSegments) out += `${ch === '^' ? SUP_OPEN : SUB_OPEN}${inner}${SCRIPT_CLOSE}`;
+      else out += inner ? `${ch}${wrapScript(inner)}` : ch;
       continue;
     }
 
@@ -1004,7 +1096,7 @@ export function convertMath(src: string): string {
         continue;
       }
       // Plain-string callers keep the marker so meaning isn't silently lost.
-      out += parts.map((part) => `${part.kind}${wrapScript(part.inner)}`).join('');
+      out += parts.map((part) => `${part.kind}${wrapScript(part.inner, part.paren)}`).join('');
       continue;
     }
 
@@ -1060,7 +1152,29 @@ export function convertMath(src: string): string {
  * The "nothing word-like after it" is what keeps prose safe: `v_y=` is a
  * subscript, `snake_case` is not, because its `c` is followed by more word.
  */
-const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[+\-−]?[0-9]+|[+\-−]|[A-Za-z](?![A-Za-z0-9]))/g;
+const BARE_SCRIPT = new RegExp(
+  String.raw`[\^_](?:\{[^{}]*\}|[+\-−]?[0-9]+|[+\-−]|[A-Za-z](?![A-Za-z0-9]))` +
+    // A caret, and only a caret, may also take a bracketed argument — `e^(-t/τ)`,
+    // `x^(1/3)`, `(b/a)^(1/(n+1))`, balanced to three deep — or a radical and the
+    // one thing it covers, `e^√x`. "snake_case" and "word (aside)" have no caret
+    // in front of the bracket, so neither is touched.
+    String.raw`|\^(?:\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)|√(?:\([^()]*\)|[0-9]+(?:\.[0-9]+)?|[A-Za-z](?![A-Za-z0-9])))`,
+  'g',
+);
+
+/**
+ * Braces that only GROUP, in a line with no command in it for `convertMath` to
+ * read them as grouping.
+ *
+ * `{}^{52}C_5` — the empty group a prescript hangs from — showed "{}⁵²C₅", and
+ * `R{-}CHO` and `2{,}598{,}960` showed their braces too, because a line that
+ * carries no command skips the maths converter and its braces were left exactly
+ * as typed. Only two shapes are taken, and neither can be a set: an empty group
+ * with a script straight after it, and a group holding one operator or
+ * separator. `{x}`, `{1, 2, 3}`, `{ }` and `{∅}` are set notation, or the
+ * fractional part, and keep their braces.
+ */
+const GROUPING_BRACES = /\{\}(?=[\^_])|\{([-−=+,])\}/g;
 
 /**
  * `t^\wedge 2` — Mathpix transcribing a caret twice.
@@ -1099,6 +1213,19 @@ const PROSE_UNDERSCORE = /_(?!\{|\\|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
 const UNDERSCORE_HOLD = '\u0000US\u0000';
 
 /**
+ * `\$` — a dollar written as one, which is never a maths delimiter.
+ *
+ * The scan for `$…$` below walked straight over the backslash and took the
+ * dollar for a delimiter, so `\text{US \$33 trillion/yr} … (\$18 trillion)`
+ * read everything between its two escaped dollars as maths: both symbols were
+ * deleted and the second `\text{` was left with its closing brace on screen.
+ * Held out of the scan as a control character no content contains, and put
+ * back as `$` once the line is converted. A single escaped dollar only ever
+ * worked because it had no second one to pair with.
+ */
+const DOLLAR_HOLD = '\u001F';
+
+/**
  * Text that arrived with no `$…$` around it.
  *
  * Two different things get missed without this. Super/subscripts written bare
@@ -1121,7 +1248,9 @@ function convertBareText(text: string): string {
     const held = text.replace(PROSE_UNDERSCORE, UNDERSCORE_HOLD);
     return wrapMath(convertMath(held).split(UNDERSCORE_HOLD).join('_'));
   }
-  return text.replace(BARE_SCRIPT, (token) => convertMath(token));
+  return text
+    .replace(GROUPING_BRACES, (_group, operator: string | undefined) => operator ?? '')
+    .replace(BARE_SCRIPT, (token) => convertMath(token));
 }
 
 /**
@@ -1191,6 +1320,10 @@ export function latexToText(raw: string): string {
     // student read "reduce the volume by 2\% is:". `$` is deliberately not
     // in the set: unescaping it would manufacture a math delimiter.
     .replace(/\\([%&#_])/g, '$1')
+    // Escaped dollars are held out of the delimiter scan. `\\` is matched first
+    // so a line break straight before a real delimiter (`a \\ $x$`) is not
+    // mistaken for an escape.
+    .replace(/\\\\|\\\$/g, (escape) => (escape === '\\$' ? DOLLAR_HOLD : escape))
     .replace(/-\n/g, '')
     .replace(/\n/g, ' ')
     .replace(/\s{2,}/g, ' ')
@@ -1274,7 +1407,13 @@ export function latexToText(raw: string): string {
       const looksLikePrice =
         !/[\\^_{}=]/.test(inner) &&
         /(?:^|[^A-Za-z0-9])[A-Za-z]{3,}(?:[^A-Za-z0-9]|$)/.test(inner);
-      if (!isDisplay && looksLikePrice && /[0-9]/.test(normalized[start] ?? '')) {
+      // A closing `$` is never followed straight by a digit — that is TeX's own
+      // rule for `$` maths, and "$33 or $18" is why. Its second dollar opens the
+      // NEXT price, so the span between them is two amounts and a word, whether or
+      // not the word is long enough to read as prose ("to", "or"), and whether or
+      // not a `\text{…}` brace sits between them.
+      const closesOnAPrice = /[0-9]/.test(normalized[end + 1] ?? '');
+      if (!isDisplay && (looksLikePrice || closesOnAPrice) && /[0-9]/.test(normalized[start] ?? '')) {
         plain += ch;
         i += 1;
         continue;
@@ -1288,5 +1427,5 @@ export function latexToText(raw: string): string {
     i += 1;
   }
   flush();
-  return out;
+  return out.split(DOLLAR_HOLD).join('$');
 }
