@@ -837,8 +837,14 @@ function fractionNeedsGuard(rendered: string, src: string, next: number): boolea
   return /[A-Za-z0-9\\(]/.test(src[next] ?? '');
 }
 
-/** A piece of a fraction's half: plain text, or a script to draw lowered/raised. */
-export type ScriptPart = { text: string; script?: 'sub' | 'sup' };
+/**
+ * A piece of a fraction's half or of a script: plain text, or a script to draw lowered/raised.
+ *
+ * `parts` is present only when that script holds another one drawn inside it (the `2g` in
+ * `n_{t_{2g}}`), and carries the script's own pieces in turn, to any depth. `text` is always the
+ * whole of it flattened ("t2g"), which is what a reader that cannot nest should draw.
+ */
+export type ScriptPart = { text: string; script?: 'sub' | 'sup'; parts?: ScriptPart[] };
 
 /** One run of a converted line. */
 export type MathSegment =
@@ -846,9 +852,16 @@ export type MathSegment =
   | { kind: 'text'; text: string; bold?: boolean }
   /** Came from maths — set in the maths voice wherever it appears. */
   | { kind: 'math'; text: string; bold?: boolean }
-  /** A sub- or superscript with no Unicode character to spell it. */
-  | { kind: 'sub'; text: string }
-  | { kind: 'sup'; text: string }
+  /**
+   * A sub- or superscript with no Unicode character to spell it.
+   *
+   * `text` is the script flattened. When another script is drawn INSIDE it (`n_{t_{2g}}` is `n`,
+   * a subscript holding `t`, and inside that a subscript `2g`), `parts` lays the inside out the way
+   * a fraction half's `numeratorParts` does: `[{ text: 't' }, { text: '2g', script: 'sub' }]`.
+   * A script with nothing drawn inside it has no `parts`.
+   */
+  | { kind: 'sub'; text: string; parts?: ScriptPart[] }
+  | { kind: 'sup'; text: string; parts?: ScriptPart[] }
   | {
       kind: 'fraction';
       numerator: string;
@@ -862,6 +875,51 @@ export type MathSegment =
   /** A grid, with the delimiters it is written between. */
   | { kind: 'matrix'; rows: string[][]; open: string; close: string };
 
+/** The superscript characters a stored line can carry, and the plain character each one stands for. */
+const LITERAL_SUPERSCRIPT: Record<string, string> = {
+  '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+  '⁺': '+', '⁻': '−', 'ⁿ': 'n',
+};
+const LITERAL_SUPERSCRIPT_RUN = /[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻ⁿ]+/;
+
+/**
+ * A real superscript character straight after a DRAWN subscript is that subscript's partner.
+ *
+ * `X_L²` has a literal ² beside the subscript L, and Unicode has no subscript L, so the L is
+ * drawn and the ² was left floating after it: "X⟦↓L⟧²", with the exponent set off from the base
+ * it belongs to. It is X with a subscript L and a superscript 2, which is what `X_L^2` already
+ * draws. So the run of superscript characters (⁰-⁹ ⁺ ⁻ ⁿ) becomes a drawn superscript right
+ * behind the subscript, written with the plain characters. Nothing else moves: a subscript
+ * Unicode can spell (`Xₙ²`, both spelled), a superscript after anything but a drawn subscript,
+ * and a superscript that a space, a maths boundary or another marker separates from the
+ * subscript are all as they were. The plain-string form has no drawn subscript and is untouched.
+ */
+function attachLiteralSuperscripts(marked: string): string {
+  if (!LITERAL_SUPERSCRIPT_RUN.test(marked)) return marked;
+  let out = '';
+  /** The scripts open at this point, the innermost last. */
+  const open: string[] = [];
+  for (let k = 0; k < marked.length; k += 1) {
+    const ch = marked[k];
+    out += ch;
+    if (ch === SUB_OPEN || ch === SUP_OPEN) {
+      open.push(ch);
+    } else if (ch === SCRIPT_CLOSE && open.pop() === SUB_OPEN) {
+      let end = k + 1;
+      let raised = '';
+      while (end < marked.length && Object.prototype.hasOwnProperty.call(LITERAL_SUPERSCRIPT, marked[end])) {
+        raised += LITERAL_SUPERSCRIPT[marked[end]];
+        end += 1;
+      }
+      if (raised) {
+        out += `${SUP_OPEN}${raised}${SCRIPT_CLOSE}`;
+        k = end - 1;
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * The same conversion `latexToText` does, but with fractions kept as pieces
  * rather than flattened into `a/b`.
@@ -874,7 +932,7 @@ export function latexToSegments(raw: string): MathSegment[] {
   markSegments = true;
   let marked: string;
   try {
-    marked = latexToText(raw);
+    marked = attachLiteralSuperscripts(latexToText(raw));
   } finally {
     markSegments = false;
   }
@@ -916,15 +974,18 @@ export function latexToSegments(raw: string): MathSegment[] {
       continue;
     }
     if (ch === SUB_OPEN || ch === SUP_OPEN) {
-      const close = marked.indexOf(SCRIPT_CLOSE, i);
+      const close = scriptCloseAt(marked, i);
       if (close === -1) {
         buffer += ch;
         continue;
       }
       flush();
+      const body = marked.slice(i + 1, close);
+      const inside = scriptParts(body);
       segments.push({
         kind: ch === SUB_OPEN ? 'sub' : 'sup',
-        text: strip(marked.slice(i + 1, close)),
+        text: strip(body),
+        ...(inside ? { parts: inside } : {}),
       });
       i = close;
       continue;
@@ -978,10 +1039,32 @@ export function latexToSegments(raw: string): MathSegment[] {
 }
 
 /**
- * A fraction half split into text and scripts, or undefined when it has no script
- * to draw. A half used to be flattened with `strip`, which drops the script
+ * Where the script opened at `open` (a SUB_OPEN or SUP_OPEN) ends: the SCRIPT_CLOSE that matches
+ * it, counting the scripts drawn inside it. `n_{t_{2g}}` is two opens and two closes, and the
+ * first close belongs to the INNER one: pairing an open with the first close after it ended the
+ * outer script early and left its own close on the line as a control character (U+0018) in the
+ * text a student reads, on nine stored formulas. -1 when it never closes.
+ */
+function scriptCloseAt(marked: string, open: number): number {
+  let depth = 0;
+  for (let k = open; k < marked.length; k += 1) {
+    const ch = marked[k];
+    if (ch === SUB_OPEN || ch === SUP_OPEN) depth += 1;
+    else if (ch === SCRIPT_CLOSE) {
+      depth -= 1;
+      if (depth === 0) return k;
+    }
+  }
+  return -1;
+}
+
+/**
+ * A fraction half, or the inside of a script, split into text and scripts, or undefined when it
+ * has no script to draw. A half used to be flattened with `strip`, which drops the script
  * markers and jams the script onto its base: `\\dfrac{R_T - R_0}{R_0}` read "RT − R₀"
  * over "R₀", on 201 stored board formulas.
+ *
+ * A script that holds another (`n_{t_{2g}}`) carries it as its own `parts`, to any depth.
  */
 function scriptParts(marked: string): ScriptPart[] | undefined {
   const parts: ScriptPart[] = [];
@@ -990,11 +1073,17 @@ function scriptParts(marked: string): ScriptPart[] | undefined {
   for (let i = 0; i < marked.length; i += 1) {
     const ch = marked[i];
     if (ch === SUB_OPEN || ch === SUP_OPEN) {
-      const close = marked.indexOf(SCRIPT_CLOSE, i);
+      const close = scriptCloseAt(marked, i);
       if (close !== -1) {
         if (buffer) parts.push({ text: strip(buffer) });
         buffer = '';
-        parts.push({ text: strip(marked.slice(i + 1, close)), script: ch === SUB_OPEN ? 'sub' : 'sup' });
+        const body = marked.slice(i + 1, close);
+        const inside = scriptParts(body);
+        parts.push({
+          text: strip(body),
+          script: ch === SUB_OPEN ? 'sub' : 'sup',
+          ...(inside ? { parts: inside } : {}),
+        });
         any = true;
         i = close;
         continue;
@@ -1603,13 +1692,190 @@ function wrapMath(converted: string): string {
   return markSegments ? `${MATH_OPEN}${converted}${MATH_CLOSE}` : converted;
 }
 
-function convertBareText(text: string): string {
+/**
+ * `*` as a times sign in running text: `v = r*ω`, `h*ν`, `kg * ohm / (T^2 * m^2)`,
+ * `0.5 * 1.2e-5 * 25`. A lesson written in plain text has no `\times` or `\cdot` to type, so it
+ * types a star, and the star reached the board as a star ("v = r*ω") where a product was meant.
+ * 152 of the 33,247 stored board lines did (273 stars). The stored text is being corrected too,
+ * but a lesson written tomorrow will do it again, so the converter reads a star the way the rule
+ * that corrects the text does.
+ *
+ * A `*` is a product when it is spaced on BOTH sides or on NEITHER, and an operand stands on each
+ * side of it. A star with one side spaced is a label, not a product (`π* orbital`, `t* = …`, the
+ * antibonding orbitals and the time of flight), `**` is emphasis, and a star inside `$…$` or a
+ * run of maths is whatever the author typed there. When both operands are plain numbers (digits,
+ * a decimal point, e-notation or an exponent) or brackets holding only a number expression, the
+ * star is a `×` with a space either side. Otherwise it is a middle dot, spaced the way the star
+ * was: `r·ω`, `a · b`. A dot, never a juxtaposition: `n*2^n` would read `n2^n`.
+ *
+ * Only bare text is read, not a run that carries a `\command` (that is maths, and a star in
+ * maths prints as typed). The edge of a `$…$` piece beside the text counts as an operand.
+ *
+ * One exception the data rule does not make, because no stored lesson line needs it and the
+ * practice solutions do: an antibonding orbital written with the star against its symbol and no
+ * space (`σ*1s`, `π*2px`, `σ*2pz`, `π*(CO)`) is one name. Read as a product it became "σ·1s", a
+ * different orbital, in 24 stored practice solutions that spell their molecular-orbital fillings
+ * this way. `π*a*b` and `σ*l` are still products: it is what follows the star that gives the
+ * label away, a digit with s, p, d or f, or a bracketed formula.
+ */
+
+/** What can end the operand on a star's left: a letter (Latin or Greek), a digit, a closing
+ *  bracket, a lowered or raised digit, a prime, a bar, `!`, or the edge of a maths piece (`$`; the
+ *  escaped dollar held out of the scan stands for one too). */
+const STAR_BEFORE = /[A-Za-z0-9\u03B1-\u03C9\u0391-\u03A9)\]\u2080-\u2089\u00B2\u00B3\u2070\u00B9\u2074-\u2079'|$!\u001F]/;
+/** What can start the operand on its right: a letter, a digit, an opening bracket, a radical, an
+ *  integral sign, π, a bar, a backslash, or the edge of a maths piece. */
+const STAR_AFTER = /[A-Za-z0-9\u03B1-\u03C9\u0391-\u03A9(\[\u221A\u222B|\u03C0$\\\u001F]/;
+/** A letter, and a letter or a digit, as the data rule's `isalpha` / `isalnum` read them. */
+const STAR_ALPHA = /[A-Za-z\u00AA\u00B5\u00BA\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02AF\u0370-\u03FF\u0400-\u052F\u0900-\u097F]/;
+const STAR_ALNUM = /[A-Za-z0-9\u00AA\u00B2\u00B3\u00B5\u00B9\u00BA\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02AF\u0370-\u03FF\u0400-\u052F\u0900-\u097F\u2070-\u2079\u2080-\u2089]/;
+/** The raised digits and signs an exponent can be spelled with. */
+const STAR_RAISED = '⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺';
+/** A number that ENDS at the left operand (and is not the tail of a longer word or of a power
+ *  `x^2`): `5`, `0.5`, `1.2e-5`, `10²`, `10^-3`. */
+const STAR_NUMBER_BEFORE = new RegExp(
+  `(?:^|[^A-Za-z0-9_.^])\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?[${STAR_RAISED}]*$`,
+);
+const STAR_POWER_BEFORE = /(?:^|[^A-Za-z0-9_.])\d+(?:\.\d+)?\^\{?[-−+]?\d+\}?$/;
+/** A number that BEGINS at the right operand, with its exponent. */
+const STAR_NUMBER_AFTER = new RegExp(
+  `^\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?[${STAR_RAISED}]*(?:\\^\\{?[-−+]?\\d+\\}?)?`,
+);
+/** What a bracket may hold to be a number expression: digits, signs, a point, a slash, a power,
+ *  an `e` for e-notation, brackets and a radical. */
+const STAR_NUMBER_EXPRESSION = new RegExp(`^[0-9.,+\\-−/×·^ ${STAR_RAISED}()eE√]*$`);
+
+/** σ, π or δ against an orbital: the star in `σ*1s`, `π*2px`, `π*(CO)` belongs to the name. */
+const ANTIBONDING_STAR = /^[σπδ]\*(?:[1-9][spdf]|\([A-Z][A-Za-z])/;
+
+/** The `(` that matches the `)` at `i`, or null. */
+function bracketOpening(text: string, i: number): number | null {
+  let depth = 0;
+  for (let j = i; j >= 0; j -= 1) {
+    if (text[j] === ')') depth += 1;
+    else if (text[j] === '(') {
+      depth -= 1;
+      if (depth === 0) return j;
+    }
+  }
+  return null;
+}
+
+/** The `)` that matches the `(` at `i`, or null. */
+function bracketClosing(text: string, i: number): number | null {
+  let depth = 0;
+  for (let j = i; j < text.length; j += 1) {
+    if (text[j] === '(') depth += 1;
+    else if (text[j] === ')') {
+      depth -= 1;
+      if (depth === 0) return j;
+    }
+  }
+  return null;
+}
+
+/** A bracket's contents that are only a number expression: `0.05`, `6.63 × 10⁻³⁴`, `1/2`, `4+20`. */
+function isNumberExpression(inner: string): boolean {
+  if (!inner.trim() || !/[0-9\u00B2\u00B3\u00B9\u2070\u2074-\u2079]/.test(inner) || !STAR_NUMBER_EXPRESSION.test(inner)) {
+    return false;
+  }
+  // An `e` is only ever the e of e-notation: straight after a digit or a point, straight before a
+  // sign or a digit. Any other (`(x+e)`, `(Re)`) is a letter, so the bracket is not a number.
+  for (let k = 0; k < inner.length; k += 1) {
+    if (inner[k] !== 'e' && inner[k] !== 'E') continue;
+    const before = inner[k - 1];
+    const after = inner[k + 1];
+    if (before === undefined || !/[0-9.]/.test(before) || after === undefined || !/[-+0-9]/.test(after)) return false;
+  }
+  return true;
+}
+
+/** Whether the operand that ends at `i` is a plain number, or a bracket of numbers: not a symbol,
+ *  a call (`f(2)`, `sqrt(2)`), a power of a symbol or a subscript. */
+function endsInNumber(text: string, i: number): boolean {
+  if (text[i] === ')') {
+    const open = bracketOpening(text, i);
+    if (open === null) return false;
+    const before = text[open - 1];
+    if (open > 0 && (STAR_ALNUM.test(before) || before === '_' || before === '^')) return false;
+    return isNumberExpression(text.slice(open + 1, i));
+  }
+  const head = text.slice(0, i + 1);
+  return STAR_NUMBER_BEFORE.test(head) || STAR_POWER_BEFORE.test(head);
+}
+
+/** Whether the operand that starts at `i` is a plain number, or a bracket of numbers. A number
+ *  with a letter straight after it (`2x`, `3_1`) is a term with a symbol in it. */
+function startsWithNumber(text: string, i: number): boolean {
+  if (text[i] === '(') {
+    const close = bracketClosing(text, i);
+    return close !== null && isNumberExpression(text.slice(i + 1, close));
+  }
+  const number = STAR_NUMBER_AFTER.exec(text.slice(i));
+  if (!number) return false;
+  const next = text[i + number[0].length] ?? ' ';
+  return !(STAR_ALPHA.test(next) || next === '_');
+}
+
+/**
+ * `piece` is a run of bare text; `afterMath` / `beforeMath` say whether a maths piece sits
+ * straight against its start / its end, which is an operand on that side.
+ */
+function starOperators(piece: string, afterMath: boolean, beforeMath: boolean): string {
+  if (!piece.includes('*')) return piece;
+
+  // The bold tags the drawn path carries are not text: a line reads the same with and without them,
+  // and the plain-string path has none, so the rule steps over them.
+  let clean = '';
+  const tags: [number, string][] = [];
+  for (let k = 0; k < piece.length; k += 1) {
+    if (piece[k] === BOLD_OPEN || piece[k] === BOLD_CLOSE) tags.push([clean.length, piece[k]]);
+    else clean += piece[k];
+  }
+  if (!clean.includes('*')) return piece;
+
+  // The edge of a maths piece stands in as a `$`, the character the rule reads it by. A `$…$` span
+  // inside the text (a price kept as text) is blanked so a star in it is left alone.
+  const lead = afterMath ? '$' : '';
+  const text = `${lead}${clean}${beforeMath ? '$' : ''}`;
+  const searched = `${lead && ' '}${clean.replace(/\$[^$]*\$/g, (span) => ' '.repeat(span.length))}${beforeMath ? ' ' : ''}`;
+
+  const written = new Map<number, string>();
+  for (let s = 0; s < searched.length; s += 1) {
+    if (searched[s] !== '*') continue;
+    const spacedBefore = s >= 1 && text[s - 1] === ' ';
+    const spacedAfter = s + 1 < text.length && text[s + 1] === ' ';
+    if (spacedBefore !== spacedAfter) continue;
+    const left = spacedBefore ? s - 2 : s - 1;
+    const right = spacedAfter ? s + 2 : s + 1;
+    if (left < 0 || right >= text.length) continue;
+    if (text[left] === '*' || text[right] === '*' || !STAR_BEFORE.test(text[left]) || !STAR_AFTER.test(text[right])) continue;
+    if (!spacedBefore && ANTIBONDING_STAR.test(text.slice(s - 1, s + 4))) continue;
+    const numbers = endsInNumber(text, left) && startsWithNumber(text, right);
+    // The spaces round a spaced star are already there; an unspaced product of numbers gets its own.
+    written.set(s - lead.length, numbers ? (spacedBefore ? '×' : ' × ') : '·');
+  }
+  if (written.size === 0) return piece;
+
+  let out = '';
+  let tag = 0;
+  for (let k = 0; k <= clean.length; k += 1) {
+    while (tag < tags.length && tags[tag][0] === k) {
+      out += tags[tag][1];
+      tag += 1;
+    }
+    if (k < clean.length) out += written.get(k) ?? clean[k];
+  }
+  return out;
+}
+
+function convertBareText(text: string, afterMath = false, beforeMath = false): string {
   if (BARE_COMMAND.test(text)) {
     const held = text.replace(PROSE_UNDERSCORE, UNDERSCORE_HOLD);
     return wrapMath(convertMath(held).split(UNDERSCORE_HOLD).join('_'));
   }
   return unescapeBare(
-    text
+    starOperators(text, afterMath, beforeMath)
       .replace(GROUPING_BRACES, (_group, operator: string | undefined) => operator ?? '')
       .replace(markSegments ? BARE_SCRIPT_PAIR : BARE_SCRIPT, (token) => convertMath(token)),
   );
@@ -1696,10 +1962,14 @@ export function latexToText(raw: string): string {
   // Text outside any delimiter, held back so the bare pass sees it whole and
   // never re-reads a segment this function has already converted.
   let plain = '';
-  const flush = () => {
+  // Whether the text written so far ends in a maths piece, which the next run of bare text then
+  // starts against. `beforeMath` is the same for its other end: whether a maths piece follows.
+  let afterMath = false;
+  const flush = (beforeMath: boolean) => {
     if (!plain) return;
-    out += convertBareText(plain);
+    out += convertBareText(plain, afterMath, beforeMath);
     plain = '';
+    afterMath = false;
   };
   let i = 0;
   while (i < normalized.length) {
@@ -1712,8 +1982,9 @@ export function latexToText(raw: string): string {
         plain += normalized.slice(i);
         break;
       }
-      flush();
+      flush(true);
       out += wrapMath(convertMath(normalized.slice(i + 2, end)));
+      afterMath = true;
       i = end + 2;
       continue;
     }
@@ -1781,14 +2052,15 @@ export function latexToText(raw: string): string {
         i += 1;
         continue;
       }
-      flush();
+      flush(true);
       out += wrapMath(convertMath(normalized.slice(start, end)));
+      afterMath = true;
       i = end + delim.length;
       continue;
     }
     plain += ch;
     i += 1;
   }
-  flush();
+  flush(false);
   return out.split(DOLLAR_HOLD).join('$');
 }
