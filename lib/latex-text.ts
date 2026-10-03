@@ -220,7 +220,11 @@ function readScript(src: string, at: number): Script {
   const kind = src[at] as '^' | '_';
   let i = at + 1;
   while (src[i] === ' ') i++;
-  const group = readGroup(src, i);
+  // A run of digits, with its sign, is the whole script: `10^-7`, `K^-1`, `10^23`, `a_12`. Read one
+  // character at a time, the minus alone was raised and the digits stayed on the line ("10⁻7", "10²3"):
+  // 272 stored board lines and takeaways write exponents this way.
+  const run = src[i] === '{' ? null : /^[-−+]?\d+/.exec(src.slice(i));
+  const group = run ? { body: run[0], next: i + run[0].length } : readGroup(src, i);
   return { kind, inner: convertMath(group.body), next: group.next };
 }
 
@@ -1056,7 +1060,7 @@ export function convertMath(src: string): string {
  * The "nothing word-like after it" is what keeps prose safe: `v_y=` is a
  * subscript, `snake_case` is not, because its `c` is followed by more word.
  */
-const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
+const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[+\-−]?[0-9]+|[+\-−]|[A-Za-z](?![A-Za-z0-9]))/g;
 
 /**
  * `t^\wedge 2` — Mathpix transcribing a caret twice.

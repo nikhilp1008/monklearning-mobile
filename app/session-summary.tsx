@@ -12,6 +12,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { MathLine } from '@/components/math-line';
 import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { saveNote } from '@/lib/notes';
@@ -384,7 +385,12 @@ export default function SessionSummaryScreen() {
                     const toggle = last && rest > 0;
                     return (
                       <View key={i} style={[styles.line, last && styles.lineLast]}>
-                        <Text style={styles.lineText}>{line}</Text>
+                        {/* A takeaway can carry a formula (R_T, ρ₀, 10⁻³), so it goes through the
+                            same renderer as the board: scripts drawn where Unicode has no character,
+                            a plain line still one Text. The wrapper keeps the shrink the Text had. */}
+                        <View style={styles.lineBody}>
+                          <MathLine text={line} style={styles.lineText} fontSize={14.5} color={INK} />
+                        </View>
                         {toggle && (
                           <Pressable
                             style={styles.more}
@@ -561,6 +567,7 @@ function createStyles() {
       borderBottomColor: RULE,
     },
     lineLast: { borderBottomWidth: 0 },
+    lineBody: { flexShrink: 1 },
     lineText: {
       flexShrink: 1,
       fontFamily: 'Onest_400Regular',
