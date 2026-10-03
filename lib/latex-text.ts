@@ -81,7 +81,8 @@ const SYMBOLS: Record<string, string> = {
   varnothing: '∅', setminus: '∖', supset: '⊃', subseteq: '⊆', supseteq: '⊇',
   forall: '∀', exists: '∃', hbar: 'ℏ', ell: 'ℓ', Re: 'ℜ', Im: 'ℑ',
   ldots: '…', dots: '…', cdots: '⋯', quad: ' ', qquad: '  ',
-  lambdabar: 'ƛ', vec: '', hat: '', bar: '', dot: '',
+  // `\bar` is not here: it draws a bar, see `drawBar`.
+  lambdabar: 'ƛ', vec: '', hat: '', dot: '',
   /**
    * Found by surveying all 11,300 servable rows through this converter and
    * counting command names that reached the output as words. Every one below
@@ -146,6 +147,13 @@ const CHEM_ARROWS: [string, string][] = [
   ['->', '→'], ['<-', '←'],
 ];
 
+/** The wrappers whose argument is set in TEXT mode. There TeX turns `--` into an en
+ *  dash; in maths proper the same two characters are two minus signs. */
+const TEXT_MODE_WRAPPERS = new Set(['text', 'textrm', 'textbf', 'textit', 'mbox']);
+
+/** How many text-mode wrappers the conversion is inside. */
+let textDepth = 0;
+
 /** Wrappers whose braces vanish and whose contents render as-is. */
 const TRANSPARENT_WRAPPERS = new Set([
   'text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit',
@@ -157,11 +165,39 @@ const TRANSPARENT_WRAPPERS = new Set([
   // Accents and over-arrows. Nothing can be drawn above a glyph in linear
   // text, and the alternative was printing "overrightarrow" before the vector
   // it decorates — same call already made for `\vec` and `\hat`.
+  // `overline` is the exception: `drawBar` gives it a combining bar. It stays
+  // in this set only because `\ce{…}` asks the set which commands take an
+  // argument, and hands this one its braces.
   'overrightarrow', 'overleftarrow', 'overline', 'underline', 'widehat',
   'widetilde', 'overbracket', 'mathopen', 'mathclose', 'mathbin', 'mathrel',
   // `\substack{a \\ b}` stacks reagents above an arrow; linear text cannot.
   'substack',
 ]);
+
+/** An `\overset` / `\underset` annotation that is a CHARGE rather than a remark: a sign,
+ *  a signed number (`2+`), a partial charge (`δ+`), a circled sign, or a lone dot (a
+ *  radical's electron). Tested on the converted text. */
+const CHARGE_NOTE = /^(?:δ?[0-9]*[+\-−⁺⁻]|[⊕⊖]|[.·•∙])$/;
+
+/**
+ * The commands that print as a word and have no symbol: `\sin x`, `\ln a`, `\lim`.
+ * They fall through to the unknown-command path, which keeps the letters, and that
+ * path is where they are told apart from a command nobody knows.
+ */
+const FUNCTION_NAMES = new Set([
+  'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'sinh', 'cosh', 'tanh', 'coth',
+  'arcsin', 'arccos', 'arctan', 'arccot', 'arcsec', 'arccsc',
+  'ln', 'log', 'lg', 'exp', 'lim', 'liminf', 'limsup', 'max', 'min', 'sup', 'inf',
+  'det', 'gcd', 'arg', 'deg', 'dim', 'ker', 'hom', 'Pr',
+]);
+
+/**
+ * What can end the thing a function name follows: a letter, a digit, a closing
+ * bracket, a script (Unicode or drawn), a prime or a degree sign. Anything else (an
+ * operator, a space, an opening bracket) already sets the name apart.
+ */
+const ATOM_END =
+  /[A-Za-z0-9\u00B0\u00B2\u00B3\u00B9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u02B0-\u02B8\u02E1-\u02E3\u0300-\u03FF\u141F\u1D43-\u1D5B\u1D62-\u1D65\u1D9C\u1DA0\u1DBB\u2032\u2033\u2070-\u209F\u210F\u2113\u2202\u2207\u221E\u230B\u2309\u27E9\uDC00-\uDFFF)\]}'\u000F\u0018]$/;
 
 /** Glyphs that already sit raised on the line, so `^` around them would be
  *  doubling up — `45^\circ` is just "45°". */
@@ -175,6 +211,59 @@ const LETTER_LIKE = new Set([
   'υ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ','Υ','Φ','Ψ','Ω',
   'ℏ','ℓ','ℜ','ℑ','∞','∂','∇',
 ]);
+
+/** The macron over ONE letter, and the overline that joins up with its neighbours. */
+const COMBINING_MACRON = '\u0304';
+const COMBINING_OVERLINE = '\u0305';
+
+/** The vowels Unicode already has with a macron, so `\bar{a}` is one letter and
+ *  not a letter with a loose mark behind it. Every other letter takes the mark. */
+const MACRON_LETTERS: Record<string, string> = {
+  A: 'Ā', a: 'ā', E: 'Ē', e: 'ē', I: 'Ī', i: 'ī', O: 'Ō', o: 'ō', U: 'Ū', u: 'ū',
+};
+
+const isCombining = (ch: string) => ch >= '\u0300' && ch <= '\u036F';
+
+/**
+ * A bar over `covered`: `\bar{x}` and `\overline{…}`.
+ *
+ * Both used to print the base bare, which is a different claim. `\overline{A \cdot B}`
+ * is NAND and `A · B` is AND; `\overline{A + B} = \bar{A} \cdot \bar{B}` read
+ * "A + B = A · B", which is the very law the line exists to state. And `0.\overline{3}`
+ * is a third, where `0.3` is three tenths.
+ *
+ * `\bar{x}` is an accent, so ONE macron over ONE letter (`ν̄`, `Ā`). Anything longer is
+ * a bar over the whole of it, which is how `\overline` always reads: the overline
+ * mark goes behind every character, spaces inside the span included, because a bar
+ * with gaps in it reads as separate bars (`Ā · B̄`) and the complement of the whole
+ * is exactly what a De Morgan line is not saying. A bar over a bar is a second mark
+ * on the same letter, which is what `\overline{\overline{A \cdot B}}` means.
+ *
+ * Only the characters on the line carry a mark. What the board draws as its own
+ * piece (a script, a stacked fraction, a grid) is skipped, so a mark is never
+ * pushed into a drawn piece, and nothing is emitted for an empty argument: a
+ * combining mark with no base would print as a stray dotted circle.
+ */
+function drawBar(covered: string, accent: boolean): string {
+  const text = covered.trim();
+  const chars = Array.from(text);
+  const letters = chars.filter((ch) => !isCombining(ch));
+  if (accent && letters.length === 1 && letters[0] > '\u001F') {
+    return (chars.length === 1 && MACRON_LETTERS[text]) || text + COMBINING_MACRON;
+  }
+  let out = '';
+  /** Depth inside something the board draws as a piece of its own. */
+  let apart = 0;
+  for (let k = 0; k < chars.length; k += 1) {
+    const ch = chars[k];
+    out += ch;
+    if (ch === SUB_OPEN || ch === SUP_OPEN || ch === FRAC_OPEN || ch === MATRIX_OPEN) apart += 1;
+    else if (ch === SCRIPT_CLOSE || ch === FRAC_CLOSE || ch === MATRIX_CLOSE) apart = Math.max(0, apart - 1);
+    // After the LAST mark a letter already carries, so a second bar stacks on the first.
+    else if (apart === 0 && ch > '\u001F' && !isCombining(chars[k + 1] ?? '')) out += COMBINING_OVERLINE;
+  }
+  return out;
+}
 
 /** Reads a `{…}` group starting at `i` (which must point at `{`). Returns the
  *  inner text and the index just past the closing brace, brace-balanced so
@@ -200,6 +289,22 @@ function readGroup(src: string, i: number): { body: string; next: number } {
     }
   }
   return { body: src.slice(i + 1), next: src.length };
+}
+
+/** Reads a `[…]` optional argument starting at `i` (which must point at `[`).
+ *  Braces inside it are skipped over, so `[\text{low } T]` reads whole. Null when
+ *  the bracket never closes, which leaves the caller on its old reading. */
+function readOptional(src: string, i: number): { body: string; next: number } | null {
+  let depth = 0;
+  for (let j = i + 1; j < src.length; j += 1) {
+    const ch = src[j];
+    // An escaped character (`\]`, `\}`) opens and closes nothing.
+    if (ch === '\\') j += 1;
+    else if (ch === '{') depth += 1;
+    else if (ch === '}') depth -= 1;
+    else if (ch === ']' && depth === 0) return { body: src.slice(i + 1, j), next: j + 1 };
+  }
+  return null;
 }
 
 /** Maps every character through `table`, or returns null if any character has
@@ -231,6 +336,9 @@ interface Script {
   /** Written in parentheses (`e^(-t/τ)`). The flat form then keeps them, so
    *  reading that flat form again gives it back instead of dropping a bracket. */
   paren?: boolean;
+  /** The body held a fraction, which is written on the line (`1/(n+1)`) and so cannot be
+   *  spelled in Unicode: Unicode has no raised or lowered slash worth the name. */
+  hasFraction?: boolean;
 }
 
 /** Reads a `( … )` group starting at `i` (which must point at `(`), balanced so
@@ -270,7 +378,7 @@ function readScript(src: string, at: number): Script {
   // converter's OWN flat form ("I_(enc)"), and has to stay readable as itself.
   if (kind === '^' && src[at + 1] === '(') {
     const group = readParen(src, at + 1);
-    if (group) return { kind, inner: convertMath(group.body), next: group.next, paren: true };
+    if (group) return { kind, ...convertScriptBody(group.body), next: group.next, paren: true };
   }
   let i = at + 1;
   while (src[i] === ' ') i++;
@@ -284,7 +392,54 @@ function readScript(src: string, at: number): Script {
   // 272 stored board lines and takeaways write exponents this way.
   const run = src[i] === '{' ? null : /^[-−+]?\d+/.exec(src.slice(i));
   const group = run ? { body: run[0], next: i + run[0].length } : readGroup(src, i);
-  return { kind, inner: convertMath(group.body), next: group.next };
+  return { kind, ...convertScriptBody(group.body), next: group.next };
+}
+
+/**
+ * The pairs of index letters that are an INDEX, not a word: `r_{ij}`, `a_{mn}`. Every
+ * other run of letters in a subscript is a word (`top`, `rms`, `in`, `axial`).
+ * The other way round does not work: `in` is made of index letters and means "input".
+ */
+const INDEX_PAIRS = new Set([
+  'ij', 'ji', 'ik', 'ki', 'il', 'li', 'jk', 'kj', 'jl', 'lj', 'kl', 'lk', 'mn', 'nm',
+]);
+
+/**
+ * A subscript that is a WORD: two or more letters and nothing else.
+ *
+ * Unicode has a subscript for a, e, h, i-m, n, o, p, r, s, t, u, v and x, so a word
+ * made only of those (`top`, `rms`, `axial`) used to be spelled and any other (`bottom`,
+ * `equatorial`) drawn, in the same expression: "yₜₒₚ − y⟦↓bottom⟧", "Eₐₓᵢₐₗ = 2 E⟦↓equatorial⟧".
+ * Two notations for one kind of thing, decided by which letters the Unicode
+ * block happens to have. A word is always drawn, so a line never mixes them: 507
+ * of the 33,247 stored board lines held a word the old rule spelled. Digits,
+ * signs, a single letter and mixed indices (`n+1`, `0`, `i`) are unchanged, and
+ * so is the flat form.
+ */
+function isSubscriptWord(text: string): boolean {
+  return /^[A-Za-z]{2,}$/.test(text) && !INDEX_PAIRS.has(text);
+}
+
+/**
+ * The scripts on one base, as text. Spelled in Unicode when every one of them can be;
+ * otherwise drawn (for `latexToSegments`) or written out flat with their marker (for
+ * the plain-string callers), and in both of those the whole group goes together, so
+ * a pair shares one size and baseline.
+ */
+function renderScripts(parts: Script[]): string {
+  const spelled = parts.map((part) =>
+    markSegments && (part.hasFraction || (part.kind === '_' && isSubscriptWord(part.inner)))
+      ? null
+      : mapAll(part.inner, part.kind === '^' ? SUPERSCRIPT : SUBSCRIPT),
+  );
+  if (spelled.every((part) => part !== null)) return spelled.join('');
+  if (markSegments) {
+    // No character exists for it, so it is drawn instead of spelled — and
+    // its partner is drawn too, so the pair shares one size and baseline.
+    return parts.map((part) => `${part.kind === '^' ? SUP_OPEN : SUB_OPEN}${part.inner}${SCRIPT_CLOSE}`).join('');
+  }
+  // Plain-string callers keep the marker so meaning isn't silently lost.
+  return parts.map((part) => `${part.kind}${wrapScript(part.inner, part.paren)}`).join('');
 }
 
 /**
@@ -372,8 +527,10 @@ function renderChem(body: string): string {
       continue;
     }
 
-    // An arrow, with up to two bracketed conditions. Rendered the same way
-    // `\xrightarrow[below]{above}` is, so both spellings read alike.
+    // An arrow, with up to two bracketed conditions, written after it in
+    // brackets the way `\xrightarrow[below]{above}` is. The two conditions are
+    // joined with "/" here, as they have been in every stored `\ce` line; the
+    // LaTeX spelling joins them with ", ".
     const arrow = CHEM_ARROWS.find(([literal]) => body.startsWith(literal, i));
     if (arrow) {
       i += arrow[0].length;
@@ -525,17 +682,126 @@ const MATRIX_CELL = '\u001A';
 const MATRIX_ROW = '\u001B';
 const MATRIX_CLOSE = '\u001C';
 
+/**
+ * A fraction written on the line, `a/b`, because it sits inside something the board
+ * already draws small: a half of a stacked fraction, or a script.
+ *
+ * Stacking it would make a three-deck tower out of one line of working, so it was
+ * flattened to `(a)/(b)` — which read wrongly twice over. `\sin\tfrac{\theta}{2}` became
+ * "sin(θ)/(2)", which is sin θ over 2, and `r^{\frac{1}{n+1}}` kept the fraction's own
+ * control characters in the drawn exponent and showed "1n+1". The marker is resolved
+ * by whatever converted the half or the script (`resolveInline`), because only
+ * there is the text either side of the fraction known.
+ */
+const INLINE_OPEN = '\u000E';
+const INLINE_CLOSE = '\u000F';
+
+/** How many halves and scripts the conversion is inside. Set only while a
+ *  `latexToSegments` call is converting one, like `markSegments`. */
+let inlineDepth = 0;
+
 let markSegments = false;
 
+/** `a/b`, bracketing a part only when it is more than one term. A numerator may keep a
+ *  leading sign (`-1/2`); a denominator may not (`1/(-2)`). */
+function inlineFraction(num: string, den: string): string {
+  return `${isSingleTerm(num, true) ? num : `(${num})`}/${isSingleTerm(den, false) ? den : `(${den})`}`;
+}
+
+/** No operator, space or slash outside brackets or a drawn script. */
+function isSingleTerm(text: string, allowSign: boolean): boolean {
+  let depth = 0;
+  const chars = Array.from(text.trim());
+  for (let k = 0; k < chars.length; k += 1) {
+    const ch = chars[k];
+    if ('([{'.includes(ch) || ch === SUB_OPEN || ch === SUP_OPEN) depth += 1;
+    else if (')]}'.includes(ch) || ch === SCRIPT_CLOSE) depth = Math.max(0, depth - 1);
+    else if (depth === 0 && /[\s+\-−±∓×·÷=<>,/]/.test(ch) && !(allowSign && k === 0 && /[+\-−]/.test(ch))) return false;
+  }
+  return true;
+}
+
+/** Everything a function name may carry before its argument: Unicode or drawn scripts. */
+const FUNCTION_TAIL = new RegExp(
+  `(?:^|[^A-Za-z])(?:${[...FUNCTION_NAMES].join('|')})` +
+    `(?:[${Object.values(SUPERSCRIPT).concat(Object.values(SUBSCRIPT)).filter((glyph) => glyph !== '·').join('')}]` +
+    `|[\u0016\u0017][^\u0018]*\u0018)*[ \u00A0]*$`,
+);
+
+/** What starts the next factor of a product: a letter, a digit, a bracket, a radical, a script. */
+const FACTOR_START =
+  /^[A-Za-z0-9\u00B2\u00B3\u00B9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u02B0-\u02B8\u02E1-\u02E3\u0370-\u03FF\u1D43-\u1D5B\u1D62-\u1D65\u2032\u2033\u2070-\u209F\u221A\u2211\u220F\u222B([/'\u000E\u0016\u0017]/;
+
+/**
+ * Takes the inline markers out of `text`, writing each fraction on the line.
+ *
+ * A fraction is bracketed when it touches another factor, on either side and
+ * spaces or not, because `1/2mv²` and `1/2 sin x` read as 1 over 2mv² and 1 over
+ * 2 sin x. It is bracketed when it is a function's argument for the same reason, so
+ * `\sin\tfrac{\theta}{2}` is "sin(θ/2)". Alone in its half or script, or beside an
+ * operator, a bracket or the end, it is left bare: `θ/2`, `1/(n+1)`, `(a+b)/2`.
+ */
+function resolveInline(text: string): string {
+  if (!text.includes(INLINE_OPEN)) return text;
+  let out = '';
+  let at = 0;
+  while (at < text.length) {
+    const open = text.indexOf(INLINE_OPEN, at);
+    if (open === -1) {
+      out += text.slice(at);
+      break;
+    }
+    const close = text.indexOf(INLINE_CLOSE, open);
+    out += text.slice(at, open);
+    if (close === -1) {
+      out += text.slice(open + 1);
+      break;
+    }
+    const written = text.slice(open + 1, close);
+    const before = out.replace(/[ \u00A0]+$/, '');
+    const after = text.slice(close + 1).replace(/^[ \u00A0]+/, '');
+    const touching =
+      ATOM_END.test(before) || before.endsWith('/') || FUNCTION_TAIL.test(out) || FACTOR_START.test(after);
+    out += touching ? `(${written})` : written;
+    at = close + 1;
+  }
+  return out;
+}
+
+/** The body of a script, converted. A fraction inside it is written on the line. */
+function convertScriptBody(body: string): { inner: string; hasFraction?: boolean } {
+  if (!markSegments) return { inner: convertMath(body) };
+  inlineDepth += 1;
+  try {
+    const converted = convertMath(body);
+    return {
+      inner: resolveInline(converted),
+      ...(converted.includes(INLINE_OPEN) ? { hasFraction: true } : {}),
+    };
+  } finally {
+    inlineDepth -= 1;
+  }
+}
+
 function renderFraction(rawNum: string, rawDen: string): string {
+  if (markSegments) {
+    // Inside another half or a script, it is written on the line; at the top it stacks.
+    const nested = inlineDepth > 0;
+    let num: string;
+    let den: string;
+    inlineDepth += 1;
+    try {
+      num = resolveInline(convertMath(rawNum));
+      den = resolveInline(convertMath(rawDen));
+    } finally {
+      inlineDepth -= 1;
+    }
+    return nested
+      ? `${INLINE_OPEN}${inlineFraction(num, den)}${INLINE_CLOSE}`
+      : `${FRAC_OPEN}${num}${FRAC_SEP}${den}${FRAC_CLOSE}`;
+  }
   const num = convertMath(rawNum);
   const den = convertMath(rawDen);
-  if (markSegments) {
-    // A fraction inside a fraction is left linear: stacking it would make a
-    // three-deck tower out of one line of working.
-    const flat = (part: string) => part.split(FRAC_OPEN).join('(').split(FRAC_SEP).join(')/(').split(FRAC_CLOSE).join(')');
-    return `${FRAC_OPEN}${flat(num)}${FRAC_SEP}${flat(den)}${FRAC_CLOSE}`;
-  }
   // ¹⁄₂ reads as a real fraction for *numbers* only. Letters have patchy
   // super/subscript coverage in Unicode and render as an unreadable jumble
   // (h/mv became "ʰ⁄ₘᵥ"), so anything non-numeric uses the linear form.
@@ -746,7 +1012,7 @@ function scriptParts(marked: string): ScriptPart[] | undefined {
  *  out rather than drawn -- a fraction becomes `(a)/(b)`, a nested grid its
  *  linear form. */
 function flattenMarkers(text: string): string {
-  let out = strip(text);
+  let out = strip(resolveInline(text));
   // Rebuilt the way `renderFraction`'s own linear branch does it, rather than
   // wrapping both halves unconditionally: a half that is a single term needs
   // no brackets, and `1/2` beats `(1)/(2)` inside an already-small cell.
@@ -768,6 +1034,8 @@ function strip(text: string): string {
   return text
     .split(MATH_OPEN).join('')
     .split(MATH_CLOSE).join('')
+    .split(INLINE_OPEN).join('')
+    .split(INLINE_CLOSE).join('')
     .split(SUB_OPEN).join('')
     .split(SUP_OPEN).join('')
     .split(SCRIPT_CLOSE).join('')
@@ -888,12 +1156,35 @@ export function convertMath(src: string): string {
         continue;
       }
 
-      if (name === 'xrightarrow' || name === 'xleftarrow') {
+      if (Object.prototype.hasOwnProperty.call(LABELLED_ARROWS, name)) {
         while (src[i] === ' ') i++;
+        const arrow = LABELLED_ARROWS[name];
+        // `\xrightarrow[below]{above}`: the OPTIONAL argument comes first and is read
+        // first. Taken as the argument itself, the lone "[" was the whole label and
+        // everything after it was left on the line: five Class 12 reactions read
+        // "→([) 573 K]Cu", "→([) hot]NH₂NH₂, KOH/glycol".
+        const below = src[i] === '[' ? readOptional(src, i) : null;
+        if (below) {
+          i = below.next;
+          while (src[i] === ' ') i++;
+        }
         const group = readGroup(src, i);
         i = group.next;
+        if (below) {
+          // Above, then below, each with its own spacing tidied: `\text{low } T` is
+          // "low  T" once converted, and a condition is one phrase.
+          const label = [group.body, below.body]
+            .map((part) => convertMath(part).replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .join(', ');
+          // One space either side, however the source spaced it. The unlabelled form
+          // below pads unconditionally; this one has no lines to stay level with.
+          const lead = out === '' || /\s$/.test(out) ? '' : ' ';
+          while (src[i] === ' ') i++;
+          out += `${lead}${arrow}${label ? `(${label})` : ''}${i < src.length ? ' ' : ''}`;
+          continue;
+        }
         const label = convertMath(group.body).trim();
-        const arrow = name === 'xrightarrow' ? '→' : '←';
         // Parenthesised to match the pre-pass in `latexToText`, which is the
         // handler that catches this same command whenever its argument has no
         // nested braces. Two spellings of one arrow was the only difference
@@ -958,6 +1249,17 @@ export function convertMath(src: string): string {
         i = base.next;
         const note = convertMath(annotation.body).trim();
         const rendered = convertMath(base.body);
+        // A CHARGE is not a remark about the base, it sits ON it: `\overset{+}{N}` is
+        // N⁺, `\overset{\delta+}{C}` is C with a raised δ+, and `\underset` hangs it below.
+        // Printed as "(+)" after the letter, the diazonium and the nitrilium ion read
+        // "N (+)≡ N", which is a neutral nitrogen with an aside. It goes through the same
+        // spelled-or-drawn choice a typed `^+` does, so the two spellings cannot differ.
+        if (CHARGE_NOTE.test(note)) {
+          // A radical's dot may be typed `.` or `\cdot`; Unicode raises only the first.
+          const inner = /^[·•∙]$/.test(note) ? '.' : note;
+          out += rendered + renderScripts([{ kind: name === 'underset' ? '_' : '^', inner, next: i }]);
+          continue;
+        }
         // `\underset{\text{(excess)}}{…}` brings its own brackets, and wrapping
         // again gave "CHCl₃ ((excess))".
         out += note ? `${rendered} ${isBracketed(note) ? note : `(${note})`}` : rendered;
@@ -990,7 +1292,17 @@ export function convertMath(src: string): string {
         const group = readGroup(src, i);
         i = group.next;
         const inner = convertMath(group.body);
-        out += isAtomic(inner) ? `√${inner}` : `√(${inner})`;
+        out += isAtomic(inner) && !inner.includes(INLINE_OPEN) ? `√${inner}` : `√(${inner})`;
+        continue;
+      }
+
+      /** `\bar{x}` and `\overline{…}`: see `drawBar`. Ahead of the wrapper and symbol
+       *  tables, which would otherwise drop the command and keep the bare base. */
+      if (name === 'bar' || name === 'overline') {
+        while (src[i] === ' ') i++;
+        const group = readGroup(src, i);
+        i = group.next;
+        out += drawBar(convertMath(group.body), name === 'bar');
         continue;
       }
 
@@ -1022,6 +1334,15 @@ export function convertMath(src: string): string {
         }
         const group = readGroup(src, i);
         i = group.next;
+        if (TEXT_MODE_WRAPPERS.has(name)) {
+          textDepth += 1;
+          try {
+            out += convertMath(group.body);
+          } finally {
+            textDepth -= 1;
+          }
+          continue;
+        }
         out += convertMath(group.body);
         continue;
       }
@@ -1047,6 +1368,11 @@ export function convertMath(src: string): string {
         continue;
       }
 
+      // A function name is set apart from the symbol before it. TeX puts a thin space
+      // there and the stored lines rely on it: `r\cos\theta` and `n\ln a` ran together
+      // as "rcosθ" and "nln a", and `ab\cos^{-1}` as "abcos⁻¹". Nothing is added AFTER
+      // the name, so `\cos\theta` stays "cosθ" and `\cos x` keeps the space it has.
+      if (FUNCTION_NAMES.has(name) && ATOM_END.test(out)) out += ' ';
       // Unknown command: drop the backslash, keep the letters (\qed -> qed)
       // rather than leaving raw markup in front of a student.
       out += name;
@@ -1080,23 +1406,28 @@ export function convertMath(src: string): string {
         continue;
       }
 
-      const spelled = parts.map((part) =>
-        mapAll(part.inner, part.kind === '^' ? SUPERSCRIPT : SUBSCRIPT)
-      );
-      if (spelled.every((part) => part !== null)) {
-        out += spelled.join('');
-        continue;
-      }
-      if (markSegments) {
-        // No character exists for it, so it is drawn instead of spelled — and
-        // its partner is drawn too, so the pair shares one size and baseline.
-        out += parts
-          .map((part) => `${part.kind === '^' ? SUP_OPEN : SUB_OPEN}${part.inner}${SCRIPT_CLOSE}`)
-          .join('');
-        continue;
-      }
-      // Plain-string callers keep the marker so meaning isn't silently lost.
-      out += parts.map((part) => `${part.kind}${wrapScript(part.inner, part.paren)}`).join('');
+      out += renderScripts(parts);
+      continue;
+    }
+
+    /**
+     * `--` and `---` inside `\text{…}`: TeX's en dash and em dash, which is what a stored
+     * line means by them. `650\text{--}800` is a range and `\text{N}^+\text{--C}_6\text{H}_4`
+     * is a bond drawn between two groups; both showed the two hyphens, as typed.
+     *
+     * ONLY in text mode, as in TeX. In maths the same characters are two minus signs:
+     * `(3--3)^2` in a distance formula is 3 − (−3), and read as a range it would show
+     * 3–3 = 0. And `C₆H₆ --AlCl₃--> C₆H₅Cl` is an ASCII arrow with its label. Neither is
+     * touched, nor is a sentence, where `--HVZ-->` is stored twice. `-->` and `<--` are
+     * left whole inside text too, as is any longer run.
+     */
+    if (textDepth > 0 && ch === '-' && src[i + 1] === '-') {
+      let end = i;
+      while (src[end] === '-') end += 1;
+      const run = end - i;
+      const arrow = src[i - 1] === '<' || src[end] === '>';
+      out += !arrow && run === 2 ? '–' : !arrow && run === 3 ? '—' : src.slice(i, end);
+      i = end;
       continue;
     }
 
@@ -1163,6 +1494,14 @@ const BARE_SCRIPT = new RegExp(
 );
 
 /**
+ * The same, but taking a second script when one follows straight after: `_c^d`, `V_R^2`,
+ * `∫_c^d`. Converted together, a pair is decided together (see `convertMath`), where
+ * each read alone left "∫⟦↓c⟧ᵈ", one limit drawn and the other spelled. Only the drawn
+ * path uses it: the plain-string path keeps reading one script at a time.
+ */
+const BARE_SCRIPT_PAIR = new RegExp(`(?:${BARE_SCRIPT.source})(?:${BARE_SCRIPT.source})?`, 'g');
+
+/**
  * Braces that only GROUP, in a line with no command in it for `convertMath` to
  * read them as grouping.
  *
@@ -1189,6 +1528,27 @@ const DOUBLED_CARET = /\^\s*\\wedge\s*/g;
 
 /** Any `\command` at all — the signal that a run is markup, not prose. */
 const BARE_COMMAND = /\\[a-zA-Z]+/;
+
+/**
+ * The escapes `convertMath` reads that a line with no `\command` in it never reaches
+ * it to be read: `a\,dx`, `1s\;2s`, `S = \{1, 2, 3\}`. Forty stored lines showed them as
+ * typed ("2\,HCHO →(conc.\,NaOH)").
+ *
+ * A thin space, a medium space and a colon-space are one plain space, and swallow
+ * the spaces around them, as in `convertMath` ("sin x \, dx" is one gap). `\!` is a
+ * negative space and prints nothing. `\{` and `\}` are the braces themselves. A `\\`
+ * is matched first and left alone, so a line break straight before a comma
+ * (`a \\, b`) is not read as `\,`.
+ */
+const BARE_ESCAPE = /\\\\|\s*\\[,;:]\s*|\\!|\\([{}])/g;
+
+function unescapeBare(text: string): string {
+  return text.replace(BARE_ESCAPE, (escape, brace: string | undefined) => {
+    if (escape === '\\\\') return escape;
+    if (brace) return brace;
+    return escape.endsWith('!') ? '' : ' ';
+  });
+}
 
 /**
  * A `_` doing prose duty rather than maths — `snake_case`, a filename.
@@ -1248,9 +1608,11 @@ function convertBareText(text: string): string {
     const held = text.replace(PROSE_UNDERSCORE, UNDERSCORE_HOLD);
     return wrapMath(convertMath(held).split(UNDERSCORE_HOLD).join('_'));
   }
-  return text
-    .replace(GROUPING_BRACES, (_group, operator: string | undefined) => operator ?? '')
-    .replace(BARE_SCRIPT, (token) => convertMath(token));
+  return unescapeBare(
+    text
+      .replace(GROUPING_BRACES, (_group, operator: string | undefined) => operator ?? '')
+      .replace(markSegments ? BARE_SCRIPT_PAIR : BARE_SCRIPT, (token) => convertMath(token)),
+  );
 }
 
 /**
@@ -1308,7 +1670,8 @@ export function latexToText(raw: string): string {
         const arrow = LABELLED_ARROWS[cmd];
         const a = (above || '').trim();
         const b = (below || '').trim();
-        if (a && b) return `${arrow}(${a}/${b})`;
+        // Above, then below. A slash read as one reagent over another ("Cu/573 K").
+        if (a && b) return `${arrow}(${a}, ${b})`;
         return a || b ? `${arrow}(${a || b})` : arrow;
       },
     );
