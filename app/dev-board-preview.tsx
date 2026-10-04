@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -137,7 +137,13 @@ const BOARD: BoardEvent[] = [
 const LEFT = 28;
 const RIGHT = 28;
 
-export default function DevBoardPreviewScreen() {
+/** Development builds only — see the same wrapper in dev-widget-preview.tsx. */
+export default function DevBoardPreviewRoute() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <DevBoardPreviewScreen />;
+}
+
+function DevBoardPreviewScreen() {
   const oriented = usePortraitLock();
   if (!oriented) return <View style={styles.hold} />;
 

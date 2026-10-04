@@ -21,7 +21,7 @@
  * on THIS art. A tool that filled it in on export would make the review gate a
  * formality, so the field is typed by the person who did the reviewing.
  */
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   Image, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
@@ -56,7 +56,13 @@ const SUGGESTED = [
 
 const SIDES: AuthoredSide[] = ['l', 'r', 't', 'b', 'auto'];
 
-export default function DevLabelEditorScreen() {
+/** Development builds only — see the same wrapper in dev-widget-preview.tsx. */
+export default function DevLabelEditorRoute() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <DevLabelEditorScreen />;
+}
+
+function DevLabelEditorScreen() {
   const [labels, setLabels] = useState<AuthoredLabel[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [reviewer, setReviewer] = useState('');

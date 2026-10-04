@@ -51,7 +51,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "MonkLearning needs your microphone so Drona can hear you during a live class.",
+          "microphonePermission": "MonkLearning needs your microphone so Drona can hear you during a live class and when you ask a follow-up question by voice.",
           "recordAudioAndroid": true
         }
       ],
@@ -65,7 +65,12 @@
         }
       ],
       "expo-asset",
-      "expo-secure-store"
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

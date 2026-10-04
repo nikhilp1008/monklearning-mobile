@@ -1,10 +1,11 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router, useRootNavigationState, usePathname, useSegments } from 'expo-router';
+import type { ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -88,10 +89,63 @@ import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { colors } from '@/constants/brand';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+/**
+ * A render error anywhere below the root lands here instead of closing the
+ * app. There is no crash reporter yet, so without this a production crash is
+ * simply the app vanishing — the student retries the same screen and churns.
+ * The error's own text stays in the log: it can carry internals, and "Try
+ * again" is the only thing a student can act on.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    console.error('[root error boundary]', error);
+  }, [error]);
+  return (
+    <View style={errorStyles.page}>
+      <Text style={errorStyles.title}>Something went wrong</Text>
+      <Text style={errorStyles.body}>
+        That screen hit a problem. Your progress is saved.
+      </Text>
+      <Pressable style={errorStyles.button} onPress={retry} hitSlop={8}>
+        <Text style={errorStyles.buttonText}>Try again</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const errorStyles = StyleSheet.create({
+  page: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: colors.paper,
+  },
+  title: { fontFamily: 'Onest_700Bold', fontSize: 20, color: colors.ink },
+  body: {
+    fontFamily: 'Onest_400Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.ink,
+    opacity: 0.7,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  button: {
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 99,
+    backgroundColor: colors.ink,
+  },
+  buttonText: { fontFamily: 'Onest_700Bold', fontSize: 15, color: colors.paper },
+});
 
 // Holds the native splash screen up until hideAsync() is called explicitly
 // below, instead of relying on its (undocumented, easy to get wrong) default
@@ -420,7 +474,6 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </PracticeFocusProvider>
       </AuthStateContext.Provider>
