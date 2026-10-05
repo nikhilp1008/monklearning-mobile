@@ -384,11 +384,16 @@ export default function PracticeScreen() {
    * locking onto one. `exclude` lets a retry skip a chapter that just came
    * back pool_empty.
    */
-  const nextChapterFilter = (exclude?: string[]): { chapter_id?: string } => {
+  const nextChapterFilter = (
+    exclude?: string[]
+  ): { chapter_id?: string; weak?: boolean } => {
     if (focusChapterId) return { chapter_id: focusChapterId };
     if (weakMode) {
       const id = sampleWeakChapterId(SUBJECT_QUERY[activeSubject], exclude);
-      if (id) return { chapter_id: id };
+      // `weak` asks the server to aim within the chapter too, at the
+      // student's weakest concepts — the chapter pick alone left the question
+      // inside it a uniform random draw.
+      if (id) return { chapter_id: id, weak: true };
     }
     return {};
   };
