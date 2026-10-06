@@ -17,6 +17,7 @@
       }
     },
     "android": {
+      "package": "com.monklearning.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#FCFAF4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
