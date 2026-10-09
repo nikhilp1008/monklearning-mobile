@@ -22,8 +22,10 @@ import { hapticKey } from '@/lib/haptics';
 type ObButtonProps = {
   label: string;
   onPress: () => void;
-  /** Cream on the photographic welcome screens, ink everywhere else. */
-  variant?: 'ink' | 'cream';
+  /** Cream on the photographic welcome screens, ink everywhere else.
+   *  `outline` is the second button under an ink one: same shape and size,
+   *  white with a hairline, so it reads as a button without competing. */
+  variant?: 'ink' | 'cream' | 'outline';
   /** The white-flow buttons carry a trailing arrow; the welcome ones don't. */
   withArrow?: boolean;
   disabled?: boolean;
@@ -87,6 +89,7 @@ export function ObButton({
 }: ObButtonProps) {
   const { ds, fs, tracking } = useDesignScale();
   const isCream = variant === 'cream';
+  const isOutline = variant === 'outline';
   const height = compact ? ds(48) : ds(60);
   const radius = compact ? ds(15) : ds(18);
   const labelSize = compact ? 15.5 : 18;
@@ -116,7 +119,7 @@ export function ObButton({
     ? isCream
       ? ob.creamDim
       : ob.ink40
-    : isCream
+    : isCream || isOutline
       ? ob.ink
       : ob.cream;
 
@@ -172,6 +175,9 @@ export function ObButton({
         if (!disabled && !busy) hapticKey();
       }}
       disabled={disabled || busy}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled, busy: !!busy }}
       style={[compact ? { alignSelf: 'center' } : { width: '100%' }, style]}>
       {({ pressed }) => {
         const held = pressed && !disabled;
@@ -192,6 +198,23 @@ export function ObButton({
                 gap: ds(10),
                 borderWidth: 1.5,
                 borderColor: isCream ? ob.creamRule : ob.hairline18,
+              }}>
+              {body}
+            </View>
+          );
+        }
+        if (isOutline) {
+          return (
+            <View
+              style={{
+                ...face(held),
+                backgroundColor: '#FFFFFF',
+                // A hairline instead of the ledge: the second button sits flat.
+                boxShadow: [
+                  { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1.5, color: ob.hairline18, inset: true },
+                ],
+                transform: [{ translateY: held ? ds(1) : 0 }],
+                opacity: held ? 0.7 : 1,
               }}>
               {body}
             </View>

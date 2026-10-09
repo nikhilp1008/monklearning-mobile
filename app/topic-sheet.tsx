@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { BloomFace } from '@/components/gradient-select';
@@ -187,25 +188,18 @@ export default function TopicSheetScreen() {
           </ScrollView>
 
           <View style={styles.footer}>
-            <PressableScale
-              style={[styles.cta, !selected && styles.ctaDisabled]}
+            {/* The onboarding's square key, as every primary button now is.
+                Static label, per export-6c: real subtopic names run long
+                enough that "Start with <topic>" had to be ellipsised. Its
+                own tap lands on press-in, so the step into the classroom is
+                felt without a second haptic here. Outlined until a topic is
+                chosen. */}
+            <ObButton
+              label="Start learning"
+              withArrow
               disabled={!selected}
-              onPress={() => {
-                // The step into the classroom — felt, the way Home's Start a
-                // Live Class is. Only when a topic is chosen: a disabled
-                // button never gets here, so it never taps.
-                hapticCommitted();
-                goToClassroom(selected ?? undefined);
-              }}>
-              {/* Static, per export-6c. It used to read "Start with <topic>",
-                  and real subtopic names run long enough ("Electric Current,
-                  Ohm's Law & Drift Velocity") that the label had to be
-                  ellipsised to keep the arrow on screen. */}
-              <Text style={[styles.ctaText, !selected && styles.ctaTextDisabled]}>
-                Start learning
-              </Text>
-              {selected && <ArrowRightIcon color={colors.paper} size={scale(15)} />}
-            </PressableScale>
+              onPress={() => goToClassroom(selected ?? undefined)}
+            />
           </View>
       </SafeAreaView>
     </View>
@@ -421,38 +415,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(12),
       paddingBottom: verticalScale(10),
       backgroundColor: '#fff',
-    },
-    cta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      height: verticalScale(52),
-      paddingHorizontal: scale(20),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
-    },
-    ctaDisabled: {
-      backgroundColor: 'rgba(28,26,22,.07)',
-      shadowOpacity: 0,
-      elevation: 0,
-    },
-    ctaText: {
-      // Shrinks rather than overflowing when the topic name is long; the
-      // arrow beside it keeps its space instead of being pushed out.
-      flexShrink: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
-    },
-    ctaTextDisabled: {
-      color: colors.faint,
     },
   });
 }

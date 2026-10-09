@@ -26,6 +26,7 @@ import {
 import { saveProfile } from '@/lib/profile';
 
 import { SelectRow } from '@/components/select-row';
+import { hapticSwitched } from '@/lib/haptics';
 
 const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
 
@@ -47,6 +48,7 @@ export default function ClassScreen() {
   const [playToken, setPlayToken] = useState(0);
 
   const select = useCallback((key: YearKey) => {
+    hapticSwitched();
     setYear(key);
     setPlayToken((n) => n + 1);
   }, []);

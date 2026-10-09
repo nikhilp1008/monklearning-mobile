@@ -18,6 +18,7 @@ import { LeaderRow, ObButton, ObHeader } from '@/components/onboarding-kit';
 import { SelectRow } from '@/components/select-row';
 import { EXAMS, examTotal, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
 import { saveProfile } from '@/lib/profile';
+import { hapticSwitched } from '@/lib/haptics';
 
 const EXAM_ORDER: ExamKey[] = ['jee', 'neet', 'both'];
 
@@ -32,6 +33,7 @@ export default function ExamScreen() {
   const [playToken, setPlayToken] = useState(0);
 
   const select = useCallback((key: ExamKey) => {
+    hapticSwitched();
     setExam(key);
     setPlayToken((n) => n + 1);
   }, []);

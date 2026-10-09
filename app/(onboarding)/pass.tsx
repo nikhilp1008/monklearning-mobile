@@ -31,6 +31,7 @@ import {
   type PassKey,
 } from '@/constants/onboarding';
 import { SelectRow } from '@/components/select-row';
+import { hapticSwitched } from '@/lib/haptics';
 
 function ArrowGlyph({ size }: { size: number }) {
   return (
@@ -68,6 +69,7 @@ export default function PassScreen() {
   const paid = !!active && total === 0;
 
   const select = (id: PassKey) => {
+    hapticSwitched();
     setPass(id);
     setPlayToken((n) => n + 1);
   };

@@ -33,9 +33,13 @@ const ONEST_SIZE = 0.93;
 const ONEST_TRACKING = 0.75;
 
 export function useDesignScale() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   return useMemo(() => {
-    const ratio = width / DESIGN_WIDTH;
+    // The short side, not the width: the onboarding's button is used beyond
+    // onboarding now — on the classroom's report sheet and error screen,
+    // which can be sideways — and scaled off a landscape width it doubled.
+    // Upright, the short side IS the width, so nothing there changes.
+    const ratio = Math.min(width, height) / DESIGN_WIDTH;
     return {
       /** Geometry: padding, radii, heights. Linear. */
       ds: (size: number) => size * ratio,
@@ -46,7 +50,7 @@ export function useDesignScale() {
       tracking: (em: number, fontSize: number) =>
         em * fontSize * ratio * ONEST_SIZE * ONEST_TRACKING,
     };
-  }, [width]);
+  }, [width, height]);
 }
 
 export const ob = {

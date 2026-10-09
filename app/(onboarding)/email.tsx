@@ -1,4 +1,5 @@
-// 03a "Email address" + 03b "Same page — OTP slides in".
+// 03a "Email address" + 03b "Same page — OTP slides in". (Rebuilt 2026-10-08
+// to stay one page in look as well as in code: see the OTP branch below.)
 //
 // These are ONE screen in the handoff, not two routes: the OTP block is
 // revealed below the address and the entry card collapses into a recap card
@@ -32,7 +33,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
-import { hapticCodeComplete, hapticDigit } from '@/lib/haptics';
+import { hapticCodeComplete, hapticDigit, hapticSwitched, hapticWarning } from '@/lib/haptics';
 import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
 
 const CODE_LENGTH = 6;
@@ -135,6 +136,7 @@ export default function EmailScreen() {
       setSecondsLeft(RESEND_SECONDS);
       setStage('otp');
     } catch (err) {
+      hapticWarning();
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -150,6 +152,7 @@ export default function EmailScreen() {
 
   const resend = async () => {
     if (secondsLeft > 0 || busy) return;
+    hapticSwitched();
     setBusy(true);
     setError(null);
     try {
@@ -159,6 +162,7 @@ export default function EmailScreen() {
       setSecondsLeft(RESEND_SECONDS);
       codeInput.current?.focus();
     } catch (err) {
+      hapticWarning();
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -201,6 +205,8 @@ export default function EmailScreen() {
         router.push({ pathname: '/details', params: { email: email.trim() } });
       }
     } catch (err) {
+      // A wrong or expired code: felt as well as read.
+      hapticWarning();
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
     } finally {
       // Always cleared: this screen stays mounted behind `details` now, and
@@ -285,17 +291,37 @@ export default function EmailScreen() {
           </>
         ) : (
           <>
-            <ObHeader title="Enter the code" />
-            {/* The handoff puts the address and its escape hatch on one line
-                under the title, in place of the recap card. The card was a
-                second field-shaped object directly above six more, which read
-                as another thing to fill in. */}
-            <Text style={s.sub} numberOfLines={2}>
-              Sent to {email.trim()} ·{' '}
-              <Text style={s.changeLink} onPress={changeEmail}>
-                Change
-              </Text>
-            </Text>
+            {/* ONE PAGE, NOT TWO. Sending the code used to swap everything: a
+                new title, the email box gone, the address shrunk to a line —
+                it read as a second screen. Now the title stays, the email box
+                stays where it was (filled, in the same weight it was typed
+                in), and the code rises in beneath it. */}
+            <ObHeader title="Your email" />
+            <Text style={s.sub}>We sent a 6-digit code to your inbox.</Text>
+
+            <View style={s.recapBlock}>
+              <View style={s.recapCard}>
+                <View style={s.recapText}>
+                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                  <Text style={s.recapValue} numberOfLines={1}>
+                    {email.trim()}
+                  </Text>
+                </View>
+                {/* A real button with room around it. It was a few letters
+                    of inline text inside a sentence — a small target, and
+                    the one students reported not working. */}
+                <Pressable
+                  onPress={changeEmail}
+                  hitSlop={ds(14)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change email address"
+                  style={({ pressed }) => [s.changeButton, pressed && s.changePressed]}>
+                  <Text style={s.changeLink}>Change</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <Text style={s.codeLabel}>ENTER THE CODE</Text>
 
             <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
               <View style={s.boxesRow}>
@@ -540,29 +566,44 @@ function createStyles(
     recognition: { marginTop: ds(18) },
 
     // padding:30px 26px 0
-    recapBlock: { paddingTop: ds(30), paddingHorizontal: ds(26) },
+    /** The email box, settled: the field's own box and padding, on the
+     *  filled tint, so it is the same object it was a moment ago. */
+    recapBlock: { paddingTop: ds(34), paddingHorizontal: ds(30) },
     recapCard: {
-      borderRadius: ds(20),
-      backgroundColor: ob.surface,
+      borderRadius: ds(14),
+      backgroundColor: ob.fieldMuted,
       borderWidth: 1,
-      borderColor: ob.hairline14,
+      borderColor: ob.fieldBorder,
       paddingVertical: ds(16),
-      paddingHorizontal: ds(24),
+      paddingHorizontal: ds(18),
       flexDirection: 'row',
+      // On the address's line, not the middle of label-plus-address.
       alignItems: 'flex-end',
       justifyContent: 'space-between',
     },
+    /** The typed address's own weight and size — never bold. */
     recapValue: {
       marginTop: ds(6),
-      fontFamily: obFont.sb600,
-      fontSize: fs(24),
-      letterSpacing: tracking(-0.01, 24),
+      fontFamily: obFont.r400,
+      fontSize: fs(19),
+      minHeight: ds(34),
+      lineHeight: ds(34),
       color: ob.ink,
     },
+    changeButton: { paddingVertical: ds(8), paddingHorizontal: ds(4) },
+    changePressed: { opacity: 0.55 },
     changeLink: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.link },
+    codeLabel: {
+      paddingTop: ds(26),
+      paddingHorizontal: ds(30),
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
+      color: ob.ink55,
+    },
 
     // padding:24px 26px 0
-    boxesBlock: { paddingTop: ds(26), paddingHorizontal: ds(30) },
+    boxesBlock: { paddingTop: ds(10), paddingHorizontal: ds(30) },
     boxesRow: { flexDirection: 'row', gap: ds(9) },
     boxCell: { flex: 1 },
     box: {

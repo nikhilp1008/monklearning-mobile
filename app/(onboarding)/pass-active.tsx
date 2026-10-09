@@ -6,15 +6,18 @@
 // "onboarded" while the student still had three screens to go — a reload
 // mid-flow would have dropped them on Home with no pass.
 //
-// The dark ground is deliberate and unique: it is the only dark screen in
-// onboarding, and it marks the seam between signing up and being a student.
+// The dark ground is deliberate: it marks the seam between signing up and
+// being a student. It is Home's night sky now — the same still, drawn the same
+// way — with the receipt on Home's glass, so the first dark screen a student
+// sees is a preview of the one they land on.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Ring, Rise, Tick } from '@/components/confirm-motion';
+import { NightSky } from '@/components/night-sky';
 import { ObButton } from '@/components/onboarding-kit';
 import {
   EXAMS,
@@ -40,6 +43,7 @@ export default function PassActiveScreen() {
   const exam = EXAMS[(params.exam as ExamKey) ?? 'jee'] ?? EXAMS.jee;
   const paid = Math.max(0, pass.price - promoDiscount(params.promo ?? '', pass.price));
 
+  const [sky, setSky] = useState({ width: 0, height: 0 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,8 +99,14 @@ export default function PassActiveScreen() {
   ];
 
   return (
-    <View style={styles.screen}>
+    <View
+      style={styles.screen}
+      onLayout={(e: LayoutChangeEvent) => {
+        const { width, height } = e.nativeEvent.layout;
+        setSky((p) => (p.width === width && p.height === height ? p : { width, height }));
+      }}>
       <StatusBar style="light" />
+      <NightSky width={sky.width} height={sky.height} style={StyleSheet.absoluteFillObject} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.body}>
           <View style={styles.tickWrap}>
@@ -110,9 +120,10 @@ export default function PassActiveScreen() {
               <Text style={styles.headline}>Your pass is active.</Text>
             </Rise>
             <Rise delay={420}>
+              {/* No teacher named: the student has not chosen one yet — that is
+                  the very next screen, so this line points at it. */}
               <Text style={styles.sub}>
-                {exam.name === 'Both' ? 'Drona' : 'Drona'} is at the board. Pick a chapter and the
-                class begins.
+                {pass.name} of live classes, doubts and practice. Next, choose who teaches you.
               </Text>
             </Rise>
           </View>
@@ -120,7 +131,7 @@ export default function PassActiveScreen() {
           <View style={styles.ledger}>
             {rows.map(([label, value], i) => (
               <Rise key={label} delay={560 + i * 80}>
-                <View style={[styles.row, i === rows.length - 1 && styles.rowLast]}>
+                <View style={[styles.row, i === 0 && styles.rowFirst]}>
                   <Text style={styles.rowLabel}>{label}</Text>
                   <Text style={styles.rowValue}>{value}</Text>
                 </View>
@@ -138,7 +149,7 @@ export default function PassActiveScreen() {
                 ground meant the cream button turned black the instant it was
                 tapped. */}
             <ObButton
-              label="Continue"
+              label="Choose your teacher"
               variant="cream"
               withArrow
               busy={saving}
@@ -157,35 +168,53 @@ function createStyles(
   tracking: (em: number, fontSize: number) => number
 ) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: ob.night },
+    // The sky's own fallback colour, for the frame before it is drawn.
+    screen: { flex: 1, backgroundColor: '#2E2A24' },
     safeArea: { flex: 1 },
     body: { flex: 1, paddingHorizontal: ds(30), paddingTop: ds(56) },
     tickWrap: { width: ds(64), height: ds(64), alignItems: 'center', justifyContent: 'center' },
     headBlock: { marginTop: ds(30), gap: ds(14) },
+    // Home's heading: semibold and tight, where the old receipt was light.
     headline: {
-      fontFamily: obFont.r400,
-      fontSize: fs(32),
-      lineHeight: fs(36),
-      letterSpacing: tracking(-0.03, 32),
+      fontFamily: obFont.sb600,
+      fontSize: fs(30),
+      lineHeight: fs(34),
+      letterSpacing: tracking(-0.035, 30),
       color: ob.cream,
     },
     sub: {
       fontFamily: obFont.r400,
-      fontSize: fs(17),
-      lineHeight: fs(25),
-      color: ob.onNight,
+      fontSize: fs(16),
+      lineHeight: fs(24),
+      color: 'rgba(255,253,248,.8)',
     },
-    ledger: { marginTop: ds(42) },
+    /**
+     * Home's console glass: a dark tint over the sky, a paper hairline all
+     * round and a brighter one along the top edge, and a soft drop. No blur —
+     * the sky behind is a smooth still, and the tint is what the eye reads.
+     */
+    ledger: {
+      marginTop: ds(36),
+      paddingHorizontal: ds(18),
+      paddingVertical: ds(4),
+      borderRadius: ds(22),
+      backgroundColor: 'rgba(26,24,20,.34)',
+      boxShadow: [
+        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.14)', inset: true },
+        { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,253,248,.10)', inset: true },
+        { offsetX: 0, offsetY: ds(18), blurRadius: ds(36), spreadDistance: ds(-22), color: 'rgba(0,0,0,.6)' },
+      ],
+    },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingVertical: ds(14),
-      borderTopWidth: 1,
-      borderTopColor: ob.nightRule,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: 'rgba(255,253,248,.12)',
     },
-    rowLast: { borderBottomWidth: 1, borderBottomColor: ob.nightRule },
-    rowLabel: { fontFamily: obFont.r400, fontSize: fs(15), color: ob.onNightDim },
-    rowValue: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.cream },
+    rowFirst: { borderTopWidth: 0 },
+    rowLabel: { fontFamily: obFont.r400, fontSize: fs(15), color: 'rgba(255,253,248,.6)' },
+    rowValue: { fontFamily: obFont.sb600, fontSize: fs(15), color: ob.cream },
     footer: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(12) },
     error: {
       fontFamily: obFont.r400,

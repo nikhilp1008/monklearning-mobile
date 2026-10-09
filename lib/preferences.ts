@@ -108,13 +108,19 @@ export async function setTeacherPreference(teacher: TeacherId): Promise<void> {
  * opened in a session was paying two fresh storage reads for two small strings
  * that only change when the student picks differently.
  */
-let cachedLanguage: LanguageId = 'hinglish';
+/**
+ * ENGLISH UNTIL CHOSEN (2026-10-08, was Hinglish). Onboarding does not ask, so
+ * whatever this is, a new student's first class, the teacher sample they hear
+ * while choosing, and the line under that choice all start here. Hinglish is
+ * one switch away in Profile.
+ */
+let cachedLanguage: LanguageId = 'english';
 let languageLoaded = false;
 
 export async function getLanguagePreference(): Promise<LanguageId> {
   if (languageLoaded) return cachedLanguage;
   const value = await AsyncStorage.getItem(LANGUAGE_KEY);
-  cachedLanguage = value === 'english' ? 'english' : 'hinglish';
+  cachedLanguage = value === 'hinglish' ? 'hinglish' : 'english';
   languageLoaded = true;
   return cachedLanguage;
 }
@@ -135,7 +141,7 @@ export async function clearPreferences(): Promise<void> {
   // old values — so the next read has to go and look rather than trust a
   // default we only assumed.
   cachedTeacher = 'drona';
-  cachedLanguage = 'hinglish';
+  cachedLanguage = 'english';
   teacherLoaded = false;
   languageLoaded = false;
   try {

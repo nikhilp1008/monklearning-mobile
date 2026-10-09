@@ -1,16 +1,18 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Plate } from '@/components/first-day-card';
 import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
+import { NightSky } from '@/components/night-sky';
 import { ObButton } from '@/components/onboarding-kit';
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { TEACHERS } from '@/constants/teachers';
 import { revalidateAuthState } from '@/lib/auth';
+import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { pushProfile } from '@/lib/profile';
 
 /**
@@ -32,46 +34,36 @@ import { pushProfile } from '@/lib/profile';
 type S = (n: number) => number;
 
 /**
- * THE MONK MARK, alone.
- *
- * `MonkLogo` draws the symbol beside the wordmark, which is the lockup and
- * far too wide for a 56pt tile. These are the same three circles at the same
- * dash ratios, drawn on their own — the class row is ours, so it carries our
- * mark rather than a picture of a whiteboard.
+ * HOME'S OWN TILES. Snap and Solve and Practice sit on a square of the header's
+ * night sky on Home, glyph reversed out of it; they sit on the same square
+ * here, so the page that introduces the three is drawn in the app's own hand.
+ * The live class is not a tile: it is the teacher's orb, the one the student
+ * chose a moment ago — the same orb that sits in Home's header — so the choice
+ * on the step before is visibly kept.
  */
-function MonkMark({ size, color }: { size: number; color: string }) {
+function SkyPlate({ size, radius, children }: { size: number; radius: number; children: ReactNode }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
-      <Circle
-        cx={60}
-        cy={60}
-        r={36}
-        stroke={color}
-        strokeWidth={11}
-        strokeLinecap="round"
-        strokeDasharray="52 23.4"
-        transform="rotate(-90 60 60)"
-      />
-      <Circle
-        cx={60}
-        cy={60}
-        r={19}
-        stroke={color}
-        strokeWidth={9}
-        strokeLinecap="round"
-        strokeDasharray="21.8 18"
-        transform="rotate(-30 60 60)"
-      />
-      <Circle cx={60} cy={60} r={6} fill="#EEA31F" />
-    </Svg>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.night,
+      }}>
+      <NightSky width={size} height={size} style={StyleSheet.absoluteFillObject} />
+      {children}
+    </View>
   );
 }
 
 const LOOP = [
   {
     key: 'class',
-    title: 'Start a live class',
-    body: 'Pick any chapter. Your teacher takes it aloud on a board you can talk back to.',
+    title: 'Start a Live Class',
+    body: 'Pick any chapter. Your teacher teaches it aloud on a board you can talk back to.',
   },
   {
     key: 'snap',
@@ -90,6 +82,24 @@ export default function InsideScreen() {
   const s = useStyles(scale, verticalScale);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** The teacher just chosen: handed over by the step before, or read back
+   *  from this device when the screen is reached any other way. */
+  const params = useLocalSearchParams<{ teacher?: string }>();
+  const passed: TeacherId | null =
+    params.teacher === 'vedha' || params.teacher === 'drona' ? params.teacher : null;
+  const [teacher, setTeacher] = useState<TeacherId>(passed ?? 'drona');
+  useEffect(() => {
+    if (passed) return;
+    let live = true;
+    getTeacherPreference().then((t) => {
+      if (live) setTeacher(t);
+    });
+    return () => {
+      live = false;
+    };
+  }, [passed]);
+  const teacherName = TEACHERS.find((t) => t.id === teacher)?.name ?? 'Your teacher';
 
   const start = async () => {
     if (saving) return;
@@ -119,11 +129,17 @@ export default function InsideScreen() {
    * that title on the same left edge, and a hairline closes each row — the
    * page's own furniture doing the work the thread was trying to do.
    */
-  const glyph = (key: string, size: number) => {
-    if (key === 'class') return <MonkMark size={size} color={colors.paper} />;
-    if (key === 'snap')
-      return <SnapADoubtIcon size={size} color={colors.paper} accent={colors.marigold} />;
-    return <PracticeIcon size={size} color={colors.paper} accent={colors.marigold} />;
+  const tile = (key: string) => {
+    if (key === 'class') return <TeacherOrbPoster teacher={teacher} size={scale(46)} />;
+    return (
+      <SkyPlate size={scale(46)} radius={scale(14)}>
+        {key === 'snap' ? (
+          <SnapADoubtIcon size={scale(23)} color={colors.paper} accent={colors.paper} />
+        ) : (
+          <PracticeIcon size={scale(23)} color={colors.paper} accent={colors.paper} />
+        )}
+      </SkyPlate>
+    );
   };
 
   return (
@@ -144,14 +160,14 @@ export default function InsideScreen() {
                     i === 0 && s.loopRowFirst,
                     i === LOOP.length - 1 && s.loopRowLast,
                   ]}>
-                  <View style={s.plateWrap}>
-                    <Plate size={scale(46)} radius={scale(15)}>
-                      {glyph(item.key, scale(23))}
-                    </Plate>
-                  </View>
+                  <View style={s.plateWrap}>{tile(item.key)}</View>
                   <View style={s.loopText}>
                     <Text style={s.loopTitle}>{item.title}</Text>
-                    <Text style={s.loopBody}>{item.body}</Text>
+                    <Text style={s.loopBody}>
+                      {item.key === 'class'
+                        ? item.body.replace('Your teacher', teacherName)
+                        : item.body}
+                    </Text>
                   </View>
                 </View>
               ))}

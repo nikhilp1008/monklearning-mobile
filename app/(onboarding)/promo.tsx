@@ -25,6 +25,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import {
   PASSES,
   ob,
@@ -54,6 +55,7 @@ export default function PromoScreen() {
   // attention while the field is where the eye already is. Same 3-step shake
   // the OTP screen uses for a bad code, so the two failures read alike.
   const reject = () => {
+    hapticWarning();
     setRejected(true);
     shake.setValue(0);
     Animated.sequence([
@@ -65,6 +67,7 @@ export default function PromoScreen() {
 
   const apply = () => {
     if (!valid) return reject();
+    hapticSuccess();
     // `replace`, not `back`: the pass screen has to remount holding the code,
     // and a pop would restore the instance that never had it.
     router.replace({

@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import Svg, { Defs, Ellipse, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -8,13 +7,15 @@ import {
   Layer,
   Pop,
   Up,
-  WaveBars,
   Writes,
   easeSnapIn,
   easeSnapOut,
   local,
   seg,
 } from './story-clock';
+import { MarigoldDisc } from '@/components/dock-face';
+import { NightSky } from '@/components/night-sky';
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
 import { obFont } from '@/constants/onboarding';
 
 /**
@@ -41,6 +42,13 @@ import { obFont } from '@/constants/onboarding';
  * the working is written on — a hand does not draw those — so they hold, and
  * only the working writes. Same in beats 3 and 4: the source line and the
  * method hold, the solution writes.
+ *
+ * THE NEW HOME'S FINISH (2026-10-08). The dark surface is Home's night sky —
+ * the same still, grain and a few stars — with a soft paper rim where it had a
+ * bright amber one; the pills carry Drona's orb, the one Home's header and
+ * Select Teacher show, where they had amber bars; and the student's mic is the
+ * marigold disc Ask follow-up and the classroom dock use. The story, the
+ * words, the timing and every motion are unchanged.
  *
  * ONE SURFACE FADES, THE OTHER STAYS. The dark board is a second surface over
  * the first whose opacity runs on the master clock rather than on a layer, so
@@ -70,6 +78,15 @@ const c = {
 } as const;
 
 export const BOARD_W = 330;
+/** How much taller than the board its sky is drawn — see the dark surface. */
+const SKY_STRETCH = 1.5;
+/** A few stars on the sky board, in board units: [x, y, size, opacity]. Kept
+ *  clear of the writing, as Home's header keeps its stars clear of its words. */
+const SKY_STARS: [number, number, number, number][] = [
+  [306, 22, 2.2, 0.7],
+  [312, 132, 1.8, 0.55],
+  [214, 300, 1.8, 0.5],
+];
 export const BOARD_H = 340;
 /**
  * HOW FAR THE BOARD'S CONTENT ACTUALLY REACHES, which is not its height.
@@ -244,26 +261,54 @@ export function StoryBoard({
           }}
         />
 
-        {/* The dark surface, over it, on the master clock. */}
+        {/* The dark surface, over it, on the master clock: Home's night sky,
+            rimmed the way Home's glass is — a paper hairline and a brighter
+            line along the top — rather than with the old bright amber edge. */}
         <Animated.View
           style={[
             {
               ...StyleSheet.absoluteFillObject,
               borderRadius: ds(22),
               overflow: 'hidden',
-              boxShadow: [
-                { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(238,163,31,.8)', inset: true },
-              ],
+              backgroundColor: '#2E2A24',
             },
             darkStyle,
           ]}
           pointerEvents="none">
-          <LinearGradient
-            colors={['#2A2621', '#33241A', '#4A2C14', '#5E3012']}
-            locations={[0, 0.4, 0.7, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFill}
+          {/* Drawn taller than the board and clipped by it. At the board's own
+              near-square size the sky's warm foot climbed half the height and
+              sat under the chalk writing; at Home's proportions it is a glow
+              along the bottom edge, and the writing stays on night. */}
+          <NightSky
+            width={ds(BOARD_W)}
+            height={ds(BOARD_H * SKY_STRETCH)}
+            style={{ position: 'absolute', left: 0, top: 0 }}
+          />
+          {SKY_STARS.map(([x, y, d, o]) => (
+            <View
+              key={`${x}-${y}`}
+              style={{
+                position: 'absolute',
+                left: ds(x),
+                top: ds(y),
+                width: ds(d),
+                height: ds(d),
+                borderRadius: ds(d),
+                backgroundColor: '#FFFDF8',
+                opacity: o,
+                boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: ds(5), color: 'rgba(255,253,248,0.7)' }],
+              }}
+            />
+          ))}
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              borderRadius: ds(22),
+              boxShadow: [
+                { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.14)', inset: true },
+                { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,253,248,.12)', inset: true },
+              ],
+            }}
           />
         </Animated.View>
 
@@ -333,7 +378,9 @@ function Pill({
           { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(28,26,22,.08)', inset: true },
         ],
       }}>
-      <WaveBars wave={wave} scale={ds} />
+      {/* Drona's orb — who is talking, the way the app says it everywhere
+          else — where the pill had amber level bars. */}
+      <TeacherOrbPoster teacher="drona" size={ds(24)} />
       <Text style={type(fs, tracking, obFont.sb600, 14, 18, c.ink)}>{label}</Text>
     </View>
   );
@@ -422,15 +469,20 @@ function BeatsOneTwo({
               { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(28,26,22,.08)', inset: true },
             ],
           }}>
+          {/* The marigold mic from Ask follow-up and the classroom dock. */}
           <View
             style={{
               width: ds(26),
               height: ds(26),
               borderRadius: ds(13),
-              backgroundColor: c.amber,
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: [
+                { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(176,132,32,.22)', inset: true },
+                { offsetX: 0, offsetY: ds(3), blurRadius: ds(8), spreadDistance: ds(-3), color: 'rgba(176,132,32,.45)' },
+              ],
             }}>
+            <MarigoldDisc hot={false} size={ds(26)} />
             <Svg viewBox="0 0 16 16" width={ds(13)} height={ds(13)}>
               <Rect x={5.5} y={1.5} width={5} height={8} rx={2.5} fill="none" stroke={c.ink} strokeWidth={1.8} />
               <Path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2" fill="none" stroke={c.ink} strokeWidth={1.8} strokeLinecap="round" />
