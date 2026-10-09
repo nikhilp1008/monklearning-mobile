@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router, useRootNavigationState, usePathname, useSegments } from 'expo-router';
+import type { ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -88,10 +89,26 @@ import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ErrorScreen } from '@/components/error-screen';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+/**
+ * A render error anywhere below the root lands here instead of closing the
+ * app. There is no crash reporter yet, so without this a production crash is
+ * simply the app vanishing — the student retries the same screen and churns.
+ * The error's own text stays in the log: it can carry internals, and "Try
+ * again" is the only thing a student can act on.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    console.error('[root error boundary]', error);
+  }, [error]);
+  // How it looks lives in components/error-screen.tsx.
+  return <ErrorScreen onRetry={retry} />;
+}
 
 // Holds the native splash screen up until hideAsync() is called explicitly
 // below, instead of relying on its (undocumented, easy to get wrong) default
@@ -324,9 +341,13 @@ export default function RootLayout() {
               `entering-classroom` and this screen so the student sees one
               continuous surface across the route change; the default push
               animation would slide the second copy in over the first. */}
+          {/* No swipe back out of a class: the End button is the only way
+              out, because ending is what saves the class and opens its
+              summary. A stray edge swipe used to drop the student out
+              mid-lesson. Android's back is held in the screen itself. */}
           <Stack.Screen
             name="live-classroom"
-            options={{ headerShown: false, animation: 'fade' }}
+            options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
           />
           <Stack.Screen name="session-summary" options={{ headerShown: false }} />
           {/* Dev only, reached by deep link: monklearningapp://dev-board-preview.
@@ -407,6 +428,14 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
+          {/* Stated rather than inherited: the handoff asks for a slide in
+              from the right with the page underneath parallaxing, which is
+              what a native stack does on iOS by default and is NOT what
+              Android does. Naming it gives both platforms the same screen. */}
+          <Stack.Screen
+            name="select-teacher"
+            options={{ headerShown: false, animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen name="subscription" options={{ headerShown: false }} />
           {/* The takeover when a pass has ended: no header, and no gesture
@@ -420,7 +449,6 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </PracticeFocusProvider>
       </AuthStateContext.Provider>
