@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 import { DoubtPhoto, SnapFailure, SnapResponse, readSnapFailure, snapDoubt } from '@/lib/doubts';
 import { ReadQuestion, snapDoubtStreaming } from '@/lib/snap-stream';
+import { LiveStep, upsertLiveStep } from '@/lib/live-steps';
 
 /**
  * The in-flight snap, held outside React so it can outlive the screen that
@@ -52,6 +53,12 @@ export type SnapJob =
       /** Questions already answered, so the screen can fill in as they land. */
       solved: SnapResponse['questions'];
       /**
+       * The working of each question still being solved, as it is written,
+       * keyed by question_index. Shown in place of the step placeholder from
+       * the first word of step 1; the answer still waits for `solved`.
+       */
+      live: Record<number, LiveStep[]>;
+      /**
        * The server's word about the photo as a whole — set when more questions
        * were visible than could be read. It arrives with the first frame, long
        * before any answer, and a student who photographed five questions and
@@ -100,6 +107,7 @@ export function startSnapJob(photo: DoubtPhoto): void {
     streaming: true,
     read: [],
     solved: [],
+    live: {},
     note: null,
   });
 
@@ -131,6 +139,16 @@ export function startSnapJob(photo: DoubtPhoto): void {
           ...j,
           solved: [...j.solved, q].sort((a, b) => a.question_index - b.question_index),
         })),
+      onStep: (step) =>
+        patch((j) => ({
+          ...j,
+          live: {
+            ...j.live,
+            [step.questionIndex]: upsertLiveStep(j.live[step.questionIndex], step),
+          },
+        })),
+      onStepsReset: (questionIndex) =>
+        patch((j) => ({ ...j, live: { ...j.live, [questionIndex]: [] } })),
     },
     controller.signal
   )

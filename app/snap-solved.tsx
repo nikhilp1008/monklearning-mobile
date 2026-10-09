@@ -11,6 +11,7 @@ import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
 import { latexToText } from '@/lib/latex-text';
+import { parseSolutionSteps } from '@/lib/solution-steps';
 import { withTeacherName } from '@/lib/preferences';
 import { SolutionView, remedyCopy, solutionView } from '@/lib/solution-view';
 
@@ -121,6 +122,8 @@ export default function SnapSolvedScreen() {
         // so it is on screen while the solve is still running.
         questionImageUrl: r.question_image_url ?? null,
         steps: [],
+        // Step 1 onward as it is written; the placeholder until it starts.
+        liveSteps: parseSolutionSteps(job.live[r.question_index]),
         answer: null,
         pending: true,
       };

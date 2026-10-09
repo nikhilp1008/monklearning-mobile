@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
+import { Action, SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image as RNImage, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -28,6 +28,16 @@ import { hapticCommitted } from '@/lib/haptics';
 const MIN_SIDE = 64;
 /** How far outside a corner still counts as grabbing it. */
 const HANDLE_TOUCH = 44;
+/**
+ * Longest side of the photo that is sent, in pixels.
+ *
+ * A full camera frame reached the server at 1-3 MB, and the upload from India
+ * plus the OCR on it (3.5 s on the 3 MB one, against ~0.6 s normally) was time
+ * the student spent waiting before anything was read. 2400 px keeps what the
+ * readers can use: the figure model looks at no more than 768 px on a figure's
+ * short side, and a figure a third of the page wide still has ~800 px here.
+ */
+const SEND_MAX_EDGE = 2400;
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
@@ -207,11 +217,17 @@ export function SnapCrop({
       px.width = Math.min(px.width, shown.w - px.originX);
       px.height = Math.min(px.height, shown.h - px.originY);
 
-      const result = await manipulateAsync(
-        photo.uri,
-        rotation ? [{ rotate: rotation }, { crop: px }] : [{ crop: px }],
-        { compress: 0.9, format: SaveFormat.JPEG }
-      );
+      const actions: Action[] = rotation ? [{ rotate: rotation }, { crop: px }] : [{ crop: px }];
+      // Giving only the long side keeps the aspect ratio.
+      if (Math.max(px.width, px.height) > SEND_MAX_EDGE) {
+        actions.push({
+          resize: px.width >= px.height ? { width: SEND_MAX_EDGE } : { height: SEND_MAX_EDGE },
+        });
+      }
+      const result = await manipulateAsync(photo.uri, actions, {
+        compress: 0.85,
+        format: SaveFormat.JPEG,
+      });
       onDone({
         uri: result.uri,
         fileName: photo.fileName ?? 'doubt.jpg',
