@@ -140,6 +140,10 @@ export function getNextQuestion(params: {
    *  is tens of rows where a subject is hundreds, it is also the fastest this
    *  endpoint gets. */
   chapter_id?: string;
+  /** Weak mode: with `chapter_id`, the server also aims INSIDE the chapter,
+   *  weighting questions toward the concepts this student is weakest on.
+   *  Ignored without a chapter. */
+  weak?: boolean;
 }): Promise<NextQuestion | PoolExhausted> {
   return apiFetch('/practice/next', {
     method: 'POST',

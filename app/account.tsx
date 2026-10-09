@@ -86,7 +86,11 @@ export default function AccountScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const confirmMatches = confirmText.trim().toLowerCase() === email.trim().toLowerCase();
+  // Non-empty on both sides: before the profile loads, email is '' and so is
+  // an untouched field, and '' === '' armed the button.
+  const confirmMatches =
+    email.trim().length > 0 &&
+    confirmText.trim().toLowerCase() === email.trim().toLowerCase();
 
   const deleteForever = useCallback(async () => {
     if (deleting) return;

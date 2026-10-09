@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { AppState, Platform } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
@@ -106,11 +107,17 @@ function text(v: unknown): string | null {
 function describeDevice(): Device | null {
   try {
     let D: any = null;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      D = require('expo-device');
-    } catch {
-      D = null;
+    // Asked first, quietly. `require` on a build without the native half
+    // throws, and the catch below did keep tracking alive — but in a dev
+    // build the throw was still reported as a red "Uncaught Error" screen
+    // on every launch. The optional lookup answers null instead of throwing.
+    if (requireOptionalNativeModule('ExpoDevice')) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        D = require('expo-device');
+      } catch {
+        D = null;
+      }
     }
     const c: any = (Platform as any).constants ?? {};
     const ios = Platform.OS === 'ios';
