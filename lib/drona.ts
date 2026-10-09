@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { apiFetch } from '@/lib/api';
 import type { ExamKey } from '@/constants/onboarding';
 import { getProfile } from '@/lib/profile';
@@ -69,18 +71,67 @@ export function examSubjects(exam: ExamKey): string[] {
  * `both` sends no param at all: the server's default is deliberately the whole
  * corpus, so that a hidden chapter and a broken one never look alike.
  */
+/**
+ * THE LAST CATALOGUE IS KEPT ON THE DEVICE, and served from there first.
+ *
+ * Measured on 2026-10-08: the server takes ~3s to answer the first catalogue
+ * request after it has been idle, and 0.1-0.7s once warm, while the network
+ * round trip is ~0.2s. Every screen that lists chapters (the Textbooks shelf,
+ * the live-class picker, practice focus) waited on that first answer behind
+ * placeholder rows, on every launch, for a list that changes perhaps once a
+ * week. About 110KB of JSON for 76 chapters.
+ *
+ * So the stored copy answers at once, and the server is still asked, every
+ * launch, in the background. Its answer replaces the stored copy and the
+ * in-memory one, so the next screen to ask gets it; a screen already open
+ * keeps what it showed. With nothing stored yet (first launch after install)
+ * this is the old behaviour exactly: wait for the server. A failed background
+ * refresh is silent, because the student already has a list.
+ */
+const STORE_PREFIX = 'catalogue.v1.';
+
+async function readStored(exam: ExamKey): Promise<CatalogueSubject[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORE_PREFIX + exam);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    // A shape this module did not write (an older build, a bad write) is
+    // treated as nothing stored, never as a catalogue.
+    return Array.isArray(parsed) && parsed.every((g) => g && Array.isArray(g.chapters))
+      ? (parsed as CatalogueSubject[])
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function store(exam: ExamKey, catalogue: CatalogueSubject[]): void {
+  AsyncStorage.setItem(STORE_PREFIX + exam, JSON.stringify(catalogue)).catch(() => {});
+}
+
 function fetchCatalogue(exam: ExamKey): Promise<CatalogueSubject[]> {
   const cached = catalogueByExam.get(exam);
   if (cached) return cached;
+  const query = exam === 'both' ? '' : `?exam=${exam}`;
+  const network = apiFetch<CatalogueSubject[]>(`/drona/catalogue${query}`).then((fresh) => {
+    store(exam, fresh);
+    catalogueByExam.set(exam, Promise.resolve(fresh));
+    return fresh;
+  });
   // Returned as `promise`, not re-read from the map, on purpose: the delete
   // inside .catch() runs from a closure, and reading back afterwards would
   // hand TS a possibly-undefined it cannot narrow.
-  const query = exam === 'both' ? '' : `?exam=${exam}`;
-  const promise: Promise<CatalogueSubject[]> = apiFetch<CatalogueSubject[]>(
-    `/drona/catalogue${query}`
-  ).catch((err) => {
-    catalogueByExam.delete(exam);
-    throw err;
+  const promise: Promise<CatalogueSubject[]> = readStored(exam).then((stored) => {
+    if (stored) {
+      // The server's answer still lands in the map and on the device; it is
+      // just no longer what this call waits for.
+      network.catch(() => {});
+      return stored;
+    }
+    return network.catch((err) => {
+      catalogueByExam.delete(exam);
+      throw err;
+    });
   });
   catalogueByExam.set(exam, promise);
   return promise;
