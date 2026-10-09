@@ -38,10 +38,11 @@ import {
 } from '@/lib/reading-size';
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
 import { TextbookBlockPilot } from '@/components/textbook/blocks-pilot';
-import { AskTeacher } from '@/components/textbook/ask-teacher';
+import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { isPilotTopic } from '@/components/textbook/pilot';
 import { pageTitle } from '@/constants/page-title';
-import { Chapter, groupBlocks, loadChapter } from '@/lib/textbooks';
+import { Chapter, groupBlocks, loadChapter, topicPlainText } from '@/lib/textbooks';
+import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
 import { hapticSwitched } from '@/lib/haptics';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
@@ -301,6 +302,31 @@ export default function TextbookReaderScreen() {
 
   const topic = chapter?.topics[active];
   const blocks = useMemo(() => (topic ? groupBlocks(topic.blocks) : []), [topic]);
+  /**
+   * The page Ask teacher asks about: this topic, as text. The book lives in
+   * the app, so the page travels with the question; the key only names it
+   * for the server's logs.
+   */
+  const askPage: TextbookPageContext | undefined = useMemo(
+    () =>
+      chapter && topic
+        ? {
+            subject: chapter.subject,
+            klass: chapter.klass,
+            chapter: chapter.title,
+            topic: topic.title,
+            text: topicPlainText(topic),
+          }
+        : undefined,
+    [chapter, topic]
+  );
+  const askKey = useMemo(
+    () =>
+      encodeURIComponent(
+        `${subject}-${classLevel}-${title}-${topic?.n ?? ''}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 80)
+      ),
+    [subject, classLevel, title, topic]
+  );
   const leavingTopic = leaving ? chapter?.topics[leaving.index] : undefined;
   const leavingBlocks = useMemo(
     () => (leavingTopic ? groupBlocks(leavingTopic.blocks) : []),
@@ -624,67 +650,79 @@ export default function TextbookReaderScreen() {
             teacher. The whole row slides away on a scroll down and back on a
             scroll up, as the bar did alone. */}
         <Animated.View style={[styles.navRow, navStyle]} pointerEvents="box-none">
-          <View style={[styles.topicsPill, asking && styles.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
-            <Pressable
-              onPress={() => router.push('/textbook-topics')}
-              hitSlop={4}
-              style={styles.pillButton}
-              accessibilityLabel="All topics">
-              <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                <Path
-                  d="M2.5 4h11M2.5 8h11M2.5 12h7"
-                  stroke={colors.ink}
-                  strokeWidth={1.8}
-                  strokeLinecap="round"
-                />
-              </Svg>
-            </Pressable>
-            <Pressable
-              disabled={atFirst}
-              onPress={() => {
-                hapticSwitched();
-                goTo(active - 1);
-              }}
-              style={styles.pillButton}
-              accessibilityLabel="Previous topic">
-              <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                <Path
-                  d="M10 3.5 5.5 8 10 12.5"
-                  stroke={atFirst ? colors.disabled : colors.ink}
-                  strokeWidth={1.9}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </Pressable>
-            <Pressable
-              onPress={() => router.push('/textbook-topics')}
-              accessibilityLabel={`Topic ${active + 1} of ${chapter.topics.length}`}>
-              <Text style={styles.positionText}>
-                {active + 1}
-                <Text style={styles.positionTotal}>/{chapter.topics.length}</Text>
-              </Text>
-            </Pressable>
-            <Pressable
-              disabled={atLast}
-              onPress={() => {
-                hapticSwitched();
-                goTo(active + 1);
-              }}
-              style={styles.pillButton}
-              accessibilityLabel="Next topic">
-              <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                <Path
-                  d="M6 3.5 10.5 8 6 12.5"
-                  stroke={atLast ? colors.disabled : colors.ink}
-                  strokeWidth={1.9}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </Pressable>
-          </View>
-          <AskTeacher teacher={teacher} onHoldChange={setAsking} />
+          {/* Ask teacher is Ask follow-up's own bar, wearing the teacher's orb:
+              the same hold, voice, board and answer, about this page. The
+              topics pill rides in the bar's row so the board can span it. */}
+          <AskFollowUpBar
+            surface="textbooks"
+            doubtId={askPage ? askKey : null}
+            page={askPage}
+            teacherFace={teacher}
+            onBusyChange={setAsking}
+            gutter={scale(16)}
+            leading={
+            <View style={[styles.topicsPill, asking && styles.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
+              <Pressable
+                onPress={() => router.push('/textbook-topics')}
+                hitSlop={4}
+                style={styles.pillButton}
+                accessibilityLabel="All topics">
+                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                  <Path
+                    d="M2.5 4h11M2.5 8h11M2.5 12h7"
+                    stroke={colors.ink}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                  />
+                </Svg>
+              </Pressable>
+              <Pressable
+                disabled={atFirst}
+                onPress={() => {
+                  hapticSwitched();
+                  goTo(active - 1);
+                }}
+                style={styles.pillButton}
+                accessibilityLabel="Previous topic">
+                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                  <Path
+                    d="M10 3.5 5.5 8 10 12.5"
+                    stroke={atFirst ? colors.disabled : colors.ink}
+                    strokeWidth={1.9}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/textbook-topics')}
+                accessibilityLabel={`Topic ${active + 1} of ${chapter.topics.length}`}>
+                <Text style={styles.positionText}>
+                  {active + 1}
+                  <Text style={styles.positionTotal}>/{chapter.topics.length}</Text>
+                </Text>
+              </Pressable>
+              <Pressable
+                disabled={atLast}
+                onPress={() => {
+                  hapticSwitched();
+                  goTo(active + 1);
+                }}
+                style={styles.pillButton}
+                accessibilityLabel="Next topic">
+                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                  <Path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    stroke={atLast ? colors.disabled : colors.ink}
+                    strokeWidth={1.9}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+            </View>
+            }
+          />
         </Animated.View>
       </SafeAreaView>
     </View>

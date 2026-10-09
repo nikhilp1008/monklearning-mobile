@@ -98,7 +98,21 @@ function parseFrames(chunk: string): { event: string; data: unknown }[] {
  * the prefix rather than branching on it keeps every caller honest about which
  * one it means.
  */
-export type FollowUpSurface = 'doubts' | 'practice';
+export type FollowUpSurface = 'doubts' | 'practice' | 'textbooks';
+
+/**
+ * The textbook page a student is reading, sent with an Ask teacher question.
+ * The book lives in the app, not on the server, so — unlike a doubt or a
+ * practice question, which the server looks up by id — the page travels with
+ * the request. The server caps it (app/routers/textbooks.py).
+ */
+export type TextbookPageContext = {
+  subject: string;
+  klass: string;
+  chapter: string;
+  topic: string;
+  text: string;
+};
 
 export function askAboutDoubtAloud(
   doubtId: string,
@@ -106,7 +120,8 @@ export function askAboutDoubtAloud(
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
   signal?: AbortSignal,
-  surface: FollowUpSurface = 'doubts'
+  surface: FollowUpSurface = 'doubts',
+  page?: TextbookPageContext
 ): Promise<void> {
   const body = new FormData();
   body.append('audio', {
@@ -118,6 +133,7 @@ export function askAboutDoubtAloud(
   // Which audio dialect this build can play. Declared per request, so a JS
   // reload on an old binary keeps getting WAVs it can handle.
   body.append('pcm', pcmAvailable ? '1' : '0');
+  if (page) body.append('page', JSON.stringify(page));
   return streamAsk(doubtId, 'ask-voice', body, handlers, signal, surface);
 }
 
@@ -127,9 +143,10 @@ export function askAboutDoubt(
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
   signal?: AbortSignal,
-  surface: FollowUpSurface = 'doubts'
+  surface: FollowUpSurface = 'doubts',
+  page?: TextbookPageContext
 ): Promise<void> {
-  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history }),
+  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history, ...(page ? { page } : {}) }),
                    handlers, signal, surface);
 }
 

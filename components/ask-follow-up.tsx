@@ -32,6 +32,8 @@ import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
 import { DockLight, type DockLightGeometry } from '@/components/dock-light';
 import { DOCK_FLAG_SLOT, DOCK_H0, DOCK_W0, useDockMotion } from '@/components/dock-motion';
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
+import type { TeacherId } from '@/lib/preferences';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -39,6 +41,7 @@ import {
   type FollowUpStep,
   type FollowUpSurface,
   type FollowUpTurn,
+  type TextbookPageContext,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
@@ -210,6 +213,10 @@ export function AskFollowUpBar({
   onReport,
   surface = 'doubts',
   trailing,
+  leading,
+  page,
+  teacherFace,
+  onBusyChange,
   gutter = 24,
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
@@ -237,6 +244,23 @@ export function AskFollowUpBar({
   /** The side padding of the container the bar sits in, so the board can land
    *  at BOARD_EDGE from the screen whichever screen it is on. */
   gutter?: number;
+  /**
+   * A control on the LEFT of the bar's row — the textbook reader's topics
+   * pill. `trailing`'s mirror, inside the block for the same reason: the board
+   * takes its width from the block.
+   */
+  leading?: ReactNode;
+  /** The textbook page being asked about, when `surface` is 'textbooks'. */
+  page?: TextbookPageContext;
+  /**
+   * The student's own teacher's orb in place of the marigold mic, and "Ask
+   * teacher" for the words — the textbook reader's pill, so the student is
+   * asking THEM.
+   */
+  teacherFace?: TeacherId;
+  /** True from the hold until the answer has finished; the textbook reader
+   *  freezes its page for exactly that long. */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const recorder = useAudioRecorder(RECORDING);
   /** The board is capped rather than free: it grows upward over the solution,
@@ -244,6 +268,14 @@ export function AskFollowUpBar({
    *  left to read behind it. */
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [phase, setPhase] = useState<Phase>('idle');
+  /** Tells the host (the textbook reader) when an exchange is under way, so it
+   *  can hold its page still from the hold to the end of the answer. */
+  const busyChange = useRef(onBusyChange);
+  busyChange.current = onBusyChange;
+  useEffect(() => {
+    busyChange.current?.(phase !== 'idle');
+  }, [phase]);
+  useEffect(() => () => busyChange.current?.(false), []);
   /**
    * A FAILURE IS TWO WORDS, NOT A SENTENCE.
    *
@@ -278,9 +310,9 @@ export function AskFollowUpBar({
    * The pill's vertical centre never moves: the row is centred and keeps its
    * height while the pill squeezes symmetrically, so the row's middle is it.
    */
-  const litDock = surface === 'doubts' || surface === 'practice';
+  const litDock = surface === 'doubts' || surface === 'practice' || surface === 'textbooks';
   /** Practice's Next shares the row, so there the bar keeps its size. */
-  const shared = !!trailing;
+  const shared = !!trailing || !!leading;
   const clock = useClock();
   const down = useSharedValue(false);
   const motion = useDockMotion({ phase, level: voiceLevel, clock, down, stretch: !shared });
@@ -891,7 +923,8 @@ export function AskFollowUpBar({
           },
         },
         controller.signal,
-        surface
+        surface,
+        page
       );
       if (controller.signal.aborted) return;
       // The stream is done, so the word count is final. If no voice was ever
@@ -962,7 +995,9 @@ export function AskFollowUpBar({
       ? 'Thinking…'
       : speaking
         ? 'Answering…'
-        : 'Ask follow-up';
+        : teacherFace
+          ? 'Ask teacher'
+          : 'Ask follow-up';
 
   const hint = failure
     ? failure === 'mic'
@@ -1189,14 +1224,34 @@ export function AskFollowUpBar({
           if (speaking) stopEverything();
         }}>
         <Animated.View style={[styles.thumb, styles.thumbLit, discAnim]}>
-          <MarigoldDisc hot={listening} />
-          <ThinkingArc motion={motion} on={thinking} />
-          {listening ? (
-            <DockBars motion={motion} />
-          ) : speaking ? (
-            <StopIcon color={INK} />
+          {teacherFace ? (
+            // The teacher's orb is the face; bars and stop sit over it only
+            // while they mean something, as the mic gives way to them.
+            <>
+              <TeacherOrbPoster teacher={teacherFace} size={40} />
+              <ThinkingArc motion={motion} on={thinking} />
+              {listening ? (
+                <View style={styles.orbOverlay}>
+                  <DockBars motion={motion} />
+                </View>
+              ) : speaking ? (
+                <View style={styles.orbOverlay}>
+                  <StopIcon color={INK} />
+                </View>
+              ) : null}
+            </>
           ) : (
-            <MicIcon color={INK} />
+            <>
+              <MarigoldDisc hot={listening} />
+              <ThinkingArc motion={motion} on={thinking} />
+              {listening ? (
+                <DockBars motion={motion} />
+              ) : speaking ? (
+                <StopIcon color={INK} />
+              ) : (
+                <MicIcon color={INK} />
+              )}
+            </>
           )}
         </Animated.View>
         <Text style={styles.label} numberOfLines={1}>
@@ -1313,7 +1368,25 @@ export function AskFollowUpBar({
         </Animated.View>
       )}
 
-      {trailing && litDock ? (
+      {leading && litDock ? (
+        <>
+          {/* THE TEXTBOOK'S ROW: its topics pill on the left, the bar on the
+              right — Practice's arrangement mirrored. Same light, ring and
+              board; the light is centred on the pill, not the row. */}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          <View style={[styles.row, styles.rowSpread]}>
+            {leading}
+            <View style={styles.barColumn}>
+              <View ref={slotRef} style={styles.barSlot} onLayout={measureSlot}>
+                {litFace}
+              </View>
+              <Text style={[styles.hint, styles.hintLit]} numberOfLines={1}>
+                {hint}
+              </Text>
+            </View>
+          </View>
+        </>
+      ) : trailing && litDock ? (
         <>
           {/* PRACTICE WEARS THE SAME LIGHT, WITHOUT THE STRETCH. Next shares
               this row, so the bar keeps its resting width instead of growing
@@ -1679,6 +1752,14 @@ const styles = StyleSheet.create({
   /** Practice's pill at its resting size, so the squeeze shrinks it about
    *  its own centre instead of pulling its right edge toward its left. */
   barSlot: { width: DOCK_W0, height: DOCK_H0, alignItems: 'center', justifyContent: 'center' },
+  /** Bars or stop drawn over the teacher's orb, centred on it. */
+  orbOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 99,
+  },
   flagSlot: { height: DOCK_H0 },
   flagWrap: { position: 'absolute', left: 10, top: 0 },
   /** The handoff's hint: #3D3A33 in every state. Only the words change. */
