@@ -74,4 +74,16 @@ describe('splitDisplay', () => {
     expect(pieces[0].raw).toBe('So $s(1)=1-6+9=4$');
     expect(pieces[1].raw).toBe('and $s(3)=27-54+27=0$');
   });
+
+  test('an equation mid-sentence after "is" stays in its sentence', () => {
+    const raw = 'The displacement function is $s(t)=\\int v\\,dt=t^3-6t^2+9t$ (taking $s(0)=0$).';
+    expect(splitDisplay(raw)).toEqual([{ kind: 'text', raw }]);
+  });
+
+  test('"is" stays with its words when the equation ends the sentence', () => {
+    expect(splitDisplay('The answer is $x=\\frac{a+b}{2}$.')).toEqual([
+      { kind: 'text', raw: 'The answer is' },
+      { kind: 'display', raw: '$x=\\frac{a+b}{2}$' },
+    ]);
+  });
 });

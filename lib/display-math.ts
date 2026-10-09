@@ -71,6 +71,16 @@ export function splitDisplay(
   spans.forEach((m, k) => {
     if (!pick(k, spans.length)) return;
     const start = m.index!;
+    // AN EQUATION IN THE MIDDLE OF A SENTENCE STAYS IN IT. "The displacement
+    // function is $s(t)=…$ (taking $s(0)=0$)." was lifted out with its "is",
+    // which left "The displacement function" stranded on a line of its own
+    // and "is s(t) = …" indented beneath it — one sentence in three pieces.
+    // When the words before end on a linking verb and words carry on after
+    // it, the equation is part of the sentence's grammar, not working set
+    // out under it. "Factor the velocity: $…$" still lifts.
+    const before = raw.slice(at, start);
+    const after = raw.slice(start + m[0].length).split(/(?<=[.!?])\s/)[0];
+    if (LINKING.test(before) && /[A-Za-z]{2,}/.test(after.replace(MATH_SPAN, ''))) return;
     let end = start + m[0].length;
     let display = m[0];
     // The unit written after the number goes with it.
@@ -87,12 +97,19 @@ export function splitDisplay(
   return tidy(pieces.length ? pieces : [{ kind: 'text', raw }]);
 }
 
+/** "is", "are" … ending the words before an equation: the sentence is
+ *  defining something, and the equation is its object. ("gives", "so" are
+ *  working — a chain of steps — and still lift.) */
+const LINKING = /\b(?:is|are|was|were)\s*$/i;
+
 /** A word or two joining two equations — "so", "which gives" — is not a line
  *  of prose. It rides on the equation it introduces. */
 const CONNECTIVE = /^[a-z][\w' ]{0,14}$/;
 /** The same, left dangling at the end of the words above: "Reading a point:
  *  at". The preposition belongs to the equation, not to the line it ends. */
-const TRAILING = /\s+((?:at|of|is|to|by|as|with|so|and|then|where)\s*)$/i;
+// Not "is": "The answer is" is a clause that reads whole above its equation,
+// where "is x = …" set on its own line is a fragment.
+const TRAILING = /\s+((?:at|of|to|by|as|with|so|and|then|where)\s*)$/i;
 
 function tidy(pieces: Piece[]): Piece[] {
   const out: Piece[] = [];
