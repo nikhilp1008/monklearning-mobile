@@ -9,6 +9,7 @@ import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { getMockSession, saveProgress, submitCurrentSession } from '@/lib/mock';
+import { hapticCommitted, hapticWarning } from '@/lib/haptics';
 
 const SUBJECT_LABEL: Record<string, string> = {
   physics: 'Physics',
@@ -58,12 +59,15 @@ export default function MockPaletteScreen() {
    */
   const doSubmit = async () => {
     if (submitting) return;
+    // Handing the paper in: the committing thud, the moment it leaves the hand.
+    hapticCommitted();
     setSubmitting(true);
     try {
       const result = await submitCurrentSession();
       router.replace(`/mock-report?run=${result?.mock_run_id ?? ''}`);
     } catch {
       setSubmitting(false);
+      hapticWarning();
       Alert.alert(
         'Could not submit',
         'Your answers are safe on this device. Check your connection and submit again.',

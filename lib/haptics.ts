@@ -252,3 +252,27 @@ export function hapticCodeComplete() {
   }
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid));
 }
+
+/**
+ * IT WORKED — a result the student was waiting on: payment through, promo
+ * applied, report sent, saved to notes, a textbook MCQ answered right. The
+ * same success double-tap as ticking a plan item off, named for what it means
+ * where it is called.
+ */
+export function hapticSuccess() {
+  hapticTicked();
+}
+
+/**
+ * IT DID NOT — something the student asked for failed or was refused: a wrong
+ * code, an invalid promo, a solve that failed, the daily limit, the clock in
+ * a mock running low. Always beside words on screen that say why; the buzz is
+ * only so it is felt without looking.
+ */
+export function hapticWarning() {
+  if (Platform.OS === 'android') {
+    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject));
+    return;
+  }
+  fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
+}

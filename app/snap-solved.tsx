@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
-import { hapticSoft, hapticTicked } from '@/lib/haptics';
+import { hapticSoft, hapticTicked, hapticWarning } from '@/lib/haptics';
 import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
@@ -77,6 +77,12 @@ export default function SnapSolvedScreen() {
     announced.current = true;
     hapticTicked();
   }, [solvedCount]);
+
+  /** And a solve that failed is felt too, once, beside the words that say so. */
+  const failed = job.status === 'failed';
+  useEffect(() => {
+    if (failed) hapticWarning();
+  }, [failed]);
 
   // One mapper for both screens, so Snap and the Library's doubt detail cannot
   // drift apart again — which is how both came to drop the MCQ options and the

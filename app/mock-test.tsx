@@ -20,6 +20,7 @@ import { MathText } from '@/components/math-text';
 import { RuledPaper } from '@/components/ruled-paper';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { hapticSwitched, hapticWarning } from '@/lib/haptics';
 import {
   chargeElapsed,
   getMockSession,
@@ -328,6 +329,7 @@ export default function MockTestScreen() {
                   <Pressable
                     key={key}
                     onPress={() => {
+                      if (!isSelected) hapticSwitched();
                       session.answers.set(question.id, { option: key });
                       saveProgress();
                       bump();
@@ -358,6 +360,7 @@ export default function MockTestScreen() {
           <View style={styles.markRow}>
             <Pressable
               onPress={() => {
+                hapticSwitched();
                 if (session.marked.has(question.id)) session.marked.delete(question.id);
                 else session.marked.add(question.id);
                 saveProgress();
@@ -421,6 +424,8 @@ export default function MockTestScreen() {
  * eight characters inside one Text. Owning the interval here keeps the
  * per-second work inside the pill, which is the only part that changed.
  */
+const FIVE_MINUTES = 5 * 60;
+
 function CountdownPill({
   styles,
   scale,
@@ -437,13 +442,20 @@ function CountdownPill({
     return s ? mockSecondsLeft(s) : 0;
   };
   const [secondsLeft, setSecondsLeft] = useState(remaining);
+  /** Last second seen, so the five-minute mark is felt once, on the way down. */
+  const lastLeft = useRef(remaining());
 
   useEffect(() => {
     const id = setInterval(() => {
       const left = remaining();
       setSecondsLeft(left);
+      // Felt, not just read: a student does not watch the clock while
+      // working a question. Once at five minutes left, once at time up.
+      if (lastLeft.current > FIVE_MINUTES && left <= FIVE_MINUTES && left > 0) hapticWarning();
+      lastLeft.current = left;
       if (left <= 0) {
         clearInterval(id);
+        hapticWarning();
         onExpire();
       }
     }, 1000);
