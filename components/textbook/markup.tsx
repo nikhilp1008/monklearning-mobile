@@ -159,10 +159,21 @@ function plainText(nodes: Node[]): string {
     .join('');
 }
 
-function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number): TextStyle {
+/**
+ * Which reader look a run belongs to. 'pilot' is the rebuilt reading system
+ * being tried on one topic (see components/textbook/pilot.ts): bold at
+ * SemiBold rather than Bold, and numeric exponents of any length raised.
+ */
+export type MarkupLook = 'current' | 'pilot';
+
+/** Digits and signs only. Unicode's raised digits are one consistent set, so
+ *  unlike raised letters they do not stagger at any length: 10⁻¹⁹ is safe. */
+const NUMERIC_RUN = /^[0-9+\-−=() ]+$/;
+
+function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {
   switch (name) {
     case 'b':
-      return { fontFamily: 'Onest_700Bold' };
+      return { fontFamily: look === 'pilot' ? 'Onest_600SemiBold' : 'Onest_700Bold' };
     case 'i':
       return { fontFamily: SERIF, fontStyle: 'italic' };
     // Unicode has no subscript capitals and no subscript f or g, so a run
@@ -179,7 +190,7 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number): TextStyle {
   }
 }
 
-function render(nodes: Node[], size: number, keyPrefix: string) {
+function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook) {
   return nodes.map((node, i) => {
     const key = `${keyPrefix}.${i}`;
     if (node.kind === 'text') return <Fragment key={key}>{asText(node.value)}</Fragment>;
@@ -192,20 +203,25 @@ function render(nodes: Node[], size: number, keyPrefix: string) {
       // weight. One or two characters reads fine; "initial" as seven of them
       // comes out visibly staggered, which is worse than the styled fallback.
       // So map short runs, and let longer ones go through as scaled text.
-      const raised = run.length <= 2 ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
+      // The pilot raises longer runs too: any numeric run (10⁻¹⁹), and a run
+      // of up to 8 that maps character for character (M⁻ʸ⁺ᶻ, Lˣ⁺³ʸ⁺²ᶻ), which
+      // otherwise fell back to small text on the baseline and read as "M−y+z".
+      const mappable =
+        run.length <= 2 || (look === 'pilot' && (NUMERIC_RUN.test(run) || run.length <= 8));
+      const raised = mappable ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
       // Raised glyphs need no size change; they are already small and in the
       // right place. Shrinking them again would make them unreadable.
       if (raised) return <Fragment key={key}>{raised}</Fragment>;
       return (
-        <Text key={key} style={styleFor(node.name, size)}>
-          {render(node.children, size * 0.72, key)}
+        <Text key={key} style={styleFor(node.name, size, look)}>
+          {render(node.children, size * 0.72, key, look)}
         </Text>
       );
     }
 
     return (
-      <Text key={key} style={styleFor(node.name, size)}>
-        {render(node.children, size, key)}
+      <Text key={key} style={styleFor(node.name, size, look)}>
+        {render(node.children, size, key, look)}
       </Text>
     );
   });
@@ -217,13 +233,14 @@ export interface MarkupProps {
   size: number;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  look?: MarkupLook;
 }
 
-export function Markup({ html, size, style, numberOfLines }: MarkupProps) {
+export function Markup({ html, size, style, numberOfLines, look = 'current' }: MarkupProps) {
   const nodes = useMemo(() => parse(html), [html]);
   return (
     <Text style={style} numberOfLines={numberOfLines}>
-      {render(nodes, size, 'm')}
+      {render(nodes, size, 'm', look)}
     </Text>
   );
 }

@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+
+import { FigText as SvgText } from '@/components/textbook/figure-face';
 
 import type { DiagramFrame, PlotCurve } from '@/lib/textbooks';
 
