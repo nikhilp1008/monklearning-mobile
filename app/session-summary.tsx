@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -10,22 +10,33 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Line, Path } from 'react-native-svg';
 
+import { NightSky } from '@/components/night-sky';
+import { MathLine } from '@/components/math-line';
+import { ObButton } from '@/components/onboarding-kit';
 import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
+import { MOMENTS_VISIBLE } from '@/constants/features';
 import { saveNote } from '@/lib/notes';
 import { endDronaSession, type DronaSessionEnd } from '@/lib/drona-live';
 import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
 import { peekSessionEnd } from '@/lib/session-end';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 
 /**
  * CLASS DISMISSED — what the student sees the moment a live class ends.
  * Built from `dismissed_handoff/Class Dismissed 4A`.
  *
- * IT STATES FACTS AND THEN GETS OUT OF THE WAY. Cream fading to white, the
- * headline, one card naming the chapter and the topic with the question tally,
- * the teacher's own summary of what was covered, and the key that keeps it.
+ * IT STATES FACTS AND THEN GETS OUT OF THE WAY. The headline on white, the
+ * class's facts printed on a small ticket of Home's night sky — chapter and
+ * topic on the ticket, the question tally on its stub — the teacher's own
+ * summary of what was covered, and two buttons: keep it, or go.
+ *
+ * THE TICKET IS THE SKY, SOFTENED. The same still Home's header is drawn
+ * from, so a class ends in the look it was started from — but lifted toward
+ * bronze and with a third of the grain, because at its full depth a card this
+ * small read as a dark slab on a white page.
  *
  * WHAT IS DELIBERATELY NOT HERE:
  *
@@ -45,12 +56,26 @@ import { peekSessionEnd } from '@/lib/session-end';
  * through. Two lines show, because a wall of six reads as a receipt; the rest
  * are one tap away on the line that would otherwise be cut off.
  *
- * ONLY THE SUMMARY SCROLLS. Heading, card and keys are fixed, so "Save notes"
- * sits in the same place whether the class produced one line or six — a key
- * that moves depending on the lesson is a key a student has to look for.
+ * ONLY THE SUMMARY SCROLLS. Heading, ticket and buttons are fixed, so "Save
+ * notes" sits in the same place whether the class produced one line or six —
+ * a key that moves depending on the lesson is a key a student has to look for.
+ *
+ * TWO BUTTONS, NOT A BUTTON AND A LINK. "Go to dashboard" was a short line of
+ * grey text under the key: a small target, narrower than the button above it
+ * and easy to miss. Both are onboarding's buttons now, the same height and
+ * width, edges aligned — ink for the one that keeps the class, outlined for
+ * the one that leaves.
  */
 
 const INK = '#1C1A16';
+/** Paper on the ticket's sky. */
+const ON_SKY = '#FFFDF8';
+const ON_SKY_SOFT = 'rgba(255,253,248,0.65)';
+/** The step numbers and the "What we covered" label: the board's amber. */
+const AMBER_NUM = '#B08420';
+/** How far the ticket's sky is pulled toward bronze, and its grain. */
+const TICKET_LIFT = 0.5;
+const TICKET_GRAIN = 0.35;
 /** Secondary ink, for the subline and the quiet link. */
 const INK_MUTED = '#57534B';
 /** Labels and the tally's denominator: present, clearly subordinate. */
@@ -58,12 +83,11 @@ const INK_SOFT = '#8A8577';
 /** The amber that means "tap this", not the amber of a heading. */
 const AMBER_LINK = '#9A6A12';
 const PAPER = '#FFFFFF';
-/** The card's edge, and the rules inside it — the inner ones a shade lighter. */
-const HAIR = 'rgba(28,26,22,0.10)';
+/** The rules between takeaways. */
 const RULE = 'rgba(28,26,22,0.08)';
 const RED = '#DD4433';
 
-const GUTTER = 28;
+const GUTTER = 24;
 /** How much of the summary the bottom fade covers, when it has to scroll. */
 const FADE = 22;
 /** Shown unexpanded. Two lines read as a summary; six read as a receipt. */
@@ -231,8 +255,10 @@ export default function SessionSummaryScreen() {
     try {
       const note = await saveNote(params.sessionId);
       savedNoteId.current = note.id;
+      hapticSuccess();
       setSaveState('saved');
     } catch (err) {
+      hapticWarning();
       setSaveState('error');
       setSaveError(err instanceof Error ? err.message : 'Could not save this class.');
     }
@@ -248,12 +274,8 @@ export default function SessionSummaryScreen() {
           ? 'Couldn\u2019t save \u00b7 tap to retry'
           : 'Save notes';
 
-  /**
-   * The key is drawn as a physical one: a 3pt hard edge under it, and pressing
-   * it moves the face down onto that edge. Nothing else on the screen can be
-   * pressed, so the only control gets to look like one.
-   */
-  const [keyDown, setKeyDown] = useState(false);
+  /** The ticket's own size, for its sky. */
+  const [ticket, setTicket] = useState({ width: 0, height: 0 });
   /** The chevron turns over rather than swapping, so the line keeps its place. */
   const chev = useSharedValue(0);
   useEffect(() => {
@@ -274,16 +296,6 @@ export default function SessionSummaryScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
 
-      {/* Cream to white over the top 440, which is the card's own depth: the
-          warmth belongs to the heading and the facts, and has faded out by the
-          time the summary starts. */}
-      <LinearGradient
-        colors={['#FAECCF', '#FCF3E2', '#FFFFFF']}
-        locations={[0, 0.35, 1]}
-        style={styles.wash}
-        pointerEvents="none"
-      />
-
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.page}>
           <Animated.View entering={FadeInDown.duration(420)}>
@@ -295,34 +307,63 @@ export default function SessionSummaryScreen() {
             </Text>
           </Animated.View>
 
-          {/* One card, three rows: the two things the student chose on the way
-              in, and the one thing that happened while they were inside. */}
-          <Animated.View entering={FadeInDown.duration(420).delay(140)} style={styles.card}>
-            <View style={[styles.row, !topicTitle && questionsAsked === 0 && styles.rowLast]}>
-              <Text style={styles.rowLabel}>Chapter</Text>
-              <Text style={styles.rowValue} numberOfLines={2}>
+          {/* The ticket: the two things the student chose on the way in,
+              printed on the sky, and the one thing that happened while they
+              were inside on the stub. */}
+          <Animated.View
+            entering={FadeInDown.duration(420).delay(140)}
+            style={styles.ticket}
+            onLayout={(e: LayoutChangeEvent) => {
+              const { width, height } = e.nativeEvent.layout;
+              setTicket((p) => (p.width === width && p.height === height ? p : { width, height }));
+            }}>
+            <NightSky
+              width={ticket.width}
+              height={ticket.height}
+              grain={TICKET_GRAIN}
+              lift={TICKET_LIFT}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <View style={styles.ticketFacts}>
+              <Text style={styles.factLabel}>Chapter</Text>
+              <Text style={styles.factValue} numberOfLines={2}>
                 {chapterTitle}
               </Text>
+              {!!topicTitle && (
+                <>
+                  <Text style={[styles.factLabel, styles.factLabelNext]}>Topic</Text>
+                  <Text style={styles.factValue} numberOfLines={2}>
+                    {topicTitle}
+                  </Text>
+                </>
+              )}
             </View>
 
-            {!!topicTitle && (
-              <View style={[styles.row, questionsAsked === 0 && styles.rowLast]}>
-                <Text style={styles.rowLabel}>Topic</Text>
-                <Text style={styles.rowValue} numberOfLines={2}>
-                  {topicTitle}
-                </Text>
-              </View>
-            )}
-
-            {/* Hidden rather than shown as "0 / 0" when she never checked: a
+            {/* Left off rather than shown as "0 / 0" when she never checked: a
                 zero here would read as a failed test instead of a quiet class. */}
             {questionsAsked > 0 && (
-              <View style={[styles.row, styles.rowLast, styles.rowInline]}>
-                <Text style={styles.rowLabel}>Questions answered</Text>
+              <View
+                style={styles.stub}
+                accessible
+                accessibilityLabel={`${questionsAnswered} of ${questionsAsked} questions answered`}>
+                {/* The tear line. Drawn, because iOS will not dash a single
+                    side of a view's border — it drew nothing at all. */}
+                <Svg style={styles.seam} width={2} height="100%">
+                  <Line
+                    x1={1}
+                    y1={0}
+                    x2={1}
+                    y2="100%"
+                    stroke="rgba(255,253,248,0.32)"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                  />
+                </Svg>
                 <Text style={styles.tally}>
                   {questionsAnswered}
                   <Text style={styles.tallyOf}> / {questionsAsked}</Text>
                 </Text>
+                <Text style={styles.stubLabel}>{'Questions\nanswered'}</Text>
               </View>
             )}
           </Animated.View>
@@ -333,7 +374,8 @@ export default function SessionSummaryScreen() {
               showsVerticalScrollIndicator={false}>
               {/* Above the summary, because what was proven outranks what was
                   covered. Renders nothing unless something actually was. */}
-              <ProofMoment events={proof} />
+              {/* On hold — see MOMENTS_VISIBLE in constants/features.ts. */}
+              {MOMENTS_VISIBLE && <ProofMoment events={proof} />}
 
               {/* A class shorter than two segments has no takeaways, and is
                   told so rather than shown an empty space where they would be.
@@ -342,10 +384,10 @@ export default function SessionSummaryScreen() {
                   a score. What is on offer is the way back in. */}
               {tooShort && (
                 <>
-                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                  <Text style={[styles.summaryLead, MOMENTS_VISIBLE && proof.length > 0 && styles.summaryLeadBelow]}>
                     Too short to sum up
                   </Text>
-                  <View style={[styles.line, styles.lineLast]}>
+                  <View style={styles.point}>
                     <Text style={styles.lineText}>
                       Takeaways start once you’ve finished a couple of segments.
                       Pick the chapter back up whenever you’re ready.
@@ -359,10 +401,10 @@ export default function SessionSummaryScreen() {
                   did: an empty space under a heading promising a summary. */}
               {summaryFailed && !tooShort && covered.length === 0 && (
                 <>
-                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                  <Text style={[styles.summaryLead, MOMENTS_VISIBLE && proof.length > 0 && styles.summaryLeadBelow]}>
                     Summary unavailable
                   </Text>
-                  <View style={[styles.line, styles.lineLast]}>
+                  <View style={styles.point}>
                     <Text style={styles.lineText}>
                       The class is saved — this part just couldn’t be loaded.
                       Your notes still have everything that was on the board.
@@ -373,41 +415,41 @@ export default function SessionSummaryScreen() {
 
               {!tooShort && covered.length > 0 && (
                 <>
-                  <Text style={[styles.summaryLead, proof.length > 0 && styles.summaryLeadBelow]}>
+                  <Text style={[styles.summaryLead, MOMENTS_VISIBLE && proof.length > 0 && styles.summaryLeadBelow]}>
                     What we covered
                   </Text>
-                  {visible.map((line, i) => {
-                    const last = i === visible.length - 1;
-                    /* The toggle rides the last visible line instead of sitting
-                       under the list, so expanding does not add a row that is
-                       only ever chrome. */
-                    const toggle = last && rest > 0;
-                    return (
-                      <View key={i} style={[styles.line, last && styles.lineLast]}>
-                        <Text style={styles.lineText}>{line}</Text>
-                        {toggle && (
-                          <Pressable
-                            style={styles.more}
-                            onPress={() => setExpanded((v) => !v)}
-                            hitSlop={10}
-                            accessibilityLabel={expanded ? 'Show less' : `Show ${rest} more`}>
-                            <Text style={styles.moreText}>{expanded ? 'Less' : `${rest} more`}</Text>
-                            <Animated.View style={chevStyle}>
-                              <Svg viewBox="0 0 12 12" width={11} height={11} fill="none">
-                                <Path
-                                  d="M2 4.5l4 3.5 4-3.5"
-                                  stroke={AMBER_LINK}
-                                  strokeWidth={1.6}
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </Svg>
-                            </Animated.View>
-                          </Pressable>
-                        )}
+                  {visible.map((line, i) => (
+                    <View key={i} style={[styles.point, i > 0 && styles.pointRule]}>
+                      <Text style={styles.pointNum}>{i + 1}</Text>
+                      {/* A takeaway can carry a formula (R_T, ρ₀, 10⁻³), so it goes
+                          through the board's own renderer: scripts drawn where
+                          Unicode has no character, a plain line still one Text. */}
+                      <View style={styles.pointBody}>
+                        <MathLine text={line} style={styles.lineText} fontSize={15} color={INK} />
                       </View>
-                    );
-                  })}
+                    </View>
+                  ))}
+                  {rest > 0 && (
+                    <Pressable
+                      style={styles.more}
+                      onPress={() => setExpanded((v) => !v)}
+                      hitSlop={12}
+                      accessibilityRole="button"
+                      accessibilityLabel={expanded ? 'Show less' : `Show ${rest} more`}>
+                      <Text style={styles.moreText}>{expanded ? 'Less' : `${rest} more`}</Text>
+                      <Animated.View style={chevStyle}>
+                        <Svg viewBox="0 0 12 12" width={11} height={11} fill="none">
+                          <Path
+                            d="M2 4.5l4 3.5 4-3.5"
+                            stroke={AMBER_LINK}
+                            strokeWidth={1.6}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </Svg>
+                      </Animated.View>
+                    </Pressable>
+                  )}
                 </>
               )}
             </ScrollView>
@@ -434,34 +476,22 @@ export default function SessionSummaryScreen() {
                 : 'This class wasn\u2019t recorded, so there\u2019s nothing to save.'}
             </Text>
 
-            {!!params.sessionId && (
-              <Pressable
-                style={[
-                  styles.key,
-                  keyDown && styles.keyDown,
-                  saveState === 'saved' && styles.keySaved,
-                ]}
-                onPressIn={() => setKeyDown(true)}
-                onPressOut={() => setKeyDown(false)}
-                onPress={handleSave}
-                disabled={saveState === 'saving'}>
-                <LinearGradient
-                  colors={['#35302A', '#1C1A16']}
-                  locations={[0, 0.6]}
-                  style={StyleSheet.absoluteFill}
-                  pointerEvents="none"
+            <View style={styles.buttons}>
+              {!!params.sessionId && (
+                <ObButton
+                  label={saveLabel}
+                  onPress={handleSave}
+                  busy={saveState === 'saving'}
+                  // Saved: still a key, no longer the brightest thing here.
+                  style={saveState === 'saved' ? styles.keySaved : undefined}
                 />
-                {/* The bevel, on its own layer: an inset shadow is drawn onto
-                    the view's own background, so on the key itself the gradient
-                    child would cover it. */}
-                <View style={styles.keyBevel} pointerEvents="none" />
-                <Text style={styles.keyText}>{saveLabel}</Text>
-              </Pressable>
-            )}
-
-            <Pressable onPress={() => router.dismissTo('/')} hitSlop={10}>
-              <Text style={styles.dashboardLink}>Go to dashboard</Text>
-            </Pressable>
+              )}
+              <ObButton
+                label="Go to dashboard"
+                variant="outline"
+                onPress={() => router.dismissTo('/')}
+              />
+            </View>
           </Animated.View>
         </View>
       </SafeAreaView>
@@ -474,60 +504,62 @@ function createStyles() {
     screen: { flex: 1, backgroundColor: PAPER },
     rotateHold: { flex: 1, backgroundColor: PAPER },
     safeArea: { flex: 1 },
-    wash: { position: 'absolute', left: 0, right: 0, top: 0, height: 440 },
     /** A column, not a scroller. Only `summary` below is allowed to move. */
-    page: { flex: 1, paddingHorizontal: GUTTER, paddingTop: 6 },
+    page: { flex: 1, paddingHorizontal: GUTTER, paddingTop: 14 },
 
     heading: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: 32,
-      letterSpacing: -0.03 * 32,
-      lineHeight: 32 * 1.05,
+      fontSize: 30,
+      letterSpacing: -0.035 * 30,
+      lineHeight: 30 * 1.08,
       color: INK,
     },
     sub: {
       marginTop: 8,
       fontFamily: 'Onest_400Regular',
-      fontSize: 14.5,
-      lineHeight: 14.5 * 1.45,
+      fontSize: 15,
+      lineHeight: 22,
       color: INK_MUTED,
     },
 
-    card: {
-      marginTop: 24,
-      paddingHorizontal: 18,
-      paddingVertical: 4,
-      borderWidth: 1,
-      borderColor: HAIR,
-      borderRadius: 20,
-      backgroundColor: PAPER,
-    },
-    row: {
-      gap: 3,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: RULE,
-    },
-    /** Whichever row ends up last — the card's own edge is the rule there. */
-    rowLast: { borderBottomWidth: 0 },
-    rowInline: {
+    /** Facts on the left, the tally's stub on the right, on one sky. */
+    ticket: {
+      marginTop: 22,
       flexDirection: 'row',
+      borderRadius: 20,
+      overflow: 'hidden',
+      backgroundColor: '#5A4426',
+      boxShadow: [{ offsetX: 0, offsetY: 18, blurRadius: 30, spreadDistance: -20, color: 'rgba(28,26,22,0.55)' }],
+    },
+    ticketFacts: { flex: 1, minWidth: 0, paddingVertical: 16, paddingHorizontal: 18 },
+    factLabel: { fontFamily: 'Onest_500Medium', fontSize: 12.5, color: ON_SKY_SOFT },
+    factLabelNext: { marginTop: 10 },
+    factValue: {
+      marginTop: 2,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 15.5,
+      lineHeight: 15.5 * 1.3,
+      letterSpacing: -0.01 * 15.5,
+      color: ON_SKY,
+      // Barely there: holds the white off the ticket's brighter amber foot.
+      textShadowColor: 'rgba(60,38,8,0.35)',
+      textShadowRadius: 6,
+    },
+    /** The tear-off: a dashed seam, and the tally alone on its side of it. */
+    stub: {
+      width: 104,
       alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 16,
+      justifyContent: 'center',
+      paddingVertical: 14,
     },
-    rowLabel: { fontFamily: 'Onest_500Medium', fontSize: 13, color: INK_SOFT },
-    rowValue: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: 15,
-      lineHeight: 15 * 1.35,
-      color: INK,
-    },
+    seam: { position: 'absolute', left: 0, top: 10, bottom: 10 },
     tally: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: 24,
-      letterSpacing: -0.03 * 24,
-      color: INK,
+      fontSize: 34,
+      letterSpacing: -0.03 * 34,
+      color: ON_SKY,
+      textShadowColor: 'rgba(60,38,8,0.35)',
+      textShadowRadius: 6,
       /** So 4 / 5 and 11 / 12 put their slash in the same place. */
       fontVariant: ['tabular-nums'],
     },
@@ -536,45 +568,66 @@ function createStyles() {
       fontFamily: 'Onest_500Medium',
       fontSize: 15,
       letterSpacing: 0,
-      color: INK_SOFT,
+      color: ON_SKY_SOFT,
+    },
+    stubLabel: {
+      marginTop: 4,
+      textAlign: 'center',
+      fontFamily: 'Onest_700Bold',
+      fontSize: 10.5,
+      lineHeight: 13.5,
+      letterSpacing: 0.06 * 10.5,
+      textTransform: 'uppercase',
+      color: ON_SKY_SOFT,
     },
 
     /** Takes whatever height is left, and scrolls inside it. */
-    summary: { flex: 1, minHeight: 0, marginTop: 24 },
+    summary: { flex: 1, minHeight: 0, marginTop: 2 },
     summaryInner: { paddingBottom: FADE },
     summaryLead: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: 13,
+      marginTop: 24,
+      marginBottom: 2,
+      fontFamily: 'Onest_700Bold',
+      fontSize: 11,
+      letterSpacing: 0.12 * 11,
+      textTransform: 'uppercase',
       color: AMBER_LINK,
-      marginBottom: 4,
     },
-    /** Only when the proof card is above it — otherwise the summary column's
-     *  own margin is already the gap. */
-    summaryLeadBelow: { marginTop: 20 },
-    line: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      gap: 12,
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: RULE,
+    /** Only when the teacher's note is above it. */
+    summaryLeadBelow: { marginTop: 24 },
+    /** A takeaway, numbered the way the follow-up board numbers its steps. */
+    point: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
+    pointRule: { borderTopWidth: 1, borderTopColor: RULE },
+    pointNum: {
+      width: 14,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: 13,
+      lineHeight: 22,
+      color: AMBER_NUM,
+      fontVariant: ['tabular-nums'],
     },
-    lineLast: { borderBottomWidth: 0 },
+    pointBody: { flex: 1, minWidth: 0 },
     lineText: {
       flexShrink: 1,
       fontFamily: 'Onest_400Regular',
-      fontSize: 14.5,
-      lineHeight: 14.5 * 1.45,
+      fontSize: 15,
+      lineHeight: 22,
       color: INK,
     },
-    more: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingBottom: 1 },
+    more: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 5,
+      paddingLeft: 26,
+      paddingVertical: 6,
+    },
     moreText: { fontFamily: 'Onest_600SemiBold', fontSize: 13.5, color: AMBER_LINK },
     fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FADE },
 
-    actions: { paddingTop: 16 },
+    actions: { paddingTop: 12 },
     foot: {
-      marginBottom: 10,
+      marginBottom: 12,
       textAlign: 'center',
       fontFamily: 'Onest_400Regular',
       fontSize: 12.5,
@@ -588,58 +641,9 @@ function createStyles() {
       fontSize: 13,
       color: RED,
     },
-
-    /**
-     * THE INK KEY, built from three layers rather than one declaration.
-     *
-     * The hard edge below it is a zero-blur `boxShadow`, which iOS's box-shadow
-     * layer draws natively — the older `shadowRadius`/`shadowOpacity` props
-     * cannot express a shadow with no blur at all. The face is a real gradient
-     * view rather than `experimental_backgroundImage`, because that prop's
-     * CSS-string form is registered on Android's view config and not iOS's, so
-     * on a phone it would have quietly fallen back to flat ink.
-     */
-    key: {
-      height: 54,
-      borderRadius: 99,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      backgroundColor: INK,
-      boxShadow: [{ offsetX: 0, offsetY: 3, blurRadius: 0, color: 'rgba(28,26,22,0.35)' }],
-    },
-    /** Lit along the top, dark along the bottom: a face catching light from
-     *  above, which is the whole of why it reads as raised. */
-    keyBevel: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: 99,
-      boxShadow: [
-        { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,0.22)', inset: true },
-        { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,0.4)', inset: true },
-      ],
-    },
-    /** Pressed: the face travels onto its own edge, which is what makes it feel
-     *  like a key rather than a rectangle that changed colour. */
-    keyDown: {
-      transform: [{ translateY: 2 }],
-      boxShadow: [{ offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(28,26,22,0.35)' }],
-    },
+    /** Same width, same height, edges aligned, 10 apart. */
+    buttons: { gap: 10 },
     /** Saved: the key stays a key and stops being the brightest thing on it. */
     keySaved: { opacity: 0.55 },
-    keyText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: 16,
-      letterSpacing: -0.012 * 16,
-      color: '#FFFDF8',
-    },
-    dashboardLink: {
-      alignSelf: 'center',
-      paddingTop: 10,
-      paddingHorizontal: 12,
-      paddingBottom: 4,
-      fontFamily: 'Onest_500Medium',
-      fontSize: 15,
-      color: INK_MUTED,
-    },
   });
 }
