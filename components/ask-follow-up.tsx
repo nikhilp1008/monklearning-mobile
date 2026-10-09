@@ -18,14 +18,20 @@ import Animated, {
   useAnimatedStyle,
   useScrollOffset,
   useSharedValue,
+  withRepeat,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
+import { useClock } from '@shopify/react-native-skia';
+
+import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
+import { DockLight, type DockLightGeometry } from '@/components/dock-light';
+import { DOCK_FLAG_SLOT, DOCK_H0, DOCK_W0, useDockMotion } from '@/components/dock-motion';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { Skeleton } from '@/components/skeleton';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -37,6 +43,7 @@ import {
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
+import { countChars, revealChars } from '@/lib/word-reveal';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
 /**
@@ -97,6 +104,31 @@ const BOARD_SHARE = 0.46;
  */
 const BOARD_EDGE = 14;
 
+/**
+ * The board's writing pace, in LETTERS a second (lib/word-reveal.ts). SPOKEN
+ * is a teacher's speaking pace, used to guess how long the voice runs wherever
+ * its length cannot be read. WRITE is the fastest the hand goes while keeping
+ * time with the voice. FLUSH writes out whatever is left once the voice has
+ * ended — quick, but still visibly written. A formula lands whole and then
+ * costs its length, so the hand pauses over it.
+ */
+const SPOKEN_CPS = 15;
+const WRITE_CPS = 40;
+/** Never slower than this, so a long voice over a short answer still reads
+ *  as writing rather than as a board that has stopped. */
+const MIN_CPS = 6;
+const FLUSH_CPS = 240;
+/**
+ * How quickly the pace may change, per second. The pace is worked out afresh
+ * every frame from how much voice is left, and that estimate moves the whole
+ * time the audio is arriving; followed directly, the hand sped up and slowed
+ * down visibly from one moment to the next. Eased toward instead, it changes
+ * the way a hand does — gradually.
+ */
+const PACE_EASE = 2.5;
+/** How often the writing advances: ~30 a second, smooth to the eye. */
+const WRITE_TICK_MS = 33;
+
 /** Drag distance or flick speed on the board's header that puts it away. */
 const BOARD_CLOSE_DISTANCE = 80;
 const BOARD_CLOSE_VELOCITY = 700;
@@ -151,6 +183,7 @@ function MicIcon({ color }: { color: string }) {
 
 /** Shown while the answer is playing, because a bar you can stop should look
  *  stoppable. The prototype has no such state — it never had to answer. */
+
 function StopIcon({ color }: { color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={15} height={15} fill={color}>
@@ -209,7 +242,7 @@ export function AskFollowUpBar({
   /** The board is capped rather than free: it grows upward over the solution,
    *  and past a little under half the screen there is nothing of the solution
    *  left to read behind it. */
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [phase, setPhase] = useState<Phase>('idle');
   /**
    * A FAILURE IS TWO WORDS, NOT A SENTENCE.
@@ -229,6 +262,111 @@ export function AskFollowUpBar({
   const [linger, setLinger] = useState(false);
   /** The student's voice, 0–1, for the ring's halo while they hold. */
   const voiceLevel = useSharedValue(0);
+
+  /**
+   * THE LIT DOCK — the 20a face: a marigold disc, the footer light and, on a
+   * doubt, a stretching bar and a flag that steps aside. Practice wears the
+   * same face without the stretch, because Next shares its row. Everything
+   * below this point that mentions `litDock` exists for it.
+   *
+   * GEOMETRY IS MEASURED IN WINDOW COORDINATES, because the light has to be
+   * placed against the SCREEN, not against this block. The block sits inside
+   * the page's gutter and above the safe-area padding; a light anchored to it
+   * started 24pt in from the left and floated 18pt off the bottom, and its
+   * ring — computed as though it started at the screen edge — was drawn 24pt
+   * right of the pill. One `measureInWindow` on the block gives both offsets.
+   * The pill's vertical centre never moves: the row is centred and keeps its
+   * height while the pill squeezes symmetrically, so the row's middle is it.
+   */
+  const litDock = surface === 'doubts' || surface === 'practice';
+  /** Practice's Next shares the row, so there the bar keeps its size. */
+  const shared = !!trailing;
+  const clock = useClock();
+  const down = useSharedValue(false);
+  const motion = useDockMotion({ phase, level: voiceLevel, clock, down, stretch: !shared });
+  const blockRef = useRef<View>(null);
+  const [blockWin, setBlockWin] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [rowBox, setRowBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const measureBlock = useCallback(() => {
+    blockRef.current?.measureInWindow((x, y, w, h) => {
+      setBlockWin((prev) =>
+        prev && prev.x === x && prev.y === y && prev.w === w && prev.h === h ? prev : { x, y, w, h }
+      );
+    });
+  }, []);
+
+  /**
+   * PRACTICE'S PILL, MEASURED ON ITS OWN. On a doubt the row is centred and
+   * holds nothing but the pill and flag, so the row's middle is the pill's. In
+   * Practice the pill is left and Next is right, so the row's middle is
+   * nowhere near it — the light would bloom between the two buttons. There the
+   * pill sits in a fixed slot (so its centre holds still while it squeezes)
+   * and the slot is measured in window coordinates directly.
+   */
+  const slotRef = useRef<View>(null);
+  const [slotWin, setSlotWin] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const measureSlot = useCallback(() => {
+    slotRef.current?.measureInWindow((x, y, w, h) => {
+      setSlotWin((prev) =>
+        prev && prev.x === x && prev.y === y && prev.w === w && prev.h === h ? prev : { x, y, w, h }
+      );
+    });
+  }, []);
+
+  const dockGeo: DockLightGeometry | null = useMemo(() => {
+    if (!litDock || !blockWin) return null;
+    const bottom = windowHeight - (blockWin.y + blockWin.h);
+    if (shared) {
+      if (!slotWin) return null;
+      return {
+        left: blockWin.x,
+        bottom,
+        rowCentreX: slotWin.x + slotWin.w / 2,
+        cyFromBottom: windowHeight - (slotWin.y + slotWin.h / 2),
+        flagSlot: 0,
+      };
+    }
+    if (!rowBox) return null;
+    return {
+      left: blockWin.x,
+      bottom,
+      rowCentreX: blockWin.x + rowBox.x + rowBox.w / 2,
+      cyFromBottom: bottom + blockWin.h - (rowBox.y + rowBox.h / 2),
+      flagSlot: onReport ? DOCK_FLAG_SLOT : 0,
+    };
+  }, [litDock, shared, blockWin, slotWin, rowBox, windowHeight, onReport]);
+
+  /**
+   * The light exists while anything is lit or still settling, and not a frame
+   * longer. It comes on the instant a finger lands — before the recorder has
+   * started, which is when the press glow belongs — and goes once the motion
+   * reports everything back at rest, so it fades out instead of popping off.
+   */
+  const [lit, setLit] = useState(false);
+  useEffect(() => {
+    if (litDock && phase !== 'idle') setLit(true);
+  }, [litDock, phase]);
+  useAnimatedReaction(
+    () => motion.value.live,
+    (live, prev) => {
+      if (prev && !live) runOnJS(setLit)(false);
+    }
+  );
+
+  // The bar's own animated pieces, all read from the one motion.
+  const anchorAnim = useAnimatedStyle(() => {
+    const m = motion.value;
+    return { width: m.w - 6 * m.pr, height: DOCK_H0 - 2 * m.pr };
+  });
+  const flagSlotAnim = useAnimatedStyle(() => ({ width: DOCK_FLAG_SLOT * (1 - motion.value.ex) }));
+  const flagAnim = useAnimatedStyle(() => {
+    const ex = motion.value.ex;
+    return {
+      opacity: Math.max(0, Math.min(1, 1 - ex * 1.8)),
+      transform: [{ scale: 1 - 0.35 * ex }],
+    };
+  });
+  const discAnim = useAnimatedStyle(() => ({ transform: [{ scale: motion.value.ds }] }));
   /** Every answer that has reached the board this visit, oldest first. */
   const [thread, setThread] = useState<{ id: number; steps: FollowUpStep[] }[]>([]);
   const [boardOpen, setBoardOpen] = useState(false);
@@ -242,6 +380,109 @@ export function AskFollowUpBar({
   /** The question being worked out while the board is already up — it gets a
    *  placeholder section at once, rather than nothing until the first step. */
   const [pendingTurn, setPendingTurn] = useState<number | null>(null);
+
+  /**
+   * THE BOARD WRITES WHILE THE TEACHER TALKS.
+   *
+   * The written answer streams in seconds before the voice does, so the board
+   * used to open on a page that was already finished — the student read it in
+   * silence and the voice arrived narrating something they had already seen.
+   * Now the text is held back: the board opens on a shimmer while the teacher
+   * is still thinking, and the answer is written out, letter by letter, from the
+   * moment the voice is heard, paced so the writing ends about when the voice
+   * does. Nothing about what the server sends changes — only when each word
+   * is shown.
+   *
+   * `written` is how many letters of the newest answer are on the board. Every
+   * older answer is always whole. 0 means the shimmer.
+   */
+  const [written, setWritten] = useState<{ id: number; words: number } | null>(null);
+  const revealRef = useRef<{
+    id: number;
+    /** Letters in the answer so far — it grows while the text is still streaming. */
+    total: number;
+    /** Letters written, fractional so a slow pace still moves every tick. */
+    shown: number;
+    /** The writing speed right now, letters a second — eased, see PACE_EASE. */
+    pace: number;
+    /** 'wait' until the voice is heard, then 'voice'; 'flush' writes the rest. */
+    mode: 'wait' | 'voice' | 'flush';
+    startAt: number;
+    last: number;
+    /** The answer is on the gapless player, whose length is known as it arrives. */
+    pcm: boolean;
+    voiceDone: boolean;
+    textDone: boolean;
+  } | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Keeps the newest words in view while they are being written, until the
+   *  student scrolls the board themselves. */
+  const followRef = useRef(true);
+
+  const stopTick = useCallback(() => {
+    if (tickRef.current) clearInterval(tickRef.current);
+    tickRef.current = null;
+  }, []);
+
+  const tick = useCallback(() => {
+    const r = revealRef.current;
+    if (!r) return;
+    const now = Date.now();
+    const dt = Math.min(0.1, (now - r.last) / 1000);
+    r.last = now;
+    if (r.mode === 'wait' || now < r.startAt) return;
+    // A PACE, NOT A POSITION. The words left are spread over the voice left,
+    // every tick. Writing toward a position (words x fraction of the voice
+    // played) stalled whenever the voice's known length grew — and on the
+    // gapless player it grows the whole time the audio is arriving — so the
+    // board wrote, stopped dead, and caught up. A pace only slows down.
+    let rate = FLUSH_CPS;
+    if (r.mode === 'voice') {
+      // How long the voice runs: known exactly on the gapless player once its
+      // stream has ended, growing as it arrives before then, and guessed from
+      // a speaking pace wherever it cannot be read.
+      const heard = r.pcm ? pcmFedSeconds() / 1.15 : 0;
+      const runs = r.voiceDone && heard > 0 ? heard : Math.max(heard, r.total / SPOKEN_CPS);
+      const left = Math.max(0.6, runs - (now - r.startAt) / 1000);
+      rate = Math.max(MIN_CPS, Math.min(WRITE_CPS, (r.total - r.shown) / left));
+    }
+    // Eased, not jumped to — see PACE_EASE. A flush is a decision, not an
+    // estimate, so it takes effect at once.
+    r.pace = r.mode === 'flush' ? rate : r.pace + (rate - r.pace) * Math.min(1, dt * PACE_EASE);
+    r.shown = Math.min(r.total, r.shown + r.pace * dt);
+    const words = Math.floor(r.shown);
+    setWritten((prev) => (prev && prev.id === r.id && prev.words === words ? prev : { id: r.id, words }));
+    if (r.textDone && words >= r.total) stopTick();
+  }, [stopTick]);
+
+  /** Starts (or resumes) the ticker for the newest answer. */
+  const runTick = useCallback(() => {
+    if (!tickRef.current) tickRef.current = setInterval(tick, WRITE_TICK_MS);
+  }, [tick]);
+
+  /** Write the rest out quickly — the voice has ended, or never came. */
+  const flushWords = useCallback(() => {
+    const r = revealRef.current;
+    if (!r || r.mode === 'flush') return;
+    r.mode = 'flush';
+    r.last = Date.now();
+    r.startAt = Math.min(r.startAt, r.last);
+    runTick();
+  }, [runTick]);
+
+  // The voice has ended (or failed): write out whatever is left.
+  useEffect(() => {
+    if (phase === 'idle') flushWords();
+  }, [phase, flushWords]);
+
+  /** Show the whole answer at once — the student stopped it or moved on. */
+  const finishWords = useCallback(() => {
+    const r = revealRef.current;
+    stopTick();
+    if (!r) return;
+    revealRef.current = null;
+    setWritten(null);
+  }, [stopTick]);
 
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<FollowUpAudio | null>(null);
@@ -318,8 +559,9 @@ export function AskFollowUpBar({
     audioRef.current = null;
     pcmStop();
     if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
+    finishWords();
     setPhase('idle');
-  }, []);
+  }, [finishWords]);
 
   /**
    * A different question under the bar is a different conversation.
@@ -349,9 +591,10 @@ export function AskFollowUpBar({
       recorder.stop().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
       if (meterRef.current) clearInterval(meterRef.current);
+      stopTick();
       toPlayback();
     },
-    [recorder, toPlayback]
+    [recorder, toPlayback, stopTick]
   );
 
   const beginHold = useCallback(async () => {
@@ -381,6 +624,7 @@ export function AskFollowUpBar({
     if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
     abortRef.current?.abort();
     abortRef.current = null;
+    finishWords();
     setPhase('listening');
     const setup = (async (): Promise<'recording' | 'released' | 'failed'> => {
       try {
@@ -433,7 +677,7 @@ export function AskFollowUpBar({
     })();
     setupRef.current = setup;
     await setup;
-  }, [doubtId, recorder, toPlayback, wake, fail, voiceLevel]);
+  }, [doubtId, recorder, toPlayback, wake, fail, voiceLevel, finishWords]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
@@ -490,25 +734,35 @@ export function AskFollowUpBar({
     const turnId = ++questionIdRef.current;
     if (boardOpenRef.current) setPendingTurn(turnId);
 
-    // THE VOICE LEADS, THE BOARD FOLLOWS — the classroom's own order.
-    // Steps stream in well before Rumik's first sound (board ~2s, voice
-    // ~4-5s), and opening the sheet immediately meant the student read the
-    // whole answer in silence and the voice arrived narrating stale news.
-    // Content still accumulates the moment it streams; only the OPENING
-    // waits for the voice, and a safety valve opens it regardless — an
-    // answer whose voice fails must never hold its content hostage.
-    let boardEarned = false;
-    let boardRevealed = false;
-    let revealTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const revealBoard = () => {
-      if (boardRevealed || controller.signal.aborted) return;
-      boardRevealed = true;
-      if (boardEarned) setBoardOpen(true);
+    // THE VOICE LEADS, THE WORDS FOLLOW — the classroom's own order.
+    // Steps stream in well before the first sound (text ~2s, voice ~4-5s).
+    // The board may open as soon as the answer earns it, because what it
+    // shows until the voice is heard is a shimmer, not the answer; the words
+    // are written from the moment the voice starts. An answer whose voice
+    // never comes still gets written — at the end of the stream, quickly.
+    revealRef.current = {
+      id: turnId,
+      total: 0,
+      shown: 0,
+      pace: SPOKEN_CPS,
+      mode: 'wait',
+      startAt: Number.MAX_SAFE_INTEGER,
+      last: Date.now(),
+      pcm: false,
+      voiceDone: false,
+      textDone: false,
     };
-    const scheduleReveal = (ms: number) => {
-      if (revealTimer || boardRevealed) return;
-      revealTimer = setTimeout(revealBoard, ms);
+    setWritten({ id: turnId, words: 0 });
+    followRef.current = true;
+    /** The voice is audible `afterMs` from now: start writing then. */
+    const voiceHeard = (afterMs: number, pcm: boolean) => {
+      const r = revealRef.current;
+      if (!r || r.id !== turnId || r.mode !== 'wait' || controller.signal.aborted) return;
+      r.mode = 'voice';
+      r.pcm = pcm;
+      r.startAt = Date.now() + afterMs;
+      r.last = Date.now();
+      runTick();
     };
 
     // One writer for finished steps and the step mid-write. Partials carry
@@ -526,6 +780,10 @@ export function AskFollowUpBar({
       else arrived.push(step);
       arrived.sort((a, b) => a.n - b.n);
       const body = arrived.map((s) => s.text).join(' ');
+      const r = revealRef.current;
+      if (r && r.id === turnId) {
+        r.total = countChars(arrived.map((s) => parseSolutionStep(s.text)));
+      }
       if (onBoard || boardOpenRef.current || arrived.length > 1 || body.length > SHORT_ANSWER_CHARS) {
         onBoard = true;
         const steps = [...arrived];
@@ -536,11 +794,9 @@ export function AskFollowUpBar({
           next[i] = { id: turnId, steps };
           return next;
         });
-        // The FIRST opening waits for the reveal schedule (armed by the
-        // first audio frame, with safety valves); a board already up stays
-        // live — later answers join the thread instantly.
-        boardEarned = true;
-        if (boardRevealed || boardOpenRef.current) setBoardOpen(true);
+        // Open now: until the voice is heard the board shows a shimmer
+        // where the answer will be written, never the answer itself.
+        setBoardOpen(true);
       }
     };
 
@@ -597,15 +853,14 @@ export function AskFollowUpBar({
           onPcm: (b64) => {
             if (controller.signal.aborted) return;
             pcmFeed(b64);
-            // First frame -> audible ~0.5s later (the anti-shake prebuffer);
-            // the board follows about a second after the voice is heard.
-            scheduleReveal(1500);
+            // First frame -> audible ~0.5s later (the anti-shake prebuffer).
+            voiceHeard(500, true);
           },
           onAudio: (wav) => {
             if (controller.signal.aborted) return;
             inlinePlayer().enqueue(wav);
             // WAV clips start playing almost immediately once enqueued.
-            scheduleReveal(1000);
+            voiceHeard(100, false);
           },
           onVoiceDone: (chunks) => {
             if (controller.signal.aborted) return;
@@ -615,9 +870,13 @@ export function AskFollowUpBar({
               return;
             }
             streamDoneRef.current = true;
-            // Voice is over (or never was): whatever the board holds shows
-            // within a beat.
-            scheduleReveal(1000);
+            // The voice's full length is known now, so the pace can settle on
+            // it; with no voice at all, the words are written out at once.
+            const r = revealRef.current;
+            if (r && r.id === turnId) {
+              r.voiceDone = true;
+              if (r.mode === 'wait') flushWords();
+            }
             if (pcmAvailable && pcmStartedAtRef.current) {
               // Release an answer still held by the jitter buffer.
               pcmFinish();
@@ -635,9 +894,14 @@ export function AskFollowUpBar({
         surface
       );
       if (controller.signal.aborted) return;
-      // The stream is done. If nothing above ever revealed the board — no
-      // voice started at all — this is the valve that shows the answer.
-      scheduleReveal(1500);
+      // The stream is done, so the word count is final. If no voice was ever
+      // heard, this is the valve that writes the answer out.
+      const done = revealRef.current;
+      if (done && done.id === turnId) {
+        done.textDone = true;
+        if (done.mode === 'wait') flushWords();
+        runTick();
+      }
       turnsRef.current = [
         ...turnsRef.current,
         { role: 'user', content: asked },
@@ -675,7 +939,9 @@ export function AskFollowUpBar({
           doubtId!,
           spoken,
           (wav) => {
-            if (!ctl.signal.aborted) audio.enqueue(wav);
+            if (ctl.signal.aborted) return;
+            audio.enqueue(wav);
+            voiceHeard(100, false);
           },
           ctl.signal,
           surface
@@ -684,7 +950,7 @@ export function AskFollowUpBar({
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake, surface, fail, stopMeter]);
+  }, [doubtId, recorder, toPlayback, wake, surface, fail, stopMeter, runTick, flushWords]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
@@ -732,6 +998,7 @@ export function AskFollowUpBar({
         ? 'paused'
         : 'teacher';
   const ringAwake = listening || thinking || linger;
+
   const hintColor = listening ? styles.hintLive : thinking ? styles.hintThinking : null;
 
   /**
@@ -744,14 +1011,17 @@ export function AskFollowUpBar({
    * the view is gone before any exit animation could play.
    *
    * Up is slower than down and eased differently: arriving is the thing worth
-   * watching, leaving should get out of the way. The same pair of curves the
-   * rest of the app uses for entrances and exits.
+   * watching, leaving should get out of the way.
+   *
+   * ONE PROGRESS, THREE THINGS. It rose on a spring and faded on a separate
+   * 220ms timer, so the fade was over while the board was still travelling
+   * and the spring's overshoot read as a bump. Now a single 0-to-1 drives the
+   * fade, a 24pt rise and a slight 97%-to-100% growth from the bottom edge,
+   * on one long ease-out that decelerates into place — the board surfaces
+   * out of the bar rather than being thrown up from it. The fade runs ahead
+   * of the movement so the board is solid before it settles.
    */
   const open = useSharedValue(0);
-  /** How far below its place the board is: 40 as it arrives, 0 at rest. It
-   *  rises on a spring — a panel of working settling into place — and drops
-   *  on a plain ease, because leaving should just get out of the way. */
-  const rise = useSharedValue(40);
   /** The finger's pull on the header, added on top. */
   const drag = useSharedValue(0);
   const [boardMounted, setBoardMounted] = useState(false);
@@ -759,21 +1029,21 @@ export function AskFollowUpBar({
     if (boardOpen) {
       setBoardMounted(true);
       drag.value = 0;
-      open.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
-      rise.value = withSpring(0, { damping: 20, stiffness: 210, mass: 0.8 });
+      open.value = withTiming(1, { duration: 560, easing: Easing.bezier(0.16, 1, 0.3, 1) });
       return;
     }
-    const out = { duration: 220, easing: Easing.bezier(0.4, 0, 0.6, 1) };
-    rise.value = withTiming(40, out);
-    open.value = withTiming(0, out, (done) => {
+    open.value = withTiming(0, { duration: 300, easing: Easing.bezier(0.4, 0, 0.7, 0.2) }, (done) => {
       if (done) runOnJS(setBoardMounted)(false);
     });
-  }, [boardOpen, open, rise, drag]);
+  }, [boardOpen, open, drag]);
 
-  const boardStyle = useAnimatedStyle(() => ({
-    opacity: open.value,
-    transform: [{ translateY: rise.value + drag.value }],
-  }));
+  const boardStyle = useAnimatedStyle(() => {
+    const p = open.value;
+    return {
+      opacity: Math.min(1, p * 1.5),
+      transform: [{ translateY: (1 - p) * 24 + drag.value }, { scale: 0.97 + 0.03 * p }],
+    };
+  });
 
   /** The grabber finally does what it says: pull the header down to put the
    *  board away. A short pull springs back. */
@@ -811,23 +1081,78 @@ export function AskFollowUpBar({
   const stopGlide = () => {
     cancelAnimation(glideTo);
     glideTo.value = -1;
+    followRef.current = false;
+  };
+  /** Where the glide in progress is headed, so a nearer target never cuts
+   *  short a farther one. */
+  const glideEnd = useSharedValue(-1);
+  /** Glide forward to `target`, or further along a glide already going there.
+   *  Only a glide that FINISHED clears itself: a cancelled one used to reset
+   *  the scroll target out from under the glide that replaced it. */
+  const glide = (target: number, ms: number) => {
+    runOnUI((t: number, d: number) => {
+      'worklet';
+      const moving = glideTo.value >= 0;
+      if (moving ? t <= glideEnd.value + 1 : t <= scrolled.value + 1) return;
+      glideEnd.value = t;
+      const from = moving ? glideTo.value : scrolled.value;
+      glideTo.value = from;
+      glideTo.value = withTiming(t, { duration: d, easing: Easing.bezier(0.25, 0.8, 0.25, 1) }, (finished) => {
+        if (finished) glideTo.value = -1;
+      });
+    })(target, ms);
+  };
+  /** The newest section's heading, as a scroll offset — where the board is
+   *  trying to get to. -1 before any. */
+  const headRef = useRef(-1);
+  /**
+   * EVERY TIME THE BOARD'S CONTENT CHANGES SIZE, finish the move.
+   *
+   * The glide to a new section is aimed the moment the section lays out, but
+   * the room below it to scroll into arrives a frame or more later — so the
+   * scroll was cut short where the old content ended, and the new answer was
+   * written out of sight below the board until something else scrolled it.
+   * So each size change re-aims: at the newest heading, and, while words are
+   * being written past the bottom, at the newest line — the way a chat keeps
+   * up with a reply. Only forward, and never once the student has scrolled
+   * the board themselves.
+   */
+  const onBoardContent = (contentHeight: number) => {
+    if (!followRef.current || !viewport) return;
+    const end = contentHeight - viewport;
+    const want = Math.min(end, headRef.current);
+    if (want > 0) glide(want, 380);
+  };
+  /**
+   * KEEP THE NEWEST LINE IN VIEW — measured by where the WORDS end.
+   *
+   * It used to follow the content's height. But the newest section is padded
+   * to the board's full height (so its heading can always be scrolled to the
+   * top), which made a short answer look 20pt taller than the board: the
+   * board scrolled 20pt for nothing, and step 1 slid up under the fade at the
+   * top. Now it follows the bottom of the written words, and only once they
+   * actually run past the bottom of the board.
+   */
+  const sectionTop = useRef<Record<number, number>>({});
+  const onWordsLayout = (id: number, height: number) => {
+    if (!followRef.current || !viewport || !written || written.id !== id) return;
+    const top = sectionTop.current[id];
+    if (top === undefined) return;
+    // `top` already counts the content's own top padding; 16 is a little
+    // air under the last line.
+    const bottom = top + height + 16;
+    const want = bottom - viewport;
+    if (want > headRef.current && want > 0) glide(want, 380);
   };
   const shownTurn = useRef(0);
   const onSectionLayout = (id: number, y: number) => {
+    sectionTop.current[id] = y;
     if (id <= shownTurn.current) return;
     shownTurn.current = id;
     const target = Math.max(0, y - 6);
-    runOnUI(() => {
-      'worklet';
-      glideTo.value = scrolled.value;
-      glideTo.value = withTiming(
-        target,
-        { duration: 560, easing: Easing.bezier(0.25, 0.8, 0.25, 1) },
-        () => {
-          glideTo.value = -1;
-        }
-      );
-    })();
+    headRef.current = target;
+    followRef.current = true;
+    glide(target, 560);
   };
   /** The scroll area's own height, so the newest section can be made tall
    *  enough to be scrolled up to the top however short its answer is. */
@@ -836,8 +1161,53 @@ export function AskFollowUpBar({
     boardOpen && thinking && pendingTurn !== null && !thread.some((t) => t.id === pendingTurn);
   const sections = thread.length + (showPending ? 1 : 0);
 
+  /** The lit pill — disc, arc, bars and label — shared by Doubts and Practice. */
+  const litFace = (
+    <Animated.View style={[styles.anchorLit, anchorAnim]}>
+      <Pressable
+        style={[styles.face, styles.faceLit, disabled && styles.faceOff]}
+        disabled={disabled}
+        accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+        onPressIn={() => {
+          if (speaking || phase === 'thinking') return;
+          down.value = true;
+          setLit(true);
+          // Practice's pill is not centred, so where it is matters; re-read
+          // it at the moment of touch rather than trust the last layout.
+          if (shared) {
+            measureBlock();
+            measureSlot();
+          }
+          void beginHold();
+        }}
+        onPressOut={() => {
+          down.value = false;
+          if (phase !== 'listening') return;
+          void endHold();
+        }}
+        onPress={() => {
+          if (speaking) stopEverything();
+        }}>
+        <Animated.View style={[styles.thumb, styles.thumbLit, discAnim]}>
+          <MarigoldDisc hot={listening} />
+          <ThinkingArc motion={motion} on={thinking} />
+          {listening ? (
+            <DockBars motion={motion} />
+          ) : speaking ? (
+            <StopIcon color={INK} />
+          ) : (
+            <MicIcon color={INK} />
+          )}
+        </Animated.View>
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  );
+
   return (
-    <View style={styles.block}>
+    <View ref={blockRef} style={styles.block} onLayout={litDock ? measureBlock : undefined}>
       {/*
         THE BOARD SITS ABOVE THE BAR, IN THE LAYOUT, NOT OVER IT.
         It was a Modal, chosen so the bar and the solution behind it never
@@ -882,50 +1252,87 @@ export function AskFollowUpBar({
               </View>
             </View>
           </GestureDetector>
-          <Animated.ScrollView
-            ref={boardScroll}
-            style={styles.boardBody}
-            contentContainerStyle={styles.boardContent}
-            onLayout={(e) => setViewport(Math.round(e.nativeEvent.layout.height))}
-            onScrollBeginDrag={stopGlide}
-            showsVerticalScrollIndicator={false}>
-            {thread.map((turn, index) => (
-              <View
-                key={turn.id}
-                style={[
-                  index > 0 ? styles.turnAfter : null,
-                  // The newest answer is always tall enough to sit at the top
-                  // of the board, so the glide to it can land its heading
-                  // there instead of stopping short at the end of the content.
-                  index === thread.length - 1 && !showPending && viewport
-                    ? { minHeight: viewport - 20 }
-                    : null,
-                ]}
-                onLayout={(e) => onSectionLayout(turn.id, e.nativeEvent.layout.y)}>
-                {sections > 1 ? <TurnLabel n={index + 1} /> : null}
-                <BoardRail steps={turn.steps} />
-              </View>
-            ))}
-            {showPending && pendingTurn !== null ? (
-              <View
-                key={pendingTurn}
-                style={[
-                  thread.length > 0 ? styles.turnAfter : null,
-                  viewport ? { minHeight: viewport - 20 } : null,
-                ]}
-                onLayout={(e) => onSectionLayout(pendingTurn, e.nativeEvent.layout.y)}>
-                <TurnLabel n={thread.length + 1} />
-                <View style={styles.pendingLines}>
-                  <Skeleton style={styles.pendingLineLong} />
-                  <Skeleton delay={80} style={styles.pendingLineShort} />
+          <View style={styles.boardBody}>
+            <Animated.ScrollView
+              ref={boardScroll}
+              style={styles.boardScroll}
+              contentContainerStyle={styles.boardContent}
+              onLayout={(e) => setViewport(Math.round(e.nativeEvent.layout.height))}
+              onScrollBeginDrag={stopGlide}
+              onContentSizeChange={(_, h) => onBoardContent(h)}
+              showsVerticalScrollIndicator={false}>
+              {thread.map((turn, index) => (
+                <View
+                  key={turn.id}
+                  style={[
+                    index > 0 ? styles.turnAfter : null,
+                    // The newest answer is always tall enough to sit at the top
+                    // of the board, so the glide to it can land its heading
+                    // there instead of stopping short at the end of the content.
+                    index === thread.length - 1 && !showPending && viewport
+                      ? { minHeight: viewport - 20 }
+                      : null,
+                  ]}
+                  onLayout={(e) => onSectionLayout(turn.id, e.nativeEvent.layout.y)}>
+                  {/* The words themselves, measured apart from the section's
+                      padded height — see followWords. */}
+                  <View onLayout={(e) => onWordsLayout(turn.id, e.nativeEvent.layout.height)}>
+                    {sections > 1 ? <TurnLabel n={index + 1} /> : null}
+                    {written && written.id === turn.id && written.words === 0 ? (
+                      <BoardSheen />
+                    ) : (
+                      <BoardRail
+                        steps={turn.steps}
+                        words={written && written.id === turn.id ? written.words : undefined}
+                      />
+                    )}
+                  </View>
                 </View>
-              </View>
-            ) : null}
-          </Animated.ScrollView>
+              ))}
+              {showPending && pendingTurn !== null ? (
+                <View
+                  key={pendingTurn}
+                  style={[
+                    thread.length > 0 ? styles.turnAfter : null,
+                    viewport ? { minHeight: viewport - 20 } : null,
+                  ]}
+                  onLayout={(e) => onSectionLayout(pendingTurn, e.nativeEvent.layout.y)}>
+                  <TurnLabel n={thread.length + 1} />
+                  <BoardSheen />
+                </View>
+              ) : null}
+            </Animated.ScrollView>
+            {/* Lines scrolling up out of the board dissolve under its heading
+                instead of being sliced in half by it. */}
+            <LinearGradient
+              colors={['#FFFFFF', 'rgba(255,255,255,0)']}
+              style={styles.boardFade}
+              pointerEvents="none"
+            />
+          </View>
         </Animated.View>
       )}
 
-      {trailing ? (
+      {trailing && litDock ? (
+        <>
+          {/* PRACTICE WEARS THE SAME LIGHT, WITHOUT THE STRETCH. Next shares
+              this row, so the bar keeps its resting width instead of growing
+              into Next's space; the light, ring, disc and words are the
+              doubt's own. The light is centred on the pill, not the row. */}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          <View style={[styles.row, styles.rowSpread]}>
+            <View style={styles.barColumn}>
+              <View ref={slotRef} style={styles.barSlot} onLayout={measureSlot}>
+                {litFace}
+              </View>
+              <Text style={[styles.hint, styles.hintLit]} numberOfLines={1}>
+                {hint}
+              </Text>
+            </View>
+            {trailing}
+          </View>
+        </>
+      ) : trailing ? (
         // With a trailing control the bar and its hint stack as one column on
         // the left and the control sits on the right, aligned to the bar's top
         // — so Next lines up with the pill, not with the middle of pill-plus-
@@ -991,9 +1398,47 @@ export function AskFollowUpBar({
         </View>
       ) : (
         <>
+        {/* DOUBTS WEARS THE FOOTER LIGHT, stretch and all. The older ring
+            branch below is what the bar wore before; the live classroom shares
+            only that ring and is not changing. See components/dock-light.tsx. */}
+        {litDock && lit && dockGeo ? (
+          <DockLight width={windowWidth} motion={motion} geometry={dockGeo} />
+        ) : null}
+        {litDock ? (
+          <View
+            style={[styles.row, styles.rowLit]}
+            onLayout={(e) => {
+              const l = e.nativeEvent.layout;
+              setRowBox((prev) =>
+                prev && prev.x === l.x && prev.y === l.y && prev.w === l.width && prev.h === l.height
+                  ? prev
+                  : { x: l.x, y: l.y, w: l.width, h: l.height }
+              );
+            }}>
+            {litFace}
+            {/* The flag steps aside as the bar stretches: its share of the
+                row shrinks to nothing, so the pill drifts to the centre, while
+                the flag itself fades and shrinks to 65%. It cannot be pressed
+                once it is mostly gone. */}
+            {onReport ? (
+              <Animated.View style={[styles.flagSlot, flagSlotAnim]}>
+                <Animated.View
+                  style={[styles.flagWrap, flagAnim]}
+                  pointerEvents={phase === 'idle' ? 'auto' : 'none'}>
+                  <Pressable
+                    style={styles.disc}
+                    onPress={onReport}
+                    accessibilityLabel="Report a problem">
+                    <FlagIcon />
+                  </Pressable>
+                </Animated.View>
+              </Animated.View>
+            ) : null}
+          </View>
+        ) : (
         <View style={styles.row}>
           <View style={styles.anchor}>
-          <DockRing mood={mood} awake={ringAwake} id="followup" level={voiceLevel} />
+            <DockRing mood={mood} awake={ringAwake} id="followup" level={voiceLevel} />
             <Pressable
               style={[styles.face, disabled && styles.faceOff]}
               disabled={disabled}
@@ -1045,7 +1490,8 @@ export function AskFollowUpBar({
             </Pressable>
           ) : null}
         </View>
-        <Text style={[styles.hint, hintColor]} numberOfLines={1}>
+        )}
+        <Text style={[styles.hint, litDock ? styles.hintLit : hintColor]} numberOfLines={1}>
           {hint}
         </Text>
         </>
@@ -1070,14 +1516,79 @@ function CloseIcon() {
   );
 }
 
-function BoardRail({ steps }: { steps: FollowUpStep[] }) {
+function BoardRail({ steps, words }: { steps: FollowUpStep[]; words?: number }) {
   const rail = useMemo(
     () => steps.map((s) => parseSolutionStep(s.text)).filter((s) => s.title || s.lines.length),
     [steps]
   );
+  // Parsed whole, then cut to the words written so far — see lib/word-reveal.
+  const shown = useMemo(() => (words === undefined ? rail : revealChars(rail, words)), [rail, words]);
+  // The first words fade up out of the shimmer rather than replacing it.
+  const fade = useSharedValue(words === undefined ? 1 : 0);
+  useEffect(() => {
+    fade.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) });
+  }, [fade]);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
   // Its own size, between the two: `full` markers and text read as oversized
   // in a panel this height, and `compact` was the smallest text on screen.
-  return <SolutionSteps steps={rail} size="board" />;
+  return (
+    <Animated.View style={fadeStyle}>
+      <SolutionSteps steps={shown} size="board" />
+    </Animated.View>
+  );
+}
+
+/**
+ * WHERE THE ANSWER WILL BE WRITTEN, while the teacher is still working it
+ * out: a title and three lines in the shape a step takes on the board, with a
+ * pale-gold light sweeping across them. Warm, not grey — it is the same
+ * marigold family as the disc that is thinking below it, so the two read as
+ * one thing happening rather than a loading state bolted onto a panel.
+ */
+const SHEEN_LINES = [
+  { width: '62%', height: 15, gap: 0 },
+  { width: '94%', height: 11, gap: 16 },
+  { width: '86%', height: 11, gap: 11 },
+  { width: '54%', height: 11, gap: 11 },
+] as const;
+const SHEEN_W = 140;
+const SHEEN_MS = 1500;
+
+function BoardSheen() {
+  const [w, setW] = useState(0);
+  const sweep = useSharedValue(0);
+  const shown = useSharedValue(0);
+  useEffect(() => {
+    shown.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) });
+    sweep.value = withRepeat(withTiming(1, { duration: SHEEN_MS, easing: Easing.inOut(Easing.quad) }), -1);
+  }, [sweep, shown]);
+  const wrapStyle = useAnimatedStyle(() => ({ opacity: shown.value }));
+  const sheenStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -SHEEN_W + sweep.value * (w + SHEEN_W * 2) }],
+  }));
+  return (
+    <Animated.View
+      style={[styles.sheen, wrapStyle]}
+      onLayout={(e) => setW(Math.round(e.nativeEvent.layout.width))}
+      accessibilityLabel="Writing the answer">
+      {SHEEN_LINES.map((l, i) => (
+        <View key={i} style={[styles.sheenLine, { width: l.width, height: l.height, marginTop: l.gap }]}>
+          {w > 0 ? (
+            // One sweep for every line, measured off the block's width, so the
+            // light crosses the lines together like one pass over a page.
+            <Animated.View style={[styles.sheenLight, sheenStyle]}>
+              <LinearGradient
+                colors={['rgba(251,221,160,0)', 'rgba(255,246,224,0.95)', 'rgba(251,221,160,0)']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+          ) : null}
+        </View>
+      ))}
+    </Animated.View>
+  );
 }
 
 /** Heads each answer once there is more than one, so a scroll through the
@@ -1149,6 +1660,30 @@ const styles = StyleSheet.create({
     backgroundColor: INK,
   },
   thumbOn: { backgroundColor: GREEN_INK, transform: [{ scale: 1.06 }] },
+  /** The doubts face: no flat fill, the disc draws its own light. The hairline
+   *  and the warm drop are the handoff's `inset 0 0 0 1px … , 0 4px 10px -4px …`. */
+  thumbLit: {
+    backgroundColor: 'transparent',
+    boxShadow: [
+      { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(176,132,32,.22)', inset: true },
+      { offsetX: 0, offsetY: 4, blurRadius: 10, spreadDistance: -4, color: 'rgba(176,132,32,.45)' },
+    ],
+  },
+  /** The doubts row: no gap, because the flag's slot carries its own 10. */
+  rowLit: { gap: 0 },
+  /** Sized by the motion every frame; the pill fills it. */
+  anchorLit: { position: 'relative' },
+  /** Fills the animated anchor and keeps the label beside the disc as the
+   *  pill stretches, rather than centring it in a widening space. */
+  faceLit: { width: '100%', height: '100%', justifyContent: 'flex-start', paddingRight: 0 },
+  /** Practice's pill at its resting size, so the squeeze shrinks it about
+   *  its own centre instead of pulling its right edge toward its left. */
+  barSlot: { width: DOCK_W0, height: DOCK_H0, alignItems: 'center', justifyContent: 'center' },
+  flagSlot: { height: DOCK_H0 },
+  flagWrap: { position: 'absolute', left: 10, top: 0 },
+  /** The handoff's hint: #3D3A33 in every state. Only the words change. */
+  hintLit: { color: '#3D3A33' },
+  /** Held: pressed slightly in, as the handoff's spring takes it to 0.9. */
   label: {
     fontFamily: 'Onest_700Bold',
     fontSize: 14,
@@ -1184,6 +1719,8 @@ const styles = StyleSheet.create({
    */
   board: {
     marginBottom: 16,
+    // Grows from its bottom edge, where it comes out of the bar.
+    transformOrigin: 'bottom',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     borderWidth: 1,
@@ -1219,6 +1756,8 @@ const styles = StyleSheet.create({
   },
   boardClosePressed: { backgroundColor: 'rgba(28,26,22,0.05)' },
   boardBody: { flex: 1 },
+  boardScroll: { flex: 1 },
+  boardFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 18 },
   boardContent: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 28 },
   /** Each later answer starts below a hairline, with room above it. */
   turnAfter: {
@@ -1235,7 +1774,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: INK_FAINT,
   },
-  pendingLines: { gap: 10, paddingBottom: 4 },
-  pendingLineLong: { height: 14, width: '86%', borderRadius: 7 },
-  pendingLineShort: { height: 14, width: '54%', borderRadius: 7 },
+  sheen: { paddingTop: 2, paddingBottom: 4 },
+  sheenLine: { borderRadius: 99, overflow: 'hidden', backgroundColor: 'rgba(242,178,58,0.16)' },
+  sheenLight: { position: 'absolute', top: 0, bottom: 0, left: 0, width: SHEEN_W },
 });

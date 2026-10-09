@@ -23,6 +23,13 @@ import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
+import {
+  QUESTION_READ_LINE,
+  QUESTION_READ_SIZE,
+  READ_LINE,
+  READ_SIZE,
+  READING_GUTTER,
+} from '@/constants/reading';
 import { useScale } from '@/constants/scale';
 import {
   AnswerResult,
@@ -44,7 +51,7 @@ import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 import { sampleWeakChapterId } from '@/lib/weak-focus';
-import { hapticSoft, hapticSwitched, hapticTicked } from '@/lib/haptics';
+import { hapticSoft, hapticSwitched, hapticTicked, hapticWarning } from '@/lib/haptics';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -189,6 +196,12 @@ export default function PracticeScreen() {
   /** The pinned row clears the home indicator itself — this screen's
    *  SafeAreaView only takes the top edge. */
   const insets = useSafeAreaInsets();
+  const pinnedBottom = Math.max(insets.bottom - 16, 12);
+  /** The pinned row's own height: top padding, the 52pt bar, the 9pt gap and
+   *  the hint's line, and the bottom padding. The white is solid over this. */
+  const pinnedRow = verticalScale(14) + 52 + 9 + 14 + pinnedBottom;
+  /** How far above the row the working dissolves into it. */
+  const pinnedFade = verticalScale(40);
 
   /**
    * Drona routes carry a real chapterId whenever the catalogue (cached,
@@ -384,11 +397,16 @@ export default function PracticeScreen() {
    * locking onto one. `exclude` lets a retry skip a chapter that just came
    * back pool_empty.
    */
-  const nextChapterFilter = (exclude?: string[]): { chapter_id?: string } => {
+  const nextChapterFilter = (
+    exclude?: string[]
+  ): { chapter_id?: string; weak?: boolean } => {
     if (focusChapterId) return { chapter_id: focusChapterId };
     if (weakMode) {
       const id = sampleWeakChapterId(SUBJECT_QUERY[activeSubject], exclude);
-      if (id) return { chapter_id: id };
+      // `weak` asks the server to aim within the chapter too, at the
+      // student's weakest concepts — the chapter pick alone left the question
+      // inside it a uniform random draw.
+      if (id) return { chapter_id: id, weak: true };
     }
     return {};
   };
@@ -518,6 +536,8 @@ export default function PracticeScreen() {
         if (result.questions_used_today != null && result.daily_limit != null) {
           setQuota({ used: result.questions_used_today, limit: result.daily_limit });
         }
+        // The day's questions are used up: felt as the refusal it is.
+        if (result.reason === 'daily_limit') hapticWarning();
         setPoolMessage(result.message);
         setQuestion(null);
       } else {
@@ -724,7 +744,8 @@ export default function PracticeScreen() {
             <Text style={styles.questionMeta}>
               <Text style={styles.questionNumber}>Q{seen}</Text>
               {'  '}
-              {[activeSubject, question.chapter_name].filter(Boolean).join(' · ')}
+              {/* The chapter only: the subject is already the page's title. */}
+              {question.chapter_name ?? ''}
             </Text>
             {/* Not MathText directly: a stem can be a match-the-following
                 table, an Assertion/Reason pair or a numbered statement list,
@@ -734,8 +755,10 @@ export default function PracticeScreen() {
                 ordinary stem still renders as one paragraph. */}
             <QuestionStem
               text={question.question_text ?? ''}
-              fontSize={scale(15)}
-              lineHeight={scale(23)}
+              // The shared reading sizes (constants/reading.ts): the question
+              // is 16 on 26, a step above the working beneath it.
+              fontSize={QUESTION_READ_SIZE}
+              lineHeight={QUESTION_READ_LINE}
               style={styles.questionBody}
             />
             {/* The figure the question refers to. Without it a circuit or a
@@ -872,8 +895,8 @@ export default function PracticeScreen() {
                       only one of the three that can reflow. */}
                   <MathText
                     text={text}
-                    fontSize={scale(15)}
-                    lineHeight={scale(21)}
+                    fontSize={READ_SIZE}
+                    lineHeight={READ_LINE}
                     color={colors.ink}
                     style={styles.optionText}
                   />
@@ -1014,19 +1037,29 @@ export default function PracticeScreen() {
         */}
         {revealed && (
           <View style={styles.pinned} pointerEvents="box-none">
+            {/*
+              SOLID BEHIND THE ROW, FADING ONLY ABOVE IT. The fade used to
+              stretch over the whole pinned box and only reached white 38% of
+              the way down — part-way down the bar itself. The gap between the
+              bar and Next sat in the half-faded band, so a line of working
+              showed through between the two buttons. Now the fade lives
+              entirely above the row and everything behind the row is white.
+              Anchored to the bottom at a fixed height, so the board opening
+              above the bar does not stretch it.
+            */}
             <LinearGradient
               colors={['rgba(255,255,255,0)', '#fff', '#fff']}
-              locations={[0, 0.38, 1]}
-              style={StyleSheet.absoluteFill}
+              locations={[0, pinnedFade / (pinnedFade + pinnedRow), 1]}
+              style={[styles.pinnedFade, { height: pinnedFade + pinnedRow }]}
               pointerEvents="none"
             />
             <View
-              style={[styles.pinnedInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
+              style={[styles.pinnedInner, { paddingBottom: pinnedBottom }]}>
               {question?.question_id ? (
                 <AskFollowUpBar
                   doubtId={question.question_id}
                   surface="practice"
-                  gutter={scale(20)}
+                  gutter={READING_GUTTER}
                   trailing={
                     <Pressable style={styles.nextButton} onPress={loadQuestion}>
                       <Text style={styles.nextButtonText}>Next</Text>
@@ -1173,7 +1206,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: scale(20),
+      paddingHorizontal: READING_GUTTER,
       paddingBottom: verticalScale(40),
     },
     // The title, and the subject inside it. 26/700 at -0.025em is the
@@ -1215,7 +1248,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(8),
       paddingTop: verticalScale(10),
       paddingBottom: verticalScale(4),
-      paddingHorizontal: scale(20),
+      paddingHorizontal: READING_GUTTER,
       zIndex: 8,
     },
     /** The app’s one page-title tier — see constants/page-title.ts. */
@@ -1815,7 +1848,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /** Pinned to the screen's foot, full width, over the scrolling page. */
     pinned: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    pinnedInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
+    pinnedInner: { paddingHorizontal: READING_GUTTER, paddingTop: verticalScale(14) },
+    pinnedFade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     /** Room under the solution so its last line and the day's tally can be
      *  scrolled clear of the pinned row instead of sitting beneath it. */
     scrollContentPinned: { paddingBottom: verticalScale(140) },

@@ -3,13 +3,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
   PixelRatio,
   useWindowDimensions,
@@ -21,17 +22,19 @@ import Animated, {
   FadeOut,
   FadeOutDown,
   runOnJS,
-  SlideInRight,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
-import { DockRing, type RingMood } from '@/components/dock-ring';
-import { turnColor, turnWords, type VoiceTurn } from '@/components/voice-turn';
+import { useClock } from '@shopify/react-native-skia';
+import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
+import { DockGlow } from '@/components/dock-glow';
+import { useDockMotion } from '@/components/dock-motion';
+import { turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
 import { hapticCommitted, hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
@@ -48,8 +51,6 @@ import {
   INK,
   INK_FAINT,
   INK_MUTED,
-  LevelBars,
-  PAPER,
   RED,
   RHYTHM,
   RuledGround,
@@ -78,7 +79,7 @@ import {
 import { BoardBlockView } from '@/components/board-text';
 import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
-import { REPORT_REASONS, sendReport as postReport } from '@/lib/reports';
+import { ReportSheet } from '@/components/report-sheet';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
@@ -132,6 +133,12 @@ const RAIL_HALF = 84;
 const RAIL_TUCK_X = 96;
 /** `sleepC`'s timer: how long the ring lingers after the last touch. */
 const DOCK_SLEEP_MS = 1500;
+/** The marigold mic's size on the upright dock and on the sideways rail —
+ *  the black circles' own sizes before them, so neither control moves. */
+const DOCK_MIC = 52;
+const RAIL_MIC = 48;
+/** The follow-up's hint ink: one colour in every state; only the words change. */
+const DOCK_HINT_INK = '#3D3A33';
 /**
  * The student's turn, after they let go. Thinking holds until the teacher
  * actually starts answering — no timer decides that — but a reply that never
@@ -1024,11 +1031,7 @@ export default function LiveClassroomScreen() {
   /** Set when the socket opens onto a session already in 'teaching'. */
   const serverStartedTurnRef = useRef(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [selectedReason, setSelectedReason] = useState<string | null>('Wrong answer');
   const [toastVisible, setToastVisible] = useState(false);
-  const [reportSending, setReportSending] = useState(false);
-  const [reportError, setReportError] = useState<string | null>(null);
-  const [reportNotes, setReportNotes] = useState('');
   /**
    * Shared values, not state. These are written on every scroll event, and as
    * state that meant three setState calls per frame at scrollEventThrottle={16}
@@ -1206,17 +1209,55 @@ export default function LiveClassroomScreen() {
     if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
   }, []);
   const ringAwake = dockLinger || handRaised || turnAfter !== 'idle';
-  /** Talking beats paused, which beats the resting teacher palette — the
-   *  prototype's `on ? S2 : (paused ? G2 : T2)`. */
-  const ringMood: RingMood = handRaised
-    ? 'student'
-    : turnAfter === 'thinking'
-      ? 'thinking'
-      : turnAfter === 'failed' || paused
-        ? 'paused'
-        : 'teacher';
   /** The one name for where the student's turn is, for the words. */
   const turn: VoiceTurn = handRaised ? 'listening' : turnAfter;
+
+  /**
+   * THE DOCK WEARS THE ASK FOLLOW-UP'S LIGHT, INSIDE ITSELF.
+   *
+   * It used to show a ring and a blurred halo around the OUTSIDE of the pill,
+   * green while the student spoke — a different palette from the follow-up
+   * bar, spilling onto the board. Now it is the follow-up's own light and the
+   * follow-up's own face (the marigold disc, the bars, the thinking arc),
+   * driven by the follow-up's own motion, and every bit of it stays inside the
+   * pill (components/dock-glow.tsx). The bar never stretches here: the dock's
+   * three controls have nowhere to stretch into.
+   *
+   * Paused is the classroom's own state: while the dock is awake the light
+   * holds still and dim, in its own colours.
+   */
+  const dockClock = useClock();
+  const dockDown = useSharedValue(false);
+  const dockMotion = useDockMotion({
+    phase: handRaised ? 'listening' : turnAfter === 'thinking' ? 'thinking' : 'idle',
+    level: voiceLevel,
+    clock: dockClock,
+    down: dockDown,
+    stretch: false,
+  });
+  const dockHold = useSharedValue(0);
+  useEffect(() => {
+    dockHold.value = withTiming(paused && ringAwake && !handRaised ? 0.32 : 0, { duration: 450 });
+  }, [paused, ringAwake, handRaised, dockHold]);
+  /** The pill's own size, for the light drawn inside it. */
+  const [pillBox, setPillBox] = useState({ w: 0, h: 0 });
+  const onPillLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setPillBox((p) => (p.w === width && p.h === height ? p : { w: width, h: height }));
+  };
+  const discAnim = useAnimatedStyle(() => ({ transform: [{ scale: dockMotion.value.ds }] }));
+  const dockTouch = {
+    onTouchStart: () => {
+      dockDown.value = true;
+      wakeDock();
+    },
+    onTouchEnd: () => {
+      dockDown.value = false;
+    },
+    onTouchCancel: () => {
+      dockDown.value = false;
+    },
+  };
 
   const showChrome = () => setChromeVisible(true);
 
@@ -1553,50 +1594,30 @@ export default function LiveClassroomScreen() {
   const closeReport = () => setReportOpen(false);
 
   /**
-   * Actually send it.
-   *
-   * This used to close the drawer and show "Report sent. Drona's team will
-   * check this class." without making a single request. Students were told
-   * their report had been received; none ever was, and the dashboard showed
-   * live classes as the one surface with no problems.
-   *
-   * The toast now waits for the server. A failure says so — a thank-you for
-   * something that did not send is the bug being fixed, and repeating it in a
-   * nicer shape would be worse than an error message.
+   * ANDROID'S BACK DOES NOT LEAVE THE CLASS. The back gesture and the back
+   * button both arrive here; the End button is the only way out (the iPhone
+   * swipe is switched off on the route, in app/_layout.tsx). The one thing
+   * back still does is what a student expects of it over a pop-up: close the
+   * report.
    */
-  const sendReport = async () => {
-    if (reportSending) return;
-    setReportSending(true);
-    setReportError(null);
-    try {
-      await postReport({
-        surface: 'live',
-        reason: selectedReason,
-        comment: reportNotes.trim() || null,
-        sessionId: sessionId || null,
-        subject: params.subject || null,
-        chapter: params.chapterTitle || null,
-        // What was on screen when they hit report. For a live class this is
-        // most of the diagnosis: it says what Drona actually said, which no
-        // id recovers once the session transcript ages out.
-        quote: caption || null,
-        context: {
-          card_phase: cardPhase,
-          chapter_id: params.chapterId ?? null,
-          subtopic: params.subtopic ?? null,
-        },
-      });
-      setReportSending(false);
-      setReportOpen(false);
-      setToastVisible(true);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
-    } catch (err) {
-      setReportSending(false);
-      setReportError(
-        err instanceof Error ? err.message : 'Could not send that. Try again.'
-      );
-    }
+  const reportOpenRef = useRef(reportOpen);
+  useEffect(() => {
+    reportOpenRef.current = reportOpen;
+  }, [reportOpen]);
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (reportOpenRef.current) setReportOpen(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
+  /** After the server has the report — never before; a thank-you for
+   *  something that did not send was a bug here once. */
+  const showReportToast = () => {
+    setToastVisible(true);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   };
 
   /**
@@ -1975,9 +1996,16 @@ export default function LiveClassroomScreen() {
             for touches on the buttons inside as well, which is how one gesture
             both wakes the ring and works the control — the prototype's
             `onpointerdown` on `#dockQL` over its own children. */}
-        <View style={styles.dockAnchor} onTouchStart={wakeDock}>
-          <DockRing mood={ringMood} awake={ringAwake} vertical id="rail" level={voiceLevel} />
-          <View style={styles.railPill}>
+        <View style={styles.dockAnchor} {...dockTouch}>
+          <View style={styles.railPill} onLayout={onPillLayout}>
+            <DockGlow
+              width={pillBox.w - 2}
+              height={pillBox.h - 2}
+              motion={dockMotion}
+              along="y"
+              hold={dockHold}
+              frozen={paused}
+            />
             {/* Press and hold to speak; release to hand the board back. No
                 confirm step, no "done" button, no modal.
 
@@ -1987,17 +2015,21 @@ export default function LiveClassroomScreen() {
                 press, and pressing it opens the card that says why rather
                 than doing nothing. */}
             <Pressable
-              style={[styles.railMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+              style={[styles.railMic, voiceOff && styles.micOff]}
               onPressIn={onMicPressIn}
               onPressOut={onMicPressOut}
               accessibilityLabel="Hold to speak">
-              {handRaised ? (
-                <LevelBars color={PAPER} heights={[9, 17, 12]} />
-              ) : voiceOff ? (
-                <MicOffIcon size={20} color={PAPER} />
-              ) : (
-                <MicIcon size={20} color={PAPER} />
-              )}
+              <Animated.View style={[styles.railDisc, discAnim]}>
+                <MarigoldDisc hot={handRaised} size={RAIL_MIC} />
+                <ThinkingArc motion={dockMotion} on={turn === 'thinking'} size={RAIL_MIC} />
+                {handRaised ? (
+                  <DockBars motion={dockMotion} />
+                ) : voiceOff ? (
+                  <MicOffIcon size={20} color={INK} />
+                ) : (
+                  <MicIcon size={20} color={INK} />
+                )}
+              </Animated.View>
             </Pressable>
             <Pressable
               style={styles.railCtrl}
@@ -2033,9 +2065,16 @@ export default function LiveClassroomScreen() {
            animated wrapper that always resolves to translateY(0)/opacity(1)
            only looks like it does. */
         <View style={styles.dockWrap}>
-          <View style={styles.dockAnchor} onTouchStart={wakeDock}>
-            <DockRing mood={ringMood} awake={ringAwake} vertical={false} id="dock" level={voiceLevel} />
-            <View style={styles.dockPill}>
+          <View style={styles.dockAnchor} {...dockTouch}>
+            <View style={styles.dockPill} onLayout={onPillLayout}>
+              <DockGlow
+                width={pillBox.w - 2}
+                height={pillBox.h - 2}
+                motion={dockMotion}
+                along="x"
+                hold={dockHold}
+                frozen={paused}
+              />
               <Pressable
                 style={styles.dockCtrl}
                 onPress={togglePause}
@@ -2048,17 +2087,21 @@ export default function LiveClassroomScreen() {
                   is what the handoff dropped, and once it is gone the pill has
                   nothing to be wide for. */}
               <Pressable
-                style={[styles.dockMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+                style={[styles.dockMic, voiceOff && styles.micOff]}
                 onPressIn={onMicPressIn}
                 onPressOut={onMicPressOut}
                 accessibilityLabel="Hold to speak">
-                {handRaised ? (
-                  <LevelBars color={PAPER} heights={[9, 17, 12]} />
-                ) : voiceOff ? (
-                  <MicOffIcon size={20} color={PAPER} />
-                ) : (
-                  <MicIcon size={20} color={PAPER} />
-                )}
+                <Animated.View style={[styles.dockDisc, discAnim]}>
+                  <MarigoldDisc hot={handRaised} size={DOCK_MIC} />
+                  <ThinkingArc motion={dockMotion} on={turn === 'thinking'} size={DOCK_MIC} />
+                  {handRaised ? (
+                    <DockBars motion={dockMotion} />
+                  ) : voiceOff ? (
+                    <MicOffIcon size={20} color={INK} />
+                  ) : (
+                    <MicIcon size={20} color={INK} />
+                  )}
+                </Animated.View>
               </Pressable>
 
               <Pressable
@@ -2075,7 +2118,7 @@ export default function LiveClassroomScreen() {
               you speak, because the mic going green and growing bars already
               does. "Mic off" is the one state it has no word for, and that one
               has to be said. */}
-          <Text style={[styles.dockHint, { color: turnColor(voiceOff ? 'idle' : turn) }]}>
+          <Text style={styles.dockHint}>
             {turnWords(turn, voiceOff)}
           </Text>
         </View>
@@ -2128,78 +2171,30 @@ export default function LiveClassroomScreen() {
         </Animated.View>
       )}
 
+      {/* Report a mistake: the same sheet Snap, Doubts and Practice use
+          (components/report-sheet.tsx), shown here over the board so the
+          class carries on behind it. */}
       {reportOpen && (
-        <>
-          <Pressable style={styles.rscrim} onPress={closeReport} />
-          <Animated.View entering={SlideInRight.duration(280)} style={styles.rdrawer}>
-            <View style={styles.rdrawerHeader}>
-              <View style={styles.rdrawerIconChip}>
-                <ReportIcon size={scale(13)} color="#C53A2B" />
-              </View>
-              <Text style={styles.rdrawerTitle}>Report a mistake</Text>
-              <Pressable style={styles.rdrawerClose} onPress={closeReport}>
-                <Text style={styles.rdrawerCloseText}>✕</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.rquoteCard}>
-              <View style={styles.rquoteRule} />
-              <Text style={styles.rquoteLabel}>From this class · {chapterTitle}</Text>
-              <Text style={styles.rquoteText} numberOfLines={2}>
-                {caption || 'This class'}
-              </Text>
-            </View>
-
-            <Text style={styles.rwhatsWrong}>What&apos;s wrong?</Text>
-            <View style={styles.rchipsRow}>
-              {REPORT_REASONS.map((reason) => {
-                const selected = selectedReason === reason;
-                return (
-                  <Pressable
-                    key={reason}
-                    style={[styles.rchip, selected && styles.rchipSelected]}
-                    onPress={() => setSelectedReason(reason)}>
-                    <Text style={[styles.rchipText, selected && styles.rchipTextSelected]}>
-                      {reason}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.rextraRow}>
-              <View style={styles.rscreenshotBox}>
-                <ScreenshotIcon size={scale(13)} />
-                <Text style={styles.rscreenshotText}>
-                  Screenshot <Text style={styles.rscreenshotOptional}>optional</Text>
-                </Text>
-              </View>
-              <TextInput
-                style={styles.rnotesInput}
-                placeholder="Anything else? (optional)"
-                placeholderTextColor={colors.faint}
-                value={reportNotes}
-                onChangeText={setReportNotes}
-                editable={!reportSending}
-                multiline
-              />
-            </View>
-
-            <View style={styles.rfooter}>
-              <Text style={styles.rfooterHint}>
-                {reportError || 'Reporting won\u2019t interrupt your class.'}
-              </Text>
-              <Pressable
-                style={[styles.rsendButton, reportSending && { opacity: 0.6 }]}
-                disabled={reportSending}
-                onPress={sendReport}>
-                <Text style={styles.rsendButtonText}>
-                  {reportSending ? 'Sending\u2026' : reportError ? 'Try again' : 'Send report'}
-                </Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </>
+        <ReportSheet
+          statusBar={false}
+          target={{
+            surface: 'live',
+            sessionId: sessionId || null,
+            subject: params.subject || null,
+            chapter: params.chapterTitle || null,
+            // What was on screen when they hit report. For a live class this
+            // is most of the diagnosis: it says what Drona actually said,
+            // which no id recovers once the session transcript ages out.
+            quote: caption || null,
+            context: {
+              card_phase: cardPhase,
+              chapter_id: params.chapterId ?? null,
+              subtopic: params.subtopic ?? null,
+            },
+          }}
+          onSent={showReportToast}
+          onClose={closeReport}
+        />
       )}
 
       {/* Last child, so it covers everything: the board, the chrome, the rail.
@@ -2430,28 +2425,6 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Path d="M7 4.5v15l13-7.5-13-7.5Z" fill={color} />
-    </Svg>
-  );
-}
-
-function ScreenshotIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M3 4h18v16H3z"
-        stroke={colors.slate}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={9} cy={10} r={1.6} stroke={colors.slate} strokeWidth={1.8} />
-      <Path
-        d="m21 16-4.5-4.5L7 21"
-        stroke={colors.slate}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </Svg>
   );
 }
@@ -2725,14 +2698,23 @@ function createStyles(
     /** 48 here against portrait's 52: the prototype sizes them differently
      *  because an upright rail has less room to give. */
     railMic: {
-      width: 48,
-      height: 48,
+      width: RAIL_MIC,
+      height: RAIL_MIC,
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: INK,
+      zIndex: 1,
+    },
+    /** The follow-up's disc: no flat fill, a hairline and a warm drop. */
+    railDisc: {
+      width: RAIL_MIC,
+      height: RAIL_MIC,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
       boxShadow: [
-        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(176,132,32,.22)', inset: true },
+        { offsetX: 0, offsetY: 4, blurRadius: 10, spreadDistance: -4, color: 'rgba(176,132,32,.45)' },
       ],
     },
     railCtrl: {
@@ -2741,6 +2723,7 @@ function createStyles(
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
+      zIndex: 1,
     },
 
     /** A control that would refuse the tap, saying so. Same 0.4 the passed-over
@@ -2815,40 +2798,39 @@ function createStyles(
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
+      zIndex: 1,
     },
-    /** 52 — the largest target on the dock and the only filled one, which is
-     *  the whole of how the handoff says "this is the one". */
+    /** 52 — the largest target on the dock, and the marigold one: the
+     *  follow-up's mic, at the size the black circle was. */
     dockMic: {
-      width: 52,
-      height: 52,
+      width: DOCK_MIC,
+      height: DOCK_MIC,
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: INK,
+      zIndex: 1,
+    },
+    dockDisc: {
+      width: DOCK_MIC,
+      height: DOCK_MIC,
+      borderRadius: 99,
+      alignItems: 'center',
+      justifyContent: 'center',
       boxShadow: [
-        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(176,132,32,.22)', inset: true },
+        { offsetX: 0, offsetY: 4, blurRadius: 10, spreadDistance: -4, color: 'rgba(176,132,32,.45)' },
       ],
     },
-    /** Held. GREEN_INK is already #157A45, the prototype's own green; the mic
-     *  glyph gives way to level bars at the same moment. */
-    micOn: {
-      backgroundColor: GREEN_INK,
-    },
-    /** Off, not missing: same plate in the same place, drained of the shadow
-     *  that makes it read as a live control. The prototype has no state for
-     *  this — it never considers a phone whose mic cannot be opened — so this
-     *  one is the app's own, kept from the dock it replaces. */
+    /** Off, not missing: the same disc in the same place, stepped back. */
     micOff: {
-      backgroundColor: INK_MUTED,
-      opacity: 0.55,
-      boxShadow: [],
+      opacity: 0.5,
     },
     dockHint: {
       fontFamily: 'Onest_700Bold',
       fontSize: 10.5,
       letterSpacing: 0.08 * 10.5,
       textTransform: 'uppercase',
-      color: INK_FAINT,
+      color: DOCK_HINT_INK,
     },
     /** Off, not missing: same plate, drained of the shadow that makes it read
      *  as a live control. */
@@ -3042,191 +3024,6 @@ function createStyles(
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12.5),
       color: '#EFEBDD',
-    },
-    rscrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(22,19,14,.35)',
-    },
-    rdrawer: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: scale(400),
-      backgroundColor: colors.paper,
-      borderLeftWidth: 1,
-      borderLeftColor: colors.hairline,
-      flexDirection: 'column',
-      gap: verticalScale(9),
-      padding: scale(16),
-      paddingTop: verticalScale(14),
-    },
-    rdrawerHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    rdrawerIconChip: {
-      width: scale(30),
-      height: scale(30),
-      flexShrink: 0,
-      borderRadius: scale(10),
-      backgroundColor: 'rgba(221,68,51,.07)',
-      borderWidth: 1,
-      borderColor: 'rgba(221,68,51,.25)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rdrawerTitle: {
-      flex: 1,
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15.5),
-      color: colors.ink,
-    },
-    rdrawerClose: {
-      width: scale(28),
-      height: scale(28),
-      borderRadius: scale(14),
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rdrawerCloseText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    rquoteCard: {
-      position: 'relative',
-      backgroundColor: colors.welcomePaper,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(9),
-      paddingRight: scale(12),
-      paddingLeft: scale(28),
-    },
-    rquoteRule: {
-      position: 'absolute',
-      top: verticalScale(8),
-      bottom: verticalScale(8),
-      left: scale(18),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
-    },
-    rquoteLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.68),
-      textTransform: 'uppercase',
-      color: '#C53A2B',
-    },
-    rquoteText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11.5),
-      lineHeight: scale(16.7),
-      color: colors.ink,
-      marginTop: verticalScale(3),
-    },
-    rwhatsWrong: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.55),
-      letterSpacing: scale(1.0),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    rchipsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(6),
-    },
-    rchip: {
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      backgroundColor: '#fff',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(13),
-    },
-    rchipSelected: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
-    },
-    rchipText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11.5),
-      color: colors.slate,
-    },
-    rchipTextSelected: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.paper,
-    },
-    rextraRow: {
-      flexDirection: 'row',
-      gap: scale(8),
-    },
-    rscreenshotBox: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(8),
-      flexDirection: 'row',
-      borderWidth: scale(1.6),
-      borderColor: 'rgba(28,26,22,.22)',
-      borderStyle: 'dashed',
-      borderRadius: scale(12),
-      backgroundColor: '#fff',
-      paddingVertical: verticalScale(10),
-    },
-    rscreenshotText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    rscreenshotOptional: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(10.5),
-      color: colors.faint,
-    },
-    rnotesInput: {
-      flex: 1.4,
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(12),
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
-    rfooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      marginTop: 'auto',
-    },
-    rfooterHint: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(10.5),
-      lineHeight: scale(14.7),
-      color: colors.faint,
-    },
-    rsendButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: verticalScale(42),
-      paddingHorizontal: scale(22),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-    },
-    rsendButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.paper,
     },
   });
 }

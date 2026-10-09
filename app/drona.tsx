@@ -130,7 +130,11 @@ export default function ChapterSelectorScreen() {
           <PressableScale
             style={styles.subjectPicker}
             hitSlop={8}
-            onPress={() => setSubjectMenu((open) => !open)}>
+            onPress={() => {
+              // One menu at a time: opening this one closes the other.
+              setClassMenu(false);
+              setSubjectMenu((open) => !open);
+            }}>
             <Text style={styles.headerTitle}>{activeSubject}</Text>
             <View style={subjectMenu ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(15)} />
@@ -139,7 +143,10 @@ export default function ChapterSelectorScreen() {
           <PressableScale
             style={styles.classPicker}
             hitSlop={8}
-            onPress={() => setClassMenu((open) => !open)}>
+            onPress={() => {
+              setSubjectMenu(false);
+              setClassMenu((open) => !open);
+            }}>
             <Text style={styles.classPickerText}>{activeClass}</Text>
             <View style={classMenu ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(13)} />
