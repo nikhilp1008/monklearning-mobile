@@ -15,6 +15,7 @@ import {
   PixelRatio,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
@@ -79,6 +80,7 @@ import {
 import { BoardBlockView } from '@/components/board-text';
 import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
+import { teacherNameNow } from '@/lib/preferences';
 import { ReportSheet } from '@/components/report-sheet';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
@@ -362,13 +364,26 @@ export default function LiveClassroomScreen() {
 
 
 
+  const insets = useSafeAreaInsets();
+  /**
+   * WHERE THE WRITING STARTS, just under the header — on a rule.
+   *
+   * The header sits under the status bar and stays (portrait), so the board's
+   * top is set from it instead of the old fixed 130, which left three empty
+   * rules above the first heading once the header had faded. Rounded up to a
+   * whole 26pt rule so every block starts on a line of the paper.
+   */
+  const headerTop = isLandscape ? 14 : Math.max(insets.top, 20) + 4;
+  const boardTop = isLandscape ? BOARD_TOP : Math.ceil((headerTop + 30 + 10) / RHYTHM) * RHYTHM;
   const styles = useMemo(
-    () => createStyles(scale, verticalScale, isLandscape),
-    [scale, verticalScale, isLandscape]
+    () => createStyles(scale, verticalScale, isLandscape, headerTop, boardTop),
+    [scale, verticalScale, isLandscape, headerTop, boardTop]
   );
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
   const [board, setBoard] = useState<BoardEvent[]>([]);
+  /** The teacher's voice is playing: the dock's "is explaining", and its light. */
+  const [teacherSpeaking, setTeacherSpeaking] = useState(false);
   /**
    * How many checkpoint questions the teacher actually put to the student.
    *
@@ -559,6 +574,7 @@ export default function LiveClassroomScreen() {
           .filter((v): v is string => typeof v === 'string');
         if (slugs.length > 0) void figures.prefetch(slugs);
       },
+      onSpeakingChange: (speaking) => setTeacherSpeaking(speaking),
       onBoardReveal: (event) => {
         // Drona is actually speaking: this fires when the first clip starts
         // playing. That is the handoff — the card goes, the board takes over.
@@ -741,6 +757,8 @@ export default function LiveClassroomScreen() {
    * a level meter. It does not need a strip of its own.
    */
   const [boardHeight, setBoardHeight] = useState(390);
+  /** The board's written height, for the rules drawn inside the scroll. */
+  const [boardContentH, setBoardContentH] = useState(0);
   // `windowWidth` / `isLandscape` are read near the top of the component, above
   // the styles that depend on them.
   /**
@@ -1058,7 +1076,18 @@ export default function LiveClassroomScreen() {
    * class was a bare page with no chapter name and no controls. Now the clock
    * starts when the class does.
    */
-  useChromeAutoHide(chromeVisible, cardVisible || handRaised || reportOpen, hideChrome);
+  /**
+   * PORTRAIT'S HEADER STAYS. It used to fade after six seconds, and the board
+   * never took the space back, so a class looked like it started a third of
+   * the way down an empty page. The topic, Report and End are now always one
+   * tap away and nothing moves at the top while the student listens.
+   * Landscape still tucks its header and rail: there the board needs the room.
+   */
+  useChromeAutoHide(
+    chromeVisible,
+    cardVisible || handRaised || reportOpen || !isLandscape,
+    hideChrome
+  );
 
   /**
    * Turning the phone brings the chrome back and restarts the clock.
@@ -1101,12 +1130,69 @@ export default function LiveClassroomScreen() {
   followingRef.current = following;
   // Whose motion is it — the student's or the board's own glide (lib/board-follow.ts).
   const followTracker = useRef(createFollowTracker()).current;
-  const onBoardGrow = useCallback(() => {
-    if (followingRef.current) {
+  /**
+   * THE LIVE EDGE IS A READING LINE, NOT THE BOTTOM OF THE SCREEN.
+   *
+   * `scrollToEnd` put every new line at the very bottom, under the dock's
+   * shadow, where the eye has to chase it. Now the line being written is held
+   * about 45% of the way down — where a reader's eye rests — and the board
+   * glides once per sentence to keep it there. The paper below it is blank
+   * room still to be written on (`boardBottomRoom`).
+   *
+   * Two things move the line up from there:
+   *  - A NEW HEADING turns the page: it glides to the top of the board, just
+   *    under the header, and the section is written down from it.
+   *  - A CHECKPOINT CARD: the reading line sits just above the card, so what
+   *    the question is about stays in view instead of under it.
+   */
+  const contentHRef = useRef(0);
+  const headingYRef = useRef(0);
+  const askTopRef = useRef<number | null>(null);
+  const boardHeightRef = useRef(390);
+  const followTargetShared = useSharedValue(0);
+  const followTargetRef = useRef(0);
+  const glidedToRef = useRef(-1);
+  const followTarget = useCallback(() => {
+    const h = boardHeightRef.current;
+    const room = boardBottomRoom(h, boardTop);
+    const writingBottom = contentHRef.current - room;
+    const askTop = askTopRef.current;
+    const readY =
+      askTop != null ? Math.max(boardTop + RHYTHM * 2, askTop - 20) : Math.round(h * READ_LINE);
+    const target = Math.max(0, headingYRef.current, writingBottom - readY);
+    followTargetRef.current = target;
+    followTargetShared.value = target;
+    return target;
+  }, [boardTop, followTargetShared]);
+  const glide = useCallback(
+    (force = false) => {
+      const y = followTarget();
+      if (!followingRef.current) return;
+      if (!force && Math.abs(y - glidedToRef.current) < 1) return;
+      glidedToRef.current = y;
       followTracker.programmaticScroll();
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }
-  }, [followTracker]);
+      scrollRef.current?.scrollTo({ y, animated: true });
+    },
+    [followTarget, followTracker]
+  );
+  const onBoardGrow = useCallback(
+    (_w: number, h: number) => {
+      contentHRef.current = h;
+      setBoardContentH(h);
+      glide();
+    },
+    [glide]
+  );
+  /** A heading landed: it is the top of the new page. `y` is its place inside
+   *  the padded content, which is also the offset that puts it under the header. */
+  const onHeadingAt = useCallback(
+    (y: number) => {
+      if (y <= headingYRef.current) return;
+      headingYRef.current = y;
+      glide();
+    },
+    [glide]
+  );
   /**
    * WHO SCROLLED DECIDES WHETHER WE ARE STILL FOLLOWING — not where we are.
    *
@@ -1229,7 +1315,16 @@ export default function LiveClassroomScreen() {
   const dockClock = useClock();
   const dockDown = useSharedValue(false);
   const dockMotion = useDockMotion({
-    phase: handRaised ? 'listening' : turnAfter === 'thinking' ? 'thinking' : 'idle',
+    // While the teacher talks the dock's light breathes with a speech envelope
+    // (dock-motion's `talking`), so a board with nothing new on it never looks
+    // stuck.
+    phase: handRaised
+      ? 'listening'
+      : turnAfter === 'thinking'
+        ? 'thinking'
+        : teacherSpeaking && !paused
+          ? 'speaking'
+          : 'idle',
     level: voiceLevel,
     clock: dockClock,
     down: dockDown,
@@ -1262,7 +1357,7 @@ export default function LiveClassroomScreen() {
   const showChrome = () => setChromeVisible(true);
 
   const toggleChrome = () => {
-    if (reportOpen) return;
+    if (reportOpen || !isLandscape) return;
     setChromeVisible((visible) => !visible);
   };
 
@@ -1295,7 +1390,7 @@ export default function LiveClassroomScreen() {
         indicatorOpacity.value = 1;
       }
       if (draggingShared.value) {
-        const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
+        const atBottom = contentOffset.y >= followTargetShared.value - 40;
         if (atBottom !== followingShared.value) {
           followingShared.value = atBottom;
           runOnJS(setFollowing)(atBottom);
@@ -1322,10 +1417,8 @@ export default function LiveClassroomScreen() {
     setFollowing(next);
   };
 
-  const atLiveEdge = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    return contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
-  };
+  const atLiveEdge = (e: NativeSyntheticEvent<NativeScrollEvent>) =>
+    e.nativeEvent.contentOffset.y >= followTargetRef.current - 40;
 
   /** The student lifted their finger: a drag always decides whether they left
    *  the live edge or came back to it. */
@@ -1345,7 +1438,7 @@ export default function LiveClassroomScreen() {
   const jumpToLive = () => {
     followTracker.programmaticScroll();
     applyFollowing(true);
-    scrollRef.current?.scrollToEnd({ animated: true });
+    glide(true);
   };
 
   // --- Real push-to-talk ---
@@ -1723,6 +1816,14 @@ export default function LiveClassroomScreen() {
   // ended up sitting on the dock's hint text.
   const showJumpChip = !following && !handRaised && checkOptions.length === 0;
 
+  // The card went: the reading line goes back to its 45%.
+  const askShown = checkOptions.length > 0 && !!questionText && !handRaised;
+  useEffect(() => {
+    if (askShown || askTopRef.current == null) return;
+    askTopRef.current = null;
+    glide();
+  }, [askShown, glide]);
+
   // Hold the first paint until the window has actually turned, so the board
   // is never seen reflowing mid-rotation. Unlike the old landscape lock this
   // is only a paint gate: the layout below reads the real window, so if a lock
@@ -1759,17 +1860,22 @@ export default function LiveClassroomScreen() {
           ruled page runs to all four edges and every control floats over it,
           so the only border on a phone is the phone's own. */}
       <View style={styles.boardArea}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={toggleChrome}>
-          <RuledGround height={boardHeight} />
-        </Pressable>
+        <Pressable style={StyleSheet.absoluteFill} onPress={toggleChrome} />
 
         <Animated.ScrollView
           ref={scrollRef}
           style={StyleSheet.absoluteFill}
-          contentContainerStyle={styles.boardContent}
+          contentContainerStyle={[
+            styles.boardContent,
+            { paddingBottom: boardBottomRoom(boardHeight, boardTop) },
+          ]}
           scrollEventThrottle={16}
           onScroll={onBoardScroll}
-          onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
+          onLayout={(e) => {
+            boardHeightRef.current = e.nativeEvent.layout.height;
+            setBoardHeight(e.nativeEvent.layout.height);
+            glide();
+          }}
           onContentSizeChange={onBoardGrow}
           onScrollBeginDrag={() => {
             draggingRef.current = true;
@@ -1783,6 +1889,12 @@ export default function LiveClassroomScreen() {
           }}
           onMomentumScrollEnd={onBoardMomentumEnd}
           showsVerticalScrollIndicator={false}>
+          {/* The rules scroll WITH the writing, so a line stays on its rule as
+              the board moves — they used to be fixed behind the scroll view,
+              and the writing slid across them. */}
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <RuledGround height={Math.max(boardContentH, boardHeight)} />
+          </View>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
             {board.length === 0 ? (
               <View style={styles.writingRow}>
@@ -1801,12 +1913,22 @@ export default function LiveClassroomScreen() {
                  survives that change and animates instead of remounting; a
                  picture drawn a second time gets its own key (`boardRowKeys`). */
               boardRows.map((event, i) => (
-                <BoardLine key={boardKeys[i]}>
-                  <BoardBlockView
-                    event={event}
-                    diagramBox={diagramBox}
-                    widgetHost={widgetHost}
-                  />
+                <BoardLine
+                  key={boardKeys[i]}
+                  event={event}
+                  first={i === 0}
+                  paused={paused}
+                  hurry={!teacherSpeaking}
+                  onHeadingAt={onHeadingAt}>
+                  {(progress) => (
+                    <BoardBlockView
+                      event={event}
+                      diagramBox={diagramBox}
+                      widgetHost={widgetHost}
+                      progress={progress}
+                      grid
+                    />
+                  )}
                 </BoardLine>
               ))
             )}
@@ -1917,10 +2039,16 @@ export default function LiveClassroomScreen() {
       {checkOptions.length > 0 && questionText && !handRaised && (
         <Animated.View
           style={styles.askColumn}
+          onLayout={(e) => {
+            askTopRef.current = e.nativeEvent.layout.y;
+            glide();
+          }}
           entering={FadeInDown.duration(320).easing(Easing.bezier(0.2, 0.7, 0.2, 1).factory())}
           exiting={FadeOutDown.duration(220)}>
           <View style={styles.askCard}>
-            <Text style={styles.askQuestion} numberOfLines={3}>
+            {/* The whole question: it was cut at three lines, and a checkpoint
+                you cannot read to the end is not one you can answer. */}
+            <Text style={styles.askQuestion}>
               {spokenMathToNotation(questionText)}
             </Text>
             {/* THE VERDICT REPLACES THE ROW, it does not squeeze into it.
@@ -2119,7 +2247,9 @@ export default function LiveClassroomScreen() {
               does. "Mic off" is the one state it has no word for, and that one
               has to be said. */}
           <Text style={styles.dockHint}>
-            {turnWords(turn, voiceOff)}
+            {turn === 'idle' && teacherSpeaking && !paused && !voiceOff
+              ? `${teacherNameNow()} is explaining`
+              : turnWords(turn, voiceOff)}
           </Text>
         </View>
       )}
@@ -2405,20 +2535,108 @@ function VerdictMark({ correct, color }: { correct: boolean; color: string }) {
  * discussed. `board_event` only ever names the line a sentence introduces.
  * That ask is with Raasikh; when it lands, the highlight belongs here.
  */
-function BoardLine({ children }: { children: React.ReactNode }) {
-  return <Animated.View entering={enterLine}>{children}</Animated.View>;
+/**
+ * ONE BLOCK ON THE RULED PAGE, WRITTEN AS IT IS SPOKEN.
+ *
+ * A line used to fade in whole the moment its sentence began, so a sentence
+ * that introduced three lines dropped all three at once and then the board sat
+ * still for the rest of the sentence. Now a line carrying `write` (stamped by
+ * the voice client from the sentence's own length, see `paceLines`) waits its
+ * turn inside the sentence and is written word by word across its share of
+ * it. Formulas and figures land whole at their moment, the way a teacher puts
+ * an equation up in one go. Lines with no `write` — flushed at the end of a
+ * turn, or a board restored — fade up whole as before.
+ *
+ * The clock only runs while the teacher's voice does: Pause stops the pen with
+ * the voice, and when the voice stops for good (a raised hand, the end of the
+ * turn) whatever is still unwritten is finished at once (`hurry`).
+ *
+ * ON THE RULES: every block starts on a rule — a 26pt gap before it, two
+ * before a heading — and its height is rounded up to whole rules, so diagrams
+ * and notes keep the page's rhythm instead of leaving the next line between
+ * two rules.
+ */
+function BoardLine({
+  event,
+  first,
+  paused,
+  hurry,
+  onHeadingAt,
+  children,
+}: {
+  event: BoardEvent;
+  first: boolean;
+  paused: boolean;
+  hurry: boolean;
+  onHeadingAt: (y: number) => void;
+  children: (progress: number) => React.ReactNode;
+}) {
+  // The pace a line was revealed with is its own: a later merge of the same
+  // row (board continuity) must not restart the writing.
+  const [write] = useState(event.write);
+  const { shown, progress } = useWriteClock(write, paused, hurry);
+  const whole = !write || write.ms <= 0;
+
+  const opacity = useSharedValue(0);
+  const rise = useSharedValue(whole ? 6 : 0);
+  useEffect(() => {
+    if (!shown) return;
+    if (whole) {
+      opacity.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) });
+      rise.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
+    } else {
+      opacity.value = 1;
+    }
+  }, [shown, whole, opacity, rise]);
+  const appear = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: rise.value }],
+  }));
+
+  const [innerH, setInnerH] = useState(0);
+  const padTo = innerH > 0 ? Math.ceil((innerH - 0.5) / RHYTHM) * RHYTHM - innerH : 0;
+  const heading = event.type === 'heading';
+
+  return (
+    <Animated.View
+      style={[{ marginTop: first ? 0 : heading ? RHYTHM * 2 : RHYTHM }, appear]}
+      onLayout={heading ? (e) => onHeadingAt(e.nativeEvent.layout.y) : undefined}>
+      <View onLayout={(e) => setInnerH(e.nativeEvent.layout.height)}>{children(progress)}</View>
+      {padTo > 0.5 ? <View style={{ height: padTo }} /> : null}
+    </Animated.View>
+  );
 }
 
-/** Fade up and settle, rather than appear. See BoardLine. */
-function enterLine() {
-  'worklet';
-  return {
-    initialValues: { opacity: 0, transform: [{ translateY: 6 }] },
-    animations: {
-      opacity: withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) }),
-      transform: [{ translateY: withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }) }],
-    },
-  };
+/** How far through its writing a line is: `shown` once its moment in the
+ *  sentence has come, `progress` 0..1 across its words. Counts only the time
+ *  the voice is playing. */
+function useWriteClock(
+  write: BoardEvent['write'],
+  paused: boolean,
+  hurry: boolean
+): { shown: boolean; progress: number } {
+  const total = write ? write.delayMs + write.ms : 0;
+  const [elapsed, setElapsed] = useState(0);
+  const [hurried, setHurried] = useState(false);
+  const done = !write || hurried || elapsed >= total;
+  useEffect(() => {
+    if (hurry && !done) setHurried(true);
+  }, [hurry, done]);
+  useEffect(() => {
+    if (done || paused) return;
+    let last = Date.now();
+    const id = setInterval(() => {
+      const now = Date.now();
+      const step = now - last;
+      last = now;
+      setElapsed((e) => Math.min(total, e + step));
+    }, 50);
+    return () => clearInterval(id);
+  }, [done, paused, total]);
+  if (!write || done) return { shown: true, progress: 1 };
+  const shown = elapsed >= write.delayMs;
+  const progress = write.ms <= 0 ? (shown ? 1 : 0) : Math.min(1, Math.max(0, (elapsed - write.delayMs) / write.ms));
+  return { shown, progress };
 }
 
 function PlayIcon({ size, color }: { size: number; color: string }) {
@@ -2429,10 +2647,23 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
+/** Where the line being written is held, as a share of the board's height. */
+const READ_LINE = 0.45;
+/**
+ * The blank paper under the writing: enough that the newest line can sit on
+ * the reading line, and that a new heading can be lifted to the top of the
+ * board however little has been written under it yet.
+ */
+function boardBottomRoom(boardHeight: number, boardTop: number) {
+  return Math.max(Math.round(boardHeight * (1 - READ_LINE)), boardHeight - boardTop);
+}
+
 function createStyles(
   scale: (size: number) => number,
   verticalScale: (size: number) => number,
-  isLandscape: boolean
+  isLandscape: boolean,
+  headerTop: number,
+  boardTop: number
 ) {
   /**
    * The board's gutters, which differ by orientation because the chrome does.
@@ -2450,7 +2681,7 @@ function createStyles(
    */
   const boardPad = isLandscape
     ? { top: BOARD_TOP, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
-    : { top: 130, right: 28, bottom: 146, left: 28 };
+    : { top: boardTop, right: 28, bottom: 146, left: 28 };
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -2555,7 +2786,7 @@ function createStyles(
     // Header — left 56 so it starts on the same gutter as the writing.
     topBar: {
       position: 'absolute',
-      top: isLandscape ? 14 : 58,
+      top: headerTop,
       left: isLandscape ? BOARD_LEFT : 22,
       right: isLandscape ? 26 : 18,
       flexDirection: 'row',
@@ -2750,7 +2981,9 @@ function createStyles(
       left: 0,
       right: 0,
       top: 0,
-      height: isLandscape ? 52 : 124,
+      // To just under the header, then a short fade: the writing passes
+      // beneath the header rather than colliding with it.
+      height: isLandscape ? 52 : headerTop + 30 + 24,
     },
 
     /* --- portrait dock: the rail's controls, laid along the bottom --- */

@@ -18,6 +18,9 @@ import { base64ToBytes } from '@/lib/audio-pcm';
  * anchoring mechanism for a symptom the reveal path was not causing.
  */
 const REVEAL_PROBE = __DEV__ && process.env.EXPO_PUBLIC_REVEAL_PROBE === '1';
+/** A teacher's speaking pace, ~160 words a minute: the floor for how long a
+ *  sentence runs when not all of its audio has arrived (`sentenceMs`). */
+const MS_PER_SPOKEN_WORD = 375;
 const probe = (line: string) => {
   if (REVEAL_PROBE) console.log(`[reveal-probe] ${line}`);
 };
@@ -107,6 +110,57 @@ export interface BoardEvent {
    * lib/__tests__/drona-voice-client-board.test.ts for each of those paths.
    */
   key?: string;
+  /**
+   * How to write this line, stamped HERE when its sentence starts playing,
+   * never sent by the server. `delayMs` after the reveal it starts; text is
+   * then written word by word over `ms`. A sentence's lines share its length
+   * between them (see `paceLines`). Absent on anything with no measured clip:
+   * replayed history, an end-of-turn flush, a silent chunk. Those are shown
+   * whole, as before.
+   */
+  write?: { delayMs: number; ms: number };
+}
+
+/**
+ * HOW A SENTENCE'S LINES ARE WRITTEN ACROSS IT.
+ *
+ * One clip can carry several lines; showing them all the instant the sentence
+ * starts is what made the board feel like blocks being dropped. Each line gets
+ * a slice of the sentence in proportion to its words, in order; a formula or a
+ * figure takes a slice the size of a short phrase and lands whole at its start,
+ * the way a teacher writes an equation in one go. The writing finishes a little
+ * before the voice does, so a line is never still being written after the
+ * sentence has moved on.
+ *
+ * And never slower than a hand writes: a short line alone on a long sentence
+ * would otherwise crawl across all of it (a six-word heading took ten
+ * seconds). A heading is put up quickly, as a title is; prose at about the
+ * pace it is spoken.
+ */
+/** The slowest a line is ever written, per word. */
+const LINE_MS_PER_WORD = 420;
+const HEADING_MS_PER_WORD = 220;
+
+export function paceLines(
+  events: Pick<BoardEvent, 'type' | 'text' | 'payload' | 'svg' | 'illustration_slug'>[],
+  durationMs: number | null | undefined
+): ({ delayMs: number; ms: number } | undefined)[] {
+  if (!durationMs || durationMs < 400 || events.length === 0) return events.map(() => undefined);
+  const weights = events.map((e) => {
+    const figure = Boolean(e.payload || e.svg || e.illustration_slug) || e.type === 'diagram' || e.type === 'formula';
+    if (figure) return { w: 4, writes: false, cap: 0 };
+    const words = (e.text ?? '').split(/\s+/).filter(Boolean).length;
+    const perWord = e.type === 'heading' ? HEADING_MS_PER_WORD : LINE_MS_PER_WORD;
+    return { w: Math.max(1, words), writes: words > 0, cap: words * perWord };
+  });
+  const total = weights.reduce((a, b) => a + b.w, 0);
+  const usable = durationMs * 0.9;
+  let before = 0;
+  return weights.map(({ w, writes, cap }) => {
+    const delayMs = Math.round((usable * before) / total);
+    before += w;
+    return { delayMs, ms: writes ? Math.round(Math.min((usable * w) / total, cap)) : 0 };
+  });
 }
 
 /**
@@ -216,6 +270,9 @@ export interface DronaVoiceHandlers {
   /** Board items revealed one at a time, synced to when their paired sentence
    *  starts playing. At most once per `key` — append with `appendBoardEvent`. */
   onBoardReveal?: (event: BoardEvent) => void;
+  /** The teacher's voice started (a clip began playing) or stopped (the queue
+   *  ran dry, or was cut for a barge-in). Drives the dock's "is explaining". */
+  onSpeakingChange?: (speaking: boolean) => void;
   /** The whole turn's board, at buffer time — ahead of any audio. For warming
    *  caches only; nothing here is shown until its own reveal. */
   onBoardBuffered?: (events: BoardEvent[]) => void;
@@ -409,13 +466,24 @@ export class DronaVoiceClient {
         );
       }
       if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
-      for (const entry of meta?.board ?? []) {
-        this.revealBoardEntry(entry, `onItemStart(${id})`, {
-          sentenceId: meta?.sentenceId ?? '-',
-          receivedAt: meta?.receivedAt ?? startedAt,
-          startedAt,
-        });
-      }
+      if (meta?.speech || meta?.durationMs) this.handlers.onSpeakingChange?.(true);
+      const entries = meta?.board ?? [];
+      const pace = paceLines(
+        entries.map((e) => e.event),
+        entries.length > 0 ? this.sentenceMs(meta) : undefined
+      );
+      entries.forEach((entry, i) => {
+        this.revealBoardEntry(
+          entry,
+          `onItemStart(${id})`,
+          {
+            sentenceId: meta?.sentenceId ?? '-',
+            receivedAt: meta?.receivedAt ?? startedAt,
+            startedAt,
+          },
+          pace[i]
+        );
+      });
       // Survives the delete below so `playingChunkDurationMs` can be read
       // after the reveal fires. Nothing consumes it yet — see the getter.
       this.currentChunkDurationMs = meta?.durationMs ?? null;
@@ -424,6 +492,7 @@ export class DronaVoiceClient {
 
     // The turn's audio has actually finished playing — see `flushHeldTurn`.
     this.playback.onQueueDrained = () => {
+      this.handlers.onSpeakingChange?.(false);
       if (this.awaitingDrain) this.flushHeldTurn();
     };
   }
@@ -962,7 +1031,12 @@ export class DronaVoiceClient {
    * showed the line twice. That pairing is the server's to fix; the board
    * holding each event once is this client's.
    */
-  private revealBoardEntry(entry: BoardEntry, carrier: string, timing?: RevealTiming) {
+  private revealBoardEntry(
+    entry: BoardEntry,
+    carrier: string,
+    timing?: RevealTiming,
+    write?: { delayMs: number; ms: number }
+  ) {
     const { event } = entry;
     if (this.revealedBoardKeys.has(entry.key)) {
       probe(`REPEAT seq=${event.seq} key=${entry.key} carriedBy=${carrier} — already on the board, not written again`);
@@ -977,7 +1051,7 @@ export class DronaVoiceClient {
         ` audioStartAt=${timing?.startedAt ?? '-'} revealedAt=${revealedAt}` +
         ` gapMs=${timing ? revealedAt - timing.startedAt : '-'}`
     );
-    this.handlers.onBoardReveal?.({ ...event, key: entry.key });
+    this.handlers.onBoardReveal?.(write ? { ...event, key: entry.key, write } : { ...event, key: entry.key });
   }
 
   /** Board items for the whole turn arrive ahead of their audio — held here,
@@ -1033,6 +1107,32 @@ export class DronaVoiceClient {
       else this.revealBoardEntry(entry, 'END_OF_TURN_FLUSH');
     }
     this.pendingBoardEvents = later;
+  }
+
+  /**
+   * HOW LONG THE SENTENCE THAT CARRIES THESE LINES WILL BE SPOKEN FOR.
+   *
+   * `duration_ms` is the length of one audio FRAME, and a sentence arrives as
+   * several; its board lines ride on the first. Pacing the writing to that one
+   * frame wrote a thirty-word line in about a second and then left the board
+   * still for the rest of the sentence. So: every frame of this sentence
+   * already received, added up — audio arrives ahead of playback, so that is
+   * usually all of it — and never less than the sentence's own words at a
+   * speaking pace, in case its last frames are still on the way.
+   */
+  private sentenceMs(meta: { speech?: string; durationMs?: number; sentenceId?: string } | undefined) {
+    if (!meta) return undefined;
+    let frames = 0;
+    if (meta.sentenceId) {
+      this.chunkMeta.forEach((m) => {
+        if (m.sentenceId === meta.sentenceId && m.durationMs) frames += m.durationMs;
+      });
+    }
+    frames = Math.max(frames, meta.durationMs ?? 0);
+    const words = meta.speech?.trim().split(/\s+/).filter(Boolean).length ?? 0;
+    const spoken = words * MS_PER_SPOKEN_WORD;
+    const ms = Math.max(frames, spoken);
+    return ms > 0 ? ms : undefined;
   }
 
   private handleAudioChunk(msg: Record<string, unknown>) {
@@ -1146,6 +1246,7 @@ export class DronaVoiceClient {
     this.chunkMeta.clear();
     this.currentChunkDurationMs = null;
     this.playback.clear();
+    this.handlers.onSpeakingChange?.(false);
   }
 
   /**
