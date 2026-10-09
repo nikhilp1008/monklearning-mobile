@@ -639,10 +639,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(11),
       alignItems: 'center',
       justifyContent: 'center',
-      /* What shows under the sky for the frame before Skia has drawn it, and
-         on any device where the shader will not compile. Same token the header
-         falls back to, because it is now the same picture. */
-      backgroundColor: colors.night,
+      /* NO DARK GROUND UNDER THE SKY, as on the header: the rounded clip
+         smooths each layer's edge separately, and a `night` ground showed
+         through as a dark rim round the plate's corners and edges. The sky
+         carries its own fallback colour for a phone where it cannot draw. */
       /** Clips the glow and the grain to the plate's corners — the same thing
        *  the card needed once it held more than one layer. */
       overflow: 'hidden',

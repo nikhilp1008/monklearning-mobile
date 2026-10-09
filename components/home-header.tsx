@@ -307,9 +307,11 @@ function createStyles(scale: (n: number) => number) {
   return StyleSheet.create({
     header: {
       /* The sky is drawn into this box, so it has to clip to the same corners.
-         `night` is what shows for the frame before Skia has drawn, and on any
-         device where the shader will not compile. */
-      backgroundColor: colors.night,
+         NO DARK GROUND UNDER IT. It used to carry `night` for the frame before
+         Skia draws, and the rounded clip smooths the edge of every layer it
+         holds separately, so that ground showed through as a dark hairline
+         round both bottom corners on device. The sky carries its own fallback
+         colour (NightSky's) for a phone where the shader will not compile. */
       borderBottomLeftRadius: scale(34),
       borderBottomRightRadius: scale(34),
       overflow: 'hidden',
