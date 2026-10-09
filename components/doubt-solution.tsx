@@ -2,6 +2,7 @@ import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { MathLine } from '@/components/math-line';
+import { READ_GREY, READ_INK, READ_LINE, READ_SIZE, ROW_GAP, STEP_GAP } from '@/constants/reading';
 import { splitDisplay } from '@/lib/display-math';
 import { ParsedStep } from '@/lib/solution-steps';
 
@@ -26,19 +27,23 @@ import { ParsedStep } from '@/lib/solution-steps';
  * Doubts and Snap only. Practice keeps its own compact solution.
  */
 
-const INK = '#1C1A16';
-const INK_70 = '#4A463D';
+const INK = READ_INK;
+const INK_70 = READ_GREY;
 const HAIR = 'rgba(28,26,22,0.12)';
 const GREEN = '#1C9B57';
 const GREEN_INK = '#14663A';
 const GREEN_WASH = 'rgba(28,155,87,0.11)';
 
-const SIZE = 16;
-const LEADING = 1.55;
+/** The shared reading size — see constants/reading.ts. */
+const SIZE = READ_SIZE;
+const LINE = READ_LINE;
 const RAIL = 34;
 const MARKER = 22;
 
-type Row = { kind: 'title' | 'text' | 'display'; raw: string };
+/** `lead`: the first sentence of a step that has no heading. It is set in
+ *  full ink so every step opens on a dark line — a heading where the step has
+ *  one, its first sentence where it does not — and the rest stays grey. */
+type Row = { kind: 'title' | 'text' | 'display'; raw: string; lead?: boolean };
 
 /** One step as rows: its title, its sentences, and its lifted equations. */
 function rowsFor(step: ParsedStep): Row[] {
@@ -61,6 +66,7 @@ function rowsFor(step: ParsedStep): Row[] {
       else rows.push({ kind: 'text', raw: piece.raw });
     });
   });
+  if (rows[0]?.kind === 'text') rows[0].lead = true;
   return rows;
 }
 
@@ -105,14 +111,17 @@ export function DoubtSolution({
         </View>
       );
     }
+    // A formula inside a sentence keeps the sentence's weight and colour, so
+    // one line never mixes two of each.
+    const style = row.lead ? s.lead : s.prose;
     return (
       <MathLine
         key={key}
         text={row.raw}
-        style={s.prose}
-        mathStyle={s.inlineMath}
+        style={style}
+        mathStyle={style}
         fontSize={SIZE}
-        color={INK_70}
+        color={row.lead ? INK : INK_70}
       />
     );
   };
@@ -157,7 +166,7 @@ export function DoubtSolution({
 
 function createStyles() {
   return StyleSheet.create({
-    steps: { position: 'relative', paddingLeft: RAIL, gap: 28 },
+    steps: { position: 'relative', paddingLeft: RAIL, gap: STEP_GAP },
     rail: {
       position: 'absolute',
       left: 10.5,
@@ -166,11 +175,12 @@ function createStyles() {
       width: 1,
       backgroundColor: HAIR,
     },
-    step: { position: 'relative', gap: 8, alignItems: 'flex-start', alignSelf: 'stretch' },
+    step: { position: 'relative', gap: ROW_GAP, alignItems: 'flex-start', alignSelf: 'stretch' },
     num: {
       position: 'absolute',
       left: -RAIL,
-      top: 2,
+      // Centred on the first line: (24 − 22) / 2.
+      top: (LINE - MARKER) / 2,
       width: MARKER,
       height: MARKER,
       borderWidth: 1,
@@ -182,7 +192,7 @@ function createStyles() {
     },
     /** Level with an equation opening the step, which sits lower than a
      *  sentence's first line does. */
-    numLow: { top: 8 },
+    numLow: { top: (LINE - MARKER) / 2 + 4 },
     numText: { fontFamily: 'Onest_700Bold', fontSize: 10.5, color: '#57534B' },
     numFinal: { borderWidth: 0, backgroundColor: GREEN_WASH },
     numFinalText: { fontFamily: 'Onest_800ExtraBold', fontSize: 11.5, color: GREEN },
@@ -191,32 +201,38 @@ function createStyles() {
       alignSelf: 'stretch',
       fontFamily: 'Onest_600SemiBold',
       fontSize: SIZE,
-      lineHeight: SIZE * LEADING,
+      lineHeight: LINE,
       color: INK,
     },
     prose: {
       alignSelf: 'stretch',
       fontFamily: 'Onest_400Regular',
       fontSize: SIZE,
-      lineHeight: SIZE * LEADING,
+      lineHeight: LINE,
       color: INK_70,
     },
-    inlineMath: { fontFamily: 'Onest_500Medium', color: INK },
+    lead: {
+      alignSelf: 'stretch',
+      fontFamily: 'Onest_400Regular',
+      fontSize: SIZE,
+      lineHeight: LINE,
+      color: INK,
+    },
 
     /** The indent is the whole device: a line set in from the sentence above
      *  it reads as the working that sentence is talking about. */
-    display: { alignSelf: 'stretch', paddingLeft: 16, paddingVertical: 5 },
+    display: { alignSelf: 'stretch', paddingLeft: 16, paddingVertical: 4 },
     displayText: {
       fontFamily: 'Onest_500Medium',
       fontSize: SIZE,
-      lineHeight: SIZE * LEADING,
+      lineHeight: LINE,
       color: INK,
     },
 
     finalLabel: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: SIZE,
-      lineHeight: SIZE * LEADING,
+      lineHeight: LINE,
       color: GREEN,
     },
     answerWrap: {

@@ -2,6 +2,7 @@ import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { MathLine } from '@/components/math-line';
+import { READ_LINE, READ_SIZE, ROW_GAP, STEP_GAP } from '@/constants/reading';
 import { ParsedStep } from '@/lib/solution-steps';
 
 /**
@@ -67,43 +68,51 @@ const METRICS = {
     math: 16,
     answer: 16,
   },
+  /**
+   * Practice's solution, under the question it belongs to — and, since
+   * 2026-10-08, the same reading text as a doubt's and the board's (see
+   * constants/reading.ts). It used to sit a notch smaller than the question
+   * so the working "never out-shouted" it; set at 14 under a 15.5 question it
+   * read as small print instead.
+   */
   compact: {
     rail: 34,
     railLeft: 10,
     marker: 22,
     markerRadius: 7,
     markerText: 10.5,
-    stepGap: 20,
-    lineGap: 8,
-    title: 15.5,
-    prose: 14,
-    math: 15,
-    answer: 16,
+    stepGap: STEP_GAP,
+    lineGap: ROW_GAP,
+    title: READ_SIZE,
+    prose: READ_SIZE,
+    math: READ_SIZE,
+    answer: READ_SIZE,
   },
+
   /**
-   * The follow-up board: between the two. At `full` the markers and text were
-   * the solution's own size inside a panel two-thirds as tall, and read as
-   * oversized; at `compact` the board was the smallest text on the screen.
+   * THE FOLLOW-UP BOARD NUMBERS ITS STEPS, IT DOES NOT RAIL THEM.
+   *
+   * It wore the solution's markers — a bordered "01" tile on a hairline
+   * running down the column — and in a panel this size they were the loudest
+   * thing on it: a 42pt column of boxes and line beside every answer, taking
+   * a fifth of the width from the working it numbered. A follow-up is two or
+   * three steps; a small number is enough to keep your place. So the board
+   * sets a plain 1, 2, 3 in a 22pt column and gives the rest back to the
+   * text, which now runs at the app's own reading sizes — 16 for a step's
+   * title, 15 for the body — instead of the half-sizes the rail forced.
    */
   board: {
-    // A wider rail than `compact`: the gap between a number and its equation
-    // is most of what made a follow-up's steps read as crowded.
-    rail: 42,
-    railLeft: 11.5,
-    marker: 24,
-    markerRadius: 7,
-    markerText: 11,
-    stepGap: 30,
-    lineGap: 12,
-    title: 16.5,
-    // Prose and maths a half-point under `compact`'s neighbours at full, so a
-    // long line keeps clear of the board's edge — and stays on one line —
-    // once the wider rail has taken its share. A follow-up line is usually a
-    // sentence carrying its maths inline, so the prose size is the one that
-    // decides where it wraps.
-    prose: 14.5,
-    math: 14.5,
-    answer: 17,
+    rail: 22,
+    railLeft: 0,
+    marker: 0,
+    markerRadius: 0,
+    markerText: 13,
+    stepGap: STEP_GAP,
+    lineGap: ROW_GAP,
+    title: READ_SIZE,
+    prose: READ_SIZE,
+    math: READ_SIZE,
+    answer: READ_SIZE,
   },
 } as const;
 
@@ -117,8 +126,8 @@ const METRICS = {
  */
 const MATH_AIR: Record<SolutionStepsSize, { leading: number; tracking: number; pad: number; numTop: number }> = {
   full: { leading: 1.55, tracking: 0, pad: 2, numTop: 2 },
-  compact: { leading: 1.6, tracking: 0, pad: 3, numTop: 1 },
-  board: { leading: 1.75, tracking: 0.1, pad: 3, numTop: 3.5 },
+  compact: { leading: READ_LINE / READ_SIZE, tracking: 0, pad: 4, numTop: 5 },
+  board: { leading: READ_LINE / READ_SIZE, tracking: 0, pad: 4, numTop: 5 },
 };
 
 type SolutionStepsProps = {
@@ -159,14 +168,28 @@ export function SolutionSteps({
   // The same metrics createStyles uses, needed here because a stacked fraction
   // has to be sized against the type it sits in.
   const m = METRICS[size];
+  /** The board's plain numbers — see METRICS.board. */
+  const plain = size === 'board';
+  const air = MATH_AIR[size];
+  /** Where a plain number sits: on the step's first line, whatever that line
+   *  is — a title, an equation on its own, or a sentence — so it reads as
+   *  the first word of the step rather than as a tag floating beside it. */
+  const firstLine = (step: ParsedStep) =>
+    step.lines[0]?.kind === 'math' && !step.title
+      ? { top: air.pad, lineHeight: m.math * air.leading }
+      : { top: 0, lineHeight: m.prose * leading };
+  const leading = size === 'full' ? 1.55 : READ_LINE / READ_SIZE;
 
   return (
     <View style={styles.steps}>
-      {rail && <View style={styles.rail} />}
+      {rail && !plain && <View style={styles.rail} />}
 
       {steps.map((step, i) => (
         <View key={i} style={styles.step}>
-          {rail && (
+          {rail && plain && (
+            <Text style={[styles.numPlain, firstLine(step)]}>{i + 1}</Text>
+          )}
+          {rail && !plain && (
             <View
               style={[
                 styles.num,
@@ -205,14 +228,24 @@ export function SolutionSteps({
                 />
               </View>
             ) : (
-              <MathLine
-                key={j}
-                text={line.raw ?? line.text}
-                style={styles.proseText}
-                mathStyle={styles.inlineMath}
-                fontSize={m.prose}
-                color={INK_70}
-              />
+              // A step with no heading opens on its first sentence in full
+              // ink, so every step starts on a dark line; the rest is grey.
+              // A formula inside a sentence keeps the sentence's own weight
+              // and colour.
+              (() => {
+                const lead = j === 0 && !step.title && size !== 'full';
+                const style = lead ? styles.proseLead : styles.proseText;
+                return (
+                  <MathLine
+                    key={j}
+                    text={line.raw ?? line.text}
+                    style={style}
+                    mathStyle={size === 'full' ? styles.inlineMath : style}
+                    fontSize={m.prose}
+                    color={lead ? INK : INK_70}
+                  />
+                );
+              })()
             )
           )}
         </View>
@@ -256,11 +289,13 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
    * every line of it came out bold, which is emphasis on everything and so on
    * nothing. Darker ink still sets the maths apart from the words.
    */
-  const mathFace = size === 'compact' ? 'Onest_600SemiBold' : 'Onest_500Medium';
-  /** Prose leading: a little tighter on the doubt page, where every line is
-   *  now the same size and 1.6 read as gaps between lines rather than lines. */
-  const leading = size === 'full' ? 1.55 : 1.6;
-  const one = size === 'full';
+  const mathFace = 'Onest_500Medium';
+  /** Prose leading: the shared reading line (constants/reading.ts) everywhere
+   *  but the unused `full`, which keeps its own. */
+  const leading = size === 'full' ? 1.55 : READ_LINE / READ_SIZE;
+  /** Every size now sets a heading the doubt page's way: body size, semibold
+   *  ink — weight and ink, never size, set it apart. */
+  const one = true;
   const air = MATH_AIR[size];
   return StyleSheet.create({
     steps: {
@@ -298,6 +333,17 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       justifyContent: 'center',
     },
     numMath: { top: air.numTop },
+    /** The board's number: small, amber — the dock's own marigold family,
+     *  deepened enough to read on white — with figures of equal width so 1
+     *  and 3 start their steps on the same edge. */
+    numPlain: {
+      position: 'absolute',
+      left: -m.rail,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: m.markerText,
+      fontVariant: ['tabular-nums'],
+      color: '#B08420',
+    },
     numText: {
       fontFamily: 'Onest_700Bold',
       fontSize: m.markerText,
@@ -337,6 +383,13 @@ function createStyles(size: SolutionStepsSize, rail: boolean) {
       fontSize: m.prose,
       lineHeight: m.prose * leading,
       color: INK_70,
+    },
+    proseLead: {
+      alignSelf: 'stretch',
+      fontFamily: 'Onest_400Regular',
+      fontSize: m.prose,
+      lineHeight: m.prose * leading,
+      color: INK,
     },
     /**
      * A formula, a quantity or a unit sitting inside a sentence.

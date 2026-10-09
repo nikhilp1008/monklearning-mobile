@@ -21,6 +21,7 @@ import { DoubtSolution } from '@/components/doubt-solution';
 import { DoubtOption } from '@/lib/doubts';
 import { ParsedStep } from '@/lib/solution-steps';
 import { PAGE_TITLE } from '@/constants/page-title';
+import { QUESTION_READ_LINE, QUESTION_READ_SIZE } from '@/constants/reading';
 
 /**
  * Snap It Out — solution screen, ported from snap-solution-6b/.
@@ -60,8 +61,9 @@ const AMBER_INK = '#7A5310';
 // keeps the handwriting, which is what marks it as an aside, and drops the
 // colour.
 const KEY_IDEA_INK = INK_70;
-const QUESTION_SIZE = 16;
-const QUESTION_LINE = QUESTION_SIZE * 1.6;
+/** The shared reading sizes (constants/reading.ts): the question at 16 on 26. */
+const QUESTION_SIZE = QUESTION_READ_SIZE;
+const QUESTION_LINE = QUESTION_READ_LINE;
 /**
  * How much of the question may stay pinned.
  *
