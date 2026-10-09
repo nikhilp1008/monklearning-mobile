@@ -131,6 +131,12 @@ export type SolutionQuestion = {
    * of an empty rail that reads as "no steps".
    */
   pending?: boolean;
+  /**
+   * The working of a pending question as it is being written, from the first
+   * word of step 1. Drawn exactly like finished steps, with no final answer:
+   * that still arrives only once the solve is checked.
+   */
+  liveSteps?: ParsedStep[];
   /** Shown in place of the working when this question could not be solved. */
   failureNote?: string | null;
   /** Every printed choice, for an MCQ. Shown under the question. */
@@ -545,7 +551,15 @@ export function SolutionScreen({
                 <PendingDot />
                 <Text style={styles.pendingText}>{PENDING_STAGES[stage]}</Text>
               </View>
-              <StepsPlaceholder />
+              {/* The working as it is written, once step 1 has begun; the
+                  placeholder only until then. No answer row — DoubtSolution
+                  draws one only when given an answer, which a pending
+                  question never has. */}
+              {question.liveSteps?.length ? (
+                <DoubtSolution steps={question.liveSteps} />
+              ) : (
+                <StepsPlaceholder />
+              )}
             </View>
           ) : question.failureNote ? (
             <View style={styles.failureBlock}>

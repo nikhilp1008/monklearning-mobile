@@ -51,6 +51,16 @@ export interface SnapStreamHandlers {
    * rather than on arrival.
    */
   onQuestion?: (question: SnappedQuestion) => void;
+  /**
+   * A step of the working, live, for the question being solved right now.
+   * `final` false: the step is still being written and `text` is everything
+   * so far (`step_partial`) — each call replaces the last for that `n`.
+   * `final` true: the step is finished (`step`). Never carries the answer,
+   * which only arrives, checked, through `onQuestion`.
+   */
+  onStep?: (step: { questionIndex: number; n: number; text: string; final: boolean }) => void;
+  /** The solve restarted; drop the live steps shown for this question. */
+  onStepsReset?: (questionIndex: number) => void;
 }
 
 /** Anything the server can send. Unknown names are ignored, not fatal. */
@@ -166,9 +176,28 @@ export function snapDoubtStreaming(
             case 'done':
               meta = { ...meta, ...payload };
               break;
+            case 'step':
+            case 'step_partial': {
+              const n = Number(payload.n);
+              const questionIndex = Number(payload.question_index);
+              if (Number.isFinite(n) && Number.isFinite(questionIndex)) {
+                handlers.onStep?.({
+                  questionIndex,
+                  n,
+                  text: String(payload.text ?? ''),
+                  final: frame.event === 'step',
+                });
+              }
+              break;
+            }
+            case 'steps_reset': {
+              const questionIndex = Number(payload.question_index);
+              if (Number.isFinite(questionIndex)) handlers.onStepsReset?.(questionIndex);
+              break;
+            }
             default:
-              // thinking / step / steps_reset: progress the screen does not
-              // show yet. Ignored rather than treated as unknown.
+              // thinking: a heartbeat the screen does not show. Ignored rather
+              // than treated as unknown.
               break;
           }
         }
