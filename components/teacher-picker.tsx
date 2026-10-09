@@ -22,7 +22,12 @@ import { TEACHERS, titleCaseTrait } from '@/constants/teachers';
 import { useScale } from '@/constants/scale';
 import { hapticSwitched } from '@/lib/haptics';
 import { getLanguagePreference, type LanguageId, type TeacherId } from '@/lib/preferences';
-import { playTeacherVoice, stopTeacherVoice } from '@/lib/teacher-voice';
+import {
+  playTeacherVoice,
+  prepareTeacherVoices,
+  releaseTeacherVoices,
+  stopTeacherVoice,
+} from '@/lib/teacher-voice';
 
 /**
  * SELECT TEACHER — "11a" in the handoff — as a component, because it is shown
@@ -120,15 +125,26 @@ export function TeacherPicker({
   /** The language the voice plays in: always English in onboarding, the
    *  student's own choice on the page opened from Home. See lib/teacher-voice.ts. */
   const voiceLanguage = useRef<LanguageId>('english');
-  useEffect(() => {
-    if (onboarding) return;
-    getLanguagePreference().then((l) => {
-      voiceLanguage.current = l;
-    });
-  }, [onboarding]);
-  /** Leaving the page, however it is left, stops the voice. */
-  useFocusEffect(useCallback(() => () => stopTeacherVoice(), []));
-  useEffect(() => () => stopTeacherVoice(), []);
+  /** On the page: both voices loaded and ready, so a switch plays at once.
+   *  Off it, however it is left: released, and the audio handed back. */
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      const language: Promise<LanguageId> = onboarding
+        ? Promise.resolve('english')
+        : getLanguagePreference();
+      language.then((l) => {
+        if (!live) return;
+        voiceLanguage.current = l;
+        prepareTeacherVoices(l);
+      });
+      return () => {
+        live = false;
+        releaseTeacherVoices();
+      };
+    }, [onboarding])
+  );
+  useEffect(() => () => releaseTeacherVoices(), []);
 
   /** What the controls say. Changes the instant a chip is tapped. */
   const [view, setView] = useState<TeacherId>(opened);
@@ -172,7 +188,7 @@ export function TeacherPicker({
   const switchTo = (next: TeacherId) => {
     if (next === view) return;
     hapticSwitched();
-    void playTeacherVoice(next, onboarding ? 'english' : voiceLanguage.current);
+    playTeacherVoice(next, onboarding ? 'english' : voiceLanguage.current);
     setView(next);
     // The field starts blending straight away; the words wait, so they are
     // never caught half-changed over a colour that has already moved on.
