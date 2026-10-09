@@ -1,5 +1,12 @@
 # Moments — encouragement, spec
 
+> **ON HOLD since 2026-10-08.** Built, but hidden while we rethink how and
+> where it should be shown. Turned off by `MOMENTS_VISIBLE` in
+> `constants/features.ts`, which hides both surfaces: the observation row on
+> Home and the teacher's note on Class Dismissed. The bookkeeping behind them
+> (the snapshot at class start, the count of classes taken) keeps running, so
+> switching it back on starts from true numbers.
+
 Not built yet. This is the agreed shape of three features, written before any
 design so the data and the wiring are settled first. Decided 2026-08-20.
 

@@ -100,11 +100,18 @@ export function MonkLogo({
    *  tallest element once the 1.75 ratio is applied. */
   height,
   tone = 'light',
+  learning,
+  core = '#EEA31F',
 }: {
   height: number;
   tone?: 'light' | 'dark';
+  /** "learning" on a coloured ground (a textbook cover), where the tone's
+   *  fixed colour would read as grey against it. */
+  learning?: string;
+  /** The kit's alternate red dot, for a ground the marigold would vanish on. */
+  core?: string;
 }) {
-  const c = TONES[tone];
+  const c = { ...TONES[tone], ...(learning ? { learning } : null) };
   const fontSize = height / (SYMBOL_TO_INK * INK_EM);
 
   return (
@@ -130,7 +137,7 @@ export function MonkLogo({
           strokeDasharray="21.8 18"
           transform="rotate(-30 60 60)"
         />
-        <Circle cx={60} cy={60} r={6} fill="#EEA31F" />
+        <Circle cx={60} cy={60} r={6} fill={core} />
       </Svg>
 
       {/* One Text, two spans — so the two weights stay on one baseline and the

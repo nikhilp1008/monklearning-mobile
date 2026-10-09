@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
@@ -28,6 +29,24 @@ export default function PlanSheetScreen() {
   useEffect(() => {
     getTodayPlan().then(setItems);
   }, []);
+
+  /**
+   * THE SHEET RIDES UP WITH THE KEYBOARD. It is pinned to the bottom of the
+   * screen, so typing a plan opened the keyboard straight over the field, the
+   * suggestions and Done. Now it lifts by the keyboard's height, frame by
+   * frame with it, less the home-indicator room the keyboard covers anyway,
+   * plus a little air so Done does not sit on the keys. The report sheet
+   * does the same (components/report-sheet.tsx).
+   */
+  const bottomPad = Math.max(insets.bottom, verticalScale(16));
+  const keyboardGap = verticalScale(12);
+  const keyboard = useAnimatedKeyboard();
+  const sheetLift = useAnimatedStyle(() => {
+    const h = keyboard.height.value;
+    // The gap eases in with the keyboard instead of jumping on at its start.
+    const gap = keyboardGap * Math.min(1, h / Math.max(1, bottomPad));
+    return { transform: [{ translateY: -Math.max(0, h - bottomPad + gap) }] };
+  });
 
   const hasSlot = items.length < MAX_PLAN_ITEMS;
   const plansLeft = MAX_PLAN_ITEMS - items.length;
@@ -66,7 +85,7 @@ export default function PlanSheetScreen() {
           height of its own, so it measured to its content and the inset was
           then added inside that measurement — which pushed the Done button
           past the bottom edge, where it was clipped. */}
-      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, verticalScale(16)) }]}>
+      <Animated.View style={[styles.sheet, { paddingBottom: bottomPad }, sheetLift]}>
         <View style={styles.handle} />
 
         <View style={styles.headerRow}>
@@ -163,7 +182,7 @@ export default function PlanSheetScreen() {
         <PressableScale style={styles.doneButton} onPress={() => router.back()}>
           <Text style={styles.doneButtonText}>Done</Text>
         </PressableScale>
-      </View>
+      </Animated.View>
     </View>
   );
 }

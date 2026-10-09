@@ -1,24 +1,47 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect as SvgRect, Stop } from 'react-native-svg';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useWindowDimensions,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedScrollHandler,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+  Easing,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
-import { Grain } from '@/components/grain';
-import { PracticeIcon, ProgressGlyph, SnapADoubtIcon } from '@/components/monk-icons';
-import { hapticKey, hapticTicked, hapticUnticked } from '@/lib/haptics';
-import { MonkLogo } from '@/components/monk-logo';
+import { HomeHeader } from '@/components/home-header';
+import { NightSkyAbove, NightSkyStrip, ThemedSky } from '@/components/night-sky';
+import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
+import { hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
+import { MOMENTS_VISIBLE } from '@/constants/features';
 import { useScale } from '@/constants/scale';
+import { SKY_THEMES } from '@/constants/teachers';
 import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
+import { pullPersona } from '@/lib/persona-sync';
+import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { getStoredName } from '@/lib/profile';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { classesTaken } from '@/lib/proof';
+
+/** Drona's sky, then Vedha's — the order `skyMix` runs 0 to 1 in. */
+const TEACHER_SKIES = [SKY_THEMES.drona, SKY_THEMES.vedha] as const;
 
 /**
  * Home — export-10a.
@@ -60,7 +83,75 @@ export default function HomeScreen() {
     return toStatsState(c.monk_score.display, c.ledger.questions_attempted);
   });
   const [noticed, setNoticed] = useState<Observation | null>(null);
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
+  /**
+   * THE SKY IN THE TEACHER'S LIGHT: 0 is Drona's, 1 is Vedha's. The first
+   * teacher this screen learns is set outright — a student opening the app
+   * should not watch the sky change into the teacher they already had — and
+   * every change after that fades, which is a student having just chosen.
+   */
+  const skyMix = useSharedValue(0);
+  const skyKnown = useRef(false);
+  const showTeacher = useCallback(
+    (t: TeacherId) => {
+      setTeacher(t);
+      const to = t === 'vedha' ? 1 : 0;
+      if (!skyKnown.current) {
+        skyKnown.current = true;
+        skyMix.value = to;
+      } else {
+        skyMix.value = withTiming(to, { duration: 700, easing: Easing.bezier(0.4, 0, 0.2, 1) });
+      }
+    },
+    [skyMix]
+  );
   const doneCount = planItems.filter((item) => item.done).length;
+
+  /**
+   * THE STATUS BAR FOLLOWS THE HEADER, because the header scrolls away.
+   *
+   * The glyphs are paper while the dark block is under them and ink the moment
+   * white is. Declared here rather than in the tabs layout so this screen's
+   * `<StatusBar>` sits on top of that one's `style="dark"` — and only while
+   * this screen is the one being looked at, or the light setting would follow
+   * the student onto a white tab and leave an invisible clock there.
+   */
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const [header, setHeader] = useState({ width: 0, height: 0 });
+  const [barLight, setBarLight] = useState(true);
+  const [focused, setFocused] = useState(false);
+
+  /** How far the header can travel before its bottom edge reaches the clock. */
+  const skyTravel = Math.max(1, header.height - insets.top);
+  /** Where the clock flips to ink: the header's bottom is about to leave. */
+  const flipAt = skyTravel - scale(8);
+  /** The page's scroll, on the UI thread, so the strip behind the clock moves
+   *  with the header frame for frame rather than a frame behind it. */
+  const scrollY = useSharedValue(0);
+  const lightNow = useSharedValue(true);
+  const onScroll = useAnimatedScrollHandler(
+    (e) => {
+      scrollY.value = e.contentOffset.y;
+      const covered = e.contentOffset.y < flipAt;
+      if (covered !== lightNow.value) {
+        lightNow.value = covered;
+        runOnJS(setBarLight)(covered);
+      }
+    },
+    [flipAt]
+  );
+  const skyOffset = useDerivedValue(
+    () => Math.min(Math.max(scrollY.value, 0), skyTravel),
+    [skyTravel]
+  );
+  /** Gone over the last stretch before the flip, so it fades rather than cuts.
+   *  Worked out here, not in the worklet: `scale` cannot run on the UI thread. */
+  const fadeFrom = flipAt - scale(24);
+  const skyFade = useDerivedValue(
+    () => interpolate(scrollY.value, [fadeFrom, flipAt], [1, 0], Extrapolation.CLAMP),
+    [fadeFrom, flipAt]
+  );
 
   // Refetch on focus, not just mount — the plan is edited on a separate screen
   // this one stays mounted underneath, and the score moves while the student
@@ -70,6 +161,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      setFocused(true);
       // The stored name only — a fresh install shows the neutral glyph, never
       // a sample profile's initial presented as the student's own.
       getStoredName().then((name) => {
@@ -77,6 +169,12 @@ export default function HomeScreen() {
       });
       getTodayPlan().then((items) => {
         if (!cancelled) setPlanItems(items);
+      });
+      // Read, not assumed: the header names the teacher, and naming the wrong
+      // one is worse than naming none. The default stands in only for the
+      // frame before storage answers, and it is the app's own default.
+      getTeacherPreference().then((t) => {
+        if (!cancelled) showTeacher(t);
       });
       // Concurrent, not nested. `classesTaken` is one AsyncStorage read and
       // owes the network nothing, so waiting for the ~130KB /progress payload
@@ -101,9 +199,38 @@ export default function HomeScreen() {
         });
       return () => {
         cancelled = true;
+        setFocused(false);
       };
-    }, [])
+    }, [showTeacher])
   );
+
+  /**
+   * THE SERVER'S COPY, ASKED FOR ONCE — on mount, not on every focus.
+   *
+   * The persona is canonical: a teacher chosen during onboarding, on another
+   * device, or before a reinstall exists only there until something pulls it,
+   * and Home now names the teacher out loud, so it has to ask. Profile used to
+   * be the only screen that did.
+   *
+   * ON MOUNT IS NOT A DETAIL. Pulling on focus looked equivalent and was not:
+   * coming back from Select Teacher, the pull raced the save that screen had
+   * just fired, read the teacher the server had not been told about yet, and
+   * wrote it back over the student's choice — tap Drona, return to Home, see
+   * Vedha. Mount-only keeps the cold-start case, which is the one that needed
+   * solving, and never runs at the moment a choice is in flight.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    pullPersona()
+      .then((persona) => {
+        if (!cancelled && persona?.teacher) showTeacher(persona.teacher);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // `showTeacher` is stable; this still runs once, on mount.
+  }, [showTeacher]);
 
   const togglePlanItem = (id: string) => {
     // Two different taps. Done gets the Success; un-ticking is a correction,
@@ -117,38 +244,49 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* App bar. The rule under it is full-bleed and 1.5pt — heavier than
-            every other line on the page, because it separates the chrome from
-            the document rather than one section from the next. */}
-        <View style={styles.appBar}>
-          {/* The SYMBOL's height, and the lockup's -- the wordmark and the gap
-              are both ratios of it, so this one number scales the whole mark.
-              Settled at 20 after 30 (too symbol-dominant), 21, then 18 (word
-              too small once the ratios were right). */}
-          <MonkLogo height={scale(20)} />
-          <View style={styles.appBarRight}>
-            <PressableScale
-              style={styles.appBarButton}
-              accessibilityLabel="Progress"
-              onPress={() => router.push('/progress')}>
-              <ProgressGlyph size={scale(20)} />
-            </PressableScale>
-            <PressableScale
-              style={styles.appBarButton}
-              accessibilityLabel="Profile"
-              onPress={() => router.push('/profile')}>
-              {initial ? (
-                <Text style={styles.appBarInitial}>{initial}</Text>
-              ) : (
-                <PersonIcon size={scale(19)} />
-              )}
-            </PressableScale>
-          </View>
-        </View>
+      {focused ? <StatusBar style={barLight ? 'light' : 'dark'} animated /> : null}
+      <Animated.ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}>
+        {/*
+          THE SKY ABOVE THE SKY, for a pull past the top.
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <ClassBlock styles={styles} scale={scale} onPress={() => router.push('/drona')} />
+          The page bounces at both ends, as an iPhone page should. Pulled down
+          past the top, though, the header slid down and opened a white gap
+          above it, under the strip of sky that stays behind the clock — the
+          header and the status bar came apart. This sits directly above the
+          header, off the top of the page, and moves with it: a pull reveals
+          more of the sky's own top edge, grain and all, so it reads as the
+          header stretching rather than tearing away. At rest and in an
+          ordinary scroll it is above the screen and never seen.
+        */}
+        {header.width > 0 ? (
+          <NightSkyAbove
+            width={header.width}
+            height={windowHeight}
+            style={[styles.skyAbove, { top: -windowHeight }]}
+          />
+        ) : null}
+        {/* The app bar and the live-class card, as one block. See
+            components/home-header.tsx — the copy is unchanged, the two pieces
+            are not two pieces any more, and the teacher now has a row of its
+            own above the button that starts the class. */}
+        <HomeHeader
+          teacher={teacher}
+          initial={initial}
+          onSelectTeacher={() =>
+            router.push({ pathname: '/select-teacher', params: { teacher } })
+          }
+          onStartClass={() => router.push('/drona')}
+          onProgress={() => router.push('/progress')}
+          onProfile={() => router.push('/profile')}
+          onMeasure={setHeader}
+          skyMix={skyMix}
+        />
+
+        <View style={styles.body}>
 
           {/*
             Two cells of one strip, not two cards. A vertical rule between them
@@ -183,7 +321,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/snap-capture')}>
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
-                  <PlateGround />
+                  <PlateGround size={scale(36)} mix={skyMix} />
                   <SnapADoubtIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
@@ -196,7 +334,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/practice')}>
               <View style={styles.stripHead}>
                 <View style={styles.stripPlate}>
-                  <PlateGround />
+                  <PlateGround size={scale(36)} mix={skyMix} />
                   <PracticeIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
                 </View>
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
@@ -216,7 +354,8 @@ export default function HomeScreen() {
           {/* One observation, or nothing. Silence is a valid answer — see
               lib/noticed.ts — so this renders nothing at all rather than a
               placeholder, and the section below simply moves up. */}
-          {noticed && (
+          {/* On hold — see MOMENTS_VISIBLE in constants/features.ts. */}
+          {MOMENTS_VISIBLE && noticed && (
             <View style={styles.noticedSlot}>
               <NoticedCard
                 observation={noticed}
@@ -306,44 +445,51 @@ export default function HomeScreen() {
             </View>
             <ArrowRightIcon color={colors.slate} size={scale(15)} />
           </PressableScale>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </Animated.ScrollView>
+
+      {/*
+        THE STRIP OF SKY BEHIND THE CLOCK.
+
+        The header scrolls, and the status bar does not. Without this, the
+        teacher row slides up behind the clock and the two sets of pale text
+        overlap on an amber field — which the web mock could not show, because
+        there the status bar is drawn inside the page and scrolls away with it.
+
+        So a copy of the same sky is pinned at the top, clipped to the safe
+        area, for exactly as long as the header is still under the status bar.
+        It is the SAME shader at the SAME size, so while the page is at rest it
+        is indistinguishable from the header behind it.
+
+        AND IT SCROLLS WITH THE HEADER. It used to show the top of the sky —
+        its darkest band — wherever the page was, so once the header moved up
+        and its amber middle was under the clock, the strip sat over it as a
+        dark bar. Now the sky inside the strip slides up with the scroll, so
+        the strip always shows the very slice of sky that is beneath it: one
+        continuous sky, with the header's words and buttons passing out of
+        sight under it, its lower edge dissolving rather than slicing them.
+        It is clipped to the header's own rounded bottom, and over the last
+        stretch before the header leaves it fades out, so it is gone — not
+        cut — by the time the status bar flips to ink. See NightSkyStrip.
+      */}
+      {barLight && header.width > 0 ? (
+        <NightSkyStrip
+          width={header.width}
+          skyHeight={header.height}
+          height={insets.top}
+          feather={Math.min(scale(16), insets.top * 0.3)}
+          corner={scale(34)}
+          offset={skyOffset}
+          fade={skyFade}
+          themes={TEACHER_SKIES}
+          mix={skyMix}
+          style={styles.statusScrim}
+        />
+      ) : null}
     </View>
   );
 }
 
-/**
- * The class block, and the key inside it.
- *
- * The handoff draws the button with four stacked shadows, two of them inset.
- * React Native has one shadow per view and no inset at all, so the key is
- * built out of geometry instead: a dark rounded rect showing 3pt below the
- * face is the `0 3px 0` base, the face's gradient holds white for its first
- * 6% to stand in for the `inset 0 1px 0 #FFF` top highlight, and the soft
- * `0 8px 18px` is the only shadow left for the shadow props to carry.
- *
- * Pressing translates the face down 2pt and drops the base to 1, which is the
- * travel the handoff specifies — the reason the block is one Pressable rather
- * than a PressableScale is that a uniform scale cannot express it.
- */
-/**
- * GRAIN CELLS PER POINT — one number, because the card and the plates want the
- * same paper and only ever differed by accident.
- *
- * Both drew the same 420x240 PNG and neither could draw it plainly. The card
- * stretched it across 342pt, so one source pixel covered about 2.4 device
- * pixels; the plates could not stretch it at all, because fitting that sheet
- * into a 36pt box is a four-fold reduction and downscaling noise averages it
- * away, so it had to be pinned at exactly 140x80pt — its own size in device
- * pixels — and clipped by the plate. One asset, two unrelated tricks, two
- * different grains at the end of it.
- *
- * Skia evaluates the noise per pixel, so there is no sheet to fit and the
- * question becomes what size the grain should be rather than how to stop it
- * being resampled. 1.0 is a cell three device pixels across on a 3x screen,
- * which is what the card was already showing and what the plates now match.
- */
-const GRAIN_FREQ = 1.0;
 
 /**
  * HOW MUCH OF IT, and these are measured rather than chosen. The PNG carried
@@ -360,139 +506,37 @@ const GRAIN_FREQ = 1.0;
  * rather than in a screenshot.
  */
 /**
- * THE PLATE'S GROUND, and the two wrong ways to lighten it.
+ * THE PLATE'S GROUND — a 36pt window onto the header's own sky.
  *
- * It began as `colors.ink` — the same near-black the body text is set in — and
- * at 36pt square, twice, on a page that is otherwise warm off-white, two black
- * chips read heavier than the live-class card above them, which is the thing
- * actually asking to be pressed.
+ * It used to be the live-class card's treatment at a thirty-sixth of the area:
+ * a charcoal-to-brown gradient with a warm glow in the lower right. That card
+ * does not exist any more — the header replaced it — so these two plates were
+ * the last surviving miniatures of a design nothing else on the page shared,
+ * which is exactly why they read as odd: dark blobs quoting something that had
+ * gone.
  *
- * DROPPING THE ALPHA was the first wrong answer. What shows through a
- * translucent plate is the paper, and the paper is neutral, so the plate loses
- * its warmth exactly as fast as it gains lightness. At half alpha it is a grey
- * chip with a washed-out glyph.
+ * So they quote the thing that is actually there. This is the SAME shader the
+ * header runs (components/night-sky.tsx), evaluated at 36 points instead of
+ * 390, so each plate shows the whole composition in miniature — night at the
+ * top, the lamp glowing up past the bottom edge. Not a gradient that resembles
+ * the header: the header's own field, at a smaller size.
  *
- * LIFTING THE FLAT COLOUR was the second, and it is the subtler mistake. The
- * plate got lighter and looked WORSE — hazy rather than bright — for two
- * reasons that only show up on screen. The glow had nothing dark left to read
- * against, so the light stopped looking like light; and the grain, which is an
- * overlay blend, bites far harder on a mid-tone than on near-black: measured
- * at 1.375 against 0.627, more than twice the texture, on a surface that was
- * supposed to be getting calmer.
- *
- * SO THE LIGHT DOES THE LIFTING. The ground stays dark enough to be a shadow
- * and the glow below is what makes the plate read warm and bright — a lit
- * object rather than a pale one. Lightness went up, contrast stayed, and the
- * grain went back down to 0.16 because it no longer has to fight a grey field.
+ * It costs nothing extra to do it properly. The sky is a still, so a plate is
+ * one shader evaluation over 36x36 points, drawn once and cached like every
+ * other static Skia picture on the page.
  */
-const PLATE_GROUND = '#2E2A24';
-
-const CARD_GRAIN = 0.26;
-const PLATE_GRAIN = 0.16;
-
-/**
- * THE PLATE'S GROUND — the live-class card's treatment, at a thirty-sixth of
- * the area: a warm glow in the lower-right and the same grain over it.
- */
-function PlateGround() {
+function PlateGround({ size, mix }: { size: number; mix: SharedValue<number> }) {
+  /* Absolutely positioned, or the canvas takes layout space inside a plate
+     that centres its children and shoves the glyph off the bottom edge. In
+     the teacher's light, like the header it is a miniature of. */
   return (
-    <>
-      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Defs>
-          {/* Bigger and brighter than it was, and with a stop in the middle.
-              Two stops fell off too fast and left the glow as a bright corner
-              on a dark chip; carrying #C4821F through the middle spreads the
-              warmth across most of the plate, which is what makes it read
-              lighter overall without the ground having to go pale. */}
-          <RadialGradient id="plateGlow" cx="0.85" cy="1.05" r="1.35">
-            <Stop offset="0" stopColor="#F0AE39" stopOpacity={0.95} />
-            <Stop offset="0.5" stopColor="#C4821F" stopOpacity={0.43} />
-            <Stop offset="1" stopColor="#8A5A14" stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#plateGlow)" />
-      </Svg>
-      <Grain freq={GRAIN_FREQ} strength={PLATE_GRAIN} />
-    </>
-  );
-}
-
-function ClassBlock({
-  styles,
-  scale,
-  onPress,
-}: {
-  styles: ReturnType<typeof createStyles>;
-  scale: (n: number) => number;
-  onPress: () => void;
-}) {
-  const [held, setHeld] = useState(false);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Start a live class"
-      onPress={onPress}
-      onPressIn={() => {
-        hapticKey();
-        setHeld(true);
-      }}
-      onPressOut={() => setHeld(false)}
-      style={styles.classBlock}>
-      {/* An absolute fill, not a wrapper with `overflow: hidden`.
-          Clipping the block would take the drop shadow with it -- RN cannot
-          draw a shadow around a view that clips its own children -- and the
-          shadow is part of the design. An absolutely-positioned child fills
-          the padding box, so it lands INSIDE the 1pt amber ring and leaves it
-          drawing on top; its radius is 21, one point tighter than the block's
-          22, so the two stay concentric. */}
-      {/*
-        THE GROUND, IN THREE LAYERS. Charcoal at the top, a warm glow rising
-        from the foot, and grain over the whole of it.
-
-        ONE LINEAR GRADIENT COULD NOT DO IT. The light in the reference does
-        not fall in a straight line down the card — it gathers at the bottom
-        and leans into the bottom-right corner, which is a radial event. So the
-        linear pass carries the vertical charcoal-to-brown and a radial pass
-        lays the gold over it, centred just past the bottom-right corner so the
-        card catches the edge of the glow rather than containing its middle.
-
-        AND THE GRAIN IS DRAWN, not fetched. It was a PNG for three commits and
-        every problem with it came from being one: a fixed sheet that had to be
-        stretched here and pinned to its own pixel size on the icon plates, and
-        a texture you could only change by regenerating the file. `Grain` is a
-        Skia noise shader evaluated per pixel at whatever size it lands on. See
-        `components/grain.tsx` for why SVG's `FeTurbulence` could not do it.
-      */}
-      <View style={styles.classGradient} pointerEvents="none">
-        <LinearGradient
-          colors={['#1C1915', '#221E19', '#4A3512']}
-          locations={[0, 0.42, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Defs>
-            <RadialGradient id="classGlow" cx="0.82" cy="1.04" r="0.9">
-              <Stop offset="0" stopColor="#D9932A" stopOpacity={0.62} />
-              <Stop offset="0.45" stopColor="#B4761E" stopOpacity={0.3} />
-              <Stop offset="1" stopColor="#8A5A14" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#classGlow)" />
-        </Svg>
-        <Grain freq={GRAIN_FREQ} strength={CARD_GRAIN} />
-      </View>
-      <Text style={styles.classLine}>Pick a chapter and your teacher teaches it live.</Text>
-      <View style={[styles.keyBase, held && styles.keyBaseHeld]}>
-        <LinearGradient
-          colors={['#FFFFFF', '#FFFFFF', '#F4F0E6']}
-          locations={[0, 0.06, 1]}
-          style={[styles.keyFace, held && { transform: [{ translateY: scale(2) }] }]}>
-          <Text style={styles.keyLabel}>Start a Live Class</Text>
-        </LinearGradient>
-      </View>
-    </Pressable>
+    <ThemedSky
+      width={size}
+      height={size}
+      themes={TEACHER_SKIES}
+      mix={mix}
+      style={StyleSheet.absoluteFillObject}
+    />
   );
 }
 
@@ -523,20 +567,6 @@ function runObservationAction(action: ObservationAction | undefined) {
   }
 }
 
-function PersonIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Circle cx={12} cy={8} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
-      <Path
-        d="M4.8 20c0-3.6 3.2-5.6 7.2-5.6s7.2 2 7.2 5.6"
-        stroke={colors.ink}
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
 function CheckIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -559,119 +589,22 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
       backgroundColor: '#fff',
     },
-    safeArea: {
-      flex: 1,
-    },
-
-    // --- app bar ---
-    appBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: scale(12),
-      paddingLeft: scale(24),
-      paddingRight: scale(24),
-      paddingTop: verticalScale(10),
-      paddingBottom: verticalScale(14),
-      borderBottomWidth: 1.5,
-      borderBottomColor: 'rgba(28,26,22,.14)',
-    },
-    appBarRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    appBarButton: {
-      width: scale(40),
-      height: scale(40),
-      borderRadius: scale(20),
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
-    },
-    appBarInitial: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(16),
-      color: colors.ink,
-    },
-
+    /* Nothing of its own. The header runs to all three edges and up under the
+       status bar, so the page margin belongs to everything BELOW it. */
     scrollContent: {
-      paddingTop: verticalScale(28),
-      paddingHorizontal: scale(24),
       paddingBottom: verticalScale(130),
     },
-
-    // --- the class block ---
-    classBlock: {
-      alignItems: 'flex-start',
-      gap: verticalScale(20),
-      padding: scale(24),
-      borderRadius: scale(22),
-      // Kept under the gradient as the base coat: it is the gradient's own
-      // first two stops, so nothing flashes before the gradient paints and the
-      // 1pt border has something to sit against.
-      backgroundColor: '#2A2621',
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.8)',
-      shadowColor: colors.ink,
-      shadowOpacity: 0.2,
-      shadowOffset: { width: 0, height: verticalScale(12) },
-      shadowRadius: scale(30),
-      elevation: 10,
-      marginBottom: verticalScale(32),
+    body: {
+      paddingTop: verticalScale(28),
+      paddingHorizontal: scale(24),
     },
-    classGradient: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: scale(21),
-      /**
-       * CLIPS ITS CHILDREN, and it has to now that there are three of them.
-       * A radius alone shapes the view's own background; it does not shape
-       * what is painted inside it. While this WAS the gradient, that was
-       * enough — a gradient clips its own painting to its radius. As a wrapper
-       * holding a gradient, an SVG glow and a grain sheet, it left all three
-       * drawing square corners across the card's rounded amber border.
-       *
-       * Safe here, and only here: the drop shadow lives on `classBlock`
-       * outside this, so clipping costs nothing. Clipping the BLOCK would take
-       * the shadow with it, which is what the note there warns about.
-       */
+    skyAbove: { position: 'absolute', left: 0 },
+    statusScrim: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
       overflow: 'hidden',
-    },
-    classLine: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(17),
-      lineHeight: scale(25),
-      color: colors.paper,
-    },
-    /** The `0 3px 0` base: a dark rect the face sits 3pt proud of. */
-    keyBase: {
-      paddingBottom: 3,
-      borderRadius: 99,
-      backgroundColor: 'rgba(28,26,22,.55)',
-      shadowColor: '#000',
-      shadowOpacity: 0.34,
-      shadowOffset: { width: 0, height: verticalScale(8) },
-      shadowRadius: scale(18),
-      elevation: 6,
-    },
-    keyBaseHeld: {
-      paddingBottom: 1,
-    },
-    keyFace: {
-      height: verticalScale(46),
-      paddingHorizontal: scale(20),
-      borderRadius: 99,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    keyLabel: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
-      color: colors.ink,
     },
 
     // --- snap / practice ---
@@ -706,7 +639,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(11),
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: PLATE_GROUND,
+      /* What shows under the sky for the frame before Skia has drawn it, and
+         on any device where the shader will not compile. Same token the header
+         falls back to, because it is now the same picture. */
+      backgroundColor: colors.night,
       /** Clips the glow and the grain to the plate's corners — the same thing
        *  the card needed once it held more than one layer. */
       overflow: 'hidden',
@@ -838,10 +774,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(15),
       color: colors.slate,
     },
+    /* 15/22, the page's body tier and the same as `planRowText` — which is
+       this exact row once it has something in it. It was 14.5/20, the only
+       size on Home that was not on the ladder, so the empty state read a
+       half-point smaller than the state it turns into. */
     planEmptyLabel: {
       fontFamily: 'Onest_500Medium',
-      fontSize: scale(14.5),
-      lineHeight: scale(20),
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.ink,
     },
     planRows: {

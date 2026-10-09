@@ -14,17 +14,21 @@
 // sets `font-family:'Onest'`, so there was nothing to reconcile.
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated as RNAnimated, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Defs, Path, RadialGradient, Rect as SvgRect, Stop } from 'react-native-svg';
 
+import { Grain } from '@/components/grain';
 import { PressableScale } from '@/components/pressable-scale';
+import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
-import { TEACHERS } from '@/constants/teachers';
-import { pageTitle } from '@/constants/page-title';
+import { TEACHER_THUMB } from '@/constants/teachers';
 import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { signOut } from '@/lib/auth';
@@ -33,20 +37,28 @@ import {
   getLanguagePreference,
   getTeacherPreference,
   setLanguagePreference,
-  setTeacherPreference,
   type LanguageId,
   type TeacherId,
 } from '@/lib/preferences';
 import { pullPersona, pushPersona } from '@/lib/persona-sync';
 import { getProfile, pullProfile, type StudentProfile } from '@/lib/profile';
-import { SWITCH_EASING, TeacherOrb } from '@/components/teacher-orb';
+
+/**
+ * The thumb's slide and its colour change, both 500ms as the handoff states.
+ *
+ * The curve overshoots — it passes the far edge and settles back — which is
+ * what makes a segmented control feel sprung rather than mechanical. The old
+ * value here was 380ms on the orb's easing, imported from the teacher orb this
+ * screen no longer draws.
+ */
+const THUMB_MS = 500;
+const THUMB_EASING = Easing.bezier(0.3, 1.25, 0.45, 1);
 
 const RULE = 'rgba(28,26,22,.1)';
+/** Inside the profile card only: a warm rule, so it does not go grey on amber. */
+const CARD_DIVIDER = 'rgba(58,42,23,.12)';
 const OUTLINE = 'rgba(28,26,22,.16)';
-const CREAM = '#FBF9F2';
-const CREAM_66 = 'rgba(251,249,242,.66)';
 const IDLE_INK = '#8A857A';
-const IDLE_QUIET = '#B4AC9B';
 
 /**
  * The orb palettes are 24A's two conic gradients, read in order. React Native
@@ -56,7 +68,7 @@ const IDLE_QUIET = '#B4AC9B';
  */
 // English first, as 24A draws the toggle.
 const LANGUAGES: { id: LanguageId; label: string; speech: string }[] = [
-  { id: 'english', label: 'English', speech: 'Everything in English, start to finish.' },
+  { id: 'english', label: 'English', speech: 'Explains everything in English, terms included.' },
   {
     id: 'hinglish',
     label: 'Hinglish',
@@ -75,29 +87,34 @@ export default function ProfileScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [language, setLanguage] = useState<LanguageId>('english');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getTeacherPreference(), getLanguagePreference()]).then(([t, l]) => {
+    getLanguagePreference().then((l) => {
       if (cancelled) return;
-      setTeacher(t);
       setLanguage(l);
+    });
+    // Read, never written here. The teacher is chosen on Select Teacher; this
+    // screen only borrows their colour for the Speaks thumb.
+    getTeacherPreference().then((t) => {
+      if (!cancelled) setTeacher(t);
     });
     // Local first so the page paints immediately, then refreshed from the
     // server — this is the screen most likely to be opened on a new device,
     // where the local copy is empty and `profiles` is the only source.
     getProfile().then((p) => !cancelled && setProfile(p));
-    // The server's copy of the persona is canonical — a teacher chosen on
-    // another device lands here, refreshing both the screen and the local
-    // cache the classroom reads at start.
+    // Still pulled, though the teacher no longer appears on this page: the
+    // call writes the canonical teacher into this device's cache as a side
+    // effect, which is what the classroom and Home's header read. Dropping it
+    // would leave a teacher chosen on another device invisible here.
     pullPersona()
       .then((persona) => {
         if (cancelled || !persona) return;
-        if (persona.teacher) setTeacher(persona.teacher);
         if (persona.language) setLanguage(persona.language);
+        if (persona.teacher) setTeacher(persona.teacher);
       })
       .catch(() => {});
     pullProfile()
@@ -113,13 +130,6 @@ export default function ProfileScreen() {
 
   /** Both guarded on the value actually moving: a tap that changes nothing
    *  should feel like nothing, or the tick stops meaning "that moved". */
-  const chooseTeacher = (id: TeacherId) => {
-    if (id !== teacher) hapticSwitched();
-    setTeacher(id);
-    setTeacherPreference(id);
-    void pushPersona({ teacher: id });
-  };
-
   const chooseLanguage = (id: LanguageId) => {
     if (id !== language) hapticSwitched();
     setLanguage(id);
@@ -139,61 +149,37 @@ export default function ProfileScreen() {
   const speech = LANGUAGES.find((l) => l.id === language)?.speech ?? '';
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <PressableScale
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}>
-            <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
-              <Path
-                d="M10 3 5 8l5 5"
-                stroke={colors.ink}
-                strokeWidth={1.9}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </PressableScale>
-          <Text style={styles.headerTitle}>Profile</Text>
-        </View>
+    /*
+     * THE APP'S OWN SETTINGS SHELL, not a header of this screen's own.
+     *
+     * Profile used to draw its own, and the note at the top of this file
+     * explained why: the handoff wanted a 40pt back circle beside a 22/700
+     * title where the shared one was 34 beside 24/500. That reason expired.
+     * `constants/page-title.ts` has since collapsed fifteen different page
+     * titles into one 24/700 tier, which the shared header already uses, so
+     * the two differed only by a back button size and a gutter — and this
+     * screen is the one place a student steps from into four others. Sharing
+     * the shell is what stops Profile reading as a page from a different app.
+     *
+     * It brings the 24pt gutter, the pinned header, the hairline that appears
+     * on scroll, and the 40pt tail, all of them the same as Personal
+     * information, Privacy policy, Terms and About us.
+     */
+    <SettingsPage title="Profile">
+          {/* The card the page is built around. Name, exam, class and
+              subjects were four plain rows on white; they are one warm object
+              now, and the only thing on the screen that is not a list. */}
+          <ProfileCard
+            styles={styles}
+            scale={scale}
+            name={profile?.name || 'Your account'}
+            exam={examValue}
+            year={profile ? YEARS[profile.year].replace(/^Class /, '') : ''}
+            subjects={(exam?.subjects ?? []).map((s2) => s2.name)}
+          />
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Identity. The year rides in a pill on the right rather than in a
-              subtitle, so a student with no name set still has a full row. */}
-          <View style={styles.identityRow}>
-            <Text style={styles.name}>{profile?.name || 'Your account'}</Text>
-            {!!profile && (
-              <View style={styles.yearPill}>
-                <Text style={styles.yearPillText}>{YEARS[profile.year]}</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.examRow}>
-            <Text style={styles.rowLabel}>Exam</Text>
-            <Text style={styles.rowValue}>{examValue}</Text>
-          </View>
-
-          <View style={styles.subjectsBlock}>
-            <Text style={styles.rowLabel}>Subjects</Text>
-            <View style={styles.chipRow}>
-              {/* Follows the exam, so a NEET student sees Biology here rather
-                  than the Maths this row used to hardcode. */}
-              {(exam?.subjects ?? []).map((subject) => (
-                <View key={subject.name} style={styles.chip}>
-                  <Text style={styles.chipText}>{subject.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* "Manage plan", because that is where it goes: Your plan, which
-              says what pass is running and when it ends. The exam is set
-              above this row, not behind it. */}
+          {/* Tucked 16 under the card's foot, overlapping it, so it reads as
+              belonging to the card rather than starting the next section. */}
           <PressableScale
             style={styles.manageLink}
             hitSlop={10}
@@ -210,86 +196,15 @@ export default function ProfileScreen() {
             </Svg>
           </PressableScale>
 
-          <Text style={styles.overline}>Your teacher</Text>
-          {/* Two cells of one strip, split by a rule — the same figure the
-              home screen uses for Snap and Practice. */}
-          <View style={styles.teacherStrip}>
-            {TEACHERS.map((t, i) => {
-              const on = t.id === teacher;
-              return (
-                <PressableScale
-                  key={t.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={`Teacher ${t.name}`}
-                  style={[
-                    styles.teacherCell,
-                    i === 0 ? styles.teacherCellLeft : styles.teacherCellRight,
-                  ]}
-                  onPress={() => chooseTeacher(t.id)}>
-                  {/* No `key` here. It used to be keyed on the selection to
-                      "replay the bloom", but there is no bloom on the orb --
-                      so all it did was unmount and remount both orbs on every
-                      tap: ~28k multiply-adds re-run, 384 SVG nodes torn down
-                      and rebuilt, and both rotations snapped back to 0deg.
-                      That was the friction. */}
-                  <TeacherOrb teacher={t.id} dimmed={!on} size={scale(56)} />
-                  <Text style={[styles.teacherName, !on && styles.teacherNameIdle]}>{t.name}</Text>
-                  {/* `white-space:nowrap` in 24A. Both traits are 26
-                      characters and the cell is ~157pt, so at 12.5 they land
-                      within a point or two of the edge -- and wrapped to two
-                      lines once the right cell got its 20pt gutter back.
-                      One line, shrinking a fraction where it has to, rather
-                      than a two-line block under a 56pt orb. */}
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.88}
-                    style={[styles.teacherTrait, !on && styles.teacherTraitIdle]}>
-                    {t.trait}
-                  </Text>
-                </PressableScale>
-              );
-            })}
-          </View>
-
           <Text style={styles.overline}>Speaks</Text>
           <LanguageToggle
             styles={styles}
             options={LANGUAGES}
             value={language}
+            teacher={teacher}
             onChange={chooseLanguage}
           />
-          <Text style={styles.speech}>{speech} Switch anytime, even mid-class.</Text>
-
-          {/* Rate the app. The only dark object on the page, and it carries the
-              amber rim the class block on Home uses. */}
-          <View style={styles.rateCard}>
-            <Text style={styles.rateSub}>Enjoying monklearning so far?</Text>
-            <Text style={styles.rateHeadline}>Give us a rating</Text>
-            {/* Five, all filled, as the handoff draws them. */}
-            <View style={styles.starRow}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <StarIcon key={i} size={scale(40)} />
-              ))}
-            </View>
-            {/* The 3D key from onboarding: a dark rect showing 3pt below the
-                face stands in for `0 3px 0`, and the gradient holds white for
-                its first 6% for the inset top highlight. RN has one shadow per
-                view and no inset, so the rest is geometry.
-
-                Unwired, as it was before: there is no App Store listing to
-                open yet. The label still moves, because a student who has just
-                tapped five stars should be told what the button will do. */}
-            <View style={styles.keyBase}>
-              <LinearGradient
-                colors={['#FFFFFF', '#FFFFFF', '#F4F0E6']}
-                locations={[0, 0.06, 1]}
-                style={styles.keyFace}>
-                <Text style={styles.keyLabel}>Rate monklearning</Text>
-              </LinearGradient>
-            </View>
-          </View>
+          <Text style={styles.speech}>{speech}</Text>
 
           <View style={styles.links}>
             {MORE_LINKS.map((link) => (
@@ -320,8 +235,112 @@ export default function ProfileScreen() {
             }}>
             <Text style={styles.logOutText}>Log out</Text>
           </PressableScale>
-        </ScrollView>
-      </SafeAreaView>
+    </SettingsPage>
+  );
+}
+
+/**
+ * THE PROFILE CARD — the one warm object on the page.
+ *
+ * Name, exam, class and subjects used to be four plain rows on white, which
+ * said nothing about whose account this is. They are one card now: a marigold
+ * field lit from its foot, with the rows reversed out of it.
+ *
+ * THREE LAYERS, as the handoff specifies, and they are not interchangeable. A
+ * single gradient cannot do it — the card is a pale cream body with a warm
+ * wash coming down from above the top edge and a strong marigold light rising
+ * from below the bottom edge, so the brightest part of the card is outside the
+ * card. That is what stops it reading as a flat orange rectangle.
+ */
+function ProfileCard({
+  styles,
+  scale,
+  name,
+  exam,
+  year,
+  subjects,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  scale: (n: number) => number;
+  name: string;
+  exam: string;
+  /** Already stripped of its "Class " prefix; the row is labelled Class. */
+  year: string;
+  subjects: string[];
+}) {
+  /**
+   * MEASURED, not `width="100%"`.
+   *
+   * A percentage inside an `Svg` resolves against the viewport it had when it
+   * was first laid out, and this card grows after that: the subject chips
+   * arrive with the profile fetch and wrap to a second row. The washes stayed
+   * the size of the card before the chips landed, which drew a visible
+   * rectangle across it — a hard vertical edge about 100pt short of the right
+   * side. Real numbers, from the box the card actually ended up as.
+   */
+  const [box, setBox] = useState({ width: 0, height: 0 });
+
+  return (
+    <View style={styles.cardShadow}>
+      <View
+        style={styles.profileCard}
+        onLayout={(e) =>
+          setBox({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
+        }>
+        <LinearGradient
+          colors={['#F8E2AE', '#FCF4E0', '#FAE6B4', '#F2B23A']}
+          locations={[0, 0.38, 0.72, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Svg
+          style={StyleSheet.absoluteFill}
+          width={box.width}
+          height={box.height}
+          pointerEvents="none">
+          <Defs>
+            {/* `radial-gradient(120% 60% at 50% -18%, …)` */}
+            <RadialGradient id="cardTop" cx="0.5" cy="-0.18" rx="1.2" ry="0.6">
+              <Stop offset="0" stopColor="#F2B23A" stopOpacity={0.6} />
+              <Stop offset="0.72" stopColor="#F2B23A" stopOpacity={0} />
+            </RadialGradient>
+            {/* `radial-gradient(140% 70% at 50% 120%, …)` — the lamp. */}
+            <RadialGradient id="cardFoot" cx="0.5" cy="1.2" rx="1.4" ry="0.7">
+              <Stop offset="0" stopColor="#EEA31F" stopOpacity={1} />
+              <Stop offset="0.3" stopColor="#EEA31F" stopOpacity={0.75} />
+              <Stop offset="0.55" stopColor="#F2B23A" stopOpacity={0.35} />
+              <Stop offset="0.8" stopColor="#F2B23A" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <SvgRect x={0} y={0} width={box.width} height={box.height} fill="url(#cardTop)" />
+          <SvgRect x={0} y={0} width={box.width} height={box.height} fill="url(#cardFoot)" />
+        </Svg>
+        {/* Drawn, not the handoff's 128px tile — see components/grain.tsx.
+            This is the one grained surface in the app that is LIGHT, which is
+            where an overlay blend actually has something to work with. */}
+        <Grain freq={1} strength={0.2} />
+
+        <Text style={styles.cardName}>{name}</Text>
+        <View style={styles.cardRow}>
+          <Text style={styles.rowLabel}>Exam</Text>
+          <Text style={styles.rowValue}>{exam}</Text>
+        </View>
+        {!!year && (
+          <View style={styles.cardRow}>
+            <Text style={styles.rowLabel}>Class</Text>
+            <Text style={styles.rowValue}>{year}</Text>
+          </View>
+        )}
+        <View style={styles.subjectsBlock}>
+          <Text style={styles.rowLabel}>Subjects</Text>
+          <View style={styles.chipRow}>
+            {subjects.map((subject) => (
+              <View key={subject} style={styles.chip}>
+                <Text style={styles.chipText}>{subject}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
@@ -337,11 +356,14 @@ function LanguageToggle({
   styles,
   options,
   value,
+  teacher,
   onChange,
 }: {
   styles: ReturnType<typeof createStyles>;
   options: { id: LanguageId; label: string }[];
   value: LanguageId;
+  /** Whose colour the thumb wears. Chosen on Select Teacher, not here. */
+  teacher: TeacherId;
   onChange: (id: LanguageId) => void;
 }) {
   const index = Math.max(
@@ -352,8 +374,42 @@ function LanguageToggle({
   const pos = useSharedValue(index);
 
   useEffect(() => {
-    pos.value = withTiming(index, { duration: 380, easing: SWITCH_EASING });
+    pos.value = withTiming(index, { duration: THUMB_MS, easing: THUMB_EASING });
   }, [index, pos]);
+
+  /**
+   * The thumb's colour follows the teacher, and it CROSS-FADES rather than
+   * swapping. Two copies of the fill are stacked, the old one underneath; when
+   * the teacher changes the top one fades in over it across 500ms and then
+   * becomes the one underneath. Swapping the gradient's stops instead would
+   * jump, because a gradient has no midpoint to animate through.
+   */
+  const shown = useRef(teacher);
+  const blend = useRef(new RNAnimated.Value(1)).current;
+  const [, repaint] = useState(0);
+  useEffect(() => {
+    if (shown.current === teacher) return;
+    blend.setValue(0);
+    RNAnimated.timing(blend, {
+      toValue: 1,
+      duration: THUMB_MS,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) return;
+      shown.current = teacher;
+      repaint((n) => n + 1);
+    });
+  }, [teacher, blend]);
+
+  const Fill = ({ id }: { id: TeacherId }) => (
+    <LinearGradient
+      colors={TEACHER_THUMB[id]}
+      locations={[0, 0.4, 1]}
+      start={{ x: 0.2, y: 0 }}
+      end={{ x: 0.8, y: 1 }}
+      style={[StyleSheet.absoluteFill, styles.knobFill]}
+    />
+  );
 
   // `calc(50% - 3px)`, measured, because RN has no calc and the knob has to
   // land exactly inside the 3pt inset on both sides.
@@ -364,12 +420,10 @@ function LanguageToggle({
     <View style={styles.toggle} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {half > 0 && (
         <Animated.View style={[styles.knob, { width: half }, slide]}>
-          <LinearGradient
-            colors={['#F7D779', '#EEA31F']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[StyleSheet.absoluteFill, styles.knobFill]}
-          />
+          <Fill id={shown.current} />
+          <RNAnimated.View style={[StyleSheet.absoluteFill, { opacity: blend }]}>
+            <Fill id={teacher} />
+          </RNAnimated.View>
         </Animated.View>
       )}
       {options.map((o) => {
@@ -389,102 +443,27 @@ function LanguageToggle({
   );
 }
 
-/** 24A's star: the amber ramp, #FFE49B down to #EEA31F. */
-function StarIcon({ size }: { size: number }) {
-  const d =
-    'M12 2.9c.42 0 .8.24 1 .62l2.28 4.66 5.14.75c.42.06.77.36.9.77.13.4.02.85-.28 1.14l-3.72 3.57.88 5.06c.07.42-.1.85-.45 1.1-.35.25-.8.28-1.18.08L12 18.3l-4.57 2.4c-.38.2-.83.17-1.18-.08a1.1 1.1 0 0 1-.45-1.1l.88-5.06-3.72-3.57a1.1 1.1 0 0 1-.28-1.14c.13-.4.48-.71.9-.77l5.14-.75L11 3.52c.2-.38.58-.62 1-.62z';
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Defs>
-        <SvgLinearGradient id="starFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFE49B" />
-          <Stop offset="1" stopColor="#EEA31F" />
-        </SvgLinearGradient>
-      </Defs>
-      <Path d={d} fill="url(#starFill)" />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: '#fff' },
-    safeArea: { flex: 1 },
 
     // --- header (local: see the note at the top of the file) ---
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      paddingHorizontal: scale(24),
-      paddingTop: verticalScale(14),
-    },
-    backButton: {
-      width: scale(40),
-      height: scale(40),
-      flexShrink: 0,
-      borderRadius: scale(20),
-      borderWidth: 1,
-      borderColor: OUTLINE,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     /** The app's one page-title tier — see constants/page-title.ts. */
-    headerTitle: pageTitle(scale),
 
-    scrollContent: { paddingHorizontal: scale(24), paddingBottom: verticalScale(40) },
 
     // --- identity ---
-    identityRow: {
-      marginTop: verticalScale(24),
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: scale(16),
-      paddingBottom: verticalScale(20),
-      borderBottomWidth: 1,
-      borderBottomColor: RULE,
-    },
     /** Two steps under the title. It was 24 — the old title tier exactly —
      *  so the first line of the body read as the heading of the page. */
-    name: {
-      flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(18),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.02 * 18),
-      color: colors.ink,
-    },
-    yearPill: {
-      flexShrink: 0,
-      paddingHorizontal: scale(12),
-      paddingVertical: verticalScale(5),
-      borderRadius: 99,
-      borderWidth: 1,
-      borderColor: OUTLINE,
-    },
-    yearPillText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
-      lineHeight: scale(18),
-      color: colors.ink,
-    },
 
     // --- exam / subjects ---
-    examRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: scale(16),
-      paddingVertical: verticalScale(14),
-      borderBottomWidth: 1,
-      borderBottomColor: RULE,
-    },
+    /* 15, the app's body tier, and the same size as the value beside it. The
+       handoff sets both to 17; the note this screen already carried says why
+       they match each other — at two different sizes the row reads as two
+       systems, the answer louder than the question. */
     rowLabel: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
       lineHeight: scale(22),
-      color: colors.slate,
+      color: '#3A2A17',
     },
     /** 15, like the label beside it. At 16 the answer was a size larger
      *  than the question, which is why the row read as two systems. */
@@ -492,40 +471,58 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
       lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
       color: colors.ink,
     },
     subjectsBlock: {
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(16),
-      borderBottomWidth: 1,
-      borderBottomColor: RULE,
+      gap: verticalScale(12),
+      paddingTop: verticalScale(16),
+      paddingBottom: verticalScale(22),
+      borderTopWidth: 1,
+      borderTopColor: CARD_DIVIDER,
     },
     chipRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: scale(8),
-      marginTop: verticalScale(10),
     },
     chip: {
-      paddingHorizontal: scale(12),
-      paddingVertical: verticalScale(6),
-      borderRadius: 99,
+      height: verticalScale(36),
+      /* 14, not the handoff's 18: at the app's 24pt gutter three chips at 18
+         come to a point wider than the row and Maths drops to a second line.
+         The gutter is the app's and does not move for one card. */
+      paddingHorizontal: scale(14),
+      borderRadius: 999,
+      justifyContent: 'center',
+      /* Paper at 62%, so the marigold under it comes through and the chip
+         reads as part of the card rather than a white sticker on it. */
+      backgroundColor: 'rgba(255,253,248,.62)',
       borderWidth: 1,
-      borderColor: OUTLINE,
+      borderColor: 'rgba(255,255,255,.7)',
     },
     chipText: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
-      lineHeight: scale(18),
+      fontSize: scale(15),
       color: colors.ink,
     },
+    /* Pulled up over the card's foot, which is what makes it read as the
+       card's own control rather than the first item of the next section. */
     manageLink: {
       flexDirection: 'row',
       alignItems: 'center',
       alignSelf: 'flex-start',
       gap: scale(6),
-      marginTop: verticalScale(12),
+      /* 16 BELOW the card, not over it. The handoff writes `margin-top: -16`
+         against a parent whose gap is 32, so the two compose to +16; copied
+         literally into a layout with no parent gap it pulled the pill up onto
+         the card's foot. */
+      marginTop: verticalScale(16),
+      height: verticalScale(36),
+      paddingLeft: scale(16),
+      paddingRight: scale(12),
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
+      backgroundColor: '#fff',
     },
     manageText: {
       fontFamily: 'Onest_600SemiBold',
@@ -543,50 +540,6 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       textTransform: 'uppercase',
       color: colors.slate,
     },
-
-    // --- teacher ---
-    teacherStrip: {
-      marginTop: verticalScale(12),
-      flexDirection: 'row',
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: RULE,
-    },
-    // 24A: `padding:20px 20px 20px 0` left, `padding:20px 0 20px 20px` right.
-    // The right cell's 20pt was missing, so Vedha's orb sat flush against the
-    // divider while Drona's had the full gutter -- the misalignment.
-    teacherCell: { flex: 1, paddingVertical: scale(20) },
-    teacherCellLeft: {
-      paddingRight: scale(20),
-      borderRightWidth: 1,
-      borderRightColor: RULE,
-    },
-    teacherCellRight: { paddingLeft: scale(20) },
-    teacherName: {
-      // scale, not verticalScale. The orb is sized on the horizontal axis, so
-      // measuring the gap under it on the vertical one let the two drift apart
-      // by device -- 57.7pt of orb over a 13.8pt gap here, where the design
-      // says 56 over 14.
-      marginTop: scale(14),
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 15),
-      color: colors.ink,
-    },
-    teacherNameIdle: { color: IDLE_INK },
-    /** The one number off the ladder, and it has to be. Both traits are 26
-     *  characters in a ~157pt cell: at 13 the right-hand one hits
-     *  `adjustsFontSizeToFit` and shrinks, so the two cells would render at
-     *  different sizes side by side. 12.5 fits both without shrinking. */
-    teacherTrait: {
-      marginTop: scale(3),
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12.5),
-      lineHeight: scale(18),
-      color: colors.slate,
-    },
-    teacherTraitIdle: { color: IDLE_QUIET },
 
     // --- speaks ---
     toggle: {
@@ -627,69 +580,53 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
 
     // --- rate ---
-    rateCard: {
-      marginTop: verticalScale(32),
-      borderRadius: scale(22),
-      backgroundColor: '#2A2621',
+    /* White, with its weight carried by two amber glows instead of a dark
+       fill. `overflow: hidden` is what clips the foot glow to the card. */
+    /* The shadow lives out here because `profileCard` clips its children to
+       draw the gradients, and a view that clips cannot cast. */
+    cardShadow: {
+      /* The same 24 the settings pages put between their header and their
+         first section. Without it the card sat against the back button and
+         the page lost its top. */
+      marginTop: verticalScale(24),
+      borderRadius: scale(28),
+      backgroundColor: '#FCF4E0',
+      boxShadow: [
+        { offsetX: 0, offsetY: verticalScale(22), blurRadius: scale(40), spreadDistance: scale(-26), color: 'rgba(176,132,32,.75)' },
+      ],
+    },
+    profileCard: {
+      borderRadius: scale(28),
+      overflow: 'hidden',
+      paddingTop: verticalScale(26),
+      paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(8),
       borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.8)',
-      paddingTop: verticalScale(28),
-      paddingBottom: verticalScale(26),
-      paddingHorizontal: scale(24),
-      alignItems: 'center',
-      shadowColor: colors.ink,
-      shadowOpacity: 0.2,
-      shadowOffset: { width: 0, height: verticalScale(12) },
-      shadowRadius: scale(30),
-      elevation: 10,
+      borderColor: 'rgba(176,132,32,.18)',
     },
-    rateSub: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22),
-      color: CREAM_66,
-      textAlign: 'center',
-    },
-    rateHeadline: {
-      marginTop: verticalScale(6),
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(22),
-      lineHeight: scale(26),
-      letterSpacing: scale(-0.028 * 22),
-      color: CREAM,
-      textAlign: 'center',
-    },
-    starRow: {
-      marginTop: verticalScale(20),
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: scale(6),
-    },
-    keyBase: {
-      marginTop: verticalScale(22),
-      alignSelf: 'stretch',
-      paddingBottom: 3,
-      borderRadius: 99,
-      backgroundColor: 'rgba(28,26,22,.55)',
-      shadowColor: '#000',
-      shadowOpacity: 0.34,
-      shadowOffset: { width: 0, height: verticalScale(8) },
-      shadowRadius: scale(18),
-      elevation: 6,
-    },
-    keyFace: {
-      height: verticalScale(50),
-      borderRadius: 99,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    keyLabel: {
+    /* The hero tier, 17/25. The handoff says 20, which is a size this app
+       does not have: its scale runs 24 page title, 17 hero, 16 title, 15 body,
+       13 supporting, 11 overline. 17 keeps the name above the rows under it
+       and below the page title above it, which is the hierarchy that was being
+       asked for. */
+    cardName: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
+      fontSize: scale(17),
+      lineHeight: scale(25),
+      letterSpacing: scale(-0.35),
       color: colors.ink,
+      textAlign: 'center',
+      paddingBottom: verticalScale(18),
     },
+    cardRow: {
+      height: verticalScale(50),
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: CARD_DIVIDER,
+    },
+
 
     // --- links / log out ---
     links: { marginTop: verticalScale(32), borderTopWidth: 1, borderTopColor: RULE },
