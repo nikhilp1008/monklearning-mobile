@@ -71,6 +71,9 @@ public class PcmPlayerModule: Module {
       let player = AVAudioPlayerNode()
       let timePitch = AVAudioUnitTimePitch()
       timePitch.rate = Float(rate)
+      // At 1x there is nothing to stretch: pass the voice through untouched
+      // rather than through the time-stretch algorithm at a no-op setting.
+      timePitch.bypass = rate == 1.0
       // Float32 internally; the feed converts from Int16. Mono.
       guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate,
                                        channels: 1) else {

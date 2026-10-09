@@ -53,10 +53,13 @@ const FINISH_GRACE_MS = 350;
  * 0.061 vs 0.103 s/char, which the ear hears as the voice dragging. A rate
  * applied AT PLAYBACK compresses exactly that drag, and pitch correction
  * keeps the teacher's voice from climbing with the speed. Chosen by the
- * founder listening, not derived: 1.25 sounded rushed, 1.15 sits right. It
- * is one number to retune.
+ * founder listening, not derived: 1.25 sounded rushed, 1.15 sat right —
+ * until 2026-10-09, when the same ear heard 1.15 as stretched and awkward:
+ * a time-stretch at playback warps every reply a little, to fix a drag
+ * that only some replies have. Back to the voice as Rumik speaks it. It is
+ * still one number to retune, and pcm-player.ts's PCM_RATE must match it.
  */
-const SPEECH_RATE = 1.15;
+const SPEECH_RATE = 1.0;
 
 export class FollowUpAudio {
   private queue: { uri: string; ms: number }[] = [];

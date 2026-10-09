@@ -26,9 +26,10 @@ const native = requireOptionalNativeModule<PcmPlayerModule>('PcmPlayer');
 
 export const pcmAvailable = native != null;
 
-/** Speech rate, shared with the file-based player's constant by value: the
- *  founder tuned 1.15 by ear and both paths must sound the same. */
-export const PCM_RATE = 1.15;
+/** Speech rate, shared with the file-based player's constant by value, so
+ *  both paths sound the same. 1.0 since 2026-10-09: the founder's 1.15 was
+ *  heard as stretched — see SPEECH_RATE in followup-audio.ts. */
+export const PCM_RATE = 1.0;
 
 export function pcmStart(rate: number = PCM_RATE): void {
   native?.start(24000, rate);
