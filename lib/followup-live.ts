@@ -37,6 +37,13 @@ const MAX_QUEUED_BYTES = 16000 * 2 * 10;
 
 let flag: { at: number; on: boolean } | null = null;
 
+/** The last known answer, without waiting: what a PRESS uses, so the button
+ *  never waits on the network. Unknown is off; a refresh is started. */
+export function followUpLiveKnown(): boolean {
+  if (!flag || Date.now() - flag.at >= FLAG_TTL_MS) void followUpLiveEnabled();
+  return flag?.on === true;
+}
+
 /** Whether the server wants live follow-ups. False whenever unsure. */
 export async function followUpLiveEnabled(): Promise<boolean> {
   if (flag && Date.now() - flag.at < FLAG_TTL_MS) return flag.on;

@@ -46,7 +46,7 @@ import {
   type TextbookPageContext,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
-import { LiveAsk, LiveUnavailable, followUpLiveEnabled, pcmLevel } from '@/lib/followup-live';
+import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
 import { probeMicAvailability } from '@/lib/mic-availability';
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
@@ -776,7 +776,7 @@ export function AskFollowUpBar({
         // wrong starting it falls through to the recorder below, unchanged.
         liveModeRef.current = false;
         liveRef.current = null;
-        if (streamRecorderLoaded && (await followUpLiveEnabled()) && (await streamingMicOk())) {
+        if (streamRecorderLoaded && followUpLiveKnown() && (await streamingMicOk())) {
           if (!pressedRef.current) {
             toPlayback();
             return 'released';
