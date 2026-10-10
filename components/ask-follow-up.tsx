@@ -336,6 +336,15 @@ export function AskFollowUpBar({
 }) {
   const recorder = useAudioRecorder(RECORDING);
   const streamRecorder = useStreamRecorder();
+  /**
+   * The unmount cleanup reads the recorder from here, not from its deps: the
+   * hook hands back a NEW object every render (its isRecording and duration
+   * are state), so with it in the deps the "unmount" cleanup ran on the first
+   * re-render of every hold — cancelling the live socket and stopping the
+   * recording before release, which left nothing to fall back on either.
+   */
+  const streamRecorderRef = useRef(streamRecorder);
+  streamRecorderRef.current = streamRecorder;
   /** The live ask for the hold in progress, when this hold went live. */
   const liveRef = useRef<LiveAsk | null>(null);
   const liveModeRef = useRef(false);
@@ -703,13 +712,13 @@ export function AskFollowUpBar({
       if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
       recorder.stop().catch(() => {});
       liveRef.current?.cancel();
-      if (liveModeRef.current) streamRecorder.stopRecording().catch(() => {});
+      if (liveModeRef.current) streamRecorderRef.current.stopRecording().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
       if (meterRef.current) clearInterval(meterRef.current);
       stopTick();
       toPlayback();
     },
-    [recorder, streamRecorder, toPlayback, stopTick]
+    [recorder, toPlayback, stopTick]
   );
 
   const beginHold = useCallback(async () => {
@@ -790,7 +799,7 @@ export function AskFollowUpBar({
               pcm: pcmAvailable,
             });
             liveRef.current = live;
-            await streamRecorder.startRecording({
+            await streamRecorderRef.current.startRecording({
               sampleRate: 16000,
               channels: 1,
               encoding: 'pcm_16bit',
@@ -838,7 +847,7 @@ export function AskFollowUpBar({
     })();
     setupRef.current = setup;
     await setup;
-  }, [doubtId, recorder, streamRecorder, surface, page, toPlayback, wake, fail, voiceLevel, finishWords]);
+  }, [doubtId, recorder, surface, page, toPlayback, wake, fail, voiceLevel, finishWords]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
@@ -866,7 +875,7 @@ export function AskFollowUpBar({
     try {
       if (liveModeRef.current) {
         // The live recorder also kept a WAV of the hold: the upload fallback.
-        const rec = await streamRecorder.stopRecording();
+        const rec = await streamRecorderRef.current.stopRecording();
         uri = rec?.fileUri ?? null;
       } else {
         await recorder.stop();
@@ -1127,7 +1136,7 @@ export function AskFollowUpBar({
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake, surface, fail, stopMeter, runTick, flushWords]);
+  }, [doubtId, recorder, toPlayback, wake, surface, page, fail, stopMeter, runTick, flushWords]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
