@@ -1,5 +1,6 @@
 import {
   RecordingPresets,
+  getRecordingPermissionsAsync,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
@@ -40,10 +41,14 @@ import {
   speakFollowUpStreaming,
   type FollowUpStep,
   type FollowUpSurface,
+  type FollowUpHandlers,
   type FollowUpTurn,
   type TextbookPageContext,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { LiveAsk, LiveUnavailable, followUpLiveEnabled, pcmLevel } from '@/lib/followup-live';
+import { probeMicAvailability } from '@/lib/mic-availability';
+import { base64ToBytes } from '@/lib/audio-pcm';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
 import { countChars, revealChars } from '@/lib/word-reveal';
@@ -176,6 +181,58 @@ const RECORDING = {
   isMeteringEnabled: true,
 };
 
+/**
+ * The classroom's streaming recorder, for the live follow-up (lib/followup-
+ * live.ts). Required inside a try for the classroom's reason: the package
+ * calls requireNativeModule at its own top level, and a build without it must
+ * cost this one feature, not the app. Missing, the bar records as it always
+ * has.
+ */
+interface StreamRecorder {
+  startRecording(options: {
+    sampleRate: number;
+    channels: number;
+    encoding: string;
+    interval: number;
+    ios?: { audioSession?: { category?: string; categoryOptions?: string[] } };
+    onAudioStream: (event: { data: unknown }) => void;
+  }): Promise<unknown>;
+  stopRecording(): Promise<{ fileUri?: string } | null | undefined>;
+}
+let useStreamRecorder: () => StreamRecorder;
+let streamRecorderLoaded = false;
+let listInputDevices: () => Promise<unknown> = () => Promise.reject(new Error('not loaded'));
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const audioStudio = require('@siteed/audio-studio');
+  useStreamRecorder = audioStudio.useAudioRecorder;
+  listInputDevices = () => audioStudio.AudioStudioModule.getAvailableInputDevices({ refresh: true });
+  streamRecorderLoaded = true;
+} catch {
+  useStreamRecorder = function useUnavailableStreamRecorder(): StreamRecorder {
+    return {
+      startRecording: () => Promise.reject(new Error('unavailable')),
+      stopRecording: () => Promise.resolve(null),
+    };
+  };
+}
+/** The classroom's mic probe, run once per app session: a device whose input
+ *  the probe distrusts never gets the streaming recorder. */
+let micProbe: Promise<boolean> | null = null;
+function streamingMicOk(): Promise<boolean> {
+  if (!micProbe) {
+    micProbe = probeMicAvailability({
+      moduleLoaded: streamRecorderLoaded,
+      getPermission: getRecordingPermissionsAsync,
+      requestPermission: requestRecordingPermissionsAsync,
+      listInputDevices,
+    })
+      .then((d) => d.status === 'available')
+      .catch(() => false);
+  }
+  return micProbe;
+}
+
 /** How often the level is read while the mic is held. */
 const METER_MS = 80;
 
@@ -278,6 +335,15 @@ export function AskFollowUpBar({
   onBusyChange?: (busy: boolean) => void;
 }) {
   const recorder = useAudioRecorder(RECORDING);
+  const streamRecorder = useStreamRecorder();
+  /** The live ask for the hold in progress, when this hold went live. */
+  const liveRef = useRef<LiveAsk | null>(null);
+  const liveModeRef = useRef(false);
+  // Asked early so the press never waits on it.
+  useEffect(() => {
+    if (!streamRecorderLoaded) return;
+    void followUpLiveEnabled();
+  }, []);
   /** The board is capped rather than free: it grows upward over the solution,
    *  and past a little under half the screen there is nothing of the solution
    *  left to read behind it. */
@@ -636,12 +702,14 @@ export function AskFollowUpBar({
       pcmStop();
       if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
       recorder.stop().catch(() => {});
+      liveRef.current?.cancel();
+      if (liveModeRef.current) streamRecorder.stopRecording().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
       if (meterRef.current) clearInterval(meterRef.current);
       stopTick();
       toPlayback();
     },
-    [recorder, toPlayback, stopTick]
+    [recorder, streamRecorder, toPlayback, stopTick]
   );
 
   const beginHold = useCallback(async () => {
@@ -703,6 +771,52 @@ export function AskFollowUpBar({
           toPlayback();
           return 'released';
         }
+        // LIVE when the server wants it, the classroom's recorder is in this
+        // build and the mic probe trusts this device — and anything that goes
+        // wrong starting it falls through to the recorder below, unchanged.
+        liveModeRef.current = false;
+        liveRef.current = null;
+        if (streamRecorderLoaded && (await followUpLiveEnabled()) && (await streamingMicOk())) {
+          if (!pressedRef.current) {
+            toPlayback();
+            return 'released';
+          }
+          try {
+            const live = await LiveAsk.begin({
+              surface,
+              id: doubtId,
+              page,
+              history: turnsRef.current,
+              pcm: pcmAvailable,
+            });
+            liveRef.current = live;
+            await streamRecorder.startRecording({
+              sampleRate: 16000,
+              channels: 1,
+              encoding: 'pcm_16bit',
+              interval: 100,
+              ios: {
+                audioSession: {
+                  category: 'PlayAndRecord',
+                  categoryOptions: ['AllowBluetooth', 'MixWithOthers', 'DefaultToSpeaker'],
+                },
+              },
+              onAudioStream: (event: { data: unknown }) => {
+                if (typeof event.data !== 'string') return;
+                const bytes = base64ToBytes(event.data);
+                live.sendPcm(bytes);
+                voiceLevel.value = withTiming(pcmLevel(bytes), { duration: METER_MS });
+              },
+            });
+            liveModeRef.current = true;
+            if (!pressedRef.current) return 'recording';
+            return 'recording';
+          } catch {
+            liveRef.current?.cancel();
+            liveRef.current = null;
+            liveModeRef.current = false;
+          }
+        }
         await recorder.prepareToRecordAsync();
         if (!pressedRef.current) {
           toPlayback();
@@ -724,7 +838,7 @@ export function AskFollowUpBar({
     })();
     setupRef.current = setup;
     await setup;
-  }, [doubtId, recorder, toPlayback, wake, fail, voiceLevel, finishWords]);
+  }, [doubtId, recorder, streamRecorder, surface, page, toPlayback, wake, fail, voiceLevel, finishWords]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
@@ -748,9 +862,16 @@ export function AskFollowUpBar({
       return;
     }
     let uri: string | null = null;
+    const live = liveModeRef.current ? liveRef.current : null;
     try {
-      await recorder.stop();
-      uri = recorder.uri ?? null;
+      if (liveModeRef.current) {
+        // The live recorder also kept a WAV of the hold: the upload fallback.
+        const rec = await streamRecorder.stopRecording();
+        uri = rec?.fileUri ?? null;
+      } else {
+        await recorder.stop();
+        uri = recorder.uri ?? null;
+      }
     } catch {
       // A recorder that will not stop still has whatever it captured.
     }
@@ -761,10 +882,11 @@ export function AskFollowUpBar({
     // teacher's voice in the earpiece, which reads as broken rather than quiet.
     toPlayback();
     if (heldMs < MIN_HOLD_MS) {
+      live?.cancel();
       fail('short');
       return;
     }
-    if (!uri) {
+    if (!uri && !live) {
       fail('retry');
       return;
     }
@@ -863,10 +985,7 @@ export function AskFollowUpBar({
     };
 
     try {
-      await askAboutDoubtAloud(
-        doubtId,
-        uri,
-        turnsRef.current,
+      const handlers: FollowUpHandlers =
         {
           // Kept for the history the next question is sent with. Not shown —
           // the student knows what they just said, and the ring is what tells
@@ -936,11 +1055,21 @@ export function AskFollowUpBar({
               }, Math.max(0, remains * 1000));
             }
           },
-        },
-        controller.signal,
-        surface,
-        page
-      );
+        };
+      const upload = (recording: string, format: 'm4a' | 'wav') =>
+        askAboutDoubtAloud(doubtId, recording, turnsRef.current, handlers,
+                           controller.signal, surface, page, format);
+      if (live) {
+        try {
+          await live.finish(handlers, controller.signal);
+        } catch (err) {
+          // Nothing of the answer has arrived: send the hold the old way.
+          if (!(err instanceof LiveUnavailable) || !uri) throw err;
+          await upload(uri, 'wav');
+        }
+      } else {
+        await upload(uri!, 'm4a');
+      }
       if (controller.signal.aborted) return;
       // The stream is done, so the word count is final. If no voice was ever
       // heard, this is the valve that writes the answer out.
