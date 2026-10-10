@@ -87,3 +87,25 @@ describe('splitDisplay', () => {
     ]);
   });
 });
+
+describe('compound units stay with their number', () => {
+  const { splitDisplay } = require('@/lib/display-math');
+  test.each([
+    ['$L = r × p = (10î + 5ĵ) × (2î + 1.5ĵ) = (10 × 1.5 − 5 × 2) k̂ = 5k̂$ J·s', 'J·s'],
+    ['$τ = r × F = (10î + 5ĵ) × (2î + 3ĵ) = (10 × 3 − 5 × 2) k̂ = 20k̂$ N·m', 'N·m'],
+    ['$p = 0.1v = 0.1(20î + 15ĵ) = 2î + 1.5ĵ$ kg·m/s', 'kg·m/s'],
+    ['$a = (F − f)/m = (20 − 12)/2 = 4$ m/s²', 'm/s²'],
+  ])('%s', (raw, unit) => {
+    const pieces = splitDisplay(raw);
+    expect(pieces).toHaveLength(1);
+    expect(pieces[0]).toMatchObject({ kind: 'display' });
+    expect(pieces[0].raw.endsWith(unit)).toBe(true);
+  });
+
+  test('a word after the equation is not mistaken for a unit', () => {
+    const pieces = splitDisplay('$τ = r × F = (10î + 5ĵ) × (2î + 3ĵ) = 20k̂$ Therefore, it turns.');
+    expect(pieces[0]).toMatchObject({ kind: 'display' });
+    expect(pieces[0].raw.endsWith('20k̂$')).toBe(true);
+    expect(pieces.some((p: { kind: string; raw: string }) => p.kind === 'text' && p.raw.startsWith('Therefore'))).toBe(true);
+  });
+});

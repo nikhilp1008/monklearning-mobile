@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 
 import { MathSegment, ScriptPart, latexToSegments } from '@/lib/latex-text';
@@ -173,7 +173,7 @@ export function MathLine({ text, style, fontSize, color, mathStyle, align = 'sta
         if (item.length === 1) {
           return (
             <Text key={`w${i}`} style={[item[0].voice, styles.word]}>
-              {item[0].text}
+              {withAccents(item[0].text)}
             </Text>
           );
         }
@@ -182,13 +182,38 @@ export function MathLine({ text, style, fontSize, color, mathStyle, align = 'sta
           <Text key={`w${i}`} style={[item[0].voice, styles.word]}>
             {item.map((run, j) => (
               <Text key={j} style={run.voice}>
-                {run.text}
+                {withAccents(run.text)}
               </Text>
             ))}
           </Text>
         );
       })}
     </View>
+  );
+}
+
+/**
+ * A letter carrying a combining accent with no precomposed form — k̂, the
+ * unit vector, most of all — set in the system font.
+ *
+ * Onest has î and ĵ as single glyphs but nothing for k̂, so k̂ is a k plus
+ * U+0302, and Onest places that mark wrongly: the hat floated above and to
+ * the side of the k, next to an î and ĵ drawn correctly. The system font
+ * positions combining marks properly. Precomposed letters never match here,
+ * so î and ĵ keep Onest.
+ */
+const ACCENTED = /(\p{L}[\u0300-\u036f]+)/u;
+const accentStyle = { fontFamily: 'System' } as const;
+function withAccents(text: string): ReactNode {
+  if (!ACCENTED.test(text)) return text;
+  return text.split(ACCENTED).map((piece, k) =>
+    k % 2 === 1 ? (
+      <Text key={k} style={accentStyle}>
+        {piece}
+      </Text>
+    ) : (
+      piece
+    )
   );
 }
 

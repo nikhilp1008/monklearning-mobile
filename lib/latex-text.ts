@@ -1171,6 +1171,46 @@ function unwrapSmiles(text: string): string {
  * breaks ("mag-\nnetic") and single-word-per-line wrapping are artifacts of
  * PDF extraction, not real paragraph breaks.
  */
+/**
+ * `\hat{i}`, `\hat j`, `\hat{k}` — unit vectors — as î, ĵ, k̂ rather than
+ * dropped. Dropping them turned an option's (2î + 1.5ĵ) into "(2 i + 1.5 j)",
+ * which is not the same quantity. î and ĵ have precomposed glyphs (the dot
+ * goes, as it should under a hat); any other letter takes U+0302, which
+ * MathLine sets in the system font so the mark lands on the letter.
+ */
+const HAT_GLYPH: Record<string, string> = { i: 'î', j: 'ĵ', '\\imath': 'î', '\\jmath': 'ĵ' };
+function hatsAsAccents(text: string): string {
+  return text.replace(
+    /\\(?:hat|widehat)\s*(?:\{\s*(\\[ij]math|[A-Za-z])\s*\}|(\\[ij]math|[A-Za-z])(?![A-Za-z]))/g,
+    (_m, braced?: string, bare?: string) => {
+      const letter = (braced ?? bare) as string;
+      return HAT_GLYPH[letter] ?? `${letter}\u0302`;
+    }
+  );
+}
+
+/**
+ * A compound unit as one word: "kg · m / s" → "kg·m/s", "N ·  m" → "N·m".
+ *
+ * Sources write units as `\mathrm{kg} \cdot \mathrm{m} / \mathrm{s}` or
+ * `\mathrm{~N} \cdot \mathrm{~m}`, and each piece came through with its own
+ * spacing — a unit spread across the line, sometimes wrapping mid-unit.
+ * Only between known unit symbols, so `a · b` in a dot product is untouched.
+ */
+const UNIT_SYMBOL = '(?:kg|g|mg|km|cm|mm|m|s|ms|min|h|N|J|kJ|W|kW|V|A|mA|C|K|Pa|Hz|mol|L|mL|rad|eV|T|Ω)';
+const UNIT_JOIN = new RegExp(`(?<![A-Za-z])(${UNIT_SYMBOL})\\s*([·⋅/])\\s*(?=${UNIT_SYMBOL}(?![A-Za-z]))`, 'g');
+function tightenUnits(text: string): string {
+  let prev = '';
+  let out = text;
+  // Repeated so a chain — kg · m / s — closes up link by link.
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(UNIT_JOIN, (_m, unit: string, op: string) => `${unit}${op}`);
+  }
+  // `\\mathrm{~N}` leaves a doubled space in front of the unit.
+  return out.replace(new RegExp(`(\\S)[ \\u00a0]{2,}(?=${UNIT_SYMBOL}(?![A-Za-z]))`, 'g'), '$1 ');
+}
+
 export function latexToText(raw: string): string {
   // Emphasis first, before anything can touch the angle brackets. When the
   // caller wants segments the tags become markers the scanner reads; for plain
@@ -1179,7 +1219,7 @@ export function latexToText(raw: string): string {
   const emphasised = raw.replace(/<\/?b>/gi, (tag) =>
     markSegments ? (tag.length === 3 ? BOLD_OPEN : BOLD_CLOSE) : '',
   );
-  const arrowsResolved = unwrapSmiles(emphasised)
+  const arrowsResolved = unwrapSmiles(hatsAsAccents(emphasised))
     .replace(
       // The OPTIONAL [below] argument is why this has a `(?:\[…\])?` in it.
       // LaTeX writes `\xrightarrow[below]{above}`, and the previous pattern
@@ -1304,5 +1344,5 @@ export function latexToText(raw: string): string {
     i += 1;
   }
   flush();
-  return out;
+  return tightenUnits(out);
 }
