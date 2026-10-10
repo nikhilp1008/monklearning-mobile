@@ -159,7 +159,22 @@ const MIN_HOLD_MS = 350;
  * options — a fresh object each render would still hash the same, but there
  * is no reason to make it.
  */
-const RECORDING = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+/**
+ * A spoken question, recorded for a speech recogniser — not for music.
+ *
+ * It was HIGH_QUALITY: 44.1 kHz stereo at 128 kbps, ~90 kB for a three-second
+ * question, all of which has to upload before Deepgram hears a word. Speech
+ * recognition wants 16 kHz mono; at 32 kbps the same question is ~4x smaller,
+ * which is upload time saved on every follow-up and most of all on the slow
+ * mobile data a student is likely to be on. Metering stays on for the ring.
+ */
+const RECORDING = {
+  ...RecordingPresets.HIGH_QUALITY,
+  sampleRate: 16000,
+  numberOfChannels: 1,
+  bitRate: 32000,
+  isMeteringEnabled: true,
+};
 
 /** How often the level is read while the mic is held. */
 const METER_MS = 80;
