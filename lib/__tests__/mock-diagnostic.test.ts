@@ -96,3 +96,53 @@ describe('buildReport', () => {
     expect(buildReport(session(base), result).kind).toBe('full');
   });
 });
+
+describe('buildReport and the comparison with the last paper', () => {
+  const paper: MockPaper = {
+    mock_run_id: 'r2',
+    exam: 'jee',
+    duration_minutes: 180,
+    marks_correct: 4,
+    marks_wrong: -1,
+    total_questions: 1,
+    max_marks: 4,
+    sections: [{ subject: 'physics', questions: 1 }],
+    questions: [
+      {
+        question_num: 1,
+        id: 'q1',
+        subject: 'physics',
+        question_type: 'single_correct',
+        question_text: 'Q',
+        options: { a: 'A' },
+        image_url: null,
+        diagram: null,
+      },
+    ],
+  };
+  const score = {
+    correct: 1, wrong: 0, unanswered: 0, marks: 4, total_marks: 4, max_marks: 4, per_subject: {},
+  };
+  const session = { paper, answers: new Map(), marked: new Set(), elapsed: new Map() } as unknown as MockSession;
+  const previous = {
+    run_id: 'r1',
+    kind: 'diagnostic' as const,
+    submitted_at: '2026-10-01T00:00:00Z',
+    before_percent: 25,
+    after_percent: 62.5,
+    delta_percent: 37.5,
+    subjects: [{ subject: 'physics', before: 50, after: 75 }],
+    improved: [],
+    slipped: [],
+  };
+
+  it('carries the comparison the server sent', () => {
+    const r = buildReport(session, { mock_run_id: 'r2', score, questions: [], previous });
+    expect(r.previous).toEqual(previous);
+  });
+
+  it('keeps "first paper" (null) distinct from "never asked" (undefined)', () => {
+    expect(buildReport(session, { mock_run_id: 'r2', score, questions: [], previous: null }).previous).toBeNull();
+    expect(buildReport(session, { mock_run_id: 'r2', score, questions: [] }).previous).toBeUndefined();
+  });
+});

@@ -189,6 +189,27 @@ function installShim() {
       return json({
         mock_run_id: 'dev-run-1',
         score: score(),
+        // Canned "last paper" so the since-your-last-paper card can be seen.
+        previous: {
+          run_id: 'dev-run-0',
+          kind: 'diagnostic',
+          submitted_at: new Date(Date.now() - 9 * 86400000).toISOString(),
+          before_percent: 41.4,
+          after_percent: 64.3,
+          delta_percent: 22.9,
+          subjects: [
+            { subject: 'physics', before: 25, after: 33 },
+            { subject: 'chemistry', before: 40, after: 63 },
+            { subject: 'mathematics', before: 59, after: 91 },
+          ],
+          improved: [
+            { chapter_id: 'c1', name: 'Kinematics', before: { correct: 0, total: 1 }, after: { correct: 3, total: 3 } },
+            { chapter_id: 'c2', name: 'Chemical bonding', before: { correct: 1, total: 2 }, after: { correct: 3, total: 3 } },
+          ],
+          slipped: [
+            { chapter_id: 'c3', name: 'Thermodynamics', before: { correct: 1, total: 1 }, after: { correct: 0, total: 3 } },
+          ],
+        },
         questions: questions.map((q) => ({
           question_id: q.id,
           answered: true,

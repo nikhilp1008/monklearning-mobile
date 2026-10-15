@@ -24,6 +24,7 @@ import {
   formatSpan,
   loadReport,
   mockInsights,
+  type MockPrevious,
   type MockReport,
   type MockReportQuestion,
   formatDay,
@@ -105,6 +106,16 @@ export default function MockReportScreen() {
           : ((await fetchReport(runId).catch(() => null)) ?? saved);
       if (cancelled) return;
       setReport(r);
+      // A copy saved before comparisons existed: ask the server once, and
+      // fill the card in when it answers. fetchReport saves what it gets, so
+      // this happens once per paper, not once per visit.
+      if (r && r.previous === undefined) {
+        fetchReport(runId)
+          .then((fresh) => {
+            if (!cancelled) setReport((cur) => (cur ? { ...cur, previous: fresh.previous ?? null } : cur));
+          })
+          .catch(() => undefined);
+      }
       if (!r) {
         const runs = await listMockRuns().catch(() => []);
         if (!cancelled) setRow(runs.find((x) => x.id === runId) ?? null);
@@ -278,6 +289,76 @@ export default function MockReportScreen() {
   );
 }
 
+function SincePreviousCard({
+  previous,
+  styles,
+}: {
+  previous: MockPrevious;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const delta = Math.round(previous.delta_percent);
+  const word = delta > 0 ? 'Up' : delta < 0 ? 'Down' : 'Level';
+  const label = previous.kind === 'diagnostic' ? 'your starting point' : 'your last paper';
+  const chapterLine = (c: MockPrevious['improved'][number]) =>
+    `${c.before.correct} of ${c.before.total} → ${c.after.correct} of ${c.after.total}`;
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.overline}>Since {label}</Text>
+      <Text
+        style={[
+          styles.deltaHead,
+          delta > 0 && styles.tallyCorrect,
+          delta < 0 && styles.tallyWrong,
+        ]}>
+        {delta === 0 ? 'Level' : `${word} ${Math.abs(delta)} points`}
+      </Text>
+      <Text style={styles.deltaSub}>
+        {Math.round(previous.before_percent)}% → {Math.round(previous.after_percent)}% of the marks,
+        against your paper on {formatDay(previous.submitted_at)}.
+      </Text>
+
+      {previous.subjects.map((s) => (
+        <View key={s.subject} style={styles.standRow}>
+          <Text style={styles.standLabel}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
+          <Text style={styles.standValue}>
+            {s.before}% → {s.after}%
+          </Text>
+        </View>
+      ))}
+
+      {previous.improved.length > 0 && (
+        <>
+          <View style={styles.timeDivider} />
+          <Text style={styles.overline}>Moving up</Text>
+          {previous.improved.map((c) => (
+            <View key={c.chapter_id} style={styles.standRow}>
+              <Text style={styles.standLabel}>{c.name || 'A chapter'}</Text>
+              <Text style={[styles.standValue, styles.tallyCorrect]}>{chapterLine(c)}</Text>
+            </View>
+          ))}
+        </>
+      )}
+      {previous.slipped.length > 0 && (
+        <>
+          <View style={styles.timeDivider} />
+          <Text style={styles.overline}>Slipped</Text>
+          {previous.slipped.map((c) => (
+            <View key={c.chapter_id} style={styles.standRow}>
+              <Text style={styles.standLabel}>{c.name || 'A chapter'}</Text>
+              <Text style={[styles.standValue, styles.tallyWrong]}>{chapterLine(c)}</Text>
+            </View>
+          ))}
+        </>
+      )}
+      <Text style={styles.cardFootnote}>
+        Chapters are compared only where both papers asked about them. One or two questions in a
+        chapter is a first read, not a verdict.
+      </Text>
+    </View>
+  );
+}
+
 function ReportHeader({
   report,
   insights,
@@ -367,6 +448,12 @@ function ReportHeader({
           </Pressable>
         </View>
       )}
+
+      {/* SINCE YOUR LAST PAPER. A score alone says little; against the paper
+          before it, it says whether practice is working. Percent of what each
+          paper was worth, so a short starting-point paper and a full one
+          compare; a first paper has nothing to compare and shows no card. */}
+      {report.previous && <SincePreviousCard previous={report.previous} styles={styles} />}
 
       {/* WHERE YOU STOOD. Ranked on accuracy, not marks — a subject with 40
           questions left blank can out-score the one you were better at. */}
@@ -827,6 +914,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       color: colors.faint,
+    },
+    deltaHead: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(26),
+      letterSpacing: scale(-0.6),
+      color: colors.ink,
+      marginTop: verticalScale(2),
+    },
+    deltaSub: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+      marginBottom: verticalScale(8),
     },
     startKey: {
       alignSelf: 'flex-start',
