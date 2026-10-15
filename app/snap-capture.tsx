@@ -14,13 +14,14 @@ import { useScale } from '@/constants/scale';
 import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 import { hapticKey } from '@/lib/haptics';
+import { withTeacherName } from '@/lib/preferences';
 
 type Phase = 'opening' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
 
 function quotaMessage(failure: SnapFailure): string {
   if (failure.daily_limit == null) return failure.message;
   const used = failure.used_today ?? failure.daily_limit;
-  return `${failure.message} (${used}/${failure.daily_limit} today)`;
+  return `${withTeacherName(failure.message)} (${used}/${failure.daily_limit} today)`;
 }
 
 export default function SnapCaptureScreen() {
