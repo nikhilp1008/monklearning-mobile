@@ -214,6 +214,9 @@ export default function RootLayout() {
    */
   const segments = useSegments();
   const inOnboarding = segments[0] === '(onboarding)';
+  // Dev only: the diagnostic preview runs against canned answers with no
+  // student signed in, so the sign-in gate must let it be.
+  const onDevPreview = __DEV__ && segments[0] === 'dev-diagnostic-preview';
   // The promo screen is part of the takeover, not a way out of it: a gate that
   // fired there would bounce the student back mid-code.
   const onPlans = segments[0] === 'plans' || segments[0] === 'plans-promo';
@@ -241,16 +244,16 @@ export default function RootLayout() {
   }, [navigatorReady, pathname]);
   const needsOnboardingFlow = authState === 'signed_out' || authState === 'needs_onboarding';
   const gateSettled =
-    ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding);
+    ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding || onDevPreview);
 
   useEffect(() => {
     if (!ready || !navigatorReady || !needsOnboardingFlow) return;
     // Already somewhere in onboarding — leave them where they are, mid-form.
-    if (inOnboarding) return;
+    if (inOnboarding || onDevPreview) return;
     // Signed out starts at the beginning; verified-but-unfinished resumes at
     // the first unanswered question rather than starting over.
     router.replace(authState === 'signed_out' ? '/welcome' : '/details');
-  }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, authState]);
+  }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, onDevPreview, authState]);
 
   /**
    * THE PASS GATE. A day after a one-day pass, the app stops being the app.
@@ -368,6 +371,7 @@ export default function RootLayout() {
               Registered so it loses the router's own header, which stacked on
               top of the board's. */}
           <Stack.Screen name="dev-board-preview" options={{ headerShown: false }} />
+          <Stack.Screen name="dev-diagnostic-preview" options={{ headerShown: false }} />
           {/* Pushed screens, not tabs. Both used to live in (tabs) behind
               href:null, which hid them from the bar but still wrapped them in
               it -- so picking a chapter or answering a question happened under

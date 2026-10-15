@@ -45,6 +45,9 @@ export interface MockPaper {
   started_at?: string;
   deadline?: string;
   seconds_left?: number;
+  /** 'diagnostic' is the free starting-point paper; absent on older API
+   *  builds, which only ever made full ones. */
+  kind?: MockKind;
   /** Only on GET /mock/active: the deadline passed while the app was away. */
   expired?: boolean;
 }
@@ -85,8 +88,46 @@ export interface MockSubmitResult {
 /** Generation reads the whole light bank per subject and composes 75-180
  *  questions — measured at 6-7s server-side, so the default 60s ceiling is
  *  kept and the UI owns making the wait honest. */
-export function createMockPaper(exam: 'jee' | 'neet'): Promise<MockPaper> {
-  return apiFetch('/mock/paper', { method: 'POST', body: JSON.stringify({ exam }) });
+export function createMockPaper(
+  exam: 'jee' | 'neet',
+  kind: MockKind = 'full'
+): Promise<MockPaper> {
+  // A full paper sends exactly what it always did, so an API build that
+  // predates the diagnostic never sees a field it does not know.
+  const body = kind === 'full' ? { exam } : { exam, kind };
+  return apiFetch('/mock/paper', { method: 'POST', body: JSON.stringify(body) });
+}
+
+/** 'full' is the earned three-hour paper; 'diagnostic' is the free, shorter
+ *  one every student gets once per exam to find their starting point. */
+export type MockKind = 'full' | 'diagnostic';
+
+/**
+ * THE FREE FIRST PAPER, AS GET /mock/status OFFERS IT.
+ *
+ * Not a credit: it is never counted against the unlock gate and it does not
+ * spend one. `available` goes false once the student has sat (or is sitting)
+ * it; an abandoned one is offered again.
+ */
+export interface MockDiagnosticOffer {
+  available: boolean;
+  /** Worth asking for on login: a student the app does not know yet (no
+   *  paper earned by practice, no full paper sat). Absent from API builds
+   *  before it existed, which reads as "do not prompt". */
+  recommended?: boolean;
+  questions: number;
+  duration_minutes: number;
+  max_marks: number;
+  sections: { subject: string; questions: number }[];
+}
+
+/** True when a refusal means "you already have your free paper" — the count
+ *  moved under us (another phone, a double tap), so re-read the status. */
+export function isDiagnosticTaken(err: unknown): boolean {
+  const detail = (err as { data?: { detail?: unknown } } | null)?.data?.detail;
+  return (
+    !!detail && typeof detail === 'object' && (detail as { code?: string }).code === 'diagnostic_taken'
+  );
 }
 
 /**
@@ -135,10 +176,14 @@ export interface MockStatus {
    *  it. Absent from API builds before 21884e2. */
   active_paper?: {
     mock_run_id: string;
+    kind?: MockKind;
     deadline: string;
     seconds_left: number;
     expired: boolean;
   } | null;
+  /** The free starting-point paper. Absent from API builds before it
+   *  existed, which reads as "none on offer". */
+  diagnostic?: MockDiagnosticOffer;
 }
 
 export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {
@@ -152,6 +197,8 @@ export interface MockRunRow {
   id: string;
   exam: 'jee' | 'neet';
   status: 'in_progress' | 'submitted' | 'abandoned';
+  /** Absent from API builds before the diagnostic: those are all full. */
+  kind?: MockKind;
   created_at: string;
   submitted_at: string | null;
   score: {
