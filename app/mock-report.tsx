@@ -5,6 +5,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { FlagIcon } from '@/components/ask-follow-up';
 import { MathText } from '@/components/math-text';
 import { QuestionStem } from '@/components/question-stem';
 import { SolutionSteps } from '@/components/solution-steps';
@@ -28,6 +29,7 @@ import {
   formatDay,
 } from '@/lib/mock-report';
 import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
+import { openReportSheet } from '@/lib/reports';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -252,6 +254,7 @@ export default function MockReportScreen() {
             renderItem={({ item }) => (
               <QuestionRow
                 q={item}
+                runId={report?.run_id ?? null}
                 styles={styles}
                 scale={scale}
                 open={open === item.id}
@@ -480,12 +483,15 @@ function ReportHeader({
 
 function QuestionRow({
   q,
+  runId,
   styles,
   scale,
   open,
   onToggle,
 }: {
   q: MockReportQuestion;
+  /** The paper this came from, sent with a report so it can be found again. */
+  runId: string | null;
   styles: ReturnType<typeof createStyles>;
   scale: (n: number) => number;
   open: boolean;
@@ -536,6 +542,31 @@ function QuestionRow({
             {verdict}
           </Text>
         </View>
+        {/* A wrong key, a wrong verdict or a broken question in a paper's
+            review is reported like practice — by the question — with the
+            paper and what was put attached. */}
+        <Pressable
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`Report a mistake in question ${q.num}`}
+          style={styles.qReport}
+          onPress={() =>
+            openReportSheet({
+              surface: 'mock',
+              questionId: q.id,
+              chapter: q.chapter_name ?? null,
+              subject: q.subject,
+              context: {
+                run_id: runId,
+                num: q.num,
+                picked: yours,
+                answered: q.answered,
+                marked_correct: q.is_correct,
+              },
+            })
+          }>
+          <FlagIcon size={scale(13)} />
+        </Pressable>
       </View>
 
       <QuestionStem
@@ -935,6 +966,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(11),
       color: '#9A6A12',
     },
+    qReport: { paddingLeft: scale(4), paddingVertical: scale(2) },
     qTime: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(11),

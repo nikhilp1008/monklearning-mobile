@@ -1,5 +1,6 @@
 import {
   RecordingPresets,
+  getRecordingPermissionsAsync,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
@@ -32,15 +33,24 @@ import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
 import { DockLight, type DockLightGeometry } from '@/components/dock-light';
 import { DOCK_FLAG_SLOT, DOCK_H0, DOCK_W0, useDockMotion } from '@/components/dock-motion';
 import { DockRing, type RingMood } from '@/components/dock-ring';
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
+import type { TeacherId } from '@/lib/preferences';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
   speakFollowUpStreaming,
   type FollowUpStep,
   type FollowUpSurface,
+  type FollowUpHandlers,
+  type ResolveEvent,
   type FollowUpTurn,
+  type TextbookPageContext,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { rememberFollowUp } from '@/lib/last-followup';
+import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
+import { probeMicAvailability } from '@/lib/mic-availability';
+import { base64ToBytes } from '@/lib/audio-pcm';
 import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
 import { countChars, revealChars } from '@/lib/word-reveal';
@@ -156,7 +166,74 @@ const MIN_HOLD_MS = 350;
  * options — a fresh object each render would still hash the same, but there
  * is no reason to make it.
  */
-const RECORDING = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+/**
+ * A spoken question, recorded for a speech recogniser — not for music.
+ *
+ * It was HIGH_QUALITY: 44.1 kHz stereo at 128 kbps, ~90 kB for a three-second
+ * question, all of which has to upload before Deepgram hears a word. Speech
+ * recognition wants 16 kHz mono; at 32 kbps the same question is ~4x smaller,
+ * which is upload time saved on every follow-up and most of all on the slow
+ * mobile data a student is likely to be on. Metering stays on for the ring.
+ */
+const RECORDING = {
+  ...RecordingPresets.HIGH_QUALITY,
+  sampleRate: 16000,
+  numberOfChannels: 1,
+  bitRate: 32000,
+  isMeteringEnabled: true,
+};
+
+/**
+ * The classroom's streaming recorder, for the live follow-up (lib/followup-
+ * live.ts). Required inside a try for the classroom's reason: the package
+ * calls requireNativeModule at its own top level, and a build without it must
+ * cost this one feature, not the app. Missing, the bar records as it always
+ * has.
+ */
+interface StreamRecorder {
+  startRecording(options: {
+    sampleRate: number;
+    channels: number;
+    encoding: string;
+    interval: number;
+    ios?: { audioSession?: { category?: string; categoryOptions?: string[] } };
+    onAudioStream: (event: { data: unknown }) => void;
+  }): Promise<unknown>;
+  stopRecording(): Promise<{ fileUri?: string } | null | undefined>;
+}
+let useStreamRecorder: () => StreamRecorder;
+let streamRecorderLoaded = false;
+let listInputDevices: () => Promise<unknown> = () => Promise.reject(new Error('not loaded'));
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const audioStudio = require('@siteed/audio-studio');
+  useStreamRecorder = audioStudio.useAudioRecorder;
+  listInputDevices = () => audioStudio.AudioStudioModule.getAvailableInputDevices({ refresh: true });
+  streamRecorderLoaded = true;
+} catch {
+  useStreamRecorder = function useUnavailableStreamRecorder(): StreamRecorder {
+    return {
+      startRecording: () => Promise.reject(new Error('unavailable')),
+      stopRecording: () => Promise.resolve(null),
+    };
+  };
+}
+/** The classroom's mic probe, run once per app session: a device whose input
+ *  the probe distrusts never gets the streaming recorder. */
+let micProbe: Promise<boolean> | null = null;
+function streamingMicOk(): Promise<boolean> {
+  if (!micProbe) {
+    micProbe = probeMicAvailability({
+      moduleLoaded: streamRecorderLoaded,
+      getPermission: getRecordingPermissionsAsync,
+      requestPermission: requestRecordingPermissionsAsync,
+      listInputDevices,
+    })
+      .then((d) => d.status === 'available')
+      .catch(() => false);
+  }
+  return micProbe;
+}
 
 /** How often the level is read while the mic is held. */
 const METER_MS = 80;
@@ -210,6 +287,11 @@ export function AskFollowUpBar({
   onReport,
   surface = 'doubts',
   trailing,
+  leading,
+  page,
+  teacherFace,
+  onBusyChange,
+  onResolve,
   gutter = 24,
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
@@ -237,13 +319,64 @@ export function AskFollowUpBar({
   /** The side padding of the container the bar sits in, so the board can land
    *  at BOARD_EDGE from the screen whichever screen it is on. */
   gutter?: number;
+  /**
+   * A control on the LEFT of the bar's row — the textbook reader's topics
+   * pill. `trailing`'s mirror, inside the block for the same reason: the board
+   * takes its width from the block.
+   */
+  leading?: ReactNode;
+  /** The textbook page being asked about, when `surface` is 'textbooks'. */
+  page?: TextbookPageContext;
+  /**
+   * The student's own teacher's orb in place of the marigold mic, and "Ask
+   * teacher" for the words — the textbook reader's pill, so the student is
+   * asking THEM.
+   */
+  teacherFace?: TeacherId;
+  /** True from the hold until the answer has finished; the textbook reader
+   *  freezes its page for exactly that long. */
+  onBusyChange?: (busy: boolean) => void;
+  /**
+   * An unsolved snap being solved again from what the student said in this
+   * hold. The solution screen draws it in place of its "could not solve"
+   * note; the bar only speaks the teacher's "got it".
+   */
+  onResolve?: (event: ResolveEvent) => void;
 }) {
   const recorder = useAudioRecorder(RECORDING);
+  const streamRecorder = useStreamRecorder();
+  /**
+   * The unmount cleanup reads the recorder from here, not from its deps: the
+   * hook hands back a NEW object every render (its isRecording and duration
+   * are state), so with it in the deps the "unmount" cleanup ran on the first
+   * re-render of every hold — cancelling the live socket and stopping the
+   * recording before release, which left nothing to fall back on either.
+   */
+  const streamRecorderRef = useRef(streamRecorder);
+  streamRecorderRef.current = streamRecorder;
+  /** The live ask for the hold in progress, when this hold went live. */
+  const liveRef = useRef<LiveAsk | null>(null);
+  const liveModeRef = useRef(false);
+  // Asked early so the press never waits on it.
+  useEffect(() => {
+    if (!streamRecorderLoaded) return;
+    void followUpLiveEnabled();
+  }, []);
   /** The board is capped rather than free: it grows upward over the solution,
    *  and past a little under half the screen there is nothing of the solution
    *  left to read behind it. */
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [phase, setPhase] = useState<Phase>('idle');
+  /** Tells the host (the textbook reader) when an exchange is under way, so it
+   *  can hold its page still from the hold to the end of the answer. */
+  const busyChange = useRef(onBusyChange);
+  busyChange.current = onBusyChange;
+  const resolveRef = useRef(onResolve);
+  resolveRef.current = onResolve;
+  useEffect(() => {
+    busyChange.current?.(phase !== 'idle');
+  }, [phase]);
+  useEffect(() => () => busyChange.current?.(false), []);
   /**
    * A FAILURE IS TWO WORDS, NOT A SENTENCE.
    *
@@ -278,9 +411,9 @@ export function AskFollowUpBar({
    * The pill's vertical centre never moves: the row is centred and keeps its
    * height while the pill squeezes symmetrically, so the row's middle is it.
    */
-  const litDock = surface === 'doubts' || surface === 'practice';
+  const litDock = surface === 'doubts' || surface === 'practice' || surface === 'textbooks';
   /** Practice's Next shares the row, so there the bar keeps its size. */
-  const shared = !!trailing;
+  const shared = !!trailing || !!leading;
   const clock = useClock();
   const down = useSharedValue(false);
   const motion = useDockMotion({ phase, level: voiceLevel, clock, down, stretch: !shared });
@@ -589,6 +722,8 @@ export function AskFollowUpBar({
       pcmStop();
       if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
       recorder.stop().catch(() => {});
+      liveRef.current?.cancel();
+      if (liveModeRef.current) streamRecorderRef.current.stopRecording().catch(() => {});
       if (lingerRef.current) clearTimeout(lingerRef.current);
       if (meterRef.current) clearInterval(meterRef.current);
       stopTick();
@@ -656,6 +791,52 @@ export function AskFollowUpBar({
           toPlayback();
           return 'released';
         }
+        // LIVE when the server wants it, the classroom's recorder is in this
+        // build and the mic probe trusts this device — and anything that goes
+        // wrong starting it falls through to the recorder below, unchanged.
+        liveModeRef.current = false;
+        liveRef.current = null;
+        if (streamRecorderLoaded && followUpLiveKnown() && (await streamingMicOk())) {
+          if (!pressedRef.current) {
+            toPlayback();
+            return 'released';
+          }
+          try {
+            const live = await LiveAsk.begin({
+              surface,
+              id: doubtId,
+              page,
+              history: turnsRef.current,
+              pcm: pcmAvailable,
+            });
+            liveRef.current = live;
+            await streamRecorderRef.current.startRecording({
+              sampleRate: 16000,
+              channels: 1,
+              encoding: 'pcm_16bit',
+              interval: 100,
+              ios: {
+                audioSession: {
+                  category: 'PlayAndRecord',
+                  categoryOptions: ['AllowBluetooth', 'MixWithOthers', 'DefaultToSpeaker'],
+                },
+              },
+              onAudioStream: (event: { data: unknown }) => {
+                if (typeof event.data !== 'string') return;
+                const bytes = base64ToBytes(event.data);
+                live.sendPcm(bytes);
+                voiceLevel.value = withTiming(pcmLevel(bytes), { duration: METER_MS });
+              },
+            });
+            liveModeRef.current = true;
+            if (!pressedRef.current) return 'recording';
+            return 'recording';
+          } catch {
+            liveRef.current?.cancel();
+            liveRef.current = null;
+            liveModeRef.current = false;
+          }
+        }
         await recorder.prepareToRecordAsync();
         if (!pressedRef.current) {
           toPlayback();
@@ -677,7 +858,7 @@ export function AskFollowUpBar({
     })();
     setupRef.current = setup;
     await setup;
-  }, [doubtId, recorder, toPlayback, wake, fail, voiceLevel, finishWords]);
+  }, [doubtId, recorder, surface, page, toPlayback, wake, fail, voiceLevel, finishWords]);
 
   const endHold = useCallback(async () => {
     if (!doubtId) return;
@@ -701,9 +882,16 @@ export function AskFollowUpBar({
       return;
     }
     let uri: string | null = null;
+    const live = liveModeRef.current ? liveRef.current : null;
     try {
-      await recorder.stop();
-      uri = recorder.uri ?? null;
+      if (liveModeRef.current) {
+        // The live recorder also kept a WAV of the hold: the upload fallback.
+        const rec = await streamRecorderRef.current.stopRecording();
+        uri = rec?.fileUri ?? null;
+      } else {
+        await recorder.stop();
+        uri = recorder.uri ?? null;
+      }
     } catch {
       // A recorder that will not stop still has whatever it captured.
     }
@@ -714,10 +902,11 @@ export function AskFollowUpBar({
     // teacher's voice in the earpiece, which reads as broken rather than quiet.
     toPlayback();
     if (heldMs < MIN_HOLD_MS) {
+      live?.cancel();
       fail('short');
       return;
     }
-    if (!uri) {
+    if (!uri && !live) {
       fail('retry');
       return;
     }
@@ -730,6 +919,8 @@ export function AskFollowUpBar({
     let asked = '';
     let spokenText = '';
     let spokeStarted = false;
+    /** This hold fixed the question rather than asking about it. */
+    let resolvedHere = false;
     // Nothing is cleared: the answers already on the board stay on it.
     const turnId = ++questionIdRef.current;
     if (boardOpenRef.current) setPendingTurn(turnId);
@@ -816,11 +1007,12 @@ export function AskFollowUpBar({
     };
 
     try {
-      await askAboutDoubtAloud(
-        doubtId,
-        uri,
-        turnsRef.current,
+      const handlers: FollowUpHandlers =
         {
+          onResolve: (event) => {
+            if (event.kind === 'resolved' || event.kind === 'failed') resolvedHere = true;
+            resolveRef.current?.(event);
+          },
           // Kept for the history the next question is sent with. Not shown —
           // the student knows what they just said, and the ring is what tells
           // them it was heard.
@@ -889,10 +1081,21 @@ export function AskFollowUpBar({
               }, Math.max(0, remains * 1000));
             }
           },
-        },
-        controller.signal,
-        surface
-      );
+        };
+      const upload = (recording: string, format: 'm4a' | 'wav') =>
+        askAboutDoubtAloud(doubtId, recording, turnsRef.current, handlers,
+                           controller.signal, surface, page, format);
+      if (live) {
+        try {
+          await live.finish(handlers, controller.signal);
+        } catch (err) {
+          // Nothing of the answer has arrived: send the hold the old way.
+          if (!(err instanceof LiveUnavailable) || !uri) throw err;
+          await upload(uri, 'wav');
+        }
+      } else {
+        await upload(uri!, 'm4a');
+      }
       if (controller.signal.aborted) return;
       // The stream is done, so the word count is final. If no voice was ever
       // heard, this is the valve that writes the answer out.
@@ -907,11 +1110,16 @@ export function AskFollowUpBar({
         { role: 'user', content: asked },
         { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
       ];
+      // For a report made straight after this: whichever flag opens the sheet
+      // sends what was just asked and answered (lib/last-followup.ts).
+      rememberFollowUp(doubtId, asked, arrived.map((s) => s.text).join(' ') || spokenText);
       // No voice ever started. With a board on screen that is a quiet answer,
       // not a failed one; with nothing printed either, there is nothing to
       // show for the question at all.
       if (!spokeStarted) {
-        if (arrived.length) {
+        // A re-solve puts its answer on the main screen, not the board: a
+        // silent one is still an answer.
+        if (arrived.length || resolvedHere) {
           setPhase('idle');
         } else {
           fail('retry');
@@ -950,7 +1158,7 @@ export function AskFollowUpBar({
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake, surface, fail, stopMeter, runTick, flushWords]);
+  }, [doubtId, recorder, toPlayback, wake, surface, page, fail, stopMeter, runTick, flushWords]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
@@ -962,7 +1170,9 @@ export function AskFollowUpBar({
       ? 'Thinking…'
       : speaking
         ? 'Answering…'
-        : 'Ask follow-up';
+        : teacherFace
+          ? 'Ask teacher'
+          : 'Ask follow-up';
 
   const hint = failure
     ? failure === 'mic'
@@ -1189,14 +1399,34 @@ export function AskFollowUpBar({
           if (speaking) stopEverything();
         }}>
         <Animated.View style={[styles.thumb, styles.thumbLit, discAnim]}>
-          <MarigoldDisc hot={listening} />
-          <ThinkingArc motion={motion} on={thinking} />
-          {listening ? (
-            <DockBars motion={motion} />
-          ) : speaking ? (
-            <StopIcon color={INK} />
+          {teacherFace ? (
+            // The teacher's orb is the face; bars and stop sit over it only
+            // while they mean something, as the mic gives way to them.
+            <>
+              <TeacherOrbPoster teacher={teacherFace} size={40} />
+              <ThinkingArc motion={motion} on={thinking} />
+              {listening ? (
+                <View style={styles.orbOverlay}>
+                  <DockBars motion={motion} />
+                </View>
+              ) : speaking ? (
+                <View style={styles.orbOverlay}>
+                  <StopIcon color={INK} />
+                </View>
+              ) : null}
+            </>
           ) : (
-            <MicIcon color={INK} />
+            <>
+              <MarigoldDisc hot={listening} />
+              <ThinkingArc motion={motion} on={thinking} />
+              {listening ? (
+                <DockBars motion={motion} />
+              ) : speaking ? (
+                <StopIcon color={INK} />
+              ) : (
+                <MicIcon color={INK} />
+              )}
+            </>
           )}
         </Animated.View>
         <Text style={styles.label} numberOfLines={1}>
@@ -1313,7 +1543,25 @@ export function AskFollowUpBar({
         </Animated.View>
       )}
 
-      {trailing && litDock ? (
+      {leading && litDock ? (
+        <>
+          {/* THE TEXTBOOK'S ROW: its topics pill on the left, the bar on the
+              right — Practice's arrangement mirrored. Same light, ring and
+              board; the light is centred on the pill, not the row. */}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          <View style={[styles.row, styles.rowSpread]}>
+            {leading}
+            <View style={styles.barColumn}>
+              <View ref={slotRef} style={styles.barSlot} onLayout={measureSlot}>
+                {litFace}
+              </View>
+              <Text style={[styles.hint, styles.hintLit]} numberOfLines={1}>
+                {hint}
+              </Text>
+            </View>
+          </View>
+        </>
+      ) : trailing && litDock ? (
         <>
           {/* PRACTICE WEARS THE SAME LIGHT, WITHOUT THE STRETCH. Next shares
               this row, so the bar keeps its resting width instead of growing
@@ -1679,6 +1927,14 @@ const styles = StyleSheet.create({
   /** Practice's pill at its resting size, so the squeeze shrinks it about
    *  its own centre instead of pulling its right edge toward its left. */
   barSlot: { width: DOCK_W0, height: DOCK_H0, alignItems: 'center', justifyContent: 'center' },
+  /** Bars or stop drawn over the teacher's orb, centred on it. */
+  orbOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 99,
+  },
   flagSlot: { height: DOCK_H0 },
   flagWrap: { position: 'absolute', left: 10, top: 0 },
   /** The handoff's hint: #3D3A33 in every state. Only the words change. */

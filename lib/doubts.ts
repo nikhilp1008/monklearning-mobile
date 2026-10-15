@@ -93,6 +93,9 @@ export interface DoubtDetail extends Omit<DoubtSummary, 'scrap'> {
    */
   question_image_url?: string | null;
   reported: boolean;
+  /** Unsolved, and fixable by the student saying what the photo lost
+   *  (Ask follow-up re-solves it). Absent from older servers. */
+  can_clarify?: boolean;
 }
 
 /**
@@ -137,7 +140,9 @@ export interface SnappedQuestion {
   option_labels?: string[] | null;
   remedy?: Remedy;
   retake_helps?: boolean;
-  /** Includes the "Q1." prefix. `stem` is the same text with that stripped — prefer it for display. */
+  /** See DoubtDetail.can_clarify. */
+  can_clarify?: boolean;
+  /** Includes the "Q1. `stem` is the same text with that stripped — prefer it for display. */
   question_text: string | null;
   stem?: string | null;
   subject: string | null;

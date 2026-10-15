@@ -9,6 +9,8 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtDetail, getDoubt } from '@/lib/doubts';
 import { SolutionView, solutionView } from '@/lib/solution-view';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
 
 export default function DoubtDetailScreen() {
   const params = useLocalSearchParams<{
@@ -118,12 +120,10 @@ export default function DoubtDetailScreen() {
         onBack={() => router.back()}
         // Only the id: the sheet no longer quotes the question — the student
         // is looking at it on the screen behind.
-        onReport={() =>
-          router.push({
-            pathname: '/report-sheet',
-            params: { doubtId: current?.id ?? params.id ?? '' },
-          })
-        }
+        onReport={() => {
+          const doubtId = current?.id ?? params.id ?? '';
+          openReportSheet({ doubtId, context: lastFollowUpContext(doubtId) });
+        }}
       />
     </>
   );

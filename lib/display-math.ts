@@ -29,6 +29,15 @@ const UNITS = new Set([
   'mol', 'L', 'mL', 'ml', 'rad', 'eV', 'C', 'T', 'min', 'h', 'm/s', 'km/h', 'cm/s',
 ]);
 
+/** A unit, simple or compound: every factor between `·`, `⋅` and `/`, once
+ *  its power is stripped, is a known unit. */
+function isUnit(token: string): boolean {
+  if (UNITS.has(token)) return true;
+  const factors = token.split(/[·⋅/]/);
+  if (factors.length < 2 && !/[²³⁻¹^]/.test(token)) return false;
+  return factors.every((f) => UNITS.has(f.replace(/(\^?-?[0-9]+|[²³⁻¹]+)$/, '')));
+}
+
 export function isDisplayWorthy(tex: string): boolean {
   // A unit set in \mathrm or \text is not working: `u=29.4\,\mathrm{m/s}`
   // is a quantity, and its slash is a unit's slash, not a division.
@@ -84,8 +93,11 @@ export function splitDisplay(
     let end = start + m[0].length;
     let display = m[0];
     // The unit written after the number goes with it.
-    const unit = /^\s+([A-Za-zΩ/]{1,5})(?=[\s.,;:)]|$)/.exec(raw.slice(end));
-    if (unit && UNITS.has(unit[1])) {
+    // Compound units too — "J·s", "N·m", "kg·m/s", "m/s²", "J mol⁻¹" — whose
+    // middle dot and powers the plain pattern missed, which dropped them onto
+    // a line of their own under the number they belong to.
+    const unit = /^\s+([A-Za-zΩμ°][A-Za-zΩμ°·⋅/^²³⁻¹0-9-]{0,13})(?=[\s.,;:)]|$)/.exec(raw.slice(end));
+    if (unit && isUnit(unit[1])) {
       display += ' ' + unit[1];
       end += unit[0].length;
     }

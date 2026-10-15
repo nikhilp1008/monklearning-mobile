@@ -745,3 +745,71 @@ export function readyChapterCount(subject: string): number {
   const prefix = `${subject.trim().toLowerCase()}|`;
   return Object.keys(CHAPTERS).filter((k) => k.startsWith(prefix)).length;
 }
+
+/**
+ * A topic page as plain text, for Ask teacher.
+ *
+ * What the student is looking at, in reading order, without the markup: the
+ * server hands this to the teacher as "the page they are reading", so a
+ * question about "this example" or "the second formula" has something to
+ * point at. Diagrams contribute their captions; the drawing itself is not
+ * text. Capped well under the server's 6,000 characters.
+ */
+export function topicPlainText(topic: Topic, cap = 5500): string {
+  const strip = (html: string) =>
+    html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
+  const out: string[] = [topic.title];
+  for (const b of topic.blocks) {
+    switch (b.t) {
+      case 'hook':
+      case 'p':
+      case 'think':
+      case 'protip':
+        out.push(strip(b.html));
+        break;
+      case 'def':
+        out.push(`${b.term}: ${strip(b.html)}`);
+        break;
+      case 'defgrid':
+        out.push(b.title, ...b.rows.map((r) => `${r.k}: ${strip(r.v)}`));
+        break;
+      case 'formula':
+        out.push(`${b.kicker}: ${b.main}`, ...b.legend.map(strip), b.note ? strip(b.note) : '');
+        break;
+      case 'proc':
+        out.push(b.title, ...b.steps.map((s, i) => `${i + 1}. ${strip(s)}`));
+        break;
+      case 'deriv':
+        out.push(b.kicker, ...b.steps.map((s) => `${s.eq} (${strip(s.why)})`));
+        break;
+      case 'diagram':
+        out.push(`Figure: ${b.kicker}`, ...(b.captions ?? []).map(strip));
+        break;
+      case 'ex':
+        out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), `Answer: ${strip(b.ans)}`);
+        break;
+      case 'mcq':
+        out.push(`Question: ${strip(b.q)}`, ...b.opts.map((o, i) => `(${i + 1}) ${strip(o.label)}`));
+        break;
+      case 'practice':
+        out.push(...b.items.map((it) => `Practice: ${strip(it.q)}`));
+        break;
+      case 'mistakes':
+        out.push('Common mistakes:', ...b.items.map(strip));
+        break;
+      case 'snapshot':
+        out.push('Snapshot:', ...b.rows.map((r) => `${r.f} — ${strip(r.note)}`));
+        break;
+    }
+  }
+  const text = out.filter(Boolean).join('\n');
+  return text.length > cap ? text.slice(0, cap) : text;
+}

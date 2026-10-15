@@ -59,10 +59,28 @@ export type FollowUpHandlers = {
    * re-encoding there.
    */
   onPcm?: (b64: string) => void;
+  /**
+   * An UNSOLVED snap being solved again from what the student just said —
+   * "it's ten to the power minus eight" (the API's
+   * _resolve_from_clarification). Its working belongs on the main screen in
+   * place of the "could not solve" note, not on the follow-up board, so it
+   * arrives here and never through `onStep`.
+   */
+  onResolve?: (event: ResolveEvent) => void;
 };
 
+/** The re-solve of an unsolved snap, as it happens. `resolved` carries the
+ *  same shape as the snap stream's `question` event. */
+export type ResolveEvent =
+  | { kind: 'resolving'; doubtId: string }
+  | { kind: 'partial'; step: FollowUpStep }
+  | { kind: 'step'; step: FollowUpStep }
+  | { kind: 'reset' }
+  | { kind: 'resolved'; question: Record<string, unknown> }
+  | { kind: 'failed'; doubtId: string; message: string };
+
 /** Everything after the last complete `\n\n`, left for the next chunk. */
-function parseFrames(chunk: string): { event: string; data: unknown }[] {
+export function parseFrames(chunk: string): { event: string; data: unknown }[] {
   const out: { event: string; data: unknown }[] = [];
   for (const block of chunk.split('\n\n')) {
     let event = 'message';
@@ -98,7 +116,21 @@ function parseFrames(chunk: string): { event: string; data: unknown }[] {
  * the prefix rather than branching on it keeps every caller honest about which
  * one it means.
  */
-export type FollowUpSurface = 'doubts' | 'practice';
+export type FollowUpSurface = 'doubts' | 'practice' | 'textbooks';
+
+/**
+ * The textbook page a student is reading, sent with an Ask teacher question.
+ * The book lives in the app, not on the server, so — unlike a doubt or a
+ * practice question, which the server looks up by id — the page travels with
+ * the request. The server caps it (app/routers/textbooks.py).
+ */
+export type TextbookPageContext = {
+  subject: string;
+  klass: string;
+  chapter: string;
+  topic: string;
+  text: string;
+};
 
 export function askAboutDoubtAloud(
   doubtId: string,
@@ -106,18 +138,22 @@ export function askAboutDoubtAloud(
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
   signal?: AbortSignal,
-  surface: FollowUpSurface = 'doubts'
+  surface: FollowUpSurface = 'doubts',
+  page?: TextbookPageContext,
+  /** The live path's fallback hands over a WAV, not the usual m4a. */
+  format: 'm4a' | 'wav' = 'm4a'
 ): Promise<void> {
   const body = new FormData();
   body.append('audio', {
     uri: recordingUri,
-    name: 'question.m4a',
-    type: 'audio/m4a',
+    name: `question.${format}`,
+    type: format === 'wav' ? 'audio/wav' : 'audio/m4a',
   } as unknown as Blob);
   body.append('history', JSON.stringify(history));
   // Which audio dialect this build can play. Declared per request, so a JS
   // reload on an old binary keeps getting WAVs it can handle.
   body.append('pcm', pcmAvailable ? '1' : '0');
+  if (page) body.append('page', JSON.stringify(page));
   return streamAsk(doubtId, 'ask-voice', body, handlers, signal, surface);
 }
 
@@ -127,9 +163,10 @@ export function askAboutDoubt(
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
   signal?: AbortSignal,
-  surface: FollowUpSurface = 'doubts'
+  surface: FollowUpSurface = 'doubts',
+  page?: TextbookPageContext
 ): Promise<void> {
-  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history }),
+  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history, ...(page ? { page } : {}) }),
                    handlers, signal, surface);
 }
 
@@ -267,6 +304,63 @@ export function speakFollowUpStreaming(
   });
 }
 
+/**
+ * One answer frame, handed to its handler. Returns the message of an `error`
+ * frame, null otherwise. Shared by the upload route below and the live socket
+ * (lib/followup-live.ts), which carries the same frames.
+ */
+export function dispatchFollowUpFrame(
+  frame: { event: string; data: unknown },
+  handlers: FollowUpHandlers
+): string | null {
+  const payload = (frame.data ?? {}) as Record<string, unknown>;
+  if (frame.event === 'transcript') {
+    handlers.onTranscript?.(String(payload.text ?? ''));
+  } else if (frame.event === 'step') {
+    handlers.onStep({
+      n: Number(payload.n ?? 0),
+      text: String(payload.text ?? ''),
+    });
+  } else if (frame.event === 'spoken') {
+    handlers.onSpoken?.(String(payload.text ?? ''), payload.voice === 'inline');
+  } else if (frame.event === 'step_partial') {
+    handlers.onStepPartial?.({
+      n: Number(payload.n ?? 0),
+      text: String(payload.text ?? ''),
+    });
+  } else if (frame.event === 'pcm') {
+    const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
+    if (b64) handlers.onPcm?.(b64);
+  } else if (frame.event === 'audio') {
+    const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
+    if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);
+  } else if (frame.event === 'answered') {
+    handlers.onAnswered?.();
+  } else if (frame.event === 'voice_done') {
+    handlers.onVoiceDone?.(Number(payload.chunks) || 0);
+  } else if (frame.event === 'resolving') {
+    handlers.onResolve?.({ kind: 'resolving', doubtId: String(payload.doubt_id ?? '') });
+  } else if (frame.event === 'resolve_step_partial' || frame.event === 'resolve_step') {
+    handlers.onResolve?.({
+      kind: frame.event === 'resolve_step' ? 'step' : 'partial',
+      step: { n: Number(payload.n ?? 0), text: String(payload.text ?? '') },
+    });
+  } else if (frame.event === 'resolve_steps_reset') {
+    handlers.onResolve?.({ kind: 'reset' });
+  } else if (frame.event === 'resolved') {
+    handlers.onResolve?.({ kind: 'resolved', question: payload });
+  } else if (frame.event === 'resolve_failed') {
+    handlers.onResolve?.({
+      kind: 'failed',
+      doubtId: String(payload.doubt_id ?? ''),
+      message: String(payload.message ?? ''),
+    });
+  } else if (frame.event === 'error') {
+    return String(payload.message ?? '');
+  }
+  return null;
+}
+
 /** One reader for both routes: same frames, different body. */
 function streamAsk(
   doubtId: string,
@@ -317,34 +411,8 @@ function streamAsk(
         const chunk = text.slice(consumed, boundary + 2);
         consumed = boundary + 2;
         for (const frame of parseFrames(chunk)) {
-          const payload = (frame.data ?? {}) as Record<string, unknown>;
-          if (frame.event === 'transcript') {
-            handlers.onTranscript?.(String(payload.text ?? ''));
-          } else if (frame.event === 'step') {
-            handlers.onStep({
-              n: Number(payload.n ?? 0),
-              text: String(payload.text ?? ''),
-            });
-          } else if (frame.event === 'spoken') {
-            handlers.onSpoken?.(String(payload.text ?? ''), payload.voice === 'inline');
-          } else if (frame.event === 'step_partial') {
-            handlers.onStepPartial?.({
-              n: Number(payload.n ?? 0),
-              text: String(payload.text ?? ''),
-            });
-          } else if (frame.event === 'pcm') {
-            const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
-            if (b64) handlers.onPcm?.(b64);
-          } else if (frame.event === 'audio') {
-            const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
-            if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);
-          } else if (frame.event === 'answered') {
-            handlers.onAnswered?.();
-          } else if (frame.event === 'voice_done') {
-            handlers.onVoiceDone?.(Number(payload.chunks) || 0);
-          } else if (frame.event === 'error') {
-            failure = String(payload.message ?? '');
-          }
+          const err = dispatchFollowUpFrame(frame, handlers);
+          if (err !== null) failure = err;
         }
       };
 

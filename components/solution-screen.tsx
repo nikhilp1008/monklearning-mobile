@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
@@ -19,7 +19,13 @@ import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { DoubtSolution } from '@/components/doubt-solution';
 import { DoubtOption } from '@/lib/doubts';
-import { ParsedStep } from '@/lib/solution-steps';
+import type { ResolveEvent } from '@/lib/doubt-followup';
+import { hapticTicked } from '@/lib/haptics';
+import { latexToText } from '@/lib/latex-text';
+import { LiveStep, upsertLiveStep } from '@/lib/live-steps';
+import { withTeacherName } from '@/lib/preferences';
+import { ParsedStep, parseSolutionSteps } from '@/lib/solution-steps';
+import { solutionView, type SolvedSource } from '@/lib/solution-view';
 import { PAGE_TITLE } from '@/constants/page-title';
 import { QUESTION_READ_LINE, QUESTION_READ_SIZE } from '@/constants/reading';
 
@@ -141,6 +147,12 @@ export type SolutionQuestion = {
   liveSteps?: ParsedStep[];
   /** Shown in place of the working when this question could not be solved. */
   failureNote?: string | null;
+  /**
+   * Unsolved, but fixable by the student SAYING what the photo lost — the
+   * server reads a follow-up on it as a possible correction and solves it
+   * again (`onResolve` below). Shown as an invitation under the note.
+   */
+  canClarify?: boolean;
   /** Every printed choice, for an MCQ. Shown under the question. */
   options?: DoubtOption[] | null;
   /** The question before conversion, so its fractions stack like the steps'. */
@@ -245,7 +257,7 @@ function GridPaper() {
 }
 
 export function SolutionScreen({
-  questions,
+  questions: given,
   index,
   onSelect,
   onBack,
@@ -256,7 +268,63 @@ export function SolutionScreen({
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(), []);
   const scrollRef = useRef<ScrollView>(null);
+
+  /**
+   * An unsolved question the student has just fixed by saying what it says.
+   * Held here, by doubt id, over whatever the screen was given: the working
+   * streams into the space the "could not solve" note held, and the solution
+   * replaces it — the same place, not the follow-up board. The server has
+   * already stored it, so the next time this doubt is opened it simply loads
+   * solved.
+   */
+  const [fixed, setFixed] = useState<Record<string, Partial<SolutionQuestion>>>({});
+  const fixingRef = useRef<{ doubtId: string; id: string; steps: LiveStep[] } | null>(null);
+  const questions = useMemo(
+    () => given.map((q) => (q.doubtId && fixed[q.doubtId] ? { ...q, ...fixed[q.doubtId] } : q)),
+    [given, fixed]
+  );
   const question = questions[index];
+  const onResolve = useCallback(
+    (event: ResolveEvent) => {
+      const set = (doubtId: string, patch: Partial<SolutionQuestion>) =>
+        setFixed((f) => ({ ...f, [doubtId]: patch }));
+      if (event.kind === 'resolving') {
+        const target = given.find((q) => q.doubtId === event.doubtId) ?? question;
+        if (!target?.doubtId) return;
+        fixingRef.current = { doubtId: target.doubtId, id: target.id, steps: [] };
+        set(target.doubtId, { pending: true, liveSteps: [], failureNote: null, canClarify: false });
+        return;
+      }
+      const fixing = fixingRef.current;
+      if (!fixing) return;
+      if (event.kind === 'partial' || event.kind === 'step' || event.kind === 'reset') {
+        fixing.steps =
+          event.kind === 'reset'
+            ? []
+            : upsertLiveStep(fixing.steps, { ...event.step, final: event.kind === 'step' });
+        set(fixing.doubtId, {
+          pending: true,
+          liveSteps: parseSolutionSteps(fixing.steps),
+          failureNote: null,
+          canClarify: false,
+        });
+      } else if (event.kind === 'resolved') {
+        const view = solutionView(event.question as unknown as SolvedSource, fixing.id);
+        set(fixing.doubtId, { ...view, pending: false, liveSteps: undefined });
+        fixingRef.current = null;
+        hapticTicked();
+      } else if (event.kind === 'failed') {
+        set(fixing.doubtId, {
+          pending: false,
+          liveSteps: undefined,
+          failureNote: withTeacherName(latexToText(event.message)) || null,
+          canClarify: true,
+        });
+        fixingRef.current = null;
+      }
+    },
+    [given, question]
+  );
   /**
    * The exchange lives here, not in the bar, because its answer needs a sheet
    * at screen level — a view drawn outside its parent receives no touches on
@@ -566,6 +634,13 @@ export function SolutionScreen({
           ) : question.failureNote ? (
             <View style={styles.failureBlock}>
               <Text style={styles.failureText}>{question.failureNote}</Text>
+              {question.canClarify ? (
+                <Text style={[styles.failureText, styles.clarifyHint]}>
+                  {withTeacherName(
+                    'Know what it says? Hold Ask follow-up and tell Monk — “the power is minus 8” — and it will be solved right here.'
+                  )}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <View style={styles.stepsBlock}>
@@ -620,7 +695,7 @@ export function SolutionScreen({
             spoken answer — because a follow-up is a question about the working
             on this screen and must not navigate away from it. */}
         <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} />
+          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} onResolve={onResolve} />
         </View>
       </View>
 
@@ -911,6 +986,7 @@ function createStyles() {
     },
     // Amber, not red: the working is sound and worth reading, only the final
     // answer is missing. Red would tell a student to discard the whole card.
+    clarifyHint: { marginTop: 10, opacity: 0.8 },
     failureText: {
       fontFamily: 'Onest_400Regular',
       fontSize: 16,

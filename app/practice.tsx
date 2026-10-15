@@ -52,6 +52,8 @@ import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 import { sampleWeakChapterId } from '@/lib/weak-focus';
 import { hapticSoft, hapticSwitched, hapticTicked, hapticWarning } from '@/lib/haptics';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -659,9 +661,18 @@ export default function PracticeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Report a mistake in this question"
               onPress={() =>
-                router.push({
-                  pathname: '/report-sheet',
-                  params: { questionId: question.question_id },
+                // What they had done with it says which complaint this is: a
+                // wrong key before answering, a wrong verdict after, or the
+                // follow-up they had just asked.
+                openReportSheet({
+                  questionId: question.question_id,
+                  surface: 'practice',
+                  context: {
+                    picked: selectedOption ?? (numericInput.trim() || null),
+                    answered: !!answerResult,
+                    marked_correct: answerResult ? answerResult.is_correct : null,
+                    ...lastFollowUpContext(question.question_id),
+                  },
                 })
               }>
               <FlagIcon size={scale(16)} />

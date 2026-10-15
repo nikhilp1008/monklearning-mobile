@@ -155,7 +155,13 @@ export function DoubtSolution({
             {!!answerLabels?.length && (
               <Text style={s.answerPick}>({answerLabels.join(', ')})</Text>
             )}
-            <MathLine text={answerRaw ?? answer} style={s.answerText} fontSize={SIZE} color={GREEN_INK} />
+            {/* In its own flexing box: MathLine lays a line out as a row of
+                words, and beside the label in a row it took its full natural
+                width — a long multi-option answer ran past the green box and
+                was cut off at the screen edge. Constrained here, it wraps. */}
+            <View style={s.answerBody}>
+              <MathLine text={answerRaw ?? answer} style={s.answerText} fontSize={SIZE} color={GREEN_INK} />
+            </View>
           </View>
           {footer}
         </View>
@@ -247,6 +253,7 @@ function createStyles() {
       backgroundColor: GREEN_WASH,
     },
     answerPick: { fontFamily: 'Onest_800ExtraBold', fontSize: SIZE, color: GREEN_INK },
+    answerBody: { flexShrink: 1, minWidth: 0 },
     answerText: { fontFamily: 'Onest_600SemiBold', fontSize: SIZE, color: GREEN_INK },
   });
 }
