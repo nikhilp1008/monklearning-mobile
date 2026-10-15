@@ -58,6 +58,34 @@ export interface MockReportQuestion {
   chapter_name?: string | null;
 }
 
+/**
+ * THIS PAPER AGAINST THE ONE BEFORE IT, as the server works it out.
+ *
+ * Everything is a percentage of what each paper was worth, never raw marks:
+ * a 35-question starting point and a 75-question full paper are not on the
+ * same scale. Chapters appear only where both papers asked about them and the
+ * share answered right moved by at least a quarter either way.
+ */
+export interface MockPreviousChapter {
+  chapter_id: string;
+  name: string;
+  before: { correct: number; total: number };
+  after: { correct: number; total: number };
+}
+
+export interface MockPrevious {
+  run_id: string;
+  /** The earlier paper's kind; 'diagnostic' reads as "your starting point". */
+  kind: 'full' | 'diagnostic';
+  submitted_at: string;
+  before_percent: number;
+  after_percent: number;
+  delta_percent: number;
+  subjects: { subject: string; before: number; after: number }[];
+  improved: MockPreviousChapter[];
+  slipped: MockPreviousChapter[];
+}
+
 export interface MockReport {
   run_id: string;
   exam: 'jee' | 'neet';
@@ -76,6 +104,9 @@ export interface MockReport {
   unanswered: number;
   per_subject: Record<string, MockSubjectScore>;
   questions: MockReportQuestion[];
+  /** Against the previous paper. null: this is the first. undefined: a copy
+   *  saved before comparisons existed, so the server is asked once. */
+  previous?: MockPrevious | null;
 }
 
 /** Everything the server said, plus everything only this device knows. */
@@ -95,6 +126,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
     wrong: result.score.wrong,
     unanswered: result.score.unanswered,
     per_subject: result.score.per_subject,
+    previous: result.previous,
     questions: session.paper.questions.map((q) => {
       const r = review.get(q.id);
       return {
