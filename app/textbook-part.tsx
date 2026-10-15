@@ -22,9 +22,9 @@ import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { READ_LINE, READ_SIZE, READING_GUTTER } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { IndexSheet } from '@/components/revise/dock';
 import { RING, RING_AT } from '@/components/revise/page-turn';
-import { AskTeacher } from '@/components/textbook/ask-teacher';
 import { BlockState, EMPTY_BLOCK_STATE } from '@/components/textbook/blocks';
 import { TextbookBlockPilot } from '@/components/textbook/blocks-pilot';
 import { kicker } from '@/components/textbook/theme';
@@ -33,7 +33,10 @@ import { buildParts, ChapterPart, readProgress, saveProgress } from '@/lib/chapt
 import { hapticSwitched, hapticTicked } from '@/lib/haptics';
 import { getTeacherPreference, TeacherId } from '@/lib/preferences';
 import { readingMultiplier } from '@/lib/reading-size';
-import { Chapter, groupBlocks, loadChapter, RenderBlock } from '@/lib/textbooks';
+import type { TextbookPageContext } from '@/lib/doubt-followup';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
+import { Chapter, groupBlocks, loadChapter, RenderBlock, topicPlainText } from '@/lib/textbooks';
 
 /**
  * A TOPIC, ONE SHORT PART AT A TIME.
@@ -42,7 +45,9 @@ import { Chapter, groupBlocks, loadChapter, RenderBlock } from '@/lib/textbooks'
  * and after a topic's last part comes one more page: the topic, finished. The
  * whole chapter is one row of pages, and on every part the foot is the full
  * reader's own (app/textbook-reader.tsx): the list and the arrows round "3/5"
- * on the left, Ask teacher on the right. The arrows move a part either way and
+ * on the left, Ask teacher on the right (Ask follow-up's own bar wearing the
+ * teacher's orb, asking about the part on screen, as in the reader; the flag
+ * in the head reports a mistake on it). The arrows move a part either way and
  * the page slides across, as the reader's topics do; the list holds every
  * topic in order, the open one showing its parts. On a topic's last part the
  * count and arrows give way to "Finish topic ›", edged in marigold, so the end
@@ -82,7 +87,9 @@ export default function TextbookPartScreen() {
   const [listOpen, setListOpen] = useState(false);
 
   useEffect(() => {
-    getTeacherPreference().then(setTeacher).catch(() => {});
+    getTeacherPreference()
+      .then(setTeacher)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -119,11 +126,43 @@ export default function TextbookPartScreen() {
     if (!pages.length) return;
     const want = Math.max(0, Number(params.part ?? 0) || 0);
     dir.value = 0;
-    setAt(Math.max(0, pages.findIndex((pg) => pg.kind === 'part' && pg.part.index === want)));
+    setAt(
+      Math.max(
+        0,
+        pages.findIndex((pg) => pg.kind === 'part' && pg.part.index === want),
+      ),
+    );
   }, [pages, params.part, dir]);
   const page = at === null ? null : pages[at];
   const topicIndex = page ? (page.kind === 'part' ? page.part.topic : page.topic) : 0;
   const topic = chapter?.topics[topicIndex];
+
+  /**
+   * The page Ask teacher asks about, and a report names: the part on screen,
+   * as text. The book lives in the app, so the page travels with the
+   * question; the key only names it for the server's logs.
+   */
+  const askPage = useMemo<TextbookPageContext | undefined>(() => {
+    if (!chapter || !topic || page?.kind !== 'part') return undefined;
+    const name = `${topic.title} · ${page.part.title}`;
+    return {
+      subject: chapter.subject,
+      klass: chapter.klass,
+      chapter: chapter.title,
+      topic: name,
+      text: topicPlainText({ ...topic, title: name, blocks: page.part.blocks }),
+    };
+  }, [chapter, topic, page]);
+  const askKey = useMemo(
+    () =>
+      encodeURIComponent(
+        `${subject}-${classLevel}-${title}-${topic?.n ?? ''}-${page?.kind === 'part' ? page.part.inTopic : 'done'}`
+          .toLowerCase()
+          .replace(/[^a-z0-9-]+/g, '-')
+          .slice(0, 80),
+      ),
+    [subject, classLevel, title, topic, page],
+  );
 
   // Reopen exactly here next time.
   useEffect(() => {
@@ -142,7 +181,7 @@ export default function TextbookPartScreen() {
         animations: { transform: [{ translateX: withTiming(0, { duration: SLIDE_MS, easing: EASE }) }] },
       };
     },
-    [dir]
+    [dir],
   );
   const exit = useMemo<EntryExitAnimationFunction>(
     () => (values: ExitAnimationsValues) => {
@@ -152,7 +191,7 @@ export default function TextbookPartScreen() {
         animations: { transform: [{ translateX: withTiming(-dir.value * values.windowWidth, { duration: SLIDE_MS, easing: EASE }) }] },
       };
     },
-    [dir]
+    [dir],
   );
 
   const go = (to: number) => {
@@ -211,7 +250,7 @@ export default function TextbookPartScreen() {
       const nearEnd = y + layoutMeasurement.height >= contentSize.height - verticalScale(40);
       away.value = withTiming(dy > 0 && !nearTop && !nearEnd ? 1 : 0, { duration: 220 });
     },
-    [away, verticalScale]
+    [away, verticalScale],
   );
   useEffect(() => {
     lastY.current = 0;
@@ -278,7 +317,12 @@ export default function TextbookPartScreen() {
       <StatusBar style="dark" />
       <SafeAreaView edges={['top']} style={s.safe}>
         <Animated.View style={[s.topBar, { top: insets.top }, headStyle]} onLayout={(e) => setHeadH(e.nativeEvent.layout.height)}>
-          <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back to the chapter" style={s.back}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Back to the chapter"
+            style={s.back}>
             <Svg viewBox="0 0 16 16" width={scale(17)} height={scale(17)} fill="none">
               <Path d="M10 3.5 5.5 8 10 12.5" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
             </Svg>
@@ -286,6 +330,30 @@ export default function TextbookPartScreen() {
           <Text style={s.chapterTitle} numberOfLines={1}>
             {topic ? `Topic ${topicIndex + 1} · ${short(topic)}` : ' '}
           </Text>
+          {/* REPORT a wrong line on this part, as the reader does beside its text size. */}
+          {askPage ? (
+            <Pressable
+              onPress={() =>
+                openReportSheet({
+                  surface: 'textbook',
+                  subject: askPage.subject,
+                  chapter: askPage.chapter,
+                  quote: askPage.text.slice(0, 600),
+                  context: {
+                    page_key: decodeURIComponent(askKey),
+                    topic: askPage.topic,
+                    klass: askPage.klass,
+                    ...lastFollowUpContext(askKey),
+                  },
+                })
+              }
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Report a mistake on this page"
+              style={s.report}>
+              <FlagIcon size={scale(16)} />
+            </Pressable>
+          ) : null}
         </Animated.View>
 
         {missing ? (
@@ -303,7 +371,10 @@ export default function TextbookPartScreen() {
                 scrollEventThrottle={16}
                 contentContainerStyle={[
                   s.content,
-                  { paddingTop: headSpace + verticalScale(20), paddingBottom: (page.kind === 'part' ? verticalScale(150) : verticalScale(40)) + insets.bottom },
+                  {
+                    paddingTop: headSpace + verticalScale(20),
+                    paddingBottom: (page.kind === 'part' ? verticalScale(150) : verticalScale(40)) + insets.bottom,
+                  },
                 ]}>
                 {body(page)}
               </ScrollView>
@@ -318,7 +389,11 @@ export default function TextbookPartScreen() {
       {chapter && page?.kind === 'part' && at !== null && (
         <SafeAreaView edges={['bottom']} style={s.navWrap} pointerEvents="box-none">
           <Animated.View style={[s.navFade, footStyle]} pointerEvents="none">
-            <LinearGradient colors={['rgba(255,255,255,0)', colors.reading, colors.reading]} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', colors.reading, colors.reading]}
+              locations={[0, 0.45, 1]}
+              style={StyleSheet.absoluteFill}
+            />
           </Animated.View>
           {asking && (
             <View style={s.freezeChip} pointerEvents="none">
@@ -328,40 +403,64 @@ export default function TextbookPartScreen() {
           )}
           {/* THE READER'S FOOT: the list and the arrows round the place on the left, Ask teacher on the right. */}
           <Animated.View style={[s.navRow, footStyle]} pointerEvents="box-none">
-            <View style={[s.pill, lastOfTopic && s.pillLast, asking && s.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
-              <Pressable onPress={() => setListOpen(true)} hitSlop={4} style={s.pillButton} accessibilityLabel="All parts">
-                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                  <Path d="M2.5 4h11M2.5 8h11M2.5 12h7" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
-                </Svg>
-              </Pressable>
-              {lastOfTopic ? (
-                // The last part: no count and no arrows, one way on. (Back is in the list.)
-                <Pressable onPress={() => go(at + 1)} style={s.finish} accessibilityRole="button" accessibilityLabel="Finish topic">
-                  <Text style={s.finishText}>Finish topic</Text>
-                  <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                    <Path d="M6 3.5 10.5 8 6 12.5" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
-                  </Svg>
-                </Pressable>
-              ) : (
-                <>
-                  <Pressable disabled={atFirst} onPress={() => go(at - 1)} style={s.pillButton} accessibilityLabel="Previous">
+            {/* Ask teacher is Ask follow-up's own bar, wearing the teacher's orb: the
+                same hold, voice, board and answer, about this part. The pill rides in
+                the bar's row so the board can span it. */}
+            <AskFollowUpBar
+              surface="textbooks"
+              doubtId={askPage ? askKey : null}
+              page={askPage}
+              teacherFace={teacher}
+              onBusyChange={setAsking}
+              gutter={scale(16)}
+              leading={
+                <View style={[s.pill, lastOfTopic && s.pillLast, asking && s.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
+                  <Pressable onPress={() => setListOpen(true)} hitSlop={4} style={s.pillButton} accessibilityLabel="All parts">
                     <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                      <Path d="M10 3.5 5.5 8 10 12.5" stroke={atFirst ? colors.disabled : colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+                      <Path d="M2.5 4h11M2.5 8h11M2.5 12h7" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
                     </Svg>
                   </Pressable>
-                  <Text style={s.positionText} accessibilityLabel={`Part ${page.part.inTopic} of ${page.part.ofTopic}`}>
-                    {page.part.inTopic}
-                    <Text style={s.positionTotal}>/{page.part.ofTopic}</Text>
-                  </Text>
-                  <Pressable disabled={atLast} onPress={() => go(at + 1)} style={s.pillButton} accessibilityLabel="Next">
-                    <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                      <Path d="M6 3.5 10.5 8 6 12.5" stroke={atLast ? colors.disabled : colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
-                    </Svg>
-                  </Pressable>
-                </>
-              )}
-            </View>
-            <AskTeacher teacher={teacher} onHoldChange={setAsking} />
+                  {lastOfTopic ? (
+                    // The last part: no count and no arrows, one way on. (Back is in the list.)
+                    <Pressable onPress={() => go(at + 1)} style={s.finish} accessibilityRole="button" accessibilityLabel="Finish topic">
+                      <Text style={s.finishText}>Finish topic</Text>
+                      <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                        <Path d="M6 3.5 10.5 8 6 12.5" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+                      </Svg>
+                    </Pressable>
+                  ) : (
+                    <>
+                      <Pressable disabled={atFirst} onPress={() => go(at - 1)} style={s.pillButton} accessibilityLabel="Previous">
+                        <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                          <Path
+                            d="M10 3.5 5.5 8 10 12.5"
+                            stroke={atFirst ? colors.disabled : colors.ink}
+                            strokeWidth={1.9}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </Svg>
+                      </Pressable>
+                      <Text style={s.positionText} accessibilityLabel={`Part ${page.part.inTopic} of ${page.part.ofTopic}`}>
+                        {page.part.inTopic}
+                        <Text style={s.positionTotal}>/{page.part.ofTopic}</Text>
+                      </Text>
+                      <Pressable disabled={atLast} onPress={() => go(at + 1)} style={s.pillButton} accessibilityLabel="Next">
+                        <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                          <Path
+                            d="M6 3.5 10.5 8 6 12.5"
+                            stroke={atLast ? colors.disabled : colors.ink}
+                            strokeWidth={1.9}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </Svg>
+                      </Pressable>
+                    </>
+                  )}
+                </View>
+              }
+            />
           </Animated.View>
         </SafeAreaView>
       )}
@@ -416,18 +515,35 @@ function TopicDone({
     sweep.value = withTiming(1, { duration: 1000, easing: EASE });
     tick.value = withDelay(550, withTiming(1, { duration: 450, easing: Easing.bezier(0.3, 0.7, 0.3, 1) }));
   }, [sweep, tick]);
-  const ring = useAnimatedStyle(() => ({ opacity: Math.min(1, sweep.value * 3), transform: [{ rotate: `${(sweep.value - 1) * 200}deg` }] }));
+  const ring = useAnimatedStyle(() => ({
+    opacity: Math.min(1, sweep.value * 3),
+    transform: [{ rotate: `${(sweep.value - 1) * 200}deg` }],
+  }));
   const drawn = useAnimatedProps(() => ({ strokeDashoffset: 30 * (1 - tick.value) }));
 
   return (
     <View>
       <View style={[s.ring, { width: size, height: size, borderRadius: size / 2 }]}>
         <Animated.View style={[{ width: size * 1.5, height: size * 1.5 }, ring]}>
-          <LinearGradient colors={[...RING]} locations={[...RING_AT]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={[...RING]}
+            locations={[...RING_AT]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
         </Animated.View>
         <View style={[s.ringInner, { borderRadius: size / 2 }]}>
           <Svg viewBox="0 0 64 64" width={size} height={size} fill="none">
-            <AnimatedPath d="M22 33l7 7 14-15" stroke={colors.ink} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={30} animatedProps={drawn} />
+            <AnimatedPath
+              d="M22 33l7 7 14-15"
+              stroke={colors.ink}
+              strokeWidth={2.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={30}
+              animatedProps={drawn}
+            />
           </Svg>
         </View>
       </View>
@@ -461,11 +577,27 @@ function TopicDone({
 function doneStyles(scale: (n: number) => number) {
   return StyleSheet.create({
     ring: { marginTop: scale(14), overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-    ringInner: { position: 'absolute', top: 3, left: 3, right: 3, bottom: 3, backgroundColor: colors.reading, alignItems: 'center', justifyContent: 'center' },
+    ringInner: {
+      position: 'absolute',
+      top: 3,
+      left: 3,
+      right: 3,
+      bottom: 3,
+      backgroundColor: colors.reading,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     kicker: { marginTop: scale(20) },
     title: { marginTop: scale(4) },
     list: { marginTop: scale(14) },
-    row: { flexDirection: 'row', alignItems: 'center', gap: scale(12), paddingVertical: scale(10), borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,22,.08)' },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+      paddingVertical: scale(10),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.08)',
+    },
     rowText: { flex: 1, fontFamily: 'Onest_500Medium', color: colors.ink },
     upNext: { marginTop: scale(28) },
     next: {
@@ -512,6 +644,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     back: { width: scale(34), height: scale(44), justifyContent: 'center' },
     chapterTitle: { flex: 1, fontFamily: 'Onest_700Bold', fontSize: scale(15), color: colors.ink },
+    report: { paddingHorizontal: scale(6), paddingVertical: verticalScale(4) },
     stage: { flex: 1, overflow: 'hidden' },
     page: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.reading },
     loading: { paddingTop: verticalScale(40), alignItems: 'center' },
@@ -530,7 +663,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     /* The foot, as app/textbook-reader.tsx draws it. */
     navWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     navFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: verticalScale(170) },
-    navRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginHorizontal: scale(16), marginBottom: verticalScale(6) },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginHorizontal: scale(16),
+      marginBottom: verticalScale(6),
+    },
     pill: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -550,7 +689,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     positionTotal: { fontFamily: 'Onest_600SemiBold', color: colors.faint },
     /** The last part's pill: edged in marigold, the app's "picked" colour, as a line and never a fill. */
     pillLast: { borderColor: colors.marigold, borderWidth: 1.5 },
-    finish: { flexDirection: 'row', alignItems: 'center', gap: scale(4), height: scale(44), paddingLeft: scale(6), paddingRight: scale(12) },
+    finish: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(4),
+      height: scale(44),
+      paddingLeft: scale(6),
+      paddingRight: scale(12),
+    },
     finishText: { fontFamily: 'Onest_700Bold', fontSize: scale(14.5), color: colors.ink },
     dimmed: { opacity: 0.45 },
     freezeFrame: { ...StyleSheet.absoluteFillObject, borderWidth: 3, borderColor: 'rgba(238,163,31,.6)', zIndex: 3 },
