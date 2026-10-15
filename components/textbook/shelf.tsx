@@ -21,6 +21,7 @@ import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg
 import { MonkLogo } from '@/components/monk-logo';
 import { Skeleton } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
+import { opensOnChoice } from '@/lib/chapter-essentials';
 import { pageTitle } from '@/constants/page-title';
 import { READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
@@ -378,7 +379,9 @@ export function TextbooksShelf() {
                   chevron={scale(15)}
                   onPress={() =>
                     router.push({
-                      pathname: '/textbook-reader',
+                      // One chapter opens on a choice first: the full chapter
+                      // or just what matters (lib/chapter-essentials.ts).
+                      pathname: opensOnChoice(book.key, classLevel, i) ? '/textbook-chapter' : '/textbook-reader',
                       // Exactly what the old chapter list sent, so the reader
                       // is reached the same way and needs no change.
                       params: {

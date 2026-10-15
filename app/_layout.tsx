@@ -82,6 +82,16 @@ import { Inter_400Regular } from '@expo-google-fonts/inter';
 // spells Greek out the way the reference does.
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
+// The textbook's revise screens (formula sheet, key points, diagrams) set what a
+// student learns from in STIX Two, the face printed maths uses; the app's own
+// words stay in Onest.
+import {
+  STIXTwoText_400Regular,
+  STIXTwoText_400Regular_Italic,
+  STIXTwoText_600SemiBold,
+} from '@expo-google-fonts/stix-two-text';
+// Its companion for the maths symbols the text face lacks (√ ≈ ⇒ ≠ …); see components/textbook/markup.tsx.
+import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { passStatus } from '@/lib/pass';
@@ -157,6 +167,10 @@ export default function RootLayout() {
     PatrickHand_400Regular,
     Kalam_400Regular,
     Kalam_700Bold,
+    STIXTwoText_400Regular,
+    STIXTwoText_400Regular_Italic,
+    STIXTwoText_600SemiBold,
+    STIXTwoMath_400Regular,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
@@ -402,6 +416,11 @@ export default function RootLayout() {
           />
           <Stack.Screen name="textbook-chapters" options={{ headerShown: false }} />
           <Stack.Screen name="textbook-reader" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-chapter" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-part" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-formulas" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-keypoints" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-diagrams" options={{ headerShown: false }} />
           <Stack.Screen
             name="textbook-topics"
             options={{

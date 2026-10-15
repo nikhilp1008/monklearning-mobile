@@ -1,5 +1,5 @@
-import { Fragment, useMemo } from 'react';
-import { Platform, StyleProp, Text, TextStyle } from 'react-native';
+import { Fragment, ReactNode, useMemo } from 'react';
+import { Platform, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 
 /**
  * The chapter content's inline markup, rendered as nested `<Text>`.
@@ -164,17 +164,89 @@ function plainText(nodes: Node[]): string {
  * being tried on one topic (see components/textbook/pilot.ts): bold at
  * SemiBold rather than Bold, and numeric exponents of any length raised.
  */
-export type MarkupLook = 'current' | 'pilot';
+export type MarkupLook = 'current' | 'pilot' | 'stix';
+
+/** The revise screens' maths face (see app/_layout.tsx). Italic is its own family. */
+export const STIX = { regular: 'STIXTwoText_400Regular', italic: 'STIXTwoText_400Regular_Italic', semibold: 'STIXTwoText_600SemiBold', math: 'STIXTwoMath_400Regular' } as const;
+
+/**
+ * The maths symbols STIX Two Text does not carry but its companion STIX Two
+ * Math does: arrows, operators and relations (√ ≈ ≤ ≥ → ⇒ ⟹ ∞ ∝ ≠ ⊆ …),
+ * worked out from the two fonts' own character maps. Left alone, each phone
+ * would draw them from its own fonts, so an iPhone, a Samsung and a Pixel
+ * would each show a different √. In the STIX look they come from STIX Two
+ * Math instead, the same on every phone. (Raised and lowered letters, ᵃ ₙ,
+ * are in neither font; they are drawn, see drawnRun.)
+ */
+const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
+function stixRuns(text: string, key: string) {
+  const out: ReactNode[] = [];
+  let at = 0;
+  for (const m of text.matchAll(STIX_MATH_ONLY)) {
+    if (m.index! > at) out.push(text.slice(at, m.index));
+    out.push(
+      <Text key={`${key}.${m.index}`} style={{ fontFamily: STIX.math }}>
+        {m[0]}
+      </Text>
+    );
+    at = m.index! + m[0].length;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
 
 /** Digits and signs only. Unicode's raised digits are one consistent set, so
  *  unlike raised letters they do not stagger at any length: 10⁻¹⁹ is safe. */
 const NUMERIC_RUN = /^[0-9+\-−=() ]+$/;
 
+/**
+ * Raised and lowered letters, in the STIX look, are drawn rather than looked up.
+ *
+ * STIX has the raised and lowered digits and signs (10⁻¹⁹, n₁) but only a
+ * handful of the letters, and no phone font matches it: Mᵃ came out with a
+ * sans-serif "a" from the system, a different one on iPhone and Android. So a
+ * run with any letter in it is set small in STIX itself, in a tiny inline
+ * View, which, unlike nested Text, can be moved off the baseline. The whole
+ * run moves together, so M⁻ʸ⁺ᶻ stays one piece in one face.
+ */
+const DRAWN_SUP = 0.7;
+const SUP_RISE = 0.16;
+const SUB_DROP = 0.34;
+type Ink = { family?: string; color?: TextStyle['color'] };
+
+function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink) {
+  const small = size * DRAWN_SUP;
+  // A raised letter is an exponent, a variable (Mᵃ, xⁿ), so it is italic like
+  // every other variable, even where the content left it upright.
+  const family = name === 'sup' && (!ink.family || ink.family === STIX.regular) ? STIX.italic : ink.family;
+  const shift = name === 'sup' ? -size * SUP_RISE : size * SUB_DROP;
+  return (
+    <View key={key} style={{ transform: [{ translateY: shift }] }}>
+      <Text style={{ fontFamily: family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
+        {render(children, small, key, 'stix', { ...ink, family })}
+      </Text>
+    </View>
+  );
+}
+
+/** Ready-made raised and lowered letters typed into a string (Mᵃ) become the
+ *  <sup>/<sub> the rest of the content uses, so the STIX look draws them too. */
+const LETTER_OF: Record<string, [string, 'sup' | 'sub']> = {};
+for (const [k, v] of Object.entries(SUPERS)) if (/[a-z]/.test(k)) LETTER_OF[v] = [k, 'sup'];
+for (const [k, v] of Object.entries(SUBS)) if (/[a-z]/.test(k)) LETTER_OF[v] = [k, 'sub'];
+const READY_LETTERS = new RegExp(`[${Object.keys(LETTER_OF).join('')}]`, 'gu');
+function untypeLetters(html: string): string {
+  return html.replace(READY_LETTERS, (c) => `<${LETTER_OF[c][1]}>${LETTER_OF[c][0]}</${LETTER_OF[c][1]}>`).replace(/<\/(sup|sub)><\1>/g, '');
+}
+
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {
   switch (name) {
     case 'b':
+      if (look === 'stix') return { fontFamily: STIX.semibold };
       return { fontFamily: look === 'pilot' ? 'Onest_600SemiBold' : 'Onest_700Bold' };
     case 'i':
+      // STIX's italic is a family of its own; asking iOS to slant the regular face fakes it.
+      if (look === 'stix') return { fontFamily: STIX.italic };
       return { fontFamily: SERIF, fontStyle: 'italic' };
     // Unicode has no subscript capitals and no subscript f or g, so a run
     // like v<sub>AB</sub> can never map and always lands here. Until now this
@@ -190,14 +262,16 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLoo
   }
 }
 
-function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook) {
+function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
   return nodes.map((node, i) => {
     const key = `${keyPrefix}.${i}`;
-    if (node.kind === 'text') return <Fragment key={key}>{asText(node.value)}</Fragment>;
+    if (node.kind === 'text') return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(node.value), key) : asText(node.value)}</Fragment>;
     if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
 
     if (node.name === 'sup' || node.name === 'sub') {
       const run = plainText(node.children);
+      // STIX look: digits and signs are STIX's own raised glyphs; anything with a letter is drawn.
+      if (look === 'stix' && !NUMERIC_RUN.test(run)) return drawnRun(node.name, node.children, size, key, ink);
       // Unicode raised letters are drawn by whichever font on the device
       // happens to carry each one, and they do not share a baseline or a
       // weight. One or two characters reads fine; "initial" as seven of them
@@ -206,22 +280,26 @@ function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook
       // The pilot raises longer runs too: any numeric run (10⁻¹⁹), and a run
       // of up to 8 that maps character for character (M⁻ʸ⁺ᶻ, Lˣ⁺³ʸ⁺²ᶻ), which
       // otherwise fell back to small text on the baseline and read as "M−y+z".
-      const mappable =
-        run.length <= 2 || (look === 'pilot' && (NUMERIC_RUN.test(run) || run.length <= 8));
+      // The STIX look raises like the pilot's: STIX has the raised digits, and
+      // a raised letter it lacks (Mᵃ) is drawn by the system font, which is a
+      // closer match than the fallback below. That fallback cannot move text
+      // off the baseline in React Native, so a "raised" a sat low and read as
+      // a subscript: the wrong meaning, which is worse than a near-match glyph.
+      const mappable = run.length <= 2 || ((look === 'pilot' || look === 'stix') && (NUMERIC_RUN.test(run) || run.length <= 8));
       const raised = mappable ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
       // Raised glyphs need no size change; they are already small and in the
       // right place. Shrinking them again would make them unreadable.
       if (raised) return <Fragment key={key}>{raised}</Fragment>;
       return (
         <Text key={key} style={styleFor(node.name, size, look)}>
-          {render(node.children, size * 0.72, key, look)}
+          {render(node.children, size * 0.72, key, look, ink)}
         </Text>
       );
     }
 
     return (
       <Text key={key} style={styleFor(node.name, size, look)}>
-        {render(node.children, size, key, look)}
+        {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: styleFor(node.name, size, look).fontFamily } : ink)}
       </Text>
     );
   });
@@ -237,10 +315,13 @@ export interface MarkupProps {
 }
 
 export function Markup({ html, size, style, numberOfLines, look = 'current' }: MarkupProps) {
-  const nodes = useMemo(() => parse(html), [html]);
+  const nodes = useMemo(() => parse(look === 'stix' ? untypeLetters(html) : html), [html, look]);
+  // A drawn raised run sits in a View, which does not inherit from the Text
+  // around it, so it is handed the face and colour it is set in.
+  const flat = StyleSheet.flatten(style) ?? {};
   return (
     <Text style={style} numberOfLines={numberOfLines}>
-      {render(nodes, size, 'm', look)}
+      {render(nodes, size, 'm', look, { family: flat.fontFamily, color: flat.color })}
     </Text>
   );
 }

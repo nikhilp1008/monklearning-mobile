@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '@/constants/brand';
+import { opensOnChoice } from '@/lib/chapter-essentials';
 import { useScale } from '@/constants/scale';
 import { friendlyLoadError } from '@/lib/api';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
@@ -126,7 +127,7 @@ export default function TextbookChaptersScreen() {
                     disabled={!ready}
                     onPress={() =>
                       router.push({
-                        pathname: '/textbook-reader',
+                        pathname: opensOnChoice(subject, classLevel, index) ? '/textbook-chapter' : '/textbook-reader',
                         params: {
                           subject,
                           classLevel: String(classLevel),

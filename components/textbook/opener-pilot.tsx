@@ -6,6 +6,7 @@ import { READ_INK, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { Markup } from '@/components/textbook/markup';
 import { BORDER, kicker } from '@/components/textbook/theme';
 import type { Block } from '@/lib/textbooks';
+import { thinkCase } from '@/lib/think-case';
 
 type Hook = Extract<Block, { t: 'hook' }>;
 type Think = Extract<Block, { t: 'think' }>;
@@ -40,10 +41,6 @@ export function examSections(hook: Hook, topicCount: number): { n: string; title
     out.push({ n: parts[i], title: parts[i + 1].trim(), html });
   }
   return out.length === topicCount ? out : null;
-}
-
-function capitalise(html: string): string {
-  return html.replace(/^(\s*(?:<[^>]+>\s*)*)([a-z])/, (_, pre: string, ch: string) => pre + ch.toUpperCase());
 }
 
 function useRead({ scale, type }: Scales) {
@@ -96,7 +93,7 @@ export function PilotThink({ block, scale, type }: { block: Think } & Scales) {
   return (
     <View style={s.ruleGrey}>
       <Text style={[kicker(type), s.labelGap]}>think about it this way</Text>
-      {read(capitalise(block.html))}
+      {read(thinkCase(block.html))}
     </View>
   );
 }
