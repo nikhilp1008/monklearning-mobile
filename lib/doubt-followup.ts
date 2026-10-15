@@ -59,7 +59,25 @@ export type FollowUpHandlers = {
    * re-encoding there.
    */
   onPcm?: (b64: string) => void;
+  /**
+   * An UNSOLVED snap being solved again from what the student just said —
+   * "it's ten to the power minus eight" (the API's
+   * _resolve_from_clarification). Its working belongs on the main screen in
+   * place of the "could not solve" note, not on the follow-up board, so it
+   * arrives here and never through `onStep`.
+   */
+  onResolve?: (event: ResolveEvent) => void;
 };
+
+/** The re-solve of an unsolved snap, as it happens. `resolved` carries the
+ *  same shape as the snap stream's `question` event. */
+export type ResolveEvent =
+  | { kind: 'resolving'; doubtId: string }
+  | { kind: 'partial'; step: FollowUpStep }
+  | { kind: 'step'; step: FollowUpStep }
+  | { kind: 'reset' }
+  | { kind: 'resolved'; question: Record<string, unknown> }
+  | { kind: 'failed'; doubtId: string; message: string };
 
 /** Everything after the last complete `\n\n`, left for the next chunk. */
 export function parseFrames(chunk: string): { event: string; data: unknown }[] {
@@ -320,6 +338,23 @@ export function dispatchFollowUpFrame(
     handlers.onAnswered?.();
   } else if (frame.event === 'voice_done') {
     handlers.onVoiceDone?.(Number(payload.chunks) || 0);
+  } else if (frame.event === 'resolving') {
+    handlers.onResolve?.({ kind: 'resolving', doubtId: String(payload.doubt_id ?? '') });
+  } else if (frame.event === 'resolve_step_partial' || frame.event === 'resolve_step') {
+    handlers.onResolve?.({
+      kind: frame.event === 'resolve_step' ? 'step' : 'partial',
+      step: { n: Number(payload.n ?? 0), text: String(payload.text ?? '') },
+    });
+  } else if (frame.event === 'resolve_steps_reset') {
+    handlers.onResolve?.({ kind: 'reset' });
+  } else if (frame.event === 'resolved') {
+    handlers.onResolve?.({ kind: 'resolved', question: payload });
+  } else if (frame.event === 'resolve_failed') {
+    handlers.onResolve?.({
+      kind: 'failed',
+      doubtId: String(payload.doubt_id ?? ''),
+      message: String(payload.message ?? ''),
+    });
   } else if (frame.event === 'error') {
     return String(payload.message ?? '');
   }

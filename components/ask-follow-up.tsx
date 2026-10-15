@@ -42,6 +42,7 @@ import {
   type FollowUpStep,
   type FollowUpSurface,
   type FollowUpHandlers,
+  type ResolveEvent,
   type FollowUpTurn,
   type TextbookPageContext,
 } from '@/lib/doubt-followup';
@@ -290,6 +291,7 @@ export function AskFollowUpBar({
   page,
   teacherFace,
   onBusyChange,
+  onResolve,
   gutter = 24,
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
@@ -334,6 +336,12 @@ export function AskFollowUpBar({
   /** True from the hold until the answer has finished; the textbook reader
    *  freezes its page for exactly that long. */
   onBusyChange?: (busy: boolean) => void;
+  /**
+   * An unsolved snap being solved again from what the student said in this
+   * hold. The solution screen draws it in place of its "could not solve"
+   * note; the bar only speaks the teacher's "got it".
+   */
+  onResolve?: (event: ResolveEvent) => void;
 }) {
   const recorder = useAudioRecorder(RECORDING);
   const streamRecorder = useStreamRecorder();
@@ -363,6 +371,8 @@ export function AskFollowUpBar({
    *  can hold its page still from the hold to the end of the answer. */
   const busyChange = useRef(onBusyChange);
   busyChange.current = onBusyChange;
+  const resolveRef = useRef(onResolve);
+  resolveRef.current = onResolve;
   useEffect(() => {
     busyChange.current?.(phase !== 'idle');
   }, [phase]);
@@ -909,6 +919,8 @@ export function AskFollowUpBar({
     let asked = '';
     let spokenText = '';
     let spokeStarted = false;
+    /** This hold fixed the question rather than asking about it. */
+    let resolvedHere = false;
     // Nothing is cleared: the answers already on the board stay on it.
     const turnId = ++questionIdRef.current;
     if (boardOpenRef.current) setPendingTurn(turnId);
@@ -997,6 +1009,10 @@ export function AskFollowUpBar({
     try {
       const handlers: FollowUpHandlers =
         {
+          onResolve: (event) => {
+            if (event.kind === 'resolved' || event.kind === 'failed') resolvedHere = true;
+            resolveRef.current?.(event);
+          },
           // Kept for the history the next question is sent with. Not shown —
           // the student knows what they just said, and the ring is what tells
           // them it was heard.
@@ -1101,7 +1117,9 @@ export function AskFollowUpBar({
       // not a failed one; with nothing printed either, there is nothing to
       // show for the question at all.
       if (!spokeStarted) {
-        if (arrived.length) {
+        // A re-solve puts its answer on the main screen, not the board: a
+        // silent one is still an answer.
+        if (arrived.length || resolvedHere) {
           setPhase('idle');
         } else {
           fail('retry');
