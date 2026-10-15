@@ -28,6 +28,7 @@ import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
 import { hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
+import { PaperWaitingCard } from '@/components/paper-waiting-card';
 import { StartingPointCard } from '@/components/starting-point-card';
 import { colors } from '@/constants/brand';
 import { MOMENTS_VISIBLE } from '@/constants/features';
@@ -40,6 +41,7 @@ import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { getStoredName } from '@/lib/profile';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { useStartingPointOffer } from '@/lib/starting-point';
+import { useWaitingPaper } from '@/lib/waiting-paper';
 import { classesTaken } from '@/lib/proof';
 
 /** Drona's sky, then Vedha's — the order `skyMix` runs 0 to 1 in. */
@@ -86,6 +88,7 @@ export default function HomeScreen() {
   });
   const [noticed, setNoticed] = useState<Observation | null>(null);
   const startingPoint = useStartingPointOffer();
+  const waitingPaper = useWaitingPaper();
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   /**
    * THE SKY IN THE TEACHER'S LIGHT: 0 is Drona's, 1 is Vedha's. The first
@@ -370,7 +373,12 @@ export default function HomeScreen() {
           {/* The free first paper, for a student the app does not know yet.
               Above the stats because, for them, there is nothing to show
               there until they have answered something. */}
-          {startingPoint && <StartingPointCard offer={startingPoint} />}
+          {/* A paper left running comes first: it is on the clock. */}
+          {waitingPaper ? (
+            <PaperWaitingCard paper={waitingPaper} />
+          ) : (
+            startingPoint && <StartingPointCard offer={startingPoint} />
+          )}
 
           {stats.kind === 'ready' && (
             <View style={styles.stats}>

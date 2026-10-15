@@ -35,10 +35,10 @@ export function DiagnosticCard({ offer }: { offer: MockDiagnosticOffer }) {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   return (
-    <View style={styles.ring} accessibilityLabel="Free starting-point paper">
+    <View style={styles.ring} accessibilityLabel="Starting-point paper">
       <RingSweep radius={scale(16) + RING} still={RING_ANGLE} />
       <View style={styles.card}>
-        <Text style={styles.overline}>Free · once</Text>
+        <Text style={styles.overline}>Start here</Text>
         <Text style={styles.title}>Your starting-point paper</Text>
         {offer.sections.map((s) => (
           <View key={s.subject} style={styles.row}>

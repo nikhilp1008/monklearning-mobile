@@ -16,6 +16,7 @@ import {
   createMockPaper,
   earnedTowardNext,
   getMockSession,
+  mockSecondsLeft,
   getMockStatus,
   isDiagnosticTaken,
   listMockRuns,
@@ -372,30 +373,34 @@ export default function MocksScreen() {
                   : 'Past-paper questions, your own Practice mistakes, and fresh ones.'}
               </Text>
 
-              <View style={styles.card}>
-                <Text style={styles.overline}>Paper pattern · {pattern.label}</Text>
-                {pattern.rows.map((row) => (
-                  <View key={row.label} style={styles.patternRow}>
-                    <Text style={styles.patternRowLabel}>{row.label}</Text>
-                    <Text style={styles.patternRowValue}>{row.value}</Text>
+              {hasActivePaper && getMockSession() ? (
+                <RunningPaperCard styles={styles} label={pattern.label} />
+              ) : (
+                <View style={styles.card}>
+                  <Text style={styles.overline}>Paper pattern · {pattern.label}</Text>
+                  {pattern.rows.map((row) => (
+                    <View key={row.label} style={styles.patternRow}>
+                      <Text style={styles.patternRowLabel}>{row.label}</Text>
+                      <Text style={styles.patternRowValue}>{row.value}</Text>
+                    </View>
+                  ))}
+                  <View style={styles.patternTotalRow}>
+                    <Text style={styles.patternTotalLabel}>Total</Text>
+                    <Text style={styles.patternTotalValue}>{pattern.total}</Text>
                   </View>
-                ))}
-                <View style={styles.patternTotalRow}>
-                  <Text style={styles.patternTotalLabel}>Total</Text>
-                  <Text style={styles.patternTotalValue}>{pattern.total}</Text>
+                  <View style={styles.tagsRow}>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>+4 correct</Text>
+                    </View>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>−1 wrong</Text>
+                    </View>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>Clock never stops</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.tagsRow}>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>+4 correct</Text>
-                  </View>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>−1 wrong</Text>
-                  </View>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>Clock never stops</Text>
-                  </View>
-                </View>
-              </View>
+              )}
             </>
           ) : (
             /**
@@ -530,7 +535,7 @@ export default function MocksScreen() {
                     : hasActivePaper
                       ? 'Resume mock test'
                       : diagnostic
-                        ? 'Start free paper'
+                        ? 'Find your starting point'
                         : eligible
                           ? 'Start mock test'
                           : 'Practise now'}
@@ -596,6 +601,67 @@ function ArrowRightIcon({ size }: { size: number }) {
     </Svg>
   );
 }
+
+/**
+ * THE PAPER THAT IS RUNNING, while it runs.
+ *
+ * Above "Resume", this page used to show the full paper's pattern whatever
+ * was in progress, so a student halfway through the 35-question starting
+ * point read "75 Q · 300 marks · 3 hours" over the button that took them back
+ * to it. It now shows the paper they left: its sections, the clock (ticking,
+ * because it is) and how much is answered.
+ */
+function RunningPaperCard({ styles, label }: { styles: ReturnType<typeof createStyles>; label: string }) {
+  const session = getMockSession();
+  const [left, setLeft] = useState(() => (session ? mockSecondsLeft(session) : 0));
+  useEffect(() => {
+    const id = setInterval(() => {
+      const s = getMockSession();
+      setLeft(s ? mockSecondsLeft(s) : 0);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!session) return null;
+  const { paper } = session;
+  const answered = paper.questions.filter((q) => session.answers.has(q.id)).length;
+  const h = Math.floor(left / 3600);
+  const m = Math.floor((left % 3600) / 60);
+  const sec = left % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    <View style={styles.card}>
+      <Text style={styles.overline}>
+        In progress · {paper.kind === 'diagnostic' ? 'Starting-point paper' : label}
+      </Text>
+      {paper.sections.map((sct) => (
+        <View key={sct.subject} style={styles.patternRow}>
+          <Text style={styles.patternRowLabel}>{SUBJECT_NAME[sct.subject] ?? sct.subject}</Text>
+          <Text style={styles.patternRowValue}>{sct.questions} questions</Text>
+        </View>
+      ))}
+      <View style={styles.patternTotalRow}>
+        <Text style={styles.patternTotalLabel}>Time left</Text>
+        <Text style={[styles.patternTotalValue, { fontVariant: ['tabular-nums'] }]}>
+          {pad(h)}:{pad(m)}:{pad(sec)}
+        </Text>
+      </View>
+      <View style={styles.patternRow}>
+        <Text style={styles.patternRowLabel}>Answered</Text>
+        <Text style={styles.patternRowValue}>
+          {answered} of {paper.questions.length}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const SUBJECT_NAME: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  maths: 'Maths',
+  biology: 'Biology',
+};
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({

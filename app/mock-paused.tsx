@@ -68,7 +68,8 @@ export default function MockPausedScreen() {
           </View>
 
           <Text style={styles.hint}>
-            The clock keeps running while you are away, like exam day.
+            The clock keeps running while you are away, like exam day. Pick it up from Home or Mock
+            tests.
           </Text>
           </View>
         </View>
@@ -79,13 +80,14 @@ export default function MockPausedScreen() {
             <ArrowRightIcon size={scale(15)} />
           </Pressable>
           {/* The way OUT. Without this, Save & exit -> Resume was a closed
-              loop and the rest of the app was unreachable mid-paper. The
-              session stays; the Mock tests page reads Resume until the
-              clock runs out or the paper is submitted. */}
-          <Pressable
-            style={styles.leaveButton}
-            onPress={() => router.dismissTo('/progress')}>
-            <Text style={styles.leaveButtonText}>Leave it running</Text>
+              loop and the rest of the app was unreachable mid-paper. It goes
+              to Home, by name: it used to land on Progress ("Leave it
+              running"), where the way back in sat below the chapter list, and
+              a student could not find their paper again. Home now leads with
+              it (components/paper-waiting-card.tsx), and Mock tests reads
+              Resume, until the clock runs out or the paper is submitted. */}
+          <Pressable style={styles.leaveButton} onPress={() => router.dismissTo('/')}>
+            <Text style={styles.leaveButtonText}>Go to Home</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -179,9 +181,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.ink,
     },
     pausedBadge: {
-      backgroundColor: '#FCF4E0',
+      backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.5)',
+      borderColor: colors.marigold,
       borderRadius: scale(99),
       paddingVertical: verticalScale(3),
       paddingHorizontal: scale(10),

@@ -34,13 +34,13 @@ export function StartingPointCard({ offer }: { offer: MockDiagnosticOffer }) {
     <PressableScale
       style={styles.ring}
       accessibilityRole="button"
-      accessibilityLabel="Find your starting point. Free short paper."
+      accessibilityLabel="Find your starting point. A short paper."
       onPress={() => router.push('/mocks')}
     >
       <RingSweep radius={scale(14) + RING} still={RING_ANGLE} />
       <View style={styles.row}>
         <View style={styles.text}>
-          <Text style={styles.overline}>Start here · Free</Text>
+          <Text style={styles.overline}>Start here</Text>
           <Text style={styles.title}>Find your starting point</Text>
           <Text style={styles.body}>
             {offer.questions} questions, {offer.duration_minutes} minutes. It shows what you know
