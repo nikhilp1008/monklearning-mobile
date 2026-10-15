@@ -35,6 +35,7 @@ describe('last follow-up', () => {
     expect(lastFollowUpContext('d1')).toEqual({
       followup_question: 'why divide by 2?',
       followup_answer: 'Because the mass is 0.1 kg.',
+      teacher: expect.any(String),
     });
     expect(lastFollowUpContext('d2')).toBeNull();
     now.mockReturnValue(1_000_000 + 11 * 60 * 1000);

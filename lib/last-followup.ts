@@ -9,6 +9,8 @@
  * exchange older than a few minutes is no longer "just now".
  */
 
+import { teacherNameNow } from '@/lib/preferences';
+
 const FRESH_MS = 10 * 60 * 1000;
 const MAX_CHARS = 600;
 
@@ -28,9 +30,11 @@ export function rememberFollowUp(target: string | null | undefined, question: st
 /** The exchange as report context, or nothing when there was none lately. */
 export function lastFollowUpContext(
   target: string | null | undefined
-): { followup_question: string; followup_answer: string } | null {
+): { followup_question: string; followup_answer: string; teacher: string } | null {
   if (!target) return null;
   const e = byTarget.get(target);
   if (!e || Date.now() - e.at > FRESH_MS) return null;
-  return { followup_question: e.question, followup_answer: e.answer };
+  // Who answered, by the name the student knows them by — admin reads
+  // "Veda answered", not a brand name the student never heard in that turn.
+  return { followup_question: e.question, followup_answer: e.answer, teacher: teacherNameNow() };
 }
