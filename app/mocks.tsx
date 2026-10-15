@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { DiagnosticCard } from '@/components/diagnostic-card';
 import { ScoreTrend } from '@/components/score-trend';
 import { Skeleton } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -16,11 +17,13 @@ import {
   earnedTowardNext,
   getMockSession,
   getMockStatus,
+  isDiagnosticTaken,
   listMockRuns,
   mockLockFrom,
   resumeActiveSession,
   startMockSession,
   submitCurrentSession,
+  type MockKind,
   type MockRunRow,
   type MockStatus,
 } from '@/lib/mock';
@@ -76,6 +79,9 @@ type ExamKey = keyof typeof PATTERNS;
 interface SatRow {
   id: string;
   exam: 'jee' | 'neet';
+  /** The free starting-point paper is listed, but it is not a point on the
+   *  score trend: it is shorter, so its marks are not on the same scale. */
+  kind: MockKind;
   /** ISO. Submitted, falling back to created. */
   when: string;
   correct: number;
@@ -207,7 +213,16 @@ export default function MocksScreen() {
   // that might be the wrong one, no count that might be a lie.
   const gateKnown = status !== null;
 
-  const start = async () => {
+  /**
+   * THE FREE PAPER LEADS WHILE IT IS ON OFFER.
+   *
+   * Offered only when nothing is waiting: a paper already in progress is the
+   * one to go back to, whichever kind it is. Once the student has sat it the
+   * server stops offering it and this page is exactly what it was.
+   */
+  const diagnostic = !hasActivePaper && status?.diagnostic?.available ? status.diagnostic : null;
+
+  const start = async (kind: MockKind = 'full') => {
     if (building) return;
     if (hasActivePaper) {
       router.push('/mock-test');
@@ -216,7 +231,7 @@ export default function MocksScreen() {
     setBuilding(true);
     setError(null);
     try {
-      const paper = await createMockPaper(exam);
+      const paper = await createMockPaper(exam, kind);
       startMockSession(paper);
       router.push('/mock-test');
     } catch (err) {
@@ -225,6 +240,14 @@ export default function MocksScreen() {
        * means the count moved under us — re-read it rather than inventing a
        * message. Anything else is a real failure and says so.
        */
+      if (isDiagnosticTaken(err)) {
+        // Sat on another phone, or a double tap: the offer has moved on.
+        getMockStatus(exam)
+          .then(setStatus)
+          .catch(() => undefined);
+        setError(null);
+        return;
+      }
       const lock = mockLockFrom(err);
       if (lock) {
         setStatus({ ...lock });
@@ -269,6 +292,7 @@ export default function MocksScreen() {
       rows.set(r.run_id, {
         id: r.run_id,
         exam: r.exam,
+        kind: r.kind ?? 'full',
         when: r.submitted_at,
         correct: r.correct,
         wrong: r.wrong,
@@ -284,6 +308,7 @@ export default function MocksScreen() {
       rows.set(r.id, {
         id: r.id,
         exam: r.exam,
+        kind: r.kind ?? 'full',
         when: r.submitted_at ?? r.created_at,
         correct: r.score.correct,
         wrong: r.score.wrong,
@@ -300,7 +325,7 @@ export default function MocksScreen() {
   const trend = useMemo(
     () =>
       sat
-        .filter((r) => r.exam === exam)
+        .filter((r) => r.exam === exam && r.kind !== 'diagnostic')
         .slice()
         .reverse()
         .map((r) => ({ id: r.id, when: r.when, marks: r.marks })),
@@ -324,6 +349,12 @@ export default function MocksScreen() {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
+          {gateKnown && diagnostic && (
+            <>
+              <Text style={styles.lead}>Start with a short paper that shows where you stand.</Text>
+              <DiagnosticCard offer={diagnostic} />
+            </>
+          )}
           {!gateKnown ? (
             <>
               <Skeleton style={styles.skeletonLine} />
@@ -335,7 +366,7 @@ export default function MocksScreen() {
                   five from past-paper masters, one in five re-asking what you
                   got wrong, the rest fresh, under real conditions and
                   marking" — all true, all said again by the table below it. */}
-              <Text style={styles.lead}>
+              <Text style={[styles.lead, !!diagnostic && styles.leadAfter]}>
                 {hasActivePaper
                   ? 'The clock kept running while you were away.'
                   : 'Past-paper questions, your own Practice mistakes, and fresh ones.'}
@@ -371,7 +402,7 @@ export default function MocksScreen() {
              * EARNED, NOT REFUSED — and said before the button, not after it.
              */
             <>
-              <Text style={styles.lead}>
+              <Text style={[styles.lead, !!diagnostic && styles.leadAfter]}>
                 A paper is earned. Answer {status.threshold} practice questions correctly and one
                 unlocks.
               </Text>
@@ -450,7 +481,12 @@ export default function MocksScreen() {
                 onPress={() => router.push(`/mock-report?run=${run.id}`)}>
                 <View style={styles.runMain}>
                   <Text style={styles.runDate}>
-                    {formatDay(run.when)} · {run.exam === 'neet' ? 'NEET UG' : 'JEE Main'}
+                    {formatDay(run.when)} ·{' '}
+                    {run.kind === 'diagnostic'
+                      ? 'Starting point'
+                      : run.exam === 'neet'
+                        ? 'NEET UG'
+                        : 'JEE Main'}
                   </Text>
                   <Text style={styles.runDetail}>
                     {run.correct} right · {run.wrong} wrong · {run.unanswered} skipped
@@ -474,7 +510,13 @@ export default function MocksScreen() {
           <Pressable
             style={styles.key}
             disabled={!gateKnown || building}
-            onPress={eligible ? start : () => router.replace('/practice')}>
+            onPress={
+              diagnostic
+                ? () => start('diagnostic')
+                : eligible
+                  ? () => start('full')
+                  : () => router.replace('/practice')
+            }>
             {building ? (
               <>
                 <ActivityIndicator color={colors.paper} />
@@ -487,14 +529,26 @@ export default function MocksScreen() {
                     ? 'Mock tests'
                     : hasActivePaper
                       ? 'Resume mock test'
-                      : eligible
-                        ? 'Start mock test'
-                        : 'Practise now'}
+                      : diagnostic
+                        ? 'Start free paper'
+                        : eligible
+                          ? 'Start mock test'
+                          : 'Practise now'}
                 </Text>
                 <ArrowRightIcon size={scale(15)} />
               </>
             )}
           </Pressable>
+          {!!diagnostic && eligible && (
+            <Pressable
+              style={styles.keyLink}
+              disabled={building}
+              hitSlop={8}
+              accessibilityRole="button"
+              onPress={() => start('full')}>
+              <Text style={styles.keyLinkText}>Start your full paper instead</Text>
+            </Pressable>
+          )}
         </View>
       </SafeAreaView>
     </View>
@@ -583,6 +637,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(20),
       color: colors.slate,
     },
+    /** The line that opens the page once the free paper's card is above it. */
+    leadAfter: { marginTop: verticalScale(22) },
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
@@ -808,6 +864,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
       backgroundColor: colors.ink,
     },
+    keyLink: { alignSelf: 'center', paddingTop: verticalScale(12) },
+    keyLinkText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(13), color: colors.slate },
     keyText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(16),
