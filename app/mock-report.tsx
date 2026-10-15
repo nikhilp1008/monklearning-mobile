@@ -161,7 +161,9 @@ export default function MockReportScreen() {
             onPress={leave}>
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          <Text style={styles.title}>Your scorecard</Text>
+          <Text style={styles.title}>
+            {report?.kind === 'diagnostic' ? 'Your starting point' : 'Your scorecard'}
+          </Text>
         </View>
 
         {loading ? (
@@ -314,7 +316,10 @@ function ReportHeader({
   return (
     <>
       <Text style={styles.subtitle}>
-        {formatDay(report.submitted_at)} · {report.exam === 'neet' ? 'NEET UG' : 'JEE Main'} pattern
+        {formatDay(report.submitted_at)} ·{' '}
+        {report.kind === 'diagnostic'
+          ? 'Starting-point paper'
+          : `${report.exam === 'neet' ? 'NEET UG' : 'JEE Main'} pattern`}
       </Text>
 
       <View style={styles.card}>
@@ -338,6 +343,30 @@ function ReportHeader({
           </View>
         </View>
       </View>
+
+      {/* THE STARTING POINT IS A FIRST READ, AND SAYS SO.
+          A paper this short touches a chapter once or twice, so a miss here
+          is a place to start, not a verdict. The key goes straight to weak
+          mode — Practice already aims it by chapter — because the whole
+          reason this paper exists is to tell a new student where to go next. */}
+      {report.kind === 'diagnostic' && (
+        <View style={styles.card}>
+          <Text style={styles.overline}>What this means</Text>
+          <Text style={styles.cardFootnote}>
+            One or two questions per chapter is a first read, not a verdict. Practice sharpens it
+            with every answer.
+          </Text>
+          <Pressable
+            style={styles.startKey}
+            accessibilityRole="button"
+            onPress={() => {
+              setFocus({ mode: 'weak', subject: null, chapterId: null, chapterName: null });
+              router.push('/practice');
+            }}>
+            <Text style={styles.startKeyText}>Practise weak areas</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* WHERE YOU STOOD. Ranked on accuracy, not marks — a subject with 40
           questions left blank can out-score the one you were better at. */}
@@ -798,6 +827,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       color: colors.faint,
+    },
+    startKey: {
+      alignSelf: 'flex-start',
+      justifyContent: 'center',
+      height: verticalScale(40),
+      paddingHorizontal: scale(18),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      marginTop: verticalScale(12),
+    },
+    startKeyText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      color: colors.paper,
     },
     chapterKey: {
       paddingVertical: verticalScale(6),

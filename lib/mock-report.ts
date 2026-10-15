@@ -61,6 +61,9 @@ export interface MockReportQuestion {
 export interface MockReport {
   run_id: string;
   exam: 'jee' | 'neet';
+  /** 'diagnostic' for the free starting-point paper; absent on reports
+   *  saved before it existed, which are all full papers. */
+  kind?: 'full' | 'diagnostic';
   /** ISO, from the device clock at submit. */
   submitted_at: string;
   duration_minutes: number;
@@ -81,6 +84,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
   return {
     run_id: result.mock_run_id,
     exam: session.paper.exam,
+    kind: session.paper.kind ?? 'full',
     submitted_at: new Date().toISOString(),
     duration_minutes: session.paper.duration_minutes,
     marks_correct: session.paper.marks_correct,
