@@ -44,18 +44,27 @@ const bloomColors = (strength: number) =>
 /**
  * The rotating edge. Sized from its own layout to the diagonal, so the square
  * gradient still covers the corners once it turns.
+ *
+ * `still` holds it at one angle instead of turning: bright on one side and
+ * fading round the other. For a card that is offered rather than picked, such
+ * as the free starting-point paper, where a ring always turning on Home would
+ * pull the eye from everything else.
  */
-export function RingSweep({ radius }: { radius: number }) {
+export function RingSweep({ radius, still }: { radius: number; still?: number }) {
   const rotation = useSharedValue(0);
   const [size, setSize] = useState(0);
 
   useEffect(() => {
+    if (still !== undefined) {
+      rotation.value = still;
+      return;
+    }
     rotation.value = withRepeat(
       withTiming(360, { duration: SPIN_MS, easing: Easing.linear }),
       -1,
       false
     );
-  }, [rotation]);
+  }, [rotation, still]);
 
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
 
