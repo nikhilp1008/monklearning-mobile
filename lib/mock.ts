@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
-import { buildReport, saveReport, type MockReport } from '@/lib/mock-report';
+import { buildReport, saveReport, type MockPrevious, type MockReport } from '@/lib/mock-report';
 import type { DiagramFigure } from '@/lib/practice';
 
 /**
@@ -82,6 +82,9 @@ export interface MockReviewQuestion {
 export interface MockSubmitResult {
   mock_run_id: string;
   score: MockScore;
+  /** Against the previous paper; null for a first paper. Absent from API
+   *  builds before it existed. */
+  previous?: MockPrevious | null;
   questions: MockReviewQuestion[];
 }
 
