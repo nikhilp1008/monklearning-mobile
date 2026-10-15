@@ -46,6 +46,7 @@ import {
   type TextbookPageContext,
 } from '@/lib/doubt-followup';
 import { FollowUpAudio } from '@/lib/followup-audio';
+import { rememberFollowUp } from '@/lib/last-followup';
 import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
 import { probeMicAvailability } from '@/lib/mic-availability';
 import { base64ToBytes } from '@/lib/audio-pcm';
@@ -1093,6 +1094,9 @@ export function AskFollowUpBar({
         { role: 'user', content: asked },
         { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
       ];
+      // For a report made straight after this: whichever flag opens the sheet
+      // sends what was just asked and answered (lib/last-followup.ts).
+      rememberFollowUp(doubtId, asked, arrived.map((s) => s.text).join(' ') || spokenText);
       // No voice ever started. With a board on screen that is a quiet answer,
       // not a failed one; with nothing printed either, there is nothing to
       // show for the question at all.

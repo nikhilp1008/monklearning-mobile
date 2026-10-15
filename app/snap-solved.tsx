@@ -14,6 +14,8 @@ import { latexToText } from '@/lib/latex-text';
 import { parseSolutionSteps } from '@/lib/solution-steps';
 import { withTeacherName } from '@/lib/preferences';
 import { SolutionView, remedyCopy, solutionView } from '@/lib/solution-view';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
 
 /**
  * The day's count, shown only once the whole page has come back solved.
@@ -215,12 +217,10 @@ export default function SnapSolvedScreen() {
         // follow-up is a question ABOUT the working on screen, and sending the
         // The id of the question being looked at, which report-sheet requires
         // to send anything at all — without it its Send button stays disabled.
-        onReport={() =>
-          router.push({
-            pathname: '/report-sheet',
-            params: { doubtId: questions[index]?.doubtId ?? '' },
-          })
-        }
+        onReport={() => {
+          const doubtId = questions[index]?.doubtId ?? '';
+          openReportSheet({ doubtId, context: lastFollowUpContext(doubtId) });
+        }}
       />
     </>
   );

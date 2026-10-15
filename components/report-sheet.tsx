@@ -29,7 +29,12 @@ import { ObButton } from '@/components/onboarding-kit';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { hapticSuccess, hapticSwitched, hapticWarning } from '@/lib/haptics';
-import { REPORT_REASONS, sendReport as postReport, type ReportSurface } from '@/lib/reports';
+import {
+  REPORT_REASONS,
+  sendReport as postReport,
+  type ReportSurface,
+  type ReportTarget,
+} from '@/lib/reports';
 
 /**
  * REPORT A MISTAKE — the reasons, a note, and Send. Nothing else.
@@ -73,19 +78,7 @@ const SENT_HOLD_MS = 650;
 
 const OUT = { duration: 220, easing: Easing.bezier(0.4, 0, 0.9, 0.4) };
 
-export type ReportTarget = {
-  doubtId?: string | null;
-  /** A practice question instead of a doubt. */
-  questionId?: string | null;
-  sessionId?: string | null;
-  subject?: string | null;
-  chapter?: string | null;
-  quote?: string | null;
-  /** Which part of the app is reporting; defaults from whatever id arrived. */
-  surface?: ReportSurface;
-  /** Anything else worth sending with it (the classroom's phase, say). */
-  context?: Record<string, unknown> | null;
-};
+export type { ReportTarget } from '@/lib/reports';
 
 export function ReportSheet({
   target: params,
@@ -103,7 +96,11 @@ export function ReportSheet({
 }) {
   const practice = !params.doubtId && !!params.questionId;
   const surface: ReportSurface = params.surface ?? (practice ? 'practice' : 'snap');
-  const target = params.doubtId || params.questionId || params.sessionId;
+  // A textbook page is ours to point at only by its key: the book is in the
+  // app, not in a table.
+  const target =
+    params.doubtId || params.questionId || params.sessionId ||
+    (surface === 'textbook' ? (params.context?.page_key as string | undefined) : undefined);
   const reportable = !!target;
 
   const insets = useSafeAreaInsets();

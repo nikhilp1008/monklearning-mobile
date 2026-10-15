@@ -38,9 +38,11 @@ import {
 } from '@/lib/reading-size';
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
 import { TextbookBlockPilot } from '@/components/textbook/blocks-pilot';
-import { AskFollowUpBar } from '@/components/ask-follow-up';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { isPilotTopic } from '@/components/textbook/pilot';
 import { pageTitle } from '@/constants/page-title';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
 import { Chapter, groupBlocks, loadChapter, topicPlainText } from '@/lib/textbooks';
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
@@ -574,6 +576,32 @@ export default function TextbookReaderScreen() {
               already see what it is set to. Nothing to indicate.
               `aA` because it is the glyph everything from Safari to Kindle
               uses for text size, so it needs no explaining. */}
+          {/* REPORT, beside text size: a wrong line on this page. The book is
+              bundled in the app, so the page is named by its key and the
+              topic's opening travels as the quote. */}
+          {askPage ? (
+            <Pressable
+              onPress={() =>
+                openReportSheet({
+                  surface: 'textbook',
+                  subject: askPage.subject,
+                  chapter: askPage.chapter,
+                  quote: askPage.text.slice(0, 600),
+                  context: {
+                    page_key: decodeURIComponent(askKey),
+                    topic: askPage.topic,
+                    klass: askPage.klass,
+                    ...lastFollowUpContext(askKey),
+                  },
+                })
+              }
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Report a mistake on this page"
+              style={styles.reportButton}>
+              <FlagIcon size={scale(16)} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => {
               hapticSwitched();
@@ -803,6 +831,10 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     /** Baseline-aligned, and no frame. A pill here would out-shout the
      *  chapter title beside it; two letters are legible on their own and the
      *  touch target comes from hit-slop rather than from chrome. */
+    reportButton: {
+      paddingHorizontal: scale(6),
+      paddingVertical: verticalScale(4),
+    },
     sizeButton: {
       flexDirection: 'row',
       alignItems: 'baseline',
