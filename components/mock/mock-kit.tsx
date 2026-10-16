@@ -1,8 +1,10 @@
 import { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { ObButton } from '@/components/onboarding-kit';
 import { colors } from '@/constants/brand';
+import { useDesignScale } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 
 /**
@@ -12,12 +14,17 @@ import { useScale } from '@/constants/scale';
  * and 56, one with a ledge), three kinds of heading and cards with three
  * different gaps. These are the one of each they all use now.
  *
- * The key is the app's flat ink pill, the one Snap, Progress and Practice
- * use: 52 tall, SemiBold 16, no shadow. The second choice on a screen ("Go
- * to Home", "Keep going") is the same pill in white with a fine border.
+ * The key is the onboarding one, rounded corners not a pill; the second
+ * choice on a screen ("Go to Home", "Keep going") is the same key in white.
  */
 export const MOCK_GAP = { card: 12, section: 28, gutter: 20 } as const;
 
+/**
+ * The app's main key, the onboarding one (components/onboarding-kit.tsx):
+ * rounded corners rather than a pill, and the second choice on a screen in
+ * the same shape, white with a hairline. Used as is, so a change to the key
+ * reaches the mock screens too.
+ */
 export function MockKey({
   label,
   onPress,
@@ -35,29 +42,45 @@ export function MockKey({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { scale, verticalScale } = useScale();
-  const ink = tone === 'ink';
+  return (
+    <View style={style}>
+      <ObButton
+        label={label}
+        onPress={onPress}
+        variant={tone === 'ink' ? 'ink' : 'outline'}
+        withArrow={arrow}
+        busy={busy}
+        disabled={disabled}
+      />
+    </View>
+  );
+}
+
+/** The square partner of the key, for "back" beside it: same height and corners. */
+export function MockSquareKey({
+  onPress,
+  disabled,
+  label,
+  children,
+}: {
+  onPress: () => void;
+  disabled?: boolean;
+  label: string;
+  children: ReactNode;
+}) {
+  const { ds } = useDesignScale();
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || busy}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => [
-        k.key,
-        { height: verticalScale(52), gap: scale(9) },
-        ink ? k.ink : k.white,
+        k.square,
+        { width: ds(60), height: ds(60), borderRadius: ds(18) },
         (pressed || disabled) && k.dim,
-        style,
       ]}>
-      {busy ? (
-        <ActivityIndicator color={ink ? colors.paper : colors.ink} />
-      ) : (
-        <>
-          <Text style={[k.text, { fontSize: scale(16) }, { color: ink ? colors.paper : colors.ink }]}>{label}</Text>
-          {arrow && <KeyArrow size={scale(15)} color={ink ? colors.paper : colors.ink} />}
-        </>
-      )}
+      {children}
     </Pressable>
   );
 }
@@ -70,14 +93,18 @@ export function KeyArrow({ size, color }: { size: number; color: string }) {
   );
 }
 
-/** The marigold dash and small capitals, with an optional count on the right. */
+/**
+ * A section's name, as the app's other pages set one (the chapter home's
+ * "Revise", Progress's labels): Onest SemiBold 13 in the faint grey, sentence
+ * case, with an optional count at the right. No marigold dash: that mark
+ * belonged to nothing else in the brand.
+ */
 export function MockSection({ title, count, first = false }: { title: string; count?: string; first?: boolean }) {
   const { scale, verticalScale } = useScale();
   return (
-    <View style={[k.section, { gap: scale(10), marginTop: first ? 0 : verticalScale(MOCK_GAP.section), marginBottom: verticalScale(10) }]}>
-      <View style={[k.dash, { width: scale(16) }]} />
-      <Text style={[k.sectionText, { fontSize: scale(9.5), letterSpacing: scale(1.05) }]}>{title}</Text>
-      {!!count && <Text style={[k.sectionCount, { fontSize: scale(12) }]}>{count}</Text>}
+    <View style={[k.section, { marginTop: first ? 0 : verticalScale(MOCK_GAP.section), marginBottom: verticalScale(10) }]}>
+      <Text style={[k.sectionText, { fontSize: scale(13) }]}>{title}</Text>
+      {!!count && <Text style={[k.sectionCount, { fontSize: scale(13) }]}>{count}</Text>}
     </View>
   );
 }
@@ -91,14 +118,10 @@ export function MockCard({ children, style }: { children: ReactNode; style?: Sty
 }
 
 const k = StyleSheet.create({
-  key: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', borderRadius: 999 },
-  ink: { backgroundColor: colors.ink },
-  white: { backgroundColor: '#FFFFFF', borderWidth: 1.4, borderColor: 'rgba(28,26,22,.16)' },
-  dim: { opacity: 0.6 },
-  text: { fontFamily: 'Onest_600SemiBold' },
-  section: { flexDirection: 'row', alignItems: 'center' },
-  dash: { height: 2, borderRadius: 2, backgroundColor: colors.marigold },
-  sectionText: { fontFamily: 'Onest_800ExtraBold', textTransform: 'uppercase', color: colors.ink },
+  square: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1.4, borderColor: 'rgba(28,26,22,.16)' },
+  dim: { opacity: 0.4 },
+  section: { flexDirection: 'row', alignItems: 'baseline' },
+  sectionText: { fontFamily: 'Onest_600SemiBold', color: colors.faint },
   sectionCount: { marginLeft: 'auto', fontFamily: 'Onest_500Medium', color: colors.faint, fontVariant: ['tabular-nums'] },
   card: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(28,26,22,.10)' },
 });

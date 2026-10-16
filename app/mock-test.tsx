@@ -17,7 +17,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { MathLine } from '@/components/math-line';
-import { MockKey } from '@/components/mock/mock-kit';
+import { MockKey, MockSquareKey } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
 import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
@@ -383,15 +383,9 @@ export default function MockTestScreen() {
 
         {/* ONE WAY BACK, ONE WAY ON: the same height, the app's flat keys. */}
         <View style={styles.bottomNav}>
-          <Pressable
-            style={[styles.prevButton, index === 0 && styles.prevButtonDisabled]}
-            disabled={index === 0}
-            accessibilityRole="button"
-            accessibilityLabel="Previous question"
-            onPress={() => goTo(index - 1)}
-          >
+          <MockSquareKey label="Previous question" disabled={index === 0} onPress={() => goTo(index - 1)}>
             <BackArrowIcon size={scale(16)} />
-          </Pressable>
+          </MockSquareKey>
           <MockKey
             label={isLast ? 'Review answers' : 'Save & next'}
             arrow
@@ -646,17 +640,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.06)',
     },
-    /** Back as a circle the key's own height, so the two read as one row. */
-    prevButton: {
-      width: verticalScale(52),
-      height: verticalScale(52),
-      borderRadius: 999,
-      borderWidth: 1.4,
-      borderColor: 'rgba(28,26,22,.16)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    prevButtonDisabled: { opacity: 0.35 },
-    nextKey: { flex: 1, width: undefined },
+    nextKey: { flex: 1 },
   });
 }

@@ -408,6 +408,7 @@ export default function RootLayout() {
           {/* No swipe-back off a freshly submitted paper: the gesture would
               land on the palette of a paper that no longer exists. */}
           <Stack.Screen name="mock-report" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="mock-review" options={{ headerShown: false }} />
           <Stack.Screen
             name="report-sheet"
             options={{

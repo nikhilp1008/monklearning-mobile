@@ -796,26 +796,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(18),
       color: colors.red,
     },
-    sectionTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      marginTop: verticalScale(26),
-      marginBottom: verticalScale(12),
-    },
-    sectionDash: {
-      width: scale(18),
-      height: verticalScale(2),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
-    },
-    sectionTitle: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.ink,
-    },
     emptyLine: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
@@ -887,23 +867,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.08)',
     },
-    /** The app's primary key: an ink pill, 52pt, no drop shadow. */
-    key: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-    },
     keyLink: { alignSelf: 'center', paddingTop: verticalScale(12) },
     keyLinkText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(13), color: colors.slate },
-    keyText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
-    },
   });
 }
