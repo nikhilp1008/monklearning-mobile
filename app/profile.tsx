@@ -57,6 +57,15 @@ const THUMB_EASING = Easing.bezier(0.3, 1.25, 0.45, 1);
 const RULE = 'rgba(28,26,22,.1)';
 /** Inside the profile card only: a warm rule, so it does not go grey on amber. */
 const CARD_DIVIDER = 'rgba(58,42,23,.12)';
+
+/**
+ * The card's light, by teacher: Vedha's is the marigold it always had,
+ * Drona's the ember of Drona's sky on Home (constants/teachers.ts SKY_THEMES).
+ */
+const CARD_THEME: Record<TeacherId, { body: [string, string, string, string]; top: string; foot: string; shadow: string }> = {
+  vedha: { body: ['#F8E2AE', '#FCF4E0', '#FAE6B4', '#F2B23A'], top: '#F2B23A', foot: '#EEA31F', shadow: 'rgba(176,132,32,.75)' },
+  drona: { body: ['#F9D3B0', '#FDF1E6', '#F9D2AE', '#EE8A45'], top: '#F2A060', foot: '#E2601C', shadow: 'rgba(184,72,26,.6)' },
+};
 const OUTLINE = 'rgba(28,26,22,.16)';
 const IDLE_INK = '#8A857A';
 
@@ -176,6 +185,7 @@ export default function ProfileScreen() {
             exam={examValue}
             year={profile ? YEARS[profile.year].replace(/^Class /, '') : ''}
             subjects={(exam?.subjects ?? []).map((s2) => s2.name)}
+            teacher={teacher}
           />
 
           {/* Tucked 16 under the card's foot, overlapping it, so it reads as
@@ -239,8 +249,38 @@ export default function ProfileScreen() {
   );
 }
 
+/** One teacher's light on the card: the body wash, the top glow and the lamp at the foot. */
+function CardLight({ theme: t, box, id }: { theme: (typeof CARD_THEME)['drona']; box: { width: number; height: number }; id: string }) {
+  return (
+    <>
+      <LinearGradient colors={t.body} locations={[0, 0.38, 0.72, 1]} style={StyleSheet.absoluteFill} />
+      <Svg style={StyleSheet.absoluteFill} width={box.width} height={box.height} pointerEvents="none">
+        <Defs>
+          {/* `radial-gradient(120% 60% at 50% -18%, …)` */}
+          <RadialGradient id={`${id}Top`} cx="0.5" cy="-0.18" rx="1.2" ry="0.6">
+            <Stop offset="0" stopColor={t.top} stopOpacity={0.6} />
+            <Stop offset="0.72" stopColor={t.top} stopOpacity={0} />
+          </RadialGradient>
+          {/* `radial-gradient(140% 70% at 50% 120%, …)` — the lamp. */}
+          <RadialGradient id={`${id}Foot`} cx="0.5" cy="1.2" rx="1.4" ry="0.7">
+            <Stop offset="0" stopColor={t.foot} stopOpacity={1} />
+            <Stop offset="0.3" stopColor={t.foot} stopOpacity={0.75} />
+            <Stop offset="0.55" stopColor={t.top} stopOpacity={0.35} />
+            <Stop offset="0.8" stopColor={t.top} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <SvgRect x={0} y={0} width={box.width} height={box.height} fill={`url(#${id}Top)`} />
+        <SvgRect x={0} y={0} width={box.width} height={box.height} fill={`url(#${id}Foot)`} />
+      </Svg>
+    </>
+  );
+}
+
 /**
- * THE PROFILE CARD — the one warm object on the page.
+ * THE PROFILE CARD — the one warm object on the page, in the teacher's light.
+ *
+ * Its glow follows the chosen teacher as Home's sky does: Vedha's marigold,
+ * Drona's ember (CARD_THEME), fading across when the teacher changes.
  *
  * Name, exam, class and subjects used to be four plain rows on white, which
  * said nothing about whose account this is. They are one card now: a marigold
@@ -259,9 +299,11 @@ function ProfileCard({
   exam,
   year,
   subjects,
+  teacher,
 }: {
   styles: ReturnType<typeof createStyles>;
   scale: (n: number) => number;
+  teacher: TeacherId;
   name: string;
   exam: string;
   /** Already stripped of its "Class " prefix; the row is labelled Class. */
@@ -279,44 +321,30 @@ function ProfileCard({
    * side. Real numbers, from the box the card actually ended up as.
    */
   const [box, setBox] = useState({ width: 0, height: 0 });
+  const mix = useSharedValue(teacher === 'vedha' ? 1 : 0);
+  useEffect(() => {
+    mix.value = withTiming(teacher === 'vedha' ? 1 : 0, { duration: 600 });
+  }, [teacher, mix]);
+  const t = CARD_THEME[teacher];
+  const vedhaOn = useAnimatedStyle(() => ({ opacity: mix.value }));
 
   return (
-    <View style={styles.cardShadow}>
+    <View
+      style={[
+        styles.cardShadow,
+        { boxShadow: [{ offsetX: 0, offsetY: scale(22), blurRadius: scale(40), spreadDistance: scale(-26), color: t.shadow }] },
+      ]}>
       <View
         style={styles.profileCard}
         onLayout={(e) =>
           setBox({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
         }>
-        <LinearGradient
-          colors={['#F8E2AE', '#FCF4E0', '#FAE6B4', '#F2B23A']}
-          locations={[0, 0.38, 0.72, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <Svg
-          style={StyleSheet.absoluteFill}
-          width={box.width}
-          height={box.height}
-          pointerEvents="none">
-          <Defs>
-            {/* `radial-gradient(120% 60% at 50% -18%, …)` */}
-            <RadialGradient id="cardTop" cx="0.5" cy="-0.18" rx="1.2" ry="0.6">
-              <Stop offset="0" stopColor="#F2B23A" stopOpacity={0.6} />
-              <Stop offset="0.72" stopColor="#F2B23A" stopOpacity={0} />
-            </RadialGradient>
-            {/* `radial-gradient(140% 70% at 50% 120%, …)` — the lamp. */}
-            <RadialGradient id="cardFoot" cx="0.5" cy="1.2" rx="1.4" ry="0.7">
-              <Stop offset="0" stopColor="#EEA31F" stopOpacity={1} />
-              <Stop offset="0.3" stopColor="#EEA31F" stopOpacity={0.75} />
-              <Stop offset="0.55" stopColor="#F2B23A" stopOpacity={0.35} />
-              <Stop offset="0.8" stopColor="#F2B23A" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <SvgRect x={0} y={0} width={box.width} height={box.height} fill="url(#cardTop)" />
-          <SvgRect x={0} y={0} width={box.width} height={box.height} fill="url(#cardFoot)" />
-        </Svg>
-        {/* Drawn, not the handoff's 128px tile — see components/grain.tsx.
-            This is the one grained surface in the app that is LIGHT, which is
-            where an overlay blend actually has something to work with. */}
+        {/* Drona's light underneath, Vedha's over it at the teacher's mix,
+            so a change of teacher fades from one to the other. */}
+        <CardLight theme={CARD_THEME.drona} box={box} id="d" />
+        <Animated.View style={[StyleSheet.absoluteFill, vedhaOn]} pointerEvents="none">
+          <CardLight theme={CARD_THEME.vedha} box={box} id="v" />
+        </Animated.View>
         <Grain freq={1} strength={0.2} />
 
         <Text style={styles.cardName}>{name}</Text>
