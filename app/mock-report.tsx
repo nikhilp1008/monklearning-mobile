@@ -118,6 +118,21 @@ export default function MockReportScreen() {
 
   const insights = useMemo(() => (report ? mockInsights(report) : null), [report]);
 
+  const paperExam = report?.exam ?? row?.exam;
+  const paperName =
+    (report?.kind ?? row?.kind) === 'diagnostic'
+      ? 'Starting point'
+      : paperExam === 'neet'
+        ? 'NEET UG paper'
+        : paperExam === 'jee'
+          ? 'JEE Main paper'
+          : 'Your paper';
+  const sat = report?.submitted_at ?? row?.submitted_at ?? row?.created_at;
+  /** Under the header, full width, as the Mock tests page's intro sits. */
+  const dateLine = sat ? (
+    <Text style={styles.dateLine}>Sat on {formatDay(sat)}</Text>
+  ) : null;
+
   const { setFocus } = usePracticeFocus();
   const leave = () => {
     // Leaving the fresh report is what ends the session. Its report is on the
@@ -146,26 +161,17 @@ export default function MockReportScreen() {
           </Pressable>
           {/* The date sits under the title it belongs to, on the title's own
               left edge; it hung under the back button, out of line. */}
-          <View style={styles.titleCol}>
-            <Text style={styles.title}>
-              {report?.kind === 'diagnostic' ? 'Your starting point' : 'Your scorecard'}
-            </Text>
-            {(report || row) && (
-              <Text style={styles.subtitle}>
-                {report
-                  ? `${formatDay(report.submitted_at)} · ${report.kind === 'diagnostic' ? 'Starting-point paper' : `${report.exam === 'neet' ? 'NEET UG' : 'JEE Main'} pattern`}`
-                  : row
-                    ? `${formatDay(row.submitted_at ?? row.created_at)} · ${row.exam === 'neet' ? 'NEET UG' : 'JEE Main'} pattern`
-                    : ''}
-              </Text>
-            )}
-          </View>
+          {/* The paper's name, once. The date has its own line below. */}
+          <Text style={styles.title} numberOfLines={1}>
+            {paperName}
+          </Text>
         </View>
 
         {loading ? (
           <View style={styles.centre} />
         ) : !report ? (
           <ScrollView contentContainerStyle={styles.listInner}>
+            {dateLine}
             {row?.score ? (
               <>
                 <View style={[styles.card, styles.scoreCard]}>
@@ -216,6 +222,7 @@ export default function MockReportScreen() {
           </ScrollView>
         ) : (
           <ScrollView style={styles.list} contentContainerStyle={styles.listInner}>
+            {dateLine}
             <ReportHeader report={report} insights={insights!} styles={styles} scale={scale} />
           </ScrollView>
         )}
@@ -629,18 +636,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: '#fff' },
     safeArea: { flex: 1 },
-    /** Top-aligned, the button centred on the title's own line, so a second
-     *  line under the title does not pull it down. */
     topRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: scale(12),
-      paddingBottom: verticalScale(10),
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
     },
     backButton: {
-      marginTop: scale((29 - 36) / 2),
       width: scale(36),
       height: scale(36),
       flexShrink: 0,
@@ -651,8 +654,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     /** The app's one page-title tier — see constants/page-title.ts. */
-    titleCol: { flex: 1, minWidth: 0 },
-    title: { ...pageTitle(scale) },
+    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    dateLine: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13.5),
+      lineHeight: scale(19),
+      color: colors.slate,
+      marginBottom: verticalScale(16),
+    },
     centre: {
       flex: 1,
       justifyContent: 'center',
@@ -678,13 +687,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     list: { flex: 1, minHeight: 0 },
     listInner: {
       paddingHorizontal: scale(20),
+      paddingTop: verticalScale(10),
       paddingBottom: verticalScale(24),
-    },
-    subtitle: {
-      marginTop: verticalScale(2),
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(13),
-      color: colors.faint,
     },
     gridGroup: { marginTop: verticalScale(14) },
     gridSubject: {
@@ -743,7 +747,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
     },
-    scoreCard: { marginTop: verticalScale(16), paddingBottom: 0, overflow: 'hidden' },
+    scoreCard: { paddingBottom: 0, overflow: 'hidden' },
     overline: {
       fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(9.0),
