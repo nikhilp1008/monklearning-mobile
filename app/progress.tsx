@@ -359,23 +359,24 @@ export default function ProgressScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View>
-            {/* Pushed screen, no tab bar under it, so the way out is here.
-                Same 36pt round button Practice and the chapter selector use. */}
-            <View style={styles.headerRow}>
-              <Pressable
-                style={styles.backButton}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-                onPress={() => router.back()}>
-                <BackArrowIcon size={scale(16)} />
-              </Pressable>
-              <Text style={styles.heading}>Progress</Text>
-            </View>
-            <Text style={styles.subtitle}>One number, and everything that explains it.</Text>
+        {/* PINNED: the way out stays on screen however far the page scrolls.
+            It scrolled away with everything else, so at the foot of Progress
+            there was no back button. */}
+        <View style={styles.pinned}>
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}>
+              <BackArrowIcon size={scale(16)} />
+            </Pressable>
+            <Text style={styles.heading}>Progress</Text>
           </View>
+        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Text style={styles.subtitle}>One number, and everything that explains it.</Text>
 
           {state.kind === 'loading' && (
             <View style={styles.card}>
@@ -658,13 +659,15 @@ export default function ProgressScreen() {
             )}
           </View>
 
-          {data && data.recommendations.length > 0 && (
+          {data && data.recommendations.some((rec) => rec.role !== 'exam_craft') && (
             <View>
               <View style={styles.sectionTitleRow}>
                 <View style={styles.sectionTitleDash} />
                 <Text style={styles.sectionTitle}>What moves it next</Text>
               </View>
-              {data.recommendations.map((rec) => {
+              {/* Mock tests have one way in now, the card on Home; the
+                  exam_craft card is left out here. */}
+              {data.recommendations.filter((rec) => rec.role !== 'exam_craft').map((rec) => {
                 const resolved = chapterName(rec.chapter_id);
                 // The lever card follows the subject pill; every other card
                 // keeps the server's own words.
@@ -944,11 +947,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     scrollContent: {
       paddingHorizontal: scale(24),
-      paddingTop: verticalScale(8),
+      paddingTop: 0,
       // 130 was clearance for the floating tab bar. There is no bar under this
       // screen any more, so this is just the last card's breathing room.
       paddingBottom: verticalScale(40),
       gap: verticalScale(32),
+    },
+    pinned: {
+      paddingHorizontal: scale(24),
+      paddingTop: verticalScale(8),
+      paddingBottom: verticalScale(6),
+      backgroundColor: '#fff',
     },
     headerRow: {
       flexDirection: 'row',

@@ -28,6 +28,7 @@ import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
 import { hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
+import { MockTestsCard } from '@/components/mock-tests-card';
 import { PaperWaitingCard } from '@/components/paper-waiting-card';
 import { StartingPointCard } from '@/components/starting-point-card';
 import { colors } from '@/constants/brand';
@@ -448,8 +449,8 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Last thing on the page, deliberately quiet: this is a reference
-              students visit once or twice, not a daily action. */}
+          {/* Deliberately quiet: this is a reference students visit once or
+              twice, not a daily action. */}
           <PressableScale style={styles.scopeRow} onPress={() => router.push('/exam-scope')}>
             <View style={styles.scopeTextBlock}>
               <Text style={styles.overline}>Exam scope</Text>
@@ -461,6 +462,10 @@ export default function HomeScreen() {
             </View>
             <ArrowRightIcon color={colors.slate} size={scale(15)} />
           </PressableScale>
+
+          {/* MOCK TESTS: the one way in, under Exam scope. It used to live
+              only in a card far down Progress. */}
+          <MockTestsCard />
         </View>
       </Animated.ScrollView>
 
