@@ -5,11 +5,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { RingSweep } from '@/components/gradient-select';
+import { MockKey } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { getMockSession, mockSecondsLeft } from '@/lib/mock';
-
 
 function formatTime(totalSeconds: number) {
   const h = Math.floor(totalSeconds / 3600);
@@ -38,57 +39,55 @@ export default function MockPausedScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          {/* One heading. This was "Mock test", then a green chip, then
-              "Stepped away", then "Your paper is waiting" — four pieces of
-              chrome stacked above the one card a student came here to read. */}
-          <Text style={styles.heading}>Your paper is waiting</Text>
+          {/* The page's own header: back to the paper, and its name. The card
+              sits under it; it used to float mid-screen with a hand's width of
+              nothing above it. */}
+          <View style={styles.headRow}>
+            <Pressable
+              style={styles.backButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Back to the paper"
+              onPress={() => router.back()}
+            >
+              <BackIcon size={scale(16)} />
+            </Pressable>
+            <Text style={styles.heading}>Your paper is waiting</Text>
+          </View>
+          <Text style={styles.hint}>
+            The clock keeps running while you are away, like exam day. Pick it up any time from Home
+            or Mock tests.
+          </Text>
 
-          <View style={styles.body}>
-          <View style={styles.statusCard}>
-            <View style={styles.statusTopRow}>
-              <Text style={styles.statusTitle}>Test in progress</Text>
-              <View style={styles.pausedBadge}>
-                <Text style={styles.pausedBadgeText}>CLOCK RUNNING</Text>
+          {/* The paper's state in the still marigold ring, as on Home. */}
+          <View style={styles.ring}>
+            <RingSweep radius={scale(16) + 2} still={140} />
+            <View style={styles.statusCard}>
+              <Text style={styles.overline}>Clock running</Text>
+              <View style={[styles.statusRow, styles.statusRowFirst]}>
+                <Text style={styles.statusLabel}>Time left</Text>
+                <TimeLeft styles={styles} deadline={session.deadline} />
+              </View>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusLabel}>Answered</Text>
+                <Text style={styles.statusValue}>
+                  {answered} of {session.paper.questions.length}
+                </Text>
+              </View>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusLabel}>Marked to look at again</Text>
+                <Text style={styles.statusValue}>{session.marked.size}</Text>
               </View>
             </View>
-            <View style={[styles.statusRow, styles.statusRowFirst]}>
-              <Text style={styles.statusLabel}>Time left</Text>
-              <TimeLeft styles={styles} deadline={session.deadline} />
-            </View>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Answered</Text>
-              <Text style={styles.statusValue}>
-                {answered} of {session.paper.questions.length}
-              </Text>
-            </View>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Marked for review</Text>
-              <Text style={styles.statusValue}>{session.marked.size}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.hint}>
-            The clock keeps running while you are away, like exam day. Pick it up from Home or Mock
-            tests.
-          </Text>
           </View>
         </View>
 
+        {/* The way OUT: to Home by name, where the paper leads the page
+            (components/paper-waiting-card.tsx) until it is submitted or the
+            clock runs out. Both keys the same size, the second in white. */}
         <View style={styles.footer}>
-          <Pressable style={styles.resumeButton} onPress={() => router.back()}>
-            <Text style={styles.resumeButtonText}>Resume mock test</Text>
-            <ArrowRightIcon size={scale(15)} />
-          </Pressable>
-          {/* The way OUT. Without this, Save & exit -> Resume was a closed
-              loop and the rest of the app was unreachable mid-paper. It goes
-              to Home, by name: it used to land on Progress ("Leave it
-              running"), where the way back in sat below the chapter list, and
-              a student could not find their paper again. Home now leads with
-              it (components/paper-waiting-card.tsx), and Mock tests reads
-              Resume, until the clock runs out or the paper is submitted. */}
-          <Pressable style={styles.leaveButton} onPress={() => router.dismissTo('/')}>
-            <Text style={styles.leaveButtonText}>Go to Home</Text>
-          </Pressable>
+          <MockKey label="Resume paper" arrow onPress={() => router.back()} />
+          <MockKey label="Go to Home" tone="white" onPress={() => router.dismissTo('/')} />
         </View>
       </SafeAreaView>
     </View>
@@ -115,13 +114,12 @@ function TimeLeft({
   return <Text style={styles.statusValueMono}>{formatTime(secondsLeft)}</Text>;
 }
 
-
-function ArrowRightIcon({ size }: { size: number }) {
+function BackIcon({ size }: { size: number }) {
   return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
       <Path
-        d="M2 8h11M9 3.5 13.5 8 9 12.5"
-        stroke={colors.paper}
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
         strokeWidth={1.9}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -132,134 +130,81 @@ function ArrowRightIcon({ size }: { size: number }) {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    /** White, like every other page in the app. */
-    screen: {
-      flex: 1,
-      backgroundColor: '#fff',
-    },
-    safeArea: {
-      flex: 1,
-    },
-    content: {
-      flex: 1,
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-    },
-    /** The app’s one page-title tier — see constants/page-title.ts. */
-    heading: pageTitle(scale),
-    body: {
-      flex: 1,
-      minHeight: 0,
-      justifyContent: 'center',
-      paddingBottom: verticalScale(24),
-    },
-    /** White with the app's hairline, like the paper-pattern card on the
-     *  start screen. It was a filled amber block, which on a white page was
-     *  the loudest thing in the mock flow and the only card in it that was
-     *  not white. The urgency lives in the badge. */
-    statusCard: {
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(16),
-      paddingHorizontal: scale(18),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
-    },
-    statusTopRow: {
+    screen: { flex: 1, backgroundColor: '#fff' },
+    safeArea: { flex: 1 },
+    content: { flex: 1, paddingHorizontal: scale(20) },
+    headRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: scale(13),
+      paddingTop: verticalScale(10),
     },
-    statusTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    pausedBadge: {
-      backgroundColor: '#FFFFFF',
+    backButton: {
+      width: scale(36),
+      height: scale(36),
+      borderRadius: scale(18),
       borderWidth: 1,
-      borderColor: colors.marigold,
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(10),
+      borderColor: 'rgba(28,26,22,.12)',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    pausedBadgeText: {
+    heading: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    hint: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
+      marginTop: verticalScale(10),
+    },
+    ring: {
+      marginTop: verticalScale(20),
+      padding: 2,
+      borderRadius: scale(16) + 2,
+      backgroundColor: 'rgba(28,26,22,.10)',
+      overflow: 'hidden',
+    },
+    statusCard: {
+      backgroundColor: '#fff',
+      borderRadius: scale(16),
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
+    },
+    overline: {
       fontFamily: 'Onest_700Bold',
       fontSize: scale(10),
-      color: '#9A6A12',
+      letterSpacing: scale(1),
+      textTransform: 'uppercase',
+      color: colors.amberText,
     },
     statusRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: verticalScale(7),
+      alignItems: 'baseline',
+      paddingVertical: verticalScale(10),
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(28,26,22,.08)',
     },
-    statusRowFirst: {
-      marginTop: verticalScale(14),
-    },
-    statusLabel: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      color: colors.slate,
-    },
+    statusRowFirst: { marginTop: verticalScale(6), borderTopWidth: 0 },
+    statusLabel: { fontFamily: 'Onest_400Regular', fontSize: scale(14), color: colors.slate },
     statusValue: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
+      fontVariant: ['tabular-nums'],
     },
     statusValueMono: {
-      fontFamily: 'Menlo',
-      fontWeight: '700',
-      fontSize: scale(15),
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(14),
       color: colors.ink,
-    },
-    hint: {
-      textAlign: 'center',
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      lineHeight: scale(18),
-      color: colors.faint,
-      marginTop: verticalScale(14),
+      fontVariant: ['tabular-nums'],
     },
     footer: {
       flexShrink: 0,
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(12),
-      paddingHorizontal: scale(24),
-    },
-    resumeButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(9),
-      width: '100%',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-    },
-    resumeButtonText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
-    },
-    leaveButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: verticalScale(44),
-      marginTop: verticalScale(8),
-      borderRadius: scale(99),
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
-    },
-    leaveButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.slate,
+      gap: verticalScale(10),
+      paddingHorizontal: scale(20),
+      paddingTop: verticalScale(12),
+      paddingBottom: verticalScale(8),
     },
   });
 }

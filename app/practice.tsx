@@ -14,7 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
-import { MathText } from '@/components/math-text';
+import { MathLine } from '@/components/math-line';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
@@ -904,13 +904,17 @@ export default function PracticeScreen() {
                       the badge already say which option this is; the text
                       does not need to say it a third time, and it is the
                       only one of the three that can reflow. */}
-                  <MathText
-                    text={text}
-                    fontSize={READ_SIZE}
-                    lineHeight={READ_LINE}
-                    color={colors.ink}
-                    style={styles.optionText}
-                  />
+                  {/* MathLine, as the question above it: it draws a subscript
+                      Unicode has no character for (Yₛ, R_AB) small and low.
+                      MathText spelled those out as "Y_S". */}
+                  <View style={styles.optionText}>
+                    <MathLine
+                      text={text}
+                      fontSize={READ_SIZE}
+                      color={colors.ink}
+                      style={{ fontFamily: 'Onest_400Regular', fontSize: READ_SIZE, lineHeight: READ_LINE, color: colors.ink }}
+                    />
+                  </View>
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
                   {isCorrectReveal && <Text style={styles.optionTagCorrect}>CORRECT</Text>}
                 </Pressable>

@@ -1,11 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { DiagnosticCard } from '@/components/diagnostic-card';
+import { MockKey, MockSection } from '@/components/mock/mock-kit';
 import { ScoreTrend } from '@/components/score-trend';
 import { Skeleton } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -350,9 +351,17 @@ export default function MocksScreen() {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
+          {/* ONE LINE UNDER THE TITLE, then each block under the one section
+              heading (the marigold dash), 28 apart. The page had three kinds
+              of heading and gaps of 14, 22 and 40 between its blocks. */}
+          <Text style={styles.lead}>
+            {hasActivePaper
+              ? 'The clock kept running while you were away.'
+              : 'Exam-pattern papers: past-paper questions, your own Practice mistakes, and fresh ones.'}
+          </Text>
           {gateKnown && diagnostic && (
             <>
-              <Text style={styles.lead}>Start with a short paper that shows where you stand.</Text>
+              <MockSection title="Start here" />
               <DiagnosticCard offer={diagnostic} />
             </>
           )}
@@ -363,15 +372,7 @@ export default function MocksScreen() {
             </>
           ) : eligible ? (
             <>
-              {/* One line, not four. The card here read as a brochure: "one in
-                  five from past-paper masters, one in five re-asking what you
-                  got wrong, the rest fresh, under real conditions and
-                  marking" — all true, all said again by the table below it. */}
-              <Text style={[styles.lead, !!diagnostic && styles.leadAfter]}>
-                {hasActivePaper
-                  ? 'The clock kept running while you were away.'
-                  : 'Past-paper questions, your own Practice mistakes, and fresh ones.'}
-              </Text>
+              <MockSection title={hasActivePaper ? 'In progress' : 'Your full paper'} />
 
               {hasActivePaper && getMockSession() ? (
                 <RunningPaperCard styles={styles} label={pattern.label} />
@@ -407,12 +408,8 @@ export default function MocksScreen() {
              * EARNED, NOT REFUSED — and said before the button, not after it.
              */
             <>
-              <Text style={[styles.lead, !!diagnostic && styles.leadAfter]}>
-                A paper is earned. Answer {status.threshold} practice questions correctly and one
-                unlocks.
-              </Text>
+              <MockSection title="Your next full paper" />
               <View style={styles.card}>
-                <Text style={styles.overline}>Toward your next paper</Text>
                 <View style={styles.countRow}>
                   {/* From `correct_to_next`, not from `unique_correct` modulo
                       the threshold: the server owns how a credit is counted,
@@ -436,8 +433,8 @@ export default function MocksScreen() {
                   />
                 </View>
                 <Text style={styles.cardHint}>
-                  {status.correct_to_next} more to go. Each question counts once, even one you
-                  got wrong the first time.
+                  A full paper unlocks for every {status.threshold} practice questions you get
+                  right. {status.correct_to_next} more to go; each question counts once.
                 </Text>
               </View>
             </>
@@ -450,8 +447,9 @@ export default function MocksScreen() {
               papers for this student's exam, oldest to newest. The list
               below is its table view. */}
           {trend.length >= 2 && (
+            <>
+            <MockSection title="Your scores" />
             <View style={styles.card}>
-              <Text style={styles.overline}>Your scores</Text>
               <ScoreTrend
                 // A different set of papers starts again on the latest one.
                 key={trend.map((p) => p.id).join()}
@@ -460,22 +458,20 @@ export default function MocksScreen() {
                 onOpen={(id) => router.push(`/mock-report?run=${id}`)}
               />
             </View>
+            </>
           )}
 
           {/* PAPERS YOU HAVE SAT. The list is the server's (GET /mock/runs);
               the report behind each row is written to this device when the
               paper is graded, because the review arrives exactly once. */}
-          <View style={styles.sectionTitleRow}>
-            <View style={styles.sectionDash} />
-            <Text style={styles.sectionTitle}>Papers you have sat</Text>
-          </View>
+          <MockSection title="Papers you have sat" count={sat.length ? String(sat.length) : undefined} />
 
           {runs === null && !saved.length ? (
             <Skeleton delay={160} style={styles.skeletonRow} />
           ) : sat.length === 0 ? (
             <Text style={styles.emptyLine}>
-              None yet. When you finish a paper, its full report lives here: every question, what
-              you put, and why the right answer is right.
+              None yet. Each paper you finish keeps its full report here: every question, what you
+              put, and the right answer.
             </Text>
           ) : (
             sat.map((run) => (
@@ -512,38 +508,31 @@ export default function MocksScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Pressable
-            style={styles.key}
+          <MockKey
+            arrow={!building}
+            busy={false}
             disabled={!gateKnown || building}
+            label={
+              building
+                ? 'Setting your paper…'
+                : !gateKnown
+                  ? 'Mock tests'
+                  : hasActivePaper
+                    ? 'Resume paper'
+                    : diagnostic
+                      ? 'Find your starting point'
+                      : eligible
+                        ? 'Start a full paper'
+                        : 'Practise now'
+            }
             onPress={
               diagnostic
                 ? () => start('diagnostic')
                 : eligible
                   ? () => start('full')
                   : () => router.replace('/practice')
-            }>
-            {building ? (
-              <>
-                <ActivityIndicator color={colors.paper} />
-                <Text style={styles.keyText}>Setting your paper…</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.keyText}>
-                  {!gateKnown
-                    ? 'Mock tests'
-                    : hasActivePaper
-                      ? 'Resume mock test'
-                      : diagnostic
-                        ? 'Find your starting point'
-                        : eligible
-                          ? 'Start mock test'
-                          : 'Practise now'}
-                </Text>
-                <ArrowRightIcon size={scale(15)} />
-              </>
-            )}
-          </Pressable>
+            }
+          />
           {!!diagnostic && eligible && (
             <Pressable
               style={styles.keyLink}
@@ -581,20 +570,6 @@ function ChevronIcon({ size }: { size: number }) {
         d="M9 5l7 7-7 7"
         stroke={colors.faint}
         strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function ArrowRightIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path
-        d="M2 8h11M9 3.5 13.5 8 9 12.5"
-        stroke={colors.paper}
-        strokeWidth={1.9}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -694,8 +669,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     scroll: { flex: 1, minHeight: 0 },
     scrollInner: {
       paddingHorizontal: scale(20),
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(20),
+      paddingTop: verticalScale(10),
+      paddingBottom: verticalScale(28),
     },
     lead: {
       fontFamily: 'Onest_400Regular',
@@ -703,21 +678,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(20),
       color: colors.slate,
     },
-    /** The line that opens the page once the free paper's card is above it. */
-    leadAfter: { marginTop: verticalScale(22) },
+    /** The one card: white, a fine border, 16 corners, no shadow. */
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
+      borderColor: 'rgba(28,26,22,.10)',
       borderRadius: scale(16),
-      paddingVertical: verticalScale(16),
-      paddingHorizontal: scale(18),
-      marginTop: verticalScale(14),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
     },
     overline: {
       fontFamily: 'Onest_800ExtraBold',
@@ -736,12 +704,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderStyle: 'dashed',
     },
     patternRowLabel: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(14),
       color: colors.ink,
     },
     patternRowValue: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(12),
       color: colors.faint,
     },
@@ -751,12 +719,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(10),
     },
     patternTotalLabel: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
     patternTotalValue: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
@@ -774,7 +742,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(11),
     },
     tagText: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(11),
       color: colors.slate,
     },
@@ -784,14 +752,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(7),
     },
     count: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(30),
       lineHeight: scale(34),
       letterSpacing: scale(-0.8),
       color: colors.ink,
     },
     countOf: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(13),
       color: colors.faint,
     },
@@ -868,7 +836,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     runMain: { flex: 1, minWidth: 0 },
     runDate: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
@@ -885,12 +853,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       marginTop: verticalScale(6),
     },
     runSubject: {
-      fontFamily: 'Onest_600SemiBold',
+      fontFamily: 'Onest_500Medium',
       fontSize: scale(11),
       color: colors.slate,
     },
     runMarks: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(19),
       letterSpacing: scale(-0.4),
       color: colors.ink,

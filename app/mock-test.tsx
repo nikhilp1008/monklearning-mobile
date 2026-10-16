@@ -16,9 +16,10 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
-import { MathText } from '@/components/math-text';
-import { RuledPaper } from '@/components/ruled-paper';
+import { MathLine } from '@/components/math-line';
+import { MockKey } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
+import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
 import { hapticSwitched, hapticWarning } from '@/lib/haptics';
 import {
@@ -36,20 +37,6 @@ function BackArrowIcon({ size }: { size: number }) {
       <Path
         d="M15 5l-7 7 7 7"
         stroke={colors.ink}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function ArrowRightIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path
-        d="M2 8h11M9 3.5 13.5 8 9 12.5"
-        stroke={colors.paper}
         strokeWidth={1.9}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -201,102 +188,98 @@ export default function MockTestScreen() {
     ? Object.entries(question.options).sort(([a], [b]) => a.localeCompare(b))
     : [];
 
+  const answeredIn = (subject: string) =>
+    session.paper.questions.filter((q) => q.subject === subject && session.answers.has(q.id))
+      .length;
+  const isMarked = session.marked.has(question.id);
+  const isLast = index === session.paper.questions.length - 1;
+
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        {/*
-          A WAY OUT AND A CLOCK.
-          This row held "Save & exit" as a pill, the clock, and "Submit test"
-          as a filled ink button — two ways out, and the irreversible one
-          drawn as the loudest thing on an exam screen. Then it was three
-          controls, which still read as a toolbar. Leaving is the circled
-          chevron every pushed screen in the app uses (it still saves), and
-          Submit has moved to the review page, where a student can see what
-          they are submitting before they do it. The spacer keeps the clock
-          optically centred rather than shunted left by the chevron.
-        */}
+        {/* THE HEAD: the way out (it saves), the way to every question, and
+            the clock, quiet at the right. The clock was a pill in the middle
+            of the row; on an exam page it is the one thing that should not
+            shout. */}
         <View style={styles.topBar}>
           <Pressable
             style={styles.backButton}
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel="Save and exit"
-            onPress={() => router.push('/mock-paused')}>
+            onPress={() => router.push('/mock-paused')}
+          >
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          <CountdownPill styles={styles} scale={scale} deadline={session.deadline} onExpire={onExpire} />
-          <View style={styles.topBarSpacer} />
+          <Pressable
+            style={styles.allChip}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="All questions"
+            onPress={() => router.push('/mock-palette')}
+          >
+            <GridIcon size={scale(11)} />
+            <Text style={styles.allChipText}>All {session.paper.questions.length}</Text>
+          </Pressable>
+          <Countdown
+            styles={styles}
+            scale={scale}
+            deadline={session.deadline}
+            onExpire={onExpire}
+          />
         </View>
 
-        <View style={styles.subjectRow}>
-          <View style={styles.subjectTrack}>
-            {layout.subjects.map((subject) => (
+        {/* SUBJECTS AS PLAIN TABS, each with how much of it is answered, an
+            ink line under the one you are in. It was a grey sliding track,
+            the only one in the app. */}
+        <View style={styles.tabs}>
+          {layout.subjects.map((subject) => {
+            const on = activeSubject === subject;
+            return (
               <Pressable
                 key={subject}
-                style={styles.subjectPillWrap}
-                onPress={() => goTo(layout.firstIndex.get(subject) ?? 0)}>
-                <View
-                  style={[
-                    styles.subjectPill,
-                    activeSubject === subject && styles.subjectPillActive,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.subjectPillText,
-                      activeSubject === subject && styles.subjectPillTextActive,
-                    ]}>
-                    {SUBJECT_LABEL[subject] ?? subject}
-                  </Text>
-                </View>
+                style={styles.tab}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                onPress={() => goTo(layout.firstIndex.get(subject) ?? 0)}
+              >
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>
+                  {SUBJECT_LABEL[subject] ?? subject}
+                </Text>
+                <Text style={[styles.tabCount, on && styles.tabCountOn]}>
+                  {answeredIn(subject)}/{layout.totals.get(subject)}
+                </Text>
+                {on && <View style={styles.tabLine} />}
               </Pressable>
-            ))}
-          </View>
+            );
+          })}
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
-          {/*
-            WHERE YOU ARE, AND THE WAY TO EVERYWHERE ELSE.
-
-            The subject is already lit in the segmented control directly
-            above, so naming it again here was the same word twice in two
-            lines. The marking scheme pill is gone with it: +4 / −1 is on the
-            start screen, thirty seconds earlier, and on an exam page it is
-            furniture.
-
-            The palette lives here now, beside the counter that says which
-            question this is — that is where a student looks to know where
-            they are. It was a third button wedged between Prev and Save &
-            Next, carrying a 2x3 grid of coloured dots, and it squeezed that
-            row until the labels in it had nowhere to go.
-          */}
+          {/* THE QUESTION, AS PRACTICE LAYS IT OUT: the number in ink and its
+              place in the subject quiet beside it (a paper does not name the
+              chapter while it is sat), the stem in plain text on white, a
+              hairline, then the options. It sat on ruled paper with a red
+              margin, an older look nothing else in the app still wears. */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              Q {layout.positions[index]} of {layout.totals.get(activeSubject)}
+            <Text style={styles.questionMeta}>
+              <Text style={styles.questionNumber}>Q{layout.positions[index]}</Text>
+              {'  '}of {layout.totals.get(activeSubject)}
             </Text>
-            <Pressable
-              style={styles.paletteChip}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="All questions"
-              onPress={() => router.push('/mock-palette')}>
-              <GridIcon size={scale(11)} />
-              <Text style={styles.paletteChipText}>
-                All {session.paper.questions.length}
-              </Text>
-            </Pressable>
+            {isMarked && (
+              <View style={styles.markedTag}>
+                <FlagIcon size={scale(11)} color={colors.amberText} />
+                <Text style={styles.markedTagText}>Marked</Text>
+              </View>
+            )}
           </View>
-
-          <View style={styles.questionCard}>
-            <RuledPaper step={verticalScale(25)} color="rgba(28,26,22,.06)" count={14} />
-            <View style={styles.questionRule} />
-            <QuestionStem
-              text={question.question_text ?? ''}
-              fontSize={scale(15)}
-              lineHeight={scale(23.25)}
-              style={styles.questionBody}
-            />
-          </View>
+          <QuestionStem
+            text={question.question_text ?? ''}
+            fontSize={QUESTION_READ_SIZE}
+            lineHeight={QUESTION_READ_LINE}
+            style={styles.questionBody}
+          />
           {question.diagram?.map((figure, i) => (
             <QuestionDiagram
               key={figure.r2_key ?? figure.url}
@@ -305,6 +288,7 @@ export default function MockTestScreen() {
               total={question.diagram?.length ?? 1}
             />
           ))}
+          <View style={styles.questionDivider} />
 
           {isNumerical ? (
             <TextInput
@@ -334,23 +318,31 @@ export default function MockTestScreen() {
                       saveProgress();
                       bump();
                     }}
-                    style={[styles.optionRow, isSelected && styles.optionRowSelected]}>
+                    style={[styles.optionRow, isSelected && styles.optionRowSelected]}
+                  >
                     <View style={[styles.optionBadge, isSelected && styles.optionBadgeSelected]}>
                       <Text
                         style={[
                           styles.optionBadgeText,
                           isSelected && styles.optionBadgeTextSelected,
-                        ]}>
+                        ]}
+                      >
                         {key.toUpperCase()}
                       </Text>
                     </View>
-                    <MathText
-                      text={String(text)}
-                      fontSize={scale(14)}
-                      lineHeight={scale(20)}
-                      color={colors.ink}
-                      style={styles.optionText}
-                    />
+                    <View style={styles.optionText}>
+                      <MathLine
+                        text={String(text)}
+                        fontSize={READ_SIZE}
+                        color={colors.ink}
+                        style={{
+                          fontFamily: 'Onest_400Regular',
+                          fontSize: READ_SIZE,
+                          lineHeight: READ_LINE,
+                          color: colors.ink,
+                        }}
+                      />
+                    </View>
                   </Pressable>
                 );
               })}
@@ -359,60 +351,70 @@ export default function MockTestScreen() {
 
           <View style={styles.markRow}>
             <Pressable
+              hitSlop={8}
+              style={styles.markAction}
               onPress={() => {
                 hapticSwitched();
-                if (session.marked.has(question.id)) session.marked.delete(question.id);
+                if (isMarked) session.marked.delete(question.id);
                 else session.marked.add(question.id);
                 saveProgress();
                 bump();
-              }}>
-              <Text
-                style={[
-                  styles.markRowText,
-                  session.marked.has(question.id) && styles.markRowTextActive,
-                ]}>
-                ⚑ Mark for review
+              }}
+            >
+              <FlagIcon size={scale(12)} color={isMarked ? colors.amberText : colors.slate} />
+              <Text style={[styles.markRowText, isMarked && styles.markRowTextActive]}>
+                {isMarked ? 'Unmark' : 'Mark to look at again'}
               </Text>
             </Pressable>
-            <Pressable
-              onPress={() => {
-                session.answers.delete(question.id);
-                saveProgress();
-                bump();
-              }}>
-              <Text style={styles.markRowText}>Clear</Text>
-            </Pressable>
+            {!!draft && (
+              <Pressable
+                hitSlop={8}
+                onPress={() => {
+                  session.answers.delete(question.id);
+                  saveProgress();
+                  bump();
+                }}
+              >
+                <Text style={styles.markRowText}>Clear answer</Text>
+              </Pressable>
+            )}
           </View>
         </ScrollView>
 
-        {/* ONE WAY BACK, ONE WAY ON. Three buttons shared this row and the
-            widest of them had a grid of dots inside it; at 402pt there was
-            nothing left for the labels. Back is the same circle as the top
-            bar's, and forward is the app's own ink key at its own size. */}
+        {/* ONE WAY BACK, ONE WAY ON: the same height, the app's flat keys. */}
         <View style={styles.bottomNav}>
           <Pressable
             style={[styles.prevButton, index === 0 && styles.prevButtonDisabled]}
             disabled={index === 0}
             accessibilityRole="button"
             accessibilityLabel="Previous question"
-            onPress={() => goTo(index - 1)}>
+            onPress={() => goTo(index - 1)}
+          >
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          <Pressable
-            style={styles.nextButton}
-            onPress={() =>
-              index === session.paper.questions.length - 1
-                ? router.push('/mock-palette')
-                : goTo(index + 1)
-            }>
-            <Text style={styles.nextButtonText}>
-              {index === session.paper.questions.length - 1 ? 'Review answers' : 'Save & next'}
-            </Text>
-            <ArrowRightIcon size={scale(15)} />
-          </Pressable>
+          <MockKey
+            label={isLast ? 'Review answers' : 'Save & next'}
+            arrow
+            style={styles.nextKey}
+            onPress={() => (isLast ? router.push('/mock-palette') : goTo(index + 1))}
+          />
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+function FlagIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
+      <Path
+        d="M4 14V2.5h7l-1.6 3 1.6 3H4"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 
@@ -426,7 +428,7 @@ export default function MockTestScreen() {
  */
 const FIVE_MINUTES = 5 * 60;
 
-function CountdownPill({
+function Countdown({
   styles,
   scale,
   deadline,
@@ -463,40 +465,34 @@ function CountdownPill({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deadline]);
 
+  const low = secondsLeft <= FIVE_MINUTES;
   return (
-    <View style={styles.timerPill}>
-      <ClockIcon size={scale(13)} />
-      <Text style={styles.timerText}>{formatTime(secondsLeft)}</Text>
+    <View style={styles.timer} accessibilityLabel={`Time left ${formatTime(secondsLeft)}`}>
+      <ClockIcon size={scale(14)} color={low ? colors.red : colors.ink} />
+      <Text style={[styles.timerText, low && styles.timerLow]}>{formatTime(secondsLeft)}</Text>
     </View>
   );
 }
 
-function ClockIcon({ size }: { size: number }) {
+function ClockIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Circle cx={12} cy={13} r={8} stroke={colors.ink} strokeWidth={1.9} />
-      <Path d="M12 9v4l3 2M9 2h6" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" />
+      <Circle cx={12} cy={13} r={8} stroke={color} strokeWidth={1.9} />
+      <Path d="M12 9v4l3 2M9 2h6" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
     </Svg>
   );
 }
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    /** White, like every other page in the app. The mock flow was the only
-     *  corner of it on the warm paper tone, which read as a different app. */
-    screen: {
-      flex: 1,
-      backgroundColor: '#fff',
-    },
-    safeArea: {
-      flex: 1,
-    },
+    /** White, like every other page in the app. */
+    screen: { flex: 1, backgroundColor: '#fff' },
+    safeArea: { flex: 1 },
     topBar: {
       flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: scale(8),
+      gap: scale(10),
       paddingTop: verticalScale(6),
       paddingHorizontal: scale(20),
     },
@@ -511,258 +507,156 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       alignItems: 'center',
       justifyContent: 'center',
     },
-    topBarSpacer: {
-      width: scale(36),
-      flexShrink: 0,
-    },
-    /** Hugs its own time, centred between the chevron and Submit. It used to
-     *  take the whole middle of the row, which made a clock the width of the
-     *  screen — the one thing on an exam page that should not shout. */
-    timerPill: {
-      flex: 1,
-      maxWidth: scale(132),
-      alignSelf: 'center',
-      marginHorizontal: 'auto',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(7),
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.14)',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(10),
-    },
-    timerText: {
-      fontFamily: 'Menlo',
-      fontWeight: '700',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    subjectRow: {
-      flexShrink: 0,
-      flexDirection: 'row',
-      paddingTop: verticalScale(8),
-      paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(10),
-    },
-    subjectTrack: {
-      flex: 1,
-      flexDirection: 'row',
-      gap: scale(3),
-      padding: scale(3),
-      backgroundColor: 'rgba(28,26,22,.055)',
-      borderRadius: scale(99),
-    },
-    subjectPillWrap: {
-      flex: 1,
-    },
-    subjectPill: {
-      alignItems: 'center',
-      paddingVertical: verticalScale(6),
-      borderRadius: scale(99),
-    },
-    subjectPillActive: {
-      backgroundColor: '#fff',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
-    },
-    subjectPillText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    subjectPillTextActive: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-    },
-    content: {
-      flex: 1,
-      minHeight: 0,
-    },
-    contentInner: {
-      paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(16),
-    },
-    metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: verticalScale(8),
-    },
-    metaText: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    /** An outline chip on the app's own hairline, at the size of every
-     *  other small chip we draw. */
-    paletteChip: {
+    allChip: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(6),
-      height: verticalScale(28),
-      paddingHorizontal: scale(11),
+      height: scale(36),
+      paddingHorizontal: scale(12),
       borderRadius: scale(99),
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
+      borderColor: 'rgba(28,26,22,.12)',
     },
-    paletteChipText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(11.5),
-      color: colors.ink,
-    },
-    questionCard: {
-      position: 'relative',
-      backgroundColor: '#FFFEFB',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
-      borderRadius: scale(13),
-      paddingTop: verticalScale(14),
-      paddingRight: scale(15),
-      paddingBottom: verticalScale(13),
-      paddingLeft: scale(34),
-      overflow: 'hidden',
-    },
-    questionRule: {
-      position: 'absolute',
-      top: verticalScale(11),
-      bottom: verticalScale(11),
-      left: scale(22),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
-    },
-    questionBody: {
-      fontFamily: 'Onest_400Regular',
+    allChipText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(12.5), color: colors.ink },
+    timer: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: scale(6) },
+    timerText: {
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(15),
-      lineHeight: scale(23.25),
       color: colors.ink,
+      fontVariant: ['tabular-nums'],
+    },
+    /** The last five minutes, in the app's red, as the haptic says it too. */
+    timerLow: { color: colors.red },
+    tabs: {
+      flexShrink: 0,
+      flexDirection: 'row',
+      gap: scale(22),
+      marginTop: verticalScale(14),
+      marginHorizontal: scale(20),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.08)',
+    },
+    tab: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: scale(5),
+      paddingBottom: verticalScale(10),
+    },
+    tabText: { fontFamily: 'Onest_500Medium', fontSize: scale(14), color: colors.faint },
+    tabTextOn: { fontFamily: 'Onest_600SemiBold', color: colors.ink },
+    tabCount: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(11),
+      color: colors.quiet,
+      fontVariant: ['tabular-nums'],
+    },
+    tabCountOn: { color: colors.slate },
+    tabLine: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: -1,
+      height: 2,
+      borderRadius: 2,
+      backgroundColor: colors.ink,
+    },
+    content: { flex: 1, minHeight: 0 },
+    contentInner: {
+      paddingHorizontal: scale(20),
+      paddingTop: verticalScale(20),
+      paddingBottom: verticalScale(28),
+    },
+    /** Practice's own question head (app/practice.tsx questionMeta). */
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: scale(10) },
+    questionMeta: {
+      flex: 1,
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      color: '#8A857A',
+    },
+    questionNumber: { fontFamily: 'Onest_800ExtraBold', color: colors.ink },
+    markedTag: { flexDirection: 'row', alignItems: 'center', gap: scale(4) },
+    markedTagText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(12),
+      color: colors.amberText,
+    },
+    questionBody: { marginTop: verticalScale(8) },
+    questionDivider: {
+      height: 1,
+      backgroundColor: 'rgba(28,25,20,.1)',
+      marginTop: verticalScale(18),
     },
     numericInput: {
-      marginTop: verticalScale(12),
-      backgroundColor: '#fff',
+      marginTop: verticalScale(18),
       borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.12)',
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(14),
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
+      borderColor: 'rgba(28,25,20,.12)',
+      borderRadius: scale(14),
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(16),
       color: colors.ink,
     },
-    optionsList: {
-      flexDirection: 'column',
-      gap: verticalScale(8),
-      marginTop: verticalScale(12),
-    },
+    /** Practice's option rows, to the point. */
+    optionsList: { gap: verticalScale(10), marginTop: verticalScale(18) },
     optionRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(12),
       paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(12),
+      paddingHorizontal: scale(16),
+      borderRadius: scale(14),
       borderWidth: scale(1.4),
-      borderColor: 'rgba(28,26,22,.12)',
+      borderColor: 'rgba(28,25,20,.12)',
       backgroundColor: '#fff',
     },
-    optionRowSelected: {
-      borderWidth: scale(1.6),
-      borderColor: colors.ink,
-      backgroundColor: 'rgba(28,26,22,.04)',
-    },
+    optionRowSelected: { borderColor: colors.ink, backgroundColor: '#FBF9F2' },
     optionBadge: {
-      width: scale(26),
-      height: scale(26),
+      width: scale(28),
+      height: scale(28),
       flexShrink: 0,
-      borderRadius: scale(8),
+      borderRadius: scale(9),
       borderWidth: scale(1.4),
       borderColor: 'rgba(28,26,22,.16)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    optionBadgeSelected: {
-      borderWidth: 0,
-      backgroundColor: colors.ink,
-    },
-    optionBadgeText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
-    optionBadgeTextSelected: {
-      color: '#fff',
-    },
-    optionText: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
+    optionBadgeSelected: { backgroundColor: colors.ink, borderColor: colors.ink },
+    optionBadgeText: { fontFamily: 'Onest_700Bold', fontSize: scale(12), color: colors.ink },
+    optionBadgeTextSelected: { color: '#fff' },
+    optionText: { flex: 1 },
     markRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(14),
-      marginTop: verticalScale(12),
+      gap: scale(22),
+      marginTop: verticalScale(16),
     },
-    markRowText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    markRowTextActive: {
-      color: '#9A6A12',
-    },
+    markAction: { flexDirection: 'row', alignItems: 'center', gap: scale(6) },
+    markRowText: { fontFamily: 'Onest_500Medium', fontSize: scale(13), color: colors.slate },
+    markRowTextActive: { color: colors.amberText },
     bottomNav: {
       flexShrink: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: scale(12),
-      paddingTop: verticalScale(12),
+      gap: scale(10),
       paddingHorizontal: scale(20),
-      paddingBottom: verticalScale(12),
+      paddingTop: verticalScale(12),
+      paddingBottom: verticalScale(8),
       borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.08)',
-      backgroundColor: '#fff',
+      borderTopColor: 'rgba(28,26,22,.06)',
     },
-    /** The same circle as the top bar's, because it is the same gesture. */
+    /** Back as a circle the key's own height, so the two read as one row. */
     prevButton: {
       width: verticalScale(52),
       height: verticalScale(52),
-      flexShrink: 0,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: verticalScale(26),
-      borderWidth: scale(1.4),
+      borderRadius: 999,
+      borderWidth: 1.4,
       borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
-    },
-    prevButtonDisabled: {
-      opacity: 0.35,
-    },
-    /** The app's primary key: an ink pill, 52pt, no drop shadow — the same
-     *  button Practice, the paywall and the start screen all use. */
-    nextButton: {
-      flex: 1,
-      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: scale(9),
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
     },
-    nextButtonText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
-    },
+    prevButtonDisabled: { opacity: 0.35 },
+    nextKey: { flex: 1, width: undefined },
   });
 }

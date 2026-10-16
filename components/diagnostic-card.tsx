@@ -38,7 +38,6 @@ export function DiagnosticCard({ offer }: { offer: MockDiagnosticOffer }) {
     <View style={styles.ring} accessibilityLabel="Starting-point paper">
       <RingSweep radius={scale(16) + RING} still={RING_ANGLE} />
       <View style={styles.card}>
-        <Text style={styles.overline}>Start here</Text>
         <Text style={styles.title}>Your starting-point paper</Text>
         {offer.sections.map((s) => (
           <View key={s.subject} style={styles.row}>
@@ -80,21 +79,12 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderRadius: scale(16) + RING,
       backgroundColor: 'rgba(28,26,22,.10)',
       overflow: 'hidden',
-      marginTop: verticalScale(14),
     },
     card: {
       backgroundColor: '#FFFFFF',
       borderRadius: scale(16),
       paddingVertical: verticalScale(16),
       paddingHorizontal: scale(18),
-    },
-    overline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.amberText,
-      marginBottom: verticalScale(6),
     },
     title: {
       fontFamily: 'Onest_600SemiBold',
@@ -109,15 +99,15 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(28,26,22,.1)',
     },
-    rowLabel: { fontFamily: 'Onest_600SemiBold', fontSize: scale(14), color: colors.ink },
-    rowValue: { fontFamily: 'Onest_600SemiBold', fontSize: scale(12), color: colors.faint },
+    rowLabel: { fontFamily: 'Onest_500Medium', fontSize: scale(14), color: colors.ink },
+    rowValue: { fontFamily: 'Onest_500Medium', fontSize: scale(12), color: colors.faint },
     totalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingTop: verticalScale(10),
     },
-    totalLabel: { fontFamily: 'Onest_700Bold', fontSize: scale(14), color: colors.ink },
-    totalValue: { fontFamily: 'Onest_700Bold', fontSize: scale(14), color: colors.ink },
+    totalLabel: { fontFamily: 'Onest_600SemiBold', fontSize: scale(14), color: colors.ink },
+    totalValue: { fontFamily: 'Onest_600SemiBold', fontSize: scale(14), color: colors.ink },
     tagsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -132,6 +122,6 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingHorizontal: scale(11),
       backgroundColor: '#fff',
     },
-    tagText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(11), color: colors.slate },
+    tagText: { fontFamily: 'Onest_500Medium', fontSize: scale(11), color: colors.slate },
   });
 }
