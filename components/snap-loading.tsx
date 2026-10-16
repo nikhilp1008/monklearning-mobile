@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { withTeacherName } from '@/lib/preferences';
 
 /**
  * Snap a doubt — the wait while the photo is read.
@@ -473,7 +474,8 @@ export function failureCopy(
   return (
     FAILURE_COPY[remedy ?? ''] ?? {
       title: 'We couldn’t read that one',
-      body: serverMessage,
+      // The server says "Monk"; the student knows their teacher by name.
+      body: withTeacherName(serverMessage),
     }
   );
 }

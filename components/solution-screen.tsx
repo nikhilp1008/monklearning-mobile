@@ -595,7 +595,7 @@ export function SolutionScreen({
               photo rather than the question showing. */}
           {!!notice && (
             <View style={styles.notice}>
-              <Text style={styles.noticeText}>{notice}</Text>
+              <Text style={styles.noticeText}>{withTeacherName(notice)}</Text>
             </View>
           )}
 
