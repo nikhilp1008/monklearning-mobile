@@ -34,7 +34,7 @@ export default function PlansScreen() {
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
 
   // Paid nothing, because nothing can be paid yet — the receipt says so.
-  if (done) return <PaywallSuccess kind={done} paid={0} />;
+  if (done) return <PaywallSuccess kind={done} paid={0} onDone={() => router.replace('/(tabs)')} />;
 
   return (
     <PaywallLead
@@ -48,9 +48,9 @@ export default function PlansScreen() {
       }
       onComplete={async ({ kind, promo }) => {
         await startPass(kind, promo);
+        // The receipt stays until "Start learning": it used to leave on its
+        // own after 1.4s, before the rows had finished rising in.
         setDone(kind);
-        // Long enough to see what was bought, short enough not to be a wall.
-        setTimeout(() => router.replace('/(tabs)'), 1400);
       }}
     />
   );

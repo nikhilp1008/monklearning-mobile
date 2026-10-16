@@ -5,11 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 
-import { Ring, Rise, Tick } from '@/components/confirm-motion';
 import { ObButton } from '@/components/onboarding-kit';
+import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
 import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
-import { hapticTicked } from '@/lib/haptics';
 import {
   EXAMS,
   INCLUDED,
@@ -21,7 +20,7 @@ import {
   type ExamKey,
 } from '@/constants/onboarding';
 import { obPageTitle } from '@/constants/page-title';
-import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
+import { PASS_NAME, type PassKind } from '@/lib/pass';
 import { getProfile } from '@/lib/profile';
 import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
@@ -339,44 +338,25 @@ function Lead({ hero }: { hero: Plan }) {
 }
 
 /**
- * THE CONFIRMATION — `pass-active`, for a plan.
- *
- * Same dark ground, same tick popping to 1.08 out of two amber rings, same
- * 14pt rise staggered down the receipt, same cream button. That screen marks
- * the seam between signing up and being a student; this one marks the seam
- * between a trial and a year, and there is no reason for them to look
- * different. The motion is imported rather than copied — see
- * `components/confirm-motion.tsx`.
+ * THE CONFIRMATION, for a pass taken on the plans page: the same screen a new
+ * student sees at the end of onboarding (components/pass-confirmation.tsx),
+ * with this moment's words. It used to be its own copy — flat dark ground,
+ * "You're in.", and a "Start learning" button that did nothing while the page
+ * left on its own after 1.4s — and had drifted from the onboarding one.
  */
 export function PaywallSuccess({
   kind = BEST,
   paid = 0,
+  onDone,
 }: {
   /** What was actually taken — a plan, or the week at the foot of the page. */
   kind?: PassKind;
   /** What it actually cost. Zero, while a promo code is the only way through:
    *  a receipt reading ₹43,999 for a free pass is a receipt that lies. */
   paid?: number;
+  /** "Start learning". */
+  onDone: () => void;
 }) {
-  const { ds, fs, tracking } = useDesignScale();
-  // Same moment as the pass screen's receipt, so the same Success tap.
-  useEffect(() => {
-    const t = setTimeout(hapticTicked, 140);
-    return () => clearTimeout(t);
-  }, []);
-  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
-  /** Read off the same clock the rest of the app reads, rather than counted
-   *  again here — two answers to "when does this end" is one too many. */
-  const till = useMemo(
-    () =>
-      endsAtFor({ kind, startedAt: new Date().toISOString() }).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-    [kind]
-  );
-
   // The student's own exam: a plan is for one, JEE Main or NEET UG.
   const [exam, setExam] = useState<ExamKey | null>(null);
   useEffect(() => {
@@ -389,54 +369,18 @@ export function PaywallSuccess({
     };
   }, []);
 
-  const rows: [string, string][] = [
-    ['Plan', PASS_NAME[kind]],
-    ['Exam', exam ? EXAMS[exam].name : '—'],
-    ['Active till', till],
-    ['Paid', rupees(paid)],
-  ];
-
   return (
-    <View style={styles.nightScreen}>
-      <StatusBar style="light" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.nightBody}>
-          <View style={styles.tickWrap}>
-            <Ring size={ds(64)} delay={160} />
-            <Ring size={ds(64)} delay={620} />
-            <Tick size={ds(64)} />
-          </View>
-
-          <View style={styles.headBlock}>
-            <Rise delay={300}>
-              <Text style={styles.nightHead}>You&apos;re in.</Text>
-            </Rise>
-            <Rise delay={420}>
-              <Text style={styles.nightSub}>
-                Drona and Vedha are at the board. Pick a chapter and the class begins.
-              </Text>
-            </Rise>
-          </View>
-
-          <View style={styles.ledger}>
-            {rows.map(([label, value], i) => (
-              <Rise key={label} delay={560 + i * 80}>
-                <View style={[styles.nightRow, i === rows.length - 1 && styles.nightRowLast]}>
-                  <Text style={styles.nightRowLabel}>{label}</Text>
-                  <Text style={styles.nightRowValue}>{value}</Text>
-                </View>
-              </Rise>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.nightFooter}>
-          <Rise delay={900}>
-            <ObButton label="Start learning" variant="cream" withArrow onPress={() => {}} />
-          </Rise>
-        </View>
-      </SafeAreaView>
-    </View>
+    <PassConfirmation
+      sub={`${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`}
+      rows={[
+        ['Pass', PASS_NAME[kind]],
+        ['Exam', exam ? EXAMS[exam].name : '—'],
+        ['Active till', activeTill(kind)],
+        ['Paid', rupees(paid)],
+      ]}
+      buttonLabel="Start learning"
+      onPress={onDone}
+    />
   );
 }
 
@@ -531,31 +475,5 @@ function createStyles(ds: S, fs: S, tracking: T) {
       textAlign: 'center',
       color: ob.ink55,
     },
-
-    // The confirmation's dark ground.
-    nightScreen: { flex: 1, backgroundColor: ob.night },
-    nightBody: { flex: 1, paddingHorizontal: ds(30), paddingTop: ds(56) },
-    tickWrap: { width: ds(64), height: ds(64), alignItems: 'center', justifyContent: 'center' },
-    headBlock: { marginTop: ds(30), gap: ds(14) },
-    nightHead: {
-      fontFamily: obFont.r400,
-      fontSize: fs(32),
-      lineHeight: fs(36),
-      letterSpacing: tracking(-0.03, 32),
-      color: ob.cream,
-    },
-    nightSub: { fontFamily: obFont.r400, fontSize: fs(17), lineHeight: fs(25), color: ob.onNight },
-    ledger: { marginTop: ds(42) },
-    nightRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: ds(14),
-      borderTopWidth: 1,
-      borderTopColor: ob.nightRule,
-    },
-    nightRowLast: { borderBottomWidth: 1, borderBottomColor: ob.nightRule },
-    nightRowLabel: { fontFamily: obFont.r400, fontSize: fs(15), color: ob.onNightDim },
-    nightRowValue: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.cream },
-    nightFooter: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(12) },
   });
 }
