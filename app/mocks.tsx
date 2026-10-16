@@ -90,15 +90,10 @@ interface SatRow {
   wrong: number;
   unanswered: number;
   marks: number;
+  maxMarks: number | null;
   perSubject: Record<string, number>;
 }
 
-const SUBJECT_SHORT: Record<string, string> = {
-  physics: 'Phy',
-  chemistry: 'Chem',
-  mathematics: 'Maths',
-  biology: 'Bio',
-};
 
 export default function MocksScreen() {
   const { scale, verticalScale } = useScale();
@@ -300,6 +295,7 @@ export default function MocksScreen() {
         wrong: r.wrong,
         unanswered: r.unanswered,
         marks: r.total_marks,
+        maxMarks: r.max_marks,
         perSubject: Object.fromEntries(
           Object.entries(r.per_subject).map(([k, v]) => [k, v.marks])
         ),
@@ -316,6 +312,7 @@ export default function MocksScreen() {
         wrong: r.score.wrong,
         unanswered: r.score.unanswered,
         marks: r.score.total_marks,
+        maxMarks: r.score.max_marks ?? null,
         perSubject: Object.fromEntries(
           Object.entries(r.score.per_subject).map(([k, v]) => [k, v.marks])
         ),
@@ -347,21 +344,23 @@ export default function MocksScreen() {
             onPress={() => router.back()}>
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          <Text style={styles.title}>Mock tests</Text>
+          {/* The line about the papers sits under the title, on its left edge,
+              as the report's date does; it hung under the back button with
+              a wide gap below it. */}
+          <View style={styles.titleCol}>
+            <Text style={styles.title}>Mock tests</Text>
+            <Text style={styles.lead}>
+              {hasActivePaper
+                ? 'The clock kept running while you were away.'
+                : 'Exam-pattern papers: past-paper questions, your own Practice mistakes, and fresh ones.'}
+            </Text>
+          </View>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
-          {/* ONE LINE UNDER THE TITLE, then each block under the one section
-              heading (the marigold dash), 28 apart. The page had three kinds
-              of heading and gaps of 14, 22 and 40 between its blocks. */}
-          <Text style={styles.lead}>
-            {hasActivePaper
-              ? 'The clock kept running while you were away.'
-              : 'Exam-pattern papers: past-paper questions, your own Practice mistakes, and fresh ones.'}
-          </Text>
           {gateKnown && diagnostic && (
             <>
-              <MockSection title="Start here" />
+              <MockSection title="Start here" first />
               <DiagnosticCard offer={diagnostic} />
             </>
           )}
@@ -372,7 +371,7 @@ export default function MocksScreen() {
             </>
           ) : eligible ? (
             <>
-              <MockSection title={hasActivePaper ? 'In progress' : 'Your full paper'} />
+              <MockSection title={hasActivePaper ? 'In progress' : 'Your full paper'} first={!diagnostic} />
 
               {hasActivePaper && getMockSession() ? (
                 <RunningPaperCard styles={styles} label={pattern.label} />
@@ -408,7 +407,7 @@ export default function MocksScreen() {
              * EARNED, NOT REFUSED — and said before the button, not after it.
              */
             <>
-              <MockSection title="Your next full paper" />
+              <MockSection title="Your next full paper" first={!diagnostic} />
               <View style={styles.card}>
                 <View style={styles.countRow}>
                   {/* From `correct_to_next`, not from `unique_correct` modulo
@@ -477,31 +476,45 @@ export default function MocksScreen() {
             sat.map((run) => (
               <Pressable
                 key={run.id}
-                style={styles.runRow}
+                style={({ pressed }) => [styles.runRow, pressed && styles.runPressed]}
                 accessibilityRole="button"
+                accessibilityLabel={`${run.kind === 'diagnostic' ? 'Starting point' : run.exam === 'neet' ? 'NEET UG' : 'JEE Main'} paper, ${formatDay(run.when)}, ${run.marks} marks. Open the report.`}
                 onPress={() => router.push(`/mock-report?run=${run.id}`)}>
-                <View style={styles.runMain}>
-                  <Text style={styles.runDate}>
-                    {formatDay(run.when)} ·{' '}
-                    {run.kind === 'diagnostic'
-                      ? 'Starting point'
-                      : run.exam === 'neet'
-                        ? 'NEET UG'
-                        : 'JEE Main'}
+                {/* A PAPER, ROOMY: its name and day on the left and the score
+                    on the right, then how it went as three counts across the
+                    foot, as the report's own score card shows them. It was
+                    three tight lines with the subjects squeezed into one. */}
+                <View style={styles.runHead}>
+                  <View style={styles.runMain}>
+                    <Text style={styles.runTitle}>
+                      {run.kind === 'diagnostic'
+                        ? 'Starting point'
+                        : run.exam === 'neet'
+                          ? 'NEET UG paper'
+                          : 'JEE Main paper'}
+                    </Text>
+                    <Text style={styles.runDate}>{formatDay(run.when)}</Text>
+                  </View>
+                  <Text style={styles.runMarks}>
+                    {run.marks}
+                    {run.maxMarks != null && <Text style={styles.runMax}> / {run.maxMarks}</Text>}
                   </Text>
-                  <Text style={styles.runDetail}>
-                    {run.correct} right · {run.wrong} wrong · {run.unanswered} skipped
-                  </Text>
-                  <View style={styles.runSubjects}>
-                    {Object.entries(run.perSubject).map(([subject, marks]) => (
-                      <Text key={subject} style={styles.runSubject}>
-                        {SUBJECT_SHORT[subject] ?? subject} {marks}
-                      </Text>
-                    ))}
+                  <ChevronIcon size={scale(15)} />
+                </View>
+                <View style={styles.runTally}>
+                  <View style={styles.runCount}>
+                    <Text style={[styles.runCountN, styles.runRight]}>{run.correct}</Text>
+                    <Text style={styles.runCountLabel}>right</Text>
+                  </View>
+                  <View style={[styles.runCount, styles.runCountDivided]}>
+                    <Text style={[styles.runCountN, styles.runWrong]}>{run.wrong}</Text>
+                    <Text style={styles.runCountLabel}>wrong</Text>
+                  </View>
+                  <View style={[styles.runCount, styles.runCountDivided]}>
+                    <Text style={styles.runCountN}>{run.unanswered}</Text>
+                    <Text style={styles.runCountLabel}>skipped</Text>
                   </View>
                 </View>
-                <Text style={styles.runMarks}>{run.marks}</Text>
-                <ChevronIcon size={scale(15)} />
               </Pressable>
             ))
           )}
@@ -647,14 +660,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
+    /** Top-aligned, the button centred on the title's own line, so a second
+     *  line under the title does not pull it down. */
     topRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: scale(12),
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
     },
     backButton: {
+      marginTop: scale((29 - 36) / 2),
       width: scale(36),
       height: scale(36),
       flexShrink: 0,
@@ -665,18 +681,20 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     /** The app's one page-title tier — see constants/page-title.ts. */
-    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    titleCol: { flex: 1, minWidth: 0 },
+    title: { ...pageTitle(scale) },
     scroll: { flex: 1, minHeight: 0 },
     scrollInner: {
       paddingHorizontal: scale(20),
-      paddingTop: verticalScale(10),
+      paddingTop: verticalScale(24),
       paddingBottom: verticalScale(28),
     },
     lead: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(20),
+      fontSize: scale(13.5),
+      lineHeight: scale(19),
       color: colors.slate,
+      marginTop: verticalScale(4),
     },
     /** The one card: white, a fine border, 16 corners, no shadow. */
     card: {
@@ -803,46 +821,34 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.faint,
     },
     runRow: {
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      borderRadius: scale(16),
+      marginBottom: verticalScale(12),
+      backgroundColor: '#fff',
+      overflow: 'hidden',
+    },
+    runPressed: { opacity: 0.6 },
+    runHead: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(15),
-      borderRadius: scale(14),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
-      backgroundColor: '#fff',
-      marginBottom: verticalScale(8),
+      paddingTop: verticalScale(16),
+      paddingBottom: verticalScale(14),
+      paddingHorizontal: scale(16),
     },
     runMain: { flex: 1, minWidth: 0 },
-    runDate: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    runDetail: {
-      marginTop: verticalScale(2),
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(11.5),
-      color: colors.faint,
-    },
-    runSubjects: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(10),
-      marginTop: verticalScale(6),
-    },
-    runSubject: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(11),
-      color: colors.slate,
-    },
-    runMarks: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(19),
-      letterSpacing: scale(-0.4),
-      color: colors.ink,
-    },
+    runTitle: { fontFamily: 'Onest_600SemiBold', fontSize: scale(16), lineHeight: scale(22), color: colors.ink },
+    runDate: { fontFamily: 'Onest_400Regular', fontSize: scale(13), color: colors.slate, marginTop: verticalScale(2) },
+    runMarks: { fontFamily: 'Onest_600SemiBold', fontSize: scale(22), color: colors.ink, fontVariant: ['tabular-nums'] },
+    runMax: { fontFamily: 'Onest_500Medium', fontSize: scale(14), color: colors.faint },
+    runTally: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)' },
+    runCount: { flex: 1, alignItems: 'center', paddingVertical: verticalScale(11) },
+    runCountDivided: { borderLeftWidth: 1, borderLeftColor: 'rgba(28,26,22,.08)' },
+    runCountN: { fontFamily: 'Onest_600SemiBold', fontSize: scale(15), color: colors.ink, fontVariant: ['tabular-nums'] },
+    runRight: { color: '#157A45' },
+    runWrong: { color: '#C53A2B' },
+    runCountLabel: { fontFamily: 'Onest_400Regular', fontSize: scale(11.5), color: colors.slate, marginTop: verticalScale(1) },
     skeletonLine: {
       height: verticalScale(20),
       borderRadius: scale(6),

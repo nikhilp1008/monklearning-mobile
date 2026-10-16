@@ -629,14 +629,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: '#fff' },
     safeArea: { flex: 1 },
+    /** Top-aligned, the button centred on the title's own line, so a second
+     *  line under the title does not pull it down. */
     topRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: scale(12),
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
     },
     backButton: {
+      marginTop: scale((29 - 36) / 2),
       width: scale(36),
       height: scale(36),
       flexShrink: 0,
