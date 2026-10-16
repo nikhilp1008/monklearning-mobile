@@ -216,7 +216,8 @@ export const obFont = {
  * "Calculus", "Human Physiology", "Genetics" and "Ecology", none of which are
  * chapters in the table.
  */
-export type ExamKey = 'jee' | 'neet' | 'both';
+/** JEE or NEET. There is no "both": a student prepares for one exam. */
+export type ExamKey = 'jee' | 'neet';
 export type YearKey = 'class11' | 'class12' | 'dropper';
 
 export const EXAMS: Record<
@@ -259,20 +260,6 @@ export const EXAMS: Record<
     ],
     sample:
       'Human Reproduction · Molecular Basis of Inheritance · Thermodynamics · Coordination Compounds · Ecosystem.',
-  },
-  both: {
-    name: 'Both',
-    tag: 'PCMB',
-    label: 'both exams',
-    upper: 'JEE MAIN + NEET UG',
-    subjects: [
-      { name: 'Physics', count: 28 },
-      { name: 'Chemistry', count: 19 },
-      { name: 'Maths', count: 28 },
-      { name: 'Biology', count: 32 },
-    ],
-    sample:
-      'Rotational Motion · Integrals · Human Reproduction · Coordination Compounds · Evolution.',
   },
 };
 

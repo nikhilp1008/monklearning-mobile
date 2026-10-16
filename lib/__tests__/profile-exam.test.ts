@@ -1,16 +1,11 @@
 /**
- * "Both" must survive a pull.
+ * JEE or NEET, and nothing else.
  *
- * `profiles.target_exam` has a check constraint that rejects 'both', so
- * `examForServer` stores a both-exam student as JEE. The pull then read that
- * back as plain 'jee' and saved it over the local answer -- and Profile pulls
- * on mount, so opening the screen to look at your exams was what destroyed
- * them. Afterwards Profile showed one exam and Textbooks three subjects, with
- * no way back short of re-onboarding.
- *
- * Nothing else covers this: every downstream consumer is already correct for
- * 'both', so the bug lives entirely in one assignment and is invisible unless
- * a test drives a pull with a local 'both' in place.
+ * "Both" was removed as an exam: a student prepares for one. Phones that
+ * stored 'both' before then still have it in local storage, and the server
+ * has always held those students as JEE (its check constraint never allowed
+ * 'both'). So a stored 'both' must read as JEE, and a pull must agree with the
+ * server rather than resurrect it.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -48,28 +43,26 @@ beforeEach(async () => {
   row.target_exam = 'JEE';
 });
 
-describe('pullProfile and the exam the server cannot hold', () => {
-  test('a local "both" survives the server saying JEE', async () => {
-    await saveProfile({ exam: 'both' });
-    await pullProfile();
-    expect((await getProfile()).exam).toBe('both');
+describe('the exam on this device', () => {
+  test('a "both" left from before reads as JEE', async () => {
+    await AsyncStorage.setItem('profile.exam', 'both');
+    expect((await getProfile()).exam).toBe('jee');
   });
 
-  test('a local "jee" is unaffected', async () => {
-    await saveProfile({ exam: 'jee' });
+  test('a pull agrees with the server when it says JEE', async () => {
+    await AsyncStorage.setItem('profile.exam', 'both');
     await pullProfile();
     expect((await getProfile()).exam).toBe('jee');
   });
 
-  test('NEET is unambiguous, so it still wins over a stale local "both"', async () => {
+  test('NEET from the server wins', async () => {
     row.target_exam = 'NEET';
-    await saveProfile({ exam: 'both' });
+    await saveProfile({ exam: 'jee' });
     await pullProfile();
     expect((await getProfile()).exam).toBe('neet');
   });
 
   test('the rest of the row still lands', async () => {
-    await saveProfile({ exam: 'both' });
     await pullProfile();
     const p = await getProfile();
     expect(p.name).toBe('Aarav Sharma');

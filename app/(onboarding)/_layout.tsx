@@ -14,7 +14,11 @@ export default function OnboardingLayout() {
           most of the tick and the first ring. By the time the screen settles
           the moment has already happened, which is why it read as static.
           A fade is also what the handoff specifies here (`mkFade 420ms`). */}
-      <Stack.Screen name="pass-active" options={{ animation: 'fade' }} />
+      {/* No swipe back past the payment: back from the receipt would land on
+          the price list, and back from the teacher on the receipt, whose
+          button starts the pass again. */}
+      <Stack.Screen name="pass-active" options={{ animation: 'fade', gestureEnabled: false }} />
+      <Stack.Screen name="teacher" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }

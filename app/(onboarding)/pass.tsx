@@ -15,7 +15,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { ObButton, ObHeader } from '@/components/onboarding-kit';
+import { ObButton } from '@/components/onboarding-kit';
+import { OnbTitle } from '@/components/onboarding/onb-screen';
+import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
 import {
   EXAMS,
@@ -30,8 +32,6 @@ import {
   type ExamKey,
   type PassKey,
 } from '@/constants/onboarding';
-import { SelectRow } from '@/components/select-row';
-import { hapticSwitched } from '@/lib/haptics';
 
 function ArrowGlyph({ size }: { size: number }) {
   return (
@@ -60,7 +60,6 @@ export default function PassScreen() {
   const [pass, setPass] = useState<PassKey | null>(
     PASSES.some((p) => p.id === params.pass) ? (params.pass as PassKey) : null
   );
-  const [playToken, setPlayToken] = useState(0);
 
   const promo = (params.promo ?? '').toUpperCase();
   const active = PASSES.find((p) => p.id === pass) ?? null;
@@ -68,11 +67,8 @@ export default function PassScreen() {
   const total = active ? Math.max(0, active.price - discount) : 0;
   const paid = !!active && total === 0;
 
-  const select = (id: PassKey) => {
-    hapticSwitched();
-    setPass(id);
-    setPlayToken((n) => n + 1);
-  };
+  // SkyChoice gives the tap its haptic.
+  const select = (id: PassKey) => setPass(id);
 
   const toPromo = () =>
     router.push({ pathname: '/promo', params: { pass, promo, exam: params.exam ?? '' } });
@@ -81,18 +77,22 @@ export default function PassScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObHeader title="Choose a pass" />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sub}>Nothing renews on its own.</Text>
+          {/* The onboarding's shared heading: no back arrow, same spot as every
+              question before it. OnbTitle pads itself to 30, which this
+              screen's content already is, so it is pulled back out by that. */}
+          <View style={styles.titleBleed}>
+            <OnbTitle title="Start with a pass" sub="Live classes, doubts and practice. Nothing renews on its own." />
+          </View>
 
           <View style={styles.rows}>
             {PASSES.map((p) => (
-              <SelectRow
+              <SkyChoice
                 key={p.id}
-                name={p.name}
+                shape="row"
+                label={p.name}
                 trailing={rupees(p.price)}
                 selected={pass === p.id}
-                playToken={playToken}
                 onPress={() => select(p.id)}
               />
             ))}
@@ -110,10 +110,12 @@ export default function PassScreen() {
 
           <View style={styles.included}>
             <Text style={styles.overline}>BOTH PASSES INCLUDE</Text>
-            {INCLUDED.map(([label, value], i) => (
+            {/* No teachers before the payment: the teacher is met on the very
+                next screens, so their row is left off here (the paywall keeps it). */}
+            {INCLUDED.filter(([label]) => label !== 'Teachers').map(([label, value], i, rows) => (
               <View
                 key={label}
-                style={[styles.includedRow, i === INCLUDED.length - 1 && styles.includedRowLast]}>
+                style={[styles.includedRow, i === rows.length - 1 && styles.includedRowLast]}>
                 <Text style={styles.includedLabel}>{label}</Text>
                 <Text style={styles.includedValue}>{value}</Text>
               </View>
@@ -165,6 +167,7 @@ function createStyles(
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
     content: { paddingHorizontal: ds(30), paddingBottom: ds(24) },
+    titleBleed: { marginHorizontal: -ds(30) },
     sub: {
       fontFamily: obFont.r400,
       fontSize: fs(15),

@@ -12,7 +12,7 @@
 // (delivered by Resend). A phone number is still collected on the next
 // screen, unverified. Every measurement below is unchanged from the original
 // design handoff.
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -21,6 +21,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -30,11 +31,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ObButton, ObHeader } from '@/components/onboarding-kit';
+import { ObButton } from '@/components/onboarding-kit';
+import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
 import { hapticCodeComplete, hapticDigit, hapticSwitched, hapticWarning } from '@/lib/haptics';
-import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
+import { getAnswers, saveAnswers } from '@/lib/onboarding-answers';
+import {
+  getProfile,
+  hasCompletedOnboarding,
+  onboardedOnThisDevice,
+  pullProfile,
+  saveProfile,
+} from '@/lib/profile';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 24;
@@ -53,12 +62,28 @@ function onlyDigits(text: string, max: number) {
 
 type Stage = 'email' | 'otp';
 
+// `+91 98211 43307`. Empty in, empty out; a partial keeps what was typed, so a
+// half-entered number is never saved as somebody else's real one.
+function formatPhone(raw: string) {
+  const digits = raw.replace(/[^0-9]/g, '');
+  const local = digits.length > 10 ? digits.slice(-10) : digits;
+  if (!local) return '';
+  if (local.length !== 10) return `+91 ${local}`;
+  return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
+}
+
 export default function EmailScreen() {
   const { ds, fs, tracking } = useDesignScale();
   const s = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const [stage, setStage] = useState<Stage>('email');
+  // SIGN-UP COMES LAST NOW. A new student reaches this screen after the
+  // questions, to create their account; a returning one comes from the
+  // welcome screen's "Sign in" with mode=signin.
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const signIn = params.mode === 'signin';
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [busy, setBusy] = useState(false);
@@ -72,9 +97,7 @@ export default function EmailScreen() {
   // batch* — so a pasted / autofilled code reproduces the mockup exactly
   // while a hand-typed digit pops after a flat 50ms instead of waiting out
   // its index.
-  const popAnims = useRef(
-    Array.from({ length: CODE_LENGTH }, () => new Animated.Value(1)),
-  ).current;
+  const popAnims = useRef(Array.from({ length: CODE_LENGTH }, () => new Animated.Value(1))).current;
   const prevCodeLength = useRef(0);
   /** Taps waiting on their digit's pop, dropped if the screen goes first. */
   const tickTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -131,6 +154,8 @@ export default function EmailScreen() {
     setError(null);
     try {
       await sendEmailOtp(email);
+      // Optional, and not verified: there is no Indian SMS sender yet.
+      if (!signIn && phone) saveProfile({ phone: formatPhone(phone), phoneVerified: false });
       setCode('');
       prevCodeLength.current = 0;
       setSecondsLeft(RESEND_SECONDS);
@@ -193,16 +218,26 @@ export default function EmailScreen() {
         // local evidence rather than assuming "new": guessing new would send
         // a returning student through onboarding, and the push at the end of
         // it would overwrite their real name and exam with retyped ones.
-        known = !!(await getStoredName());
+        known = await onboardedOnThisDevice();
       }
       if (known) {
         // Their details live on the server; bring them back to this device.
         await pullProfile().catch(() => {
           // Offline — the local copy stands until the next successful pull.
         });
+        await saveAnswers({ finished: true });
         router.replace('/(tabs)');
       } else {
-        router.push({ pathname: '/details', params: { email: email.trim() } });
+        saveProfile({ email: email.trim(), emailVerified: true });
+        // A new account. If they have already answered the questions (the
+        // usual way here) they go on to the pass; if they came in through
+        // "Sign in" without an account, they start at the name.
+        if ((await getAnswers()).questionsDone) {
+          const { exam } = await getProfile();
+          router.push({ pathname: '/pass', params: { exam } });
+        } else {
+          router.push('/name');
+        }
       }
     } catch (err) {
       // A wrong or expired code: felt as well as read.
@@ -222,48 +257,82 @@ export default function EmailScreen() {
   return (
     <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        style={s.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Each stage scrolls above a fixed button, so on a small phone with
+            the keyboard up the button is never pushed under it. */}
         {stage === 'email' ? (
           <>
-            <ObHeader title="Your email" />
-            <Text style={s.sub}>No password. We send a code instead.</Text>
+            <ScrollView
+              style={s.flex}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              showsVerticalScrollIndicator={false}>
+              <OnbTitle
+                title={signIn ? 'Welcome back' : 'Create your account'}
+                sub={
+                  signIn
+                    ? 'Enter your email and we’ll send you a code.'
+                    : 'We’ll email you a code. No password.'
+                }
+              />
 
-            <View style={s.cardBlock}>
-              {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
+              <View style={s.cardBlock}>
+                {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
                   shadow spread, so the ring is a padded wrapper behind the
                   card — radius 20 + 5 so the corners stay concentric. */}
-              <Pressable style={s.focusRing} onPress={() => emailInput.current?.focus()}>
-                <View style={s.fieldCard}>
-                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
-                  <View style={s.valueRow}>
-                    <TextInput
-                      ref={emailInput}
-                      style={s.emailInput}
-                      value={email}
-                      onChangeText={(t) => {
-                        setEmail(t);
-                        setError(null);
-                      }}
-                      placeholder="you@example.com"
-                      placeholderTextColor={ob.placeholder}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      autoComplete="email"
-                      textContentType="emailAddress"
-                      selectionColor={ob.amber}
-                      returnKeyType="go"
-                      onSubmitEditing={sendOtp}
-                    />
+                <Pressable style={s.focusRing} onPress={() => emailInput.current?.focus()}>
+                  <View style={s.fieldCard}>
+                    <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                    <View style={s.valueRow}>
+                      <TextInput
+                        ref={emailInput}
+                        style={s.emailInput}
+                        value={email}
+                        onChangeText={(t) => {
+                          setEmail(t);
+                          setError(null);
+                        }}
+                        placeholder="you@example.com"
+                        placeholderTextColor={ob.placeholder}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="email"
+                        textContentType="emailAddress"
+                        selectionColor={ob.amber}
+                        returnKeyType="go"
+                        onSubmitEditing={sendOtp}
+                      />
+                    </View>
                   </View>
-                </View>
-              </Pressable>
+                </Pressable>
 
-              {!!error && <Text style={s.error}>{error}</Text>}
+                {/* Optional, and only when signing up. Saved with the account
+                  for class reminders; not verified until there is an Indian
+                  SMS sender. */}
+                {!signIn ? (
+                  <View style={[s.fieldCard, s.phoneCard]}>
+                    <Text style={s.fieldLabel}>PHONE, FOR CLASS REMINDERS · OPTIONAL</Text>
+                    <View style={s.valueRow}>
+                      <Text style={s.phonePrefix}>+91</Text>
+                      <TextInput
+                        style={s.emailInput}
+                        value={phone}
+                        onChangeText={(t) => setPhone(onlyDigits(t, 10))}
+                        placeholder="98765 43210"
+                        placeholderTextColor={ob.placeholder}
+                        keyboardType="phone-pad"
+                        textContentType="telephoneNumber"
+                        autoComplete="tel"
+                        selectionColor={ob.amber}
+                      />
+                    </View>
+                  </View>
+                ) : null}
 
-              {/* Dynamic, but not on whether the address is registered.
+                {!!error && <Text style={s.error}>{error}</Text>}
+
+                {/* Dynamic, but not on whether the address is registered.
                   Asking that would mean a lookup anyone could use to discover
                   who has an account here — the reason the industry standard
                   is "if an account exists, we've sent a code". So the line
@@ -271,7 +340,8 @@ export default function EmailScreen() {
                   finished typing, and therefore what the button is about to
                   do. Before that it answers the question a returning student
                   actually has, which is whether they're in the right box. */}
-            </View>
+              </View>
+            </ScrollView>
 
             <View style={s.footer}>
               <ObButton
@@ -296,86 +366,94 @@ export default function EmailScreen() {
                 it read as a second screen. Now the title stays, the email box
                 stays where it was (filled, in the same weight it was typed
                 in), and the code rises in beneath it. */}
-            <ObHeader title="Your email" />
-            <Text style={s.sub}>We sent a 6-digit code to your inbox.</Text>
+            <ScrollView
+              style={s.flex}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              showsVerticalScrollIndicator={false}>
+              <OnbTitle
+                title={signIn ? 'Welcome back' : 'Create your account'}
+                sub="We sent a 6-digit code to your inbox."
+              />
 
-            <View style={s.recapBlock}>
-              <View style={s.recapCard}>
-                <View style={s.recapText}>
-                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
-                  <Text style={s.recapValue} numberOfLines={1}>
-                    {email.trim()}
-                  </Text>
-                </View>
-                {/* A real button with room around it. It was a few letters
+              <View style={s.recapBlock}>
+                <View style={s.recapCard}>
+                  <View style={s.recapText}>
+                    <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                    <Text style={s.recapValue} numberOfLines={1}>
+                      {email.trim()}
+                    </Text>
+                  </View>
+                  {/* A real button with room around it. It was a few letters
                     of inline text inside a sentence — a small target, and
                     the one students reported not working. */}
-                <Pressable
-                  onPress={changeEmail}
-                  hitSlop={ds(14)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Change email address"
-                  style={({ pressed }) => [s.changeButton, pressed && s.changePressed]}>
-                  <Text style={s.changeLink}>Change</Text>
-                </Pressable>
+                  <Pressable
+                    onPress={changeEmail}
+                    hitSlop={ds(14)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change email address"
+                    style={({ pressed }) => [s.changeButton, pressed && s.changePressed]}>
+                    <Text style={s.changeLink}>Change</Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
 
-            <Text style={s.codeLabel}>ENTER THE CODE</Text>
+              <Text style={s.codeLabel}>ENTER THE CODE</Text>
 
-            <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
-              <View style={s.boxesRow}>
-                {Array.from({ length: CODE_LENGTH }).map((_, i) => {
-                  const digit = code[i];
-                  const isActive = i === activeBox;
-                  return (
-                    <View key={i} style={s.boxCell}>
-                      {/* The active cell lifts and carries the caret; filled
+              <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
+                <View style={s.boxesRow}>
+                  {Array.from({ length: CODE_LENGTH }).map((_, i) => {
+                    const digit = code[i];
+                    const isActive = i === activeBox;
+                    return (
+                      <View key={i} style={s.boxCell}>
+                        {/* The active cell lifts and carries the caret; filled
                           cells settle back onto a tint. No ring -- a wash is
                           this app's mark for a choice made, and a cell waiting
                           for a digit has not made one. */}
-                      <View
-                        style={[
-                          s.box,
-                          digit ? s.boxFilled : null,
-                          isActive ? s.boxActive : null,
-                        ]}>
-                        {digit ? (
-                          <Animated.Text style={[s.boxDigit, popStyle(popAnims[i])]}>
-                            {digit}
-                          </Animated.Text>
-                        ) : isActive ? (
-                          <Caret width={2} height={ds(26)} />
-                        ) : null}
+                        <View
+                          style={[
+                            s.box,
+                            digit ? s.boxFilled : null,
+                            isActive ? s.boxActive : null,
+                          ]}>
+                          {digit ? (
+                            <Animated.Text style={[s.boxDigit, popStyle(popAnims[i])]}>
+                              {digit}
+                            </Animated.Text>
+                          ) : isActive ? (
+                            <Caret width={2} height={ds(26)} />
+                          ) : null}
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
-                <TextInput
-                  ref={codeInput}
-                  style={s.hiddenInput}
-                  value={code}
-                  onChangeText={handleCodeChange}
-                  keyboardType="number-pad"
-                  maxLength={CODE_LENGTH}
-                  caretHidden
-                  autoComplete="one-time-code"
-                  textContentType="oneTimeCode"
-                />
+                    );
+                  })}
+                  <TextInput
+                    ref={codeInput}
+                    style={s.hiddenInput}
+                    value={code}
+                    onChangeText={handleCodeChange}
+                    keyboardType="number-pad"
+                    maxLength={CODE_LENGTH}
+                    caretHidden
+                    autoComplete="one-time-code"
+                    textContentType="oneTimeCode"
+                  />
+                </View>
+              </Rise>
+
+              {!!error && <Text style={[s.error, s.errorOtp]}>{error}</Text>}
+
+              <View style={s.resendBlock}>
+                <Pressable onPress={resend} disabled={secondsLeft > 0 || busy} hitSlop={ds(10)}>
+                  <Text style={s.resendText}>
+                    {secondsLeft > 0
+                      ? `Resend 0:${String(secondsLeft).padStart(2, '0')}`
+                      : 'Resend'}
+                  </Text>
+                </Pressable>
               </View>
-            </Rise>
-
-            {!!error && <Text style={[s.error, s.errorOtp]}>{error}</Text>}
-
-            <View style={s.resendBlock}>
-              <Pressable onPress={resend} disabled={secondsLeft > 0 || busy} hitSlop={ds(10)}>
-                <Text style={s.resendText}>
-                  {secondsLeft > 0
-                    ? `Resend 0:${String(secondsLeft).padStart(2, '0')}`
-                    : 'Resend'}
-                </Text>
-              </Pressable>
-            </View>
+            </ScrollView>
 
             <View style={s.footer}>
               <ObButton
@@ -400,7 +478,10 @@ export default function EmailScreen() {
 /** `pop` — scale .72 -> 1.06 -> 1 with fade, .35s. */
 function popStyle(anim: Animated.Value) {
   return {
-    opacity: anim.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 1, 1] }),
+    opacity: anim.interpolate({
+      inputRange: [0, 0.35, 1],
+      outputRange: [0, 1, 1],
+    }),
     transform: [
       {
         scale: anim.interpolate({
@@ -445,7 +526,12 @@ function Rise({
         {
           opacity: anim,
           transform: [
-            { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) },
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [distance, 0],
+              }),
+            },
           ],
         },
       ]}>
@@ -463,18 +549,24 @@ function Caret({ width, height }: { width: number; height: number }) {
       Animated.sequence([
         Animated.delay(550),
         // duration 0 == the hard switch of `steps(1)`, no easing ramp.
-        Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
         Animated.delay(550),
-        Animated.timing(anim, { toValue: 1, duration: 0, useNativeDriver: true }),
-      ]),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
     );
     loop.start();
     return () => loop.stop();
   }, [anim]);
 
-  return (
-    <Animated.View style={{ width, height, backgroundColor: ob.amber, opacity: anim }} />
-  );
+  return <Animated.View style={{ width, height, backgroundColor: ob.amber, opacity: anim }} />;
 }
 
 function createStyles(
@@ -509,6 +601,8 @@ function createStyles(
     // untouched field has selected nothing.
     cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(30) },
     focusRing: { borderRadius: ds(14) },
+    phoneCard: { marginTop: ds(12) },
+    phonePrefix: { fontFamily: obFont.r400, fontSize: fs(19), color: ob.ink55 },
     fieldCard: {
       borderRadius: ds(14),
       backgroundColor: ob.surface,
@@ -523,7 +617,12 @@ function createStyles(
       letterSpacing: tracking(0.14, 10),
       color: ob.ink55,
     },
-    valueRow: { marginTop: ds(6), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
+    valueRow: {
+      marginTop: ds(6),
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ds(12),
+    },
     // Typed straight into the card rather than behind a hidden input: an
     // address is variable-length and proportional, so the per-character
     // caret trick the phone digits used has nothing to align to.
@@ -644,8 +743,10 @@ function createStyles(
     footer: {
       marginTop: 'auto',
       paddingTop: ds(22),
-      paddingHorizontal: ds(34),
-      paddingBottom: ds(34),
+      // 30 and 14, as on every other onboarding screen, so the button does not
+      // jump narrower and higher on the one screen with a text field.
+      paddingHorizontal: ds(30),
+      paddingBottom: ds(14),
     },
   });
 }

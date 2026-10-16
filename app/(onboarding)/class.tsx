@@ -1,212 +1,150 @@
-// 06 Pick year — pixel replica of design_handoff_onboarding_flow
-// `design/Onboarding Final v2.dc.html`, frame data-screen-label="06 Pick year".
-// Every number below is a raw design px off that markup, passed through ds().
-//
-// The option rows are the exact same component screen 05 uses — imported from
-// `./exam` rather than re-declared, which is what keeps the two selected-row
-// treatments (amber border + wiped wash, ink text, no checkmark) identical.
-import { router, useLocalSearchParams } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { LeaderRow, ObButton, ObHeader } from '@/components/onboarding-kit';
-import {
-  EXAMS,
-  YEARS,
-  YEAR_NOTES,
-  examTotal,
-  ob,
-  obFont,
-  useDesignScale,
-  type ExamKey,
-  type YearKey,
-} from '@/constants/onboarding';
-import { saveProfile } from '@/lib/profile';
+import { Insight, OnbCard, OnbScreen } from '@/components/onboarding/onb-screen';
+import { SkyChoice } from '@/components/onboarding/sky-choice';
+import { ob, obFont, useDesignScale, type ExamKey, type YearKey } from '@/constants/onboarding';
+import { examCountdown, type ExamCountdown } from '@/lib/exam-countdown';
+import { ANSWERS_TIED_TO_EXAM, getAnswers, saveAnswers } from '@/lib/onboarding-answers';
+import { getProfile, saveProfile } from '@/lib/profile';
 
-import { SelectRow } from '@/components/select-row';
-import { hapticSwitched } from '@/lib/haptics';
+/**
+ * Screen 4: the class, and what the calendar leaves them.
+ *
+ * The weekends card turns the countdown into something a student plans with:
+ * not "99 days" but fourteen Saturdays, the first of them this one.
+ */
+const ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
 
-const YEAR_ORDER: YearKey[] = ['class11', 'class12', 'dropper'];
-
-function resolveExam(param: string | string[] | undefined): ExamKey {
-  const value = Array.isArray(param) ? param[0] : param;
-  return value && value in EXAMS ? (value as ExamKey) : 'jee';
+function rowsFor(exam: ExamKey): Record<YearKey, { label: string; note?: string }> {
+  const which = exam === 'neet' ? 'NEET' : 'JEE';
+  return {
+    class11: { label: 'Class 11' },
+    class12: { label: 'Class 12', note: `Boards and ${which} in the same year` },
+    dropper: { label: 'Done with Class 12', note: 'Taking a year to prepare' },
+  };
 }
 
-export default function ClassScreen() {
+function insightFor(year: YearKey, exam: ExamKey, soon: boolean): string {
+  if (year === 'class11')
+    return soon
+      ? 'Your plan covers the Class 11 chapters that come up most, first.'
+      : 'Two years is a real head start. Your plan builds the base first, one chapter at a time.';
+  if (year === 'dropper') return 'A full year on one goal. Your plan starts with what needs fixing most.';
+  return exam === 'neet'
+    ? 'Boards come before NEET, so your plan eases off around them and picks up straight after.'
+    : 'Boards begin a few weeks after Session 1, so your plan keeps school days light and gives weekends to JEE.';
+}
+
+/** One square a weekend, when there are few enough to count on sight. */
+const MAX_SQUARES = 26;
+
+function Weekends({ countdown }: { countdown: ExamCountdown }) {
   const { ds, fs, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
-
-  const params = useLocalSearchParams<{ exam?: string }>();
-  const exam = resolveExam(params.exam);
-
-  // Nothing preselected, for the same reason as the exam rows: a highlighted
-  // row reads as an answer the student already gave.
-  const [year, setYear] = useState<YearKey | null>(null);
-  const [playToken, setPlayToken] = useState(0);
-
-  const select = useCallback((key: YearKey) => {
-    hapticSwitched();
-    setYear(key);
-    setPlayToken((n) => n + 1);
-  }, []);
-
+  const n = countdown.weekends;
+  const squares = n <= MAX_SQUARES ? n : 0;
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObHeader title="Select your year" />
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.sub}>Same syllabus. Only the pace changes.</Text>
-
-          {/* `padding:32px 26px 0; gap:10px` */}
-          <View style={styles.rowStack}>
-            {YEAR_ORDER.map((key) => (
-              <SelectRow
-                key={key}
-                name={YEARS[key]}
-                note={YEAR_NOTES[key]}
-                selected={year === key}
-                playToken={playToken}
-                onPress={() => select(key)}
+    <OnbCard>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: ds(8) }}>
+        <Text style={{ fontFamily: obFont.m500, fontSize: fs(28), letterSpacing: tracking(-0.03, 28), color: ob.ink }}>
+          {n}
+        </Text>
+        <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: ob.ink }}>
+          weekends before {countdown.label}
+        </Text>
+      </View>
+      {squares > 0 ? (
+        <>
+          <View style={{ marginTop: ds(12), flexDirection: 'row', flexWrap: 'wrap', gap: ds(4) }}>
+            {Array.from({ length: squares }).map((_, i) => (
+              <View
+                key={i}
+                style={{
+                  width: ds(17),
+                  height: ds(22),
+                  borderRadius: ds(6),
+                  backgroundColor: i === 0 ? ob.ink : 'transparent',
+                  borderWidth: i === 0 ? 0 : 1.5,
+                  borderColor: i >= squares - 4 ? ob.amber : 'rgba(28,26,22,0.16)',
+                }}
               />
             ))}
           </View>
-
-          {/* `padding:34px 34px 0` — follows both selections */}
-          <View style={styles.summary}>
-            <View style={styles.summaryHeader}>
-              <Text style={styles.summaryLabel}>YOUR CLASSROOM</Text>
-            </View>
-
-            <LeaderRow
-              label="Exam"
-              value={EXAMS[exam].label}
-              labelSize={16}
-              valueSize={17}
-              style={styles.summaryRow}
-            />
-            <LeaderRow
-              label="Year"
-              value={year ? YEARS[year] : '—'}
-              labelSize={16}
-              valueSize={17}
-              style={styles.summaryRow}
-            />
-            <LeaderRow
-              label="Chapters taught"
-              value={String(examTotal(exam))}
-              labelSize={16}
-              valueSize={17}
-              style={styles.summaryRow}
-            />
+          <View style={{ marginTop: ds(8), flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ fontFamily: obFont.r400, fontSize: fs(12), color: ob.ink55 }}>This weekend</Text>
+            <Text style={{ fontFamily: obFont.r400, fontSize: fs(12), color: ob.ink55 }}>Final month</Text>
           </View>
-        </ScrollView>
-
-        {/* `margin-top:auto; padding:0 34px 34px` */}
-        <View style={styles.footer}>
-          <ObButton
-            label={year ? 'Continue' : 'Pick your year'}
-            disabled={!year}
-            withArrow
-            onPress={() => {
-              if (!year) return;
-              // Saved locally only. The write that reaches the server -- and
-              // with it the `display_name` the gate reads as "onboarded" --
-              // now happens on the last screen, because three more steps
-              // follow this one and a reload in between would otherwise drop
-              // the student on Home with no pass.
-              //
-              // Not awaited, same as the details step: nothing on the next
-              // screen reads `year`, so awaiting only put an AsyncStorage
-              // write between the tap and the transition.
-              saveProfile({ year });
-              router.push({ pathname: '/pass', params: { exam: exam ?? 'jee' } });
-            }}
-          />
-        </View>
-      </SafeAreaView>
-    </View>
+        </>
+      ) : null}
+    </OnbCard>
   );
 }
 
-function createStyles(
-  ds: (size: number) => number,
-  fs: (size: number) => number,
-  tracking: (em: number, fontSize: number) => number
-) {
-  return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: ob.surface,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    // The frame is 932pt tall; on a short phone the stack + summary would
-    // clip, so the middle scrolls and the button stays pinned below it.
-    scrollContent: {
-      // Clears the pinned footer; the syllabus block was running under it.
-      paddingBottom: ds(110),
-      flexGrow: 1,
-    },
-    headlineBlock: {
-      paddingTop: ds(52),
-      paddingHorizontal: ds(34),
-    },
-    headlineBold: {
-      fontFamily: obFont.xb800,
-    },
-    // 14pt under the title — `padding:14px 30px 0` in the handoff. This
-    // briefly carried a paddingTop AND a marginTop of 14 each, which is the
-    // gap that read as too wide.
-    sub: {
-      paddingHorizontal: ds(30),
-      marginTop: ds(14),
-      fontFamily: obFont.r400,
-      fontSize: fs(16),
-      lineHeight: fs(23),
-      color: ob.ink80,
-    },
-    rowStack: {
-      paddingTop: ds(32),
-      paddingHorizontal: ds(26),
-      gap: ds(10),
-    },
-    summary: {
-      paddingTop: ds(34),
-      paddingHorizontal: ds(34),
-    },
-    summaryHeader: {
-      paddingBottom: ds(12),
-      borderBottomWidth: 1,
-      borderBottomColor: ob.hairline16,
-    },
-    summaryLabel: {
-      fontFamily: obFont.b700,
-      fontSize: fs(13),
-      letterSpacing: tracking(0.1, 13),
-      color: ob.ink55,
-    },
-    summaryRow: {
-      paddingVertical: ds(12),
-      borderBottomWidth: 1,
-      borderBottomColor: ob.hairline10,
-    },
-    footer: {
-      paddingHorizontal: ds(30),
-      paddingBottom: ds(16),
-    },
-    saveError: {
-      marginBottom: ds(12),
-      fontFamily: obFont.r400,
-      fontSize: fs(15),
-      lineHeight: ds(15 * 1.4),
-      color: '#DD4433',
-    },
-  });
+export default function ClassScreen() {
+  const { ds } = useDesignScale();
+  const [exam, setExam] = useState<ExamKey>('jee');
+  const [countdown, setCountdown] = useState<ExamCountdown | null>(null);
+  const [year, setYear] = useState<YearKey | null>(null);
+  /** The class already saved, if this is a return visit. */
+  const [saved, setSaved] = useState<YearKey | null>(null);
+  /** Writing the exam next year: a Class 11 student has months, not two years. */
+  const [soon, setSoon] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([getProfile(), getAnswers()]).then(([p, a]) => {
+      if (!live) return;
+      setExam(p.exam);
+      setCountdown(examCountdown(p.exam, a.examYear));
+      setSoon(a.examYear === '2027');
+      if (a.classPicked) {
+        setYear(p.year);
+        setSaved(p.year);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const rows = rowsFor(exam);
+
+  return (
+    <OnbScreen
+      title="Which class are you in?"
+      cta={{
+        label: year ? 'Continue' : 'Pick your class',
+        disabled: !year,
+        onPress: () => {
+          if (!year) return;
+          saveProfile({ year });
+          // Class 11 is asked a different mock question and shown different
+          // chapters, so a changed class clears what was answered for the old one.
+          saveAnswers({ classPicked: true, ...(saved && saved !== year ? ANSWERS_TIED_TO_EXAM : {}) });
+          setSaved(year);
+          router.push('/goal');
+        },
+      }}>
+      <View style={{ gap: ds(10) }}>
+        {ORDER.map((key) => (
+          <SkyChoice
+            key={key}
+            shape="row"
+            label={rows[key].label}
+            note={rows[key].note}
+            selected={year === key}
+            onPress={() => setYear(key)}
+          />
+        ))}
+      </View>
+      {year ? (
+        <Animated.View entering={FadeIn.duration(320)} style={{ marginTop: ds(18) }}>
+          {countdown ? <Weekends countdown={countdown} /> : null}
+          <Insight text={insightFor(year, exam, soon)} style={countdown ? undefined : { marginTop: 0 }} />
+        </Animated.View>
+      ) : null}
+    </OnbScreen>
+  );
 }

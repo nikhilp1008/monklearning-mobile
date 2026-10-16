@@ -15,7 +15,9 @@ import type { LanguageId, TeacherId } from '@/lib/preferences';
  *     in; on the page opened from Home, in the student's chosen language.
  *   - Never for a language change in Profile.
  *   - One at a time; leaving the page stops it.
- *   - Not in silent mode. A phone switched to silent has asked for quiet.
+ *   - Even with the phone on silent, as the live class does. The voice is
+ *     the answer to a tap the student just made, and a picker that stays
+ *     quiet on most phones in a classroom reads as broken.
  *
  * THE PLAYERS ARE LOADED ONCE AND KEPT, AND NONE OF THEM CAN TURN AUDIO OFF.
  * 1.2.0 made a fresh player on every switch and stopped the old one first,
@@ -28,10 +30,9 @@ import type { LanguageId, TeacherId } from '@/lib/preferences';
  *
  * Now `prepareTeacherVoices` loads both teachers' clips when the page opens,
  * with `keepAudioSessionActive` so pausing one never deactivates anything; a
- * switch pauses the other and plays this one from the start, synchronously,
- * with a sequence number so a late seek cannot start a voice that has since
- * been switched away from. `releaseTeacherVoices` on leaving removes them and
- * hands the audio session back explicitly.
+ * switch pauses the other and plays this one from the start, with a sequence
+ * number so a late seek cannot start a voice that has since been switched away
+ * from. `releaseTeacherVoices` on leaving removes them.
  */
 const CLIPS: Record<TeacherId, Record<LanguageId, number>> = {
   drona: {
@@ -48,6 +49,9 @@ const players = new Map<string, AudioPlayer>();
 /** Bumped by every play and stop: a seek that resolves after a newer request
  *  has been made must not start its voice. */
 let seq = 0;
+/** Settles once the audio is switched on and the mode is set for this page.
+ *  Every play waits on it; see "WHY IT WAS STILL SOMETIMES SILENT" below. */
+let ready: Promise<void> = Promise.resolve();
 
 const keyOf = (teacher: TeacherId, language: LanguageId) => `${teacher}-${language}`;
 
@@ -61,11 +65,44 @@ function playerFor(teacher: TeacherId, language: LanguageId): AudioPlayer {
   return player;
 }
 
-/** Called when the Select Teacher page opens: loads both voices in the
- *  language it will play, and sets the audio mode once. */
+/**
+ * WHY IT WAS STILL SOMETIMES SILENT, after the 1.2.0 fix. Three things, each
+ * enough on its own to drop a voice:
+ *
+ * 1. Leaving the page called `setIsAudioActiveAsync(false)`. On Android that
+ *    is a global switch, `audioEnabled = false`, and every `play()` after it
+ *    is refused ("Audio has been disabled") until something turns it back on.
+ *    Nothing did: from the second visit to the page, no voice at all. On iOS
+ *    the same call is asynchronous and pauses every player when it lands, so
+ *    opening the page again soon after leaving it could have the late "off"
+ *    arrive after the new page's first voice had started, and cut it.
+ *    It is not called any more, and the page switches audio ON before it
+ *    plays, so a disable left by an older build cannot stick either.
+ *
+ * 2. The audio mode was set without being waited for, and it was the quiet-on-
+ *    silent one. Coming from a class, where the mode plays even on silent, the
+ *    first switch could go out under the old mode and the next under the new:
+ *    voice, then no voice, on a phone that was on silent all along. Now the
+ *    mode is the class's own (plays on silent) and every play waits for it.
+ *
+ * 3. Seeking a clip that had not finished loading. AVFoundation refuses a seek
+ *    until the item is ready. A clip that has never played is already at the
+ *    start, so the seek is simply skipped until it is loaded.
+ */
+
+/** Called when the Select Teacher page opens: switches audio on, sets the
+ *  mode, and loads both voices in the language it will play. */
 export function prepareTeacherVoices(language: LanguageId): void {
   try {
-    void setAudioModeAsync({ playsInSilentMode: false, allowsRecording: false }).catch(() => {});
+    ready = setIsAudioActiveAsync(true)
+      .catch(() => {})
+      .then(() => setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: 'mixWithOthers',
+          allowsRecording: false,
+        }))
+      .catch(() => {});
     playerFor('drona', language);
     playerFor('vedha', language);
   } catch {
@@ -81,11 +118,14 @@ export function playTeacherVoice(teacher: TeacherId, language: LanguageId): void
       if (p !== target) p.pause();
     });
     target.pause();
-    target
-      .seekTo(0)
+    ready
+      .then(() => (target.isLoaded ? target.seekTo(0) : undefined))
       .catch(() => {})
       .then(() => {
         if (mine === seq) target.play();
+      })
+      .catch(() => {
+        // Released while waiting: the page was left. Nothing to play.
       });
   } catch {
     // As above.
@@ -103,7 +143,10 @@ export function stopTeacherVoice(): void {
   });
 }
 
-/** Leaving the page: release the players and give the audio session back. */
+/**
+ * Leaving the page: stop and release the players. The audio itself is left
+ * on — see point 1 above for what turning it off did.
+ */
 export function releaseTeacherVoices(): void {
   stopTeacherVoice();
   players.forEach((p) => {
@@ -114,5 +157,4 @@ export function releaseTeacherVoices(): void {
     }
   });
   players.clear();
-  void setIsAudioActiveAsync(false).catch(() => {});
 }

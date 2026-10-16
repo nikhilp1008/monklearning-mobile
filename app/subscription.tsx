@@ -104,7 +104,7 @@ export default function SubscriptionScreen() {
         </View>
 
         <Text style={styles.planTitle}>{record ? PASS_NAME[record.kind] : 'No pass yet'}</Text>
-        {/* No code, and no "both exams covered". The code is a detail of how
+        {/* No code. The code is a detail of how
             the bill was settled, and what a pass covers is the list further
             down the page — neither is what this line is for. */}
         {!record && (

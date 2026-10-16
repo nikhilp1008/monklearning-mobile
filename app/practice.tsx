@@ -120,7 +120,7 @@ export default function PracticeScreen() {
    * question is a question burned out of this student's pool for good.
    */
   const [scope, setScope] = useState<{
-    exam: 'jee' | 'neet' | 'both';
+    exam: 'jee' | 'neet';
     class_level: '11' | '12' | 'both';
   } | null>(null);
 

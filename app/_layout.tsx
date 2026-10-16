@@ -95,6 +95,8 @@ import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
 import { AuthStateContext, useAuthState } from '@/lib/auth';
 import { passStatus } from '@/lib/pass';
+import { getAnswers } from '@/lib/onboarding-answers';
+import { getProfile } from '@/lib/profile';
 import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
@@ -252,7 +254,17 @@ export default function RootLayout() {
     if (inOnboarding || onDevPreview) return;
     // Signed out starts at the beginning; verified-but-unfinished resumes at
     // the first unanswered question rather than starting over.
-    router.replace(authState === 'signed_out' ? '/welcome' : '/details');
+    if (authState === 'signed_out') {
+      router.replace('/welcome');
+      return;
+    }
+    // Verified but unfinished. A student who got through the questions on
+    // this device resumes at the pass, with their exam; one who did not (they
+    // came in through "Sign in" with no account, or left part-way) starts at
+    // the name. A typed name alone is not enough: it is the first question.
+    Promise.all([getAnswers(), getProfile()]).then(([a, p]) =>
+      router.replace(a.questionsDone ? { pathname: '/pass', params: { exam: p.exam } } : '/name')
+    );
   }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, onDevPreview, authState]);
 
   /**

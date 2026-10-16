@@ -13,7 +13,7 @@ import { getProfile } from '@/lib/profile';
  * none, and Mock tests still offers the paper to anyone who has not sat it.
  *
  * The exam is the student's own (their profile), the same way Mock tests
- * decides it; a "both" student gets the JEE paper there too.
+ * decides it.
  */
 export function useStartingPointOffer(): MockDiagnosticOffer | null {
   const [offer, setOffer] = useState<MockDiagnosticOffer | null>(null);
@@ -24,7 +24,7 @@ export function useStartingPointOffer(): MockDiagnosticOffer | null {
       (async () => {
         try {
           const { exam } = await getProfile();
-          const status = await getMockStatus(exam === 'neet' ? 'neet' : 'jee');
+          const status = await getMockStatus(exam);
           const d = status.diagnostic;
           if (!cancelled) setOffer(d?.available && d.recommended ? d : null);
         } catch {
