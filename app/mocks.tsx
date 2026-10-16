@@ -3,9 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { DiagnosticCard } from '@/components/diagnostic-card';
+import { RingSweep } from '@/components/gradient-select';
 import { MockKey, MockSection } from '@/components/mock/mock-kit';
 import { ScoreTrend } from '@/components/score-trend';
 import { Skeleton } from '@/components/skeleton';
@@ -405,34 +406,45 @@ export default function MocksScreen() {
              * EARNED, NOT REFUSED — and said before the button, not after it.
              */
             <>
-              <MockSection title="Your next full paper" first={!diagnostic} />
-              <View style={styles.card}>
-                <View style={styles.countRow}>
-                  {/* From `correct_to_next`, not from `unique_correct` modulo
-                      the threshold: the server owns how a credit is counted,
-                      and the two disagree the moment it changes its mind. */}
-                  <Text style={styles.count}>{earnedTowardNext(status)}</Text>
-                  <Text style={styles.countOf}>of {status.threshold} correct</Text>
+              {/* THE LOCK, SAID OUT LOUD. This card is why a student cannot
+                  start a paper, so it is the one card on the page in the
+                  app's marigold ring, and it says so in its title rather than
+                  as a grey number: what is locked, what unlocks it, and how
+                  far along they are. */}
+              <View style={[styles.lockRing, !!diagnostic && styles.lockRingAfter]}>
+                <RingSweep radius={scale(16) + 2} still={140} />
+                <View style={styles.lockCard}>
+                  <View style={styles.lockHead}>
+                    <LockIcon size={scale(22)} />
+                    <Text style={styles.lockOver}>Locked</Text>
+                  </View>
+                  <Text style={styles.lockTitle}>Your next full paper</Text>
+                  <Text style={styles.lockBody}>
+                    Get {status.threshold} Practice questions right to unlock it. Each question counts
+                    once, even one you got wrong the first time.
+                  </Text>
+                  <View style={styles.countRow}>
+                    {/* From `correct_to_next`, not from `unique_correct` modulo
+                        the threshold: the server owns how a credit is counted,
+                        and the two disagree the moment it changes its mind. */}
+                    <Text style={styles.count}>{earnedTowardNext(status)}</Text>
+                    <Text style={styles.countOf}>of {status.threshold} right</Text>
+                    <Text style={styles.toGo}>{status.correct_to_next} to go</Text>
+                  </View>
+                  <View style={styles.track}>
+                    <View
+                      style={[
+                        styles.fill,
+                        {
+                          width: `${Math.min(
+                            100,
+                            Math.round((earnedTowardNext(status) / status.threshold) * 100)
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
                 </View>
-                <View style={styles.track}>
-                  <View
-                    style={[
-                      styles.fill,
-                      {
-                        width: `${Math.min(
-                          100,
-                          Math.round(
-                            (earnedTowardNext(status) / status.threshold) * 100
-                          )
-                        )}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.cardHint}>
-                  A full paper unlocks for every {status.threshold} practice questions you get
-                  right. {status.correct_to_next} more to go; each question counts once.
-                </Text>
               </View>
             </>
           )}
@@ -458,10 +470,10 @@ export default function MocksScreen() {
             </>
           )}
 
-          {/* PAPERS YOU HAVE SAT. The list is the server's (GET /mock/runs);
+          {/* PREVIOUS MOCK TESTS. The list is the server's (GET /mock/runs);
               the report behind each row is written to this device when the
               paper is graded, because the review arrives exactly once. */}
-          <MockSection title="Papers you have sat" count={sat.length ? String(sat.length) : undefined} />
+          <MockSection title="Previous mock tests" count={sat.length ? String(sat.length) : undefined} />
 
           {runs === null && !saved.length ? (
             <Skeleton delay={160} style={styles.skeletonRow} />
@@ -557,6 +569,17 @@ export default function MocksScreen() {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+/** A padlock, to the app's icon rules: one 1.8 line, the marigold dot as its keyhole. */
+function LockIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path d="M7.6 10.6V8a4.4 4.4 0 0 1 8.8 0v2.6" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" />
+      <Rect x={4.8} y={10.6} width={14.4} height={9.8} rx={2.6} stroke={colors.ink} strokeWidth={1.8} />
+      <Circle cx={12} cy={15.5} r={1.5} fill={colors.marigold} />
+    </Svg>
   );
 }
 
@@ -758,10 +781,52 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(11),
       color: colors.slate,
     },
+    lockRing: {
+      padding: 2,
+      borderRadius: scale(16) + 2,
+      backgroundColor: 'rgba(28,26,22,.10)',
+      overflow: 'hidden',
+    },
+    lockRingAfter: { marginTop: verticalScale(28) },
+    lockCard: {
+      backgroundColor: '#fff',
+      borderRadius: scale(16),
+      paddingVertical: verticalScale(16),
+      paddingHorizontal: scale(16),
+    },
+    lockHead: { flexDirection: 'row', alignItems: 'center', gap: scale(8) },
+    lockOver: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(11),
+      letterSpacing: scale(1),
+      textTransform: 'uppercase',
+      color: colors.amberText,
+    },
+    lockTitle: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(18),
+      lineHeight: scale(24),
+      color: colors.ink,
+      marginTop: verticalScale(12),
+    },
+    lockBody: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+    },
     countRow: {
       flexDirection: 'row',
       alignItems: 'baseline',
       gap: scale(7),
+      marginTop: verticalScale(16),
+    },
+    toGo: {
+      marginLeft: 'auto',
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      color: colors.amberText,
     },
     count: {
       fontFamily: 'Onest_600SemiBold',
@@ -773,26 +838,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     countOf: {
       fontFamily: 'Onest_500Medium',
       fontSize: scale(13),
-      color: colors.faint,
+      color: colors.slate,
     },
     track: {
-      height: verticalScale(6),
+      height: verticalScale(8),
       borderRadius: scale(99),
       backgroundColor: 'rgba(28,26,22,.07)',
       overflow: 'hidden',
-      marginTop: verticalScale(12),
+      marginTop: verticalScale(10),
     },
     fill: {
       height: '100%',
       borderRadius: scale(99),
       backgroundColor: colors.marigold,
-    },
-    cardHint: {
-      marginTop: verticalScale(10),
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12.5),
-      lineHeight: scale(18),
-      color: colors.slate,
     },
     notice: {
       marginTop: verticalScale(12),
