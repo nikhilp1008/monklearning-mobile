@@ -27,9 +27,12 @@ import { hapticSwitched } from "@/lib/haptics";
  * "4c" on the design canvas. An unpicked answer is white with a hairline. A
  * picked one is filled with the app's own night sky — the same shader as
  * Home's header (components/night-sky.tsx) with its marigold foot raised and
- * its top softened — and its text turns cream. On the tap the glow rises up
- * into the answer from the bottom edge over about half a second, the hairline
- * fades, and a cream tick settles in.
+ * its top softened — and its text turns cream, with a cream tick.
+ *
+ * A PLAIN FADE, NOTHING MORE. The tap used to raise the glow up through the
+ * answer from its bottom edge over half a second, with the tick growing in;
+ * on a screen of quick picks that read as heavy. Now the sky, the text colour
+ * and the tick all fade together in under a fifth of a second.
  *
  * THE SKY IS A PICTURE, NOT THE SHADER. Home draws its sky live because there
  * is one of it. A question screen can have a dozen answers and chips, and a
@@ -54,7 +57,7 @@ const SKY = {
 };
 
 const CREAM = "#FBF9F2";
-const RISE = Easing.bezier(0.2, 0.8, 0.2, 1);
+const FADE_MS = 180;
 
 export type ChoiceShape = "row" | "tile" | "chip";
 
@@ -123,21 +126,19 @@ export function SkyChoice({
   const gap = shape === "row" ? ds(12) : ds(7);
 
   // Starts where it is, so a screen opened with an answer already chosen does
-  // not replay the rise.
+  // not replay the fade.
   const progress = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
     progress.value = withTiming(selected ? 1 : 0, {
-      duration: selected ? 520 : 200,
-      easing: RISE,
+      duration: FADE_MS,
+      easing: Easing.out(Easing.quad),
     });
   }, [selected, progress]);
 
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const boxH = useSharedValue(0);
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height: h } = e.nativeEvent.layout;
     if (width !== box.w || h !== box.h) setBox({ w: width, h });
-    boxH.value = h;
   };
 
   const sky =
@@ -149,13 +150,7 @@ export function SkyChoice({
           ? SKY.tile2
           : SKY.tile3;
 
-  // The glow rises: a window anchored to the bottom edge grows to full height,
-  // with the picture pinned inside it at full size so it is revealed, not
-  // squashed.
-  const rise = useAnimatedStyle(() => ({
-    height: boxH.value * progress.value,
-    opacity: 0.4 + 0.6 * progress.value,
-  }));
+  const skyIn = useAnimatedStyle(() => ({ opacity: progress.value }));
   const hairline = useAnimatedStyle(() => ({ opacity: 1 - progress.value }));
   const labelColor = useAnimatedStyle(() => ({
     color: interpolateColor(progress.value, [0, 1], [ob.ink, CREAM]),
@@ -170,12 +165,7 @@ export function SkyChoice({
   const tagColor = useAnimatedStyle(() => ({
     color: interpolateColor(progress.value, [0, 1], [ob.ink40, ob.amberLight]),
   }));
-  const tickIn = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0.55, 1], [0, 1], "clamp"),
-    transform: [
-      { scale: interpolate(progress.value, [0.55, 1], [0.5, 1], "clamp") },
-    ],
-  }));
+  const tickIn = useAnimatedStyle(() => ({ opacity: progress.value }));
   // Tiles and chips make room for the tick as it arrives, rather than holding
   // an empty gap beside every unpicked label.
   const tickSlot = useAnimatedStyle(() => ({
@@ -236,19 +226,9 @@ export function SkyChoice({
             backgroundColor: "#FFFFFF",
           }}
         >
-          <Animated.View pointerEvents="none" style={[styles.riseWindow, rise]}>
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, skyIn]}>
             {box.h > 0 && (
-              <Image
-                source={sky}
-                contentFit="fill"
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: box.h,
-                }}
-              />
+              <Image source={sky} contentFit="fill" style={StyleSheet.absoluteFill} />
             )}
           </Animated.View>
           <Animated.View
@@ -345,16 +325,6 @@ export function SkyChoice({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  riseWindow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: "hidden",
-  },
-});
 
 /**
  * Answers laid out in equal columns: the score bands, the subjects.

@@ -4,7 +4,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Insight, OnbLabel, OnbScreen } from '@/components/onboarding/onb-screen';
 import { ChoiceGrid, SkyChoice } from '@/components/onboarding/sky-choice';
-import { ob, obFont, useDesignScale, type ExamKey, type YearKey } from '@/constants/onboarding';
+import { useDesignScale, type ExamKey, type YearKey } from '@/constants/onboarding';
 import { getAnswers, saveAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
 

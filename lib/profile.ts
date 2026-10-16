@@ -298,10 +298,10 @@ export async function pullProfile(): Promise<void> {
  * The device's own answer to "has this student finished onboarding?", for
  * when the server cannot be asked (offline, timed out).
  *
- * A stored name used to be the evidence. Now that the name is the first
- * question, it is typed long before onboarding is finished, so a new student
- * who lost signal at the code screen would have been taken for a returning
- * one and skipped the pass, the teacher and the push to the server. So: on a
+ * A stored name used to be the evidence. The name is now asked straight
+ * after the code, long before onboarding is finished, so a new student who
+ * lost signal part-way would have been taken for a returning one and skipped
+ * the pass, the teacher and the push to the server. So: on a
  * device that went through the new questions, only `finished` counts; on one
  * that never did (every install before them), the name still does.
  */

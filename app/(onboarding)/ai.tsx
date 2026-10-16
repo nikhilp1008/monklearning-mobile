@@ -7,7 +7,6 @@ import { ChipWrap, ChoiceGrid, SkyChoice } from '@/components/onboarding/sky-cho
 import { useDesignScale } from '@/constants/onboarding';
 import { getAnswers, saveAnswers, type AiUse } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
-import { supabase } from '@/lib/supabase';
 
 /**
  * Question 5: have they used AI for studying, and how did it feel.
@@ -32,21 +31,14 @@ const FEELINGS = [
 ];
 
 /**
- * The last question. Next is "Create your account", unless there is already an
- * account: a student who came in through "Sign in" with a new email is
- * verified before the questions, and asking for a second code (or letting
- * them type a different address) would be wrong. They go to the pass.
+ * The last question. The account was made before the questions, so next is
+ * the pass. `questionsDone` lets a student who closes the app here resume at
+ * the pass rather than at the name.
  */
 async function afterQuestions() {
   await saveAnswers({ questionsDone: true });
-  const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
-  const user = data.session?.user;
-  if (user && !user.is_anonymous) {
-    const { exam } = await getProfile();
-    router.push({ pathname: '/pass', params: { exam } });
-  } else {
-    router.push('/email');
-  }
+  const { exam } = await getProfile();
+  router.push({ pathname: '/pass', params: { exam } });
 }
 
 export default function AiScreen() {

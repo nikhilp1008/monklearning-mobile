@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { clearProfile, hasCompletedOnboarding, onboardedOnThisDevice } from '@/lib/profile';
@@ -153,6 +154,88 @@ export async function signOut(): Promise<void> {
   ]);
 }
 
+/**
+ * EVERYONE SIGNS IN AGAIN ONCE, WITH THE ONBOARDING UPDATE.
+ *
+ * The first launch of this version ends whatever session the phone had, so
+ * an existing student opens on the email screen (with the welcome behind it)
+ * and a new one on the welcome. It runs once per install: a fresh install sets the mark on its
+ * first launch with no session to end.
+ *
+ * Only the session ends. This is not `signOut`: the pass lives on the phone
+ * (lib/pass.ts) and `signOut` deletes it, which would lock a paying student
+ * out of what they paid for. Teacher, plan and progress stay too. The pass is
+ * keyed per account, so it comes back on its own when they sign in; the rest
+ * is cleared then only if a DIFFERENT account signs in (`afterSignIn`).
+ *
+ * Bump the version to ask everyone to sign in again in a later release.
+ */
+const RELOGIN_KEY = 'auth.relogin:v1';
+const SIGNED_OUT_USER_KEY = 'auth.signedOutByUpdate';
+
+/** The access token of the session this launch ended, or null. Asked once
+ *  per launch; both the bootstrap and the first auth event wait on it. */
+let relogin: Promise<string | null> | null = null;
+
+export function endSessionFromBeforeUpdate(): Promise<string | null> {
+  relogin ??= (async () => {
+    try {
+      if (await AsyncStorage.getItem(RELOGIN_KEY)) return null;
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (session?.user && !session.user.is_anonymous) {
+        await AsyncStorage.setItem(SIGNED_OUT_USER_KEY, session.user.id);
+        // 'local': ends it on this phone without a network call, so it works
+        // offline and never fails half-way.
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+      await AsyncStorage.setItem(RELOGIN_KEY, '1');
+      return session?.access_token ?? null;
+    } catch {
+      // Not worth a broken launch. The mark is unset, so it tries again next time.
+      return null;
+    }
+  })();
+  return relogin;
+}
+
+/** Signed out by the update and not signed in since: the gate opens on the
+ *  email screen rather than the welcome. */
+export async function signedOutByUpdate(): Promise<boolean> {
+  try {
+    return !!(await AsyncStorage.getItem(SIGNED_OUT_USER_KEY));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Called right after a code is verified. If the update signed someone out
+ * and a different account has now signed in, the old student's details,
+ * teacher, plan and progress are cleared, as `signOut` would have. The pass
+ * needs nothing: it is kept per account.
+ */
+export async function afterSignIn(): Promise<void> {
+  try {
+    const before = await AsyncStorage.getItem(SIGNED_OUT_USER_KEY);
+    if (!before) return;
+    const { data } = await supabase.auth.getSession();
+    const now = data.session?.user?.id;
+    if (now && now !== before) {
+      clearProgressCache();
+      await Promise.all([
+        clearProfile(),
+        clearProofState(),
+        clearTodayPlan(),
+        clearPreferences(),
+      ]);
+    }
+    await AsyncStorage.removeItem(SIGNED_OUT_USER_KEY);
+  } catch {
+    // The worst case is the old student's plan showing; not worth a failed sign-in.
+  }
+}
+
 /** The address the student actually signed in with — not the stored profile. */
 export async function getSessionEmail(): Promise<string | null> {
   try {
@@ -190,7 +273,14 @@ export function useAuthState(): AuthState {
   useEffect(() => {
     let cancelled = false;
 
-    const resolve = async (session: { user?: { is_anonymous?: boolean } } | null) => {
+    const resolve = async (
+      session: { access_token?: string; user?: { is_anonymous?: boolean } } | null
+    ) => {
+      if (cancelled) return;
+      // The session this launch ended for the update is not one to honour,
+      // even when an auth event reports it after the sign-out.
+      const ended = await endSessionFromBeforeUpdate();
+      if (ended && session?.access_token === ended) session = null;
       if (cancelled) return;
       if (!session?.user) {
         setState('signed_out');

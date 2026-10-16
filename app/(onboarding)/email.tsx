@@ -9,10 +9,14 @@
 // Was the phone screen. Phone/SMS auth needs an Indian sender and the legal
 // work that goes with it, and early users can't wait for that — so the same
 // screen now takes an email address and a six-digit code from Supabase
-// (delivered by Resend). A phone number is still collected on the next
-// screen, unverified. Every measurement below is unchanged from the original
-// design handoff.
-import { router, useLocalSearchParams } from 'expo-router';
+// (delivered by Resend). Every measurement below is unchanged from the
+// original design handoff.
+//
+// THE FRONT DOOR, FOR EVERYONE. New and returning students both start here,
+// straight from the welcome: the code tells us which they are. A returning
+// one goes to Home; a new one to the name (and optional phone), then the
+// questions. One heading serves both.
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -34,11 +38,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ObButton } from '@/components/onboarding-kit';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
-import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
+import { afterSignIn, friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
 import { hapticCodeComplete, hapticDigit, hapticSwitched, hapticWarning } from '@/lib/haptics';
-import { getAnswers, saveAnswers } from '@/lib/onboarding-answers';
+import { saveAnswers } from '@/lib/onboarding-answers';
 import {
-  getProfile,
   hasCompletedOnboarding,
   onboardedOnThisDevice,
   pullProfile,
@@ -62,28 +65,12 @@ function onlyDigits(text: string, max: number) {
 
 type Stage = 'email' | 'otp';
 
-// `+91 98211 43307`. Empty in, empty out; a partial keeps what was typed, so a
-// half-entered number is never saved as somebody else's real one.
-function formatPhone(raw: string) {
-  const digits = raw.replace(/[^0-9]/g, '');
-  const local = digits.length > 10 ? digits.slice(-10) : digits;
-  if (!local) return '';
-  if (local.length !== 10) return `+91 ${local}`;
-  return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
-}
-
 export default function EmailScreen() {
   const { ds, fs, tracking } = useDesignScale();
   const s = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const [stage, setStage] = useState<Stage>('email');
-  // SIGN-UP COMES LAST NOW. A new student reaches this screen after the
-  // questions, to create their account; a returning one comes from the
-  // welcome screen's "Sign in" with mode=signin.
-  const params = useLocalSearchParams<{ mode?: string }>();
-  const signIn = params.mode === 'signin';
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [busy, setBusy] = useState(false);
@@ -154,8 +141,6 @@ export default function EmailScreen() {
     setError(null);
     try {
       await sendEmailOtp(email);
-      // Optional, and not verified: there is no Indian SMS sender yet.
-      if (!signIn && phone) saveProfile({ phone: formatPhone(phone), phoneVerified: false });
       setCode('');
       prevCodeLength.current = 0;
       setSecondsLeft(RESEND_SECONDS);
@@ -210,6 +195,7 @@ export default function EmailScreen() {
     setError(null);
     try {
       await verifyEmailOtp(email, code);
+      await afterSignIn();
       let known: boolean;
       try {
         known = await hasCompletedOnboarding();
@@ -229,15 +215,9 @@ export default function EmailScreen() {
         router.replace('/(tabs)');
       } else {
         saveProfile({ email: email.trim(), emailVerified: true });
-        // A new account. If they have already answered the questions (the
-        // usual way here) they go on to the pass; if they came in through
-        // "Sign in" without an account, they start at the name.
-        if ((await getAnswers()).questionsDone) {
-          const { exam } = await getProfile();
-          router.push({ pathname: '/pass', params: { exam } });
-        } else {
-          router.push('/name');
-        }
+        // A new account: the name next. Replaced, not pushed, so a swipe back
+        // cannot land on a code that has already been used.
+        router.replace('/name');
       }
     } catch (err) {
       // A wrong or expired code: felt as well as read.
@@ -268,12 +248,8 @@ export default function EmailScreen() {
               keyboardDismissMode="interactive"
               showsVerticalScrollIndicator={false}>
               <OnbTitle
-                title={signIn ? 'Welcome back' : 'Create your account'}
-                sub={
-                  signIn
-                    ? 'Enter your email and we’ll send you a code.'
-                    : 'We’ll email you a code. No password.'
-                }
+                title="What’s your email?"
+                sub="We’ll send you a code. No password."
               />
 
               <View style={s.cardBlock}>
@@ -306,29 +282,6 @@ export default function EmailScreen() {
                     </View>
                   </View>
                 </Pressable>
-
-                {/* Optional, and only when signing up. Saved with the account
-                  for class reminders; not verified until there is an Indian
-                  SMS sender. */}
-                {!signIn ? (
-                  <View style={[s.fieldCard, s.phoneCard]}>
-                    <Text style={s.fieldLabel}>PHONE, FOR CLASS REMINDERS · OPTIONAL</Text>
-                    <View style={s.valueRow}>
-                      <Text style={s.phonePrefix}>+91</Text>
-                      <TextInput
-                        style={s.emailInput}
-                        value={phone}
-                        onChangeText={(t) => setPhone(onlyDigits(t, 10))}
-                        placeholder="98765 43210"
-                        placeholderTextColor={ob.placeholder}
-                        keyboardType="phone-pad"
-                        textContentType="telephoneNumber"
-                        autoComplete="tel"
-                        selectionColor={ob.amber}
-                      />
-                    </View>
-                  </View>
-                ) : null}
 
                 {!!error && <Text style={s.error}>{error}</Text>}
 
@@ -372,7 +325,7 @@ export default function EmailScreen() {
               keyboardDismissMode="interactive"
               showsVerticalScrollIndicator={false}>
               <OnbTitle
-                title={signIn ? 'Welcome back' : 'Create your account'}
+                title="What’s your email?"
                 sub="We sent a 6-digit code to your inbox."
               />
 
@@ -601,8 +554,6 @@ function createStyles(
     // untouched field has selected nothing.
     cardBlock: { paddingTop: ds(34), paddingHorizontal: ds(30) },
     focusRing: { borderRadius: ds(14) },
-    phoneCard: { marginTop: ds(12) },
-    phonePrefix: { fontFamily: obFont.r400, fontSize: fs(19), color: ob.ink55 },
     fieldCard: {
       borderRadius: ds(14),
       backgroundColor: ob.surface,

@@ -5,10 +5,8 @@ import type { SubjectKey } from '@/constants/onboarding-chapters';
 /**
  * WHAT A STUDENT TOLD US IN THE ONBOARDING QUESTIONS.
  *
- * Device-only, on purpose and for now. The questions come BEFORE sign-up, so
- * there is no account to write to while they are being answered; and the
- * `profiles` table has no columns for any of this yet (the server is not ours
- * to change from here). Name, exam, class and phone still go to the server
+ * Device-only, on purpose and for now: the `profiles` table has no columns
+ * for any of this yet (the server is not ours to change from here). Name, exam, class and phone still go to the server
  * through lib/profile.ts as before. These stay on the phone until the server
  * grows somewhere to keep them, at which point `pushProfile` can send them.
  *

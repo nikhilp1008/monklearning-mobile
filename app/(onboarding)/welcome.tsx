@@ -16,7 +16,7 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -105,18 +105,7 @@ export default function WelcomeScreen() {
               <Segment key={i} t={t} index={i} ds={ds} />
             ))}
           </View>
-          <ObButton label="Continue" onPress={() => router.push('/name')} />
-          {/* The questions come before sign-up now, so a returning student
-              needs their own way in rather than answering them again. */}
-          <Pressable
-            onPress={() => router.push({ pathname: '/email', params: { mode: 'signin' } })}
-            hitSlop={ds(8)}
-            accessibilityRole="button"
-            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-            <Text style={styles.signIn}>
-              Already have an account? <Text style={styles.signInLink}>Sign in</Text>
-            </Text>
-          </Pressable>
+          <ObButton label="Continue" onPress={() => router.push('/email')} />
         </View>
       </SafeAreaView>
     </View>
@@ -223,15 +212,6 @@ function createStyles(
       color: '#6B6559',
     },
     foot: { paddingHorizontal: ds(34), paddingBottom: ds(36), gap: ds(22) },
-    // Under the button, a step closer than the foot's gap: it belongs to it.
-    signIn: {
-      marginTop: -ds(8),
-      textAlign: 'center',
-      fontFamily: obFont.r400,
-      fontSize: fs(14.5),
-      color: ob.ink55,
-    },
-    signInLink: { fontFamily: obFont.sb600, color: ob.link },
     progress: { flexDirection: 'row', gap: ds(6) },
   });
 }

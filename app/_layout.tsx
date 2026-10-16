@@ -93,7 +93,7 @@ import {
 // Its companion for the maths symbols the text face lacks (√ ≈ ⇒ ≠ …); see components/textbook/markup.tsx.
 import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
-import { AuthStateContext, useAuthState } from '@/lib/auth';
+import { AuthStateContext, signedOutByUpdate, useAuthState } from '@/lib/auth';
 import { passStatus } from '@/lib/pass';
 import { getAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
@@ -256,12 +256,17 @@ export default function RootLayout() {
     // the first unanswered question rather than starting over.
     if (authState === 'signed_out') {
       router.replace('/welcome');
+      // Signed out by the update: straight to sign-in, with the welcome
+      // behind it for a swipe back.
+      signedOutByUpdate().then((byUpdate) => {
+        if (byUpdate) router.push('/email');
+      });
       return;
     }
     // Verified but unfinished. A student who got through the questions on
-    // this device resumes at the pass, with their exam; one who did not (they
-    // came in through "Sign in" with no account, or left part-way) starts at
-    // the name. A typed name alone is not enough: it is the first question.
+    // this device resumes at the pass, with their exam; one who did not
+    // starts at the name, which keeps what they typed. A stored name alone is
+    // not enough: it is asked before the questions.
     Promise.all([getAnswers(), getProfile()]).then(([a, p]) =>
       router.replace(a.questionsDone ? { pathname: '/pass', params: { exam: p.exam } } : '/name')
     );
