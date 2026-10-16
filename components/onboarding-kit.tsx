@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -16,6 +17,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { insetLine } from '@/lib/inset-line';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { hapticKey } from '@/lib/haptics';
 
@@ -104,15 +107,27 @@ export function ObButton({
     paddingHorizontal: trailing ? ds(22) : compact ? ds(26) : 0,
     gap: ds(10),
     transform: [{ translateY: held ? ds(3) : 0 }],
-    boxShadow: [
-      { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,.22)', inset: true },
-      { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,.4)', inset: true },
-      // The ledge, and what is left of it once the key is down.
-      { offsetX: 0, offsetY: held ? 0 : ds(3), blurRadius: 0, color: 'rgba(28,26,22,.35)' },
-      held
-        ? { offsetX: 0, offsetY: ds(3), blurRadius: ds(8), color: 'rgba(28,26,22,.2)' }
-        : { offsetX: 0, offsetY: ds(8), blurRadius: ds(18), color: 'rgba(28,26,22,.22)' },
-    ],
+    boxShadow:
+      Platform.OS === 'android'
+        ? // ANDROID GETS THE SOFT SHADOW ONLY. The key's 3D edge is two hairline
+          // inner shadows and a hard 3pt ledge, which iOS draws as a crisp dark
+          // lip. Android draws the same ledge as a flat grey slab under the
+          // button, and its inner shadows only on some versions, so the key
+          // read as a failed attempt at 3D there. The press still sinks it.
+          [
+            held
+              ? { offsetX: 0, offsetY: ds(2), blurRadius: ds(6), color: 'rgba(28,26,22,.18)' }
+              : { offsetX: 0, offsetY: ds(6), blurRadius: ds(14), color: 'rgba(28,26,22,.2)' },
+          ]
+        : [
+            { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,.22)', inset: true },
+            { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,.4)', inset: true },
+            // The ledge, and what is left of it once the key is down.
+            { offsetX: 0, offsetY: held ? 0 : ds(3), blurRadius: 0, color: 'rgba(28,26,22,.35)' },
+            held
+              ? { offsetX: 0, offsetY: ds(3), blurRadius: ds(8), color: 'rgba(28,26,22,.2)' }
+              : { offsetX: 0, offsetY: ds(8), blurRadius: ds(18), color: 'rgba(28,26,22,.22)' },
+          ],
   });
 
   const labelColor = disabled
@@ -125,12 +140,15 @@ export function ObButton({
 
   const body = (
     <>
-      <Text
+      <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
         style={{
           fontFamily: obFont.sb600,
           fontSize: fs(labelSize),
           letterSpacing: tracking(-0.01, labelSize),
           color: labelColor,
+          // Android pads text above and below by default, which sat every
+          // button label a little low; iOS has no such padding.
+          includeFontPadding: false,
         }}>
         {label}
       </Text>
@@ -143,10 +161,10 @@ export function ObButton({
         />
       )}
       {withArrow && !busy && (
-        <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: labelColor }}>→</Text>
+        <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={{ fontFamily: obFont.m500, fontSize: fs(15), color: labelColor }}>→</Text>
       )}
       {!!trailing && (
-        <Text
+        <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
           style={{
             flex: 1,
             textAlign: 'right',
@@ -210,9 +228,7 @@ export function ObButton({
                 ...face(held),
                 backgroundColor: '#FFFFFF',
                 // A hairline instead of the ledge: the second button sits flat.
-                boxShadow: [
-                  { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1.5, color: ob.hairline18, inset: true },
-                ],
+                ...insetLine(1.5, ob.hairline18),
                 transform: [{ translateY: held ? ds(1) : 0 }],
                 opacity: held ? 0.7 : 1,
               }}>

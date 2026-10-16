@@ -6,6 +6,7 @@ import {
   Text,
   View,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
@@ -386,7 +387,8 @@ function createStyles() {
       fontFamily: 'Onest_700Bold',
       fontSize: 29,
       letterSpacing: -0.04 * 29,
-      lineHeight: 29 * 1.06,
+      // Android clips glyphs past a line this tight; it gets room for them.
+      lineHeight: 29 * (Platform.OS === 'android' ? 1.2 : 1.06),
       color: INK,
     },
     subject: {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { useAndroidBack } from '@/lib/android-back';
+import { KeyboardSpacer, useScrollFocusedFieldAboveKeyboard } from '@/components/keyboard-spacer';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { MathLine } from '@/components/math-line';
@@ -76,6 +79,16 @@ function formatTime(totalSeconds: number) {
 export default function MockTestScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  // The numeric answer box: scrolled above the keyboard on Android (iOS does
+  // it itself, see automaticallyAdjustKeyboardInsets).
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollFocusedFieldAboveKeyboard(scrollRef);
+  // Android's Back is "Save and exit", as the header's own button is, not a
+  // plain pop out of the paper.
+  useAndroidBack(() => {
+    router.push('/mock-paused');
+    return true;
+  });
 
   // The session is module state shared with ready/palette/paused; this
   // screen mirrors the index into React state so navigation re-renders, and
@@ -159,13 +172,23 @@ export default function MockTestScreen() {
       router.replace(`/mock-report?run=${result?.mock_run_id ?? ''}`);
     } catch {
       setSubmitting(false);
+      // Said as what happened: it was titled "Time is up" for every failed
+      // submit, including one pressed with time left.
       Alert.alert(
-        'Time is up',
+        "Couldn't submit your paper",
         'Your answers are safe on this device. Check your connection and submit again.',
         [{ text: 'OK' }]
       );
     }
   };
+
+  // No paper in memory (opened from a stale link, or after the app was
+  // closed): Mock tests, where an unfinished paper is found again. It used to
+  // sit on a blank screen.
+  useEffect(() => {
+    if (!session) router.replace('/mocks');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Time up: one automatic submit, exactly once.
   const expired = useRef(false);
@@ -256,7 +279,12 @@ export default function MockTestScreen() {
           })}
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.content}
+          contentContainerStyle={styles.contentInner}
+          automaticallyAdjustKeyboardInsets
+          keyboardShouldPersistTaps="handled">
           {/* THE QUESTION, AS PRACTICE LAYS IT OUT: the number in ink and its
               place in the subject quiet beside it (a paper does not name the
               chapter while it is sat), the stem in plain text on white, a
@@ -302,7 +330,10 @@ export default function MockTestScreen() {
               }}
               placeholder="Your answer"
               placeholderTextColor={colors.faint}
-              keyboardType="numbers-and-punctuation"
+              // iOS's numbers-and-punctuation has no Android version (Android
+              // showed the full letter keyboard). Android's numeric keypad has
+              // the minus and the decimal point a JEE/NEET answer can need.
+              keyboardType={Platform.OS === 'android' ? 'numeric' : 'numbers-and-punctuation'}
               returnKeyType="done"
             />
           ) : (
@@ -379,6 +410,7 @@ export default function MockTestScreen() {
               </Pressable>
             )}
           </View>
+          <KeyboardSpacer />
         </ScrollView>
 
         {/* ONE WAY BACK, ONE WAY ON: the same height, the app's flat keys. */}

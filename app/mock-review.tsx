@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PageSkeleton, StateCard, StateLine } from '@/components/states';
 import { FlagIcon } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { MockKey, MockSection, MockSquareKey } from '@/components/mock/mock-kit';
@@ -94,11 +95,18 @@ export default function MockReviewScreen() {
             </Pressable>
           </View>
           {missing || (report && !q) ? (
-            <Text style={styles.missing}>
-              This question could not be opened. Check your connection and try again.
-            </Text>
+            <View style={styles.loading}>
+              <StateCard
+                glyph="retry"
+                title="This question didn't open"
+                line="Check your connection and open it again. Your paper and its report are saved."
+                action={{ label: 'Go back', onPress: () => router.back() }}
+              />
+            </View>
           ) : (
-            <ActivityIndicator style={styles.loading} color={colors.faint} />
+            <View style={styles.loading}>
+              <PageSkeleton />
+            </View>
           )}
         </SafeAreaView>
       </View>
@@ -257,11 +265,13 @@ export default function MockReviewScreen() {
             </View>
           )}
 
-          {steps.length > 0 && (
-            <>
-              <MockSection title="How to solve it" />
-              <SolutionSteps size="compact" steps={steps} />
-            </>
+          <MockSection title="How to solve it" />
+          {steps.length > 0 ? (
+            <SolutionSteps size="compact" steps={steps} />
+          ) : (
+            // Said, as Practice says it: the section used to vanish, which
+            // read as the page not having loaded.
+            <StateLine glyph="paper" text="No worked solution is available for this question yet." />
           )}
         </ScrollView>
 

@@ -20,6 +20,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { exitOnBack, useAndroidBack } from '@/lib/android-back';
 import { MonkLogo } from '@/components/monk-logo';
 import { ObButton } from '@/components/onboarding-kit';
 import { StoryBoard } from '@/components/onboarding/story-board';
@@ -46,6 +47,10 @@ const CAPTIONS = [
 
 export default function WelcomeScreen() {
   const { ds, fs, tracking } = useDesignScale();
+  // The first screen: Back leaves the app. Popped instead, it showed Home for
+  // a moment (the signed-out gate replaces Home with this) before the gate
+  // sent the student straight back here.
+  useAndroidBack(exitOnBack);
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const { t, float, wave } = useStoryClock();
   /** The stage measures itself so the board can be fitted into it. */

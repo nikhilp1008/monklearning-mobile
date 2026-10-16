@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Action, SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image as RNImage, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image as RNImage, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -421,6 +421,25 @@ function CornerHandle({
   );
 }
 
+/**
+ * The dark halo that keeps the white guides visible over a white page. iOS
+ * draws it from the shadow props; Android ignores those without `elevation`,
+ * so the guides lost their edge there and vanished over paper. Android gets
+ * the same halo as a boxShadow (Android 9 and up). The bracket keeps the iOS
+ * props only: it is a box drawn with two borders, and a boxShadow would
+ * shade the whole box rather than the two lines.
+ */
+function edgeShadow(opacity: number, radius: number) {
+  return Platform.OS === 'android'
+    ? { boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: radius * 2, color: `rgba(0,0,0,${opacity})` }] }
+    : {
+        shadowColor: '#000000',
+        shadowOpacity: opacity,
+        shadowRadius: radius,
+        shadowOffset: { width: 0, height: 0 },
+      };
+}
+
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   const BRACKET = scale(26);
   const THICK = scale(3);
@@ -456,10 +475,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       bottom: 0,
       width: 1,
       backgroundColor: 'rgba(255,255,255,.5)',
-      shadowColor: '#000000',
-      shadowOpacity: 0.35,
-      shadowRadius: 1,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.35, 1),
     },
     gridH: {
       position: 'absolute',
@@ -467,10 +483,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       right: 0,
       height: 1,
       backgroundColor: 'rgba(255,255,255,.5)',
-      shadowColor: '#000000',
-      shadowOpacity: 0.35,
-      shadowRadius: 1,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.35, 1),
     },
     // Short bars, half a bracket long, so they read as grips rather than as
     // more frame.
@@ -479,20 +492,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       height: scale(3),
       borderRadius: scale(2),
       backgroundColor: '#FFFFFF',
-      shadowColor: '#000000',
-      shadowOpacity: 0.4,
-      shadowRadius: 2,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.4, 2),
     },
     edgeBarV: {
       width: scale(3),
       height: BRACKET,
       borderRadius: scale(2),
       backgroundColor: '#FFFFFF',
-      shadowColor: '#000000',
-      shadowOpacity: 0.4,
-      shadowRadius: 2,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.4, 2),
     },
     bracket: {
       width: BRACKET,

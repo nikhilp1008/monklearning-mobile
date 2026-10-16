@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   EntryAnimationsValues,
@@ -18,6 +18,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PageSkeleton, StateCard } from '@/components/states';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { READ_LINE, READ_SIZE, READING_GUTTER } from '@/constants/reading';
@@ -357,10 +358,17 @@ export default function TextbookPartScreen() {
         </Animated.View>
 
         {missing ? (
-          <Text style={[s.state, { marginTop: headSpace }]}>This part could not be opened.</Text>
+          <View style={[{ paddingHorizontal: 24, paddingTop: 32 }, { marginTop: headSpace }]}>
+            <StateCard
+              glyph="book"
+              title="This part didn't open"
+              line="Go back and open it again."
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
+          </View>
         ) : !chapter || !page || at === null ? (
           <View style={[s.loading, { marginTop: headSpace }]}>
-            <ActivityIndicator color={colors.faint} />
+            <PageSkeleton />
           </View>
         ) : (
           <View style={s.stage}>
@@ -519,7 +527,13 @@ function TopicDone({
     opacity: Math.min(1, sweep.value * 3),
     transform: [{ rotate: `${(sweep.value - 1) * 200}deg` }],
   }));
-  const drawn = useAnimatedProps(() => ({ strokeDashoffset: 30 * (1 - tick.value) }));
+  // The tick is 30.4 long (7√2 + √421), so the dash is 31: at 30 a sliver of
+  // its tip never drew. Hidden until it starts: at zero length a round cap is
+  // a dot on Android, which showed for the 550ms before the tick drew.
+  const drawn = useAnimatedProps(() => ({
+    strokeDashoffset: 31 * (1 - tick.value),
+    strokeOpacity: tick.value > 0 ? 1 : 0,
+  }));
 
   return (
     <View>
@@ -541,7 +555,7 @@ function TopicDone({
               strokeWidth={2.6}
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray={30}
+              strokeDasharray={31}
               animatedProps={drawn}
             />
           </Svg>

@@ -15,8 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { shadow } from '@/lib/shadow';
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { EmptyState } from '@/components/library-empty';
+import { OfflineBanner, StateCard, StateLine } from '@/components/states';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -534,11 +536,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </View>
               </View>
 
+              <OfflineBanner style={styles.offline} />
               {notesLoading ? (
                 <ListSkeleton styles={styles} kind="notes" count={5} />
               ) : notesError ? (
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>{notesError}</Text>
+                <View style={styles.stateWrap}>
+                  <StateCard
+                    glyph="retry"
+                    title="Couldn't load your notes"
+                    line={`${notesError} Nothing you've saved is lost.`}
+                    action={{ label: 'Try again', onPress: () => void fetchNotes() }}
+                  />
                 </View>
               ) : visibleNotes.length === 0 ? (
                 // DEMO_ — while nothing real is saved, these sample cards
@@ -548,14 +556,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 showingSamples ? (
                   <EmptyState kind="notes" />
                 ) : (
-                  <View style={styles.stateBlock}>
-                    <Text style={styles.stateText}>
-                      {notes.length === 0
-                        ? 'No saved notes yet. Finish a class with Drona and save its board.'
-                        : notesQuery.trim()
-                          ? 'No notes match that search.'
-                          : `No ${notesFilter} notes yet.`}
-                    </Text>
+                  <View style={styles.stateWrap}>
+                    {notesQuery.trim() ? (
+                      <StateLine
+                        glyph="search"
+                        emphasis={`“${notesQuery.trim()}”`}
+                        text="doesn't match any of your notes."
+                        link={{ label: 'Clear search', onPress: () => setNotesQuery('') }}
+                      />
+                    ) : (
+                      <StateLine
+                        glyph="notes"
+                        text={
+                          notes.length === 0
+                            ? 'No saved notes yet. Finish a class and save its board.'
+                            : `No ${notesFilter} notes yet.`
+                        }
+                      />
+                    )}
                   </View>
                 )
               ) : (
@@ -641,11 +659,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </PressableScale>
               </View>
 
+              <OfflineBanner style={styles.offline} />
               {doubtsLoading ? (
                 <ListSkeleton styles={styles} kind="doubts" count={5} />
               ) : doubtsError ? (
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>{doubtsError}</Text>
+                <View style={styles.stateWrap}>
+                  <StateCard
+                    glyph="retry"
+                    title="Couldn't load your doubts"
+                    line={`${doubtsError} Nothing you've solved is lost.`}
+                    action={{ label: 'Try again', onPress: () => void fetchDoubts() }}
+                  />
                 </View>
               ) : showingDoubtSamples ? (
                 // Nothing snapped and no filter applied: the first day.
@@ -655,12 +679,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // and must not be replaced by the first-run invitation — "no
                 // Chemistry doubts yet" is true and the empty state would
                 // contradict it.
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>
-                    {doubtsQuery.trim()
-                      ? 'No doubts match that search.'
-                      : `No ${doubtsFilterLabel} doubts yet.`}
-                  </Text>
+                <View style={styles.stateWrap}>
+                  {doubtsQuery.trim() ? (
+                    <StateLine
+                      glyph="search"
+                      emphasis={`“${doubtsQuery.trim()}”`}
+                      text="doesn't match any of your doubts."
+                      link={{ label: 'Snap it instead', onPress: () => router.push('/snap-capture') }}
+                    />
+                  ) : (
+                    <StateLine glyph="doubts" text={`No ${doubtsFilterLabel} doubts yet.`} />
+                  )}
                 </View>
               ) : (
                 <View style={styles.doubtsRows}>
@@ -1116,18 +1145,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(3),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(3), y: verticalScale(1), elevation: 2 }),
     },
     // Erase mode only: the card steps up very slightly so it sits above the
     // grey. The card colour itself must stay white — the rub paints paper.
     noteCardErasing: {
       borderColor: 'rgba(28,26,22,.16)',
-      shadowOpacity: 0.06,
-      shadowRadius: 5,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: 5, y: verticalScale(1), elevation: 2 }),
     },
     stateBlock: {
       alignItems: 'center',
@@ -1135,6 +1159,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(40),
       paddingHorizontal: scale(20),
     },
+    /** Where a state sits in a list: under the search, the list's own gutter. */
+    stateWrap: { paddingTop: verticalScale(18) },
+    offline: { marginTop: verticalScale(14) },
     stateText: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),

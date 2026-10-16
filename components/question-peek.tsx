@@ -6,6 +6,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScale } from '@/constants/scale';
 
 /** expo-image doesn't ship an animated variant, so the zoom transform needs
@@ -74,6 +75,7 @@ export function QuestionPeek({
   const fit = fromTop ? (overflows ? 'cover' : 'contain') : contentFit;
 
   const { scale, verticalScale } = useScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [open, setOpen] = useState(false);
 
@@ -175,7 +177,9 @@ export function QuestionPeek({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close enlarged question"
-            style={styles.closeButton}
+            // Clear of the status bar and camera: the Modal is drawn edge to
+            // edge, and a fixed 48 sat on the punch-hole on some Androids.
+            style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
             onPress={() => setOpen(false)}>
             <Text style={styles.closeText}>Close ✕</Text>
           </Pressable>

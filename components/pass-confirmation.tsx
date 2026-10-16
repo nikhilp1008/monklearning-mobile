@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useDarkNavigationBar } from '@/lib/nav-bar';
 import { Ring, Rise, Tick } from '@/components/confirm-motion';
 import { NightSky } from '@/components/night-sky';
 import { ObButton } from '@/components/onboarding-kit';
@@ -45,6 +46,7 @@ export function PassConfirmation({
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const [sky, setSky] = useState({ width: 0, height: 0 });
+  useDarkNavigationBar();
 
   /**
    * The Success tap, landing with the tick. The tick pops 60ms in and

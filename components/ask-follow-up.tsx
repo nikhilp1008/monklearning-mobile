@@ -6,7 +6,7 @@ import {
   useAudioRecorder,
 } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -24,8 +24,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { useSafeAreaFrame } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { StateBanner } from '@/components/states';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { useClock } from '@shopify/react-native-skia';
 
@@ -197,6 +201,9 @@ interface StreamRecorder {
     encoding: string;
     interval: number;
     ios?: { audioSession?: { category?: string; categoryOptions?: string[] } };
+    keepAwake?: boolean;
+    showNotification?: boolean;
+    android?: { audioFocusStrategy?: 'background' | 'interactive' | 'communication' | 'none' };
     onAudioStream: (event: { data: unknown }) => void;
   }): Promise<unknown>;
   stopRecording(): Promise<{ fileUri?: string } | null | undefined>;
@@ -366,6 +373,10 @@ export function AskFollowUpBar({
    *  and past a little under half the screen there is nothing of the solution
    *  left to read behind it. */
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  // The bottom glow is placed from window-coordinate measurements, so its
+  // "screen height" must be the root view's own: on Android the window's
+  // height can leave out the navigation bar, which floated the glow above it.
+  const { height: rootHeight } = useSafeAreaFrame();
   const [phase, setPhase] = useState<Phase>('idle');
   /** Tells the host (the textbook reader) when an exchange is under way, so it
    *  can hold its page still from the hold to the end of the answer. */
@@ -448,14 +459,14 @@ export function AskFollowUpBar({
 
   const dockGeo: DockLightGeometry | null = useMemo(() => {
     if (!litDock || !blockWin) return null;
-    const bottom = windowHeight - (blockWin.y + blockWin.h);
+    const bottom = rootHeight - (blockWin.y + blockWin.h);
     if (shared) {
       if (!slotWin) return null;
       return {
         left: blockWin.x,
         bottom,
         rowCentreX: slotWin.x + slotWin.w / 2,
-        cyFromBottom: windowHeight - (slotWin.y + slotWin.h / 2),
+        cyFromBottom: rootHeight - (slotWin.y + slotWin.h / 2),
         flagSlot: 0,
       };
     }
@@ -467,7 +478,7 @@ export function AskFollowUpBar({
       cyFromBottom: bottom + blockWin.h - (rowBox.y + rowBox.h / 2),
       flagSlot: onReport ? DOCK_FLAG_SLOT : 0,
     };
-  }, [litDock, shared, blockWin, slotWin, rowBox, windowHeight, onReport]);
+  }, [litDock, shared, blockWin, slotWin, rowBox, rootHeight, onReport]);
 
   /**
    * The light exists while anything is lit or still settling, and not a frame
@@ -681,7 +692,7 @@ export function AskFollowUpBar({
       allowsRecording: false,
       playsInSilentMode: true,
       shouldPlayInBackground: false,
-      interruptionMode: 'mixWithOthers',
+      interruptionMode: TEACHER_INTERRUPTION,
     }).catch(() => {});
   }, []);
 
@@ -785,7 +796,7 @@ export function AskFollowUpBar({
           allowsRecording: true,
           playsInSilentMode: true,
           shouldPlayInBackground: false,
-          interruptionMode: 'mixWithOthers',
+          interruptionMode: TEACHER_INTERRUPTION,
         });
         if (!pressedRef.current) {
           toPlayback();
@@ -815,6 +826,11 @@ export function AskFollowUpBar({
               channels: 1,
               encoding: 'pcm_16bit',
               interval: 100,
+              // Android: no foreground service, no notification, no audio focus
+              // of its own (see live-classroom.tsx's startRecording).
+              keepAwake: false,
+              showNotification: false,
+              android: { audioFocusStrategy: 'none' },
               ios: {
                 audioSession: {
                   category: 'PlayAndRecord',
@@ -1429,7 +1445,7 @@ export function AskFollowUpBar({
             </>
           )}
         </Animated.View>
-        <Text style={styles.label} numberOfLines={1}>
+        <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.label} numberOfLines={1}>
           {label}
         </Text>
       </Pressable>
@@ -1543,6 +1559,17 @@ export function AskFollowUpBar({
         </Animated.View>
       )}
 
+      {/* MIC OFF: the hint under the bar only said "Microphone is off". The
+          live class offers Settings for the same problem, so this does too,
+          as a banner over the bar (components/states). */}
+      {failure === 'mic' && !boardMounted ? (
+        <StateBanner
+          style={styles.micBanner}
+          bold="Microphone is off."
+          text={teacherFace ? 'Turn it on to ask your teacher.' : 'Turn it on to ask a follow-up.'}
+          link={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
+        />
+      ) : null}
       {leading && litDock ? (
         <>
           {/* THE TEXTBOOK'S ROW: its topics pill on the left, the bar on the
@@ -1619,7 +1646,7 @@ export function AskFollowUpBar({
                     <MicIcon color={PAPER} />
                   )}
                 </View>
-                <Text style={styles.label} numberOfLines={1}>
+                <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.label} numberOfLines={1}>
                   {label}
                 </Text>
               </Pressable>
@@ -1717,7 +1744,7 @@ export function AskFollowUpBar({
                   <MicIcon color={PAPER} />
                 )}
               </View>
-              <Text style={styles.label} numberOfLines={1}>
+              <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.label} numberOfLines={1}>
                 {label}
               </Text>
             </Pressable>
@@ -1872,6 +1899,7 @@ const styles = StyleSheet.create({
    * either side of bar-gap-disc. So nothing here flexes; the row centres.
    */
   block: { gap: 9 },
+  micBanner: { marginBottom: 4 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   /** The row with a trailing control: bar column left, control right, both
    *  hung from the top so the control levels with the pill, not the hint. */
@@ -1947,6 +1975,7 @@ const styles = StyleSheet.create({
   hintLit: { color: '#3D3A33' },
   /** Held: pressed slightly in, as the handoff's spring takes it to 0.9. */
   label: {
+    includeFontPadding: false,
     fontFamily: 'Onest_700Bold',
     fontSize: 14,
     letterSpacing: -0.14,

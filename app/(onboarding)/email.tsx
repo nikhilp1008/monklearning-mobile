@@ -33,8 +33,11 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { shadow } from '@/lib/shadow';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton } from '@/components/onboarding-kit';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
@@ -67,6 +70,7 @@ type Stage = 'email' | 'otp';
 
 export default function EmailScreen() {
   const { ds, fs, tracking } = useDesignScale();
+  const insets = useSafeAreaInsets();
   const s = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const [stage, setStage] = useState<Stage>('email');
@@ -245,7 +249,7 @@ export default function EmailScreen() {
             <ScrollView
               style={s.flex}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
               showsVerticalScrollIndicator={false}>
               <OnbTitle
                 title="What’s your email?"
@@ -322,7 +326,7 @@ export default function EmailScreen() {
             <ScrollView
               style={s.flex}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
               showsVerticalScrollIndicator={false}>
               <OnbTitle
                 title="What’s your email?"
@@ -371,7 +375,7 @@ export default function EmailScreen() {
                             isActive ? s.boxActive : null,
                           ]}>
                           {digit ? (
-                            <Animated.Text style={[s.boxDigit, popStyle(popAnims[i])]}>
+                            <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={[s.boxDigit, popStyle(popAnims[i])]}>
                               {digit}
                             </Animated.Text>
                           ) : isActive ? (
@@ -423,6 +427,7 @@ export default function EmailScreen() {
             </View>
           </>
         )}
+        <KeyboardSpacer bottomInset={insets.bottom} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -672,13 +677,9 @@ function createStyles(
       borderWidth: 1.5,
       borderColor: ob.ink80,
       transform: [{ translateY: -2 }, { scale: 1.04 }],
-      shadowColor: ob.ink,
-      shadowOpacity: 0.2,
-      shadowOffset: { width: 0, height: 6 },
-      shadowRadius: 10,
-      elevation: 4,
+      ...shadow({ color: ob.ink, opacity: 0.2, radius: 10, y: 6, elevation: 4 }),
     },
-    boxDigit: { fontFamily: obFont.r400, fontSize: fs(26), color: ob.ink },
+    boxDigit: { fontFamily: obFont.r400, fontSize: fs(26), color: ob.ink, includeFontPadding: false },
 
     // One 20pt row under the cells: the resend clock sits right, and the
     // "Checking the code" spinner takes the left when it appears.

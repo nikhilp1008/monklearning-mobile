@@ -97,7 +97,20 @@ export function withTeacherName(text: string | null | undefined): string | null 
 export async function setTeacherPreference(teacher: TeacherId): Promise<void> {
   cachedTeacher = teacher;
   teacherLoaded = true;
+  teacherListeners.forEach((listener) => listener(teacher));
   await AsyncStorage.setItem(TEACHER_KEY, teacher);
+}
+
+/**
+ * Told whenever the teacher changes, so anything lit in the teacher's light
+ * (the state plates in components/states) changes with it, wherever it is.
+ */
+const teacherListeners = new Set<(teacher: TeacherId) => void>();
+export function subscribeTeacher(listener: (teacher: TeacherId) => void): () => void {
+  teacherListeners.add(listener);
+  return () => {
+    teacherListeners.delete(listener);
+  };
 }
 
 /**

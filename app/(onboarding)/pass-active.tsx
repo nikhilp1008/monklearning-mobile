@@ -5,6 +5,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { useAndroidBack } from '@/lib/android-back';
 import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
 import {
   EXAMS,
@@ -37,6 +38,9 @@ export default function PassActiveScreen() {
   const paid = Math.max(0, pass.price - promoDiscount(params.promo ?? '', pass.price));
 
   const [saving, setSaving] = useState(false);
+  // Paid: Back would return to the price list. Held, as the swipe is (see
+  // (onboarding)/_layout).
+  useAndroidBack(() => true);
   const [error, setError] = useState<string | null>(null);
 
   /**

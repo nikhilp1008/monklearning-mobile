@@ -200,8 +200,33 @@ export function friendlyLoadError(err: unknown, subject: string): string {
   if (message.includes('authentication') || message.includes('401')) {
     return 'Please sign in again to see this.';
   }
+  // "Pull to retry" is gone: no screen has pull-to-refresh, so it promised a
+  // gesture that did nothing. Every screen showing this now has a Try again.
   if (message.includes('network') || message.includes('timed out') || message.includes('timeout')) {
-    return `Couldn't reach the server. Check your connection and pull to retry.`;
+    return `Couldn't reach the server. Check your connection and try again.`;
   }
-  return `Couldn't load your ${subject} just now. Pull to retry.`;
+  return `Couldn't load your ${subject} just now. Try again in a moment.`;
+}
+
+/**
+ * Any failure, in the student's language, for the screens that used to print
+ * `err.message` (Practice, the chapter pickers, the report sheet, saving a
+ * note, deleting the account). `doing` finishes "Couldn't …": e.g.
+ * friendlyError(err, 'load a question'). The raw message stays in the console.
+ */
+export function friendlyError(err: unknown, doing: string): string {
+  const message = err instanceof Error ? err.message.toLowerCase() : '';
+  if (err instanceof Error) console.warn(`[${doing}]`, err.message);
+  if (message.includes('authentication') || message.includes('401') || message.includes('not signed in')) {
+    return 'Please sign in again to continue.';
+  }
+  if (
+    message.includes('network') ||
+    message.includes('timed out') ||
+    message.includes('timeout') ||
+    message.includes('failed to fetch')
+  ) {
+    return `Couldn't ${doing}. Check your connection and try again.`;
+  }
+  return `Couldn't ${doing} just now. Try again in a moment.`;
 }

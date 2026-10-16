@@ -13,6 +13,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StateCard } from '@/components/states';
+import { shadow } from '@/lib/shadow';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { footPadding } from '@/lib/foot-padding';
+import { KeyboardSpacer, useScrollFocusedFieldAboveKeyboard } from '@/components/keyboard-spacer';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathLine } from '@/components/math-line';
 import { PressableScale } from '@/components/pressable-scale';
@@ -46,7 +51,7 @@ import {
   submitAnswer,
   takeQueuedQuestion,
 } from '@/lib/practice';
-import { ApiError } from '@/lib/api';
+import { ApiError, friendlyError } from '@/lib/api';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
@@ -84,6 +89,10 @@ const SUBJECT_QUERY: Record<string, string> = {
 export default function PracticeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  // The numeric answer box sits part-way down the page: scrolled above the
+  // keyboard on Android (iOS does it itself, see automaticallyAdjustKeyboardInsets).
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollFocusedFieldAboveKeyboard(scrollRef);
   // The mock gate reads the same /progress payload Progress renders — the
   // chapters it asks the student to clear are their real needs_revision
   // chapters, not an invented list.
@@ -145,6 +154,9 @@ export default function PracticeScreen() {
 
   const [question, setQuestion] = useState<NextQuestion | null>(null);
   const [poolMessage, setPoolMessage] = useState<string | null>(null);
+  /** Why there is no next question: the day's limit, or nothing left in scope.
+   *  Two different states, said two different ways (they shared one card). */
+  const [poolReason, setPoolReason] = useState<'daily_limit' | 'pool_empty' | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -198,7 +210,7 @@ export default function PracticeScreen() {
   /** The pinned row clears the home indicator itself — this screen's
    *  SafeAreaView only takes the top edge. */
   const insets = useSafeAreaInsets();
-  const pinnedBottom = Math.max(insets.bottom - 16, 12);
+  const pinnedBottom = footPadding(insets.bottom, 16, 12);
   /** The pinned row's own height: top padding, the 52pt bar, the 9pt gap and
    *  the hint's line, and the bottom padding. The white is solid over this. */
   const pinnedRow = verticalScale(14) + 52 + 9 + 14 + pinnedBottom;
@@ -467,12 +479,13 @@ export default function PracticeScreen() {
       );
       return;
     }
-    setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
+    setLoadError(friendlyError(err, 'submit that answer'));
   }
 
   async function loadQuestion() {
     setLoadError(null);
     setPoolMessage(null);
+    setPoolReason(null);
     setSelectedOption(null);
     setNumericInput('');
     setAnswerResult(null);
@@ -540,6 +553,7 @@ export default function PracticeScreen() {
         }
         // The day's questions are used up: felt as the refusal it is.
         if (result.reason === 'daily_limit') hapticWarning();
+        setPoolReason(result.reason === 'daily_limit' ? 'daily_limit' : 'pool_empty');
         setPoolMessage(result.message);
         setQuestion(null);
       } else {
@@ -551,7 +565,7 @@ export default function PracticeScreen() {
         setSeen((n) => n + 1);
       }
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
+      setLoadError(friendlyError(err, 'load a question'));
     } finally {
       setLoading(false);
     }
@@ -702,8 +716,11 @@ export default function PracticeScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, revealed && styles.scrollContentPinned]}
+          automaticallyAdjustKeyboardInsets
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <Pressable
             style={styles.focusRow}
@@ -736,19 +753,56 @@ export default function PracticeScreen() {
 
           {loading && !question ? (
             <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
+          ) : poolMessage && poolReason === 'daily_limit' ? (
+            // THE DAY'S LIMIT, with somewhere to go: it used to share one card
+            // with "nothing left" and offer no way out.
+            <StateCard
+              style={styles.stateCard}
+              glyph="clock"
+              title={quota ? `That's today's ${quota.limit}` : "That's today's questions"}
+              line="Practice opens again tomorrow. Until then, read a chapter or open your notes."
+              action={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
+              quiet={{ label: 'See your progress', onPress: () => router.push('/progress') }}
+            />
           ) : poolMessage ? (
-            <View style={styles.questionCard}>
-              <Text style={styles.questionOverline}>No questions left</Text>
-              <Text style={styles.questionBody}>{poolMessage}</Text>
-            </View>
+            // NOTHING LEFT IN SCOPE: every question done. An achievement, not
+            // an error, and the way on is a wider scope.
+            focus.mode === 'chapter' && focus.chapterName ? (
+              <StateCard
+                style={styles.stateCard}
+                glyph="check"
+                title={`You've done every question in ${focus.chapterName}`}
+                line="Pick another chapter, or practise across the whole subject."
+                action={{
+                  label: 'Choose a chapter',
+                  onPress: () =>
+                    router.push({
+                      pathname: '/practice-focus',
+                      params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
+                    }),
+                }}
+                quiet={{
+                  label: `Practise all of ${activeSubject}`,
+                  onPress: () => setFocus(DEFAULT_PRACTICE_FOCUS),
+                }}
+              />
+            ) : (
+              <StateCard
+                style={styles.stateCard}
+                glyph="check"
+                title={`You've done every ${activeSubject} question for now`}
+                line="New ones are added often. Try another subject, or a mock paper."
+                action={{ label: 'Open Mock tests', onPress: () => router.push('/mocks') }}
+              />
+            )
           ) : loadError && !question ? (
-            <View style={styles.questionCard}>
-              <Text style={styles.questionOverline}>Couldn&apos;t load a question</Text>
-              <Text style={styles.questionBody}>{loadError}</Text>
-              <Pressable style={styles.outlineButton} onPress={loadQuestion}>
-                <Text style={styles.outlineButtonText}>Try again</Text>
-              </Pressable>
-            </View>
+            <StateCard
+              style={styles.stateCard}
+              glyph="retry"
+              title="Couldn't load a question"
+              line="Check your connection and try again. Your answers so far are saved."
+              action={{ label: 'Try again', onPress: () => void loadQuestion() }}
+            />
           ) : question ? (
             <>
           <View style={styles.questionBlock}>
@@ -1037,6 +1091,7 @@ export default function PracticeScreen() {
               {Math.max(0, quota.limit - quota.used)} questions left today
             </Text>
           )}
+          <KeyboardSpacer />
         </ScrollView>
 
         {/*
@@ -1077,7 +1132,7 @@ export default function PracticeScreen() {
                   gutter={READING_GUTTER}
                   trailing={
                     <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                      <Text style={styles.nextButtonText}>Next</Text>
+                      <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.nextButtonText}>Next</Text>
                       <ArrowRightIcon size={scale(14)} color={colors.paper} />
                     </Pressable>
                   }
@@ -1086,7 +1141,7 @@ export default function PracticeScreen() {
                 <Pressable
                   style={[styles.nextButton, styles.nextAlone]}
                   onPress={loadQuestion}>
-                  <Text style={styles.nextButtonText}>Next</Text>
+                  <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.nextButtonText}>Next</Text>
                   <ArrowRightIcon size={scale(14)} color={colors.paper} />
                 </Pressable>
               )}
@@ -1298,11 +1353,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       padding: scale(6),
       zIndex: 9,
-      shadowColor: '#1C1A16',
-      shadowOpacity: 0.22,
-      shadowRadius: scale(20),
-      shadowOffset: { width: 0, height: verticalScale(12) },
-      elevation: 8,
+      ...shadow({ color: '#1C1A16', opacity: 0.22, radius: scale(20), y: verticalScale(12), elevation: 8 }),
     },
     menuRow: {
       flexDirection: 'row',
@@ -1616,6 +1667,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12.5),
       color: colors.paper,
     },
+    stateCard: { marginTop: verticalScale(14) },
     quotaText: {
       fontFamily: 'Onest_500Medium',
       fontSize: scale(11.5),
@@ -1855,11 +1907,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.28,
-      shadowRadius: scale(10),
-      elevation: 4,
+      ...shadow({ color: colors.ink, opacity: 0.28, radius: scale(10), y: verticalScale(6), elevation: 4 }),
     },
     /** Pinned to the screen's foot, full width, over the scrolling page. */
     pinned: { position: 'absolute', left: 0, right: 0, bottom: 0 },
@@ -1871,6 +1919,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     /** Next on its own — a question with no id cannot be asked about. */
     nextAlone: { alignSelf: 'flex-end' },
     nextButtonText: {
+      includeFontPadding: false,
       fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.paper,

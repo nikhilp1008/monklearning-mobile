@@ -22,8 +22,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import {
@@ -38,6 +39,7 @@ import {
 
 export default function PromoScreen() {
   const { ds, fs, tracking } = useDesignScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
@@ -140,6 +142,7 @@ export default function PromoScreen() {
           <View style={styles.footer}>
             <ObButton label="Apply code" disabled={!draft.trim()} onPress={apply} />
           </View>
+          <KeyboardSpacer bottomInset={insets.bottom} />
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>

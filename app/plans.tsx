@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { PLANS } from '@/components/paywall/plans';
 import { PaywallLead, PaywallSuccess, type Pick } from '@/components/paywall/screens';
-import { startPass, type PassKind } from '@/lib/pass';
+import { exitOnBack, useAndroidBack } from '@/lib/android-back';
+import { passStatus, startPass, type PassKind } from '@/lib/pass';
 
 const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id === v);
 
@@ -33,6 +35,31 @@ export default function PlansScreen() {
   const [done, setDone] = useState<PassKind | null>(null);
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
 
+  /**
+   * ANDROID'S BACK. Sent here by the pass gate (a pass has run out), there is
+   * nothing to go back to: Home sits underneath only until the gate fires
+   * again, so Back leaves the app, as on any Android screen with nowhere to
+   * go. Opened from Subscription with a pass still running, Back is the
+   * normal Back. After taking a pass, Back is "Start learning".
+   */
+  const [gated, setGated] = useState(false);
+  useEffect(() => {
+    let live = true;
+    passStatus().then((st) => {
+      if (live) setGated(st.state !== 'active');
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  useAndroidBack(() => {
+    if (done) {
+      router.replace('/(tabs)');
+      return true;
+    }
+    return gated ? exitOnBack() : false;
+  });
+
   // Paid nothing, because nothing can be paid yet — the receipt says so.
   if (done) return <PaywallSuccess kind={done} paid={0} onDone={() => router.replace('/(tabs)')} />;
 
@@ -47,7 +74,13 @@ export default function PlansScreen() {
         })
       }
       onComplete={async ({ kind, promo }) => {
-        await startPass(kind, promo);
+        // A pass that will not start says so; it used to fail with no word.
+        try {
+          await startPass(kind, promo);
+        } catch {
+          Alert.alert("Couldn't start your pass", 'Check your connection and try again. Nothing was charged.');
+          return;
+        }
         // The receipt stays until "Start learning": it used to leave on its
         // own after 1.4s, before the rows had finished rising in.
         setDone(kind);

@@ -9,9 +9,10 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
@@ -72,6 +73,7 @@ export function SettingsPage({
   keyboardAware?: boolean;
 }) {
   const { scale, verticalScale } = useScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createShellStyles(scale, verticalScale), [scale, verticalScale]);
 
   const scrollY = useSharedValue(0);
@@ -101,6 +103,7 @@ export function SettingsPage({
             style={styles.scroll}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             {scroller}
+            <KeyboardSpacer bottomInset={insets.bottom} />
           </KeyboardAvoidingView>
         ) : (
           scroller

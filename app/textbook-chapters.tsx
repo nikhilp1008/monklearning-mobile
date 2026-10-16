@@ -1,11 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { ListSkeleton, StateCard, StateLine } from '@/components/states';
+import { shadow } from '@/lib/shadow';
 import { colors } from '@/constants/brand';
 import { opensOnChoice } from '@/lib/chapter-essentials';
 import { useScale } from '@/constants/scale';
@@ -107,15 +109,20 @@ export default function TextbookChaptersScreen() {
 
         {error ? (
           <View style={styles.state}>
-            <Text style={styles.stateText}>{error}</Text>
+            <StateCard
+              glyph="retry"
+              title="Couldn't load the chapters"
+              line={error}
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
           </View>
         ) : !catalogue ? (
           <View style={styles.state}>
-            <ActivityIndicator color={colors.faint} />
+            <ListSkeleton rows={6} thumb={false} />
           </View>
         ) : chapters.length === 0 ? (
           <View style={styles.state}>
-            <Text style={styles.stateText}>No chapters here yet.</Text>
+            <StateLine glyph="book" text="No chapters here yet. They're being written." />
           </View>
         ) : (
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
@@ -210,11 +217,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     classThumb: {
       backgroundColor: '#fff',
       borderRadius: scale(99),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.12, radius: scale(6), y: verticalScale(2), elevation: 2 }),
     },
     classPill: {
       paddingVertical: verticalScale(6),

@@ -83,7 +83,9 @@ export default function SubscriptionScreen() {
   return (
     <SettingsPage title="Your plan">
       {/* What you have, and how long it has left. */}
-      <View style={styles.planCard}>
+      {/* Not painted until the pass is read (a local read, a moment): it
+          flashed "NO PASS / No pass yet" first, even with a pass running. */}
+      <View style={[styles.planCard, !status && { opacity: 0 }]}>
         <View style={styles.planTopRow}>
           <View style={[styles.statusPill, !active && styles.statusPillOff]}>
             <View style={[styles.statusDot, !active && styles.statusDotOff]} />

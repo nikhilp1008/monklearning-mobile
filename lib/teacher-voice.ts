@@ -1,5 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync, setIsAudioActiveAsync, type AudioPlayer } from 'expo-audio';
 
+import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
 import type { LanguageId, TeacherId } from '@/lib/preferences';
 
 /**
@@ -99,7 +100,7 @@ export function prepareTeacherVoices(language: LanguageId): void {
       .then(() => setAudioModeAsync({
           playsInSilentMode: true,
           shouldPlayInBackground: false,
-          interruptionMode: 'mixWithOthers',
+          interruptionMode: TEACHER_INTERRUPTION,
           allowsRecording: false,
         }))
       .catch(() => {});

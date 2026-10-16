@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -28,6 +27,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PageSkeleton } from '@/components/states';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { useReadingSize } from '@/hooks/use-reading-size';
@@ -440,7 +440,7 @@ export default function TextbookReaderScreen() {
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.state}>
-            <ActivityIndicator color={colors.faint} />
+            <PageSkeleton />
           </View>
         </SafeAreaView>
       </View>

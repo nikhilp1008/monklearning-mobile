@@ -1,10 +1,12 @@
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PageSkeleton, StateCard } from '@/components/states';
 import { ReviseHeader } from '@/components/revise/revise-header';
 import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
@@ -120,9 +122,18 @@ export default function TextbookKeyPointsScreen() {
       <SafeAreaView edges={['top']} style={s.safe}>
         <ReviseHeader title="Key points" rule />
         {missing ? (
-          <Text style={s.state}>This chapter could not be opened.</Text>
+          <View style={[{ paddingHorizontal: 24, paddingTop: 32 }]}>
+            <StateCard
+              glyph="book"
+              title="This chapter didn't open"
+              line="Go back and open it again."
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
+          </View>
         ) : !chapter ? (
-          <ActivityIndicator style={s.loading} color={colors.faint} />
+          <View style={s.loading}>
+            <PageSkeleton />
+          </View>
         ) : (
           <SectionList
             sections={sections}

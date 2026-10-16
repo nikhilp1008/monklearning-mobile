@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
@@ -12,6 +12,9 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Line, Path } from 'react-native-svg';
 
+import { Skeleton } from '@/components/skeleton';
+import { friendlyError } from '@/lib/api';
+import { footPadding } from '@/lib/foot-padding';
 import { NightSky } from '@/components/night-sky';
 import { MathLine } from '@/components/math-line';
 import { ObButton } from '@/components/onboarding-kit';
@@ -260,7 +263,7 @@ export default function SessionSummaryScreen() {
     } catch (err) {
       hapticWarning();
       setSaveState('error');
-      setSaveError(err instanceof Error ? err.message : 'Could not save this class.');
+      setSaveError(friendlyError(err, 'save this class'));
     }
   };
 
@@ -396,6 +399,16 @@ export default function SessionSummaryScreen() {
                 </>
               )}
 
+              {/* The summary on its way: its shape, not a blank space under the
+                  heading (it used to render nothing until it landed). */}
+              {!summary && !summaryFailed && (
+                <View style={styles.summaryLoading} accessibilityLabel="Loading the summary">
+                  {['92%', '78%', '85%'].map((w, i) => (
+                    <Skeleton key={i} delay={i * 80} style={{ width: w as `${number}%`, height: 14, borderRadius: 7 }} />
+                  ))}
+                </View>
+              )}
+
               {/* The summary never arrived — offline, or the call failed. Said
                   plainly, because the alternative is what this screen actually
                   did: an empty space under a heading promising a summary. */}
@@ -465,7 +478,7 @@ export default function SessionSummaryScreen() {
 
           <Animated.View
             entering={FadeInDown.duration(420).delay(380)}
-            style={[styles.actions, { paddingBottom: Math.max(insets.bottom - 6, 16) }]}>
+            style={[styles.actions, { paddingBottom: footPadding(insets.bottom, 6, 16) }]}>
             {!!saveError && <Text style={styles.error}>{saveError}</Text>}
 
             {/* Why the key is worth pressing, in the one place it cannot be
@@ -511,7 +524,8 @@ function createStyles() {
       fontFamily: 'Onest_600SemiBold',
       fontSize: 30,
       letterSpacing: -0.035 * 30,
-      lineHeight: 30 * 1.08,
+      // Android clips glyphs past a line this tight; it gets room for them.
+      lineHeight: 30 * (Platform.OS === 'android' ? 1.2 : 1.08),
       color: INK,
     },
     sub: {
@@ -584,6 +598,7 @@ function createStyles() {
     /** Takes whatever height is left, and scrolls inside it. */
     summary: { flex: 1, minHeight: 0, marginTop: 2 },
     summaryInner: { paddingBottom: FADE },
+    summaryLoading: { gap: 12, paddingTop: 6 },
     summaryLead: {
       marginTop: 24,
       marginBottom: 2,

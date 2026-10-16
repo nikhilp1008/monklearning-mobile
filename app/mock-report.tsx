@@ -5,6 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PageSkeleton } from '@/components/states';
+import { useAndroidBack } from '@/lib/android-back';
 import { MockKey, MockSection } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
@@ -144,6 +146,12 @@ export default function MockReportScreen() {
     }
     router.back();
   };
+  // Android's Back does what the screen's own back does. Popped plainly, a
+  // fresh report revealed the submitted paper underneath, timer still running.
+  useAndroidBack(() => {
+    leave();
+    return true;
+  });
 
   return (
     <View style={styles.screen}>
@@ -168,7 +176,10 @@ export default function MockReportScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.centre} />
+          // The report's shape while it loads; it was an empty view.
+          <View style={styles.listInner}>
+            <PageSkeleton />
+          </View>
         ) : !report ? (
           <ScrollView contentContainerStyle={styles.listInner}>
             {dateLine}

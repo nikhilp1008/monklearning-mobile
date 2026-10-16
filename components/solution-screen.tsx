@@ -13,6 +13,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { footPadding } from '@/lib/foot-padding';
 import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
@@ -694,7 +695,7 @@ export function SolutionScreen({
             disc. The bar owns the whole exchange — recording, asking and the
             spoken answer — because a follow-up is a question about the working
             on this screen and must not navigate away from it. */}
-        <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
+        <View style={[styles.actionsInner, { paddingBottom: footPadding(insets.bottom, 16, 12) }]}>
           <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} onResolve={onResolve} />
         </View>
       </View>

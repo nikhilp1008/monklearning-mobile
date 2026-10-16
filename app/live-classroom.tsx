@@ -8,6 +8,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   LayoutChangeEvent,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -32,6 +33,10 @@ import Animated, {
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { useClock } from '@shopify/react-native-skia';
+import { StateBanner, StateCard } from '@/components/states';
+import { useOnline } from '@/lib/connection';
+import { shadow } from '@/lib/shadow';
+import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
 import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
 import { DockGlow } from '@/components/dock-glow';
 import { useDockMotion } from '@/components/dock-motion';
@@ -219,6 +224,9 @@ interface AudioRecorderLike {
         categoryOptions?: string[];
       };
     };
+    keepAwake?: boolean;
+    showNotification?: boolean;
+    android?: { audioFocusStrategy?: 'background' | 'interactive' | 'communication' | 'none' };
     onAudioStream: (event: { data: unknown }) => void;
   }): Promise<unknown>;
   stopRecording(): Promise<unknown>;
@@ -375,9 +383,19 @@ export default function LiveClassroomScreen() {
    */
   const headerTop = isLandscape ? 14 : Math.max(insets.top, 20) + 4;
   const boardTop = isLandscape ? BOARD_TOP : Math.ceil((headerTop + 30 + 10) / RHYTHM) * RHYTHM;
+  /**
+   * ANDROID'S NAVIGATION BAR. The dock, the mic card and the toast sit a
+   * fixed 20pt off the bottom, which clears iPhone's thin home indicator and
+   * is meant to overlap its strip. Android's bar is buttons (up to 48dp) or a
+   * gesture handle, drawn over the app since edge-to-edge, so there they sit
+   * that far above it. In landscape the 3-button bar moves to the side, where
+   * the rail is.
+   */
+  const navBottom = Platform.OS === 'android' ? insets.bottom : 0;
+  const navRight = Platform.OS === 'android' ? insets.right : 0;
   const styles = useMemo(
-    () => createStyles(scale, verticalScale, isLandscape, headerTop, boardTop),
-    [scale, verticalScale, isLandscape, headerTop, boardTop]
+    () => createStyles(scale, verticalScale, isLandscape, headerTop, boardTop, navBottom, navRight),
+    [scale, verticalScale, isLandscape, headerTop, boardTop, navBottom, navRight]
   );
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
@@ -403,6 +421,7 @@ export default function LiveClassroomScreen() {
 
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const online = useOnline();
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -516,7 +535,7 @@ export default function LiveClassroomScreen() {
     setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: false,
-      interruptionMode: 'mixWithOthers',
+      interruptionMode: TEACHER_INTERRUPTION,
     }).catch((err) => {
       console.error('[live-classroom] could not configure the audio session:', err);
     });
@@ -838,7 +857,12 @@ export default function LiveClassroomScreen() {
       accent: DEEP_AMBER,
       surface: colors.paper,
       fontFamily: 'Onest_400Regular',
-      monoFontFamily: 'Menlo',
+      // Menlo is an Apple font; Android has none of that name and fell back
+      // to its default, whose wider letters broke the measured label layout.
+      // Android's own 'monospace' has Menlo's advance (0.600 vs 0.602 em), and
+      // the widget measurer reads an unknown family as Menlo, so every tick
+      // label and readout lands where it does on iOS.
+      monoFontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
     }),
     []
   );
@@ -1508,6 +1532,16 @@ export default function LiveClassroomScreen() {
           // 100ms, matching web's ~128ms cadence. The gate is in JS, so this
           // is only about how finely a hold can be sliced at its edges.
           interval: 100,
+          // ANDROID: a microphone held for one class, not a background voice
+          // recorder. The library's Android defaults keep the device awake
+          // through a foreground service, post a "recording" notification and
+          // keep the mic running after the app is left. None of that is wanted,
+          // and the service is no longer in the build (see app.json). Audio
+          // focus is left to expo-audio, which plays the teacher: if the
+          // recorder claimed it too, the two would pause each other.
+          keepAwake: false,
+          showNotification: false,
+          android: { audioFocusStrategy: 'none' },
           // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
           // `.playAndRecord` category to the earpiece receiver — and this
           // category is now held for the whole class, so without it every
@@ -1836,12 +1870,13 @@ export default function LiveClassroomScreen() {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />
-        <View style={styles.errorBlock}>
-          <Text style={styles.errorTitle}>Couldn&apos;t join the class</Text>
-          <Text style={styles.errorBody}>{connectError}</Text>
-          <Pressable style={styles.errorButton} onPress={() => router.back()}>
-            <Text style={styles.errorButtonText}>Go back</Text>
-          </Pressable>
+        <View style={styles.stateBlock}>
+          <StateCard
+            glyph="retry"
+            title="Couldn't join the class"
+            line={connectError}
+            action={{ label: 'Go back', onPress: () => router.back() }}
+          />
         </View>
       </View>
     );
@@ -2294,6 +2329,23 @@ export default function LiveClassroomScreen() {
         </Animated.View>
       )}
 
+      {/* THE CONNECTION DROPPED MID-CLASS. The board used to just stop, with
+          nothing on screen to say why; the client was already reconnecting
+          underneath. A banner over the board while it does (or while the
+          phone has no internet), gone when the class is back. */}
+      {(connectionStatus === 'reconnecting' || !online) && (
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+          pointerEvents="none"
+          style={[styles.connectionBanner, { top: headerTop + verticalScale(44) }]}>
+          <StateBanner
+            bold={online ? 'Reconnecting…' : "You're offline."}
+            text={online ? 'The class picks up where it left off.' : "The class picks up when you're back."}
+          />
+        </Animated.View>
+      )}
+
       {toastVisible && (
         <Animated.View entering={FadeIn.duration(150)} style={styles.toast}>
           <Text style={styles.toastCheck}>✓</Text>
@@ -2663,7 +2715,9 @@ function createStyles(
   verticalScale: (size: number) => number,
   isLandscape: boolean,
   headerTop: number,
-  boardTop: number
+  boardTop: number,
+  navBottom: number,
+  navRight: number
 ) {
   /**
    * The board's gutters, which differ by orientation because the chrome does.
@@ -2867,11 +2921,7 @@ function createStyles(
       borderRadius: 99,
       paddingVertical: 8,
       paddingHorizontal: 16,
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 7 },
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
-      elevation: 6,
+      ...shadow({ color: INK, opacity: 0.35, radius: 8, y: 7, elevation: 6 }),
     },
     liveChipArrow: {
       fontFamily: 'Onest_700Bold',
@@ -2895,7 +2945,7 @@ function createStyles(
      */
     rail: {
       position: 'absolute',
-      right: 12,
+      right: 12 + navRight,
       top: '50%',
     },
     /** Wraps ring and plate together and sizes itself to the plate, so the
@@ -2994,7 +3044,7 @@ function createStyles(
       // Lower than it was (30), and the gap under the plate is tighter, so the
       // group sits down near the edge the way the reference draws it. It stops
       // short of the home indicator, which lives in the bottom ~13pt.
-      bottom: verticalScale(20),
+      bottom: verticalScale(20) + navBottom,
       alignItems: 'center',
       gap: verticalScale(6),
     },
@@ -3084,7 +3134,7 @@ function createStyles(
     micDeniedCard: {
       position: 'absolute',
       left: '50%',
-      bottom: verticalScale(20),
+      bottom: verticalScale(20) + navBottom,
       transform: [{ translateX: -scale(150) }],
       width: scale(300),
       backgroundColor: '#fff',
@@ -3093,11 +3143,7 @@ function createStyles(
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.25,
-      shadowRadius: scale(10),
-      elevation: 6,
+      ...shadow({ color: colors.ink, opacity: 0.25, radius: scale(10), y: verticalScale(6), elevation: 6 }),
     },
     micDeniedTitle: {
       fontFamily: 'Onest_700Bold',
@@ -3169,11 +3215,7 @@ function createStyles(
       paddingBottom: verticalScale(12),
       paddingHorizontal: scale(15),
       gap: verticalScale(11),
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
-      elevation: 6,
+      ...shadow({ color: INK, opacity: 0.16, radius: 14, y: 8, elevation: 6 }),
     },
     // 500, not bold: it is a question to read, and the answers under it are
     // what the eye should land on.
@@ -3237,10 +3279,17 @@ function createStyles(
       fontSize: scale(13),
       color: colors.ink,
     },
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(24) },
+    connectionBanner: {
+      position: 'absolute',
+      left: scale(20),
+      right: scale(20),
+      zIndex: 20,
+    },
     toast: {
       position: 'absolute',
       left: '50%',
-      bottom: verticalScale(70),
+      bottom: verticalScale(70) + navBottom,
       transform: [{ translateX: -scale(150) }],
       flexDirection: 'row',
       backgroundColor: '#221D16',

@@ -25,6 +25,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { friendlyError } from '@/lib/api';
 import { ObButton } from '@/components/onboarding-kit';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -228,7 +229,7 @@ export function ReportSheet({
     } catch (err) {
       hapticWarning();
       setPhase('idle');
-      setSendError(err instanceof Error && err.message ? err.message : "Couldn't send that. Try again.");
+      setSendError(friendlyError(err, 'send that'));
     }
   };
 

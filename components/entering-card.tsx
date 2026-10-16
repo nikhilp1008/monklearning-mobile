@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useDarkNavigationBar } from '@/lib/nav-bar';
 import { MonkMarkBuild } from '@/components/monk-mark-build';
 import Svg, { Path } from 'react-native-svg';
 
@@ -156,6 +157,7 @@ export function EnteringCardScreen({
 }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  useDarkNavigationBar();
   /**
    * Read directly, because the back button is absolutely positioned and Yoga
    * does not apply a parent's padding to absolute children — so sitting inside

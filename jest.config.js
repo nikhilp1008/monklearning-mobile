@@ -36,6 +36,9 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.html$': '<rootDir>/jest/html-asset-mock.js',
     '^react-native-webview$': '<rootDir>/jest/react-native-webview-mock.js',
+    //: NetInfo has no native side under Jest and throws asynchronously from its
+    //: internals; the package ships this stand-in (always connected).
+    '^@react-native-community/netinfo$': '<rootDir>/node_modules/@react-native-community/netinfo/jest/netinfo-mock.js',
   },
   // test-utils.ts is a shared helper (renderWidgetTree, scaffoldingDiffs, the
   // fixed theme/services), not a test — but Jest's default testMatch picks up

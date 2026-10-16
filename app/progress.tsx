@@ -4,7 +4,8 @@ import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { FirstDayCard } from '@/components/first-day-card';
+import { shadow } from '@/lib/shadow';
+import { StateCard } from '@/components/states';
 import { ProgressGlyph } from '@/components/monk-icons';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
@@ -393,15 +394,12 @@ export default function ProgressScreen() {
           )}
 
           {state.kind === 'error' && (
-            <View style={styles.card}>
-              <Text style={styles.errorTitle}>Couldn&apos;t load your progress</Text>
-              <Text style={styles.errorBody}>
-                Check your connection and try again. Your score is safe on the server.
-              </Text>
-              <PressableScale style={styles.retryButton} onPress={retry}>
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </PressableScale>
-            </View>
+            <StateCard
+              glyph="retry"
+              title="Couldn't load your progress"
+              line="Check your connection and try again. Your score is safe on the server."
+              action={{ label: 'Try again', onPress: retry }}
+            />
           )}
 
           {/*
@@ -412,10 +410,12 @@ export default function ProgressScreen() {
             every piece above returns the moment there is something to say.
           */}
           {data && !started && (
-            <FirstDayCard
-              glyph={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
-              head="No score yet"
-              line="Take a class, solve a doubt, answer a few questions. Your score shows up after that."
+            <StateCard
+              glyph="progress"
+              icon={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
+              title="No score yet"
+              line="Answer a few questions in Practice and your score and pace show up here."
+              action={{ label: 'Start practising', onPress: () => router.push('/practice') }}
             />
           )}
 
@@ -989,11 +989,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: hairline(0.16),
       borderRadius: scale(16),
       padding: scale(20),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(12), y: verticalScale(4), elevation: 2 }),
     },
     overline: {
       fontFamily: 'Onest_800ExtraBold',
@@ -1125,11 +1121,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(10),
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(12), y: verticalScale(4), elevation: 2 }),
     },
     subjectCardSelected: {
       borderWidth: scale(1.5),

@@ -2,8 +2,8 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MockKey, MockSection } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
@@ -22,6 +22,7 @@ const SUBJECT_LABEL: Record<string, string> = {
 export default function MockPaletteScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const insets = useSafeAreaInsets();
   const session = getMockSession();
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -177,7 +178,14 @@ export default function MockPaletteScreen() {
           onPress={() => setConfirming(false)}
           accessibilityLabel="Close"
         />
-        <View style={styles.sheet}>
+        {/* A Modal draws edge to edge on Android, under the navigation bar:
+            the sheet's 40 clears iPhone's home indicator but not three
+            buttons, so on Android the bar's height goes on top. */}
+        <View
+          style={[
+            styles.sheet,
+            Platform.OS === 'android' && { paddingBottom: verticalScale(40) + insets.bottom },
+          ]}>
           <View style={styles.grab} />
           <Text style={styles.sheetTitle}>Submit your paper?</Text>
           <Text style={styles.sheetBody}>

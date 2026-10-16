@@ -11,9 +11,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton } from '@/components/onboarding-kit';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 
@@ -50,6 +51,7 @@ export function OnbScreen({
   keyboard?: boolean;
 }) {
   const { ds, fs } = useDesignScale();
+  const insets = useSafeAreaInsets();
 
   const body = (
     <>
@@ -106,6 +108,7 @@ export function OnbScreen({
         {keyboard ? (
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             {body}
+            <KeyboardSpacer bottomInset={insets.bottom} />
           </KeyboardAvoidingView>
         ) : (
           body

@@ -809,3 +809,16 @@ export function cornerAnchor(
     textAnchor: corner.endsWith('left') ? 'start' : 'end',
   };
 }
+
+/**
+ * The bold cut of a widget's face. Android fakes bold when `fontWeight: '700'`
+ * is set on a family that is only the regular cut (theme.fontFamily is
+ * Onest_400Regular), smearing the strokes; iOS picks the real bold. So a
+ * loaded Onest face is swapped for its own Bold, which both platforms draw
+ * the same. Any other face keeps the weight request it had.
+ */
+export function boldFace(family: string): { fontFamily: string; fontWeight?: '700' } {
+  return family.endsWith('_400Regular')
+    ? { fontFamily: family.replace(/_400Regular$/, '_700Bold') }
+    : { fontFamily: family, fontWeight: '700' };
+}

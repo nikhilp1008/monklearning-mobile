@@ -255,10 +255,13 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLoo
     // and v<sub>AB</sub> read as "vAB". React Native cannot translate nested
     // text, but lineHeight moves it within the line box, which is enough to
     // tell one from the other.
+    // Not on Android: there a nested run's lineHeight sets the height of the
+    // whole line it sits in, so a line holding one fallback script came out
+    // taller or shorter than its neighbours.
     case 'sup':
-      return { fontSize: size * 0.72, lineHeight: size * 0.78 };
+      return Platform.OS === 'android' ? { fontSize: size * 0.72 } : { fontSize: size * 0.72, lineHeight: size * 0.78 };
     case 'sub':
-      return { fontSize: size * 0.72, lineHeight: size * 1.55 };
+      return Platform.OS === 'android' ? { fontSize: size * 0.72 } : { fontSize: size * 0.72, lineHeight: size * 1.55 };
   }
 }
 

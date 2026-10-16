@@ -1,8 +1,10 @@
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageSkeleton, StateCard } from '@/components/states';
 import { IndexSheet, ReviseDock } from '@/components/revise/dock';
 import { FormulaCard } from '@/components/revise/formula-card';
 import { PageTurn, PageTurnHandle } from '@/components/revise/page-turn';
@@ -38,9 +40,18 @@ export default function TextbookFormulasScreen() {
       <SafeAreaView edges={['top']} style={s.safe}>
         <ReviseHeader title="Formula sheet" count={cards.length ? `${index + 1} of ${cards.length}` : undefined} />
         {missing ? (
-          <Text style={s.state}>This chapter could not be opened.</Text>
+          <View style={[{ paddingHorizontal: 24, paddingTop: 32 }]}>
+            <StateCard
+              glyph="book"
+              title="This chapter didn't open"
+              line="Go back and open it again."
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
+          </View>
         ) : !chapter ? (
-          <ActivityIndicator style={s.loading} color={colors.faint} />
+          <View style={s.loading}>
+            <PageSkeleton />
+          </View>
         ) : (
           <>
             <PageTurn ref={pager} count={cards.length} onIndex={setIndex} renderPage={(i) => <FormulaCard card={cards[i]} />} />

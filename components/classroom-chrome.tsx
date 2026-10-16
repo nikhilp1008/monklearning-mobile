@@ -13,6 +13,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
+import { shadow } from '@/lib/shadow';
+
 /**
  * The shared surface of the two landscape classroom screens, from
  * handoff_landscape_classroom/ (README + SPEC + the two HTML references).
@@ -449,11 +451,7 @@ const capStyles = StyleSheet.create({
     paddingRight: 28,
     paddingBottom: 10,
     // A lift, not a line: the notebook stays visible right up to the strip.
-    shadowColor: INK,
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 6,
-    elevation: 8,
+    ...shadow({ color: INK, opacity: 0.14, radius: 6, y: -6, elevation: 8 }),
   },
   face: {
     ...StyleSheet.absoluteFillObject,

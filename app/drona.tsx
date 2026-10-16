@@ -5,6 +5,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StateCard, StateLine } from '@/components/states';
+import { friendlyError } from '@/lib/api';
+import { shadow } from '@/lib/shadow';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -75,6 +78,8 @@ export default function ChapterSelectorScreen() {
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumped by Try again, which re-runs the load below. */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +90,7 @@ export default function ChapterSelectorScreen() {
         if (!cancelled) setCatalogue(data);
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Could not load the syllabus.');
+        if (!cancelled) setLoadError(friendlyError(err, 'load the chapters'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -93,7 +98,7 @@ export default function ChapterSelectorScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   // A shorter list can leave you stranded past its end, so every switch
   // starts at chapter one.
@@ -218,11 +223,16 @@ export default function ChapterSelectorScreen() {
             </View>
           ) : loadError ? (
             <View style={styles.loadingBlock}>
-              <Text style={styles.errorText}>{loadError}</Text>
+              <StateCard
+                glyph="retry"
+                title="Couldn't load the chapters"
+                line={loadError}
+                action={{ label: 'Try again', onPress: () => setAttempt((n) => n + 1) }}
+              />
             </View>
           ) : chapters.length === 0 ? (
             <View style={styles.loadingBlock}>
-              <Text style={styles.errorText}>No {activeSubject} chapters for {activeClass} yet.</Text>
+              <StateLine glyph="book" text={`No ${activeSubject} chapters for ${activeClass} yet.`} />
             </View>
           ) : (
             <>
@@ -370,11 +380,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       padding: scale(6),
       zIndex: 9,
-      shadowColor: colors.ink,
-      shadowOpacity: 0.22,
-      shadowRadius: scale(20),
-      shadowOffset: { width: 0, height: verticalScale(12) },
-      elevation: 8,
+      ...shadow({ color: colors.ink, opacity: 0.22, radius: scale(20), y: verticalScale(12), elevation: 8 }),
     },
     subjectMenu: { left: scale(68), width: scale(190) },
     classMenu: { right: scale(24), width: scale(150) },

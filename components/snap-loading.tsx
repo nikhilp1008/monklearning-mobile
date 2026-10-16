@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Image as RNImage,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -18,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { shadow } from '@/lib/shadow';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { withTeacherName } from '@/lib/preferences';
@@ -274,11 +276,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
       borderColor: colors.hairline,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: scale(6) },
-      shadowOpacity: 0.1,
-      shadowRadius: scale(14),
-      elevation: 4,
+      // overflow:'hidden' clips this shadow away on iOS, so the card has
+      // never had one there; Android would draw it. Matched to iOS.
+      ...(Platform.OS === 'ios' ? shadow({ color: colors.ink, opacity: 0.1, radius: scale(14), y: scale(6), elevation: 4 }) : {}),
     },
     photo: {
       width: '100%',

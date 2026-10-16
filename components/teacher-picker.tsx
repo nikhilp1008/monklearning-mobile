@@ -2,12 +2,15 @@ import { useClock } from '@shopify/react-native-skia';
 import { useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { useDarkNavigationBar } from '@/lib/nav-bar';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { insetLine } from '@/lib/inset-line';
 import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import {
@@ -105,6 +108,7 @@ export function TeacherPicker({
   const insets = useSafeAreaInsets();
   const { scale } = useScale();
   const styles = useMemo(() => createStyles(scale), [scale]);
+  useDarkNavigationBar();
   const onboarding = variant === 'onboarding';
   const opened = initial;
 
@@ -341,7 +345,7 @@ export function TeacherPicker({
                 accessibilityState={{ selected: on }}
                 style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
                 onPress={() => switchTo(t.id)}>
-                <Text style={styles.chipLabel}>{t.name}</Text>
+                <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.chipLabel}>{t.name}</Text>
               </Pressable>
             );
           })}
@@ -381,9 +385,7 @@ function createStyles(scale: (n: number) => number) {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(26,24,20,.45)',
-      boxShadow: [
-        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.16)', inset: true },
-      ],
+      ...insetLine(1, 'rgba(255,253,248,.16)'),
     },
     topBarSpacer: { width: scale(44) },
     /** Onboarding's head: what this step asks, where Home has a close button. */
@@ -428,7 +430,9 @@ function createStyles(scale: (n: number) => number) {
     name: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(34),
-      lineHeight: scale(34 * 1.05),
+      // 1.05 on iOS; Android clips glyphs that rise or fall past a line
+      // that tight, so it gets room for them.
+      lineHeight: scale(34 * (Platform.OS === 'android' ? 1.2 : 1.05)),
       letterSpacing: scale(34 * -0.04),
       color: colors.paper,
     },
@@ -465,17 +469,14 @@ function createStyles(scale: (n: number) => number) {
     },
     chipOn: {
       opacity: 1,
-      boxShadow: [
-        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1.5, color: colors.paleGold, inset: true },
-      ],
+      ...insetLine(1.5, colors.paleGold),
     },
     chipOff: {
       opacity: 0.72,
-      boxShadow: [
-        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.16)', inset: true },
-      ],
+      ...insetLine(1, 'rgba(255,253,248,.16)'),
     },
     chipLabel: {
+      includeFontPadding: false,
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.paper,

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
+import { shadow } from '@/lib/shadow';
 import { PressableScale } from '@/components/pressable-scale';
 import { SettingsPage } from '@/components/settings-page';
 import { SlidingToggle } from '@/components/sliding-toggle';
@@ -274,11 +275,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     toggleThumb: {
       backgroundColor: '#fff',
       borderRadius: scale(99),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.12, radius: scale(6), y: verticalScale(2), elevation: 2 }),
     },
     /**
      * FIXED WIDTH, and equal, which is what makes the slide smooth.
@@ -315,11 +312,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       padding: scale(20),
       marginTop: verticalScale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(12), y: verticalScale(4), elevation: 2 }),
     },
     overline: {
       fontFamily: 'Onest_800ExtraBold',
@@ -511,11 +504,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(12), y: verticalScale(4), elevation: 2 }),
     },
     subjectCardText: {
       flex: 1,

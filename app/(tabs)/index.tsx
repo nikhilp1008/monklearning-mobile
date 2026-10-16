@@ -21,6 +21,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StateMoment, StatePlate } from '@/components/states';
+import { recoverPendingSnap } from '@/lib/snap-pending';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { HomeHeader } from '@/components/home-header';
 import { NightSkyAbove, NightSkyStrip, ThemedSky } from '@/components/night-sky';
@@ -113,6 +115,8 @@ export default function HomeScreen() {
     [skyMix]
   );
   const doneCount = planItems.filter((item) => item.done).length;
+  /** The finished plan folds into its moment; a tap opens the list again. */
+  const [planOpen, setPlanOpen] = useState(false);
 
   /**
    * THE STATUS BAR FOLLOWS THE HEADER, because the header scrolls away.
@@ -211,6 +215,15 @@ export default function HomeScreen() {
     }, [showTeacher])
   );
 
+  // A snap Android rescued after closing the app while its camera was open:
+  // the app restarts here, so Home sends the student on to Snap with it
+  // (lib/snap-pending.ts). Android only; resolves false everywhere else.
+  useEffect(() => {
+    recoverPendingSnap().then((found) => {
+      if (found) router.push('/snap-capture');
+    });
+  }, []);
+
   /**
    * THE SERVER'S COPY, ASKED FOR ONCE — on mount, not on every focus.
    *
@@ -247,6 +260,8 @@ export default function HomeScreen() {
     const next = planItems.map((item) => (item.id === id ? { ...item, done: !item.done } : item));
     setPlanItems(next);
     saveTodayPlan(next);
+    // The last tick folds the list into its moment, even if it was opened.
+    if (next.length > 0 && next.every((item) => item.done)) setPlanOpen(false);
   };
 
   return (
@@ -421,10 +436,29 @@ export default function HomeScreen() {
                 is the button, so the instruction is the tap.
               */
               <PressableScale style={styles.planEmptyRow} onPress={() => router.push('/plan-sheet')}>
-                <View style={styles.planEmptyCheck}>
-                  <Text style={styles.planEmptyPlus}>+</Text>
+                {/* The plan's glyph on the teacher's sky, as every screen state
+                    is drawn (components/states): Home's own object, not a
+                    dashed circle. */}
+                <StatePlate glyph="plan" size={scale(40)} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planEmptyLabel}>Set your first plan for today</Text>
+                  <Text style={styles.planEmptySub}>Up to 3. Pick a chapter, a paper or your own.</Text>
                 </View>
-                <Text style={styles.planEmptyLabel}>Set your first plan for today</Text>
+              </PressableScale>
+            ) : doneCount === planItems.length && !planOpen ? (
+              /*
+                EVERY PLAN TICKED: A SMALL WIN. The list folds into one line
+                with a sky tick and what was done, in the student's own words.
+                A tap opens the list again, so an item can still be unticked.
+              */
+              <PressableScale
+                style={styles.planDone}
+                onPress={() => setPlanOpen(true)}
+                accessibilityHint="Shows today's plans">
+                <StateMoment
+                  title={planItems.length === 1 ? 'Done for today.' : `All ${planItems.length} done today.`}
+                  line={planItems.map((item) => item.text).join(', ')}
+                />
               </PressableScale>
             ) : (
               <View style={styles.planRows}>
@@ -777,24 +811,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: 'rgba(28,26,22,.10)',
       backgroundColor: colors.paper,
     },
-    /** Where the checkbox goes, drawn open: dashed, because the row is an
-     *  invitation rather than an item that can be ticked. */
-    planEmptyCheck: {
-      width: scale(20),
-      height: scale(20),
-      borderRadius: scale(10),
-      borderWidth: 1.5,
-      borderStyle: 'dashed',
-      borderColor: 'rgba(28,26,22,.28)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    planEmptyPlus: {
-      fontFamily: 'Onest_600SemiBold',
+    planEmptySub: {
+      marginTop: verticalScale(2),
+      fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
-      lineHeight: scale(15),
+      lineHeight: scale(18),
       color: colors.slate,
     },
+    planDone: { marginTop: verticalScale(12) },
     /* 15/22, the page's body tier and the same as `planRowText` — which is
        this exact row once it has something in it. It was 14.5/20, the only
        size on Home that was not on the ladder, so the empty state read a

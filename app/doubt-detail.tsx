@@ -1,12 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
-import { colors } from '@/constants/brand';
-import { useScale } from '@/constants/scale';
+import { StateScreen } from '@/components/states';
+import { friendlyError } from '@/lib/api';
 import { DoubtDetail, getDoubt } from '@/lib/doubts';
 import { SolutionView, solutionView } from '@/lib/solution-view';
 import { lastFollowUpContext } from '@/lib/last-followup';
@@ -21,8 +19,6 @@ export default function DoubtDetailScreen() {
     time?: string;
   }>();
 
-  const { scale, verticalScale } = useScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [details, setDetails] = useState<DoubtDetail[]>([]);
   const [index, setIndex] = useState(0);
@@ -30,6 +26,8 @@ export default function DoubtDetailScreen() {
    *  the sheet and is gone when it closes — nothing about it is stored. */
   const [loading, setLoading] = useState(!!params.id);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumped by Try again, which re-runs the load below. */
+  const [attempt, setAttempt] = useState(0);
 
   // One question, not one photo.
   //
@@ -62,7 +60,7 @@ export default function DoubtDetailScreen() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : 'Could not load this doubt.');
+          setLoadError(friendlyError(err, 'load this doubt'));
         }
       })
       .finally(() => {
@@ -71,7 +69,7 @@ export default function DoubtDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [idKey]);
+  }, [idKey, attempt]);
 
   // One chip per question on the photo, so a saved doubt reads exactly as it
   // did on snap-solved. SolutionScreen hides the chip row when there is one.
@@ -99,14 +97,13 @@ export default function DoubtDetailScreen() {
 
   if (loadError || questions.length === 0) {
     return (
-      <View style={styles.screen}>
-        <StatusBar style="dark" />
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.stateBlock}>
-            <Text style={styles.stateText}>{loadError ?? 'Could not load this doubt.'}</Text>
-          </View>
-        </SafeAreaView>
-      </View>
+      <StateScreen
+        onBack={() => router.back()}
+        glyph="retry"
+        title="This doubt didn't open"
+        line="Check your connection and try again. It's still saved."
+        action={{ label: 'Try again', onPress: () => setAttempt((n) => n + 1) }}
+      />
     );
   }
 
@@ -127,29 +124,4 @@ export default function DoubtDetailScreen() {
       />
     </>
   );
-}
-
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
-  return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    stateBlock: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: scale(28),
-      gap: verticalScale(10),
-    },
-    stateText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.slate,
-      textAlign: 'center',
-    },
-  });
 }

@@ -1,12 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NotePage, NotePageSkeleton } from '@/components/note-page';
-import { colors } from '@/constants/brand';
-import { useScale } from '@/constants/scale';
+import { StateScreen } from '@/components/states';
+import { friendlyError } from '@/lib/api';
 import { DEMO_NOTE_CONTENT, DEMO_NOTE_ID } from '@/lib/demo-board';
 import { parseNotePage } from '@/lib/note-page-model';
 import { NoteDetail, getNote } from '@/lib/notes';
@@ -20,12 +18,12 @@ export default function NoteDetailScreen() {
     time?: string;
   }>();
 
-  const { scale, verticalScale } = useScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [note, setNote] = useState<NoteDetail | null>(null);
   const [loading, setLoading] = useState(!!params.id);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumped by Try again, which re-runs the load below. */
+  const [attempt, setAttempt] = useState(0);
 
   const isDemo = params.id === DEMO_NOTE_ID;
 
@@ -39,7 +37,7 @@ export default function NoteDetailScreen() {
         if (!cancelled) setNote(n);
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Could not load this note.');
+        if (!cancelled) setLoadError(friendlyError(err, 'load this note'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -47,7 +45,7 @@ export default function NoteDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.id, isDemo]);
+  }, [params.id, isDemo, attempt]);
 
   /**
    * THE NOTE THE SERVER ALREADY ORGANISED, not the raw board.
@@ -80,14 +78,13 @@ export default function NoteDetailScreen() {
 
   if (!isDemo && loadError) {
     return (
-      <View style={styles.screen}>
-        <StatusBar style="dark" />
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.stateBlock}>
-            <Text style={styles.stateText}>{loadError}</Text>
-          </View>
-        </SafeAreaView>
-      </View>
+      <StateScreen
+        onBack={() => router.back()}
+        glyph="retry"
+        title="This note didn't open"
+        line="Check your connection and try again. It's still saved."
+        action={{ label: 'Try again', onPress: () => setAttempt((n) => n + 1) }}
+      />
     );
   }
 
@@ -103,29 +100,4 @@ export default function NoteDetailScreen() {
       />
     </>
   );
-}
-
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
-  return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: colors.paper,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    stateBlock: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: scale(28),
-      gap: verticalScale(10),
-    },
-    stateText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.slate,
-      textAlign: 'center',
-    },
-  });
 }

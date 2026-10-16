@@ -171,9 +171,16 @@ function Arc({
   rotate: number;
   at: [number, number];
 }) {
-  const props = useAnimatedProps(() => ({
-    strokeDashoffset: arc * (1 - easeArc(seg(t.value, at[0], at[1]))),
-  }));
+  // Hidden until it starts. Pushed fully off by its own length, the arc is a
+  // zero-length dash, and with a round cap Android draws that as a dot: three
+  // stray grey dots sat in the circle on Android while iOS drew nothing.
+  const props = useAnimatedProps(() => {
+    const p = seg(t.value, at[0], at[1]);
+    return {
+      strokeDashoffset: arc * (1 - easeArc(p)),
+      strokeOpacity: p > 0 ? 1 : 0,
+    };
+  });
   return (
     <AnimatedCircle
       cx={60}

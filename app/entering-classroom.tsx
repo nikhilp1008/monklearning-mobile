@@ -3,8 +3,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
+import { StateCard } from '@/components/states';
 import { EnteringCardScreen } from '@/components/entering-card';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
@@ -46,6 +48,7 @@ function friendlyScopeError(err: unknown): string {
 
 export default function EnteringClassroomScreen() {
   const isPortrait = usePortraitLock();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     chapterId?: string;
     chapterTitle?: string;
@@ -367,12 +370,14 @@ export default function EnteringClassroomScreen() {
       <View style={styles.screen}>
         <StatusBar style="light" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.errorBlock}>
-            <Text style={styles.errorTitle}>Couldn&apos;t enter the classroom</Text>
-            <Text style={styles.errorBody}>{errorMessage}</Text>
-            <Pressable style={styles.errorButton} onPress={() => router.back()}>
-              <Text style={styles.errorButtonText}>Go back</Text>
-            </Pressable>
+          <View style={styles.stateBlock}>
+            <StateCard
+              tone="dark"
+              glyph="retry"
+              title="Couldn't enter the classroom"
+              line={errorMessage ?? undefined}
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
           </View>
         </SafeAreaView>
       </View>
@@ -448,6 +453,9 @@ export default function EnteringClassroomScreen() {
             Tip: you can interrupt Drona any time: just tap raise hand.
           </Text>
         </View>
+        {/* The typed request and its Go sit low on the page: lifted above
+            the keyboard, on both platforms (this screen had nothing for it). */}
+        <KeyboardSpacer ios bottomInset={insets.bottom} />
       </SafeAreaView>
     </Pressable>
   );
@@ -574,6 +582,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: '#938D80',
     },
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(24) },
     errorBlock: {
       flex: 1,
       alignItems: 'center',

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { DiagramFigure } from '@/lib/practice';
@@ -37,6 +38,7 @@ export function QuestionDiagram({
   total?: number;
 }) {
   const { scale, verticalScale } = useScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [ratio, setRatio] = useState<number>(
     figure.region && figure.region.h > 0 ? figure.region.w / figure.region.h : FALLBACK_ASPECT,
@@ -120,7 +122,9 @@ export function QuestionDiagram({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close enlarged figure"
-            style={styles.closeButton}
+            // Clear of the status bar and camera: the Modal is drawn edge to
+            // edge, and a fixed 48 sat on the punch-hole on some Androids.
+            style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
             onPress={() => setOpen(false)}
           >
             <Text style={styles.closeText}>Close ✕</Text>

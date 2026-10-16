@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { shadow } from '@/lib/shadow';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
@@ -221,11 +222,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
-      shadowColor: '#16130E',
-      shadowOffset: { width: 0, height: verticalScale(-10) },
-      shadowOpacity: 0.25,
-      shadowRadius: scale(20),
-      elevation: 12,
+      ...shadow({ color: '#16130E', opacity: 0.25, radius: scale(20), y: verticalScale(-10), elevation: 12 }),
     },
     handle: {
       width: scale(40),
@@ -389,11 +386,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(99),
       backgroundColor: colors.ink,
       marginTop: verticalScale(18),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.3,
-      shadowRadius: scale(10),
-      elevation: 6,
+      ...shadow({ color: colors.ink, opacity: 0.3, radius: scale(10), y: verticalScale(6), elevation: 6 }),
     },
     doneButtonText: {
       fontFamily: 'Onest_600SemiBold',

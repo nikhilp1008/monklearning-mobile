@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { shadow } from '@/lib/shadow';
 import { colors } from '@/constants/brand';
 import { SUBJECT_TILES, SubjectArt } from '@/components/textbook/subjects';
 import { getProfile } from '@/lib/profile';
@@ -237,11 +238,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       borderWidth: 1,
       flexDirection: 'row',
       overflow: 'hidden',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(10) },
-      shadowOpacity: 0.16,
-      shadowRadius: scale(14),
-      elevation: 3,
+      // overflow:'hidden' clips this shadow away on iOS, so the card has
+      // never had one there; Android would draw it. Matched to iOS.
+      ...(Platform.OS === 'ios' ? shadow({ color: colors.ink, opacity: 0.16, radius: scale(14), y: verticalScale(10), elevation: 3 }) : {}),
     },
     tilePressed: { transform: [{ scale: 0.97 }] },
 

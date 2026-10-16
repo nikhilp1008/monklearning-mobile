@@ -61,6 +61,9 @@ const HEALTHY_MIC = {
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), back: jest.fn() },
   useLocalSearchParams: () => ({ sessionId: 'session-1', chapterTitle: 'Laws of Motion', subject: 'physics' }),
+  // The screen is always focused here: run the effect once, like a mount.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]),
 }));
 
 const mockImpact = jest.fn();
@@ -135,6 +138,7 @@ jest.mock('@/components/dock-face', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  useSafeAreaFrame: () => ({ x: 0, y: 0, width: 402, height: 874 }),
 }));
 
 /** Every string rendered anywhere in the tree. */

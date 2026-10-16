@@ -5,6 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { friendlyError } from '@/lib/api';
+import { shadow } from '@/lib/shadow';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
@@ -57,7 +59,7 @@ export default function TopicSheetScreen() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : 'Could not load topics.');
+          setLoadError(friendlyError(err, 'load the topics'));
         }
       })
       .finally(() => {
@@ -380,11 +382,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(13),
       paddingVertical: verticalScale(12),
       paddingHorizontal: scale(14),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
+      ...shadow({ color: colors.ink, opacity: 0.05, radius: scale(2), y: verticalScale(1.5), elevation: 1 }),
     },
     freetalkRow: {
       flexDirection: 'row',

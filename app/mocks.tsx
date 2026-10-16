@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { StateBanner, StateLine } from '@/components/states';
 import { DiagnosticCard } from '@/components/diagnostic-card';
 import { RingSweep } from '@/components/gradient-select';
 import { MockKey, MockSection } from '@/components/mock/mock-kit';
@@ -106,6 +107,11 @@ export default function MocksScreen() {
   /** Whether `runs` is the server's answer or the empty fallback after a
    *  failed read — the two look the same and mean opposite things. */
   const [runsLoaded, setRunsLoaded] = useState(false);
+  /** The gate could not be read: said, with a Try again, instead of a
+   *  skeleton that pulsed forever and a key that never woke. */
+  const [statusFailed, setStatusFailed] = useState(false);
+  /** Bumped by Try again, which re-runs the focus load. */
+  const [retry, setRetry] = useState(0);
   /** Papers whose full report is on this device. They are listed even when
    *  the server's list cannot be reached, which is the one case where a
    *  student has the whole paper in their hand and would be shown nothing. */
@@ -148,9 +154,10 @@ export default function MocksScreen() {
       // The gate, the server's list and this device's reports. Read on focus,
       // and again after a paper is marked below, so it appears at once.
       const loadLists = () => {
+        setStatusFailed(false);
         getMockStatus(s?.paper.exam ?? exam)
           .then((next) => !cancelled && setStatus(next))
-          .catch(() => undefined);
+          .catch(() => !cancelled && setStatusFailed(true));
         listMockRuns()
           .then((next) => {
             if (cancelled) return;
@@ -202,7 +209,9 @@ export default function MocksScreen() {
       return () => {
         cancelled = true;
       };
-    }, [exam])
+      // `retry` is in the list only so Try again re-runs this load.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [exam, retry])
   );
 
   const eligible = hasActivePaper || (status?.credits_available ?? 0) > 0;
@@ -362,7 +371,14 @@ export default function MocksScreen() {
               <DiagnosticCard offer={diagnostic} />
             </>
           )}
-          {!gateKnown ? (
+          {!gateKnown && statusFailed ? (
+            <StateBanner
+              style={styles.stateBanner}
+              bold="Couldn't reach your papers."
+              text="Check your connection."
+              link={{ label: 'Try again', onPress: () => setRetry((n) => n + 1) }}
+            />
+          ) : !gateKnown ? (
             <>
               <Skeleton style={styles.skeletonLine} />
               <Skeleton delay={80} style={styles.skeletonCard} />
@@ -476,11 +492,21 @@ export default function MocksScreen() {
 
           {runs === null && !saved.length ? (
             <Skeleton delay={160} style={styles.skeletonRow} />
+          ) : sat.length === 0 && runs !== null && !runsLoaded ? (
+            // The list failed to load: "None yet" would be untrue.
+            <StateLine
+              style={styles.stateLine}
+              glyph="offline"
+              text="Couldn't load your past papers right now."
+              link={{ label: 'Try again', onPress: () => setRetry((n) => n + 1) }}
+            />
           ) : sat.length === 0 ? (
-            <Text style={styles.emptyLine}>
-              None yet. Each paper you finish keeps its full report here: every question, what you
-              put, and the right answer.
-            </Text>
+            <StateLine
+              style={styles.stateLine}
+              glyph="paper"
+              emphasis="None yet."
+              text="Each paper you finish keeps its full report here: every question, what you put, and the right answer."
+            />
           ) : (
             sat.map((run) => (
               <Pressable
@@ -865,6 +891,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(18),
       color: colors.red,
     },
+    stateBanner: { marginTop: verticalScale(18) },
+    stateLine: { marginTop: verticalScale(12) },
     emptyLine: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),

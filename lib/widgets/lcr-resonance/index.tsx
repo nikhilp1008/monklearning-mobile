@@ -28,6 +28,9 @@ import {
 } from './physics';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+// Made once, here. It was made inside the render, so every render was a new
+// component type and the probe dot was torn down and rebuilt each time.
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const VIEWS = ['impedance', 'current', 'phase', 'reactances'] as const;
 export type LcrView = (typeof VIEWS)[number];
@@ -198,7 +201,6 @@ function LcrResonance({ params, motion, width, height, theme }:
     const w = frame.w0 * probeSv.value;
     return { cx: frame.x(w), cy: frame.y(valueAt(params, w, params.view)) };
   });
-  const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
   const unit = params.view === 'impedance' ? '|Z| (ohm)'
     : params.view === 'current' ? 'I (A)'

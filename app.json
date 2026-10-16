@@ -56,7 +56,14 @@
           "recordAudioAndroid": true
         }
       ],
-      "@siteed/audio-studio",
+      [
+        "@siteed/audio-studio",
+        {
+          "enablePhoneStateHandling": false,
+          "enableNotifications": false,
+          "enableBackgroundAudio": false
+        }
+      ],
       [
         "expo-build-properties",
         {

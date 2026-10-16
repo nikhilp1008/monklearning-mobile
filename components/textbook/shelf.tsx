@@ -18,6 +18,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg';
 
+import { StateCard, StateLine } from '@/components/states';
 import { MonkLogo } from '@/components/monk-logo';
 import { Skeleton } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -131,6 +132,8 @@ export function TextbooksShelf() {
   const [examSubjects, setExamSubjects] = useState<string[] | null>(null);
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Bumped by Try again, which re-runs the load below. */
+  const [attempt, setAttempt] = useState(0);
   const [classLevel, setClassLevel] = useState<ClassLevel>(11);
   const [menuOpen, setMenuOpen] = useState(false);
   const [idx, setIdx] = useState(0);
@@ -144,13 +147,14 @@ export function TextbooksShelf() {
       // A profile that will not load is not a reason to show nothing: the
       // JEE trio is the safe default, as the old grid had it.
       .catch(() => !cancelled && setExamSubjects(['physics', 'chemistry', 'mathematics']));
+    setError(null);
     getCatalogue()
       .then((c) => !cancelled && setCatalogue(c))
       .catch((err) => !cancelled && setError(friendlyLoadError(err, 'chapters')));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   const books = useMemo(
     () => (examSubjects ? BOOKS.filter((b) => examSubjects.includes(b.key)) : []),
@@ -354,7 +358,14 @@ export function TextbooksShelf() {
 
         <Animated.View style={[s.sheet, { minHeight: viewport || undefined }, sheetStyle]}>
           {error ? (
-            <Text style={s.state}>{error}</Text>
+            <View style={s.stateCard}>
+              <StateCard
+                glyph="retry"
+                title="Couldn't load the chapters"
+                line={error}
+                action={{ label: 'Try again', onPress: () => setAttempt((n) => n + 1) }}
+              />
+            </View>
           ) : !catalogue ? (
             <View style={s.loading}>
               {[0, 1, 2, 3, 4].map((i) => (
@@ -362,7 +373,7 @@ export function TextbooksShelf() {
               ))}
             </View>
           ) : chapters.length === 0 ? (
-            <Text style={s.state}>No chapters here yet.</Text>
+            <StateLine style={s.stateCard} glyph="book" text="No chapters here yet. They're being written." />
           ) : (
             chapters.map((c, i) => {
               const open = isChapterReady(book.key, classLevel, c.name);
@@ -602,7 +613,7 @@ function ChapterRow({
 }) {
   const style = useAnimatedStyle(() => {
     const t = easeOut(Math.min(1, Math.max(0, (enter.value * (360 + 112) - delay) / 360)));
-    return { opacity: t * (open ? 1 : 0.45), transform: [{ translateX: (1 - t) * 28 * dir.value }] };
+    return { opacity: t, transform: [{ translateX: (1 - t) * 28 * dir.value }] };
   });
   return (
     <Animated.View style={style}>
@@ -613,10 +624,19 @@ function ChapterRow({
         accessibilityRole="button"
         accessibilityState={{ disabled: !open }}>
         <Text style={styles.rowNumber}>{n}</Text>
-        <Text style={styles.rowTitle}>{title}</Text>
-        <Svg viewBox="0 0 16 16" width={chevron} height={chevron} fill="none">
-          <Path d="M6 3l5 5-5 5" stroke="#9C988C" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
+        <Text style={[styles.rowTitle, !open && styles.rowTitleSoon]}>{title}</Text>
+        {open ? (
+          <Svg viewBox="0 0 16 16" width={chevron} height={chevron} fill="none">
+            <Path d="M6 3l5 5-5 5" stroke="#9C988C" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        ) : (
+          // Said, not just dimmed: a greyed row with no word read as broken.
+          <View style={styles.soonTag}>
+            <Text style={styles.soonText} maxFontSizeMultiplier={1.2}>
+              BEING WRITTEN
+            </Text>
+          </View>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -752,6 +772,22 @@ function createStyles(scale: (n: number) => number, u: number) {
       lineHeight: READ_LINE - 2,
       color: colors.ink,
     },
+    rowTitleSoon: { color: '#8C867A' },
+    soonTag: {
+      paddingHorizontal: scale(8),
+      paddingVertical: scale(4),
+      borderRadius: scale(7),
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: 'rgba(28,26,22,.14)',
+    },
+    soonText: {
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(10.5),
+      letterSpacing: scale(0.8),
+      color: '#5F5A50',
+      includeFontPadding: false,
+    },
+    stateCard: { paddingHorizontal: scale(24), paddingTop: scale(18) },
     loading: { paddingHorizontal: scale(24), paddingTop: scale(12), gap: scale(18) },
     skeletonRow: { height: scale(16), borderRadius: 8, width: '78%' },
     state: {

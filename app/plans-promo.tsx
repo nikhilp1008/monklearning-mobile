@@ -26,8 +26,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PLANS, WINBACK } from '@/components/paywall/plans';
 import type { Pick } from '@/components/paywall/screens';
@@ -37,6 +38,7 @@ const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id
 
 export default function PlansPromoScreen() {
   const { ds, fs, tracking } = useDesignScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
@@ -155,6 +157,7 @@ export default function PlansPromoScreen() {
           <View style={styles.footer}>
             <ObButton label="Apply code" disabled={!draft.trim()} onPress={apply} />
           </View>
+          <KeyboardSpacer bottomInset={insets.bottom} />
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>

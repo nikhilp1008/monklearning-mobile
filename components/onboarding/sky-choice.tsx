@@ -17,6 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
+import { CONTROL_LABEL_MAX_SCALE } from "@/constants/font-scale";
 import { PressableScale } from "@/components/pressable-scale";
 import { ob, obFont, useDesignScale } from "@/constants/onboarding";
 import { hapticSwitched } from "@/lib/haptics";
@@ -174,6 +175,7 @@ export function SkyChoice({
 
   const size = labelSize ?? (shape === "row" ? 19 : shape === "tile" ? 17 : 15);
   const labelStyle = {
+    includeFontPadding: false,
     fontFamily: obFont.m500,
     fontSize: fs(size),
     letterSpacing: tracking(-0.02, size),
@@ -248,11 +250,11 @@ export function SkyChoice({
             {shape === "row" ? (
               <>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Animated.Text style={[labelStyle, labelColor]}>
+                  <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={[labelStyle, labelColor]}>
                     {label}
                   </Animated.Text>
                   {note ? (
-                    <Animated.Text
+                    <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
                       style={[
                         {
                           marginTop: ds(2),
@@ -268,7 +270,7 @@ export function SkyChoice({
                   ) : null}
                 </View>
                 {tag ? (
-                  <Animated.Text
+                  <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
                     style={[
                       {
                         fontFamily: obFont.sb600,
@@ -282,7 +284,7 @@ export function SkyChoice({
                   </Animated.Text>
                 ) : null}
                 {trailing ? (
-                  <Animated.Text
+                  <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
                     style={[
                       {
                         fontFamily: obFont.m500,
@@ -301,7 +303,7 @@ export function SkyChoice({
               </>
             ) : (
               <>
-                <Animated.Text
+                <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
                   numberOfLines={1}
                   style={[labelStyle, labelColor, { flexShrink: 1 }]}
                 >

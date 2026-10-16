@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StateCard } from '@/components/states';
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { hapticSoft, hapticTicked, hapticWarning } from '@/lib/haptics';
@@ -164,19 +165,28 @@ export default function SnapSolvedScreen() {
       <View style={styles.screen}>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Couldn&apos;t solve this one</Text>
-            <Text style={styles.emptyBody}>
-              {/* Quota is not a remedy — nothing about the photo or a retry
-                  changes it, and the server's message carries the count. */}
-              {job.failure.stage === 'quota'
-                ? withTeacherName(job.failure.message)
-                : ((job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
-                  withTeacherName(job.failure.message))}
-            </Text>
-            <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
-              <Text style={styles.ctaButtonText}>Try another photo</Text>
-            </Pressable>
+          <View style={styles.stateBlock}>
+            {job.failure.stage === 'quota' ? (
+              // The day's limit, said as the camera screen says it. It was
+              // "Couldn't solve this one" with a "Try another photo" button
+              // that could not work until tomorrow.
+              <StateCard
+                glyph="clock"
+                title="You've used today's snaps"
+                line="Snaps open again tomorrow. Everything you've solved is in Doubts."
+                action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+              />
+            ) : (
+              <StateCard
+                glyph="retry"
+                title="Couldn't solve this one"
+                line={
+                  (job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
+                  withTeacherName(job.failure.message)
+                }
+                action={{ label: 'Try another photo', onPress: () => router.replace('/snap-capture') }}
+              />
+            )}
           </View>
         </SafeAreaView>
       </View>
@@ -188,12 +198,13 @@ export default function SnapSolvedScreen() {
       <View style={styles.screen}>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Nothing to show</Text>
-            <Text style={styles.emptyBody}>Snap a doubt first and it&apos;ll land here once solved.</Text>
-            <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
-              <Text style={styles.ctaButtonText}>Snap a doubt</Text>
-            </Pressable>
+          <View style={styles.stateBlock}>
+            <StateCard
+              glyph="doubts"
+              title="Nothing solved yet"
+              line="Snap a question and it'll land here once it's solved."
+              action={{ label: 'Snap a question', onPress: () => router.replace('/snap-capture') }}
+            />
           </View>
         </SafeAreaView>
       </View>
@@ -228,6 +239,8 @@ export default function SnapSolvedScreen() {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /** Where a state card sits: centred in the page, in the page's gutter. */
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(24) },
     screen: {
       flex: 1,
       backgroundColor: colors.paper,

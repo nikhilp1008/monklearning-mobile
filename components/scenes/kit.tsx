@@ -254,7 +254,12 @@ export function Draw({
     );
   }, [on, delay, dur, length, offset]);
 
-  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
+  // Hidden while undrawn: pushed off by its whole length the stroke is a
+  // zero-length dash, and with a round cap Android draws that as a dot.
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: offset.value,
+    strokeOpacity: offset.value >= length - 0.01 ? 0 : 1,
+  }));
 
   return (
     <AnimatedPath

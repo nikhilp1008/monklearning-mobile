@@ -6,7 +6,7 @@ import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { EXAMS, YEARS, type YearKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, friendlyError } from '@/lib/api';
 import { getSessionEmail, signOut } from '@/lib/auth';
 import { StudentProfile, getProfile, pullProfile, saveProfile } from '@/lib/profile';
 
@@ -111,9 +111,9 @@ export default function AccountScreen() {
       // lands on onboarding — nothing to navigate to from here.
       await signOut();
     } catch (err) {
-      setDeleteError(err instanceof Error && err.message
-        ? err.message
-        : 'Deletion didn’t finish. Please try again.');
+      // The student's words, not the server's: friendlyError keeps the raw
+      // message for the console.
+      setDeleteError(friendlyError(err, 'delete your account'));
       setDeleting(false);
     }
   }, [deleting, email]);

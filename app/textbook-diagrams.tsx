@@ -1,9 +1,11 @@
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageSkeleton, StateCard } from '@/components/states';
 import { DiagramCard, DiagramImage } from '@/components/revise/diagram-card';
 import { ReviseDock } from '@/components/revise/dock';
 import { PageTurn, PageTurnHandle } from '@/components/revise/page-turn';
@@ -50,9 +52,18 @@ export default function TextbookDiagramsScreen() {
       <SafeAreaView edges={['top']} style={s.safe}>
         <ReviseHeader title="Diagrams" rule />
         {missing ? (
-          <Text style={s.state}>This chapter could not be opened.</Text>
+          <View style={[{ paddingHorizontal: 24, paddingTop: 32 }]}>
+            <StateCard
+              glyph="book"
+              title="This chapter didn't open"
+              line="Go back and open it again."
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
+          </View>
         ) : !chapter ? (
-          <ActivityIndicator style={s.loading} color={colors.faint} />
+          <View style={s.loading}>
+            <PageSkeleton />
+          </View>
         ) : (
           <FlatList
             data={list}

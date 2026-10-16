@@ -111,8 +111,8 @@ const C = DOCK_PAL.map(hex3);
  * small) or leaves a white wedge in the corner (too large).
  *
  * There is no public API for a display's corner radius, so these are the
- * published values keyed by screen size in points. Anything unlisted -- Android
- * included, where corners vary by maker -- falls back to the reference's 48.
+ * published values keyed by screen size in points. An unlisted iPhone falls
+ * back to the reference's 48; Android is square (see screenCorner).
  */
 const IOS_CORNERS: Record<string, number> = {
   '375x812': 39, // X, XS, 11 Pro, 12 mini, 13 mini
@@ -127,7 +127,11 @@ const IOS_CORNERS: Record<string, number> = {
 const DESIGN_CORNER = 48;
 
 function screenCorner(w: number, h: number): number {
-  if (Platform.OS !== 'ios') return DESIGN_CORNER;
+  // Android: square. Its corners vary by maker and no API reports them, and a
+  // guessed 48 left a white wedge on any phone with tighter corners. Square
+  // never can: the glass hides what passes a rounded corner, and Android's
+  // screenshots and recordings are square themselves.
+  if (Platform.OS !== 'ios') return 0;
   const key = `${Math.round(Math.min(w, h))}x${Math.round(Math.max(w, h))}`;
   return IOS_CORNERS[key] ?? DESIGN_CORNER;
 }

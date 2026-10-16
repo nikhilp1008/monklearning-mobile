@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { TeacherPicker } from '@/components/teacher-picker';
+import { useAndroidBack } from '@/lib/android-back';
 import { pushPersona } from '@/lib/persona-sync';
 import {
   getLanguagePreference,
@@ -32,6 +33,9 @@ import {
  * server learns both at sign-up exactly as it did before.
  */
 export default function TeacherScreen() {
+  // After payment: Back would return to the receipt, whose button starts the
+  // pass again. Held, as the swipe is (see (onboarding)/_layout).
+  useAndroidBack(() => true);
   return (
     <TeacherPicker
       initial="drona"
