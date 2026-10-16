@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -109,7 +109,12 @@ export function IndexSheet({
     t.value = withTiming(open ? 1 : 0, { duration: 300 });
   }, [open, t]);
   const scrim = useAnimatedStyle(() => ({ opacity: t.value }));
-  const sheet = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - t.value) * 700 }] }));
+  // Closed, the sheet sits a full screen below the bottom edge. It used to
+  // sit 700pt below, but the sheet is up to 80% of the screen tall, and on a
+  // Pro Max (932pt) that is 745pt: its handle and title showed over the
+  // dock's foot. Only big phones are that tall, so only iPhone showed it.
+  const { height: screenH } = useWindowDimensions();
+  const sheet = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - t.value) * screenH }] }));
   return (
     <View pointerEvents={open ? 'auto' : 'none'} style={StyleSheet.absoluteFill}>
       <Animated.View style={[StyleSheet.absoluteFill, st.scrim, scrim]}>

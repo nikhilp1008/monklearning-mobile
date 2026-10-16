@@ -663,10 +663,11 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     /* The foot, as app/textbook-reader.tsx draws it. */
     navWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     navFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: verticalScale(170) },
+    // A column, so the bar inside stretches the full width. As a row it was
+    // only as wide as its own contents: on a wide iPhone that left a gap right
+    // of "Ask teacher", and the board above, which takes the bar's width, grew
+    // whenever a long line was written on it.
     navRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
       marginHorizontal: scale(16),
       marginBottom: verticalScale(6),
     },

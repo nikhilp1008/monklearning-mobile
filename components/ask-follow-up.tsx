@@ -1577,7 +1577,11 @@ export function AskFollowUpBar({
                 {hint}
               </Text>
             </View>
-            {trailing}
+            {/* Next takes the rest of the row, a fixed gap from the bar. Left
+                at its own size, the leftover width became the gap, so the two
+                sat far apart on a wide iPhone and nearly touching on a narrow
+                Android. */}
+            <View style={styles.trailingFill}>{trailing}</View>
           </View>
         </>
       ) : trailing ? (
@@ -1872,6 +1876,8 @@ const styles = StyleSheet.create({
   /** The row with a trailing control: bar column left, control right, both
    *  hung from the top so the control levels with the pill, not the hint. */
   rowSpread: { justifyContent: 'space-between', alignItems: 'flex-start' },
+  /** Practice's Next beside the lit bar: the whole of the rest of the row. */
+  trailingFill: { flex: 1, marginLeft: 2 },
   /** The bar and its "Hold to speak" line, stacked and centred on each other. */
   barColumn: { alignItems: 'center', gap: 9 },
   /** Holds ring and face together and sizes itself to the face, so the ring's
