@@ -635,6 +635,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: scale(12),
+      paddingBottom: verticalScale(10),
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
     },

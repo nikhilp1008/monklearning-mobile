@@ -344,20 +344,18 @@ export default function MocksScreen() {
             onPress={() => router.back()}>
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          {/* The line about the papers sits under the title, on its left edge,
-              as the report's date does; it hung under the back button with
-              a wide gap below it. */}
-          <View style={styles.titleCol}>
-            <Text style={styles.title}>Mock tests</Text>
-            <Text style={styles.lead}>
-              {hasActivePaper
-                ? 'The clock kept running while you were away.'
-                : 'Exam-pattern papers: past-paper questions, your own Practice mistakes, and fresh ones.'}
-            </Text>
-          </View>
+          <Text style={styles.title}>Mock tests</Text>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
+          {/* The line about the papers, full width under the header: 10 below
+              the title row, and the first section 24 below it, the same gap
+              the sections keep between themselves. */}
+          <Text style={styles.lead}>
+            {hasActivePaper
+              ? 'The clock kept running while you were away.'
+              : 'Exam-pattern papers: past-paper questions, your own Practice mistakes, and fresh ones.'}
+          </Text>
           {gateKnown && diagnostic && (
             <>
               <MockSection title="Start here" first />
@@ -660,17 +658,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
-    /** Top-aligned, the button centred on the title's own line, so a second
-     *  line under the title does not pull it down. */
     topRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: scale(12),
       paddingTop: verticalScale(8),
       paddingHorizontal: scale(20),
     },
     backButton: {
-      marginTop: scale((29 - 36) / 2),
       width: scale(36),
       height: scale(36),
       flexShrink: 0,
@@ -681,12 +676,11 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
     },
     /** The app's one page-title tier — see constants/page-title.ts. */
-    titleCol: { flex: 1, minWidth: 0 },
-    title: { ...pageTitle(scale) },
+    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
     scroll: { flex: 1, minHeight: 0 },
     scrollInner: {
       paddingHorizontal: scale(20),
-      paddingTop: verticalScale(24),
+      paddingTop: verticalScale(10),
       paddingBottom: verticalScale(28),
     },
     lead: {
@@ -694,7 +688,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(13.5),
       lineHeight: scale(19),
       color: colors.slate,
-      marginTop: verticalScale(4),
+      marginBottom: verticalScale(24),
     },
     /** The one card: white, a fine border, 16 corners, no shadow. */
     card: {
