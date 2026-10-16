@@ -70,3 +70,60 @@ test('with no tap in between, the server answer is applied', async () => {
   expect(await getTeacherPreference()).toBe('vedha');
   expect(await getLanguagePreference()).toBe('english');
 });
+
+describe('the one-time reset to English', () => {
+  beforeEach(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const AsyncStorage = require('@react-native-async-storage/async-storage');
+    await AsyncStorage.clear();
+  });
+
+  test('tells the server English, once', async () => {
+    const posts: string[] = [];
+    global.fetch = jest.fn((_url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'POST') {
+        posts.push(init.body ?? '');
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ teacher: 'drona', language: 'english' }) });
+    }) as unknown as typeof fetch;
+
+    await pullPersona();
+    await pullPersona();
+    expect(posts).toEqual([JSON.stringify({ language: 'english' })]);
+    expect(await getLanguagePreference()).toBe('english');
+  });
+
+  test('a Hinglish choice made after it stands', async () => {
+    let server = 'hinglish';
+    global.fetch = jest.fn((_url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'POST') {
+        server = JSON.parse(init.body ?? '{}').language ?? server;
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ teacher: 'drona', language: server }) });
+    }) as unknown as typeof fetch;
+
+    await pullPersona();
+    expect(server).toBe('english');
+    await pushPersona({ language: 'hinglish' });
+    await pullPersona();
+    expect(server).toBe('hinglish');
+    expect(await getLanguagePreference()).toBe('hinglish');
+  });
+
+  test('offline, it is tried again on the next pull', async () => {
+    let up = false;
+    const posts: string[] = [];
+    global.fetch = jest.fn((_url: string, init?: { method?: string; body?: string }) => {
+      if (!up) return Promise.reject(new Error('offline'));
+      if (init?.method === 'POST') posts.push(init.body ?? '');
+      return Promise.resolve({ ok: true, json: async () => ({ teacher: 'drona', language: 'english' }) });
+    }) as unknown as typeof fetch;
+
+    await pullPersona();
+    up = true;
+    await pullPersona();
+    expect(posts).toEqual([JSON.stringify({ language: 'english' })]);
+  });
+});
