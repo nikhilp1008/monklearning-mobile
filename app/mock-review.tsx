@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -42,6 +42,8 @@ export default function MockReviewScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const { run, i } = useLocalSearchParams<{ run?: string; i?: string }>();
   const [report, setReport] = useState<MockReport | null>(null);
+  /** The paper could not be found on this phone or the server. */
+  const [missing, setMissing] = useState(false);
   const [index, setIndex] = useState(Math.max(0, Number(i ?? 0) || 0));
 
   useEffect(() => {
@@ -53,11 +55,16 @@ export default function MockReviewScreen() {
       setReport(buildReport(session, session.result));
       return;
     }
-    if (!run) return;
+    if (!run) {
+      setMissing(true);
+      return;
+    }
     loadReport(run)
       .then(async (saved) => saved ?? (await fetchReport(run).catch(() => null)))
       .then((r) => {
-        if (!cancelled) setReport(r);
+        if (cancelled) return;
+        setReport(r);
+        setMissing(!r);
       });
     return () => {
       cancelled = true;
@@ -70,7 +77,33 @@ export default function MockReviewScreen() {
     [q]
   );
 
-  if (!report || !q) return <View style={styles.screen} />;
+  // Never a blank page: while it loads, or if the paper cannot be found,
+  // the way back is still there.
+  if (!report || !q) {
+    return (
+      <View style={styles.screen}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.topRow}>
+            <Pressable
+              style={styles.round}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}>
+              <BackIcon size={scale(16)} />
+            </Pressable>
+          </View>
+          {missing || (report && !q) ? (
+            <Text style={styles.missing}>
+              This question could not be opened. Check your connection and try again.
+            </Text>
+          ) : (
+            <ActivityIndicator style={styles.loading} color={colors.faint} />
+          )}
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   const total = report.questions.length;
   const verdict = !q.answered ? 'skipped' : q.is_correct ? 'right' : 'wrong';
@@ -91,12 +124,12 @@ export default function MockReviewScreen() {
           >
             <BackIcon size={scale(16)} />
           </Pressable>
-          <View style={styles.titleCol}>
-            <Text style={styles.title}>Question {q.num}</Text>
-            <Text style={styles.subtitle}>
-              {q.num} of {total} · {SUBJECT_LABEL[q.subject] ?? q.subject}
-            </Text>
-          </View>
+          {/* One line: the question and where it sits in the paper. The
+              subject and chapter are said once, above the question. */}
+          <Text style={styles.title} numberOfLines={1}>
+            Question {q.num}
+            <Text style={styles.titleOf}> of {total}</Text>
+          </Text>
           {/* A wrong key or a broken question, reported by the question with
               the paper and what was put attached, as the report did. */}
           <Pressable
@@ -128,7 +161,7 @@ export default function MockReviewScreen() {
           {/* Practice's question head, with how it went. */}
           <View style={styles.metaRow}>
             <Text style={styles.meta} numberOfLines={1}>
-              {q.chapter_name ?? SUBJECT_LABEL[q.subject] ?? q.subject}
+              {[SUBJECT_LABEL[q.subject] ?? q.subject, q.chapter_name].filter(Boolean).join(' · ')}
             </Text>
             {q.elapsed_ms > 0 && <Text style={styles.time}>{formatSpan(q.elapsed_ms)}</Text>}
             <Text
@@ -269,6 +302,15 @@ function BackIcon({ size }: { size: number }) {
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: '#fff' },
+    loading: { marginTop: verticalScale(40) },
+    missing: {
+      paddingHorizontal: scale(20),
+      paddingTop: verticalScale(24),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
+      color: colors.slate,
+    },
     safe: { flex: 1 },
     topRow: {
       flexDirection: 'row',
@@ -286,14 +328,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       alignItems: 'center',
       justifyContent: 'center',
     },
-    titleCol: { flex: 1, minWidth: 0 },
-    title: { ...pageTitle(scale) },
-    subtitle: {
-      marginTop: verticalScale(2),
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(13),
-      color: colors.faint,
-    },
+    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    titleOf: { fontFamily: 'Onest_500Medium', fontSize: scale(16), color: colors.faint },
     body: {
       paddingHorizontal: scale(20),
       paddingTop: verticalScale(22),
