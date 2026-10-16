@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ExamKey, YearKey } from '@/constants/onboarding';
+import { clearAnswers, getAnswers } from '@/lib/onboarding-answers';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -68,8 +69,12 @@ const FALLBACK: StudentProfile = {
   joined: '',
 };
 
+/**
+ * JEE or NEET. A 'both' left on a phone from before that option was removed
+ * reads as JEE, which is what the server has always held for those students.
+ */
 function readExam(value: string | null | undefined): ExamKey {
-  return value === 'jee' || value === 'neet' || value === 'both' ? value : FALLBACK.exam;
+  return value === 'neet' ? 'neet' : value === 'jee' ? 'jee' : FALLBACK.exam;
 }
 
 function readYear(value: string | null | undefined): YearKey {
@@ -177,6 +182,8 @@ export async function clearProfile(): Promise<void> {
   // actually be shown, and leaving the previous one's name in it for the
   // duration of a storage write is the same bug this function exists to stop.
   cached = FALLBACK;
+  // The onboarding answers are this student's too.
+  void clearAnswers();
   try {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch {
@@ -189,13 +196,7 @@ export async function clearProfile(): Promise<void> {
 
 /* ── server ──────────────────────────────────────────────────────────────── */
 
-/**
- * `profiles.target_exam` is checked against 'JEE' and 'NEET' — uppercase, and
- * **'both' is rejected** even though `progress.py` has a branch for it. Until
- * that constraint is widened, a student who picks both is stored as JEE, which
- * is also what the API would show them (`allowed[0]`), so at least nothing
- * disagrees. Flagged for the co-founder.
- */
+/** `profiles.target_exam` is checked against 'JEE' and 'NEET', uppercase. */
 function examForServer(exam: ExamKey): 'JEE' | 'NEET' {
   return exam === 'neet' ? 'NEET' : 'JEE';
 }
@@ -254,36 +255,22 @@ export async function pullProfile(): Promise<void> {
     const row = rows?.[0];
     if (!row) return;
     const local = await getProfile();
-    /**
-     * 'JEE' on the server means jee OR both, so it cannot overwrite 'both'.
-     *
-     * `examForServer` stores a both-exam student as JEE because the column's
-     * check constraint rejects 'both'. A pull then read that back as plain
-     * 'jee' and saved it over the local answer -- and `app/profile.tsx` pulls
-     * on mount, so opening Profile to look at your exams was itself what
-     * destroyed them. After that Profile showed one exam and Textbooks three
-     * subjects, permanently.
-     *
-     * 'NEET' is unambiguous and still wins. Same shape as `enrolled_class`
-     * below, where a server 12 never overwrites a local 'dropper'.
-     *
-     * This holds the answer on the device that made the choice. A reinstall
-     * or a second device still comes back as JEE, because the server genuinely
-     * does not hold 'both' -- that needs the constraint widened, which is
-     * flagged on `examForServer`.
-     */
     const serverExam = String(row.target_exam).toLowerCase();
-    const exam: ExamKey =
-      serverExam === 'neet' ? 'neet' : local.exam === 'both' ? 'both' : 'jee';
+    const exam: ExamKey = serverExam === 'neet' ? 'neet' : 'jee';
     await saveProfile({
       ...(row.display_name ? { name: row.display_name as string } : {}),
       ...(row.phone ? { phone: row.phone as string } : {}),
       phoneVerified: row.phone_verified === true,
       exam,
       // 12 covers both Class 12 and droppers on the server, so a pull can only
-      // ever restore the coarse answer — it never overwrites a local
-      // 'dropper' with 'class12' unless there was nothing local to keep.
-      ...(row.enrolled_class === 11 ? { year: 'class11' as YearKey } : {}),
+      // ever restore the coarse answer: a local 'dropper' is kept under a 12.
+      // A 12 does overwrite a local 'class11', which can be left on the device
+      // by answering the questions and then signing in to an older account.
+      ...(row.enrolled_class === 11
+        ? { year: 'class11' as YearKey }
+        : row.enrolled_class === 12 && local.year !== 'dropper'
+          ? { year: 'class12' as YearKey }
+          : {}),
       ...(row.created_at ? { joined: String(row.created_at) } : {}),
     });
     if (user.email) await saveProfile({ email: user.email, emailVerified: true });
@@ -307,6 +294,23 @@ export async function pullProfile(): Promise<void> {
  * server with whatever they retyped. Callers must decide what an unanswerable
  * question means for them; none of them may treat it as `false`.
  */
+/**
+ * The device's own answer to "has this student finished onboarding?", for
+ * when the server cannot be asked (offline, timed out).
+ *
+ * A stored name used to be the evidence. Now that the name is the first
+ * question, it is typed long before onboarding is finished, so a new student
+ * who lost signal at the code screen would have been taken for a returning
+ * one and skipped the pass, the teacher and the push to the server. So: on a
+ * device that went through the new questions, only `finished` counts; on one
+ * that never did (every install before them), the name still does.
+ */
+export async function onboardedOnThisDevice(): Promise<boolean> {
+  const a = await getAnswers();
+  if (a.started) return !!a.finished;
+  return !!(await getStoredName());
+}
+
 export async function hasCompletedOnboarding(): Promise<boolean> {
   const { data } = await supabase.auth.getSession();
   const user = data.session?.user;

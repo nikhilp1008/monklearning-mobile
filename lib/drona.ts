@@ -42,7 +42,6 @@ const catalogueByExam = new Map<ExamKey, Promise<CatalogueSubject[]>>();
  */
 export function examSubjects(exam: ExamKey): string[] {
   if (exam === 'neet') return ['physics', 'chemistry', 'biology'];
-  if (exam === 'both') return ['physics', 'chemistry', 'mathematics', 'biology'];
   return ['physics', 'chemistry', 'mathematics'];
 }
 
@@ -67,9 +66,6 @@ export function examSubjects(exam: ExamKey): string[] {
  * send.
  *
  * The larger reason is that the syllabus stops being duplicated here at all.
- *
- * `both` sends no param at all: the server's default is deliberately the whole
- * corpus, so that a hidden chapter and a broken one never look alike.
  */
 /**
  * THE LAST CATALOGUE IS KEPT ON THE DEVICE, and served from there first.
@@ -112,8 +108,7 @@ function store(exam: ExamKey, catalogue: CatalogueSubject[]): void {
 function fetchCatalogue(exam: ExamKey): Promise<CatalogueSubject[]> {
   const cached = catalogueByExam.get(exam);
   if (cached) return cached;
-  const query = exam === 'both' ? '' : `?exam=${exam}`;
-  const network = apiFetch<CatalogueSubject[]>(`/drona/catalogue${query}`).then((fresh) => {
+  const network = apiFetch<CatalogueSubject[]>(`/drona/catalogue?exam=${exam}`).then((fresh) => {
     store(exam, fresh);
     catalogueByExam.set(exam, Promise.resolve(fresh));
     return fresh;

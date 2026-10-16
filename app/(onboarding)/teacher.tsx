@@ -42,7 +42,7 @@ export default function TeacherScreen() {
           await Promise.all([setTeacherPreference(teacher), setLanguagePreference(language)]);
           void pushPersona({ teacher, language });
         })();
-        router.push({ pathname: '/inside', params: { teacher } });
+        router.push('/paper');
       }}
     />
   );

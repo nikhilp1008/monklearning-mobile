@@ -147,14 +147,7 @@ export default function ProfileScreen() {
   };
 
   const exam = profile ? EXAMS[profile.exam] : null;
-  // 24A shows "JEE Main · NEET" for a student sitting both. `EXAMS.both.name`
-  // is the word "Both", which is the right label on a row you choose from and
-  // the wrong one on a row that reports what you chose.
-  const examValue = !exam
-    ? '—'
-    : profile?.exam === 'both'
-      ? `${EXAMS.jee.name} · ${EXAMS.neet.name}`
-      : exam.name;
+  const examValue = exam ? exam.name : '—';
   const speech = LANGUAGES.find((l) => l.id === language)?.speech ?? '';
 
   return (

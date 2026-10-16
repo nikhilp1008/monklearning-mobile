@@ -1,227 +1,130 @@
-// 05 Choose exam — pixel replica of design_handoff_onboarding_flow
-// `design/Onboarding Final v2.dc.html`, frame data-screen-label="05 Choose exam".
-// Every number below is a raw design px off that markup, passed through ds().
-//
-// The prototype's logic class still carries dead `row()` / `tick()` helpers that
-// paint a dark ink fill and an amber checkmark. They are unreferenced by the
-// template and contradict the README ("Text stays ink — deliberately no dark
-// fill", "No checkmarks — the wash is the selection signal"), so the template's
-// amber wash is what is built here — now in components/select-row.tsx, shared
-// with the year and pass screens.
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { LeaderRow, ObButton, ObHeader } from '@/components/onboarding-kit';
-import { SelectRow } from '@/components/select-row';
-import { EXAMS, examTotal, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
-import { saveProfile } from '@/lib/profile';
-import { hapticSwitched } from '@/lib/haptics';
+import { OnbCard, OnbLabel, OnbScreen } from '@/components/onboarding/onb-screen';
+import { ChoiceGrid, SkyChoice } from '@/components/onboarding/sky-choice';
+import { EXAMS, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
+import { examCountdown } from '@/lib/exam-countdown';
+import { ANSWERS_TIED_TO_EXAM, getAnswers, saveAnswers, type ExamYear } from '@/lib/onboarding-answers';
+import { getProfile, saveProfile } from '@/lib/profile';
 
-const EXAM_ORDER: ExamKey[] = ['jee', 'neet', 'both'];
+/**
+ * Screen 3: which exam, which year, and how many days that leaves.
+ *
+ * One screen rather than two. The year only means something next to the exam,
+ * and the countdown is the payoff for answering both: the moment a student
+ * sees "99 days" with their exam's name on it, the questions that follow stop
+ * feeling like a form.
+ */
+const EXAM_ORDER: ExamKey[] = ['jee', 'neet'];
+const YEARS: { id: ExamYear; label: string }[] = [
+  { id: '2027', label: '2027' },
+  { id: '2028', label: '2028' },
+  { id: 'unsure', label: 'Not sure' },
+];
 
 export default function ExamScreen() {
   const { ds, fs, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
-
-  // Nothing preselected. A highlighted row reads as an answer already given,
-  // and the exam decides which subjects exist for the rest of the account —
-  // it is the one thing in onboarding that must be a deliberate choice.
   const [exam, setExam] = useState<ExamKey | null>(null);
-  const [playToken, setPlayToken] = useState(0);
+  const [year, setYear] = useState<ExamYear | null>(null);
+  /** The exam already saved, if this is a return visit. */
+  const [saved, setSaved] = useState<ExamKey | null>(null);
 
-  const select = useCallback((key: ExamKey) => {
-    hapticSwitched();
-    setExam(key);
-    setPlayToken((n) => n + 1);
+  // Coming back to this screen keeps the answers already given. Exam and year
+  // are saved together, so a saved year means the profile's exam is a real
+  // pick and not its default.
+  useEffect(() => {
+    let live = true;
+    Promise.all([getProfile(), getAnswers()]).then(([p, a]) => {
+      if (!live || !a.examYear) return;
+      setYear(a.examYear);
+      setExam(p.exam);
+      setSaved(p.exam);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
-  const active = exam ? EXAMS[exam] : null;
-  const total = exam ? examTotal(exam) : 0;
+  const countdown = exam ? examCountdown(exam, year ?? undefined) : null;
+  const ready = !!exam && !!year;
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ObHeader title="Select your exam" />
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.sub}>Pick one. The syllabus below is what we teach for it.</Text>
-
-          {/* `padding:30px 26px 0; gap:10px` */}
-          <View style={styles.rowStack}>
-            {EXAM_ORDER.map((key) => (
-              <SelectRow
-                key={key}
-                name={EXAMS[key].name}
-                tag={EXAMS[key].tag}
-                selected={exam === key}
-                playToken={playToken}
-                onPress={() => select(key)}
-              />
-            ))}
-          </View>
-
-          {/* `padding:34px 34px 0` — live syllabus summary.
-              Hidden until a row is picked: the line above promises "the
-              syllabus below is what we teach for it", and there is no "it"
-              yet. Revealing it on the tap is also what makes the choice feel
-              answered. */}
-          {active && (
-            <View style={styles.summary}>
-              <View style={styles.summaryHeader}>
-                {/* "WE TEACH", not "WE TEACH ALL OF". Chemistry is ~10
-                    chapters short in the `chapters` table (no s-Block,
-                    p-Block, States of Matter, Solid State, Surface Chemistry
-                    or Polymers), so "all of" is a claim a student could check
-                    and catch us on. Restore the word once chemistry is
-                    complete — see the note on EXAMS. */}
-                <Text style={styles.summaryLabel}>
-                  WE TEACH <Text style={styles.summaryLabelExam}>{active.upper}</Text>
-                </Text>
-                <View style={styles.summaryTotal}>
-                  <Text style={styles.summaryTotalValue}>{total}</Text>
-                  <Text style={styles.summaryTotalUnit}>chapters</Text>
-                </View>
-              </View>
-
-              {active.subjects.map((subject) => (
-                <LeaderRow
-                  key={subject.name}
-                  label={subject.name}
-                  value={String(subject.count)}
-                  labelSize={16}
-                  valueSize={19}
-                  style={styles.subjectRow}
-                />
-              ))}
-
-              <Text style={styles.footnote}>{active.sample}</Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* `margin-top:auto; padding:0 34px 34px` */}
-        <View style={styles.footer}>
-          <ObButton
-            label={active ? `Continue with ${active.label}` : 'Pick your exam'}
-            withArrow
-            disabled={!exam}
-            onPress={() => {
-              if (!exam) return;
-              // Persist the entitlement the student chose — the Lessons exam
-              // pill and Personal information read it from the same store.
-              saveProfile({ exam });
-              router.push({ pathname: '/class', params: { exam } });
-            }}
+    <OnbScreen
+      title="Select your exam"
+      sub="Pick one, and the year you’re writing it."
+      cta={{
+        label: ready ? 'Continue' : exam ? 'Pick the year' : 'Pick your exam',
+        disabled: !ready,
+        onPress: () => {
+          if (!exam || !year) return;
+          saveProfile({ exam });
+          // A different exam makes the later answers mean something else.
+          saveAnswers({ examYear: year, ...(saved && saved !== exam ? ANSWERS_TIED_TO_EXAM : {}) });
+          setSaved(exam);
+          router.push('/class');
+        },
+      }}>
+      <View style={{ gap: ds(10) }}>
+        {EXAM_ORDER.map((key) => (
+          <SkyChoice
+            key={key}
+            shape="row"
+            label={EXAMS[key].name}
+            tag={EXAMS[key].tag}
+            selected={exam === key}
+            onPress={() => setExam(key)}
           />
-        </View>
-      </SafeAreaView>
-    </View>
-  );
-}
+        ))}
+      </View>
 
-function createStyles(
-  ds: (size: number) => number,
-  fs: (size: number) => number,
-  tracking: (em: number, fontSize: number) => number
-) {
-  return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: ob.surface,
-    },
-    safeArea: {
-      flex: 1,
-    },
-    // The frame is 932pt tall; on a short phone the stack + summary would
-    // clip, so the middle scrolls and the button stays pinned below it.
-    scrollContent: {
-      // Clears the pinned footer; the syllabus block was running under it.
-      paddingBottom: ds(110),
-      flexGrow: 1,
-    },
-    headlineBlock: {
-      paddingTop: ds(52),
-      paddingHorizontal: ds(34),
-    },
-    headlineBold: {
-      fontFamily: obFont.xb800,
-    },
-    // 14pt under the title — `padding:14px 30px 0` in the handoff. This
-    // briefly carried a paddingTop AND a marginTop of 14 each, which is the
-    // gap that read as too wide.
-    sub: {
-      paddingHorizontal: ds(30),
-      marginTop: ds(14),
-      fontFamily: obFont.r400,
-      fontSize: fs(16),
-      lineHeight: fs(23),
-      color: ob.ink80,
-    },
-    rowStack: {
-      paddingTop: ds(30),
-      paddingHorizontal: ds(26),
-      gap: ds(10),
-    },
-    summary: {
-      paddingTop: ds(34),
-      paddingHorizontal: ds(34),
-    },
-    summaryHeader: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      paddingBottom: ds(12),
-      borderBottomWidth: 1,
-      borderBottomColor: ob.hairline16,
-    },
-    summaryLabel: {
-      fontFamily: obFont.b700,
-      fontSize: fs(13),
-      letterSpacing: tracking(0.1, 13),
-      color: ob.ink55,
-    },
-    summaryLabelExam: {
-      fontFamily: obFont.b700,
-      fontSize: fs(13),
-      letterSpacing: tracking(0.1, 13),
-      color: ob.ink,
-    },
-    summaryTotal: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      gap: ds(5),
-    },
-    summaryTotalValue: {
-      fontFamily: obFont.xb800,
-      fontSize: fs(26),
-      letterSpacing: tracking(-0.03, 26),
-      color: ob.ink,
-    },
-    summaryTotalUnit: {
-      fontFamily: obFont.r400,
-      fontSize: fs(14),
-      color: ob.ink55,
-    },
-    subjectRow: {
-      paddingVertical: ds(12),
-      borderBottomWidth: 1,
-      borderBottomColor: ob.hairline10,
-    },
-    footnote: {
-      marginTop: ds(14),
-      fontFamily: obFont.r400,
-      fontSize: fs(13.5),
-      lineHeight: ds(15 * 1.45),
-      color: ob.ink55,
-    },
-    footer: {
-      paddingHorizontal: ds(30),
-      paddingBottom: ds(16),
-    },
-  });
+      <OnbLabel>Year</OnbLabel>
+      <ChoiceGrid cols={3}>
+        {YEARS.map((y) => (
+          <SkyChoice
+            key={y.id}
+            shape="tile"
+            height={ds(52)}
+            label={y.label}
+            selected={year === y.id}
+            onPress={() => setYear(y.id)}
+          />
+        ))}
+      </ChoiceGrid>
+
+      {countdown ? (
+        <Animated.View key={countdown.label} entering={FadeIn.duration(320)} style={{ marginTop: ds(18) }}>
+          <OnbCard style={{ flexDirection: 'row', alignItems: 'center', gap: ds(16) }}>
+            <Text
+              style={{
+                fontFamily: obFont.m500,
+                fontSize: fs(44),
+                letterSpacing: tracking(-0.035, 44),
+                color: ob.ink,
+                fontVariant: ['tabular-nums'],
+              }}>
+              {countdown.days}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: ob.ink }}>
+                days to {countdown.label}
+              </Text>
+              <Text
+                style={{
+                  marginTop: ds(2),
+                  fontFamily: obFont.r400,
+                  fontSize: fs(13),
+                  lineHeight: fs(18),
+                  color: ob.ink55,
+                }}>
+                {countdown.note}
+              </Text>
+            </View>
+          </OnbCard>
+        </Animated.View>
+      ) : null}
+    </OnbScreen>
+  );
 }

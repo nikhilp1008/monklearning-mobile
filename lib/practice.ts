@@ -133,7 +133,8 @@ export interface PracticeStats {
 }
 
 export function getNextQuestion(params: {
-  exam?: 'jee' | 'neet' | 'both';
+  exam?: 'jee' | 'neet';
+  /** 'both' here is both class years (a dropper), not both exams. */
   class_level?: '11' | '12' | 'both';
   subject?: string;
   /** Focus mode. Restricts the pool to one chapter — and, because a chapter

@@ -11,15 +11,18 @@ import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
 import { hapticTicked } from '@/lib/haptics';
 import {
+  EXAMS,
   INCLUDED,
   ob,
   obFont,
   promoDiscount,
   rupees,
   useDesignScale,
+  type ExamKey,
 } from '@/constants/onboarding';
 import { obPageTitle } from '@/constants/page-title';
 import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
+import { getProfile } from '@/lib/profile';
 import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
 /**
@@ -200,9 +203,6 @@ function Paywall({
                   <Text style={styles.includedValue}>{value}</Text>
                 </View>
               ))}
-              {/* One price for both exams, said once — the case most likely to
-                  be assumed to cost more. */}
-              <Text style={styles.unified}>JEE Main and NEET UG, both covered. One price.</Text>
             </View>
 
             {/*
@@ -377,9 +377,21 @@ export function PaywallSuccess({
     [kind]
   );
 
+  // The student's own exam: a plan is for one, JEE Main or NEET UG.
+  const [exam, setExam] = useState<ExamKey | null>(null);
+  useEffect(() => {
+    let live = true;
+    getProfile().then((p) => {
+      if (live) setExam(p.exam);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
   const rows: [string, string][] = [
     ['Plan', PASS_NAME[kind]],
-    ['Covers', 'JEE Main + NEET UG'],
+    ['Exam', exam ? EXAMS[exam].name : '—'],
     ['Active till', till],
     ['Paid', rupees(paid)],
   ];
@@ -472,13 +484,6 @@ function createStyles(ds: S, fs: S, tracking: T) {
     includedRowLast: { borderBottomWidth: 1, borderBottomColor: ob.rule },
     includedLabel: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink80 },
     includedValue: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink },
-    unified: {
-      marginTop: ds(12),
-      fontFamily: obFont.r400,
-      fontSize: fs(13),
-      lineHeight: fs(19),
-      color: ob.amberDark,
-    },
     /** Separated by a rule and real air, so it reads as an aside to the
      *  plans rather than a fifth one. */
     offer: {

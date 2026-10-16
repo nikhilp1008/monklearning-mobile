@@ -31,6 +31,7 @@ import {
   type PassKey,
 } from '@/constants/onboarding';
 import { startPass } from '@/lib/pass';
+import { getProfile } from '@/lib/profile';
 import { hapticTicked } from '@/lib/haptics';
 
 export default function PassActiveScreen() {
@@ -40,7 +41,19 @@ export default function PassActiveScreen() {
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
   const passId = (PASSES.some((p) => p.id === params.pass) ? params.pass : 'week') as PassKey;
   const pass = PASSES.find((p) => p.id === passId) ?? PASSES[1];
-  const exam = EXAMS[(params.exam as ExamKey) ?? 'jee'] ?? EXAMS.jee;
+  // The profile, not the param: a student who resumes after the app was
+  // closed reaches the pass with no param, and a NEET receipt must not say JEE.
+  const [examKey, setExamKey] = useState<ExamKey>(params.exam === 'neet' ? 'neet' : 'jee');
+  useEffect(() => {
+    let live = true;
+    getProfile().then((p) => {
+      if (live) setExamKey(p.exam);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const exam = EXAMS[examKey];
   const paid = Math.max(0, pass.price - promoDiscount(params.promo ?? '', pass.price));
 
   const [sky, setSky] = useState({ width: 0, height: 0 });

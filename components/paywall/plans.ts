@@ -1,12 +1,9 @@
 /**
  * THE FOUR PLANS, AND ONE PRICE LIST FOR EVERY EXAM.
  *
- * JEE Main and NEET UG used to be priced separately — the marketing site still
- * carries a page each. They are one list now: whatever a student is preparing
- * for, this is what it costs, and the plan covers both exams and all four
- * subjects. That is already the site's public position ("Same price, and one
- * pass covers both exams"), so this brings the product in line with it rather
- * than inventing a policy.
+ * A plan is for one exam — JEE Main or NEET UG, whichever the student chose in
+ * onboarding — and the price is the same for either, so there is one list.
+ * There is no "both exams" plan; that option was removed from the app.
  *
  * THE LADDER FALLS AT EVERY STEP: ₹2,999 / ₹2,666 / ₹2,500 / ₹2,273,
  * which is 0% / 11% / 17% / 24% off the monthly rate.

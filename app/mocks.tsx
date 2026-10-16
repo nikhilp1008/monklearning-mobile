@@ -125,12 +125,11 @@ export default function MocksScreen() {
      * This screen used to offer a JEE Main / NEET UG toggle. The student
      * already told us which exam they are sitting, on their second onboarding
      * screen, and it is on their profile — asking again on the way into a
-     * three-hour paper reads as the app having forgotten. A 'both' student
-     * sits the JEE pattern here.
+     * three-hour paper reads as the app having forgotten.
      */
     getProfile().then(({ exam: profileExam }) => {
       if (cancelled) return;
-      setExam(profileExam === 'neet' ? 'neet' : 'jee');
+      setExam(profileExam);
     });
     return () => {
       cancelled = true;

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
+import { clearProfile, hasCompletedOnboarding, onboardedOnThisDevice } from '@/lib/profile';
 import { clearPass } from '@/lib/pass';
 import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
@@ -221,15 +221,15 @@ export function useAuthState(): AuthState {
         ]);
       } catch {
         // The question could not be asked — offline, or the request timed
-        // out. The local profile is the right evidence for exactly this case:
-        // a student who has used this device before has a name stored, a new
-        // one does not.
+        // out. The device's own record is the right evidence for exactly this
+        // case (see `onboardedOnThisDevice` for why a stored name alone no
+        // longer is).
         //
         // This branch was previously unreachable for the common failure:
         // `hasCompletedOnboarding` swallowed postgrest's returned error and
         // answered `false`, so a signal drop threw an established student
         // into onboarding. It now throws, which is what makes this run.
-        done = !!(await getStoredName());
+        done = await onboardedOnThisDevice();
       }
       if (!cancelled) setState(done ? 'signed_in' : 'needs_onboarding');
     };
