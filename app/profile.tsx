@@ -15,7 +15,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated as RNAnimated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated as RNAnimated, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -32,7 +32,7 @@ import { TEACHER_THUMB } from '@/constants/teachers';
 import { EXAMS, YEARS } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { signOut } from '@/lib/auth';
-import { hapticCommitted, hapticSwitched } from '@/lib/haptics';
+import { hapticCommitted, hapticSwitched, hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
 import {
   getLanguagePreference,
   getTeacherPreference,
@@ -97,6 +97,7 @@ export default function ProfileScreen() {
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [language, setLanguage] = useState<LanguageId>('english');
+  const [haptics, setHaptics] = useState(hapticsEnabled);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [teacher, setTeacher] = useState<TeacherId>('drona');
 
@@ -148,6 +149,15 @@ export default function ProfileScreen() {
 
   const exam = profile ? EXAMS[profile.exam] : null;
   const examValue = exam ? exam.name : '—';
+  /** On or off for the whole app. Turning it on taps once, so the student
+   *  feels what they have just turned on; turning it off is silent. */
+  const chooseHaptics = (on: boolean) => {
+    setHaptics(on);
+    void setHapticsEnabled(on).then(() => {
+      if (on) hapticSwitched();
+    });
+  };
+
   const speech = LANGUAGES.find((l) => l.id === language)?.speech ?? '';
 
   return (
@@ -210,6 +220,22 @@ export default function ProfileScreen() {
           <Text style={styles.speech}>{speech}</Text>
 
           <View style={styles.links}>
+            {/* The one setting in the list rather than a page: a switch, so
+                the whole row toggles it. */}
+            <PressableScale
+              style={styles.linkRow}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: haptics }}
+              onPress={() => chooseHaptics(!haptics)}>
+              <Text style={styles.linkLabel}>Haptics</Text>
+              <Switch
+                value={haptics}
+                onValueChange={chooseHaptics}
+                trackColor={{ false: 'rgba(28,26,22,0.16)', true: colors.marigold }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="rgba(28,26,22,0.16)"
+              />
+            </PressableScale>
             {MORE_LINKS.map((link) => (
               <PressableScale
                 key={link.label}

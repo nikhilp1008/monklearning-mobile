@@ -1,5 +1,4 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -22,6 +21,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { friendlyLoadError } from '@/lib/api';
+import { hapticSoft } from '@/lib/haptics';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
@@ -277,7 +277,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       delete: { type: 'easeInEaseOut', property: 'opacity' },
     });
     setEraseMode((on) => {
-      if (!on) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      if (!on) hapticSoft();
       return !on;
     });
   }, []);

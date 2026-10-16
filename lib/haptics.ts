@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
@@ -66,8 +67,49 @@ import { Platform } from 'react-native';
  * take the mic's press handler down with it and stop the button working.
  */
 
+/**
+ * THE STUDENT’S OWN SWITCH: Profile → Haptics.
+ *
+ * On by default. Some students find a buzz on every pick more irritating than
+ * helpful, and on a phone with a cheap motor it can be. Off means off
+ * everywhere: every haptic in the app comes through `fire` below, so one
+ * check there covers iPhone and Android alike. Kept on the phone, and kept
+ * across a log-out: it is how this phone should behave, not part of the
+ * student's account.
+ *
+ * Read once at launch and held in memory, because a haptic fires on the tap
+ * itself and cannot wait for storage. Until the read lands (a few ms after
+ * launch) haptics count as on.
+ */
+const HAPTICS_KEY = 'monklearning.preferences.haptics';
+let enabled = true;
+
+try {
+  AsyncStorage.getItem(HAPTICS_KEY)
+    .then((v) => {
+      if (v === 'off') enabled = false;
+    })
+    .catch(() => {});
+} catch {
+  // No storage in this build. Haptics stay on.
+}
+
+export function hapticsEnabled(): boolean {
+  return enabled;
+}
+
+export async function setHapticsEnabled(on: boolean): Promise<void> {
+  enabled = on;
+  try {
+    await AsyncStorage.setItem(HAPTICS_KEY, on ? 'on' : 'off');
+  } catch {
+    // Holds for this session; the next launch reads the old value.
+  }
+}
+
 /** Runs a haptic and forgets it, however it fails. */
 function fire(tap: () => Promise<void>) {
+  if (!enabled) return;
   try {
     tap().catch(() => {});
   } catch {
@@ -75,12 +117,69 @@ function fire(tap: () => Promise<void>) {
   }
 }
 
+/**
+ * WHAT ANDROID ACTUALLY PLAYS, AND ON WHICH PHONES.
+ *
+ * Two of the effects first picked here could not be felt on many of the
+ * phones this app is for:
+ *
+ *   CONFIRM, REJECT and the two GESTURE effects only exist from Android 11.
+ *   On Android 10 and older, expo-haptics finds no such effect and gives up,
+ *   so payment confirmed, a wrong code and the mic were silent there. Older
+ *   phones now get the long-press buzz for a result and the key tick for the
+ *   mic: coarser, but felt.
+ *
+ *   CLOCK_TICK, used for every small tap (a pick, a digit, a switch), is the
+ *   faint tick of a clock face's hands; many phones render it as nothing at
+ *   all. The taps now use VIRTUAL_KEY, the tick of the phone's own on-screen
+ *   keys, which every Android phone plays.
+ *
+ * All of these go through the phone's own haptics setting ("Touch feedback"
+ * or "Vibrate on touch"). A student who has turned that off feels nothing,
+ * as they asked; the vibration motor path that would ignore the setting is
+ * the one Expo advises against.
+ */
+const ANDROID_11 = 30;
+const modernAndroid = () => Platform.OS === 'android' && Number(Platform.Version) >= ANDROID_11;
+
+/** A tap: a pick, a digit, a switch. */
+const androidTap = () =>
+  fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Virtual_Key));
+
+/** It worked. */
+const androidConfirm = () =>
+  fire(() =>
+    Haptics.performAndroidHapticsAsync(
+      modernAndroid() ? Haptics.AndroidHaptics.Confirm : Haptics.AndroidHaptics.Long_Press
+    )
+  );
+
+/** It did not. */
+const androidReject = () =>
+  fire(() =>
+    Haptics.performAndroidHapticsAsync(
+      modernAndroid() ? Haptics.AndroidHaptics.Reject : Haptics.AndroidHaptics.Long_Press
+    )
+  );
+
+/** The mic opened, or closed. */
+const androidGesture = (end: boolean) =>
+  fire(() =>
+    Haptics.performAndroidHapticsAsync(
+      modernAndroid()
+        ? end
+          ? Haptics.AndroidHaptics.Gesture_End
+          : Haptics.AndroidHaptics.Gesture_Start
+        : Haptics.AndroidHaptics.Virtual_Key
+    )
+  );
+
 /** The floor is yours: the mic opened and the teacher has stopped. */
 export function hapticFloorTaken() {
   if (Platform.OS === 'android') {
     // `Gesture_Start` is Android's own name for "a press-and-hold has begun",
     // which is exactly what this is.
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_Start));
+    androidGesture(false);
     return;
   }
   // Medium, not Light: this one is confirming that something happened, and it
@@ -91,7 +190,7 @@ export function hapticFloorTaken() {
 /** Given back: the student let go and the teacher has the board again. */
 export function hapticFloorReleased() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_End));
+    androidGesture(true);
     return;
   }
   // Lighter than the take, so the pair reads as one gesture opening and
@@ -109,7 +208,7 @@ export function hapticFloorReleased() {
  */
 export function hapticRefused() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject));
+    androidReject();
     return;
   }
   fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
@@ -130,7 +229,7 @@ export function hapticRefused() {
  */
 export function hapticTicked() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    androidConfirm();
     return;
   }
   fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
@@ -160,7 +259,7 @@ export function hapticTicked() {
  */
 export function hapticCommitted() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    androidConfirm();
     return;
   }
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
@@ -192,7 +291,7 @@ export function hapticKey() {
  */
 export function hapticSoft() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    androidTap();
     return;
   }
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
@@ -200,7 +299,7 @@ export function hapticSoft() {
 
 export function hapticSwitched() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    androidTap();
     return;
   }
   fire(() => Haptics.selectionAsync());
@@ -217,7 +316,7 @@ export function hapticSwitched() {
  */
 export function hapticUnticked() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    androidTap();
     return;
   }
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft));
@@ -234,7 +333,7 @@ export function hapticUnticked() {
  */
 export function hapticDigit() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Clock_Tick));
+    androidTap();
     return;
   }
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
@@ -247,7 +346,7 @@ export function hapticDigit() {
  */
 export function hapticCodeComplete() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
+    androidConfirm();
     return;
   }
   fire(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid));
@@ -271,7 +370,7 @@ export function hapticSuccess() {
  */
 export function hapticWarning() {
   if (Platform.OS === 'android') {
-    fire(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject));
+    androidReject();
     return;
   }
   fire(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
