@@ -296,6 +296,7 @@ export function AskFollowUpBar({
   trailing,
   leading,
   page,
+  getPage,
   teacherFace,
   onBusyChange,
   onResolve,
@@ -335,6 +336,13 @@ export function AskFollowUpBar({
   leading?: ReactNode;
   /** The textbook page being asked about, when `surface` is 'textbooks'. */
   page?: TextbookPageContext;
+  /**
+   * The page as it is on screen, asked for once when the hold begins — the
+   * moment the reader freezes — and used for that whole question. A long
+   * topic is more than the server takes, so the reader sends what the
+   * student is looking at rather than the topic's first screens. Over `page`.
+   */
+  getPage?: () => TextbookPageContext | undefined;
   /**
    * The student's own teacher's orb in place of the marigold mic, and "Ask
    * teacher" for the words — the textbook reader's pill, so the student is
@@ -383,6 +391,10 @@ export function AskFollowUpBar({
    *  can hold its page still from the hold to the end of the answer. */
   const busyChange = useRef(onBusyChange);
   busyChange.current = onBusyChange;
+  const getPageRef = useRef(getPage);
+  getPageRef.current = getPage;
+  /** The page this hold asks about, frozen when it began. */
+  const heldPageRef = useRef<TextbookPageContext | undefined>(undefined);
   const resolveRef = useRef(onResolve);
   resolveRef.current = onResolve;
   useEffect(() => {
@@ -763,6 +775,7 @@ export function AskFollowUpBar({
     setFailure(null);
     pressedRef.current = true;
     pressedAtRef.current = Date.now();
+    heldPageRef.current = getPageRef.current?.() ?? page;
     // A second question interrupts the first answer rather than talking over
     // it — the student has clearly stopped listening.
     audioRef.current?.stop();
@@ -817,7 +830,7 @@ export function AskFollowUpBar({
             const live = await LiveAsk.begin({
               surface,
               id: doubtId,
-              page,
+              page: heldPageRef.current,
               history: turnsRef.current,
               pcm: pcmAvailable,
             });
@@ -1101,7 +1114,7 @@ export function AskFollowUpBar({
         };
       const upload = (recording: string, format: 'm4a' | 'wav') =>
         askAboutDoubtAloud(doubtId, recording, turnsRef.current, handlers,
-                           controller.signal, surface, page, format);
+                           controller.signal, surface, heldPageRef.current ?? page, format);
       if (live) {
         try {
           await live.finish(handlers, controller.signal);
