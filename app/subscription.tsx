@@ -10,7 +10,7 @@ import { colors } from '@/constants/brand';
 // tests "as chapters unlock", neither of which is what we sell.
 import { INCLUDED } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
-import { PASS_NAME, passStatus, type PassStatus } from '@/lib/pass';
+import { PASS_NAME, isTeamAccess, passStatus, type PassStatus } from '@/lib/pass';
 
 /**
  * Your plan.
@@ -74,6 +74,8 @@ export default function SubscriptionScreen() {
   const totalDays = record
     ? Math.max(1, Math.round((endsAt!.getTime() - new Date(record.startedAt).getTime()) / 86400000))
     : 1;
+  // A founder or tester the paywall never stops holds no pass: nothing to count.
+  const team = isTeamAccess(record);
   const daysLeft = active?.daysLeft ?? 0;
   const elapsed = Math.max(0, Math.min(1, 1 - daysLeft / totalDays));
   const expiringSoon = !!active && daysLeft <= 3;
@@ -93,7 +95,7 @@ export default function SubscriptionScreen() {
               {active ? 'ACTIVE' : status?.state === 'expired' ? 'ENDED' : 'NO PASS'}
             </Text>
           </View>
-          {active && (
+          {active && !team && (
             <Text style={styles.daysLeft}>
               {/* Under a day is said in hours: "1 day left" on a pass with two
                   hours in it is the kind of thing a student plans around. */}
@@ -105,20 +107,25 @@ export default function SubscriptionScreen() {
           )}
         </View>
 
-        <Text style={styles.planTitle}>{record ? PASS_NAME[record.kind] : 'No pass yet'}</Text>
+        <Text style={styles.planTitle}>
+          {team ? 'Team access' : record ? PASS_NAME[record.kind] : 'No pass yet'}
+        </Text>
         {/* No code. The code is a detail of how
             the bill was settled, and what a pass covers is the list further
             down the page — neither is what this line is for. */}
         {!record && (
           <Text style={styles.planDuration}>Take one to start classes, snaps and practice</Text>
         )}
+        {team && <Text style={styles.planDuration}>This account never needs a pass.</Text>}
 
         {/* One bar, because a date alone doesn't tell you where you are in it. */}
-        <View style={styles.track}>
-          <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
-        </View>
+        {!team && (
+          <View style={styles.track}>
+            <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
+          </View>
+        )}
 
-        {!!record && !!endsAt && (
+        {!!record && !!endsAt && !team && (
           <View style={styles.datesRow}>
             <View>
               <Text style={styles.dateLabel}>STARTED</Text>
@@ -136,7 +143,9 @@ export default function SubscriptionScreen() {
           have to wonder about it. */}
       <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
         <Text style={styles.noticeText}>
-          {active
+          {team
+            ? 'Team accounts are not held to the paywall, so there is nothing to renew.'
+            : active
             ? expiringSoon
               ? `Your access ends on ${asDate(endsAt!)}. Nothing renews on its own — take another when you're ready.`
               : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'

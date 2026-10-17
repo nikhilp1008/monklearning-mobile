@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { ApiError } from '@/lib/api';
@@ -46,6 +46,9 @@ export type PayResult =
   | { status: 'failed'; message: string };
 
 type Closed = { type: 'closed' };
+/** Points from the top of the screen to clear on iOS: the Dynamic Island and the clock. */
+export const IOS_MIN_TOP_CLEARANCE = 54;
+
 const POLL_EVERY_MS = 3000;
 const POLL_TIMES = 10;
 
@@ -117,6 +120,17 @@ function CheckoutSheet({
 }) {
   const html = useMemo(() => checkoutHtml(order, { description }), [order, description]);
   const [loading, setLoading] = useState(true);
+  // Read HERE, outside the Modal. A Modal is its own native hierarchy and the
+  // inset measured inside it reads zero: the header sat under the status bar and
+  // the Dynamic Island, and its Close button could not be tapped.
+  //
+  // The measurement is still not trusted on its own. The header is also never
+  // allowed closer to the top than a Dynamic Island needs: on an older phone
+  // that makes the header a little taller, on a new one it is exactly the
+  // inset. Android's Modal already starts below its status bar.
+  const insets = useSafeAreaInsets();
+  const top = Platform.OS === 'ios' ? Math.max(insets.top, IOS_MIN_TOP_CLEARANCE) : 0;
+  const bottom = Platform.OS === 'ios' ? insets.bottom : 0;
   // Razorpay lets a declined payment be retried inside its own sheet, so a
   // decline is not the end. It is remembered, and reported only if the student
   // then leaves without paying.
@@ -137,47 +151,80 @@ function CheckoutSheet({
   };
 
   return (
-    <Modal visible animationType="slide" onRequestClose={leave}>
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Secure payment</Text>
-          <Pressable onPress={leave} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close payment">
-            <Text style={styles.close}>Close</Text>
-          </Pressable>
-        </View>
-        <View style={styles.body}>
-          <WebView
-            source={{ html, baseUrl: 'https://monklearning.com' }}
-            originWhitelist={['*']}
-            javaScriptEnabled
-            domStorageEnabled
-            thirdPartyCookiesEnabled
-            sharedCookiesEnabled
-            setSupportMultipleWindows={false}
-            mixedContentMode="never"
-            onMessage={onMessage}
-            onLoadEnd={() => setLoading(false)}
-            onError={() =>
-              onEvent({ type: 'error', message: 'The payment page could not load. Check your connection and try again.' })
-            }
-            onShouldStartLoadWithRequest={(req) => {
-              if (isAppLink(req.url)) {
-                // A UPI app, a wallet: hand over to it. The payment itself is
-                // reported to the page, or to the server by Razorpay.
-                Linking.openURL(req.url).catch(() => {});
-                return false;
-              }
-              return webViewMayLoad(req.url);
-            }}
-          />
-          {loading ? (
-            <View style={styles.loading} pointerEvents="none">
-              <ActivityIndicator color={ob.ink} />
-            </View>
-          ) : null}
-        </View>
-      </SafeAreaView>
+    <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={leave}>
+      <SheetBody
+        html={html}
+        loading={loading}
+        top={top}
+        bottom={bottom}
+        onLoaded={() => setLoading(false)}
+        onMessage={onMessage}
+        onFailedToLoad={() =>
+          onEvent({ type: 'error', message: 'The payment page could not load. Check your connection and try again.' })
+        }
+        onLeave={leave}
+      />
     </Modal>
+  );
+}
+
+function SheetBody({
+  html,
+  loading,
+  top,
+  bottom,
+  onLoaded,
+  onMessage,
+  onFailedToLoad,
+  onLeave,
+}: {
+  html: string;
+  loading: boolean;
+  top: number;
+  bottom: number;
+  onLoaded: () => void;
+  onMessage: (e: WebViewMessageEvent) => void;
+  onFailedToLoad: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <View style={[styles.screen, { paddingTop: top, paddingBottom: bottom }]}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Secure payment</Text>
+        <Pressable onPress={onLeave} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close payment">
+          <Text style={styles.close}>Close</Text>
+        </Pressable>
+      </View>
+      <View style={styles.body}>
+        <WebView
+          source={{ html, baseUrl: 'https://monklearning.com' }}
+          originWhitelist={['*']}
+          javaScriptEnabled
+          domStorageEnabled
+          thirdPartyCookiesEnabled
+          sharedCookiesEnabled
+          setSupportMultipleWindows={false}
+          mixedContentMode="never"
+          onMessage={onMessage}
+          onLoadEnd={onLoaded}
+          onError={onFailedToLoad}
+          onShouldStartLoadWithRequest={(req) => {
+            if (isAppLink(req.url)) {
+              // A UPI app, a wallet: hand over to it. The payment itself is
+              // reported to the page, or to the server by Razorpay.
+              Linking.openURL(req.url).catch(() => {});
+              return false;
+            }
+            return webViewMayLoad(req.url);
+          }}
+        />
+        {loading ? (
+          <View style={styles.loading} pointerEvents="none">
+            <ActivityIndicator color={ob.ink} />
+          </View>
+        ) : null}
+      </View>
+    </View>
   );
 }
 

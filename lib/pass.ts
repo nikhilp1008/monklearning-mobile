@@ -127,8 +127,17 @@ const TEN_YEARS_MS = 10 * 365 * 86400000;
 
 /** The server's answer as the record the rest of the app already understands. */
 export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRecord | null {
-  // A founder or tester the paywall never stops: always inside a pass.
+  // A pass the student really has: a kind, a start and an end the server stated.
+  let real: PassRecord | null = null;
+  if (s.state !== 'none' && s.kind && s.kind in DAYS && s.started_at && s.ends_at) {
+    const source = (['razorpay', 'promo', 'admin'] as const).find((x) => x === s.source) ?? null;
+    real = { kind: s.kind as PassKind, startedAt: s.started_at, endsAt: s.ends_at, source };
+  }
   if (s.exempt) {
+    // A founder or tester the paywall never stops. A pass they really hold is
+    // shown as it is - it used to be replaced by the stand-in below, so the
+    // plan screen read "11 months, 3650 days left" whatever they had bought.
+    if (real && s.state === 'active') return real;
     return {
       kind: '11m',
       startedAt: now.toISOString(),
@@ -136,9 +145,16 @@ export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRec
       source: 'exempt',
     };
   }
-  if (s.state === 'none' || !s.kind || !(s.kind in DAYS) || !s.started_at || !s.ends_at) return null;
-  const source = (['razorpay', 'promo', 'admin'] as const).find((x) => x === s.source) ?? null;
-  return { kind: s.kind as PassKind, startedAt: s.started_at, endsAt: s.ends_at, source };
+  return real;
+}
+
+/**
+ * Team access: the server says this account is never gated, so the app lets it
+ * through with a STAND-IN record. It is not a pass and must never be shown as
+ * one (no length, no dates, no "days left"); screens ask this before they do.
+ */
+export function isTeamAccess(record: PassRecord | null | undefined): boolean {
+  return record?.source === 'exempt';
 }
 
 async function writeCache(record: PassRecord | null): Promise<void> {

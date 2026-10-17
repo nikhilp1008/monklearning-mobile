@@ -33,7 +33,7 @@ import { useScale } from '@/constants/scale';
 import { SKY_THEMES, START_ARROW, TEACHERS } from '@/constants/teachers';
 import { signOut } from '@/lib/auth';
 import { hapticCommitted, hapticSwitched, hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
-import { PASS_NAME, passStatus, type PassStatus } from '@/lib/pass';
+import { PASS_NAME, isTeamAccess, passStatus, type PassStatus } from '@/lib/pass';
 import { pullPersona, pushPersona } from '@/lib/persona-sync';
 import {
   getLanguagePreference,
@@ -135,15 +135,18 @@ export default function ProfileScreen() {
   const exam = profile ? EXAMS[profile.exam] : null;
   const who = TEACHERS.find((t) => t.id === teacher) ?? TEACHERS[0];
   const speech = LANGUAGES.find((l) => l.id === language)?.speech ?? '';
-  const passTitle =
-    pass?.state === 'active'
+  const team = pass?.state === 'active' && isTeamAccess(pass.record);
+  const passTitle = team
+    ? 'Team access'
+    : pass?.state === 'active'
       ? // "7 days" is a length; as a name it is a "7-day pass".
         `${PASS_NAME[pass.record.kind].replace(/^(\d+) (day|month)s?$/, '$1-$2')} pass`
       : pass?.state === 'expired'
         ? 'Your pass has ended'
         : 'No pass yet';
-  const passLine =
-    pass?.state === 'active'
+  const passLine = team
+    ? 'No pass needed'
+    : pass?.state === 'active'
       ? `Active till ${asShortDate(pass.endsAt)}`
       : pass?.state === 'expired'
         ? `Ended ${asShortDate(pass.endsAt)}`

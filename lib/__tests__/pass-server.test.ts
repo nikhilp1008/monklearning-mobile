@@ -1,4 +1,4 @@
-import { endsAtFor, recordFromServer, statusOf } from '@/lib/pass';
+import { endsAtFor, isTeamAccess, recordFromServer, statusOf } from '@/lib/pass';
 import { isPassRequired, onPassRequired, signalPassRequired } from '@/lib/pass-events';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -41,6 +41,40 @@ describe('the pass, as the server states it', () => {
     expect(record.source).toBe('exempt');
     expect(statusOf(record, NOW).state).toBe('active');
     expect(statusOf(record, new Date('2030-01-01T00:00:00.000Z')).state).toBe('active');
+  });
+
+  test('a pass a founder really holds is shown as it is, not replaced by the stand-in', () => {
+    // The plan screen read "11 months, 3650 days left" for a founder who had taken a
+    // 1-month pass, because the exempt stand-in outranked the real record.
+    const record = recordFromServer(
+      { state: 'active', kind: '1m', source: 'promo', exempt: true,
+        started_at: '2026-10-17T19:25:51.000Z', ends_at: '2026-11-16T19:25:51.000Z' },
+      NOW
+    )!;
+    expect(record.kind).toBe('1m');
+    expect(record.source).toBe('promo');
+    expect(isTeamAccess(record)).toBe(false);
+    const status = statusOf(record, NOW);
+    expect(status.state).toBe('active');
+    if (status.state === 'active') expect(status.daysLeft).toBeLessThanOrEqual(31); // a month, never 3650
+  });
+
+  test('an exempt account whose own pass has ended is still let through, as team access', () => {
+    const record = recordFromServer(
+      { state: 'expired', kind: 'day', exempt: true,
+        started_at: '2026-10-01T00:00:00.000Z', ends_at: '2026-10-02T00:00:00.000Z' },
+      NOW
+    )!;
+    expect(isTeamAccess(record)).toBe(true);
+    expect(statusOf(record, NOW).state).toBe('active');
+  });
+
+  test('only the stand-in is team access; a real pass of any source is not', () => {
+    expect(isTeamAccess(null)).toBe(false);
+    expect(isTeamAccess(undefined)).toBe(false);
+    expect(isTeamAccess({ kind: '1m', startedAt: 'x', source: 'razorpay' })).toBe(false);
+    expect(isTeamAccess({ kind: '1m', startedAt: 'x', source: 'admin' })).toBe(false);
+    expect(isTeamAccess({ kind: '11m', startedAt: 'x', source: 'exempt' })).toBe(true);
   });
 
   test('a kind the app does not know is no pass at all', () => {
