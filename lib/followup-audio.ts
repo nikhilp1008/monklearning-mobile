@@ -53,10 +53,11 @@ const FINISH_GRACE_MS = 350;
  * 0.061 vs 0.103 s/char, which the ear hears as the voice dragging. A rate
  * applied AT PLAYBACK compresses exactly that drag, and pitch correction
  * keeps the teacher's voice from climbing with the speed. Chosen by the
- * founder listening, not derived: 1.25 sounded rushed, 1.15 sits right. It
- * is one number to retune.
+ * founder listening, not derived: 1.25 sounded rushed, 1.15 sat right until
+ * 2026-10-17, when the founder set every voice to 1x. It is one number to
+ * retune (and PCM_RATE in lib/pcm-player.ts must match it).
  */
-const SPEECH_RATE = 1.15;
+const SPEECH_RATE = 1;
 
 export class FollowUpAudio {
   private queue: { uri: string; ms: number }[] = [];

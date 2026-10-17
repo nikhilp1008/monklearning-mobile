@@ -43,7 +43,8 @@ import { isPilotTopic } from '@/components/textbook/pilot';
 import { pageTitle } from '@/constants/page-title';
 import { lastFollowUpContext } from '@/lib/last-followup';
 import { openReportSheet } from '@/lib/reports';
-import { Chapter, groupBlocks, loadChapter, topicPlainText } from '@/lib/textbooks';
+import { Chapter, groupBlocks, loadChapter, pageTextAround, renderBlockText, topicPlainText } from '@/lib/textbooks';
+import { useOnScreenBlocks } from '@/lib/textbook-on-screen';
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
 import { hapticSwitched } from '@/lib/haptics';
@@ -175,6 +176,8 @@ export default function TextbookReaderScreen() {
   }, [asking, freeze]);
   const freezeStyle = useAnimatedStyle(() => ({ opacity: freeze.value }));
   const scrollRef = useRef<ScrollView>(null);
+  /** Which blocks are on screen when Ask teacher is held. */
+  const onScreen = useOnScreenBlocks();
 
   useEffect(() => {
     let cancelled = false;
@@ -277,6 +280,7 @@ export default function TextbookReaderScreen() {
         setActiveSlot(to);
         setActive(index);
         scrollRef.current?.scrollTo({ y: 0, animated: false });
+        onScreen.resetScroll();
         if (returning) requestAnimationFrame(onArrived);
       });
       // And if a layout or a release never comes for any other reason, the
@@ -290,7 +294,7 @@ export default function TextbookReaderScreen() {
         slideIfReady();
       }, 900);
     },
-    [slotA, slotB, pageWidth, onArrived, slideIfReady]
+    [slotA, slotB, pageWidth, onArrived, slideIfReady, onScreen]
   );
 
   useReaderJump(goTo, onRelease);
@@ -355,6 +359,7 @@ export default function TextbookReaderScreen() {
   const lastY = useRef(0);
   const onScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      onScreen.trackScroll(event);
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       const y = contentOffset.y;
       const dy = y - lastY.current;
@@ -365,7 +370,7 @@ export default function TextbookReaderScreen() {
       const hide = dy > 0 && !nearTop && !nearEnd;
       navAway.value = withTiming(hide ? 1 : 0, { duration: 220 });
     },
-    [navAway, verticalScale]
+    [navAway, verticalScale, onScreen]
   );
   /**
    * The distance is computed HERE, not in the worklet. `useAnimatedStyle` runs
@@ -415,6 +420,20 @@ export default function TextbookReaderScreen() {
     lastY.current = 0;
     navAway.value = withTiming(0, { duration: 160 });
   }, [active, navAway]);
+  /**
+   * The page Ask teacher sends, taken when the hold begins: the blocks on
+   * screen then, and as much either side as the server takes. The head
+   * covers the top of the view unless it has slid away; the foot, which the
+   * student has just pressed, covers the bottom.
+   */
+  const getAskPage = useCallback((): TextbookPageContext | undefined => {
+    if (!askPage || !topic) return askPage;
+    const seen = onScreen.seen(String(active), blocks.length, headSpace * (1 - navAway.value), verticalScale(110));
+    // Only a row of cards on screen has a card the student is looking at.
+    const inView = (i: number) => !!seen && i >= seen[0] && i <= seen[1];
+    const units = blocks.map((b, i) => renderBlockText(b, inView(i) ? (state.page[`${active}-${i}`] ?? 0) : undefined));
+    return { ...askPage, text: pageTextAround(topic.title, units, seen) };
+  }, [askPage, topic, onScreen, active, blocks, headSpace, navAway, verticalScale, state]);
 
 
   if (missing) {
@@ -498,14 +517,24 @@ export default function TextbookReaderScreen() {
             }}
           />
         );
-        if (!pilot) return node;
+        // Wrapped to be measured: which blocks are on screen is what Ask
+        // teacher sends.
+        if (!pilot)
+          return (
+            <View key={`${pageIndex}-${index}`} onLayout={onScreen.onBlockLayout(String(pageIndex), index)}>
+              {node}
+            </View>
+          );
         // The pilot spaces by what meets what: 24 under the title, 16 where
         // one paragraph runs into the next (the same gap as inside one), and
         // 32 everywhere a new kind of block begins.
         const prev = index > 0 ? pageBlocks[index - 1].t : null;
         const gap = prev === null ? 24 : prev === 'p' && block.t === 'p' ? 16 : 32;
         return (
-          <View key={`${pageIndex}-${index}`} style={{ marginTop: scale(gap) }}>
+          <View
+            key={`${pageIndex}-${index}`}
+            style={{ marginTop: scale(gap) }}
+            onLayout={onScreen.onBlockLayout(String(pageIndex), index)}>
             {node}
           </View>
         );
@@ -623,10 +652,11 @@ export default function TextbookReaderScreen() {
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, { paddingTop: headSpace + verticalScale(4) }]}
           onScroll={onScroll}
+          onLayout={onScreen.onViewLayout}
           scrollEventThrottle={16}>
           {/* Both pages share one box, so the leaving page can sit on top of
               where it already was while the new one takes the flow. */}
-          <View>
+          <View onLayout={onScreen.onBaseLayout}>
             {leaving && leavingTopic ? (
               <TopicPage
                 key={leaving.index}
@@ -687,6 +717,7 @@ export default function TextbookReaderScreen() {
             surface="textbooks"
             doubtId={askPage ? askKey : null}
             page={askPage}
+            getPage={getAskPage}
             teacherFace={teacher}
             onBusyChange={setAsking}
             gutter={scale(16)}

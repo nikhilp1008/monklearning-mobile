@@ -2,19 +2,21 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { PageSkeleton, StateCard, StateLine } from '@/components/states';
-import { FlagIcon } from '@/components/ask-follow-up';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
-import { MockKey, MockSection, MockSquareKey } from '@/components/mock/mock-kit';
+import { KeyArrow, MockSection, MockSquareKey } from '@/components/mock/mock-kit';
 import { QuestionStem } from '@/components/question-stem';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
+import { footPadding } from '@/lib/foot-padding';
 import { fetchReport, getMockSession } from '@/lib/mock';
 import { buildReport, formatSpan, loadReport, type MockReport } from '@/lib/mock-report';
 import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
@@ -40,6 +42,13 @@ const SUBJECT_LABEL: Record<string, string> = {
 
 export default function MockReviewScreen() {
   const { scale, verticalScale } = useScale();
+  /** The docked row clears the home indicator itself, as Practice's does. */
+  const insets = useSafeAreaInsets();
+  const dockBottom = footPadding(insets.bottom, 16, 12);
+  /** The row's own height (top padding, the 52pt bar, its hint, the bottom
+   *  padding): the white is solid over this; the working fades above it. */
+  const dockRow = verticalScale(14) + 52 + 9 + 14 + dockBottom;
+  const dockFade = verticalScale(40);
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const { run, i } = useLocalSearchParams<{ run?: string; i?: string }>();
   const [report, setReport] = useState<MockReport | null>(null);
@@ -121,7 +130,7 @@ export default function MockReviewScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.topRow}>
           <Pressable
             style={styles.round}
@@ -275,20 +284,45 @@ export default function MockReviewScreen() {
           )}
         </ScrollView>
 
-        <View style={styles.foot}>
-          <MockSquareKey
-            label="Previous question"
-            disabled={index === 0}
-            onPress={() => go(index - 1)}
-          >
-            <BackIcon size={scale(16)} />
-          </MockSquareKey>
-          <MockKey
-            style={styles.grow}
-            label={index === total - 1 ? 'All questions' : 'Next question'}
-            arrow={index !== total - 1}
-            onPress={() => (index === total - 1 ? router.back() : go(index + 1))}
+        {/*
+          ASK FOLLOW-UP, about the question on screen — the same docked bar as
+          Practice, with Previous and Next either side of it. Mock questions
+          are the practice pool's own rows, so the bar asks Practice's route
+          (surface "practice", by the question's id) and the teacher answers
+          from that question and its worked solution. A new question is a new
+          conversation: the bar resets when its id changes.
+        */}
+        <View style={styles.dock} pointerEvents="box-none">
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', '#fff', '#fff']}
+            locations={[0, dockFade / (dockFade + dockRow), 1]}
+            style={[styles.dockFade, { height: dockFade + dockRow }]}
+            pointerEvents="none"
           />
+          <View style={[styles.dockInner, { paddingBottom: dockBottom }]}>
+            <AskFollowUpBar
+              doubtId={q.id}
+              surface="practice"
+              gutter={scale(20)}
+              leading={
+                <MockSquareKey
+                  label="Previous question"
+                  disabled={index === 0}
+                  onPress={() => go(index - 1)}
+                >
+                  <BackIcon size={scale(16)} />
+                </MockSquareKey>
+              }
+              trailing={
+                <MockSquareKey
+                  label={index === total - 1 ? 'All questions' : 'Next question'}
+                  onPress={() => (index === total - 1 ? router.back() : go(index + 1))}
+                >
+                  <KeyArrow size={scale(16)} color={colors.ink} />
+                </MockSquareKey>
+              }
+            />
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -343,8 +377,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     body: {
       paddingHorizontal: scale(20),
       paddingTop: verticalScale(22),
-      paddingBottom: verticalScale(28),
+      // Room for the docked Ask follow-up row, so the last line of the
+      // working can be scrolled clear of it.
+      paddingBottom: verticalScale(150),
     },
+    dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    dockInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
+    dockFade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: scale(10) },
     meta: { flex: 1, fontFamily: 'Onest_400Regular', fontSize: scale(14), color: '#8A857A' },
     time: {
@@ -424,16 +463,5 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       color: colors.slate,
     },
     numericValue: { flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: scale(15) },
-    foot: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingHorizontal: scale(20),
-      paddingTop: verticalScale(12),
-      paddingBottom: verticalScale(8),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.06)',
-    },
-    grow: { flex: 1 },
   });
 }

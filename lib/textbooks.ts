@@ -1,3 +1,4 @@
+import { diagramById } from '@/lib/diagrams';
 import { examSubjects } from '@/lib/drona';
 import type { ExamKey } from '@/constants/onboarding';
 
@@ -782,70 +783,178 @@ export function readyChapterCount(subject: string): number {
   return Object.keys(CHAPTERS).filter((k) => k.startsWith(prefix)).length;
 }
 
+const strip = (html: string) =>
+  html
+    .replace(/<br\s*\/?>/gi, '\n')
+    // 10<sup>11</sup> must not reach the teacher as "1011".
+    .replace(/<sup>(.*?)<\/sup>/gi, '^($1)')
+    .replace(/<sub>(.*?)<\/sub>/gi, '_($1)')
+    .replace(/<\/?[a-zA-Z][^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+
+/** One block as plain text, in reading order, without the markup. */
+export function blockText(b: Block): string {
+  const out: string[] = [];
+  switch (b.t) {
+    case 'hook':
+    case 'p':
+    case 'think':
+    case 'protip':
+      out.push(strip(b.html));
+      break;
+    case 'def':
+      out.push(`${b.term}: ${strip(b.html)}`);
+      break;
+    case 'defgrid':
+      out.push(b.title, ...b.rows.map((r) => `${r.k}: ${strip(r.v)}`));
+      break;
+    case 'formula':
+      out.push(`${b.kicker}: ${b.main}`, ...b.legend.map(strip), b.note ? strip(b.note) : '');
+      break;
+    case 'proc':
+      out.push(b.title, ...b.steps.map((s, i) => `${i + 1}. ${strip(s)}`));
+      break;
+    case 'deriv':
+      out.push(b.kicker, ...b.steps.map((s) => `${s.eq} (${strip(s.why)})`));
+      break;
+    case 'diagram':
+      out.push(`Figure: ${b.kicker}`, ...(b.captions ?? []).map(strip));
+      break;
+    case 'ex':
+      out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), ...(b.ans ? [`Answer: ${strip(b.ans)}`] : []));
+      break;
+    case 'mcq':
+      out.push(`Question: ${strip(b.q)}`, ...b.opts.map((o, i) => `(${i + 1}) ${strip(o.label)}`));
+      break;
+    case 'practice':
+      out.push(...b.items.map((it) => `Practice: ${strip(it.q)}`));
+      break;
+    case 'mistakes':
+      out.push('Common mistakes:', ...b.items.map(strip));
+      break;
+    case 'table':
+      out.push(
+        b.title ?? '',
+        b.head.map(strip).join(' | '),
+        ...b.rows.map((row) => row.map(strip).join(' | ')),
+        b.note ? strip(b.note) : '',
+      );
+      break;
+    case 'fig': {
+      // The drawing is not text; its name and captions are.
+      const d = diagramById(b.id);
+      if (d) out.push(`Figure: ${d.name}`, ...d.cases.map((c) => strip(c.cap)));
+      break;
+    }
+    case 'part':
+      out.push(b.title);
+      break;
+    case 'snapshot':
+      out.push('Snapshot:', ...b.rows.map((r) => `${r.f} — ${strip(r.note)}`));
+      break;
+  }
+  return out.filter(Boolean).join('\n');
+}
+
+/**
+ * A block as the reader draws it: a group of examples or questions is one.
+ *
+ * Examples, questions and practice are a row of cards showing one at a time.
+ * Given the card on screen (`state.page` of the block), it goes first, marked,
+ * so "this example" means the one the student is looking at; the rest follow.
+ */
+export function renderBlockText(b: RenderBlock, card?: number): string {
+  let items: string[];
+  if (b.t === 'exGroup' || b.t === 'mcqGroup') items = b.items.map(blockText);
+  else if (b.t === 'practice') items = b.items.map((it) => `Practice: ${strip(it.q)}`);
+  else return blockText(b);
+  if (card === undefined || items.length < 2 || card < 0 || card >= items.length) {
+    return items.filter(Boolean).join('\n');
+  }
+  return [
+    `[The card on the student's screen, ${card + 1} of ${items.length}: "this example" or "this question" means this one]`,
+    items[card],
+    '[The other cards in this set, not on screen]',
+    ...items.filter((_, i) => i !== card),
+  ].join('\n');
+}
+
 /**
  * A topic page as plain text, for Ask teacher.
  *
  * What the student is looking at, in reading order, without the markup: the
  * server hands this to the teacher as "the page they are reading", so a
  * question about "this example" or "the second formula" has something to
- * point at. Diagrams contribute their captions; the drawing itself is not
- * text. Capped well under the server's 6,000 characters.
+ * point at. Diagrams contribute their names and captions; the drawing itself
+ * is not text. Capped well under the server's 6,000 characters — from the
+ * top, so use `pageTextAround` when what is on screen is known.
  */
 export function topicPlainText(topic: Topic, cap = 5500): string {
-  const strip = (html: string) =>
-    html
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/?[a-zA-Z][^>]*>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/[ \t]+/g, ' ')
-      .trim();
-  const out: string[] = [topic.title];
-  for (const b of topic.blocks) {
-    switch (b.t) {
-      case 'hook':
-      case 'p':
-      case 'think':
-      case 'protip':
-        out.push(strip(b.html));
-        break;
-      case 'def':
-        out.push(`${b.term}: ${strip(b.html)}`);
-        break;
-      case 'defgrid':
-        out.push(b.title, ...b.rows.map((r) => `${r.k}: ${strip(r.v)}`));
-        break;
-      case 'formula':
-        out.push(`${b.kicker}: ${b.main}`, ...b.legend.map(strip), b.note ? strip(b.note) : '');
-        break;
-      case 'proc':
-        out.push(b.title, ...b.steps.map((s, i) => `${i + 1}. ${strip(s)}`));
-        break;
-      case 'deriv':
-        out.push(b.kicker, ...b.steps.map((s) => `${s.eq} (${strip(s.why)})`));
-        break;
-      case 'diagram':
-        out.push(`Figure: ${b.kicker}`, ...(b.captions ?? []).map(strip));
-        break;
-      case 'ex':
-        out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), ...(b.ans ? [`Answer: ${strip(b.ans)}`] : []));
-        break;
-      case 'mcq':
-        out.push(`Question: ${strip(b.q)}`, ...b.opts.map((o, i) => `(${i + 1}) ${strip(o.label)}`));
-        break;
-      case 'practice':
-        out.push(...b.items.map((it) => `Practice: ${strip(it.q)}`));
-        break;
-      case 'mistakes':
-        out.push('Common mistakes:', ...b.items.map(strip));
-        break;
-      case 'snapshot':
-        out.push('Snapshot:', ...b.rows.map((r) => `${r.f} — ${strip(r.note)}`));
-        break;
+  const text = [topic.title, ...topic.blocks.map(blockText)].filter(Boolean).join('\n');
+  return text.length > cap ? text.slice(0, cap) : text;
+}
+
+export const ON_SCREEN_START = '[On the student\'s screen as they ask: "this" and "here" mean this part]';
+export const ON_SCREEN_END = '[End of what is on the student\'s screen]';
+
+/**
+ * The page Ask teacher sends, built round what is on screen.
+ *
+ * 317 of 329 topics are longer than the server takes, and cut from the top a
+ * student halfway down a topic asked about an example the teacher was never
+ * shown. So: the blocks on screen when the hold began, marked as such, then
+ * the blocks either side — the one above first, since a question is usually
+ * about what was just read — until the cap. `units` is the page's blocks as
+ * drawn, `seen` the first and last of them on screen (null when not known:
+ * the page from its top, unmarked).
+ */
+export function pageTextAround(
+  title: string,
+  units: string[],
+  seen: [number, number] | null,
+  cap = 5500,
+): string {
+  const n = units.length;
+  if (!seen || n === 0) {
+    const text = [title, ...units].filter(Boolean).join('\n');
+    return text.length > cap ? text.slice(0, cap) : text;
+  }
+  const first = Math.max(0, Math.min(n - 1, seen[0]));
+  const last = Math.max(first, Math.min(n - 1, seen[1]));
+  const cost = (t: string) => (t ? t.length + 1 : 0);
+  let budget = cap - cost(title) - cost(ON_SCREEN_START) - cost(ON_SCREEN_END) - 4;
+  let shown = units.slice(first, last + 1).filter(Boolean).join('\n');
+  if (shown.length > budget) shown = shown.slice(0, Math.max(0, budget));
+  budget -= cost(shown);
+  let lo = first;
+  let hi = last;
+  let up = true;
+  let down = true;
+  while (up || down) {
+    if (up) {
+      if (lo > 0 && cost(units[lo - 1]) <= budget) budget -= cost(units[--lo]);
+      else up = false;
+    }
+    if (down) {
+      if (hi < n - 1 && cost(units[hi + 1]) <= budget) budget -= cost(units[++hi]);
+      else down = false;
     }
   }
-  const text = out.filter(Boolean).join('\n');
-  return text.length > cap ? text.slice(0, cap) : text;
+  return [
+    title,
+    lo > 0 ? '…' : '',
+    ...units.slice(lo, first),
+    ON_SCREEN_START,
+    shown,
+    ON_SCREEN_END,
+    ...units.slice(last + 1, hi + 1),
+    hi < n - 1 ? '…' : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

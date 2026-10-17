@@ -55,7 +55,7 @@ import { rememberFollowUp } from '@/lib/last-followup';
 import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
 import { probeMicAvailability } from '@/lib/mic-availability';
 import { base64ToBytes } from '@/lib/audio-pcm';
-import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
+import { PCM_RATE, pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
 import { countChars, revealChars } from '@/lib/word-reveal';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
@@ -124,9 +124,10 @@ const BOARD_EDGE = 14;
  * its length cannot be read. WRITE is the fastest the hand goes while keeping
  * time with the voice. FLUSH writes out whatever is left once the voice has
  * ended — quick, but still visibly written. A formula lands whole and then
- * costs its length, so the hand pauses over it.
+ * costs its length, so the hand pauses over it. SPOKEN was 15 while the
+ * voice played at 1.15x; at 1x (2026-10-17) the same voice runs ~13.
  */
-const SPOKEN_CPS = 15;
+const SPOKEN_CPS = 13;
 const WRITE_CPS = 40;
 /** Never slower than this, so a long voice over a short answer still reads
  *  as writing rather than as a board that has stopped. */
@@ -296,6 +297,7 @@ export function AskFollowUpBar({
   trailing,
   leading,
   page,
+  getPage,
   teacherFace,
   onBusyChange,
   onResolve,
@@ -329,11 +331,19 @@ export function AskFollowUpBar({
   /**
    * A control on the LEFT of the bar's row — the textbook reader's topics
    * pill. `trailing`'s mirror, inside the block for the same reason: the board
-   * takes its width from the block.
+   * takes its width from the block. With both, the row is leading, bar,
+   * trailing (mock review's Previous and Next).
    */
   leading?: ReactNode;
   /** The textbook page being asked about, when `surface` is 'textbooks'. */
   page?: TextbookPageContext;
+  /**
+   * The page as it is on screen, asked for once when the hold begins — the
+   * moment the reader freezes — and used for that whole question. A long
+   * topic is more than the server takes, so the reader sends what the
+   * student is looking at rather than the topic's first screens. Over `page`.
+   */
+  getPage?: () => TextbookPageContext | undefined;
   /**
    * The student's own teacher's orb in place of the marigold mic, and "Ask
    * teacher" for the words — the textbook reader's pill, so the student is
@@ -382,6 +392,10 @@ export function AskFollowUpBar({
    *  can hold its page still from the hold to the end of the answer. */
   const busyChange = useRef(onBusyChange);
   busyChange.current = onBusyChange;
+  const getPageRef = useRef(getPage);
+  getPageRef.current = getPage;
+  /** The page this hold asks about, frozen when it began. */
+  const heldPageRef = useRef<TextbookPageContext | undefined>(undefined);
   const resolveRef = useRef(onResolve);
   resolveRef.current = onResolve;
   useEffect(() => {
@@ -585,7 +599,7 @@ export function AskFollowUpBar({
       // How long the voice runs: known exactly on the gapless player once its
       // stream has ended, growing as it arrives before then, and guessed from
       // a speaking pace wherever it cannot be read.
-      const heard = r.pcm ? pcmFedSeconds() / 1.15 : 0;
+      const heard = r.pcm ? pcmFedSeconds() / PCM_RATE : 0;
       const runs = r.voiceDone && heard > 0 ? heard : Math.max(heard, r.total / SPOKEN_CPS);
       const left = Math.max(0.6, runs - (now - r.startAt) / 1000);
       rate = Math.max(MIN_CPS, Math.min(WRITE_CPS, (r.total - r.shown) / left));
@@ -762,6 +776,7 @@ export function AskFollowUpBar({
     setFailure(null);
     pressedRef.current = true;
     pressedAtRef.current = Date.now();
+    heldPageRef.current = getPageRef.current?.() ?? page;
     // A second question interrupts the first answer rather than talking over
     // it — the student has clearly stopped listening.
     audioRef.current?.stop();
@@ -816,7 +831,7 @@ export function AskFollowUpBar({
             const live = await LiveAsk.begin({
               surface,
               id: doubtId,
-              page,
+              page: heldPageRef.current,
               history: turnsRef.current,
               pcm: pcmAvailable,
             });
@@ -1091,7 +1106,7 @@ export function AskFollowUpBar({
               // No didJustFinish on the gapless path: the end is seconds fed
               // (at the played rate) against seconds elapsed, plus a breath.
               const played = (Date.now() - pcmStartedAtRef.current) / 1000;
-              const remains = pcmFedSeconds() / 1.15 - played + 0.5;
+              const remains = pcmFedSeconds() / PCM_RATE - played + 0.5;
               pcmIdleRef.current = setTimeout(() => {
                 if (!controller.signal.aborted) setPhase('idle');
               }, Math.max(0, remains * 1000));
@@ -1100,7 +1115,7 @@ export function AskFollowUpBar({
         };
       const upload = (recording: string, format: 'm4a' | 'wav') =>
         askAboutDoubtAloud(doubtId, recording, turnsRef.current, handlers,
-                           controller.signal, surface, page, format);
+                           controller.signal, surface, heldPageRef.current ?? page, format);
       if (live) {
         try {
           await live.finish(handlers, controller.signal);
@@ -1586,6 +1601,8 @@ export function AskFollowUpBar({
                 {hint}
               </Text>
             </View>
+            {/* Mock review passes both: Previous, the bar, Next. */}
+            {trailing}
           </View>
         </>
       ) : trailing && litDock ? (

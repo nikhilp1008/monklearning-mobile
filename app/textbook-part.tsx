@@ -38,7 +38,8 @@ import { nextReadingSize, READING_SIZE_LABEL, readingMultiplier } from '@/lib/re
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { lastFollowUpContext } from '@/lib/last-followup';
 import { openReportSheet } from '@/lib/reports';
-import { Chapter, groupBlocks, loadChapter, RenderBlock, Topic, topicName, topicPlainText } from '@/lib/textbooks';
+import { Chapter, groupBlocks, loadChapter, pageTextAround, RenderBlock, renderBlockText, Topic, topicName, topicPlainText } from '@/lib/textbooks';
+import { useOnScreenBlocks } from '@/lib/textbook-on-screen';
 
 /**
  * A TOPIC, ONE SHORT PART AT A TIME.
@@ -92,6 +93,8 @@ export default function TextbookPartScreen() {
   const [state, setState] = useState<BlockState>(EMPTY_BLOCK_STATE);
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [asking, setAsking] = useState(false);
+  /** Which blocks are on screen when Ask teacher is held. */
+  const onScreen = useOnScreenBlocks();
   const [listOpen, setListOpen] = useState(false);
 
   useEffect(() => {
@@ -256,6 +259,7 @@ export default function TextbookPartScreen() {
   const lastY = useRef(0);
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      onScreen.trackScroll(e);
       const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
       const y = contentOffset.y;
       const dy = y - lastY.current;
@@ -265,12 +269,13 @@ export default function TextbookPartScreen() {
       const nearEnd = y + layoutMeasurement.height >= contentSize.height - verticalScale(40);
       away.value = withTiming(dy > 0 && !nearTop && !nearEnd ? 1 : 0, { duration: 220 });
     },
-    [away, verticalScale],
+    [away, verticalScale, onScreen],
   );
   useEffect(() => {
     lastY.current = 0;
     away.value = withTiming(0, { duration: 160 });
-  }, [at, away]);
+    onScreen.resetScroll();
+  }, [at, away, onScreen]);
 
   /**
    * TEXT SIZE KEEPS YOUR PLACE. Bigger text makes the page longer, so the same
@@ -310,6 +315,29 @@ export default function TextbookPartScreen() {
   const headStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -away.value * headTravel }], opacity: 1 - away.value }));
   const footStyle = useAnimatedStyle(() => ({ transform: [{ translateY: away.value * footTravel }], opacity: 1 - away.value }));
 
+  /**
+   * The page Ask teacher sends, taken when the hold begins: the part's blocks
+   * on screen then (its quick check counts as one more), and as much either
+   * side as the server takes. Most parts fit whole; the rest are cut round
+   * what the student is looking at, not from the top.
+   */
+  const getAskPage = useCallback((): TextbookPageContext | undefined => {
+    if (!askPage || !topic || page?.kind !== 'part') return askPage;
+    const drawn = groupBlocks(page.part.blocks.filter((b) => b.t !== 'hook'));
+    const count = drawn.length + (page.part.checks.length ? 1 : 0);
+    const seen = onScreen.seen(String(page.part.index), count, headSpace * (1 - away.value), verticalScale(110));
+    // Only a row of cards on screen has a card the student is looking at.
+    const card = (i: number, uid: string) =>
+      seen && i >= seen[0] && i <= seen[1] ? (state.page[uid] ?? 0) : undefined;
+    const units = drawn.map((b, i) => renderBlockText(b, card(i, `${page.part.index}-${i}`)));
+    if (page.part.checks.length) {
+      units.push(
+        renderBlockText({ t: 'mcqGroup', items: page.part.checks }, card(drawn.length, `${CHECK_UID}-${page.part.index}`)),
+      );
+    }
+    return { ...askPage, text: pageTextAround(askPage.topic, units, seen) };
+  }, [askPage, topic, page, onScreen, headSpace, away, verticalScale, state]);
+
   const ctx = (uid: string) => ({ uid, scale, type, state, set, topicNumber: topic?.n ?? '', topicCount: chapter?.topics.length ?? 0 });
 
   const body = (pg: Page) => {
@@ -339,13 +367,16 @@ export default function TextbookPartScreen() {
           const prev = index > 0 ? blocks[index - 1].t : null;
           const gap = prev === null ? 24 : prev === 'p' && block.t === 'p' ? 16 : 32;
           return (
-            <View key={`${pg.part.index}-${index}`} style={{ marginTop: scale(gap) }}>
+            <View
+              key={`${pg.part.index}-${index}`}
+              style={{ marginTop: scale(gap) }}
+              onLayout={onScreen.onBlockLayout(String(pg.part.index), index)}>
               <TextbookBlockPilot block={block} ctx={ctx(`${pg.part.index}-${index}`)} />
             </View>
           );
         })}
         {pg.part.checks.length > 0 && (
-          <View style={s.check}>
+          <View style={s.check} onLayout={onScreen.onBlockLayout(String(pg.part.index), blocks.length)}>
             <Text style={[kicker(type), s.checkLabel]}>quick check · before you move on</Text>
             <TextbookBlockPilot block={{ t: 'mcqGroup', items: pg.part.checks }} ctx={ctx(`${CHECK_UID}-${pg.part.index}`)} />
           </View>
@@ -436,6 +467,7 @@ export default function TextbookPartScreen() {
                 onContentSizeChange={onContentSize}
                 onLayout={(e) => {
                   viewH.current = e.nativeEvent.layout.height;
+                  onScreen.onViewLayout(e);
                 }}
                 scrollEnabled={!asking}
                 onScroll={onScroll}
@@ -485,6 +517,7 @@ export default function TextbookPartScreen() {
               surface="textbooks"
               doubtId={askPage ? askKey : null}
               page={askPage}
+              getPage={getAskPage}
               teacherFace={teacher}
               onBusyChange={setAsking}
               gutter={scale(16)}
