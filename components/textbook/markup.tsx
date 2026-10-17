@@ -246,7 +246,9 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLoo
       return { fontFamily: look === 'pilot' ? 'Onest_600SemiBold' : 'Onest_700Bold' };
     case 'i':
       // STIX's italic is a family of its own; asking iOS to slant the regular face fakes it.
-      if (look === 'stix') return { fontFamily: STIX.italic };
+      // The reader's maths is STIX too, as on the Formula sheet: Georgia could
+      // not seat a hat on k (k̂) and Android's serif is a different face again.
+      if (look === 'stix' || look === 'pilot') return { fontFamily: STIX.italic };
       return { fontFamily: SERIF, fontStyle: 'italic' };
     // Unicode has no subscript capitals and no subscript f or g, so a run
     // like v<sub>AB</sub> can never map and always lands here. Until now this
@@ -274,7 +276,9 @@ function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook
     if (node.name === 'sup' || node.name === 'sub') {
       const run = plainText(node.children);
       // STIX look: digits and signs are STIX's own raised glyphs; anything with a letter is drawn.
-      if (look === 'stix' && !NUMERIC_RUN.test(run)) return drawnRun(node.name, node.children, size, key, ink);
+      // The reader draws them the same way: Unicode has a lowered x but no
+      // lowered y or z, so A<sub>y</sub> sat on the line beside a lowered Aₓ.
+      if ((look === 'stix' || look === 'pilot') && !NUMERIC_RUN.test(run)) return drawnRun(node.name, node.children, size, key, ink);
       // Unicode raised letters are drawn by whichever font on the device
       // happens to carry each one, and they do not share a baseline or a
       // weight. One or two characters reads fine; "initial" as seven of them
@@ -331,6 +335,7 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
 
 /** The same content with every tag dropped, for places that need a plain
  *  string (accessibility labels, a one-line preview). */
+/** Only real tags go: a comparison ("t∗ < 0 … <i>") is text, not the start of one. */
 export function markupToText(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  return html.replace(/<\/?[a-zA-Z][^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
