@@ -23,7 +23,14 @@ jest.mock('@/lib/api', () => {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { ApiError } = require('@/lib/api');
 
-const order: Order = { order_id: 'order_A1', amount: 299900, currency: 'INR', key_id: 'rzp_test_pub', kind: '1m' };
+const order: Order = {
+  order_id: 'order_A1',
+  amount: 299900,
+  currency: 'INR',
+  key_id: 'rzp_test_pub',
+  kind: '1m',
+  callback_url: 'https://api.example.com/payments/callback',
+};
 const post = (m: object) => JSON.stringify({ source: 'monk-checkout', ...m });
 
 describe('what the checkout page is allowed to tell the app', () => {
@@ -101,6 +108,12 @@ describe('the checkout page', () => {
     const html = checkoutHtml(order, { description: '</script><script>alert(1)</script>' });
     expect(html).not.toContain('</script><script>alert(1)');
     expect(html.match(/<\/script>/g)).toHaveLength(2); // Razorpay's, and ours - nothing injected
+  });
+
+  test('asks Razorpay to send the result to our server, since the page will not survive the bank', () => {
+    const html = checkoutHtml(order, { description: 'x' });
+    expect(html).toContain('"redirect":true');
+    expect(html).toContain('"callback_url":"https://api.example.com/payments/callback"');
   });
 
   test('no secret of any kind is in the page', () => {

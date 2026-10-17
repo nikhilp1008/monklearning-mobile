@@ -28,6 +28,8 @@ export type Order = {
   currency: string;
   key_id: string;
   kind: PassKind;
+  /** Where Razorpay sends the browser after the bank page, with the result. */
+  callback_url: string;
 };
 
 export type CheckoutSuccess = {
@@ -121,6 +123,15 @@ export function checkoutHtml(order: Order, opts: { description: string; themeCol
     name: 'Monk Learning',
     description: opts.description,
     theme: { color: opts.themeColor ?? '#1C1A16' },
+    // IN A WEBVIEW THE PAGE DOES NOT SURVIVE THE PAYMENT. A bank's 3-D Secure
+    // page replaces it, taking `handler` with it: Razorpay showed PAYMENT
+    // SUCCESSFUL and the app never heard. With redirect + a server callback_url,
+    // Razorpay sends the browser to OUR server with the signed result; the
+    // server records it and returns a page that tells the app (see
+    // routers/payments.py::callback). `handler` stays for the cases that do
+    // complete in place.
+    redirect: true,
+    callback_url: order.callback_url,
   };
   return `<!doctype html>
 <html><head>
