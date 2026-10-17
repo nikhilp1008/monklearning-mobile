@@ -43,6 +43,14 @@
       ],
       "expo-font",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "MonkLearning uses your camera to snap a photo of your doubt so Drona can solve it.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "MonkLearning uses your camera to snap a photo of your doubt so Drona can solve it.",

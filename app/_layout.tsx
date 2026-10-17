@@ -401,7 +401,9 @@ export default function RootLayout() {
               Practice got. */}
           <Stack.Screen name="progress" options={{ headerShown: false }} />
           <Stack.Screen name="practice" options={{ headerShown: false }} />
-          <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
+          {/* No swipe back: the crop's side handles sit near the screen's
+              edge, and a drag there was taken for Back. ✕ closes. */}
+          <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
           <Stack.Screen
             name="practice-focus"

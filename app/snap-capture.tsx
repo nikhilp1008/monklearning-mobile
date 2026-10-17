@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SnapCamera, inAppCameraAvailable } from '@/components/snap-camera';
 import { StateCard } from '@/components/states';
 import { useDarkNavigationBar } from '@/lib/nav-bar';
 import { takePendingSnap } from '@/lib/snap-pending';
@@ -16,7 +17,7 @@ import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 import { hapticKey } from '@/lib/haptics';
 
-type Phase = 'opening' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
+type Phase = 'opening' | 'camera' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
 
 
 export default function SnapCaptureScreen() {
@@ -125,22 +126,29 @@ export default function SnapCaptureScreen() {
     close();
   };
 
+  /** Where to go when nothing was picked: back to Snap's own camera, or the
+   *  idle card where there is no in-app camera in this build. */
+  const backToCamera = () => setPhase(inAppCameraAvailable() ? 'camera' : 'idle');
+
   async function handlePicked(result: ImagePicker.ImagePickerResult) {
     if (result.canceled || !result.assets?.[0]) {
-      setPhase('idle');
+      backToCamera();
       return;
     }
-    // The shutter belongs to iOS's camera screen, which gives its own
-    // feedback. This is the moment the photo lands back here — the snap, as
-    // far as this app can feel it.
+    // The moment the photo lands back here: the snap, as far as the app can
+    // feel it. (Snap's own camera taps on its shutter instead.)
     hapticKey();
     const asset = result.assets[0];
-    const picked: DoubtPhoto = {
+    takeShot({
       uri: asset.uri,
       fileName: asset.fileName,
       mimeType: asset.mimeType,
       fileSize: asset.fileSize,
-    };
+    });
+  }
+
+  /** A photo, from either camera or the gallery, on its way to the crop. */
+  function takeShot(picked: DoubtPhoto) {
     setPhoto(picked);
 
     // A bad mime/size never even reaches the server — same photo, same
@@ -166,6 +174,12 @@ export default function SnapCaptureScreen() {
       if (status !== 'granted') {
         setDeniedTarget('camera');
         setPhase('permission_denied');
+        return;
+      }
+      // Snap's own camera where the build has it (components/snap-camera):
+      // gallery at hand, no second confirm. The phone's camera app otherwise.
+      if (inAppCameraAvailable()) {
+        setPhase('camera');
         return;
       }
       const result = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: false });
@@ -238,7 +252,7 @@ export default function SnapCaptureScreen() {
         <StatusBar style="light" />
         <SnapCrop
           photo={photo}
-          onCancel={() => setPhase('idle')}
+          onCancel={backToCamera}
           onDone={(cropped) => {
             setPhoto(cropped);
             upload(cropped);
@@ -267,6 +281,25 @@ export default function SnapCaptureScreen() {
     );
   }
 
+  if (phase === 'camera') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <SnapCamera
+          onCapture={(picture) =>
+            takeShot({ uri: picture.uri, fileName: 'snap.jpg', mimeType: 'image/jpeg' })
+          }
+          onGallery={() => void openGallery()}
+          onClose={close}
+          onFailed={() => {
+            setIdleNote("Couldn't open the camera on this device. Pick a photo from your gallery instead.");
+            setPhase('idle');
+          }}
+        />
+      </>
+    );
+  }
+
   if (phase === 'uploading' && photo) {
     return (
       <>
@@ -284,8 +317,9 @@ export default function SnapCaptureScreen() {
           <Pressable style={styles.iconButton} onPress={close}>
             <Text style={styles.closeGlyph}>✕</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Snap a doubt</Text>
-          <View style={styles.iconButton} />
+          <Text style={styles.headerTitle}>Snap and Solve</Text>
+          {/* Balances the close button so the title is centred; no fill of its own. */}
+          <View style={styles.iconSpacer} />
         </View>
 
         <View style={styles.body}>
@@ -377,11 +411,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(12),
       paddingHorizontal: scale(20),
     },
+    // The camera's own controls, so the header is one across Snap's screens.
+    iconSpacer: { width: scale(44), height: scale(44) },
     iconButton: {
-      width: scale(34),
-      height: scale(34),
-      borderRadius: scale(17),
-      backgroundColor: 'rgba(255,255,255,.1)',
+      width: scale(44),
+      height: scale(44),
+      borderRadius: scale(22),
+      backgroundColor: 'rgba(26,24,20,.45)',
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: 'rgba(255,253,248,.18)',
       alignItems: 'center',
       justifyContent: 'center',
     },

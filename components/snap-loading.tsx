@@ -18,7 +18,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
+import { ObButton } from '@/components/onboarding-kit';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { shadow } from '@/lib/shadow';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -125,12 +128,7 @@ export function SnapLoading({ photoUri, onCancel, onClose }: SnapLoadingProps) {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.bar}>
-          <Text style={styles.kicker}>Snap a doubt</Text>
-          <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Close" hitSlop={10}>
-            <Text style={styles.closeGlyph}>✕</Text>
-          </Pressable>
-        </View>
+        <SnapBar styles={styles} onClose={onClose} />
 
         {/* The stage line leads. It is the one thing on screen that changes
             meaning rather than just moving, so it sits where the eye lands. */}
@@ -139,6 +137,12 @@ export function SnapLoading({ photoUri, onCancel, onClose }: SnapLoadingProps) {
           accessibilityLiveRegion="polite"
           accessibilityRole="text">
           <StageLine key={stage} styles={styles} scale={scale} text={SNAP_STAGES[stage]} />
+          {/* How far along: one segment per stage, filled as each is reached. */}
+          <View style={styles.steps} accessibilityElementsHidden>
+            {SNAP_STAGES.map((_, i) => (
+              <View key={i} style={[styles.step, i <= stage && styles.stepOn]} />
+            ))}
+          </View>
         </View>
 
         <View style={styles.cardWrap}>
@@ -169,11 +173,27 @@ export function SnapLoading({ photoUri, onCancel, onClose }: SnapLoadingProps) {
 
         <View style={styles.footer}>
           <Text style={styles.eta}>{longWait ? LONG_WAIT_TEXT : ETA_TEXT}</Text>
-          <Pressable style={styles.cancel} onPress={onCancel} hitSlop={8}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
+          <ObButton label="Cancel" variant="outline" onPress={onCancel} />
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** Close on the left and the feature's name in the middle, as on Snap's
+ *  camera and crop: one header across the whole flow. */
+function SnapBar({ styles, onClose }: { styles: ReturnType<typeof createStyles>; onClose: () => void }) {
+  return (
+    <View style={styles.bar}>
+      <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Close" hitSlop={10}>
+        <Svg width={16} height={16} viewBox="0 0 16 16">
+          <Path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" />
+        </Svg>
+      </Pressable>
+      <Text style={styles.kicker} maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}>
+        Snap and Solve
+      </Text>
+      <View style={styles.closeSpacer} />
     </View>
   );
 }
@@ -232,24 +252,24 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingTop: verticalScale(6),
     },
     kicker: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(0.98),
-      textTransform: 'uppercase',
-      color: colors.faint,
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(17),
+      color: colors.ink,
+      includeFontPadding: false,
     },
     close: {
-      width: scale(30),
-      height: scale(30),
-      borderRadius: scale(99),
+      width: scale(44),
+      height: scale(44),
+      borderRadius: scale(22),
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: 'rgba(28,26,22,.14)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    closeGlyph: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.slate,
-    },
+    closeSpacer: { width: scale(44), height: scale(44) },
+    steps: { flexDirection: 'row', gap: scale(6), marginTop: verticalScale(14) },
+    step: { flex: 1, height: scale(4), borderRadius: scale(2), backgroundColor: 'rgba(28,26,22,.10)' },
+    stepOn: { backgroundColor: colors.marigold },
     stageWrap: {
       paddingTop: verticalScale(22),
       paddingBottom: verticalScale(16),
@@ -305,51 +325,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(255,253,248,.55)',
     },
-    actions: {
-      flexDirection: 'row',
-      gap: scale(10),
-    },
-    primary: {
-      flex: 1,
-      paddingVertical: verticalScale(14),
-      borderRadius: scale(99),
-      alignItems: 'center',
-      backgroundColor: colors.ink,
-    },
-    primaryText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15),
-      color: colors.paper,
-    },
-    secondary: {
-      flex: 1,
-      paddingVertical: verticalScale(14),
-      borderRadius: scale(99),
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.hairline,
-    },
-    secondaryOnly: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
-    },
-    secondaryText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    cancel: {
-      alignSelf: 'stretch',
-      paddingVertical: verticalScale(13),
-      borderRadius: scale(99),
-      alignItems: 'center',
-      backgroundColor: 'rgba(28,26,22,.05)',
-    },
-    cancelText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
+    actions: { gap: verticalScale(12) },
   });
 }
 
@@ -415,12 +391,7 @@ export function SnapFailed({
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.bar}>
-          <Text style={styles.kicker}>Snap a doubt</Text>
-          <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Close" hitSlop={10}>
-            <Text style={styles.closeGlyph}>✕</Text>
-          </Pressable>
-        </View>
+        <SnapBar styles={styles} onClose={onClose} />
 
         {/* Same heading slot the stage line occupies, so the screen reads as
             the scan resolving rather than as somewhere new. */}
@@ -441,24 +412,19 @@ export function SnapFailed({
 
         <View style={styles.footer}>
           <Text style={styles.eta}>{body}</Text>
+          {/* The app's own keys (they were pills): the first way on is the key,
+              a second sits under it as the outline one. */}
           <View style={styles.actions}>
-            {onRetry && (
-              <Pressable style={styles.primary} onPress={onRetry}>
-                <Text style={styles.primaryText}>Try again</Text>
-              </Pressable>
-            )}
+            {onRetry && <ObButton label="Try again" withArrow onPress={onRetry} />}
             {onRetake && (
-              <Pressable
-                style={[styles.secondary, !onRetry && styles.secondaryOnly]}
-                onPress={onRetake}>
-                <Text style={styles.secondaryText}>Take another</Text>
-              </Pressable>
+              <ObButton
+                label="Take another"
+                variant={onRetry ? 'outline' : 'ink'}
+                withArrow={!onRetry}
+                onPress={onRetake}
+              />
             )}
-            {!onRetry && !onRetake && (
-              <Pressable style={styles.primary} onPress={onClose}>
-                <Text style={styles.primaryText}>Got it</Text>
-              </Pressable>
-            )}
+            {!onRetry && !onRetake && <ObButton label="Got it" onPress={onClose} />}
           </View>
         </View>
       </SafeAreaView>
