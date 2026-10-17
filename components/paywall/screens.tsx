@@ -104,6 +104,12 @@ export type PaywallProps = {
   /** What the screen is for: the pass the student just took, and the code
    *  that made it free. Absent in the design previews. */
   onComplete?: (bought: Bought) => void;
+  /** Pays for the pick. Called when the total is more than zero; the screen
+   *  that owns the checkout decides what that means. Absent in the previews,
+   *  where the button waits as it always did. */
+  onPay?: (buying: { kind: PassKind; offer?: 'winback' }) => void;
+  /** A payment is open or being confirmed: the button holds until it is over. */
+  busy?: boolean;
   /** The plan chosen before the promo screen took over. That screen replaces
    *  this route rather than popping to it, so the choice has to come back. */
   pick?: Pick | null;
@@ -116,6 +122,8 @@ export type PaywallProps = {
 function Paywall({
   lead,
   onComplete,
+  onPay,
+  busy = false,
   pick: picked = null,
   promo = '',
   onPromo,
@@ -252,23 +260,25 @@ function Paywall({
         <View style={styles.footer}>
           {/*
             Says what is owed, not what will happen — "Choose a plan" until
-            there is one to pay for. Dead until a code brings the total to
-            zero: there is no provider, and a live "Pay ₹43,999" that silently
-            does nothing is worse than a button that plainly waits. Whoever
-            wires a gateway here takes that rule out.
+            there is one to pay for. With no gateway wired (the design previews)
+            a priced total leaves the button dead rather than silently doing
+            nothing; with `onPay` it opens the checkout.
           */}
           <ObButton
             label={!pick ? 'Choose a plan' : free ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={name}
             withArrow={free}
-            disabled={!onComplete || !free}
+            disabled={busy || !pick || (free ? !onComplete : !onPay)}
             onPress={() => {
-              if (!onComplete || !free || !pick) return;
-              onComplete({ kind: week ? 'week' : (pick as PassKind), promo });
+              if (!pick || busy) return;
+              const kind = week ? 'week' : (pick as PassKind);
+              if (free) onComplete?.({ kind, promo });
+              // The week at the foot of this page is the win-back price.
+              else onPay?.({ kind, offer: week ? 'winback' : undefined });
             }}
           />
           <Text style={styles.footNote}>
-            {free
+            {free || onPay
               ? 'One payment. Nothing renews on its own.'
               : 'Payments open soon. A promo code works today.'}
           </Text>

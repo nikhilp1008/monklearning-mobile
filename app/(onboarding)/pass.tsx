@@ -1,29 +1,26 @@
 // 08 "Choose a pass".
 //
-// Prices are real. The charge is not: there is no payment provider wired yet,
-// so nothing here can take ₹149 off anyone. What the screen can do honestly is
-// reach ₹0 through a promo code and complete from there, which is enough to
-// walk the whole flow end to end -- see PROMO_CODE in constants/onboarding.ts.
-//
-// So the primary button is deliberately dead until the total is zero. The
-// alternative was a live "Pay ₹749" that silently did nothing, and a button
-// that lies about taking money is worse than one that plainly waits.
+// Pays through Razorpay (components/paywall/razorpay-checkout.tsx), or - with a
+// promo code that brings the total to zero - completes for free. The server
+// prices the order and decides whether a code is good; this screen only asks.
+// The code itself is never printed here: it is the student's to know.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
+import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
+import { payErrorMessage } from '@/lib/payments';
 import {
   EXAMS,
   INCLUDED,
   PASSES,
-  PROMO_CODE,
   ob,
   obFont,
   promoDiscount,
@@ -69,6 +66,32 @@ export default function PassScreen() {
 
   // SkyChoice gives the tap its haptic.
   const select = (id: PassKey) => setPass(id);
+
+  const { pay, checkout } = usePassCheckout();
+  const [paying, setPaying] = useState(false);
+
+  const buy = async () => {
+    if (!active || paying) return;
+    setPaying(true);
+    try {
+      const result = await pay(active.id, { description: `${active.name} pass` });
+      if (result.status === 'paid') {
+        // The pass already exists on the server; the receipt must not start another.
+        router.push({ pathname: '/pass-active', params: { pass, promo: '', exam: params.exam ?? '', paid: '1' } });
+      } else if (result.status === 'pending') {
+        Alert.alert(
+          'Payment received',
+          "We're confirming it with your bank. Your pass will start in a minute — close and reopen the app if it doesn't."
+        );
+      } else if (result.status === 'failed') {
+        Alert.alert('Payment not completed', result.message);
+      }
+    } catch (err) {
+      Alert.alert("Couldn't start the payment", payErrorMessage(err));
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const toPromo = () =>
     router.push({ pathname: '/promo', params: { pass, promo, exam: params.exam ?? '' } });
@@ -124,30 +147,27 @@ export default function PassScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          {/* Says what is owed, not what will happen. Until a payment sheet
-              exists the only completable total is zero, and the line under the
-              button is where that is admitted rather than discovered on tap. */}
+          {/* Says what is owed, not what will happen. */}
           <ObButton
             label={!active ? 'Choose a pass' : paid ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={active?.name}
-            disabled={!paid}
+            disabled={!active || paying}
             withArrow={paid}
             onPress={() => {
-              if (!paid) return;
+              if (!active) return;
+              if (!paid) return void buy();
               router.push({
                 pathname: '/pass-active',
                 params: { pass, promo, exam: params.exam ?? '' },
               });
             }}
           />
-          {!!active && !paid && (
-            <Text style={styles.footNote}>
-              Card payments aren’t live yet. Add the code{' '}
-              <Text style={styles.footNoteCode}>{PROMO_CODE}</Text> to continue.
-            </Text>
+          {!!active && (
+            <Text style={styles.footNote}>One payment. Nothing renews on its own.</Text>
           )}
         </View>
       </SafeAreaView>
+      {checkout}
     </View>
   );
 }
@@ -215,6 +235,5 @@ function createStyles(
       textAlign: 'center',
       color: ob.ink55,
     },
-    footNoteCode: { fontFamily: obFont.sb600, color: ob.amberDark },
   });
 }

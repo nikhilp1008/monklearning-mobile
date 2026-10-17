@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { apiFetch } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -11,22 +12,20 @@ import { supabase } from '@/lib/supabase';
  * it. So a pass could not end: the day after a one-day pass, the app looked
  * exactly as it had the day before.
  *
- * ON THE DEVICE, DELIBERATELY, AND ONLY FOR NOW. The API has no passes table
- * and no purchases endpoint, and there is no payment provider behind any of
- * these screens; a pass exists because a promo code brought a price to zero.
- * This file is therefore the honest shape of that: the record the server will
- * own, kept where the app can keep it. Two consequences worth stating plainly
- * rather than discovering later:
+ * THE SERVER OWNS THE PASS. `GET /pass` is the truth: a purchase (Razorpay) or
+ * a promo code writes a `passes` row there, so a pass follows the student to
+ * another phone and survives a reinstall, and the API itself refuses the
+ * learning routes with a 402 once it has ended (PAYWALL_ENFORCED).
  *
- *   1. It does not follow the student to another phone, and a reinstall
- *      forgets it. Both are wrong, and both are fixed by the same thing: the
- *      server writing `passes` rows at purchase and `GET /me` returning the
- *      current one. `readPass`/`startPass` are the two functions that would
- *      change; nothing else in the app reads storage directly.
+ * What lives on the phone is a CACHE of the last answer, kept for one reason:
+ * a student with a running pass who opens the app with no signal must not be
+ * sent to the plans screen to buy what they already own. The cache is only
+ * ever written from a server answer, and an answer of "none" clears it.
  *
- *   2. It gates the APP, not the API. A student who cleared storage would see
- *      the screens again; the server would still answer. Enforcement belongs
- *      with whoever answers `/drona` and `/practice`.
+ * `passStatus` and `startPass` are still the only two doors; nothing else in
+ * the app reads storage. Before the server existed a pass was a record made on
+ * the device the moment a promo code brought a price to zero — a pass like that
+ * is not on the server and is honoured only while offline.
  *
  * Keyed per signed-in student, so two accounts on one phone cannot inherit
  * each other's pass.
@@ -40,6 +39,13 @@ export type PassRecord = {
   startedAt: string;
   /** The code that made it free, kept so `Your plan` can say how. */
   promo?: string | null;
+  /** When ALL the paid time ends, as the server states it. A second pass bought
+   *  while one is running starts after it, so this is not startedAt + the
+   *  kind's length. Absent on a pass made on the device before the server. */
+  endsAt?: string | null;
+  /** How it came to exist. 'exempt' is a founder or tester the paywall never
+   *  stops: the server says so and the app believes it. */
+  source?: 'razorpay' | 'promo' | 'admin' | 'exempt' | null;
 };
 
 /** How long each pass runs. Months are counted as whole days, because a pass
@@ -82,6 +88,10 @@ async function storageKey(): Promise<string> {
 }
 
 export function endsAtFor(record: PassRecord): Date {
+  if (record.endsAt) {
+    const stated = new Date(record.endsAt);
+    if (!Number.isNaN(stated.getTime())) return stated;
+  }
   const started = new Date(record.startedAt);
   const end = new Date(started.getTime());
   end.setDate(end.getDate() + (DAYS[record.kind] ?? 0));
@@ -103,19 +113,60 @@ export async function readPass(): Promise<PassRecord | null> {
   }
 }
 
-/** The clock starts now. Called where a pass is completed, never on a render. */
-export async function startPass(kind: PassKind, promo?: string | null): Promise<PassRecord> {
-  const record: PassRecord = {
-    kind,
-    startedAt: new Date().toISOString(),
-    promo: promo ? promo.trim().toUpperCase() : null,
-  };
-  try {
-    await AsyncStorage.setItem(await storageKey(), JSON.stringify(record));
-  } catch {
-    // Nothing to do about it here. The student keeps this session; the next
-    // launch asks them for a pass again, which is the safe direction to fail.
+/** What `GET /pass` and `POST /pass/redeem` answer. */
+type ServerPass = {
+  state: 'none' | 'active' | 'expired';
+  kind?: string;
+  source?: string;
+  started_at?: string;
+  ends_at?: string;
+  exempt?: boolean;
+};
+
+const TEN_YEARS_MS = 10 * 365 * 86400000;
+
+/** The server's answer as the record the rest of the app already understands. */
+export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRecord | null {
+  // A founder or tester the paywall never stops: always inside a pass.
+  if (s.exempt) {
+    return {
+      kind: '11m',
+      startedAt: now.toISOString(),
+      endsAt: new Date(now.getTime() + TEN_YEARS_MS).toISOString(),
+      source: 'exempt',
+    };
   }
+  if (s.state === 'none' || !s.kind || !(s.kind in DAYS) || !s.started_at || !s.ends_at) return null;
+  const source = (['razorpay', 'promo', 'admin'] as const).find((x) => x === s.source) ?? null;
+  return { kind: s.kind as PassKind, startedAt: s.started_at, endsAt: s.ends_at, source };
+}
+
+async function writeCache(record: PassRecord | null): Promise<void> {
+  try {
+    const key = await storageKey();
+    if (record) await AsyncStorage.setItem(key, JSON.stringify(record));
+    else await AsyncStorage.removeItem(key);
+  } catch {
+    // A cache that cannot be written is a cache that is empty next time.
+  }
+}
+
+/**
+ * A free pass from a promo code. The server decides: one code per student, and
+ * each code has a cap. Throws an ApiError whose message is already written for
+ * the student ("You have already used a promo code.").
+ *
+ * A paid pass is not started here — it exists the moment the payment is
+ * verified (lib/payments.ts); the app only reads it back with `passStatus`.
+ */
+export async function startPass(kind: PassKind, promo: string): Promise<PassRecord> {
+  const answer = await apiFetch<ServerPass>('/pass/redeem', {
+    method: 'POST',
+    body: JSON.stringify({ code: promo.trim(), kind }),
+  });
+  const record = recordFromServer(answer);
+  if (!record) throw new Error('The server did not return a pass.');
+  await writeCache(record);
   return record;
 }
 
@@ -144,6 +195,20 @@ export function statusOf(record: PassRecord | null, now: Date = new Date()): Pas
   };
 }
 
+/**
+ * Where the student stands, from the server, falling back to the last answer.
+ *
+ * Only a failure to REACH the server falls back. If it answers "none" the
+ * answer is none, and the cache is cleared so a stale local record cannot
+ * outvote it on the next offline launch.
+ */
 export async function passStatus(): Promise<PassStatus> {
-  return statusOf(await readPass());
+  try {
+    const answer = await apiFetch<ServerPass>('/pass', { timeoutMs: 10000 });
+    const record = recordFromServer(answer);
+    await writeCache(record);
+    return statusOf(record);
+  } catch {
+    return statusOf(await readPass());
+  }
 }

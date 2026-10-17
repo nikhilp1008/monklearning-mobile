@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 
+import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { supabase } from '@/lib/supabase';
 
 export class ApiError extends Error {
@@ -177,6 +178,12 @@ export async function apiFetch<T>(
     // (Railway/Cloudflare gateway timeout HTML, e.g. on the ~25s doubt-solve
     // upload) rather than anything meant for a student to read — never surface
     // it verbatim. The raw text still rides along on `.data` for debugging.
+    // The pass has ended: tell the app root (it sends the student to the plans
+    // screen) and give the caller a sentence rather than "[object Object]".
+    if (res.status === 402 && isPassRequired(responseData)) {
+      signalPassRequired();
+      throw new ApiError('You need a pass to continue.', 402, responseData);
+    }
     const errorMsg =
       isJson && typeof responseData === 'object' && responseData !== null && 'detail' in responseData
         ? String((responseData as { detail: unknown }).detail)

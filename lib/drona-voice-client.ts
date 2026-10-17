@@ -1,3 +1,4 @@
+import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
 import { Platform } from 'react-native';
 
 import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
@@ -306,10 +307,11 @@ const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 8000, 8000];
 /**
  * Close codes the server uses to mean "do not come back", so the client does
  * not. 4004 is a session that does not exist, 4401 a missing/expired/invalid
- * token, 4403 a session belonging to someone else — see
+ * token, 4403 a session belonging to someone else, 4402 a student whose pass
+ * has ended (the paywall) — see
  * app/drona/live_session_ws.py, which sends each one and then closes.
  */
-const PERMANENT_CLOSE_CODES = new Set([4004, 4401, 4403]);
+const PERMANENT_CLOSE_CODES = new Set([4004, 4401, 4403, PASS_REQUIRED_CLOSE]);
 /**
  * How long a socket must stay open before it counts as having worked.
  *
@@ -664,10 +666,13 @@ export class DronaVoiceClient {
       // for one that was refused.
       const code = (event as { code?: number })?.code;
       if (code && PERMANENT_CLOSE_CODES.has(code)) {
+        if (code === PASS_REQUIRED_CLOSE) signalPassRequired();
         this.handlers.onError?.(
           code === 4004
             ? 'That class has ended. Go back and start a new one.'
-            : 'Your sign-in is no longer valid here. Go back and rejoin the class.'
+            : code === PASS_REQUIRED_CLOSE
+              ? 'Your pass has ended. Take a new one to rejoin the class.'
+              : 'Your sign-in is no longer valid here. Go back and rejoin the class.'
         );
         return;
       }

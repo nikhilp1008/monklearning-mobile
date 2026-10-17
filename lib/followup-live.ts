@@ -17,6 +17,7 @@
  *     rejects with `LiveUnavailable`, and the caller sends the recording
  *     through the upload route exactly as before.
  */
+import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
 import {
   dispatchFollowUpFrame,
   parseFrames,
@@ -115,6 +116,7 @@ export class LiveAsk {
       };
       ws.onclose = (e) => {
         ask.open = false;
+        if (e.code === PASS_REQUIRED_CLOSE) signalPassRequired();
         ask.onEnd?.(e.code === 1000);
         if (!ask.onEnd) ask.broken = true;
       };

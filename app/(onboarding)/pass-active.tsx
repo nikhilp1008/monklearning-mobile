@@ -19,7 +19,7 @@ import { startPass } from '@/lib/pass';
 import { getProfile } from '@/lib/profile';
 
 export default function PassActiveScreen() {
-  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
+  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string; paid?: string }>();
   const passId = (PASSES.some((p) => p.id === params.pass) ? params.pass : 'week') as PassKey;
   const pass = PASSES.find((p) => p.id === passId) ?? PASSES[1];
   // The profile, not the param: a student who resumes after the app was
@@ -56,7 +56,9 @@ export default function PassActiveScreen() {
     setSaving(true);
     setError(null);
     try {
-      await startPass(passId, params.promo ?? null);
+      // A paid pass was made when the payment was verified; only a free one
+      // (a promo code) is started here, and the server decides if the code is good.
+      if (params.paid !== '1') await startPass(passId, params.promo ?? '');
     } catch {
       setSaving(false);
       setError('Couldn’t start your pass. Check your connection and try again.');

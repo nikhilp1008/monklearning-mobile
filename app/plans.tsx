@@ -2,10 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
-import { PLANS } from '@/components/paywall/plans';
+import { PLANS, WINBACK } from '@/components/paywall/plans';
+import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PaywallLead, PaywallSuccess, type Pick } from '@/components/paywall/screens';
 import { exitOnBack, useAndroidBack } from '@/lib/android-back';
-import { passStatus, startPass, type PassKind } from '@/lib/pass';
+import { PASS_NAME, passStatus, startPass, type PassKind } from '@/lib/pass';
+import { payErrorMessage } from '@/lib/payments';
 
 const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id === v);
 
@@ -33,6 +35,10 @@ const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id
 export default function PlansScreen() {
   /** The confirmation, held for the moment it takes to read. */
   const [done, setDone] = useState<PassKind | null>(null);
+  /** What the receipt says was paid, in rupees. Zero for a promo code. */
+  const [paidRupees, setPaidRupees] = useState(0);
+  const [paying, setPaying] = useState(false);
+  const { pay, checkout } = usePassCheckout();
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
 
   /**
@@ -60,31 +66,65 @@ export default function PlansScreen() {
     return gated ? exitOnBack() : false;
   });
 
-  // Paid nothing, because nothing can be paid yet — the receipt says so.
-  if (done) return <PaywallSuccess kind={done} paid={0} onDone={() => router.replace('/(tabs)')} />;
+  if (done) return <PaywallSuccess kind={done} paid={paidRupees} onDone={() => router.replace('/(tabs)')} />;
+
+  const rupeesFor = (kind: PassKind) =>
+    kind === 'week' ? WINBACK.now : (PLANS.find((p) => p.id === kind)?.price ?? 0);
 
   return (
-    <PaywallLead
-      pick={isPick(params.pick) ? params.pick : null}
-      promo={(params.promo ?? '').toUpperCase()}
-      onPromo={(pick) =>
-        router.push({
-          pathname: '/plans-promo',
-          params: { pick: pick ?? '', promo: params.promo ?? '' },
-        })
-      }
-      onComplete={async ({ kind, promo }) => {
-        // A pass that will not start says so; it used to fail with no word.
-        try {
-          await startPass(kind, promo);
-        } catch {
-          Alert.alert("Couldn't start your pass", 'Check your connection and try again. Nothing was charged.');
-          return;
+    <>
+      <PaywallLead
+        pick={isPick(params.pick) ? params.pick : null}
+        promo={(params.promo ?? '').toUpperCase()}
+        busy={paying}
+        onPromo={(pick) =>
+          router.push({
+            pathname: '/plans-promo',
+            params: { pick: pick ?? '', promo: params.promo ?? '' },
+          })
         }
-        // The receipt stays until "Start learning": it used to leave on its
-        // own after 1.4s, before the rows had finished rising in.
-        setDone(kind);
-      }}
-    />
+        onComplete={async ({ kind, promo }) => {
+          // The server decides whether a code is good: one per student, capped.
+          // Its refusal is a sentence written for the student.
+          try {
+            await startPass(kind, promo);
+          } catch (err) {
+            Alert.alert("Couldn't start your pass", payErrorMessage(err));
+            return;
+          }
+          // The receipt stays until "Start learning": it used to leave on its
+          // own after 1.4s, before the rows had finished rising in.
+          setPaidRupees(0);
+          setDone(kind);
+        }}
+        onPay={async ({ kind, offer }) => {
+          setPaying(true);
+          try {
+            const result = await pay(kind, {
+              description: `${PASS_NAME[kind]} pass`,
+              offer,
+            });
+            if (result.status === 'paid') {
+              setPaidRupees(rupeesFor(kind));
+              setDone(kind);
+            } else if (result.status === 'pending') {
+              // Money has moved; the server has not said so yet. Never "failed".
+              Alert.alert(
+                'Payment received',
+                "We're confirming it with your bank. Your pass will start in a minute — close and reopen the app if it doesn't."
+              );
+            } else if (result.status === 'failed') {
+              Alert.alert('Payment not completed', result.message);
+            }
+          } catch (err) {
+            // Before any money moved: the order could not be made.
+            Alert.alert("Couldn't start the payment", payErrorMessage(err));
+          } finally {
+            setPaying(false);
+          }
+        }}
+      />
+      {checkout}
+    </>
   );
 }

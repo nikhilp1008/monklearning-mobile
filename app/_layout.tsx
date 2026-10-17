@@ -95,6 +95,7 @@ import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
 import { AuthStateContext, signedOutByUpdate, useAuthState } from '@/lib/auth';
 import { passStatus } from '@/lib/pass';
+import { onPassRequired } from '@/lib/pass-events';
 import { getAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
 import { initTracking, trackScreen } from '@/lib/track';
@@ -307,6 +308,13 @@ export default function RootLayout() {
       cancelled = true;
       sub.remove();
     };
+  }, [passGateReady, onPlans]);
+
+  // The server stopping the student mid-use (a 402 from any route, a 4402 on a
+  // live socket) is the same verdict the gate above reaches at launch.
+  useEffect(() => {
+    if (!passGateReady || onPlans) return;
+    return onPassRequired(() => router.replace('/plans'));
   }, [passGateReady, onPlans]);
 
   useEffect(() => {
