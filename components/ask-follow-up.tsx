@@ -329,7 +329,8 @@ export function AskFollowUpBar({
   /**
    * A control on the LEFT of the bar's row — the textbook reader's topics
    * pill. `trailing`'s mirror, inside the block for the same reason: the board
-   * takes its width from the block.
+   * takes its width from the block. With both, the row is leading, bar,
+   * trailing (mock review's Previous and Next).
    */
   leading?: ReactNode;
   /** The textbook page being asked about, when `surface` is 'textbooks'. */
@@ -1586,6 +1587,8 @@ export function AskFollowUpBar({
                 {hint}
               </Text>
             </View>
+            {/* Mock review passes both: Previous, the bar, Next. */}
+            {trailing}
           </View>
         </>
       ) : trailing && litDock ? (
