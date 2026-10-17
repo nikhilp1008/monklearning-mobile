@@ -83,6 +83,13 @@ export async function saveAnswers(patch: Partial<OnboardingAnswers>): Promise<vo
   }
 }
 
+/** The answers if already in memory, else null (and a read is started so the
+ *  next call has them). For synchronous callers that cannot await. */
+export function getCachedAnswers(): OnboardingAnswers | null {
+  if (!cached) void getAnswers();
+  return cached;
+}
+
 /** On sign-out, with the rest of the profile: the next student starts clean. */
 export async function clearAnswers(): Promise<void> {
   cached = {};
