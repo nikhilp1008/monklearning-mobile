@@ -33,7 +33,7 @@ import { kicker } from '@/components/textbook/theme';
 import { useReadingSize } from '@/hooks/use-reading-size';
 import { buildParts, ChapterPart, readProgress, saveProgress } from '@/lib/chapter-essentials';
 import { hapticSwitched, hapticTicked } from '@/lib/haptics';
-import { getTeacherPreference, TeacherId } from '@/lib/preferences';
+import { getTeacherPreference, TeacherId, teacherNameNow } from '@/lib/preferences';
 import { nextReadingSize, READING_SIZE_LABEL, readingMultiplier } from '@/lib/reading-size';
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { lastFollowUpContext } from '@/lib/last-followup';
@@ -504,7 +504,7 @@ export default function TextbookPartScreen() {
           {asking && (
             <View style={s.freezeChip} pointerEvents="none">
               <View style={s.freezeDot} />
-              <Text style={s.freezeText}>Teacher is looking at this page</Text>
+              <Text style={s.freezeText}>{`${teacherNameNow()} is looking at this page`}</Text>
             </View>
           )}
           {/* THE READER'S FOOT: the list and the arrows round the place on the left, Ask teacher on the right. */}

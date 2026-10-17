@@ -2177,7 +2177,7 @@ export default function LiveClassroomScreen() {
               style={styles.railCtrl}
               onPress={togglePause}
               hitSlop={6}
-              accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+              accessibilityLabel={paused ? `Resume ${teacherNameNow()}` : `Pause ${teacherNameNow()}`}>
               {paused ? <PlayIcon size={16} color={INK} /> : <PauseIcon size={16} color={INK} />}
             </Pressable>
             {/* Back to upright. The same slot CC used to hold — captions are
@@ -2214,7 +2214,7 @@ export default function LiveClassroomScreen() {
                 style={styles.dockCtrl}
                 onPress={togglePause}
                 hitSlop={6}
-                accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+                accessibilityLabel={paused ? `Resume ${teacherNameNow()}` : `Pause ${teacherNameNow()}`}>
                 {paused ? <PlayIcon size={17} color={INK} /> : <PauseIcon size={17} color={INK} />}
               </Pressable>
 

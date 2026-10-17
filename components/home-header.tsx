@@ -177,7 +177,7 @@ export function HomeHeader({
       <View
         style={styles.content}
         onLayout={(e) => setContent({ x: e.nativeEvent.layout.x, y: e.nativeEvent.layout.y })}>
-        <Text style={styles.heading}>Pick a chapter and your teacher teaches it live.</Text>
+        <Text style={styles.heading}>{`Pick a chapter and ${teacherName(teacher)} teaches it live.`}</Text>
 
         <View
           style={styles.console}
@@ -204,7 +204,7 @@ export function HomeHeader({
           <PressableScale
             style={styles.teacherRow}
             accessibilityRole="button"
-            accessibilityLabel={`Your teacher is ${teacherName(teacher)}. Select a teacher.`}
+            accessibilityLabel={`${teacherName(teacher)} is teaching you. Choose between Drona and Vedha.`}
             onPress={onSelectTeacher}>
             <TeacherOrbPoster teacher={teacher} size={scale(46)} />
             <View style={styles.teacherText}>
@@ -215,7 +215,7 @@ export function HomeHeader({
               <Text style={styles.teacherTrait}>{titleCaseTrait(trait)}</Text>
             </View>
             <View style={styles.selectGroup}>
-              <Text style={styles.selectLabel}>Select Teacher</Text>
+              <Text style={styles.selectLabel}>Drona or Vedha</Text>
               <Chevron scale={scale} />
             </View>
           </PressableScale>

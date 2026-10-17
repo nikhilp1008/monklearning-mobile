@@ -76,7 +76,7 @@ export default function PassActiveScreen() {
         ['Active till', activeTill(passId)],
         ['Paid', rupees(paid)],
       ]}
-      buttonLabel="Choose your teacher"
+      buttonLabel="Choose Drona or Vedha"
       onPress={finish}
       busy={saving}
       error={error}

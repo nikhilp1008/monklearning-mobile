@@ -59,6 +59,7 @@ import { PCM_RATE, pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pc
 import { parseSolutionStep } from '@/lib/solution-steps';
 import { countChars, revealChars } from '@/lib/word-reveal';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
+import { teacherNameNow } from '@/lib/preferences';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -1202,7 +1203,7 @@ export function AskFollowUpBar({
       : speaking
         ? 'Answering…'
         : teacherFace
-          ? 'Ask teacher'
+          ? `Ask ${teacherNameNow()}`
           : 'Ask follow-up';
 
   const hint = failure
@@ -1581,7 +1582,7 @@ export function AskFollowUpBar({
         <StateBanner
           style={styles.micBanner}
           bold="Microphone is off."
-          text={teacherFace ? 'Turn it on to ask your teacher.' : 'Turn it on to ask a follow-up.'}
+          text={teacherFace ? `Turn it on to ask ${teacherNameNow()}.` : 'Turn it on to ask a follow-up.'}
           link={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
         />
       ) : null}
