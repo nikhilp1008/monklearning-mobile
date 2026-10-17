@@ -14,7 +14,7 @@ import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, examSubjects, getCatalogue } from '@/lib/drona';
-import { getProfile } from '@/lib/profile';
+import { getProfile, startingClass } from '@/lib/profile';
 
 const CLASSES = ['Class 11', 'Class 12'] as const;
 /**
@@ -48,17 +48,20 @@ function normalizeSubject(name: string) {
 export default function ChapterSelectorScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 12');
+  const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>(() => startingClass());
+  /** Set once the student picks a class, so the profile never overrides them. */
+  const pickedClass = useRef(false);
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chemistry', 'Maths']);
   const [activeSubject, setActiveSubject] = useState<string>('Physics');
 
-  // The exam decides the tabs. Physics and Chemistry are in every exam, so the
+  // The exam decides the tabs, and the year the class it opens on. Physics and Chemistry are in every exam, so the
   // initial guess above is never wrong for the first two — only the third tab
   // changes, and it settles before the catalogue finishes loading.
   useEffect(() => {
     let cancelled = false;
-    getProfile().then(({ exam }) => {
+    getProfile().then(({ exam, year }) => {
       if (cancelled) return;
+      if (!pickedClass.current) setActiveClass(startingClass(year));
       const next = examSubjects(exam).map((k) => SUBJECT_LABEL[k] ?? k);
       setSubjects(next);
       // Guard against a stranded tab: a student who switches exam would
@@ -129,7 +132,12 @@ export default function ChapterSelectorScreen() {
             at most, scanning beats typing, and it was taking a whole row. */}
         <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-          <PressableScale style={styles.backButton} onPress={() => router.push('/')}>
+          {/* Back, not a push to Home: a push slid Home in from the right, the
+              opposite of the way the topics page leaves. Home is only the
+              fallback when there is nothing to go back to. */}
+          <PressableScale
+            style={styles.backButton}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             <BackArrowIcon size={scale(16)} />
           </PressableScale>
           <PressableScale
@@ -183,6 +191,7 @@ export default function ChapterSelectorScreen() {
                 key={name}
                 style={styles.menuRow}
                 onPress={() => {
+                  pickedClass.current = true;
                   setActiveClass(name);
                   setClassMenu(false);
                 }}>

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ import { opensOnChoice } from '@/lib/chapter-essentials';
 import { useScale } from '@/constants/scale';
 import { friendlyLoadError } from '@/lib/api';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+import { getProfile, startingClass } from '@/lib/profile';
 import { isChapterReady } from '@/lib/textbooks';
 import { PressableScale } from '@/components/pressable-scale';
 import { SlidingToggle } from '@/components/sliding-toggle';
@@ -45,10 +46,23 @@ export default function TextbookChaptersScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [activeClass, setActiveClass] = useState<ClassOption>('Class 11');
+  const [activeClass, setActiveClass] = useState<ClassOption>(() => startingClass());
+  /** Set once the student flips the toggle, so the profile never overrides them. */
+  const pickedClass = useRef(false);
   const classLevel = CLASS_LEVEL[activeClass];
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Opens on the student's own class (a dropper starts at 11).
+  useEffect(() => {
+    let cancelled = false;
+    getProfile().then(({ year }) => {
+      if (!cancelled && !pickedClass.current) setActiveClass(startingClass(year));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +109,7 @@ export default function TextbookChaptersScreen() {
             value={activeClass}
             onChange={(next) => {
               if (next !== activeClass) hapticSwitched();
+              pickedClass.current = true;
               setActiveClass(next);
             }}
             trackStyle={styles.classToggle}

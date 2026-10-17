@@ -110,6 +110,17 @@ export async function getStoredName(): Promise<string | null> {
  */
 let cached: StudentProfile | null = null;
 
+/**
+ * The class a chapter list opens on: the student's own year from onboarding,
+ * so a Class 11 student is not shown the Class 12 syllabus first. A dropper
+ * starts again from Class 11. With no year passed it reads the profile
+ * already in memory, so a screen can open on the right class with no flicker;
+ * before the first `getProfile` that is unknown and it says Class 11.
+ */
+export function startingClass(year: YearKey | undefined = cached?.year): 'Class 11' | 'Class 12' {
+  return year === 'class12' ? 'Class 12' : 'Class 11';
+}
+
 export async function getProfile(): Promise<StudentProfile> {
   if (cached) return cached;
   try {
