@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { shadow } from '@/lib/shadow';
+import { SnapADoubtIcon } from '@/components/monk-icons';
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { EmptyState } from '@/components/library-empty';
 import { OfflineBanner, StateCard, StateLine } from '@/components/states';
@@ -654,8 +655,14 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </View>
                 {/* The camera sits inside the line rather than in a box beside
                     it -- export-8a gives the row no chrome of its own. */}
-                <PressableScale hitSlop={10} onPress={() => router.push('/snap-capture')}>
-                  <CameraIcon size={scale(19)} />
+                <PressableScale
+                  hitSlop={10}
+                  onPress={() => router.push('/snap-capture')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Snap and Solve">
+                  {/* Home's Snap mark, the marigold as its lens: this line had
+                      kept the older copy with the dot off in the corner. */}
+                  <SnapADoubtIcon size={scale(21)} color={colors.ink} accent={colors.marigold} />
                 </PressableScale>
               </View>
 
@@ -850,33 +857,6 @@ function RotatingHint({
         ))}
       </Animated.View>
     </View>
-  );
-}
-
-/** The snap camera, from export-8a's search line. */
-function CameraIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3"
-        stroke={colors.ink}
-        strokeWidth={1.7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Rect
-        x={2.8}
-        y={6.4}
-        width={18.4}
-        height={13.5}
-        rx={3.2}
-        stroke={colors.ink}
-        strokeWidth={1.7}
-        strokeLinejoin="round"
-      />
-      <Circle cx={12} cy={13.2} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
-      <Circle cx={17.6} cy={9.6} r={1.1} fill={colors.marigold} />
-    </Svg>
   );
 }
 

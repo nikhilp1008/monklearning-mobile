@@ -43,6 +43,16 @@ const SHADE_COLOR = 'rgba(90,30,5,0.3)';
 /** `inset 0 0 0 1px rgba(255,255,255,.5)` — a hairline, so it does not scale. */
 const RIM = 'rgba(255,255,255,0.5)';
 
+/**
+ * ROOM ROUND THE ORB. The canvas is drawn a point larger than the orb on every
+ * side and pulled back by the same amount, so it takes exactly the orb's space
+ * in the layout. Drawn edge to edge, the orb lost its right and bottom sliver:
+ * 46pt is a fraction of a pixel on most phones, the canvas rounds its pixel
+ * size down, and the rim, which sits on the very edge, came out flattened on
+ * those two sides.
+ */
+const PAD = 1;
+
 export function TeacherOrbPoster({
   teacher,
   size,
@@ -54,13 +64,15 @@ export function TeacherOrbPoster({
 }) {
   const poster = ORB_POSTERS[teacher];
   const r = size / 2;
+  const c = r + PAD;
+  const box = size + PAD * 2;
 
   return (
-    <Canvas pointerEvents="none" style={[{ width: size, height: size }, style]}>
+    <Canvas pointerEvents="none" style={[{ width: box, height: box, margin: -PAD }, style]}>
       {/* The body. */}
-      <Circle cx={r} cy={r} r={r}>
+      <Circle cx={c} cy={c} r={r}>
         <RadialGradient
-          c={vec(size * BODY_C.x, size * BODY_C.y)}
+          c={vec(PAD + size * BODY_C.x, PAD + size * BODY_C.y)}
           r={size * BODY_R}
           positions={poster.stops}
           colors={poster.body}
@@ -68,9 +80,9 @@ export function TeacherOrbPoster({
       </Circle>
 
       {/* The catch-light, over it. */}
-      <Circle cx={r} cy={r} r={r}>
+      <Circle cx={c} cy={c} r={r}>
         <RadialGradient
-          c={vec(size * HIGHLIGHT_C.x, size * HIGHLIGHT_C.y)}
+          c={vec(PAD + size * HIGHLIGHT_C.x, PAD + size * HIGHLIGHT_C.y)}
           r={size * HIGHLIGHT_R}
           colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']}
         />
@@ -78,7 +90,7 @@ export function TeacherOrbPoster({
 
       {/* The rim. Half a point in, so a 1pt stroke lands inside the edge
           rather than straddling it and fraying against the backdrop. */}
-      <Circle cx={r} cy={r} r={r - 0.5} color={RIM} style="stroke" strokeWidth={1} />
+      <Circle cx={c} cy={c} r={r - 0.5} color={RIM} style="stroke" strokeWidth={1} />
 
       {/*
         THE SHADING, LAST — and the order is the whole point.
@@ -93,7 +105,7 @@ export function TeacherOrbPoster({
         `shadowOnly` paints the inner shadow without re-painting the circle it
         is attached to, so this lays the shade over everything above.
       */}
-      <Circle cx={r} cy={r} r={r}>
+      <Circle cx={c} cy={c} r={r}>
         <Shadow
           dx={0}
           dy={size * SHADE_DY}
