@@ -7,7 +7,6 @@ import {
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  LayoutChangeEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -37,8 +36,8 @@ import { StateBanner, StateCard } from '@/components/states';
 import { useOnline } from '@/lib/connection';
 import { shadow } from '@/lib/shadow';
 import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
-import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
-import { DockGlow } from '@/components/dock-glow';
+import { DockEdge, MicDisc, ThinkingRing, type DockMood } from '@/components/classroom-dock-face';
+import { DockBars } from '@/components/dock-face';
 import { useDockMotion } from '@/components/dock-motion';
 import { turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
@@ -1304,7 +1303,7 @@ export default function LiveClassroomScreen() {
    * So: `ringAwake` is the linger OR the hold, and releasing re-arms the
    * linger so the fade still happens after, not during.
    */
-  const [dockLinger, setDockLinger] = useState(false);
+  const [, setDockLinger] = useState(false);
   const dockSleepRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakeDock = useCallback(() => {
     if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
@@ -1318,23 +1317,20 @@ export default function LiveClassroomScreen() {
   useEffect(() => () => {
     if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
   }, []);
-  const ringAwake = dockLinger || handRaised || turnAfter !== 'idle';
   /** The one name for where the student's turn is, for the words. */
   const turn: VoiceTurn = handRaised ? 'listening' : turnAfter;
+  /** What the dock's edge says: the student speaking, the teacher thinking,
+   *  or nothing (components/classroom-dock-face). */
+  const dockMood: DockMood = handRaised ? 'student' : turn === 'thinking' ? 'thinking' : 'rest';
 
   /**
-   * THE DOCK WEARS THE ASK FOLLOW-UP'S LIGHT, INSIDE ITSELF.
-   *
-   * It used to show a ring and a blurred halo around the OUTSIDE of the pill,
-   * green while the student spoke — a different palette from the follow-up
-   * bar, spilling onto the board. Now it is the follow-up's own light and the
-   * follow-up's own face (the marigold disc, the bars, the thinking arc),
-   * driven by the follow-up's own motion, and every bit of it stays inside the
-   * pill (components/dock-glow.tsx). The bar never stretches here: the dock's
-   * three controls have nowhere to stretch into.
-   *
-   * Paused is the classroom's own state: while the dock is awake the light
-   * holds still and dim, in its own colours.
+   * THE DOCK IS A WHITE PILL (components/classroom-dock-face) round the Ask
+   * follow-up's mic: it fills marigold while the student holds it, a marigold
+   * arc turns round it while the teacher thinks, and the edge goes marigold
+   * for both. It wore a drifting four-colour light, which was busy under the
+   * writing and, on Android, redrew from scratch on every turn of the phone,
+   * showing white for a second or two. The motion below
+   * still drives the voice bars and the disc's breathing scale.
    */
   const dockClock = useClock();
   const dockDown = useSharedValue(false);
@@ -1354,16 +1350,6 @@ export default function LiveClassroomScreen() {
     down: dockDown,
     stretch: false,
   });
-  const dockHold = useSharedValue(0);
-  useEffect(() => {
-    dockHold.value = withTiming(paused && ringAwake && !handRaised ? 0.32 : 0, { duration: 450 });
-  }, [paused, ringAwake, handRaised, dockHold]);
-  /** The pill's own size, for the light drawn inside it. */
-  const [pillBox, setPillBox] = useState({ w: 0, h: 0 });
-  const onPillLayout = (e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    setPillBox((p) => (p.w === width && p.h === height ? p : { w: width, h: height }));
-  };
   const discAnim = useAnimatedStyle(() => ({ transform: [{ scale: dockMotion.value.ds }] }));
   const dockTouch = {
     onTouchStart: () => {
@@ -2160,15 +2146,8 @@ export default function LiveClassroomScreen() {
             both wakes the ring and works the control — the prototype's
             `onpointerdown` on `#dockQL` over its own children. */}
         <View style={styles.dockAnchor} {...dockTouch}>
-          <View style={styles.railPill} onLayout={onPillLayout}>
-            <DockGlow
-              width={pillBox.w - 2}
-              height={pillBox.h - 2}
-              motion={dockMotion}
-              along="y"
-              hold={dockHold}
-              frozen={paused}
-            />
+          <View style={styles.railPill}>
+            <DockEdge mood={dockMood} radius={99} />
             {/* Press and hold to speak; release to hand the board back. No
                 confirm step, no "done" button, no modal.
 
@@ -2183,8 +2162,8 @@ export default function LiveClassroomScreen() {
               onPressOut={onMicPressOut}
               accessibilityLabel="Hold to speak">
               <Animated.View style={[styles.railDisc, discAnim]}>
-                <MarigoldDisc hot={handRaised} size={RAIL_MIC} />
-                <ThinkingArc motion={dockMotion} on={turn === 'thinking'} size={RAIL_MIC} />
+                <MicDisc hot={handRaised} size={RAIL_MIC} />
+                <ThinkingRing on={turn === 'thinking'} size={RAIL_MIC} />
                 {handRaised ? (
                   <DockBars motion={dockMotion} />
                 ) : voiceOff ? (
@@ -2229,15 +2208,8 @@ export default function LiveClassroomScreen() {
            only looks like it does. */
         <View style={styles.dockWrap}>
           <View style={styles.dockAnchor} {...dockTouch}>
-            <View style={styles.dockPill} onLayout={onPillLayout}>
-              <DockGlow
-                width={pillBox.w - 2}
-                height={pillBox.h - 2}
-                motion={dockMotion}
-                along="x"
-                hold={dockHold}
-                frozen={paused}
-              />
+            <View style={styles.dockPill}>
+              <DockEdge mood={dockMood} radius={99} />
               <Pressable
                 style={styles.dockCtrl}
                 onPress={togglePause}
@@ -2255,8 +2227,8 @@ export default function LiveClassroomScreen() {
                 onPressOut={onMicPressOut}
                 accessibilityLabel="Hold to speak">
                 <Animated.View style={[styles.dockDisc, discAnim]}>
-                  <MarigoldDisc hot={handRaised} size={DOCK_MIC} />
-                  <ThinkingArc motion={dockMotion} on={turn === 'thinking'} size={DOCK_MIC} />
+                  <MicDisc hot={handRaised} size={DOCK_MIC} />
+                  <ThinkingRing on={turn === 'thinking'} size={DOCK_MIC} />
                   {handRaised ? (
                     <DockBars motion={dockMotion} />
                   ) : voiceOff ? (
@@ -2278,7 +2250,7 @@ export default function LiveClassroomScreen() {
             </View>
           </View>
           {/* The handoff's hint is fixed text — it does not answer back while
-              you speak, because the mic going green and growing bars already
+              you speak, because the mic filling marigold and growing bars already
               does. "Mic off" is the one state it has no word for, and that one
               has to be said. */}
           <Text style={styles.dockHint}>
@@ -2913,7 +2885,9 @@ function createStyles(
       alignSelf: 'center',
       // Above the dock in portrait, not on it. At 14 this sat squarely over
       // the dock's "Hold to interrupt" line.
-      bottom: isLandscape ? 14 : verticalScale(DOCK_TOP + 14),
+      // Plus Android's navigation bar, which the dock now sits above: without
+      // it the chip landed on the dock it is meant to clear.
+      bottom: isLandscape ? 14 : verticalScale(DOCK_TOP + 14) + navBottom,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,

@@ -129,12 +129,12 @@ jest.mock('@/hooks/use-landscape-lock', () => ({
 // The dock's light and face are drawn with Skia, which does not load under
 // Jest. These tests are about the mic, not the drawing.
 jest.mock('@shopify/react-native-skia', () => ({ useClock: () => ({ value: 0 }) }));
-jest.mock('@/components/dock-glow', () => ({ DockGlow: () => null }));
-jest.mock('@/components/dock-face', () => ({
-  MarigoldDisc: () => null,
-  ThinkingArc: () => null,
-  DockBars: () => null,
+jest.mock('@/components/classroom-dock-face', () => ({
+  MicDisc: () => null,
+  ThinkingRing: () => null,
+  DockEdge: () => null,
 }));
+jest.mock('@/components/dock-face', () => ({ DockBars: () => null, MarigoldDisc: () => null }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
