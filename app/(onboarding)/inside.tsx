@@ -63,7 +63,7 @@ const LOOP = [
   {
     key: 'class',
     title: 'Start a Live Class',
-    body: 'Pick any chapter. Your teacher teaches it aloud on a board you can talk back to.',
+    body: 'Pick any chapter. {teacher} teaches it aloud on a board you can talk back to.',
   },
   {
     key: 'snap',
@@ -99,7 +99,7 @@ export default function InsideScreen() {
       live = false;
     };
   }, [passed]);
-  const teacherName = TEACHERS.find((t) => t.id === teacher)?.name ?? 'Your teacher';
+  const teacherName = TEACHERS.find((t) => t.id === teacher)?.name ?? 'Drona';
 
   const start = async () => {
     if (saving) return;
@@ -165,7 +165,7 @@ export default function InsideScreen() {
                     <Text style={s.loopTitle}>{item.title}</Text>
                     <Text style={s.loopBody}>
                       {item.key === 'class'
-                        ? item.body.replace('Your teacher', teacherName)
+                        ? item.body.replace('{teacher}', teacherName)
                         : item.body}
                     </Text>
                   </View>

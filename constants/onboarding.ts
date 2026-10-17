@@ -152,7 +152,7 @@ export type PassKey = (typeof PASSES)[number]['id'];
 export const INCLUDED: [string, string][] = [
   ['Class 11 & 12', 'Every chapter, taught aloud'],
   ['Every day', '50 snaps · 150 practice questions'],
-  ['Teachers', 'Drona & Vedha · Eng / Hinglish'],
+  ['Drona & Vedha', 'English / Hinglish'],
 ];
 
 /**

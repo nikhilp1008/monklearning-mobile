@@ -29,7 +29,7 @@ const SECTIONS = [
   },
   {
     title: 'Who owns what',
-    body: 'monklearning owns the platform itself: lessons, questions, and our teachers’ voices. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
+    body: 'monklearning owns the platform itself: lessons, questions, and the voices of Drona and Vedha. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
   },
   {
     title: 'Changes & availability',
@@ -37,7 +37,7 @@ const SECTIONS = [
   },
   {
     title: 'What we don’t guarantee',
-    body: 'monklearning is a study tool, not a promise of marks, rank, or admission. Our AI teachers can make mistakes, and every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
+    body: 'monklearning is a study tool, not a promise of marks, rank, or admission. Drona and Vedha are AI and can make mistakes, and every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
   },
   {
     title: 'Suspension & account deletion',

@@ -48,7 +48,7 @@ import { useOnScreenBlocks } from '@/lib/textbook-on-screen';
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
 import { hapticSwitched } from '@/lib/haptics';
-import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
+import { getTeacherPreference, type TeacherId, teacherNameNow } from '@/lib/preferences';
 
 /**
  * HOW LONG A TOPIC TAKES TO CHANGE: the page leaving and the next arriving move
@@ -699,7 +699,7 @@ export default function TextbookReaderScreen() {
         </Animated.View>
         <Animated.View style={[styles.freezeChip, freezeStyle]} pointerEvents="none">
           <View style={styles.freezeDot} />
-          <Text style={styles.freezeText}>Teacher is looking at this page</Text>
+          <Text style={styles.freezeText}>{`${teacherNameNow()} is looking at this page`}</Text>
         </Animated.View>
         {/* ASK TEACHER ON THE LEFT, TOPICS ON THE RIGHT, as Practice puts Ask
             follow-up left and Next right: the thumb that turns the pages holds

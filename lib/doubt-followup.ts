@@ -3,6 +3,7 @@ import { File, Paths } from 'expo-file-system';
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { supabase } from '@/lib/supabase';
+import { teacherNameNow } from '@/lib/preferences';
 
 /**
  * Asking about a solution that is already on screen.
@@ -428,7 +429,7 @@ function streamAsk(
         drain();
         if (xhr.status >= 400) {
           finish(() =>
-            reject(new Error('Monk could not answer that just now. Try again in a moment.'))
+            reject(new Error(`${teacherNameNow()} could not answer that just now. Try again in a moment.`))
           );
           return;
         }

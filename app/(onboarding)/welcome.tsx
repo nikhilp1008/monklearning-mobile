@@ -39,7 +39,7 @@ const CAPTION_TRIM = 0.965;
 
 /** The four beats, in the handoff's own words. */
 const CAPTIONS = [
-  ['A teacher who teaches it live.', 'Pick any chapter. The board comes alive.'],
+  ['Drona and Vedha teach it live.', 'Pick any chapter. The board comes alive.'],
   ['Interrupt. Ask anything.', 'Doubts get answered mid-sentence, on the board.'],
   ['Snap a question from your book.', 'Taught step by step, not just answered.'],
   ['Practice your way.', 'Pick a subject or chapter. Questions adapt to how you learn.'],

@@ -287,7 +287,7 @@ export function TeacherPicker({
       {onboarding ? (
         <View style={[styles.obBar, { marginTop: insets.top }]} pointerEvents="none">
           <View style={styles.obHeading}>
-            <Text style={styles.obTitle}>Choose your teacher</Text>
+            <Text style={styles.obTitle}>Choose Drona or Vedha</Text>
             <Text style={styles.obSub}>You can switch any time, even mid-class.</Text>
           </View>
           <View style={[styles.dots, styles.obDots]}>
@@ -360,7 +360,7 @@ export function TeacherPicker({
             ) : null}
           </View>
         ) : (
-          <ObButton label="Select Teacher" variant="cream" onPress={choose} />
+          <ObButton label={`Select ${viewName}`} variant="cream" onPress={choose} />
         )}
       </View>
     </View>

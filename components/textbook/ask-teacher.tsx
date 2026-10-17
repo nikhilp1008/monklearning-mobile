@@ -10,6 +10,7 @@ import { DOCK_H0, DOCK_W0, useDockMotion, type DockPhase } from '@/components/do
 import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
 import type { TeacherId } from '@/lib/preferences';
 import { hapticFloorReleased, hapticFloorTaken } from '@/lib/haptics';
+import { teacherNameNow } from '@/lib/preferences';
 
 /**
  * ASK TEACHER — the textbook's hold-to-ask pill. UI ONLY, NOT WIRED.
@@ -124,7 +125,7 @@ export function AskTeacher({
 
   const listening = phase === 'listening';
   const thinking = phase === 'thinking';
-  const label = listening ? 'Listening…' : thinking ? 'Thinking…' : 'Ask teacher';
+  const label = listening ? 'Listening…' : thinking ? 'Thinking…' : `Ask ${teacherNameNow()}`;
   const hint = listening ? 'Release to stop' : thinking ? 'One moment' : notice ? 'Coming soon' : 'Hold to speak';
 
   return (
@@ -140,7 +141,7 @@ export function AskTeacher({
             }}
             onPressOut={end}
             accessibilityRole="button"
-            accessibilityLabel="Hold to ask your teacher about this page">
+            accessibilityLabel={`Hold to ask ${teacherNameNow()} about this page`}>
             <Animated.View style={[styles.orb, orbAnim]}>
               <TeacherOrbPoster teacher={teacher} size={40} />
               <ThinkingArc motion={motion} on={thinking} />

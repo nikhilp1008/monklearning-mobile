@@ -112,7 +112,7 @@ export default function PassScreen() {
             <Text style={styles.overline}>BOTH PASSES INCLUDE</Text>
             {/* No teachers before the payment: the teacher is met on the very
                 next screens, so their row is left off here (the paywall keeps it). */}
-            {INCLUDED.filter(([label]) => label !== 'Teachers').map(([label, value], i, rows) => (
+            {INCLUDED.filter(([label]) => label !== 'Drona & Vedha').map(([label, value], i, rows) => (
               <View
                 key={label}
                 style={[styles.includedRow, i === rows.length - 1 && styles.includedRowLast]}>
