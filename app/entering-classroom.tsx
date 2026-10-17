@@ -53,10 +53,13 @@ export default function EnteringClassroomScreen() {
     chapterId?: string;
     chapterTitle?: string;
     initialUtterance?: string;
+    /** '1' when the student typed the topic rather than tapping one. */
+    typed?: string;
   }>();
   const chapterTitle = params.chapterTitle || 'this chapter';
   const paramChapterId = params.chapterId ?? '';
   const initialUtterance = params.initialUtterance ?? '';
+  const typedTopic = params.typed === '1';
 
   /**
    * NAMING THE CHAPTER IS THIS SCREEN'S JOB, NOT THE CALLER'S.
@@ -325,13 +328,17 @@ export default function EnteringClassroomScreen() {
     }
   }
 
-  // If the student already picked/typed a topic on the previous screen,
+  // If the student already picked or typed a topic on the topics page,
   // fire the same submit real users trigger by hand, but as soon as the
   // session exists rather than waiting on the scoping UI to mount.
   useEffect(() => {
     if (sessionId && initialUtterance && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
-      submit(initialUtterance, { skipCheck: true, fromPreselected: true });
+      // A topic tapped from the chapter's own list is on-topic by
+      // construction. One the student typed on the topics page is checked
+      // like any typed answer, and a failure brings them back to the
+      // conversation with the reason, where they can type again.
+      submit(initialUtterance, { skipCheck: !typedTopic, fromPreselected: !typedTopic });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, initialUtterance]);

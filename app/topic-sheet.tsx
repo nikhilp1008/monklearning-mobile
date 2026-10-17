@@ -1,26 +1,19 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { friendlyError } from '@/lib/api';
 import { shadow } from '@/lib/shadow';
-import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton } from '@/components/onboarding-kit';
-import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { BloomFace } from '@/components/gradient-select';
+import { TopicChoice, TopicField } from '@/components/topic-choice';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
-import { hapticCommitted } from '@/lib/haptics';
-
-// Matched to practice-focus.tsx, the app's other bottom sheet — a flick
-// dismisses even if the sheet barely moved, so a quick swipe down doesn't need
-// a full quarter-height drag to register.
-
 
 /** export-6c's split: at or under this, a name is a pill; over it, a row. */
 const PILL_MAX_CHARS = 26;
@@ -35,10 +28,44 @@ export default function TopicSheetScreen() {
   }>();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<string | null>(null);
+  /** A topic the student typed instead. Only one of the two is ever held. */
+  const [typed, setTyped] = useState('');
+  const field = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
+  /**
+   * ONE CHOICE AT A TIME. Tapping a topic clears anything typed and puts the
+   * keyboard away; the first letter typed lets go of a tapped topic, and
+   * erasing every letter gives it back. Focusing the field alone takes nothing
+   * away, so a student who taps into it and changes their mind still has the
+   * topic they picked.
+   */
+  const lastTapped = useRef<string | null>(null);
   const select = useCallback((topic: string) => {
+    lastTapped.current = topic;
     setSelected(topic);
+    setTyped('');
+    Keyboard.dismiss();
+  }, []);
+  const type = useCallback((text: string) => {
+    setTyped(text);
+    setSelected(text.trim() ? null : lastTapped.current);
+  }, []);
+
+  /**
+   * The field sits at the foot of the list, where the keyboard lands. Scrolled
+   * up once the keyboard has finished opening, when the page has its final
+   * height: scrolling any earlier measured the page before it shrank, and the
+   * field stayed under the keyboard, so typing looked like it did nothing.
+   */
+  const fieldFocused = useRef(false);
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      if (fieldFocused.current) scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => sub.remove();
   }, []);
 
   const chapterId = params.chapterId;
@@ -83,18 +110,33 @@ export default function TopicSheetScreen() {
 
   const topics = useMemo(() => chapter?.subtopics.map((s) => s.name) ?? [], [chapter]);
 
-  // Whatever the student taps/free-talks reaches the real backend: it's
+  // Whatever the student taps or types reaches the real backend: it's
   // forwarded as the scoping conversation's opening line in entering-classroom.
   // `replace`, not `push`: this screen is a transparentModal, so pushing left
   // it sitting in the stack underneath the whole class. Nothing showed while
   // the opaque classroom covered it, but the moment the class ended and the
   // summary animated in, this sheet was what showed through behind it for
   // about a second. Replacing takes the sheet out of the stack on the way in.
-  const goToClassroom = (initialUtterance?: string) =>
+  const typedTopic = typed.trim();
+  const ready = Boolean(selected) || typedTopic.length >= 2;
+  /** Set on the way out, so a double tap cannot open two classes. */
+  const leaving = useRef(false);
+  const start = () => {
+    if (!ready || leaving.current) return;
+    leaving.current = true;
+    Keyboard.dismiss();
+    // Typed out word for word, a listed topic is the same as tapping it.
+    const listed = selected ?? topics.find((t) => t.toLowerCase() === typedTopic.toLowerCase());
     router.replace({
       pathname: '/entering-classroom',
-      params: { chapterId: chapterId ?? '', chapterTitle, initialUtterance: initialUtterance ?? '' },
+      params: {
+        chapterId: chapterId ?? '',
+        chapterTitle,
+        initialUtterance: listed ?? typedTopic,
+        typed: listed ? '' : '1',
+      },
     });
+  };
 
   return (
     <View style={styles.screen}>
@@ -112,97 +154,86 @@ export default function TopicSheetScreen() {
           </Text>
         </View>
 
-          <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
-            {loading ? (
-              // Six cards in the same two-up grid the topics land in.
-              <View style={styles.grid}>
-                {Array.from({ length: 6 }, (_, i) => (
-                  <View key={i} style={styles.topicCard}>
-                    <Skeleton delay={stagger(i)} style={styles.skeletonTopic} />
-                  </View>
-                ))}
-              </View>
-            ) : loadError ? (
-              <View style={styles.stateBlock}>
-                <Text style={styles.stateText}>{loadError}</Text>
-                <Pressable onPress={() => setReloadToken((n) => n + 1)}>
-                  <Text style={styles.retryText}>Try again</Text>
-                </Pressable>
-              </View>
-            ) : topics.length > 0 ? (
-              /* Adaptive, per export-6c: a short name is a pill and several
+        <ScrollView
+          ref={scrollRef}
+          style={styles.flex}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag">
+          {loading ? (
+            // Six cards in the same two-up grid the topics land in.
+            <View style={styles.grid}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <View key={i} style={styles.topicCard}>
+                  <Skeleton delay={stagger(i)} style={styles.skeletonTopic} />
+                </View>
+              ))}
+            </View>
+          ) : loadError ? (
+            <View style={styles.stateBlock}>
+              <Text style={styles.stateText}>{loadError}</Text>
+              <Pressable onPress={() => setReloadToken((n) => n + 1)}>
+                <Text style={styles.retryText}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : topics.length > 0 ? (
+            /* Adaptive, per export-6c: a short name is a pill and several
                  share a line; a long one takes the row to itself. Measured
                  across all 648 topic names in the catalogue, the split at 26
                  characters is what keeps the pills to one line each. */
-              <View style={styles.grid}>
-                {topics.map((topic) => {
-                  const isSelected = selected === topic;
-                  const wide = topic.length > PILL_MAX_CHARS;
-                  if (isSelected) {
-                    return (
-                      <Pressable
-                        key={topic}
-                        onPress={() => select(topic)}
-                        style={wide ? styles.rowOuterSelected : styles.pillOuterSelected}>
-                        {/* No rotating sweep here. On a grid of eleven pills a
-                            turning line drew the eye away from the name it was
-                            marking; the bloom carries the selection on its own,
-                            turned up to compensate, inside a marigold edge. */}
-                        <BloomFace
-                          style={wide ? styles.rowFace : styles.pillFace}
-                          direction="bottom"
-                          strength={2.1}>
-                          <Text style={styles.topicText}>{topic}</Text>
-                        </BloomFace>
-                      </Pressable>
-                    );
-                  }
-                  return (
-                    <Pressable
-                      key={topic}
-                      onPress={() => select(topic)}
-                      style={wide ? styles.rowIdle : styles.pillIdle}>
-                      <Text style={styles.topicText}>{topic}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.stateBlock}>
-                <Text style={styles.stateText}>No specific topics listed for this chapter yet.</Text>
-              </View>
-            )}
+            <View style={styles.grid}>
+              {topics.map((topic) => (
+                <TopicChoice
+                  key={topic}
+                  label={topic}
+                  selected={selected === topic}
+                  wide={topic.length > PILL_MAX_CHARS}
+                  onPress={() => select(topic)}
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.stateBlock}>
+              <Text style={styles.stateText}>No specific topics listed for this chapter yet.</Text>
+            </View>
+          )}
 
-            <PressableScale
-              style={styles.freetalkRow}
-              onPress={() => {
-                // The other way into the same classroom, so the same tap.
-                hapticCommitted();
-                goToClassroom();
-              }}>
-              <MicIcon size={scale(15)} />
-              <Text style={styles.freetalkText}>
-                Can&apos;t find your topic? <Text style={styles.freetalkBold}>Just start talking</Text>
-              </Text>
-              <ArrowRightIcon color={colors.faint} size={scale(13)} />
-            </PressableScale>
+          {loading || loadError ? null : (
+            <View style={styles.typeBlock}>
+              <TopicField
+                ref={field}
+                value={typed}
+                onChangeText={type}
+                onFocus={() => {
+                  fieldFocused.current = true;
+                  // Already open (moving between fields): no show event comes.
+                  if (Keyboard.isVisible()) scrollRef.current?.scrollToEnd({ animated: true });
+                }}
+                onBlur={() => {
+                  fieldFocused.current = false;
+                }}
+                onSubmit={start}
+                placeholder={
+                  topics.length > 0
+                    ? 'Not here? Type what you want to learn'
+                    : 'Type what you want to learn'
+                }
+              />
+            </View>
+          )}
+        </ScrollView>
 
-          </ScrollView>
-
-          <View style={styles.footer}>
-            {/* The onboarding's square key, as every primary button now is.
+        <View style={styles.footer}>
+          {/* The onboarding's square key, as every primary button now is.
                 Static label, per export-6c: real subtopic names run long
                 enough that "Start with <topic>" had to be ellipsised. Its
                 own tap lands on press-in, so the step into the classroom is
                 felt without a second haptic here. Outlined until a topic is
-                chosen. */}
-            <ObButton
-              label="Start learning"
-              withArrow
-              disabled={!selected}
-              onPress={() => goToClassroom(selected ?? undefined)}
-            />
-          </View>
+                chosen or typed. */}
+          <ObButton label="Start learning" withArrow disabled={!ready} onPress={start} />
+        </View>
+        {/* Lifts the button with the keyboard, on both platforms. */}
+        <KeyboardSpacer ios bottomInset={insets.bottom} />
       </SafeAreaView>
     </View>
   );
@@ -222,27 +253,6 @@ function BackArrowIcon({ size }: { size: number }) {
   );
 }
 
-function MicIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"
-        stroke={colors.slate}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M5 11a7 7 0 0 0 14 0M12 18v3"
-        stroke={colors.slate}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
@@ -254,7 +264,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     // A generous grab target — the handle alone is 5pt tall, which is not
-// something a thumb can reliably catch.
+    // something a thumb can reliably catch.
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -285,64 +295,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexWrap: 'wrap',
       gap: scale(8),
       paddingTop: verticalScale(4),
-    },
-    // --- short name: a pill, several to a line ---
-    pillIdle: {
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
-    },
-    pillOuterSelected: {
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: colors.marigold,
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-    },
-    /** Identical padding to `pillIdle`, so selecting never resizes a pill and
-     *  the row cannot re-flow under the tap. */
-    pillFace: {
-      paddingVertical: verticalScale(9),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(99),
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    // --- long name: the row to itself ---
-    rowIdle: {
-      width: '100%',
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(16),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.16)',
-      backgroundColor: '#fff',
-    },
-    rowOuterSelected: {
-      width: '100%',
-      borderRadius: scale(16),
-      borderWidth: 1,
-      borderColor: colors.marigold,
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-    },
-    rowFace: {
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(14),
-      borderRadius: scale(14),
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-    },
-    topicText: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(14),
-      lineHeight: scale(19),
-      color: colors.ink,
     },
     stateBlock: {
       alignItems: 'center',
@@ -382,31 +334,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(13),
       paddingVertical: verticalScale(12),
       paddingHorizontal: scale(14),
-      ...shadow({ color: colors.ink, opacity: 0.05, radius: scale(2), y: verticalScale(1.5), elevation: 1 }),
+      ...shadow({
+        color: colors.ink,
+        opacity: 0.05,
+        radius: scale(2),
+        y: verticalScale(1.5),
+        elevation: 1,
+      }),
     },
-    freetalkRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(9),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(2),
-      marginTop: verticalScale(8),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,26,22,.08)',
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.08)',
-    },
-    freetalkText: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      color: colors.slate,
-    },
-    freetalkBold: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-      textDecorationLine: 'underline',
-      textDecorationColor: 'rgba(238,163,31,.6)',
+    typeBlock: {
+      paddingTop: verticalScale(18),
+      paddingBottom: verticalScale(12),
     },
     footer: {
       flexShrink: 0,
