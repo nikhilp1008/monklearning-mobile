@@ -143,7 +143,7 @@ export class PcmPlaybackQueue {
       return;
     }
     if (!this.started) {
-      // 1x, deliberately — NOT the follow-up's 1.15. A live class is paced
+      // 1x, deliberately (the follow-up was 1.15 until 2026-10-17). A live class is paced
       // by the teacher's own plan, and the founder heard 1.15 as rushed
       // here. It also keeps the reveal clock honest: offsets are recorded
       // in fed (real-time) seconds and compared against played seconds, so

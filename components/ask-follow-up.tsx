@@ -55,7 +55,7 @@ import { rememberFollowUp } from '@/lib/last-followup';
 import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
 import { probeMicAvailability } from '@/lib/mic-availability';
 import { base64ToBytes } from '@/lib/audio-pcm';
-import { pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
+import { PCM_RATE, pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pcmStop } from '@/lib/pcm-player';
 import { parseSolutionStep } from '@/lib/solution-steps';
 import { countChars, revealChars } from '@/lib/word-reveal';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
@@ -124,9 +124,10 @@ const BOARD_EDGE = 14;
  * its length cannot be read. WRITE is the fastest the hand goes while keeping
  * time with the voice. FLUSH writes out whatever is left once the voice has
  * ended — quick, but still visibly written. A formula lands whole and then
- * costs its length, so the hand pauses over it.
+ * costs its length, so the hand pauses over it. SPOKEN was 15 while the
+ * voice played at 1.15x; at 1x (2026-10-17) the same voice runs ~13.
  */
-const SPOKEN_CPS = 15;
+const SPOKEN_CPS = 13;
 const WRITE_CPS = 40;
 /** Never slower than this, so a long voice over a short answer still reads
  *  as writing rather than as a board that has stopped. */
@@ -598,7 +599,7 @@ export function AskFollowUpBar({
       // How long the voice runs: known exactly on the gapless player once its
       // stream has ended, growing as it arrives before then, and guessed from
       // a speaking pace wherever it cannot be read.
-      const heard = r.pcm ? pcmFedSeconds() / 1.15 : 0;
+      const heard = r.pcm ? pcmFedSeconds() / PCM_RATE : 0;
       const runs = r.voiceDone && heard > 0 ? heard : Math.max(heard, r.total / SPOKEN_CPS);
       const left = Math.max(0.6, runs - (now - r.startAt) / 1000);
       rate = Math.max(MIN_CPS, Math.min(WRITE_CPS, (r.total - r.shown) / left));
@@ -1105,7 +1106,7 @@ export function AskFollowUpBar({
               // No didJustFinish on the gapless path: the end is seconds fed
               // (at the played rate) against seconds elapsed, plus a breath.
               const played = (Date.now() - pcmStartedAtRef.current) / 1000;
-              const remains = pcmFedSeconds() / 1.15 - played + 0.5;
+              const remains = pcmFedSeconds() / PCM_RATE - played + 0.5;
               pcmIdleRef.current = setTimeout(() => {
                 if (!controller.signal.aborted) setPhase('idle');
               }, Math.max(0, remains * 1000));
