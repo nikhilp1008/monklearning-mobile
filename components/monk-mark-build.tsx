@@ -1,64 +1,56 @@
-import { useEffect } from 'react';
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  type SharedValue,
-} from 'react-native-reanimated';
-import Svg, { Circle, Line } from 'react-native-svg';
+import { Canvas, Circle, Group, Line, Path, Skia, vec } from '@shopify/react-native-skia';
+import { useEffect, useMemo } from 'react';
+import { Easing, useDerivedValue, useSharedValue, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
 
 /**
  * THE MONK MARK, DRAWN THE WAY IT WAS DESIGNED, from `loading_handoff/Loading 9A`.
  *
  * A compass arm sweeps a guide circle, then a smaller one; the mark's six arcs
  * land one at a time into the circles that were just measured; the amber dot
- * pops; the guides fade and the finished mark holds.
+ * pops; the guides fade and the finished mark holds, then it draws itself
+ * again. Held for HOLD_MS so it reads as done, never still for long enough to
+ * look frozen on a slow connection.
  *
- * THEN IT WAITS, AND DRAWS ITSELF AGAIN. The reference says `forwards` on every
- * keyframe, so it builds once and stops — right for a mock, wrong for a wait
- * that can run a minute. A finished mark sitting perfectly still for the rest
- * of a slow connection is indistinguishable from a frozen screen. But a logo
- * that restarts the instant it finishes is a fidget, so the finished mark is
- * held for HOLD_MS first: long enough to read as done, short enough that the
- * screen is never still for long.
+ * ONE CLOCK: a single 0→1 value runs the whole cycle and every element reads
+ * its own window out of it (`seg`), so the parts cannot drift.
  *
- * ONE CLOCK, NOT FOURTEEN. The reference is fourteen keyframe animations that
- * happen to share an 8s duration, which is how CSS has to express a timeline.
- * Here a single 0→1 value runs for 8s and every element reads its own window
- * out of it, so the parts cannot drift against each other and there is one
- * animation running rather than fourteen. `seg` is the whole trick: it turns
- * the timeline into the local 0→1 each element needs.
+ * SKIA, NOT SVG (2026-10-17). It was react-native-svg with animated props, and
+ * on Android every animated prop goes through a shadow-tree commit: fourteen
+ * moving pieces were a layout pass every frame, on the screen that waits for a
+ * class to load. Skia redraws its canvas from the shared value on the UI
+ * thread, with no React and no layout, so it costs the same on a budget phone
+ * as on any other.
  *
- * The arcs are drawn by `strokeDashoffset`, exactly as the reference does it:
- * each arc's gap is a full circumference, so an arc pushed off by its own
- * length is completely invisible rather than merely somewhere else.
+ * ON WHITE, AS THE LOGO KIT DRAWS IT: the arcs are solid ink, the amber dot
+ * fully opaque; the guides and the compass arm are hairlines that measure and
+ * then get out of the way.
  */
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedLine = Animated.createAnimatedComponent(Line);
-
-/** The reference's own 8s. */
-export const MARK_BUILD_MS = 8000;
+/**
+ * SLOWER THAN THE REFERENCE'S 8s, ON PURPOSE. At 8s the arcs landed a third of
+ * a second apart and the whole build read as busy on a screen whose job is to
+ * settle a student before class. 12s gives each arc half a second and each
+ * compass sweep three.
+ */
+export const MARK_BUILD_MS = 12000;
 /** How long the finished mark is held before it is drawn again. */
-const HOLD_MS = 5500;
-const CYCLE_MS = MARK_BUILD_MS + HOLD_MS;
+const HOLD_MS = 6000;
+/** At the end of the hold the mark fades away, so the next build never starts with a snap. */
+const FADE_MS = 900;
+const CYCLE_MS = MARK_BUILD_MS + HOLD_MS + FADE_MS;
 
-const GUIDE = '#4A463F';
-const ARC = '#8F8979';
+const GUIDE = 'rgba(28,26,22,0.22)';
+const ARC = '#1C1A16';
+/** How much ink the finished arcs carry: 70%, so the mark sits softly on white
+ *  rather than as a solid black shape (chosen 2026-10-17 over 100, 55 and 40). */
+const ARC_ALPHA = 0.7;
 const COMPASS_TIP = '#DD4433';
 const DOT = '#EEA31F';
 
-/** 2πr for the two radii the mark is built on. */
-const OUTER_C = 226.2;
-const INNER_C = 119.4;
-/** How much of each circle one arc covers. */
-const OUTER_ARC = 52;
-const INNER_ARC = 21.8;
+/** The two radii the mark is built on, and how much of each circle one arc covers. */
+const OUTER = { r: 36, w: 11, sweep: (52 / 226.2) * 360 };
+const INNER = { r: 19, w: 9, sweep: (21.8 / 119.4) * 360 };
 
-/** The arcs ease; the compass arms and guides run linear, as in the reference. */
 const easeArc = Easing.bezier(0.3, 0.6, 0.3, 1).factory();
 const easeDot = Easing.bezier(0.2, 0.7, 0.2, 1).factory();
 
@@ -70,189 +62,92 @@ function seg(t: number, a: number, b: number) {
   return (t - a) / (b - a);
 }
 
-/** The guides are drawn, held, then faded — one circle, three phases. */
-function Guide({
-  t,
-  r,
-  circumference,
-  draw,
-}: {
-  t: SharedValue<number>;
-  r: number;
-  circumference: number;
-  /** [start, end] of the draw, as fractions of the timeline. */
-  draw: [number, number];
-}) {
-  const props = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - seg(t.value, draw[0], draw[1])),
-    opacity: 1 - seg(t.value, 0.8, 0.9),
-  }));
-  return (
-    <AnimatedCircle
-      cx={60}
-      cy={60}
-      r={r}
-      stroke={GUIDE}
-      strokeWidth={1}
-      strokeDasharray={`${circumference}`}
-      animatedProps={props}
-    />
-  );
+/** An arc of the circle of radius r round (60, 60), from `from` degrees (0 = three o'clock), clockwise. */
+function arc(r: number, from: number, sweep: number) {
+  const p = Skia.Path.Make();
+  p.addArc({ x: 60 - r, y: 60 - r, width: r * 2, height: r * 2 }, from, sweep);
+  return p;
 }
 
-/**
- * The compass arm that draws a guide: a spoke with a red tip, one full turn.
- *
- * THE TIP IS MOVED, NOT THE GROUP, and that is the whole of the fix. This
- * rotated an `<G>` through `useAnimatedProps({ rotation })`, which
- * react-native-svg quietly does not apply — measured on device, the red tip sat
- * at identical pixel coordinates frame after frame while the circle drew itself
- * beside it. The compass appeared to be holding still and watching, which is
- * the opposite of the idea: the line is supposed to come OUT of the tip.
- *
- * So the endpoint is computed and written straight onto `x2`/`y2` and
- * `cx`/`cy`, which are plain numbers and animate reliably. The angle runs
- * clockwise from three o'clock because that is where an SVG circle's path
- * starts and which way it goes, so the tip and the growing stroke are the same
- * point by construction rather than by agreement.
- */
-function Arm({
-  t,
-  length,
-  tip,
-  turn,
-  gone,
-}: {
-  t: SharedValue<number>;
-  length: number;
-  tip: number;
-  turn: [number, number];
-  gone: number;
-}) {
-  const line = useAnimatedProps(() => {
+/** A guide circle: drawn from three o'clock as its compass turns, held, then faded. */
+function Guide({ t, r, draw }: { t: SharedValue<number>; r: number; draw: [number, number] }) {
+  const path = useMemo(() => arc(r, 0, 359.99), [r]);
+  const end = useDerivedValue(() => seg(t.value, draw[0], draw[1]));
+  const opacity = useDerivedValue(() => (end.value > 0 ? 1 - seg(t.value, 0.8, 0.9) : 0));
+  return <Path path={path} color={GUIDE} style="stroke" strokeWidth={1} start={0} end={end} opacity={opacity} />;
+}
+
+/** The compass arm: a spoke with a red tip, one full turn, its tip the guide's growing end. */
+function Arm({ t, length, tip, turn, gone }: { t: SharedValue<number>; length: number; tip: number; turn: [number, number]; gone: number }) {
+  const at = useDerivedValue(() => {
     const a = 2 * Math.PI * seg(t.value, turn[0], turn[1]);
-    return {
-      x2: 60 + length * Math.cos(a),
-      y2: 60 + length * Math.sin(a),
-      opacity: t.value < turn[0] || t.value >= gone ? 0 : 1,
-    };
+    return vec(60 + length * Math.cos(a), 60 + length * Math.sin(a));
   });
-  const head = useAnimatedProps(() => {
-    const a = 2 * Math.PI * seg(t.value, turn[0], turn[1]);
-    return {
-      cx: 60 + length * Math.cos(a),
-      cy: 60 + length * Math.sin(a),
-      opacity: t.value < turn[0] || t.value >= gone ? 0 : 1,
-    };
-  });
+  const cx = useDerivedValue(() => at.value.x);
+  const cy = useDerivedValue(() => at.value.y);
+  const opacity = useDerivedValue(() => (t.value < turn[0] || t.value >= gone ? 0 : 1));
   return (
-    <>
-      <AnimatedLine x1={60} y1={60} stroke={GUIDE} strokeWidth={1} animatedProps={line} />
-      <AnimatedCircle r={tip} fill={COMPASS_TIP} animatedProps={head} />
-    </>
+    <Group opacity={opacity}>
+      <Line p1={vec(60, 60)} p2={at} color={GUIDE} strokeWidth={1} />
+      <Circle cx={cx} cy={cy} r={tip} color={COMPASS_TIP} />
+    </Group>
   );
 }
 
-/** One of the mark's six arcs, landing into a guide already drawn. */
-function Arc({
-  t,
-  r,
-  width,
-  arc,
-  circumference,
-  rotate,
-  at,
-}: {
-  t: SharedValue<number>;
-  r: number;
-  width: number;
-  arc: number;
-  circumference: number;
-  rotate: number;
-  at: [number, number];
-}) {
-  // Hidden until it starts. Pushed fully off by its own length, the arc is a
-  // zero-length dash, and with a round cap Android draws that as a dot: three
-  // stray grey dots sat in the circle on Android while iOS drew nothing.
-  const props = useAnimatedProps(() => {
-    const p = seg(t.value, at[0], at[1]);
-    return {
-      strokeDashoffset: arc * (1 - easeArc(p)),
-      strokeOpacity: p > 0 ? 1 : 0,
-    };
-  });
-  return (
-    <AnimatedCircle
-      cx={60}
-      cy={60}
-      r={r}
-      stroke={ARC}
-      strokeWidth={width}
-      strokeLinecap="round"
-      strokeDasharray={`${arc} ${circumference}`}
-      transform={`rotate(${rotate} 60 60)`}
-      animatedProps={props}
-    />
-  );
+/** One of the mark's six arcs, landing into a guide already drawn. Invisible until it starts. */
+function Arc({ t, ring, from, at, ink }: { t: SharedValue<number>; ring: typeof OUTER; from: number; at: [number, number]; ink: number }) {
+  const path = useMemo(() => arc(ring.r, from, ring.sweep), [ring, from]);
+  const end = useDerivedValue(() => easeArc(seg(t.value, at[0], at[1])));
+  const opacity = useDerivedValue(() => (t.value > at[0] ? ink : 0));
+  return <Path path={path} color={ARC} style="stroke" strokeWidth={ring.w} strokeCap="round" start={0} end={end} opacity={opacity} />;
 }
 
-export function MonkMarkBuild({ size = 96 }: { size?: number }) {
-  /**
-   * One linear clock over the whole cycle — build plus hold — and the build's
-   * own 0→1 derived from it. Linear because the timeline IS the easing: every
-   * window below carries its own curve, exactly as each keyframe does in the
-   * reference.
-   *
-   * `t` reaches 1 when the build ends and then sits there for the hold, so
-   * every element below holds its finished state without knowing the hold
-   * exists. When the clock wraps, `t` returns to 0 and the mark is drawn from
-   * nothing again.
-   */
+export function MonkMarkBuild({ size = 96, ink = ARC_ALPHA }: { size?: number; ink?: number }) {
   const clock = useSharedValue(0);
   useEffect(() => {
     clock.value = 0;
-    clock.value = withRepeat(
-      withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }),
-      -1,
-      false
-    );
+    clock.value = withRepeat(withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }), -1, false);
   }, [clock]);
+  /** The build's own 0→1: reaches 1 when the build ends and sits there for the hold. */
   const t = useDerivedValue(() => Math.min(1, (clock.value * CYCLE_MS) / MARK_BUILD_MS));
-
-  /** The pin-prick at the centre the compass turns on. Goes with the guides. */
-  const centre = useAnimatedProps(() => ({
-    opacity: seg(t.value, 0, 0.03) * (1 - seg(t.value, 0.8, 0.9)),
-  }));
-
-  /** 0 to 1.45 and back to 1 — a pop, not a fade, and it holds at .72 because
-   *  the mark's own amber is a highlight and not a third ring. */
-  const dot = useAnimatedProps(() => {
-    const p = easeDot(seg(t.value, 0.75, 0.78));
-    const settle = seg(t.value, 0.78, 0.8);
-    return { opacity: 0.72 * p, r: 6 * (1.45 * p - 0.45 * settle * p) };
+  /** The whole mark, fading out over the last FADE_MS of the cycle. */
+  const whole = useDerivedValue(() => {
+    const ms = clock.value * CYCLE_MS;
+    return ms < CYCLE_MS - FADE_MS ? 1 : 1 - (ms - (CYCLE_MS - FADE_MS)) / FADE_MS;
   });
 
+  /** The pin-prick at the centre the compass turns on. Goes with the guides. */
+  const pin = useDerivedValue(() => seg(t.value, 0, 0.03) * (1 - seg(t.value, 0.8, 0.9)));
+  /** Grows a little past its size and settles: a soft arrival, not a jump. */
+  const dotR = useDerivedValue(() => {
+    const p = easeDot(seg(t.value, 0.75, 0.79));
+    const settle = seg(t.value, 0.79, 0.83);
+    return 6 * (1.18 * p - 0.18 * settle * p);
+  });
+  const dotOpacity = useDerivedValue(() => easeDot(seg(t.value, 0.75, 0.79)));
+
   return (
-    <Svg viewBox="0 0 120 120" width={size} height={size} fill="none">
-      <AnimatedCircle cx={60} cy={60} r={1.6} fill={GUIDE} animatedProps={centre} />
+    <Canvas style={{ width: size, height: size }} pointerEvents="none">
+      <Group transform={[{ scale: size / 120 }]} opacity={whole}>
+        <Circle cx={60} cy={60} r={1.6} color={GUIDE} opacity={pin} />
 
-      <Guide t={t} r={36} circumference={OUTER_C} draw={[0.03, 0.28]} />
-      <Guide t={t} r={19} circumference={INNER_C} draw={[0.31, 0.5]} />
+        <Guide t={t} r={36} draw={[0.03, 0.28]} />
+        <Guide t={t} r={19} draw={[0.31, 0.5]} />
 
-      <Arm t={t} length={36} tip={2} turn={[0.03, 0.28]} gone={0.3} />
-      <Arm t={t} length={19} tip={1.8} turn={[0.31, 0.5]} gone={0.52} />
+        <Arm t={t} length={36} tip={2} turn={[0.03, 0.28]} gone={0.3} />
+        <Arm t={t} length={19} tip={1.8} turn={[0.31, 0.5]} gone={0.52} />
 
-      {/* Three outer, clockwise from the top, then three inner. The rotations
-          are the reference's: 120 degrees apart on each ring, the inner set
-          offset so the gaps do not line up with the outer ones. */}
-      <Arc t={t} r={36} width={11} arc={OUTER_ARC} circumference={OUTER_C} rotate={-90} at={[0.53, 0.57]} />
-      <Arc t={t} r={36} width={11} arc={OUTER_ARC} circumference={OUTER_C} rotate={30} at={[0.57, 0.61]} />
-      <Arc t={t} r={36} width={11} arc={OUTER_ARC} circumference={OUTER_C} rotate={150} at={[0.61, 0.65]} />
-      <Arc t={t} r={19} width={9} arc={INNER_ARC} circumference={INNER_C} rotate={-30} at={[0.65, 0.68]} />
-      <Arc t={t} r={19} width={9} arc={INNER_ARC} circumference={INNER_C} rotate={90} at={[0.68, 0.71]} />
-      <Arc t={t} r={19} width={9} arc={INNER_ARC} circumference={INNER_C} rotate={210} at={[0.71, 0.74]} />
+        {/* Three outer, clockwise from the top, then three inner, offset so the
+            gaps do not line up: the logo kit's own rotations. */}
+        <Arc t={t} ring={OUTER} from={-90} at={[0.53, 0.57]} ink={ink} />
+        <Arc t={t} ring={OUTER} from={30} at={[0.57, 0.61]} ink={ink} />
+        <Arc t={t} ring={OUTER} from={150} at={[0.61, 0.65]} ink={ink} />
+        <Arc t={t} ring={INNER} from={-30} at={[0.65, 0.68]} ink={ink} />
+        <Arc t={t} ring={INNER} from={90} at={[0.68, 0.71]} ink={ink} />
+        <Arc t={t} ring={INNER} from={210} at={[0.71, 0.74]} ink={ink} />
 
-      <AnimatedCircle cx={60} cy={60} r={6} fill={DOT} animatedProps={dot} />
-    </Svg>
+        <Circle cx={60} cy={60} r={dotR} color={DOT} opacity={dotOpacity} />
+      </Group>
+    </Canvas>
   );
 }

@@ -128,7 +128,9 @@ jest.mock('@/hooks/use-landscape-lock', () => ({
 }));
 // The dock's light and face are drawn with Skia, which does not load under
 // Jest. These tests are about the mic, not the drawing.
-jest.mock('@shopify/react-native-skia', () => ({ useClock: () => ({ value: 0 }) }));
+jest.mock('@shopify/react-native-skia', () => ({ useClock: () => ({ value: 0 }), useTypeface: () => null, vec: (x: number, y: number) => ({ x, y }) }));
+// The loading card draws with Skia, which does not load under Jest.
+jest.mock('@/components/entering-card', () => ({ EnteringCardScreen: () => null }));
 jest.mock('@/components/classroom-dock-face', () => ({
   MicDisc: () => null,
   ThinkingRing: () => null,

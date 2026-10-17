@@ -89,7 +89,14 @@ export const SKY_FALLBACK = '#2E2A24';
  * WebGL gives a shader device pixels and Skia gives it points, so the grain
  * these lines add was landing at one speck per point — nine device pixels per
  * speck on a 3x screen instead of one. See components/teacher-field.tsx for
- * the full reasoning. Nothing else differs from the file in the handoff.
+ * the full reasoning.
+ *
+ * And one saving: with `uWarp` at 0, as every sky in the app has it, the five
+ * fbm noise fields (about a hundred hash calls a pixel) were computed and then
+ * mixed away to 0.5. They are skipped when `uWarp` is 0, which gives the same
+ * picture for a small part of the cost: it matters on a low-end Android GPU,
+ * where Home draws this sky three times and the class's loading card full
+ * screen.
  */
 const SKY_SKSL = `
 uniform vec2 uRes; uniform float uT,uB,uSoft,uDark,uHotA,uWarp,uPx,uGrain,uLift; uniform vec2 uDir,uHot; uniform vec3 uGold,uMari,uPale,uEmber,uRust,uBronze;
@@ -99,11 +106,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.03+ve
 half4 main(float2 fragCoord){
  vec2 uv=fragCoord/uRes;
  float asp=uRes.x/uRes.y; vec2 p=vec2(uv.x*asp,uv.y); float t=uT;
- vec2 q=vec2(fbm(p*1.5+vec2(t*.05,t*.03)),fbm(p*1.5+vec2(5.2-t*.04,1.3+t*.02)));
- vec2 r=vec2(fbm(p*2.1+q*1.8+vec2(1.7,9.2)+t*.03),fbm(p*2.1+q*1.8+vec2(8.3,2.8)-t*.025));
- float w=fbm(p*1.3+r*1.6);
+ vec2 q=vec2(.5), r=vec2(.5); float w=.5;
+ if(uWarp>0.){
+  q=vec2(fbm(p*1.5+vec2(t*.05,t*.03)),fbm(p*1.5+vec2(5.2-t*.04,1.3+t*.02)));
+  r=vec2(fbm(p*2.1+q*1.8+vec2(1.7,9.2)+t*.03),fbm(p*2.1+q*1.8+vec2(8.3,2.8)-t*.025));
+  w=fbm(p*1.3+r*1.6);
+  w=mix(.5,w,uWarp); q=mix(vec2(.5),q,uWarp); r=mix(vec2(.5),r,uWarp);
+ }
  float s=dot(uv-.5,uDir)+.5;
- w=mix(.5,w,uWarp); q=mix(vec2(.5),q,uWarp); r=mix(vec2(.5),r,uWarp);
  float b=uB+(w-.5)*.42+(r.x-.5)*.16+(uv.x-.5)*.04*(1.-uWarp);
  float m=smoothstep(b-uSoft,b+uSoft,s);
  vec3 gold=uGold, mari=uMari, pale=uPale, ember=uEmber, rust=uRust, red=vec3(.867,.267,.2);

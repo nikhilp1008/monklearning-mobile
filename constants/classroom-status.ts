@@ -119,3 +119,22 @@ export function toStatusSubject(subject: string | null | undefined): StatusSubje
   if (key === 'maths' || key === 'math') return 'mathematics';
   return null;
 }
+
+/**
+ * WHERE THE LINE SITS ON THE CARD'S FIVE BARS, 1 to 5, or null for a line that
+ * is not a stage (the long-wait reassurance), which keeps the bars where they
+ * were. Opening the session is the first bar; planning fills the second and
+ * third (its first two lines, then the rest); joining the room the fourth; the
+ * chalk the fifth. Each line maps to one bar, so the bars only ever move
+ * forward with real events, never on a timer of their own.
+ */
+export function statusStep(text: string): number | null {
+  if (text === SINGLE_LINE.opening) return 1;
+  if (text === SINGLE_LINE.joining) return 4;
+  if (text === SINGLE_LINE.writing) return 5;
+  for (const lines of [PLANNING_GENERIC, ...Object.values(PLANNING_BY_SUBJECT)]) {
+    const at = lines.indexOf(text);
+    if (at >= 0) return at < 2 ? 2 : 3;
+  }
+  return null;
+}

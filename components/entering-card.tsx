@@ -1,10 +1,10 @@
-import { useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo, useRef } from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
-  interpolate,
-  interpolateColor,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -13,11 +13,17 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDarkNavigationBar } from '@/lib/nav-bar';
+import { Canvas, LinearGradient, Line, Skia, Text as SkText, useTypeface, vec } from '@shopify/react-native-skia';
+
 import { MonkMarkBuild } from '@/components/monk-mark-build';
+import { useTeacherId } from '@/components/states/state-plate';
 import Svg, { Path } from 'react-native-svg';
 
+import { statusStep } from '@/constants/classroom-status';
 import { useScale } from '@/constants/scale';
+import { colors } from '@/constants/brand';
+import { START_ARROW } from '@/constants/teachers';
+import { teacherName } from '@/lib/preferences';
 
 /**
  * The card a student watches while their class is being built.
@@ -36,29 +42,28 @@ import { useScale } from '@/constants/scale';
  * `animation: 'fade'` in `app/_layout.tsx` — the default push animation slides,
  * and the card would visibly jump at the boundary.
  *
- * The protractor mark that used to sit above the heading is gone with the
- * redesign: the handoff screen is purely typographic. It was a considered piece
- * of work and it is recoverable from git history if it is wanted back.
+ * WHITE, as of 2026-10-17. A dark screen of colour between a white Home and a
+ * white classroom was a jolt at the one moment a student should be settling
+ * in, so the wait is on the classroom's own paper: the Monk mark drawing
+ * itself (components/monk-mark-build.tsx), "Entering your classroom" in ink
+ * with a band of the teacher's colour passing through it, the chapter, and at
+ * the foot the stage line over one fine line that fills, in the teacher's
+ * colour, with the real stages (constants/classroom-status.ts `statusStep`).
+ * The teacher shows only as that colour: ember for Drona, honey for Vedha.
  */
 
-/** Dark ground. Deliberately the ink token, not black. */
-const GROUND = '#1C1A16';
-/** The heading's resting colour, and the two brighter stops the sweep passes
- *  through. Straight from the handoff's `txShimmer` gradient. */
-const TEXT_REST = '#DCD6C7';
-const TEXT_WARM = '#EBC77A';
-const TEXT_CORE = '#FFF6E0';
-const AMBER = '#EEA31F';
-/** The chapter line and the stage line, as rgba over the ground. */
-const CHAPTER = 'rgba(220,214,199,.6)';
-const STAGE = 'rgba(220,214,199,.5)';
+const GROUND = '#FFFFFF';
+/** The heading at rest: ink. The sweep passes through it in the teacher's colour. */
+const TEXT_REST = colors.ink;
+const CHAPTER = colors.slate;
+const STAGE = colors.slate;
+/** How many stages the foot line is divided into. */
+const STAGES = 5;
 
 const HEADING = 'Entering your classroom';
-/** Word spacing is the handoff's `gap:0 .28em`, not a space character. */
-const WORD_GAP_EM = 0.28;
 
-/** One full sweep, and the pause before the first one. `txShimmer 4.4s 1s`. */
-const SWEEP_MS = 4400;
+/** One full sweep, and the pause before the first one: slower than the handoff's 4.4s, so the band drifts rather than runs. */
+const SWEEP_MS = 6500;
 const SWEEP_DELAY_MS = 1000;
 
 /**
@@ -73,43 +78,83 @@ const CORE_HALF = 0.12;
 const SHOULDER_HALF = 0.42;
 
 /**
- * Per-character colour, rather than a gradient clipped to text.
+ * THE HEADING, WITH ITS SWEEP, DRAWN BY SKIA.
  *
- * `background-clip:text` has no React Native equivalent without a mask view,
- * and this does not justify a new native dependency. Sampling the same ramp
- * once per character is the same function, quantised to a character's width —
- * about 12px at this size, which is well below the band's own 84px core.
+ * It was 21 separately coloured characters, each re-coloured every frame. On
+ * Android, Reanimated sends a colour change through a full shadow-tree commit
+ * (its synchronous path for UI props is off by default there), so the sweep
+ * was a layout pass of 21 nodes sixty times a second, for the whole wait, on
+ * the same thread that is mounting the classroom underneath. On a budget phone
+ * that is the stutter.
  *
- * It costs nothing in layout: Onest has a `kern` feature but not one kern pair
- * in this string (checked against the 500 face's GPOS), so splitting it into
- * characters measures identically to setting it as one run.
+ * Here the words are drawn once by Skia and the bright band is one gradient
+ * whose position is a shared value: Skia redraws a small canvas on the UI
+ * thread, and React and layout are never involved. Same ramp as before: the
+ * core runs +/-12% of the text either side of the band's centre, the shoulders
+ * +/-42%.
+ *
+ * Kept to one line, as the design sets it: on a narrow phone the size steps
+ * down to fit rather than wrapping.
  */
-function ShimmerChar({
-  char,
-  at,
+const ONEST_SEMIBOLD = require('@expo-google-fonts/onest/600SemiBold/Onest_600SemiBold.ttf');
+
+function SweepHeading({
+  size,
+  maxWidth,
   sweep,
-  style,
+  accent,
+  fallbackStyle,
 }: {
-  char: string;
-  /** This character's centre, 0..1 across the heading. */
-  at: number;
+  size: number;
+  maxWidth: number;
   sweep: SharedValue<number>;
-  style: object;
+  /** The colour the band passes through at its core: the teacher's. */
+  accent: string;
+  fallbackStyle: object;
 }) {
-  const animated = useAnimatedStyle(() => {
-    // The band starts and ends clear of the text so the sweep enters and
-    // leaves rather than appearing mid-word.
-    const centre = -0.42 + sweep.value * 1.84;
-    const d = Math.abs(at - centre);
-    return {
-      color: interpolateColor(
-        d,
-        [0, CORE_HALF, SHOULDER_HALF],
-        [TEXT_CORE, TEXT_WARM, TEXT_REST]
-      ),
-    };
+  const typeface = useTypeface(ONEST_SEMIBOLD);
+  const layout = useMemo(() => {
+    if (!typeface) return null;
+    const probe = Skia.Font(typeface, size);
+    const natural = probe.measureText(HEADING).width;
+    const fitted = natural > maxWidth ? (size * maxWidth) / natural : size;
+    const font = Skia.Font(typeface, fitted);
+    const width = Math.ceil(font.measureText(HEADING).width) + 2;
+    const m = font.getMetrics();
+    const height = Math.ceil(fitted * 1.3);
+    const baseline = (height - (m.descent - m.ascent)) / 2 - m.ascent;
+    return { font, width, height, baseline };
+  }, [typeface, size, maxWidth]);
+
+  const start = useDerivedValue(() => {
+    const w = layout?.width ?? 0;
+    const centre = (-0.42 + sweep.value * 1.84) * w;
+    return vec(centre - SHOULDER_HALF * w, 0);
   });
-  return <Animated.Text style={[style, animated]}>{char}</Animated.Text>;
+  const end = useDerivedValue(() => {
+    const w = layout?.width ?? 0;
+    const centre = (-0.42 + sweep.value * 1.84) * w;
+    return vec(centre + SHOULDER_HALF * w, 0);
+  });
+
+  // Until the face is read (a few milliseconds, inside the fade-in) the words
+  // are the plain heading, so nothing is ever blank.
+  if (!layout) return <Text style={fallbackStyle}>{HEADING}</Text>;
+  const c = (SHOULDER_HALF - CORE_HALF) / (2 * SHOULDER_HALF);
+  return (
+    <View accessible accessibilityRole="header" accessibilityLabel={HEADING}>
+      <Canvas style={{ width: layout.width, height: layout.height }} pointerEvents="none">
+        <SkText x={1} y={layout.baseline} text={HEADING} font={layout.font}>
+          <LinearGradient
+            start={start}
+            end={end}
+            colors={[TEXT_REST, TEXT_REST, accent, TEXT_REST, TEXT_REST]}
+            positions={[0, c, 0.5, 1 - c, 1]}
+          />
+        </SkText>
+      </Canvas>
+    </View>
+  );
 }
 
 /**
@@ -157,7 +202,6 @@ export function EnteringCardScreen({
 }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  useDarkNavigationBar();
   /**
    * Read directly, because the back button is absolutely positioned and Yoga
    * does not apply a parent's padding to absolute children — so sitting inside
@@ -167,6 +211,14 @@ export function EnteringCardScreen({
    * is where the handoff puts it.
    */
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const teacher = useTeacherId();
+  const accent = START_ARROW[teacher];
+
+  /** The line holds its place on a line that is not a stage (the long wait). */
+  const stepRef = useRef(0);
+  const step = statusStep(statusText);
+  if (step !== null && step > stepRef.current) stepRef.current = step;
 
   const sweep = useSharedValue(0);
   useEffect(() => {
@@ -176,31 +228,9 @@ export function EnteringCardScreen({
     );
   }, [sweep]);
 
-  /**
-   * Words for the stagger, characters for the sweep.
-   *
-   * Each character needs its position across the WHOLE heading, not across its
-   * own word, or the band would restart at every space. The running index is
-   * what carries that.
-   */
-  const words = useMemo(() => {
-    const parts = HEADING.split(' ');
-    const chars = HEADING.replace(/ /g, '').length;
-    let seen = 0;
-    // Still split by word, but only for the gap between them now -- the
-    // per-word stagger is gone with the movement. The characters inside carry
-    // their position across the whole heading, which is what the sweep reads.
-    return parts.map((word) =>
-      word.split('').map((char) => {
-        const at = (seen + 0.5) / chars;
-        seen += 1;
-        return { char, at };
-      })
-    );
-  }, []);
-
   return (
     <View style={styles.screen}>
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {onBack && (
           <Pressable
@@ -209,7 +239,7 @@ export function EnteringCardScreen({
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Leave">
-            <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
+            <Svg viewBox="0 0 24 24" width={16} height={16} fill="none">
               <Path
                 d="M15 5l-7 7 7 7"
                 stroke={TEXT_REST}
@@ -223,28 +253,16 @@ export function EnteringCardScreen({
         {/* One fade for the whole block, so the mark, the heading and the
             chapter arrive together and nothing shifts. */}
         <FadeIn style={styles.middle}>
-          {/* 9A's own build: the mark is compassed into existence over 8s and
-              then holds. It is the only thing on this screen that moves apart
-              from the sweep, which is the point — a wait needs one thing to
-              watch, not three. */}
           <View style={styles.mark}>
-            <MonkMarkBuild size={scale(96)} />
+            <MonkMarkBuild size={scale(92)} />
           </View>
-          <View style={styles.headingRow}>
-            {words.map((word, i) => (
-              <View key={i} style={[styles.word, i < words.length - 1 && styles.wordGap]}>
-                {word.map((entry, j) => (
-                  <ShimmerChar
-                    key={j}
-                    char={entry.char}
-                    at={entry.at}
-                    sweep={sweep}
-                    style={styles.heading}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
+          <SweepHeading
+            size={scale(26)}
+            maxWidth={width - scale(36) * 2}
+            sweep={sweep}
+            accent={accent}
+            fallbackStyle={styles.heading}
+          />
           <Text style={styles.chapter} numberOfLines={2}>
             {chapterTitle}
           </Text>
@@ -255,9 +273,11 @@ export function EnteringCardScreen({
             reader hears the heading once and then silence for the whole wait. */}
         <FadeIn delay={420} style={styles.stageRow}>
           <View style={styles.stageInner} accessibilityLiveRegion="polite" accessibilityRole="text">
-            <Dots />
-            <StageLine key={statusText} style={styles.stage} text={statusText} />
+            {/* The status copy is written with Drona's name ("Drona is picking up
+                the chalk…"); a Vedha student hears Vedha. */}
+            <StageLine key={statusText} style={styles.stage} text={statusText.replace(/\bDrona\b/g, teacherName(teacher))} />
           </View>
+          <StageProgress step={stepRef.current} width={width - scale(48) * 2} color={accent} />
         </FadeIn>
       </SafeAreaView>
     </View>
@@ -283,44 +303,33 @@ function StageLine({ style, text }: { style: object; text: string }) {
   );
 }
 
-/** Three amber dots on the handoff's 2.2s `dotWave`, a third of a cycle apart. */
-function Dots() {
-  const p = useSharedValue(0);
+/**
+ * ONE FINE LINE ACROSS THE FOOT, filling in the teacher's colour a fifth at a
+ * time as each real stage begins. Drawn by Skia from a shared value, so it
+ * fills without a layout pass.
+ */
+function StageProgress({ step, width, color }: { step: number; width: number; color: string }) {
+  const p = useSharedValue(step / STAGES);
   useEffect(() => {
-    p.value = withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1);
-  }, [p]);
+    p.value = withTiming(step / STAGES, { duration: 1100, easing: Easing.inOut(Easing.cubic) });
+  }, [step, p]);
+  const end = useDerivedValue(() => vec(1.5 + p.value * (width - 3), 1.5));
+  const shown = useDerivedValue(() => (p.value > 0 ? 1 : 0));
   return (
-    <View style={dotStyles.row}>
-      <Dot p={p} phase={0} />
-      <Dot p={p} phase={0.136} />
-      <Dot p={p} phase={0.272} />
-    </View>
+    <Canvas
+      style={{ width, height: 3 }}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants">
+      <Line p1={vec(1.5, 1.5)} p2={vec(width - 1.5, 1.5)} color="rgba(28,26,22,0.08)" strokeWidth={3} strokeCap="round" />
+      <Line p1={vec(1.5, 1.5)} p2={end} color={color} strokeWidth={3} strokeCap="round" opacity={shown} />
+    </Canvas>
   );
 }
-
-function Dot({ p, phase }: { p: SharedValue<number>; phase: number }) {
-  const animated = useAnimatedStyle(() => {
-    const t = (p.value + phase) % 1;
-    return {
-      opacity: t < 0.5 ? interpolate(t, [0, 0.5], [0.22, 1]) : interpolate(t, [0.5, 1], [1, 0.22]),
-    };
-  });
-  return <Animated.View style={[dotStyles.dot, animated]} />;
-}
-
-const dotStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 4 },
-  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: AMBER },
-});
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   const headingSize = scale(26);
   return StyleSheet.create({
-    /** The reference's own 34 under the mark, before the headline. */
-    mark: {
-      alignSelf: 'center',
-      marginBottom: verticalScale(34),
-    },
     screen: {
       flex: 1,
       backgroundColor: GROUND,
@@ -335,8 +344,11 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       position: 'absolute',
       left: scale(14),
       // `top` is set on the element, from the safe-area inset.
-      width: scale(40),
-      height: scale(40),
+      width: scale(44),
+      height: scale(44),
+      borderRadius: scale(22),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 2,
@@ -349,21 +361,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       justifyContent: 'center',
       paddingHorizontal: scale(36),
     },
-    headingRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-    },
-    // Each word is its own row of characters so the stagger has something to
-    // move and the characters inside it still sit on one baseline.
-    word: {
-      flexDirection: 'row',
-    },
-    wordGap: {
-      marginRight: headingSize * WORD_GAP_EM,
-    },
     heading: {
-      fontFamily: 'Onest_500Medium',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: headingSize,
       lineHeight: headingSize * 1.15,
       letterSpacing: headingSize * -0.02,
@@ -382,17 +381,20 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       position: 'absolute',
       left: 0,
       right: 0,
-      bottom: verticalScale(56),
+      bottom: verticalScale(48),
       alignItems: 'center',
+      gap: verticalScale(14),
     },
+    /** The mark above the heading, with the reference's own breathing room. */
+    mark: { alignSelf: 'center', marginBottom: verticalScale(36) },
     stageInner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
     },
     stage: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14),
       color: STAGE,
     },
   });
