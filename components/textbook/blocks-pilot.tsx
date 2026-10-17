@@ -163,7 +163,7 @@ export function TextbookBlockPilot({ block, ctx }: { block: RenderBlock; ctx: Bl
       if (!d) return null;
       return (
         <View style={st.card}>
-          <DiagramBody d={d} />
+          <DiagramBody d={d} type={type} />
         </View>
       );
     }

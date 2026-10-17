@@ -65,13 +65,19 @@ export function DiagramCard({ d }: { d: Diagram }) {
   );
 }
 
-/** The card's contents without its page: the same diagram, set inside a reading page. */
-export function DiagramBody({ d }: { d: Diagram }) {
+/**
+ * The card's contents without its page: the same diagram, set inside a reading
+ * page. `type` is the reader's text size: inside a chapter the name and caption
+ * follow it, while the drawing (its labels included) and the chips keep their
+ * size, so a larger text never pushes a figure out of its frame.
+ */
+export function DiagramBody({ d, type }: { d: Diagram; type?: (n: number) => number }) {
   const { scale } = useScale();
+  const t = type ?? scale;
   const [c, setC] = useState(0);
   return (
     <View>
-      <Text style={{ fontFamily: STIX.semibold, fontSize: scale(19), lineHeight: scale(25), color: colors.ink }}>{d.name}</Text>
+      <Text style={{ fontFamily: STIX.semibold, fontSize: t(19), lineHeight: t(25), color: colors.ink }}>{d.name}</Text>
       <View style={{ marginTop: scale(14) }}>
         <DiagramImage d={d} caseIndex={c} />
       </View>
@@ -89,7 +95,7 @@ export function DiagramBody({ d }: { d: Diagram }) {
           ))}
         </View>
       )}
-      <Markup html={d.cases[c].cap} size={scale(16)} look="stix" style={{ marginTop: scale(12), fontFamily: STIX.regular, fontSize: scale(16), lineHeight: scale(23), color: colors.slate }} />
+      <Markup html={d.cases[c].cap} size={t(16)} look="stix" style={{ marginTop: scale(12), fontFamily: STIX.regular, fontSize: t(16), lineHeight: t(23), color: colors.slate }} />
     </View>
   );
 }

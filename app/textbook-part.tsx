@@ -34,7 +34,7 @@ import { useReadingSize } from '@/hooks/use-reading-size';
 import { buildParts, ChapterPart, readProgress, saveProgress } from '@/lib/chapter-essentials';
 import { hapticSwitched, hapticTicked } from '@/lib/haptics';
 import { getTeacherPreference, TeacherId } from '@/lib/preferences';
-import { readingMultiplier } from '@/lib/reading-size';
+import { nextReadingSize, READING_SIZE_LABEL, readingMultiplier } from '@/lib/reading-size';
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { lastFollowUpContext } from '@/lib/last-followup';
 import { openReportSheet } from '@/lib/reports';
@@ -83,7 +83,7 @@ export default function TextbookPartScreen() {
   const title = params.title ?? '';
   const { scale, verticalScale } = useScale();
   const insets = useSafeAreaInsets();
-  const { size: readingSize } = useReadingSize();
+  const { size: readingSize, choose: chooseReadingSize } = useReadingSize();
   const type = useCallback((n: number) => scale(n) * readingMultiplier(readingSize), [scale, readingSize]);
   const s = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
@@ -271,6 +271,38 @@ export default function TextbookPartScreen() {
     lastY.current = 0;
     away.value = withTiming(0, { duration: 160 });
   }, [at, away]);
+
+  /**
+   * TEXT SIZE KEEPS YOUR PLACE. Bigger text makes the page longer, so the same
+   * scroll offset would land on a different paragraph. The place is kept as
+   * how far through the page you were, and restored once the page has
+   * re-laid out at the new size. The head stays on screen: the student just
+   * tapped it.
+   */
+  const scrollRef = useRef<ScrollView>(null);
+  const contentH = useRef(0);
+  const viewH = useRef(0);
+  const keepAt = useRef<number | null>(null);
+  const changeSize = () => {
+    hapticSwitched();
+    const room = contentH.current - viewH.current;
+    keepAt.current = room > 0 ? Math.min(1, lastY.current / room) : 0;
+    chooseReadingSize(nextReadingSize(readingSize));
+    // Only for this re-layout: if the length did not change, an answer
+    // opening later must not jump the page.
+    setTimeout(() => {
+      keepAt.current = null;
+    }, 800);
+  };
+  const onContentSize = (_w: number, h: number) => {
+    contentH.current = h;
+    if (keepAt.current === null) return;
+    const y = Math.max(0, keepAt.current * (h - viewH.current));
+    keepAt.current = null;
+    lastY.current = y;
+    scrollRef.current?.scrollTo({ y, animated: false });
+    away.value = withTiming(0, { duration: 160 });
+  };
   const [headH, setHeadH] = useState(0);
   const headSpace = headH || verticalScale(60);
   const footTravel = verticalScale(150);
@@ -368,6 +400,19 @@ export default function TextbookPartScreen() {
               <FlagIcon size={scale(16)} />
             </Pressable>
           ) : null}
+          {/* TEXT SIZE, the reader's own aA: one button stepping small, medium,
+              large and round again, remembered for every chapter. Only the
+              words grow; figures, tables' boxes and controls keep their size. */}
+          <Pressable
+            onPress={changeSize}
+            disabled={!chapter || !page}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={`Text size: ${READING_SIZE_LABEL[readingSize]}. Tap to change.`}
+            style={s.sizeButton}>
+            <Text style={s.sizeSmall}>a</Text>
+            <Text style={s.sizeBig}>A</Text>
+          </Pressable>
         </Animated.View>
 
         {missing ? (
@@ -387,6 +432,11 @@ export default function TextbookPartScreen() {
           <View style={s.stage}>
             <Animated.View key={at} entering={enter} exiting={exit} style={s.page}>
               <ScrollView
+                ref={scrollRef}
+                onContentSizeChange={onContentSize}
+                onLayout={(e) => {
+                  viewH.current = e.nativeEvent.layout.height;
+                }}
                 scrollEnabled={!asking}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
@@ -429,7 +479,8 @@ export default function TextbookPartScreen() {
           <Animated.View style={[s.navRow, footStyle]} pointerEvents="box-none">
             {/* Ask teacher is Ask follow-up's own bar, wearing the teacher's orb: the
                 same hold, voice, board and answer, about this part. The pill rides in
-                the bar's row so the board can span it. */}
+                the bar's row so the board can span it, on the right as Practice's Next
+                does, under the thumb that turns the pages. */}
             <AskFollowUpBar
               surface="textbooks"
               doubtId={askPage ? askKey : null}
@@ -437,7 +488,7 @@ export default function TextbookPartScreen() {
               teacherFace={teacher}
               onBusyChange={setAsking}
               gutter={scale(16)}
-              leading={
+              trailing={
                 <View style={[s.pill, lastOfTopic && s.pillLast, asking && s.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
                   <Pressable onPress={() => setListOpen(true)} hitSlop={4} style={s.pillButton} accessibilityLabel="All parts">
                     <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
@@ -674,6 +725,15 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     back: { width: scale(34), height: scale(44), justifyContent: 'center' },
     chapterTitle: { flex: 1, fontFamily: 'Onest_700Bold', fontSize: scale(15), color: colors.ink },
     report: { paddingHorizontal: scale(6), paddingVertical: verticalScale(4) },
+    sizeButton: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: scale(1.5),
+      paddingHorizontal: scale(6),
+      paddingVertical: verticalScale(4),
+    },
+    sizeSmall: { fontFamily: 'Onest_600SemiBold', fontSize: scale(11), color: colors.ink },
+    sizeBig: { fontFamily: 'Onest_600SemiBold', fontSize: scale(16), color: colors.ink },
     stage: { flex: 1, overflow: 'hidden' },
     page: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.reading },
     loading: { paddingTop: verticalScale(40), alignItems: 'center' },

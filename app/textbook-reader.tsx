@@ -671,7 +671,9 @@ export default function TextbookReaderScreen() {
           <View style={styles.freezeDot} />
           <Text style={styles.freezeText}>Teacher is looking at this page</Text>
         </Animated.View>
-        {/* TOPICS ON THE LEFT, ASK TEACHER ON THE RIGHT. The topics pill is
+        {/* ASK TEACHER ON THE LEFT, TOPICS ON THE RIGHT, as Practice puts Ask
+            follow-up left and Next right: the thumb that turns the pages holds
+            the right side of the phone. The topics pill is
             the list icon and the arrows round the count: the icon (or the
             count) opens the topic list, the arrows step a topic either way.
             No "Topics" word, so the pill is narrow enough to sit beside Ask
@@ -688,7 +690,7 @@ export default function TextbookReaderScreen() {
             teacherFace={teacher}
             onBusyChange={setAsking}
             gutter={scale(16)}
-            leading={
+            trailing={
             <View style={[styles.topicsPill, asking && styles.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
               <Pressable
                 onPress={() => router.push('/textbook-topics')}

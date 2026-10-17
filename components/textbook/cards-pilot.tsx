@@ -90,7 +90,7 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
           {question}
           {!!fig && (
             <View style={s.fig}>
-              <DiagramBody d={fig} />
+              <DiagramBody d={fig} type={type} />
             </View>
           )}
           <View style={s.steps}>
