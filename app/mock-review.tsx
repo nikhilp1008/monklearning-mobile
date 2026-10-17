@@ -9,14 +9,17 @@ import Svg, { Path } from 'react-native-svg';
 import { PageSkeleton, StateCard, StateLine } from '@/components/states';
 import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
-import { KeyArrow, MockSection, MockSquareKey } from '@/components/mock/mock-kit';
+import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { MockSection } from '@/components/mock/mock-kit';
 import { QuestionStem } from '@/components/question-stem';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { pageTitle } from '@/constants/page-title';
 import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
 import { footPadding } from '@/lib/foot-padding';
+import { shadow } from '@/lib/shadow';
 import { fetchReport, getMockSession } from '@/lib/mock';
 import { buildReport, formatSpan, loadReport, type MockReport } from '@/lib/mock-report';
 import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
@@ -304,22 +307,32 @@ export default function MockReviewScreen() {
               doubtId={q.id}
               surface="practice"
               gutter={scale(20)}
-              leading={
-                <MockSquareKey
-                  label="Previous question"
-                  disabled={index === 0}
-                  onPress={() => go(index - 1)}
-                >
-                  <BackIcon size={scale(16)} />
-                </MockSquareKey>
-              }
               trailing={
-                <MockSquareKey
-                  label={index === total - 1 ? 'All questions' : 'Next question'}
-                  onPress={() => (index === total - 1 ? router.back() : go(index + 1))}
-                >
-                  <KeyArrow size={scale(16)} color={colors.ink} />
-                </MockSquareKey>
+                // Practice's own Next, on the right under the thumb, with
+                // Previous beside it: a review needs a way back that Practice,
+                // always on a fresh question, does not.
+                <View style={styles.navPair}>
+                  <Pressable
+                    style={({ pressed }) => [styles.prevButton, (pressed || index === 0) && styles.prevDim]}
+                    disabled={index === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous question"
+                    accessibilityState={{ disabled: index === 0 }}
+                    onPress={() => go(index - 1)}
+                  >
+                    <BackIcon size={scale(16)} />
+                  </Pressable>
+                  <Pressable
+                    style={styles.nextButton}
+                    accessibilityRole="button"
+                    onPress={() => (index === total - 1 ? router.back() : go(index + 1))}
+                  >
+                    <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.nextButtonText}>
+                      {index === total - 1 ? 'All questions' : 'Next'}
+                    </Text>
+                    {index === total - 1 ? null : <ArrowRightIcon size={scale(14)} color={colors.paper} />}
+                  </Pressable>
+                </View>
               }
             />
           </View>
@@ -382,6 +395,33 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       paddingBottom: verticalScale(150),
     },
     dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    // Centred on the 52pt follow-up pill, as Practice centres its Next.
+    navPair: { flexDirection: 'row', alignItems: 'center', gap: scale(8), marginTop: Math.max(0, (52 - verticalScale(48)) / 2) },
+    /** Previous: a round outline the height of Next, so the pair reads as one control. */
+    prevButton: {
+      width: verticalScale(48),
+      height: verticalScale(48),
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    prevDim: { opacity: 0.4 },
+    /** Practice's Next, as it is there (app/practice.tsx). */
+    nextButton: {
+      flexDirection: 'row',
+      gap: scale(8),
+      height: verticalScale(48),
+      paddingHorizontal: scale(22),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadow({ color: colors.ink, opacity: 0.28, radius: scale(10), y: verticalScale(6), elevation: 4 }),
+    },
+    nextButtonText: { includeFontPadding: false, fontFamily: 'Onest_700Bold', fontSize: scale(14), color: colors.paper },
     dockInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
     dockFade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: scale(10) },
