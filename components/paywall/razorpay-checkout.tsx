@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -67,6 +67,17 @@ async function waitForPass(): Promise<PassStatus | null> {
 export function usePassCheckout() {
   const [open, setOpen] = useState<{ order: Order; description: string } | null>(null);
   const resolveSheet = useRef<((e: CheckoutEvent | Closed) => void) | null>(null);
+
+  // If the screen goes away with the sheet open (a deep link, the pass gate
+  // sending the student elsewhere), the purchase is over: resolve it as closed
+  // so nothing waits forever on a sheet that no longer exists.
+  useEffect(
+    () => () => {
+      resolveSheet.current?.({ type: 'closed' });
+      resolveSheet.current = null;
+    },
+    []
+  );
 
   const pay = useCallback(
     async (kind: PassKind, opts: { description: string; offer?: 'winback' }): Promise<PayResult> => {
@@ -151,7 +162,16 @@ function CheckoutSheet({
   };
 
   return (
-    <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={leave}>
+    // onDismiss is iOS's "this sheet is gone", however it went: swiped, closed, or
+    // taken down by a deep link. Without it a sheet dismissed from outside left
+    // the purchase waiting forever and the Pay button disabled for good.
+    <Modal
+      visible
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={leave}
+      onDismiss={leave}
+    >
       <SheetBody
         html={html}
         loading={loading}
