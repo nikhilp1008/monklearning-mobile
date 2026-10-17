@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ExamKey, YearKey } from '@/constants/onboarding';
 import { clearAnswers, getAnswers } from '@/lib/onboarding-answers';
+import { pushSelfReport } from '@/lib/self-report';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -246,6 +247,8 @@ export async function pushProfile(): Promise<void> {
     enrolled_class: classForServer(p.year),
   });
   if (error) throw new Error(error.message);
+  // After the profile, never instead of it, and it cannot fail onboarding.
+  await pushSelfReport();
 }
 
 /**
