@@ -1,14 +1,18 @@
+import { useContext } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, TextStyle } from 'react-native';
 
+import { colors } from '@/constants/brand';
 import { READ_INK, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { Markup } from '@/components/textbook/markup';
 import { kicker } from '@/components/textbook/theme';
 import { labelCase } from '@/lib/label-case';
 import type { Block } from '@/lib/textbooks';
+import { BookText } from '@/components/textbook/book-text';
 
 type TableBlock = Extract<Block, { t: 'defgrid' }>;
 type HowToBlock = Extract<Block, { t: 'proc' }>;
+type GridBlock = Extract<Block, { t: 'table' }>;
 
 /**
  * TABLES AND HOW-TO STEPS, for the reader pilot (see pilot.ts). 334 tables and
@@ -31,7 +35,8 @@ export function splitLead(html: string): [string | null, string] {
   return m ? [m[1], html.slice(m[0].length)] : [null, html];
 }
 
-function title(text: string): string {
+function title(text: string, asPrinted = false): string {
+  if (asPrinted) return text;
   const lower = labelCase(text);
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
@@ -45,6 +50,7 @@ export function PilotTable({
   scale: (n: number) => number;
   type: (n: number) => number;
 }) {
+  const book = useContext(BookText);
   const s = makeStyles(scale, type);
   const read = (html: string, style?: StyleProp<TextStyle>) => (
     <Markup html={html} size={type(READ_SIZE)} style={[s.read, style]} look="pilot" />
@@ -52,7 +58,7 @@ export function PilotTable({
   const head = (
     <>
       <Text style={kicker(type)}>table</Text>
-      <Text style={s.title}>{title(block.title)}</Text>
+      <Text style={s.title}>{title(block.title, book)}</Text>
     </>
   );
   return (
@@ -70,6 +76,52 @@ export function PilotTable({
   );
 }
 
+/**
+ * A TABLE WITH ANY NUMBER OF COLUMNS, from the books. Stacked like the
+ * two-column one: each row's first cell in bold, and every other cell under it
+ * as "column: value", so nothing is squeezed into a 100pt column on a phone.
+ */
+export function PilotGrid({
+  block,
+  scale,
+  type,
+}: {
+  block: GridBlock;
+  scale: (n: number) => number;
+  type: (n: number) => number;
+}) {
+  const book = useContext(BookText);
+  const s = makeStyles(scale, type);
+  const read = (html: string, style?: StyleProp<TextStyle>) => (
+    <Markup html={html} size={type(READ_SIZE)} style={[s.read, style]} look="pilot" />
+  );
+  return (
+    <View>
+      <Text style={kicker(type)}>table</Text>
+      {!!block.title && <Text style={s.title}>{title(block.title, book)}</Text>}
+      <View style={s.rows}>
+        {block.rows.map((row, i) => (
+          <View key={i} style={[s.stackRow, i > 0 && s.hair]}>
+            {read(row[0] ?? '', s.key)}
+            {row.slice(1).map((cell, j) =>
+              block.head.length > 2 && block.head[j + 1] ? (
+                // The column's name quiet on the left, the value beside it.
+                <View key={j} style={s.cellRow}>
+                  <Text style={s.cellHead}>{block.head[j + 1]}</Text>
+                  {read(cell, s.cellValue)}
+                </View>
+              ) : (
+                <View key={j}>{read(cell)}</View>
+              )
+            )}
+          </View>
+        ))}
+      </View>
+      {!!block.note && read(block.note, { marginTop: scale(8) })}
+    </View>
+  );
+}
+
 export function PilotHowTo({
   block,
   scale,
@@ -79,6 +131,7 @@ export function PilotHowTo({
   scale: (n: number) => number;
   type: (n: number) => number;
 }) {
+  const book = useContext(BookText);
   const s = makeStyles(scale, type);
   const read = (html: string, style?: StyleProp<TextStyle>) => (
     <Markup html={html} size={type(READ_SIZE)} style={[s.read, style]} look="pilot" />
@@ -86,7 +139,7 @@ export function PilotHowTo({
   const head = (
     <>
       <Text style={kicker(type)}>how to</Text>
-      <Text style={s.title}>{title(block.title)}</Text>
+      <Text style={s.title}>{title(block.title, book)}</Text>
     </>
   );
 
@@ -141,6 +194,15 @@ function makeStyles(scale: (n: number) => number, type: (n: number) => number) {
     hair: { borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)' },
     stackRow: { paddingVertical: scale(10), gap: scale(2) },
     key: { fontFamily: 'Onest_600SemiBold' },
+    cellRow: { flexDirection: 'row', gap: scale(12) },
+    cellHead: {
+      width: '34%',
+      fontFamily: 'Onest_400Regular',
+      fontSize: type(READ_SIZE) - 1,
+      lineHeight: type(READ_LINE),
+      color: colors.slate,
+    },
+    cellValue: { flex: 1 },
     // steps
     lead: { fontFamily: 'Onest_600SemiBold' },
     timeline: { marginTop: scale(14) },

@@ -7,9 +7,11 @@ import type { BlockCtx } from '@/components/textbook/blocks';
 import { Carousel, CarouselCard } from '@/components/textbook/carousel';
 import { Markup } from '@/components/textbook/markup';
 import { BORDER, CARD_BORDER, kicker } from '@/components/textbook/theme';
-import { labelCase } from '@/lib/label-case';
 import type { RenderBlock } from '@/lib/textbooks';
 import { hapticSoft, hapticSuccess, hapticSwitched } from '@/lib/haptics';
+import { useLabelCase } from '@/components/textbook/book-text';
+import { DiagramBody } from '@/components/revise/diagram-card';
+import { diagramById } from '@/lib/diagrams';
 
 /**
  * THE QUESTION CARDS, for the reader pilot (see pilot.ts): solved examples,
@@ -47,6 +49,7 @@ function liftExamTag(html: string): [string | null, string] {
 const NAMES = { exGroup: 'solved example', mcqGroup: 'crack the MCQ', practice: 'practice' } as const;
 
 export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) {
+  const caseLabel = useLabelCase();
   const { scale, type } = ctx;
   const s = makeStyles(scale, type);
   const read = (html: string, style?: StyleProp<TextStyle>, key?: number) => (
@@ -80,9 +83,16 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
     );
     if (block.t === 'exGroup') {
       const ex = block.items[i];
+      // The figure the book prints inside this example, under its question.
+      const fig = ex.fig ? diagramById(ex.fig) : undefined;
       return (
         <>
           {question}
+          {!!fig && (
+            <View style={s.fig}>
+              <DiagramBody d={fig} />
+            </View>
+          )}
           <View style={s.steps}>
             {ex.steps.map((step, j) => (
               <View key={j} style={s.stepRow}>
@@ -91,10 +101,14 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
               </View>
             ))}
           </View>
-          <View style={s.answer}>
-            <Text style={[kicker(type), s.answerLabel]}>answer</Text>
-            {read(ex.ans, s.answerText)}
-          </View>
+          {/* Some book examples end in their working with no answer line of
+              their own; the result is already in the steps. */}
+          {!!ex.ans && (
+            <View style={s.answer}>
+              <Text style={[kicker(type), s.answerLabel]}>answer</Text>
+              {read(ex.ans, s.answerText)}
+            </View>
+          )}
         </>
       );
     }
@@ -216,7 +230,7 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
                     </Pressable>
                   </View>
                 </View>
-                {!!tag && <Text style={s.tag}>{labelCase(tag)}</Text>}
+                {!!tag && <Text style={s.tag}>{caseLabel(tag)}</Text>}
                 {body(i)}
               </View>
             </CarouselCard>
@@ -235,6 +249,7 @@ function makeStyles(scale: (n: number) => number, type: (n: number) => number) {
     color: READ_INK,
   };
   return StyleSheet.create({
+    fig: { marginTop: scale(16) },
     read,
     grow: { flex: 1 },
     shrink: { flexShrink: 1 },

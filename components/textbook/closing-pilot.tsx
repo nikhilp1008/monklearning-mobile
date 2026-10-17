@@ -96,7 +96,8 @@ export function PilotCheckpoint({
         {block.rows.map((row, i) => (
           <View key={i} style={[s.fact, i > 0 && s.hair]}>
             {read(row.f, s.semi)}
-            <Markup html={row.note} size={type(14)} style={s.note} look="pilot" />
+            {/* A book's cheat-sheet line is often one statement with no note. */}
+            {!!row.note && <Markup html={row.note} size={type(14)} style={s.note} look="pilot" />}
           </View>
         ))}
       </View>

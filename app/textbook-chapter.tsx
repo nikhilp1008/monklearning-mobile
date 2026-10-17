@@ -13,8 +13,9 @@ import { useScale } from '@/constants/scale';
 import { buildParts, readProgress } from '@/lib/chapter-essentials';
 import { DIAGRAMS } from '@/lib/diagrams';
 import { buildFormulaCards } from '@/lib/revise/formula-cards';
-import { KEY_POINTS } from '@/lib/revise/keypoints-physics-11-01';
+import { KEY_POINTS } from '@/lib/revise/keypoints';
 import { chapterKey, useRouteChapter } from '@/lib/revise/use-chapter';
+import { topicName } from '@/lib/textbooks';
 
 /**
  * A CHAPTER'S HOME: what to revise from, then the topics to read.
@@ -28,9 +29,8 @@ import { chapterKey, useRouteChapter } from '@/lib/revise/use-chapter';
  * no part counts. The header is Learn's topic sheet's: a round back button and
  * the chapter's name.
  *
- * Only Physics Class 11 Chapter 1 opens here for now (lib/chapter-essentials.ts).
+ * Only the chapters lib/chapter-essentials.ts names open here for now.
  */
-const KEY_POINT_COUNTS: Record<string, number> = { 'physics|11|1': KEY_POINTS.length };
 
 function Chevron({ size }: { size: number }) {
   return (
@@ -47,7 +47,7 @@ export default function TextbookChapterScreen() {
   const key = chapter ? chapterKey(chapter) : '';
   const formulas = useMemo(() => (chapter ? buildFormulaCards(chapter).length : 0), [chapter]);
   const diagrams = DIAGRAMS[key]?.length ?? 0;
-  const points = KEY_POINT_COUNTS[key] ?? 0;
+  const points = KEY_POINTS[key]?.length ?? 0;
 
   /** A topic opens on the first part of it not yet read, or its first part. */
   const openTopic = async (ti: number) => {
@@ -101,18 +101,29 @@ export default function TextbookChapterScreen() {
             {diagrams > 0 && row('Diagrams', `${diagrams} diagrams`, '/textbook-diagrams', DiagramsIcon)}
             {points > 0 && row('Key points', `${points} points to test yourself on`, '/textbook-keypoints', KeyPointsIcon)}
             <Text style={[s.label, { fontSize: scale(12), marginTop: scale(26) }]}>Read the chapter</Text>
-            {chapter.topics.map((t, ti) => (
-              <Pressable
-                key={t.n}
-                onPress={() => void openTopic(ti)}
-                accessibilityRole="button"
-                accessibilityLabel={`Topic ${ti + 1}, ${t.title.split(',')[0]}`}
-                style={({ pressed }) => [s.row, { paddingVertical: scale(14), gap: scale(10) }, pressed && s.pressed]}>
-                <Text style={[s.num, { fontSize: scale(13), width: scale(24) }]}>{String(ti + 1).padStart(2, '0')}</Text>
-                <Text style={[s.rowTitle, s.grow, { fontSize: scale(15), lineHeight: scale(22) }]}>{t.title.split(',')[0]}</Text>
-                <Chevron size={scale(13)} />
-              </Pressable>
-            ))}
+            {chapter.topics.map((t, ti) => {
+              // The book's Additional Topics follow under their own heading,
+              // lettered as the book letters them.
+              const extra = !!t.extra;
+              const firstExtra = extra && !chapter.topics[ti - 1]?.extra;
+              const mark = extra ? t.n : String(ti + 1).padStart(2, '0');
+              return (
+                <View key={`${extra ? 'x' : 't'}${t.n}`}>
+                  {firstExtra && (
+                    <Text style={[s.label, { fontSize: scale(12), marginTop: scale(26) }]}>Additional topics</Text>
+                  )}
+                  <Pressable
+                    onPress={() => void openTopic(ti)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${extra ? 'Additional topic' : 'Topic'} ${extra ? t.n : ti + 1}, ${topicName(t)}`}
+                    style={({ pressed }) => [s.row, { paddingVertical: scale(14), gap: scale(10) }, pressed && s.pressed]}>
+                    <Text style={[s.num, { fontSize: scale(13), width: scale(24) }]}>{mark}</Text>
+                    <Text style={[s.rowTitle, s.grow, { fontSize: scale(15), lineHeight: scale(22) }]}>{topicName(t)}</Text>
+                    <Chevron size={scale(13)} />
+                  </Pressable>
+                </View>
+              );
+            })}
           </ScrollView>
         )}
       </SafeAreaView>

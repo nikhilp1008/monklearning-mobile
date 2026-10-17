@@ -504,7 +504,15 @@ export type Block =
        */
       frames?: DiagramFrame[];
     }
-  | { t: 'ex'; tag: string; q: string; steps: string[]; ans: string }
+  | {
+      t: 'ex';
+      tag: string;
+      q: string;
+      steps: string[];
+      ans: string;
+      /** A redrawn diagram (lib/diagrams) the book prints inside this example, shown under its question. */
+      fig?: string;
+    }
   // `nudge` is null, not absent, on the correct option: there is no trap to
   // name. The spec asks for one on every wrong option and nothing on the right
   // one, and null is how the content says "deliberately none".
@@ -518,7 +526,19 @@ export type Block =
   | { t: 'practice'; items: { q: string; a: string }[] }
   | { t: 'mistakes'; items: string[] }
   | { t: 'protip'; html: string }
-  | { t: 'snapshot'; rows: { f: string; note: string }[]; aids: string[] };
+  | { t: 'snapshot'; rows: { f: string; note: string }[]; aids: string[] }
+  /**
+   * THE BOOK'S OWN SECTIONS, for chapters written from the Master Reference
+   * books (Physics 11 Ch 1 and 2 first). A `part` starts a new reading page
+   * named `title`, and everything up to the next one is on it, in the book's
+   * order: nothing is filtered out or moved. Topics without any `part` are
+   * still split by length, as before (lib/chapter-essentials.ts).
+   */
+  | { t: 'part'; title: string }
+  /** One of the redrawn diagrams (lib/diagrams), by its id, drawn in place. */
+  | { t: 'fig'; id: string }
+  /** A table with any number of columns; `head` names them. Stacked on a phone. */
+  | { t: 'table'; title?: string | null; head: string[]; rows: string[][]; note?: string | null };
 
 export interface Topic {
   /** Two-digit display number. */
@@ -534,7 +554,23 @@ export interface Topic {
   chip?: string;
   /** Same story as `chip`: authored per topic, rendered by nothing. */
   kalam?: string;
+  /**
+   * One of the book's "Additional Topics" that follow the chapter: what JEE
+   * tests beyond the board syllabus. Listed after the topics under their own
+   * heading, numbered by letter (`n` is "A", "B", …).
+   */
+  extra?: boolean;
   blocks: Block[];
+}
+
+/**
+ * A topic's name for lists and headers. The older chapters wrote "Name,
+ * subtitle" and showed only the name; the book's titles carry their own commas
+ * ("Pursuit, Crossing Under Acceleration, and the Catch Condition") and are
+ * shown whole.
+ */
+export function topicName(t: Pick<Topic, 'title' | 'blocks'>): string {
+  return t.blocks[0]?.t === 'part' ? t.title : t.title.split(',')[0];
 }
 
 export interface Chapter {
@@ -759,7 +795,7 @@ export function topicPlainText(topic: Topic, cap = 5500): string {
   const strip = (html: string) =>
     html
       .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
+      .replace(/<\/?[a-zA-Z][^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
@@ -794,7 +830,7 @@ export function topicPlainText(topic: Topic, cap = 5500): string {
         out.push(`Figure: ${b.kicker}`, ...(b.captions ?? []).map(strip));
         break;
       case 'ex':
-        out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), `Answer: ${strip(b.ans)}`);
+        out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), ...(b.ans ? [`Answer: ${strip(b.ans)}`] : []));
         break;
       case 'mcq':
         out.push(`Question: ${strip(b.q)}`, ...b.opts.map((o, i) => `(${i + 1}) ${strip(o.label)}`));

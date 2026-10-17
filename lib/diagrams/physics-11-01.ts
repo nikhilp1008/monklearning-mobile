@@ -1,574 +1,521 @@
 import { C, F, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import type { Check, Diagram } from '@/lib/diagrams/types';
 
 /**
- * PHYSICS CLASS 11, CHAPTER 1: every diagram, drawn from the physics.
+ * PHYSICS CLASS 11, CHAPTER 1 (Units and Measurements): the book's six
+ * figures, redrawn. The chapter has no unnumbered drawings (pp. 8–74).
  *
- * Each diagram has its cases (the chips), a caption for each, a `draw` that
- * returns a Sketch, and a `check` that recomputes the numbers behind the
- * drawing: an average is the true average, a vernier mark really lines up,
- * a product really rounds to what the answer block says. The tests run every
- * check and the kit's layout audit on every case.
+ * Each diagram draws from computed geometry, and its `check` recomputes every
+ * value the figure states: a unit really is the product its law makes, the
+ * vernier line that coincides really is the one the zero error needs, a
+ * rounded figure really is what the rule gives. The tests run every check and
+ * the kit's layout audit on every case.
  */
-export type Check = [string, boolean];
-export type DiagramCase = { chip: string; cap: string } & Record<string, unknown>;
-export type Diagram = { id: string; topic: number; name: string; cases: DiagramCase[]; draw: (c: any) => Sketch; check: (c: any) => Check[] };
 
 const W = 340;
 
 /* ---------- shared bits ---------- */
-type Role = 'start' | 'step' | 'answer' | 'hi';
-/** A block: white, rounded, its role shown only by its edge. Title in Onest, value in STIX. */
-function block(s: Sketch, x: number, y: number, w: number, h: number, value: string, sub: string, role: Role, o: { valueSize?: number; subStix?: boolean } = {}) {
-  const stroke = role === 'hi' ? C.mari : role === 'answer' ? C.text : role === 'step' ? C.border : C.border;
-  const sw = role === 'hi' ? 2 : role === 'answer' ? 1.8 : 1.3;
-  const vs = o.valueSize ?? (role === 'answer' ? 21 : 17);
-  s.add(`<rect x="${r1(x)}" y="${r1(y)}" width="${w}" height="${h}" rx="12" fill="#fff" stroke="${stroke}" stroke-width="${sw}"/>`);
-  if (value) s.text(x + w / 2, y + h / 2 - (sub ? 2 : -6), value, { size: vs, semibold: role === 'answer' });
-  if (sub && o.subStix) s.text(x + w / 2, y + h - 12, sub, { size: 14, color: C.slate });
-  else if (sub) s.add(`<text x="${r1(x + w / 2)}" y="${r1(y + h - 12)}" text-anchor="middle" font-family="${F.tag}" font-size="11" fill="${C.slate}">${sub}</text>`);
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+type Edge = 'fine' | 'ink' | 'hi' | 'dash';
+/** A white, rounded box; what it is shows only in its edge. */
+function box(s: Sketch, x: number, y: number, w: number, h: number, edge: Edge = 'fine') {
+  const stroke = edge === 'hi' ? C.mari : edge === 'ink' ? C.text : edge === 'dash' ? C.faint : C.border;
+  const sw = edge === 'hi' ? 2 : edge === 'ink' ? 1.7 : 1.3;
+  s.add(`<rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="12" fill="#fff" stroke="${stroke}" stroke-width="${sw}"${edge === 'dash' ? ' stroke-dasharray="5 4"' : ''}/>`);
+  return [x, y, x + w, y + h] as Rect;
+}
+/** Words in Onest (names, headings): not maths, so straight into the SVG. */
+function words(s: Sketch, x: number, y: number, t: string, o: { size?: number; anchor?: 'start' | 'middle' | 'end'; color?: string; bold?: boolean } = {}) {
+  s.add(`<text x="${r1(x)}" y="${r1(y)}" text-anchor="${o.anchor ?? 'middle'}" font-family="${o.bold ? F.bold : F.tag}" font-size="${o.size ?? 12}" fill="${o.color ?? C.text}">${esc(t)}</text>`);
 }
 /** Where the line from a rectangle's centre towards (tx, ty) leaves the rectangle. */
-function edge(r: Rect, tx: number, ty: number): [number, number] {
+function edgePoint(r: Rect, tx: number, ty: number): [number, number] {
   const cx = (r[0] + r[2]) / 2, cy = (r[1] + r[3]) / 2, dx = tx - cx, dy = ty - cy;
   const k = Math.min(Math.abs((r[2] - r[0]) / 2 / (dx || 1e-9)), Math.abs((r[3] - r[1]) / 2 / (dy || 1e-9)));
   return [cx + dx * k, cy + dy * k];
 }
 function arrowBetween(s: Sketch, a: Rect, b: Rect, gap = 5, color: string = C.slate) {
   const bc: [number, number] = [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], ac: [number, number] = [(a[0] + a[2]) / 2, (a[1] + a[3]) / 2];
-  const p = edge(a, ...bc), q = edge(b, ...ac), L = Math.hypot(q[0] - p[0], q[1] - p[1]), ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L;
+  const p = edgePoint(a, ...bc), q = edgePoint(b, ...ac), L = Math.hypot(q[0] - p[0], q[1] - p[1]), ux = (q[0] - p[0]) / L, uy = (q[1] - p[1]) / L;
   s.vec(p[0] + ux * gap, p[1] + uy * gap, q[0] - ux * gap, q[1] - uy * gap, { color, w: 1.4 });
 }
-const SUP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻' };
-const sup = (n: number) => String(n).replace('−', '-').split('').map((c) => SUP[c] ?? c).join('');
+/**
+ * The result, bottom right, ink-edged, when it needs more than the kit's
+ * one-line Onest tag: several lines, or maths (set in STIX by `Sketch.text`
+ * so its letters keep their italics). Registered as a tag, so the audit keeps
+ * everything else off it.
+ */
+function resultBlock(s: Sketch, lines: string[], o: { maths?: boolean; size?: number } = {}) {
+  const size = o.size ?? (o.maths ? 15 : 13), lh = size + 6;
+  const plain = (t: string) => t.replace(/<[^>]+>/g, '');
+  const w = Math.max(...lines.map((t) => plain(t).length * size * (o.maths ? 0.5 : 0.58))) + 30, h = lines.length * lh + 14;
+  const x0 = s.w - 8 - w, y0 = s.h - 8 - h;
+  s.tags.push({ name: plain(lines.join(' ')), rect: [x0, y0, x0 + w, y0 + h], from: null, to: null });
+  s.add(`<rect x="${r1(x0)}" y="${r1(y0)}" width="${r1(w)}" height="${r1(h)}" rx="15" fill="#fff" stroke="${C.text}" stroke-width="1.6"/>`);
+  lines.forEach((t, i) => {
+    const y = y0 + 7 + lh * i + lh / 2 + size * 0.36;
+    if (o.maths) s.text(x0 + w / 2, y, t, { size, semibold: true });
+    else words(s, x0 + w / 2, y, t, { size, bold: true });
+  });
+  return [x0, y0, x0 + w, y0 + h] as Rect;
+}
+const near = (a: number, b: number, tol = 1e-9) => Math.abs(a - b) <= tol;
 
 /* ===================================================================== */
-/* 1. Seven roots, and the dictionary they build                          */
+/* Figure 1.1  Derived units are built from the seven SI base units       */
 /* ===================================================================== */
 type Dim = Record<string, number>;
-const mul = (...ds: Dim[]): Dim => { const o: Dim = {}; ds.forEach((d) => Object.entries(d).forEach(([k, v]) => (o[k] = (o[k] ?? 0) + v))); Object.keys(o).forEach((k) => o[k] === 0 && delete o[k]); return o; };
-const pow = (d: Dim, n: number): Dim => Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v * n]));
-const unitText = (d: Dim) => ['kg', 'm', 's', 'A'].filter((k) => d[k]).map((k) => (d[k] === 1 ? k : k + sup(d[k]))).join(' ');
-const BASE = { m: { m: 1 }, kg: { kg: 1 }, s: { s: 1 }, A: { A: 1 } };
-/* Every derived unit computed from its defining law, not typed in. */
-const DERIVED: { name: string; dim: Dim; unit: string; law: string }[] = (() => {
-  const speed = mul(BASE.m, pow(BASE.s, -1));
-  const accel = mul(speed, pow(BASE.s, -1));
-  const N = mul(BASE.kg, accel), J = mul(N, BASE.m), Wt = mul(J, pow(BASE.s, -1)), Pa = mul(N, pow(BASE.m, -2)), Cq = mul(BASE.A, BASE.s), Hz = pow(BASE.s, -1);
-  return [
-    { name: 'Charge', dim: Cq, unit: 'C', law: 'q = It' },
-    { name: 'Force', dim: N, unit: 'N', law: 'F = ma' },
-    { name: 'Pressure', dim: Pa, unit: 'Pa', law: 'p = F/A' },
-    { name: 'Speed', dim: speed, unit: '', law: 'v = d/t' },
-    { name: 'Frequency', dim: Hz, unit: 'Hz', law: 'f = 1/T' },
-    { name: 'Energy', dim: J, unit: 'J', law: 'W = Fd' },
-    { name: 'Power', dim: Wt, unit: 'W', law: 'P = W/t' },
-    { name: 'Angle', dim: {}, unit: 'rad', law: 'θ = s/r' },
-  ];
+const BASE7 = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd'];
+const mul = (...ds: Dim[]): Dim => {
+  const o: Dim = {};
+  ds.forEach((d) => Object.entries(d).forEach(([k, v]) => (o[k] = (o[k] ?? 0) + v)));
+  Object.keys(o).forEach((k) => o[k] === 0 && delete o[k]);
+  return o;
+};
+const pw = (d: Dim, n: number): Dim => Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v * n]));
+const sameDim = (a: Dim, b: Dim) => [...new Set([...Object.keys(a), ...Object.keys(b)])].every((k) => (a[k] ?? 0) === (b[k] ?? 0));
+/** Reads a unit as the figure prints it ("kg·m<sup>2</sup>/s<sup>3</sup>", "kg/(m·s<sup>2</sup>)", "1/s") into powers of base units. */
+function parseUnit(html: string): Dim {
+  const t = html.replace(/<sup>([^<]+)<\/sup>/g, '^$1').replace(/<[^>]+>/g, '').replace(/−/g, '-');
+  const side = (x: string, sign: number): Dim =>
+    mul(
+      ...x
+        .replace(/[()]/g, '')
+        .split('·')
+        .filter((f) => f && f !== '1')
+        .map((f) => { const [u, n] = f.split('^'); return { [u]: sign * (n ? Number(n) : 1) }; })
+    );
+  const [num, den = ''] = t.split('/');
+  return mul(side(num, 1), side(den, -1));
+}
+const U = { m: { m: 1 }, kg: { kg: 1 }, s: { s: 1 }, A: { A: 1 } };
+/* Each derived unit worked out from the law that defines it, not typed in. */
+const LAWS: Record<string, Dim> = (() => {
+  const speed = mul(U.m, pw(U.s, -1)), accel = mul(speed, pw(U.s, -1)), force = mul(U.kg, accel), energy = mul(force, U.m);
+  return { charge: mul(U.A, U.s), speed, force, power: mul(energy, pw(U.s, -1)), pressure: mul(force, pw(U.m, -2)), frequency: pw(U.s, -1), energy };
 })();
-const siRoots: Diagram = {
-  id: 'si-roots',
-  topic: 0,
-  name: 'Seven roots, and the dictionary they build',
-  cases: [{ chip: 'The seven, and what they make', cap: 'The seven base units sit at the centre. Every other unit is a product of their powers, worked out from the law that defines it: a newton is a kilogram times an acceleration, kg m s⁻².' }],
-  draw() {
-    const s = new Sketch(W, 336);
-    const centre: Rect = [100, 122, 240, 194];
-    s.add(`<rect x="100" y="122" width="140" height="72" rx="12" fill="#fff" stroke="${C.mari}" stroke-width="2"/>`);
-    s.add(`<text x="170" y="148" text-anchor="middle" font-family="${F.tag}" font-size="12" fill="${C.text}">7 SI base units</text>`);
-    s.text(170, 174, 'm, kg, s, A, K, mol, cd', { size: 14 });
-    const slots: Rect[] = [
-      [10, 22, 106, 74], [122, 22, 218, 74], [234, 22, 330, 74],
-      [6, 132, 90, 184], [250, 132, 334, 184],
-      [10, 238, 106, 290], [122, 238, 218, 290], [234, 238, 330, 290],
-    ];
-    DERIVED.forEach((d, i) => {
-      const r = slots[i];
-      const value = d.name === 'Angle' ? 'rad: m/m' : `${unitText(d.dim)}${d.unit ? ` = ${d.unit}` : ''}`;
-      block(s, r[0], r[1], r[2] - r[0], r[3] - r[1], '', '', 'start');
-      s.add(`<text x="${r1((r[0] + r[2]) / 2)}" y="${r[1] + 19}" text-anchor="middle" font-family="${F.tag}" font-size="11" fill="${C.slate}">${d.name}</text>`);
-      s.text((r[0] + r[2]) / 2, r[1] + 40, value, { size: 13 });
-      arrowBetween(s, centre, r, 4, C.grey);
-    });
-    s.result('Every unit is built from the seven');
-    return s;
-  },
-  check() {
-    const want: Record<string, string> = { Charge: 'm0 kg0 s1 A1', Force: 'm1 kg1 s-2 A0', Pressure: 'm-1 kg1 s-2 A0', Speed: 'm1 kg0 s-1 A0', Frequency: 'm0 kg0 s-1 A0', Energy: 'm2 kg1 s-2 A0', Power: 'm2 kg1 s-3 A0', Angle: 'm0 kg0 s0 A0' };
-    return DERIVED.map((d) => {
-      const got = ['m', 'kg', 's', 'A'].map((k) => `${k}${d.dim[k] ?? 0}`).join(' ');
-      return [`${d.name} from ${d.law}: ${d.name === 'Angle' ? 'no dimensions' : unitText(d.dim)}`, got === want[d.name]] as Check;
-    });
-  },
-};
-
-/* ===================================================================== */
-/* 2. The dimensional filter, and why it is one-sided                     */
-/* ===================================================================== */
-type DimLT = [number, number]; // exponents of L and T
-const dimText = ([l, t]: DimLT) => `[${[l ? `L${l === 1 ? '' : sup(l)}` : '', t ? `T${t === 1 ? '' : sup(t)}` : ''].filter(Boolean).join(' ') || 'M⁰ L⁰ T⁰'}]`;
-const filterTerms = (n: number): { html: string; dim: DimLT }[] => [
-  { html: '<i>s</i>', dim: [1, 0] },
-  { html: '<i>ut</i>', dim: [1 + 0, -1 + 1] },
-  { html: `½<i>at</i><sup>${n}</sup>`, dim: [1, -2 + n] },
+const LAW_TEXT: Record<string, string> = { charge: 'q = It', speed: 'v = d/t', force: 'F = ma', power: 'P = W/t', pressure: 'p = F/A', frequency: 'f = 1/T', energy: 'W = Fd' };
+/** The seven boxes as the book prints them, in its places round the centre. */
+const DERIVED: { name: string; unit: string; sym: string; at: Rect }[] = [
+  { name: 'charge', unit: 'A·s', sym: 'C', at: [8, 14, 108, 64] },
+  { name: 'speed', unit: 'm/s', sym: '', at: [120, 14, 220, 64] },
+  { name: 'force', unit: 'kg·m/s<sup>2</sup>', sym: 'N', at: [232, 14, 332, 64] },
+  { name: 'power', unit: 'kg·m<sup>2</sup>/s<sup>3</sup>', sym: 'W', at: [4, 118, 98, 168] },
+  { name: 'pressure', unit: 'kg/(m·s<sup>2</sup>)', sym: 'Pa', at: [242, 118, 336, 168] },
+  { name: 'frequency', unit: '1/s', sym: 'Hz', at: [4, 226, 104, 276] },
+  { name: 'energy', unit: 'kg·m<sup>2</sup>/s<sup>2</sup>', sym: 'J', at: [121, 226, 219, 276] },
 ];
-const dimFilter: Diagram = {
-  id: 'dim-filter',
-  topic: 1,
-  name: 'The dimensional filter, and why it is one-sided',
-  cases: [
-    { chip: 'An equation that fails', n: 3, cap: 'Check each term on its own. <i>s</i> and <i>ut</i> are lengths, but ½<i>at</i><sup>3</sup> is a length times a time. One term that does not match is enough: the equation is definitely wrong.' },
-    { chip: 'An equation that passes', n: 2, cap: 'Every term is a length, so the equation passes. But the check cannot see the ½: written with any other number it would pass too. Passing only means possibly right.' },
-  ],
-  draw(c: { n: number }) {
-    const s = new Sketch(W, 330);
-    const terms = filterTerms(c.n), base = terms[0].dim;
-    const eq: Rect = [56, 16, 284, 62];
-    s.add(`<rect x="56" y="16" width="228" height="46" rx="12" fill="#fff" stroke="${C.text}" stroke-width="1.7"/>`);
-    s.text(170, 45, `<i>s</i> = <i>ut</i> + ½<i>at</i><sup>${c.n}</sup>`, { size: 18 });
-    const slots: Rect[] = [[12, 108, 108, 176], [122, 108, 218, 176], [232, 108, 328, 176]];
-    terms.forEach((t, i) => {
-      const odd = t.dim[0] !== base[0] || t.dim[1] !== base[1];
-      const r = slots[i];
-      s.add(`<rect x="${r[0]}" y="${r[1]}" width="96" height="68" rx="12" fill="#fff" stroke="${odd ? C.mari : C.border}" stroke-width="${odd ? 2 : 1.3}"/>`);
-      s.text(r[0] + 48, r[1] + 28, t.html, { size: 17 });
-      s.text(r[0] + 48, r[1] + 54, dimText(t.dim), { size: 14, color: odd ? C.amber : C.slate });
-      arrowBetween(s, eq, r, 4, C.grey);
-    });
-    const odd = terms.findIndex((t) => t.dim[0] !== base[0] || t.dim[1] !== base[1]);
-    const line = terms.map((t) => dimText(t.dim)).join(odd >= 0 ? '   ' : ' = ');
-    s.sym(170, 214, odd >= 0 ? `${dimText(terms[0].dim)} = ${dimText(terms[1].dim)}, but ${dimText(terms[2].dim)}` : line, { size: 15, color: C.slate });
-    if (odd >= 0) s.place([{ t: 'Does not match', p: [slots[odd][0] + 48, slots[odd][3]], hi: true, at: [[slots[odd][0] + 48, 232, 'middle'], [214, 236, 'start']] }], [s.resultRect('Definitely wrong')]);
-    else s.place([{ t: 'The ½ slips through', p: [slots[2][0] + 30, slots[2][3]], hi: true, at: [[200, 232, 'start'], [150, 232, 'start']] }], [s.resultRect('Only possibly right')]);
-    s.result(odd >= 0 ? 'Definitely wrong' : 'Only possibly right');
-    return s;
-  },
-  check(c: { n: number }) {
-    const terms = filterTerms(c.n);
-    const ok = terms.every((t) => t.dim[0] === 1 && t.dim[1] === 0);
-    return [
-      ['[s] = [L]; [u][t] = [L T⁻¹][T] = [L]', terms[0].dim.join() === '1,0' && terms[1].dim.join() === '1,0'],
-      [`[a][t]${sup(c.n)} = [L T⁻²][T${sup(c.n)}] = ${dimText(terms[2].dim)}`, terms[2].dim[1] === c.n - 2],
-      [ok ? 'All terms match, so it passes (and only "possibly right")' : 'One term does not match, so it fails (and is "definitely wrong")', ok === (c.n === 2)],
-    ];
-  },
-};
-
-/* ===================================================================== */
-/* 3. The pendulum, and the mass that cancels                             */
-/* ===================================================================== */
-const PEN = { P: [150, 44] as [number, number], L: 168, th: (30 * Math.PI) / 180, W: 84, bob: 14 };
-const penGeo = () => {
-  const { P, L, th, W: Wt } = PEN;
-  const u: [number, number] = [Math.sin(th), Math.cos(th)];
-  const B: [number, number] = [P[0] + L * u[0], P[1] + L * u[1]];
-  const t: [number, number] = [-Math.cos(th), Math.sin(th)]; // along the arc, towards the lowest point
-  const mg: [number, number] = [0, Wt];
-  const radial: [number, number] = [u[0] * Wt * Math.cos(th), u[1] * Wt * Math.cos(th)];
-  const tang: [number, number] = [t[0] * Wt * Math.sin(th), t[1] * Wt * Math.sin(th)];
-  return { u, B, t, mg, radial, tang };
-};
-const pendulum: Diagram = {
-  id: 'pendulum',
-  topic: 1,
-  name: 'The pendulum, and the mass that cancels',
-  cases: [{ chip: 'Length decides, mass does not', cap: 'Pulled aside, the bob feels <i>mg</i> sin <i>θ</i> back towards the middle. A heavier bob is pulled harder but is harder to move by the same amount, so the mass cancels: the period depends only on the length <i>ℓ</i> and on <i>g</i>.' }],
+const CENTRE: Rect = [114, 106, 226, 180];
+const SUPP: Rect = [228, 218, 336, 290];
+const fig11: Diagram = {
+  id: 'p11-01-fig-1.1',
+  topic: 0,
+  name: 'Seven base units, and what they build',
+  cases: [{ chip: 'Base and derived', cap: 'Derived units are built from the seven SI base units (m, kg, s, A, K, mol, cd). The radian and steradian are supplementary, dimensionless units and are not base units.' }],
   draw() {
-    const s = new Sketch(W, 340);
-    const { P, L, th, bob } = PEN, { u, B, mg, radial, tang } = penGeo();
-    s.line(P[0] - 44, P[1], P[0] + 44, P[1], { w: 1.7 });
-    for (let i = -40; i <= 40; i += 10) s.line(P[0] + i, P[1], P[0] + i + 7, P[1] - 7, { color: C.grey, w: 1.2 });
-    s.line(P[0], P[1], P[0], P[1] + L + 22, { color: C.grey, dash: true, w: 1.2 });
-    s.line(P[0], P[1], B[0] - u[0] * bob, B[1] - u[1] * bob, { w: 1.7 });
-    const a0 = Math.PI / 2, a1 = Math.PI / 2 - th, ar = 46;
-    s.add(`<path d="M${r1(P[0] + ar * Math.cos(a0))} ${r1(P[1] + ar * Math.sin(a0))} A${ar} ${ar} 0 0 0 ${r1(P[0] + ar * Math.cos(a1))} ${r1(P[1] + ar * Math.sin(a1))}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`);
-    s.sym(P[0] + 62 * Math.cos((a0 + a1) / 2), P[1] + 62 * Math.sin((a0 + a1) / 2) + 5, 'θ', { italic: true });
-    const mid: [number, number] = [P[0] + (L / 2) * u[0], P[1] + (L / 2) * u[1]];
-    s.sym(mid[0] + 15 * Math.cos(th), mid[1] - 15 * Math.sin(th) + 4, 'ℓ', { italic: true, anchor: 'start' });
-    s.dot(P[0], P[1], 3.4);
-    s.point(B[0], B[1], bob, `<circle cx="${r1(B[0])}" cy="${r1(B[1])}" r="${bob}" fill="#fff" stroke="${C.ink}" stroke-width="1.7"/>`);
-    // the weight, its two parts, and the tension
-    s.vec(B[0], B[1], B[0] + radial[0], B[1] + radial[1], { color: C.grey, dash: true, w: 1.5 });
-    s.vec(B[0], B[1], B[0] + mg[0], B[1] + mg[1]);
-    s.vec(B[0] - u[0] * bob, B[1] - u[1] * bob, B[0] - u[0] * (bob + 52), B[1] - u[1] * (bob + 52));
-    s.vec(B[0], B[1], B[0] + tang[0], B[1] + tang[1], { color: C.mari, w: 2.6 });
-    s.sym(B[0] - 8, B[1] + mg[1] + 4, '<i>mg</i>', { anchor: 'end' });
-    s.sym(B[0] + radial[0], B[1] + radial[1] + 18, '<i>mg</i> cos <i>θ</i>', { size: 13, color: C.slate });
-    s.sym(B[0] + tang[0] / 2 - 2, B[1] + tang[1] / 2 - 10, '<i>mg</i> sin <i>θ</i>', { size: 13, color: C.amber, anchor: 'end' });
-    s.sym(B[0] - u[0] * (bob + 52) - 8, B[1] - u[1] * (bob + 52) + 4, '<i>T</i>', { anchor: 'end' });
-    s.place(
-      [
-        { t: 'Pivot', p: [P[0] - 2, P[1] + 2], own: P, at: [[24, 62, 'start'], [24, 90, 'start']] },
-        { t: 'Bob, mass m', p: [B[0] + bob - 2, B[1] - 6], own: B, at: [[332, 132, 'end'], [332, 104, 'end'], [332, 160, 'end']] },
-        { t: 'Restoring force', p: [B[0] + tang[0], B[1] + tang[1]], own: B, hi: true, at: [[24, 252, 'start'], [24, 230, 'start'], [24, 274, 'start'], [24, 206, 'start']] },
-      ],
-      [s.resultRect('Period depends on length, not mass')]
-    );
-    s.result('Period depends on length, not mass');
+    const s = new Sketch(W, 300);
+    box(s, CENTRE[0], CENTRE[1], CENTRE[2] - CENTRE[0], CENTRE[3] - CENTRE[1], 'hi');
+    words(s, 170, CENTRE[1] + 22, '7 SI Base Units', { size: 12.5 });
+    s.text(170, CENTRE[1] + 44, '(m, kg, s, A,', { size: 14 });
+    s.text(170, CENTRE[1] + 62, 'K, mol, cd)', { size: 14 });
+    DERIVED.forEach((d) => {
+      const r = d.at, cx = (r[0] + r[2]) / 2;
+      box(s, r[0], r[1], r[2] - r[0], r[3] - r[1]);
+      words(s, cx, r[1] + 19, d.name, { size: 11, color: C.slate });
+      s.text(cx, r[1] + 39, `${d.unit}${d.sym ? ` (${d.sym})` : ''}`, { size: 13.5 });
+      arrowBetween(s, CENTRE, r, 4, C.grey);
+    });
+    // Not joined to the centre: the supplementary units are not built from the base seven.
+    box(s, SUPP[0], SUPP[1], SUPP[2] - SUPP[0], SUPP[3] - SUPP[1], 'dash');
+    const sx = (SUPP[0] + SUPP[2]) / 2;
+    words(s, sx, SUPP[1] + 17, 'Supplementary units', { size: 10, color: C.slate });
+    words(s, sx, SUPP[1] + 31, '(not base units):', { size: 10, color: C.slate });
+    s.text(sx, SUPP[1] + 50, 'radian, steradian', { size: 13 });
+    s.text(sx, SUPP[1] + 66, '(dimensionless)', { size: 13 });
     return s;
   },
   check() {
-    const { u, t, mg, radial, tang } = penGeo();
-    const dot = (a: [number, number], b: [number, number]) => a[0] * b[0] + a[1] * b[1];
-    const sum: [number, number] = [radial[0] + tang[0], radial[1] + tang[1]];
-    return [
-      ['The restoring part is at right angles to the string', Math.abs(dot(t, u)) < 1e-9],
-      ['It points back towards the lowest point', tang[0] < 0],
-      ['Its two parts add back to mg exactly', Math.hypot(sum[0] - mg[0], sum[1] - mg[1]) < 1e-6],
-      [`Its size is mg sin θ: ${(Math.hypot(...tang) / PEN.W).toFixed(3)} = sin 22° (${Math.sin(PEN.th).toFixed(3)})`, Math.abs(Math.hypot(...tang) / PEN.W - Math.sin(PEN.th)) < 1e-9],
-    ];
-  },
-};
-
-/* ===================================================================== */
-/* 4. Precision is not accuracy                                           */
-/* ===================================================================== */
-const ringOf5 = (cx: number, cy: number, r: number, turn: number) => [0, 1, 2, 3, 4].map((i) => { const a = ((turn + i * 72) * Math.PI) / 180; return [+(cx + r * Math.cos(a)).toFixed(1), +(cy + r * Math.sin(a)).toFixed(1)] as [number, number]; });
-const TGT = { O: [170, 148] as [number, number], rings: [92, 64, 36], dotR: 5 };
-const meanOf = (pts: [number, number][]) => [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length] as [number, number];
-type TargetCase = { chip: string; cap: string; kind: 'precise' | 'accurate' | 'both'; pts: [number, number][]; res: string };
-const precision: Diagram = {
-  id: 'precision',
-  topic: 2,
-  name: 'Precision is not accuracy',
-  cases: [
-    { chip: 'Precise, not accurate', kind: 'precise', pts: ringOf5(46, -34, 16, 14), res: 'Systematic error: calibrate', cap: 'Five readings close together but all off the centre: they agree with each other, not with the true value. A systematic error does this; calibration cures it.' },
-    { chip: 'Accurate, not precise', kind: 'accurate', pts: [[-52, -18], [40, -46], [30, 50], [-36, 44], [18, -28]], res: 'Random error: take more readings', cap: 'Five readings scattered all round the centre: their average lands on the true value, but no two agree. Random error does this; averaging more readings tames it.' },
-    { chip: 'Both', kind: 'both', pts: ringOf5(0, 0, 16, 30), res: 'Accurate and precise', cap: 'Five readings close together and on the centre: what every measurement is aiming for.' },
-  ],
-  draw(c: TargetCase) {
-    const s = new Sketch(W, 312);
-    const O = TGT.O;
-    TGT.rings.forEach((r) => s.add(`<circle cx="${O[0]}" cy="${O[1]}" r="${r}" fill="#fff" stroke="${C.grey}" stroke-width="1.3"/>`));
-    s.dot(O[0], O[1], 3.6);
-    const pts = c.pts.map(([dx, dy]) => [O[0] + dx, O[1] + dy] as [number, number]);
-    const mean = meanOf(pts), spread = Math.max(...pts.map((p) => Math.hypot(p[0] - mean[0], p[1] - mean[1]))) + 12;
-    s.add(`<circle cx="${r1(mean[0])}" cy="${r1(mean[1])}" r="${r1(spread)}" fill="none" stroke="${C.grey}" stroke-width="1.2" stroke-dasharray="4 4"/>`);
-    pts.forEach((p) => s.point(p[0], p[1], TGT.dotR, `<circle cx="${r1(p[0])}" cy="${r1(p[1])}" r="${TGT.dotR}" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`));
-    s.point(mean[0], mean[1], 8.5, `<circle cx="${r1(mean[0])}" cy="${r1(mean[1])}" r="8.5" fill="none" stroke="${C.mari}" stroke-width="2.4"/>`);
-    s.place(
-      [
-        { t: 'Their average', ring: [mean[0], mean[1], 9], own: mean, hi: true, key: 'ring', at: [[226, 20, 'start'], [236, 70, 'start'], [236, 110, 'start'], [332, 126, 'end'], [332, 150, 'end'], [12, 20, 'start'], [12, 70, 'start'], [12, 120, 'start']] },
-        { t: 'True value', p: [O[0] - 3, O[1] + 3], own: O, key: 'dot', at: [[12, 230, 'start'], [12, 190, 'start'], [12, 150, 'start'], [236, 190, 'start']] },
-        { t: `${pts.length} readings`, ring: [mean[0], mean[1], spread], own: [-999, -999], at: [[236, 190, 'start'], [236, 150, 'start'], [236, 110, 'start'], [12, 120, 'start'], [12, 160, 'start'], [236, 60, 'start'], [12, 20, 'start']] },
-      ],
-      [s.resultRect(c.res)]
-    );
-    s.result(c.res);
-    return s;
-  },
-  check(c: TargetCase) {
-    const pts = c.pts, mean = meanOf(pts), off = Math.hypot(...mean), spread = Math.max(...pts.map((p) => Math.hypot(p[0] - mean[0], p[1] - mean[1])));
-    let gap = Infinity;
-    pts.forEach((p, i) => pts.forEach((q, j) => { if (i < j) gap = Math.min(gap, Math.hypot(p[0] - q[0], p[1] - q[1])); }));
-    const out: Check[] = [[`Five readings, none touching (closest ${gap.toFixed(0)} px apart)`, gap >= 2 * TGT.dotR + 5]];
-    if (c.kind === 'precise') out.push([`Tight (spread ${spread.toFixed(0)} px) and off the centre (${off.toFixed(0)} px)`, spread < 20 && off > 40]);
-    if (c.kind === 'accurate') out.push([`Scattered (spread ${spread.toFixed(0)} px) with the average on the centre (${off.toFixed(1)} px)`, spread > 40 && off < 4]);
-    if (c.kind === 'both') out.push([`Tight (spread ${spread.toFixed(0)} px) and on the centre (${off.toFixed(1)} px)`, spread < 20 && off < 4]);
+    const out: Check[] = DERIVED.map((d) => {
+      const got = parseUnit(d.unit), want = LAWS[d.name];
+      return [`${d.name} = ${d.unit.replace(/<[^>]+>/g, '')} is what ${LAW_TEXT[d.name]} makes of the base units`, sameDim(got, want)];
+    });
+    const named: Record<string, Dim> = { C: mul(U.A, U.s), N: LAWS.force, W: LAWS.power, Pa: LAWS.pressure, Hz: pw(U.s, -1), J: LAWS.energy };
+    DERIVED.filter((d) => d.sym).forEach((d) => out.push([`(${d.sym}) is the named unit of ${d.name}`, sameDim(named[d.sym], parseUnit(d.unit))]));
+    out.push(['Every derived unit uses only base units', DERIVED.every((d) => Object.keys(parseUnit(d.unit)).every((k) => BASE7.includes(k)))]);
+    out.push(['Seven base units in the centre: m, kg, s, A, K, mol, cd', BASE7.length === 7 && new Set(BASE7).size === 7]);
+    out.push(['Radian (m/m) and steradian (m²/m²) have no dimensions', sameDim(mul(U.m, pw(U.m, -1)), {}) && sameDim(mul(pw(U.m, 2), pw(U.m, -2)), {})]);
     return out;
   },
 };
 
 /* ===================================================================== */
-/* 5. Two worked propagations                                             */
+/* Figure 1.2  Simple pendulum                                            */
 /* ===================================================================== */
-type PropCase = { chip: string; cap: string; mode: 'sum' | 'product'; a: [string, number, number]; b: [string, number, number] };
-const propResult = (c: PropCase) => {
-  const [, a, da] = c.a, [, b, db] = c.b;
-  if (c.mode === 'sum') return { value: a + b, err: da + db, rel: null as number | null };
-  const rel = da / a + db / b;
-  return { value: a * b, err: a * b * rel, rel };
+/** The book's drawing has the string about 20° from the vertical. */
+const PEN = { P: [148, 40] as [number, number], L: 172, th: (20 * Math.PI) / 180, Wt: 100, bob: 14 };
+const penGeo = () => {
+  const { P, L, th, bob } = PEN;
+  const u: [number, number] = [Math.sin(th), Math.cos(th)]; // along the string, away from the pivot
+  const t: [number, number] = [-Math.cos(th), Math.sin(th)]; // along the arc, back towards the lowest point
+  const B: [number, number] = [P[0] + L * u[0], P[1] + L * u[1]];
+  const at = (d: [number, number]): [number, number] => [B[0] + bob * d[0], B[1] + bob * d[1]];
+  return { u, t, B, at };
 };
-const propagation: Diagram = {
-  id: 'propagation',
-  topic: 2,
-  name: 'Two worked propagations',
-  cases: [
-    { chip: 'A sum: absolutes add', mode: 'sum', a: ['a', 4.2, 0.1], b: ['b', 3.1, 0.1], cap: 'Add two measured lengths and their absolute errors add too: 0.1 + 0.1 = 0.2 cm. They add even for a difference, because the errors could go either way.' },
-    { chip: 'A product: relatives add', mode: 'product', a: ['l', 4.0, 0.1], b: ['b', 2.0, 0.1], cap: 'Multiply them and it is the relative errors that add: 2.5% + 5% = 7.5% of 8.0 cm², which is 0.6 cm².' },
-  ],
-  draw(c: PropCase) {
-    const s = new Sketch(W, 352);
-    const r = propResult(c), pct = (x: number) => `${+(x * 100).toFixed(1)}%`;
-    const inA: Rect = [10, 44, 152, 108], inB: Rect = [188, 44, 330, 108], step: Rect = [86, 160, 254, 222], ans: Rect = [80, 276, 260, 342];
-    const fx = (n: number) => n.toFixed(1);
-    block(s, 10, 44, 142, 64, `<i>${c.a[0]}</i> = ${fx(c.a[1])} ± ${c.a[2]} cm`, c.mode === 'sum' ? `error ${c.a[2]} cm` : `error ${pct(c.a[2] / c.a[1])}`, 'start', { valueSize: 15 });
-    block(s, 188, 44, 142, 64, `<i>${c.b[0]}</i> = ${fx(c.b[1])} ± ${c.b[2]} cm`, c.mode === 'sum' ? `error ${c.b[2]} cm` : `error ${pct(c.b[2] / c.b[1])}`, 'start', { valueSize: 15 });
-    arrowBetween(s, inA, step, 5);
-    arrowBetween(s, inB, step, 5);
-    block(s, 86, 160, 168, 62, c.mode === 'sum' ? `<i>a</i> + <i>b</i> = ${fx(r.value)} cm` : `<i>A</i> = <i>lb</i> = ${fx(r.value)} cm²`, c.mode === 'sum' ? 'the sum' : 'the area', 'step', { valueSize: 16 });
-    s.vec(170, 228, 170, 270, { color: C.slate, w: 1.4 });
-    block(s, 80, 276, 180, 66, `${fx(r.value)} ± ${fx(r.err)} ${c.mode === 'sum' ? 'cm' : 'cm²'}`, c.mode === 'sum' ? `${c.a[2]} + ${c.b[2]} = ${fx(r.err)} cm` : `${pct(c.a[2] / c.a[1])} + ${pct(c.b[2] / c.b[1])} = ${pct(r.rel ?? 0)}`, 'answer', { valueSize: 19 });
-    s.place([{ t: c.mode === 'sum' ? 'Absolute errors add' : 'Percentage errors add', p: [172, 249], hi: true, at: [[184, 238, 'start'], [12, 238, 'start']] }], [ans, step]);
-    return s;
-  },
-  check(c: PropCase) {
-    const r = propResult(c);
-    if (c.mode === 'sum') return [[`4.2 + 3.1 = ${r.value.toFixed(1)} cm`, Math.abs(r.value - 7.3) < 1e-9], [`Errors add: 0.1 + 0.1 = ${r.err.toFixed(1)} cm`, Math.abs(r.err - 0.2) < 1e-9]];
-    return [
-      [`4.0 × 2.0 = ${r.value.toFixed(1)} cm²`, Math.abs(r.value - 8) < 1e-9],
-      [`Relative errors add: 2.5% + 5% = ${((r.rel ?? 0) * 100).toFixed(1)}%`, Math.abs((r.rel ?? 0) - 0.075) < 1e-9],
-      [`7.5% of 8.0 cm² = ${r.err.toFixed(1)} cm²`, Math.abs(r.err - 0.6) < 1e-9],
-    ];
-  },
-};
-
-/* ===================================================================== */
-/* 6. Two rules that must never be swapped                                */
-/* ===================================================================== */
-type SigCase = { chip: string; cap: string; mul: boolean; a: string; b: string };
-const sf = (x: string) => x.replace('.', '').replace(/^0+/, '').length;
-const dp = (x: string) => (x.split('.')[1] ?? '').length;
-const sigOutcome = (c: SigCase) => {
-  const exact = c.mul ? +c.a * +c.b : +c.a + +c.b;
-  const keep = c.mul ? Math.min(sf(c.a), sf(c.b)) : Math.min(dp(c.a), dp(c.b));
-  const rounded = c.mul ? Number(exact.toPrecision(keep)) : Number(exact.toFixed(keep));
-  const decider = c.mul ? (sf(c.a) <= sf(c.b) ? 'a' : 'b') : dp(c.a) <= dp(c.b) ? 'a' : 'b';
-  return { exact: +exact.toFixed(4), keep, rounded, decider };
-};
-const sigfig: Diagram = {
-  id: 'sigfig',
-  topic: 3,
-  name: 'Two rules that must never be swapped',
-  cases: [
-    { chip: 'Multiply: count figures', mul: true, a: '2.5', b: '3.42', cap: 'In × and ÷ the answer keeps as many significant figures as the least precise number. 2.5 has two, so 8.55 becomes 8.6.' },
-    { chip: 'Add: count decimal places', mul: false, a: '2.5', b: '3.42', cap: 'In + and − it keeps as many decimal places as the least precise number. 2.5 has one, so 5.92 becomes 5.9.' },
-  ],
-  draw(c: SigCase) {
-    const s = new Sketch(W, 352);
-    const o = sigOutcome(c);
-    const desc = (x: string) => (c.mul ? `${sf(x)} sig figs` : `${dp(x)} decimal place${dp(x) > 1 ? 's' : ''}`);
-    const inA: Rect = [14, 44, 142, 106], inB: Rect = [198, 44, 326, 106], step: Rect = [96, 156, 244, 218], ans: Rect = [112, 272, 228, 338];
-    block(s, 14, 44, 128, 62, c.a, desc(c.a), o.decider === 'a' ? 'hi' : 'start');
-    block(s, 198, 44, 128, 62, c.b, desc(c.b), o.decider === 'b' ? 'hi' : 'start');
-    arrowBetween(s, inA, step, 5);
-    arrowBetween(s, inB, step, 5);
-    block(s, 96, 156, 148, 62, `${c.a} ${c.mul ? '×' : '+'} ${c.b}`, `= ${o.exact}`, 'step', { subStix: true });
-    s.vec(170, 224, 170, 266, { color: C.slate, w: 1.4 });
-    block(s, 112, 272, 116, 66, String(o.rounded), c.mul ? `${o.keep} sig figs` : `${o.keep} decimal place${o.keep > 1 ? 's' : ''}`, 'answer');
-    s.place([{ t: 'Decides the answer', p: [o.decider === 'a' ? 78 : 262, 44], hi: true, at: [[o.decider === 'a' ? 52 : 196, 12, 'start']] }]);
-    s.place([{ t: c.mul ? 'Fewest sig figs' : 'Fewest decimal places', p: [172, 246], at: [[184, 234, 'start'], [12, 234, 'start']] }], [ans]);
-    return s;
-  },
-  check(c: SigCase) {
-    const o = sigOutcome(c);
-    return [
-      [`${c.a} ${c.mul ? '×' : '+'} ${c.b} = ${o.exact}`, Math.abs(o.exact - (c.mul ? 8.55 : 5.92)) < 1e-9],
-      [`Keep ${o.keep} ${c.mul ? 'significant figures' : 'decimal place'}: ${o.rounded}`, String(o.rounded) === (c.mul ? '8.6' : '5.9')],
-      [`"Decides the answer" sits on ${c.a}, the less precise number`, o.decider === 'a'],
-    ];
-  },
-};
-
-/* ===================================================================== */
-/* 7. The ladder of least counts                                          */
-/* ===================================================================== */
-const RUNGS = [
-  { name: 'Metre scale', lc: 1 },
-  { name: 'Vernier callipers', lc: 0.1 },
-  { name: 'Screw gauge', lc: 0.01 },
-];
-const leastCounts: Diagram = {
-  id: 'least-counts',
-  topic: 4,
-  name: 'The ladder of least counts',
-  cases: [{ chip: 'A hundredfold in two steps', cap: 'Each instrument reads ten times finer than the one above it: 1 mm, then 0.1 mm, then 0.01 mm. Two steps make a hundredfold.' }],
+/** Dimensional analysis for t = C ℓ^a m^b g^c: the powers of M, L, T on each side. */
+function pendulumPowers() {
+  // [T] = [L]^a [M]^b [L T^-2]^c.  M: b = 0.  T: -2c = 1.  L: a + c = 0.
+  const b = 0, c = -1 / 2, a = -c;
+  const M = b, Lp = a + c, T = -2 * c;
+  return { a, b, c, M, L: Lp, T };
+}
+const fig12: Diagram = {
+  id: 'p11-01-fig-1.2',
+  topic: 1,
+  name: 'Simple pendulum',
+  cases: [{ chip: 'Simple pendulum', cap: 'Simple pendulum of length <i>l</i>. The restoring component <i>mg</i> sin <i>θ</i> leads to the period <i>t</i> = <i>C</i>√(<i>l</i>/<i>g</i>), which does not depend on the mass <i>m</i>.' }],
   draw() {
-    const s = new Sketch(W, 340);
-    const ys = [18, 120, 222];
-    RUNGS.forEach((g, i) => {
-      const finest = i === RUNGS.length - 1;
-      s.add(`<rect x="70" y="${ys[i]}" width="200" height="66" rx="12" fill="#fff" stroke="${finest ? C.mari : C.border}" stroke-width="${finest ? 2 : 1.3}"/>`);
-      s.add(`<text x="170" y="${ys[i] + 22}" text-anchor="middle" font-family="${F.tag}" font-size="12" fill="${C.slate}">${g.name}</text>`);
-      s.text(170, ys[i] + 50, `${g.lc} mm`, { size: 21 });
-      if (i < RUNGS.length - 1) {
-        s.vec(170, ys[i] + 72, 170, ys[i + 1] - 6, { color: C.slate, w: 1.4 });
-        s.sym(182, (ys[i] + 66 + ys[i + 1]) / 2 + 5, `÷ ${Math.round(g.lc / RUNGS[i + 1].lc)}`, { size: 15, color: C.slate, anchor: 'start' });
-      }
-    });
-    s.result('100 times finer in two steps');
+    const s = new Sketch(W, 386);
+    const { P, L, th, Wt, bob } = PEN, { u, t, B, at } = penGeo();
+    // the support, the vertical, the string
+    s.line(P[0] - 58, P[1], P[0] + 58, P[1], { w: 1.8 });
+    for (let i = -52; i <= 48; i += 12) s.line(P[0] + i, P[1], P[0] + i + 9, P[1] - 9, { color: C.grey, w: 1.2 });
+    s.line(P[0], P[1], P[0], B[1] + 6, { color: C.grey, dash: true, w: 1.2 });
+    s.line(P[0], P[1], B[0] - u[0] * bob, B[1] - u[1] * bob, { w: 1.7 });
+    const a0 = Math.PI / 2, a1 = Math.PI / 2 - th, ar = 52;
+    s.add(`<path d="M${r1(P[0] + ar * Math.cos(a0))} ${r1(P[1] + ar * Math.sin(a0))} A${ar} ${ar} 0 0 0 ${r1(P[0] + ar * Math.cos(a1))} ${r1(P[1] + ar * Math.sin(a1))}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`);
+    s.sym(P[0] + 72 * Math.cos((a0 + a1) / 2), P[1] + 72 * Math.sin((a0 + a1) / 2) + 5, 'θ', { italic: true });
+    const mid: [number, number] = [P[0] + (L * 0.45) * u[0], P[1] + (L * 0.45) * u[1]];
+    s.sym(mid[0] + 14 * Math.cos(th), mid[1] - 14 * Math.sin(th) + 4, 'ℓ', { italic: true, anchor: 'start' });
+    s.dot(P[0], P[1], 3.2);
+    // the weight and its two components, each drawn from the bob's edge along its own line
+    const g0 = at([0, 1]), c0 = at(u), s0 = at(t);
+    const cosL = Wt * Math.cos(th), sinL = Wt * Math.sin(th);
+    s.vec(c0[0], c0[1], c0[0] + cosL * u[0], c0[1] + cosL * u[1], { color: C.grey, dash: true, w: 1.5 });
+    s.vec(g0[0], g0[1], g0[0], g0[1] + Wt);
+    s.vec(s0[0], s0[1], s0[0] + sinL * t[0], s0[1] + sinL * t[1], { color: C.mari, w: 2.6 });
+    s.point(B[0], B[1], bob, `<circle cx="${r1(B[0])}" cy="${r1(B[1])}" r="${bob}" fill="#fff" stroke="${C.ink}" stroke-width="1.7"/>`);
+    s.text(B[0], B[1] + 5, '<i>m</i>', { size: 15 });
+    const tip: [number, number] = [s0[0] + sinL * t[0], s0[1] + sinL * t[1]];
+    s.sym(g0[0] + 10, g0[1] + Wt - 2, '<i>mg</i>', { anchor: 'start' });
+    s.sym(c0[0] + cosL * u[0] + 6, c0[1] + cosL * u[1] + 16, '<i>mg</i> cos <i>θ</i>', { size: 14, color: C.slate, anchor: 'start' });
+    s.sym(tip[0] - 6, tip[1] - 7, '<i>mg</i> sin <i>θ</i>', { size: 14, color: C.amber, anchor: 'end' });
+    const res = resultBlock(s, ['<i>t</i> = <i>C</i>√(<i>ℓ</i>/<i>g</i>); mass <i>m</i> cancels out'], { maths: true });
+    s.place([{ t: 'Restoring component', p: [tip[0] + 1, tip[1] - 1], own: tip, hi: true, at: [[12, 272, 'start'], [12, 290, 'start'], [12, 254, 'start']] }], [res]);
     return s;
   },
   check() {
+    const { u, t, B } = penGeo(), { P, L, th } = PEN;
+    const dot = (a: [number, number], b: [number, number]) => a[0] * b[0] + a[1] * b[1];
+    const mg: [number, number] = [0, 1], cosPart = [u[0] * Math.cos(th), u[1] * Math.cos(th)], sinPart = [t[0] * Math.sin(th), t[1] * Math.sin(th)];
+    const pw3 = pendulumPowers();
     return [
-      [`1 mm ÷ 0.1 mm = ${Math.round(1 / 0.1)}`, Math.round(1 / 0.1) === 10],
-      [`0.1 mm ÷ 0.01 mm = ${Math.round(0.1 / 0.01)}`, Math.round(0.1 / 0.01) === 10],
-      [`Overall: ${Math.round(1 / 0.01)} times finer`, Math.round(1 / 0.01) === 100],
+      [`The string is ℓ long and ${Math.round((th * 180) / Math.PI)}° from the vertical`, near(Math.hypot(B[0] - P[0], B[1] - P[1]), L, 1e-9) && near(Math.atan2(B[0] - P[0], B[1] - P[1]), th)],
+      ['mg sin θ is at right angles to the string', near(dot(t, u), 0)],
+      ['mg sin θ points back towards the lowest point (the restoring part)', t[0] < 0 && near(dot(t, mg), Math.sin(th))],
+      ['mg cos θ lies along the string, away from the pivot', near(dot(u, mg), Math.cos(th)) && u[1] > 0],
+      ['The two components add back to mg', near(cosPart[0] + sinPart[0], mg[0]) && near(cosPart[1] + sinPart[1], mg[1])],
+      ['Powers balance: M: b = 0; T: −2c = 1 so c = −½; L: a + c = 0 so a = ½', pw3.M === 0 && pw3.T === 1 && pw3.L === 0 && pw3.a === 0.5 && pw3.c === -0.5],
+      ['So t = C ℓ^½ g^−½ = C√(ℓ/g): the mass m has power 0 and cancels', pw3.b === 0],
     ];
   },
 };
 
 /* ===================================================================== */
-/* 8. The jaws are closed. What does it read?                             */
+/* Figure 1.3  Worst-case rules for combining errors                      */
 /* ===================================================================== */
-type VerCase = { chip: string; cap: string; e: number; k: number; res: string };
-const VU = 21, VX0 = 80, BT = 56, BB = 94, SB = 132, TIP = 222, FACE = 58;
-const VX = (mm: number) => VX0 + mm * VU;
-const vernier: Diagram = {
-  id: 'vernier',
-  topic: 4,
-  name: 'The jaws are closed. What does it read?',
-  cases: [
-    { chip: 'No zero error', e: 0, k: 10, res: 'Zero error 0', cap: 'Jaws closed, and the vernier zero sits on the main zero; the 10th vernier mark lines up with 9 mm.' },
-    { chip: 'Positive', e: 0.3, k: 3, res: 'Zero error +0.3 mm', cap: 'The vernier zero sits 0.3 mm right of the main zero, and the 3rd mark lines up: +3 × 0.1 mm. Subtract it from every reading.' },
-    { chip: 'Negative', e: -0.3, k: 7, res: 'Zero error −0.3 mm', cap: 'The vernier zero sits 0.3 mm left, and the 7th mark lines up: −(10 − 7) × 0.1 mm. Subtracting it adds 0.3 mm.' },
-  ],
-  draw(c: VerCase) {
-    const s = new Sketch(W, 292);
-    const r = 6, slideR = VX(c.e + 9) + 16, mHit = c.e === 0 ? 9 : Math.round(c.e + 0.9 * c.k);
-    s.add(`<rect x="30" y="${BT}" width="292" height="${BB - BT}" rx="${r}" fill="#fff" stroke="${C.ink}" stroke-width="1.7"/>`);
-    s.add(`<path d="M30 ${BB - r} V${TIP - 26} L${FACE} ${TIP} V${BB}" fill="#fff" stroke="${C.ink}" stroke-width="1.7" stroke-linejoin="round"/>`);
-    s.add(`<path d="M${FACE} ${BB} H${slideR - r} Q${slideR} ${BB} ${slideR} ${BB + r} V${SB - r} Q${slideR} ${SB} ${slideR - r} ${SB} H${FACE + 26} V${TIP - 26} L${FACE} ${TIP} Z" fill="#fff" stroke="${C.ink}" stroke-width="1.7" stroke-linejoin="round"/>`);
-    for (let i = -1; i <= 11; i++) {
-      const x = VX(i);
-      if (x < 34 || x > 318) continue;
-      const hitM = i === mHit;
-      s.line(x, BB, x, BB - (i % 5 === 0 ? 15 : 9), { color: hitM ? C.mari : C.ink, w: hitM ? 2.4 : 1.1 });
-    }
-    s.sym(VX(0), BB - 21, '0', { size: 12 });
-    s.sym(VX(10), BB - 21, '1', { size: 12 });
-    s.sym(VX(10) + 14, BB - 21, 'cm', { size: 10.5, color: C.faint });
-    for (let k = 0; k <= 10; k++) {
-      const x = VX(c.e + 0.9 * k), hitV = c.e === 0 ? k === 10 : k === c.k;
-      s.line(x, BB, x, BB + (k % 5 === 0 ? 14 : 9), { color: hitV ? C.mari : C.ink, w: hitV ? 2.4 : 1.1 });
-    }
-    [0, 5, 10].forEach((k) => s.sym(VX(c.e + 0.9 * k), BB + 27, String(k), { size: 11 }));
-    const hx = VX(mHit);
-    s.tag(hx, 18, 'Lines up', hx, BB - 10, { hi: true, anchor: 'middle' });
-    if (hx > 170) s.tag(30, 18, 'Main scale', 48, BT + 2);
-    else s.tag(234, 18, 'Main scale', 300, BT + 2);
-    s.tag(VX(c.e + 4.5), 146, 'Vernier scale', VX(c.e + 4.5), SB - 2, { anchor: 'middle' });
-    s.tag(74, 214, 'Jaws closed', FACE + 2, TIP - 10);
-    s.result(c.res);
+const SUM = { a: [10.0, 0.2], b: [5.0, 0.1] } as const;
+const PLATE = { l: [16.3, 0.05], b: [13.8, 0.05] } as const;
+/** Worst case by brute force: every sign of every error, the largest change. */
+function worst(f: (v: number[]) => number, vals: number[], errs: number[]) {
+  const x = f(vals);
+  let m = 0;
+  for (let mask = 0; mask < 1 << vals.length; mask++) {
+    const v = vals.map((a, i) => a + ((mask >> i) & 1 ? errs[i] : -errs[i]));
+    m = Math.max(m, Math.abs(f(v) - x));
+  }
+  return m;
+}
+const fig13: Diagram = {
+  id: 'p11-01-fig-1.3',
+  topic: 2,
+  name: 'Error propagation rules — worst-case addition',
+  cases: [{ chip: 'Worst-case rules', cap: 'Worst-case rules for combining errors: absolute errors add for sums and differences; relative (percentage) errors add, each weighted by its power, for products, quotients and powers.' }],
+  draw() {
+    const s = new Sketch(W, 392);
+    // Absolute errors
+    words(s, 16, 22, 'Absolute Errors ADD', { size: 13, anchor: 'start', bold: true });
+    box(s, 8, 32, 324, 44);
+    s.text(170, 60, '<i>x</i> = <i>a</i> ± <i>b</i>   ⇒   Δ<i>x</i> = Δ<i>a</i> + Δ<i>b</i>', { size: 16 });
+    box(s, 8, 84, 324, 62);
+    s.text(170, 108, 'Example: <i>x</i> = (10.0 ± 0.2)', { size: 14 });
+    s.text(170, 132, '+ (5.0 ± 0.1) = 15.0 ± 0.3', { size: 14 });
+    // Relative errors
+    words(s, 16, 176, 'Relative (%) Errors ADD', { size: 13, anchor: 'start', bold: true });
+    box(s, 8, 186, 324, 64, 'hi');
+    s.text(170, 210, '<i>x</i> = <i>a</i><sup><i>p</i></sup><i>b</i><sup><i>q</i></sup>/<i>c</i><sup><i>r</i></sup>   ⇒', { size: 15 });
+    s.text(170, 236, 'Δ<i>x</i>/<i>x</i> = <i>p</i> Δ<i>a</i>/<i>a</i> + <i>q</i> Δ<i>b</i>/<i>b</i> + <i>r</i> Δ<i>c</i>/<i>c</i>', { size: 15 });
+    box(s, 8, 258, 324, 62);
+    s.text(170, 282, '<i>A</i> = <i>ℓb</i>,  <i>ℓ</i> = 16.30 ± 0.05,  <i>b</i> = 13.80 ± 0.05', { size: 13.5 });
+    s.text(170, 306, '⇒  Δ<i>A</i>/<i>A</i> = 0.05/16.30 + 0.05/13.80', { size: 13.5 });
+    resultBlock(s, ['ALWAYS worst case: every', 'error pushes the same way.']);
     return s;
   },
-  check(c: VerCase) {
-    const m = c.e + 0.9 * c.k, err = c.e === 0 ? 0 : c.e > 0 ? c.k * 0.1 : -(10 - c.k) * 0.1;
+  check() {
+    const [a, da] = SUM.a, [b, db] = SUM.b;
+    const sum = a + b, dsum = worst((v) => v[0] + v[1], [a, b], [da, db]), ddiff = worst((v) => v[0] - v[1], [a, b], [da, db]);
+    // the power rule against brute force, for x = a^2 b / c^3 with small errors
+    const vals = [2.0, 3.0, 5.0], errs = [2e-6, 3e-6, 1e-6], [p, q, r] = [2, 1, 3];
+    const f = (v: number[]) => (v[0] ** p * v[1] ** q) / v[2] ** r, x = f(vals);
+    const rule = p * (errs[0] / vals[0]) + q * (errs[1] / vals[1]) + r * (errs[2] / vals[2]);
+    const [l, dl] = PLATE.l, [w, dw] = PLATE.b, rl = dl / l, rw = dw / w, rel = rl + rw, A = l * w;
     return [
-      [`Vernier mark ${c.k} sits at ${m.toFixed(1)} mm, exactly on a main-scale mark`, Math.abs(m - Math.round(m)) < 1e-9],
-      [`Zero error ${err === 0 ? '0' : `${err > 0 ? '+' : '−'}${Math.abs(err).toFixed(1)} mm`} matches the offset`, Math.abs(err - c.e) < 1e-9],
-      ['Ten vernier divisions span 9 mm (least count 0.1 mm)', Math.abs(10 * 0.9 - 9) < 1e-9],
+      [`(10.0 ± 0.2) + (5.0 ± 0.1) = ${sum.toFixed(1)} ± ${dsum.toFixed(1)}`, near(sum, 15, 1e-9) && near(dsum, 0.3, 1e-9)],
+      ['For a difference the worst case is the same Δa + Δb', near(ddiff, da + db, 1e-9)],
+      ['Δx/x = pΔa/a + qΔb/b + rΔc/c matches the worst case of a^p b^q/c^r (to first order)', Math.abs(worst(f, vals, errs) / x - rule) / rule < 1e-4],
+      ['The denominator c still adds its r Δc/c, with a plus sign', Math.abs(worst(f, vals, [0, 0, errs[2]]) / x - r * (errs[2] / vals[2])) / (r * (errs[2] / vals[2])) < 1e-4],
+      [`0.05/16.30 = ${rl.toFixed(5)}, 0.05/13.80 = ${rw.toFixed(5)}: sum ${rel.toFixed(5)} (the text's 0.00307 + 0.00362 = 0.00669)`, rl.toFixed(5) === '0.00307' && rw.toFixed(5) === '0.00362' && rel.toFixed(5) === '0.00669'],
+      [`A = 16.30 × 13.80 = ${A.toFixed(2)} cm², ΔA ≈ ${(rel * A).toFixed(1)} cm² (the text's 224.94 and 1.5)`, A.toFixed(2) === '224.94' && (rel * A).toFixed(1) === '1.5'],
     ];
   },
 };
 
 /* ===================================================================== */
-/* 9. Parallax, from your thumb to a star                                 */
+/* Figure 1.4  Rounding decision card                                     */
 /* ===================================================================== */
-type ParCase = { chip: string; cap: string; thumb?: boolean };
-const PAR = { S: [170, 44] as [number, number], A: [112, 232] as [number, number], B: [228, 232] as [number, number] };
-const parallax: Diagram = {
-  id: 'parallax',
-  topic: 5,
-  name: 'Parallax, from your thumb to a star',
+/** Exact decimals as integers and a count of decimal places, so 2.5 × 3.42 is 8.55 and never 8.549999. */
+type Dec = { n: bigint; dp: number };
+const dec = (t: string): Dec => ({ n: BigInt(t.replace('.', '')), dp: (t.split('.')[1] ?? '').length });
+const decStr = (d: Dec) => { const neg = d.n < 0n, s = (neg ? -d.n : d.n).toString().padStart(d.dp + 1, '0'); return (neg ? '-' : '') + (d.dp ? `${s.slice(0, -d.dp)}.${s.slice(-d.dp)}` : s); };
+const decMul = (a: Dec, b: Dec): Dec => ({ n: a.n * b.n, dp: a.dp + b.dp });
+const decAdd = (a: Dec, b: Dec): Dec => { const dp = Math.max(a.dp, b.dp); return { n: a.n * 10n ** BigInt(dp - a.dp) + b.n * 10n ** BigInt(dp - b.dp), dp }; };
+const strip = (d: Dec): Dec => { let { n, dp } = d; while (dp > 0 && n % 10n === 0n) { n /= 10n; dp--; } return { n, dp }; };
+/** Keep `keep` decimal places, the book's way: below 5 drop, above 5 up, exactly 5 to the even digit. */
+function roundDp(d: Dec, keep: number): Dec {
+  if (d.dp <= keep) return d;
+  const cut = 10n ** BigInt(d.dp - keep), q = d.n / cut, rem = d.n % cut, half = cut / 2n;
+  const up = rem > half || (rem === half && q % 2n === 1n);
+  return { n: up ? q + 1n : q, dp: keep };
+}
+/** Significant figures: leading zeros never count; zeros after a decimal point do. */
+const sigFigs = (t: string) => t.replace('.', '').replace(/^0+/, '').length;
+const dpOf = (t: string) => (t.split('.')[1] ?? '').length;
+const roundSf = (d: Dec, sf: number): Dec => { const digits = (d.n < 0n ? -d.n : d.n).toString().length; return roundDp(d, d.dp - (digits - sf)); };
+const ROUND = { mul: ['2.5', '3.42'], add: ['12.5', '0.0021'] } as const;
+const fig14: Diagram = {
+  id: 'p11-01-fig-1.4',
+  topic: 3,
+  name: 'Rounding decision card',
+  cases: [{ chip: 'Rounding rules', cap: 'Rounding decision card: for × or ÷ keep the fewest significant figures; for + or − keep the fewest decimal places. Round once, at the end.' }],
+  draw() {
+    const s = new Sketch(W, 432);
+    box(s, 8, 8, 324, 40, 'hi');
+    words(s, 170, 33, 'Round ONCE, at the end.', { size: 15, bold: true });
+    const section = (y: number, head: [string, string], rule: [string, string], ex: string, why: [string, string]) => {
+      words(s, 16, y + 16, head[0], { size: 12.5, anchor: 'start', bold: true });
+      words(s, 16, y + 33, head[1], { size: 12.5, anchor: 'start', bold: true });
+      s.text(16, y + 58, rule[0], { size: 13.5, anchor: 'start', color: C.slate });
+      s.text(16, y + 77, rule[1], { size: 13.5, anchor: 'start', color: C.slate });
+      box(s, 8, y + 90, 324, 86);
+      s.text(170, y + 116, ex, { size: 16 });
+      s.text(170, y + 142, why[0], { size: 13.5 });
+      s.text(170, y + 164, why[1], { size: 13.5 });
+    };
+    const [ma, mb] = ROUND.mul;
+    const prod = decStr(strip(decMul(dec(ma), dec(mb)))), keepSf = Math.min(sigFigs(ma), sigFigs(mb)), prodR = decStr(roundSf(decMul(dec(ma), dec(mb)), keepSf));
+    section(58, ['× or ÷  →  count SIGNIFICANT', 'FIGURES, keep the least'], ['Result has the same significant figures as', 'the least-precise factor.'], `Example:  ${ma} × ${mb} = ${prod}`, [`${ma} has ${sigFigs(ma)} sf, ${mb} has ${sigFigs(mb)} sf  ⇒`, `rounded to ${keepSf} sf: ${prodR}`]);
+    const [aa, ab] = ROUND.add;
+    const total = decStr(decAdd(dec(aa), dec(ab))), keepDp = Math.min(dpOf(aa), dpOf(ab)), totalR = decStr(roundDp(decAdd(dec(aa), dec(ab)), keepDp));
+    section(246, ['+ or −  →  count DECIMAL', 'PLACES, keep the least'], ['Result has the same decimal places as the', 'least-precise term.'], `Example:  ${aa} + ${ab} = ${total}`, [`${aa} has ${dpOf(aa)} dp, ${ab} has ${dpOf(ab)} dp  ⇒`, `rounded to ${keepDp} dp: ${totalR}`]);
+    return s;
+  },
+  check() {
+    const [ma, mb] = ROUND.mul, [aa, ab] = ROUND.add;
+    const prod = decMul(dec(ma), dec(mb)), total = decAdd(dec(aa), dec(ab));
+    const keepSf = Math.min(sigFigs(ma), sigFigs(mb)), keepDp = Math.min(dpOf(aa), dpOf(ab));
+    return [
+      [`2.5 × 3.42 = ${decStr(strip(prod))} exactly`, decStr(strip(prod)) === '8.55'],
+      [`2.5 has ${sigFigs(ma)} sf, 3.42 has ${sigFigs(mb)} sf: keep ${keepSf}`, sigFigs(ma) === 2 && sigFigs(mb) === 3 && keepSf === 2],
+      [`8.55 to 2 sf is ${decStr(roundSf(prod, keepSf))} (exactly 5, after an odd 5: round up)`, decStr(roundSf(prod, keepSf)) === '8.6'],
+      [`12.5 + 0.0021 = ${decStr(total)}`, decStr(total) === '12.5021'],
+      [`12.5 has ${dpOf(aa)} dp, 0.0021 has ${dpOf(ab)} dp: keep ${keepDp}`, dpOf(aa) === 1 && dpOf(ab) === 4 && keepDp === 1],
+      [`12.5021 to 1 dp is ${decStr(roundDp(total, keepDp))}`, decStr(roundDp(total, keepDp)) === '12.5'],
+      [`Swapping the rules would give a different answer: 12.5021 to 2 sf is ${decStr(roundSf(total, 2))}, not 12.5`, decStr(roundSf(total, 2)) === '13'],
+    ];
+  },
+};
+
+/* ===================================================================== */
+/* Figure 1.5  Zero error of a vernier callipers                          */
+/* ===================================================================== */
+type ZeroCase = { chip: string; cap: string; e: number; note: [string, string]; res: [string, string?] };
+const MM = 22, X0 = 38, MB = 72, VB = 94; // px per mm, main zero, main-scale line, vernier line
+const VSD = 0.9; // 10 vernier divisions = 9 mm
+const mx = (mm: number) => X0 + mm * MM;
+/** The vernier line that coincides with a main-scale mark, and that mark. */
+function coincide(e: number) {
+  for (let k = 0; k <= 10; k++) { const at = e + VSD * k; if (Math.abs(at - Math.round(at)) < 1e-9) return { k, main: Math.round(at) }; }
+  return { k: -1, main: NaN };
+}
+const zeroError = (e: number) => { const { k } = coincide(e); const LC = 1 - VSD; return e > 0 ? k * LC : e < 0 ? -(10 - k) * LC : 0; };
+const fig15: Diagram = {
+  id: 'p11-01-fig-1.5',
+  topic: 4,
+  name: 'Zero error of a vernier callipers',
   cases: [
-    { chip: 'The thin triangle', cap: 'Two observers a known distance <i>b</i> apart both sight the same star. The angle at the star is tiny, so <i>θ</i> = <i>b</i>/<i>D</i> in radians. Drawn wide; a real one is far thinner.' },
-    { chip: 'Your thumb', thumb: true, cap: 'Close one eye, then the other: your thumb jumps against the far wall. Your eyes are the basis <i>b</i>, and the jump is the parallax.' },
+    { chip: 'No zero error', e: 0, note: ['Vernier 0 coincides exactly with main 0', '(jaws closed).'], res: ['Zero error = 0'], cap: 'Zero error of a vernier callipers: (i) none. Corrected = Observed − Zero error, sign included.' },
+    { chip: 'Positive zero error', e: 0.4, note: ['Vernier 0 sits 0.4 mm to the right of main 0;', 'the 4th vernier line coincides.'], res: ['Zero error = +0.04 cm', '→ subtract it from the reading'], cap: 'Zero error of a vernier callipers: (ii) positive, +0.04 cm, subtract it. Corrected = Observed − Zero error, sign included.' },
+    { chip: 'Negative zero error', e: -0.4, note: ['Vernier 0 sits 0.4 mm to the left of main 0;', 'the 6th vernier line coincides.'], res: ['Zero error = −0.04 cm', '→ add it (subtract a negative number)'], cap: 'Zero error of a vernier callipers: (iii) negative, −0.04 cm, add it. Corrected = Observed − Zero error, sign included.' },
+  ],
+  draw(c: ZeroCase) {
+    const s = new Sketch(W, 316);
+    const hit = coincide(c.e), hx = mx(hit.main);
+    // main scale: 0 to 12 mm, ticks standing on its line
+    s.line(mx(0), MB, mx(12), MB, { w: 1.8 });
+    for (let i = 0; i <= 12; i++) s.line(mx(i), MB, mx(i), MB - (i % 5 === 0 ? 14 : 8), { w: 1.2 });
+    [0, 5, 10].forEach((i) => s.sym(mx(i), MB - 20, String(i), { size: 12 }));
+    // vernier: 10 divisions over 9 mm, ticks hanging from its line, its zero at the offset
+    const vx = (k: number) => mx(c.e + VSD * k);
+    s.line(vx(0), VB, vx(10), VB, { w: 1.8 });
+    for (let k = 0; k <= 10; k++) s.line(vx(k), VB, vx(k), VB + (k % 10 === 0 ? 13 : 8), { w: 1.2 });
+    [0, 10].forEach((k) => s.sym(vx(k), VB + 27, String(k), { size: 12 }));
+    // the lines that coincide
+    s.line(hx, MB - 12, hx, VB + 12, { color: C.mari, w: 2, dash: true });
+    s.point(hx, MB - 14, 3.4, `<circle cx="${r1(hx)}" cy="${MB - 14}" r="3.4" fill="${C.mari}"/>`);
+    s.text(16, 178, c.note[0], { size: 13.5, anchor: 'start', color: C.slate });
+    s.text(16, 197, c.note[1], { size: 13.5, anchor: 'start', color: C.slate });
+    box(s, 8, 212, 324, 32);
+    s.text(170, 233, 'Corrected = Observed − Zero error  (sign included)', { size: 13.5 });
+    const res = resultBlock(s, c.res.filter(Boolean) as string[]);
+    s.place(
+      [
+        { t: 'Main scale (1 division = 1 mm)', p: [mx(11.5), MB], at: [[334, 8, 'end']] },
+        { t: 'Vernier scale (10 divisions = 9 mm)', p: [vx(8.5), VB], at: [[334, 130, 'end'], [6, 130, 'start']] },
+      ],
+      [res]
+    );
+    return s;
+  },
+  check(c: ZeroCase) {
+    const LC = 1 - VSD, hit = coincide(c.e), z = zeroError(c.e);
+    const want = c.e === 0 ? 0 : c.e > 0 ? 0.4 : -0.4;
+    // With no zero error the 10th line also sits on a mark (9 mm): that is the scale's end, not a reading.
+    const others = Array.from({ length: 11 }, (_, k) => k).filter((k) => k !== hit.k && !(c.e === 0 && k === 10) && Math.abs(c.e + VSD * k - Math.round(c.e + VSD * k)) < 1e-9);
+    const observed = 4.5, corrected = observed - z / 10; // cm
+    const n = c.e === 0 ? 0 : c.e > 0 ? 4 : 6;
+    return [
+      [`Least count = 1 MSD − 1 VSD = 1 mm − 0.9 mm = ${LC.toFixed(1)} mm`, near(LC, 0.1)],
+      ['Ten vernier divisions are drawn over 9 mm', near(mx(c.e + VSD * 10) - mx(c.e), 9 * MM)],
+      [`Vernier line ${hit.k} sits at ${(c.e + VSD * hit.k).toFixed(1)} mm, on main mark ${hit.main}`, hit.k === n && near(c.e + VSD * hit.k, hit.main)],
+      ['No other vernier line coincides', others.length === 0],
+      [`Zero error = ${z >= 0 ? (z > 0 ? '+' : '') : '−'}${Math.abs(z / 10).toFixed(2)} cm, the offset of the vernier zero`, near(z, want, 1e-9) && near(z, c.e, 1e-9)],
+      ['The printed note and result say the same line and the same zero error', (c.e === 0 ? c.note[0].includes('coincides exactly with main 0') && c.res[0] === 'Zero error = 0' : c.note[1].includes(`the ${hit.k}th vernier line`) && c.res[0] === `Zero error = ${z > 0 ? '+' : '−'}${Math.abs(z / 10).toFixed(2)} cm`)],
+      [z > 0 ? 'Corrected = Observed − (+0.04 cm): the correction subtracts' : z < 0 ? 'Corrected = Observed − (−0.04 cm): the correction adds' : 'Corrected = Observed: nothing to correct', z > 0 ? near(corrected, observed - 0.04) : z < 0 ? near(corrected, observed + 0.04) : corrected === observed],
+    ];
+  },
+};
+
+/* ===================================================================== */
+/* Figure 1.6  Parallax method, and the thumb test                        */
+/* ===================================================================== */
+type ParCase = { chip: string; cap: string; part: 'triangle' | 'thumb' };
+/** θ chosen small enough that the arc Dθ and the chord AB differ by under 1%. */
+const TRI = { S: [150, 40] as [number, number], D: 206, th: 0.4 };
+const triGeo = () => {
+  const { S, D, th } = TRI;
+  const A: [number, number] = [S[0] - D * Math.sin(th / 2), S[1] + D * Math.cos(th / 2)];
+  const B: [number, number] = [S[0] + D * Math.sin(th / 2), S[1] + D * Math.cos(th / 2)];
+  return { S, A, B, b: Math.hypot(B[0] - A[0], B[1] - A[1]) };
+};
+const THUMB = { wall: 80, eyeY: 292, eyeL: 140, eyeR: 200, thumb: [170, 214] as [number, number] };
+const thumbGeo = () => {
+  const { wall, eyeY, eyeL, eyeR, thumb } = THUMB;
+  const hitWall = (ex: number) => ex + ((wall - eyeY) / (thumb[1] - eyeY)) * (thumb[0] - ex);
+  return { seenL: hitWall(eyeL), seenR: hitWall(eyeR) };
+};
+const fig16: Diagram = {
+  id: 'p11-01-fig-1.6',
+  topic: 5,
+  name: 'Parallax method',
+  cases: [
+    { chip: 'Parallax triangle', part: 'triangle', cap: 'Parallax method: the distant object <i>S</i> is viewed from two points <i>A</i> and <i>B</i> separated by the basis <i>b</i>; the parallactic angle <i>θ</i> satisfies <i>b</i> = <i>Dθ</i>, so <i>D</i> = <i>b</i>/<i>θ</i>.' },
+    { chip: 'Thumb test', part: 'thumb', cap: 'Inset: a thumb at arm\'s length seems to jump against a far wall when seen by the left and right eye in turn.' },
   ],
   draw(c: ParCase) {
-    const s = new Sketch(W, 322);
-    if (!c.thumb) {
-      const { S, A, B } = PAR, M: [number, number] = [170, 232];
-      const aA = Math.atan2(A[1] - S[1], A[0] - S[0]), aB = Math.atan2(B[1] - S[1], B[0] - S[0]), ar = 42;
-      s.add(`<path d="M${A} L${S} L${B} Z" fill="#fff" stroke="${C.ink}" stroke-width="1.7" stroke-linejoin="round"/>`);
-      s.line(S[0], S[1], M[0], M[1], { color: C.grey, dash: true, w: 1.2 });
-      s.add(`<path d="M${r1(S[0] + ar * Math.cos(aB))} ${r1(S[1] + ar * Math.sin(aB))} A${ar} ${ar} 0 0 1 ${r1(S[0] + ar * Math.cos(aA))} ${r1(S[1] + ar * Math.sin(aA))}" fill="none" stroke="${C.mari}" stroke-width="2.6" stroke-linecap="round"/>`);
-      s.sym(S[0], S[1] + 62, 'θ', { italic: true, color: C.amber });
-      s.line(268, S[1], 268, M[1], { color: C.grey, w: 1.2 });
-      s.line(262, S[1], 274, S[1], { color: C.grey, w: 1.2 });
-      s.line(262, M[1], 274, M[1], { color: C.grey, w: 1.2 });
-      s.sym(282, (S[1] + M[1]) / 2 + 5, 'D', { italic: true, anchor: 'start' });
-      s.line(A[0], M[1] + 20, B[0], M[1] + 20, { color: C.grey, w: 1.2 });
-      s.line(A[0], M[1] + 14, A[0], M[1] + 26, { color: C.grey, w: 1.2 });
-      s.line(B[0], M[1] + 14, B[0], M[1] + 26, { color: C.grey, w: 1.2 });
-      s.sym(M[0], M[1] + 38, 'b', { italic: true });
+    const s = new Sketch(W, 344);
+    if (c.part === 'triangle') {
+      const { S, A, B } = triGeo();
+      s.line(S[0], S[1], A[0], A[1], { w: 1.7 });
+      s.line(S[0], S[1], B[0], B[1], { w: 1.7 });
+      s.line(A[0], A[1], B[0], B[1], { color: C.mari, w: 2.6 });
+      const aA = Math.atan2(A[1] - S[1], A[0] - S[0]), aB = Math.atan2(B[1] - S[1], B[0] - S[0]), ar = 44;
+      s.add(`<path d="M${r1(S[0] + ar * Math.cos(aB))} ${r1(S[1] + ar * Math.sin(aB))} A${ar} ${ar} 0 0 1 ${r1(S[0] + ar * Math.cos(aA))} ${r1(S[1] + ar * Math.sin(aA))}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`);
+      s.sym(S[0], S[1] + ar + 18, 'θ', { italic: true });
+      // D along each side, set off outward
+      const side = (P: [number, number], sgn: number) => s.sym((S[0] + P[0]) / 2 + sgn * 16, (S[1] + P[1]) / 2 + 5, 'D', { italic: true });
+      side(A, -1);
+      side(B, 1);
       [S, A, B].forEach((p) => s.dot(p[0], p[1]));
-      s.sym(A[0] - 12, A[1] + 16, 'A', { italic: true });
-      s.sym(B[0] + 12, B[1] + 16, 'B', { italic: true });
-      s.tag(196, 16, 'Star', S[0] + 4, S[1] - 2);
-      s.tag(16, 104, 'Parallax angle', S[0] - 14, S[1] + 40, { hi: true });
-      s.tag(14, 196, 'Observer', A[0] - 2, A[1] - 3);
-      s.tag(186, 258, 'Observer', B[0] - 3, B[1] + 3);
-      s.result('Angle = basis ÷ distance');
+      s.sym(S[0] - 12, S[1] - 6, 'S', { italic: true, anchor: 'end' });
+      s.sym(A[0] - 10, A[1] + 5, 'A', { italic: true, anchor: 'end' });
+      s.sym(B[0] + 10, B[1] + 5, 'B', { italic: true, anchor: 'start' });
+      s.sym(S[0], A[1] + 24, 'b', { italic: true });
+      const res = resultBlock(s, ['<i>b</i> = <i>Dθ</i>  ⇒  <i>D</i> = <i>b</i>/<i>θ</i>'], { maths: true });
+      s.place(
+        [
+          { t: 'Distant object', p: S, own: S, at: [[196, 18, 'start'], [196, 40, 'start']] },
+          { t: 'Basis', p: [S[0] + 10, A[1]], hi: true, at: [[176, 262, 'start'], [196, 256, 'start']] },
+        ],
+        [res]
+      );
       return s;
     }
-    const L: [number, number] = [128, 222], R: [number, number] = [212, 222], Th: [number, number] = [170, 138], wall = 52;
-    const at = (E: [number, number]) => E[0] + ((wall - E[1]) / (Th[1] - E[1])) * (Th[0] - E[0]);
-    const xl = at(L), xr = at(R), midJ = (xl + xr) / 2;
-    s.line(20, wall, 320, wall, { w: 1.7 });
-    s.line(L[0], L[1], xl, wall, { color: C.grey, dash: true, w: 1.2 });
-    s.line(R[0], R[1], xr, wall, { color: C.grey, dash: true, w: 1.2 });
-    s.add(`<rect x="${Th[0] - 8}" y="${Th[1] - 24}" width="16" height="44" rx="8" fill="#fff" stroke="${C.ink}" stroke-width="1.7"/>`);
-    s.vec(midJ, wall + 14, xl - 4, wall + 14, { color: C.mari, w: 2.6 });
-    s.vec(midJ, wall + 14, xr + 4, wall + 14, { color: C.mari, w: 2.6 });
-    s.dot(xl, wall);
-    s.dot(xr, wall);
-    [L, R].forEach(([x, y]) => s.point(x, y, 7, `<ellipse cx="${x}" cy="${y}" rx="12" ry="7" fill="#fff" stroke="${C.ink}" stroke-width="1.7"/><circle cx="${x}" cy="${y}" r="2.8" fill="${C.ink}"/>`));
-    s.line(L[0], L[1] + 22, R[0], R[1] + 22, { color: C.grey, w: 1.2 });
-    s.line(L[0], L[1] + 16, L[0], L[1] + 28, { color: C.grey, w: 1.2 });
-    s.line(R[0], R[1] + 16, R[0], R[1] + 28, { color: C.grey, w: 1.2 });
-    s.sym((L[0] + R[0]) / 2, L[1] + 40, 'b', { italic: true });
-    s.tag(252, 16, 'Far wall', 300, wall);
-    s.tag(midJ, 78, 'The jump', midJ, wall + 16, { hi: true, anchor: 'middle' });
-    s.tag(206, 128, 'Your thumb', Th[0] + 8, Th[1] - 6);
-    s.tag(16, 190, 'Left eye', L[0] - 10, L[1] - 3);
-    s.tag(244, 190, 'Right eye', R[0] + 10, R[1] - 3);
-    s.result('The jump is the parallax');
+    const { wall, eyeY, eyeL, eyeR, thumb } = THUMB, { seenL, seenR } = thumbGeo();
+    s.line(28, wall, 312, wall, { w: 1.8 });
+    s.line(eyeL, eyeY, seenL, wall, { color: C.grey, dash: true, w: 1.2 });
+    s.line(eyeR, eyeY, seenR, wall, { color: C.grey, dash: true, w: 1.2 });
+    [seenR, seenL].forEach((x) => s.line(x, wall - 7, x, wall + 7, { w: 2 }));
+    s.sym(seenR, wall + 24, 'R', { size: 13 });
+    s.sym(seenL, wall + 24, 'L', { size: 13 });
+    // the apparent shift, both ways
+    const ay = wall - 22, mid = (seenL + seenR) / 2;
+    s.vec(mid, ay, seenR, ay, { color: C.mari, w: 2.4 });
+    s.vec(mid, ay, seenL, ay, { color: C.mari, w: 2.4 });
+    s.point(thumb[0], thumb[1], 4, `<rect x="${thumb[0] - 12}" y="${thumb[1] - 3.5}" width="24" height="7" rx="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.7"/>`);
+    s.dot(eyeL, eyeY);
+    s.dot(eyeR, eyeY);
+    s.place(
+      [
+        { t: 'Parallax = the apparent shift', p: [mid + 30, ay], hi: true, at: [[mid, 8, 'middle']] },
+        { t: 'Far wall', p: [306, wall], at: [[334, 96, 'end'], [334, 40, 'end']] },
+        { t: 'Thumb', p: [thumb[0] + 12, thumb[1]], own: thumb, at: [[226, 232, 'start'], [226, 176, 'start']] },
+        { t: 'L eye', p: [eyeL, eyeY], own: [eyeL, eyeY], at: [[eyeL - 4, 308, 'end'], [eyeL, 308, 'middle']] },
+        { t: 'R eye', p: [eyeR, eyeY], own: [eyeR, eyeY], at: [[eyeR + 4, 308, 'start'], [eyeR, 308, 'middle']] },
+      ]
+    );
     return s;
   },
   check(c: ParCase) {
-    if (c.thumb) return [['Each sight line runs from an eye through the thumb to the wall', true], ['The jump is drawn both ways, as it happens', true]];
-    const { S, A, B } = PAR, b = B[0] - A[0], D = A[1] - S[1], th = 2 * Math.atan(b / 2 / D);
-    return [
-      ['D runs from the star straight down to the line AB', A[1] === B[1]],
-      [`θ = ${th.toFixed(3)} rad vs b/D = ${(b / D).toFixed(3)}: within ${((100 * Math.abs(th - b / D)) / th).toFixed(0)}%; the caption says it is drawn wide`, Math.abs(th - b / D) / th < 0.05],
-    ];
-  },
-};
-
-/* ===================================================================== */
-/* 10. The ladder of magnitudes                                           */
-/* ===================================================================== */
-type MagCase = { chip: string; cap: string; unit: string; lo: number; hi: number; items: { name: string; v: number; you?: boolean }[] };
-const AX = { x: 112, top: 30, bottom: 338 };
-const magY = (c: MagCase, v: number) => AX.bottom - ((Math.log10(v) - c.lo) / (c.hi - c.lo)) * (AX.bottom - AX.top);
-const magnitudes: Diagram = {
-  id: 'magnitudes',
-  topic: 5,
-  name: 'The ladder of magnitudes',
-  cases: [
-    { chip: 'Lengths', unit: 'm', lo: -15, hi: 26, cap: 'From the size of a nucleus to the edge of the observable universe: about 41 powers of ten, each mark ten times the one below.', items: [{ name: 'Nucleus', v: 1e-15 }, { name: 'Hydrogen atom', v: 1e-10 }, { name: 'Red blood cell', v: 8e-6 }, { name: 'You', v: 1.7, you: true }, { name: 'Radius of the Earth', v: 6.4e6 }, { name: 'Earth to the Sun', v: 1.5e11 }, { name: 'Observable universe', v: 1e26 }] },
-    { chip: 'Masses', unit: 'kg', lo: -31, hi: 55, cap: 'From an electron to the observable universe: about 86 powers of ten. You sit roughly halfway, in powers of ten.', items: [{ name: 'Electron', v: 9.1e-31 }, { name: 'Proton', v: 1.67e-27 }, { name: 'Raindrop', v: 1e-6 }, { name: 'You', v: 70, you: true }, { name: 'The Earth', v: 6e24 }, { name: 'The Sun', v: 2e30 }, { name: 'Observable universe', v: 1e55 }] },
-    { chip: 'Times', unit: 's', lo: -22, hi: 18, cap: 'From light crossing a nucleus to the age of the universe: about 40 powers of ten, with a heartbeat near the middle.', items: [{ name: 'Light crosses a nucleus', v: 1e-22 }, { name: 'One wave of light', v: 2e-15 }, { name: 'A heartbeat', v: 1, you: true }, { name: 'A day', v: 8.64e4 }, { name: 'A year', v: 3.15e7 }, { name: 'Age of the universe', v: 4.3e17 }] },
-  ],
-  draw(c: MagCase) {
-    const s = new Sketch(W, 392);
-    s.line(AX.x, AX.top, AX.x, AX.bottom, { w: 1.7 });
-    const span = c.hi - c.lo, every = span > 60 ? 20 : 10;
-    for (let p = Math.ceil(c.lo / 5) * 5; p <= c.hi; p += 5) {
-      const y = AX.bottom - ((p - c.lo) / span) * (AX.bottom - AX.top);
-      s.line(AX.x - 5, y, AX.x + 5, y, { color: C.grey, w: 1.2 });
-      if (p % every === 0) s.sym(AX.x - 12, y + 5, `10<sup>${p < 0 ? '−' + -p : p}</sup>`, { size: 13, anchor: 'end', color: C.slate });
+    if (c.part === 'triangle') {
+      const { S, A, B, b } = triGeo(), { D, th } = TRI;
+      const angle = Math.acos(((A[0] - S[0]) * (B[0] - S[0]) + (A[1] - S[1]) * (B[1] - S[1])) / (D * D));
+      return [
+        ['SA = SB = D', near(Math.hypot(A[0] - S[0], A[1] - S[1]), D, 1e-9) && near(Math.hypot(B[0] - S[0], B[1] - S[1]), D, 1e-9)],
+        [`The angle at S is θ = ${th} rad`, near(angle, th, 1e-9)],
+        [`b = Dθ: the drawn basis ${b.toFixed(1)} vs Dθ = ${(D * th).toFixed(1)} (within ${((100 * Math.abs(D * th - b)) / b).toFixed(2)}%)`, Math.abs(D * th - b) / b < 0.01],
+        [`So D = b/θ: ${(b / th).toFixed(1)} vs D = ${D} (small angle, within 1%)`, Math.abs(b / th - D) / D < 0.01],
+        ['A and B are level, so b is the basis seen from S', near(A[1], B[1])],
+      ];
     }
-    s.sym(AX.x, AX.top - 12, c.unit, { size: 14, color: C.slate });
-    const specs = c.items.map((it) => {
-      const y = magY(c, it.v);
-      s.point(AX.x, y, 4, `<circle cx="${AX.x}" cy="${r1(y)}" r="4" fill="${it.you ? C.mari : C.ink}"/>`);
-      const ys = [0, -26, 26, -52, 52, -78, 78].map((d) => y - 11 + d);
-      return { t: it.name, p: [AX.x + 4, y] as [number, number], own: [AX.x, y] as [number, number], hi: !!it.you, at: ys.map((yy) => [AX.x + 34, yy, 'start'] as [number, number, 'start']) };
-    });
-    s.place(specs, [s.resultRect(`${span} powers of ten`)]);
-    s.result(`${span} powers of ten`);
-    return s;
-  },
-  check(c: MagCase) {
-    const logs = c.items.map((i) => Math.log10(i.v));
+    const { wall, eyeY, eyeL, eyeR, thumb } = THUMB, { seenL, seenR } = thumbGeo();
+    const onLine = (ex: number, wx: number) => Math.abs((thumb[0] - ex) * (wall - eyeY) - (wx - ex) * (thumb[1] - eyeY)) < 1e-6;
+    const shift = seenL - seenR, predicted = (eyeR - eyeL) * ((eyeY - wall) / (eyeY - thumb[1]) - 1);
     return [
-      ['Every item is placed at its own power of ten', c.items.every((i) => Math.abs(magY(c, i.v) - (AX.bottom - ((Math.log10(i.v) - c.lo) / (c.hi - c.lo)) * (AX.bottom - AX.top))) < 1e-9)],
-      ['The items climb in order of size', logs.every((l, i) => i === 0 || l > logs[i - 1])],
-      [`All fit on the scale, 10${sup(c.lo)} to 10${sup(c.hi)} ${c.unit}`, logs.every((l) => l >= c.lo - 1e-9 && l <= c.hi + 1e-9)],
+      ['Each sight line runs from an eye through the thumb to the wall', onLine(eyeL, seenL) && onLine(eyeR, seenR)],
+      ['The lines cross at the thumb, so the left eye sees it on the right (L) and the right eye on the left (R)', seenL > seenR],
+      [`The jump against the wall: ${shift.toFixed(1)} = eye gap × (wall ÷ thumb distance − 1) = ${predicted.toFixed(1)}`, near(shift, predicted, 1e-9)],
     ];
   },
 };
 
-/** Chapter order. */
-export const DIAGRAMS_PHYSICS_11_01: Diagram[] = [siRoots, dimFilter, pendulum, precision, propagation, sigfig, leastCounts, vernier, parallax, magnitudes];
+/** Chapter order: by topic, then by page. */
+export const DIAGRAMS_PHYSICS_11_01: Diagram[] = [fig11, fig12, fig13, fig14, fig15, fig16];

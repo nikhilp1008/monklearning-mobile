@@ -27,6 +27,7 @@ import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { IndexSheet } from '@/components/revise/dock';
 import { RING, RING_AT } from '@/components/revise/page-turn';
 import { BlockState, EMPTY_BLOCK_STATE } from '@/components/textbook/blocks';
+import { BookText } from '@/components/textbook/book-text';
 import { TextbookBlockPilot } from '@/components/textbook/blocks-pilot';
 import { kicker } from '@/components/textbook/theme';
 import { useReadingSize } from '@/hooks/use-reading-size';
@@ -37,7 +38,7 @@ import { readingMultiplier } from '@/lib/reading-size';
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { lastFollowUpContext } from '@/lib/last-followup';
 import { openReportSheet } from '@/lib/reports';
-import { Chapter, groupBlocks, loadChapter, RenderBlock, topicPlainText } from '@/lib/textbooks';
+import { Chapter, groupBlocks, loadChapter, RenderBlock, Topic, topicName, topicPlainText } from '@/lib/textbooks';
 
 /**
  * A TOPIC, ONE SHORT PART AT A TIME.
@@ -66,7 +67,13 @@ const EASE = Easing.bezier(0.2, 0.75, 0.2, 1);
 
 type Page = { kind: 'part'; part: ChapterPart } | { kind: 'done'; topic: number; parts: ChapterPart[] };
 
-const short = (t: { title: string }) => t.title.split(',')[0];
+const short = (t: Topic) => topicName(t);
+/** "Topic 2 of 6", counting the regular topics only, or "Additional topic B". */
+const topicLabel = (c: Chapter, ti: number) => {
+  const t = c.topics[ti];
+  if (t?.extra) return `Additional topic ${t.n}`;
+  return `Topic ${ti + 1} of ${c.topics.filter((x) => !x.extra).length}`;
+};
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function TextbookPartScreen() {
@@ -215,13 +222,20 @@ export default function TextbookPartScreen() {
   /** The list: every topic in order by name, the open one with its parts beneath (a topic's key is -1 - its index). */
   const groups = useMemo(() => {
     if (!chapter) return [];
-    const rows = chapter.topics.flatMap((t, ti) => [
-      { key: -1 - ti, num: t.n, html: short(t), strong: ti === topicIndex },
-      ...(ti === topicIndex
-        ? pages.flatMap((pg, k) => (pg.kind === 'part' && pg.part.topic === ti ? [{ key: k, html: pg.part.title, sub: true }] : []))
-        : []),
-    ]);
-    return [{ heading: '', rows }];
+    const rows = (extra: boolean) =>
+      chapter.topics.flatMap((t, ti) =>
+        !!t.extra !== extra
+          ? []
+          : [
+              { key: -1 - ti, num: t.n, html: short(t), strong: ti === topicIndex },
+              ...(ti === topicIndex
+                ? pages.flatMap((pg, k) => (pg.kind === 'part' && pg.part.topic === ti ? [{ key: k, html: pg.part.title, sub: true }] : []))
+                : []),
+            ]
+      );
+    const extras = rows(true);
+    // The book's Additional Topics, under their own heading after the topics.
+    return extras.length ? [{ heading: '', rows: rows(false) }, { heading: 'Additional topics', rows: extras }] : [{ heading: '', rows: rows(false) }];
   }, [chapter, pages, topicIndex]);
 
   /** Another topic opens where the chapter home would open it: its first part not yet read. */
@@ -273,8 +287,7 @@ export default function TextbookPartScreen() {
       const firstOfNext = pages.findIndex((x) => x.kind === 'part' && x.part.topic === pg.topic + 1);
       return (
         <TopicDone
-          number={pg.topic + 1}
-          of={chapter.topics.length}
+          label={topicLabel(chapter, pg.topic).toLowerCase()}
           name={short(chapter.topics[pg.topic])}
           parts={pg.parts.map((p) => p.title)}
           next={next ? { n: next.n, name: short(next), idea: next.kalam ? capital(next.kalam) : undefined } : undefined}
@@ -329,7 +342,7 @@ export default function TextbookPartScreen() {
             </Svg>
           </Pressable>
           <Text style={s.chapterTitle} numberOfLines={1}>
-            {topic ? `Topic ${topicIndex + 1} · ${short(topic)}` : ' '}
+            {topic ? `${topicLabel(chapter!, topicIndex).replace(/ of \d+$/, '')} · ${short(topic)}` : ' '}
           </Text>
           {/* REPORT a wrong line on this part, as the reader does beside its text size. */}
           {askPage ? (
@@ -384,7 +397,10 @@ export default function TextbookPartScreen() {
                     paddingBottom: (page.kind === 'part' ? verticalScale(150) : verticalScale(40)) + insets.bottom,
                   },
                 ]}>
-                {body(page)}
+                {/* A chapter from the books keeps its headings as printed. */}
+                <BookText.Provider value={!!chapter && chapter.topics.some((t) => t.blocks[0]?.t === 'part')}>
+                  {body(page)}
+                </BookText.Provider>
               </ScrollView>
             </Animated.View>
           </View>
@@ -498,16 +514,15 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
  * another, and the next topic waits as a row with its one-line idea.
  */
 function TopicDone({
-  number,
-  of,
+  label,
   name,
   parts,
   next,
   onNext,
   type,
 }: {
-  number: number;
-  of: number;
+  /** "topic 2 of 6", or "additional topic B". */
+  label: string;
   name: string;
   parts: string[];
   next?: { n: string; name: string; idea?: string };
@@ -561,7 +576,7 @@ function TopicDone({
           </Svg>
         </View>
       </View>
-      <Text style={[kicker(type), s.kicker]}>{`topic ${number} of ${of} · finished`}</Text>
+      <Text style={[kicker(type), s.kicker]}>{`${label} · finished`}</Text>
       <Text style={[pageTitle(type), s.title]}>{name}</Text>
       <View style={s.list}>
         {parts.map((p, i) => (

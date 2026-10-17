@@ -24,7 +24,7 @@ export type FormulaCard = { topic: number; name: string; items: FormulaItem[]; m
 
 type FormulaBlock = Extract<Block, { t: 'formula' }>;
 
-const strip = (h: string) => h.replace(/<[^>]+>/g, '');
+const strip = (h: string) => h.replace(/<\/?[a-zA-Z][^>]*>/g, '');
 const SIGN = /[=⟹≈±]/;
 
 /** Words the content shouts in capitals ("the SIZES of"), lowered; abbreviations kept. */
@@ -47,8 +47,11 @@ const cap1 = (h: string) => {
 };
 
 /** "The conversion master relation" from "FORMULA · THE CONVERSION MASTER RELATION". */
-export function formulaName(kicker: string): string {
+export function formulaName(kicker: string, asPrinted = false): string {
   const raw = kicker.replace(/^FORMULA\s*·\s*/i, '');
+  // The books print their names with proper capitals ("Relative velocity of A
+  // with respect to B"); lowering them made A and B read as maths letters.
+  if (asPrinted) return strip(raw).replace(/\s+/g, ' ').trim();
   const t = strip(raw).replace(/\s+/g, ' ').trim().toLowerCase();
   return (t.charAt(0).toUpperCase() + t.slice(1)).replace(/\bsi\b/g, 'SI');
 }
@@ -113,36 +116,18 @@ function meaning(lines: string[]): FormulaMeaning[] {
   });
 }
 
-/**
- * Formulas written in words, rewritten the way lab manuals write them: symbols
- * in the formula, the words under its meaning. Keyed by chapter and name.
- * These belong in the chapter content once it is rewritten; until then they
- * live here, so the reader is unchanged.
- */
-const REWRITES: Record<string, { items: string[]; addMeaning: FormulaMeaning[] }> = {
-  'physics|11|1|The vernier callipers': {
-    items: ['LC = 1 MSD − 1 VSD = (value of 1 main division)/<i>n</i>', 'reading = MSR + VSR × LC', 'corrected = observed − zero error'],
-    addMeaning: [{ sym: 'VSR', text: 'the vernier division that lines up with a main-scale mark, a pure count' }],
-  },
-  'physics|11|1|The screw gauge': {
-    items: ['pitch = (distance moved)/(number of rotations)', 'LC = pitch/(number of circular divisions)', 'reading = MSR + CSR × LC', 'corrected = observed − zero error'],
-    addMeaning: [{ sym: 'CSR', text: 'the circular-scale division on the reference line, a pure count' }],
-  },
-};
-
 export function buildFormulaCards(chapter: Chapter): FormulaCard[] {
-  const id = `${chapter.subject.toLowerCase()}|${(/\d+/.exec(chapter.klass) ?? [''])[0]}|${Number(chapter.chapter)}`;
+  const book = chapter.topics.some((t) => t.blocks[0]?.t === 'part');
   const cards: FormulaCard[] = [];
   chapter.topics.forEach((topic, ti) => {
     topic.blocks
       .filter((b): b is FormulaBlock => b.t === 'formula')
       .forEach((f) => {
-        const name = formulaName(f.kicker);
-        const rewrite = REWRITES[`${id}|${name}`];
-        const lines = f.main.split('<br>').map((l) => marks(soften(l)));
-        const its = rewrite ? rewrite.items.map((e) => ({ label: null, expr: e })) : items(lines);
-        let mean = meaning(f.legend.map((l) => marks(soften(l))));
-        if (rewrite) mean = [...mean.slice(0, 2), ...rewrite.addMeaning];
+        const name = formulaName(f.kicker, book);
+        // A book's text is kept as printed: no capitals lowered.
+        const tidy = (l: string) => marks(book ? l : soften(l));
+        const its = items(f.main.split('<br>').map(tidy));
+        const mean = meaning(f.legend.map(tidy));
         cards.push({
           topic: ti,
           name,

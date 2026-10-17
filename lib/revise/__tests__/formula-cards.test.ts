@@ -1,44 +1,36 @@
-import chapter from '@/content/textbooks/phy-11-01-units-measurements';
+import ch1 from '@/content/textbooks/phy-11-01-units-measurements';
+import ch2 from '@/content/textbooks/phy-11-02-motion-straight-line';
+import ch3 from '@/content/textbooks/phy-11-03-motion-plane';
+import ch4 from '@/content/textbooks/phy-11-04-laws-of-motion';
 import { buildFormulaCards } from '@/lib/revise/formula-cards';
 
-/** The formula sheet's cards for Physics 11, Chapter 1: one shape, every card. */
-describe('formula cards, Physics 11 Chapter 1', () => {
-  const cards = buildFormulaCards(chapter);
+/**
+ * The formula sheet's cards: one shape, every card, in every chapter that
+ * opens on its formula sheet.
+ */
+for (const chapter of [ch1, ch2, ch3, ch4]) {
+  describe(`formula cards, Physics 11 Chapter ${Number(chapter.chapter)}`, () => {
+    const cards = buildFormulaCards(chapter);
+    const formulaBlocks = chapter.topics.flatMap((t) => t.blocks).filter((b) => b.t === 'formula').length;
 
-  it('makes one card per formula block', () => {
-    expect(cards.map((c) => c.name)).toEqual([
-      'The conversion master relation',
-      'The two supplementary units',
-      'The principle of homogeneity',
-      'The combination rules',
-      'The two arithmetic rules',
-      'The vernier callipers',
-      'The screw gauge',
-      'Parallax, and angular size',
-      'Echo methods, and the monolayer',
-    ]);
-  });
+    it('makes one card per formula block', () => {
+      expect(cards).toHaveLength(formulaBlocks);
+    });
 
-  it('breaks a formula only before an operator', () => {
-    for (const c of cards) for (const it of c.items) if (!it.words) expect(it.expr).not.toMatch(/ (?![=+−⟹≈])/);
-  });
+    it('names every card', () => {
+      for (const c of cards) expect(c.name.trim()).not.toBe('');
+    });
 
-  it('sets rules written as sentences as text', () => {
-    const rules = cards.find((c) => c.name === 'The two arithmetic rules')!;
-    expect(rules.items.filter((i) => i.words)).toHaveLength(3);
-  });
+    it('breaks a formula only before an operator', () => {
+      for (const c of cards) for (const it of c.items) if (!it.words) expect(it.expr).not.toMatch(/ (?![=+−⟹≈])/);
+    });
 
-  it('writes the vernier and screw gauge the way lab manuals do', () => {
-    const v = cards.find((c) => c.name === 'The vernier callipers')!;
-    expect(v.items.map((i) => i.expr.replace(/ /g, ' '))).toContain('reading = MSR + VSR × LC');
-    expect(v.meaning.map((m) => m.sym)).toContain('VSR');
-  });
+    it('keeps every meaning to one clause', () => {
+      for (const c of cards) for (const m of c.meaning) expect(m.text.replace(/<[^>]+>/g, '')).not.toMatch(/\. [A-Z]/);
+    });
 
-  it('keeps every meaning to one clause', () => {
-    for (const c of cards) for (const m of c.meaning) expect(m.text.replace(/<[^>]+>/g, '')).not.toMatch(/\. [A-Z]/);
+    it('leaves no shouted capitals', () => {
+      for (const c of cards) for (const m of c.meaning) expect(m.text).not.toMatch(/\b(SIZES|ADDED|WRONG|RELATIVE|POSITION|ONE|BEFORE|IN)\b/);
+    });
   });
-
-  it('leaves no shouted capitals', () => {
-    for (const c of cards) for (const m of c.meaning) expect(m.text).not.toMatch(/\b(SIZES|ADDED|WRONG|RELATIVE|POSITION|ONE|BEFORE|IN)\b/);
-  });
-});
+}

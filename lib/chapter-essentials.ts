@@ -12,12 +12,12 @@ import type { Block, Chapter } from '@/lib/textbooks';
  * at the end and a door to the next. No time is shown anywhere: minutes make a
  * chapter feel like a video course.
  *
- * Tried on one chapter first, Physics Class 11 Chapter 1, so it can be judged
- * on a device before it goes anywhere else. Every other chapter opens the
- * reader exactly as before.
+ * Physics Class 11 Chapters 1 to 4 open this way, rewritten from the Master
+ * Reference books. Every other chapter opens the reader exactly as before.
  */
+const OPENS_ON_CHOICE: Record<string, number[]> = { 'physics|11': [0, 1, 2, 3] };
 export function opensOnChoice(subject: string, classLevel: number, index: number): boolean {
-  return subject.toLowerCase() === 'physics' && classLevel === 11 && index === 0;
+  return OPENS_ON_CHOICE[`${subject.toLowerCase()}|${classLevel}`]?.includes(index) ?? false;
 }
 
 type ChapterId = Pick<Chapter, 'subject' | 'klass' | 'chapter'>;
@@ -27,25 +27,6 @@ type Mcq = Extract<Block, { t: 'mcq' }>;
 const TEACH: Block['t'][] = ['hook', 'p', 'think', 'def', 'defgrid', 'formula', 'diagram', 'proc', 'deriv'];
 /** About a screenful or three of reading. */
 const PART_WORDS = 650;
-
-/**
- * The parts' names, written for Physics Class 11 Chapter 1 from what each part
- * covers. A name picked from the content read like a sentence ("Any 'find the
- * maximum percentage error' question, in ten seconds"); a book names a section.
- * Content should own these once more chapters move over.
- */
-const PART_NAMES: Record<string, string[]> = {
-  'physics|11|1': [
-    'What a measurement is|Base quantities and the SI|Derived units, prefixes and conversions|Working with units',
-    'Dimensions|Homogeneity, and checking an equation|Deriving a formula, and the limits',
-    'Kinds of error|Measuring an error|How errors combine',
-    'What significant figures mean|Counting and rounding|Carrying them through a calculation',
-    'Measuring below a millimetre|Least count and zero error|Reading the instruments',
-    'Measuring what you cannot reach|Units of the very large and small|Parallax, and the oleic acid method',
-  ],
-};
-const partNames = (c: Chapter, topic: number): string[] =>
-  (PART_NAMES[`${c.subject.toLowerCase()}|${(/\d+/.exec(c.klass) ?? [''])[0]}|${Number(c.chapter)}`]?.[topic] ?? '').split('|').filter(Boolean);
 
 export type ChapterPart = {
   index: number;
@@ -60,7 +41,7 @@ export type ChapterPart = {
   checks: Mcq[];
 };
 
-const strip = (html: string) => html.replace(/<[^>]+>/g, ' ');
+const strip = (html: string) => html.replace(/<\/?[a-zA-Z][^>]*>/g, ' ');
 const wordCount = (b: Block) => strip(JSON.stringify(b)).split(/\s+/).filter(Boolean).length;
 const keywords = (text: string) => new Set(strip(text).toLowerCase().match(/[a-z]{5,}/g) ?? []);
 export const sentenceCase = (s: string) => {
@@ -83,12 +64,27 @@ function headingOf(blocks: Block[]): string | null {
 export function buildParts(chapter: Chapter): ChapterPart[] {
   const parts: Omit<ChapterPart, 'index' | 'inTopic' | 'ofTopic'>[] = [];
   chapter.topics.forEach((topic, ti) => {
+    // Written from the book: its own sections are the parts, everything in
+    // them in the book's order, questions included.
+    if (topic.blocks.some((b) => b.t === 'part')) {
+      let current: { title: string; blocks: Block[] } | null = null;
+      for (const b of topic.blocks) {
+        if (b.t === 'part') {
+          if (current) parts.push({ topic: ti, kind: 'learn', title: current.title, blocks: current.blocks, checks: [] });
+          current = { title: b.title, blocks: [] };
+        } else {
+          current ??= { title: shortTitle(topic.title), blocks: [] };
+          current.blocks.push(b);
+        }
+      }
+      if (current) parts.push({ topic: ti, kind: 'learn', title: current.title, blocks: current.blocks, checks: [] });
+      return;
+    }
     // The exam briefing opens the chapter, not every topic. It still counts
     // towards the first part's length, as the part names were written to that
     // split, but the part page no longer shows it: the chapter opens on its
     // formulas now.
     const teach = topic.blocks.filter((b) => TEACH.includes(b.t) && (b.t !== 'hook' || ti === 0));
-    const names = partNames(chapter, ti);
     const groups: Block[][] = [];
     let current: Block[] = [];
     let words = 0;
@@ -127,7 +123,7 @@ export function buildParts(chapter: Chapter): ChapterPart[] {
       parts.push({
         topic: ti,
         kind: 'learn',
-        title: names[gi] ?? (gi === 0 ? shortTitle(topic.title) : headingOf(g) ?? `${shortTitle(topic.title)}, continued`),
+        title: gi === 0 ? shortTitle(topic.title) : headingOf(g) ?? `${shortTitle(topic.title)}, continued`,
         blocks: g,
         checks: checks[gi],
       })

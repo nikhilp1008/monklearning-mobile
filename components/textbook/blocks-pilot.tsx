@@ -10,8 +10,10 @@ import { PilotCheckpoint, PilotProTip, PilotWatchOut } from '@/components/textbo
 import { PilotDeriv } from '@/components/textbook/deriv-pilot';
 import { PilotFormula } from '@/components/textbook/formula-pilot';
 import { PilotDefinition, PilotExamBriefing, PilotThink } from '@/components/textbook/opener-pilot';
-import { PilotHowTo, PilotTable } from '@/components/textbook/lists-pilot';
+import { PilotGrid, PilotHowTo, PilotTable } from '@/components/textbook/lists-pilot';
 import { Markup } from '@/components/textbook/markup';
+import { DiagramBody } from '@/components/revise/diagram-card';
+import { diagramById } from '@/lib/diagrams';
 import { BORDER, kicker } from '@/components/textbook/theme';
 import { labelCase } from '@/lib/label-case';
 import { splitProse } from '@/lib/prose-paragraphs';
@@ -150,6 +152,21 @@ export function TextbookBlockPilot({ block, ctx }: { block: RenderBlock; ctx: Bl
 
     case 'protip':
       return <PilotProTip block={block} scale={scale} type={type} />;
+
+    case 'table':
+      return <PilotGrid block={block} scale={scale} type={type} />;
+
+    case 'fig': {
+      // One of the redrawn diagrams, the same one the chapter's Diagrams page
+      // shows. A missing id draws nothing rather than a broken frame.
+      const d = diagramById(block.id);
+      if (!d) return null;
+      return (
+        <View style={st.card}>
+          <DiagramBody d={d} />
+        </View>
+      );
+    }
 
     case 'snapshot':
       return <PilotCheckpoint block={block} topicNumber={ctx.topicNumber} scale={scale} type={type} />;

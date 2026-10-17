@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, TextStyle } from 'react-native';
 
@@ -8,6 +9,7 @@ import { BORDER, kicker } from '@/components/textbook/theme';
 import { labelCase } from '@/lib/label-case';
 import type { Block } from '@/lib/textbooks';
 import { hapticSwitched } from '@/lib/haptics';
+import { BookText } from '@/components/textbook/book-text';
 
 type Deriv = Extract<Block, { t: 'deriv' }>;
 
@@ -26,10 +28,11 @@ type Deriv = Extract<Block, { t: 'deriv' }>;
  * reader) and every step shown at once.
  */
 /** "DERIVATION · BUILDING A UNIT OUT OF CONSTANTS, TAP A LINE" → "Building a unit out of constants". */
-export function derivTitle(kickerText: string): string {
+export function derivTitle(kickerText: string, asPrinted = false): string {
   const parts = kickerText.split(' · ');
   let raw = parts.length > 1 && /^(derivation|deriv\w*)$/i.test(parts[0].trim()) ? parts.slice(1).join(' · ') : kickerText;
   raw = raw.replace(/,\s*tap[^,]*$/i, '');
+  if (asPrinted) return raw;
   const lower = labelCase(raw);
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
@@ -48,6 +51,7 @@ export function PilotDeriv({
   scale: (n: number) => number;
   type: (n: number) => number;
 }) {
+  const book = useContext(BookText);
   const s = makeStyles(scale, type);
   const read = (html: string, style?: StyleProp<TextStyle>) => (
     <Markup html={html} size={type(READ_SIZE)} style={[s.read, style]} look="pilot" />
@@ -55,7 +59,7 @@ export function PilotDeriv({
   const head = (
     <>
       <Text style={kicker(type)}>derivation</Text>
-      <Text style={s.title}>{derivTitle(block.kicker)}</Text>
+      <Text style={s.title}>{derivTitle(block.kicker, book)}</Text>
     </>
   );
   const last = block.steps.length - 1;

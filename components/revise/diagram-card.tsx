@@ -5,7 +5,7 @@ import { SvgXml } from 'react-native-svg';
 import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import type { Diagram } from '@/lib/diagrams/physics-11-01';
+import type { Diagram } from '@/lib/diagrams/types';
 import { hapticSwitched } from '@/lib/haptics';
 
 /**
@@ -58,9 +58,19 @@ export function DiagramImage({ d, caseIndex = 0, square = false }: { d: Diagram;
  */
 export function DiagramCard({ d }: { d: Diagram }) {
   const { scale } = useScale();
-  const [c, setC] = useState(0);
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: scale(20), paddingBottom: scale(24) }} showsVerticalScrollIndicator={false}>
+      <DiagramBody d={d} />
+    </ScrollView>
+  );
+}
+
+/** The card's contents without its page: the same diagram, set inside a reading page. */
+export function DiagramBody({ d }: { d: Diagram }) {
+  const { scale } = useScale();
+  const [c, setC] = useState(0);
+  return (
+    <View>
       <Text style={{ fontFamily: STIX.semibold, fontSize: scale(19), lineHeight: scale(25), color: colors.ink }}>{d.name}</Text>
       <View style={{ marginTop: scale(14) }}>
         <DiagramImage d={d} caseIndex={c} />
@@ -80,7 +90,7 @@ export function DiagramCard({ d }: { d: Diagram }) {
         </View>
       )}
       <Markup html={d.cases[c].cap} size={scale(16)} look="stix" style={{ marginTop: scale(12), fontFamily: STIX.regular, fontSize: scale(16), lineHeight: scale(23), color: colors.slate }} />
-    </ScrollView>
+    </View>
   );
 }
 

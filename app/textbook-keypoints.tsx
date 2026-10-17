@@ -12,7 +12,7 @@ import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { hapticSoft, hapticTicked } from '@/lib/haptics';
-import { KEY_POINTS as P11_01, KeyPoint, KeyPointKind, MEMORY_LINES as M11_01 } from '@/lib/revise/keypoints-physics-11-01';
+import { KEY_POINTS, KeyPoint, KeyPointKind, memoryLines } from '@/lib/revise/keypoints';
 import { chapterKey, useRouteChapter } from '@/lib/revise/use-chapter';
 
 /**
@@ -26,7 +26,6 @@ import { chapterKey, useRouteChapter } from '@/lib/revise/use-chapter';
  * Nothing is saved and nothing is scored. Leave and come back, and every
  * answer is hidden again.
  */
-const CONTENT: Record<string, { points: KeyPoint[]; memory: string[] }> = { 'physics|11|1': { points: P11_01, memory: M11_01 } };
 const SECTIONS: { kind: KeyPointKind; title: string }[] = [
   { kind: 'remember', title: 'Remember' },
   { kind: 'mixup', title: 'Don’t mix up' },
@@ -61,7 +60,10 @@ function Btn({ label, tone, onPress }: { label: string; tone: 'action' | 'answer
 export default function TextbookKeyPointsScreen() {
   const { chapter, missing } = useRouteChapter();
   const { scale } = useScale();
-  const content = chapter ? CONTENT[chapterKey(chapter)] : undefined;
+  const content = useMemo(() => {
+    const points = chapter ? KEY_POINTS[chapterKey(chapter)] : undefined;
+    return points?.length ? { points, memory: memoryLines(points) } : undefined;
+  }, [chapter]);
   const [open, setOpen] = useState<Set<number>>(new Set());
   const [verdict, setVerdict] = useState<Record<number, 'knew' | 'didnt'>>({});
 

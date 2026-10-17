@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/brand';
@@ -6,6 +7,7 @@ import { Markup } from '@/components/textbook/markup';
 import { BORDER, kicker } from '@/components/textbook/theme';
 import { labelCase } from '@/lib/label-case';
 import type { Block } from '@/lib/textbooks';
+import { BookText } from '@/components/textbook/book-text';
 
 type FormulaBlock = Extract<Block, { t: 'formula' }>;
 
@@ -33,9 +35,10 @@ const FORMULA_LINE = 28;
 
 /** "FORMULA · THE CONVERSION MASTER RELATION" → "The conversion master relation".
  *  A kicker with no "·" is all title (343 of them, "CONCURRENCY OF THREE LINES"). */
-export function formulaTitle(kickerText: string): string {
+export function formulaTitle(kickerText: string, asPrinted = false): string {
   const parts = kickerText.split(' · ');
   const raw = parts.length > 1 && /^formula$/i.test(parts[0].trim()) ? parts.slice(1).join(' · ') : kickerText;
+  if (asPrinted) return raw;
   const lower = labelCase(raw);
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
@@ -62,6 +65,7 @@ export function PilotFormula({
   scale: (n: number) => number;
   type: (n: number) => number;
 }) {
+  const book = useContext(BookText);
   const s = makeStyles(scale, type);
   const read = (html: string, key?: number) => (
     <Markup key={key} html={html} size={type(READ_SIZE)} style={s.read} look="pilot" />
@@ -69,7 +73,7 @@ export function PilotFormula({
   return (
     <View style={s.card}>
       <Text style={kicker(type)}>formula</Text>
-      <Text style={s.title}>{formulaTitle(block.kicker)}</Text>
+      <Text style={s.title}>{formulaTitle(block.kicker, book)}</Text>
       <Markup html={block.main} size={type(FORMULA_SIZE)} style={s.main} look="pilot" />
       {block.legend.length > 0 && (
         <View style={s.symbols}>{block.legend.map((line, i) => read(legendHtml(line), i))}</View>
