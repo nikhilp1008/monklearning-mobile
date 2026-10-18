@@ -4,6 +4,7 @@
 // the plans page so a pass looks the same however it was bought.
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { useAndroidBack } from '@/lib/android-back';
 import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
@@ -14,7 +15,9 @@ import {
   type ExamKey,
   type PassKey,
 } from '@/constants/onboarding';
+import { ApiError } from '@/lib/api';
 import { startPass } from '@/lib/pass';
+import { payErrorMessage } from '@/lib/payments';
 import { getProfile } from '@/lib/profile';
 
 export default function PassActiveScreen() {
@@ -61,8 +64,17 @@ export default function PassActiveScreen() {
       // A paid pass was made when the payment was verified; only a free one
       // (a promo code) is started here, and the server decides if the code is good.
       if (params.paid !== '1') await startPass(passId, params.promo ?? '');
-    } catch {
+    } catch (err) {
       setSaving(false);
+      // THE SERVER SAID NO TO THE CODE (already used, run out): say so, in its
+      // words, and take the student back to choose a pass. This screen holds
+      // Back, so "check your connection" used to leave them nowhere to go.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        Alert.alert("Couldn't use this code", payErrorMessage(err), [
+          { text: 'Choose a pass', onPress: () => router.replace({ pathname: '/pass', params: { exam: params.exam ?? '' } }) },
+        ]);
+        return;
+      }
       setError('Couldn’t start your pass. Check your connection and try again.');
       return;
     }

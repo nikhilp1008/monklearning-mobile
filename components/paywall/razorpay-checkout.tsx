@@ -6,6 +6,8 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { ApiError } from '@/lib/api';
 import { passStatus, type PassKind, type PassStatus } from '@/lib/pass';
 import {
+  PAYMENTS_ON_THIS_DEVICE,
+  PriceMismatchError,
   checkoutHtml,
   createOrder,
   isAppLink,
@@ -51,15 +53,41 @@ export const IOS_MIN_TOP_CLEARANCE = 54;
 
 const POLL_EVERY_MS = 3000;
 const POLL_TIMES = 10;
+/** Each poll gives up sooner than an ordinary check: ten slow polls used to
+ *  add up to two minutes of a student watching nothing happen. */
+const POLL_TIMEOUT_MS = 6000;
+/** After the sheet closed without a success message: a short look, because a
+ *  UPI payment approved in another app can still have gone through. */
+const CHECK_ON_EXIT_TIMES = 2;
+const CHECK_ON_EXIT_GAP_MS = 1500;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** When the student's paid time ends now, or null with no running pass. */
+function endOf(status: PassStatus): number | null {
+  // A team account's stand-in "pass" is not paid time: it runs ten years and
+  // would hide any real pass bought on top of it.
+  if (status.state !== 'active' || status.record.source === 'exempt') return null;
+  return status.endsAt.getTime();
+}
+
+/**
+ * Whether THIS purchase has landed: a pass now running that was not running
+ * before, or one that now ends later than it did. Without the comparison a
+ * student extending a running pass read as "paid" the moment verify failed,
+ * because the old pass was already active.
+ */
+function landed(status: PassStatus, before: number | null): boolean {
+  if (status.state !== 'active' || status.record.source === 'exempt') return false;
+  return before === null || status.endsAt.getTime() > before + 60000;
+}
+
 /** After a payment the server may take a moment (its webhook, our verify). */
-async function waitForPass(): Promise<PassStatus | null> {
-  for (let i = 0; i < POLL_TIMES; i++) {
-    const status = await passStatus();
-    if (status.state === 'active') return status;
-    await wait(POLL_EVERY_MS);
+async function waitForPass(before: number | null, times = POLL_TIMES, gapMs = POLL_EVERY_MS): Promise<PassStatus | null> {
+  for (let i = 0; i < times; i++) {
+    const status = await passStatus({ timeoutMs: POLL_TIMEOUT_MS });
+    if (landed(status, before)) return status;
+    if (i < times - 1) await wait(gapMs);
   }
   return null;
 }
@@ -79,32 +107,79 @@ export function usePassCheckout() {
     []
   );
 
+  /** One purchase at a time: a second `pay` used to replace the first one's
+   *  sheet, and the first never finished. */
+  const inFlight = useRef(false);
+  /**
+   * The sheet has closed and the app is asking the server what happened. The
+   * screen shows the confirming page for exactly this stretch: it used to be a
+   * greyed-out button and nothing else for up to half a minute.
+   */
+  const [confirming, setConfirming] = useState(false);
+
   const pay = useCallback(
-    async (kind: PassKind, opts: { description: string; offer?: 'winback'; promo?: string }): Promise<PayResult> => {
-      const order = await createOrder(kind, opts.offer, opts.promo);
-      const event = await new Promise<CheckoutEvent | Closed>((resolve) => {
-        resolveSheet.current = resolve;
-        setOpen({ order, description: opts.description });
-      });
-      resolveSheet.current = null;
-      setOpen(null);
-
-      if (event.type === 'failed') return { status: 'failed', message: event.description };
-      if (event.type === 'error') return { status: 'failed', message: event.message };
-      if (event.type !== 'success') return { status: 'cancelled' };
-
-      // Money has moved from here on. Nothing below may say "failed" unless the
-      // server has said the payment itself is bad.
+    async (
+      kind: PassKind,
+      opts: {
+        description: string;
+        offer?: 'winback';
+        promo?: string;
+        /** What the page showed, in paise. The sheet does not open if the
+         *  server would charge anything else. */
+        expectedPaise?: number;
+      }
+    ): Promise<PayResult> => {
+      if (!PAYMENTS_ON_THIS_DEVICE) throw new Error('Payments are not available on this device.');
+      if (inFlight.current) return { status: 'cancelled' };
+      inFlight.current = true;
       try {
-        await verifyPayment(event);
-      } catch (err) {
-        if (err instanceof ApiError && (err.status === 400 || err.status === 403)) {
+        // Where the student stands BEFORE paying, so a pass already running is
+        // never mistaken for this purchase arriving.
+        const before = endOf(await passStatus({ timeoutMs: POLL_TIMEOUT_MS }));
+        const order = await createOrder(kind, opts.offer, opts.promo);
+        if (opts.expectedPaise != null && order.amount !== opts.expectedPaise) throw new PriceMismatchError();
+        const event = await new Promise<CheckoutEvent | Closed>((resolve) => {
+          resolveSheet.current = resolve;
+          setOpen({ order, description: opts.description });
+        });
+        resolveSheet.current = null;
+        setOpen(null);
+
+        if (event.type !== 'success') {
+          // Quietly: the student may well not have paid, so no "confirming"
+          // page — the screen is back at once and only its Pay button waits.
+          // CLOSED IS NOT CANCELLED UNTIL THE SERVER SAYS SO. A student who
+          // approves a UPI request in their UPI app and then closes this sheet
+          // has paid; so has one whose bank page finished after the sheet
+          // stopped listening. Ask before saying anything.
+          const arrived = await waitForPass(before, CHECK_ON_EXIT_TIMES, CHECK_ON_EXIT_GAP_MS);
+          if (arrived) return { status: 'paid', pass: arrived, amountPaise: order.amount };
+          if (event.type === 'failed') return { status: 'failed', message: event.description };
+          if (event.type === 'error') return { status: 'failed', message: event.message };
+          return { status: 'cancelled' };
+        }
+
+        setConfirming(true);
+        // Money has moved from here on. Nothing below may say "failed" unless the
+        // server has said the payment itself is bad, AND no pass arrived anyway
+        // (Razorpay also tells the server, which can grant it on its own).
+        let refused = false;
+        try {
+          await verifyPayment(event);
+        } catch (err) {
+          refused = err instanceof ApiError && (err.status === 400 || err.status === 403);
+          // Otherwise: no signal, or the server is busy. Razorpay will tell it too.
+        }
+        const pass = await waitForPass(before, refused ? CHECK_ON_EXIT_TIMES : POLL_TIMES);
+        if (pass) return { status: 'paid', pass, amountPaise: order.amount };
+        if (refused) {
           return { status: 'failed', message: 'We could not verify this payment. If money left your account, it will be returned.' };
         }
-        // No signal, or the server is busy: Razorpay will tell it too.
+        return { status: 'pending' };
+      } finally {
+        inFlight.current = false;
+        setConfirming(false);
       }
-      const pass = await waitForPass();
-      return pass ? { status: 'paid', pass, amountPaise: order.amount } : { status: 'pending' };
     },
     []
   );
@@ -117,7 +192,7 @@ export function usePassCheckout() {
     />
   ) : null;
 
-  return { pay, checkout };
+  return { pay, checkout, confirming };
 }
 
 function CheckoutSheet({

@@ -62,14 +62,14 @@ const FADE_MS = 180;
 
 export type ChoiceShape = "row" | "tile" | "chip";
 
-function TickDisc({ size }: { size: number }) {
+function TickDisc({ size, ink = false }: { size: number; ink?: boolean }) {
   return (
     <View
       style={{
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: CREAM,
+        backgroundColor: ink ? ob.ink : CREAM,
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -82,7 +82,7 @@ function TickDisc({ size }: { size: number }) {
       >
         <Path
           d="M3.5 8.4l3 3L12.5 5"
-          stroke={ob.ink}
+          stroke={ink ? CREAM : ob.ink}
           strokeWidth={2.4}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -104,7 +104,23 @@ export function SkyChoice({
   labelSize,
   onPress,
   style,
+  tickArrives = false,
+  plain = false,
 }: {
+  /**
+   * Picked without the sky: the row stays white, its edge turns ink, and the
+   * tick (ink, with a cream mark) is the whole change. For the plans page,
+   * where the sky is already the page's header and a second piece of it in
+   * the list read as colour from nowhere.
+   */
+  plain?: boolean;
+  /**
+   * Rows only: make room for the tick as it arrives, as tiles do, instead of
+   * holding an empty tick-sized gap after every row's price. The plans page
+   * lists four prices that should end on one edge; onboarding keeps the
+   * fixed slot.
+   */
+  tickArrives?: boolean;
   label: string;
   /** A quiet second line, rows only. */
   note?: string;
@@ -151,16 +167,20 @@ export function SkyChoice({
           ? SKY.tile2
           : SKY.tile3;
 
-  const skyIn = useAnimatedStyle(() => ({ opacity: progress.value }));
-  const hairline = useAnimatedStyle(() => ({ opacity: 1 - progress.value }));
+  const skyIn = useAnimatedStyle(() => ({ opacity: plain ? 0 : progress.value }));
+  const hairline = useAnimatedStyle(() =>
+    plain
+      ? { opacity: 1, borderColor: interpolateColor(progress.value, [0, 1], [ob.hairline14, ob.ink]) }
+      : { opacity: 1 - progress.value },
+  );
   const labelColor = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [ob.ink, CREAM]),
+    color: interpolateColor(progress.value, [0, 1], [ob.ink, plain ? ob.ink : CREAM]),
   }));
   const noteColor = useAnimatedStyle(() => ({
     color: interpolateColor(
       progress.value,
       [0, 1],
-      [ob.ink55, "rgba(251,249,242,0.8)"],
+      [ob.ink55, plain ? ob.ink55 : "rgba(251,249,242,0.8)"],
     ),
   }));
   const tagColor = useAnimatedStyle(() => ({
@@ -229,7 +249,7 @@ export function SkyChoice({
           }}
         >
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, skyIn]}>
-            {box.h > 0 && (
+            {box.h > 0 && !plain && (
               <Image source={sky} contentFit="fill" style={StyleSheet.absoluteFill} />
             )}
           </Animated.View>
@@ -297,9 +317,19 @@ export function SkyChoice({
                     {trailing}
                   </Animated.Text>
                 ) : null}
-                <Animated.View style={[{ width: tick }, tickIn]}>
-                  <TickDisc size={tick} />
-                </Animated.View>
+                {tickArrives ? (
+                  // The negative margin takes back the row's gap, so an
+                  // unpicked price ends on the padding edge.
+                  <Animated.View style={[{ overflow: "hidden", alignItems: "flex-end", marginLeft: -gap }, tickSlot]}>
+                    <Animated.View style={tickIn}>
+                      <TickDisc size={tick} ink={plain} />
+                    </Animated.View>
+                  </Animated.View>
+                ) : (
+                  <Animated.View style={[{ width: tick }, tickIn]}>
+                    <TickDisc size={tick} ink={plain} />
+                  </Animated.View>
+                )}
               </>
             ) : (
               <>

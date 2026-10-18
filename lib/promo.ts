@@ -104,6 +104,22 @@ export async function fetchOffers(): Promise<Offer[]> {
   }
 }
 
+/**
+ * Whether this student may still have the one-more-week offer (₹249, once,
+ * after a pass ends). The SERVER decides — it alone knows whether they have
+ * had it, across phones and reinstalls — and says so on `GET /pass` as
+ * `winback_available`. Until it does, the offer is not shown: never showing it
+ * is safer than showing it twice. Never throws.
+ */
+export async function fetchOneMoreWeek(): Promise<boolean> {
+  try {
+    const r = await apiFetch<{ winback_available?: unknown }>('/pass', { timeoutMs: 10000 });
+    return r?.winback_available === true;
+  } catch {
+    return false;
+  }
+}
+
 /** The student's own code for this pass, if one was made for them. */
 export function offerFor(offers: Offer[], kind: PassKind | null): string | null {
   if (!kind) return null;

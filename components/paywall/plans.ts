@@ -55,12 +55,9 @@ export const savedPercent = (p: Plan) =>
 export const BEST = PLANS[PLANS.length - 1].id;
 
 /**
- * THE WIN-BACK, offered only on the way out.
- *
- * A student who reaches for the back button has decided the plans are too
- * much, and the honest answer to that is a smaller commitment rather than a
- * smaller plan. This is the week pass at ₹200 off — the one discount on the
- * screen, spent at the moment it is the difference between a trial and
- * nothing.
+ * ONE MORE WEEK, for a student who cannot decide yet (founder, 2026-10-17):
+ * ₹249, offered ONCE — the first time a day or week pass ends, never again.
+ * The server prices it (`offer: 'winback'`) and says whether this student may
+ * still have it; the checkout refuses to open if its price is not this one.
  */
-export const WINBACK = { name: '7 days', was: 749, now: 549 };
+export const WINBACK = { name: '7 days', was: 749, now: 249 };

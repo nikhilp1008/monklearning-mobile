@@ -146,7 +146,7 @@ describe('no code is known to the app', () => {
   });
 
   test('both checkouts send the code to the order and show what was charged', () => {
-    expect(root('app/plans.tsx')).toMatch(/promo,\s*\}\)/);
+    expect(root('app/plans.tsx')).toMatch(/promo,\s*expectedPaise,?\s*\}\)/);
     expect(root('app/plans.tsx')).toMatch(/rupeesOf\(result\.amountPaise\)/);
     expect(root('app/(onboarding)/pass.tsx')).toMatch(/promo: quote && !quote\.free \? quote\.code : undefined/);
   });

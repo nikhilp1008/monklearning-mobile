@@ -6,17 +6,19 @@
 // The code itself is never printed here: it is the student's to know.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
+import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
-import { payErrorMessage } from '@/lib/payments';
+import { passStatus } from '@/lib/pass';
+import { PAYMENTS_ON_THIS_DEVICE, payErrorMessage } from '@/lib/payments';
 import { rupeesOf, usePromo } from '@/lib/promo';
 import {
   EXAMS,
@@ -69,8 +71,38 @@ export default function PassScreen() {
   // SkyChoice gives the tap its haptic.
   const select = (id: PassKey) => setPass(id);
 
-  const { pay, checkout } = usePassCheckout();
+  const { pay, checkout, confirming } = usePassCheckout();
   const [paying, setPaying] = useState(false);
+  /** The free path pushes the receipt; a second tap must not push it twice. */
+  const leaving = useRef(false);
+
+  /**
+   * ALREADY PAID? THEN NOT AGAIN. A student who paid here and had the app close
+   * before onboarding finished comes back to this screen (the gate resumes
+   * onboarding at the pass). It used to offer Pay again. A pass the server
+   * already holds goes straight on to the receipt.
+   */
+  useEffect(() => {
+    let live = true;
+    const check = () =>
+      passStatus().then((st) => {
+        if (!live || st.state !== 'active' || leaving.current) return;
+        leaving.current = true;
+        const kind = st.record.kind === 'day' || st.record.kind === 'week' ? st.record.kind : 'week';
+        router.replace({ pathname: '/pass-active', params: { pass: kind, promo: '', exam: params.exam ?? '', paid: '1' } });
+      });
+    void check();
+    // And again on every return to the app: a payment the bank confirmed late
+    // (or one approved in a UPI app) moves the student on by itself.
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') void check();
+    });
+    return () => {
+      live = false;
+      sub.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const buy = async () => {
     if (!active || paying) return;
@@ -79,9 +111,12 @@ export default function PassScreen() {
       const result = await pay(active.id, {
         description: `${active.name} pass`,
         promo: quote && !quote.free ? quote.code : undefined,
+        // The sheet only opens for the amount on the button.
+        expectedPaise: Math.round(total * 100),
       });
       if (result.status === 'paid') {
         // The pass already exists on the server; the receipt must not start another.
+        leaving.current = true;
         router.push({
           pathname: '/pass-active',
           params: {
@@ -95,7 +130,7 @@ export default function PassScreen() {
       } else if (result.status === 'pending') {
         Alert.alert(
           'Payment received',
-          "We're confirming it with your bank. Your pass will start in a minute — close and reopen the app if it doesn't."
+          "Your bank is still confirming it. Your pass will start on its own in a few minutes — you don't need to pay again."
         );
       } else if (result.status === 'failed') {
         Alert.alert('Payment not completed', result.message);
@@ -139,7 +174,13 @@ export default function PassScreen() {
                 so it read as a third pass. */}
             <PressableScale style={styles.promoLink} hitSlop={10} onPress={toPromo}>
               <Text style={styles.promoLinkText}>
-                {discount ? `${quote?.code ?? promo} applied · −${rupees(discount)}` : 'Have a promo code?'}
+                {discount
+                  ? `${quote?.code ?? promo} applied · −${rupees(discount)}`
+                  : promo && !quote && !checking
+                    ? // A code is in force but could not be priced: say so, so a
+                      // student is never charged full price thinking it applied.
+                      `${promo} couldn't be applied`
+                    : 'Have a promo code?'}
               </Text>
               <ArrowGlyph size={ds(13)} />
             </PressableScale>
@@ -163,13 +204,22 @@ export default function PassScreen() {
         <View style={styles.footer}>
           {/* Says what is owed, not what will happen. */}
           <ObButton
-            label={!active ? 'Choose a pass' : paid ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
-            trailing={active?.name}
-            disabled={!active || paying || checking}
+            label={
+              !active
+                ? 'Choose a pass'
+                : paid
+                  ? 'Complete for ₹0'
+                  : PAYMENTS_ON_THIS_DEVICE
+                    ? `Pay ${rupees(total)}`
+                    : 'Not available on iPhone yet'
+            }
+            trailing={paid || PAYMENTS_ON_THIS_DEVICE ? active?.name : undefined}
+            disabled={!active || paying || checking || (!paid && !PAYMENTS_ON_THIS_DEVICE)}
             withArrow={paid}
             onPress={() => {
-              if (!active) return;
+              if (!active || leaving.current) return;
               if (!paid) return void buy();
+              leaving.current = true;
               router.push({
                 pathname: '/pass-active',
                 params: { pass, promo: quote?.code ?? '', exam: params.exam ?? '' },
@@ -182,6 +232,7 @@ export default function PassScreen() {
         </View>
       </SafeAreaView>
       {checkout}
+      {confirming ? <PaymentConfirming /> : null}
     </View>
   );
 }

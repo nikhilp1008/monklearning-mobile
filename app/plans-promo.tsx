@@ -91,9 +91,11 @@ export default function PlansPromoScreen() {
       return reject();
     }
     setQuote(answer.quote);
-    // `replace`, not `back`: the plans screen has to remount holding the code,
-    // and a pop would restore the instance that never had it.
-    router.replace({
+    // BACK TO THE SAME PLANS PAGE, carrying the code. It used to `replace`
+    // itself with a SECOND plans page, which left the first one underneath:
+    // after paying, Android's Back revealed "Your pass has ended" again. The
+    // page picks up the new pick and code from its params.
+    router.dismissTo({
       pathname: '/plans',
       params: { pick: pick ?? '', promo: answer.quote.code },
     });

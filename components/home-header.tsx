@@ -215,7 +215,7 @@ export function HomeHeader({
               <Text style={styles.teacherTrait}>{titleCaseTrait(trait)}</Text>
             </View>
             <View style={styles.selectGroup}>
-              <Text style={styles.selectLabel}>Drona or Vedha</Text>
+              <Text style={styles.selectLabel}>Change</Text>
               <Chevron scale={scale} />
             </View>
           </PressableScale>
