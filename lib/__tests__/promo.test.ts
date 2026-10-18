@@ -3,6 +3,7 @@ import { join } from 'path';
 
 import { checkPromo, fetchOffers, offerFor, rupeesOf } from '@/lib/promo';
 import { createOrder } from '@/lib/payments';
+import { rupees } from '@/constants/onboarding';
 
 const mockApiFetch = jest.fn();
 jest.mock('@/lib/api', () => {
@@ -149,5 +150,14 @@ describe('no code is known to the app', () => {
     expect(root('app/plans.tsx')).toMatch(/promo,\s*expectedPaise,?\s*\}\)/);
     expect(root('app/plans.tsx')).toMatch(/rupeesOf\(result\.amountPaise\)/);
     expect(root('app/(onboarding)/pass.tsx')).toMatch(/promo: quote && !quote\.free \? quote\.code : undefined/);
+  });
+});
+
+describe('a price with paise reads as money', () => {
+  test('whole rupees stay whole, paise always show two digits', () => {
+    expect(rupees(1599)).toBe('₹1,599');
+    expect(rupees(0)).toBe('₹0');
+    expect(rupees(rupeesOf(79950))).toBe('₹799.50');
+    expect(rupees(rupeesOf(124925))).toBe('₹1,249.25');
   });
 });

@@ -155,7 +155,16 @@ export const INCLUDED: [string, string][] = [
   ['Drona & Vedha', 'English / Hinglish'],
 ];
 
-export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+/**
+ * Whole rupees as they are (₹1,599); a price with paise always shows both
+ * digits (₹799.50, never ₹799.5) — a percent code on an odd price lands there.
+ */
+export const rupees = (n: number) =>
+  `₹${
+    Number.isInteger(n)
+      ? n.toLocaleString('en-IN')
+      : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }`;
 
 /**
  * Onest, loaded app-wide in app/_layout.tsx.
