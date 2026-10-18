@@ -211,13 +211,15 @@ export default function PassScreen() {
                   ? 'Complete for ₹0'
                   : PAYMENTS_ON_THIS_DEVICE
                     ? `Pay ${rupees(total)}`
-                    : 'Not available on iPhone yet'
+                    : // iPhone: testers come in with a code (lib/payments.ts).
+                      'Enter a promo code'
             }
             trailing={paid || PAYMENTS_ON_THIS_DEVICE ? active?.name : undefined}
-            disabled={!active || paying || checking || (!paid && !PAYMENTS_ON_THIS_DEVICE)}
+            disabled={!active || paying || checking}
             withArrow={paid}
             onPress={() => {
               if (!active || leaving.current) return;
+              if (!paid && !PAYMENTS_ON_THIS_DEVICE) return toPromo();
               if (!paid) return void buy();
               leaving.current = true;
               router.push({

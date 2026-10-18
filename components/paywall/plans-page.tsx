@@ -251,13 +251,20 @@ export function PlansPage(props: PlansPageProps) {
       : 'Have a promo code?';
 
   const canPay = PAYMENTS_ON_THIS_DEVICE || free;
+  /**
+   * ON IPHONE THE WAY IN IS A CODE. Paying is Android-only for now
+   * (lib/payments.ts), and iPhone builds go to testers, who are given a code.
+   * So the key does not sit greyed out reading "not available": it opens the
+   * promo screen, and once a code makes the plan free it completes for ₹0.
+   */
+  const codeOnly = !canPay;
   const label = !pick
     ? 'Choose a plan'
     : free
       ? 'Complete for ₹0'
-      : canPay
-        ? `Pay ${rupees(total)}`
-        : 'Not available on iPhone yet';
+      : codeOnly
+        ? 'Enter a promo code'
+        : `Pay ${rupees(total)}`;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -328,17 +335,19 @@ export function PlansPage(props: PlansPageProps) {
             Nothing renews on its own. You pay only when you choose to.
           </Text>
 
+          {codeOnly && !promo.code ? null : (
           <PressableScale
             hitSlop={10}
             onPress={() => props.onPromo(pick)}
             style={{ alignSelf: 'center', marginTop: scale(12), paddingVertical: scale(4) }}>
             <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(13.5), color: !quote && promo.code && !promo.checking && !promo.auto ? colors.slate : colors.amberText }}>{promoLine}</Text>
           </PressableScale>
+          )}
 
           {/* THE WAY TO NOT DECIDE YET, last on the page a student cannot
               leave, and offered once: the server says whether this student
               has had it. Not on Add more time. */}
-          {props.context === 'gate' && props.oneMoreWeek ? (
+          {props.context === 'gate' && props.oneMoreWeek && !codeOnly ? (
             <View style={{ marginTop: scale(26), paddingTop: scale(22), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)' }}>
               <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(15), color: colors.ink }}>Can&apos;t decide yet?</Text>
               <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(13.5), lineHeight: scale(19), color: colors.slate, marginTop: scale(3), marginBottom: scale(12) }}>
@@ -371,9 +380,10 @@ export function PlansPage(props: PlansPageProps) {
             trailing={pick && canPay ? name : undefined}
             withArrow={free}
             busy={props.busy}
-            disabled={!pick || props.busy || promo.checking || !canPay}
+            disabled={!pick || props.busy || promo.checking}
             onPress={() => {
               if (!pick || props.busy) return;
+              if (codeOnly) return props.onPromo(pick);
               const kind: PassKind = week ? 'week' : (pick as PassKind);
               if (free && quote) return props.onRedeem({ kind, promo: quote.code });
               props.onPay({

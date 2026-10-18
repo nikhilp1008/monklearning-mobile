@@ -1,220 +1,269 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Linking, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
+import { NightSky } from '@/components/night-sky';
+import { ObButton } from '@/components/onboarding-kit';
 import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
-// The same three lines as onboarding and the plans screen. This list was its
-// own, written once and left behind: it promised exportable notes and mock
-// tests "as chapters unlock", neither of which is what we sell.
-import { INCLUDED } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
-import { PASS_NAME, isTeamAccess, passStatus, type PassStatus } from '@/lib/pass';
-import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
+import { SKY_THEMES } from '@/constants/teachers';
+import { PASS_NAME, isTeamAccess, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
+import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 
 /**
- * Your plan.
+ * YOUR PLAN — Profile → Manage plan (redesigned 2026-10-17).
  *
- * What this replaces described a product we don't sell: an "Annual" plan at
- * ₹11,999/year that "Renews", with a monthly/annual switcher. monklearning's
- * payments are one-time and nothing auto-renews — our own Terms say so — so
- * every number and every word on that screen was wrong.
+ * It answers, in this order, what a student comes here to ask: is my pass
+ * running, until when, how much is left; then the facts of it (what it is,
+ * when it started and ends, how I got it, whether it renews); then what it
+ * includes; then where to ask about a payment.
  *
- * This screen answers what a student actually comes here to ask: what did I
- * buy, when does it run out, what did I pay, and where is the receipt. The
- * order below is that order.
+ * It was a white card with a green "ACTIVE" pill, a beige note box and a pill
+ * button, in a style nothing else in the app uses any more, with a list of
+ * what's included worded differently from the plans page. Now:
  *
- * Chosen deliberately over the usual SaaS furniture:
- *   * no card on file and no "manage billing" — we never store card details
- *     (Privacy policy: "payment confirmations only"), so there is nothing to
- *     manage between purchases;
- *   * no cancel — there is no recurring charge to cancel, and saying so
- *     plainly is worth more than a button that does nothing;
- *   * expiry is stated as a date AND as days left, because "18 days" is what
- *     a student actually reacts to.
+ *   - THE PASS sits on the teacher's night sky, as the plans page and Home's
+ *     header do: the one piece of colour on the page.
+ *   - THE DETAILS are a plain list, including what the old page never said:
+ *     how the pass was got (paid, a promo code, given by us) and that it never
+ *     renews.
+ *   - WHAT'S INCLUDED uses the plans page's own words, so the two pages
+ *     promise the same thing.
+ *   - THE KEY is the app's own button. It shows when there is something to
+ *     do: the pass has ended or there is none (Choose a plan), or the last
+ *     fortnight of one (Add more time). On iPhone the plans page takes a
+ *     promo code (payments are Android-only for now), so it shows there too.
+ *
+ * No card on file, no cancel, no invoices: payments are one-time, nothing is
+ * stored to manage, and there is nothing recurring to cancel.
  */
 
-const GREEN = '#157A45';
-const GREEN_DOT = '#1C9B57';
+const asDate = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/**
- * WHAT THIS READS, AND WHAT IT STILL CANNOT.
- *
- * It was a fixed object: a six-month plan bought on 2 June with 107 days left
- * and two invoices, none of it true for anybody. It now reads the student's
- * real pass from `lib/pass` — what they took, when it started, when it ends,
- * and how long is left. Not the promo code: `lib/pass` still keeps it, but a
- * student checking their plan is checking time, not how the bill was settled.
- *
- * PAYMENTS ARE NOT LISTED, because there have been none. No provider is wired
- * and every pass so far exists because a promo code brought a price to zero;
- * a list of invoices would be a list of fictions. The block returns when the
- * server has purchases to return.
- */
+const PAPER = colors.paper;
+const PAPER62 = 'rgba(255,253,248,.62)';
 
-const asDate = (d: Date) =>
-  d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+type Scale = (n: number) => number;
+
+/** How the student came to hold this pass, as they would put it. */
+function howGot(record: PassRecord): string {
+  switch (record.source) {
+    case 'razorpay':
+      return 'Paid';
+    case 'promo':
+      return record.promo ? `Promo code ${record.promo}` : 'Promo code';
+    case 'admin':
+      return 'Added by MonkLearning';
+    default:
+      return record.promo ? `Promo code ${record.promo}` : '—';
+  }
+}
 
 export default function SubscriptionScreen() {
-  const { scale, verticalScale } = useScale();
-  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const { scale } = useScale();
+  const styles = useMemo(() => createStyles(scale), [scale]);
 
   const [status, setStatus] = useState<PassStatus | null>(null);
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
   useEffect(() => {
-    let cancelled = false;
-    passStatus().then((s) => !cancelled && setStatus(s));
+    let live = true;
+    passStatus().then((s) => live && setStatus(s));
+    getTeacherPreference().then((t) => live && setTeacher(t));
     return () => {
-      cancelled = true;
+      live = false;
     };
   }, []);
 
   const active = status?.state === 'active' ? status : null;
   const record = status?.state === 'active' || status?.state === 'expired' ? status.record : null;
   const endsAt = status?.state === 'active' || status?.state === 'expired' ? status.endsAt : null;
-  /** The server could not be asked and this phone has no earlier answer. */
-  const unknown = status?.state === 'unknown';
-  const totalDays = record
-    ? Math.max(1, Math.round((endsAt!.getTime() - new Date(record.startedAt).getTime()) / 86400000))
-    : 1;
-  // A founder or tester the paywall never stops holds no pass: nothing to count.
   const team = isTeamAccess(record);
+  const unknown = status?.state === 'unknown';
+
+  const totalDays = record && endsAt ? Math.max(1, Math.round((endsAt.getTime() - new Date(record.startedAt).getTime()) / 86400000)) : 1;
   const daysLeft = active?.daysLeft ?? 0;
-  const elapsed = Math.max(0, Math.min(1, 1 - daysLeft / totalDays));
-  const expiringSoon = !!active && daysLeft <= 3;
-  /** The last fortnight, where extending stops being a sales pitch. */
+  const used = active ? Math.max(0, Math.min(1, 1 - daysLeft / totalDays)) : 1;
+  /** The last fortnight, where adding time stops being a sales pitch. */
   const nearingEnd = !!active && daysLeft <= 15;
+  const ended = status?.state === 'expired' || status?.state === 'none';
 
   return (
     <SettingsPage title="Your plan">
-      {/* What you have, and how long it has left. */}
-      {/* Not painted until the pass is read (a local read, a moment): it
-          flashed "NO PASS / No pass yet" first, even with a pass running. */}
-      <View style={[styles.planCard, !status && { opacity: 0 }]}>
-        <View style={styles.planTopRow}>
-          <View style={[styles.statusPill, !active && styles.statusPillOff]}>
-            <View style={[styles.statusDot, !active && styles.statusDotOff]} />
-            <Text style={[styles.statusText, !active && styles.statusTextOff]}>
-              {active ? 'ACTIVE' : status?.state === 'expired' ? 'ENDED' : unknown ? 'OFFLINE' : 'NO PASS'}
-            </Text>
-          </View>
-          {active && !team && (
-            <Text style={styles.daysLeft}>
-              {/* Under a day is said in hours: "1 day left" on a pass with two
-                  hours in it is the kind of thing a student plans around. */}
-              {active.daysLeft > 1 ? active.daysLeft : active.hoursLeft}{' '}
-              <Text style={styles.daysLeftUnit}>
-                {active.daysLeft > 1 ? 'days left' : 'hours left'}
-              </Text>
-            </Text>
-          )}
-        </View>
+      {/* Nothing is drawn until the pass is read: a half-loaded page said
+          "no pass" to students who had one. */}
+      {status ? (
+        <>
+          <PassCard
+            scale={scale}
+            teacher={teacher}
+            overline={team ? 'TEAM ACCESS' : active ? 'ACTIVE' : status.state === 'expired' ? 'ENDED' : unknown ? 'OFFLINE' : 'NO PASS'}
+            live={!!active}
+            title={team ? 'Team access' : record ? PASS_NAME[record.kind] : unknown ? "Couldn't load your plan" : 'No pass yet'}
+            line={
+              team
+                ? 'This account never needs a pass.'
+                : active && endsAt
+                  ? `Ends ${asDate(endsAt)} · ${active.daysLeft > 1 ? `${active.daysLeft} days left` : `${active.hoursLeft} hours left`}`
+                  : status.state === 'expired' && endsAt
+                    ? `Ended ${asDate(endsAt)}`
+                    : unknown
+                      ? 'Check your connection and open this page again.'
+                      : 'Choose a plan to start classes, snaps and practice.'
+            }
+            progress={active && !team ? used : null}
+          />
 
-        <Text style={styles.planTitle}>
-          {team ? 'Team access' : record ? PASS_NAME[record.kind] : unknown ? "Couldn't load your plan" : 'No pass yet'}
-        </Text>
-        {/* No code. The code is a detail of how
-            the bill was settled, and what a pass covers is the list further
-            down the page — neither is what this line is for. */}
-        {!record && (
-          <Text style={styles.planDuration}>
-            {unknown ? 'Check your connection and open this page again.' : 'Take one to start classes, snaps and practice'}
+          {(ended || nearingEnd) && !team ? (
+            <View style={{ marginTop: scale(14) }}>
+              <ObButton label={ended ? 'Choose a plan' : 'Add more time'} withArrow onPress={() => router.push('/plans')} />
+            </View>
+          ) : null}
+
+          {record && !team ? (
+            <>
+              <Text style={styles.overline}>DETAILS</Text>
+              <View style={styles.card}>
+                <Row scale={scale} label="Plan" value={PASS_NAME[record.kind]} />
+                <Row scale={scale} label="Started" value={asDate(new Date(record.startedAt))} />
+                {endsAt ? <Row scale={scale} label={active ? 'Ends' : 'Ended'} value={asDate(endsAt)} /> : null}
+                <Row scale={scale} label="How you got it" value={howGot(record)} />
+                <Row scale={scale} label="Renews" value="Never on its own" last />
+              </View>
+            </>
+          ) : null}
+
+          <Text style={styles.overline}>EVERY PLAN INCLUDES</Text>
+          <View style={styles.card}>
+            <Included scale={scale} icon={<LiveGlyph size={scale(20)} />} title="Unlimited access to your AI teachers" line="Live classes, follow-ups, any question." />
+            <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line="Solved step by step. Up to 50 a day." />
+            <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line="In the exam's own pattern. Up to 150 a day." />
+            <Included scale={scale} icon={<BookGlyph size={scale(20)} />} title="Textbooks made for revision" line="Formulas, diagrams and key points, chapter by chapter." last />
+          </View>
+
+          <Text style={styles.foot}>
+            When a plan ends, your notes and doubts stay, and you can still read them. Only new classes, snaps and
+            practice wait for the next one.
           </Text>
-        )}
-        {team && <Text style={styles.planDuration}>This account never needs a pass.</Text>}
-
-        {/* One bar, because a date alone doesn't tell you where you are in it. */}
-        {!team && !unknown && (
-          <View style={styles.track}>
-            <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
-          </View>
-        )}
-
-        {!!record && !!endsAt && !team && (
-          <View style={styles.datesRow}>
-            <View>
-              <Text style={styles.dateLabel}>STARTED</Text>
-              <Text style={styles.dateValue}>{asDate(new Date(record.startedAt))}</Text>
-            </View>
-            <View style={styles.dateRight}>
-              <Text style={styles.dateLabel}>{active ? 'ENDS' : 'ENDED'}</Text>
-              <Text style={styles.dateValue}>{asDate(endsAt)}</Text>
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* The thing students get wrong about one-time plans, said before they
-          have to wonder about it. */}
-      {/* Not for a team account: the card above already says "This account
-          never needs a pass", and the boxed note repeated it as a developer
-          would put it. */}
-      {/* Not before the pass is read, either: with nothing loaded yet this
-          said "no pass" and offered "Get a pass" to a student who had one. */}
-      {!!status && !team && !unknown && (
-      <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
-        <Text style={styles.noticeText}>
-          {active
-            ? expiringSoon
-              ? `Your access ends on ${asDate(endsAt!)}. Nothing renews on its own — take another when you're ready.`
-              : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'
-            : 'Your notes and doubts stay yours either way. Only new classes, snaps and practice wait on a pass.'}
-        </Text>
-      </View>
-      )}
-
-      {/* A student with nine months left is not shopping. The button appears in
-          the last fortnight, when extending is a real decision, and whenever
-          there is no live pass at all. */}
-      {/* Not on iPhone until Apple's in-app purchase exists (lib/payments.ts). */}
-      {!!status && PAYMENTS_ON_THIS_DEVICE && !team && !unknown && (!active || nearingEnd) && (
-        <Pressable style={styles.primaryButton} onPress={() => router.push('/plans')}>
-          <Text style={styles.primaryButtonText}>{active ? 'Extend my access' : 'Get a pass'}</Text>
-        </Pressable>
-      )}
-
-      <Text style={styles.overline}>WHAT&apos;S INCLUDED</Text>
-      <View style={styles.card}>
-        {INCLUDED.map(([label, value], i) => (
-          <View
-            key={label}
-            style={[styles.includedRow, i === INCLUDED.length - 1 && styles.rowLast]}>
-            <TickIcon size={scale(13)} />
-            <Text style={styles.includedText}>
-              <Text style={styles.includedLabel}>{label}</Text>
-              {` — ${value}`}
+          <Text style={styles.foot}>
+            Questions about a payment? Write to{' '}
+            <Text style={styles.link} onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
+              support@monklearning.com
             </Text>
-          </View>
-        ))}
-      </View>
-
-      <Text style={styles.footNote}>
-        Questions about a payment? Write to{' '}
-        <Text
-          style={styles.link}
-          onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
-          support@monklearning.com
-        </Text>. We reply within 24 hours.
-      </Text>
-
-      {/* "Exportable" was a promise the app does not keep: notes and doubts can
-          be read and searched in the app, and nothing can be downloaded out of
-          it. This says what actually happens, in the words a student uses. */}
-      <Text style={styles.footNote}>
-        When your plan ends, your notes and doubts are still here, and you can still read them.
-        Only new classes, snaps and practice stop.
-      </Text>
+            . We reply within 24 hours.
+          </Text>
+        </>
+      ) : null}
     </SettingsPage>
   );
 }
 
-function TickIcon({ size }: { size: number }) {
+/** The pass, on the teacher's sky: what it is, until when, how far through. */
+function PassCard({
+  scale,
+  teacher,
+  overline,
+  live,
+  title,
+  line,
+  progress,
+}: {
+  scale: Scale;
+  teacher: TeacherId;
+  overline: string;
+  live: boolean;
+  title: string;
+  line: string;
+  /** 0–1 of the pass used, or null for no bar. */
+  progress: number | null;
+}) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <View
+      onLayout={(e: LayoutChangeEvent) => {
+        const { width, height } = e.nativeEvent.layout;
+        setSize((p) => (p.width === width && p.height === height ? p : { width, height }));
+      }}
+      style={{ marginTop: scale(20), borderRadius: scale(22), overflow: 'hidden', paddingHorizontal: scale(20), paddingTop: scale(20), paddingBottom: scale(20) }}>
+      <NightSky width={size.width} height={size.height} theme={SKY_THEMES[teacher]} style={StyleSheet.absoluteFillObject} />
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { borderRadius: scale(22), boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.14)', inset: true }] },
+        ]}
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(7) }}>
+        <View style={{ width: scale(6), height: scale(6), borderRadius: scale(3), backgroundColor: live ? colors.paleGold : 'rgba(255,253,248,.4)' }} />
+        <Text style={{ fontFamily: 'Onest_700Bold', fontSize: scale(10.5), letterSpacing: scale(1.3), color: live ? colors.paleGold : PAPER62 }}>{overline}</Text>
+      </View>
+      <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(31), letterSpacing: scale(-0.6), color: PAPER, marginTop: scale(10) }}>{title}</Text>
+      <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), lineHeight: scale(20), color: PAPER62, marginTop: scale(4) }}>{line}</Text>
+      {progress !== null ? (
+        <View style={{ height: scale(4), borderRadius: scale(2), backgroundColor: 'rgba(255,253,248,.16)', overflow: 'hidden', marginTop: scale(18) }}>
+          <View style={{ width: `${Math.max(3, progress * 100)}%`, height: '100%', borderRadius: scale(2), backgroundColor: colors.paleGold }} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function Row({ scale, label, value, last }: { scale: Scale; label: string; value: string; last?: boolean }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: scale(12),
+        paddingVertical: scale(14),
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: 'rgba(28,26,22,.08)',
+      }}>
+      <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), color: colors.slate }}>{label}</Text>
+      <Text style={{ flexShrink: 1, textAlign: 'right', fontFamily: 'Onest_500Medium', fontSize: scale(14), color: colors.ink }}>{value}</Text>
+    </View>
+  );
+}
+
+function Included({ scale, icon, title, line, last }: { scale: Scale; icon: ReactNode; title: string; line: string; last?: boolean }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: scale(14),
+        paddingVertical: scale(14),
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: 'rgba(28,26,22,.08)',
+      }}>
+      <View style={{ paddingTop: scale(1) }}>{icon}</View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(15), color: colors.ink }}>{title}</Text>
+        <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(13), lineHeight: scale(18), color: colors.slate, marginTop: scale(2) }}>{line}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** A board with a line of working on it: the live class. */
+function LiveGlyph({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M5.6 4.5h12.8A2.6 2.6 0 0 1 21 7.1v7.3a2.6 2.6 0 0 1-2.6 2.6H5.6A2.6 2.6 0 0 1 3 14.4V7.1a2.6 2.6 0 0 1 2.6-2.6zM9 20.5h6M12 17v3.5" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M7 10.6c1.5-1.5 3 1.5 4.6 0" stroke={colors.marigold} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** A book, open: the textbooks. */
+function BookGlyph({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M4 12.5 9.5 18 20 6.5"
-        stroke={GREEN}
-        strokeWidth={2.8}
+        d="M12 6.4C10.3 5 7.8 4.5 4 4.6v13.6c3.8-.1 6.3.4 8 1.8 1.7-1.4 4.2-1.9 8-1.8V4.6c-3.8-.1-6.3.4-8 1.8zM12 6.4V20"
+        stroke={colors.ink}
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -222,230 +271,30 @@ function TickIcon({ size }: { size: number }) {
   );
 }
 
-function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
+function createStyles(scale: Scale) {
   return StyleSheet.create({
-    planCard: {
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      borderRadius: scale(20),
-      padding: scale(18),
-      marginTop: verticalScale(20),
-    },
-    planTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    statusPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      paddingVertical: verticalScale(5),
-      paddingHorizontal: scale(11),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,155,87,.1)',
-    },
-    statusDot: {
-      width: scale(6),
-      height: scale(6),
-      borderRadius: scale(3),
-      backgroundColor: GREEN_DOT,
-    },
-    statusText: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.55),
-      letterSpacing: scale(0.85),
-      color: GREEN,
-    },
-    /** Ended, or never taken: the same pill, off. Grey would read as broken;
-     *  this is simply the state without the green. */
-    statusPillOff: { backgroundColor: 'rgba(28,26,22,.06)' },
-    statusDotOff: { backgroundColor: colors.faint },
-    statusTextOff: { color: colors.slate },
-    daysLeft: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15),
-      color: colors.ink,
-    },
-    daysLeftUnit: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12.5),
-      color: colors.faint,
-    },
-    /** One step under the page title (24/700), not over it: this is the
-     *  answer on the card, not the name of the screen. */
-    planTitle: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(21),
-      letterSpacing: scale(-0.6),
-      color: colors.ink,
-      marginTop: verticalScale(14),
-    },
-    planDuration: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(13.5),
-      color: colors.slate,
-      marginTop: verticalScale(2),
-    },
-    track: {
-      height: verticalScale(5),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(28,26,22,.08)',
-      overflow: 'hidden',
-      marginTop: verticalScale(16),
-    },
-    trackFill: {
-      height: '100%',
-      borderRadius: scale(99),
-      backgroundColor: colors.marigold,
-    },
-    datesRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: verticalScale(12),
-    },
-    dateRight: {
-      alignItems: 'flex-end',
-    },
-    dateLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.81),
-      color: colors.faint,
-    },
-    dateValue: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13.5),
-      color: colors.ink,
-      marginTop: verticalScale(3),
-    },
-
-    notice: {
-      borderRadius: scale(14),
-      backgroundColor: colors.welcomePaper,
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
-      paddingVertical: verticalScale(12),
-      paddingHorizontal: scale(14),
-      marginTop: verticalScale(12),
-    },
-    noticeWarn: {
-      backgroundColor: 'rgba(238,163,31,.1)',
-      borderColor: 'rgba(238,163,31,.35)',
-    },
-    noticeText: {
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12.5),
-      lineHeight: scale(18.5),
-      color: colors.slate,
-    },
-    primaryButton: {
-      height: verticalScale(50),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: verticalScale(14),
-    },
-    primaryButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15),
-      color: colors.paper,
-    },
-
     overline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.55),
-      letterSpacing: scale(1.0),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(10.5),
+      letterSpacing: scale(1.2),
       color: colors.faint,
-      marginTop: verticalScale(26),
-      marginBottom: verticalScale(9),
+      marginTop: scale(28),
+      marginBottom: scale(10),
     },
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
+      borderColor: 'rgba(28,26,22,.12)',
       borderRadius: scale(18),
       paddingHorizontal: scale(16),
     },
-    includedRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: scale(10),
-      paddingVertical: verticalScale(12),
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.08)',
-    },
-    rowLast: {
-      borderBottomWidth: 0,
-    },
-    includedLabel: { fontFamily: 'Onest_500Medium', color: colors.ink },
-    includedText: {
-      flex: 1,
+    foot: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(13.5),
-      lineHeight: scale(19.5),
+      fontSize: scale(13),
+      lineHeight: scale(19),
       color: colors.slate,
+      marginTop: scale(16),
     },
-
-    payRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingVertical: verticalScale(13),
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(28,26,22,.08)',
-    },
-    payTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    payTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    paySub: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11.5),
-      color: colors.faint,
-      marginTop: verticalScale(2),
-    },
-    payAmount: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    invoiceButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(5),
-      paddingVertical: verticalScale(6),
-      paddingHorizontal: scale(11),
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.18)',
-      backgroundColor: '#fff',
-    },
-    invoiceButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(11.5),
-      color: colors.ink,
-    },
-
-    footNote: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      lineHeight: scale(18),
-      color: colors.faint,
-      marginTop: verticalScale(16),
-    },
-    link: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-      textDecorationLine: 'underline',
-      textDecorationColor: 'rgba(238,163,31,.6)',
-    },
+    link: { fontFamily: 'Onest_500Medium', color: colors.ink, textDecorationLine: 'underline' },
   });
 }
