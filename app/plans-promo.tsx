@@ -9,9 +9,10 @@
 // code, because the return is a `replace` rather than a pop — the plans screen
 // remounts, and has to be holding both.
 //
-// Nothing is checked on a server. The code is a constant in
-// constants/onboarding.ts; when billing is real this check moves behind an
-// endpoint.
+// The server checks the code (lib/promo.ts): what it is worth on THIS plan,
+// whether it has run out. A code can be good for some plans and not others, so
+// a plan has to be picked first; the seven-day offer at the foot of the plans
+// page is already a discount and takes no code.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
@@ -32,7 +33,9 @@ import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PLANS, WINBACK } from '@/components/paywall/plans';
 import type { Pick } from '@/components/paywall/screens';
-import { ob, obFont, promoDiscount, rupees, useDesignScale } from '@/constants/onboarding';
+import { ob, obFont, rupees, useDesignScale } from '@/constants/onboarding';
+import { checkPromo, rupeesOf, type Quote } from '@/lib/promo';
+import type { PassKind } from '@/lib/pass';
 
 const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id === v);
 
@@ -48,13 +51,14 @@ export default function PlansPromoScreen() {
 
   const [draft, setDraft] = useState((params.promo ?? '').toUpperCase());
   const [rejected, setRejected] = useState(false);
+  const [message, setMessage] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [quote, setQuote] = useState<Quote | null>(null);
   const shake = useRef(new Animated.Value(0)).current;
 
-  // Checked against the shortest plan's price when nothing is picked yet, so a
-  // code can be added before a plan is. A code is honoured or it is not; which
-  // row is lit does not change that.
-  const discount = promoDiscount(draft, price || PLANS[0].price);
-  const valid = discount > 0;
+  const valid = !!quote;
+  /** Whether a code can be checked at all: it is checked against a plan. */
+  const codeable = !!plan && pick !== 'week';
 
   // Same 3-step shake as the OTP screen's bad code, so the two failures read
   // alike — a wrong code has to be felt, not only read.
@@ -68,13 +72,30 @@ export default function PlansPromoScreen() {
     ]).start();
   };
 
-  const apply = () => {
-    if (!valid) return reject();
+  const apply = async () => {
+    if (checking || !draft.trim()) return;
+    if (!codeable) {
+      setMessage(
+        pick === 'week'
+          ? 'The 7-day offer is already a discount and takes no code. Pick a plan above it.'
+          : 'Pick a plan first, then add your code.'
+      );
+      return reject();
+    }
+    setChecking(true);
+    const answer = await checkPromo(draft, pick as PassKind);
+    setChecking(false);
+    if (!answer.valid) {
+      setQuote(null);
+      setMessage(answer.message);
+      return reject();
+    }
+    setQuote(answer.quote);
     // `replace`, not `back`: the plans screen has to remount holding the code,
     // and a pop would restore the instance that never had it.
     router.replace({
       pathname: '/plans',
-      params: { pick: pick ?? '', promo: draft.trim().toUpperCase() },
+      params: { pick: pick ?? '', promo: answer.quote.code },
     });
   };
 
@@ -115,8 +136,9 @@ export default function PlansPromoScreen() {
                 onChangeText={(t) => {
                   setDraft(t.toUpperCase());
                   setRejected(false);
+                  setQuote(null);
                 }}
-                placeholder="FIRST100"
+                placeholder="YOUR CODE"
                 placeholderTextColor={ob.placeholder}
                 autoCapitalize="characters"
                 autoCorrect={false}
@@ -137,25 +159,25 @@ export default function PlansPromoScreen() {
                 <View style={[styles.ledgerRow, styles.ledgerRowLast]}>
                   <Text style={styles.ledgerLabel}>With this code</Text>
                   <Text style={[styles.ledgerValue, valid && styles.ledgerValueOn]}>
-                    {rupees(Math.max(0, price - discount))}
+                    {rupees(quote ? rupeesOf(quote.finalPaise) : price)}
                   </Text>
                 </View>
               </View>
             ) : null}
 
             <Text style={[styles.hint, rejected && !valid && styles.hintBad]}>
-              {valid
-                ? plan
-                  ? `Valid code. The ${plan.name} plan is free.`
-                  : 'Valid code. Pick a plan and it comes to ₹0.'
+              {quote
+                ? quote.free
+                  ? `Valid code. The ${plan?.name ?? 'plan'} plan is free.`
+                  : `Valid code. ${rupees(rupeesOf(quote.discountPaise))} off the ${plan?.name ?? 'plan'} plan.`
                 : rejected
-                  ? 'That code isn’t recognised. Check the spelling and try again.'
+                  ? message || 'That code isn’t valid. Check the spelling and try again.'
                   : 'Enter your code exactly as you received it.'}
             </Text>
           </ScrollView>
 
           <View style={styles.footer}>
-            <ObButton label="Apply code" disabled={!draft.trim()} onPress={apply} />
+            <ObButton label={checking ? 'Checking…' : 'Apply code'} disabled={!draft.trim() || checking} onPress={apply} />
           </View>
           <KeyboardSpacer bottomInset={insets.bottom} />
         </KeyboardAvoidingView>

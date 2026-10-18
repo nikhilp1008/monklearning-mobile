@@ -2,12 +2,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
-import { PLANS, WINBACK } from '@/components/paywall/plans';
+import { PLANS } from '@/components/paywall/plans';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PaywallLead, PaywallSuccess, type Pick } from '@/components/paywall/screens';
 import { exitOnBack, useAndroidBack } from '@/lib/android-back';
 import { PASS_NAME, passStatus, startPass, type PassKind } from '@/lib/pass';
 import { payErrorMessage } from '@/lib/payments';
+import { rupeesOf } from '@/lib/promo';
 
 const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id === v);
 
@@ -25,12 +26,12 @@ const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id
  * the foot of the page rather than behind a modal that only appears if you
  * try to leave.
  *
- * Until a payment provider exists the only completable total is zero, so the
- * promo code IS the flow: "Have a promo code?" goes to `/plans-promo`, a valid
- * code comes back, the total reads ₹0 and the button completes. The same code
- * the student used in onboarding works here, for as long as it is the one code
- * we honour. The chosen plan travels with it, because that screen replaces this
- * route rather than popping to it.
+ * A student pays through Razorpay (components/paywall/razorpay-checkout.tsx).
+ * "Have a promo code?" goes to `/plans-promo`; the server prices the code and
+ * the total on this page is its answer, so a code that makes the pass free
+ * completes here and any other takes its amount off the payment. A code made
+ * for this student applies on its own. The chosen plan travels with the code,
+ * because that screen replaces this route rather than popping to it.
  */
 export default function PlansScreen() {
   /** The confirmation, held for the moment it takes to read. */
@@ -68,9 +69,6 @@ export default function PlansScreen() {
 
   if (done) return <PaywallSuccess kind={done} paid={paidRupees} onDone={() => router.replace('/(tabs)')} />;
 
-  const rupeesFor = (kind: PassKind) =>
-    kind === 'week' ? WINBACK.now : (PLANS.find((p) => p.id === kind)?.price ?? 0);
-
   return (
     <>
       <PaywallLead
@@ -97,15 +95,17 @@ export default function PlansScreen() {
           setPaidRupees(0);
           setDone(kind);
         }}
-        onPay={async ({ kind, offer }) => {
+        onPay={async ({ kind, offer, promo }) => {
           setPaying(true);
           try {
             const result = await pay(kind, {
               description: `${PASS_NAME[kind]} pass`,
               offer,
+              promo,
             });
             if (result.status === 'paid') {
-              setPaidRupees(rupeesFor(kind));
+              // What the server charged, not the list price: a code may have taken some off.
+              setPaidRupees(rupeesOf(result.amountPaise));
               setDone(kind);
             } else if (result.status === 'pending') {
               // Money has moved; the server has not said so yet. Never "failed".

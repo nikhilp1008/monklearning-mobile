@@ -10,7 +10,6 @@ import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
 import {
   EXAMS,
   PASSES,
-  promoDiscount,
   rupees,
   type ExamKey,
   type PassKey,
@@ -19,7 +18,7 @@ import { startPass } from '@/lib/pass';
 import { getProfile } from '@/lib/profile';
 
 export default function PassActiveScreen() {
-  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string; paid?: string }>();
+  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string; paid?: string; amount?: string }>();
   const passId = (PASSES.some((p) => p.id === params.pass) ? params.pass : 'week') as PassKey;
   const pass = PASSES.find((p) => p.id === passId) ?? PASSES[1];
   // The profile, not the param: a student who resumes after the app was
@@ -35,7 +34,10 @@ export default function PassActiveScreen() {
     };
   }, []);
   const exam = EXAMS[examKey];
-  const paid = Math.max(0, pass.price - promoDiscount(params.promo ?? '', pass.price));
+  // What was actually charged, as the server priced it: the amount rides in
+  // from the payment. The only other way here is a code that made it free.
+  const charged = Number(params.amount);
+  const paid = params.paid === '1' && Number.isFinite(charged) ? charged : 0;
 
   const [saving, setSaving] = useState(false);
   // Paid: Back would return to the price list. Held, as the swipe is (see

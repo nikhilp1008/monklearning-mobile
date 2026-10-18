@@ -1,13 +1,8 @@
 // 09 "Promo code".
 //
-// One code, and it clears the balance rather than discounting it. The handoff
-// wired two at partial discounts (FIRST100 −₹75, MONK50 −₹50), which cannot
-// complete without a payment sheet to take the remainder — so until there is
-// one, a code either brings the total to zero or it is decoration.
-//
-// Nothing is checked on a server. The code is a constant in
-// constants/onboarding.ts and this screen compares against it in the client;
-// when billing is real this whole check moves behind an endpoint.
+// A code is checked by the server (lib/promo.ts): what it is worth, whether it
+// is good for this pass, whether it has run out. This screen asks and shows the
+// answer; it does not know any code, and works out no discount itself.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
@@ -27,11 +22,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
+import { checkPromo, rupeesOf, type Quote } from '@/lib/promo';
 import {
   PASSES,
   ob,
   obFont,
-  promoDiscount,
   rupees,
   useDesignScale,
   type PassKey,
@@ -48,10 +43,13 @@ export default function PromoScreen() {
 
   const [draft, setDraft] = useState((params.promo ?? '').toUpperCase());
   const [rejected, setRejected] = useState(false);
+  /** The server's reason, in words written for the student. */
+  const [message, setMessage] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [quote, setQuote] = useState<Quote | null>(null);
   const shake = useRef(new Animated.Value(0)).current;
 
-  const discount = promoDiscount(draft, pass.price);
-  const valid = discount > 0;
+  const valid = !!quote;
 
   // A wrong code has to be felt, not just read: the hint sits below the fold of
   // attention while the field is where the eye already is. Same 3-step shake
@@ -67,14 +65,23 @@ export default function PromoScreen() {
     ]).start();
   };
 
-  const apply = () => {
-    if (!valid) return reject();
+  const apply = async () => {
+    if (checking || !draft.trim()) return;
+    setChecking(true);
+    const answer = await checkPromo(draft, passId);
+    setChecking(false);
+    if (!answer.valid) {
+      setQuote(null);
+      setMessage(answer.message);
+      return reject();
+    }
+    setQuote(answer.quote);
     hapticSuccess();
     // `replace`, not `back`: the pass screen has to remount holding the code,
     // and a pop would restore the instance that never had it.
     router.replace({
       pathname: '/pass',
-      params: { pass: passId, promo: draft.trim().toUpperCase(), exam: params.exam ?? '' },
+      params: { pass: passId, promo: answer.quote.code, exam: params.exam ?? '' },
     });
   };
 
@@ -106,8 +113,9 @@ export default function PromoScreen() {
                 onChangeText={(t) => {
                   setDraft(t.toUpperCase());
                   setRejected(false);
+                  setQuote(null);
                 }}
-                placeholder="FIRST100"
+                placeholder="YOUR CODE"
                 placeholderTextColor={ob.placeholder}
                 autoCapitalize="characters"
                 autoCorrect={false}
@@ -125,22 +133,24 @@ export default function PromoScreen() {
               <View style={[styles.ledgerRow, styles.ledgerRowLast]}>
                 <Text style={styles.ledgerLabel}>With this code</Text>
                 <Text style={[styles.ledgerValue, valid && styles.ledgerValueOn]}>
-                  {rupees(Math.max(0, pass.price - discount))}
+                  {rupees(quote ? rupeesOf(quote.finalPaise) : pass.price)}
                 </Text>
               </View>
             </View>
 
             <Text style={[styles.hint, rejected && !valid && styles.hintBad]}>
-              {valid
-                ? `Valid code. The ${pass.name} pass is free.`
+              {quote
+                ? quote.free
+                  ? `Valid code. The ${pass.name} pass is free.`
+                  : `Valid code. ${rupees(rupeesOf(quote.discountPaise))} off the ${pass.name} pass.`
                 : rejected
-                  ? 'That code isn’t recognised. Check the spelling and try again.'
+                  ? message || 'That code isn’t valid. Check the spelling and try again.'
                   : 'Enter your code exactly as you received it.'}
             </Text>
           </ScrollView>
 
           <View style={styles.footer}>
-            <ObButton label="Apply code" disabled={!draft.trim()} onPress={apply} />
+            <ObButton label={checking ? 'Checking…' : 'Apply code'} disabled={!draft.trim() || checking} onPress={apply} />
           </View>
           <KeyboardSpacer bottomInset={insets.bottom} />
         </KeyboardAvoidingView>

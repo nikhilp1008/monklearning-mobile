@@ -155,22 +155,6 @@ export const INCLUDED: [string, string][] = [
   ['Drona & Vedha', 'English / Hinglish'],
 ];
 
-/**
- * The one code that works, and it clears the balance rather than discounting
- * it.
- *
- * The handoff wired two codes at partial discounts (FIRST100 −₹75, MONK50
- * −₹50), which cannot complete without a payment sheet to take the remainder.
- * Until there is one, a code either brings the total to zero or the student
- * cannot get through -- so there is exactly one, and it is worth the whole
- * amount. Client-side by design; nothing is validated on a server.
- */
-export const PROMO_CODE = 'FIRST100';
-
-export function promoDiscount(code: string, price: number) {
-  return code.trim().toUpperCase() === PROMO_CODE ? price : 0;
-}
-
 export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
 /**

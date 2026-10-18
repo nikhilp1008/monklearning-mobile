@@ -17,13 +17,13 @@ import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
 import { payErrorMessage } from '@/lib/payments';
+import { rupeesOf, usePromo } from '@/lib/promo';
 import {
   EXAMS,
   INCLUDED,
   PASSES,
   ob,
   obFont,
-  promoDiscount,
   rupees,
   useDesignScale,
   type ExamKey,
@@ -58,11 +58,13 @@ export default function PassScreen() {
     PASSES.some((p) => p.id === params.pass) ? (params.pass as PassKey) : null
   );
 
-  const promo = (params.promo ?? '').toUpperCase();
   const active = PASSES.find((p) => p.id === pass) ?? null;
-  const discount = active ? promoDiscount(promo, active.price) : 0;
-  const total = active ? Math.max(0, active.price - discount) : 0;
-  const paid = !!active && total === 0;
+  // The server prices the code (a typed one, or one made for this student) and
+  // this screen shows exactly its answer; with no code the list price stands.
+  const { code: promo, quote, checking } = usePromo(params.promo ?? '', pass);
+  const discount = quote ? rupeesOf(quote.discountPaise) : 0;
+  const total = !active ? 0 : quote ? rupeesOf(quote.finalPaise) : active.price;
+  const paid = !!active && !!quote?.free;
 
   // SkyChoice gives the tap its haptic.
   const select = (id: PassKey) => setPass(id);
@@ -74,10 +76,22 @@ export default function PassScreen() {
     if (!active || paying) return;
     setPaying(true);
     try {
-      const result = await pay(active.id, { description: `${active.name} pass` });
+      const result = await pay(active.id, {
+        description: `${active.name} pass`,
+        promo: quote && !quote.free ? quote.code : undefined,
+      });
       if (result.status === 'paid') {
         // The pass already exists on the server; the receipt must not start another.
-        router.push({ pathname: '/pass-active', params: { pass, promo: '', exam: params.exam ?? '', paid: '1' } });
+        router.push({
+          pathname: '/pass-active',
+          params: {
+            pass,
+            promo: '',
+            exam: params.exam ?? '',
+            paid: '1',
+            amount: String(rupeesOf(result.amountPaise)),
+          },
+        });
       } else if (result.status === 'pending') {
         Alert.alert(
           'Payment received',
@@ -94,7 +108,7 @@ export default function PassScreen() {
   };
 
   const toPromo = () =>
-    router.push({ pathname: '/promo', params: { pass, promo, exam: params.exam ?? '' } });
+    router.push({ pathname: '/promo', params: { pass, promo: params.promo ?? '', exam: params.exam ?? '' } });
 
   return (
     <View style={styles.screen}>
@@ -125,7 +139,7 @@ export default function PassScreen() {
                 so it read as a third pass. */}
             <PressableScale style={styles.promoLink} hitSlop={10} onPress={toPromo}>
               <Text style={styles.promoLinkText}>
-                {discount ? `${promo} applied · −${rupees(discount)}` : 'Have a promo code?'}
+                {discount ? `${quote?.code ?? promo} applied · −${rupees(discount)}` : 'Have a promo code?'}
               </Text>
               <ArrowGlyph size={ds(13)} />
             </PressableScale>
@@ -151,14 +165,14 @@ export default function PassScreen() {
           <ObButton
             label={!active ? 'Choose a pass' : paid ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={active?.name}
-            disabled={!active || paying}
+            disabled={!active || paying || checking}
             withArrow={paid}
             onPress={() => {
               if (!active) return;
               if (!paid) return void buy();
               router.push({
                 pathname: '/pass-active',
-                params: { pass, promo, exam: params.exam ?? '' },
+                params: { pass, promo: quote?.code ?? '', exam: params.exam ?? '' },
               });
             }}
           />

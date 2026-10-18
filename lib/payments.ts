@@ -45,10 +45,15 @@ export type CheckoutEvent =
   | { type: 'dismiss' }
   | { type: 'error'; message: string };
 
-export function createOrder(kind: PassKind, offer?: 'winback'): Promise<Order> {
+export function createOrder(kind: PassKind, offer?: 'winback', promo?: string): Promise<Order> {
+  // Only the code travels. The server prices the order from it, and refuses a
+  // code that is not good for this student on this pass.
+  const body: Record<string, string> = { kind };
+  if (offer) body.offer = offer;
+  else if (promo) body.promo = promo;
   return apiFetch<Order>('/payments/orders', {
     method: 'POST',
-    body: JSON.stringify(offer ? { kind, offer } : { kind }),
+    body: JSON.stringify(body),
     timeoutMs: 20000,
   });
 }

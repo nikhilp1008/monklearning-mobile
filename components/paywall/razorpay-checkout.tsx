@@ -40,7 +40,7 @@ import { ob, obFont } from '@/constants/onboarding';
  */
 
 export type PayResult =
-  | { status: 'paid'; pass: PassStatus }
+  | { status: 'paid'; pass: PassStatus; /** Paise charged, as the server priced the order. */ amountPaise: number }
   | { status: 'pending' }
   | { status: 'cancelled' }
   | { status: 'failed'; message: string };
@@ -80,8 +80,8 @@ export function usePassCheckout() {
   );
 
   const pay = useCallback(
-    async (kind: PassKind, opts: { description: string; offer?: 'winback' }): Promise<PayResult> => {
-      const order = await createOrder(kind, opts.offer);
+    async (kind: PassKind, opts: { description: string; offer?: 'winback'; promo?: string }): Promise<PayResult> => {
+      const order = await createOrder(kind, opts.offer, opts.promo);
       const event = await new Promise<CheckoutEvent | Closed>((resolve) => {
         resolveSheet.current = resolve;
         setOpen({ order, description: opts.description });
@@ -104,7 +104,7 @@ export function usePassCheckout() {
         // No signal, or the server is busy: Razorpay will tell it too.
       }
       const pass = await waitForPass();
-      return pass ? { status: 'paid', pass } : { status: 'pending' };
+      return pass ? { status: 'paid', pass, amountPaise: order.amount } : { status: 'pending' };
     },
     []
   );

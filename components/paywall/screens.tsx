@@ -14,7 +14,6 @@ import {
   INCLUDED,
   ob,
   obFont,
-  promoDiscount,
   rupees,
   useDesignScale,
   type ExamKey,
@@ -22,6 +21,7 @@ import {
 import { obPageTitle } from '@/constants/page-title';
 import { PASS_NAME, type PassKind } from '@/lib/pass';
 import { getProfile } from '@/lib/profile';
+import { rupeesOf, usePromo } from '@/lib/promo';
 import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
 
 /**
@@ -107,7 +107,7 @@ export type PaywallProps = {
   /** Pays for the pick. Called when the total is more than zero; the screen
    *  that owns the checkout decides what that means. Absent in the previews,
    *  where the button waits as it always did. */
-  onPay?: (buying: { kind: PassKind; offer?: 'winback' }) => void;
+  onPay?: (buying: { kind: PassKind; offer?: 'winback'; promo?: string }) => void;
   /** A payment is open or being confirmed: the button holds until it is over. */
   busy?: boolean;
   /** The plan chosen before the promo screen took over. That screen replaces
@@ -145,9 +145,14 @@ function Paywall({
   const week = pick === 'week';
   const price = week ? WINBACK.now : (plan?.price ?? 0);
   const name = week ? WINBACK.name : plan?.name;
-  const discount = pick ? promoDiscount(promo, price) : 0;
-  const total = Math.max(0, price - discount);
-  const free = !!pick && total === 0 && discount > 0;
+  // The server prices the code (typed, or made for this student) for the plan
+  // picked, and this shows its answer. The seven-day offer is already a
+  // discount: the server refuses a code on it, so it never asks.
+  const promoState = usePromo(promo, pick && !week ? (pick as PassKind) : null);
+  const quote = promoState.quote;
+  const discount = quote ? rupeesOf(quote.discountPaise) : 0;
+  const total = quote ? rupeesOf(quote.finalPaise) : price;
+  const free = !!pick && !!quote?.free;
 
   return (
     <View style={styles.screen}>
@@ -195,7 +200,7 @@ function Paywall({
               <PressableScale style={styles.promoLink} hitSlop={10} onPress={() => onPromo?.(pick)}>
                 <Text style={styles.promoLinkText}>
                   {discount
-                    ? `${promo.toUpperCase()} applied · −${rupees(discount)}`
+                    ? `${quote?.code ?? promoState.code} applied · −${rupees(discount)}`
                     : 'Have a promo code?'}
                 </Text>
                 <ArrowGlyph size={ds(13)} />
@@ -268,13 +273,13 @@ function Paywall({
             label={!pick ? 'Choose a plan' : free ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={name}
             withArrow={free}
-            disabled={busy || !pick || (free ? !onComplete : !onPay)}
+            disabled={busy || !pick || promoState.checking || (free ? !onComplete : !onPay)}
             onPress={() => {
               if (!pick || busy) return;
               const kind = week ? 'week' : (pick as PassKind);
-              if (free) onComplete?.({ kind, promo });
+              if (free) onComplete?.({ kind, promo: quote?.code ?? '' });
               // The week at the foot of this page is the win-back price.
-              else onPay?.({ kind, offer: week ? 'winback' : undefined });
+              else onPay?.({ kind, offer: week ? 'winback' : undefined, promo: quote?.code });
             }}
           />
           <Text style={styles.footNote}>
