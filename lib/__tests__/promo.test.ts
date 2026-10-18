@@ -161,3 +161,12 @@ describe('a price with paise reads as money', () => {
     expect(rupees(rupeesOf(124925))).toBe('₹1,249.25');
   });
 });
+
+describe('the receipt says when the time really ends', () => {
+  test('a purchase that stacks after a running pass shows the server end, not today + 30 days', () => {
+    expect(root('components/pass-confirmation.tsx')).toMatch(/activeTill\(kind: PassKind, endsAt\?: Date \| null\)/);
+    expect(root('components/paywall/screens.tsx')).toMatch(/activeTill\(kind, endsAt\)/);
+    expect(root('app/plans.tsx')).toMatch(/endsAt: result\.pass\.state === 'active' \? result\.pass\.endsAt : null/);
+    expect(root('app/plans.tsx')).toMatch(/endsAt=\{done\.endsAt\}/);
+  });
+});

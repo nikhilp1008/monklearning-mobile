@@ -113,8 +113,11 @@ export function PassConfirmation({
 
 /** "16 Oct", or "16 Sept 2027" when the pass runs into another year. Read off
  *  the pass's own clock, so the receipt and the app agree on when it ends. */
-export function activeTill(kind: PassKind): string {
-  const end = endsAtFor({ kind, startedAt: new Date().toISOString() });
+export function activeTill(kind: PassKind, endsAt?: Date | null): string {
+  // The server's own end when it is known. A pass bought while another is
+  // running starts after it, so "today + the pass's length" would say the
+  // wrong day to exactly the students who renew.
+  const end = endsAt && !Number.isNaN(endsAt.getTime()) ? endsAt : endsAtFor({ kind, startedAt: new Date().toISOString() });
   const otherYear = end.getFullYear() !== new Date().getFullYear();
   return end.toLocaleDateString('en-IN', {
     day: 'numeric',

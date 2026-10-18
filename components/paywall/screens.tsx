@@ -362,6 +362,7 @@ function Lead({ hero }: { hero: Plan }) {
 export function PaywallSuccess({
   kind = BEST,
   paid = 0,
+  endsAt,
   onDone,
 }: {
   /** What was actually taken — a plan, or the week at the foot of the page. */
@@ -369,6 +370,9 @@ export function PaywallSuccess({
   /** What it actually cost. Zero, while a promo code is the only way through:
    *  a receipt reading ₹43,999 for a free pass is a receipt that lies. */
   paid?: number;
+  /** When ALL the paid time ends, as the server states it. Absent for a pass
+   *  that has just started, where today plus its length is right. */
+  endsAt?: Date | null;
   /** "Start learning". */
   onDone: () => void;
 }) {
@@ -390,7 +394,7 @@ export function PaywallSuccess({
       rows={[
         ['Pass', PASS_NAME[kind]],
         ['Exam', exam ? EXAMS[exam].name : '—'],
-        ['Active till', activeTill(kind)],
+        ['Active till', activeTill(kind, endsAt)],
         ['Paid', rupees(paid)],
       ]}
       buttonLabel="Start learning"

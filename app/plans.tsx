@@ -46,7 +46,7 @@ export default function PlansScreen() {
   const [oneMoreWeek, setOneMoreWeek] = useState(false);
   const [paying, setPaying] = useState(false);
   /** The receipt: what was bought and what it cost. */
-  const [done, setDone] = useState<{ kind: PassKind; paid: number } | null>(null);
+  const [done, setDone] = useState<{ kind: PassKind; paid: number; endsAt?: Date | null } | null>(null);
   /** A payment the bank has not confirmed yet: keep asking. */
   const [pending, setPending] = useState(false);
 
@@ -112,7 +112,7 @@ export default function PlansScreen() {
     return gated.current !== false ? exitOnBack() : false;
   });
 
-  if (done) return <PaywallSuccess kind={done.kind} paid={done.paid} onDone={goHome} />;
+  if (done) return <PaywallSuccess kind={done.kind} paid={done.paid} endsAt={done.endsAt} onDone={goHome} />;
 
   // The page needs to know which of its two faces to show; until the first
   // answer it is plain white, as the splash it follows.
@@ -161,7 +161,12 @@ export default function PlansScreen() {
             });
             if (result.status === 'paid') {
               // What the server charged, not the list price: a code may have taken some off.
-              setDone({ kind, paid: rupeesOf(result.amountPaise) });
+              setDone({
+                kind,
+                paid: rupeesOf(result.amountPaise),
+                // The server's end: a pass bought on top of a running one starts after it.
+                endsAt: result.pass.state === 'active' ? result.pass.endsAt : null,
+              });
             } else if (result.status === 'pending') {
               // Money has moved; the server has not said so yet. Never "failed",
               // and never "pay again": this page leaves on its own once it lands.
