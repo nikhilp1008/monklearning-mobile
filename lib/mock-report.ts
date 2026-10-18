@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { supabase } from '@/lib/supabase';
+
 import type { MockSession, MockSubjectScore, MockSubmitResult } from '@/lib/mock';
 
 /**
@@ -32,7 +34,25 @@ const KEY_PREFIX = 'monklearning.mock.report.';
  *  more for NEET's 180 questions; a dozen is years of mocks at one per 75
  *  correct practice answers, and bounds the storage either way. */
 const KEEP = 12;
+/**
+ * The list of saved papers, ONE PER STUDENT. It was one list for the phone:
+ * a new account opening Mock tests saw the last account's papers — scores,
+ * the chart — for the second or two before the server's own list arrived and
+ * filtered them out, and a tap in that window opened the other student's
+ * report. The papers themselves are keyed by run id, which the server makes
+ * unique, so only the list needed an owner.
+ */
 const INDEX_KEY = 'monklearning.mock.reports';
+const indexKeyFor = (userId: string) => `${INDEX_KEY}:${userId}`;
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export interface MockReportQuestion {
   id: string;
@@ -153,23 +173,49 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
 }
 
 export async function saveReport(report: MockReport): Promise<void> {
+  const userId = await currentUserId();
+  // No student, no owner: nothing is kept rather than kept for whoever is next.
+  if (!userId) return;
   await AsyncStorage.setItem(KEY_PREFIX + report.run_id, JSON.stringify(report));
-  const ids = await savedReportIds();
+  const ids = await savedReportIds(userId);
   const next = [report.run_id, ...ids.filter((id) => id !== report.run_id)];
-  await AsyncStorage.setItem(INDEX_KEY, JSON.stringify(next.slice(0, KEEP)));
+  await AsyncStorage.setItem(indexKeyFor(userId), JSON.stringify(next.slice(0, KEEP)));
   // The oldest papers keep their row in the list from the server; only their
   // detail is dropped, and only once a student has a dozen newer ones.
   const dropped = next.slice(KEEP);
   if (dropped.length) await AsyncStorage.multiRemove(dropped.map((id) => KEY_PREFIX + id));
 }
 
-export async function savedReportIds(): Promise<string[]> {
+export async function savedReportIds(userId?: string | null): Promise<string[]> {
   try {
-    const raw = await AsyncStorage.getItem(INDEX_KEY);
+    const id = userId ?? (await currentUserId());
+    if (!id) return [];
+    const raw = await AsyncStorage.getItem(indexKeyFor(id));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Forgets the signed-in student's saved papers on this phone, and the shared
+ * list from before lists had owners. Called on sign-out, before the session
+ * ends (there is no student to name the list after it).
+ */
+export async function clearSavedReports(): Promise<void> {
+  try {
+    const userId = await currentUserId();
+    const lists = userId ? [INDEX_KEY, indexKeyFor(userId)] : [INDEX_KEY];
+    const ids: string[] = [];
+    for (const key of lists) {
+      const raw = await AsyncStorage.getItem(key);
+      const parsed: unknown = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) ids.push(...parsed.filter((x): x is string => typeof x === 'string'));
+    }
+    await AsyncStorage.multiRemove([...lists, ...ids.map((id) => KEY_PREFIX + id)]);
+  } catch {
+    // Signing out is not blocked by a storage failure.
   }
 }
 

@@ -11,6 +11,9 @@
  * not on marks. A student who ran out of time in Maths can out-score the
  * subject they were genuinely better at, purely by having reached more of it.
  */
+jest.mock('@/lib/supabase', () => ({
+  supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } },
+}));
 import type { MockPaper, MockSession, MockSubmitResult } from '@/lib/mock';
 import { buildReport, formatSpan, mockInsights } from '@/lib/mock-report';
 

@@ -182,13 +182,8 @@ export default function MockTestScreen() {
     }
   };
 
-  // No paper in memory (opened from a stale link, or after the app was
-  // closed): Mock tests, where an unfinished paper is found again. It used to
-  // sit on a blank screen.
-  useEffect(() => {
-    if (!session) router.replace('/mocks');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No paper in memory is handled once, on focus above: this used to send the
+  // student to Mock tests a second time, so the page visibly arrived twice.
 
   // Time up: one automatic submit, exactly once.
   const expired = useRef(false);

@@ -460,6 +460,22 @@ export function getMockSession(): MockSession | null {
   return session;
 }
 
+/**
+ * Every paper in progress on this phone, in memory and saved, whoever sat it.
+ * For sign-out: the next account must not inherit "In progress · Resume" on
+ * someone else's paper.
+ */
+export async function clearAllMockProgress(): Promise<void> {
+  session = null;
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const progress = keys.filter((k) => k.startsWith(PROGRESS_KEY));
+    if (progress.length) await AsyncStorage.multiRemove(progress);
+  } catch {
+    // Signing out is not blocked by a storage failure.
+  }
+}
+
 export function clearMockSession(): void {
   if (session) forgetProgress(session.paper.mock_run_id);
   session = null;

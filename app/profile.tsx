@@ -143,14 +143,18 @@ export default function ProfileScreen() {
         `${PASS_NAME[pass.record.kind].replace(/^(\d+) (day|month)s?$/, '$1-$2')} pass`
       : pass?.state === 'expired'
         ? 'Your pass has ended'
-        : 'No pass yet';
+        : pass?.state === 'unknown'
+          ? 'Your pass'
+          : 'No pass yet';
   const passLine = team
     ? 'No pass needed'
     : pass?.state === 'active'
       ? `Active till ${asShortDate(pass.endsAt)}`
       : pass?.state === 'expired'
         ? `Ended ${asShortDate(pass.endsAt)}`
-        : 'Take one to start classes, snaps and practice';
+        : pass?.state === 'unknown'
+          ? "Couldn't check it right now"
+          : 'Take one to start classes, snaps and practice';
 
   return (
     <SettingsPage title="Profile">

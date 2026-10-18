@@ -1,5 +1,27 @@
+import { Platform } from 'react-native';
+
 import { ApiError, apiFetch } from '@/lib/api';
 import type { PassKind } from '@/lib/pass';
+
+/**
+ * WHERE A PASS CAN BE BOUGHT: ANDROID ONLY, FOR NOW (founder, 2026-10-17).
+ *
+ * Selling access to the app's own features outside Apple's in-app purchase is
+ * against App Store rule 3.1.1, so an iPhone build that opened Razorpay would
+ * risk rejection or removal. Until Apple's purchase is added, iPhone stays on
+ * TestFlight for team and teacher accounts (which the paywall never stops),
+ * and every screen that sells asks this before showing a Pay button. A promo
+ * code that makes a pass free is not a sale and still works everywhere.
+ */
+export const PAYMENTS_ON_THIS_DEVICE = Platform.OS === 'android';
+
+/** The price the server would charge is not the price the student was shown. */
+export class PriceMismatchError extends Error {
+  constructor() {
+    super('The price has changed since this page opened. Please check it and try again. Nothing was charged.');
+    this.name = 'PriceMismatchError';
+  }
+}
 
 /**
  * BUYING A PASS WITH RAZORPAY.
@@ -191,6 +213,7 @@ export function webViewMayLoad(url: string): boolean {
  * at that moment: nothing was charged.
  */
 export function payErrorMessage(err: unknown): string {
+  if (err instanceof PriceMismatchError) return err.message;
   if (err instanceof ApiError) {
     if (err.status === 429) return 'Too many tries. Please wait a little and try again.';
     if ([400, 404, 409, 410, 502, 503].includes(err.status) && err.message && !err.message.startsWith('API request failed')) {

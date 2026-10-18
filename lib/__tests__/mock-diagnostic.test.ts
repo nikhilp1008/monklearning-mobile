@@ -6,6 +6,9 @@
  * meets a field it does not know), and the report built from a diagnostic
  * remembers what it was, because the report screen frames itself from that.
  */
+jest.mock('@/lib/supabase', () => ({
+  supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } },
+}));
 import { apiFetch } from '@/lib/api';
 import {
   createMockPaper,

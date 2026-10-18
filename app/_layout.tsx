@@ -94,7 +94,7 @@ import {
 import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
 import { AuthStateContext, signedOutByUpdate, useAuthState } from '@/lib/auth';
-import { passStatus } from '@/lib/pass';
+import { cachedPassStatus, passStatus } from '@/lib/pass';
 import { onPassRequired } from '@/lib/pass-events';
 import { getAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
@@ -222,7 +222,12 @@ export default function RootLayout() {
   const onDevPreview = __DEV__ && segments[0] === 'dev-diagnostic-preview';
   // The promo screen is part of the takeover, not a way out of it: a gate that
   // fired there would bounce the student back mid-code.
-  const onPlans = segments[0] === 'plans' || segments[0] === 'plans-promo';
+  // The plans-page design preview (dev only) is the paywall too, so it is not
+  // sent to the paywall.
+  const onPlans =
+    segments[0] === 'plans' ||
+    segments[0] === 'plans-promo' ||
+    (__DEV__ && segments[0] === 'dev-plans-preview');
 
   /**
    * Telemetry, started once and deliberately outside every startup gate.
@@ -292,23 +297,57 @@ export default function RootLayout() {
    * notice.
    */
   const passGateReady = ready && navigatorReady && authState === 'signed_in' && !inOnboarding;
+  /**
+   * Whether the first pass check of this launch has an answer. The cover stays
+   * up until it does, so a student whose pass has ended never sees Home paint
+   * and then get replaced by the plans screen. A phone that already holds an
+   * answer for this student ("active") answers at once; only a phone with
+   * nothing cached waits on the server, and the startup failsafe still caps it.
+   */
+  const [passKnown, setPassKnown] = useState(false);
   useEffect(() => {
-    if (!passGateReady || onPlans) return;
+    if (!passGateReady) return;
+    if (onPlans) {
+      setPassKnown(true);
+      return;
+    }
     let cancelled = false;
-    const check = async () => {
-      const status = await passStatus();
-      if (cancelled || status.state === 'active') return;
-      router.replace('/plans');
+    let checking = false;
+    const check = async (first: boolean) => {
+      // One check at a time: foreground events arrive in bursts (a permission
+      // prompt, Face ID, coming back from a UPI app).
+      if (checking) return;
+      checking = true;
+      try {
+        if (first) {
+          const cached = await cachedPassStatus();
+          if (!cancelled && cached.state === 'active') setPassKnown(true);
+        }
+        const status = await passStatus();
+        if (cancelled) return;
+        // ONLY A REAL "NO PASS" SENDS A STUDENT TO THE PLANS SCREEN. "Could not
+        // tell" (no signal, a lapsed sign-in on a weak network) leaves them
+        // where they are; the next return to the app asks again. This was the
+        // plans screen appearing for students who had paid.
+        if (status.state === 'none' || status.state === 'expired') router.replace('/plans');
+        setPassKnown(true);
+      } finally {
+        checking = false;
+      }
     };
-    void check();
+    void check(true);
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') void check();
+      if (next === 'active') void check(false);
     });
     return () => {
       cancelled = true;
       sub.remove();
     };
   }, [passGateReady, onPlans]);
+
+  /** The cover's own readiness: the gates above, and for a signed-in student
+   *  past onboarding, the first pass answer too. */
+  const coverReady = gateSettled && (authState !== 'signed_in' || inOnboarding || onDevPreview || passKnown);
 
   // The server stopping the student mid-use (a 402 from any route, a 4402 on a
   // live socket) is the same verdict the gate above reaches at launch.
@@ -321,10 +360,10 @@ export default function RootLayout() {
     // `failsafeTripped` overrides it. Waiting on the gate without that escape
     // would re-create the exact bug this file already carries a 15s failsafe
     // for: a splash screen nothing can dismiss.
-    if (gateSettled || failsafeTripped) {
+    if (coverReady || failsafeTripped) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [gateSettled, failsafeTripped]);
+  }, [coverReady, failsafeTripped]);
 
   /**
    * The cover comes down two frames after the gate settles.
@@ -335,7 +374,7 @@ export default function RootLayout() {
    */
   const [coverDown, setCoverDown] = useState(false);
   useEffect(() => {
-    if (!gateSettled && !failsafeTripped) return;
+    if (!coverReady && !failsafeTripped) return;
     let inner: number | undefined;
     const outer = requestAnimationFrame(() => {
       inner = requestAnimationFrame(() => setCoverDown(true));
@@ -344,7 +383,7 @@ export default function RootLayout() {
       cancelAnimationFrame(outer);
       if (inner !== undefined) cancelAnimationFrame(inner);
     };
-  }, [gateSettled, failsafeTripped]);
+  }, [coverReady, failsafeTripped]);
 
 
   if (!ready) {
@@ -397,6 +436,7 @@ export default function RootLayout() {
               top of the board's. */}
           <Stack.Screen name="dev-board-preview" options={{ headerShown: false }} />
           <Stack.Screen name="dev-diagnostic-preview" options={{ headerShown: false }} />
+          <Stack.Screen name="dev-plans-preview" options={{ headerShown: false, gestureEnabled: false }} />
           {/* Pushed screens, not tabs. Both used to live in (tabs) behind
               href:null, which hid them from the bar but still wrapped them in
               it -- so picking a chapter or answering a question happened under

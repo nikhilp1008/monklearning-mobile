@@ -294,6 +294,11 @@ export default function MocksScreen() {
     // never finished) is not a paper the student sat, whatever this phone kept.
     const known = new Set((runs ?? []).filter((r) => r.status === 'submitted').map((r) => r.id));
     for (const r of saved) {
+      // NOT BEFORE THE LIST HAS ANSWERED. Rows from this phone used to show at
+      // once and be filtered a second or two later, which is how an old
+      // paper's score flashed up on a new account. While the list is loading
+      // there is a skeleton; the phone's copies stand in only once it failed.
+      if (runs === null) continue;
       if (runsLoaded && !known.has(r.run_id)) continue;
       rows.set(r.run_id, {
         id: r.run_id,
@@ -490,7 +495,7 @@ export default function MocksScreen() {
               paper is graded, because the review arrives exactly once. */}
           <MockSection title="Previous mock tests" count={sat.length ? String(sat.length) : undefined} />
 
-          {runs === null && !saved.length ? (
+          {runs === null ? (
             <Skeleton delay={160} style={styles.skeletonRow} />
           ) : sat.length === 0 && runs !== null && !runsLoaded ? (
             // The list failed to load: "None yet" would be untrue.

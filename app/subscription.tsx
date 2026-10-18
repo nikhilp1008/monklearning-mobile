@@ -11,6 +11,7 @@ import { colors } from '@/constants/brand';
 import { INCLUDED } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { PASS_NAME, isTeamAccess, passStatus, type PassStatus } from '@/lib/pass';
+import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
 
 /**
  * Your plan.
@@ -69,8 +70,10 @@ export default function SubscriptionScreen() {
   }, []);
 
   const active = status?.state === 'active' ? status : null;
-  const record = status && status.state !== 'none' ? status.record : null;
-  const endsAt = status && status.state !== 'none' ? status.endsAt : null;
+  const record = status?.state === 'active' || status?.state === 'expired' ? status.record : null;
+  const endsAt = status?.state === 'active' || status?.state === 'expired' ? status.endsAt : null;
+  /** The server could not be asked and this phone has no earlier answer. */
+  const unknown = status?.state === 'unknown';
   const totalDays = record
     ? Math.max(1, Math.round((endsAt!.getTime() - new Date(record.startedAt).getTime()) / 86400000))
     : 1;
@@ -92,7 +95,7 @@ export default function SubscriptionScreen() {
           <View style={[styles.statusPill, !active && styles.statusPillOff]}>
             <View style={[styles.statusDot, !active && styles.statusDotOff]} />
             <Text style={[styles.statusText, !active && styles.statusTextOff]}>
-              {active ? 'ACTIVE' : status?.state === 'expired' ? 'ENDED' : 'NO PASS'}
+              {active ? 'ACTIVE' : status?.state === 'expired' ? 'ENDED' : unknown ? 'OFFLINE' : 'NO PASS'}
             </Text>
           </View>
           {active && !team && (
@@ -108,18 +111,20 @@ export default function SubscriptionScreen() {
         </View>
 
         <Text style={styles.planTitle}>
-          {team ? 'Team access' : record ? PASS_NAME[record.kind] : 'No pass yet'}
+          {team ? 'Team access' : record ? PASS_NAME[record.kind] : unknown ? "Couldn't load your plan" : 'No pass yet'}
         </Text>
         {/* No code. The code is a detail of how
             the bill was settled, and what a pass covers is the list further
             down the page — neither is what this line is for. */}
         {!record && (
-          <Text style={styles.planDuration}>Take one to start classes, snaps and practice</Text>
+          <Text style={styles.planDuration}>
+            {unknown ? 'Check your connection and open this page again.' : 'Take one to start classes, snaps and practice'}
+          </Text>
         )}
         {team && <Text style={styles.planDuration}>This account never needs a pass.</Text>}
 
         {/* One bar, because a date alone doesn't tell you where you are in it. */}
-        {!team && (
+        {!team && !unknown && (
           <View style={styles.track}>
             <View style={[styles.trackFill, { width: `${elapsed * 100}%` }]} />
           </View>
@@ -141,22 +146,28 @@ export default function SubscriptionScreen() {
 
       {/* The thing students get wrong about one-time plans, said before they
           have to wonder about it. */}
+      {/* Not for a team account: the card above already says "This account
+          never needs a pass", and the boxed note repeated it as a developer
+          would put it. */}
+      {/* Not before the pass is read, either: with nothing loaded yet this
+          said "no pass" and offered "Get a pass" to a student who had one. */}
+      {!!status && !team && !unknown && (
       <View style={[styles.notice, expiringSoon && styles.noticeWarn]}>
         <Text style={styles.noticeText}>
-          {team
-            ? 'Team accounts are not held to the paywall, so there is nothing to renew.'
-            : active
+          {active
             ? expiringSoon
               ? `Your access ends on ${asDate(endsAt!)}. Nothing renews on its own — take another when you're ready.`
               : 'This is a one-time purchase. Nothing auto-renews, and no card is stored. When it ends, it just ends.'
             : 'Your notes and doubts stay yours either way. Only new classes, snaps and practice wait on a pass.'}
         </Text>
       </View>
+      )}
 
       {/* A student with nine months left is not shopping. The button appears in
           the last fortnight, when extending is a real decision, and whenever
           there is no live pass at all. */}
-      {(!active || nearingEnd) && (
+      {/* Not on iPhone until Apple's in-app purchase exists (lib/payments.ts). */}
+      {!!status && PAYMENTS_ON_THIS_DEVICE && !team && !unknown && (!active || nearingEnd) && (
         <Pressable style={styles.primaryButton} onPress={() => router.push('/plans')}>
           <Text style={styles.primaryButtonText}>{active ? 'Extend my access' : 'Get a pass'}</Text>
         </Pressable>

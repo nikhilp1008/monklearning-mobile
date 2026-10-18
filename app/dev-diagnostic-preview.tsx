@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -244,7 +244,7 @@ export default function DevDiagnosticPreview() {
     return remove;
   }, []);
 
-  if (!__DEV__) return null;
+  if (!__DEV__) return <Redirect href="/" />;
   if (!ready) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

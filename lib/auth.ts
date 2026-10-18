@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { clearProfile, hasCompletedOnboarding, onboardedOnThisDevice } from '@/lib/profile';
+import { clearAllMockProgress } from '@/lib/mock';
+import { clearSavedReports } from '@/lib/mock-report';
 import { clearPass } from '@/lib/pass';
 import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
@@ -142,6 +144,11 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
  * Supabase is signed out first so the gate flips even if a clear fails.
  */
 export async function signOut(): Promise<void> {
+  // FIRST, WHILE THE STUDENT CAN STILL BE NAMED. Their pass and their saved
+  // mock papers are kept under their account id, and once the session has
+  // ended there is no id to find them by — they used to stay behind, and the
+  // papers showed to the next account for a second or two on Mock tests.
+  await Promise.all([clearPass(), clearSavedReports(), clearAllMockProgress()]);
   await supabase.auth.signOut();
   clearProgressCache();
   await Promise.all([
@@ -149,8 +156,6 @@ export async function signOut(): Promise<void> {
     clearProofState(),
     clearTodayPlan(),
     clearPreferences(),
-    // A pass belongs to the student who bought it, not to the phone.
-    clearPass(),
   ]);
 }
 
@@ -228,6 +233,8 @@ export async function afterSignIn(): Promise<void> {
         clearProofState(),
         clearTodayPlan(),
         clearPreferences(),
+        // A paper someone else left half-sat on this phone.
+        clearAllMockProgress(),
       ]);
     }
     await AsyncStorage.removeItem(SIGNED_OUT_USER_KEY);
@@ -272,17 +279,29 @@ export function useAuthState(): AuthState {
 
   useEffect(() => {
     let cancelled = false;
+    /**
+     * ONE ANSWER AT A TIME, THE LATEST WINS. Every auth event re-runs this —
+     * the hourly token refresh, returning to the app — and the checks were not
+     * ordered, so an older, slower one could land last and overrule a newer
+     * one. A check that is no longer the latest is dropped.
+     */
+    let seq = 0;
+    /** The student this gate last let in, and whether it did. */
+    let signedInAs: string | null = null;
 
     const resolve = async (
-      session: { access_token?: string; user?: { is_anonymous?: boolean } } | null
+      session: { access_token?: string; user?: { id?: string; is_anonymous?: boolean } } | null
     ) => {
       if (cancelled) return;
+      const mine = ++seq;
+      const stale = () => cancelled || mine !== seq;
       // The session this launch ended for the update is not one to honour,
       // even when an auth event reports it after the sign-out.
       const ended = await endSessionFromBeforeUpdate();
       if (ended && session?.access_token === ended) session = null;
-      if (cancelled) return;
+      if (stale()) return;
       if (!session?.user) {
+        signedInAs = null;
         setState('signed_out');
         return;
       }
@@ -310,6 +329,15 @@ export function useAuthState(): AuthState {
           timeout(SESSION_BOOTSTRAP_TIMEOUT_MS),
         ]);
       } catch {
+        // A RE-CHECK THAT FAILS CHANGES NOTHING. The same student, already let
+        // in, stays in: a slow or dropped check during a token refresh used to
+        // fall through to the device's record, and where that was missing the
+        // tabs blanked and the app jumped to onboarding's pass screen for a
+        // moment. Only a definite answer from the server moves them.
+        if (session.user.id && signedInAs === session.user.id) {
+          if (!stale()) setState('signed_in');
+          return;
+        }
         // The question could not be asked — offline, or the request timed
         // out. The device's own record is the right evidence for exactly this
         // case (see `onboardedOnThisDevice` for why a stored name alone no
@@ -321,7 +349,9 @@ export function useAuthState(): AuthState {
         // into onboarding. It now throws, which is what makes this run.
         done = await onboardedOnThisDevice();
       }
-      if (!cancelled) setState(done ? 'signed_in' : 'needs_onboarding');
+      if (stale()) return;
+      signedInAs = done ? (session.user.id ?? null) : null;
+      setState(done ? 'signed_in' : 'needs_onboarding');
     };
 
     (async () => {
@@ -339,7 +369,10 @@ export function useAuthState(): AuthState {
 
     // Keeps the gate live after boot: verifying an OTP or signing out both
     // land here, so no screen has to tell the router what just happened.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // A refreshed token is the same student with a new key: nothing about
+      // where they belong has changed, so it is not asked again.
+      if (event === 'TOKEN_REFRESHED' && session?.user?.id && session.user.id === signedInAs) return;
       resolve(session);
     });
 

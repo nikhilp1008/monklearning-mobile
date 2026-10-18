@@ -73,19 +73,38 @@ export type PassStatus =
   /** Never bought one — a new account, or a student from before this existed. */
   | { state: 'none' }
   | { state: 'active'; record: PassRecord; endsAt: Date; daysLeft: number; hoursLeft: number }
-  | { state: 'expired'; record: PassRecord; endsAt: Date };
+  | { state: 'expired'; record: PassRecord; endsAt: Date }
+  /**
+   * COULD NOT TELL. The server could not be reached (or its answer was not
+   * one it would give), and this phone holds no earlier answer for this
+   * student. Not the same as "no pass": the gate leaves a student alone on
+   * this, rather than showing a paying student the plans screen because their
+   * signal dropped. It asks again on the next return to the app.
+   */
+  | { state: 'unknown' };
 
 const KEY = 'pass:v1';
 
-async function storageKey(): Promise<string> {
+/** The signed-in student, or null. Never throws. */
+async function currentUserId(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getSession();
-    const id = data.session?.user?.id;
-    return id ? `${KEY}:${id}` : KEY;
+    return data.session?.user?.id ?? null;
   } catch {
-    return KEY;
+    return null;
   }
 }
+
+/**
+ * ALWAYS ONE STUDENT'S KEY, NEVER A SHARED ONE.
+ *
+ * It used to fall back to a shared `pass:v1` when no student could be read —
+ * which is exactly what happens when the app returns to the foreground after
+ * its sign-in token has lapsed on a weak network. The shared key is empty, so
+ * a student who had paid read as having no pass and was sent to the plans
+ * screen. With no student there is no cache to read or write.
+ */
+const keyFor = (userId: string) => `${KEY}:${userId}`;
 
 export function endsAtFor(record: PassRecord): Date {
   if (record.endsAt) {
@@ -98,9 +117,11 @@ export function endsAtFor(record: PassRecord): Date {
   return end;
 }
 
-export async function readPass(): Promise<PassRecord | null> {
+export async function readPass(userId?: string | null): Promise<PassRecord | null> {
   try {
-    const raw = await AsyncStorage.getItem(await storageKey());
+    const id = userId ?? (await currentUserId());
+    if (!id) return null;
+    const raw = await AsyncStorage.getItem(keyFor(id));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PassRecord;
     if (!parsed?.kind || !parsed.startedAt || !(parsed.kind in DAYS)) return null;
@@ -157,14 +178,29 @@ export function isTeamAccess(record: PassRecord | null | undefined): boolean {
   return record?.source === 'exempt';
 }
 
-async function writeCache(record: PassRecord | null): Promise<void> {
+/**
+ * Written under the student the request was made FOR, decided before it was
+ * sent: a slow answer must not land under whoever is signed in by the time it
+ * arrives.
+ */
+async function writeCache(userId: string | null, record: PassRecord | null): Promise<void> {
+  if (!userId) return;
   try {
-    const key = await storageKey();
-    if (record) await AsyncStorage.setItem(key, JSON.stringify(record));
-    else await AsyncStorage.removeItem(key);
+    if (record) await AsyncStorage.setItem(keyFor(userId), JSON.stringify(record));
+    else await AsyncStorage.removeItem(keyFor(userId));
   } catch {
     // A cache that cannot be written is a cache that is empty next time.
   }
+}
+
+/** Only a body the server would actually send counts as its answer. A hotel
+ *  or coaching Wi-Fi login page also comes back as a 200. */
+function isServerPass(v: unknown): v is ServerPass {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    ['none', 'active', 'expired'].includes((v as { state?: unknown }).state as string)
+  );
 }
 
 /**
@@ -176,19 +212,27 @@ async function writeCache(record: PassRecord | null): Promise<void> {
  * verified (lib/payments.ts); the app only reads it back with `passStatus`.
  */
 export async function startPass(kind: PassKind, promo: string): Promise<PassRecord> {
+  const userId = await currentUserId();
   const answer = await apiFetch<ServerPass>('/pass/redeem', {
     method: 'POST',
     body: JSON.stringify({ code: promo.trim(), kind }),
   });
-  const record = recordFromServer(answer);
+  const record = isServerPass(answer) ? recordFromServer(answer) : null;
   if (!record) throw new Error('The server did not return a pass.');
-  await writeCache(record);
+  await writeCache(userId, record);
   return record;
 }
 
+/**
+ * Forgets the signed-in student's pass on this phone. Called BEFORE the
+ * session ends (lib/auth.ts signOut): after it, there is no student to name
+ * the key, and the old one stayed behind. The shared key from before passes
+ * were per-student goes too.
+ */
 export async function clearPass(): Promise<void> {
   try {
-    await AsyncStorage.multiRemove([KEY, await storageKey()]);
+    const id = await currentUserId();
+    await AsyncStorage.multiRemove(id ? [KEY, keyFor(id)] : [KEY]);
   } catch {
     // Signing out is not blocked by a storage failure.
   }
@@ -218,13 +262,57 @@ export function statusOf(record: PassRecord | null, now: Date = new Date()): Pas
  * answer is none, and the cache is cleared so a stale local record cannot
  * outvote it on the next offline launch.
  */
-export async function passStatus(): Promise<PassStatus> {
+/**
+ * THE SERVER'S VERDICT, NOT THE PHONE'S CLOCK. A phone set a day ahead used to
+ * lock a paying student out; one set behind let an ended pass through the gate
+ * while every request came back 402, bouncing the student between Home and
+ * the plans screen. Online, the server's `state` decides; the dates are only
+ * used to say how long is left.
+ */
+export function statusFromServer(answer: ServerPass, record: PassRecord | null, now: Date = new Date()): PassStatus {
+  if (!record || answer.state === 'none') return { state: 'none' };
+  const endsAt = endsAtFor(record);
+  if (answer.state === 'expired') return { state: 'expired', record, endsAt };
+  const left = Math.max(endsAt.getTime() - now.getTime(), 3600000);
+  return {
+    state: 'active',
+    record,
+    endsAt,
+    daysLeft: Math.ceil(left / 86400000),
+    hoursLeft: Math.ceil(left / 3600000),
+  };
+}
+
+/**
+ * Where the student stands, from the server, falling back to the last answer
+ * this phone was given for THIS student.
+ *
+ * Only a failure to REACH the server falls back. If it answers "none" the
+ * answer is none, and the cache is cleared so a stale local record cannot
+ * outvote it on the next offline launch. With nothing to fall back on, the
+ * answer is `unknown`, never `none`.
+ */
+export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<PassStatus> {
+  const userId = await currentUserId();
+  if (!userId) return { state: 'unknown' };
   try {
-    const answer = await apiFetch<ServerPass>('/pass', { timeoutMs: 10000 });
+    const answer = await apiFetch<unknown>('/pass', { timeoutMs: opts.timeoutMs ?? 10000 });
+    if (!isServerPass(answer)) throw new Error('Not an answer from the pass server.');
     const record = recordFromServer(answer);
-    await writeCache(record);
-    return statusOf(record);
+    await writeCache(userId, record);
+    return statusFromServer(answer, record);
   } catch {
-    return statusOf(await readPass());
+    const cached = await readPass(userId);
+    return cached ? statusOf(cached) : { state: 'unknown' };
   }
+}
+
+/**
+ * The last answer this phone holds for the signed-in student, without asking
+ * the server. For the first frame of a launch only: it lets a student with a
+ * running pass see Home at once while the real check runs behind it.
+ */
+export async function cachedPassStatus(): Promise<PassStatus> {
+  const cached = await readPass();
+  return cached ? statusOf(cached) : { state: 'unknown' };
 }
