@@ -51,3 +51,26 @@ describe('a pass ends when it ends', () => {
     });
   });
 });
+
+describe('what the plans page promises is what the server grants', () => {
+  // The page counted calendar months (Oct 19 + 11 months = Sep 18) while the server
+  // grants 330 days (Sep 14): up to four days more than a student received.
+  test.each([
+    ['1m', 30],
+    ['3m', 90],
+    ['6m', 180],
+    ['11m', 330],
+  ] as const)('%s runs %i days from the moment it starts', (kind, days) => {
+    const start = new Date('2026-10-19T14:00:00.000Z');
+    const end = endsAtFor({ kind, startedAt: start.toISOString() });
+    expect(Math.round((end.getTime() - start.getTime()) / 86400000)).toBe(days);
+  });
+
+  test('the plans page dates come from endsAtFor, not from calendar months', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../../components/paywall/plans-page.tsx'), 'utf8');
+    expect(src).toMatch(/endsAtFor\(\{ kind: p\.id, startedAt: from\.toISOString\(\) \}\)/);
+    expect(src).not.toMatch(/setMonth\(/);
+  });
+});
+
