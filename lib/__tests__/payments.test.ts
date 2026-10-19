@@ -69,6 +69,21 @@ describe('what the checkout page is allowed to tell the app', () => {
     expect(parseCheckoutMessage(post({ type: 'unknown' }), 'order_A1')).toBeNull();
   });
 
+  test('a failure from the callback page is marked final, and only a real true counts', () => {
+    expect(parseCheckoutMessage(post({ type: 'failed', description: 'Declined', final: true }), 'order_A1')).toEqual({
+      type: 'failed',
+      description: 'Declined',
+      final: true,
+    });
+    // A page cannot end the sheet with a look-alike value.
+    for (const fake of ['true', 1, 'yes', null]) {
+      expect(parseCheckoutMessage(post({ type: 'failed', description: 'x', final: fake }), 'order_A1')).toEqual({
+        type: 'failed',
+        description: 'x',
+      });
+    }
+  });
+
   test('failure, dismissal and a page that could not load', () => {
     expect(parseCheckoutMessage(post({ type: 'failed', description: 'Card declined' }), 'order_A1')).toEqual({
       type: 'failed',

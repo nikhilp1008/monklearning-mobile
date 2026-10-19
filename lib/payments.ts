@@ -63,7 +63,10 @@ export type CheckoutSuccess = {
 /** What the checkout page can tell the app. */
 export type CheckoutEvent =
   | ({ type: 'success' } & CheckoutSuccess)
-  | { type: 'failed'; description: string }
+  /** `final`: this is the callback page, the last page of the attempt - Razorpay's
+   *  own sheet is gone and nothing on it can be tapped, so the sheet must close.
+   *  Without it (a decline inside Razorpay's sheet) the student may try again. */
+  | { type: 'failed'; description: string; final?: boolean }
   | { type: 'dismiss' }
   | { type: 'error'; message: string };
 
@@ -122,7 +125,12 @@ export function parseCheckoutMessage(raw: unknown, expectedOrderId: string): Che
       }
       return null;
     case 'failed':
-      return { type: 'failed', description: nonEmpty(m.description) ? m.description : 'The payment did not go through.' };
+      return {
+        type: 'failed',
+        description: nonEmpty(m.description) ? m.description : 'The payment did not go through.',
+        // Strictly the boolean true: nothing else a page posts can end the sheet.
+        ...(m.final === true ? { final: true } : {}),
+      };
     case 'dismiss':
       return { type: 'dismiss' };
     case 'error':
