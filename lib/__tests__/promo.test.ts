@@ -170,3 +170,30 @@ describe('the receipt says when the time really ends', () => {
     expect(root('app/plans.tsx')).toMatch(/endsAt=\{done\.endsAt\}/);
   });
 });
+
+describe('a spent code does not stay on the page', () => {
+  // 2026-10-19: offers were asked once, when the screen opened. The code used by the
+  // payment just made kept being sent, and every attempt was refused as fully used.
+  test('the server is asked again on return to the app, on regaining focus, and on demand', () => {
+    const src = root('lib/promo.ts');
+    expect(src).toMatch(/AppState\.addEventListener\('change', \(next\) => \{\s*if \(next === 'active'\) refresh\(\);/);
+    expect(src).toMatch(/useFocusEffect\(/);
+    expect(src).toMatch(/\}, \[nonce\]\);/);              // offers are re-fetched
+    expect(src).toMatch(/\}, \[key, nonce\]\);/);          // and the quote is re-checked
+    expect(src).toMatch(/refresh,\s*\};|, refresh \};/);      // and handed to the screen
+  });
+
+  test('the first focus is the mount and does not ask twice', () => {
+    expect(root('lib/promo.ts')).toMatch(/if \(firstFocus\.current\) firstFocus\.current = false;\s*else refresh\(\);/);
+  });
+
+  test('the plans page re-asks after every payment attempt, whatever its outcome', () => {
+    const src = root('components/paywall/plans-page.tsx');
+    expect(src).toMatch(/props\.onPay\(\{[\s\S]*?\)\.finally\(promo\.refresh\)/);
+    expect(src).toMatch(/props\.onRedeem\(\{ kind, promo: quote\.code \}\)\)\.finally\(promo\.refresh\)/);
+  });
+
+  test('the onboarding pass screen re-asks after every attempt too', () => {
+    expect(root('app/(onboarding)/pass.tsx')).toMatch(/setPaying\(false\);[\s\S]*?refresh\(\);/);
+  });
+});

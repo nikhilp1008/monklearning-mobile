@@ -63,7 +63,7 @@ export default function PassScreen() {
   const active = PASSES.find((p) => p.id === pass) ?? null;
   // The server prices the code (a typed one, or one made for this student) and
   // this screen shows exactly its answer; with no code the list price stands.
-  const { code: promo, quote, checking } = usePromo(params.promo ?? '', pass);
+  const { code: promo, quote, checking, refresh } = usePromo(params.promo ?? '', pass);
   const discount = quote ? rupeesOf(quote.discountPaise) : 0;
   const total = !active ? 0 : quote ? rupeesOf(quote.finalPaise) : active.price;
   const paid = !!active && !!quote?.free;
@@ -139,6 +139,8 @@ export default function PassScreen() {
       Alert.alert("Couldn't start the payment", payErrorMessage(err));
     } finally {
       setPaying(false);
+      // A refused or just-spent code must not stay on the page.
+      refresh();
     }
   };
 

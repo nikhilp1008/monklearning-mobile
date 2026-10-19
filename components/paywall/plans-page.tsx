@@ -385,13 +385,20 @@ export function PlansPage(props: PlansPageProps) {
               if (!pick || props.busy) return;
               if (codeOnly) return props.onPromo(pick);
               const kind: PassKind = week ? 'week' : (pick as PassKind);
-              if (free && quote) return props.onRedeem({ kind, promo: quote.code });
-              props.onPay({
-                kind,
-                offer: week ? 'winback' : undefined,
-                promo: !week && quote ? quote.code : undefined,
-                expectedPaise: Math.round(total * 100),
-              });
+              // Whatever happens, the server is asked about the codes again afterwards:
+              // a refused or just-spent code must not stay on the page.
+              if (free && quote) {
+                void Promise.resolve(props.onRedeem({ kind, promo: quote.code })).finally(promo.refresh);
+                return;
+              }
+              void Promise.resolve(
+                props.onPay({
+                  kind,
+                  offer: week ? 'winback' : undefined,
+                  promo: !week && quote ? quote.code : undefined,
+                  expectedPaise: Math.round(total * 100),
+                })
+              ).finally(promo.refresh);
             }}
           />
         </View>
