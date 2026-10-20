@@ -9,6 +9,7 @@ import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
 import { clearProgressCache } from '@/lib/progress';
 import { clearProofState } from '@/lib/proof';
+import { isReviewerEmail } from '@/lib/reviewer';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -71,6 +72,9 @@ export function friendlyAuthError(message: string): string {
   if (m.includes('after') && m.includes('seconds')) {
     return 'Give it a few seconds before asking for another code.';
   }
+  if (m.includes('login credentials')) {
+    return 'That password didn’t work. Check it and try again.';
+  }
   if (m.includes('expired') || m.includes('invalid')) {
     return 'That code didn’t work. Check it, or ask for a new one.';
   }
@@ -128,6 +132,23 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
     email: normalizeEmail(email),
     token: token.trim(),
     type: 'email',
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * The store-review account's way in: a password, for ONE address.
+ *
+ * Refuses any other address before it reaches the network, so this cannot
+ * become a second way into a student's account even if a screen calls it by
+ * mistake. The result is an ordinary Supabase session, which is all the root
+ * gate and the API look at.
+ */
+export async function signInWithReviewerPassword(email: string, password: string): Promise<void> {
+  if (!isReviewerEmail(email)) throw new Error('Password sign-in is not available for this address.');
+  const { error } = await supabase.auth.signInWithPassword({
+    email: normalizeEmail(email),
+    password,
   });
   if (error) throw new Error(error.message);
 }
