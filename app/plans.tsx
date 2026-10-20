@@ -4,6 +4,7 @@ import { Alert, AppState, View } from 'react-native';
 
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PlansPage, type PlansPick } from '@/components/paywall/plans-page';
+import { isReviewerSession } from '@/lib/reviewer';
 import { PLANS } from '@/components/paywall/plans';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PaywallSuccess } from '@/components/paywall/screens';
@@ -53,6 +54,18 @@ export default function PlansScreen() {
   /** Decided once, from the first answer: a page that began as the gate stays
    *  the gate until the student leaves it. */
   const gated = useRef<boolean | null>(null);
+
+  // The store-review account is never shown a payment page: if it somehow lands
+  // here (a stale link, a deep link) it is sent straight back to Home.
+  useEffect(() => {
+    let live = true;
+    void isReviewerSession().then((yes) => {
+      if (live && yes) router.dismissTo('/');
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;

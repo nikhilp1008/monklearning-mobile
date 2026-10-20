@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { apiFetch } from '@/lib/api';
+import { isReviewerSession } from '@/lib/reviewer';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -159,14 +160,19 @@ export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRec
     // shown as it is - it used to be replaced by the stand-in below, so the
     // plan screen read "11 months, 3650 days left" whatever they had bought.
     if (real && s.state === 'active') return real;
-    return {
-      kind: '11m',
-      startedAt: now.toISOString(),
-      endsAt: new Date(now.getTime() + TEN_YEARS_MS).toISOString(),
-      source: 'exempt',
-    };
+    return teamAccessRecord(now);
   }
   return real;
+}
+
+/** The stand-in for an account the paywall never stops. Not a pass: see isTeamAccess. */
+export function teamAccessRecord(now: Date = new Date()): PassRecord {
+  return {
+    kind: '11m',
+    startedAt: now.toISOString(),
+    endsAt: new Date(now.getTime() + TEN_YEARS_MS).toISOString(),
+    source: 'exempt',
+  };
 }
 
 /**
@@ -302,6 +308,10 @@ export function statusFromServer(answer: ServerPass, record: PassRecord | null, 
 export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<PassStatus> {
   const userId = await currentUserId();
   if (!userId) return { state: 'unknown' };
+  // The store-review account is never asked, and never sent to buy: nothing
+  // here can fail or run slow for it (a /pass answer taking longer than the
+  // timeout used to be able to put the plans screen in front of a reviewer).
+  if (await isReviewerSession()) return statusOf(teamAccessRecord());
   try {
     const answer = await apiFetch<unknown>('/pass', { timeoutMs: opts.timeoutMs ?? 10000 });
     if (!isServerPass(answer)) throw new Error('Not an answer from the pass server.');
@@ -320,6 +330,7 @@ export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<Pas
  * running pass see Home at once while the real check runs behind it.
  */
 export async function cachedPassStatus(): Promise<PassStatus> {
+  if (await isReviewerSession()) return statusOf(teamAccessRecord());
   const cached = await readPass();
   return cached ? statusOf(cached) : { state: 'unknown' };
 }

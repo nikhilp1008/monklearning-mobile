@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase';
+
 /**
  * THE STORE-REVIEW ACCOUNT.
  *
@@ -26,4 +28,24 @@ export const REVIEWER_EMAIL = 'playreview@monklearning.com';
 /** Trimmed and lowercased, like `normalizeEmail` in lib/auth.ts. */
 export function isReviewerEmail(email: string): boolean {
   return email.trim().toLowerCase() === REVIEWER_EMAIL;
+}
+
+/**
+ * Whether the signed-in account IS the store-review account.
+ *
+ * Used for one thing: the payment screens are never shown to it. The server
+ * stays the authority on access (the account is paywall-exempt there, see
+ * scripts/create-reviewer-account.mjs); this only decides what the app puts on
+ * the screen, so a slow or failed `/pass` answer can never put a plans page in
+ * front of a store reviewer. The address is unique to that account: nobody else
+ * can be signed in as it.
+ */
+export async function isReviewerSession(): Promise<boolean> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    return !!user && !user.is_anonymous && isReviewerEmail(user.email ?? '');
+  } catch {
+    return false;
+  }
 }
