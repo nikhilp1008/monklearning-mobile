@@ -63,7 +63,15 @@ export function formulaName(kicker: string, asPrinted = false): string {
  * between "zero" and "error").
  */
 export function keepTogether(expr: string): string {
-  return expr.replace(/ /g, ' ').replace(/ ([=+−⟹≈]) /g, ' $1 ');
+  return (
+    expr
+      .replace(/ /g, ' ')
+      .replace(/ ([=+−⟹≈]) /g, ' $1 ')
+      // NOR AFTER A FRACTION SLASH. A line may break after "/" by default, which
+      // split "k²/R²" across two lines on the formula card. A word joiner holds
+      // the two sides together. (Only a slash in the maths, not in "</i>".)
+      .replace(/([^<])\//g, '$1/⁠')
+  );
 }
 
 /** A rule written in words (five or more words and no "="): text, not a formula. */

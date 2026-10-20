@@ -2,6 +2,8 @@ import ch1 from '@/content/textbooks/phy-11-01-units-measurements';
 import ch2 from '@/content/textbooks/phy-11-02-motion-straight-line';
 import ch3 from '@/content/textbooks/phy-11-03-motion-plane';
 import ch4 from '@/content/textbooks/phy-11-04-laws-of-motion';
+import ch5 from '@/content/textbooks/phy-11-05-work-energy-power';
+import ch6 from '@/content/textbooks/phy-11-06-rotational-motion';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -24,7 +26,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6] as Chapter[]) {
   describe(`Physics 11 Chapter ${Number(chapter.chapter)}, from the book`, () => {
     const regular = chapter.topics.filter((t) => !t.extra);
     const extras = chapter.topics.filter((t) => t.extra);

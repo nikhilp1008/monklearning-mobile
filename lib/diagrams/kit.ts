@@ -50,7 +50,9 @@ const esc = (s: string) => s.replace(/&(?!#?\w+;)/g, '&amp;');
 /** Inline maths markup (<i>, <sub>, <sup>) as tspans: italic is STIX's own italic face. */
 export function tspans(html: string, size: number): string {
   let out = '';
-  const re = /<(\/?)(i|sub|sup)>|([^<]+)/g;
+  // A "<" that does not open one of the three tags is text ("θ < 90°"): it used
+  // to be skipped, so previews lost it.
+  const re = /<(\/?)(i|sub|sup)>|((?:<(?!\/?(?:i|sub|sup)>)|[^<])+)/g;
   const stack: string[] = [];
   let m: RegExpExecArray | null;
   // How far the baseline sits from where it started; each run moves it to where it should be.
@@ -66,7 +68,7 @@ export function tspans(html: string, size: number): string {
     const want = sub ? r1(size * 0.28) : sup ? r1(-size * 0.45) : 0;
     const dy = r1(want - at);
     at = want;
-    out += `<tspan font-family="${italic ? F.stixI : F.stix}" font-size="${sz}"${dy ? ` dy="${dy}"` : ''}>${esc(m[3])}</tspan>`;
+    out += `<tspan font-family="${italic ? F.stixI : F.stix}" font-size="${sz}"${dy ? ` dy="${dy}"` : ''}>${esc(m[3]).replace(/</g, '&lt;')}</tspan>`;
   }
   return out;
 }
