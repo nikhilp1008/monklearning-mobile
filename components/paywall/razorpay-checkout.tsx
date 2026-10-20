@@ -229,6 +229,12 @@ function CheckoutSheet({
     const msg = parseCheckoutMessage(e.nativeEvent.data, order.order_id);
     if (!msg) return;
     if (msg.type === 'failed') {
+      // The callback page is the LAST page: Razorpay's sheet, where a decline can
+      // be retried, is gone, and nothing on this page can be tapped. Waiting for
+      // the student to close it left them on "Finishing up..." with no sign of
+      // what was happening. End the sheet; `pay` asks the server for the pass
+      // before it says anything about failure.
+      if (msg.final) return onEvent(msg);
       lastFailure.current = msg.description;
       return;
     }

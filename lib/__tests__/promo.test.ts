@@ -3,6 +3,7 @@ import { join } from 'path';
 
 import { checkPromo, fetchOffers, offerFor, rupeesOf } from '@/lib/promo';
 import { createOrder } from '@/lib/payments';
+import { rupees } from '@/constants/onboarding';
 
 const mockApiFetch = jest.fn();
 jest.mock('@/lib/api', () => {
@@ -149,5 +150,50 @@ describe('no code is known to the app', () => {
     expect(root('app/plans.tsx')).toMatch(/promo,\s*expectedPaise,?\s*\}\)/);
     expect(root('app/plans.tsx')).toMatch(/rupeesOf\(result\.amountPaise\)/);
     expect(root('app/(onboarding)/pass.tsx')).toMatch(/promo: quote && !quote\.free \? quote\.code : undefined/);
+  });
+});
+
+describe('a price with paise reads as money', () => {
+  test('whole rupees stay whole, paise always show two digits', () => {
+    expect(rupees(1599)).toBe('₹1,599');
+    expect(rupees(0)).toBe('₹0');
+    expect(rupees(rupeesOf(79950))).toBe('₹799.50');
+    expect(rupees(rupeesOf(124925))).toBe('₹1,249.25');
+  });
+});
+
+describe('the receipt says when the time really ends', () => {
+  test('a purchase that stacks after a running pass shows the server end, not today + 30 days', () => {
+    expect(root('components/pass-confirmation.tsx')).toMatch(/activeTill\(kind: PassKind, endsAt\?: Date \| null\)/);
+    expect(root('components/paywall/screens.tsx')).toMatch(/activeTill\(kind, endsAt\)/);
+    expect(root('app/plans.tsx')).toMatch(/endsAt: result\.pass\.state === 'active' \? result\.pass\.endsAt : null/);
+    expect(root('app/plans.tsx')).toMatch(/endsAt=\{done\.endsAt\}/);
+  });
+});
+
+describe('a spent code does not stay on the page', () => {
+  // 2026-10-19: offers were asked once, when the screen opened. The code used by the
+  // payment just made kept being sent, and every attempt was refused as fully used.
+  test('the server is asked again on return to the app, on regaining focus, and on demand', () => {
+    const src = root('lib/promo.ts');
+    expect(src).toMatch(/AppState\.addEventListener\('change', \(next\) => \{\s*if \(next === 'active'\) refresh\(\);/);
+    expect(src).toMatch(/useFocusEffect\(/);
+    expect(src).toMatch(/\}, \[nonce\]\);/);              // offers are re-fetched
+    expect(src).toMatch(/\}, \[key, nonce\]\);/);          // and the quote is re-checked
+    expect(src).toMatch(/refresh,\s*\};|, refresh \};/);      // and handed to the screen
+  });
+
+  test('the first focus is the mount and does not ask twice', () => {
+    expect(root('lib/promo.ts')).toMatch(/if \(firstFocus\.current\) firstFocus\.current = false;\s*else refresh\(\);/);
+  });
+
+  test('the plans page re-asks after every payment attempt, whatever its outcome', () => {
+    const src = root('components/paywall/plans-page.tsx');
+    expect(src).toMatch(/props\.onPay\(\{[\s\S]*?\)\.finally\(promo\.refresh\)/);
+    expect(src).toMatch(/props\.onRedeem\(\{ kind, promo: quote\.code \}\)\)\.finally\(promo\.refresh\)/);
+  });
+
+  test('the onboarding pass screen re-asks after every attempt too', () => {
+    expect(root('app/(onboarding)/pass.tsx')).toMatch(/setPaying\(false\);[\s\S]*?refresh\(\);/);
   });
 });

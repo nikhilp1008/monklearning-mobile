@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { ApiError, apiFetch } from '@/lib/api';
 import type { PassKind } from '@/lib/pass';
@@ -136,6 +138,9 @@ export type PromoState = {
   /** The server's quote for it on this pass, once known. */
   quote: Quote | null;
   checking: boolean;
+  /** Ask the server again: which codes are made for this student, and what the
+   *  one in force is worth now. Called after every payment attempt. */
+  refresh: () => void;
 };
 
 /**
@@ -144,9 +149,19 @@ export type PromoState = {
  * A typed code wins over an offer made for the student. A winback pick never
  * takes a code (the server refuses the two together), so callers pass `kind`
  * null for it.
+ *
+ * NOTHING HERE IS ASKED ONCE. A code can be used up while the screen is open: on
+ * another phone, by the payment that was just made, or by a test. Asked once, the
+ * screen kept offering the spent code and every attempt was refused with "that
+ * code has been fully used" (2026-10-19). The server is asked again when the app
+ * returns to the foreground, when this screen regains focus, and after every
+ * payment attempt, and a quote is re-checked each time.
  */
 export function usePromo(typed: string, kind: PassKind | null): PromoState {
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [nonce, setNonce] = useState(0);
+  const refresh = useCallback(() => setNonce((n) => n + 1), []);
+
   useEffect(() => {
     let live = true;
     fetchOffers().then((o) => {
@@ -155,7 +170,23 @@ export function usePromo(typed: string, kind: PassKind | null): PromoState {
     return () => {
       live = false;
     };
-  }, []);
+  }, [nonce]);
+
+  // Coming back to the app, and coming back to this screen from another.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+  const firstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      // The first focus is the mount, which has just asked.
+      if (firstFocus.current) firstFocus.current = false;
+      else refresh();
+    }, [refresh])
+  );
 
   const typedCode = typed.trim().toUpperCase();
   const offered = typedCode ? null : offerFor(offers, kind);
@@ -172,11 +203,12 @@ export function usePromo(typed: string, kind: PassKind | null): PromoState {
     return () => {
       live = false;
     };
-    // `code` and `kind` are what `key` is made of.
+    // `code` and `kind` are what `key` is made of. `nonce` re-asks the same
+    // question: the answer to "what is this code worth" can change under us.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, nonce]);
 
   // A quote belongs to the pass and code it was asked for; a stale one is not shown.
   const quote = key && state.key === key ? state.quote : null;
-  return { code, auto: !!offered, quote, checking: !!key && state.key !== key };
+  return { code, auto: !!offered, quote, checking: !!key && state.key !== key, refresh };
 }

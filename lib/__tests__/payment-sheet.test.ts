@@ -28,3 +28,16 @@ describe('a sheet that disappears does not strand the purchase', () => {
     expect(SRC).toMatch(/lastFailure\.current \? \{ type: 'failed'/);
   });
 });
+
+describe('the callback page is the last page of an attempt', () => {
+  test('a final failure ends the sheet at once instead of waiting for Close', () => {
+    // 2026-10-19: a callback that could not verify its signature left the sheet on
+    // "Finishing up..." with only Close to get out.
+    expect(SRC).toMatch(/if \(msg\.final\) return onEvent\(msg\);/);
+  });
+
+  test('a decline inside Razorpay\'s own sheet is still only remembered, so the student can retry', () => {
+    expect(SRC).toMatch(/lastFailure\.current = msg\.description;\s*return;/);
+  });
+});
+

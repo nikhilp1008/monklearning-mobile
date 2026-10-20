@@ -13,7 +13,7 @@ import { colors } from '@/constants/brand';
 import { rupees } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
-import type { PassKind } from '@/lib/pass';
+import { endsAtFor, type PassKind } from '@/lib/pass';
 import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
 import type { TeacherId } from '@/lib/preferences';
 import { rupeesOf, usePromo } from '@/lib/promo';
@@ -71,14 +71,6 @@ const PAPER = colors.paper;
 const PAPER62 = 'rgba(255,253,248,.62)';
 
 type Scale = (n: number) => number;
-
-/** The last day a plan bought to start on `from` covers. */
-function tillDate(from: Date, months: number) {
-  const d = new Date(from);
-  d.setMonth(d.getMonth() + months);
-  d.setDate(d.getDate() - 1);
-  return d;
-}
 
 function asDay(d: Date, today: Date) {
   return d.toLocaleDateString('en-IN', {
@@ -227,14 +219,16 @@ export function PlansPage(props: PlansPageProps) {
   const total = quote ? rupeesOf(quote.finalPaise) : price;
   const free = !!quote?.free;
 
-  // New time starts today at the gate, and the day after the pass ends when
+  // New time starts now at the gate, and the moment the running pass ends when
   // extending — so the "Till" dates are the dates the student would really get.
+  //
+  // COUNTED IN THE SAME DAYS THE SERVER GRANTS (30 / 90 / 180 / 330), through the
+  // same function the receipt uses. This used calendar months, which promised up
+  // to four days more than a student received ("Till 14 Jan 2028" for a plan that
+  // runs to 11 Jan), and a different date from the receipt a minute later.
   const today = midnight(new Date());
-  const start =
-    props.context === 'extend' && props.passEnds
-      ? new Date(midnight(props.passEnds).getTime() + 86400000)
-      : today;
-  const till = (p: Plan) => asDay(tillDate(start, p.months), today);
+  const from = props.context === 'extend' && props.passEnds ? props.passEnds : new Date();
+  const till = (p: Plan) => asDay(endsAtFor({ kind: p.id, startedAt: from.toISOString() }), today);
 
   const title = props.context === 'extend' ? 'Add more time' : 'Your pass has ended';
   const sub =
@@ -385,13 +379,20 @@ export function PlansPage(props: PlansPageProps) {
               if (!pick || props.busy) return;
               if (codeOnly) return props.onPromo(pick);
               const kind: PassKind = week ? 'week' : (pick as PassKind);
-              if (free && quote) return props.onRedeem({ kind, promo: quote.code });
-              props.onPay({
-                kind,
-                offer: week ? 'winback' : undefined,
-                promo: !week && quote ? quote.code : undefined,
-                expectedPaise: Math.round(total * 100),
-              });
+              // Whatever happens, the server is asked about the codes again afterwards:
+              // a refused or just-spent code must not stay on the page.
+              if (free && quote) {
+                void Promise.resolve(props.onRedeem({ kind, promo: quote.code })).finally(promo.refresh);
+                return;
+              }
+              void Promise.resolve(
+                props.onPay({
+                  kind,
+                  offer: week ? 'winback' : undefined,
+                  promo: !week && quote ? quote.code : undefined,
+                  expectedPaise: Math.round(total * 100),
+                })
+              ).finally(promo.refresh);
             }}
           />
         </View>
