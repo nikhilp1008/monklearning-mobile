@@ -270,6 +270,13 @@ export function statusOf(record: PassRecord | null, now: Date = new Date()): Pas
  * used to say how long is left.
  */
 export function statusFromServer(answer: ServerPass, record: PassRecord | null, now: Date = new Date()): PassStatus {
+  // AN EXEMPT ACCOUNT IS NEVER "NO PASS". The server says this one is never
+  // gated (a founder, a tester, the store-review account), and `recordFromServer`
+  // has already made its record: the pass it really holds, or the team-access
+  // stand-in when it holds none. This line used to come after the `none` check
+  // below, so an exempt account with no real pass (the store-review account) was
+  // answered `none` here and the launch gate sent it to the plans screen.
+  if (answer.exempt && record) return statusOf(record, now);
   if (!record || answer.state === 'none') return { state: 'none' };
   const endsAt = endsAtFor(record);
   if (answer.state === 'expired') return { state: 'expired', record, endsAt };
