@@ -180,7 +180,8 @@ const fig21: Diagram = {
     path(s, [g.tan0, g.tan1], { color: C.mari, w: 2.4, dash: 'dash' });
     s.dot(...g.A);
     s.dot(...g.B);
-    s.sym(g.A[0] - 9, g.A[1] - 9, '<i>A</i> (<i>t</i><sub>1</sub>, <i>x</i><sub>1</sub>)', { size: 15, anchor: 'end' });
+    // above the tangent, left of it: beside the dot it ran into the x-axis on Android
+    s.sym(g.A[0] + 22, g.A[1] - 37, '<i>A</i> (<i>t</i><sub>1</sub>, <i>x</i><sub>1</sub>)', { size: 15, anchor: 'end' });
     s.sym(g.B[0] + 10, g.B[1] + 21, '<i>B</i> (<i>t</i><sub>2</sub>, <i>x</i><sub>2</sub>)', { size: 15, anchor: 'start' });
     const chordMid: P = [(g.A[0] + g.B[0]) / 2, (g.A[1] + g.B[1]) / 2];
     s.place([
@@ -248,7 +249,7 @@ const fig22: Diagram = {
       const crosses = c.kind === 'vt' && i === 2;
       axes(s, f, { t: [-0.2, R22.tEnd + 0.4], v: [crosses ? -1.4 : -0.3, 4.6], tName: '<i>t</i> (s)', vName });
       if (crosses) {
-        const plus = sign(s, X(f, 1.2), Y(f, 0.9), '+'), minus = sign(s, X(f, 4.55), Y(f, -0.35), '−');
+        const plus = sign(s, X(f, 1.2), Y(f, 0.9), '+'), minus = sign(s, X(f, 4.72), Y(f, -0.36), '−');
         slivers(s, f, r.fn, 0, cross22, [plus]);
         slivers(s, f, r.fn, cross22, R22.tEnd, [minus]);
         s.sym(f.ox + 8, f.oy + 17, 'area above − area below', { size: 13, color: C.slate, anchor: 'start' });
@@ -354,7 +355,9 @@ const fig24: Diagram = {
   draw() {
     const s = new Sketch(W, 312);
     const f = F24, tc = crossing(pts24), end = pts24[3], fn = (t: number) => valueAt(pts24, t);
-    axes(s, f, { t: [-0.4, 9.8], v: [-6.2, 15.4], tName: '<i>t</i> (s)', vName: '<i>v</i> (m s<sup>−1</sup>)', vTicks: [[12, '12'], [-4, '−4']], tTicks: [[0, '0'], [3, '3'], [5, '5'], [9, '']] });
+    axes(s, f, { t: [-0.4, 9.8], v: [-6.2, 15.4], tName: '<i>t</i> (s)', vName: '<i>v</i> (m s<sup>−1</sup>)', vTicks: [[12, '12'], [-4, '−4']], tTicks: [[0, ''], [3, '3'], [5, '5'], [9, '']] });
+    // the origin's 0 set left of the v-axis, which ran through it
+    s.sym(f.ox - 7, f.oy + 18, '0', { size: 13, color: C.slate, anchor: 'end' });
     s.sym(X(f, tc) - 5, f.oy + 18, String(fmt(tc)), { size: 13, color: C.slate, anchor: 'end' });
     s.sym(X(f, end[0]), Y(f, end[1]) + 19, String(end[0]), { size: 13, color: C.slate });
     path(s, [at(f, end[0], 0), at(f, end[0], end[1])], { color: C.grey, w: 1.2, dash: 'dash' });
@@ -415,7 +418,6 @@ const fig25: Diagram = {
     const guides = [ACC25[0][1], tc, tEnd];
     // shared time guides from the top graph down to the time values at the bottom
     const yBottom = Y(fv, -8.6);
-    guides.forEach((t) => path(s, [[X(fa, t), Y(fa, 6) - 4], [X(fa, t), yBottom]], { color: C.grey, w: 1, dash: 'dot' }));
     [0, ...guides].forEach((t) => s.sym(X(fv, t), yBottom + 15, fmt(t), { size: 13, color: C.slate }));
     s.sym(X(fv, tEnd) + 20, yBottom + 15, '<i>t</i> (s)', { size: 14, anchor: 'start' });
     // top: the a–t graph
@@ -427,6 +429,17 @@ const fig25: Diagram = {
     s.sym(X(fa, 5), Y(fa, -3) + 19, '<i>a</i> = −3', { size: 14 });
     // bottom: the v–t graph built from it
     axes(s, fv, { t: [-0.2, tEnd + 0.75], v: [-8, 15.4], tName: '', vName: '<i>v</i> (m s<sup>−1</sup>)', vTicks: [[12, '12'], [-6, '−6']] });
+    // the guides break around the axis names they would otherwise run through
+    const names = s.labels.filter((l) => /\(m s/.test(l.text)).map((l) => l.rect);
+    guides.forEach((t) => {
+      const x = X(fa, t);
+      let y = Y(fa, 6) - 4;
+      names.filter((r) => x > r[0] - 4 && x < r[2] + 6 && r[1] > y).sort((a, b) => a[1] - b[1]).forEach((r) => {
+        path(s, [[x, y], [x, r[1] - 3]], { color: C.grey, w: 1, dash: 'dot' });
+        y = r[3] + 4;
+      });
+      path(s, [[x, y], [x, yBottom]], { color: C.grey, w: 1, dash: 'dot' });
+    });
     const plus = sign(s, X(fv, 3.4), Y(fv, 3.6), '+'), minus = sign(s, X(fv, 7.35), Y(fv, -1.9), '−');
     slivers(s, fv, v25, 0, tc, [plus]);
     slivers(s, fv, v25, tc, tEnd, [minus]);
@@ -435,7 +448,7 @@ const fig25: Diagram = {
     [pk, zero, last].forEach((q) => s.dot(q[0], q[1], 3.2));
     s.sym(pk[0] + 9, pk[1] - 4, `<i>v</i> = ${fmt(v25(ACC25[0][1]))}`, { size: 14, anchor: 'start' });
     s.sym(zero[0] + 6, zero[1] - 10, '<i>v</i> = 0', { size: 14, anchor: 'start' });
-    s.sym(last[0] - 6, last[1] + 17, `<i>v</i> = ${fmt(v25(tEnd))}`, { size: 14, anchor: 'end' });
+    s.sym(last[0] - 10, last[1] + 17, `<i>v</i> = ${fmt(v25(tEnd))}`, { size: 14, anchor: 'end' });
     if (c.hi === 'a') s.place([{ t: 'a–t graph', p: at(fa, 7.3, -3), hi: true, at: [[W - 8, Y(fa, -3) + 8, 'end']] }]);
     else s.place([{ t: 'Derived v–t graph', p: at(fv, 4, v25(4)), hi: true, at: [[X(fv, 4.2), Y(fv, 13.5), 'start'], [X(fv, 4.6), Y(fv, 11), 'start']] }]);
     return s;
@@ -575,15 +588,15 @@ const ROOT: Box = { r: [60, 10, 280, 54], lines: ['What does <i>a</i> depend on?
 const BR = { x0: 30, x1: 118 };
 const LF = { x0: 140, x1: 332 };
 const CHART: { branch: Box; leaves: Box[] }[] = [
-  { branch: { r: [BR.x0, 82, BR.x1, 122], lines: ['<i>a</i> = <i>f</i>(<i>t</i>)'] }, leaves: [{ r: [LF.x0, 74, LF.x1, 130], lines: ['integrate <i>a</i> d<i>t</i> to get <i>v</i>,', 'then <i>v</i> d<i>t</i> to get <i>x</i>'] }] },
+  { branch: { r: [BR.x0, 82, BR.x1, 122], lines: ['<i>a</i> = <i>f</i>\u200a(<i>t</i>)'] }, leaves: [{ r: [LF.x0, 74, LF.x1, 130], lines: ['integrate <i>a</i> d<i>t</i> to get <i>v</i>,', 'then <i>v</i> d<i>t</i> to get <i>x</i>'] }] },
   {
-    branch: { r: [BR.x0, 186, BR.x1, 226], lines: ['<i>a</i> = <i>f</i>(<i>v</i>)'] },
+    branch: { r: [BR.x0, 186, BR.x1, 226], lines: ['<i>a</i> = <i>f</i>\u200a(<i>v</i>)'] },
     leaves: [
-      { r: [LF.x0, 148, LF.x1, 200], lines: ['want <i>v</i>(<i>t</i>):', 'use d<i>v</i>/<i>f</i>(<i>v</i>) = d<i>t</i>'] },
-      { r: [LF.x0, 212, LF.x1, 264], lines: ['want <i>v</i>(<i>x</i>):', 'use <i>v</i> d<i>v</i>/<i>f</i>(<i>v</i>) = d<i>x</i>'] },
+      { r: [LF.x0, 148, LF.x1, 200], lines: ['want <i>v</i>(<i>t</i>):', 'use d<i>v</i>/<i>f</i>\u200a(<i>v</i>) = d<i>t</i>'] },
+      { r: [LF.x0, 212, LF.x1, 264], lines: ['want <i>v</i>(<i>x</i>):', 'use <i>v</i> d<i>v</i>/<i>f</i>\u200a(<i>v</i>) = d<i>x</i>'] },
     ],
   },
-  { branch: { r: [BR.x0, 290, BR.x1, 330], lines: ['<i>a</i> = <i>f</i>(<i>x</i>)'] }, leaves: [{ r: [LF.x0, 286, LF.x1, 334], lines: ['use <i>v</i> d<i>v</i> = <i>a</i> d<i>x</i>'] }] },
+  { branch: { r: [BR.x0, 290, BR.x1, 330], lines: ['<i>a</i> = <i>f</i>\u200a(<i>x</i>)'] }, leaves: [{ r: [LF.x0, 286, LF.x1, 334], lines: ['use <i>v</i> d<i>v</i> = <i>a</i> d<i>x</i>'] }] },
 ];
 /** One step of RK4 for y' = F(s, y), y a vector. */
 function rk4(F: (s: number, y: number[]) => number[], s0: number, y: number[], h: number) {

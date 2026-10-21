@@ -407,8 +407,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Rain-man',
-        main: 'the rain relative to the man is <i>v⃗</i><sub><i>rm</i></sub> = <i>v⃗</i><sub>rain</sub> − <i>v⃗</i><sub><i>m</i></sub>; the umbrella points along <i>v⃗</i><sub><i>rm</i></sub><br>For vertical rain (speed <i>v</i><sub>rain</sub>) and horizontal walking (speed <i>v</i><sub><i>m</i></sub>), the umbrella tilts forward from the vertical by<br>tan <i>α</i> = <i>v</i><sub><i>m</i></sub>/<i>v</i><sub>rain</sub>',
-        legend: ['<i>v⃗</i><sub>rain</sub> = rain velocity (relative to ground)', '<i>v⃗</i><sub><i>m</i></sub> = walking velocity'],
+        main: 'Rain relative to the man: <i>v⃗</i><sub><i>rm</i></sub> = <i>v⃗</i><sub>rain</sub> − <i>v⃗</i><sub><i>m</i></sub><br>For vertical rain (speed <i>v</i><sub>rain</sub>) and horizontal walking (speed <i>v</i><sub><i>m</i></sub>), the umbrella tilts forward from the vertical by:<br>tan <i>α</i> = <i>v</i><sub><i>m</i></sub>/<i>v</i><sub>rain</sub>',
+        legend: ['<i>v⃗</i><sub>rain</sub> = rain velocity (relative to ground)', '<i>v⃗</i><sub><i>m</i></sub> = walking velocity', 'The umbrella points along <i>v⃗</i><sub><i>rm</i></sub>'],
         note: null,
       },
       {

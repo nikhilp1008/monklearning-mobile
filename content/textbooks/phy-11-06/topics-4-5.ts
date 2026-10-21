@@ -420,7 +420,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Principle of moments (about a pivot)',
-        main: 'for balance, anticlockwise moments = clockwise moments<br><i>F</i><sub>1</sub><i>d</i><sub>1</sub> = <i>F</i><sub>2</sub><i>d</i><sub>2</sub> ⇒ (load) × (load arm) = (effort) × (effort arm)',
+        main: 'For balance, anticlockwise moments = clockwise moments<br><i>F</i><sub>1</sub><i>d</i><sub>1</sub> = <i>F</i><sub>2</sub><i>d</i><sub>2</sub> ⇒ (load) × (load arm) = (effort) × (effort arm)',
         legend: [],
         note: null,
       },

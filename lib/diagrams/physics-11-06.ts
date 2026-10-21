@@ -1,4 +1,4 @@
-import { C, F, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import { C, F, Rect, Sketch, r1, mathW } from '@/lib/diagrams/kit';
 import type { Check, Diagram } from '@/lib/diagrams/types';
 
 /**
@@ -110,7 +110,7 @@ const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 function resultBlock(s: Sketch, lines: string[], o: { maths?: boolean; size?: number } = {}): Rect {
   const maths = o.maths ?? true, size = o.size ?? (maths ? 15 : 13), lh = size + 6;
   const plain = (t: string) => t.replace(/<[^>]+>/g, '');
-  const w = Math.max(...lines.map((t) => plain(t).length * size * (maths ? 0.5 : 0.58))) + 30, h = lines.length * lh + 14;
+  const w = Math.max(...lines.map((t) => (maths ? mathW(t, size) : plain(t).length * size * 0.58))) + 30, h = lines.length * lh + 14;
   const x0 = s.w - 8 - w, y0 = s.h - 8 - h;
   s.tags.push({ name: plain(lines.join(' ')), rect: [x0, y0, x0 + w, y0 + h], from: null, to: null });
   s.add(`<rect x="${r1(x0)}" y="${r1(y0)}" width="${r1(w)}" height="${r1(h)}" rx="15" fill="#fff" stroke="${C.text}" stroke-width="1.6"/>`);
@@ -163,9 +163,10 @@ const fig61: Diagram = {
       pts.forEach((p) => { force(s, p.at, p.v, { color: C.mari, w: 2.2 }); s.dot(p.at[0], p.at[1], 2.6); });
       s.dot(O[0], O[1], 3.4);
       const [inner, outer] = pts;
-      s.sym(inner.at[0] - 4, inner.at[1] + inner.v[1] - 6, '<i>v</i><sub>1</sub>', { size: 14, anchor: 'end', color: C.amber });
-      s.sym(outer.at[0] - 6, outer.at[1] + outer.v[1] + 4, '<i>v</i><sub>2</sub>', { size: 14, anchor: 'end', color: C.amber });
-      s.sym(O[0] + inner.r / 2, O[1] + 18, '<i>r</i><sub>1</sub>', { size: 14, color: C.slate });
+      // off the dotted circles: v₁ right of its arrow, v₂ inside the ring between the circles
+      s.sym(inner.at[0] + 6, inner.at[1] - 9, '<i>v</i><sub>1</sub>', { size: 14, anchor: 'start', color: C.amber });
+      s.sym(outer.at[0] - 14, outer.at[1] - 28, '<i>v</i><sub>2</sub>', { size: 14, anchor: 'end', color: C.amber });
+      s.sym(O[0] + inner.r / 2 - 3, O[1] + 18, '<i>r</i><sub>1</sub>', { size: 14, color: C.slate });
       s.sym(O[0] + (inner.r + outer.r) / 2, O[1] + 18, '<i>r</i><sub>2</sub>', { size: 14, color: C.slate });
       path(s, [O, outer.at], { color: C.grey, w: 1, dash: 'dash' });
       const res = resultBlock(s, ['<i>v</i> = <i>rω</i>: outer points faster']);
@@ -258,8 +259,8 @@ const fig62: Diagram = {
     s.sym(...add(add(O, dir(th + dth / 2), R + 16), [6, 2]), 'd<i>θ</i>', { size: 15, color: C.amber });
     s.sym(g.foot[0] + 5, O[1] - 7, '<i>R</i> sin <i>θ</i>', { size: 13, anchor: 'start', color: C.slate });
     s.sym(O[0] - 22, O[1] + 22, 'd<i>m</i> = (<i>M</i>/<i>πR</i>) <i>R</i> d<i>θ</i>', { size: 14, anchor: 'end' });
-    s.sym(W - 6, g.cm[1] - 8, '<i>y</i><sub>cm</sub> = 2<i>R</i>/<i>π</i>', { size: 14, anchor: 'end' });
-    s.sym(O[0], O[1] + 21, 'O');
+    s.sym(W - 6, g.cm[1] - 11, '<i>y</i><sub>cm</sub> = 2<i>R</i>/<i>π</i>', { size: 14, anchor: 'end' });
+    s.sym(O[0], O[1] + 21, '<i>O</i>');
     s.place([
       { t: 'Arc element dm', p: add(O, dir(th + dth / 2), R), hi: true, at: [[W - 8, 14, 'end'], [W - 8, 4, 'end']] },
       { t: 'Centre of mass', p: g.cm, own: g.cm, at: [[O[0] - 40, 46, 'middle'], [O[0] - 40, 34, 'middle']] },
@@ -308,7 +309,7 @@ const fig63: Diagram = {
     s.sym(W - 8, 24, '<i>ω</i> after impact (clockwise)', { size: 15, anchor: 'end', color: C.slate });
     s.sym(B[0] + 10, (B[1] + end[1]) / 2 + 2, '<i>m</i>, <i>v</i>', { size: 16, anchor: 'start', color: C.amber });
     s.sym((O[0] + end[0]) / 2 + 10, O[1] + 26, 'rod, mass <i>M</i>, length <i>L</i>', { size: 15 });
-    s.sym(O[0], O[1] + 26, 'O');
+    s.sym(O[0], O[1] + 26, '<i>O</i>');
     const res = resultBlock(s, ['<i>L</i><sub><i>i</i></sub> = <i>mvL</i> = <i>L</i><sub><i>f</i></sub>', '= (⅓<i>ML</i><sup>2</sup> + <i>mL</i><sup>2</sup>)<i>ω</i>']);
     s.place(
       [
@@ -367,8 +368,8 @@ const fig64: Diagram = {
     s.sym((O[0] + B[0]) / 2, dimY + 21, '<i>d</i><sub>2</sub>', { size: 16, color: C.slate });
     s.sym(A[0] - 8, top - F1 * k + 18, '<i>F</i><sub>1</sub>', { size: 16, anchor: 'end', color: C.amber });
     s.sym(B[0] - 8, top - F2 * k + 18, '<i>F</i><sub>2</sub>', { size: 16, anchor: 'end' });
-    s.sym(O[0], O[1] - 12, 'O');
-    const res = resultBlock(s, ['Σ<i>τ</i><sub><i>O</i></sub> = 0 ⇒ <i>F</i><sub>1</sub><i>d</i><sub>1</sub> = <i>F</i><sub>2</sub><i>d</i><sub>2</sub>']);
+    s.sym(O[0], O[1] - 12, '<i>O</i>');
+    const res = resultBlock(s, ['Σ<i>τ</i><sub><i>O</i></sub> = 0\u2009 ⇒ <i>F</i><sub>1</sub><i>d</i><sub>1</sub> = <i>F</i><sub>2</sub><i>d</i><sub>2</sub>']);
     s.place(
       [
         { t: 'Anticlockwise', p: [A[0], top - F1 * k * 0.45], hi: true, at: [[A[0] + 12, 70, 'start'], [A[0] + 12, 62, 'start']] },
@@ -489,7 +490,7 @@ const fig66: Diagram = {
     s.sym(g.foot[0] + 8, g.foot[1] - 52, '<i>N</i><sub><i>f</i></sub>', { anchor: 'start' });
     s.sym(g.foot[0] - 14, floorY + 26, '<i>f</i>', { color: C.amber });
     s.sym(...add(g.foot, dir(180 - th / 2), 46), '<i>θ</i>', { size: 15, color: C.slate });
-    const res = resultBlock(s, ['<i>f</i> = <i>N</i><sub><i>w</i></sub>,  <i>N</i><sub><i>f</i></sub> = <i>W</i>,', '<i>μ</i><sub>min</sub> = 1/(2 tan <i>θ</i>)']);
+    const res = resultBlock(s, ['<i>f</i>\u2009 = <i>N</i><sub><i>w</i></sub>,  <i>N</i><sub><i>f</i></sub>\u2009 = <i>W</i>,', '<i>μ</i><sub>min</sub> = 1/(2 tan <i>θ</i>)']);
     s.place(
       [
         { t: 'Friction', p: at(g.foot, mul(g.fv, 0.5)), hi: true, at: [[14, 284, 'start'], [14, 296, 'start']] },
@@ -655,7 +656,7 @@ const fig69: Diagram = {
     outOfPage(s, c);
     s.dot(g.at[0], g.at[1], 4.2, C.mari);
     const tip = add(g.at, g.Fv), mid = add(c, dir(phi), g.ri * 0.55);
-    s.sym(tip[0] + 6, tip[1] + 2, '<i>F</i><sub><i>i</i></sub> = <i>m</i><sub><i>i</i></sub><i>r</i><sub><i>i</i></sub><i>α</i>', { size: 15, anchor: 'start', color: C.amber });
+    s.sym(tip[0] + 17, tip[1] - 3, '<i>F</i><sub><i>i</i></sub> = <i>m</i><sub><i>i</i></sub><i>r</i><sub><i>i</i></sub><i>α</i>', { size: 15, anchor: 'start', color: C.amber });
     s.sym(mid[0] + 2, mid[1] + 20, '<i>r</i><sub><i>i</i></sub>', { size: 16, color: C.slate });
     s.sym(g.at[0] + 10, g.at[1] + 22, '<i>m</i><sub><i>i</i></sub>', { size: 16, anchor: 'start' });
     s.sym(...add(c, dir((a0 + a1) / 2), ar + 18), '<i>α</i>', { size: 16 });
@@ -716,7 +717,7 @@ const fig610: Diagram = {
     s.sym(Tx, blockTop - 2 - p.T * mg - 8, '<i>T</i>', { color: C.amber });
     s.sym(sx + 8, bb + mg - 4, '<i>mg</i>', { anchor: 'start' });
     s.sym(sx + bw / 2 + 30, blockTop + 4 + p.a * 40 + 6, '<i>a</i>', { anchor: 'start', color: C.slate });
-    s.sym(...add(add(c, dir(-44), 30), [8, 12]), '<i>α</i>', { size: 15, color: C.slate });
+    s.sym(...add(add(c, dir(-44), 30), [4, 8]), '<i>α</i>', { size: 15, color: C.slate });
     s.sym(c[0] - R - 10, c[1] - 6, '<i>M</i>, <i>R</i>', { size: 15, anchor: 'end' });
     s.sym(c[0] - R - 10, c[1] + 16, '<i>I</i> = ½<i>MR</i><sup>2</sup>', { size: 15, anchor: 'end' });
     const res = resultBlock(s, ['<i>mg</i> − <i>T</i> = <i>ma</i>,  <i>TR</i> = ½<i>MR</i><sup>2</sup><i>α</i>,  <i>a</i> = <i>Rα</i>', '⇒ <i>a</i> = <i>g</i>/(1 + <i>M</i>/2<i>m</i>)'], { size: 14 });
@@ -789,11 +790,11 @@ const fig611: Diagram = {
     const nt = add(g.P0, g.Nv);
     s.sym(nt[0] - 7, nt[1] + 4, '<i>N</i>', { anchor: 'end' });
     s.sym(wt[0] + 8, wt[1] - 3, '<i>mg</i>', { anchor: 'start' });
-    s.sym(add(g.P0, g.fv)[0] + 4, add(g.P0, g.fv)[1] - 5, '<i>f</i>', { anchor: 'start', color: C.amber });
+    s.sym(add(g.P0, g.fv)[0] + 10, add(g.P0, g.fv)[1] - 13, '<i>f</i>', { anchor: 'start', color: C.amber });
     s.sym(Cc[0] - R - 5, g.S[1] + 4, '<i>mg</i> sin <i>θ</i>', { size: 14, anchor: 'end', color: C.slate });
     s.sym(g.E[0] - 28, g.E[1] + 9, '<i>mg</i> cos <i>θ</i>', { size: 14, anchor: 'end', color: C.slate });
     s.sym(...add(foot, dir(th / 2), 64), '<i>θ</i>', { size: 15, color: C.slate });
-    const res = resultBlock(s, ['<i>mg</i> sin <i>θ</i> − <i>f</i> = <i>ma</i>,  <i>fR</i> = <i>Iα</i>,  <i>a</i> = <i>Rα</i>', '⇒ <i>a</i> = <i>g</i> sin <i>θ</i>/(1 + <i>I</i>/<i>mR</i><sup>2</sup>)', '= (5/7)<i>g</i> sin <i>θ</i>  (solid sphere)'], { size: 14 });
+    const res = resultBlock(s, ['<i>mg</i> sin <i>θ</i> − <i>f</i>\u2009 = <i>ma</i>,  <i>fR</i> = <i>Iα</i>,  <i>a</i> = <i>Rα</i>', '⇒ <i>a</i> = <i>g</i> sin <i>θ</i>/(1 + <i>I</i>/<i>mR</i><sup>2</sup>)', '= (5/7)<i>g</i> sin <i>θ</i>  (solid sphere)'], { size: 14 });
     s.place(
       [
         { t: 'Static friction', p: add(g.P0, g.fv, 0.5), hi: true, at: [[W - 3, 158, 'end'], [W - 3, 164, 'end']] },

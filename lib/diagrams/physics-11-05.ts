@@ -1,4 +1,4 @@
-import { C, F, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import { C, F, Rect, Sketch, r1, mathW } from '@/lib/diagrams/kit';
 import type { Check, Diagram } from '@/lib/diagrams/types';
 
 /**
@@ -64,7 +64,7 @@ function words(s: Sketch, x: number, y: number, t: string, o: { size?: number; a
  */
 function resultBlock(s: Sketch, lines: string[], size = 15): Rect {
   const lh = size + 6, plain = (t: string) => t.replace(/<[^>]+>/g, '');
-  const w = Math.max(...lines.map((t) => plain(t).length * size * 0.5)) + 30, h = lines.length * lh + 14;
+  const w = Math.max(...lines.map((t) => mathW(t, size))) + 30, h = lines.length * lh + 14;
   const x0 = s.w - 8 - w, y0 = s.h - 8 - h;
   s.tags.push({ name: plain(lines.join(' ')), rect: [x0, y0, x0 + w, y0 + h], from: null, to: null });
   s.add(`<rect x="${r1(x0)}" y="${r1(y0)}" width="${r1(w)}" height="${r1(h)}" rx="15" fill="#fff" stroke="${C.text}" stroke-width="1.6"/>`);
@@ -166,7 +166,8 @@ const fig51: Diagram = {
     shape(s, g.block);
     // the direction of motion through the block, and θ measured from it to F
     path(s, [O, [O[0] + 128, O[1]]], { color: C.grey, w: 1.2, dash: 'dash' });
-    arc(s, O, 24, 0, c.th);
+    // small enough to stay inside the block (at 24 it ran along the block's edges)
+    arc(s, O, 15, 0, c.th);
     s.sym(...add(add(O, dir(c.th / 2), c.th < 60 ? 50 : 40), [0, 5]), '<i>θ</i>', { size: 15, color: C.slate });
     s.vec(O[0], O[1], O[0] + g.Fv[0], O[1] + g.Fv[1], { color: C.mari, w: 2.6 });
     s.dot(O[0], O[1], 2.6);
@@ -302,12 +303,12 @@ const fig53: Diagram = {
     const mid = (X(f, ta) + X(f, tb)) / 2;
     s.sym(top[0] + 8, top[1] - 16, '<i>U</i> maximum', { size: 14, anchor: 'start' });
     s.sym(bot[0], bot[1] + 25, '<i>U</i> minimum', { size: 14 });
-    s.sym(mid + 63, spanY + 25, '(<i>K</i> = 0)', { size: 14, color: C.slate, anchor: 'start' });
+    s.sym(mid + 63, spanY + 31, '(<i>K</i> = 0)', { size: 14, color: C.slate, anchor: 'start' });
     s.place([
-      { t: 'Unstable equilibrium', p: top, own: top, at: [[top[0], top[1] - 76, 'middle'], [14, top[1] - 76, 'start']] },
+      { t: 'Unstable equilibrium', p: top, own: top, at: [[top[0] + 10, top[1] - 76, 'middle'], [14, top[1] - 76, 'start']] },
       { t: 'Total energy', p: [X(f, 0.6), yE], hi: true, at: [[X(f, -0.1), yE + 10, 'start'], [X(f, -0.1), yE + 16, 'start']] },
       { t: 'Stable equilibrium', p: bot, own: bot, at: [[X(f, ta) - 8, bot[1] + 10, 'end'], [X(f, ta) - 8, bot[1] + 18, 'end']] },
-      { t: 'Turning points', p: [mid, spanY], at: [[mid + 57, spanY + 8, 'end']] },
+      { t: 'Turning points', p: [mid, spanY], at: [[mid + 57, spanY + 14, 'end'], [mid + 57, spanY + 8, 'end']] },
     ]);
     return s;
   },
@@ -381,8 +382,9 @@ const fig54: Diagram = {
     const [l, mid, r] = p.bobs.map((b) => b.at);
     s.place(
       [
-        { t: 'Highest point', p: [l[0], l[1] - R], own: l, at: [[l[0] - 6, l[1] - R - 52, 'middle'], [14, l[1] - 70, 'start']] },
-        { t: 'Highest point', p: [r[0], r[1] - R], own: r, at: [[r[0] + 6, r[1] - R - 52, 'middle'], [W - 8, r[1] - 70, 'end']] },
+        // out at the edges, clear of the strings they used to sit across
+        { t: 'Highest point', p: [l[0], l[1] - R], own: l, at: [[2, l[1] - R - 52, 'start'], [2, l[1] - R - 44, 'start']] },
+        { t: 'Highest point', p: [r[0], r[1] - R], own: r, at: [[W - 2, r[1] - R - 52, 'end'], [W - 2, r[1] - R - 44, 'end']] },
         { t: 'Lowest point', p: [mid[0], mid[1] + R], own: mid, at: [[mid[0], mid[1] + R + 12, 'middle']] },
       ],
       [res]
@@ -431,7 +433,7 @@ const fig55: Diagram = {
       const f = FP55;
       axes(s, f, { t: [0, 1.08], v: [0, 1.22], tName: '<i>t</i>', vName: '<i>P</i>' });
       const cx = X(f, 0.5), cy = Y(f, 0.42);
-      slivers(s, f, P55, 0, 1, [[cx - 54, cy - 34, cx + 54, cy + 22]]);
+      slivers(s, f, P55, 0, 1, [[cx - 62, cy - 38, cx + 62, cy + 26]]);
       curve(s, f, P55, 0, 1, { color: C.mari, w: 2.6 });
       s.sym(cx, cy - 18, 'Area under', { size: 15 });
       s.sym(cx, cy, '<i>P</i>-<i>t</i> curve', { size: 15 });
@@ -556,7 +558,7 @@ const fig56: Diagram = {
     s.vec(s2[0], s2[1], s2[0] + g.v2[0], s2[1] + g.v2[1], { w: 2.2 });
     const t1 = add(s1, g.v1), t2 = add(s2, g.v2);
     s.sym(t1[0] + 8, t1[1] + 4, '<i>v</i><sub>1</sub>', { size: 15, anchor: 'start' });
-    s.sym(t2[0] + 10, t2[1] - 4, '<i>v</i><sub>2</sub>', { size: 15, anchor: 'start' });
+    s.sym(t2[0] + 8, t2[1] - 12, '<i>v</i><sub>2</sub>', { size: 15, anchor: 'start' });
     s.place([{ t: 'Line of impact', p: add(g.C1, g.line, 2 * R + 112), at: [[W - 8, add(g.C1, g.line, 2 * R + 112)[1] + 10, 'end'], [W - 8, 300, 'end']] }]);
     return s;
   },

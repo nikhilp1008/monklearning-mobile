@@ -89,6 +89,7 @@ import {
   STIXTwoText_400Regular,
   STIXTwoText_400Regular_Italic,
   STIXTwoText_600SemiBold,
+  STIXTwoText_600SemiBold_Italic,
 } from '@expo-google-fonts/stix-two-text';
 // Its companion for the maths symbols the text face lacks (√ ≈ ⇒ ≠ …); see components/textbook/markup.tsx.
 import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
@@ -173,6 +174,7 @@ export default function RootLayout() {
     STIXTwoText_400Regular,
     STIXTwoText_400Regular_Italic,
     STIXTwoText_600SemiBold,
+    STIXTwoText_600SemiBold_Italic,
     STIXTwoMath_400Regular,
   });
   if (fontsError) {

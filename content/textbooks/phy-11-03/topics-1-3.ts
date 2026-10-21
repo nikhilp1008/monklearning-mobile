@@ -381,7 +381,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Scalar triple product',
-        main: '<i>A⃗</i> · (<i>B⃗</i> × <i>C⃗</i>) = |<i>A</i><sub><i>x</i></sub> <i>A</i><sub><i>y</i></sub> <i>A</i><sub><i>z</i></sub> ; <i>B</i><sub><i>x</i></sub> <i>B</i><sub><i>y</i></sub> <i>B</i><sub><i>z</i></sub> ; <i>C</i><sub><i>x</i></sub> <i>C</i><sub><i>y</i></sub> <i>C</i><sub><i>z</i></sub>|<br>|<i>A⃗</i> · (<i>B⃗</i> × <i>C⃗</i>)| = volume of the parallelepiped<br><i>A⃗</i> · (<i>B⃗</i> × <i>C⃗</i>) = 0 ⇔ <b>the three vectors are coplanar.</b>',
+        main: '<i>A⃗</i> · (<i>B⃗</i> × <i>C⃗</i>) = |<i>A</i><sub><i>x</i></sub> <i>A</i><sub><i>y</i></sub> <i>A</i><sub><i>z</i></sub> ; <i>B</i><sub><i>x</i></sub> <i>B</i><sub><i>y</i></sub> <i>B</i><sub><i>z</i></sub> ; <i>C</i><sub><i>x</i></sub> <i>C</i><sub><i>y</i></sub> <i>C</i><sub><i>z</i></sub>|<br>|<i>A⃗</i> · (<i>B⃗</i> × <i>C⃗</i>)| = volume of the parallelepiped<br><i>A⃗</i> · (<i>B⃗</i> × <i>C⃗</i>) = 0 ⇔ the three vectors are coplanar.',
         legend: [],
         note: null,
       },

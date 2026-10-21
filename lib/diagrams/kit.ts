@@ -14,8 +14,9 @@
  * thing if one dot or label is out of place, so a Sketch records every tag,
  * point and label it draws, and `audit` checks the result: every tag inside
  * the frame, no tag on another tag, a point or a label, and no tag line
- * running through a point it does not name. The tests run it on every case of
- * every diagram, next to each diagram's own physics checks.
+ * running through a point it does not name or through another tag. The
+ * tests run it on every case of every diagram, next to each diagram's own
+ * physics checks.
  *
  * Drawings are SVG strings, drawn on device by react-native-svg's SvgXml.
  * Fonts are named by their loaded family (see app/_layout.tsx). Maths text is
@@ -35,6 +36,43 @@ export const RESULT_SIZE = 14;
 export const LABEL_GAP = 4;
 export const tagW = (t: string) => t.length * TAG_SIZE * 0.56 + 20;
 export const resultW = (t: string) => t.length * RESULT_SIZE * 0.58 + 28;
+
+/** Em widths of STIX Two as Android sets it, by kind of character (measured on the 2026-10-20 sweep). */
+const EM: [RegExp, number][] = [
+  [/[ \u00a0]/, 0.33],
+  [/[⇒→←↔⇔]/, 1],
+  [/[WMΩΣ∑]/, 0.9],
+  [/[mwΔ⅓⅔½¼¾]/, 0.75],
+  [/[=+−×<>≤≥≈±∶]/, 0.68],
+  [/[A-Z]/, 0.7],
+  [/[ijlrtfı]/, 0.32],
+  [/[a-z]/, 0.5],
+  [/[α-ω]/, 0.55],
+  [/[0-9]/, 0.5],
+  [/[()[\]/,.:;′'|]/, 0.33],
+  [/[²³¹⁰⁴-⁹₀-₉]/, 0.35],
+  [/[\u20d7\u0302\u0304\u2060\u200a\u2009]/, 0],
+];
+/**
+ * How wide a line of maths (<i>, <sub>, <sup>) runs, in STIX at `size`. A
+ * flat half-em a character left boxes too narrow for "ΔQ = ΔU + ΔW" and
+ * "(⅓ML² + mL²)ω" on Android, so each character counts by its kind; never
+ * less than the old half-em estimate, so no box shrinks.
+ */
+export function mathW(html: string, size: number): number {
+  let em = 0, small = 0, n = 0;
+  const re = /<(\/?)(i|sub|sup)>|([^<]+|<)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    if (m[2]) { if (m[2] !== 'i') small += m[1] ? -1 : 1; continue; }
+    for (const ch of m[3]) {
+      const k = EM.find(([r]) => r.test(ch))?.[1] ?? 0.6;
+      em += k * (small > 0 ? 0.7 : 1);
+      n++;
+    }
+  }
+  return Math.max(em, n * 0.5) * size;
+}
 
 export type Rect = [number, number, number, number];
 /** A piece of maths text: STIX, with <i>, <sub> and <sup>; (x, y) is its baseline point. */
@@ -185,6 +223,9 @@ export class Sketch {
         const own = sp.own ?? p;
         if (this.points.some((pt) => Math.hypot(pt.x - own[0], pt.y - own[1]) > 3 && near([pt.x, pt.y], p, end) < pt.r + 3)) continue;
         if (this.labels.some((l) => crosses(p, end, l.rect, -LABEL_GAP))) continue;
+        // a tag line never runs through another tag, nor a tag across another tag's line
+        if (placed.some((q) => crosses(p, end, q, -2))) continue;
+        if (this.tags.some((t) => t.from && t.to && crosses(t.from, t.to, r, -2))) continue;
         this.tag(x, y, sp.t, p[0], p[1], { hi: sp.hi, anchor });
         placed.push(r);
         done = true;
@@ -233,6 +274,7 @@ export function audit(s: Sketch): string[] {
     if (!t.from || !t.to) return;
     s.points.forEach((p) => { if (Math.hypot(p.x - t.from![0], p.y - t.from![1]) > p.r + 1.5 && near([p.x, p.y], t.from!, t.to!) < p.r + 2) out.push(`the line from "${t.name}" crosses a point it does not name`); });
     s.labels.forEach((l) => { if (crosses(t.from!, t.to!, l.rect, -LABEL_GAP)) out.push(`the line from "${t.name}" runs through or brushes the label "${l.text}"`); });
+    s.tags.forEach((u) => { if (u !== t && crosses(t.from!, t.to!, u.rect, -2)) out.push(`the line from "${t.name}" runs through the tag "${u.name}"`); });
   });
   return [...new Set(out)];
 }

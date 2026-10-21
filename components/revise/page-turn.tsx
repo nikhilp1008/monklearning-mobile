@@ -132,8 +132,9 @@ export const PageTurn = forwardRef<PageTurnHandle, Props>(function PageTurn({ co
           <Animated.View style={[st.strip, { width: size.w * count, height: size.h }, strip]}>
             {Array.from({ length: count }, (_, i) => (
               <Page key={i} i={i} pos={pos} land={land} landIndex={landIndex} w={size.w} h={size.h}>
-                {/* only the pages near the one in view are drawn */}
-                {Math.abs(i - index) <= 1 ? renderPage(i) : null}
+                {/* only the pages near the one in view are drawn: two either side, so a
+                    fast double turn lands on a drawn page, not a blank card */}
+                {Math.abs(i - index) <= 2 ? renderPage(i) : null}
               </Page>
             ))}
           </Animated.View>

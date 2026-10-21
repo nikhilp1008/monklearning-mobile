@@ -28,7 +28,7 @@ export default function TextbookFormulasScreen() {
     () =>
       chapter
         ? chapter.topics
-            .map((t, ti) => ({ heading: `Topic ${ti + 1} · ${t.title.split(',')[0]}`, rows: cards.map((c, k) => ({ c, k })).filter(({ c }) => c.topic === ti).map(({ c, k }) => ({ key: k, html: c.name })) }))
+            .map((t, ti) => ({ heading: `${t.extra ? `Additional ${t.n}` : `Topic ${ti + 1}`} · ${t.title.split(',')[0]}`, rows: cards.map((c, k) => ({ c, k })).filter(({ c }) => c.topic === ti).map(({ c, k }) => ({ key: k, html: c.name })) }))
             .filter((g) => g.rows.length)
         : [],
     [chapter, cards]

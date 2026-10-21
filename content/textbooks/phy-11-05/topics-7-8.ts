@@ -49,7 +49,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Coefficient of restitution',
-        main: '<i>e</i> = velocity of separation/velocity of approach = (<i>v</i><sub>2</sub> − <i>v</i><sub>1</sub>)/(<i>u</i><sub>1</sub> − <i>u</i><sub>2</sub>)',
+        main: '<i>e</i> = (velocity of separation)/(velocity of approach) = (<i>v</i><sub>2</sub> − <i>v</i><sub>1</sub>)/(<i>u</i><sub>1</sub> − <i>u</i><sub>2</sub>)',
         legend: [],
         note: '<i>e</i> = 1 (perfectly elastic), 0 < <i>e</i> < 1 (inelastic), <i>e</i> = 0 (perfectly inelastic).',
       },

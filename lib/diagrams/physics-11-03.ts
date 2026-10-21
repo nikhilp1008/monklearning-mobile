@@ -169,8 +169,8 @@ const fig32: Diagram = {
   topic: 1,
   name: 'Dot and cross products, in pictures',
   cases: [
-    { chip: 'Left: dot', part: 'dot', cap: 'Left: dot product, <i>A</i>·<i>B</i> = <i>A</i>(<i>B</i> cos <i>θ</i>), where <i>B</i> cos <i>θ</i> is the projection of <i>B</i> on <i>A</i>.' },
-    { chip: 'Right: cross', part: 'cross', cap: 'Right: cross product, |<i>A</i> × <i>B</i>| = <i>AB</i> sin <i>θ</i> = area of the shaded parallelogram; <i>C</i> = <i>A</i> × <i>B</i> is perpendicular to the plane of <i>A</i> and <i>B</i>.' },
+    { chip: 'Dot product', part: 'dot', cap: 'Dot product: <i>A</i>·<i>B</i> = <i>A</i>(<i>B</i> cos <i>θ</i>), where <i>B</i> cos <i>θ</i> is the projection of <i>B</i> on <i>A</i>.' },
+    { chip: 'Cross product', part: 'cross', cap: 'Cross product: |<i>A</i> × <i>B</i>| = <i>AB</i> sin <i>θ</i> = area of the shaded parallelogram; <i>C</i> = <i>A</i> × <i>B</i> is perpendicular to the plane of <i>A</i> and <i>B</i>.' },
   ],
   draw(c: Case32) {
     const s = new Sketch(W, 290);
@@ -378,7 +378,8 @@ const fig34: Diagram = {
     s.sym(...add(polar(O, 31, th / 2), [1, 5]), '<i>θ</i>', { size: 14 });
     s.sym(U[0] - 10, U[1] - 6, '<i>u</i>', { size: 16, anchor: 'end' });
     s.sym(U[0] + 5, (O[1] + U[1]) / 2 + 9, '<i>u</i> sin <i>θ</i>', { size: 14, color: C.slate, anchor: 'start' });
-    s.sym((O[0] + U[0]) / 2, O[1] + 17, '<i>u</i> cos <i>θ</i>', { size: 14, color: C.slate });
+    // right of the y-axis stub, which ran into its u when centred
+    s.sym(O[0] + 8, O[1] + 17, '<i>u</i> cos <i>θ</i>', { size: 14, color: C.slate, anchor: 'start' });
     // the apex: height H, velocity u cos θ only
     path(s, [apex, [apex[0], O[1]]], { color: C.slate, w: 1.2, dash: 'dash' });
     s.vec(apex[0], apex[1], apexTip[0], apexTip[1], { w: 2.1 });
@@ -446,8 +447,8 @@ const fig35: Diagram = {
   topic: 4,
   name: 'River crossing: least time or shortest path',
   cases: [
-    { chip: 'Minimum time', part: 'time', cap: 'River crossing. Left: minimum time, with the boat heading straight across, so the resultant (ground) velocity is tilted downstream and the boat drifts.' },
-    { chip: 'Shortest path', part: 'path', cap: 'Right: shortest path, with the boat heading upstream at angle <i>θ</i> so the resultant points straight across. <i>d</i> is the river width.' },
+    { chip: 'Minimum time', part: 'time', cap: 'River crossing in minimum time, with the boat heading straight across, so the resultant (ground) velocity is tilted downstream and the boat drifts.' },
+    { chip: 'Shortest path', part: 'path', cap: 'River crossing by the shortest path, with the boat heading upstream at angle <i>θ</i> so the resultant points straight across. <i>d</i> is the river width.' },
   ],
   draw(c: Case35) {
     const s = new Sketch(W, 290);
@@ -531,8 +532,8 @@ const fig36: Diagram = {
   topic: 5,
   name: 'Why the acceleration points to the centre',
   cases: [
-    { chip: 'Left: the circle', part: 'circle', cap: 'Left: a particle moves on a circle of centre <i>O</i> from <i>P</i> to <i>Q</i>; the velocities <i>v</i><sub>1</sub> and <i>v</i><sub>2</sub> are tangent to the circle with equal speed <i>v</i>, and <i>OP</i> and <i>OQ</i> subtend a small angle Δ<i>θ</i>.' },
-    { chip: 'Right: Δv', part: 'triangle', cap: 'Right: <i>v</i><sub>1</sub> and <i>v</i><sub>2</sub> drawn tail-to-tail with angle Δ<i>θ</i> between them; their difference Δ<i>v</i> = <i>v</i><sub>2</sub> − <i>v</i><sub>1</sub> points toward <i>O</i>.' },
+    { chip: 'The circle', part: 'circle', cap: 'A particle moves on a circle of centre <i>O</i> from <i>P</i> to <i>Q</i>; the velocities <i>v</i><sub>1</sub> and <i>v</i><sub>2</sub> are tangent to the circle with equal speed <i>v</i>, and <i>OP</i> and <i>OQ</i> subtend a small angle Δ<i>θ</i>.' },
+    { chip: 'The change Δv', part: 'triangle', cap: 'Velocities <i>v</i><sub>1</sub> and <i>v</i><sub>2</sub> drawn tail-to-tail with angle Δ<i>θ</i> between them; their difference Δ<i>v</i> = <i>v</i><sub>2</sub> − <i>v</i><sub>1</sub> points toward <i>O</i>.' },
   ],
   draw(c: Case36) {
     const s = new Sketch(W, 312);
@@ -554,7 +555,8 @@ const fig36: Diagram = {
       s.dot(g.Q[0], g.Q[1], 3.2);
       s.sym(O[0] + 6, O[1] + 18, '<i>O</i>', { anchor: 'start' });
       s.sym(g.P[0] - 8, g.P[1] - 6, '<i>P</i>', { anchor: 'end' });
-      s.sym(g.Q[0] + 6, g.Q[1] + 16, '<i>Q</i>', { anchor: 'start' });
+      // above Q: below it, the v₂ arrow ran into it
+      s.sym(g.Q[0] + 5, g.Q[1] - 11, '<i>Q</i>');
       s.sym(g.v1tip[0] - 2, g.v1tip[1] - 9, '<i>v</i><sub>1</sub>', { size: 16, anchor: 'middle' });
       s.sym(g.v2tip[0] + 6, g.v2tip[1] + 5, '<i>v</i><sub>2</sub>', { size: 16, anchor: 'start' });
       s.place([{ t: 'Path from P to Q', p: polar(O, r, 100), hi: true, at: [[12, 8, 'start'], [12, 36, 'start']] }]);
