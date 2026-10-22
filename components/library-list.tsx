@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   LayoutAnimation,
@@ -26,7 +27,7 @@ import { OfflineBanner, QuietLink, StateCard, StateLine } from '@/components/sta
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { ApiError, friendlyLoadError } from '@/lib/api';
+import { ApiError, friendlyError, friendlyLoadError } from '@/lib/api';
 import { hapticSoft } from '@/lib/haptics';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
@@ -422,11 +423,23 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     (id: string) => {
       const index = doubts.findIndex((d) => d.id === id);
       if (index < 0) return;
-      armUndo({ kind: 'doubt', index, item: doubts[index] }, () => {
+      const item = doubts[index];
+      armUndo({ kind: 'doubt', index, item }, () => {
         // DELETE /doubts/{id} drops one question, and the photo only when no
         // other question still uses it — which is why these are one card per
         // question. Runs only once undo is no longer on offer.
-        deleteDoubt(id).catch(() => {});
+        deleteDoubt(id).catch((err) => {
+          // It used to be swallowed: the card was gone, the doubt was not,
+          // and the next refetch quietly brought it back as if the eraser had
+          // never worked. Put it back now, where it was, and say so.
+          setDoubts((prev) => {
+            if (prev.some((d) => d.id === id)) return prev;
+            const next = prev.slice();
+            next.splice(Math.min(index, next.length), 0, item);
+            return next;
+          });
+          Alert.alert("Couldn't erase that doubt", friendlyError(err, 'erase it'));
+        });
       });
       setDoubts((prev) => prev.filter((d) => d.id !== id));
     },
