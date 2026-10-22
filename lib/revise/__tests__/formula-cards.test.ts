@@ -12,6 +12,8 @@ import ch11 from '@/content/textbooks/phy-11-11-thermodynamics';
 import ch12 from '@/content/textbooks/phy-11-12-kinetic-theory';
 import ch13 from '@/content/textbooks/phy-11-13-oscillations';
 import ch14 from '@/content/textbooks/phy-11-14-waves';
+import p12c3 from '@/content/textbooks/phy-12-03-current-electricity';
+import p12c4 from '@/content/textbooks/phy-12-04-moving-charges-magnetism';
 import { buildFormulaCards, formulaName, isWordBracket, italicMaths, keepTogether, pieceWidth, softBreaks, titleBreaks } from '@/lib/revise/formula-cards';
 
 const OPS = '=+−⟹⟺⇔⇌≈→⇒∝';
@@ -186,7 +188,7 @@ describe('keepTogether, pass 2', () => {
 describe('softBreaks: labels and meanings', () => {
   const nb = (s: string) => s.replace(/\u00a0/g, '·').replace(/\u2060/g, '¦');
   it('never after an operator, nor inside a number with its units', () => {
-    expect(nb(softBreaks('Boltzmann constant, <i>R</i>/<i>N</i><sub>A</sub> = 1.38 × 10<sup>−23</sup> J K<sup>−1</sup>'))).toContain('=·1.38 ×·10<sup>−23</sup>·J·K<sup>−1</sup>');
+    expect(nb(softBreaks('Boltzmann constant, <i>R</i>/<i>N</i><sub>A</sub> = 1.38 × 10<sup>−23</sup> J K<sup>−1</sup>'))).toContain('=·1.38·×·10<sup>−23</sup>·J·K<sup>−1</sup>');
     expect(nb(softBreaks('universal gas constant, 8.314 J mol<sup>−1</sup> K<sup>−1</sup>'))).toContain('8.314·J·mol<sup>−1</sup>·K<sup>−1</sup>');
     expect(nb(softBreaks('volume of the body submerged (= volume of fluid displaced)'))).toContain('(=·volume');
   });
@@ -228,5 +230,57 @@ describe('lead-ins', () => {
   it('turns "with molar heat capacity C = …" into a label', () => {
     const c = card(ch11, /Polytropic/);
     expect(c.items.find((it) => it.label === 'With molar heat capacity')).toBeDefined();
+  });
+});
+
+/** Android review of Physics 12 Chapters 3 and 4 (2026-10-22). */
+describe('a number times a number is one number', () => {
+  it('never breaks either side of the × in "4π × 10⁻⁷", in a formula or in the words around it', () => {
+    const long = '<i>μ</i><sub>0</sub> = 4π × 10<sup>−7</sup> T m A<sup>−1</sup> ≈ 1.257 × 10<sup>−6</sup> T m A<sup>−1</sup> (the permeability of free space)';
+    const kept = keepTogether(long);
+    expect(kept).toContain('4π\u00a0×\u00a010<sup>');
+    expect(kept).toContain('1.257\u00a0×\u00a010<sup>');
+    expect(kept).not.toMatch(/ ×|× /);
+    expect(softBreaks('the permeability of free space, 4π × 10<sup>−7</sup> T m A<sup>−1</sup>')).toContain('4π\u00a0×\u00a010<sup>−7</sup>');
+    expect(softBreaks('electronic charge, 1.6 × 10<sup>−19</sup> C')).toContain('1.6\u00a0×\u00a010');
+  });
+  it('but a symbol times a number may still break: "1000 W × 3600 s"', () => {
+    expect(softBreaks('a b c 1000 W × 3600 s')).toContain('W ×\u00a03600');
+  });
+});
+
+describe('card names, Physics 12', () => {
+  it('keeps the upright d of a differential upright: I dl⃗', () => {
+    expect(formulaName('Field of a single moving point charge (replacing <i>I</i> d<i>l⃗</i> by <i>q</i><i>v⃗</i>)', true)).toContain('<i>I</i> d<i>l⃗</i> by');
+    // a lone d is still a distance
+    expect(formulaName('Force per unit length between two long parallel wires (separation d)', true)).toContain('<i>d</i>)');
+  });
+  it('keeps a non-breaking space the kicker set: "(N turns"', () => {
+    expect(formulaName('Torque on a current loop / coil (<i>N</i>\u00a0turns, area <i>A</i>)', true)).toContain('(<i>N</i>\u00a0turns,');
+  });
+});
+
+describe('Physics 12 Ch 3 and 4 cards', () => {
+  const c3 = buildFormulaCards(p12c3), c4 = buildFormulaCards(p12c4);
+  it('the commercial unit keeps the book\'s words as its label and breaks before its second "="', () => {
+    const c = c3.find((k) => /Commercial unit of energy/.test(k.name))!;
+    expect(c.items.map((it) => [it.label, shown(it.expr)])).toEqual([
+      ['1 kilowatt-hour (kWh)', '1\u00a0kWh\u00a0=\u00a01000\u00a0W\u00a0×\u00a03600\u00a0s'],
+      [null, '=\u00a03.6\u00a0×\u00a0106\u00a0J'],
+    ]);
+  });
+  it('the two Wheatstone cards set P/Q = R/S ⟺ PS = QR the same way', () => {
+    const [a, b] = c3.filter((k) => /^Wheatstone bridge/.test(k.name));
+    expect(a.items[0].expr).toBe(b.items[0].expr);
+  });
+  it('the orbital moment\'s l is italic, never an upright l that reads as 1', () => {
+    const c = c4.find((k) => /Revolving electron/.test(k.name))!;
+    for (const it of c.items) expect(it.expr).not.toContain('<sub>l</sub>');
+    expect(c.items.filter((it) => it.expr.includes('<i>μ</i><sub><i>l</i></sub>'))).toHaveLength(2);
+  });
+  it('the torque card keeps "N turns" together and its last B⃗ with "and"', () => {
+    const c = c4.find((k) => /^Torque on a current loop/.test(k.name))!;
+    expect(c.name).toContain('(<i>N</i>\u00a0turns,');
+    expect(c.meaning.find((m) => m.sym === '<i>θ</i>')!.text).toMatch(/and\u00a0<i>B⃗<\/i>$/);
   });
 });

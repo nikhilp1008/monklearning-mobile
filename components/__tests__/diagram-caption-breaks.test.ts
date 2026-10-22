@@ -43,6 +43,12 @@ describe('a short sum or product never splits', () => {
     expect(shown('<i>C</i> = <i>A</i> × <i>B</i> is perpendicular')).toBe('C·=·A·×·B is perpendicular');
     expect(shown('Δ<i>v</i> = <i>v</i><sub>2</sub> − <i>v</i><sub>1</sub> points')).toBe('Δv·=·v2·−·v1 points');
   });
+  it('a chain of any length joins every pair, not only the first: Q₁ + Q₂ + Q₃', () => {
+    expect(shown('so <i>Q</i> = <i>Q</i><sub>1</sub> + <i>Q</i><sub>2</sub> + <i>Q</i><sub>3</sub>.')).toBe('so·Q·=·Q1·+·Q2·+·Q3.');
+    expect(shown('<i>a</i> + <i>b</i> − <i>c</i> × <i>d</i> + <i>e</i> then')).toBe('a·+·b·−·c·×·d·+·e then');
+    // still one symbol each side: a longer term ends the chain
+    expect(shown('<i>A</i> + <i>B</i> + <i>CD</i> + <i>E</i>')).toBe('A·+·B +·CD +·E');
+  });
   it('+ and − inside a short bracket', () => {
     expect(shown('<i>T</i><sub>2</sub> = (<i>R</i><sub>2</sub><i>T</i><sub>1</sub> + <i>R</i><sub>1</sub><i>T</i><sub>3</sub>)/(<i>R</i><sub>1</sub>+<i>R</i><sub>2</sub>).')).toContain('(R2T1·+·R1T3)');
     expect(shown('<i>y</i> = ½<i>φ</i>(<i>x</i> − <i>vt</i>) + ½<i>φ</i>(<i>x</i> + <i>vt</i>).')).toBe('y·=·½φ(x·−·vt) +·½φ(x·+·vt).');
@@ -68,6 +74,25 @@ describe('a word keeps its number or letter', () => {
   });
   it('but not a word that only follows a number', () => {
     expect(captionBreaks('thrown at 2 mass')).not.toContain(`2${NB}mass`);
+  });
+});
+
+describe('Physics 12 Ch 3 captions (Android review, 2026-10-22)', () => {
+  it('a number keeps Ω and the other electrical units: "2 Ω" never splits', () => {
+    expect(shown('<i>E</i><sub>2</sub> = 4 V with 2 Ω internal resistance')).toContain('4·V with·2·Ω internal');
+    for (const u of ['kΩ', 'MΩ', 'μA', 'mA', 'mV', 'kV', 'μF', 'nF', 'pF', 'T', 'mT', 'μT', 'Wb']) expect(shown(`a 5 ${u} part`)).toBe(`a 5·${u} part`);
+    // not a word that only starts like one
+    expect(shown('at 2 Twice')).not.toContain('2·Twice');
+  });
+  it('a ratio of two symbols keeps its "=": "P/Q = R/S"', () => {
+    expect(shown('At balance the current is zero and <i>P</i>/<i>Q</i> = <i>R</i>/<i>S</i>.')).toContain('and P/Q·=·R/S.');
+  });
+  it('a point or segment named in upright capitals keeps its "=": "AD = l", "DC = 100 − l"', () => {
+    const out = shown('At the null point AD = <i>l</i> and DC = 100 − <i>l</i>.');
+    expect(out).toContain('AD·=·l');
+    expect(out).toContain('DC·=·100');
+    // a word is not a point name
+    expect(shown('so the Total = 4')).toBe('so the Total =·4');
   });
 });
 

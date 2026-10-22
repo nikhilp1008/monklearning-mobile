@@ -233,8 +233,31 @@ const NUMERIC_RUN = /^[0-9+\-−=() ]+$/;
  * run moves together, so M⁻ʸ⁺ᶻ stays one piece in one face.
  */
 const DRAWN_SUP = 0.7;
-const SUP_RISE = 0.16;
-const SUB_DROP = 0.34;
+export const SUP_RISE = 0.16;
+/**
+ * How far a drawn subscript's box is lowered, in ems of the line's size.
+ * Measured on the Android review screenshots of Physics 12 Ch 2 (2026-10-22,
+ * 1080 px wide, the formula's 19 at 53.3 px an em): a drawn script's own
+ * baseline sits 0.227 em above the bottom of its box (font 0.7, line 0.77),
+ * and STIX's lowered digits (₁, bbox bottom −229/1000) sit 0.229 em below the
+ * line's baseline. At 0.34 the drawn letters sat 6 px (0.113 em) above the
+ * digits beside them: Cₙ next to C₁, Qᵢ next to Q₁ ("series" bottom 571,
+ * ₁ bottom 577, "1" bottom 565). 0.227 + 0.229 = 0.456, so 0.45 puts a drawn
+ * subscript on the digits' baseline.
+ */
+export const SUB_DROP = 0.45;
+/**
+ * A subscript that is only a sign, E₋ and E₊. STIX's own ₋ and ₊ (and a minus
+ * lowered as far as a subscript is) centre the sign on the baseline, where a
+ * lone minus is a bar along the foot of the letter and E₋ read as "E_" (Android
+ * review of Physics 12 Ch 1, 2026-10-22). So the sign is drawn, lowered only
+ * this far: a small minus's bar (STIX's maths axis, 0.258 of its 0.7 em) then
+ * sits 0.14 em above the baseline, low enough to read as a subscript and high
+ * enough to read as a minus (0.227 + 0.7 × 0.258 − 0.27 = 0.14). The plus goes
+ * with it, so E₊ and E₋ sit level. lib/diagrams/kit.ts tspans matches it.
+ */
+export const SIGN_SUB_DROP = 0.27;
+const SIGN_ONLY = /^\s*[+\-−]\s*$/;
 type Ink = { family?: string; color?: TextStyle['color'] };
 
 /**
@@ -255,7 +278,65 @@ export const isWordScript = (run: string) => /[A-Za-z]{2,}/.test(run);
  */
 export const WJ = '\u2060';
 
-function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink) {
+function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, drop = SUB_DROP) {
+  const shift = name === 'sup' ? -size * SUP_RISE : size * drop;
+  return (
+    <View key={key} style={{ transform: [{ translateY: shift }] }}>
+      {scriptText(name, children, size, key, ink)}
+    </View>
+  );
+}
+
+/**
+ * A subscript and a superscript on one base, Σ from i=1 to n, ∫ from A to B,
+ * vₓ², ᴬ_Z X: ONE inline View, the superscript above, the subscript below,
+ * both from the left edge, as wide as the wider of the two. Drawn as two
+ * runs side by side they staggered ("Σ i=1 ⁿ", the n to the right of the
+ * i=1; Android review of Physics 12 Ch 2, 2026-10-22).
+ *
+ * Each half lands exactly where a single drawn run of its kind would: the
+ * whole View is raised as a superscript is, and the subscript is lowered
+ * from there by the rise and the drop together. The subscript is pulled back
+ * over the superscript by a negative margin, so the View's own box is one
+ * script high, the same box a single run puts in the line: on Android that
+ * box is the line's ascent (an inline View is a placeholder sitting on the
+ * baseline), and a taller one would push its line's baseline down.
+ */
+function drawnPair(sup: Node[], sub: Node[], size: number, key: string, ink: Ink, italicBase = false) {
+  const line = size * DRAWN_SUP * 1.1;
+  return (
+    <View key={key} style={{ alignItems: 'flex-start', transform: [{ translateY: -size * SUP_RISE }] }}>
+      {/* After an italic letter the superscript steps right of the letter's
+          overhang (see PAIR_KERN); the subscript stays tucked under it. */}
+      <View style={{ height: line, marginLeft: italicBase ? size * PAIR_KERN : 0 }}>{scriptText('sup', sup, size, `${key}.p`, ink)}</View>
+      <View style={{ height: line, marginTop: -line, transform: [{ translateY: size * (SUP_RISE + SUB_DROP) }] }}>
+        {scriptText('sub', sub, size, `${key}.b`, ink)}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * How far a stacked pair's superscript stands off an italic base. An italic
+ * letter's top leans past its own advance (STIX's italic r by 0.033 em, f and
+ * the capitals more), and the pair starts at that advance, so the "2" of
+ * rᵢ² ran into the arm of the r (Android review of Physics 12 Ch 1,
+ * 2026-10-22). STIX's own ² carries a side bearing that clears it; the drawn
+ * "2", set small, does not. A single drawn superscript is not moved: STIX's
+ * raised digits are glyphs, and a raised letter (xⁿ) is italic, leaning the
+ * same way as its base.
+ */
+const PAIR_KERN = 0.05;
+
+/** Does the run before index i end in an italic letter (so a script after it meets the letter's overhang)? */
+function italicBefore(nodes: Node[], i: number, ink: Ink): boolean {
+  const prev = nodes[i - 1];
+  if (!prev) return false;
+  if (prev.kind === 'tag' && prev.name === 'i') return true;
+  return prev.kind === 'text' && isItalicFamily(ink.family) && /\S$/.test(prev.value);
+}
+
+function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink) {
   const small = size * DRAWN_SUP;
   // A raised letter is an exponent, a variable (Mᵃ, xⁿ), so it is italic like
   // every other variable, even where the content left it upright. Not a word
@@ -265,13 +346,10 @@ function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: stri
   // stay upright as they are everywhere else (V^(γ−1), not V^(γ−1) slanted whole).
   const italic = name === 'sup' && !label && (!ink.family || ink.family === STIX.regular);
   const kids = italic ? italicLetters(children) : children;
-  const shift = name === 'sup' ? -size * SUP_RISE : size * SUB_DROP;
   return (
-    <View key={key} style={{ transform: [{ translateY: shift }] }}>
-      <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
-        {render(kids, small, key, 'stix', ink)}
-      </Text>
-    </View>
+    <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
+      {render(kids, small, key, 'stix', ink)}
+    </Text>
   );
 }
 
@@ -295,6 +373,41 @@ for (const [k, v] of Object.entries(SUBS)) if (/[a-z]/.test(k)) LETTER_OF[v] = [
 const READY_LETTERS = new RegExp(`[${Object.keys(LETTER_OF).join('')}]`, 'gu');
 function untypeLetters(html: string): string {
   return html.replace(READY_LETTERS, (c) => `<${LETTER_OF[c][1]}>${LETTER_OF[c][0]}</${LETTER_OF[c][1]}>`).replace(/<\/(sup|sub)><\1>/g, '');
+}
+
+/**
+ * A sliver of space where two glyphs meet that the font never set side by
+ * side (Android review of Physics 12 Ch 1–2, 2026-10-22). Each is followed by
+ * a word joiner (see WJ): these spaces are places a line may break, and these
+ * must not.
+ *
+ * - After a vector arrow, before a closing bar or bracket: |τ⃗|. The combining
+ *   arrow over an italic letter reaches past the letter's advance (STIX's
+ *   U+20D7 runs to x = 137, and the phone set its head 4 px into the bar, to
+ *   the bar's far edge). A THIN SPACE (U+2009, 0.125 em, 6.7 px at the
+ *   formula's 19) clears it by about 2.5 px.
+ * - After a lowered digit, before an italic capital with a foot: ε₀A, 4πε₀R.
+ *   STIX's ₀ ends 0.027 em short of its advance and the italic A begins
+ *   0.062 em before its own, so the two touched. A HAIR SPACE (U+200A,
+ *   0.063 em) parts them. Only the capitals whose foot reaches left of their
+ *   advance: C, O, V and the like lean away and are left alone. Every lowered
+ *   digit, ₀ to ₉, and a <sub> of digits: μ₀I₁I₂ has two.
+ * - After an italic capital, before its superscript: I²R, E², V². The
+ *   capital's top leans past its advance (STIX's italic I by 0.052 em, V by
+ *   0.099) and STIX's ² starts only 0.027 em into its own, so the 2 met the
+ *   serif (Android review of Physics 12 Ch 3, 2026-10-22). The same hair
+ *   space, as a stacked pair steps off its letter by PAIR_KERN; not before a
+ *   stacked pair (I²ₓ), which steps itself.
+ */
+const HAIR = '\u200a', THIN = '\u2009';
+const ARROW_BEFORE_CLOSER = /\u20d7(<\/i>)?(?=[|‖)\]}])/g;
+const DIGIT_SUB_BEFORE_FOOTED_CAPITAL = /(<sub>[0-9]+<\/sub>|[₀-₉])(?=<i>[ABDEFHIJKLMNPRXZ])/g;
+const ITALIC_CAPITAL_BEFORE_SUP = /(<i>[^<]*[A-Z]<\/i>)(?=<sup>(?:(?!<\/sup>).)*<\/sup>(?!<sub>))/g;
+export function hairSpaces(html: string): string {
+  return html
+    .replace(ARROW_BEFORE_CLOSER, `\u20d7$1${THIN}${WJ}`)
+    .replace(DIGIT_SUB_BEFORE_FOOTED_CAPITAL, `$1${HAIR}${WJ}`)
+    .replace(ITALIC_CAPITAL_BEFORE_SUP, `$1${HAIR}${WJ}`);
 }
 
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {
@@ -325,63 +438,108 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLoo
   }
 }
 
+type Script = { kind: 'tag'; name: 'sup' | 'sub'; children: Node[] };
+const isScript = (n: Node | undefined): n is Script => !!n && n.kind === 'tag' && (n.name === 'sup' || n.name === 'sub');
+
+/**
+ * A <sub> straight after a <sup>, or a <sup> straight after a <sub>: the two
+ * scripts of one base, drawn stacked (see drawnPair). Not when both are digits
+ * and signs (v₀², ⁴₂He): those stay STIX's own raised and lowered glyphs, the
+ * same as everywhere else, which sit at their own heights already.
+ */
+function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script } | null {
+  const a = nodes[i], b = nodes[i + 1];
+  if (!isScript(a) || !isScript(b) || a.name === b.name) return null;
+  if (NUMERIC_RUN.test(plainText(a.children)) && NUMERIC_RUN.test(plainText(b.children))) return null;
+  return a.name === 'sup' ? { sup: a, sub: b } : { sup: b, sub: a };
+}
+
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
-  return nodes.map((node, i) => {
-    const key = `${keyPrefix}.${i}`;
-    if (node.kind === 'text') {
-      const value = look === 'stix' && isItalicFamily(ink.family) ? node.value.replace(/g/g, ITALIC_G) : node.value;
-      return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(value), key) : asText(value)}</Fragment>;
-    }
-    if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
-
-    if (node.name === 'sup' || node.name === 'sub') {
-      const run = plainText(node.children);
-      // STIX look: digits and signs are STIX's own raised glyphs; anything with a letter is drawn.
-      // The reader draws them the same way: Unicode has a lowered x but no
-      // lowered y or z, so A<sub>y</sub> sat on the line beside a lowered Aₓ.
-      // Joined on both sides (see WJ), so the script never leaves its letter
-      // and the letter after it never leaves the script.
-      if ((look === 'stix' || look === 'pilot') && !NUMERIC_RUN.test(run))
-        return (
-          <Fragment key={key}>
-            {WJ}
-            {drawnRun(node.name, node.children, size, `${key}.d`, ink)}
-            {WJ}
-          </Fragment>
-        );
-      // Unicode raised letters are drawn by whichever font on the device
-      // happens to carry each one, and they do not share a baseline or a
-      // weight. One or two characters reads fine; "initial" as seven of them
-      // comes out visibly staggered, which is worse than the styled fallback.
-      // So map short runs, and let longer ones go through as scaled text.
-      // The pilot raises longer runs too: any numeric run (10⁻¹⁹), and a run
-      // of up to 8 that maps character for character (M⁻ʸ⁺ᶻ, Lˣ⁺³ʸ⁺²ᶻ), which
-      // otherwise fell back to small text on the baseline and read as "M−y+z".
-      // The STIX look raises like the pilot's: STIX has the raised digits, and
-      // a raised letter it lacks (Mᵃ) is drawn by the system font, which is a
-      // closer match than the fallback below. That fallback cannot move text
-      // off the baseline in React Native, so a "raised" a sat low and read as
-      // a subscript: the wrong meaning, which is worse than a near-match glyph.
-      const mappable = run.length <= 2 || ((look === 'pilot' || look === 'stix') && (NUMERIC_RUN.test(run) || run.length <= 8));
-      const raised = mappable ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
-      // Raised glyphs need no size change; they are already small and in the
-      // right place. Shrinking them again would make them unreadable.
-      if (raised) return <Fragment key={key}>{raised}</Fragment>;
-      return (
-        <Text key={key} style={styleFor(node.name, size, look)}>
-          {render(node.children, size * 0.72, key, look, ink)}
-        </Text>
+  const out: ReactNode[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const pair = look === 'stix' || look === 'pilot' ? scriptPair(nodes, i) : null;
+    if (pair) {
+      const key = `${keyPrefix}.${i}`;
+      // Joined on both sides like a single drawn run (see WJ): one unit, never split from its base.
+      out.push(
+        <Fragment key={key}>
+          {WJ}
+          {drawnPair(pair.sup.children, pair.sub.children, size, `${key}.d`, ink, italicBefore(nodes, i, ink))}
+          {WJ}
+        </Fragment>
       );
+      i++;
+      continue;
     }
+    out.push(renderNode(nodes[i], i, size, keyPrefix, look, ink));
+  }
+  return out;
+}
 
-    // Maths letters in a SemiBold run (a card's name) are SemiBold italic.
-    const style = node.name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(node.name, size, look);
+function renderNode(node: Node, i: number, size: number, keyPrefix: string, look: MarkupLook, ink: Ink): ReactNode {
+  const key = `${keyPrefix}.${i}`;
+  if (node.kind === 'text') {
+    const value = look === 'stix' && isItalicFamily(ink.family) ? node.value.replace(/g/g, ITALIC_G) : node.value;
+    return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(value), key) : asText(value)}</Fragment>;
+  }
+  if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
+
+  if (node.name === 'sup' || node.name === 'sub') {
+    const run = plainText(node.children);
+    // A sign on its own, lowered less than a letter or digit is (see SIGN_SUB_DROP).
+    if ((look === 'stix' || look === 'pilot') && node.name === 'sub' && SIGN_ONLY.test(run))
+      return (
+        <Fragment key={key}>
+          {WJ}
+          {drawnRun('sub', [{ kind: 'text', value: run.trim().replace('-', '−') }], size, `${key}.d`, ink, SIGN_SUB_DROP)}
+          {WJ}
+        </Fragment>
+      );
+    // STIX look: digits and signs are STIX's own raised glyphs; anything with a letter is drawn.
+    // The reader draws them the same way: Unicode has a lowered x but no
+    // lowered y or z, so A<sub>y</sub> sat on the line beside a lowered Aₓ.
+    // Joined on both sides (see WJ), so the script never leaves its letter
+    // and the letter after it never leaves the script.
+    if ((look === 'stix' || look === 'pilot') && !NUMERIC_RUN.test(run))
+      return (
+        <Fragment key={key}>
+          {WJ}
+          {drawnRun(node.name, node.children, size, `${key}.d`, ink)}
+          {WJ}
+        </Fragment>
+      );
+    // Unicode raised letters are drawn by whichever font on the device
+    // happens to carry each one, and they do not share a baseline or a
+    // weight. One or two characters reads fine; "initial" as seven of them
+    // comes out visibly staggered, which is worse than the styled fallback.
+    // So map short runs, and let longer ones go through as scaled text.
+    // The pilot raises longer runs too: any numeric run (10⁻¹⁹), and a run
+    // of up to 8 that maps character for character (M⁻ʸ⁺ᶻ, Lˣ⁺³ʸ⁺²ᶻ), which
+    // otherwise fell back to small text on the baseline and read as "M−y+z".
+    // The STIX look raises like the pilot's: STIX has the raised digits, and
+    // a raised letter it lacks (Mᵃ) is drawn by the system font, which is a
+    // closer match than the fallback below. That fallback cannot move text
+    // off the baseline in React Native, so a "raised" a sat low and read as
+    // a subscript: the wrong meaning, which is worse than a near-match glyph.
+    const mappable = run.length <= 2 || ((look === 'pilot' || look === 'stix') && (NUMERIC_RUN.test(run) || run.length <= 8));
+    const raised = mappable ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
+    // Raised glyphs need no size change; they are already small and in the
+    // right place. Shrinking them again would make them unreadable.
+    if (raised) return <Fragment key={key}>{raised}</Fragment>;
     return (
-      <Text key={key} style={style}>
-        {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: style.fontFamily } : ink)}
+      <Text key={key} style={styleFor(node.name, size, look)}>
+        {render(node.children, size * 0.72, key, look, ink)}
       </Text>
     );
-  });
+  }
+
+  // Maths letters in a SemiBold run (a card's name) are SemiBold italic.
+  const style = node.name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(node.name, size, look);
+  return (
+    <Text key={key} style={style}>
+      {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: style.fontFamily } : ink)}
+    </Text>
+  );
 }
 
 export interface MarkupProps {
@@ -394,7 +552,7 @@ export interface MarkupProps {
 }
 
 export function Markup({ html, size, style, numberOfLines, look = 'current' }: MarkupProps) {
-  const nodes = useMemo(() => parse(look === 'stix' ? untypeLetters(html) : html), [html, look]);
+  const nodes = useMemo(() => parse(look === 'stix' ? hairSpaces(untypeLetters(html)) : look === 'pilot' ? hairSpaces(html) : html), [html, look]);
   // A drawn raised run sits in a View, which does not inherit from the Text
   // around it, so it is handed the face and colour it is set in.
   const flat = StyleSheet.flatten(style) ?? {};

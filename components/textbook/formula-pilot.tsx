@@ -73,7 +73,12 @@ export function PilotFormula({
   return (
     <View style={s.card}>
       <Text style={kicker(type)}>formula</Text>
-      <Text style={s.title}>{formulaTitle(block.kicker, book)}</Text>
+      {/<\/?(i|sub|sup)>/.test(block.kicker) ? (
+        // A book title that names a symbol ("…of dielectric constant <i>K</i>") sets it as maths.
+        <Markup html={formulaTitle(block.kicker, true)} size={type(17)} style={s.title} look="pilot" />
+      ) : (
+        <Text style={s.title}>{formulaTitle(block.kicker, book)}</Text>
+      )}
       <Markup html={block.main} size={type(FORMULA_SIZE)} style={s.main} look="pilot" />
       {block.legend.length > 0 && (
         <View style={s.symbols}>{block.legend.map((line, i) => read(legendHtml(line), i))}</View>

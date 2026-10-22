@@ -12,6 +12,10 @@ import ch11 from '@/content/textbooks/phy-11-11-thermodynamics';
 import ch12 from '@/content/textbooks/phy-11-12-kinetic-theory';
 import ch13 from '@/content/textbooks/phy-11-13-oscillations';
 import ch14 from '@/content/textbooks/phy-11-14-waves';
+import c12ch1 from '@/content/textbooks/phy-12-01-electric-charges-fields';
+import c12ch2 from '@/content/textbooks/phy-12-02-potential-capacitance';
+import c12ch3 from '@/content/textbooks/phy-12-03-current-electricity';
+import c12ch4 from '@/content/textbooks/phy-12-04-moving-charges-magnetism';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -34,10 +38,16 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14] as Chapter[]) {
-  describe(`Physics 11 Chapter ${Number(chapter.chapter)}, from the book`, () => {
-    const regular = chapter.topics.filter((t) => !t.extra);
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4] as Chapter[]) {
+  const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
+  describe(`Physics ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
+    // A chapter may open with the book's own guide (n "00"), before Topic 01.
+    const regular = chapter.topics.filter((t) => !t.extra && t.n !== '00');
     const extras = chapter.topics.filter((t) => t.extra);
+
+    it('puts a chapter guide, if any, first', () => {
+      expect(chapter.topics.slice(1).some((t) => t.n === '00')).toBe(false);
+    });
 
     it('lists its topics before its additional topics', () => {
       const firstExtra = chapter.topics.findIndex((t) => t.extra);
@@ -93,7 +103,7 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
       const used = new Set(
         chapter.topics.flatMap((t) => t.blocks).flatMap((b) => (b.t === 'fig' ? [b.id] : b.t === 'ex' && b.fig ? [b.fig] : []))
       );
-      const key = `physics|11|${Number(chapter.chapter)}`;
+      const key = `physics|${klass}|${Number(chapter.chapter)}`;
       expect((DIAGRAMS[key] ?? []).map((d) => d.id).filter((id) => !used.has(id))).toEqual([]);
     });
 

@@ -18,7 +18,9 @@
  * tests run it on every case of every diagram, next to each diagram's own
  * physics checks.
  *
- * Drawings are SVG strings, drawn on device by react-native-svg's SvgXml.
+ * Drawings are SVG strings, drawn on device by react-native-svg, parsed with
+ * their text decoded (components/revise/diagram-card.tsx): the parser copies
+ * text as it stands, so an escaped "&" here would show as "&amp;" without it.
  * Fonts are named by their loaded family (see app/_layout.tsx). Maths text is
  * kept apart (`texts`): react-native-svg mis-spaces a line that switches
  * between STIX's regular and italic faces, so on device it is set by the
@@ -103,7 +105,11 @@ export function tspans(html: string, size: number): string {
     }
     const italic = stack.includes('i'), sub = stack.includes('sub'), sup = stack.includes('sup');
     const sz = sub || sup ? r1(size * 0.7) : size;
-    const want = sub ? r1(size * 0.28) : sup ? r1(-size * 0.45) : 0;
+    // A subscript that is only a sign (E₋, E₊) is lowered less, so the minus's
+    // bar sits 0.14 em above the baseline, not on it as "E_" (the same height
+    // as on the phone: SIGN_SUB_DROP in components/textbook/markup.tsx).
+    const sign = sub && /^\s*[+\-−]\s*$/.test(m[3]);
+    const want = sub ? r1(size * (sign ? 0.04 : 0.28)) : sup ? r1(-size * 0.45) : 0;
     const dy = r1(want - at);
     at = want;
     out += `<tspan font-family="${italic ? F.stixI : F.stix}" font-size="${sz}"${dy ? ` dy="${dy}"` : ''}>${esc(m[3]).replace(/</g, '&lt;')}</tspan>`;

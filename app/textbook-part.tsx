@@ -38,7 +38,7 @@ import { nextReadingSize, READING_SIZE_LABEL, readingMultiplier } from '@/lib/re
 import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { lastFollowUpContext } from '@/lib/last-followup';
 import { openReportSheet } from '@/lib/reports';
-import { Chapter, groupBlocks, loadChapter, pageTextAround, RenderBlock, renderBlockText, Topic, topicName, topicPlainText } from '@/lib/textbooks';
+import { Chapter, groupBlocks, loadChapter, pageTextAround, RenderBlock, renderBlockText, Topic, numberedTopics, topicMark, topicName, topicPlainText } from '@/lib/textbooks';
 import { useOnScreenBlocks } from '@/lib/textbook-on-screen';
 
 /**
@@ -69,11 +69,12 @@ const EASE = Easing.bezier(0.2, 0.75, 0.2, 1);
 type Page = { kind: 'part'; part: ChapterPart } | { kind: 'done'; topic: number; parts: ChapterPart[] };
 
 const short = (t: Topic) => topicName(t);
-/** "Topic 2 of 6", counting the regular topics only, or "Additional topic B". */
+/** "Topic 2 of 6", counting the regular topics only, "Additional topic B", or "Chapter guide". */
 const topicLabel = (c: Chapter, ti: number) => {
-  const t = c.topics[ti];
-  if (t?.extra) return `Additional topic ${t.n}`;
-  return `Topic ${ti + 1} of ${c.topics.filter((x) => !x.extra).length}`;
+  const m = topicMark(c, ti);
+  if (m.kind === 'extra') return `Additional topic ${m.n}`;
+  if (m.kind === 'guide') return m.label;
+  return `Topic ${m.n} of ${numberedTopics(c).length}`;
 };
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

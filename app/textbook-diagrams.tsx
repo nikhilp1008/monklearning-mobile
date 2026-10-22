@@ -15,6 +15,7 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DIAGRAMS } from '@/lib/diagrams';
 import { chapterKey, useRouteChapter } from '@/lib/revise/use-chapter';
+import { topicMark } from '@/lib/textbooks';
 
 /**
  * DIAGRAMS: a gallery, then one at a time.
@@ -89,7 +90,7 @@ export default function TextbookDiagramsScreen() {
                   {item.name}
                 </Text>
                 <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(12), color: colors.faint, marginTop: scale(-4) }} numberOfLines={1}>
-                  {chapter.topics[item.topic].extra ? `Additional ${chapter.topics[item.topic].n}` : `Topic ${item.topic + 1}`} · {chapter.topics[item.topic].title.split(',')[0]}
+                  {topicMark(chapter, item.topic).label} · {chapter.topics[item.topic].title.split(',')[0]}
                 </Text>
               </Pressable>
             )}

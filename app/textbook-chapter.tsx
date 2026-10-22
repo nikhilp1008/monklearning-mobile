@@ -15,7 +15,7 @@ import { DIAGRAMS } from '@/lib/diagrams';
 import { buildFormulaCards } from '@/lib/revise/formula-cards';
 import { KEY_POINTS } from '@/lib/revise/keypoints';
 import { chapterKey, useRouteChapter } from '@/lib/revise/use-chapter';
-import { topicName } from '@/lib/textbooks';
+import { topicMark, topicName } from '@/lib/textbooks';
 
 /**
  * A CHAPTER'S HOME: what to revise from, then the topics to read.
@@ -106,7 +106,8 @@ export default function TextbookChapterScreen() {
               // lettered as the book letters them.
               const extra = !!t.extra;
               const firstExtra = extra && !chapter.topics[ti - 1]?.extra;
-              const mark = extra ? t.n : String(ti + 1).padStart(2, '0');
+              const m = topicMark(chapter, ti);
+              const mark = m.kind === 'topic' ? m.n.padStart(2, '0') : m.kind === 'extra' ? m.n : '';
               return (
                 <View key={`${extra ? 'x' : 't'}${t.n}`}>
                   {firstExtra && (
@@ -115,7 +116,7 @@ export default function TextbookChapterScreen() {
                   <Pressable
                     onPress={() => void openTopic(ti)}
                     accessibilityRole="button"
-                    accessibilityLabel={`${extra ? 'Additional topic' : 'Topic'} ${extra ? t.n : ti + 1}, ${topicName(t)}`}
+                    accessibilityLabel={m.kind === 'guide' ? topicName(t) : `${m.kind === 'extra' ? 'Additional topic' : 'Topic'} ${m.n}, ${topicName(t)}`}
                     style={({ pressed }) => [s.row, { paddingVertical: scale(14), gap: scale(10) }, pressed && s.pressed]}>
                     <Text style={[s.num, { fontSize: scale(13), width: scale(24) }]}>{mark}</Text>
                     <Text style={[s.rowTitle, s.grow, { fontSize: scale(15), lineHeight: scale(22) }]}>{topicName(t)}</Text>

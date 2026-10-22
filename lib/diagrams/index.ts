@@ -12,6 +12,11 @@ import { DIAGRAMS_PHYSICS_11_11 } from '@/lib/diagrams/physics-11-11';
 import { DIAGRAMS_PHYSICS_11_12 } from '@/lib/diagrams/physics-11-12';
 import { DIAGRAMS_PHYSICS_11_13 } from '@/lib/diagrams/physics-11-13';
 import { DIAGRAMS_PHYSICS_11_14 } from '@/lib/diagrams/physics-11-14';
+import { DIAGRAMS_PHYSICS_12_01 } from '@/lib/diagrams/physics-12-01';
+import { DIAGRAMS_PHYSICS_12_02 } from '@/lib/diagrams/physics-12-02';
+import { DIAGRAMS_PHYSICS_12_03 } from '@/lib/diagrams/physics-12-03';
+import { DIAGRAMS_PHYSICS_12_03B } from '@/lib/diagrams/physics-12-03b';
+import { DIAGRAMS_PHYSICS_12_04 } from '@/lib/diagrams/physics-12-04';
 import type { Diagram } from '@/lib/diagrams/types';
 
 /** The redrawn diagrams, by chapter ("physics|11|1"). Chapters not here have none yet. */
@@ -30,6 +35,11 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'physics|11|12': DIAGRAMS_PHYSICS_11_12,
   'physics|11|13': DIAGRAMS_PHYSICS_11_13,
   'physics|11|14': DIAGRAMS_PHYSICS_11_14,
+  'physics|12|1': DIAGRAMS_PHYSICS_12_01,
+  'physics|12|2': DIAGRAMS_PHYSICS_12_02,
+  // Chapter 3 was drawn by two people at once, in two files, in figure order.
+  'physics|12|3': [...DIAGRAMS_PHYSICS_12_03, ...DIAGRAMS_PHYSICS_12_03B],
+  'physics|12|4': DIAGRAMS_PHYSICS_12_04,
 };
 
 const BY_ID = new Map(Object.values(DIAGRAMS).flat().map((d) => [d.id, d]));

@@ -34,6 +34,25 @@ export const symbolHtml = (sym: string) => `${sym.replace(/ /g, '\u00a0')}\u200a
 /** A trailing hair space: room for the pixel Android can lose between measuring a text and drawing it (see symbolHtml). */
 const SLACK = '\u200a';
 
+/**
+ * Room above a text's first line, given without moving it: padding inside the
+ * text, the same taken back by a negative margin. Android clips a text's
+ * glyphs at the text's own top, and a vector arrow over a tall italic letter
+ * (dl⃗, and b⃗, d⃗, f⃗, h⃗, k⃗ the same) rises past it: in a fraction's numerator
+ * (16 on a 21 line) and in a meaning's symbol the arrow over l lost its head
+ * to a flat bar (Android review of Physics 12 Ch 4, 2026-10-22: Biot–Savart,
+ * Ampère's "∮ B⃗ · dl⃗"). The same fix as a diagram's laid-over labels
+ * (components/revise/diagram-card.tsx); the line spacing does not change.
+ */
+/**
+ * In ems. A first line's top sits A + (line − A − D)/2 above its baseline
+ * (React Native's CustomLineHeightSpan; STIX's A and D are 0.762 and 0.238),
+ * 0.92 em on a fraction's 16-on-21 line, and the arrow over a tall letter
+ * reaches past 1 em.
+ */
+const ARROW_ROOM = 0.35;
+export const headroom = (size: number) => ({ paddingTop: size * ARROW_ROOM, marginTop: -size * ARROW_ROOM });
+
 /** A bracket as tall as a fraction, for √( … ) around one. */
 function TallBracket({ ch, scale }: { ch: string; scale: (n: number) => number }) {
   return (
@@ -50,7 +69,7 @@ function Fraction({ part, scale, maxWidth }: { part: Extract<Part, { kind: 'frac
   // of plain words may wrap, and centres its own lines.
   const side = (html: string) => {
     const words = !html.includes('<su');
-    const text = <Markup html={html + SLACK} size={scale(TEXT)} look="stix" style={[s.text, words && s.center, { fontSize: scale(TEXT), lineHeight: scale(FRAC_LINE), color: colors.ink }]} />;
+    const text = <Markup html={html + SLACK} size={scale(TEXT)} look="stix" style={[s.text, words && s.center, { fontSize: scale(TEXT), lineHeight: scale(FRAC_LINE), color: colors.ink }, headroom(scale(TEXT))]} />;
     return words ? text : <View style={s.middle}>{text}</View>;
   };
   const frac = (
@@ -128,7 +147,7 @@ export function FormulaCard({ card }: { card: Card }) {
                 // laid out a pixel narrower and broke: a⃗ over its "t", "x and"
                 // with the "y" lost. symbolHtml gives it a hanging space of slack.
                 <View style={s.sym}>
-                  <Markup html={symbolHtml(m.sym)} size={scale(TEXT)} look="stix" style={[s.text, { fontSize: scale(TEXT), lineHeight: scale(TEXT_LINE), color: colors.ink }]} />
+                  <Markup html={symbolHtml(m.sym)} size={scale(TEXT)} look="stix" style={[s.text, { fontSize: scale(TEXT), lineHeight: scale(TEXT_LINE), color: colors.ink }, headroom(scale(TEXT))]} />
                 </View>
               ) : (
                 <Fragment>

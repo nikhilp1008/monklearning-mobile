@@ -67,14 +67,15 @@ export function titleBreaks(name: string): string {
  * "Effective g", "Projection of A⃗ along B⃗"), so the card's title showed
  * upright symbols over italic ones. A single letter on its own (with its
  * arrow, hat or scripts), or a Greek letter, is maths; π stays upright as it
- * does in the formulas, and "a" or "A" before a word is the article.
+ * does in the formulas, "a" or "A" before a word is the article, and a "d"
+ * set straight against an <i> is a differential, upright as written (I dl⃗).
  */
 const LETTER = /[A-Za-zα-ωϕϑ]/;
 export function italicMaths(name: string): string {
   let inside = 0;
   return name
     .split(/(<[^>]+>)/)
-    .map((part) => {
+    .map((part, k, all) => {
       if (part.startsWith('<')) {
         if (/^<(i|sub|sup)>$/.test(part)) inside++;
         else if (/^<\/(i|sub|sup)>$/.test(part)) inside = Math.max(0, inside - 1);
@@ -84,6 +85,8 @@ export function italicMaths(name: string): string {
       return part.replace(/[A-Za-zα-ωϕϑ]+[\u20d7\u0302]?[₀-₉ₐₑₒₓₕₖₗₘₙₚₛₜ]*/g, (w, at: number) => {
         const before = part[at - 1] ?? '', after = part[at + w.length] ?? '';
         if (LETTER.test(before) || LETTER.test(after) || /['’0-9]/.test(before) || /['’]/.test(after)) return w;
+        // The upright d of a differential, written against its maths: "I d<i>l⃗</i>" (Physics 12 Ch 4).
+        if (w === 'd' && at + 1 === part.length && all[k + 1] === '<i>') return w;
         // "e.g.", "i.e."
         if ((after === '.' && LETTER.test(part[at + w.length + 1] ?? '')) || (before === '.' && LETTER.test(part[at - 2] ?? ''))) return w;
         const letters = w.replace(/[^A-Za-zα-ωϕϑ]/g, '');
@@ -103,7 +106,8 @@ export function italicMaths(name: string): string {
 
 /** "The conversion master relation" from "FORMULA · THE CONVERSION MASTER RELATION". */
 export function formulaName(kicker: string, asPrinted = false): string {
-  const raw = stripToMaths(kicker.replace(/^FORMULA\s*·\s*/i, '')).replace(/\s+/g, ' ').trim();
+  // Runs of spaces become one, but a non-breaking space the content set on purpose stays ("N\u00a0turns").
+  const raw = stripToMaths(kicker.replace(/^FORMULA\s*·\s*/i, '')).replace(/[^\S\u00a0]+/g, ' ').trim();
   // The books print their names with proper capitals ("Relative velocity of A
   // with respect to B"); lowering them made A and B read as maths letters.
   if (asPrinted) return titleBreaks(italicMaths(raw));
@@ -119,6 +123,15 @@ const NB = '\u00a0';
 const WORD_SP = '\ue000', MATH_SP = '\ue001';
 /** A non-breaking space no later rule may open again: a short symbol held to its operator. */
 const STICK = '\ue002';
+/** A non-breaking space nothing may open, not even a line too long to fit: see TIMES_NUMBER. */
+const GLUE = '\ue003';
+/**
+ * A number times a number is one number: "4π × 10⁻⁷", "3.6 × 10⁶", "1.6 × 10⁻¹⁹".
+ * The legends broke "4π | × 10⁻⁷" (Android review of Physics 12 Ch 4,
+ * 2026-10-22). The left side ends on a digit, π or an exponent; the right
+ * starts on a digit.
+ */
+const TIMES_NUMBER = /([0-9π]|<\/sup>)[ \u00a0]×[ \u00a0](?=[0-9])/g;
 const FUNCTION_NAMES = /\b(?:sin|cos|tan|cot|sec|cosec|csc|log|ln|exp|lim|max|min)\b/g;
 
 /**
@@ -186,7 +199,7 @@ const SHORT_CLAUSE = 24;
  * operator after it.
  */
 export function keepTogether(expr: string): string {
-  const joined = markBrackets(expr)
+  const joined = markBrackets(expr.replace(TIMES_NUMBER, `$1${GLUE}×${GLUE}`))
     .replace(/ /g, '\u00a0')
     .replace(new RegExp(`\u00a0([${OPS}])\u00a0`, 'g'), ' $1\u00a0')
     // A long line mostly in words ("= constant (angular momentum conserved)")
@@ -226,7 +239,7 @@ export function keepTogether(expr: string): string {
     .split(' ')
     .map((p) => loosen(p))
     .join(' ')
-    .replace(new RegExp(STICK, 'g'), NB)
+    .replace(new RegExp(`[${STICK}${GLUE}]`, 'g'), NB)
     // A "|" lets a line break even before a non-breaking space; the joiner holds it.
     .replace(/\|\u00a0/g, '|\u2060\u00a0');
 }
@@ -410,10 +423,12 @@ const UNIT_END = '(?=<sup>|[\\s,.;)\\]]|$)';
  * review, 2026-10-20): never after an operator ("e =" / "1"), never between a
  * number and its unit or one unit and the next ("8.314 J mol⁻¹" / "K⁻¹"),
  * never inside a short bracket ("(0 ≤ θ ≤" / "π)", "[M" / "T⁻³ Θ⁻⁴]"), never
- * between cos and its angle, never after a slash ("shape/" / "size").
+ * between cos and its angle, never after a slash ("shape/" / "size"), never
+ * either side of the × in a number ("4π" / "× 10⁻⁷").
  */
 export function softBreaks(h: string): string {
   let out = h
+    .replace(TIMES_NUMBER, '$1\u00a0×\u00a0')
     .replace(/([=≤≥⇌≈∝≠±∓×+−→⇒⟹⇔⟺]) /g, '$1\u00a0')
     .replace(/ ([<>]) /g, ' $1\u00a0')
     .replace(new RegExp(`([0-9]|</sup>) (?=${UNIT}${UNIT_END})`, 'g'), '$1\u00a0')

@@ -13,7 +13,8 @@ import TestRenderer, { act } from 'react-test-renderer';
 
 import { captionBreaks } from '@/components/revise/diagram-card';
 import { FormulaCard, symbolHtml } from '@/components/revise/formula-card';
-import { ITALIC_G, isWordScript, Markup, STIX, WJ } from '@/components/textbook/markup';
+import { hairSpaces, ITALIC_G, isWordScript, Markup, SIGN_SUB_DROP, STIX, SUB_DROP, WJ } from '@/components/textbook/markup';
+import { tspans } from '@/lib/diagrams/kit';
 import ch4 from '@/content/textbooks/phy-11-04-laws-of-motion';
 import ch5 from '@/content/textbooks/phy-11-05-work-energy-power';
 import ch6 from '@/content/textbooks/phy-11-06-rotational-motion';
@@ -58,6 +59,55 @@ describe('a drawn script never leaves its letter', () => {
   it('a numeric script stays a Unicode character, with no joiners needed', () => {
     const r = draw(<Markup html="<i>m</i><sub>1</sub>" size={19} look="stix" />);
     expect(flat(r.toJSON() as Json)).toBe('m₁');
+  });
+});
+
+describe('a subscript and a superscript on one base are one stacked unit', () => {
+  const shiftOf = (n: Json) => ((StyleSheet.flatten(n.props.style) as { transform?: { translateY: number }[] }).transform?.[0]?.translateY ?? 0);
+  const views = (html: string) => {
+    const r = draw(<Markup html={html} size={20} look="stix" />);
+    return { r, outer: (r.toJSON() as Json).children!.filter((c): c is Json => typeof c === 'object' && c.type === 'View') };
+  };
+
+  it('Σ from i=1 to n: one View, the n above the i=1, between word joiners', () => {
+    const { r, outer } = views('Σ<sub><i>i</i>=1</sub><sup><i>n</i></sup> <i>q</i><sub><i>i</i></sub>');
+    expect(outer).toHaveLength(2); // the pair, and qᵢ's own script
+    expect(flat(r.toJSON() as Json)).toBe(`Σ${WJ}[[n][i=1]]${WJ} q${WJ}[i]${WJ}`);
+    expect(StyleSheet.flatten(outer[0].props.style)).toEqual(expect.objectContaining({ alignItems: 'flex-start' }));
+  });
+
+  it('−∫ from A to B, and a <sup> before its <sub> (ᴬ_Z X), stack the same way', () => {
+    expect(flat(draw(<Markup html="−∫<sub><i>A</i></sub><sup><i>B</i></sup> <i>E⃗</i>" size={20} look="stix" />).toJSON() as Json)).toBe(`−∫${WJ}[[B][A]]${WJ} E⃗`);
+    expect(flat(draw(<Markup html="<sup><i>A</i></sup><sub><i>Z</i></sub>X" size={20} look="stix" />).toJSON() as Json)).toBe(`${WJ}[[A][Z]]${WJ}X`);
+  });
+
+  it('a pair with one drawn half draws both: ∫₀ᵗ, vₓ²', () => {
+    expect(flat(draw(<Markup html="∫<sub>0</sub><sup><i>t</i></sup>" size={20} look="stix" />).toJSON() as Json)).toBe(`∫${WJ}[[t][0]]${WJ}`);
+    expect(flat(draw(<Markup html="<i>v</i><sub><i>x</i></sub><sup>2</sup>" size={20} look="stix" />).toJSON() as Json)).toBe(`v${WJ}[[2][x]]${WJ}`);
+  });
+
+  it('two numeric halves stay STIX’s own glyphs: v₀²', () => {
+    expect(flat(draw(<Markup html="<i>v</i><sub>0</sub><sup>2</sup>" size={20} look="stix" />).toJSON() as Json)).toBe('v₀²');
+  });
+
+  it('each half sits exactly where a single drawn run of its kind sits, in a box one script high', () => {
+    const [pair] = views('Σ<sub><i>i</i>=1</sub><sup><i>n</i></sup>').outer;
+    const [sup] = views('<i>x</i><sup><i>n</i></sup>').outer;
+    const [sub] = views('<i>x</i><sub><i>i</i></sub>').outer;
+    const [top, bottom] = pair.children as Json[];
+    expect(shiftOf(pair) + shiftOf(top)).toBeCloseTo(shiftOf(sup));
+    expect(shiftOf(pair) + shiftOf(bottom)).toBeCloseTo(shiftOf(sub));
+    const b = StyleSheet.flatten(bottom.props.style) as { height: number; marginTop: number };
+    expect(b.marginTop).toBeCloseTo(-b.height);
+  });
+
+  it('in a formula card too, plain and with a fraction on the line', () => {
+    const cardOf = (expr: string): Card => ({ topic: 0, name: 'T', items: [{ label: null, expr, words: false }], meaning: [] });
+    for (const expr of ['<i>V</i> = Σ<sub><i>i</i>=1</sub><sup><i>n</i></sup> <i>V</i><sub><i>i</i></sub>', '<i>U</i> = (sum of pair energies)/(two) Σ<sub><i>i</i>=1</sub><sup><i>n</i></sup> <i>q</i><sub><i>i</i></sub>']) {
+      const r = draw(<FormulaCard card={cardOf(expr)} />);
+      const stacked = nodes(r.toJSON() as Json).filter((n) => n.type === 'View' && (StyleSheet.flatten(n.props.style) as { alignItems?: string })?.alignItems === 'flex-start');
+      expect(stacked).toHaveLength(1);
+    }
   });
 });
 
@@ -217,5 +267,84 @@ describe('diagram captions', () => {
 
   it('leaves the tags alone', () => {
     expect(captionBreaks('<i>x</i>/<i>t</i> and <sub>1</sub>')).toBe('<i>x</i>/\u2060<i>t</i> and <sub>1</sub>');
+  });
+});
+
+describe('where two glyphs meet that the font never set side by side (Physics 12 review, 2026-10-22)', () => {
+  const marginOf = (n: Json) => (StyleSheet.flatten(n.props.style) as { marginLeft?: number }).marginLeft ?? 0;
+  const pairTop = (html: string) => {
+    const pair = nodes(draw(<Markup html={html} size={20} look="stix" />).toJSON() as Json).find((n) => n.type === 'View' && (StyleSheet.flatten(n.props.style) as { alignItems?: string })?.alignItems === 'flex-start')!;
+    return (pair.children as Json[])[0];
+  };
+
+  it('a stacked pair after an italic letter steps its superscript off the letter (rᵢ²), after an upright one it does not (Σ)', () => {
+    expect(marginOf(pairTop('<i>r</i><sub><i>i</i></sub><sup>2</sup>'))).toBeCloseTo(1);
+    expect(marginOf(pairTop('Σ<sub><i>i</i>=1</sub><sup><i>n</i></sup>'))).toBe(0);
+  });
+
+  it('a vector arrow before a closing bar gets a thin space it cannot break at: |τ⃗|', () => {
+    expect(hairSpaces('|<i>τ⃗</i>| = <i>pE</i>')).toBe(`|<i>τ⃗</i>\u2009${WJ}| = <i>pE</i>`);
+    expect(hairSpaces('(<i>E⃗</i>)')).toBe(`(<i>E⃗</i>\u2009${WJ})`);
+    expect(hairSpaces('<i>E⃗</i> = 0')).toBe('<i>E⃗</i> = 0');
+  });
+
+  it('a lowered digit before an italic capital with a foot gets a hair space: ε₀A, 4πε₀R; not before V or C', () => {
+    expect(hairSpaces('ε<sub>0</sub><i>A</i>/<i>d</i>')).toBe(`ε<sub>0</sub>\u200a${WJ}<i>A</i>/<i>d</i>`);
+    expect(hairSpaces('4πε₀<i>R</i>')).toBe(`4πε₀\u200a${WJ}<i>R</i>`);
+    expect(hairSpaces('<i>C</i><sub>1</sub><i>V</i><sub>1</sub>')).toBe('<i>C</i><sub>1</sub><i>V</i><sub>1</sub>');
+    expect(hairSpaces('<i>C</i><sub>1</sub><i>C</i><sub>2</sub>')).toBe('<i>C</i><sub>1</sub><i>C</i><sub>2</sub>');
+  });
+
+  it('every lowered digit gets it, ₀ to ₉ and a <sub> of digits: μ₀I₁I₂ (Physics 12 Ch 4)', () => {
+    expect(hairSpaces('μ<sub>0</sub><i>I</i><sub>1</sub><i>I</i><sub>2</sub>/(2π<i>d</i>)')).toBe(`μ<sub>0</sub>\u200a${WJ}<i>I</i><sub>1</sub>\u200a${WJ}<i>I</i><sub>2</sub>/(2π<i>d</i>)`);
+    for (const d of '₀₁₂₃₄₅₆₇₈₉') expect(hairSpaces(`<i>E</i>${d}<i>I</i>`)).toBe(`<i>E</i>${d}\u200a${WJ}<i>I</i>`);
+    expect(hairSpaces('<i>R</i><sub>12</sub><i>R</i>')).toBe(`<i>R</i><sub>12</sub>\u200a${WJ}<i>R</i>`);
+  });
+
+  it('a superscript after an italic capital steps off its top (I²R, E²), not after a small letter or a subscript', () => {
+    expect(hairSpaces('<i>P</i> = <i>I</i><sup>2</sup><i>R</i>')).toBe(`<i>P</i> = <i>I</i>\u200a${WJ}<sup>2</sup><i>R</i>`);
+    expect(hairSpaces('<i>E</i><sup>2</sup><i>R</i>')).toBe(`<i>E</i>\u200a${WJ}<sup>2</sup><i>R</i>`);
+    expect(hairSpaces('<i>NIA</i><sup><i>n</i></sup>')).toBe(`<i>NIA</i>\u200a${WJ}<sup><i>n</i></sup>`);
+    expect(hairSpaces('<i>r</i><sup>2</sup>')).toBe('<i>r</i><sup>2</sup>');
+    expect(hairSpaces('<i>V</i><sub>rated</sub><sup>2</sup>')).toBe('<i>V</i><sub>rated</sub><sup>2</sup>');
+    // a stacked pair steps itself (PAIR_KERN), so it gets no space too
+    expect(hairSpaces('<i>I</i><sup>2</sup><sub><i>x</i></sub>')).toBe('<i>I</i><sup>2</sup><sub><i>x</i></sub>');
+    expect(flat(draw(<Markup html="<i>I</i><sup>2</sup><i>R</i>" size={19} look="stix" />).toJSON() as Json)).toBe(`I\u200a${WJ}²R`);
+  });
+
+  it('a fraction\'s two sides and a meaning\'s symbol get room above for an arrow over a tall letter (dl⃗), without moving', () => {
+    const card: Card = {
+      topic: 0,
+      name: 'Biot–Savart',
+      items: [{ label: null, expr: keepTogether('d<i>B⃗</i> = (<i>I</i> d<i>l⃗</i> × <i>r̂</i>)/<i>r</i><sup>2</sup>'), words: false }],
+      meaning: [{ sym: '∮ <i>B⃗</i> · d<i>l⃗</i>', text: 'the line integral of <i>B⃗</i> round the loop' }],
+    };
+    const texts = nodes(draw(<FormulaCard card={card} />).toJSON() as Json).filter((n) => n.type === 'Text' && n.props.style);
+    const roomy = texts.map((n) => StyleSheet.flatten(n.props.style) as { paddingTop?: number; marginTop?: number }).filter((st) => (st.paddingTop ?? 0) > 0);
+    // numerator, denominator, the meaning's symbol: and nothing else (the name, the formula's own line and the meaning's words keep their spacing)
+    expect(roomy).toHaveLength(3);
+    for (const st of roomy) {
+      expect(st.paddingTop).toBeGreaterThanOrEqual(16 * 0.3);
+      expect(st.marginTop).toBeCloseTo(-st.paddingTop!);
+    }
+  });
+
+  it('a subscript that is only a sign is drawn, lowered less than a letter, so E₋ is not "E_"', () => {
+    const shift = (html: string) => {
+      const v = nodes(draw(<Markup html={html} size={20} look="stix" />).toJSON() as Json).find((n) => n.type === 'View')!;
+      return (StyleSheet.flatten(v.props.style) as { transform: { translateY: number }[] }).transform[0].translateY;
+    };
+    expect(shift('<i>E</i><sub>−</sub>')).toBeCloseTo(20 * SIGN_SUB_DROP);
+    expect(shift('<i>E</i><sub>+</sub>')).toBeCloseTo(20 * SIGN_SUB_DROP);
+    expect(shift('<i>E</i><sub><i>i</i></sub>')).toBeCloseTo(20 * SUB_DROP);
+    expect(flat(draw(<Markup html="<i>E</i><sub>-</sub>" size={20} look="stix" />).toJSON() as Json)).toBe(`E${WJ}[−]${WJ}`);
+    // digits still STIX's own lowered glyphs
+    expect(flat(draw(<Markup html="<i>E</i><sub>1</sub>" size={20} look="stix" />).toJSON() as Json)).toBe('E₁');
+  });
+
+  it('and on a diagram drawn as SVG, the sign sits higher than a lowered digit', () => {
+    const dy = (html: string) => Number(/dy="([\d.]+)"/.exec(tspans(html, 20))![1]);
+    expect(dy('<i>E</i><sub>−</sub>')).toBeLessThan(dy('<i>E</i><sub>1</sub>'));
+    expect(dy('<i>E</i><sub>+</sub>')).toBe(dy('<i>E</i><sub>−</sub>'));
   });
 });

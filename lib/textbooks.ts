@@ -574,6 +574,31 @@ export function topicName(t: Pick<Topic, 'title' | 'blocks'>): string {
   return t.blocks[0]?.t === 'part' ? t.title : t.title.split(',')[0];
 }
 
+/**
+ * A chapter's opening section (`n` "00"): the book's own map of the chapter
+ * (Chapter 3) or its experimental foundations (Chapter 6), read before Topic
+ * 01 but not one of its numbered topics, so it never shifts the numbers the
+ * book's cross-references use ("Topic 03").
+ */
+export const isGuide = (t: Pick<Topic, 'n'>): boolean => t.n === '00';
+
+/**
+ * How a topic is named in headers and lists: "Topic 3", "Additional B", or
+ * "Start here" for the opening section. Counted from the chapter's regular
+ * topics, so an opening before Topic 01 leaves the numbers as the book prints
+ * them.
+ */
+export function topicMark(c: Pick<Chapter, 'topics'>, ti: number): { kind: 'topic' | 'extra' | 'guide'; label: string; n: string } {
+  const t = c.topics[ti];
+  if (t && isGuide(t)) return { kind: 'guide', label: 'Start here', n: '' };
+  if (t?.extra) return { kind: 'extra', label: `Additional ${t.n}`, n: t.n };
+  const n = c.topics.slice(0, ti + 1).filter((x) => !x.extra && !isGuide(x)).length;
+  return { kind: 'topic', label: `Topic ${n}`, n: String(n) };
+}
+
+/** The regular, numbered topics of a chapter (no guide, no additional topics). */
+export const numberedTopics = (c: Pick<Chapter, 'topics'>): Topic[] => c.topics.filter((t) => !t.extra && !isGuide(t));
+
 export interface Chapter {
   chapter: string;
   title: string;

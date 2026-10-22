@@ -1,12 +1,30 @@
 import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
+import { SvgAst, parse } from 'react-native-svg';
 
 import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { Diagram } from '@/lib/diagrams/types';
 import { hapticSwitched } from '@/lib/haptics';
+import { decodeTextNodes } from '@/lib/widgets/svg-parse';
+
+/**
+ * The drawing's SVG, parsed with its text decoded. react-native-svg copies the
+ * text between tags as it stands, so an escaped "&" (which the XML must carry)
+ * drew as "&amp;": "Current &amp; Ohm's law" on the Physics 12 Ch 3 map
+ * (Android review, 2026-10-22). The same middleware as the board's figures
+ * (lib/widgets/svg-parse.ts). A drawing that will not parse costs that
+ * drawing, never the page.
+ */
+export function diagramAst(xml: string) {
+  try {
+    return parse(xml, decodeTextNodes);
+  } catch (err) {
+    console.warn('[diagram-card] could not draw a diagram:', err);
+    return null;
+  }
+}
 
 /**
  * A drawing at the width it is given, keeping its own proportions; `square`
@@ -21,7 +39,7 @@ export function DiagramImage({ d, caseIndex = 0, square = false, thumb = false }
   // A thumbnail draws its labels inside the SVG: one view instead of dozens of
   // laid-over texts. A grid of fourteen full overlays froze Android ("isn't
   // responding"), and labels this small are not read anyway.
-  const xml = useMemo(() => sketch.svg(thumb), [sketch, thumb]);
+  const ast = useMemo(() => diagramAst(sketch.svg(thumb)), [sketch, thumb]);
   const ratio = sketch.height / sketch.w;
   const w = square && ratio > 1 ? box / ratio : box;
   const k = w / sketch.w;
@@ -29,7 +47,7 @@ export function DiagramImage({ d, caseIndex = 0, square = false, thumb = false }
     <View onLayout={(e: LayoutChangeEvent) => setBox(e.nativeEvent.layout.width)} accessibilityRole="image" accessibilityLabel={d.name} style={square ? st.centred : undefined}>
       {w > 0 && (
         <View style={{ width: w, height: w * ratio }}>
-          <SvgXml xml={xml} width={w} height={w * ratio} />
+          {ast && <SvgAst ast={ast} override={{ width: w, height: w * ratio }} />}
           {!thumb && sketch.texts.map((t, i) => {
             const size = t.size * k;
             // A wide box around the anchor point, aligned the way the SVG anchors it;
@@ -57,12 +75,19 @@ export function DiagramImage({ d, caseIndex = 0, square = false, thumb = false }
 }
 
 /** Units a caption's numbers carry ("20 m/s", "+0.04 cm", "30°"). */
-const UNIT = '(?:km|cm|mm|nm|μm|m|kg|g|mg|s|ms|min|h|N|kN|J|kJ|W|kW|Pa|kPa|atm|Hz|K|°C|°|rad|mol|A|V|eV|L|mL|cal|kcal|%)';
+const UNIT = '(?:km|cm|mm|nm|μm|m|kg|g|mg|s|ms|min|h|N|kN|J|kJ|W|kW|Pa|kPa|atm|Hz|K|°C|°|rad|mol|A|mA|μA|V|mV|kV|eV|L|mL|cal|kcal|Ω|kΩ|MΩ|F|μF|nF|pF|T|mT|μT|Wb|C|%)';
 const TRIG = '(?:sin|cos|tan|cot|sec|cosec)';
 const NB = '\u00a0';
 const LETTER = '[A-Za-zΑ-Ωα-ωℓ]';
 /** One italic letter (with its arrow or prime), Δ and a letter, or a letter and its subscript: too short to end a line on. */
 const SYM = `Δ?<i>Δ?${LETTER}\u20d7?′?</i>′?(?:<sub>(?:<i>)?[^<]{1,3}(?:</i>)?</sub>)?`;
+/**
+ * A left side as short as one symbol: a ratio of two ("<i>P</i>/<i>Q</i> = …",
+ * its slash already joined), or a point or segment named in upright capitals
+ * ("DC = 100 − l", "AB = R"). Both were left at a line's end apart from their
+ * "=" (Android review of Physics 12 Ch 3, 2026-10-22).
+ */
+const SHORT_LHS = `${SYM}/\u2060${SYM}|${SYM}|[A-Z]{1,3}`;
 /** Where an operand may begin: the start, a space, an opening bracket. */
 const EDGE = `(^|[\\s(${NB}])`;
 
@@ -72,19 +97,31 @@ const EDGE = `(^|[\\s(${NB}])`;
  * a unit or ratio never breaks at its slash ("m/|s"), a line never ends on
  * =, −, +, ×, →, ⇒, ≈ or a comparison, and "cos θ" stays with its angle and
  * its coefficient (B cos θ). A short left side stays with its sign ("x = …",
- * "r → ∞"), a short sum or product never splits ("C = A × B", "(R₂T₁ + R₁T₃)",
- * "½(t)(at)", "T Δℓ/R"), and a word keeps its number ("end 1", "height H").
+ * "r → ∞", "P/Q = …", "DC = …"), a short sum or product never splits
+ * ("C = A × B", "(R₂T₁ + R₁T₃)", "½(t)(at)", "T Δℓ/R"), and a word keeps its
+ * number ("end 1", "height H").
  */
 export function captionBreaks(html: string): string {
-  return html
+  const firstPass = html
     .replace(new RegExp(`(\\d) (${UNIT})(?![A-Za-z])`, 'g'), '$1\u00a0$2')
     .replace(/([^<\s])\/(?=[^\s>])/g, '$1/\u2060')
     .replace(/\)\(/g, ')\u2060(')
     .replace(/ ([=−+×→⇒≈<>≤≥]) /g, ' $1\u00a0')
     // "x = …", "Δv = …", "fₙ = …", "r → ∞": the short left side keeps its sign
-    .replace(new RegExp(`${EDGE}(${SYM}) (?=[=≈→⇒<>≤≥]${NB})`, 'g'), '$1$2\u00a0')
-    // "A × B", "v₂ − v₁", "K + U": one symbol each side
-    .replace(new RegExp(`${EDGE}(${SYM}) ([×−+])${NB}(?=${SYM}(?!${LETTER}|<i>|\\())`, 'g'), '$1$2\u00a0$3\u00a0')
+    .replace(new RegExp(`${EDGE}(${SHORT_LHS}) (?=[=≈→⇒<>≤≥]${NB})`, 'g'), '$1$2\u00a0');
+  // "A × B", "v₂ − v₁", "K + U": one symbol each side. Run until nothing
+  // changes: each match consumes the edge before its first symbol, so in a
+  // chain, "Q₁ + Q₂ + Q₃", one pass joins only every other pair and the
+  // caption broke before the second "+" (Android review of Physics 12 Ch 2,
+  // 2026-10-22). The next pass finds the joined term's non-breaking space as
+  // its edge and joins the next pair.
+  const pair = new RegExp(`${EDGE}(${SYM}) ([×−+])${NB}(?=${SYM}(?!${LETTER}|<i>|\\())`, 'g');
+  let joined = firstPass;
+  for (let prev = ''; prev !== joined; ) {
+    prev = joined;
+    joined = joined.replace(pair, '$1$2\u00a0$3\u00a0');
+  }
+  return joined
     // a short bracket is one piece: "(R₂T₁ + R₁T₃)", "φ(x − vt)"
     .replace(/\(([^()]*)\)/g, (m: string, inner: string) => (inner.replace(/<[^>]+>/g, '').length <= 24 ? m.replace(new RegExp(` ([+−×])${NB}`, 'g'), `${NB}$1${NB}`) : m))
     // two maths runs side by side are one product: "T Δℓ/R", "μ Δℓ v²/R", "v dv/dx"
