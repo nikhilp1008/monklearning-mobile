@@ -1,7 +1,15 @@
-import { Image } from 'expo-image';
+import { Image, type ImageStyle } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+  type StyleProp,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -17,6 +25,7 @@ import { footPadding } from '@/lib/foot-padding';
 import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
+import { FigureLoadFailed } from '@/components/question-diagram';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { DoubtSolution } from '@/components/doubt-solution';
 import { DoubtOption } from '@/lib/doubts';
@@ -503,12 +512,10 @@ export function SolutionScreen({
             {!!question.figureUrls?.length && !question.questionImageUrl && (
               <View style={styles.figures}>
                 {question.figureUrls.map((url) => (
-                  <Image
+                  <FigureImage
                     key={url}
-                    source={{ uri: url }}
+                    uri={url}
                     style={styles.figure}
-                    contentFit="contain"
-                    transition={120}
                     accessibilityLabel="Figure from the question"
                   />
                 ))}
@@ -545,12 +552,11 @@ export function SolutionScreen({
                             reasoned from and what a screen reader reads, and
                             it is the only thing left if the URL has expired. */}
                         {!!option.image_url && (
-                          <Image
-                            source={{ uri: option.image_url }}
+                          <FigureImage
+                            uri={option.image_url}
                             style={styles.optionFigure}
-                            contentFit="contain"
-                            transition={120}
                             accessibilityLabel={option.text}
+                            failedMessage="This option's picture could not be loaded."
                           />
                         )}
                         {/* A SMILES string is a caption for nobody: "structure:
@@ -701,6 +707,49 @@ export function SolutionScreen({
       </View>
 
     </View>
+  );
+}
+
+/**
+ * A figure from the question, or the picture that is an option — with the
+ * failure state QuestionDiagram has. These are short-lived signed URLs, and
+ * one that expired or failed left an empty box with nothing to say it should
+ * have held a circuit. Retry re-keys the image so it is fetched again.
+ */
+function FigureImage({
+  uri,
+  style,
+  accessibilityLabel,
+  failedMessage,
+}: {
+  uri: string;
+  style: StyleProp<ImageStyle>;
+  accessibilityLabel: string;
+  failedMessage?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  if (failed) {
+    return (
+      <FigureLoadFailed
+        message={failedMessage}
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
+  return (
+    <Image
+      key={attempt}
+      source={{ uri }}
+      style={style}
+      contentFit="contain"
+      transition={120}
+      accessibilityLabel={accessibilityLabel}
+      onError={() => setFailed(true)}
+    />
   );
 }
 

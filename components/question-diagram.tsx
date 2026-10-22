@@ -54,23 +54,13 @@ export function QuestionDiagram({
   // in the figure" — say so visibly and offer a retry, never a silent gap.
   if (failed) {
     return (
-      <View style={styles.frame} accessibilityRole="alert">
-        <View style={styles.failureBox}>
-          <Text style={styles.failureText}>
-            This figure could not be loaded, and the question refers to it.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading the figure"
-            style={styles.retryButton}
-            onPress={() => {
-              setFailed(false);
-              setRetryKey((k) => k + 1);
-            }}
-          >
-            <Text style={styles.retryText}>Retry</Text>
-          </Pressable>
-        </View>
+      <View style={styles.frame}>
+        <FigureLoadFailed
+          onRetry={() => {
+            setFailed(false);
+            setRetryKey((k) => k + 1);
+          }}
+        />
       </View>
     );
   }
@@ -145,6 +135,37 @@ export function QuestionDiagram({
         </Pressable>
       </Modal>
     </>
+  );
+}
+
+/**
+ * What stands where a figure failed to load: says so, and offers Retry.
+ *
+ * Shared with the snap solution's figures and picture options
+ * (components/solution-screen.tsx), which had no failure state at all and
+ * showed an empty box where the circuit should have been.
+ */
+export function FigureLoadFailed({
+  message = 'This figure could not be loaded, and the question refers to it.',
+  onRetry,
+}: {
+  message?: string;
+  onRetry: () => void;
+}) {
+  const { scale, verticalScale } = useScale();
+  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  return (
+    <View style={styles.failureBox} accessibilityRole="alert">
+      <Text style={styles.failureText}>{message}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Retry loading the figure"
+        style={styles.retryButton}
+        onPress={onRetry}
+      >
+        <Text style={styles.retryText}>Retry</Text>
+      </Pressable>
+    </View>
   );
 }
 
