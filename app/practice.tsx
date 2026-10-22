@@ -159,8 +159,9 @@ export default function PracticeScreen() {
    *  Two different states, said two different ways (they shared one card). */
   const [poolReason, setPoolReason] = useState<'daily_limit' | 'pool_empty' | null>(null);
   /** On pool_empty, how many questions the scope holds at all: 0 is a chapter
-   *  (or subject) with nothing added yet, and must not be congratulated as
-   *  finished. Null when the server didn't say, which keeps the old copy. */
+   *  (or subject) with nothing added yet; more than 0 means the quality check
+   *  turned down this draw. Null when the server didn't say, which is read as
+   *  0 — an empty pool is the only case an older server reports. */
   const [poolSize, setPoolSize] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -788,10 +789,23 @@ export default function PracticeScreen() {
               action={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
               quiet={{ label: 'See your progress', onPress: () => router.push('/progress') }}
             />
-          ) : poolMessage && poolSize === 0 ? (
+          ) : poolMessage && poolSize !== null && poolSize > 0 ? (
+            // THE SCOPE HAS QUESTIONS, BUT NONE PASSED THE QUALITY CHECK THIS
+            // TIME. Asking again draws different ones, and a pool_empty
+            // serves nothing, so it costs none of the day's questions.
+            <StateCard
+              style={styles.stateCard}
+              glyph="retry"
+              title="Couldn't find a good question right now"
+              line="Try again and another one will be picked."
+              action={{ label: 'Try again', onPress: () => void loadQuestion() }}
+            />
+          ) : poolMessage ? (
             // NOTHING HERE YET: the scope has no practice questions at all.
-            // It used to share the card below and tell the student they had
-            // done every question in a chapter they had never been served.
+            // `/practice/next` recycles questions already seen, so a
+            // pool_empty never means "you've done them all" — the card that
+            // said so congratulated students on chapters they had never been
+            // served. A server too old to send `pool_size` lands here too.
             focus.mode === 'chapter' && focus.chapterName ? (
               <StateCard
                 style={styles.stateCard}
@@ -818,37 +832,6 @@ export default function PracticeScreen() {
                 title={`No ${activeSubject} practice questions yet`}
                 line="We're still adding them. Try another subject in the meantime."
                 action={{ label: 'Choose a subject', onPress: () => setMenuOpen(true) }}
-              />
-            )
-          ) : poolMessage ? (
-            // NOTHING LEFT IN SCOPE: every question done. An achievement, not
-            // an error, and the way on is a wider scope.
-            focus.mode === 'chapter' && focus.chapterName ? (
-              <StateCard
-                style={styles.stateCard}
-                glyph="check"
-                title={`You've done every question in ${focus.chapterName}`}
-                line="Pick another chapter, or practise across the whole subject."
-                action={{
-                  label: 'Choose a chapter',
-                  onPress: () =>
-                    router.push({
-                      pathname: '/practice-focus',
-                      params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
-                    }),
-                }}
-                quiet={{
-                  label: `Practise all of ${activeSubject}`,
-                  onPress: () => setFocus(DEFAULT_PRACTICE_FOCUS),
-                }}
-              />
-            ) : (
-              <StateCard
-                style={styles.stateCard}
-                glyph="check"
-                title={`You've done every ${activeSubject} question for now`}
-                line="New ones are added often. Try another subject, or a mock paper."
-                action={{ label: 'Open Mock tests', onPress: () => router.push('/mocks') }}
               />
             )
           ) : loadError && !question ? (

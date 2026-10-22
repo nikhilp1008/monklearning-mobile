@@ -46,8 +46,10 @@ export interface PoolExhausted {
    *  nothing left. They need different words and different advice. */
   reason?: 'daily_limit' | 'pool_empty';
   /** On `pool_empty`: how many practice questions this filter holds at all.
-   *  0 means none have been added yet, which is not the same as "you have
-   *  done them all". Absent from API builds before it existed. */
+   *  0 means none have been added yet; more than 0 means the quality check
+   *  rejected this draw and asking again can serve one. Seen questions are
+   *  recycled, so it never means "you have done them all". Absent from API
+   *  builds before it existed. */
   pool_size?: number;
   questions_used_today?: number;
   daily_limit?: number;
