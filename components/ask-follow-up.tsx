@@ -135,6 +135,15 @@ const WRITE_CPS = 40;
 const MIN_CPS = 6;
 const FLUSH_CPS = 240;
 /**
+ * VOICE PLUS BOARD, BUT NEVER A LONG BLANK. The words wait for the voice; if
+ * no voice has started this long after the answer began arriving, the answer
+ * is written out anyway (owner, 2026-10-22). The server waits up to the same
+ * 6s for a free Rumik voice (FOLLOWUP_VOICE_SLOT_WAIT_S) — all 10 can be busy
+ * with live classes — so a busy moment usually clears inside it. A voice that
+ * arrives later still plays over the written board.
+ */
+const VOICE_DEADLINE_MS = 6000;
+/**
  * How quickly the pace may change, per second. The pace is worked out afresh
  * every frame from how much voice is left, and that estimate moves the whole
  * time the audio is arriving; followed directly, the hand sped up and slowed
@@ -996,8 +1005,21 @@ export function AskFollowUpBar({
     // the thread. WHEN a first opening happens is the reveal schedule's
     // decision above: the voice leads, the board follows.
     let onBoard = false;
+    // Started by the first piece of the answer; see VOICE_DEADLINE_MS.
+    let voiceDeadline: ReturnType<typeof setTimeout> | null = null;
+    const clearVoiceDeadline = () => {
+      if (voiceDeadline) clearTimeout(voiceDeadline);
+      voiceDeadline = null;
+    };
+    controller.signal.addEventListener('abort', clearVoiceDeadline);
     const absorb = (step: FollowUpStep) => {
       if (controller.signal.aborted) return;
+      if (!voiceDeadline) {
+        voiceDeadline = setTimeout(() => {
+          const r = revealRef.current;
+          if (!controller.signal.aborted && r && r.id === turnId && r.mode === 'wait') flushWords();
+        }, VOICE_DEADLINE_MS);
+      }
       const at = arrived.findIndex((s) => s.n === step.n);
       if (at >= 0) arrived[at] = step;
       else arrived.push(step);
