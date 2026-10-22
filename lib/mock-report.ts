@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 
 import type { MockSession, MockSubjectScore, MockSubmitResult } from '@/lib/mock';
+import type { DiagramFigure } from '@/lib/practice';
 
 /**
  * THE REPORT A STUDENT COMES BACK TO.
@@ -62,6 +63,9 @@ export interface MockReportQuestion {
   type: 'single_correct' | 'numerical' | 'assertion_reason' | 'match_the_following';
   stem: string;
   options: Record<string, string> | null;
+  /** The figure the stem refers to, as the paper showed it. The server's
+   *  review has always sent it; absent on reports saved before it was kept. */
+  diagram?: DiagramFigure[] | null;
   chosen_option: string | null;
   chosen_value: number | null;
   correct_option: string | null;
@@ -156,6 +160,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
         type: q.question_type,
         stem: q.question_text ?? '',
         options: q.options,
+        diagram: q.diagram ?? null,
         chosen_option: r?.chosen_option ?? session.answers.get(q.id)?.option ?? null,
         chosen_value: r?.chosen_value ?? null,
         correct_option: r?.correct_option ?? null,
