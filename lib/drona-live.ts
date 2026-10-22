@@ -9,7 +9,7 @@ export interface DronaSessionStart {
   speech: string;
   language: string;
   tutor_voice: string;
-  /** Live-verified as "Veda" (no h) — differs from "Vedha" used elsewhere in the app's copy. */
+  /** "Drona" or "Vedha" — the server now spells it the way the app does. */
   tutor_name: string;
 }
 
@@ -78,7 +78,7 @@ export interface DronaSessionEnd {
 export function startDronaSession(params: {
   chapter_id?: string;
   language?: 'hinglish' | 'english' | string;
-  /** 'male' -> "Drona", 'female' -> "Veda" — see app/drona/persona.py in the
+  /** 'male' -> "Drona", 'female' -> "Vedha" — see app/drona/persona.py in the
    *  backend repo, the single source of truth for this mapping. */
   voice?: 'male' | 'female' | string;
 } = {}): Promise<DronaSessionStart> {
@@ -121,4 +121,31 @@ export function scopeDronaSession(
 
 export function endDronaSession(sessionId: string): Promise<DronaSessionEnd> {
   return apiFetch(`/drona/session/${sessionId}/end`, { method: 'POST', body: JSON.stringify({}) });
+}
+
+/** An unfinished class on one lesson, from GET /drona/session/resumable. */
+export interface ResumableSession {
+  resumable: boolean;
+  session_id?: string;
+  segment?: number;
+  total_segments?: number;
+  subtopic?: string;
+}
+
+/** Is there a class on this lesson the student left partway? Exact lesson
+ *  name only (the server matches it exactly); never throws into the caller's
+ *  start-up path without them choosing to catch it. */
+export function getResumableSession(params: {
+  chapter_id: string;
+  subtopic: string;
+}): Promise<ResumableSession> {
+  const query = `chapter_id=${encodeURIComponent(params.chapter_id)}&subtopic=${encodeURIComponent(params.subtopic)}`;
+  return apiFetch(`/drona/session/resumable?${query}`);
+}
+
+/** Re-opens that class at the segment it stopped on. */
+export function resumeDronaSession(
+  sessionId: string
+): Promise<{ session_id: string; segment: number; total_segments: number }> {
+  return apiFetch(`/drona/session/${sessionId}/resume`, { method: 'POST', body: JSON.stringify({}) });
 }
