@@ -22,15 +22,21 @@ import { useStagedStatus } from '@/hooks/use-staged-status';
 import { getCatalogue, subjectForChapter } from '@/lib/drona';
 import {
   checkDronaTopic,
+  getResumableSession,
+  resumeDronaSession,
   scopeDronaSession,
   startDronaSession,
+  type ResumableSession,
 } from '@/lib/drona-live';
 import { discardPrewarmedClient, prewarmDronaClient } from '@/lib/drona-prewarm';
 import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
 import { captureProof } from '@/lib/proof';
 
-type Stage = 'connecting' | 'scoping' | 'error';
+type Stage = 'connecting' | 'scoping' | 'resume' | 'error';
+
+/** How long the "left partway?" check may hold up a class. A slow answer means no offer. */
+const RESUME_CHECK_MS = 2500;
 
 // /drona/session/{id}/scope proxies to an upstream LLM provider and, when
 // that provider errors, the raw provider error string ends up verbatim in
@@ -153,6 +159,9 @@ export default function EnteringClassroomScreen() {
    */
   const [pendingOption, setPendingOption] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  /** An unfinished class on this lesson, offered before a new one starts. */
+  const [offer, setOffer] = useState<ResumableSession | null>(null);
+  const [resuming, setResuming] = useState(false);
 
   /**
    * Which subject's loading copy this class gets. Null is an ordinary answer —
@@ -187,6 +196,8 @@ export default function EnteringClassroomScreen() {
   const autoSubmittedRef = useRef(false);
   /** The session is started exactly once, on the first render that has params. */
   const startedRef = useRef(false);
+  /** The new-class start, kept so "Start from the beginning" can run it after the offer. */
+  const beginRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     // `chapterResolved` joins `paramsSettled` for the same reason it exists:
@@ -199,6 +210,7 @@ export default function EnteringClassroomScreen() {
     // is measured against this. Fire-and-forget on purpose — the class must
     // not wait on it, and a missed baseline only costs one silent summary.
     captureProof();
+    const begin = () =>
     Promise.all([getTeacherPreference(), getLanguagePreference()])
       .then(([teacher, language]) => {
         if (cancelled) return Promise.reject(new Error('cancelled'));
@@ -234,11 +246,66 @@ export default function EnteringClassroomScreen() {
         setErrorMessage(friendlyScopeError(err) || 'Could not reach Drona right now.');
         setStage('error');
       });
+    beginRef.current = begin;
+
+    // A subtopic tapped from the chapter's own list can have a class the
+    // student left partway: ask before starting a new one. Typed topics and
+    // chapter-only entries skip this, and any failure or slow answer means no
+    // offer, which is exactly the old behaviour.
+    if (initialUtterance && chapterId && !typedTopic) {
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), RESUME_CHECK_MS));
+      Promise.race([
+        getResumableSession({ chapter_id: chapterId, subtopic: initialUtterance }),
+        timeout,
+      ])
+        .catch(() => null)
+        .then((found) => {
+          if (cancelled) return;
+          if (found && found.resumable && found.session_id) {
+            setOffer(found);
+            setStage('resume');
+          } else {
+            void begin();
+          }
+        });
+    } else {
+      void begin();
+    }
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsSettled, chapterResolved]);
+
+  /** "Start from the beginning" (or a resume that could not be honoured): the normal new class. */
+  function startFresh() {
+    setOffer(null);
+    setStage('connecting');
+    void beginRef.current?.();
+  }
+
+  async function continueClass() {
+    if (!offer?.session_id || resuming) return;
+    setResuming(true);
+    try {
+      await resumeDronaSession(offer.session_id);
+      router.replace({
+        pathname: '/live-classroom',
+        params: {
+          sessionId: offer.session_id,
+          chapterTitle,
+          subtopic: offer.subtopic ?? initialUtterance,
+          subject: subject ?? '',
+          chapterId,
+        },
+      });
+    } catch {
+      // The class could not be re-opened (it moved on, or the network dropped):
+      // a new one is always available.
+      setResuming(false);
+      startFresh();
+    }
+  }
 
   /**
    * A student who backs out of scoping leaves a live socket behind, and the
@@ -369,6 +436,37 @@ export default function EnteringClassroomScreen() {
           onBack={() => router.back()}
         />
       </>
+    );
+  }
+
+  if (stage === 'resume' && offer) {
+    return (
+      <View style={styles.screen}>
+        <StatusBar style="light" />
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.scopingContent}>
+            <View style={styles.chapterChip}>
+              <View style={styles.chapterDot} />
+              <Text style={styles.chapterChipText}>{offer.subtopic ?? chapterTitle}</Text>
+            </View>
+            <Text style={styles.speechText}>
+              You were partway through this one. Want to carry on from where you left off?
+            </Text>
+            <View style={styles.optionsRow}>
+              <PressableScale style={styles.optionChip} disabled={resuming} onPress={continueClass}>
+                {resuming ? (
+                  <ActivityIndicator color={colors.ink} size="small" />
+                ) : (
+                  <Text style={styles.optionChipText}>Continue where I left off</Text>
+                )}
+              </PressableScale>
+              <PressableScale style={styles.optionChip} disabled={resuming} onPress={startFresh}>
+                <Text style={styles.optionChipText}>Start from the beginning</Text>
+              </PressableScale>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
