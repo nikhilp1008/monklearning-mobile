@@ -276,10 +276,13 @@ export interface DronaMeta {
 
 export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
-export interface DronaCheckin {
-  prompt: string;
-  options: { choice: 'ok' | 'doubt' | 'repeat'; label: string }[];
-}
+export type CheckinChoice = 'ok' | 'doubt' | 'repeat';
+/**
+ * Speaking time, since the student last tapped, answered or spoke, after which
+ * Drona checks in. A teacher talks for a while and then checks; an explanation
+ * that runs on for minutes loses a student without anyone noticing.
+ */
+export const CHECKIN_AFTER_SPEECH_MS = 40_000;
 
 export interface DronaVoiceHandlers {
   onConnectionChange?: (status: ConnectionStatus) => void;
@@ -314,8 +317,15 @@ export interface DronaVoiceHandlers {
   onTurnError?: (message: string) => void;
   onSttTooShort?: (message: string) => void;
   onAnswerResult?: (result: DronaAnswerResult) => void;
-  /** The understanding check-in, shown once Drona has finished speaking. */
-  onCheckin?: (checkin: DronaCheckin) => void;
+  /**
+   * Time for the understanding check-in: Drona has talked for
+   * CHECKIN_AFTER_SPEECH_MS since the student last did anything, and has been
+   * paused at the end of a sentence. The screen shows the card and answers with
+   * `answerCheckin`. Without this handler the client never pauses to ask.
+   */
+  onCheckin?: () => void;
+  /** The check-in ended without a tap: the student spoke (raised a hand). */
+  onCheckinClosed?: () => void;
   /** Server signalled the lesson itself is finished (not a disconnect). */
   onSessionEnded?: () => void;
   onError?: (message: string) => void;
@@ -478,6 +488,7 @@ export class DronaVoiceClient {
       // the checkpoint over the top of it. See DRAIN_WATCHDOG_MS.
       if (this.awaitingDrain) this.armDrainWatchdog();
       const meta = this.chunkMeta.get(id);
+      this.maybeCheckIn(meta);
       const startedAt = Date.now();
       if (meta?.board?.length || meta?.speech) {
         probe(
@@ -519,7 +530,6 @@ export class DronaVoiceClient {
     this.playback.onQueueDrained = () => {
       this.handlers.onSpeakingChange?.(false);
       if (this.awaitingDrain) this.flushHeldTurn();
-      else this.flushCheckin();
     };
   }
 
@@ -650,11 +660,9 @@ export class DronaVoiceClient {
     // handshake message would race the first utterance.
     const widgets = `&widgets=${encodeURIComponent(
       REGISTRY_MANIFEST.map((m) => `${m.id}@${m.version}`).join(','))}`;
-    // This build can show the "Samajh aaya?" check-in card (server checkin.py).
-    const features = '&features=checkin';
     const url = canSendHeaders
-      ? `${base}?${pcmAvailable ? 'stream_tts=1' : ''}${widgets}${features}`
-      : `${base}?token=${encodeURIComponent(token)}${parts}${widgets}${features}`;
+      ? `${base}?${pcmAvailable ? 'stream_tts=1' : ''}${widgets}`
+      : `${base}?token=${encodeURIComponent(token)}${parts}${widgets}`;
     // One socket per client, enforced at the source. A second connect while
     // one is still open — a screen remount, an eager prewarm — would put two
     // sockets in the air from one device; the server's takeover would retire
@@ -871,15 +879,6 @@ export class DronaVoiceClient {
         if (meta.session_complete) this.handlers.onSessionEnded?.();
         break;
       }
-      case 'checkin': {
-        // Sent after the turn's turn_complete, while its audio may still be
-        // playing: held like a question, so it never covers Drona mid-sentence.
-        const options = Array.isArray(msg.options) ? (msg.options as DronaCheckin['options']) : [];
-        if (!options.length) break;
-        this.pendingCheckin = { prompt: String(msg.prompt ?? ''), options };
-        if (!this.awaitingDrain && this.playback.idle) this.flushCheckin();
-        break;
-      }
       case 'answer_result':
         this.handlers.onAnswerResult?.(msg as unknown as DronaAnswerResult);
         break;
@@ -946,12 +945,54 @@ export class DronaVoiceClient {
 
   /** A state frame carrying check_options, held until its turn finishes. */
   private pendingState: DronaState | null = null;
-  /** A check-in waiting for Drona's voice to finish. */
-  private pendingCheckin: DronaCheckin | null = null;
-  private flushCheckin() {
-    const c = this.pendingCheckin;
-    this.pendingCheckin = null;
-    if (c) this.handlers.onCheckin?.(c);
+  // --- The understanding check-in (time-based) ---
+  /** Drona's speech heard since the student last acted, in ms. */
+  private speechSinceStudentMs = 0;
+  private lastStartedSentence: string | null = null;
+  private checkinOpen = false;
+
+  /**
+   * Called as each part starts (half a second before it is heard). On the FIRST
+   * part of a new sentence — the previous one has just ended, a natural pause —
+   * check whether it is time to ask; never mid-sentence.
+   */
+  private maybeCheckIn(meta: { sentenceId?: string; durationMs?: number } | undefined): boolean {
+    const sentence = meta?.sentenceId;
+    const newSentence = !!sentence && sentence !== this.lastStartedSentence;
+    let asked = false;
+    if (
+      newSentence &&
+      this.lastStartedSentence !== null &&
+      this.handlers.onCheckin &&
+      !this.checkinOpen &&
+      !this.pendingState && // a question is on its way: that is the check
+      !this.awaitingDrain &&
+      this.speechSinceStudentMs >= CHECKIN_AFTER_SPEECH_MS
+    ) {
+      this.checkinOpen = true;
+      this.speechSinceStudentMs = 0;
+      this.pausePlayback();
+      this.handlers.onCheckin();
+      asked = true;
+    }
+    if (sentence) this.lastStartedSentence = sentence;
+    this.speechSinceStudentMs += meta?.durationMs ?? 0;
+    return asked;
+  }
+
+  /** The student's tap (or the screen's timeout, as "ok"). */
+  answerCheckin(choice: CheckinChoice, said?: string) {
+    if (!this.checkinOpen) return;
+    this.checkinOpen = false;
+    this.speechSinceStudentMs = 0;
+    if (choice === 'ok' || !said) {
+      this.resumePlayback();
+      return;
+    }
+    // A doubt or "explain again" is the student speaking up: Drona stops that
+    // explanation and answers it, exactly as if they had raised their hand.
+    this.bargeIn();
+    this.sendUtterance(said);
   }
   /**
    * True from the moment a question is held until ITS turn's `turn_complete`.
@@ -1022,7 +1063,6 @@ export class DronaVoiceClient {
       this.pendingState = null;
     }
     this.handlers.onTurnComplete?.();
-    this.flushCheckin();
   }
 
   // --- The board: one key per event, one reveal per key ---
@@ -1337,11 +1377,6 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'utterance', text });
   }
 
-  /** The student's tap on the check-in card ("ok" also when it times out). */
-  sendCheckinReply(choice: 'ok' | 'doubt' | 'repeat') {
-    this.sendJson({ type: 'checkin_reply', choice });
-  }
-
   /** The student's answer to a checkpoint question, from a chip tap. */
   sendAnswer(text: string) {
     this.dropHeldTurn();
@@ -1374,6 +1409,7 @@ export class DronaVoiceClient {
    * question from what it parks, and the reply turn asks its own.
    */
   bargeIn() {
+    this.lastStartedSentence = null;
     this.dropHeldTurn();
     this.chunkMeta.clear();
     this.currentChunkDurationMs = null;
@@ -1391,7 +1427,12 @@ export class DronaVoiceClient {
    * playback queue is only the microphone's business.
    */
   private dropHeldTurn() {
-    this.pendingCheckin = null;
+    // The student acted: the clock starts again and an open check-in is over.
+    this.speechSinceStudentMs = 0;
+    if (this.checkinOpen) {
+      this.checkinOpen = false;
+      this.handlers.onCheckinClosed?.();
+    }
     this.turnInFlight = false;
     this.pendingState = null;
     this.pendingStateAwaitsComplete = false;

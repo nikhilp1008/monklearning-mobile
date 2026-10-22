@@ -3,7 +3,29 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
 import { MathLine } from '@/components/math-line';
-import type { DronaCheckin } from '@/lib/drona-voice-client';
+import type { CheckinChoice } from '@/lib/drona-voice-client';
+import { getLanguagePreference, type LanguageId } from '@/lib/preferences';
+
+/** The check-in card, in the class language. "said" is what a tap means as
+ *  the student's own words (a doubt, or asking for it again). */
+const CHECKIN_COPY: Record<LanguageId, { prompt: string; options: { choice: CheckinChoice; label: string; said?: string }[] }> = {
+  hinglish: {
+    prompt: 'Samajh aa raha hai?',
+    options: [
+      { choice: 'ok', label: 'Haan, samajh aaya' },
+      { choice: 'doubt', label: 'Thoda doubt hai', said: 'Mujhe is part mein thoda doubt hai.' },
+      { choice: 'repeat', label: 'Phir se samjhao', said: 'Yeh part phir se samjhao, kisi aur example se.' },
+    ],
+  },
+  english: {
+    prompt: 'Is this making sense?',
+    options: [
+      { choice: 'ok', label: 'Yes, got it' },
+      { choice: 'doubt', label: 'I have a doubt', said: 'I have a doubt about this part.' },
+      { choice: 'repeat', label: 'Explain again', said: 'Please explain this part again, with a different example.' },
+    ],
+  },
+};
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
@@ -467,8 +489,16 @@ export default function LiveClassroomScreen() {
    * voicing a question.
    */
   const [questionText, setQuestionText] = useState<string | null>(null);
-  /** The "Samajh aaya?" check-in on screen, if any (server checkin.py). */
-  const [checkin, setCheckin] = useState<DronaCheckin | null>(null);
+  /** The "Samajh aa raha hai?" check-in on screen (see onCheckin). */
+  const [checkin, setCheckin] = useState<(typeof CHECKIN_COPY)[LanguageId] | null>(null);
+  const languageRef = useRef<LanguageId>('hinglish');
+  useEffect(() => {
+    getLanguagePreference()
+      .then((l) => {
+        languageRef.current = l;
+      })
+      .catch(() => {});
+  }, []);
   const checkinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * The option the student just pressed, held so the card can acknowledge it.
@@ -581,17 +611,18 @@ export default function LiveClassroomScreen() {
       // The turn's first frame — board events or audio, whichever landed
       // first. Real content exists on the client now, seconds before it is
       // spoken, so the card can stop guessing and say so.
-      onCheckin: (c) => {
-        setCheckin(c);
+      onCheckin: () => {
+        setCheckin(CHECKIN_COPY[languageRef.current] ?? CHECKIN_COPY.hinglish);
         // A quiet student is never stuck: no tap in time means "carry on".
         if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
         checkinTimerRef.current = setTimeout(() => answerCheckinRef.current?.('ok'), CHECKIN_AUTO_OK_MS);
       },
-      onTurnStarted: () => {
-        // Whatever started the turn (a tap, the timeout, a spoken doubt) ends the check-in.
+      onCheckinClosed: () => {
         if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
         checkinTimerRef.current = null;
         setCheckin(null);
+      },
+      onTurnStarted: () => {
         // A new turn brings the board back to the live edge. A small drag
         // earlier latched following off, and with the "Jump to live" chip
         // hidden during a checkpoint there was no way back: the board filled
@@ -1481,12 +1512,13 @@ export default function LiveClassroomScreen() {
     if (next === false) scheduleResume();
   };
 
-  const answerCheckinRef = useRef<((choice: 'ok' | 'doubt' | 'repeat') => void) | null>(null);
+  const answerCheckinRef = useRef<((choice: CheckinChoice) => void) | null>(null);
   answerCheckinRef.current = (choice) => {
     if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
     checkinTimerRef.current = null;
+    const said = checkin?.options.find((o) => o.choice === choice)?.said;
     setCheckin(null);
-    clientRef.current?.sendCheckinReply(choice);
+    clientRef.current?.answerCheckin(choice, said);
   };
   useEffect(
     () => () => {

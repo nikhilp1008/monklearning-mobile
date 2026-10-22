@@ -52,8 +52,19 @@ jest.mock('@/lib/audio-playback-queue', () => {
       this.destroyed = true;
       this.clear();
     }
-    pause() {}
-    resume() {}
+    paused = false;
+    pause() {
+      this.paused = true;
+    }
+    resume() {
+      this.paused = false;
+    }
+    startNext() {
+      const id = this.queued.shift();
+      if (id === undefined) return;
+      this.playing = true;
+      this.onItemStart?.(id);
+    }
   }
   return { AudioPlaybackQueue: FakePlaybackQueue };
 });
@@ -61,7 +72,9 @@ jest.mock('@/lib/audio-playback-queue', () => {
 interface FakeQueue {
   queued: string[];
   enqueuedEver: string[];
+  paused: boolean;
   playToEnd(): void;
+  startNext(): void;
 }
 
 class FakeSocket {
@@ -213,50 +226,67 @@ describe('End means silence', () => {
 });
 
 
-describe('the understanding check-in', () => {
-  const checkinFrame = {
-    type: 'checkin',
-    prompt: 'Samajh aaya?',
-    options: [
-      { choice: 'ok', label: 'Haan, samajh aaya' },
-      { choice: 'doubt', label: 'Thoda doubt hai' },
-      { choice: 'repeat', label: 'Phir se samjhao' },
-    ],
+describe('the understanding check-in (time-based)', () => {
+  /** n sentences of 1s each, every one started (heard) in turn. */
+  const speak = (c: Awaited<ReturnType<typeof joinClass>>, from: number, n: number) => {
+    for (let i = from; i < from + n; i += 1) {
+      c.send(say(`t1_s${i}`));
+      c.queue.startNext();
+    }
   };
 
-  it('asks for the feature on the socket URL', async () => {
+  it('asks only after 40s of speech, at the start of the next sentence, and pauses Drona', async () => {
+    let asked = 0;
+    const c = await joinClass({ onCheckin: () => (asked += 1) });
+    speak(c, 1, 40); // 40 one-second sentences
+    expect(asked).toBe(0);
+    expect(c.queue.paused).toBe(false);
+    speak(c, 41, 1); // the next sentence begins: a natural pause
+    expect(asked).toBe(1);
+    expect(c.queue.paused).toBe(true);
+  });
+
+  it('"haan" resumes the voice without saying anything to the server', async () => {
+    const c = await joinClass({ onCheckin: () => {} });
+    speak(c, 1, 41);
+    const sentBefore = c.socket.sent.length;
+    c.client.answerCheckin('ok');
+    expect(c.queue.paused).toBe(false);
+    expect(c.socket.sent.length).toBe(sentBefore);
+  });
+
+  it('a doubt stops the explanation and is sent as the student speaking', async () => {
+    const c = await joinClass({ onCheckin: () => {} });
+    speak(c, 1, 41);
+    c.client.answerCheckin('doubt', 'Mujhe is part mein thoda doubt hai.');
+    expect(c.queue.queued).toEqual([]);
+    expect(c.socket.sent.map((x) => JSON.parse(x))).toContainEqual({
+      type: 'utterance',
+      text: 'Mujhe is part mein thoda doubt hai.',
+    });
+  });
+
+  it('a student who just spoke resets the clock', async () => {
+    let asked = 0;
+    const c = await joinClass({ onCheckin: () => (asked += 1) });
+    speak(c, 1, 30);
+    c.client.sendUtterance('ek sawaal');
+    speak(c, 31, 30); // 30s since they spoke
+    expect(asked).toBe(0);
+  });
+
+  it('never asks while a question is on its way', async () => {
+    let asked = 0;
+    const c = await joinClass({ onCheckin: () => (asked += 1) });
+    c.client.sendUtterance('aage');
+    c.send(question('Q'));
+    speak(c, 1, 45);
+    expect(asked).toBe(0);
+  });
+
+  it('never pauses a screen that does not ask', async () => {
     const c = await joinClass();
-    expect(c.socket.url).toContain('features=checkin');
-  });
-
-  it('waits until Drona has finished speaking', async () => {
-    const shown: string[] = [];
-    const c = await joinClass({ onCheckin: (k) => shown.push(k.prompt) });
-    c.send(say('t1_s1'));
-    c.send({ type: 'turn_complete' });
-    c.send(checkinFrame); // arrives while the turn's audio still plays
-    expect(shown).toEqual([]);
-    c.queue.playToEnd();
-    expect(shown).toEqual(['Samajh aaya?']);
-  });
-
-  it('shows at once when nothing is playing, and sends the tap back', async () => {
-    const shown: string[] = [];
-    const c = await joinClass({ onCheckin: (k) => shown.push(k.options.map((o) => o.label).join('|')) });
-    c.send(checkinFrame);
-    expect(shown).toEqual(['Haan, samajh aaya|Thoda doubt hai|Phir se samjhao']);
-    c.client.sendCheckinReply('repeat');
-    expect(c.socket.sent.map((x) => JSON.parse(x))).toContainEqual({ type: 'checkin_reply', choice: 'repeat' });
-  });
-
-  it('is dropped when the student speaks instead', async () => {
-    const shown: string[] = [];
-    const c = await joinClass({ onCheckin: (k) => shown.push(k.prompt) });
-    c.send(say('t1_s1'));
-    c.send({ type: 'turn_complete' });
-    c.send(checkinFrame);
-    c.client.sendUtterance('wait, ek doubt hai');
-    c.queue.playToEnd();
-    expect(shown).toEqual([]);
+    speak(c, 1, 60);
+    expect(c.queue.paused).toBe(false);
   });
 });
