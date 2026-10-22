@@ -158,6 +158,10 @@ export default function PracticeScreen() {
   /** Why there is no next question: the day's limit, or nothing left in scope.
    *  Two different states, said two different ways (they shared one card). */
   const [poolReason, setPoolReason] = useState<'daily_limit' | 'pool_empty' | null>(null);
+  /** On pool_empty, how many questions the scope holds at all: 0 is a chapter
+   *  (or subject) with nothing added yet, and must not be congratulated as
+   *  finished. Null when the server didn't say, which keeps the old copy. */
+  const [poolSize, setPoolSize] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -497,6 +501,7 @@ export default function PracticeScreen() {
     setLoadError(null);
     setPoolMessage(null);
     setPoolReason(null);
+    setPoolSize(null);
     setSelectedOption(null);
     setNumericInput('');
     setAnswerResult(null);
@@ -567,6 +572,7 @@ export default function PracticeScreen() {
         if (result.reason === 'daily_limit') hapticWarning();
         setPoolReason(result.reason === 'daily_limit' ? 'daily_limit' : 'pool_empty');
         setPoolMessage(result.message);
+        setPoolSize(typeof result.pool_size === 'number' ? result.pool_size : null);
         setQuestion(null);
       } else {
         setQuestion(result);
@@ -782,6 +788,38 @@ export default function PracticeScreen() {
               action={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
               quiet={{ label: 'See your progress', onPress: () => router.push('/progress') }}
             />
+          ) : poolMessage && poolSize === 0 ? (
+            // NOTHING HERE YET: the scope has no practice questions at all.
+            // It used to share the card below and tell the student they had
+            // done every question in a chapter they had never been served.
+            focus.mode === 'chapter' && focus.chapterName ? (
+              <StateCard
+                style={styles.stateCard}
+                glyph="paper"
+                title={`No practice questions for ${focus.chapterName} yet`}
+                line="We're still adding them. Pick another chapter, or practise across the whole subject."
+                action={{
+                  label: 'Choose a chapter',
+                  onPress: () =>
+                    router.push({
+                      pathname: '/practice-focus',
+                      params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
+                    }),
+                }}
+                quiet={{
+                  label: `Practise all of ${activeSubject}`,
+                  onPress: () => setFocus(DEFAULT_PRACTICE_FOCUS),
+                }}
+              />
+            ) : (
+              <StateCard
+                style={styles.stateCard}
+                glyph="paper"
+                title={`No ${activeSubject} practice questions yet`}
+                line="We're still adding them. Try another subject in the meantime."
+                action={{ label: 'Choose a subject', onPress: () => setMenuOpen(true) }}
+              />
+            )
           ) : poolMessage ? (
             // NOTHING LEFT IN SCOPE: every question done. An achievement, not
             // an error, and the way on is a wider scope.

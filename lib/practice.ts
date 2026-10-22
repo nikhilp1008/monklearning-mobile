@@ -45,6 +45,10 @@ export interface PoolExhausted {
   /** `daily_limit` when the 150 are spent, `pool_empty` when this filter has
    *  nothing left. They need different words and different advice. */
   reason?: 'daily_limit' | 'pool_empty';
+  /** On `pool_empty`: how many practice questions this filter holds at all.
+   *  0 means none have been added yet, which is not the same as "you have
+   *  done them all". Absent from API builds before it existed. */
+  pool_size?: number;
   questions_used_today?: number;
   daily_limit?: number;
 }
