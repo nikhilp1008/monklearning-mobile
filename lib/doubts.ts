@@ -182,7 +182,9 @@ export interface SnapResponse {
 /** POST /doubts rejects with this shape, so the UI can name the failing stage. */
 export interface SnapFailure {
   message: string;
-  stage: 'transcribe' | 'solve' | 'config' | 'quota' | string;
+  /** `pass`: the student's pass has ended (HTTP 402). `network`: the
+   *  connection, not the photo or the solver. */
+  stage: 'transcribe' | 'solve' | 'config' | 'quota' | 'pass' | 'network' | string;
   reason?: string;
   /** retake = their photo | not_photo = needs a figure | our_side = ours */
   remedy?: Remedy;
@@ -337,6 +339,11 @@ export function readSnapFailure(error: unknown): SnapFailure {
       return { message: error.message, stage: 'unknown' };
     }
     return fallback;
+  }
+
+  // apiFetch has already told the app root, which is opening Plans.
+  if (error.status === 402) {
+    return { message: error.message, stage: 'pass', remedy: 'our_side', retake_helps: false };
   }
 
   const data = error.data;

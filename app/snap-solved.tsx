@@ -176,6 +176,15 @@ export default function SnapSolvedScreen() {
                 line="Snaps open again tomorrow. Everything you've solved is in Doubts."
                 action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
               />
+            ) : job.failure.stage === 'pass' ? (
+              // The app root is already opening Plans; this is what shows if
+              // it has not. "Try another photo" would be refused the same way.
+              <StateCard
+                glyph="clock"
+                title="Your pass has ended"
+                line="Pick a plan to keep snapping. Everything you've solved is still in Doubts."
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+              />
             ) : (
               <StateCard
                 glyph="retry"

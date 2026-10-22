@@ -42,6 +42,7 @@ import type { TeacherId } from '@/lib/preferences';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
+  followUpFailureOf,
   speakFollowUpStreaming,
   type FollowUpStep,
   type FollowUpSurface,
@@ -1179,8 +1180,14 @@ export function AskFollowUpBar({
           fail('retry');
         }
       }
-    } catch {
+    } catch (err) {
       if (controller.signal.aborted) return;
+      // The pass has ended: the app root is already opening Plans, and a
+      // "Try again" here would only be refused again.
+      if (followUpFailureOf(err) === 'pass') {
+        setPhase('idle');
+        return;
+      }
       // The server's own message is deliberately not read: it is a sentence,
       // and this is a two-word slot. What the student can DO about it is the
       // same however it failed.

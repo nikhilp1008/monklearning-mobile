@@ -71,7 +71,7 @@ export default function SnapCaptureScreen() {
 
     if (job.status === 'failed') {
       setFailure(job.failure);
-      setCanRetryUpload(job.failure.stage !== 'quota');
+      setCanRetryUpload(job.failure.stage !== 'quota' && job.failure.stage !== 'pass');
       setPhase('failed');
       return;
     }
@@ -263,8 +263,8 @@ export default function SnapCaptureScreen() {
   }
 
   // The day's limit is not a failed photo: it gets the limit card in the
-  // screen below, not the photo-failure screen.
-  if (phase === 'failed' && photo && failure && failure.stage !== 'quota') {
+  // screen below, not the photo-failure screen. Nor is an ended pass.
+  if (phase === 'failed' && photo && failure && failure.stage !== 'quota' && failure.stage !== 'pass') {
     const copy = failureCopy(failure.remedy, failure.message);
     return (
       <>
@@ -333,6 +333,19 @@ export default function SnapCaptureScreen() {
                   failure.daily_limit != null ? ` (${failure.used_today ?? failure.daily_limit} of ${failure.daily_limit} today)` : ''
                 }`}
                 action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
+            </View>
+          ) : phase === 'failed' && failure?.stage === 'pass' ? (
+            // The app root is already opening Plans (lib/pass-events); this
+            // is only what shows if that navigation has not happened.
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="clock"
+                title="Your pass has ended"
+                line="Pick a plan to keep snapping. Everything you've solved is still in Doubts."
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
                 quiet={{ label: 'Close', onPress: close }}
               />
             </View>

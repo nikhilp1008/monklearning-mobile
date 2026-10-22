@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
+import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { supabase } from '@/lib/supabase';
 import { teacherNameNow } from '@/lib/preferences';
@@ -79,6 +80,50 @@ export type ResolveEvent =
   | { kind: 'reset' }
   | { kind: 'resolved'; question: Record<string, unknown> }
   | { kind: 'failed'; doubtId: string; message: string };
+
+/**
+ * Why a follow-up got no answer, in the terms the bar can act on.
+ *
+ * `retry`: pressing again may well work. `pass`: the student's pass has ended
+ * — the app root has already been told and is opening Plans, so "Try again"
+ * would only loop.
+ */
+export type FollowUpFailure = 'retry' | 'pass';
+
+export class FollowUpError extends Error {
+  kind: FollowUpFailure;
+  constructor(message: string, kind: FollowUpFailure) {
+    super(message);
+    this.name = 'FollowUpError';
+    this.kind = kind;
+  }
+}
+
+/** The kind of any rejection from the ask routes; anything unknown is `retry`. */
+export function followUpFailureOf(err: unknown): FollowUpFailure {
+  return err instanceof FollowUpError ? err.kind : 'retry';
+}
+
+/**
+ * A refused ask, read the way `apiFetch` reads one.
+ *
+ * These routes go through XHR, not `apiFetch`, so nothing else would notice a
+ * 402: the pass gate never heard about it and the bar said "Try again" to a
+ * student whose every attempt would be refused the same way.
+ */
+export function followUpRefusal(status: number, responseText: string): FollowUpError {
+  let body: unknown = null;
+  try {
+    body = JSON.parse(responseText || 'null');
+  } catch {
+    // An infra page, not the API's JSON: an ordinary failure.
+  }
+  if (status === 402 && isPassRequired(body)) {
+    signalPassRequired();
+    return new FollowUpError('You need a pass to continue.', 'pass');
+  }
+  return new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry');
+}
 
 /** Everything after the last complete `\n\n`, left for the next chunk. */
 export function parseFrames(chunk: string): { event: string; data: unknown }[] {
@@ -428,9 +473,7 @@ function streamAsk(
         if (xhr.readyState !== 4) return;
         drain();
         if (xhr.status >= 400) {
-          finish(() =>
-            reject(new Error(`${teacherNameNow()} could not answer that just now. Try again in a moment.`))
-          );
+          finish(() => reject(followUpRefusal(xhr.status, xhr.responseText ?? '')));
           return;
         }
         if (failure) {

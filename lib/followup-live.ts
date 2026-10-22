@@ -19,6 +19,7 @@
  */
 import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
 import {
+  FollowUpError,
   dispatchFollowUpFrame,
   parseFrames,
   type FollowUpHandlers,
@@ -81,6 +82,9 @@ export class LiveAsk {
   private incoming: string[] = [];
   private onMessage: ((text: string) => void) | null = null;
   private onEnd: ((clean: boolean) => void) | null = null;
+  /** Closed with 4402: the pass has ended, and uploading instead would only
+   *  be refused the same way. */
+  private passEnded = false;
 
   /** Opens the socket and sends the start frame. Never throws: a socket that
    *  cannot open just marks this ask broken, and `finish` falls back. */
@@ -116,7 +120,10 @@ export class LiveAsk {
       };
       ws.onclose = (e) => {
         ask.open = false;
-        if (e.code === PASS_REQUIRED_CLOSE) signalPassRequired();
+        if (e.code === PASS_REQUIRED_CLOSE) {
+          ask.passEnded = true;
+          signalPassRequired();
+        }
         ask.onEnd?.(e.code === 1000);
         if (!ask.onEnd) ask.broken = true;
       };
@@ -159,6 +166,10 @@ export class LiveAsk {
   finish(handlers: FollowUpHandlers, signal?: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const ws = this.ws;
+      if (this.passEnded) {
+        reject(new FollowUpError('You need a pass to continue.', 'pass'));
+        return;
+      }
       if (!ws || this.broken || !this.open) {
         this.cancel();
         reject(new LiveUnavailable('socket not open'));
@@ -193,7 +204,8 @@ export class LiveAsk {
       this.onMessage = read;
       for (const text of this.incoming.splice(0)) read(text);
       this.onEnd = () => {
-        if (failure) done(() => reject(new Error(failure as string)));
+        if (this.passEnded) done(() => reject(new FollowUpError('You need a pass to continue.', 'pass')));
+        else if (failure) done(() => reject(new Error(failure as string)));
         else if (!answered) done(() => reject(new LiveUnavailable('closed before answering')));
         else done(resolve);
       };

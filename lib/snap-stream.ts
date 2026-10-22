@@ -1,4 +1,5 @@
 import { DoubtPhoto, SnapFailure, SnappedQuestion, SnapResponse } from '@/lib/doubts';
+import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -279,6 +280,23 @@ export function snapDoubtStreaming(
             parsed = JSON.parse(xhr.responseText || '{}');
           } catch {
             /* falls through to the generic message */
+          }
+          // The pass has ended. `apiFetch` tells the app root, which opens
+          // Plans; this route is XHR, so it has to say so itself — without it
+          // the student got "That was on our end" and a Try again that could
+          // only be refused again.
+          if (xhr.status === 402 && isPassRequired(parsed)) {
+            signalPassRequired();
+            const passFailure: SnapFailure = {
+              message: 'You need a pass to continue.',
+              stage: 'pass',
+              remedy: 'our_side',
+              retake_helps: false,
+            };
+            finish(() =>
+              reject(Object.assign(new Error(passFailure.message), { snapFailure: passFailure, status: 402 }))
+            );
+            return;
           }
           const detail = (parsed.detail ?? parsed) as Record<string, unknown>;
           finish(() => reject(Object.assign(new Error(String(detail.message ?? `HTTP ${xhr.status}`)), {
