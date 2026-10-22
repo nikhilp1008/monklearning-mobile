@@ -178,6 +178,9 @@ export default function PracticeScreen() {
    *  pressed again — `loadError` only renders when there is no question, so
    *  a dropped connection here used to just stop the spinner. */
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** The question can't be answered here at all (it is on a mock paper the
+   *  student is still sitting), so the way on is a different question. */
+  const [submitBlocked, setSubmitBlocked] = useState(false);
   /** Set while a question-scoped Drona session is being created. */
 
   /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
@@ -483,6 +486,21 @@ export default function PracticeScreen() {
    * app losing their answer, so it does both: swap, and say so.
    */
   async function handleSubmitError(err: unknown) {
+    // A question on a mock paper the student is still sitting: the server
+    // keeps its answer back until the paper is submitted, and says why in a
+    // sentence written for the student. Also a 409, but not an ungradeable
+    // row, so it is told apart by what it says. /practice/next leaves these
+    // questions out, so this should only reach a question queued before the
+    // paper started. Said as the server says it, with a way to another.
+    const detail =
+      err instanceof ApiError && typeof (err.data as { detail?: unknown } | null)?.detail === 'string'
+        ? (err.data as { detail: string }).detail
+        : null;
+    if (err instanceof ApiError && err.status === 409 && detail && /mock paper/i.test(detail)) {
+      setSubmitError(detail);
+      setSubmitBlocked(true);
+      return;
+    }
     if (err instanceof ApiError && err.status === 409) {
       await loadQuestion();
       setNotice(
@@ -508,6 +526,7 @@ export default function PracticeScreen() {
     setAnswerResult(null);
     setNotice(null);
     setSubmitError(null);
+    setSubmitBlocked(false);
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
@@ -1089,6 +1108,15 @@ export default function PracticeScreen() {
                 <Text style={styles.submitErrorText} accessibilityLiveRegion="polite">
                   {submitError}
                 </Text>
+              ) : null}
+              {submitBlocked ? (
+                <Pressable
+                  onPress={() => void loadQuestion()}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  style={styles.blockedNext}>
+                  <Text style={styles.giveUpText}>Show another question</Text>
+                </Pressable>
               ) : null}
             </>
           ) : (
@@ -1883,6 +1911,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
       paddingHorizontal: scale(4),
     },
+    blockedNext: { alignSelf: 'flex-start', marginTop: verticalScale(10) },
     giveUpText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13.5),
