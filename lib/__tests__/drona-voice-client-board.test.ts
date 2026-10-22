@@ -357,7 +357,9 @@ describe('the end-of-turn flush', () => {
     c.send({ type: 'turn_complete' });
     c.queue.playToEnd();
 
-    expect(c.lines()).toEqual(['Line B', 'Line A']);
+    // A's sentence opened the speech, so A went up on arrival; B by the
+    // safety net. Each once, and now in the board's own order.
+    expect(c.lines()).toEqual(['Line A', 'Line B']);
   });
 });
 
@@ -428,7 +430,8 @@ describe('a board replay', () => {
     c.send(say('t_1_s3', turn[2]));
     c.queue.startNext();
     c.queue.startNext();
-    expect(c.lines()).toEqual(['Line A', 'Line B']);
+    // The board leads by one sentence: s3's line is up while s2 is spoken.
+    expect(c.lines()).toEqual(['Line A', 'Line B', 'Line C']);
 
     // The phone drops and comes back. The new connection replays every turn
     // the server has saved (live_session_ws.py:416-435) — including this one.
@@ -514,10 +517,12 @@ describe('a chunk that carries several lines', () => {
     c.send(sayMany('t_7_s5', [turn[3]]));
     c.send({ type: 'turn_complete' });
 
-    c.queue.startNext();
-    expect(c.lines()).toEqual(['a : N -> R']);
+    // The opening sentence's line is up on arrival, and the next sentence's
+    // two lines go up as the first is spoken: the board leads the voice.
     c.queue.startNext();
     expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3']);
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', GENERAL_TERM]);
     c.queue.playToEnd();
     expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', GENERAL_TERM]);
   });
@@ -556,7 +561,8 @@ describe('a chunk that carries several lines', () => {
     c.send(sayMany('t_10_s1', [turn[0], turn[1]]));
     c.send(say('t_10_s2', turn[2])); // no `board_events`: a server before V4
     c.queue.startNext();
-    expect(c.lines()).toEqual(['Line B', 'Line C']);
+    // B and C on arrival (they open the speech), D one sentence ahead.
+    expect(c.lines()).toEqual(['Line B', 'Line C', 'Line D']);
     c.queue.startNext();
     expect(c.lines()).toEqual(['Line B', 'Line C', 'Line D']);
   });
@@ -611,7 +617,8 @@ describe('the reveal probe', () => {
     for (const seq of [4, 5]) {
       expect(revealed).toContainEqual(
         expect.stringMatching(
-          new RegExp(`REVEALED seq=${seq} .* sentence=t_1_s2 audioRecvAt=1000000 audioStartAt=1000250 revealedAt=1000250 gapMs=0`)
+          // The sentence opened the speech: its lines went up on arrival.
+          new RegExp(`REVEALED seq=${seq} .*carriedBy=opens\\(t_1_s2\\) sentence=t_1_s2 audioRecvAt=1000000 audioStartAt=1000000 revealedAt=1000000 gapMs=0`)
         )
       );
     }

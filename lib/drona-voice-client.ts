@@ -501,6 +501,11 @@ export class DronaVoiceClient {
       // after the reveal fires. Nothing consumes it yet — see the getter.
       this.currentChunkDurationMs = meta?.durationMs ?? null;
       this.chunkMeta.delete(id);
+      // THE BOARD LEADS BY ONE SENTENCE. The teacher writes the next line
+      // while finishing this one, so when the voice reaches a line it is
+      // already on the board. Revealing a line only when its OWN sentence
+      // started meant the student always heard it first and saw it after.
+      this.revealNextSentenceLines(meta?.sentenceId);
     };
 
     // The turn's audio has actually finished playing — see `flushHeldTurn`.
@@ -1109,6 +1114,33 @@ export class DronaVoiceClient {
     this.handlers.onBoardReveal?.(write ? { ...event, key: entry.key, write } : { ...event, key: entry.key });
   }
 
+  /**
+   * Reveals the board lines of the next sentence still queued after
+   * `currentSentenceId`, ahead of its audio. Its chunk keeps its metadata (for
+   * the caption); the reveal is idempotent by key, so its own onItemStart
+   * later writes nothing twice.
+   */
+  private revealNextSentenceLines(currentSentenceId: string | undefined) {
+    for (const [, m] of this.chunkMeta) {
+      if (!m.sentenceId || m.sentenceId === currentSentenceId) continue;
+      if (!m.board?.length) return; // next sentence has no lines: nothing to lead with
+      const now = Date.now();
+      const pace = paceLines(
+        m.board.map((e) => e.event),
+        this.sentenceMs(m)
+      );
+      m.board.forEach((entry, i) =>
+        this.revealBoardEntry(
+          entry,
+          `lead(${m.sentenceId})`,
+          { sentenceId: m.sentenceId ?? '-', receivedAt: m.receivedAt ?? now, startedAt: now },
+          pace[i]
+        )
+      );
+      return;
+    }
+  }
+
   /** Board items for the whole turn arrive ahead of their audio — held here,
    *  not shown yet, until each item's paired audio_chunk starts playing. An
    *  entry leaves this list when a chunk claims it, not when it is revealed. */
@@ -1250,8 +1282,20 @@ export class DronaVoiceClient {
     const playbackId = `${sentenceId}-${this.chunkSeq++}`;
     this.chunkMeta.set(playbackId, { speech, board: entries, durationMs, sentenceId, receivedAt });
 
+    // Nothing playing: this sentence opens a run of speech. Its lines go up
+    // now, while the player buffers, so the board is ahead of the first word.
+    const opensRun = this.playback.idle;
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    if (opensRun && entries.length > 0) {
+      const pace = paceLines(
+        entries.map((e) => e.event),
+        this.sentenceMs({ speech, durationMs, sentenceId })
+      );
+      entries.forEach((entry, i) =>
+        this.revealBoardEntry(entry, `opens(${sentenceId})`, { sentenceId, receivedAt, startedAt: receivedAt }, pace[i])
+      );
+    }
   }
 
   // --- Outbound ---
