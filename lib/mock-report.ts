@@ -172,6 +172,41 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
   };
 }
 
+/**
+ * A fetched report, back in the shape a submit answers with.
+ *
+ * For the submit whose response was lost (see `isAlreadySubmitted` in
+ * lib/mock.ts): the session then holds a result just as if the response had
+ * arrived, so the report and review screens open it as the fresh paper it is.
+ */
+export function submitResultFromReport(report: MockReport): MockSubmitResult {
+  return {
+    mock_run_id: report.run_id,
+    score: {
+      correct: report.correct,
+      wrong: report.wrong,
+      unanswered: report.unanswered,
+      marks: report.total_marks,
+      total_marks: report.total_marks,
+      max_marks: report.max_marks,
+      per_subject: report.per_subject,
+    },
+    previous: report.previous,
+    questions: report.questions.map((q) => ({
+      question_id: q.id,
+      answered: q.answered,
+      is_correct: q.is_correct,
+      chosen_option: q.chosen_option,
+      chosen_value: q.chosen_value,
+      correct_option: q.correct_option,
+      correct_value: q.correct_value,
+      solution: q.solution,
+      chapter_id: q.chapter_id ?? null,
+      chapter_name: q.chapter_name ?? null,
+    })),
+  };
+}
+
 export async function saveReport(report: MockReport): Promise<void> {
   const userId = await currentUserId();
   // No student, no owner: nothing is kept rather than kept for whoever is next.

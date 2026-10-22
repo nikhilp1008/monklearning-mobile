@@ -2,7 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
-import { buildReport, saveReport, type MockPrevious, type MockReport } from '@/lib/mock-report';
+import {
+  buildReport,
+  saveReport,
+  submitResultFromReport,
+  type MockPrevious,
+  type MockReport,
+} from '@/lib/mock-report';
 import type { DiagramFigure } from '@/lib/practice';
 
 /**
@@ -236,6 +242,19 @@ export async function fetchReport(runId: string): Promise<MockReport> {
   const report = await apiFetch<MockReport>(`/mock/${encodeURIComponent(runId)}/review`);
   await saveReport(report).catch(() => undefined);
   return report;
+}
+
+/**
+ * The server already holds this paper as handed in: a submit got through and
+ * only its response was lost (a dropped connection, the app backgrounded
+ * mid-request). Every submit after that is refused with this 409, and the
+ * paper is safe — so it is a reason to fetch the report, not to ask the
+ * student to submit again. An abandoned paper, or one handed in too late,
+ * is a 409 too, and is not this.
+ */
+export function isAlreadySubmitted(err: unknown): boolean {
+  const e = err as { status?: number; message?: unknown } | null;
+  return e?.status === 409 && typeof e.message === 'string' && /already submitted/i.test(e.message);
 }
 
 export function submitMockPaper(
@@ -514,12 +533,27 @@ export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
   if (!s) return null;
   // The last question was still on screen when Submit was pressed.
   chargeElapsed();
-  const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s), {
-    marked: [...s.marked],
-    elapsed_ms: Object.fromEntries(
-      [...s.elapsed.entries()].map(([id, ms]) => [id, Math.round(ms)])
-    ),
-  });
+  let result: MockSubmitResult;
+  try {
+    result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s), {
+      marked: [...s.marked],
+      elapsed_ms: Object.fromEntries(
+        [...s.elapsed.entries()].map(([id, ms]) => [id, Math.round(ms)])
+      ),
+    });
+  } catch (err) {
+    if (!isAlreadySubmitted(err)) throw err;
+    // Handed in already, on a submit whose answer never arrived. The marked
+    // paper is on the server, so read it back and finish exactly as a
+    // successful submit does. fetchReport saves the server's copy, which is
+    // the one to keep: it carries the real submit time. If this read fails
+    // too, the caller says "submit again", and the next try lands here.
+    const report = await fetchReport(s.paper.mock_run_id);
+    result = submitResultFromReport(report);
+    s.result = result;
+    forgetProgress(s.paper.mock_run_id);
+    return result;
+  }
   s.result = result;
   forgetProgress(s.paper.mock_run_id);
   /**
