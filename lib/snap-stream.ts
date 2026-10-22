@@ -1,4 +1,4 @@
-import { DoubtPhoto, SnapFailure, SnappedQuestion, SnapResponse } from '@/lib/doubts';
+import { DoubtPhoto, SnapFailure, SnappedQuestion, SnapResponse, plainRefusal } from '@/lib/doubts';
 import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { supabase } from '@/lib/supabase';
 
@@ -298,11 +298,23 @@ export function snapDoubtStreaming(
             );
             return;
           }
-          const detail = (parsed.detail ?? parsed) as Record<string, unknown>;
-          finish(() => reject(Object.assign(new Error(String(detail.message ?? `HTTP ${xhr.status}`)), {
-            snapFailure: failureFrom(detail),
-            status: xhr.status,
-          })));
+          // `detail` is a sentence for the size cap and the file checks
+          // (`HTTPException(413, detail="That photo is larger than…")`) and
+          // an object only for the snap's own refusals. Reading `.message` off
+          // the sentence gave "HTTP 413" and "That was on our end".
+          const raw = parsed.detail ?? parsed;
+          const snapFailure =
+            typeof raw === 'string'
+              ? plainRefusal(xhr.status, raw)
+              : xhr.status === 413
+                ? plainRefusal(413, '')
+                : failureFrom(raw as Record<string, unknown>);
+          finish(() =>
+            reject(Object.assign(new Error(snapFailure.message || `HTTP ${xhr.status}`), {
+              snapFailure,
+              status: xhr.status,
+            }))
+          );
           return;
         }
         if (failure) {

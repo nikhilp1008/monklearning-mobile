@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StateCard } from '@/components/states';
+import { stageCopy } from '@/components/snap-loading';
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { hapticSoft, hapticTicked, hapticWarning } from '@/lib/haptics';
@@ -188,8 +189,9 @@ export default function SnapSolvedScreen() {
             ) : (
               <StateCard
                 glyph="retry"
-                title="Couldn't solve this one"
+                title={stageCopy(job.failure.stage, job.failure.message)?.title ?? "Couldn't solve this one"}
                 line={
+                  stageCopy(job.failure.stage, job.failure.message)?.body ??
                   (job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
                   withTeacherName(job.failure.message)
                 }

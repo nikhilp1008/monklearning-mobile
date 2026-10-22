@@ -13,7 +13,7 @@ import { SnapCrop } from '@/components/snap-crop';
 import { SnapFailed, SnapLoading, failureCopy } from '@/components/snap-loading';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
+import { DoubtPhoto, SnapFailure, rejectPhotoFailure } from '@/lib/doubts';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 import { hapticKey } from '@/lib/haptics';
 
@@ -71,7 +71,9 @@ export default function SnapCaptureScreen() {
 
     if (job.status === 'failed') {
       setFailure(job.failure);
-      setCanRetryUpload(job.failure.stage !== 'quota' && job.failure.stage !== 'pass');
+      // The same file would be refused the same way: a different photo is the
+      // only way on for the size cap and the file checks.
+      setCanRetryUpload(!['quota', 'pass', 'too_large', 'rejected'].includes(job.failure.stage));
       setPhase('failed');
       return;
     }
@@ -153,9 +155,9 @@ export default function SnapCaptureScreen() {
 
     // A bad mime/size never even reaches the server — same photo, same
     // result, so only retaking (not "try again") makes sense here.
-    const rejectReason = rejectPhoto(picked);
-    if (rejectReason) {
-      setFailure({ message: rejectReason, stage: 'config', remedy: 'retake', retake_helps: true });
+    const rejected = rejectPhotoFailure(picked);
+    if (rejected) {
+      setFailure(rejected);
       setCanRetryUpload(false);
       setPhase('failed');
       return;
@@ -265,7 +267,7 @@ export default function SnapCaptureScreen() {
   // The day's limit is not a failed photo: it gets the limit card in the
   // screen below, not the photo-failure screen. Nor is an ended pass.
   if (phase === 'failed' && photo && failure && failure.stage !== 'quota' && failure.stage !== 'pass') {
-    const copy = failureCopy(failure.remedy, failure.message);
+    const copy = failureCopy(failure.remedy, failure.message, failure.stage);
     return (
       <>
         <StatusBar style="dark" />

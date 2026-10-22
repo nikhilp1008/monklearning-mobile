@@ -183,8 +183,19 @@ export interface SnapResponse {
 export interface SnapFailure {
   message: string;
   /** `pass`: the student's pass has ended (HTTP 402). `network`: the
-   *  connection, not the photo or the solver. */
-  stage: 'transcribe' | 'solve' | 'config' | 'quota' | 'pass' | 'network' | string;
+   *  connection, not the photo or the solver. `too_large`: over the size cap
+   *  (HTTP 413, or caught before upload). `rejected`: refused before reading
+   *  — wrong file type, an empty file — with `message` saying why. */
+  stage:
+    | 'transcribe'
+    | 'solve'
+    | 'config'
+    | 'quota'
+    | 'pass'
+    | 'network'
+    | 'too_large'
+    | 'rejected'
+    | string;
   reason?: string;
   /** retake = their photo | not_photo = needs a figure | our_side = ours */
   remedy?: Remedy;
@@ -215,6 +226,42 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 // needs a backend-side change.
 export const MAX_QUESTIONS = 3;
 export const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+
+/**
+ * The same check as `rejectPhoto`, as the failure the capture screen shows —
+ * so a photo too large to send reads as exactly that, not as an unreadable
+ * shot.
+ */
+export function rejectPhotoFailure(photo: DoubtPhoto): SnapFailure | null {
+  const reason = rejectPhoto(photo);
+  if (!reason) return null;
+  const tooLarge = !!photo.fileSize && photo.fileSize > MAX_IMAGE_BYTES;
+  return { message: reason, stage: tooLarge ? 'too_large' : 'rejected', remedy: 'retake', retake_helps: true };
+}
+
+/**
+ * A refusal whose `detail` is a plain sentence rather than the snap's own
+ * object: the size cap (413), an unsupported type (415), an empty file (400),
+ * or "not available right now" (503). The 4xx ones are about the file, so a
+ * different photo is the way on; anything else is ours.
+ */
+export function plainRefusal(status: number, detail: string): SnapFailure {
+  if (status === 413) {
+    return { message: detail || 'That photo is too large.', stage: 'too_large', remedy: 'retake', retake_helps: true };
+  }
+  if (status >= 400 && status < 500 && status !== 429) {
+    return { message: detail, stage: 'rejected', remedy: 'retake', retake_helps: true };
+  }
+  return { message: detail, stage: 'unknown', remedy: 'our_side', retake_helps: false };
+}
+
+/** The connection failed: never the photo, never a sentence to print. */
+const CONNECTION_FAILURE: SnapFailure = {
+  message: 'Could not reach the solver. Check your connection.',
+  stage: 'network',
+  remedy: 'our_side',
+  retake_helps: false,
+};
 
 /** Returns a student-facing reason, or null when the photo is acceptable. */
 export function rejectPhoto(photo: DoubtPhoto): string | null {
@@ -334,12 +381,12 @@ export function readSnapFailure(error: unknown): SnapFailure {
   const attached = (error as { snapFailure?: SnapFailure } | null)?.snapFailure;
   if (attached) return attached;
 
-  if (!(error instanceof ApiError)) {
-    if (error instanceof Error && error.message) {
-      return { message: error.message, stage: 'unknown' };
-    }
-    return fallback;
-  }
+  // Not the API's answer at all — fetch's own "Network request failed", a
+  // stream that dropped. Its message was printed under "We couldn't read that
+  // one", which blamed the photo for the connection.
+  if (!(error instanceof ApiError)) return CONNECTION_FAILURE;
+  // apiFetch's timeout and an unreachable host both arrive as status 0.
+  if (error.status === 0) return CONNECTION_FAILURE;
 
   // apiFetch has already told the app root, which is opening Plans.
   if (error.status === 402) {
@@ -349,9 +396,7 @@ export function readSnapFailure(error: unknown): SnapFailure {
   const data = error.data;
   if (data && typeof data === 'object' && 'detail' in data) {
     const detail = (data as { detail: unknown }).detail;
-    if (typeof detail === 'string') {
-      return { message: detail, stage: 'unknown' };
-    }
+    if (typeof detail === 'string') return plainRefusal(error.status, detail);
     if (detail && typeof detail === 'object') {
       const d = detail as Partial<SnapFailure>;
       return {
@@ -367,5 +412,5 @@ export function readSnapFailure(error: unknown): SnapFailure {
       };
     }
   }
-  return { message: error.message || fallback.message, stage: 'unknown' };
+  return { ...fallback, message: error.message || fallback.message };
 }
