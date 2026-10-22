@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
 import { MathLine } from '@/components/math-line';
+import type { DronaCheckin } from '@/lib/drona-voice-client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
@@ -466,6 +467,9 @@ export default function LiveClassroomScreen() {
    * voicing a question.
    */
   const [questionText, setQuestionText] = useState<string | null>(null);
+  /** The "Samajh aaya?" check-in on screen, if any (server checkin.py). */
+  const [checkin, setCheckin] = useState<DronaCheckin | null>(null);
+  const checkinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * The option the student just pressed, held so the card can acknowledge it.
    *
@@ -577,7 +581,17 @@ export default function LiveClassroomScreen() {
       // The turn's first frame — board events or audio, whichever landed
       // first. Real content exists on the client now, seconds before it is
       // spoken, so the card can stop guessing and say so.
+      onCheckin: (c) => {
+        setCheckin(c);
+        // A quiet student is never stuck: no tap in time means "carry on".
+        if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+        checkinTimerRef.current = setTimeout(() => answerCheckinRef.current?.('ok'), CHECKIN_AUTO_OK_MS);
+      },
       onTurnStarted: () => {
+        // Whatever started the turn (a tap, the timeout, a spoken doubt) ends the check-in.
+        if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+        checkinTimerRef.current = null;
+        setCheckin(null);
         // A new turn brings the board back to the live edge. A small drag
         // earlier latched following off, and with the "Jump to live" chip
         // hidden during a checkpoint there was no way back: the board filled
@@ -1467,6 +1481,20 @@ export default function LiveClassroomScreen() {
     if (next === false) scheduleResume();
   };
 
+  const answerCheckinRef = useRef<((choice: 'ok' | 'doubt' | 'repeat') => void) | null>(null);
+  answerCheckinRef.current = (choice) => {
+    if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+    checkinTimerRef.current = null;
+    setCheckin(null);
+    clientRef.current?.sendCheckinReply(choice);
+  };
+  useEffect(
+    () => () => {
+      if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+    },
+    []
+  );
+
   const jumpToLive = () => {
     if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
     resumeTimerRef.current = null;
@@ -2116,6 +2144,31 @@ export default function LiveClassroomScreen() {
           Portrait puts it directly above the dock, landscape above the bottom
           edge and clear of the rail's channel — the positioning lives on
           `askColumn`. */}
+      {checkin && !handRaised && checkOptions.length === 0 && (
+        <Animated.View
+          style={styles.askColumn}
+          onLayout={(e) => {
+            askTopRef.current = e.nativeEvent.layout.y;
+            glide();
+          }}
+          entering={FadeInDown.duration(320).easing(Easing.bezier(0.2, 0.7, 0.2, 1).factory())}
+          exiting={FadeOutDown.duration(220)}>
+          <View style={styles.askCard}>
+            <Text style={styles.askQuestion}>{checkin.prompt}</Text>
+            <View style={styles.askRow}>
+              {checkin.options.map((o) => (
+                <Pressable
+                  key={o.choice}
+                  style={styles.askChip}
+                  onPress={() => answerCheckinRef.current?.(o.choice)}>
+                  <Text style={styles.askChipText}>{o.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
       {checkOptions.length > 0 && questionText && !handRaised && (
         <Animated.View
           style={styles.askColumn}
@@ -2744,6 +2797,8 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
 /** Where the line being written is held, as a share of the board's height. */
 /** How long a student who scrolled away is left reading before the board
  *  returns to the live edge by itself. */
+/** A check-in with no tap carries on as "ok" after this long. */
+const CHECKIN_AUTO_OK_MS = 10000;
 const RESUME_FOLLOW_MS = 5000;
 const READ_LINE = 0.45;
 /**

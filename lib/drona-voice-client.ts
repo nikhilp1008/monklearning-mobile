@@ -276,6 +276,11 @@ export interface DronaMeta {
 
 export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
+export interface DronaCheckin {
+  prompt: string;
+  options: { choice: 'ok' | 'doubt' | 'repeat'; label: string }[];
+}
+
 export interface DronaVoiceHandlers {
   onConnectionChange?: (status: ConnectionStatus) => void;
   onState?: (state: DronaState) => void;
@@ -309,6 +314,8 @@ export interface DronaVoiceHandlers {
   onTurnError?: (message: string) => void;
   onSttTooShort?: (message: string) => void;
   onAnswerResult?: (result: DronaAnswerResult) => void;
+  /** The understanding check-in, shown once Drona has finished speaking. */
+  onCheckin?: (checkin: DronaCheckin) => void;
   /** Server signalled the lesson itself is finished (not a disconnect). */
   onSessionEnded?: () => void;
   onError?: (message: string) => void;
@@ -512,6 +519,7 @@ export class DronaVoiceClient {
     this.playback.onQueueDrained = () => {
       this.handlers.onSpeakingChange?.(false);
       if (this.awaitingDrain) this.flushHeldTurn();
+      else this.flushCheckin();
     };
   }
 
@@ -642,9 +650,11 @@ export class DronaVoiceClient {
     // handshake message would race the first utterance.
     const widgets = `&widgets=${encodeURIComponent(
       REGISTRY_MANIFEST.map((m) => `${m.id}@${m.version}`).join(','))}`;
+    // This build can show the "Samajh aaya?" check-in card (server checkin.py).
+    const features = '&features=checkin';
     const url = canSendHeaders
-      ? `${base}?${pcmAvailable ? 'stream_tts=1' : ''}${widgets}`
-      : `${base}?token=${encodeURIComponent(token)}${parts}${widgets}`;
+      ? `${base}?${pcmAvailable ? 'stream_tts=1' : ''}${widgets}${features}`
+      : `${base}?token=${encodeURIComponent(token)}${parts}${widgets}${features}`;
     // One socket per client, enforced at the source. A second connect while
     // one is still open — a screen remount, an eager prewarm — would put two
     // sockets in the air from one device; the server's takeover would retire
@@ -861,6 +871,15 @@ export class DronaVoiceClient {
         if (meta.session_complete) this.handlers.onSessionEnded?.();
         break;
       }
+      case 'checkin': {
+        // Sent after the turn's turn_complete, while its audio may still be
+        // playing: held like a question, so it never covers Drona mid-sentence.
+        const options = Array.isArray(msg.options) ? (msg.options as DronaCheckin['options']) : [];
+        if (!options.length) break;
+        this.pendingCheckin = { prompt: String(msg.prompt ?? ''), options };
+        if (!this.awaitingDrain && this.playback.idle) this.flushCheckin();
+        break;
+      }
       case 'answer_result':
         this.handlers.onAnswerResult?.(msg as unknown as DronaAnswerResult);
         break;
@@ -927,6 +946,13 @@ export class DronaVoiceClient {
 
   /** A state frame carrying check_options, held until its turn finishes. */
   private pendingState: DronaState | null = null;
+  /** A check-in waiting for Drona's voice to finish. */
+  private pendingCheckin: DronaCheckin | null = null;
+  private flushCheckin() {
+    const c = this.pendingCheckin;
+    this.pendingCheckin = null;
+    if (c) this.handlers.onCheckin?.(c);
+  }
   /**
    * True from the moment a question is held until ITS turn's `turn_complete`.
    * A drain that belongs to the previous turn (its turn_complete armed
@@ -996,6 +1022,7 @@ export class DronaVoiceClient {
       this.pendingState = null;
     }
     this.handlers.onTurnComplete?.();
+    this.flushCheckin();
   }
 
   // --- The board: one key per event, one reveal per key ---
@@ -1310,6 +1337,11 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'utterance', text });
   }
 
+  /** The student's tap on the check-in card ("ok" also when it times out). */
+  sendCheckinReply(choice: 'ok' | 'doubt' | 'repeat') {
+    this.sendJson({ type: 'checkin_reply', choice });
+  }
+
   /** The student's answer to a checkpoint question, from a chip tap. */
   sendAnswer(text: string) {
     this.dropHeldTurn();
@@ -1359,6 +1391,7 @@ export class DronaVoiceClient {
    * playback queue is only the microphone's business.
    */
   private dropHeldTurn() {
+    this.pendingCheckin = null;
     this.turnInFlight = false;
     this.pendingState = null;
     this.pendingStateAwaitsComplete = false;

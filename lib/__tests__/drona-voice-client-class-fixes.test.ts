@@ -77,7 +77,10 @@ class FakeSocket {
   constructor(readonly url: string) {
     FakeSocket.all.push(this);
   }
-  send() {}
+  sent: string[] = [];
+  send(data: string) {
+    this.sent.push(data);
+  }
   close() {
     this.readyState = FakeSocket.CLOSED;
   }
@@ -206,5 +209,54 @@ describe('End means silence', () => {
     openClients = [];
     captured({ data: JSON.stringify(question('late')) });
     expect(c.shown).toEqual([]);
+  });
+});
+
+
+describe('the understanding check-in', () => {
+  const checkinFrame = {
+    type: 'checkin',
+    prompt: 'Samajh aaya?',
+    options: [
+      { choice: 'ok', label: 'Haan, samajh aaya' },
+      { choice: 'doubt', label: 'Thoda doubt hai' },
+      { choice: 'repeat', label: 'Phir se samjhao' },
+    ],
+  };
+
+  it('asks for the feature on the socket URL', async () => {
+    const c = await joinClass();
+    expect(c.socket.url).toContain('features=checkin');
+  });
+
+  it('waits until Drona has finished speaking', async () => {
+    const shown: string[] = [];
+    const c = await joinClass({ onCheckin: (k) => shown.push(k.prompt) });
+    c.send(say('t1_s1'));
+    c.send({ type: 'turn_complete' });
+    c.send(checkinFrame); // arrives while the turn's audio still plays
+    expect(shown).toEqual([]);
+    c.queue.playToEnd();
+    expect(shown).toEqual(['Samajh aaya?']);
+  });
+
+  it('shows at once when nothing is playing, and sends the tap back', async () => {
+    const shown: string[] = [];
+    const c = await joinClass({ onCheckin: (k) => shown.push(k.options.map((o) => o.label).join('|')) });
+    c.send(checkinFrame);
+    expect(shown).toEqual(['Haan, samajh aaya|Thoda doubt hai|Phir se samjhao']);
+    c.client.sendCheckinReply('repeat');
+    expect(c.socket.sent.map((x) => JSON.parse(x))).toContainEqual({ type: 'checkin_reply', choice: 'repeat' });
+  });
+
+  it('is dropped when the student speaks instead', async () => {
+    const shown: string[] = [];
+    const c = await joinClass({ onCheckin: (k) => shown.push(k.prompt) });
+    c.send(say('t1_s1'));
+    c.send({ type: 'turn_complete' });
+    c.send(checkinFrame);
+    c.client.sendUtterance('wait, ek doubt hai');
+    c.queue.playToEnd();
+    expect(shown).toEqual([]);
   });
 });
