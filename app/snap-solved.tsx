@@ -50,6 +50,14 @@ export default function SnapSolvedScreen() {
   const job = useSnapJob();
   const response = job.status === 'solved' ? job.response : null;
 
+  /**
+   * The way out of a state card. These screens have no header — the card is
+   * the whole page — so a failed or empty solve had no visible way back but
+   * the system gesture. The quiet link under the card is the one snap-capture's
+   * limit card already offers.
+   */
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
   // Dropped on the way out so coming back never shows a stale answer. A solve
   // still running is deliberately left alone — see clearFinishedSnapJob.
   useEffect(() => clearFinishedSnapJob, []);
@@ -176,6 +184,7 @@ export default function SnapSolvedScreen() {
                 title="You've used today's snaps"
                 line="Snaps open again tomorrow. Everything you've solved is in Doubts."
                 action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Close', onPress: close }}
               />
             ) : job.failure.stage === 'pass' ? (
               // The app root is already opening Plans; this is what shows if
@@ -185,6 +194,7 @@ export default function SnapSolvedScreen() {
                 title="Your pass has ended"
                 line="Pick a plan to keep snapping. Everything you've solved is still in Doubts."
                 action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Close', onPress: close }}
               />
             ) : (
               <StateCard
@@ -196,6 +206,7 @@ export default function SnapSolvedScreen() {
                   withTeacherName(job.failure.message)
                 }
                 action={{ label: 'Try another photo', onPress: () => router.replace('/snap-capture') }}
+                quiet={{ label: 'Close', onPress: close }}
               />
             )}
           </View>
@@ -215,6 +226,7 @@ export default function SnapSolvedScreen() {
               title="Nothing solved yet"
               line="Snap a question and it'll land here once it's solved."
               action={{ label: 'Snap a question', onPress: () => router.replace('/snap-capture') }}
+              quiet={{ label: 'Close', onPress: close }}
             />
           </View>
         </SafeAreaView>
