@@ -35,6 +35,18 @@ describe('paceLines', () => {
     expect(last.delayMs + last.ms).toBeLessThan(4000);
   });
 
+  it('writes a sentence\'s lines in its first half, so the board leads the voice', () => {
+    const pace = paceLines([text('one two three'), text('four five six seven')], 6000);
+    const last = pace[pace.length - 1]!;
+    expect(pace[0]!.delayMs).toBe(0);
+    expect(last.delayMs + last.ms).toBeLessThanOrEqual(3000);
+  });
+
+  it('writes faster than the voice speaks', () => {
+    const [line] = paceLines([text('a b c d e f g h')], 60000);
+    expect(line!.ms / 8).toBeLessThan(375);
+  });
+
   it('lands a formula whole, at its moment', () => {
     const [, f] = paceLines([text('one two three four'), { type: 'formula', text: 'E = hv' } as never], 8000);
     expect(f!.ms).toBe(0);
@@ -43,7 +55,7 @@ describe('paceLines', () => {
 
   it('never writes slower than a hand does, and a heading faster still', () => {
     const [line] = paceLines([text('a short line')], 20000);
-    expect(line!.ms).toBe(3 * 420);
+    expect(line!.ms).toBe(3 * 250);
     const [heading] = paceLines([text('The Photon: A Packet of Light', 'heading')], 10000);
     expect(heading!.ms).toBe(6 * 220);
   });

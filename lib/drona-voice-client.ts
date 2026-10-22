@@ -138,8 +138,19 @@ export interface BoardEvent {
  * seconds). A heading is put up quickly, as a title is; prose at about the
  * pace it is spoken.
  */
-/** The slowest a line is ever written, per word. */
-const LINE_MS_PER_WORD = 420;
+/**
+ * The slowest a line is ever written, per word. Faster than speech
+ * (MS_PER_SPOKEN_WORD = 375): at 420 the writing trailed the voice, and the
+ * student heard a sentence before its line was on the board.
+ */
+const LINE_MS_PER_WORD = 250;
+/**
+ * The share of a sentence its lines are written in. The board leads: a
+ * sentence's lines are up in its first half, so the student sees what is
+ * being said rather than hearing it and then watching it appear. (It was 0.9,
+ * spreading the writing across the whole sentence.)
+ */
+const WRITE_SHARE = 0.5;
 const HEADING_MS_PER_WORD = 220;
 
 export function paceLines(
@@ -155,7 +166,7 @@ export function paceLines(
     return { w: Math.max(1, words), writes: words > 0, cap: words * perWord };
   });
   const total = weights.reduce((a, b) => a + b.w, 0);
-  const usable = durationMs * 0.9;
+  const usable = durationMs * WRITE_SHARE;
   let before = 0;
   return weights.map(({ w, writes, cap }) => {
     const delayMs = Math.round((usable * before) / total);
@@ -533,9 +544,23 @@ export class DronaVoiceClient {
     if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
     this.drainWatchdog = null;
     this.clearTurnErrorRecovery();
+    // Frames already on the native bridge are still delivered after close()
+    // (React Native unregisters its listeners only on the native close event),
+    // and an audio_chunk among them restarted the player: the class went on
+    // talking after End. Detach first, then close.
+    const ws = this.ws;
+    if (ws) {
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      ws.onopen = null;
+    }
+    this.pendingState = null;
+    this.pendingBoardEvents = [];
     this.playback.destroy();
-    this.ws?.close();
+    ws?.close();
     this.ws = null;
+    this.handlers.onConnectionChange?.('closed');
   }
 
   /** Resolved by `ws.onopen`; see `whenReady`. */
@@ -635,6 +660,7 @@ export class DronaVoiceClient {
 
     ws.onopen = () => {
       this.openedAt = Date.now();
+      this.turnActivitySinceOpen = false;
       this.reconnectAttempt = 0;
       this.reconnectScheduled = false;
       this.handlers.onConnectionChange?.('open');
@@ -727,6 +753,8 @@ export class DronaVoiceClient {
   }
 
   private handleMessage(data: unknown) {
+    // Ended by the student: nothing that arrives after End may play or draw.
+    if (this.manualDisconnect) return;
     if (typeof data !== 'string') return; // server never sends binary frames outbound
     if (this.buffering) {
       // Bounded: a runaway server should not grow this without limit if the
@@ -760,8 +788,14 @@ export class DronaVoiceClient {
          * prevent. Reconnects are routine on a phone — `RECONNECT_DELAYS_MS`
          * has six entries — so this was the common case, not the exotic one.
          */
-        if (state.check_options?.length && this.turnInFlight) {
+        // Held whenever a turn is under way on this socket — including a
+        // question turn whose state frame is its FIRST frame (no board lines,
+        // the question sentence synthesised after it): that turn never set
+        // `turnInFlight`, so its chips went up before Drona asked. The resume
+        // frame on a fresh socket (no activity since open) still shows at once.
+        if (state.check_options?.length && (this.turnInFlight || this.turnActivitySinceOpen)) {
           this.pendingState = state;
+          this.pendingStateAwaitsComplete = true;
         } else {
           this.handlers.onState?.(state);
         }
@@ -769,6 +803,7 @@ export class DronaVoiceClient {
         break;
       }
       case 'board_events':
+        this.turnActivitySinceOpen = true;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
@@ -802,6 +837,7 @@ export class DronaVoiceClient {
         break;
       }
       case 'audio_chunk':
+        this.turnActivitySinceOpen = true;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
@@ -839,6 +875,10 @@ export class DronaVoiceClient {
          * without the arithmetic.
          */
         this.serverTurnOpen = false;
+        this.turnActivitySinceOpen = true;
+        // This turn_complete belongs to the held question (it came after it),
+        // so the question may now mount once the audio drains.
+        this.pendingStateAwaitsComplete = false;
         // The turn being held owns every board frame received up to now; a
         // frame after this belongs to the next turn. See flushHeldTurn.
         this.heldThroughBatch = this.batchSerial;
@@ -862,6 +902,7 @@ export class DronaVoiceClient {
           // No turn_complete is coming to say what the turn owns, and any
           // frame would have cancelled this timer: everything held is its.
           this.heldThroughBatch = this.batchSerial;
+          this.pendingStateAwaitsComplete = false;
           if (this.turnInFlight || this.pendingState) this.flushHeldTurn();
         }, TURN_ERROR_RECOVERY_MS);
         break;
@@ -881,6 +922,15 @@ export class DronaVoiceClient {
 
   /** A state frame carrying check_options, held until its turn finishes. */
   private pendingState: DronaState | null = null;
+  /**
+   * True from the moment a question is held until ITS turn's `turn_complete`.
+   * A drain that belongs to the previous turn (its turn_complete armed
+   * `awaitingDrain` before this question arrived) must not mount it: the
+   * question sentence itself is still to come.
+   */
+  private pendingStateAwaitsComplete = false;
+  /** Any turn frame (or anything we sent) since this socket opened. */
+  private turnActivitySinceOpen = false;
   /**
    * Whether a turn is currently being delivered.
    *
@@ -936,7 +986,7 @@ export class DronaVoiceClient {
     this.clearTurnErrorRecovery();
     this.turnInFlight = false;
     this.flushPendingBoardEvents(this.heldThroughBatch);
-    if (this.pendingState) {
+    if (this.pendingState && !this.pendingStateAwaitsComplete) {
       this.handlers.onState?.(this.pendingState);
       this.pendingState = null;
     }
@@ -1207,6 +1257,7 @@ export class DronaVoiceClient {
   // --- Outbound ---
 
   private sendJson(payload: Record<string, unknown>) {
+    this.turnActivitySinceOpen = true;
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(payload));
   }
 
@@ -1266,6 +1317,7 @@ export class DronaVoiceClient {
   private dropHeldTurn() {
     this.turnInFlight = false;
     this.pendingState = null;
+    this.pendingStateAwaitsComplete = false;
     this.pendingBoardEvents = [];
     // The server aborts its turn too (no turn_complete follows), and whatever
     // the student said makes the next turn an answer to it — never the

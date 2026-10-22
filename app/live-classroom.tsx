@@ -576,6 +576,11 @@ export default function LiveClassroomScreen() {
       // first. Real content exists on the client now, seconds before it is
       // spoken, so the card can stop guessing and say so.
       onTurnStarted: () => {
+        // A new turn brings the board back to the live edge. A small drag
+        // earlier latched following off, and with the "Jump to live" chip
+        // hidden during a checkpoint there was no way back: the board filled
+        // and never scrolled.
+        setFollowing(true);
         setCardPhase('writing');
         voiceTurnRef.current?.handOver();
       },
@@ -1124,6 +1129,7 @@ export default function LiveClassroomScreen() {
     setChromeVisible(true);
   }, [isLandscape]);
 
+
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -1206,6 +1212,17 @@ export default function LiveClassroomScreen() {
     },
     [glide]
   );
+  // Every line moves when the board changes width, so the positions the follow
+  // logic remembered belong to the other orientation. `headingYRef` only ever
+  // grows, so a stale value pinned the follow target and new lines were
+  // written below the screen. Start over; the headings report again on layout.
+  useEffect(() => {
+    headingYRef.current = 0;
+    glidedToRef.current = -1;
+    const id = setTimeout(() => glide(true), 50);
+    return () => clearTimeout(id);
+  }, [isLandscape, glide]);
+
   /** A heading landed: it is the top of the new page. `y` is its place inside
    *  the padded content, which is also the offset that puts it under the header. */
   const onHeadingAt = useCallback(
@@ -1760,6 +1777,10 @@ export default function LiveClassroomScreen() {
     // Close an open turn cleanly before the socket goes; the recorder itself
     // is torn down by the mount effect's cleanup on unmount.
     doneListening();
+    // Silence first. End means the voice stops NOW: this used to wait for the
+    // recorder teardown (100-400ms) before disconnecting, and frames already
+    // in flight kept restarting the player in that gap.
+    clientRef.current?.disconnect();
 
     // STARTED HERE, AWAITED ON THE NEXT SCREEN.
     //
@@ -1780,7 +1801,6 @@ export default function LiveClassroomScreen() {
     } catch {
       // Never started, or already stopped.
     }
-    clientRef.current?.disconnect();
 
     router.replace({
       pathname: '/session-summary',
@@ -1848,9 +1868,11 @@ export default function LiveClassroomScreen() {
   // is never seen reflowing mid-rotation. Unlike the old landscape lock this
   // is only a paint gate: the layout below reads the real window, so if a lock
   // is refused the board still matches the phone instead of lying sideways.
-  if (!oriented) {
-    return <View style={styles.rotateHold} />;
-  }
+  // NOT an early return any more. Returning the hold view unmounted the board,
+  // and every line's "already written" state is component-local, so each
+  // rotation replayed the writing of every line on the board. The hold is now
+  // a cover over the live tree, which keeps every line (and the scroll view)
+  // mounted.
 
   if (connectError) {
     return (
@@ -2266,6 +2288,8 @@ export default function LiveClassroomScreen() {
           tab would point at nothing. A tap on the paper brings the header
           back. */}
       <EdgeTab visible={isLandscape && !chromeVisible} onPress={showChrome} />
+
+      {!oriented && <View pointerEvents="auto" style={[StyleSheet.absoluteFill, styles.rotateHold]} />}
 
       {/* Mic off: say plainly WHICH way it is off, and offer Settings only when
           Settings is actually the fix. A student who has no input at all, or
