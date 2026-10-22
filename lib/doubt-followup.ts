@@ -138,6 +138,32 @@ export function followUpRefusal(status: number, responseText: string): FollowUpE
   return new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry');
 }
 
+/**
+ * How long an ask may go without a byte before it is given up on.
+ *
+ * None of these requests had a ceiling, so a connection that stalled left the
+ * bar on "One moment" for as long as the student was willing to look at it.
+ * An idle limit rather than a total one: a long answer with its voice behind
+ * it can stream for well over a minute, but never goes quiet for this long.
+ */
+export const FOLLOWUP_IDLE_MS = 90000;
+
+/** A restartable idle clock: `touch` on every arrival, `stop` when settled. */
+export function idleClock(ms: number, onIdle: () => void): { touch: () => void; stop: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const stop = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  return {
+    touch: () => {
+      stop();
+      timer = setTimeout(onIdle, ms);
+    },
+    stop,
+  };
+}
+
 /** Everything after the last complete `\n\n`, left for the next chunk. */
 export function parseFrames(chunk: string): { event: string; data: unknown }[] {
   const out: { event: string; data: unknown }[] = [];
@@ -310,9 +336,16 @@ export function speakFollowUpStreaming(
       const xhr = new XMLHttpRequest();
       let consumed = 0;
       let done = false;
+      // A voice that stalls ends quietly, like one that fails: the bar would
+      // otherwise sit on "Answering…" with nothing coming.
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        xhr.abort();
+        finish();
+      });
       const finish = () => {
         if (done) return;
         done = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         resolve();
       };
@@ -351,13 +384,17 @@ export function speakFollowUpStreaming(
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', 'text/event-stream');
-      xhr.onprogress = drain;
+      xhr.onprogress = () => {
+        idle.touch();
+        drain();
+      };
       xhr.onerror = finish;
       xhr.ontimeout = finish;
       xhr.onload = () => {
         drain();
         finish();
       };
+      idle.touch();
       xhr.send(JSON.stringify({ text: spoken }));
     })().catch(() => resolve());
   });
@@ -449,10 +486,17 @@ function streamAsk(
       let consumed = 0;
       let settled = false;
       let failure: string | null = null;
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        xhr.abort();
+        finish(() =>
+          reject(new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry'))
+        );
+      });
 
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         fn();
       };
@@ -482,6 +526,7 @@ function streamAsk(
         xhr.setRequestHeader('Content-Type', 'application/json');
       }
       xhr.onreadystatechange = () => {
+        idle.touch();
         if (xhr.readyState >= 3) drain();
         if (xhr.readyState !== 4) return;
         drain();
@@ -497,6 +542,9 @@ function streamAsk(
       };
       xhr.onerror = () =>
         finish(() => reject(new Error('Couldn’t reach the server. Check your connection.')));
+      // A spoken question's upload counts as the request moving.
+      if (xhr.upload) xhr.upload.onprogress = idle.touch;
+      idle.touch();
       xhr.send(body as XMLHttpRequestBodyInit);
     })().catch((err) => reject(err));
   });

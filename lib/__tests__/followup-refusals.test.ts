@@ -86,3 +86,30 @@ it('the daily limit is its own failure, so the bar does not say Try again', asyn
   });
   expect(followUpFailureOf(await result.catch((e) => e))).toBe('quota');
 });
+
+describe('a stalled answer', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('is given up on after the idle limit, as a retry', async () => {
+    jest.useFakeTimers();
+    const result = ask();
+    await opened();
+    FakeXHR.last.push('step_partial', { n: 1, text: 'First' });
+    jest.advanceTimersByTime(91000);
+    expect(followUpFailureOf(await result.catch((e) => e))).toBe('retry');
+  });
+
+  it('is not cut while frames keep arriving', async () => {
+    jest.useFakeTimers();
+    const onStep = jest.fn();
+    const result = askAboutDoubt('d1', 'why?', [], { onStep });
+    await opened();
+    for (let n = 1; n <= 3; n++) {
+      jest.advanceTimersByTime(60000);
+      FakeXHR.last.push('step', { n, text: `Step ${n}` });
+    }
+    FakeXHR.last.end(200);
+    await expect(result).resolves.toBeUndefined();
+    expect(onStep).toHaveBeenCalledTimes(3);
+  });
+});

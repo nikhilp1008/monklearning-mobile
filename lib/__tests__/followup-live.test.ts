@@ -106,3 +106,19 @@ it('reads the daily limit off the live error frame', async () => {
   const err = await done.catch((e) => e);
   expect(followUpFailureOf(err)).toBe('quota');
 });
+
+it('gives up on a socket that stays open and silent', async () => {
+  jest.useFakeTimers();
+  try {
+    const ask = await LiveAsk.begin(START);
+    const ws = FakeSocket.last;
+    ws.onopen?.();
+    const done = ask.finish(handlers());
+    jest.advanceTimersByTime(91000);
+    const err = await done.catch((e) => e);
+    expect(err).not.toBeInstanceOf(LiveUnavailable);
+    expect(followUpFailureOf(err)).toBe('retry');
+  } finally {
+    jest.useRealTimers();
+  }
+});
