@@ -251,14 +251,18 @@ export function getDoubt(doubtId: string): Promise<DoubtDetail> {
  * Timing scales with question count, not a flat ~25s: the web client measured
  * a five-question page at ~75s. Since MAX_QUESTIONS allows three, the default
  * 60s ceiling would abort a healthy solve mid-flight and show the student a
- * "try again" for work the backend was still doing. 150s covers the worst
- * realistic case with headroom.
+ * "try again" for work the backend was still doing.
+ *
+ * 240s, not the 150s it was: that was the server's SOLVE ceiling alone, and the
+ * whole request is the read in front of it (up to ~45s), the solve (150s with
+ * thinking on) and the insert and signing after it. Cutting it at 150s gave up
+ * on a solve the server was still going to save and charge.
  *
  * The web client uses `POST /doubts/stream` (SSE) instead, which streams each
  * step as it lands and shows real progress rather than one long spinner —
  * the better end state, and a follow-up worth doing.
  */
-const SNAP_TIMEOUT_MS = 150000;
+const SNAP_TIMEOUT_MS = 240000;
 
 export async function snapDoubt(photo: DoubtPhoto, signal?: AbortSignal): Promise<SnapResponse> {
   const body = new FormData();
