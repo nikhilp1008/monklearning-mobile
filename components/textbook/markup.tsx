@@ -167,7 +167,30 @@ function plainText(nodes: Node[]): string {
 export type MarkupLook = 'current' | 'pilot' | 'stix';
 
 /** The revise screens' maths face (see app/_layout.tsx). Italic is its own family. */
-export const STIX = { regular: 'STIXTwoText_400Regular', italic: 'STIXTwoText_400Regular_Italic', semibold: 'STIXTwoText_600SemiBold', math: 'STIXTwoMath_400Regular' } as const;
+export const STIX = {
+  regular: 'STIXTwoText_400Regular',
+  italic: 'STIXTwoText_400Regular_Italic',
+  semibold: 'STIXTwoText_600SemiBold',
+  /** Maths letters in a SemiBold name: a Regular italic there looked like a lighter, other font. */
+  semiboldItalic: 'STIXTwoText_600SemiBold_Italic',
+  math: 'STIXTwoMath_400Regular',
+} as const;
+
+/**
+ * STIX Two's italic g is, by default, a two-storey g with almost no slant.
+ * Beside other italic letters ("ρgh") it passes; on its own ("g", "ρg",
+ * g_eff, "(2g)") it reads as an upright roman g among italic symbols, on
+ * every card of Gravitation, Fluids and Oscillations. Not Android: the font's
+ * own outline, drawn off the phone by FreeType, matches the phone's pixels
+ * (Android review, 2026-10-20). The same font carries the single-storey
+ * italic g that printed maths uses, as its stylistic set 1 and as U+0261.
+ * React Native 0.81 drops stylistic sets on the way to Android's text engine
+ * (its MapBuffer conversion passes only the five numeric/small-caps
+ * variants), so the letter is swapped for U+0261 instead, in italic runs only:
+ * same font, same width, the one g everywhere.
+ */
+export const ITALIC_G = '\u0261';
+const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldItalic;
 
 /**
  * The maths symbols STIX Two Text does not carry but its companion STIX Two
@@ -214,19 +237,54 @@ const SUP_RISE = 0.16;
 const SUB_DROP = 0.34;
 type Ink = { family?: string; color?: TextStyle['color'] };
 
+/**
+ * A raised run that is a word, not a variable: "th" in nᵗʰ, "max", "rev",
+ * "ln". Two or more letters together in the run's own (non-<i>) text; a
+ * product of variables (−kt) is wrapped in <i> by the content and keeps its
+ * italic from that.
+ */
+export const isWordScript = (run: string) => /[A-Za-z]{2,}/.test(run);
+
+/**
+ * U+2060 WORD JOINER, set on both sides of a drawn script. On Android the
+ * script's inline View is an object-replacement character in the line, which
+ * the line breaker may break before or after (UAX 14, LB20), so a subscript
+ * could fall to the next line away from its letter (∑ m|ᵢ, a|ₜ). A word joiner
+ * forbids a break on either side of it (LB11, which wins over LB20). It draws
+ * nothing, on either platform.
+ */
+export const WJ = '\u2060';
+
 function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink) {
   const small = size * DRAWN_SUP;
   // A raised letter is an exponent, a variable (Mᵃ, xⁿ), so it is italic like
-  // every other variable, even where the content left it upright.
-  const family = name === 'sup' && (!ink.family || ink.family === STIX.regular) ? STIX.italic : ink.family;
+  // every other variable, even where the content left it upright. Not a word
+  // used as a label (nᵗʰ, a raised "max" or "ln"): that stays upright.
+  const label = isWordScript(plainText(children.filter((c) => !(c.kind === 'tag' && c.name === 'i'))));
+  // Only its letters, though: the digits, signs and brackets of an exponent
+  // stay upright as they are everywhere else (V^(γ−1), not V^(γ−1) slanted whole).
+  const italic = name === 'sup' && !label && (!ink.family || ink.family === STIX.regular);
+  const kids = italic ? italicLetters(children) : children;
   const shift = name === 'sup' ? -size * SUP_RISE : size * SUB_DROP;
   return (
     <View key={key} style={{ transform: [{ translateY: shift }] }}>
-      <Text style={{ fontFamily: family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
-        {render(children, small, key, 'stix', { ...ink, family })}
+      <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
+        {render(kids, small, key, 'stix', ink)}
       </Text>
     </View>
   );
+}
+
+/** Every run of letters outside an <i> wrapped in one, the rest left as it is. */
+function italicLetters(nodes: Node[]): Node[] {
+  return nodes.flatMap((n): Node[] => {
+    if (n.kind === 'br' || (n.kind === 'tag' && n.name === 'i')) return [n];
+    if (n.kind === 'tag') return [{ ...n, children: italicLetters(n.children) }];
+    return n.value
+      .split(/([A-Za-z\u00c0-\u024f\u0370-\u03ff]+)/)
+      .filter(Boolean)
+      .map((part): Node => (/^[A-Za-z\u00c0-\u024f\u0370-\u03ff]/.test(part) ? { kind: 'tag', name: 'i', children: [{ kind: 'text', value: part }] } : { kind: 'text', value: part }));
+  });
 }
 
 /** Ready-made raised and lowered letters typed into a string (Mᵃ) become the
@@ -270,7 +328,10 @@ function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLoo
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
   return nodes.map((node, i) => {
     const key = `${keyPrefix}.${i}`;
-    if (node.kind === 'text') return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(node.value), key) : asText(node.value)}</Fragment>;
+    if (node.kind === 'text') {
+      const value = look === 'stix' && isItalicFamily(ink.family) ? node.value.replace(/g/g, ITALIC_G) : node.value;
+      return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(value), key) : asText(value)}</Fragment>;
+    }
     if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
 
     if (node.name === 'sup' || node.name === 'sub') {
@@ -278,7 +339,16 @@ function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook
       // STIX look: digits and signs are STIX's own raised glyphs; anything with a letter is drawn.
       // The reader draws them the same way: Unicode has a lowered x but no
       // lowered y or z, so A<sub>y</sub> sat on the line beside a lowered Aₓ.
-      if ((look === 'stix' || look === 'pilot') && !NUMERIC_RUN.test(run)) return drawnRun(node.name, node.children, size, key, ink);
+      // Joined on both sides (see WJ), so the script never leaves its letter
+      // and the letter after it never leaves the script.
+      if ((look === 'stix' || look === 'pilot') && !NUMERIC_RUN.test(run))
+        return (
+          <Fragment key={key}>
+            {WJ}
+            {drawnRun(node.name, node.children, size, `${key}.d`, ink)}
+            {WJ}
+          </Fragment>
+        );
       // Unicode raised letters are drawn by whichever font on the device
       // happens to carry each one, and they do not share a baseline or a
       // weight. One or two characters reads fine; "initial" as seven of them
@@ -304,9 +374,11 @@ function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook
       );
     }
 
+    // Maths letters in a SemiBold run (a card's name) are SemiBold italic.
+    const style = node.name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(node.name, size, look);
     return (
-      <Text key={key} style={styleFor(node.name, size, look)}>
-        {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: styleFor(node.name, size, look).fontFamily } : ink)}
+      <Text key={key} style={style}>
+        {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: style.fontFamily } : ink)}
       </Text>
     );
   });

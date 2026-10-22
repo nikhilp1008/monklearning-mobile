@@ -1,4 +1,4 @@
-import { C, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import { C, Rect, Sketch, r1, mathW } from '@/lib/diagrams/kit';
 import type { Diagram } from '@/lib/diagrams/types';
 
 /**
@@ -23,6 +23,8 @@ const D2R = Math.PI / 180;
 /** A unit vector on the drawing at `deg` degrees anticlockwise from +x (the drawing's y runs down). */
 const dir = (deg: number): P => [Math.cos(deg * D2R), -Math.sin(deg * D2R)];
 const add = (a: P, b: P, k = 1): P => [a[0] + k * b[0], a[1] + k * b[1]];
+/** The baseline that centres a 14 px label on a point: an angle's label sits on its bisector, not above it (Android: "30°" touched the rope). */
+const centred = (p: P): P => [p[0], p[1] + 5];
 const sub = (a: P, b: P): P => [a[0] - b[0], a[1] - b[1]];
 const mul = (a: P, k: number): P => [a[0] * k, a[1] * k];
 const len = (v: P) => Math.hypot(v[0], v[1]);
@@ -77,7 +79,7 @@ function block(F: P, u: P, n: P, hl: number, hh: number): P[] {
  */
 function resultBlock(s: Sketch, lines: string[], size = 15): Rect {
   const lh = size + 6, plain = (t: string) => t.replace(/<[^>]+>/g, '');
-  const w = Math.max(...lines.map((t) => plain(t).length * size * 0.5)) + 30, h = lines.length * lh + 14;
+  const w = Math.max(...lines.map((t) => mathW(t, size))) + 30, h = lines.length * lh + 14;
   const x0 = s.w - 8 - w, y0 = s.h - 8 - h;
   s.tags.push({ name: plain(lines.join(' ')), rect: [x0, y0, x0 + w, y0 + h], from: null, to: null });
   s.add(`<rect x="${r1(x0)}" y="${r1(y0)}" width="${r1(w)}" height="${r1(h)}" rx="15" fill="#fff" stroke="${C.text}" stroke-width="1.6"/>`);
@@ -132,8 +134,8 @@ const fig41: Diagram = {
       // the 30° between each rope and the beam
       arc(s, g.A, 36, -LAMP.ang, 0);
       arc(s, g.B, 36, 180, 180 + LAMP.ang);
-      s.sym(...add(g.A, dir(-LAMP.ang / 2), 50), degTxt(LAMP.ang), { size: 14, color: C.slate, anchor: 'start' });
-      s.sym(...add(add(g.B, dir(180 + LAMP.ang / 2), 50), [0, 0]), degTxt(LAMP.ang), { size: 14, color: C.slate, anchor: 'end' });
+      s.sym(...centred(add(g.A, dir(-LAMP.ang / 2), 50)), degTxt(LAMP.ang), { size: 14, color: C.slate, anchor: 'start' });
+      s.sym(...centred(add(g.B, dir(180 + LAMP.ang / 2), 50)), degTxt(LAMP.ang), { size: 14, color: C.slate, anchor: 'end' });
       const tip = add(g.Wfrom, g.Wv);
       s.sym(tip[0] + 10, tip[1] - 4, `<i>W</i> = ${LAMP.W} N`, { anchor: 'start' });
       s.place([
@@ -152,8 +154,8 @@ const fig41: Diagram = {
     arc(s, g.J, 40, 0, LAMP.ang);
     arc(s, g.J, 40, 180 - LAMP.ang, 180);
     s.point(g.J[0], g.J[1], 4.6, `<circle cx="${r1(g.J[0])}" cy="${r1(g.J[1])}" r="4.6" fill="${C.mari}"/>`);
-    s.sym(...add(g.J, dir(LAMP.ang / 2), 60), degTxt(LAMP.ang), { size: 14, color: C.slate });
-    s.sym(...add(g.J, dir(180 - LAMP.ang / 2), 60), degTxt(LAMP.ang), { size: 14, color: C.slate });
+    s.sym(...centred(add(g.J, dir(LAMP.ang / 2), 60)), degTxt(LAMP.ang), { size: 14, color: C.slate });
+    s.sym(...centred(add(g.J, dir(180 - LAMP.ang / 2), 60)), degTxt(LAMP.ang), { size: 14, color: C.slate });
     const t1 = add(g.J, g.T1), t2 = add(g.J, g.T2), w = add(g.J, g.Wv);
     s.sym(t1[0] - 6, t1[1] - 6, '<i>T</i>', { anchor: 'end' });
     s.sym(t2[0] + 6, t2[1] - 6, '<i>T</i>', { anchor: 'start' });
@@ -229,7 +231,7 @@ const fig42: Diagram = {
     // the vertical through the block, and the 30° between it and N
     path(s, [Cc, [Cc[0], Cc[1] - 64]], { color: C.grey, w: 1.2, dash: 'dash' });
     arc(s, Cc, 34, 90 - INC42.th, 90);
-    s.sym(...add(Cc, dir(90 - INC42.th / 2), 50), degTxt(INC42.th), { size: 14, color: C.slate });
+    s.sym(...centred(add(Cc, dir(90 - INC42.th / 2), 50)), degTxt(INC42.th), { size: 14, color: C.slate });
     force(s, Cc, g.Nv);
     force(s, Cc, g.Wv);
     force(s, Cc, g.Tv, HI);
@@ -312,7 +314,7 @@ const fig43: Diagram = {
       const B = add(Pv, dir(-90 - b.ang), L);
       path(s, [Pv, [Pv[0], Pv[1] + L + 4]], { color: C.grey, w: 1.2, dash: 'dash' });
       arc(s, Pv, 34, -90 - b.ang, -90);
-      s.sym(...add(Pv, dir(-90 - b.ang / 2), 48), '37°', { size: 14, color: C.slate });
+      s.sym(...centred(add(Pv, dir(-90 - b.ang / 2), 47)), '37°', { size: 14, color: C.slate });
       path(s, [Pv, B], HI);
       s.dot(Pv[0], Pv[1], 2.6);
       s.dot(B[0], B[1], 6);
@@ -406,7 +408,7 @@ const fig44: Diagram = {
     s.sym(at(g.Wv)[0] + 8, at(g.Wv)[1] - 1, '<i>mg</i>', { anchor: 'start' });
     s.sym(at(g.cosv)[0] + 6, at(g.cosv)[1] + 14, '<i>mg</i> cos <i>θ</i><sub><i>r</i></sub>', { size: 14, color: C.slate, anchor: 'start' });
     s.sym(at(g.sinv)[0] - 6, at(g.sinv)[1] + 4, '<i>mg</i> sin <i>θ</i><sub><i>r</i></sub>', { size: 14, color: C.slate, anchor: 'end' });
-    s.sym(W / 2, 22, '<i>f</i> = <i>μ</i><sub><i>s</i></sub><i>N</i>  (limiting, up the slope)', { size: 14, color: C.slate });
+    s.sym(W / 2, 22, '<i>f</i>\u2009 = <i>μ</i><sub><i>s</i></sub>\u200a<i>N</i>  (limiting, up the slope)', { size: 14, color: C.slate });
     s.place([
       { t: 'Limiting friction', p: add(Cc, g.fv, 0.8), hi: true, at: [[W - 8, 52, 'end'], [W - 8, 40, 'end']] },
       { t: 'Block', p: add(add(g.F, g.u, -g.hl), g.n, 2 * g.hh), at: [[110, 96, 'end'], [96, 80, 'end'], [64, 60, 'end']] },
@@ -487,11 +489,12 @@ const fig45: Diagram = {
     const ft = add(g.fFrom, g.fv), wt = add(g.wFrom, g.wv);
     s.sym(ft[0] - 8, ft[1] + 20, '<i>f</i> = <i>μm</i><sub>1</sub><i>g</i>', { anchor: 'end' });
     s.sym(wt[0] + 10, wt[1] - 4, '<i>m</i><sub>2</sub><i>g</i>', { anchor: 'start' });
-    s.sym((x0 + x1) / 2 + 6, top + slab + 20, `<i>μ</i> = ${PUL.mu}`, { size: 14, color: C.slate });
+    // centred between the legs (it ran into the right one)
+    s.sym((x0 + 23 + x1 - 42) / 2, top + slab + 20, `<i>μ</i> = ${PUL.mu}`, { size: 14, color: C.slate });
     s.place([
       { t: 'Friction', p: add(g.fFrom, g.fv, 0.5), hi: true, at: [[14, 30, 'start'], [14, 44, 'start']] },
       { t: 'Pulley', p: add(g.pc, dir(60), g.pr), at: [[W - 8, 36, 'end'], [W - 8, 24, 'end']] },
-      { t: 'Table', p: [x0 + 30, top + slab], at: [[(x0 + x1) / 2 - 30, 150, 'start'], [(x0 + x1) / 2 - 30, 170, 'start']] },
+      { t: 'Table', p: [x0 + 19.5, top + slab + 44], at: [[(x0 + x1) / 2 - 30, 150, 'start'], [(x0 + x1) / 2 - 30, 170, 'start']] },
     ]);
     return s;
   },
@@ -532,8 +535,9 @@ function drawRoad(s: Sketch, g: ReturnType<typeof bankGeo>) {
   arc(s, g.L, 46, 0, g.th);
   s.sym(...add(g.L, dir(g.th / 2.4), 64), '<i>θ</i>', { size: 15, color: C.slate });
   shape(s, block(g.F, g.u, g.n, g.hl, g.hh));
-  const mAt = add(add(g.F, g.u, g.hl - 7), g.n, 2 * g.hh - 11);
-  s.text(mAt[0], mAt[1] + 4, '<i>m</i>', { size: 12 });
+  // beside the block, off its outline (inside the corner it sat on the edge)
+  const mAt = add(add(g.F, g.u, g.hl + 9), g.n, g.hh);
+  s.text(mAt[0], mAt[1] + 4, '<i>m</i>', { size: 13 });
   // which way the centre of the circle lies (the low, inner side of the bank)
   s.vec(72, 26, 14, 26, { color: C.slate, w: 1.8 });
   s.tag(80, 15, 'Towards the centre', null, null);
@@ -611,8 +615,8 @@ const fig47: Diagram = {
     const ft = add(Cc, g.fv), ht = add(Cc, g.horiz);
     s.sym(nt[0] - 7, nt[1] - 2, '<i>N</i>', { anchor: 'end' });
     s.sym(Cc[0] + 8, add(Cc, g.cosv)[1] + 26, '<i>N</i> cos <i>θ</i>', { size: 14, color: C.slate, anchor: 'start' });
-    s.sym(ht[0] - 7, Cc[1] + 5, '<i>N</i> sin <i>θ</i> + <i>μN</i> cos <i>θ</i>', { size: 14, color: C.slate, anchor: 'end' });
-    s.sym(ft[0] - 6, ft[1] + 12, '<i>f</i> = <i>μN</i>', { anchor: 'end' });
+    s.sym(ht[0] - 12, Cc[1] + 5, '<i>N</i> sin <i>θ</i> + <i>μN</i> cos <i>θ</i>', { size: 14, color: C.slate, anchor: 'end' });
+    s.sym(ft[0] - 9, ft[1] + 8, '<i>f</i> = <i>μN</i>', { anchor: 'end' });
     s.sym(Cc[0] + 9, Cc[1] + g.mgPx - 1, '<i>mg</i>', { anchor: 'start' });
     const res = resultBlock(s, ['<i>N</i> cos <i>θ</i> − <i>μN</i> sin <i>θ</i> = <i>mg</i>', '<i>N</i> sin <i>θ</i> + <i>μN</i> cos <i>θ</i> = <i>m</i>(<i>v</i><sub>max</sub>)<sup>2</sup>/<i>r</i>'], 13);
     s.place(

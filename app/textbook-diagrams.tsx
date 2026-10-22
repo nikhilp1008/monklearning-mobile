@@ -69,6 +69,11 @@ export default function TextbookDiagramsScreen() {
             data={list}
             keyExtractor={(d) => d.id}
             numColumns={2}
+            // A few at a time: drawing a whole chapter's gallery in one go froze Android.
+            initialNumToRender={4}
+            maxToRenderPerBatch={2}
+            windowSize={5}
+            removeClippedSubviews
             columnWrapperStyle={{ gap: scale(12) }}
             contentContainerStyle={{ padding: scale(20), paddingTop: scale(14), gap: scale(18) }}
             renderItem={({ item, index: i }) => (
@@ -78,13 +83,13 @@ export default function TextbookDiagramsScreen() {
                 accessibilityLabel={item.name}
                 style={({ pressed }) => [s.tile, { gap: scale(8) }, pressed && s.pressed]}>
                 <View style={[s.frame, { borderRadius: scale(14), padding: scale(10) }]}>
-                  <DiagramImage d={item} square />
+                  <DiagramImage d={item} square thumb />
                 </View>
                 <Text style={{ fontFamily: STIX.semibold, fontSize: scale(16), lineHeight: scale(22), color: colors.ink }} numberOfLines={2}>
                   {item.name}
                 </Text>
                 <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(12), color: colors.faint, marginTop: scale(-4) }} numberOfLines={1}>
-                  Topic {item.topic + 1} · {chapter.topics[item.topic].title.split(',')[0]}
+                  {chapter.topics[item.topic].extra ? `Additional ${chapter.topics[item.topic].n}` : `Topic ${item.topic + 1}`} · {chapter.topics[item.topic].title.split(',')[0]}
                 </Text>
               </Pressable>
             )}

@@ -1,4 +1,4 @@
-import { C, F, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import { C, F, Rect, Sketch, r1, mathW } from '@/lib/diagrams/kit';
 import type { Check, Diagram } from '@/lib/diagrams/types';
 
 /**
@@ -48,7 +48,7 @@ function arrowBetween(s: Sketch, a: Rect, b: Rect, gap = 5, color: string = C.sl
 function resultBlock(s: Sketch, lines: string[], o: { maths?: boolean; size?: number } = {}) {
   const size = o.size ?? (o.maths ? 15 : 13), lh = size + 6;
   const plain = (t: string) => t.replace(/<[^>]+>/g, '');
-  const w = Math.max(...lines.map((t) => plain(t).length * size * (o.maths ? 0.5 : 0.58))) + 30, h = lines.length * lh + 14;
+  const w = Math.max(...lines.map((t) => (o.maths ? mathW(t, size) : plain(t).length * size * 0.58))) + 30, h = lines.length * lh + 14;
   const x0 = s.w - 8 - w, y0 = s.h - 8 - h;
   s.tags.push({ name: plain(lines.join(' ')), rect: [x0, y0, x0 + w, y0 + h], from: null, to: null });
   s.add(`<rect x="${r1(x0)}" y="${r1(y0)}" width="${r1(w)}" height="${r1(h)}" rx="15" fill="#fff" stroke="${C.text}" stroke-width="1.6"/>`);
@@ -106,7 +106,7 @@ const DERIVED: { name: string; unit: string; sym: string; at: Rect }[] = [
   { name: 'energy', unit: 'kg·m<sup>2</sup>/s<sup>2</sup>', sym: 'J', at: [121, 226, 219, 276] },
 ];
 const CENTRE: Rect = [114, 106, 226, 180];
-const SUPP: Rect = [228, 218, 336, 290];
+const SUPP: Rect = [224, 214, 337, 292];
 const fig11: Diagram = {
   id: 'p11-01-fig-1.1',
   topic: 0,
@@ -128,10 +128,11 @@ const fig11: Diagram = {
     // Not joined to the centre: the supplementary units are not built from the base seven.
     box(s, SUPP[0], SUPP[1], SUPP[2] - SUPP[0], SUPP[3] - SUPP[1], 'dash');
     const sx = (SUPP[0] + SUPP[2]) / 2;
-    words(s, sx, SUPP[1] + 17, 'Supplementary units', { size: 10, color: C.slate });
-    words(s, sx, SUPP[1] + 31, '(not base units):', { size: 10, color: C.slate });
-    s.text(sx, SUPP[1] + 50, 'radian, steradian', { size: 13 });
-    s.text(sx, SUPP[1] + 66, '(dimensionless)', { size: 13 });
+    // sizes with room to spare inside the dashes: Android's text ran into them
+    words(s, sx, SUPP[1] + 18, 'Supplementary units', { size: 9.5, color: C.slate });
+    words(s, sx, SUPP[1] + 32, '(not base units):', { size: 9.5, color: C.slate });
+    s.text(sx, SUPP[1] + 52, 'radian, steradian', { size: 12.5 });
+    s.text(sx, SUPP[1] + 68, '(dimensionless)', { size: 12.5 });
     return s;
   },
   check() {
@@ -179,7 +180,9 @@ const fig12: Diagram = {
     // the support, the vertical, the string
     s.line(P[0] - 58, P[1], P[0] + 58, P[1], { w: 1.8 });
     for (let i = -52; i <= 48; i += 12) s.line(P[0] + i, P[1], P[0] + i + 9, P[1] - 9, { color: C.grey, w: 1.2 });
-    s.line(P[0], P[1], P[0], B[1] + 6, { color: C.grey, dash: true, w: 1.2 });
+    // the vertical stops above the "mg sin θ" label it used to run into
+    const tipY = at(t)[1] + Wt * Math.sin(th) * t[1];
+    s.line(P[0], P[1], P[0], Math.min(B[1] + 6, tipY - 24), { color: C.grey, dash: true, w: 1.2 });
     s.line(P[0], P[1], B[0] - u[0] * bob, B[1] - u[1] * bob, { w: 1.7 });
     const a0 = Math.PI / 2, a1 = Math.PI / 2 - th, ar = 52;
     s.add(`<path d="M${r1(P[0] + ar * Math.cos(a0))} ${r1(P[1] + ar * Math.sin(a0))} A${ar} ${ar} 0 0 0 ${r1(P[0] + ar * Math.cos(a1))} ${r1(P[1] + ar * Math.sin(a1))}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`);
@@ -200,7 +203,9 @@ const fig12: Diagram = {
     s.sym(c0[0] + cosL * u[0] + 6, c0[1] + cosL * u[1] + 16, '<i>mg</i> cos <i>θ</i>', { size: 14, color: C.slate, anchor: 'start' });
     s.sym(tip[0] - 6, tip[1] - 7, '<i>mg</i> sin <i>θ</i>', { size: 14, color: C.amber, anchor: 'end' });
     const res = resultBlock(s, ['<i>t</i> = <i>C</i>√(<i>ℓ</i>/<i>g</i>); mass <i>m</i> cancels out'], { maths: true });
-    s.place([{ t: 'Restoring component', p: [tip[0] + 1, tip[1] - 1], own: tip, hi: true, at: [[12, 272, 'start'], [12, 290, 'start'], [12, 254, 'start']] }], [res]);
+    // the tag's dot on the shaft, not on the arrowhead
+    const shaft: [number, number] = [s0[0] + 0.5 * sinL * t[0], s0[1] + 0.5 * sinL * t[1]];
+    s.place([{ t: 'Restoring component', p: shaft, own: shaft, hi: true, at: [[12, 272, 'start'], [12, 290, 'start'], [12, 254, 'start']] }], [res]);
     return s;
   },
   check() {
@@ -474,8 +479,9 @@ const fig16: Diagram = {
     s.line(eyeL, eyeY, seenL, wall, { color: C.grey, dash: true, w: 1.2 });
     s.line(eyeR, eyeY, seenR, wall, { color: C.grey, dash: true, w: 1.2 });
     [seenR, seenL].forEach((x) => s.line(x, wall - 7, x, wall + 7, { w: 2 }));
-    s.sym(seenR, wall + 24, 'R', { size: 13 });
-    s.sym(seenL, wall + 24, 'L', { size: 13 });
+    // each letter on the far side of the sight line that reaches its mark
+    s.sym(seenR - 5, wall + 24, 'R', { size: 13, anchor: 'end' });
+    s.sym(seenL + 5, wall + 24, 'L', { size: 13, anchor: 'start' });
     // the apparent shift, both ways
     const ay = wall - 22, mid = (seenL + seenR) / 2;
     s.vec(mid, ay, seenR, ay, { color: C.mari, w: 2.4 });

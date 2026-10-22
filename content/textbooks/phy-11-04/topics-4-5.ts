@@ -82,7 +82,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'formula',
-        kicker: 'Angle of repose (θr)',
+        kicker: 'Angle of repose (θ<sub>r</sub>)',
         main: 'tan <i>θ</i><sub><i>r</i></sub> = <i>μ</i><sub><i>s</i></sub> ⇒ <i>θ</i><sub><i>r</i></sub> = <i>λ</i>',
         legend: [],
         note: null,

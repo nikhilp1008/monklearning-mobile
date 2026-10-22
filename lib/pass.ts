@@ -112,10 +112,11 @@ export function endsAtFor(record: PassRecord): Date {
     const stated = new Date(record.endsAt);
     if (!Number.isNaN(stated.getTime())) return stated;
   }
+  // Exact 24-hour days, as the server counts them. Adding calendar days with setDate keeps the
+  // phone's wall-clock time, so across a daylight-saving change the end could land an hour
+  // (and, near midnight, a date) away from what the server grants.
   const started = new Date(record.startedAt);
-  const end = new Date(started.getTime());
-  end.setDate(end.getDate() + (DAYS[record.kind] ?? 0));
-  return end;
+  return new Date(started.getTime() + (DAYS[record.kind] ?? 0) * 86400000);
 }
 
 export async function readPass(userId?: string | null): Promise<PassRecord | null> {

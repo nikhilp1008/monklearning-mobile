@@ -2,6 +2,16 @@ import ch1 from '@/content/textbooks/phy-11-01-units-measurements';
 import ch2 from '@/content/textbooks/phy-11-02-motion-straight-line';
 import ch3 from '@/content/textbooks/phy-11-03-motion-plane';
 import ch4 from '@/content/textbooks/phy-11-04-laws-of-motion';
+import ch5 from '@/content/textbooks/phy-11-05-work-energy-power';
+import ch6 from '@/content/textbooks/phy-11-06-rotational-motion';
+import ch7 from '@/content/textbooks/phy-11-07-gravitation';
+import ch8 from '@/content/textbooks/phy-11-08-mech-solids';
+import ch9 from '@/content/textbooks/phy-11-09-mech-fluids';
+import ch10 from '@/content/textbooks/phy-11-10-thermal-properties';
+import ch11 from '@/content/textbooks/phy-11-11-thermodynamics';
+import ch12 from '@/content/textbooks/phy-11-12-kinetic-theory';
+import ch13 from '@/content/textbooks/phy-11-13-oscillations';
+import ch14 from '@/content/textbooks/phy-11-14-waves';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -24,7 +34,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14] as Chapter[]) {
   describe(`Physics 11 Chapter ${Number(chapter.chapter)}, from the book`, () => {
     const regular = chapter.topics.filter((t) => !t.extra);
     const extras = chapter.topics.filter((t) => t.extra);
