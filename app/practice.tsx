@@ -52,6 +52,7 @@ import {
   takeQueuedQuestion,
 } from '@/lib/practice';
 import { ApiError, friendlyError } from '@/lib/api';
+import { isPassRequired } from '@/lib/pass-events';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
@@ -167,6 +168,11 @@ export default function PracticeScreen() {
   /** Not an error, but not something to do silently either — currently only
    *  the ungradeable-question swap below. */
   const [notice, setNotice] = useState<string | null>(null);
+  /** A submit that didn't reach the server, said under the Submit it came
+   *  from. The question and the answer stay on screen so Submit can be
+   *  pressed again — `loadError` only renders when there is no question, so
+   *  a dropped connection here used to just stop the spinner. */
+  const [submitError, setSubmitError] = useState<string | null>(null);
   /** Set while a question-scoped Drona session is being created. */
 
   /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
@@ -479,7 +485,12 @@ export default function PracticeScreen() {
       );
       return;
     }
-    setLoadError(friendlyError(err, 'submit that answer'));
+    // The pass has ended: apiFetch has already told the app root, which takes
+    // the student to the plans page. A "couldn't submit" under it would only
+    // be a second, vaguer account of the same thing.
+    if (err instanceof ApiError && err.status === 402 && isPassRequired(err.data)) return;
+    hapticWarning();
+    setSubmitError(friendlyError(err, 'submit that answer'));
   }
 
   async function loadQuestion() {
@@ -490,6 +501,7 @@ export default function PracticeScreen() {
     setNumericInput('');
     setAnswerResult(null);
     setNotice(null);
+    setSubmitError(null);
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
@@ -578,7 +590,11 @@ export default function PracticeScreen() {
   async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
     const gaveUp = key === undefined;
+    // What was picked before "I don't know" cleared it, so a failed give-up
+    // hands the student back the screen they had.
+    const picked = selectedOption;
     setSelectedOption(key ?? null);
+    setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
@@ -588,6 +604,7 @@ export default function PracticeScreen() {
       });
       applyResult(result, { gaveUp, chapter: question.chapter_name });
     } catch (err) {
+      if (gaveUp) setSelectedOption(picked);
       await handleSubmitError(err);
     } finally {
       setSubmitting(false);
@@ -597,6 +614,7 @@ export default function PracticeScreen() {
   async function submitNumeric() {
     const value = parseFloat(numericInput);
     if (!question || submitting || Number.isNaN(value)) return;
+    setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
@@ -1046,6 +1064,11 @@ export default function PracticeScreen() {
                     stats and explain and nothing else, and a button that
                     silently does nothing is worse than an absent one. */}
               </View>
+              {submitError ? (
+                <Text style={styles.submitErrorText} accessibilityLiveRegion="polite">
+                  {submitError}
+                </Text>
+              ) : null}
             </>
           ) : (
             <>
@@ -1680,6 +1703,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       lineHeight: scale(17),
       color: colors.slate,
+      marginTop: verticalScale(10),
+    },
+    /** The notice's line, in the red the wrong-answer tag uses: this one did
+     *  not go through, and the student has to act on it. */
+    submitErrorText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      lineHeight: scale(17),
+      color: '#C53A2B',
       marginTop: verticalScale(10),
     },
     // Kept for the two states that are still a card: an empty pool and a
