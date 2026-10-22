@@ -1,6 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+
+import { MathLine } from '@/components/math-line';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
@@ -2091,9 +2093,15 @@ export default function LiveClassroomScreen() {
           <View style={styles.askCard}>
             {/* The whole question: it was cut at three lines, and a checkpoint
                 you cannot read to the end is not one you can answer. */}
-            <Text style={styles.askQuestion}>
-              {spokenMathToNotation(questionText)}
-            </Text>
+            {/* Through the board's own formula renderer, so a subscript the
+                lesson writes as v_{AB} is drawn small and lowered here too
+                instead of reading "vAB". Plain text renders as one Text. */}
+            <MathLine
+              text={spokenMathToNotation(questionText)}
+              style={styles.askQuestion}
+              fontSize={scale(14.5)}
+              color={INK}
+            />
             {/* THE VERDICT REPLACES THE ROW, it does not squeeze into it.
                 The four chips leave only 5.9pt of slack across a 336pt row, so
                 adding a mark to the chosen one would have wrapped the set at
@@ -2140,9 +2148,12 @@ export default function LiveClassroomScreen() {
                         // first and replaces this with the shorter verdict hold.
                         answerHoldRef.current = setTimeout(clearCheckpoint, ANSWER_HOLD_MS);
                       }}>
-                      <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
-                        {option}
-                      </Text>
+                      <MathLine
+                        text={option}
+                        style={[styles.askChipText, chosen && styles.askChipTextChosen]}
+                        fontSize={scale(13)}
+                        color={chosen ? colors.paper : colors.ink}
+                      />
                     </Pressable>
                   );
                 })}

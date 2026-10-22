@@ -38,11 +38,11 @@ import { latexToText } from '@/lib/latex-text';
  */
 
 export type NoteLine =
-  | { k: 'body'; t: string }
-  | { k: 'bullet'; t: string }
-  | { k: 'formula'; t: string }
+  | { k: 'body'; t: string; r?: string }
+  | { k: 'bullet'; t: string; r?: string }
+  | { k: 'formula'; t: string; r?: string }
   /** A short line that introduces what follows — underlined, not coloured. */
-  | { k: 'sub'; t: string };
+  | { k: 'sub'; t: string; r?: string };
 
 export type NoteSectionKind =
   | 'normal'
@@ -186,13 +186,13 @@ export function parseNotePage(content: string): NoteSection[] {
     const sec = current!;
 
     if (STANDALONE_FORMULA.test(line)) {
-      sec.lines.push({ k: 'formula', t: latexToText(line) });
+      sec.lines.push({ k: 'formula', t: latexToText(line), r: line });
     } else if (line.startsWith('• ')) {
-      sec.lines.push({ k: 'bullet', t: latexToText(line.slice(2).trim()) });
+      sec.lines.push({ k: 'bullet', t: latexToText(line.slice(2).trim()), r: line.slice(2).trim() });
     } else if (looksLikeSubHeading(line)) {
-      sec.lines.push({ k: 'sub', t: latexToText(line) });
+      sec.lines.push({ k: 'sub', t: latexToText(line), r: line });
     } else {
-      sec.lines.push({ k: 'body', t: latexToText(line) });
+      sec.lines.push({ k: 'body', t: latexToText(line), r: line });
     }
   }
 

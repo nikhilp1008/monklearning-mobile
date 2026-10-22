@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { ScriptText } from '@/components/script-text';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -375,12 +376,12 @@ function Line({
   if (line.k === 'formula') {
     return (
       <Boxed color={VIOLET} seed={index + 3} style={[s.formulaBox, nudge]}>
-        <Text style={s.formulaText}>{line.t}</Text>
+        <ScriptText raw={line.r} text={line.t} style={s.formulaText} />
       </Boxed>
     );
   }
   if (line.k === 'sub') {
-    return <Text style={[s.sub, nudge]}>{line.t}</Text>;
+    return <ScriptText raw={line.r} text={line.t} style={[s.sub, nudge]} />;
   }
   if (line.k === 'bullet') {
     return (
@@ -388,11 +389,11 @@ function Line({
         <Svg width={9} height={LH}>
           <Circle cx={4} cy={LH / 2} r={2} fill={colour} />
         </Svg>
-        <Text style={s.bulletText}>{line.t}</Text>
+        <ScriptText raw={line.r} text={line.t} style={s.bulletText} />
       </View>
     );
   }
-  return <Text style={[s.bodyLine, nudge]}>{line.t}</Text>;
+  return <ScriptText raw={line.r} text={line.t} style={[s.bodyLine, nudge]} />;
 }
 
 const styles = StyleSheet.create({

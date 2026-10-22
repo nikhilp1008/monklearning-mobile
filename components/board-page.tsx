@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { hasDrawnScripts, ScriptText } from '@/components/script-text';
 import {
   Pressable,
   ScrollView,
@@ -101,6 +102,8 @@ function MarkableText({ text, styles }: { text: string; styles: Styles }) {
 function Block({ block, styles }: { block: BoardBlock; styles: Styles }) {
   switch (block.kind) {
     case 'text':
+      // A line with a drawn script (v_{AB}) is drawn; highlighting is for prose.
+      if (hasDrawnScripts(block.raw)) return <ScriptText raw={block.raw} text={block.text} style={styles.text} />;
       return block.markable ? (
         <MarkableText text={block.text} styles={styles} />
       ) : (
@@ -119,7 +122,7 @@ function Block({ block, styles }: { block: BoardBlock; styles: Styles }) {
       // a full-width bar.
       return (
         <View style={[styles.mathWrap, block.result && styles.mathWrapResult]}>
-          <Text style={[styles.math, block.result && styles.mathResult]}>{block.text}</Text>
+          <ScriptText raw={block.raw} text={block.text} style={[styles.math, block.result && styles.mathResult]} />
         </View>
       );
     case 'problem':
