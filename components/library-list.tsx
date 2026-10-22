@@ -2,9 +2,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   LayoutAnimation,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,11 +22,11 @@ import { shadow } from '@/lib/shadow';
 import { SnapADoubtIcon } from '@/components/monk-icons';
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { EmptyState } from '@/components/library-empty';
-import { OfflineBanner, StateCard, StateLine } from '@/components/states';
+import { OfflineBanner, QuietLink, StateCard, StateLine } from '@/components/states';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { friendlyLoadError } from '@/lib/api';
+import { ApiError, friendlyLoadError } from '@/lib/api';
 import { hapticSoft } from '@/lib/haptics';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
@@ -32,10 +35,13 @@ import { useScale } from '@/constants/scale';
 import {
   DoubtSubjectChip,
   DoubtSummary,
+  DoubtsCursor,
+  absorbDoubtsPage,
   deleteDoubt,
   formatRelativeTime,
   inHistory,
   listDoubts,
+  olderThanCursor,
   subjectMatches,
 } from '@/lib/doubts';
 import { noteRowLine } from '@/lib/note-row';
@@ -184,6 +190,26 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const doubtsLoadedRef = useRef(false);
   const notesLoadedRef = useRef(false);
 
+  /**
+   * PAGING. The history was the newest 60 and nothing past them. Now the
+   * first page loads as before and older pages follow as the list is scrolled
+   * to its end (or "Show older doubts" is pressed, for a search that has
+   * filtered the list too short to scroll). `seen` holds every id loaded, raw
+   * — before `inHistory` — so the cursor and the dedupe both see what the
+   * server sent; `cursor` is the last raw row of the newest page loaded.
+   */
+  const doubtsSeenRef = useRef<Set<string>>(new Set());
+  const doubtsCursorRef = useRef<DoubtsCursor | null>(null);
+  /** More than the first page is on screen. */
+  const doubtsPagedRef = useRef(false);
+  const [doubtsMore, setDoubtsMore] = useState(false);
+  const [doubtsMoreLoading, setDoubtsMoreLoading] = useState(false);
+  const [doubtsMoreError, setDoubtsMoreError] = useState(false);
+  const doubtsMoreBusyRef = useRef(false);
+  /** Bumped by each first-page fetch, so an older page that lands after it
+   *  is not appended to a list it no longer belongs to. */
+  const doubtsEpochRef = useRef(0);
+
   const fetchDoubts = useCallback(() => {
     let cancelled = false;
     // Only the first load may show skeletons. On a return visit the list is
@@ -193,7 +219,32 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     listDoubts()
       .then((res) => {
         if (cancelled) return;
-        setDoubts(res.doubts.filter(inHistory));
+        doubtsEpochRef.current += 1;
+        doubtsMoreBusyRef.current = false;
+        setDoubtsMoreLoading(false);
+        const page = res.doubts;
+        const fresh = page.filter(inHistory);
+        const pageIds = new Set(page.map((d) => d.id));
+        const last = page[page.length - 1];
+        if (doubtsPagedRef.current && last) {
+          // Older pages are already on screen. The refetch on focus is for
+          // what is NEW, so it replaces the first page and keeps everything
+          // below it — scrolling back down three pages is not the price of
+          // switching tabs. Where paging stood is unchanged.
+          const edge = { before: last.created_at, beforeId: last.id };
+          setDoubts((prev) => [
+            ...fresh,
+            ...prev.filter((d) => !pageIds.has(d.id) && olderThanCursor(d, edge)),
+          ]);
+          for (const id of pageIds) doubtsSeenRef.current.add(id);
+        } else {
+          doubtsSeenRef.current = new Set();
+          const absorbed = absorbDoubtsPage(doubtsSeenRef.current, page);
+          doubtsCursorRef.current = absorbed.cursor;
+          setDoubtsMore(!absorbed.done);
+          setDoubts(fresh);
+        }
+        setDoubtsMoreError(false);
         setDoubtChips(res.subjects ?? []);
         doubtsLoadedRef.current = true;
       })
@@ -207,6 +258,55 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       cancelled = true;
     };
   }, []);
+
+  const loadMoreDoubts = useCallback(() => {
+    const cursor = doubtsCursorRef.current;
+    if (!cursor || doubtsMoreBusyRef.current) return;
+    doubtsMoreBusyRef.current = true;
+    const epoch = doubtsEpochRef.current;
+    setDoubtsMoreLoading(true);
+    setDoubtsMoreError(false);
+    listDoubts({ cursor })
+      .then((res) => {
+        if (epoch !== doubtsEpochRef.current) return;
+        const absorbed = absorbDoubtsPage(doubtsSeenRef.current, res.doubts);
+        doubtsCursorRef.current = absorbed.cursor;
+        doubtsPagedRef.current = true;
+        setDoubtsMore(!absorbed.done);
+        if (absorbed.fresh.length) {
+          const older = absorbed.fresh.filter(inHistory);
+          setDoubts((prev) => [...prev, ...older]);
+        }
+      })
+      .catch((err) => {
+        if (epoch !== doubtsEpochRef.current) return;
+        // A cursor the server will not take (422) will not be taken on a
+        // second try either: what is loaded is what there is.
+        if (err instanceof ApiError && err.status === 422) {
+          setDoubtsMore(false);
+          return;
+        }
+        setDoubtsMoreError(true);
+      })
+      .finally(() => {
+        if (epoch !== doubtsEpochRef.current) return;
+        doubtsMoreBusyRef.current = false;
+        setDoubtsMoreLoading(false);
+      });
+  }, []);
+
+  /** Near the end of the list, the next page is asked for — a screen early,
+   *  so it is usually there before the student reaches the bottom. */
+  const onDoubtsScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!doubtsMore || doubtsMoreError) return;
+      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+      if (contentOffset.y + layoutMeasurement.height >= contentSize.height - layoutMeasurement.height) {
+        loadMoreDoubts();
+      }
+    },
+    [doubtsMore, doubtsMoreError, loadMoreDoubts]
+  );
 
   const fetchNotes = useCallback(() => {
     let cancelled = false;
@@ -633,6 +733,8 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
           {kind === 'doubts' && (
             <ScrollView
               contentContainerStyle={styles.pageContent}
+              onScroll={onDoubtsScroll}
+              scrollEventThrottle={200}
               showsVerticalScrollIndicator={false}>
               <View style={styles.searchLine}>
                 <SearchIcon size={scale(15)} />
@@ -764,6 +866,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                       </PressableScale>
                     </Erasable>
                   ))}
+                </View>
+              )}
+              {/* Older doubts, for as long as there are any. Shown under a
+                  searched-down list too: search runs over what is loaded, and
+                  "no match" is only the whole truth once all of it is. */}
+              {!doubtsLoading && !doubtsError && !showingDoubtSamples && doubtsMore && (
+                <View style={styles.moreRow}>
+                  {doubtsMoreLoading ? (
+                    <ActivityIndicator color={colors.slate} />
+                  ) : doubtsMoreError ? (
+                    <StateLine
+                      glyph="retry"
+                      text="Couldn't load older doubts."
+                      link={{ label: 'Try again', onPress: loadMoreDoubts }}
+                    />
+                  ) : (
+                    <QuietLink action={{ label: 'Show older doubts', onPress: loadMoreDoubts }} />
+                  )}
                 </View>
               )}
               {undoState && <UndoRow onUndo={undoRemoval} />}
@@ -1059,6 +1179,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_500Medium',
       fontSize: scale(12),
       color: '#9C988C',
+    },
+    moreRow: {
+      alignItems: 'center',
+      paddingVertical: verticalScale(18),
     },
     doubtRowUnsure: {
       fontFamily: 'Onest_500Medium',

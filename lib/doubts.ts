@@ -275,19 +275,68 @@ export function rejectPhoto(photo: DoubtPhoto): string | null {
   return null;
 }
 
-export function listDoubts(params: { q?: string } = {}): Promise<DoubtsListResponse> {
+/** One page of the history — the server's own default. */
+export const DOUBTS_PAGE_SIZE = 60;
+
+/**
+ * Where the next page starts: the last row of the page before it. Both fields,
+ * because the questions of one snap share a `created_at` and are ordered by id
+ * within it — a time alone would skip or repeat them at a page boundary.
+ */
+export type DoubtsCursor = { before: string; beforeId: string };
+
+export function listDoubts(
+  params: { q?: string; limit?: number; cursor?: DoubtsCursor | null } = {}
+): Promise<DoubtsListResponse> {
   // Still no `subject` param, but for a different reason than before.
   //
   // It used to be that the API's vocabulary ("Mathematics") did not match the
   // app's labels ("Maths") and the server's matching semantics were unverified.
   // Both are settled now: storage was migrated to one lowercase name per
   // subject, and `?subject=` round-trips "Math", "Maths" and "mathematics"
-  // alike. The reason to keep filtering client-side is simply that the list is
-  // capped and already in hand — switching a chip should not cost a round trip.
+  // alike. The reason to keep filtering client-side is simply that the rows are
+  // already in hand — switching a chip should not cost a round trip.
   const search = new URLSearchParams();
   if (params.q?.trim()) search.set('q', params.q.trim());
-  const qs = search.toString();
-  return apiFetch(`/doubts${qs ? `?${qs}` : ''}`);
+  search.set('limit', String(params.limit ?? DOUBTS_PAGE_SIZE));
+  if (params.cursor) {
+    search.set('before', params.cursor.before);
+    search.set('before_id', params.cursor.beforeId);
+  }
+  return apiFetch(`/doubts?${search.toString()}`);
+}
+
+/**
+ * What one page of the history adds, and whether there is another.
+ *
+ * The history was silently capped at the first 60 — a student with more had no
+ * way to reach the rest. The server pages on `before` / `before_id`, newest
+ * first, and a short page is the last one.
+ *
+ * Deduped by id against everything already `seen`, and a page that adds
+ * nothing ends the paging: a server from before the cursor ignores it and
+ * returns the first page again, and without this the list would fill with
+ * copies of it forever. `seen` is updated in place.
+ */
+export function absorbDoubtsPage(
+  seen: Set<string>,
+  page: DoubtSummary[],
+  limit: number = DOUBTS_PAGE_SIZE
+): { fresh: DoubtSummary[]; cursor: DoubtsCursor | null; done: boolean } {
+  const fresh = page.filter((d) => !seen.has(d.id));
+  for (const d of fresh) seen.add(d.id);
+  const last = page[page.length - 1];
+  const cursor = last ? { before: last.created_at, beforeId: last.id } : null;
+  return { fresh, cursor, done: !cursor || page.length < limit || fresh.length === 0 };
+}
+
+/** Whether `d` sorts after `cursor` in the server's order (older first by
+ *  time, then lower id). */
+export function olderThanCursor(d: Pick<DoubtSummary, 'created_at' | 'id'>, cursor: DoubtsCursor): boolean {
+  const a = Date.parse(d.created_at);
+  const b = Date.parse(cursor.before);
+  if (a !== b) return a < b;
+  return d.id < cursor.beforeId;
 }
 
 /**
