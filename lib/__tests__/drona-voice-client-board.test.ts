@@ -201,6 +201,12 @@ const say = (sentenceId: string, boardEvent: BoardEvent | null = null) => ({
 // The two lines the simulator showed twice, verbatim.
 const GENERAL_TERM =
   'The symbol aₙ denotes the general term or nth term. Feed in the position n, get out the term aₙ.';
+// Written step by step (lib/board-steps.ts): its two sentences are two rows,
+// each still written exactly once.
+const GENERAL_TERM_ROWS = [
+  'The symbol aₙ denotes the general term or nth term.',
+  'Feed in the position n, get out the term aₙ.',
+];
 const ORDER_MATTERS =
   'Order matters: 1, 1, 2 is a valid sequence. As a set it would collapse to {1, 2}.';
 
@@ -227,7 +233,7 @@ describe('one board event is one line on the board', () => {
     expect(c.lines()).toEqual([
       'A sequence is a list of numbers in a definite order.',
       'Each number in the list is called a term.',
-      GENERAL_TERM,
+      ...GENERAL_TERM_ROWS,
     ]);
   });
 
@@ -254,7 +260,7 @@ describe('one board event is one line on the board', () => {
     // Written where its FIRST carrier played. Which sentence should carry
     // seq 6 is the server's pairing to fix; the board's job is to hold it once.
     expect(c.lines()).toEqual([
-      GENERAL_TERM,
+      ...GENERAL_TERM_ROWS,
       ORDER_MATTERS,
       'A recursive definition gives the first term and a rule for the next.',
     ]);
@@ -522,9 +528,9 @@ describe('a chunk that carries several lines', () => {
     c.queue.startNext();
     expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3']);
     c.queue.startNext();
-    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', GENERAL_TERM]);
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', ...GENERAL_TERM_ROWS]);
     c.queue.playToEnd();
-    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', GENERAL_TERM]);
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', ...GENERAL_TERM_ROWS]);
   });
 
   it('writes a silent chunk\'s lines at once, with its text', async () => {

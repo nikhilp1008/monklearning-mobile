@@ -332,6 +332,18 @@ export function BoardBlockView({
       />
     );
   }
+  if (event.type === 'formula' && event.step) {
+    // One step of a derivation: no box, the steps stack under each other.
+    return (
+      <View style={[event.step === 'first' ? styles.boardStepFirst : styles.boardStepCont, grid && styles.gridFlush]}>
+        {drawn ? (
+          <MathLine text={raw} style={styles.boardEquation} fontSize={18} color={INK} align="center" />
+        ) : (
+          <Text style={styles.boardEquation}>{text}</Text>
+        )}
+      </View>
+    );
+  }
   if (event.type === 'formula') {
     return (
       <View style={[styles.boardFormulaRow, grid && styles.gridFlush]}>
@@ -612,6 +624,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(154,106,18,.34)',
     borderRadius: 10,
+  },
+  boardStepFirst: {
+    marginTop: 26,
+    alignSelf: 'stretch',
+  },
+  boardStepCont: {
+    marginTop: 6,
+    alignSelf: 'stretch',
   },
   boardEquation: {
     fontFamily: 'Onest_700Bold',

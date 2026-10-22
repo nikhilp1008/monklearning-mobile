@@ -1,4 +1,5 @@
 import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
+import { paceSteps, toSteps } from '@/lib/board-steps';
 import { Platform } from 'react-native';
 
 import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
@@ -120,6 +121,8 @@ export interface BoardEvent {
    * whole, as before.
    */
   write?: { delayMs: number; ms: number };
+  /** One row of a formula chain written step by step (board-steps.ts). */
+  step?: 'first' | 'cont';
 }
 
 /**
@@ -1178,7 +1181,17 @@ export class DronaVoiceClient {
         ` audioStartAt=${timing?.startedAt ?? '-'} revealedAt=${revealedAt}` +
         ` gapMs=${timing ? revealedAt - timing.startedAt : '-'}`
     );
-    this.handlers.onBoardReveal?.(write ? { ...event, key: entry.key, write } : { ...event, key: entry.key });
+    // Step by step (board-steps.ts): a derivation chain or a paragraph is
+    // written as the rows a teacher would write, one after another.
+    const rows = toSteps(event);
+    if (rows.length === 1) {
+      this.handlers.onBoardReveal?.(write ? { ...event, key: entry.key, write } : { ...event, key: entry.key });
+      return;
+    }
+    const pace = paceSteps(rows, write);
+    rows.forEach((row, i) =>
+      this.handlers.onBoardReveal?.({ ...row, key: `${entry.key}~${i}`, write: pace[i] })
+    );
   }
 
   /**
