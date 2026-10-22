@@ -41,7 +41,13 @@ import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton } from '@/components/onboarding-kit';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
-import { afterSignIn, friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
+import {
+  afterSignIn,
+  friendlyAuthError,
+  sendEmailOtp,
+  signInWithReviewerPassword,
+  verifyEmailOtp,
+} from '@/lib/auth';
 import { hapticCodeComplete, hapticDigit, hapticSwitched, hapticWarning } from '@/lib/haptics';
 import { saveAnswers } from '@/lib/onboarding-answers';
 import {
@@ -50,6 +56,8 @@ import {
   pullProfile,
   saveProfile,
 } from '@/lib/profile';
+
+import { isReviewerEmail } from '@/lib/reviewer';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 24;
@@ -66,7 +74,9 @@ function onlyDigits(text: string, max: number) {
   return text.replace(/[^0-9]/g, '').slice(0, max);
 }
 
-type Stage = 'email' | 'otp';
+/** `password` is the store-review account only (lib/reviewer.ts); every other
+ *  address goes email -> otp. */
+type Stage = 'email' | 'otp' | 'password';
 
 export default function EmailScreen() {
   const { ds, fs, tracking } = useDesignScale();
@@ -76,12 +86,14 @@ export default function EmailScreen() {
   const [stage, setStage] = useState<Stage>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const emailInput = useRef<TextInput>(null);
   const codeInput = useRef<TextInput>(null);
+  const passwordInput = useRef<TextInput>(null);
 
   // `pop` runs per box as its digit appears. The handoff staggers the four
   // revealed digits 50/130/210/290ms, i.e. 50ms + 80ms per digit *in that
@@ -98,6 +110,7 @@ export default function EmailScreen() {
   useEffect(() => {
     const id = setTimeout(() => {
       if (stage === 'email') emailInput.current?.focus();
+      else if (stage === 'password') passwordInput.current?.focus();
       else codeInput.current?.focus();
     }, 260);
     return () => clearTimeout(id);
@@ -141,6 +154,14 @@ export default function EmailScreen() {
 
   const sendOtp = async () => {
     if (busy) return;
+    // The store-review account has no inbox anyone reads: ask for its password
+    // and send nothing (a code to that address would only bounce).
+    if (isReviewerEmail(email)) {
+      setPassword('');
+      setError(null);
+      setStage('password');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -158,6 +179,7 @@ export default function EmailScreen() {
   };
 
   const changeEmail = () => {
+    setPassword('');
     setCode('');
     prevCodeLength.current = 0;
     setError(null);
@@ -184,6 +206,53 @@ export default function EmailScreen() {
   };
 
   /**
+   * Everything after a session exists, whichever door it came through (a code,
+   * or the store-review password): clear a previous student's leftovers, then
+   * ask the server where this account is up to.
+   */
+  const finishSignIn = async () => {
+    await afterSignIn();
+    let known: boolean;
+    try {
+      known = await hasCompletedOnboarding();
+    } catch {
+      // Verified, but we cannot reach the profile table. Falling back to
+      // local evidence rather than assuming "new": guessing new would send
+      // a returning student through onboarding, and the push at the end of
+      // it would overwrite their real name and exam with retyped ones.
+      known = await onboardedOnThisDevice();
+    }
+    if (known) {
+      // Their details live on the server; bring them back to this device.
+      await pullProfile().catch(() => {
+        // Offline — the local copy stands until the next successful pull.
+      });
+      await saveAnswers({ finished: true });
+      router.replace('/(tabs)');
+    } else {
+      saveProfile({ email: email.trim(), emailVerified: true });
+      // A new account: the name next. Replaced, not pushed, so a swipe back
+      // cannot land on a code that has already been used.
+      router.replace('/name');
+    }
+  };
+
+  const submitPassword = async () => {
+    if (busy || !password) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithReviewerPassword(email, password);
+      await finishSignIn();
+    } catch (err) {
+      hapticWarning();
+      setError(friendlyAuthError(err instanceof Error ? err.message : ''));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
    * A verified code is a real Supabase session, which is what the root gate
    * watches — so nothing here has to tell the router the student is in.
    *
@@ -199,30 +268,7 @@ export default function EmailScreen() {
     setError(null);
     try {
       await verifyEmailOtp(email, code);
-      await afterSignIn();
-      let known: boolean;
-      try {
-        known = await hasCompletedOnboarding();
-      } catch {
-        // Verified, but we cannot reach the profile table. Falling back to
-        // local evidence rather than assuming "new": guessing new would send
-        // a returning student through onboarding, and the push at the end of
-        // it would overwrite their real name and exam with retyped ones.
-        known = await onboardedOnThisDevice();
-      }
-      if (known) {
-        // Their details live on the server; bring them back to this device.
-        await pullProfile().catch(() => {
-          // Offline — the local copy stands until the next successful pull.
-        });
-        await saveAnswers({ finished: true });
-        router.replace('/(tabs)');
-      } else {
-        saveProfile({ email: email.trim(), emailVerified: true });
-        // A new account: the name next. Replaced, not pushed, so a swipe back
-        // cannot land on a code that has already been used.
-        router.replace('/name');
-      }
+      await finishSignIn();
     } catch (err) {
       // A wrong or expired code: felt as well as read.
       hapticWarning();
@@ -313,6 +359,79 @@ export default function EmailScreen() {
                 disabled={!ready}
                 busy={busy}
                 onPress={sendOtp}
+              />
+            </View>
+          </>
+        ) : stage === 'password' ? (
+          <>
+            {/* The store-review account only. Same page as the other stages: the
+                address recaps with its Change button, a password field below. */}
+            <ScrollView
+              style={s.flex}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              showsVerticalScrollIndicator={false}>
+              <OnbTitle title="What’s your email?" sub="Enter your password to continue." />
+
+              <View style={s.recapBlock}>
+                <View style={s.recapCard}>
+                  <View style={s.recapText}>
+                    <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                    <Text style={s.recapValue} numberOfLines={1}>
+                      {email.trim()}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={changeEmail}
+                    hitSlop={ds(14)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change email address"
+                    style={({ pressed }) => [s.changeButton, pressed && s.changePressed]}>
+                    <Text style={s.changeLink}>Change</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={s.cardBlock}>
+                <Pressable style={s.focusRing} onPress={() => passwordInput.current?.focus()}>
+                  <View style={s.fieldCard}>
+                    <Text style={s.fieldLabel}>PASSWORD</Text>
+                    <View style={s.valueRow}>
+                      <TextInput
+                        ref={passwordInput}
+                        testID="reviewer-password"
+                        style={s.emailInput}
+                        value={password}
+                        onChangeText={(t) => {
+                          setPassword(t);
+                          setError(null);
+                        }}
+                        placeholder="Password"
+                        placeholderTextColor={ob.placeholder}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="current-password"
+                        textContentType="password"
+                        selectionColor={ob.amber}
+                        returnKeyType="go"
+                        onSubmitEditing={submitPassword}
+                      />
+                    </View>
+                  </View>
+                </Pressable>
+                {!!error && <Text style={s.error}>{error}</Text>}
+              </View>
+            </ScrollView>
+
+            <View style={s.footer}>
+              <ObButton
+                label={busy ? 'Signing in…' : 'Sign in'}
+                variant="ink"
+                withArrow
+                disabled={!password}
+                busy={busy}
+                onPress={submitPassword}
               />
             </View>
           </>

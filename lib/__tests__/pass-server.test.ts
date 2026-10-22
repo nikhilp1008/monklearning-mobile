@@ -1,4 +1,4 @@
-import { endsAtFor, isTeamAccess, recordFromServer, statusOf } from '@/lib/pass';
+import { endsAtFor, isTeamAccess, recordFromServer, statusFromServer, statusOf } from '@/lib/pass';
 import { isPassRequired, onPassRequired, signalPassRequired } from '@/lib/pass-events';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -67,6 +67,50 @@ describe('the pass, as the server states it', () => {
     )!;
     expect(isTeamAccess(record)).toBe(true);
     expect(statusOf(record, NOW).state).toBe('active');
+  });
+
+  // The launch gate asks `statusFromServer`, not `statusOf`. It answered `none` for
+  // an exempt account the server had no real pass for (the store-review account),
+  // and the gate sent that account to the plans screen.
+  describe('the launch check for an exempt account', () => {
+    test('with no pass of its own it is let through as team access, never sent to buy', () => {
+      const answer = { state: 'none' as const, exempt: true };
+      const record = recordFromServer(answer, NOW);
+      const status = statusFromServer(answer, record, NOW);
+      expect(status.state).toBe('active');
+      if (status.state === 'active') expect(isTeamAccess(status.record)).toBe(true);
+    });
+
+    test('with a pass that has ended it is still let through', () => {
+      const answer = {
+        state: 'expired' as const, kind: 'day', exempt: true,
+        started_at: '2026-10-01T00:00:00.000Z', ends_at: '2026-10-02T00:00:00.000Z',
+      };
+      expect(statusFromServer(answer, recordFromServer(answer, NOW), NOW).state).toBe('active');
+    });
+
+    test('with a real running pass that pass is shown, not the stand-in', () => {
+      const answer = {
+        state: 'active' as const, kind: '1m', source: 'promo', exempt: true,
+        started_at: '2026-10-17T09:00:00.000Z', ends_at: '2026-11-16T09:00:00.000Z',
+      };
+      const status = statusFromServer(answer, recordFromServer(answer, NOW), NOW);
+      expect(status.state).toBe('active');
+      if (status.state === 'active') expect(isTeamAccess(status.record)).toBe(false);
+    });
+
+    test('an ordinary student with no pass is still sent to choose one', () => {
+      const answer = { state: 'none' as const };
+      expect(statusFromServer(answer, recordFromServer(answer, NOW), NOW).state).toBe('none');
+    });
+
+    test('an ordinary student whose pass has ended is still sent to choose one', () => {
+      const answer = {
+        state: 'expired' as const, kind: 'day', source: 'promo',
+        started_at: '2026-10-01T00:00:00.000Z', ends_at: '2026-10-02T00:00:00.000Z',
+      };
+      expect(statusFromServer(answer, recordFromServer(answer, NOW), NOW).state).toBe('expired');
+    });
   });
 
   test('only the stand-in is team access; a real pass of any source is not', () => {

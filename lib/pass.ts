@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { apiFetch } from '@/lib/api';
+import { isReviewerSession } from '@/lib/reviewer';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -111,10 +112,11 @@ export function endsAtFor(record: PassRecord): Date {
     const stated = new Date(record.endsAt);
     if (!Number.isNaN(stated.getTime())) return stated;
   }
+  // Exact 24-hour days, as the server counts them. Adding calendar days with setDate keeps the
+  // phone's wall-clock time, so across a daylight-saving change the end could land an hour
+  // (and, near midnight, a date) away from what the server grants.
   const started = new Date(record.startedAt);
-  const end = new Date(started.getTime());
-  end.setDate(end.getDate() + (DAYS[record.kind] ?? 0));
-  return end;
+  return new Date(started.getTime() + (DAYS[record.kind] ?? 0) * 86400000);
 }
 
 export async function readPass(userId?: string | null): Promise<PassRecord | null> {
@@ -159,14 +161,19 @@ export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRec
     // shown as it is - it used to be replaced by the stand-in below, so the
     // plan screen read "11 months, 3650 days left" whatever they had bought.
     if (real && s.state === 'active') return real;
-    return {
-      kind: '11m',
-      startedAt: now.toISOString(),
-      endsAt: new Date(now.getTime() + TEN_YEARS_MS).toISOString(),
-      source: 'exempt',
-    };
+    return teamAccessRecord(now);
   }
   return real;
+}
+
+/** The stand-in for an account the paywall never stops. Not a pass: see isTeamAccess. */
+export function teamAccessRecord(now: Date = new Date()): PassRecord {
+  return {
+    kind: '11m',
+    startedAt: now.toISOString(),
+    endsAt: new Date(now.getTime() + TEN_YEARS_MS).toISOString(),
+    source: 'exempt',
+  };
 }
 
 /**
@@ -270,6 +277,13 @@ export function statusOf(record: PassRecord | null, now: Date = new Date()): Pas
  * used to say how long is left.
  */
 export function statusFromServer(answer: ServerPass, record: PassRecord | null, now: Date = new Date()): PassStatus {
+  // AN EXEMPT ACCOUNT IS NEVER "NO PASS". The server says this one is never
+  // gated (a founder, a tester, the store-review account), and `recordFromServer`
+  // has already made its record: the pass it really holds, or the team-access
+  // stand-in when it holds none. This line used to come after the `none` check
+  // below, so an exempt account with no real pass (the store-review account) was
+  // answered `none` here and the launch gate sent it to the plans screen.
+  if (answer.exempt && record) return statusOf(record, now);
   if (!record || answer.state === 'none') return { state: 'none' };
   const endsAt = endsAtFor(record);
   if (answer.state === 'expired') return { state: 'expired', record, endsAt };
@@ -295,6 +309,10 @@ export function statusFromServer(answer: ServerPass, record: PassRecord | null, 
 export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<PassStatus> {
   const userId = await currentUserId();
   if (!userId) return { state: 'unknown' };
+  // The store-review account is never asked, and never sent to buy: nothing
+  // here can fail or run slow for it (a /pass answer taking longer than the
+  // timeout used to be able to put the plans screen in front of a reviewer).
+  if (await isReviewerSession()) return statusOf(teamAccessRecord());
   try {
     const answer = await apiFetch<unknown>('/pass', { timeoutMs: opts.timeoutMs ?? 10000 });
     if (!isServerPass(answer)) throw new Error('Not an answer from the pass server.');
@@ -313,6 +331,7 @@ export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<Pas
  * running pass see Home at once while the real check runs behind it.
  */
 export async function cachedPassStatus(): Promise<PassStatus> {
+  if (await isReviewerSession()) return statusOf(teamAccessRecord());
   const cached = await readPass();
   return cached ? statusOf(cached) : { state: 'unknown' };
 }
