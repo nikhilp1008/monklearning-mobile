@@ -250,11 +250,21 @@ export async function fetchReport(runId: string): Promise<MockReport> {
  * mid-request). Every submit after that is refused with this 409, and the
  * paper is safe — so it is a reason to fetch the report, not to ask the
  * student to submit again. An abandoned paper, or one handed in too late,
- * is a 409 too, and is not this.
+ * is a 409 too, and is not this: see `isPaperClosed`.
  */
 export function isAlreadySubmitted(err: unknown): boolean {
   const e = err as { status?: number; message?: unknown } | null;
   return e?.status === 409 && typeof e.message === 'string' && /already submitted/i.test(e.message);
+}
+
+/**
+ * The server will never take this paper: it is past its deadline and the
+ * grace after it, and has been (or is about to be) marked abandoned. Both of
+ * its 409s say so. Asking the student to "check your connection and submit
+ * again" here was a loop with no way out.
+ */
+export function isPaperClosed(err: unknown): boolean {
+  return (err as { status?: number } | null)?.status === 409 && !isAlreadySubmitted(err);
 }
 
 export function submitMockPaper(

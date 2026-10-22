@@ -5,11 +5,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MockKey, MockSection } from '@/components/mock/mock-kit';
+import { MockKey, MockSection, alertPaperClosed } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
-import { getMockSession, mockSecondsLeft, saveProgress, submitCurrentSession } from '@/lib/mock';
+import {
+  getMockSession,
+  isPaperClosed,
+  mockSecondsLeft,
+  saveProgress,
+  submitCurrentSession,
+} from '@/lib/mock';
 import { hapticCommitted, hapticWarning } from '@/lib/haptics';
 
 const SUBJECT_LABEL: Record<string, string> = {
@@ -58,9 +64,13 @@ export default function MockPaletteScreen() {
     try {
       const result = await submitCurrentSession();
       router.replace(`/mock-report?run=${result?.mock_run_id ?? ''}`);
-    } catch {
+    } catch (err) {
       setSubmitting(false);
       hapticWarning();
+      if (isPaperClosed(err)) {
+        alertPaperClosed();
+        return;
+      }
       Alert.alert(
         'Could not submit',
         'Your answers are safe on this device. Check your connection and submit again.',

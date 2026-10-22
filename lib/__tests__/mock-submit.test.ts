@@ -18,6 +18,7 @@ import { apiFetch } from '@/lib/api';
 import {
   getMockSession,
   isAlreadySubmitted,
+  isPaperClosed,
   saveProgress,
   startMockSession,
   submitCurrentSession,
@@ -104,6 +105,18 @@ describe('isAlreadySubmitted', () => {
       isAlreadySubmitted(Object.assign(new Error('Mock run is already submitted.'), { status: 500 }))
     ).toBe(false);
     expect(isAlreadySubmitted(null)).toBe(false);
+  });
+});
+
+describe('isPaperClosed', () => {
+  it('is every other 409: a paper past its deadline and grace', () => {
+    expect(isPaperClosed(conflict('Mock run is already abandoned.'))).toBe(true);
+    expect(isPaperClosed(conflict("This paper's time ran out too long ago to hand in."))).toBe(true);
+    // Handed in already is good news, not a closed paper.
+    expect(isPaperClosed(conflict('Mock run is already submitted.'))).toBe(false);
+    // A dropped connection still means "submit again".
+    expect(isPaperClosed(new Error('Network request failed'))).toBe(false);
+    expect(isPaperClosed(Object.assign(new Error('boom'), { status: 503 }))).toBe(false);
   });
 });
 
