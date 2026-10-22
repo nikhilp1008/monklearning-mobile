@@ -34,6 +34,7 @@ import {
   DoubtSummary,
   deleteDoubt,
   formatRelativeTime,
+  inHistory,
   listDoubts,
   subjectMatches,
 } from '@/lib/doubts';
@@ -192,7 +193,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     listDoubts()
       .then((res) => {
         if (cancelled) return;
-        setDoubts(res.doubts.filter((d) => d.status === 'solved'));
+        setDoubts(res.doubts.filter(inHistory));
         setDoubtChips(res.subjects ?? []);
         doubtsLoadedRef.current = true;
       })
@@ -744,6 +745,14 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             <Text style={styles.doubtRowSubject} numberOfLines={1}>
                               {doubt.subject_label ?? doubt.subject ?? 'Doubt'}
                             </Text>
+                            {doubt.status === 'unsure' && (
+                              // The detail screen leads with why (solution-view's
+                              // `caution`); the row only has to say it is not a
+                              // checked answer before it is opened.
+                              <Text style={styles.doubtRowUnsure} numberOfLines={1}>
+                                Check the working
+                              </Text>
+                            )}
                             <Text style={styles.doubtRowTime}>
                               {formatRelativeTime(doubt.created_at)}
                             </Text>
@@ -1050,6 +1059,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontFamily: 'Onest_500Medium',
       fontSize: scale(12),
       color: '#9C988C',
+    },
+    doubtRowUnsure: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      color: colors.amberText,
+      flexShrink: 0,
     },
     doubtRowTime: {
       fontFamily: 'Onest_500Medium',

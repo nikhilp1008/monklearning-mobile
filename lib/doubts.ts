@@ -290,6 +290,19 @@ export function listDoubts(params: { q?: string } = {}): Promise<DoubtsListRespo
   return apiFetch(`/doubts${qs ? `?${qs}` : ''}`);
 }
 
+/**
+ * Which doubts the history keeps: the solved ones, and the `unsure` ones.
+ *
+ * An `unsure` doubt is the solver's working with the answer withheld — the
+ * student was shown it straight after the snap (lib/solution-view.ts), and the
+ * detail screen shows it the same way. Keeping only `solved` here made it vanish
+ * from Doubts the moment they left the solution. `failed` and `illegible` hold
+ * nothing to read again, and stay out.
+ */
+export function inHistory(d: Pick<DoubtSummary, 'status'>): boolean {
+  return d.status === 'solved' || d.status === 'unsure';
+}
+
 export function getDoubt(doubtId: string): Promise<DoubtDetail> {
   return apiFetch(`/doubts/${doubtId}`);
 }
