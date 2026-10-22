@@ -21,6 +21,7 @@ import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
 import {
   FollowUpError,
   dispatchFollowUpFrame,
+  isFollowUpQuota,
   parseFrames,
   type FollowUpHandlers,
   type FollowUpSurface,
@@ -177,6 +178,8 @@ export class LiveAsk {
       }
       let answered = false;
       let failure: string | null = null;
+      /** The daily limit arrives as an `error` frame here, not as a 429. */
+      let quota = false;
       let settled = false;
       const done = (fn: () => void) => {
         if (settled) return;
@@ -197,6 +200,7 @@ export class LiveAsk {
             continue;
           }
           if (frame.event !== 'error') answered = true;
+          else if (isFollowUpQuota(undefined, frame.data)) quota = true;
           const err = dispatchFollowUpFrame(frame, handlers);
           if (err !== null) failure = err;
         }
@@ -205,7 +209,7 @@ export class LiveAsk {
       for (const text of this.incoming.splice(0)) read(text);
       this.onEnd = () => {
         if (this.passEnded) done(() => reject(new FollowUpError('You need a pass to continue.', 'pass')));
-        else if (failure) done(() => reject(new Error(failure as string)));
+        else if (failure) done(() => reject(new FollowUpError(failure as string, quota ? 'quota' : 'retry')));
         else if (!answered) done(() => reject(new LiveUnavailable('closed before answering')));
         else done(resolve);
       };

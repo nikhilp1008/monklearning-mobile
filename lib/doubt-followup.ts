@@ -86,9 +86,19 @@ export type ResolveEvent =
  *
  * `retry`: pressing again may well work. `pass`: the student's pass has ended
  * — the app root has already been told and is opening Plans, so "Try again"
- * would only loop.
+ * would only loop. `quota`: the day's follow-ups are used up (the API's
+ * FOLLOWUP_DAILY_LIMIT, app/rate_limit.py), and nothing works until they free
+ * up, so there is nothing to try again either.
  */
-export type FollowUpFailure = 'retry' | 'pass';
+export type FollowUpFailure = 'retry' | 'pass' | 'quota';
+
+/** Whether an error body or frame is the API's daily-limit refusal. */
+export function isFollowUpQuota(status: number | undefined, payload: unknown): boolean {
+  if (!payload || typeof payload !== 'object') return status === 429;
+  const p = payload as { stage?: unknown; status?: unknown; detail?: unknown };
+  const detail = (p.detail && typeof p.detail === 'object' ? p.detail : p) as { stage?: unknown };
+  return detail.stage === 'quota' || status === 429 || p.status === 429;
+}
 
 export class FollowUpError extends Error {
   kind: FollowUpFailure;
@@ -121,6 +131,9 @@ export function followUpRefusal(status: number, responseText: string): FollowUpE
   if (status === 402 && isPassRequired(body)) {
     signalPassRequired();
     return new FollowUpError('You need a pass to continue.', 'pass');
+  }
+  if (status === 429 && isFollowUpQuota(status, body)) {
+    return new FollowUpError('You have used today’s follow-ups.', 'quota');
   }
   return new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry');
 }

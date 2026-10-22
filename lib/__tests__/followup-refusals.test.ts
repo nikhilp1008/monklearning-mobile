@@ -77,3 +77,12 @@ it('any other refusal is a retry, and does not touch the pass gate', async () =>
   expect(heard).not.toHaveBeenCalled();
   off();
 });
+
+it('the daily limit is its own failure, so the bar does not say Try again', async () => {
+  const result = ask();
+  await opened();
+  FakeXHR.last.end(429, {
+    detail: { message: 'You have reached today’s limit for this.', stage: 'quota', daily_limit: 100 },
+  });
+  expect(followUpFailureOf(await result.catch((e) => e))).toBe('quota');
+});

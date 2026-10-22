@@ -426,8 +426,12 @@ export function AskFollowUpBar({
    * different things of the student: press it again, or go and turn the
    * microphone on. "Try again" would be a lie for the second — pressing again
    * does nothing at all while permission is refused.
+   *
+   * And a third that is neither: the day's follow-ups are used up. Pressing
+   * again is refused the same way until they free up, so it gets its own words
+   * and a banner, and no "Try again".
    */
-  const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short'>(null);
+  const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short' | 'quota'>(null);
   const [linger, setLinger] = useState(false);
   /** The student's voice, 0–1, for the ring's halo while they hold. */
   const voiceLevel = useSharedValue(0);
@@ -690,7 +694,7 @@ export function AskFollowUpBar({
   /** Every failure ends the same way: said under the bar, and the ring gone
    *  grey for a moment. */
   const fail = useCallback(
-    (kind: 'retry' | 'mic' | 'short') => {
+    (kind: 'retry' | 'mic' | 'short' | 'quota') => {
       setFailure(kind);
       setPhase('idle');
       wake(FAILED_SHOW_MS);
@@ -1184,14 +1188,15 @@ export function AskFollowUpBar({
       if (controller.signal.aborted) return;
       // The pass has ended: the app root is already opening Plans, and a
       // "Try again" here would only be refused again.
-      if (followUpFailureOf(err) === 'pass') {
+      const kind = followUpFailureOf(err);
+      if (kind === 'pass') {
         setPhase('idle');
         return;
       }
       // The server's own message is deliberately not read: it is a sentence,
       // and this is a two-word slot. What the student can DO about it is the
-      // same however it failed.
-      fail('retry');
+      // same however it failed — except at the daily limit, where it is wait.
+      fail(kind);
     }
 
     async function speak(spoken: string, ctl: AbortController) {
@@ -1240,7 +1245,9 @@ export function AskFollowUpBar({
       ? 'Microphone is off'
       : failure === 'short'
         ? 'Hold a little longer'
-        : 'Try again'
+        : failure === 'quota'
+          ? 'Daily limit reached'
+          : 'Try again'
     : listening
       ? 'Release to stop'
       : phase === 'thinking'
@@ -1613,6 +1620,15 @@ export function AskFollowUpBar({
           bold="Microphone is off."
           text={teacherFace ? `Turn it on to ask ${teacherNameNow()}.` : 'Turn it on to ask a follow-up.'}
           link={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
+        />
+      ) : null}
+      {failure === 'quota' ? (
+        // Rolling, like the snap allowance (app/rate_limit.py): the day's
+        // follow-ups come back on their own. Said in the snap card's words.
+        <StateBanner
+          style={styles.micBanner}
+          bold="You've used today's follow-ups."
+          text="They open again tomorrow."
         />
       ) : null}
       {leading && litDock ? (
