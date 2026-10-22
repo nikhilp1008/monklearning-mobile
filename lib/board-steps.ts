@@ -36,8 +36,38 @@ function splitEquals(s: string): string[] {
   return parts.filter(Boolean);
 }
 
-/** Sentence ends followed by a capital, digit or bracket; never a decimal point. */
-const SENTENCE_BREAK = /(?<=[.!?])\s+(?=[A-Z0-9(])/;
+/** Candidate sentence ends: a full stop, ! or ? and a space before a capital, digit or bracket. */
+const SENTENCE_BREAK = /[.!?]\s+(?=[A-Z0-9(])/g;
+/**
+ * A full stop that does NOT end a sentence: an abbreviation, a list number
+ * ("1."), a label ("Question 1.", "Postulate 2.") or an initial ("G."). When in
+ * doubt it does not split: two sentences on one row is the old board, a row
+ * reading "Postulate 1." is a broken one.
+ */
+const NOT_AN_END = /(?:\b(?:e\.g|i\.e|etc|vs|viz|cf|approx|Fig|fig|Figs|Eq|eq|Eqs|No|no|Ex|Ch|Sec|Vol|Mr|Mrs|Dr|St)|^\d{1,2}|^[A-Za-z]+\s+\d{1,2}|\b[A-Z])\.$/;
+
+function splitSentences(text: string): string[] {
+  const out: string[] = [];
+  let last = 0;
+  let depth = 0;
+  let scanned = 0;
+  for (const m of text.matchAll(SENTENCE_BREAK)) {
+    const end = m.index! + 1; // just after the punctuation
+    for (; scanned < end; scanned += 1) {
+      const ch = text[scanned];
+      if (ch === '(' || ch === '[') depth += 1;
+      else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+    }
+    const piece = text.slice(last, end);
+    // Never inside brackets ("(e.g. Genus, Family)"), never after an
+    // abbreviation or a bare list number ("1. Gene flow").
+    if (depth > 0 || NOT_AN_END.test(piece.trim())) continue;
+    out.push(piece.trim());
+    last = m.index! + m[0].length;
+  }
+  out.push(text.slice(last).trim());
+  return out.filter(Boolean);
+}
 
 export function formulaSteps(text: string): string[] | null {
   const parts = splitEquals(text);
@@ -47,7 +77,7 @@ export function formulaSteps(text: string): string[] | null {
 
 export function sentenceSteps(text: string): string[] | null {
   if (text.length < 90) return null;
-  const parts = text.split(SENTENCE_BREAK).map((p) => p.trim()).filter(Boolean);
+  const parts = splitSentences(text);
   return parts.length >= 2 ? parts : null;
 }
 
