@@ -82,7 +82,7 @@ export type TextRec = { x: number; y: number; html: string; size: number; anchor
 type TagRec = { name: string; rect: Rect; from: [number, number] | null; to: [number, number] | null };
 type PointRec = { x: number; y: number; r: number };
 type LabelRec = { text: string; rect: Rect };
-export type TagSpec = { t: string; p?: [number, number]; ring?: [number, number, number]; own?: [number, number]; hi?: boolean; key?: 'ring' | 'dot'; at: [number, number, 'start' | 'middle' | 'end'][] };
+export type TagSpec = { t: string; p?: [number, number]; ring?: [number, number, number]; own?: [number, number]; hi?: boolean; key?: 'ring' | 'dot'; /** No dot where the line ends: it ends on a marker of the drawing's own (a ring's edge). */ bare?: boolean; at: [number, number, 'start' | 'middle' | 'end'][] };
 
 export const r1 = (n: number) => Math.round(n * 10) / 10;
 const esc = (s: string) => s.replace(/&(?!#?\w+;)/g, '&amp;');
@@ -180,7 +180,7 @@ export class Sketch {
     return this.text(x, y, body, { size, anchor, color });
   }
   /** A tag: its name in a white pill, joined to the point it names. */
-  tag(x: number, y: number, t: string, px: number | null, py: number | null, o: { hi?: boolean; anchor?: 'start' | 'middle' | 'end' } = {}) {
+  tag(x: number, y: number, t: string, px: number | null, py: number | null, o: { hi?: boolean; anchor?: 'start' | 'middle' | 'end'; bare?: boolean } = {}) {
     const hi = !!o.hi, w = tagW(t), anchor = o.anchor ?? 'start';
     const x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x, rect: Rect = [x0, y, x0 + w, y + 22];
     let svg = '';
@@ -188,7 +188,7 @@ export class Sketch {
     if (px != null && py != null) {
       const cx = Math.max(x0 + 8, Math.min(x0 + w - 8, px)), cy = py < y ? y : y + 22;
       from = [px, py]; to = [cx, cy];
-      svg += `<line x1="${r1(px)}" y1="${r1(py)}" x2="${r1(cx)}" y2="${cy}" stroke="${hi ? C.mari : C.grey}" stroke-width="1.2"/><circle cx="${r1(px)}" cy="${r1(py)}" r="2.6" fill="${hi ? C.mari : C.ink}"/>`;
+      svg += `<line x1="${r1(px)}" y1="${r1(py)}" x2="${r1(cx)}" y2="${cy}" stroke="${hi ? C.mari : C.grey}" stroke-width="1.2"/>${o.bare ? '' : `<circle cx="${r1(px)}" cy="${r1(py)}" r="2.6" fill="${hi ? C.mari : C.ink}"/>`}`;
     }
     svg += `<rect x="${r1(x0)}" y="${y}" width="${r1(w)}" height="22" rx="11" fill="#fff" stroke="${hi ? C.mari : C.border}" stroke-width="${hi ? 1.5 : 1}"/>`;
     svg += `<text x="${r1(x0 + w / 2)}" y="${y + 15.5}" text-anchor="middle" font-family="${F.tag}" font-size="${TAG_SIZE}" fill="${hi ? C.amber : C.text}">${esc(t)}</text>`;
@@ -232,7 +232,7 @@ export class Sketch {
         // a tag line never runs through another tag, nor a tag across another tag's line
         if (placed.some((q) => crosses(p, end, q, -2))) continue;
         if (this.tags.some((t) => t.from && t.to && crosses(t.from, t.to, r, -2))) continue;
-        this.tag(x, y, sp.t, p[0], p[1], { hi: sp.hi, anchor });
+        this.tag(x, y, sp.t, p[0], p[1], { hi: sp.hi, anchor, bare: sp.bare });
         placed.push(r);
         done = true;
         break;

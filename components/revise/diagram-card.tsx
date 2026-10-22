@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SvgAst, parse } from 'react-native-svg';
 
@@ -140,10 +141,34 @@ export function captionBreaks(html: string): string {
  */
 export function DiagramCard({ d }: { d: Diagram }) {
   const { scale } = useScale();
+  // A drawing with a tall case (a third panel, a long caption) runs past the
+  // card, and its last caption line was cut at the card's edge with nothing to
+  // say there was more (Android review of Physics 12 Ch 5, fig. 5.5 (c)). So
+  // while there is more below, the bottom fades to the card's white and the
+  // scroll bar shows; scrolled to the end, the fade goes.
+  const view = useRef({ box: 0, content: 0, y: 0 });
+  const [more, setMore] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const measure = () => {
+    const { box, content, y } = view.current;
+    setOverflows(box > 0 && content > box + 1);
+    setMore(box > 0 && content - (y + box) > 2);
+  };
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: scale(20), paddingBottom: scale(24) }} showsVerticalScrollIndicator={false}>
-      <DiagramBody d={d} />
-    </ScrollView>
+    <View style={st.page}>
+      <ScrollView
+        style={st.page}
+        contentContainerStyle={{ padding: scale(20), paddingBottom: scale(24) }}
+        showsVerticalScrollIndicator={overflows}
+        persistentScrollbar={overflows}
+        onLayout={(e: LayoutChangeEvent) => { view.current.box = e.nativeEvent.layout.height; measure(); }}
+        onContentSizeChange={(_, h) => { view.current.content = h; measure(); }}
+        onScroll={(e) => { view.current.y = e.nativeEvent.contentOffset.y; measure(); }}
+        scrollEventThrottle={64}>
+        <DiagramBody d={d} />
+      </ScrollView>
+      {more && <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0)', '#FFFFFF']} style={[st.fade, { height: scale(44) }]} />}
+    </View>
   );
 }
 
@@ -183,6 +208,8 @@ export function DiagramBody({ d, type }: { d: Diagram; type?: (n: number) => num
 }
 
 const st = StyleSheet.create({
+  page: { flex: 1 },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   centred: { alignItems: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: { borderWidth: 1, borderColor: 'rgba(28,26,22,.16)', justifyContent: 'center', backgroundColor: '#FFFFFF' },

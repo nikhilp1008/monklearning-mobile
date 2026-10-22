@@ -126,7 +126,11 @@ export function FormulaCard({ card }: { card: Card }) {
   const { scale } = useScale();
   return (
     <ScrollView style={s.scroll} contentContainerStyle={{ padding: scale(20), paddingBottom: scale(24) }} showsVerticalScrollIndicator={false}>
-      <Markup html={card.name} size={scale(NAME)} look="stix" style={{ fontFamily: STIX.semibold, fontSize: scale(NAME), lineHeight: scale(NAME_LINE), color: colors.ink }} />
+      {/* The name gets the same room: an arrow over a tall letter in it (the
+          l⃗ of "Motional emf (rod, v⃗, B⃗, l⃗ …)") lost its head at the name's
+          top, 19 on a 25 line putting it 0.92 em above the baseline (Android
+          review of Physics 12 Ch 6, 2026-10-22). */}
+      <Markup html={card.name} size={scale(NAME)} look="stix" style={[{ fontFamily: STIX.semibold, fontSize: scale(NAME), lineHeight: scale(NAME_LINE), color: colors.ink }, headroom(scale(NAME))]} />
       <View style={[s.part, { marginTop: scale(16), paddingTop: scale(16), gap: scale(12) }]}>
         {card.items.map((it, i) => (
           <View key={i} style={{ gap: scale(2) }}>

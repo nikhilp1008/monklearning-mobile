@@ -11,7 +11,9 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
-import { captionBreaks } from '@/components/revise/diagram-card';
+import { captionBreaks, DiagramCard } from '@/components/revise/diagram-card';
+import { PilotFormula } from '@/components/textbook/formula-pilot';
+import type { Diagram } from '@/lib/diagrams/types';
 import { FormulaCard, symbolHtml } from '@/components/revise/formula-card';
 import { hairSpaces, ITALIC_G, isWordScript, Markup, SIGN_SUB_DROP, STIX, SUB_DROP, WJ } from '@/components/textbook/markup';
 import { tspans } from '@/lib/diagrams/kit';
@@ -321,8 +323,8 @@ describe('where two glyphs meet that the font never set side by side (Physics 12
     };
     const texts = nodes(draw(<FormulaCard card={card} />).toJSON() as Json).filter((n) => n.type === 'Text' && n.props.style);
     const roomy = texts.map((n) => StyleSheet.flatten(n.props.style) as { paddingTop?: number; marginTop?: number }).filter((st) => (st.paddingTop ?? 0) > 0);
-    // numerator, denominator, the meaning's symbol: and nothing else (the name, the formula's own line and the meaning's words keep their spacing)
-    expect(roomy).toHaveLength(3);
+    // the name, numerator, denominator, the meaning's symbol: and nothing else (the formula's own line and the meaning's words keep their spacing)
+    expect(roomy).toHaveLength(4);
     for (const st of roomy) {
       expect(st.paddingTop).toBeGreaterThanOrEqual(16 * 0.3);
       expect(st.marginTop).toBeCloseTo(-st.paddingTop!);
@@ -346,5 +348,100 @@ describe('where two glyphs meet that the font never set side by side (Physics 12
     const dy = (html: string) => Number(/dy="([\d.]+)"/.exec(tspans(html, 20))![1]);
     expect(dy('<i>E</i><sub>−</sub>')).toBeLessThan(dy('<i>E</i><sub>1</sub>'));
     expect(dy('<i>E</i><sub>+</sub>')).toBe(dy('<i>E</i><sub>−</sub>'));
+  });
+});
+
+describe('Physics 12 Ch 5–6 review (2026-10-22)', () => {
+  const H = `\u200a${WJ}`, T = `\u2009${WJ}`;
+
+  it('a card name gets room above for an arrow over a tall letter, without moving: "Motional emf (rod, v⃗, B⃗, l⃗ …)"', () => {
+    const card: Card = { topic: 0, name: 'Motional emf (rod, <i>v⃗</i>, <i>B⃗</i>, <i>l⃗</i> mutually perpendicular)', items: [{ label: null, expr: '<i>ε</i> = <i>Bvl</i>', words: false }], meaning: [] };
+    const name = nodes(draw(<FormulaCard card={card} />).toJSON() as Json).find((n) => n.type === 'Text' && (StyleSheet.flatten(n.props.style) as { fontFamily?: string }).fontFamily === STIX.semibold)!;
+    const st = StyleSheet.flatten(name.props.style) as { paddingTop?: number; marginTop?: number; lineHeight?: number };
+    expect(st.paddingTop).toBeGreaterThanOrEqual(19 * 0.3);
+    expect(st.marginTop).toBeCloseTo(-st.paddingTop!);
+    expect(st.lineHeight).toBe(25);
+  });
+
+  it('and so does the reader\'s formula title set as maths, on top of its own margin', () => {
+    const block = { t: 'formula', kicker: 'Motional emf (rod, <i>v⃗</i>, <i>B⃗</i>, <i>l⃗</i> mutually perpendicular)', main: '<i>ε</i> = <i>Bvl</i>', legend: [], note: '' } as unknown as React.ComponentProps<typeof PilotFormula>['block'];
+    const id = (n: number) => n;
+    const title = nodes(draw(<PilotFormula block={block} scale={id} type={id} />).toJSON() as Json).find((n) => n.type === 'Text' && (StyleSheet.flatten(n.props.style) as { fontFamily?: string }).fontFamily === 'Onest_700Bold')!;
+    const st = StyleSheet.flatten(title.props.style) as { paddingTop?: number; marginTop?: number };
+    expect(st.paddingTop).toBeGreaterThanOrEqual(17 * 0.3);
+    expect(st.marginTop).toBeCloseTo(2 - st.paddingTop!);
+  });
+
+  it('a lowered digit before an italic letter whose foot or tail reaches left gets a hair space: μ₀μᵣ', () => {
+    expect(hairSpaces('<i>μ</i> = μ<sub>0</sub><i>μ</i><sub>r</sub>')).toBe(`<i>μ</i> = μ<sub>0</sub>${H}<i>μ</i><sub>r</sub>`);
+    expect(hairSpaces('μ₀<i>χ</i>')).toBe(`μ₀${H}<i>χ</i>`);
+    expect(hairSpaces('<i>x</i><sub>0</sub><i>f</i>')).toBe(`<i>x</i><sub>0</sub>${H}<i>f</i>`);
+    // letters that start on or right of their advance: no space
+    for (const c of 'COVSnsptεα') expect(hairSpaces(`μ<sub>0</sub><i>${c}</i>`)).toBe(`μ<sub>0</sub><i>${c}</i>`);
+  });
+
+  it('a drawn letter subscript before such a letter gets one too: μᵣNIA, ε_rms I_rms; not μᵣ nI', () => {
+    expect(hairSpaces('μ<sub>0</sub><i>μ</i><sub>r</sub><i>NIA</i>')).toBe(`μ<sub>0</sub>${H}<i>μ</i><sub>r</sub>${H}<i>NIA</i>`);
+    expect(hairSpaces('<i>ε</i><sub>rms</sub><i>I</i><sub>rms</sub>')).toBe(`<i>ε</i><sub>rms</sub>${H}<i>I</i><sub>rms</sub>`);
+    expect(hairSpaces('<i>v</i><sub><i>x</i></sub><i>A</i>')).toBe(`<i>v</i><sub><i>x</i></sub>${H}<i>A</i>`);
+    expect(hairSpaces('μ<sub>0</sub><i>μ</i><sub>r</sub><i>nI</i>')).toBe(`μ<sub>0</sub>${H}<i>μ</i><sub>r</sub><i>nI</i>`);
+    // the cases that were fine stay as they were
+    expect(hairSpaces('<i>C</i><sub>1</sub><i>V</i><sub>1</sub>')).toBe('<i>C</i><sub>1</sub><i>V</i><sub>1</sub>');
+    expect(hairSpaces('<i>V</i><sub>rated</sub><sup>2</sup>')).toBe('<i>V</i><sub>rated</sub><sup>2</sup>');
+    // one subscript at a time: the space goes after the one that meets the letter
+    expect(hairSpaces('<i>a</i><sub>1</sub> + <i>b</i><sub>r</sub><i>N</i>')).toBe(`<i>a</i><sub>1</sub> + <i>b</i><sub>r</sub>${H}<i>N</i>`);
+  });
+
+  it('the drawn subscript keeps its word joiners round it, and the hair space joins on', () => {
+    expect(flat(draw(<Markup html="<i>μ</i><sub>r</sub><i>N</i>" size={19} look="stix" />).toJSON() as Json)).toBe(`μ${WJ}[r]${WJ}${H}N`);
+  });
+
+  it('an italic f before a spaced operator gets a thin space: f × (loop area); not another letter, not f without an operator', () => {
+    expect(hairSpaces('<i>p</i> = <i>f</i> × (loop area)')).toBe(`<i>p</i> = <i>f</i>${T} × (loop area)`);
+    expect(hairSpaces('<i>f</i>\u00a0=\u00a050 Hz')).toBe(`<i>f</i>${T}\u00a0=\u00a050 Hz`);
+    expect(hairSpaces('<i>p</i> × <i>V</i>')).toBe('<i>p</i> × <i>V</i>');
+    expect(hairSpaces('<i>f</i> (the frequency)')).toBe('<i>f</i> (the frequency)');
+  });
+
+  it('⇒ gets a thin space before and a hair space after, outside the content\'s own spaces; ⇔ a hair space each side', () => {
+    expect(hairSpaces('<i>LI</i> ⇒ <i>L</i>')).toBe(`<i>LI</i>${T} ⇒${H} <i>L</i>`);
+    expect(hairSpaces('<i>a</i>\u00a0⇔\u00a0<i>b</i>')).toBe(`<i>a</i>${H}\u00a0⇔${H}\u00a0<i>b</i>`);
+    // no space in the content, none added; → and ⟹ carry their own
+    expect(hairSpaces('(a)⇒(b)')).toBe('(a)⇒(b)');
+    expect(hairSpaces('<i>r</i> → ∞, <i>p</i> ⟹ <i>q</i>')).toBe('<i>r</i> → ∞, <i>p</i> ⟹ <i>q</i>');
+    // the arrow is still drawn from STIX Two Math, the spaces are not
+    const math = nodes(draw(<Markup html="<i>LI</i> ⇒ <i>L</i>" size={19} look="stix" />).toJSON() as Json).filter((n) => (StyleSheet.flatten(n.props.style) as { fontFamily?: string })?.fontFamily === STIX.math);
+    expect(math.map((n) => n.children)).toEqual([['⇒']]);
+  });
+
+  describe('a diagram taller than its card says there is more', () => {
+    const d = { id: 't', name: 'Test', cases: [{ chip: 'a', cap: 'A caption.' }], draw: () => ({ w: 100, h: 50, texts: [], svg: () => '<svg viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"></svg>', height: 50 }) } as unknown as Diagram;
+    const fades = (r: TestRenderer.ReactTestRenderer) => r.root.findAll((n) => (n.type as { displayName?: string; name?: string })?.name === 'LinearGradient' || (n.props as { colors?: string[] }).colors?.[1] === '#FFFFFF').length;
+    const scroll = (r: TestRenderer.ReactTestRenderer) => r.root.findAll((n) => typeof n.props.onContentSizeChange === 'function')[0];
+
+    it('fades the bottom and shows the scroll bar while the content runs past the card, and not once scrolled to the end', () => {
+      const r = draw(<DiagramCard d={d} />);
+      expect(fades(r)).toBe(0);
+      const sv = scroll(r);
+      act(() => {
+        sv.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 500 } } });
+        sv.props.onContentSizeChange(300, 640);
+      });
+      expect(fades(r)).toBeGreaterThan(0);
+      expect(scroll(r).props.showsVerticalScrollIndicator).toBe(true);
+      act(() => sv.props.onScroll({ nativeEvent: { contentOffset: { x: 0, y: 140 } } }));
+      expect(fades(r)).toBe(0);
+    });
+
+    it('a diagram that fits shows neither', () => {
+      const r = draw(<DiagramCard d={d} />);
+      const sv = scroll(r);
+      act(() => {
+        sv.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 500 } } });
+        sv.props.onContentSizeChange(300, 420);
+      });
+      expect(fades(r)).toBe(0);
+      expect(scroll(r).props.showsVerticalScrollIndicator).toBe(false);
+    });
   });
 });

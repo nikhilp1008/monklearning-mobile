@@ -8,6 +8,13 @@ import { BORDER, kicker } from '@/components/textbook/theme';
 import { labelCase } from '@/lib/label-case';
 import type { Block } from '@/lib/textbooks';
 import { BookText } from '@/components/textbook/book-text';
+import { headroom } from '@/components/revise/formula-card';
+
+/** headroom() on top of the title's own marginTop. */
+const titleRoom = (size: number, margin: number) => {
+  const room = headroom(size);
+  return { paddingTop: room.paddingTop, marginTop: margin + room.marginTop };
+};
 
 type FormulaBlock = Extract<Block, { t: 'formula' }>;
 
@@ -75,7 +82,9 @@ export function PilotFormula({
       <Text style={kicker(type)}>formula</Text>
       {/<\/?(i|sub|sup)>/.test(block.kicker) ? (
         // A book title that names a symbol ("…of dielectric constant <i>K</i>") sets it as maths.
-        <Markup html={formulaTitle(block.kicker, true)} size={type(17)} style={s.title} look="pilot" />
+        // Room above it, as on the Formula sheet's card names (see headroom):
+        // 17 on a 24 line clips an arrow over a tall letter (l⃗) at the top.
+        <Markup html={formulaTitle(block.kicker, true)} size={type(17)} style={[s.title, titleRoom(type(17), scale(2))]} look="pilot" />
       ) : (
         <Text style={s.title}>{formulaTitle(block.kicker, book)}</Text>
       )}

@@ -386,28 +386,69 @@ function untypeLetters(html: string): string {
  *   U+20D7 runs to x = 137, and the phone set its head 4 px into the bar, to
  *   the bar's far edge). A THIN SPACE (U+2009, 0.125 em, 6.7 px at the
  *   formula's 19) clears it by about 2.5 px.
- * - After a lowered digit, before an italic capital with a foot: ε₀A, 4πε₀R.
- *   STIX's ₀ ends 0.027 em short of its advance and the italic A begins
- *   0.062 em before its own, so the two touched. A HAIR SPACE (U+200A,
- *   0.063 em) parts them. Only the capitals whose foot reaches left of their
- *   advance: C, O, V and the like lean away and are left alone. Every lowered
- *   digit, ₀ to ₉, and a <sub> of digits: μ₀I₁I₂ has two.
+ * - After a subscript, before an italic letter whose foot reaches left of its
+ *   advance: ε₀A, 4πε₀R, μ₀μᵣ, μᵣNIA, ε_rms I_rms. STIX's ₀ ends 0.027 em
+ *   short of its advance and the italic A begins 0.062 em before its own, so
+ *   the two touched; a drawn letter subscript ends closer still (r 0.005 em,
+ *   s 0.019, at its 0.7). A HAIR SPACE (U+200A, 0.063 em) parts them. Only
+ *   the letters whose outline, between a subscript's bottom and top (−0.24
+ *   to +0.27 em), reaches left of their advance, measured from STIX Two
+ *   Italic's own outlines (FOOTED below): C, O, V, n, s and the like start at
+ *   or right of it and are left alone. On the Physics 12 Ch 5 screenshots ₀
+ *   ran into the tail of μ (−0.040 em) and the drawn r of μᵣ came within a
+ *   pixel of N's foot (−0.021), while μᵣn kept 4 px (n starts 0.049 em in)
+ *   and was left. Every lowered digit, ₀ to ₉, a <sub> of digits (μ₀I₁I₂ has
+ *   two), and a drawn <sub> of letters.
  * - After an italic capital, before its superscript: I²R, E², V². The
  *   capital's top leans past its advance (STIX's italic I by 0.052 em, V by
  *   0.099) and STIX's ² starts only 0.027 em into its own, so the 2 met the
  *   serif (Android review of Physics 12 Ch 3, 2026-10-22). The same hair
  *   space, as a stacked pair steps off its letter by PAIR_KERN; not before a
  *   stacked pair (I²ₓ), which steps itself.
+ * - After an italic f, before a spaced operator: f × (loop area), f = 50 Hz.
+ *   The f's hook leans 0.146 em past its advance, so on the Physics 12 Ch 5
+ *   screenshots f stood 6 px from its × where the other operators stood 15
+ *   to 18 px from their neighbours. A THIN SPACE gives that back.
+ * - Round ⇒ and ⇔. STIX Two Math's ⇒ starts on its own advance (side
+ *   bearings 0 and 0.061 em, where = has 0.062 and 0.062) and ⇔'s are 0.020,
+ *   so "LI ⇒ L" stood 9 px off the I and 14 px off the L (Physics 12 Ch 6;
+ *   the = signs 14 to 17). A thin space before ⇒ and a hair space after it
+ *   (0.125 − 0.063, the 0.061 its own bearings differ by) make the two sides
+ *   equal; ⇔ takes a hair space each side. They sit outside the content's own
+ *   spaces, so a line that breaks there starts on the arrow, not on a sliver
+ *   of space. ⟹, ⟺ and → carry 0.056 to 0.072 em of their own, as much as
+ *   =, and are left.
+ *
+ * Not after a superscript before an italic capital (B²A): the capitals'
+ * outlines at a superscript's height start 0.088 em or more right of their
+ * advance, and on the Ch 5 screenshot the ² stood 12 px above A's foot, with
+ * no ink between them in any column. Not before a slash after a subscript
+ * (H_c/n, q_enc/ε₀): 5 to 7 px of clear space on the screenshots.
  */
 const HAIR = '\u200a', THIN = '\u2009';
 const ARROW_BEFORE_CLOSER = /\u20d7(<\/i>)?(?=[|‖)\]}])/g;
-const DIGIT_SUB_BEFORE_FOOTED_CAPITAL = /(<sub>[0-9]+<\/sub>|[₀-₉])(?=<i>[ABDEFHIJKLMNPRXZ])/g;
+/**
+ * The STIX Two Italic letters whose outline reaches left of their advance
+ * between −240 and +270 units, a subscript's height: the leftmost point there,
+ * in thousandths of an em, A −62, X −55, J −31, M −23, N −21, B D E F H I K L
+ * −13, P R −9, Z −3; Γ −7, Δ −43, Λ −60, Π Σ −13; f −124, j −135, y −76,
+ * x −37, g −28 (ɡ, drawn in its place, −16), z −22; β −21, λ −27, μ −40,
+ * ρ −33, χ −131. Not s (0), p (+5), n (+49), Ξ (+7), ν (+106 there).
+ */
+const FOOTED = 'ABDEFHIJKLMNPRXZΓΔΛΠΣfgjxyzβλμρχ';
+const SUB_BEFORE_FOOTED_ITALIC = new RegExp(`(<sub>(?:(?!</sub>).)*</sub>|[₀-₉])(?=<i>[${FOOTED}])`, 'g');
 const ITALIC_CAPITAL_BEFORE_SUP = /(<i>[^<]*[A-Z]<\/i>)(?=<sup>(?:(?!<\/sup>).)*<\/sup>(?!<sub>))/g;
+const ITALIC_F_BEFORE_OPERATOR = /(f<\/i>)(?=[ \u00a0][=×+−<>≤≥≈∝])/g;
+const SPACE_BEFORE_ARROW = /([ \u00a0])([⇒⇔])/g;
+const SPACE_AFTER_ARROW = /([⇒⇔])([ \u00a0])/g;
 export function hairSpaces(html: string): string {
   return html
     .replace(ARROW_BEFORE_CLOSER, `\u20d7$1${THIN}${WJ}`)
-    .replace(DIGIT_SUB_BEFORE_FOOTED_CAPITAL, `$1${HAIR}${WJ}`)
-    .replace(ITALIC_CAPITAL_BEFORE_SUP, `$1${HAIR}${WJ}`);
+    .replace(SUB_BEFORE_FOOTED_ITALIC, `$1${HAIR}${WJ}`)
+    .replace(ITALIC_CAPITAL_BEFORE_SUP, `$1${HAIR}${WJ}`)
+    .replace(ITALIC_F_BEFORE_OPERATOR, `$1${THIN}${WJ}`)
+    .replace(SPACE_BEFORE_ARROW, (_, sp: string, arrow: string) => `${arrow === '⇒' ? THIN : HAIR}${WJ}${sp}${arrow}`)
+    .replace(SPACE_AFTER_ARROW, `$1${HAIR}${WJ}$2`);
 }
 
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {
