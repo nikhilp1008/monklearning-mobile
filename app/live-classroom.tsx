@@ -581,8 +581,8 @@ export default function LiveClassroomScreen() {
         // A new turn brings the board back to the live edge. A small drag
         // earlier latched following off, and with the "Jump to live" chip
         // hidden during a checkpoint there was no way back: the board filled
-        // and never scrolled.
-        setFollowing(true);
+        // and never scrolled. Both copies (see applyFollowing), then glide.
+        resumeFollowingRef.current?.();
         setCardPhase('writing');
         voiceTurnRef.current?.handOver();
       },
@@ -1452,7 +1452,9 @@ export default function LiveClassroomScreen() {
   /** The student lifted their finger: a drag always decides whether they left
    *  the live edge or came back to it. */
   const onBoardDragEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    applyFollowing(followTracker.dragEnded(atLiveEdge(e), isFling(e.nativeEvent.velocity?.y)));
+    const next = followTracker.dragEnded(atLiveEdge(e), isFling(e.nativeEvent.velocity?.y));
+    applyFollowing(next);
+    if (!next) scheduleResume();
   };
 
   /** A scroll came to rest. Only the student's fling decides here: on iOS the
@@ -1462,13 +1464,44 @@ export default function LiveClassroomScreen() {
   const onBoardMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = followTracker.momentumEnded(atLiveEdge(e));
     if (next !== null) applyFollowing(next);
+    if (next === false) scheduleResume();
   };
 
   const jumpToLive = () => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = null;
     followTracker.programmaticScroll();
     applyFollowing(true);
     glide(true);
   };
+  // Called from the transport's onTurnStarted, which was wired before this
+  // render; the ref keeps it pointing at the current closure.
+  const resumeFollowingRef = useRef<(() => void) | null>(null);
+  resumeFollowingRef.current = () => {
+    if (draggingRef.current) return;
+    jumpToLive();
+  };
+
+  /**
+   * THE BOARD COMES BACK BY ITSELF. A student who scrolls up to reread is left
+   * there for a moment, and then the board returns to the live edge: they
+   * should not have to find "Jump to live" every time the board fills. A new
+   * drag cancels the countdown, so a student still reading is never yanked.
+   */
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleResume = () => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      resumeTimerRef.current = null;
+      resumeFollowingRef.current?.();
+    }, RESUME_FOLLOW_MS);
+  };
+  useEffect(
+    () => () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    },
+    []
+  );
 
   // --- Real push-to-talk ---
   /**
@@ -1923,6 +1956,8 @@ export default function LiveClassroomScreen() {
           }}
           onContentSizeChange={onBoardGrow}
           onScrollBeginDrag={() => {
+            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+            resumeTimerRef.current = null;
             draggingRef.current = true;
             draggingShared.value = true;
             followTracker.dragBegan();
@@ -2707,6 +2742,9 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
 }
 
 /** Where the line being written is held, as a share of the board's height. */
+/** How long a student who scrolled away is left reading before the board
+ *  returns to the live edge by itself. */
+const RESUME_FOLLOW_MS = 5000;
 const READ_LINE = 0.45;
 /**
  * The blank paper under the writing: enough that the newest line can sit on
