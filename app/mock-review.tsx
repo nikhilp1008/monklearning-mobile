@@ -249,8 +249,11 @@ export default function MockReviewScreen() {
           ) : (
             <View style={styles.options}>
               {options.map(([key, text]) => {
-                const isCorrect = q.correct_option === key;
-                const isYourWrong = q.chosen_option === key && !q.is_correct;
+                // Letters compared as the server grades them, case aside
+                // (Practice does the same): a key stored as "A" against an
+                // option "a" left the right answer unmarked.
+                const isCorrect = sameOption(q.correct_option, key);
+                const isYourWrong = sameOption(q.chosen_option, key) && !q.is_correct;
                 return (
                   <View
                     key={key}
@@ -289,7 +292,7 @@ export default function MockReviewScreen() {
                     {isYourWrong && <Text style={styles.tagWrong}>YOUR PICK</Text>}
                     {isCorrect && (
                       <Text style={styles.tagCorrect}>
-                        {q.chosen_option === key ? 'YOUR PICK' : 'CORRECT'}
+                        {sameOption(q.chosen_option, key) ? 'YOUR PICK' : 'CORRECT'}
                       </Text>
                     )}
                   </View>
@@ -362,6 +365,10 @@ export default function MockReviewScreen() {
       </SafeAreaView>
     </View>
   );
+}
+
+function sameOption(a: string | null | undefined, key: string): boolean {
+  return !!a && a.trim().toLowerCase() === key.trim().toLowerCase();
 }
 
 function BackIcon({ size }: { size: number }) {
