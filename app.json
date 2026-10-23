@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.monklearning.mobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#181818",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
