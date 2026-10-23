@@ -149,7 +149,7 @@ describe('a raised word is upright, a raised letter is italic', () => {
 });
 
 describe('word fractions stack again', () => {
-  const card = (cards: Card[], name: RegExp) => cards.find((c) => name.test(c.name.replace(/\u00a0/g, ' ')))!;
+  const card = (cards: Card[], name: RegExp) => cards.find((c) => name.test(c.name.replace(/\u00a0/g, ' ').replace(/\u2060/g, '')))!;
   const fracs = (expr: string) => parts(expr).filter((s) => s.kind === 'frac');
 
   it('through the word joiner keepTogether puts after every slash', () => {
@@ -182,7 +182,7 @@ describe('word fractions stack again', () => {
 describe('a fraction and its brackets (Android review, pass 2)', () => {
   const fracs = (expr: string) => parts(expr).filter((s) => s.kind === 'frac');
   it('drops the brackets a fraction exactly fills: ((m₁ − m₂)/(m₁ + m₂))u₁, (2m₂/(m₁ + m₂))u₂', () => {
-    const p = parts(buildFormulaCards(ch5).find((c) => /Elastic collision in 1-D — final/.test(c.name.replace(/\u00a0/g, ' ')))!.items[0].expr);
+    const p = parts(buildFormulaCards(ch5).find((c) => /Elastic collision in 1-D — final/.test(c.name.replace(/\u00a0/g, ' ').replace(/\u2060/g, '')))!.items[0].expr);
     expect(p.filter((x) => x.kind === 'frac')).toHaveLength(2);
     for (const x of p) if (x.kind === 'text') expect(x.html).not.toMatch(/\($|^\)/);
   });
@@ -549,5 +549,34 @@ describe('Physics 12 Ch 4–6 re-check (2026-10-22)', () => {
     };
     expect(marginsOf(keepTogether('<i>Y</i> = 1/<i>Z</i> = (<i>R</i> − <i>jX</i>)/(<i>R</i><sup>2</sup> + <i>X</i><sup>2</sup>) = <i>G</i> + <i>jB</i>'))).toEqual(expect.objectContaining({ marginLeft: 0, marginRight: 4 }));
     expect(marginsOf(keepTogether('<i>k</i>(<i>m</i><sub>1</sub> + <i>m</i><sub>2</sub>)/(<i>m</i><sub>1</sub> + <i>m</i><sub>3</sub>)'))).toEqual(expect.objectContaining({ marginLeft: 4 }));
+  });
+});
+
+describe('Physics 12 Ch 4–8 re-check (2026-10-23)', () => {
+  it('a legend\'s meanings all start at one x: every symbol takes the widest one\'s width, as measured', () => {
+    const card: Card = {
+      topic: 0,
+      name: 'Magnetic force on a moving charge',
+      items: [{ label: null, expr: '<i>x</i>', words: false }],
+      meaning: [
+        { sym: '<i>q</i>', text: 'the charge (C)' },
+        { sym: '<i>v⃗</i>', text: 'its velocity' },
+        { sym: null, text: 'a bullet row has no symbol' },
+        { sym: '<i>B⃗</i>', text: 'the magnetic field (T)' },
+      ],
+    };
+    const r = draw(<FormulaCard card={card} />);
+    const measured = r.root.findAll((n) => (n.type as unknown) === 'View' && typeof n.props.onLayout === 'function' && !!n.props.style);
+    const syms = () => r.root.findAll((n) => (n.type as unknown) === 'View' && (StyleSheet.flatten(n.props.style) as { minWidth?: number })?.minWidth !== undefined);
+    expect(syms()).toHaveLength(3);
+    // Before anything is measured the column is 0: each symbol sizes to itself.
+    expect(syms().map((n) => (StyleSheet.flatten(n.props.style) as { minWidth: number }).minWidth)).toEqual([0, 0, 0]);
+    // The symbols' own widths, the arrowed ones wider by their head's room.
+    const own = measured.filter((n) => (StyleSheet.flatten(n.props.style) as { flexShrink?: number }).flexShrink === 0 && (StyleSheet.flatten(n.props.style) as { minWidth?: number }).minWidth === undefined);
+    expect(own).toHaveLength(3);
+    act(() => [9, 14, 17].forEach((width, i) => own[i].props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width, height: 23 } } })));
+    expect(syms().map((n) => (StyleSheet.flatten(n.props.style) as { minWidth: number }).minWidth)).toEqual([17, 17, 17]);
+    // The symbol inside keeps its own width: the column does not stretch it, so measuring again changes nothing.
+    expect(syms().every((n) => (StyleSheet.flatten(n.props.style) as { alignItems?: string }).alignItems === 'flex-start')).toBe(true);
   });
 });

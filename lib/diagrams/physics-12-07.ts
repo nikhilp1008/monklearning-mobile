@@ -71,7 +71,22 @@ function outline(s: Sketch, pts: P[], o: Stroke = {}) {
 const box = (s: Sketch, r: Rect, o: Stroke = {}) => outline(s, [[r[0], r[1]], [r[2], r[1]], [r[2], r[3]], [r[0], r[3]]], o);
 /** Every arrowhead drawn, by sketch, as its tip and its middle: a tag's dot keeps off them (`dotsOffHeads`). */
 const HEADS = new WeakMap<Sketch, [P, P][]>();
-const keepHead = (s: Sketch, tip: P, u: P, L: number) => HEADS.set(s, [...(HEADS.get(s) ?? []), [tip, add(tip, u, -L / 2)]]);
+const keepHead = (s: Sketch, tip: P, u: P, L: number, hw = 4.5) => {
+  HEADS.set(s, [...(HEADS.get(s) ?? []), [tip, add(tip, u, -L / 2)]]);
+  INKS.set(s, [...(INKS.get(s) ?? []), headTri(tip, u, L, hw)]);
+};
+/** Every arrowhead as the triangle drawn (Sketch.vec and head: 9 long, 4.5 each side), by sketch. */
+const INKS = new WeakMap<Sketch, P[][]>();
+const headTri = (tip: P, u: P, L = 9, hw = 4.5): P[] => { const b = add(tip, u, -L), nv: P = [-u[1], u[0]]; return [tip, add(b, nv, hw), add(b, nv, -hw)]; };
+/** How far p is from a triangle's ink (0 inside it). */
+const triDist = (t: P[], p: P) => {
+  const side = (a: P, b: P) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+  const s3 = t.map((a, i) => side(a, t[(i + 1) % 3]));
+  if (s3.every((v) => v >= 0) || s3.every((v) => v <= 0)) return 0;
+  return Math.min(...t.map((a, i) => distSeg(p, a, t[(i + 1) % 3])));
+};
+/** A tag's dot: Sketch.tag draws it 2.6 px in radius. */
+const DOT_R = 2.6;
 /** An arrow (a phasor, a direction) that labels keep clear of. */
 function arrow(s: Sketch, a: P, b: P, o: { color?: string; w?: number; dash?: boolean } = {}) {
   s.vec(a[0], a[1], b[0], b[1], o);
@@ -84,7 +99,7 @@ function head(s: Sketch, p: P, u: P, color: string = C.ink, L = 9, hw = 4.5) {
   const tri: P[] = [p, add(b, nv, hw), add(b, nv, -hw)];
   s.add(`<path d="M${tri.map((q) => `${r1(q[0])} ${r1(q[1])}`).join(' L')} Z" fill="${color}"/>`);
   keep(s, [...tri, tri[0]]);
-  keepHead(s, p, u, L);
+  keepHead(s, p, u, L, hw);
 }
 /** The points of an arc about c, radius R, from math angle a0 to a1 (degrees). */
 const arcPts = (c: P, R: number, a0: number, a1: number, n = 90): P[] => samples(a0, a1, n).map((a) => polar(c, R, a));
@@ -144,13 +159,25 @@ const dotsOffHeads = (s: Sketch): Check => {
   const bad = s.tags.filter((t) => t.from && (HEADS.get(s) ?? []).some((h) => h.some((q) => len(q, t.from as P) < 8))).map((t) => t.name);
   return [`No tag's dot sits on an arrowhead${bad.length ? `: ${bad.join(', ')}` : ''}`, bad.length === 0];
 };
+/**
+ * And no tag's dot beside an arrowhead either: at least HEAD_CLEAR px of white
+ * between the dot and the head's ink. Fig 7.3's "Secondary" dot stood a pixel
+ * or two from the barb of the flux arrow over the coil (Android re-check of
+ * Physics 12 Ch 7, 2026-10-23).
+ */
+const HEAD_CLEAR = 6;
+const dotClear = (s: Sketch, at: P) => Math.min(Infinity, ...(INKS.get(s) ?? []).map((t) => triDist(t, at))) - DOT_R;
+const dotsClearOfHeads = (s: Sketch): Check => {
+  const near = s.tags.filter((t) => t.from).map((t) => ({ name: t.name, gap: dotClear(s, t.from as P) })).sort((a, b) => a.gap - b.gap);
+  return [`Every tag's dot keeps at least ${HEAD_CLEAR} px clear of every arrowhead${near.length ? `: the closest is "${near[0].name}", ${fmt(near[0].gap, 1)} px` : ''}`, near.every((n) => n.gap >= HEAD_CLEAR - 1e-9)];
+};
 /** Every label inside the frame (the kit's audit checks tags only). */
 const inFrame = (s: Sketch): Check => {
   const out = s.labels.filter((l) => l.rect[0] < 0 || l.rect[2] > s.w || l.rect[1] < 0 || l.rect[3] > s.h).map((l) => l.text);
   return [`Every label lies inside the frame${out.length ? `: not ${out.join(', ')}` : ''}`, out.length === 0];
 };
 /** The layout checks of a drawn sketch. */
-const layout = (s: Sketch): Check[] => [clearCheck(s), labelsApart(s), dotsOffHeads(s), inFrame(s)];
+const layout = (s: Sketch): Check[] => [clearCheck(s), labelsApart(s), dotsOffHeads(s), dotsClearOfHeads(s), inFrame(s)];
 /**
  * The result (what the figure states), bottom right, ink-edged, maths set in
  * STIX (Sketch.text). Registered as a tag, so the audit keeps everything else off it.
@@ -331,7 +358,11 @@ const fig72: Diagram = {
     path(s, [[ox - 4, Y72(Imax)], [ox, Y72(Imax)]], { color: C.grey, w: 1.3, free: true });
     path(s, [[ox - 4, Y72(Ihalf)], [ox, Y72(Ihalf)]], { color: C.grey, w: 1.3, free: true });
     s.sym(ox - 8, Y72(Imax) + 5, '<i>I</i><sub>max</sub> = <i>V</i>/<i>R</i>', { size: 13, anchor: 'end', color: C.slate });
-    s.sym(ox - 8, Y72(Ihalf) + 5, '<i>I</i><sub>max</sub>/√2', { size: 13, anchor: 'end', color: C.slate });
+    // A hair space before the slash: the upright x of "max", its top-right
+    // serif level with the slash's foot, stood 1 px from it on the Android
+    // screenshot (re-check of Physics 12 Ch 7, 2026-10-23). Measured there,
+    // not a rule: V_s/V_p on the cards keeps 5 px (see hairSpaces).
+    s.sym(ox - 8, Y72(Ihalf) + 5, '<i>I</i><sub>max</sub>\u200a/√2', { size: 13, anchor: 'end', color: C.slate });
     // ω₀ (faint), ω₁ and ω₂ dropped from the half-power points to the axis
     const pk = Y72(Irms(RES.Rs[0])(w0));
     // (broken round the bandwidth's label, which it would run through)
@@ -411,13 +442,20 @@ const g73 = () => {
   // the flux path through the middle of each limb
   const fl: Rect = [(core[0] + win[0]) / 2, (core[1] + win[1]) / 2, (win[2] + core[2]) / 2, (win[3] + core[3]) / 2];
   const gap = 12;
+  // The secondary's tag names its last turn, 0.7 along it, on the right limb
+  // beside the flux arrow's head. Drawn over the coil, the head's barb stood
+  // a pixel or two from that dot (Android re-check, 2026-10-23), so the arrow
+  // down this limb stops where its head keeps HEAD_CLEAR of the dot.
+  const secDot = add(sec[Ns - 1][0], sub(sec[Ns - 1][1], sec[Ns - 1][0]), 0.7);
+  let down = fl[3] - gap;
+  while (triDist(headTri([fl[2], down], [0, 1]), secDot) - DOT_R < HEAD_CLEAR) down -= 1;
   const flux: [P, P][] = [
     [[fl[0] + gap, fl[1]], [fl[2] - gap, fl[1]]],
-    [[fl[2], fl[1] + gap], [fl[2], fl[3] - gap]],
+    [[fl[2], fl[1] + gap], [fl[2], down]],
     [[fl[2] - gap, fl[3]], [fl[0] + gap, fl[3]]],
     [[fl[0], fl[3] - gap], [fl[0], fl[1] + gap]],
   ];
-  return { prim, sec, fl, flux };
+  return { prim, sec, fl, flux, secDot };
 };
 const fig73: Diagram = {
   id: 'p12-07-fig-7.3',
@@ -426,7 +464,7 @@ const fig73: Diagram = {
   cases: [{ chip: 'Shared flux', cap: 'A transformer: the primary (<i>N</i><sub>p</sub> turns, AC source) and secondary (<i>N</i><sub>s</sub> turns, load lamp) share the alternating flux Φ carried by a laminated soft-iron core.' }],
   draw() {
     const s = new Sketch(W, 322);
-    const { core, win, src, lamp, r, Np, Ns } = G73, g = g73();
+    const { core, win, src, lamp, r, Np } = G73, g = g73();
     // the laminations (thin grey sheets), then the core's outline
     for (let x = core[0] + 6; x < core[2] - 2; x += 6) {
       if (x > win[0] - 2 && x < win[2] + 2) {
@@ -464,7 +502,7 @@ const fig73: Diagram = {
       { t: 'AC source', p: [src[0] - r * 0.7, src[1] + r * 0.7], at: [[4, 214, 'start'], [4, 220, 'start']] },
       { t: 'Load (lamp)', p: [lamp[0] + r * 0.7, lamp[1] + r * 0.7], at: [[W - 4, 214, 'end'], [W - 4, 220, 'end']] },
       { t: 'Primary', p: add(g.prim[Np - 1][0], sub(g.prim[Np - 1][1], g.prim[Np - 1][0]), 0.3), at: [[60, 252, 'start'], [56, 258, 'start']] },
-      { t: 'Secondary', p: add(g.sec[Ns - 1][0], sub(g.sec[Ns - 1][1], g.sec[Ns - 1][0]), 0.7), at: [[200, 252, 'start'], [204, 258, 'start']] },
+      { t: 'Secondary', p: g.secDot, at: [[200, 252, 'start'], [204, 258, 'start']] },
       { t: 'Laminated soft-iron core', p: [(core[0] + core[2]) / 2, core[3]], at: [[(core[0] + core[2]) / 2, 290, 'middle'], [(core[0] + core[2]) / 2, 294, 'middle']] },
     ]);
     return s;

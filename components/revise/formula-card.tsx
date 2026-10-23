@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
@@ -152,29 +152,51 @@ export function FormulaCard({ card }: { card: Card }) {
         ))}
       </View>
       {/* No meanings, no hairline: an empty section drew a rule under nothing. */}
-      {card.meaning.length > 0 && (
-        <View style={[s.part, { marginTop: scale(16), paddingTop: scale(16), gap: scale(8) }]}>
-          {card.meaning.map((m, i) => (
-            <View key={i} style={[s.row, { gap: scale(12) }]}>
-              {m.sym ? (
-                // The symbol sizes to itself and never wraps; the meaning beside
-                // it wraps instead. On Android a symbol measured to the pixel was
-                // laid out a pixel narrower and broke: a⃗ over its "t", "x and"
-                // with the "y" lost. symbolHtml gives it a hanging space of slack.
-                <View style={s.sym}>
-                  <Markup html={symbolHtml(m.sym)} size={scale(TEXT)} look="stix" style={[s.text, { fontSize: scale(TEXT), lineHeight: scale(TEXT_LINE), color: colors.ink }, headroom(scale(TEXT))]} />
-                </View>
-              ) : (
-                <Fragment>
-                  <View style={[s.bullet, { marginTop: scale(9) }]} />
-                </Fragment>
-              )}
-              <Markup html={m.text} size={scale(TEXT)} look="stix" style={[s.text, s.grow, { fontSize: scale(TEXT), lineHeight: scale(TEXT_LINE), color: '#4A463D' }]} />
-            </View>
-          ))}
-        </View>
-      )}
+      {/* Keyed by its symbols, so another card's widths never set this one's column. */}
+      {card.meaning.length > 0 && <Legend key={card.meaning.map((m) => m.sym ?? '').join('|')} meaning={card.meaning} scale={scale} />}
     </ScrollView>
+  );
+}
+
+/**
+ * What a card's symbols mean: the symbols in one column, the meanings in a
+ * second that starts at one x on every row. Each symbol sized to itself, the
+ * meanings started 12 past each, and a symbol with an arrow over its last
+ * letter carries 0.25 em of room for the head (ARROW_ROOM, inside its own
+ * width): so q, v⃗, B⃗ and θ set their meanings at 70, 77, 85 and 70 px
+ * (Android re-check of Physics 12 Ch 4, card 1, 2026-10-23). So every symbol
+ * is measured as laid out, and each takes the widest one's width.
+ */
+function Legend({ meaning, scale }: { meaning: Card['meaning']; scale: (n: number) => number }) {
+  const [widths, setWidths] = useState<Record<number, number>>({});
+  const column = Math.max(0, ...Object.values(widths));
+  const measured = (i: number) => (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    setWidths((had) => (had[i] === w ? had : { ...had, [i]: w }));
+  };
+  return (
+    <View style={[s.part, { marginTop: scale(16), paddingTop: scale(16), gap: scale(8) }]}>
+      {meaning.map((m, i) => (
+        <View key={i} style={[s.row, { gap: scale(12) }]}>
+          {m.sym ? (
+            // The symbol sizes to itself and never wraps; the meaning beside
+            // it wraps instead. On Android a symbol measured to the pixel was
+            // laid out a pixel narrower and broke: a⃗ over its "t", "x and"
+            // with the "y" lost. symbolHtml gives it a hanging space of slack.
+            // Measured by the inner view, which keeps the symbol's own width;
+            // the outer one is the column.
+            <View style={[s.sym, { minWidth: column }]}>
+              <View style={s.own} onLayout={measured(i)}>
+                <Markup html={symbolHtml(m.sym)} size={scale(TEXT)} look="stix" style={[s.text, { fontSize: scale(TEXT), lineHeight: scale(TEXT_LINE), color: colors.ink }, headroom(scale(TEXT))]} />
+              </View>
+            </View>
+          ) : (
+            <View style={[s.bullet, { marginTop: scale(9) }]} />
+          )}
+          <Markup html={m.text} size={scale(TEXT)} look="stix" style={[s.text, s.grow, { fontSize: scale(TEXT), lineHeight: scale(TEXT_LINE), color: '#4A463D' }]} />
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -190,6 +212,7 @@ const s = StyleSheet.create({
   box: { flexDirection: 'row', alignItems: 'center' },
   frac: { alignItems: 'stretch' },
   middle: { alignItems: 'center' },
-  sym: { flexShrink: 0 },
+  sym: { flexShrink: 0, alignItems: 'flex-start' },
+  own: { flexShrink: 0 },
   bar: { height: 1, backgroundColor: colors.ink, marginVertical: 1 },
 });

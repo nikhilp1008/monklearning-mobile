@@ -234,6 +234,26 @@ function crowded(s: Sketch, p: P, pad: number) {
   for (const pts of LINES.get(s) ?? []) for (let i = 1; i < pts.length; i++) if (distSeg(p, pts[i - 1], pts[i]) < pad) return true;
   return false;
 }
+/** An arrowhead as drawn (Sketch.vec and head: 9 long, 4.5 each side), from its tip and middle as kept in HEADS. */
+const headTri = ([tip, mid]: [P, P]): P[] => {
+  const base = add(tip, sub(mid, tip), 2), u = unit(sub(tip, mid)), nv: P = [-u[1], u[0]];
+  return [tip, add(base, nv, 4.5), add(base, nv, -4.5)];
+};
+/**
+ * How far p is from the nearest ink a field mark must keep off: a tag, a
+ * label, a point (less its radius), a tag's leader, a kept line, an arrowhead
+ * (its barbs too, which no kept line holds). Centre to ink, as `crowded`.
+ */
+function markClear(s: Sketch, p: P): number {
+  const d = [
+    ...[...s.tags.map((t) => t.rect), ...s.labels.map((l) => l.rect)].map((r) => rectDist(r, p)),
+    ...s.points.map((q) => len(p, [q.x, q.y]) - q.r),
+    ...s.tags.filter((t) => t.from && t.to).map((t) => distSeg(p, t.from as P, t.to as P)),
+    ...(LINES.get(s) ?? []).flatMap((pts) => pts.slice(1).map((b, i) => distSeg(p, pts[i], b))),
+    ...(HEADS.get(s) ?? []).map((h) => { const t = headTri(h); return Math.min(...t.map((a, i) => distSeg(p, a, t[(i + 1) % 3]))); }),
+  ];
+  return Math.min(Infinity, ...d);
+}
 /** Words in Onest (names in a box, a heading): straight into the SVG, registered so tags and the checks keep clear of them. */
 function words(s: Sketch, x: number, y: number, t: string, o: { size?: number; anchor?: 'start' | 'middle' | 'end'; color?: string; bold?: boolean } = {}) {
   const size = o.size ?? 12, anchor = o.anchor ?? 'middle', w = t.length * size * 0.56;
@@ -462,9 +482,21 @@ const fig62: Diagram = {
  * its velocity is ω⃗ × r⃗, drawn perpendicular to the rod with a length in
  * proportion to x. The free end's path is the dashed circle of radius l.
  */
-/** How far every × keeps from the dashed circle, centre to line. */
+/**
+ * How far every × keeps from the dashed circle and from every other line,
+ * arrowhead and label, centre to ink: a mark's arms reach 7 px from its
+ * centre, so 8 px stay clear.
+ */
 const CLEAR63 = 15;
-const GRID63 = { x0: 28, y0: 34, step: 36 };
+/**
+ * The field's lattice. Searched over every offset (1 px apart) for steps of 30
+ * to 40 px: at 30, from (27, 45), it keeps the most marks inside the circle (17
+ * of the 45 lattice points there; the rod, its arrows and labels take most of
+ * the rest), 63 in all.
+ */
+const GRID63 = { x0: 27, y0: 45, step: 30 };
+/** Each mark as laid, with its clearance then (every line, label and tag is drawn before the marks). */
+const MARKS63 = new WeakMap<Sketch, { p: P; clear: number }[]>();
 const G63 = { O: [118, 196] as P, l: 112, ang: 33, xf: 0.62, k: 0.75, dx: 12, xOff: 12, lOff: 40, wR: 30, w0: 198, w1: 252 };
 const g63 = () => {
   const { O, l, ang, xf, k } = G63;
@@ -508,23 +540,27 @@ const fig63: Diagram = {
       { t: 'Rod', p: add(O, g.u, l * 0.22), at: [[O[0] - 6, O[1] - 58, 'end'], [O[0] - 10, O[1] - 64, 'end']] },
       { t: 'Free end’s path', p: polar(O, l, 300), at: [[W - 8, 290, 'end'], [W - 8, 284, 'end'], [W - 8, 276, 'end']] },
     ]);
-    // Not within 15 px of the dashed circle, centre to line: a mark's arms
-    // reach 7 px from its centre, and at the usual 9 px some touched the
-    // circle (Android review, Ch 6). Now every mark keeps 8 px clear. A mark
-    // that falls closer is moved straight out from the circle (or in, on its
-    // own side) to that 15 px, not dropped: dropping them left a ring of
-    // holes and the grid looked irregular (Android re-check, 2026-10-22).
+    // The field is one lattice, every mark on it, none moved: a mark is laid
+    // only where it keeps CLEAR63 from every line (the dashed circle, the rod,
+    // the arrows), every arrowhead and every label (markClear). Marks pushed
+    // radially off the circle broke the rows, and the field inside looked
+    // jittered; one × sat 2 to 3 px from the x and l arrowheads (Android
+    // re-check of Physics 12 Ch 6, 2026-10-23). GRID63's offset and step are
+    // the ones, of every offset and step searched, that keep the most marks
+    // inside the circle; the few that fall in the band round it are left out.
     for (let y = GRID63.y0; y < 318; y += GRID63.step)
       for (let x = GRID63.x0; x < W - 10; x += GRID63.step) {
-        const p: P = [x, y], r = len(p, O), d = r - l;
-        const at = Math.abs(d) >= CLEAR63 ? p : add(O, sub(p, O), (l + (d < 0 ? -CLEAR63 : CLEAR63)) / r);
-        if (!crowded(s, at, 9)) xMark(s, at);
+        const p: P = [x, y], clear = markClear(s, p);
+        if (clear < CLEAR63) continue;
+        MARKS63.set(s, [...(MARKS63.get(s) ?? []), { p, clear }]);
+        xMark(s, p);
       }
     return s;
   },
   check() {
     const { O, l, xf, k } = G63, g = g63();
     const s = fig63.draw(fig63.cases[0]);
+    const marks = MARKS63.get(s) ?? [], inside = marks.filter(({ p }) => len(p, O) < l).length;
     // ω anticlockwise: ω⃗ out of the page; v⃗ = ω⃗ × r⃗
     const r = page(sub(g.el, O)), v = cross3(OUT, r), vDrawn = page(sub(g.vTip, g.el));
     const wa = arcPts(O, G63.wR, G63.w0, G63.w1, 10);
@@ -536,7 +572,8 @@ const fig63: Diagram = {
       ['The element’s velocity is drawn along ω⃗ × r⃗: perpendicular to the rod, on the side it turns towards', sameWay(vDrawn, v) && close(dot3(vDrawn, r), 0, 1e-9)],
       [`Its length is ${fmt(len(g.el, g.vTip), 1)} px = ${k} × x with x = ${fmt(xf * l, 1)} px: v = ωx grows in proportion to the distance from O`, close(len(g.el, g.vTip), k * xf * l, 1e-9)],
       [`The free end lies on the dashed circle (radius ${l} px = the rod’s length l)`, close(len(O, g.tip), l, 1e-9)],
-      [`The field is a full grid: ${s.points.filter((q) => q.r === 5).length} ×, every one at least ${CLEAR63} px from the dashed circle`, s.points.filter((q) => q.r === 5).length >= 40 && s.points.filter((q) => q.r === 5).every((q) => Math.abs(len([q.x, q.y], O) - l) >= CLEAR63 - 1e-9)],
+      [`The field is one lattice: ${marks.length} ×, every one on (${GRID63.x0} + ${GRID63.step}i, ${GRID63.y0} + ${GRID63.step}j), none moved off it, ${inside} inside the circle`, marks.length >= 40 && inside >= 12 && marks.every(({ p }) => (p[0] - GRID63.x0) % GRID63.step === 0 && (p[1] - GRID63.y0) % GRID63.step === 0)],
+      [`Every × at least ${CLEAR63} px (centre to ink) from the dashed circle and from every line, arrowhead and label: the closest ${fmt(Math.min(...marks.map((m) => m.clear)), 1)} px`, marks.every((m) => m.clear >= CLEAR63 && Math.abs(len(m.p, O) - l) >= CLEAR63)],
       [`Summed element by element, ∫₀ˡ Bωx dx = ½Bωl²: Example 4 gives ${fmt(emf(0.3, 50, 0.6), 2)} V (the book's 2.7 V), practice 4 ${fmt(emf(0.2, 40, 0.5), 2)} V (the book's 1.0 V)`, rel(emf(0.3, 50, 0.6), 0.5 * 0.3 * 50 * 0.36, 1e-6) && fmt(emf(0.3, 50, 0.6), 1) === '2.7' && fmt(emf(0.2, 40, 0.5), 1) === '1'],
       ...layout(s),
     ];

@@ -465,7 +465,10 @@ function untypeLetters(html: string): string {
  *
  * Not before a slash after a subscript (V_s/V_p, I_max/√2): measured again on
  * Physics 12 Ch 7 card 27, the s stands 5 px off the slash at the foot and 9
- * at its top, the same as Ch 5's. Not "E(" (Ch 8 card 21): 9 to 10 px clear
+ * at its top, the same as Ch 5's. (Fig 7.2's label I_max/√2, at 13 on the
+ * drawing, stood 1 px off, the x's top serif against the slash: it carries
+ * its own hair space, lib/diagrams/physics-12-07.ts.)
+ * Not "E(" (Ch 8 card 21): 9 to 10 px clear
  * at every height on the screenshot, E's arms ending well short of the
  * bracket's curve.
  *

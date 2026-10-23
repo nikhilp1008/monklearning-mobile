@@ -63,13 +63,130 @@ const stripToMaths = (h: string) => h.replace(/<(?!\/?(?:i|sub|sup)>)\/?[a-zA-Z]
  * ("from C_V", "(length L)") is left as it is.
  */
 const LAST_PAIR = 22;
+/**
+ * Where Android may break a name: at a plain space, and straight after a
+ * hyphen or en dash between two letters ("current-|carrying"; UAX 14 breaks
+ * after HY and BA). `hyphen` marks the second kind, where no space is taken.
+ */
+type Break = { at: number; hyphen: boolean };
+function nameBreaks(t: string): Break[] {
+  const out: Break[] = [];
+  for (let k = 0; k < t.length; k++) {
+    if (t[k] === '<') {
+      const close = t.indexOf('>', k);
+      if (close === -1) break;
+      k = close;
+    } else if (t[k] === ' ') out.push({ at: k, hyphen: false });
+    else if ((t[k] === '-' || t[k] === '–') && /[A-Za-zα-ωΑ-Ω0-9>]/.test(t[k - 1] ?? '') && /[A-Za-zα-ωΑ-Ω<]/.test(t[k + 1] ?? '')) out.push({ at: k, hyphen: true });
+  }
+  return out;
+}
+/** A break taken away: a space made non-breaking, or a word joiner after the hyphen (UAX 14 LB11: no break either side of one). */
+const hold = (t: string, b: Break) => (b.hyphen ? `${t.slice(0, b.at + 1)}\u2060${t.slice(b.at + 1)}` : `${t.slice(0, b.at)}\u00a0${t.slice(b.at + 1)}`);
+/** The text after a break, and the word either side of one. */
+const after = (t: string, b: Break) => t.slice(b.at + 1);
+const WORD_EDGE = /[\s\u00a0\-–]/;
+const wordAfter = (t: string, b: Break) => shown(after(t, b).split(WORD_EDGE)[0]);
+const wordBefore = (t: string, b: Break) => shown(t.slice(0, b.at).split(WORD_EDGE).pop() ?? '');
+/** The signs a name's line never ends on: those the words around a formula never end on (softBreaks). */
+const NAME_SIGN = /([=≤≥⇌≈∝≠±∓×+−→⇒⟹⇔⟺]) /g;
+/** A bracket opening on a lone symbol (italic, with its scripts; or a Greek letter) and a space: "(<i>δ</i> measured". Not a word: "(no slipping". */
+const OPENING_SYMBOL = /\(((?:<i>[^<]{1,3}<\/i>|[α-ωΑ-Ω][\u20d7\u0302]?)(?:<(su[bp])>[^<]*<\/\2>)?) /g;
+
+/**
+ * How wide a name runs, in ems of its size: STIX Two Text SemiBold's own
+ * advances, to the nearest 0.05 em (its italic's are within 0.05 of them), a
+ * script at 0.7. Joiners and arrows over letters take no room.
+ */
+const NAME_EM: [string, number][] = [
+  ['\u2060\u20d7\u0302', 0], ["'`\u200a", 0.2], [' \u00a0,.:;’', 0.25], ['!-ijl|', 0.3], ['"ft{}', 0.35], ['()*/I[\\]rsετ', 0.4], ['?J“”', 0.45],
+  ['$0123456789S^_acegvxyzγδθλνρχ–', 0.5], ['#bdopqαβμσ', 0.55], ['FLPZhknu~πφ', 0.6], ['BETYψω', 0.65], ['<>CRVXΔ×⊥', 0.7],
+  ['%&+=ADGKOQΦ−', 0.75], ['HNUwΩ', 0.8], ['@m', 0.9], ['M', 0.95], ['W—', 1],
+];
+const nameEm = (c: string) => NAME_EM.find(([cs]) => cs.includes(c))?.[1] ?? 0.6;
+/**
+ * A card name's line: the card's text runs 304 of the design's 390 pt at
+ * 19, 16 ems, and scale() keeps every phone's wrap points the design's.
+ * Measured on the Android shots (1080 px: 52 px an em, 837 px of line).
+ */
+const NAME_LINE = 16;
+/**
+ * The name as the card breaks it, an estimate: Android fills each line of a
+ * name before starting the next, at the breaks nameBreaks finds. The lines'
+ * texts, without tags.
+ */
+function nameLines(t: string): string[] {
+  const cs: { c: string; w: number }[] = [];
+  let small = 0;
+  for (const m of t.matchAll(/<(\/?)(\w+)>|([^<]+|<)/g)) {
+    if (m[2]) { if (m[2] === 'sub' || m[2] === 'sup') small += m[1] ? -1 : 1; continue; }
+    for (const c of m[3].split('')) cs.push({ c, w: nameEm(c) * (small > 0 ? 0.7 : 1) });
+  }
+  const plain = cs.map((x) => x.c).join('');
+  const width = (a: number, b: number) => cs.slice(a, b).reduce((n, x) => n + x.w, 0);
+  const opens = nameBreaks(plain).map((b) => (b.hyphen ? { end: b.at + 1, next: b.at + 1 } : { end: b.at, next: b.at + 1 }));
+  const lines: string[] = [];
+  for (let from = 0; ; ) {
+    const fit = opens.filter((o) => o.end > from && width(from, o.end) <= NAME_LINE).pop();
+    if (width(from, cs.length) <= NAME_LINE || !fit) return [...lines, plain.slice(from)];
+    lines.push(plain.slice(from, fit.end));
+    from = fit.next;
+  }
+}
+/** How many of a name's lines would hold one word alone. */
+const loneWords = (t: string) => nameLines(t).filter((l) => !/[\s\u00a0]/.test(l.trim())).length;
+
+/**
+ * Three more, from the Android re-check of Physics 12 Ch 4–8 (2026-10-23):
+ *
+ * - A line never ends on a relation sign ("Radiated frequency = | source
+ *   frequency"): the space after the sign is non-breaking, so the sign
+ *   starts the next line with what it relates, as in a formula.
+ * - A bracket short enough to fit a line of its own is held whole, as in a
+ *   formula (isShortBracket): "susceptibility χ (for | linear materials)",
+ *   "magnetism (the | central result)". And a bracket never opens on a lone
+ *   symbol at a line's end, "(δ | measured from the horizontal)": the symbol
+ *   keeps the word after it.
+ * - The last-word rule counts a hyphen as a break, as Android does: "Force on
+ *   a current-carrying | conductor" left "conductor" alone, its pair being the
+ *   whole compound and too long to hold. The pair is now "carrying
+ *   conductor", and the line breaks at the hyphen. A hyphen with a symbol on
+ *   either side ("V-I", "1-D") never breaks at all.
+ */
 export function titleBreaks(name: string): string {
-  let t = name.replace(/ — /g, '\u00a0— ');
-  const at = t.lastIndexOf(' ');
-  if (at > 0 && shown(t.slice(at + 1)).length <= 2) return `${t.slice(0, at)}\u00a0${t.slice(at + 1)}`;
-  const last = t.slice(at + 1);
-  const before = t.lastIndexOf(' ', at - 1);
-  if (at > 0 && !last.includes('\u00a0') && shown(t.slice(before + 1)).length <= LAST_PAIR) t = `${t.slice(0, at)}\u00a0${last}`;
+  let t = name
+    .replace(/ — /g, '\u00a0— ')
+    .replace(NAME_SIGN, '$1\u00a0')
+    .replace(OPENING_SYMBOL, '($1\u00a0');
+  // Each short bracket held whole, unless that leaves a word alone on a line,
+  // set as the card sets it: "Equipartition and degrees of | freedom | (f
+  // active degrees of freedom)", "Pure rolling (no slipping) | conditions".
+  // Split, those keep two words to every line.
+  for (const m of [...t.matchAll(/\(([^()]*)\)/g)].reverse()) {
+    if (!isShortBracket(m[1]) || !m[1].includes(' ')) continue;
+    const held = t.slice(0, m.index) + m[0].replace(/ /g, '\u00a0') + t.slice(m.index! + m[0].length);
+    if (loneWords(lastWords(held)) <= loneWords(lastWords(t))) t = held;
+  }
+  return lastWords(t);
+}
+/**
+ * The hyphens and the last line: see titleBreaks. A compound held at its
+ * hyphen is one word, so the rule looks once more, at the word before it:
+ * "… of | the cross-section", not "cross-section" alone.
+ */
+function lastWords(name: string): string {
+  let t = name;
+  for (const b of nameBreaks(t).reverse()) if (b.hyphen && (wordAfter(t, b).length <= 2 || wordBefore(t, b).length <= 2)) t = hold(t, b);
+  for (let k = 0; k < 2; k++) {
+    const bs = nameBreaks(t);
+    const last = bs[bs.length - 1], before = bs[bs.length - 2];
+    // A last line already of two pieces ("from C_V", "(length L)") is left as it is.
+    if (!last || after(t, last).includes('\u00a0')) return t;
+    if (last.at > 0 && shown(after(t, last)).length <= 2) return hold(t, last);
+    if (shown(before ? after(t, before) : t).length > LAST_PAIR) return t;
+    t = hold(t, last);
+    if (!last.hyphen) return t;
+  }
   return t;
 }
 

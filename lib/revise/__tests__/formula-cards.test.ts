@@ -265,7 +265,8 @@ describe('a number times a number is one number', () => {
 
 describe('card names, Physics 12', () => {
   it('keeps the upright d of a differential upright: I dl⃗', () => {
-    expect(formulaName('Field of a single moving point charge (replacing <i>I</i> d<i>l⃗</i> by <i>q</i><i>v⃗</i>)', true)).toContain('<i>I</i> d<i>l⃗</i> by');
+    // (the bracket is short, so held whole: its spaces are non-breaking)
+    expect(formulaName('Field of a single moving point charge (replacing <i>I</i> d<i>l⃗</i> by <i>q</i><i>v⃗</i>)', true).replace(/\u00a0/g, ' ')).toContain('<i>I</i> d<i>l⃗</i> by');
     // a lone d is still a distance
     expect(formulaName('Force per unit length between two long parallel wires (separation d)', true)).toContain('<i>d</i>)');
   });
@@ -296,5 +297,57 @@ describe('Physics 12 Ch 3 and 4 cards', () => {
     const c = c4.find((k) => /^Torque on a current loop/.test(k.name.replace(/\u00a0/g, ' ')))!;
     expect(c.name).toContain('(<i>N</i>\u00a0turns,');
     expect(c.meaning.find((m) => m.sym === '<i>θ</i>')!.text).toMatch(/and\u00a0<i>B⃗<\/i>$/);
+  });
+});
+
+/** Android re-check of Physics 12 Ch 4–8 (2026-10-23). */
+describe('card names: hyphens, signs and brackets', () => {
+  const nb = (s: string) => s.replace(/ /g, '·').replace(/⁠/g, '¦');
+
+  it('counts the break after a hyphen in the last-word rule: "current-carrying | conductor" goes down as "carrying conductor"', () => {
+    expect(nb(titleBreaks('Force on a current-carrying conductor'))).toBe('Force on a current-carrying·conductor');
+    expect(nb(titleBreaks('Cavity in a current-carrying cylinder'))).toBe('Cavity in a current-carrying·cylinder');
+    // a compound at the end is one word, so its word before goes down with it
+    expect(nb(titleBreaks('Geometrical moment of inertia of the cross-section'))).toBe('Geometrical moment of inertia of the·cross-¦section');
+    // but a pair too long is still left
+    expect(nb(titleBreaks('Energy carried by electromagnetic radiation'))).toBe('Energy carried by electromagnetic radiation');
+  });
+
+  it('never breaks at a hyphen beside a symbol: "1-D", "P–V", "v–t"', () => {
+    expect(nb(titleBreaks('Net force in a non-uniform field (1-D)'))).toContain('(1-¦D)');
+    expect(nb(titleBreaks('The four basic processes on a P–V diagram'))).toContain('P–¦V·diagram');
+    expect(nb(titleBreaks('From the a–t graph to the v–t graph'))).toBe('From the a–¦t graph to the v–¦t·graph');
+  });
+
+  it('never ends a line on a relation sign: the sign goes down with what it relates', () => {
+    expect(nb(titleBreaks('Radiated frequency = source frequency'))).toBe('Radiated frequency =·source·frequency');
+    expect(nb(titleBreaks('Block on a frictionless incline + hanging mass over a pulley'))).toContain('incline +·hanging');
+    expect(nb(titleBreaks('Case 3 — acceleration depends on position, <i>a</i> = <i>f</i>(<i>x</i>)'))).toContain('<i>a</i> =·<i>f</i>');
+  });
+
+  it('holds a short bracket whole, as in a formula: "(for linear materials)", "(the central result)"', () => {
+    expect(nb(titleBreaks('Magnetic susceptibility <i>χ</i> (for linear materials)'))).toContain(' (for·linear·materials)');
+    expect(nb(titleBreaks('Gauss’s law for magnetism (the central result)'))).toContain(' (the·central·result)');
+    expect(nb(titleBreaks('Ampère–Maxwell law (the corrected Ampère’s law)'))).toContain(' (the·corrected·Ampère’s·law)');
+  });
+
+  it('but not where that leaves a word alone on a line, as the card sets the name (16 ems a line)', () => {
+    // held, "Pure rolling (no slipping) | conditions"; split, "Pure rolling (no | slipping) conditions"
+    expect(nb(titleBreaks('Pure rolling (no slipping) conditions'))).toBe('Pure rolling (no slipping)·conditions');
+    // held, "… degrees of | freedom | (f active degrees of freedom)"
+    expect(nb(titleBreaks('Equipartition and degrees of freedom (<i>f</i> active degrees of freedom)'))).toContain('(<i>f</i>·active degrees of·freedom)');
+  });
+
+  it('never opens a bracket on a lone symbol at a line\'s end: "(δ | measured from the horizontal)"', () => {
+    expect(nb(titleBreaks('Resolution of the total field (<i>δ</i> measured from the horizontal)'))).toContain(' (<i>δ</i>·measured');
+    // a word is not a symbol
+    expect(nb(titleBreaks('Pure rolling (no slipping) conditions'))).toContain('(no slipping)');
+  });
+
+  it('on every Physics 12 Ch 3–4 card: no line can end on a sign, no short bracket of one line splits unless a word would stand alone', () => {
+    for (const c of [...buildFormulaCards(p12c3), ...buildFormulaCards(p12c4)]) {
+      expect([c.name, /[=≈∝≤≥→⇒+−×] /.test(c.name)]).toEqual([c.name, false]);
+      expect([c.name, /\((?:<i>[^<]{1,3}<\/i>) /.test(c.name)]).toEqual([c.name, false]);
+    }
   });
 });
