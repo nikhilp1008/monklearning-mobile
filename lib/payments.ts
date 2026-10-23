@@ -91,6 +91,17 @@ export function verifyPayment(payment: CheckoutSuccess): Promise<{ ok: boolean; 
   });
 }
 
+/**
+ * Has THIS order been paid, as the server sees it. One cheap read (GET
+ * /payments/orders/{id}), used while the sheet is open and right after it closes:
+ * `/pass` answers the same question but reconciles with Razorpay and took 1.5-3s a
+ * call (17s at worst) in production. It says nothing about access; the pass is
+ * still read from `/pass`, once, after this says paid.
+ */
+export function getOrderState(orderId: string, timeoutMs = 6000): Promise<{ status: string; paid: boolean }> {
+  return apiFetch<{ status: string; paid: boolean }>(`/payments/orders/${encodeURIComponent(orderId)}`, { timeoutMs });
+}
+
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 
 /**
@@ -167,6 +178,11 @@ export function checkoutHtml(order: Order, opts: { description: string; themeCol
     // complete in place.
     redirect: true,
     callback_url: order.callback_url,
+    // UPI INTENT INSIDE A WEBVIEW. Razorpay's WebView guide says to pass this so a
+    // UPI payment opens the student's UPI app directly. Without it the checkout
+    // falls back to the older collect / QR paths, which are slower and are being
+    // retired by NPCI. Android only, which is the only place payments run.
+    webview_intent: true,
   };
   return `<!doctype html>
 <html><head>

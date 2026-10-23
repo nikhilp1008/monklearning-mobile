@@ -10,6 +10,7 @@ import {
   PriceMismatchError,
   checkoutHtml,
   createOrder,
+  getOrderState,
   isAppLink,
   parseCheckoutMessage,
   verifyPayment,
@@ -48,20 +49,76 @@ export type PayResult =
   | { status: 'failed'; message: string };
 
 type Closed = { type: 'closed' };
+/** The server says this order is paid while the sheet is still open (a UPI app
+ *  finished it and told Razorpay, not this page): the sheet closes by itself. */
+type Settled = { type: 'settled' };
 /** Points from the top of the screen to clear on iOS: the Dynamic Island and the clock. */
 export const IOS_MIN_TOP_CLEARANCE = 54;
 
-const POLL_EVERY_MS = 3000;
+const POLL_EVERY_MS = 2000;
 const POLL_TIMES = 10;
 /** Each poll gives up sooner than an ordinary check: ten slow polls used to
  *  add up to two minutes of a student watching nothing happen. */
 const POLL_TIMEOUT_MS = 6000;
-/** After the sheet closed without a success message: a short look, because a
- *  UPI payment approved in another app can still have gone through. */
-const CHECK_ON_EXIT_TIMES = 2;
-const CHECK_ON_EXIT_GAP_MS = 1500;
+
+/** While the sheet is open, ask the server whether THIS order has been paid. A UPI
+ *  payment finishes in another app and the page is never told; Razorpay tells the
+ *  server instead, within about a second. */
+const WATCH_FIRST_MS = 2000;
+const WATCH_EVERY_MS = 1500;
+const WATCH_MAX_MS = 10 * 60 * 1000;
+/** After the sheet closed with no success message: a few quick looks at the cheap
+ *  order check (a UPI payment approved in another app may already have landed). */
+const EXIT_LOOKS = 4;
+const EXIT_GAP_MS = 1000;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Calls `onPaid` once, the first time the server reports the order paid. Returns
+ * the function that stops it. Errors are ignored (no signal for a moment is not
+ * "unpaid"); it gives up after ten minutes. `ask` is injectable for tests.
+ */
+export function watchOrder(
+  orderId: string,
+  onPaid: () => void,
+  ask: (id: string) => Promise<{ paid: boolean }> = getOrderState,
+  timing: { first: number; every: number; max: number } = { first: WATCH_FIRST_MS, every: WATCH_EVERY_MS, max: WATCH_MAX_MS }
+): () => void {
+  let stopped = false;
+  const startedAt = Date.now();
+  void (async () => {
+    await wait(timing.first);
+    while (!stopped && Date.now() - startedAt < timing.max) {
+      try {
+        const state = await ask(orderId);
+        if (state.paid) {
+          if (!stopped) onPaid();
+          return;
+        }
+      } catch {
+        // No signal for a moment is not "unpaid".
+      }
+      await wait(timing.every);
+    }
+  })();
+  return () => {
+    stopped = true;
+  };
+}
+
+/** A few quick looks at whether the order was paid, after the sheet closed. */
+async function orderPaidSoon(orderId: string): Promise<boolean> {
+  for (let i = 0; i < EXIT_LOOKS; i++) {
+    try {
+      if ((await getOrderState(orderId)).paid) return true;
+    } catch {
+      // try again
+    }
+    if (i < EXIT_LOOKS - 1) await wait(EXIT_GAP_MS);
+  }
+  return false;
+}
 
 /** When the student's paid time ends now, or null with no running pass. */
 function endOf(status: PassStatus): number | null {
@@ -94,7 +151,7 @@ async function waitForPass(before: number | null, times = POLL_TIMES, gapMs = PO
 
 export function usePassCheckout() {
   const [open, setOpen] = useState<{ order: Order; description: string } | null>(null);
-  const resolveSheet = useRef<((e: CheckoutEvent | Closed) => void) | null>(null);
+  const resolveSheet = useRef<((e: CheckoutEvent | Closed | Settled) => void) | null>(null);
 
   // If the screen goes away with the sheet open (a deep link, the pass gate
   // sending the student elsewhere), the purchase is over: resolve it as closed
@@ -132,18 +189,37 @@ export function usePassCheckout() {
       if (!PAYMENTS_ON_THIS_DEVICE) throw new Error('Payments are not available on this device.');
       if (inFlight.current) return { status: 'cancelled' };
       inFlight.current = true;
+      let stopWatching: () => void = () => {};
       try {
         // Where the student stands BEFORE paying, so a pass already running is
-        // never mistaken for this purchase arriving.
-        const before = endOf(await passStatus({ timeoutMs: POLL_TIMEOUT_MS }));
+        // never mistaken for this purchase arriving. STARTED here and read later:
+        // it used to be awaited first, and /pass took 1.5-3s (17s at worst), so the
+        // payment sheet opened that much later. The server reads it when the request
+        // arrives, which is before the student can possibly have paid.
+        const beforeRead = passStatus({ timeoutMs: POLL_TIMEOUT_MS }).then(endOf, () => null);
         const order = await createOrder(kind, opts.offer, opts.promo);
         if (opts.expectedPaise != null && order.amount !== opts.expectedPaise) throw new PriceMismatchError();
-        const event = await new Promise<CheckoutEvent | Closed>((resolve) => {
+        const event = await new Promise<CheckoutEvent | Closed | Settled>((resolve) => {
           resolveSheet.current = resolve;
           setOpen({ order, description: opts.description });
+          // A UPI payment ends in another app and this page is never told. The
+          // server is (Razorpay's webhook), so ask it, and close the sheet by
+          // itself when it says paid.
+          stopWatching = watchOrder(order.order_id, () => resolveSheet.current?.({ type: 'settled' }));
         });
+        stopWatching();
         resolveSheet.current = null;
         setOpen(null);
+        const before = await beforeRead;
+
+        if (event.type === 'settled') {
+          // The server already says this order is paid: no verify to make, only
+          // the pass to read back. The confirming page covers that one call.
+          setConfirming(true);
+          const pass = await waitForPass(before, 4, 700);
+          if (pass) return { status: 'paid', pass, amountPaise: order.amount };
+          return { status: 'pending' };
+        }
 
         if (event.type !== 'success') {
           // Quietly: the student may well not have paid, so no "confirming"
@@ -152,8 +228,12 @@ export function usePassCheckout() {
           // approves a UPI request in their UPI app and then closes this sheet
           // has paid; so has one whose bank page finished after the sheet
           // stopped listening. Ask before saying anything.
-          const arrived = await waitForPass(before, CHECK_ON_EXIT_TIMES, CHECK_ON_EXIT_GAP_MS);
-          if (arrived) return { status: 'paid', pass: arrived, amountPaise: order.amount };
+          if (await orderPaidSoon(order.order_id)) {
+            setConfirming(true);
+            const arrived = await waitForPass(before, 4, 700);
+            if (arrived) return { status: 'paid', pass: arrived, amountPaise: order.amount };
+            return { status: 'pending' };
+          }
           if (event.type === 'failed') return { status: 'failed', message: event.description };
           if (event.type === 'error') return { status: 'failed', message: event.message };
           return { status: 'cancelled' };
@@ -170,7 +250,7 @@ export function usePassCheckout() {
           refused = err instanceof ApiError && (err.status === 400 || err.status === 403);
           // Otherwise: no signal, or the server is busy. Razorpay will tell it too.
         }
-        const pass = await waitForPass(before, refused ? CHECK_ON_EXIT_TIMES : POLL_TIMES);
+        const pass = await waitForPass(before, refused ? 2 : POLL_TIMES);
         if (pass) return { status: 'paid', pass, amountPaise: order.amount };
         if (refused) {
           return { status: 'failed', message: 'We could not verify this payment. If money left your account, it will be returned.' };
@@ -202,7 +282,7 @@ function CheckoutSheet({
 }: {
   order: Order;
   description: string;
-  onEvent: (e: CheckoutEvent | Closed) => void;
+  onEvent: (e: CheckoutEvent | Closed | Settled) => void;
 }) {
   const html = useMemo(() => checkoutHtml(order, { description }), [order, description]);
   const [loading, setLoading] = useState(true);

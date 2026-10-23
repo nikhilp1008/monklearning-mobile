@@ -87,9 +87,18 @@ export default function PlansScreen() {
 
   const goHome = useCallback(() => router.dismissTo('/'), []);
 
+  /** True from the tap on Pay until the purchase has finished. A ref, not state:
+   *  the checks below run from app-focus events and must see it at once. */
+  const payingNow = useRef(false);
+
   /** For the gate only: if a pass has arrived since, there is nothing to sell. */
   const recheck = useCallback(async () => {
-    if (gated.current !== true || done) return;
+    // NOT WHILE A PURCHASE IS RUNNING. Coming back from a UPI app is an app-focus
+    // event, and by then the webhook may already have granted the pass: this sent
+    // the student Home underneath their own payment, so the confirmation was
+    // skipped, doubled, or shown over the wrong screen. `pay` owns what happens
+    // next, and shows the one completion page.
+    if (gated.current !== true || done || payingNow.current) return;
     const st = await passStatus();
     if (st.state === 'active') goHome();
   }, [done, goHome]);
@@ -160,7 +169,8 @@ export default function PlansScreen() {
           }
         }}
         onPay={async ({ kind, promo, expectedPaise }) => {
-          if (paying) return;
+          if (paying || payingNow.current) return;
+          payingNow.current = true;
           setPaying(true);
           try {
             const result = await pay(kind, {
@@ -192,6 +202,7 @@ export default function PlansScreen() {
             // was not the price on the page.
             Alert.alert("Couldn't start the payment", payErrorMessage(err));
           } finally {
+            payingNow.current = false;
             setPaying(false);
           }
         }}
