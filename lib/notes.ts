@@ -75,6 +75,15 @@ export function saveNote(sessionId: string): Promise<NoteDetail> {
   return apiFetch('/notes', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) });
 }
 
+/** GET /notes/for-session/{id} — whether the note class end is writing is
+ *  ready yet. `id` is the topic's note: this class's own, or an earlier
+ *  class's that got further (one note per topic, never made thinner). */
+export function noteForSession(
+  sessionId: string
+): Promise<{ ready: boolean; id?: string; segments_covered?: number }> {
+  return apiFetch(`/notes/for-session/${sessionId}`);
+}
+
 /** DELETE /notes/{id} — user-scoped on the server, so a note can only ever be
  *  removed by the student who saved it. Used by the Library's erase gesture. */
 export function deleteNote(noteId: string): Promise<void> {

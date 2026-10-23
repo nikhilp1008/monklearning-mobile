@@ -73,6 +73,12 @@ export interface DronaSessionEnd {
   too_short_for_summary?: boolean;
   segments_completed?: number;
   segments_needed_for_summary?: number;
+  /**
+   * The class's notes are written by the server when the class ends: "writing"
+   * (in Notes shortly) or "too_short" (fewer finished parts than notes need).
+   * Absent on a server from before that, where the Save button still works.
+   */
+  note?: 'writing' | 'too_short';
 }
 
 export function startDronaSession(params: {

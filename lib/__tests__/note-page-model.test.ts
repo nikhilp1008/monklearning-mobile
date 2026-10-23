@@ -117,3 +117,35 @@ describe('sentenceCase', () => {
     expect(sentenceCase('NCERT COLOUR TABLE')).toBe('Ncert colour table');
   });
 });
+
+describe('the handwritten-notes marks', () => {
+  // From a real gpt-6-luna page (Wave Optics, 6 parts).
+  const PAGE = [
+    'SINGLE-SLIT MINIMA CONDITION',
+    'Condition',
+    '• m = 0 is excluded: θ = 0 is the central maximum.',
+    '★ Shrinking the opening to light’s wavelength makes light spread dramatically.',
+    '⚠ Never swap a, slit width, with d, slit separation.',
+    '⚠️ Light does diffract; its bending is microscopic.',
+    '✎ a is single-slit width; d is YDSE slit separation.',
+    'Quick check',
+    '→ λ = 600 nm and a = 0.2 mm',
+    '→ First minimum: sin θ = 3 × 10⁻³',
+    '$a \\sin \\theta = m\\lambda$',
+  ].join('\n');
+
+  it('reads each mark as its own kind, without the mark', () => {
+    const [sec] = parseNotePage(PAGE);
+    expect(sec.lines.map((l) => l.k)).toEqual([
+      'sub', 'bullet', 'key', 'trap', 'trap', 'tip', 'sub', 'step', 'step', 'formula',
+    ]);
+    const trap = sec.lines[4];
+    expect(trap.t).toBe('Light does diffract; its bending is microscopic.');
+    expect(sec.lines[7].t).toBe('λ = 600 nm and a = 0.2 mm');
+  });
+
+  it('a bare mark with nothing after it is not a mark', () => {
+    const [sec] = parseNotePage('HEADING\n★\n→');
+    expect(sec.lines.every((l) => l.k !== 'key' && l.k !== 'step')).toBe(true);
+  });
+});

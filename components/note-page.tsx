@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScriptText } from '@/components/script-text';
+import { hasDrawnScripts, ScriptText } from '@/components/script-text';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +48,11 @@ const AMBER = '#B8860B';
 const PAPER = '#FFFEFB';
 const RULE = 'rgba(42,53,80,0.05)';
 const QUIET = '#8A8577';
+/** A yellow highlighter, laid over ink: see-through, so the ink stays dark. */
+const HIGHLIGHT = 'rgba(255, 214, 51, 0.42)';
+/** A sticky note, and the pencil written on it. */
+const STICKY = '#FFF4C2';
+const TIP_INK = '#6B5A1E';
 const LH = 26;
 
 /** The pens on the desk, in the order a page picks them up. */
@@ -188,6 +193,62 @@ function Bulb({ color }: { color: string }) {
         fill="none"
       />
       <Path d="M6.4 12.4h3.2M7 14h2" stroke={color} strokeWidth={1.3} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** The warning sign beside an exam trap, drawn in the red pen. */
+function Warn() {
+  return (
+    <Svg width={15} height={LH} viewBox={`0 0 16 ${LH}`}>
+      <Path
+        d={`M8 ${LH / 2 - 6.5} L14.5 ${LH / 2 + 5.5} L1.5 ${LH / 2 + 5.8} Z`}
+        stroke={RED}
+        strokeWidth={1.3}
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Path d={`M8 ${LH / 2 - 2} v4.2`} stroke={RED} strokeWidth={1.4} strokeLinecap="round" />
+      <Circle cx={8} cy={LH / 2 + 3.6} r={0.9} fill={RED} />
+    </Svg>
+  );
+}
+
+/** The arrow a student draws before each step of a chain. */
+function Arrow({ color }: { color: string }) {
+  return (
+    <Svg width={16} height={LH} viewBox={`0 0 16 ${LH}`}>
+      <Path
+        d={`M1.5 ${LH / 2 + 0.6} Q 7 ${LH / 2 - 0.8} 13 ${LH / 2}`}
+        stroke={color}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d={`M9.5 ${LH / 2 - 3.4} L13.4 ${LH / 2} L9.6 ${LH / 2 + 3.3}`}
+        stroke={color}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+/** The pencil on a margin note. */
+function Pencil() {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 16 16">
+      <Path
+        d="M3 13l1-3.6 7.2-7.2a1.4 1.4 0 0 1 2 0l.6.6a1.4 1.4 0 0 1 0 2L6.6 12 3 13Z"
+        stroke={TIP_INK}
+        strokeWidth={1.2}
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Path d="M10 3.4l2.6 2.6" stroke={TIP_INK} strokeWidth={1.2} />
     </Svg>
   );
 }
@@ -380,6 +441,43 @@ function Line({
       </Boxed>
     );
   }
+  if (line.k === 'key') {
+    // The highlighter goes over the words, line by line, as a real one does;
+    // a line with drawn subscripts is one block, so it gets one swipe.
+    return hasDrawnScripts(line.r ?? '') ? (
+      <View style={[s.keyBlock, nudge]}>
+        <ScriptText raw={line.r} text={line.t} style={s.bodyLine} />
+      </View>
+    ) : (
+      <Text style={[s.bodyLine, s.keyLine, nudge]}>
+        <Text style={s.keyInk}>{line.t}</Text>
+      </Text>
+    );
+  }
+  if (line.k === 'trap') {
+    return (
+      <View style={[s.bulletRow, nudge]}>
+        <Warn />
+        <ScriptText raw={line.r} text={line.t} style={[s.bulletText, s.trapText]} />
+      </View>
+    );
+  }
+  if (line.k === 'tip') {
+    return (
+      <View style={[s.sticky, { transform: [{ rotate: `${n(index, 7, 1.1)}deg` }] }]}>
+        <Pencil />
+        <ScriptText raw={line.r} text={line.t} style={s.tipText} />
+      </View>
+    );
+  }
+  if (line.k === 'step') {
+    return (
+      <View style={[s.bulletRow, s.stepRow, nudge]}>
+        <Arrow color={colour} />
+        <ScriptText raw={line.r} text={line.t} style={s.bulletText} />
+      </View>
+    );
+  }
   if (line.k === 'sub') {
     return <ScriptText raw={line.r} text={line.t} style={[s.sub, nudge]} />;
   }
@@ -456,6 +554,41 @@ function createStyles() {
     bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
     bulletText: { flex: 1, fontFamily: HAND, fontSize: 15, lineHeight: LH, color: INK },
     tick: { fontFamily: HAND, fontSize: 13, lineHeight: LH, color: GREEN },
+
+    /** ★ — the line to remember, under a highlighter. */
+    keyLine: { marginVertical: 2 },
+    keyInk: { backgroundColor: HIGHLIGHT },
+    keyBlock: {
+      alignSelf: 'flex-start',
+      backgroundColor: HIGHLIGHT,
+      borderRadius: 3,
+      paddingHorizontal: 3,
+      marginVertical: 2,
+    },
+    /** ⚠ — an exam trap, in the red pen. */
+    trapText: { color: RED },
+    /** ✎ — a margin tip on a sticky note, tilted as it was stuck. */
+    sticky: {
+      alignSelf: 'flex-start',
+      maxWidth: '92%',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 6,
+      marginVertical: 8,
+      marginLeft: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      backgroundColor: STICKY,
+      borderRadius: 2,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
+    },
+    tipText: { flexShrink: 1, fontFamily: HAND, fontSize: 14, lineHeight: 21, color: TIP_INK },
+    /** → — a step, set in from the bullets. */
+    stepRow: { paddingLeft: 8, gap: 5 },
 
     formulaBox: {
       alignSelf: 'flex-start',

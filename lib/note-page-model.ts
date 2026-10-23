@@ -31,6 +31,16 @@ import { latexToText } from '@/lib/latex-text';
  *   QUICK REVISION           the 3-6 most exam-relevant points, always last
  *   FROM YOUR CLASS — …      what the student got wrong, woven in afterwards
  *   NOT COVERED IN CLASS YET the half of the lesson the class never reached
+ *                            (older notes only: notes now hold what was taught)
+ *
+ * And four marks the handwritten notes (gpt-6-luna, note_assembly.py) put at
+ * the start of a line. An app build from before them shows them as text,
+ * which still reads; this one draws them:
+ *
+ *   "★ "   the line in a section most worth remembering — highlighted
+ *   "⚠ "   an exam trap or common mistake — red pen, a drawn warning sign
+ *   "✎ "   a margin tip (a memory trick, a unit) — a sticky note
+ *   "→ "   one step of a chain or a worked example — a drawn arrow
  *
  * The three named sections are not styled like the rest, because they are not
  * the same kind of thing: a summary is a box, a mistake is flagged, and work
@@ -42,7 +52,31 @@ export type NoteLine =
   | { k: 'bullet'; t: string; r?: string }
   | { k: 'formula'; t: string; r?: string }
   /** A short line that introduces what follows — underlined, not coloured. */
-  | { k: 'sub'; t: string; r?: string };
+  | { k: 'sub'; t: string; r?: string }
+  | { k: 'key'; t: string; r?: string }
+  | { k: 'trap'; t: string; r?: string }
+  | { k: 'tip'; t: string; r?: string }
+  | { k: 'step'; t: string; r?: string };
+
+/** The marks at the start of a line, and what each one is. */
+const MARKS: [string, 'key' | 'trap' | 'tip' | 'step'][] = [
+  ['★', 'key'],
+  ['⚠', 'trap'],
+  ['✎', 'tip'],
+  ['→', 'step'],
+];
+
+/** "★ text" -> ['key', 'text']; also takes the emoji variation selector a
+ *  model sometimes writes after ⚠. */
+function marked(line: string): ['key' | 'trap' | 'tip' | 'step', string] | null {
+  for (const [mark, kind] of MARKS) {
+    if (line.startsWith(mark)) {
+      const rest = line.slice(mark.length).replace(/^\uFE0F/, '').trim();
+      if (rest) return [kind, rest];
+    }
+  }
+  return null;
+}
 
 export type NoteSectionKind =
   | 'normal'
@@ -185,7 +219,10 @@ export function parseNotePage(content: string): NoteSection[] {
     if (!current) open('Class notes', 'normal');
     const sec = current!;
 
-    if (STANDALONE_FORMULA.test(line)) {
+    const mark = marked(line);
+    if (mark) {
+      sec.lines.push({ k: mark[0], t: latexToText(mark[1]), r: mark[1] });
+    } else if (STANDALONE_FORMULA.test(line)) {
       sec.lines.push({ k: 'formula', t: latexToText(line), r: line });
     } else if (line.startsWith('• ')) {
       sec.lines.push({ k: 'bullet', t: latexToText(line.slice(2).trim()), r: line.slice(2).trim() });
