@@ -19,7 +19,7 @@
     "android": {
       "package": "com.monklearning.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#FCFAF4",
+        "backgroundColor": "#181818",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
