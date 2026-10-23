@@ -485,7 +485,13 @@ export const NAMED_CURVES: Readonly<Record<string, NamedCurveDef>> = {
     ],
     landmarks: [
       { u: 0.85, v: 0.5 * SHM_K * 0.85 * 0.85, label: 'PE', dx: 6, dy: 2, anchor: 'start', marker: false },
-      { u: -0.85, v: 0.5 * SHM_K * (1 - 0.85 * 0.85), label: 'KE', dx: -6, dy: -6, anchor: 'end', marker: false },
+      // Beside the dashed curve, INSIDE the plot, on the side away from the
+      // solid PE curve. At u = -0.85 the label's box overhung the left edge and
+      // landmarkAnchors clamped it flush against the y axis, so "KE" read as
+      // part of the axis; floating above both curves it could belong to either.
+      // Here it hangs just under the dashed curve (10 pt off it) and 40 pt above
+      // the solid one (0.106 at this u).
+      { u: -0.5, v: 0.5 * SHM_K * (1 - 0.5 * 0.5), label: 'KE', dx: 6, dy: 16, anchor: 'start', marker: false },
       { u: 0, v: SHM_E, label: 'total E', dx: 0, dy: -8, anchor: 'middle', marker: false },
     ],
     source:
