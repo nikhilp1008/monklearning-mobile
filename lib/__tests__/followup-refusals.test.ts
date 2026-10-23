@@ -113,3 +113,15 @@ describe('a stalled answer', () => {
     expect(onStep).toHaveBeenCalledTimes(3);
   });
 });
+
+it('a typed question goes to /ask with the question, the history and the voice dialect', async () => {
+  const history = [{ role: 'user' as const, content: 'first' }, { role: 'assistant' as const, content: 'answer' }];
+  const result = askAboutDoubt('d1', 'and why n/2?', history, { onStep: jest.fn() });
+  await opened();
+  expect(FakeXHR.last.url).toBe('https://api.example.test/doubts/d1/ask');
+  const body = JSON.parse(FakeXHR.last.sent as string);
+  expect(body).toMatchObject({ question: 'and why n/2?', history });
+  expect(typeof body.pcm).toBe('boolean');
+  FakeXHR.last.end(200);
+  await result;
+});

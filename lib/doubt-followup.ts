@@ -251,7 +251,10 @@ export function askAboutDoubt(
   surface: FollowUpSurface = 'doubts',
   page?: TextbookPageContext
 ): Promise<void> {
-  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history, ...(page ? { page } : {}) }),
+  // `pcm` as the spoken route declares it (FollowUpRequest.pcm on the API), so
+  // a typed question's voice arrives in the dialect this build plays best.
+  return streamAsk(doubtId, 'ask',
+                   JSON.stringify({ question, history, pcm: pcmAvailable, ...(page ? { page } : {}) }),
                    handlers, signal, surface);
 }
 

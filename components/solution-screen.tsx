@@ -22,6 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { footPadding } from '@/lib/foot-padding';
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
@@ -703,6 +704,10 @@ export function SolutionScreen({
             on this screen and must not navigate away from it. */}
         <View style={[styles.actionsInner, { paddingBottom: footPadding(insets.bottom, 16, 12) }]}>
           <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} onResolve={onResolve} />
+          {/* The bar has a typed field now, and this footer is pinned to the
+              bottom of the screen with nothing else to lift it clear of the
+              keyboard — on either platform. */}
+          <KeyboardSpacer ios bottomInset={footPadding(insets.bottom, 16, 12)} />
         </View>
       </View>
 
