@@ -89,6 +89,12 @@
       ],
       "expo-asset",
       [
+        "expo-notifications",
+        {
+          "color": "#181818"
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "faceIDPermission": false

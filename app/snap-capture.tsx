@@ -14,6 +14,7 @@ import { SnapFailed, SnapLoading, failureCopy } from '@/components/snap-loading'
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
+import { registerForPush } from '@/lib/push';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 import { hapticKey } from '@/lib/haptics';
 
@@ -64,6 +65,9 @@ export default function SnapCaptureScreen() {
     setPhase('uploading');
     setFailure(null);
     startSnapJob(toUpload);
+    // A solve can outlast the student's patience: this is the moment "we'll tell
+    // you when it's done" is true. Asks once ever (lib/push.ts).
+    void registerForPush({ ask: true });
   }
 
   useEffect(() => {

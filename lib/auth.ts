@@ -9,6 +9,7 @@ import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
 import { clearProgressCache } from '@/lib/progress';
 import { clearProofState } from '@/lib/proof';
+import { unregisterPush } from '@/lib/push';
 import { isReviewerEmail } from '@/lib/reviewer';
 import { supabase } from '@/lib/supabase';
 
@@ -170,6 +171,9 @@ export async function signOut(): Promise<void> {
   // ended there is no id to find them by — they used to stay behind, and the
   // papers showed to the next account for a second or two on Mock tests.
   await Promise.all([clearPass(), clearSavedReports(), clearAllMockProgress()]);
+  // Take this phone off the student before the session ends (the call needs
+  // it), but never hold sign-out for it: two seconds, then on.
+  await Promise.race([unregisterPush(), new Promise<void>((done) => setTimeout(done, 2000))]);
   await supabase.auth.signOut();
   clearProgressCache();
   await Promise.all([
