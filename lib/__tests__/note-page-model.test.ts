@@ -1,4 +1,4 @@
-import { parseNotePage, sentenceCase } from '@/lib/note-page-model';
+import { parseNotePage, placeFigures, sentenceCase } from '@/lib/note-page-model';
 
 /**
  * The server's note vocabulary, read as a page.
@@ -147,5 +147,79 @@ describe('the handwritten-notes marks', () => {
   it('a bare mark with nothing after it is not a mark', () => {
     const [sec] = parseNotePage('HEADING\n★\n→');
     expect(sec.lines.every((l) => l.k !== 'key' && l.k !== 'step')).toBe(true);
+  });
+});
+
+describe('placeFigures', () => {
+  const PAGE = [
+    'SPANNER EXAMPLE',
+    '• Torque turns the nut.',
+    'Worked example',
+    '→ F = 40 N at r = 0.25 m',
+    '→ τ = 10 N m',
+    '• Longer spanner, less force.',
+    'QUICK REVISION',
+    '• τ = r F sin θ',
+  ].join('\n');
+  const fig = (numbers: string[], caption = 'Part 2') => ({ svg: '<svg/>', numbers, caption });
+
+  it('goes after the line sharing its numbers, and after the steps that follow it', () => {
+    const [sec] = placeFigures(parseNotePage(PAGE), [fig(['0.25', '30', '40'])]);
+    expect(sec.lines.map((l) => l.k)).toEqual(['bullet', 'sub', 'step', 'step', 'figure', 'bullet']);
+  });
+
+  it('one shared number, or only small ones, is not a match', () => {
+    const out = placeFigures(parseNotePage(PAGE), [fig(['40', '99']), fig(['3', '4'])]);
+    const board = out.find((s) => s.title === 'From the board')!;
+    expect(board.lines).toHaveLength(2);
+    // before QUICK REVISION, which stays last
+    expect(out[out.length - 1].kind).toBe('revision');
+  });
+
+  it('no figures leaves the page alone', () => {
+    const page = parseNotePage(PAGE);
+    expect(placeFigures(page, [])).toBe(page);
+  });
+});
+
+describe('placeFigures: a figure the writer asked for', () => {
+  it('goes after the line it was asked for, whatever its numbers', () => {
+    const page = parseNotePage('LEVERS\n• A lever turns about a pivot.\n• Effort far from the pivot helps.');
+    const [sec] = placeFigures(page, [
+      { svg: '<svg/>', numbers: [], caption: 'Drawn for your notes', after: 'A lever turns about a pivot.' },
+    ]);
+    expect(sec.lines.map((l) => l.k)).toEqual(['bullet', 'figure', 'bullet']);
+  });
+});
+
+describe('placeFigures: a figure of an idea, with no numbers', () => {
+  it('ends the section about the same thing as its class part', () => {
+    const page = parseNotePage(
+      'WHY SOUND BENDS\n• Sound wavelength is comparable to a doorway.\n' +
+        'HUYGENS PRINCIPLE\n• Every point on the wavefront is a source of secondary wavelets.\n' +
+        'QUICK REVISION\n• a sin θ = mλ'
+    );
+    const out = placeFigures(page, [
+      {
+        svg: '<svg/>',
+        numbers: [],
+        caption: 'Huygens',
+        context: 'Huygens construction: secondary wavelets from every point of the wavefront',
+      },
+    ]);
+    expect(out[1].lines.map((l) => l.k)).toEqual(['bullet', 'figure']);
+    expect(out.some((s) => s.title === 'From the board')).toBe(false);
+  });
+});
+
+describe('placeFigures: the line that IS the example', () => {
+  it('beats an earlier line repeating two of its numbers', () => {
+    const page = parseNotePage(
+      'MINIMA\n• Quick check: λ = 600 nm, a = 0.2 mm.\n' +
+        'CENTRAL MAXIMUM\nWorked example\n→ λ = 600 nm, a = 0.2 mm, D = 1.5 m\n→ w = 9 mm'
+    );
+    const out = placeFigures(page, [{ svg: '<svg/>', numbers: ['0.2', '1.5', '600', '9'], caption: 'Width' }]);
+    expect(out[0].lines.map((l) => l.k)).toEqual(['bullet']);
+    expect(out[1].lines.map((l) => l.k)).toEqual(['sub', 'step', 'step', 'figure']);
   });
 });

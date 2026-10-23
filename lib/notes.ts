@@ -17,6 +17,9 @@ export interface NoteBoardGroup {
    *  the note carries the full lesson either way, this just marks the line. */
   covered: boolean;
   items: NoteBoardItem[];
+  /** The segment's figure as the class drew it, and the numbers printed in
+   *  its labels (where the note page puts it: lib/note-page-model.ts). */
+  figure?: { svg: string; numbers: string[]; after?: string };
 }
 
 export interface NoteSummary {

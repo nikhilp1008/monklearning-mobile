@@ -56,7 +56,9 @@ export type NoteLine =
   | { k: 'key'; t: string; r?: string }
   | { k: 'trap'; t: string; r?: string }
   | { k: 'tip'; t: string; r?: string }
-  | { k: 'step'; t: string; r?: string };
+  | { k: 'step'; t: string; r?: string }
+  /** A figure from the class, taped onto the page. `t` is its caption. */
+  | { k: 'figure'; t: string; svg: string };
 
 /** The marks at the start of a line, and what each one is. */
 const MARKS: [string, 'key' | 'trap' | 'tip' | 'step'][] = [
@@ -184,6 +186,132 @@ function looksLikeSubHeading(line: string): boolean {
   if (/^[•\-*]/.test(line)) return false;
   // A colon inside it means it is introducing something, which is the job.
   return !/\$/.test(line);
+}
+
+/** A figure the server sent with the note (board_items[].figure). */
+export type NoteFigure = {
+  svg: string;
+  numbers: string[];
+  caption: string;
+  /** A figure the note's writer asked for: the line it goes after, as written. */
+  after?: string;
+  /** What its class part said (title and board lines): for a figure with no
+   *  numbers to match, which section it belongs in. */
+  context?: string;
+};
+
+/** Words that say what a passage is about: five letters or more, not filler. */
+const FILLER = new Set([
+  'about', 'after', 'again', 'along', 'because', 'before', 'being', 'between', 'every', 'their',
+  'there', 'these', 'thing', 'things', 'those', 'through', 'under', 'where', 'which', 'while',
+  'would', 'could', 'should', 'other', 'first', 'second', 'third', 'gives', 'given', 'makes',
+]);
+function topicWords(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const w of text.toLowerCase().match(/[a-z]{5,}/g) ?? []) if (!FILLER.has(w)) out.add(w);
+  return out;
+}
+
+/** The section a figure's class part is about, or -1: the most shared topic
+ *  words, at least three. */
+function sectionFor(sections: NoteSection[], context: string): number {
+  const want = topicWords(context);
+  let best = -1;
+  let bestScore = 2;
+  sections.forEach((sec, i) => {
+    if (sec.kind === 'revision') return;
+    const have = topicWords([sec.title, ...sec.lines.map((l) => (l.k === 'figure' ? '' : l.t))].join(' '));
+    const score = [...want].filter((w) => have.has(w)).length;
+    if (score > bestScore) {
+      best = i;
+      bestScore = score;
+    }
+  });
+  return best;
+}
+
+const NUMBER = /(?<![\w.])\d+(?:\.\d+)?(?![\w])/g;
+/** Numbers too common to say which example a line is about. */
+const TRIVIAL = new Set(['0', '1', '2']);
+
+/** The numbers in a line, as figure_anchor.py reads them ("0.250" -> "0.25"). */
+export function lineNumbers(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of text.match(NUMBER) ?? []) {
+    const n = m.includes('.') ? m.replace(/0+$/, '').replace(/\.$/, '') : m;
+    if (n && !TRIVIAL.has(n)) out.add(n);
+  }
+  return out;
+}
+
+/**
+ * PUTS EACH FIGURE BESIDE THE LINE IT DRAWS — the rule the class uses
+ * (figure_anchor.py): the first line sharing at least two of the numbers
+ * printed in the figure, one of them distinctive (two digits or a decimal).
+ * The figure goes after that line and the steps or formulas that follow it,
+ * so a worked example is not cut in half. A figure with no numbers to match
+ * (an idea, not an example) ends the section that is about what its class
+ * part was about. Anything still unplaced goes in a "From the board" section
+ * before QUICK REVISION, never dropped.
+ */
+export function placeFigures(sections: NoteSection[], figures: NoteFigure[]): NoteSection[] {
+  if (!figures.length) return sections;
+  const out = sections.map((s) => ({ ...s, lines: [...s.lines] }));
+  const unplaced: NoteFigure[] = [];
+  const textOf = (l: NoteLine) => (l.k === 'figure' ? '' : `${l.t} ${l.r ?? ''}`);
+
+  for (const fig of figures) {
+    const want = new Set(fig.numbers);
+    const after = fig.after?.trim();
+    let placed = false;
+    // The line to go after: the one it was asked for, else the line sharing
+    // the MOST of its numbers (two or more, one distinctive) — a quick check
+    // that repeats two of a worked example's numbers is not that example.
+    let target: { sec: NoteSection; at: number; score: number } | null = null;
+    for (const sec of out) {
+      if (sec.kind === 'revision') continue;
+      sec.lines.forEach((l, at) => {
+        if (l.k === 'figure') return;
+        let score = 0;
+        if (after) {
+          score = (l.r ?? '').trim() === after || l.t.trim() === after ? 1 : 0;
+        } else {
+          const shared = [...lineNumbers(textOf(l))].filter((n) => want.has(n));
+          score = shared.length >= 2 && shared.some((n) => n.length >= 2) ? shared.length : 0;
+        }
+        if (score > (target?.score ?? 0)) target = { sec, at, score };
+      });
+    }
+    if (target) {
+      const { sec, at } = target as { sec: NoteSection; at: number; score: number };
+      let insertAt = at + 1;
+      while (insertAt < sec.lines.length && ['step', 'formula', 'figure'].includes(sec.lines[insertAt].k)) {
+        insertAt += 1;
+      }
+      sec.lines.splice(insertAt, 0, { k: 'figure', t: fig.caption, svg: fig.svg });
+      placed = true;
+    }
+    if (!placed && fig.context) {
+      const at = sectionFor(out, fig.context);
+      if (at !== -1) {
+        out[at].lines.push({ k: 'figure', t: fig.caption, svg: fig.svg });
+        placed = true;
+      }
+    }
+    if (!placed) unplaced.push(fig);
+  }
+
+  if (unplaced.length) {
+    const board: NoteSection = {
+      n: null,
+      title: 'From the board',
+      kind: 'normal',
+      lines: unplaced.map((f) => ({ k: 'figure' as const, t: f.caption, svg: f.svg })),
+    };
+    const rev = out.findIndex((s) => s.kind === 'revision');
+    out.splice(rev === -1 ? out.length : rev, 0, board);
+  }
+  return out;
 }
 
 /** The whole note, as sections. */

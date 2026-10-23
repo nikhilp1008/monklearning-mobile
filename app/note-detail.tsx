@@ -6,7 +6,7 @@ import { NotePage, NotePageSkeleton } from '@/components/note-page';
 import { StateScreen } from '@/components/states';
 import { friendlyError } from '@/lib/api';
 import { DEMO_NOTE_CONTENT, DEMO_NOTE_ID } from '@/lib/demo-board';
-import { parseNotePage } from '@/lib/note-page-model';
+import { parseNotePage, placeFigures } from '@/lib/note-page-model';
 import { NoteDetail, getNote } from '@/lib/notes';
 
 export default function NoteDetailScreen() {
@@ -62,10 +62,20 @@ export default function NoteDetailScreen() {
    * headings, bullets, formulas and summary ARE the page's parts, and a
    * transcript has none of them.
    */
-  const sections = useMemo(
-    () => parseNotePage(isDemo ? DEMO_NOTE_CONTENT : (note?.content ?? '')),
-    [note?.content, isDemo]
-  );
+  // The class's figures, taped in beside the lines they draw (placeFigures).
+  const sections = useMemo(() => {
+    const page = parseNotePage(isDemo ? DEMO_NOTE_CONTENT : (note?.content ?? ''));
+    const figures = (isDemo ? [] : (note?.board_items ?? []))
+      .filter((g) => g.figure?.svg)
+      .map((g) => ({
+        svg: g.figure!.svg,
+        numbers: g.figure!.numbers ?? [],
+        caption: g.segment_title,
+        after: g.figure!.after,
+        context: [g.segment_title, ...(g.items ?? []).map((it) => `${it.text ?? ''}`)].join(' '),
+      }));
+    return placeFigures(page, figures);
+  }, [note?.content, note?.board_items, isDemo]);
 
   if (!isDemo && loading) {
     return (

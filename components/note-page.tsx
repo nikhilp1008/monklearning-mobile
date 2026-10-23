@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { hasDrawnScripts, ScriptText } from '@/components/script-text';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { BoardDiagram } from '@/components/board-diagram';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -257,6 +258,35 @@ function Highlighted({ text, style }: { text: string; style: object }) {
   );
 }
 
+/**
+ * A FIGURE FROM CLASS, TAPED INTO THE NOTEBOOK. The picture the board drew,
+ * on a white card stuck in at a slight angle with two strips of tape, and the
+ * part it came from written under it in pencil.
+ */
+function TapedFigure({
+  svg,
+  caption,
+  seed,
+  styles: s,
+}: {
+  svg: string;
+  caption: string;
+  seed: number;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const { width } = useWindowDimensions();
+  // The page's gutters (24 each side) and the card's own padding (12 each side).
+  const inner = Math.max(160, width - 48 - 24 - 8);
+  return (
+    <View style={[s.figureCard, { transform: [{ rotate: `${n(seed, 11, 0.9)}deg` }] }]}>
+      <View style={[s.tape, s.tapeLeft]} />
+      <View style={[s.tape, s.tapeRight]} />
+      <BoardDiagram svg={svg} availableWidth={inner} maxHeight={280} />
+      {!!caption && <Text style={s.figureCaption}>{caption}</Text>}
+    </View>
+  );
+}
+
 /** The arrow a student draws before each step of a chain. */
 function Arrow({ color }: { color: string }) {
   return (
@@ -484,6 +514,9 @@ function Line({
       </Boxed>
     );
   }
+  if (line.k === 'figure') {
+    return <TapedFigure svg={line.svg} caption={line.t} seed={index} styles={s} />;
+  }
   if (line.k === 'key') {
     // The highlighter goes over the words, line by line, as a real one does;
     // a line with drawn subscripts is one block, so it gets one swipe.
@@ -629,6 +662,39 @@ function createStyles() {
       elevation: 1,
     },
     tipText: { flexShrink: 1, fontFamily: HAND, fontSize: 14, lineHeight: 21, color: TIP_INK },
+    /** A class figure on a card taped into the page. */
+    figureCard: {
+      alignSelf: 'center',
+      marginVertical: 18,
+      paddingTop: 14,
+      paddingBottom: 8,
+      paddingHorizontal: 12,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 3,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    tape: {
+      position: 'absolute',
+      top: -9,
+      width: 58,
+      height: 18,
+      backgroundColor: 'rgba(222, 205, 160, 0.62)',
+      zIndex: 1,
+    },
+    tapeLeft: { left: 10, transform: [{ rotate: '-8deg' }] },
+    tapeRight: { right: 10, transform: [{ rotate: '7deg' }] },
+    figureCaption: {
+      fontFamily: HAND,
+      fontSize: 13,
+      lineHeight: 19,
+      color: QUIET,
+      textAlign: 'center',
+      marginTop: 4,
+    },
     /** → — a step, set in from the bullets. */
     stepRow: { paddingLeft: 8, gap: 5 },
 
