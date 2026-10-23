@@ -31,13 +31,13 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
-import { PLANS, WINBACK } from '@/components/paywall/plans';
+import { PLANS } from '@/components/paywall/plans';
 import type { Pick } from '@/components/paywall/screens';
 import { ob, obFont, rupees, useDesignScale } from '@/constants/onboarding';
 import { checkPromo, rupeesOf, type Quote } from '@/lib/promo';
 import type { PassKind } from '@/lib/pass';
 
-const isPick = (v?: string): v is Pick => v === 'week' || PLANS.some((p) => p.id === v);
+const isPick = (v?: string): v is Pick => PLANS.some((p) => p.id === v);
 
 export default function PlansPromoScreen() {
   const { ds, fs, tracking } = useDesignScale();
@@ -46,8 +46,8 @@ export default function PlansPromoScreen() {
 
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
   const pick = isPick(params.pick) ? params.pick : null;
-  const plan = pick === 'week' ? WINBACK : (PLANS.find((p) => p.id === pick) ?? null);
-  const price = pick === 'week' ? WINBACK.now : plan && 'price' in plan ? plan.price : 0;
+  const plan = PLANS.find((p) => p.id === pick) ?? null;
+  const price = plan ? plan.price : 0;
 
   const [draft, setDraft] = useState((params.promo ?? '').toUpperCase());
   const [rejected, setRejected] = useState(false);
@@ -58,7 +58,7 @@ export default function PlansPromoScreen() {
 
   const valid = !!quote;
   /** Whether a code can be checked at all: it is checked against a plan. */
-  const codeable = !!plan && pick !== 'week';
+  const codeable = !!plan;
 
   // Same 3-step shake as the OTP screen's bad code, so the two failures read
   // alike — a wrong code has to be felt, not only read.
@@ -75,11 +75,7 @@ export default function PlansPromoScreen() {
   const apply = async () => {
     if (checking || !draft.trim()) return;
     if (!codeable) {
-      setMessage(
-        pick === 'week'
-          ? 'The 7-day offer is already a discount and takes no code. Pick a plan above it.'
-          : 'Pick a plan first, then add your code.'
-      );
+      setMessage('Pick a plan first, then add your code.');
       return reject();
     }
     setChecking(true);

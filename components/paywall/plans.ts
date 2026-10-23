@@ -14,8 +14,9 @@
  * 3-month plan works out dearer per month than the 1-month one, so its row
  * shows no saving.
  *
- * The 7-day pass (₹749, win-back ₹549) is a different thing to buy and is
- * priced on its own in `WINBACK` and `PASSES`.
+ * The day and week passes (₹79 and ₹249, the early-access prices on the
+ * website) are a different thing to buy and are priced on their own in
+ * `PASSES`. There is no win-back offer any more (founder, 2026-10-23).
  */
 
 
@@ -53,11 +54,3 @@ export const savedPercent = (p: Plan) =>
  * rate on every row already does the comparing.
  */
 export const BEST = PLANS[PLANS.length - 1].id;
-
-/**
- * ONE MORE WEEK, for a student who cannot decide yet (founder, 2026-10-17):
- * ₹249, offered ONCE — the first time a day or week pass ends, never again.
- * The server prices it (`offer: 'winback'`) and says whether this student may
- * still have it; the checkout refuses to open if its price is not this one.
- */
-export const WINBACK = { name: '7 days', was: 749, now: 249 };

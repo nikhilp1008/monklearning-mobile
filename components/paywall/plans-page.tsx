@@ -18,7 +18,7 @@ import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
 import type { TeacherId } from '@/lib/preferences';
 import { rupeesOf, usePromo } from '@/lib/promo';
 
-import { PLANS, WINBACK, type Plan } from './plans';
+import { PLANS, type Plan } from './plans';
 
 /**
  * THE PLANS PAGE (designed with the founder, 2026-10-17).
@@ -30,8 +30,7 @@ import { PLANS, WINBACK, type Plan } from './plans';
  * of their row; a big "50" reads as a ceiling to a student who would never
  * reach it. Then the four plans on white, as onboarding's own answer rows in
  * their plain picked state (an ink edge and the tick, no sky: the sky is
- * already the page's header). One line under them — nothing renews — and,
- * the first time a pass ends only, one more week at a small price.
+ * already the page's header). One line under them: nothing renews.
  *
  * TWO WAYS IN, ONE PAGE. `gate`: the pass has ended and the app opens here;
  * there is no way out but a pass. `extend`: Profile → Your plan → Extend,
@@ -43,8 +42,7 @@ import { PLANS, WINBACK, type Plan } from './plans';
  * Each plan says only when it would run till.
  */
 
-/** A plan, or the one-more-week at the foot of the gate. */
-export type PlansPick = Plan['id'] | 'week';
+export type PlansPick = Plan['id'];
 
 export type PlansPageProps = {
   context: 'gate' | 'extend';
@@ -56,11 +54,9 @@ export type PlansPageProps = {
   pick?: PlansPick | null;
   /** The code carried back from the promo screen. */
   promo?: string;
-  /** Show "Can't decide yet?": the server says this student has never had it. */
-  oneMoreWeek: boolean;
   /** A payment is open or being confirmed: the button holds. */
   busy: boolean;
-  onPay: (buying: { kind: PassKind; offer?: 'winback'; promo?: string; expectedPaise: number }) => void;
+  onPay: (buying: { kind: PassKind; promo?: string; expectedPaise: number }) => void;
   /** A code made the pick free: no payment, the server redeems it. */
   onRedeem: (bought: { kind: PassKind; promo: string }) => void;
   onPromo: (pick: PlansPick | null) => void;
@@ -207,14 +203,12 @@ export function PlansPage(props: PlansPageProps) {
     if (props.pick) setPick(props.pick);
   }, [props.pick]);
 
-  const week = pick === 'week';
   const plan = PLANS.find((p) => p.id === pick) ?? null;
-  const price = week ? WINBACK.now : (plan?.price ?? 0);
-  const name = week ? '1 week' : (plan?.name ?? '');
+  const price = plan?.price ?? 0;
+  const name = plan?.name ?? '';
 
-  // A typed code, or one made for this student; the server prices it. The
-  // week is already a discount and takes no code.
-  const promo = usePromo(props.promo ?? '', pick && !week ? (pick as PassKind) : null);
+  // A typed code, or one made for this student; the server prices it.
+  const promo = usePromo(props.promo ?? '', pick ? (pick as PassKind) : null);
   const quote = promo.quote;
   const total = quote ? rupeesOf(quote.finalPaise) : price;
   const free = !!quote?.free;
@@ -337,28 +331,6 @@ export function PlansPage(props: PlansPageProps) {
             <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(13.5), color: !quote && promo.code && !promo.checking && !promo.auto ? colors.slate : colors.amberText }}>{promoLine}</Text>
           </PressableScale>
           )}
-
-          {/* THE WAY TO NOT DECIDE YET, last on the page a student cannot
-              leave, and offered once: the server says whether this student
-              has had it. Not on Add more time. */}
-          {props.context === 'gate' && props.oneMoreWeek && !codeOnly ? (
-            <View style={{ marginTop: scale(26), paddingTop: scale(22), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)' }}>
-              <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(15), color: colors.ink }}>Can&apos;t decide yet?</Text>
-              <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(13.5), lineHeight: scale(19), color: colors.slate, marginTop: scale(3), marginBottom: scale(12) }}>
-                Learn for one more week, then choose a plan.
-              </Text>
-              <SkyChoice
-                shape="row"
-                label="One more week"
-                note="7 days"
-                trailing={rupees(WINBACK.now)}
-                selected={week}
-                tickArrives
-                plain
-                onPress={() => setPick('week')}
-              />
-            </View>
-          ) : null}
         </View>
       </ScrollView>
 
@@ -378,7 +350,7 @@ export function PlansPage(props: PlansPageProps) {
             onPress={() => {
               if (!pick || props.busy) return;
               if (codeOnly) return props.onPromo(pick);
-              const kind: PassKind = week ? 'week' : (pick as PassKind);
+              const kind = pick as PassKind;
               // Whatever happens, the server is asked about the codes again afterwards:
               // a refused or just-spent code must not stay on the page.
               if (free && quote) {
@@ -388,8 +360,7 @@ export function PlansPage(props: PlansPageProps) {
               void Promise.resolve(
                 props.onPay({
                   kind,
-                  offer: week ? 'winback' : undefined,
-                  promo: !week && quote ? quote.code : undefined,
+                  promo: quote ? quote.code : undefined,
                   expectedPaise: Math.round(total * 100),
                 })
               ).finally(promo.refresh);

@@ -12,9 +12,8 @@ import { PlansPage } from '@/components/paywall/plans-page';
  * never stops). Renders nothing outside `__DEV__`.
  */
 export default function DevPlansPreview() {
-  const { ctx, week, teacher, confirming } = useLocalSearchParams<{
+  const { ctx, teacher, confirming } = useLocalSearchParams<{
     ctx?: string;
-    week?: string;
     teacher?: string;
     confirming?: string;
   }>();
@@ -27,7 +26,6 @@ export default function DevPlansPreview() {
         context={extend ? 'extend' : 'gate'}
         teacher={teacher === 'vedha' ? 'vedha' : 'drona'}
         passEnds={extend ? new Date(Date.now() + 6 * 86400000) : null}
-        oneMoreWeek={week === '1'}
         busy={busy}
         onPay={() => {}}
         onRedeem={() => {}}

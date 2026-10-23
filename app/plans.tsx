@@ -12,7 +12,7 @@ import { exitOnBack, useAndroidBack } from '@/lib/android-back';
 import { PASS_NAME, cachedPassStatus, passStatus, startPass, type PassKind, type PassStatus } from '@/lib/pass';
 import { payErrorMessage } from '@/lib/payments';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
-import { fetchOneMoreWeek, rupeesOf } from '@/lib/promo';
+import { rupeesOf } from '@/lib/promo';
 
 const isPick = (v?: string): v is PlansPick => v === 'week' || PLANS.some((p) => p.id === v);
 
@@ -44,7 +44,6 @@ export default function PlansScreen() {
   /** Where the student stands. Null until the first answer. */
   const [status, setStatus] = useState<PassStatus | null>(null);
   const [teacher, setTeacher] = useState<TeacherId>('drona');
-  const [oneMoreWeek, setOneMoreWeek] = useState(false);
   const [paying, setPaying] = useState(false);
   /** The receipt: what was bought and what it cost. */
   const [done, setDone] = useState<{ kind: PassKind; paid: number; endsAt?: Date | null } | null>(null);
@@ -78,7 +77,6 @@ export default function PlansScreen() {
       if (live) setStatus(st);
     });
     getTeacherPreference().then((t) => live && setTeacher(t));
-    fetchOneMoreWeek().then((ok) => live && setOneMoreWeek(ok));
     return () => {
       live = false;
     };
@@ -139,7 +137,6 @@ export default function PlansScreen() {
         passEnds={status.state === 'active' ? status.endsAt : null}
         pick={isPick(params.pick) ? params.pick : null}
         promo={(params.promo ?? '').toUpperCase()}
-        oneMoreWeek={oneMoreWeek}
         busy={paying}
         onClose={context === 'extend' ? () => router.back() : undefined}
         onPromo={(pick) =>
@@ -162,13 +159,12 @@ export default function PlansScreen() {
             setPaying(false);
           }
         }}
-        onPay={async ({ kind, offer, promo, expectedPaise }) => {
+        onPay={async ({ kind, promo, expectedPaise }) => {
           if (paying) return;
           setPaying(true);
           try {
             const result = await pay(kind, {
-              description: offer ? 'One more week' : `${PASS_NAME[kind]} pass`,
-              offer,
+              description: `${PASS_NAME[kind]} pass`,
               promo,
               expectedPaise,
             });

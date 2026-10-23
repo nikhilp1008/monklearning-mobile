@@ -22,7 +22,7 @@ import { obPageTitle } from '@/constants/page-title';
 import { PASS_NAME, type PassKind } from '@/lib/pass';
 import { getProfile } from '@/lib/profile';
 import { rupeesOf, usePromo } from '@/lib/promo';
-import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
+import { BEST, PLANS, perMonth, savedPercent, type Plan } from './plans';
 
 /**
  * THE PAYWALL — shown when a pass has ended, and the way back in.
@@ -55,10 +55,8 @@ import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans
  * A control whose whole purpose fails on one platform is worse than no
  * control: it invites the press and then does nothing.
  *
- * So the way out moved to where it belongs — the bottom of the page, under
- * the plans, as a smaller thing to buy rather than a door. A student who is
- * not ready scrolls past four prices and finds a week for ₹549. Nothing is
- * hidden behind a modal that only appears if you try to leave.
+ * (The smaller thing to buy at the foot of the page, the ₹249 "one more week"
+ * win-back, was dropped on 2026-10-23: the week pass itself is now ₹249.)
  */
 
 type S = (n: number) => number;
@@ -97,8 +95,7 @@ function Head({ title, ds, fs }: { title: string; ds: S; fs: S }) {
  */
 type Bought = { kind: PassKind; promo: string };
 
-/** A plan, or the week at the foot of the page. */
-export type Pick = Plan['id'] | 'week';
+export type Pick = Plan['id'];
 
 export type PaywallProps = {
   /** What the screen is for: the pass the student just took, and the code
@@ -107,7 +104,7 @@ export type PaywallProps = {
   /** Pays for the pick. Called when the total is more than zero; the screen
    *  that owns the checkout decides what that means. Absent in the previews,
    *  where the button waits as it always did. */
-  onPay?: (buying: { kind: PassKind; offer?: 'winback'; promo?: string }) => void;
+  onPay?: (buying: { kind: PassKind; promo?: string }) => void;
   /** A payment is open or being confirmed: the button holds until it is over. */
   busy?: boolean;
   /** The plan chosen before the promo screen took over. That screen replaces
@@ -131,10 +128,7 @@ function Paywall({
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
-  /** The week at the foot of the page is a fifth thing to buy, so it is a
-   *  fifth thing to pick — the footer reads from one selection, not two.
-   *
-   *  NOTHING PRESELECTED, as on "Choose a pass". A highlighted row reads as an
+  /** NOTHING PRESELECTED, as on "Choose a pass". A highlighted row reads as an
    *  answer already given, and arriving on ₹43,999 asks the student to un-pick
    *  the most expensive plan rather than to choose one. */
   const [pick, setPick] = useState<Pick | null>(picked);
@@ -142,13 +136,11 @@ function Paywall({
   const [token, setToken] = useState(0);
 
   const plan = PLANS.find((p) => p.id === pick) ?? null;
-  const week = pick === 'week';
-  const price = week ? WINBACK.now : (plan?.price ?? 0);
-  const name = week ? WINBACK.name : plan?.name;
+  const price = plan?.price ?? 0;
+  const name = plan?.name;
   // The server prices the code (typed, or made for this student) for the plan
-  // picked, and this shows its answer. The seven-day offer is already a
-  // discount: the server refuses a code on it, so it never asks.
-  const promoState = usePromo(promo, pick && !week ? (pick as PassKind) : null);
+  // picked, and this shows its answer.
+  const promoState = usePromo(promo, pick ? (pick as PassKind) : null);
   const quote = promoState.quote;
   const discount = quote ? rupeesOf(quote.discountPaise) : 0;
   const total = quote ? rupeesOf(quote.finalPaise) : price;
@@ -216,39 +208,6 @@ function Paywall({
                 </View>
               ))}
             </View>
-
-            {/*
-              THE SMALLER THING TO BUY, at the foot of the page.
-              This was a modal that only appeared if you tried to leave, which
-              made the one honest option on the screen the hardest to find. Here
-              it is simply the last thing, under four prices: a student who is
-              not ready scrolls to it, and one who is never has to dismiss it.
-              It is set as a link rather than a second button on purpose — an ink
-              button beside the Pay button would be two primaries arguing.
-            */}
-            <View style={styles.offer}>
-              <Text style={styles.overline}>NOT READY FOR A PLAN?</Text>
-              <View style={styles.offerPrice}>
-                <Text style={styles.offerNow}>{rupees(WINBACK.now)}</Text>
-                <Text style={styles.offerWas}>{rupees(WINBACK.was)}</Text>
-                <Text style={styles.offerFor}>· {WINBACK.name}</Text>
-              </View>
-              <Text style={styles.offerLine}>
-                Seven more days with your teacher, at ₹200 off. Nothing renews.
-              </Text>
-              <PressableScale
-                style={styles.promoLink}
-                hitSlop={10}
-                onPress={() => {
-                  setPick('week');
-                  setToken((n) => n + 1);
-                }}>
-                <Text style={[styles.promoLinkText, week && styles.promoLinkOn]}>
-                  {week ? '7 days selected' : 'Get 7 days'}
-                </Text>
-                <ArrowGlyph size={ds(13)} />
-              </PressableScale>
-            </View>
           </ScrollView>
 
           {/* The page scrolls under the footer, so without this the gap above
@@ -276,10 +235,9 @@ function Paywall({
             disabled={busy || !pick || promoState.checking || (free ? !onComplete : !onPay)}
             onPress={() => {
               if (!pick || busy) return;
-              const kind = week ? 'week' : (pick as PassKind);
+              const kind = pick as PassKind;
               if (free) onComplete?.({ kind, promo: quote?.code ?? '' });
-              // The week at the foot of this page is the win-back price.
-              else onPay?.({ kind, offer: week ? 'winback' : undefined, promo: quote?.code });
+              else onPay?.({ kind, promo: quote?.code });
             }}
           />
           <Text style={styles.footNote}>
@@ -365,7 +323,7 @@ export function PaywallSuccess({
   endsAt,
   onDone,
 }: {
-  /** What was actually taken — a plan, or the week at the foot of the page. */
+  /** What was actually taken. */
   kind?: PassKind;
   /** What it actually cost. Zero, while a promo code is the only way through:
    *  a receipt reading ₹43,999 for a free pass is a receipt that lies. */
@@ -426,7 +384,6 @@ function createStyles(ds: S, fs: S, tracking: T) {
       paddingVertical: ds(6),
     },
     promoLinkText: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.link },
-    /** The week, once it is the thing being bought. */
     promoLinkOn: { color: ob.ink },
     included: { marginTop: ds(26) },
     overline: {
