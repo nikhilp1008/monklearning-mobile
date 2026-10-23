@@ -160,7 +160,7 @@ describe('the idle limit', () => {
     await opened();
     const xhr = FakeXHR.last;
     xhr.push('meta', { submission_id: 's1', question_count: 1 });
-    jest.advanceTimersByTime(91000);
+    jest.advanceTimersByTime(121000);
     await expect(result).rejects.toMatchObject({ streamCut: { framesReceived: true } });
     expect(xhr.aborted).toBe(true);
   });

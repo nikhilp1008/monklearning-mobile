@@ -346,11 +346,12 @@ export function snapDoubtStreaming(
 
 /**
  * The longest the stream may go without a byte. The quiet stretch is reading
- * the photo, before `meta` (OCR plus a figure read, up to ~45s on the server)
- * with the upload in front of it; once solving starts a tick lands every few
- * seconds.
+ * the photo, before `meta`: the server gives that read 45s and one retry
+ * (`TRANSCRIBE_TIMEOUT_S`, `max_retries=1` in app/snap.py), so up to ~90s,
+ * plus the figure read, with the upload in front of it. Once solving starts a
+ * tick lands every few seconds.
  */
-const SNAP_STREAM_IDLE_MS = 90000;
+const SNAP_STREAM_IDLE_MS = 120000;
 /**
  * A backstop on the whole request, for a stream that keeps ticking and never
  * finishes. Well past the server's own worst case (~45s read, 150s solve).
