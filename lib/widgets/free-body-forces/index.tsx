@@ -26,7 +26,7 @@ import { LABEL_SIZE, LINE_STROKE, EMPHASIS_STROKE, HAIRLINE_STROKE, bandFor, dir
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   ARROW_SCALE, BODY_R, LABEL_GAP, MIN_SEPARATION_DEG,
-  derive, layoutFbd, layoutHeadToTail, minSeparationDeg,
+  componentLabelFns, derive, layoutFbd, layoutHeadToTail, minSeparationDeg,
   type FbdForce, type FreeBodyParams,
 } from './physics';
 
@@ -199,8 +199,8 @@ interface ArrowLike { x2: number; y2: number; angle_deg: number }
 
 function Arrow({
   a, color, width: strokeW, dashed,
-}: { a: { x1: number; y1: number; x2: number; y2: number; angle_deg: number }; color: string; width: number; dashed?: boolean }) {
-  const rad = (-a.angle_deg * Math.PI) / 180; // screen-space angle for the head
+}: { a: { x1: number; y1: number; x2: number; y2: number; angle_deg: number; head_deg?: number }; color: string; width: number; dashed?: boolean }) {
+  const rad = (-(a.head_deg ?? a.angle_deg) * Math.PI) / 180; // screen-space angle for the head
   return (
     <G>
       <Line
@@ -298,14 +298,17 @@ function FreeBodyForces({ params, width, height, theme }: WidgetRenderProps<Free
         );
       })}
 
-      {/* component labels: cos/sin of the resolved force's own symbol */}
+      {/* component labels: the resolved force's symbol times the right
+          function of the right angle (componentLabelFns) */}
       {layout?.components && params.components_of >= 0 && (
         <G>
-          {([['along', 'cos'], ['perp', 'sin']] as const).map(([k, fn]) => {
+          {(['along', 'perp'] as const).map((k) => {
             const seg = layout.components![k];
             const p = labelPlacement(seg, LABEL_SIZE - 1);
-            const sym = params.forces[params.components_of].label;
-            const text = `${sym}·${fn}θ`;
+            const f = params.forces[params.components_of];
+            const axisDeg = layout.components!.along.angle_deg;
+            const fn = componentLabelFns(params.context, f.angle_deg, axisDeg)[k];
+            const text = `${f.label}·${fn}`;
             return (
               <SvgText
                 key={k}
