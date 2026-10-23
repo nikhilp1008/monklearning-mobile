@@ -18,6 +18,8 @@ import { KEY_POINTS as P12_03 } from '@/lib/revise/keypoints-physics-12-03';
 import { KEY_POINTS as P12_04 } from '@/lib/revise/keypoints-physics-12-04';
 import { KEY_POINTS as P12_05 } from '@/lib/revise/keypoints-physics-12-05';
 import { KEY_POINTS as P12_06 } from '@/lib/revise/keypoints-physics-12-06';
+import { KEY_POINTS as P12_07 } from '@/lib/revise/keypoints-physics-12-07';
+import { KEY_POINTS as P12_08 } from '@/lib/revise/keypoints-physics-12-08';
 
 /**
  * KEY POINTS, by chapter ("physics|11|1").
@@ -60,4 +62,6 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'physics|12|4': P12_04,
   'physics|12|5': P12_05,
   'physics|12|6': P12_06,
+  'physics|12|7': P12_07,
+  'physics|12|8': P12_08,
 };

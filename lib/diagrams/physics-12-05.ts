@@ -352,7 +352,7 @@ const fig51: Diagram = {
  * torque τ⃗ = m⃗ × B⃗ is computed in the page frame: into the page, clockwise,
  * and the curved arrow turns that way.
  */
-const G52 = { c: [148, 176] as P, l: 75, hw: 11, th: 35, F: 62, tq: 50, t0: -10, t1: -50, mOff: 24, arm: 300, rows: [48, 98, 148, 198, 248], cols: [10, 92, 174, 256], flen: 40 };
+const G52 = { c: [148, 176] as P, l: 75, hw: 11, th: 35, F: 62, tq: 32, t0: -15, t1: -95, mOff: 24, arm: 300, rows: [48, 98, 148, 198, 248], cols: [10, 92, 174, 256], flen: 40 };
 const geo52 = () => {
   const { c, l, th } = G52;
   const u: P = [Math.cos(th * D2R), -Math.sin(th * D2R)], n: P = [u[1], -u[0]];
@@ -386,6 +386,10 @@ const fig52: Diagram = {
     // dotted line through S (at −76° its head lay across it), and its head is
     // drawn on the arc's own tangent: an arrow over the last 3° was shorter
     // than its head, and the stroke ran back out of the head as a round nub.
+    // Close round the centre (32 px) it can turn through 80° below the
+    // dashed line and still stop 5 px above the dotted one; at 50 px it had
+    // room for only 40°, and read as a hook (Android re-check of Physics 12
+    // Ch 5, 2026-10-22). Its head points back at the magnet it turns.
     const back = (10 / (tq * D2R)), end = polar(c, tq, t1);
     path(s, arcPts(c, tq, t0, t1 + back, 40), { color: C.mari, w: 2.6 });
     head(s, end, unit([Math.sin(t1 * D2R), Math.cos(t1 * D2R)]), C.mari, 11, 5.5);
@@ -402,7 +406,7 @@ const fig52: Diagram = {
     s.sym(arm - 8, (g.Np[1] + g.Sp[1]) / 2 + 5, '2<i>l</i> sin <i>θ</i>', { size: 15, anchor: 'end' });
     s.sym(10, 24, 'uniform field <i>B⃗</i>', { size: 15, anchor: 'start', color: C.slate });
     const res = resultBlock(s, ['⊗ <i>τ⃗</i> = <i>m⃗</i> × <i>B⃗</i>', 'into the page, clockwise'], { size: 15 });
-    s.place([{ t: 'Torque', hi: true, p: polar(c, tq, -26), at: [[c[0] + 30, 240, 'start'], [c[0] + 30, 246, 'start'], [c[0] - 20, 290, 'end'], [14, 310, 'start']] }], [res]);
+    s.place([{ t: 'Torque', hi: true, p: polar(c, tq, -40), at: [[c[0] + 30, 240, 'start'], [c[0] + 30, 246, 'start'], [c[0] - 20, 290, 'end'], [14, 310, 'start']] }], [res]);
     // the uniform field: equal parallel arrows on a grid, wherever they leave the rest clear
     const busy = (pts: P[]) => {
       const boxes: Rect[] = [...s.tags.map((t) => t.rect), ...s.labels.map((l) => l.rect)];

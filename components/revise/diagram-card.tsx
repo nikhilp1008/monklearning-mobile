@@ -7,6 +7,7 @@ import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { Diagram } from '@/lib/diagrams/types';
+import { titleBreaks } from '@/lib/revise/formula-cards';
 import { hapticSwitched } from '@/lib/haptics';
 import { decodeTextNodes } from '@/lib/widgets/svg-parse';
 
@@ -134,6 +135,20 @@ export function captionBreaks(html: string): string {
 }
 
 /**
+ * How much of a card's contents, not counting the empty padding under the
+ * caption, lies below its visible bottom edge, scrolled `y` down: positive
+ * while caption is hidden, zero or less once it is all on the card. (Scrolled
+ * to the end, it is minus the padding.)
+ */
+export const hiddenBelow = (box: number, content: number, y: number, pad: number) => (box > 0 ? content - pad - (y + box) : 0);
+/**
+ * How much of the caption must be hidden before the card says so, in points:
+ * the room under a caption line's ink (23 on 16, so 3.5 of half-leading below
+ * the line box's glyphs) plus a point of rounding. Less than that hides no ink.
+ */
+const FADE_MARGIN = 4;
+
+/**
  * ONE DIAGRAM ON ITS PAGE: the name, the drawing, its cases as chips, and the
  * caption for the case in view. The same parts as a formula card: the name in
  * STIX Two SemiBold 19, the caption in STIX Two 16. Chips keep the app's look,
@@ -146,19 +161,25 @@ export function DiagramCard({ d }: { d: Diagram }) {
   // say there was more (Android review of Physics 12 Ch 5, fig. 5.5 (c)). So
   // while there is more below, the bottom fades to the card's white and the
   // scroll bar shows; scrolled to the end, the fade goes.
+  //
+  // "More below" means caption hidden, not padding: once Fig 5.5 (c) was
+  // shortened its content ran only 9 px past the card, all of it the empty
+  // padding under the caption, and the fade greyed a last line that was fully
+  // on the card (Android re-check, 2026-10-22). See hiddenBelow.
   const view = useRef({ box: 0, content: 0, y: 0 });
   const [more, setMore] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const pad = scale(24), margin = scale(FADE_MARGIN);
   const measure = () => {
     const { box, content, y } = view.current;
-    setOverflows(box > 0 && content > box + 1);
-    setMore(box > 0 && content - (y + box) > 2);
+    setOverflows(hiddenBelow(box, content, 0, pad) > margin);
+    setMore(hiddenBelow(box, content, y, pad) > margin);
   };
   return (
     <View style={st.page}>
       <ScrollView
         style={st.page}
-        contentContainerStyle={{ padding: scale(20), paddingBottom: scale(24) }}
+        contentContainerStyle={{ padding: scale(20), paddingBottom: pad }}
         showsVerticalScrollIndicator={overflows}
         persistentScrollbar={overflows}
         onLayout={(e: LayoutChangeEvent) => { view.current.box = e.nativeEvent.layout.height; measure(); }}
@@ -184,7 +205,8 @@ export function DiagramBody({ d, type }: { d: Diagram; type?: (n: number) => num
   const [c, setC] = useState(0);
   return (
     <View>
-      <Text style={{ fontFamily: STIX.semibold, fontSize: t(19), lineHeight: t(25), color: colors.ink }}>{d.name}</Text>
+      {/* A name that wraps never leaves one word on its last line (titleBreaks). */}
+      <Text style={{ fontFamily: STIX.semibold, fontSize: t(19), lineHeight: t(25), color: colors.ink }}>{titleBreaks(d.name)}</Text>
       <View style={{ marginTop: scale(14) }}>
         <DiagramImage d={d} caseIndex={c} />
       </View>

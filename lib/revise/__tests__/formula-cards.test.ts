@@ -116,6 +116,12 @@ describe('keepTogether', () => {
     expect(nb(keepTogether('<i>s</i> = (<i>v</i><sup>2</sup> − <i>v</i><sub>0</sub><sup>2</sup>)/2'))).toContain('(<i>v</i><sup>2</sup>·−·');
   });
 
+  it('holds a bracket of words that fits a line whole, breaking before its "(" (Maxwell\'s equations, Physics 12 Ch 8)', () => {
+    const out = keepTogether('1. ∮ <i>E⃗</i> · d<i>A⃗</i> = <i>q</i><sub>enc</sub>/ε<sub>0</sub> (Gauss’s law for electricity)');
+    expect(out).toContain(' (Gauss’s\u00a0law\u00a0for\u00a0electricity)');
+    expect(keepTogether('2. ∮ <i>B⃗</i> · d<i>A⃗</i> = 0 (Gauss’s law for magnetism)')).toContain(' (Gauss’s\u00a0law\u00a0for\u00a0magnetism)');
+  });
+
   it('lets a bracket of words wrap between its words, never mid-word', () => {
     const out = keepTogether('∑ <i>m</i><sub><i>i</i></sub><i>r⃗</i><sub><i>i</i></sub> = 0⃗ (position vectors measured from the CoM)');
     expect(out).toContain('(position vectors measured from the CoM)');
@@ -216,12 +222,20 @@ describe('card names', () => {
   });
   it('leaves no lone symbol on the last line, and never starts one on an em dash', () => {
     expect(titleBreaks('String fixed at both ends (length <i>L</i>)')).toBe('String fixed at both ends (length\u00a0<i>L</i>)');
-    expect(titleBreaks('Case 1 — acceleration depends on time')).toBe('Case 1\u00a0— acceleration depends on time');
+    expect(titleBreaks('Case 1 — acceleration depends on time')).toBe('Case 1\u00a0— acceleration depends on\u00a0time');
+  });
+
+  it('never leaves one word alone on a name\'s last line: the last two go down together (Physics 12 Ch 7–8)', () => {
+    expect(titleBreaks('Maxwell’s Four Equations (integral form)')).toBe('Maxwell’s Four Equations (integral\u00a0form)');
+    expect(titleBreaks('Phasor diagram of a series LCR circuit')).toBe('Phasor diagram of a series LCR\u00a0circuit');
+    // a last line already two pieces is left; a pair too long to share a line with room is not joined
+    expect(titleBreaks('Internal energy from <i>C</i><sub>V</sub>')).toBe('Internal energy from\u00a0<i>C</i><sub>V</sub>');
+    expect(titleBreaks('Energy carried by electromagnetic radiation')).toBe('Energy carried by electromagnetic radiation');
   });
 });
 
 describe('lead-ins', () => {
-  const card = (ch: typeof ch13, name: RegExp) => buildFormulaCards(ch).find((c) => name.test(c.name))!;
+  const card = (ch: typeof ch13, name: RegExp) => buildFormulaCards(ch).find((c) => name.test(c.name.replace(/\u00a0/g, ' ')))!;
   it('keeps a lead-in as its own line when the next line has a label (Lissajous)', () => {
     const c = card(ch13, /perpendicular SHMs/);
     expect(c.items[0]).toEqual(expect.objectContaining({ expr: '' }));
@@ -263,23 +277,23 @@ describe('card names, Physics 12', () => {
 describe('Physics 12 Ch 3 and 4 cards', () => {
   const c3 = buildFormulaCards(p12c3), c4 = buildFormulaCards(p12c4);
   it('the commercial unit keeps the book\'s words as its label and breaks before its second "="', () => {
-    const c = c3.find((k) => /Commercial unit of energy/.test(k.name))!;
+    const c = c3.find((k) => /Commercial unit of energy/.test(k.name.replace(/\u00a0/g, ' ')))!;
     expect(c.items.map((it) => [it.label, shown(it.expr)])).toEqual([
       ['1 kilowatt-hour (kWh)', '1\u00a0kWh\u00a0=\u00a01000\u00a0W\u00a0×\u00a03600\u00a0s'],
       [null, '=\u00a03.6\u00a0×\u00a0106\u00a0J'],
     ]);
   });
   it('the two Wheatstone cards set P/Q = R/S ⟺ PS = QR the same way', () => {
-    const [a, b] = c3.filter((k) => /^Wheatstone bridge/.test(k.name));
+    const [a, b] = c3.filter((k) => /^Wheatstone bridge/.test(k.name.replace(/\u00a0/g, ' ')));
     expect(a.items[0].expr).toBe(b.items[0].expr);
   });
   it('the orbital moment\'s l is italic, never an upright l that reads as 1', () => {
-    const c = c4.find((k) => /Revolving electron/.test(k.name))!;
+    const c = c4.find((k) => /Revolving electron/.test(k.name.replace(/\u00a0/g, ' ')))!;
     for (const it of c.items) expect(it.expr).not.toContain('<sub>l</sub>');
     expect(c.items.filter((it) => it.expr.includes('<i>μ</i><sub><i>l</i></sub>'))).toHaveLength(2);
   });
   it('the torque card keeps "N turns" together and its last B⃗ with "and"', () => {
-    const c = c4.find((k) => /^Torque on a current loop/.test(k.name))!;
+    const c = c4.find((k) => /^Torque on a current loop/.test(k.name.replace(/\u00a0/g, ' ')))!;
     expect(c.name).toContain('(<i>N</i>\u00a0turns,');
     expect(c.meaning.find((m) => m.sym === '<i>θ</i>')!.text).toMatch(/and\u00a0<i>B⃗<\/i>$/);
   });

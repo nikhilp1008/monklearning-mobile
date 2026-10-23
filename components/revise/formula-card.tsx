@@ -62,7 +62,15 @@ function TallBracket({ ch, scale }: { ch: string; scale: (n: number) => number }
   );
 }
 
-function Fraction({ part, scale, maxWidth }: { part: Extract<Part, { kind: 'frac' }>; scale: (n: number) => number; maxWidth?: number }) {
+/**
+ * A fraction's side margins. After text that already ends on a space ("1/Z =",
+ * "(μ₀/(4π))", the space kept by boxes()) it takes no left margin: the space
+ * and the slack are the gap, as before a letter, where the margin on top of
+ * them stood the bar twice as far off as the "=" after it stood (Android
+ * review of Physics 12 Ch 7, cards 10, 24 and 30: "1/Z =   frac = G + jB").
+ */
+const FRAC_MARGIN = 4;
+function Fraction({ part, scale, maxWidth, spaced = false }: { part: Extract<Part, { kind: 'frac' }>; scale: (n: number) => number; maxWidth?: number; spaced?: boolean }) {
   // A side with a drawn script is centred by a View, not by textAlign: on
   // Android a drawn script in a centred text was placed as if the text were
   // left-aligned (the n of a ∑ landed on the "1", ² on the g of k_g). A side
@@ -73,7 +81,7 @@ function Fraction({ part, scale, maxWidth }: { part: Extract<Part, { kind: 'frac
     return words ? text : <View style={s.middle}>{text}</View>;
   };
   const frac = (
-    <View style={[s.frac, { marginHorizontal: scale(part.tall ? 1 : 4), maxWidth }]}>
+    <View style={[s.frac, { marginLeft: part.tall ? scale(1) : spaced ? 0 : scale(FRAC_MARGIN), marginRight: scale(part.tall ? 1 : FRAC_MARGIN), maxWidth }]}>
       {side(part.top)}
       <View style={s.bar} />
       {side(part.bottom)}
@@ -92,6 +100,9 @@ function Fraction({ part, scale, maxWidth }: { part: Extract<Part, { kind: 'frac
 /** Roughly how wide the text sharing a fraction's box is (about 0.45 em a character), and the fraction's margins. */
 const besideWidth = (box: Box, size: number) =>
   box.reduce((w, p) => (p.kind === 'text' ? w + p.html.replace(/<[^>]+>/g, '').replace(/\u2060/g, '').length * size * 0.45 : w + size * 0.6), 0);
+
+/** Whether the text before a box's j-th piece ends on a space. */
+const spacedBefore = (box: Box, j: number) => { const prev = box[j - 1]; return prev?.kind === 'text' && /[ \u00a0]$/.test(prev.html); };
 
 function Formula({ item, scale }: { item: FormulaItem; scale: (n: number) => number }) {
   const bx = useMemo(() => (hasFraction(item.expr) ? boxes(item.expr) : null), [item.expr]);
@@ -114,7 +125,7 @@ function Formula({ item, scale }: { item: FormulaItem; scale: (n: number) => num
         if (box.length === 1 && box[0].kind === 'text') return <Fragment key={k}>{text(box[0].html, true)}</Fragment>;
         return (
           <View key={k} style={s.box}>
-            {box.map((p, j) => (p.kind === 'text' ? text(p.html, j === box.length - 1, j) : <Fraction key={j} part={p} scale={scale} maxWidth={rowWidth ? rowWidth - besideWidth(box, scale(EXPR)) : undefined} />))}
+            {box.map((p, j) => (p.kind === 'text' ? text(p.html, j === box.length - 1, j) : <Fraction key={j} part={p} scale={scale} spaced={spacedBefore(box, j)} maxWidth={rowWidth ? rowWidth - besideWidth(box, scale(EXPR)) : undefined} />))}
           </View>
         );
       })}

@@ -408,7 +408,51 @@ function untypeLetters(html: string): string {
  * - After an italic f, before a spaced operator: f × (loop area), f = 50 Hz.
  *   The f's hook leans 0.146 em past its advance, so on the Physics 12 Ch 5
  *   screenshots f stood 6 px from its × where the other operators stood 15
- *   to 18 px from their neighbours. A THIN SPACE gives that back.
+ *   to 18 px from their neighbours. A THIN SPACE gives that back. And before
+ *   a closing bracket or bar, (2πf): STIX's ")" starts 0.031 em into its
+ *   advance and rises to 0.730 em, level with the hook's tip (0.711), so the
+ *   hook's ball stood 1 px from the bracket's top on the Physics 12 Ch 6
+ *   screenshot (card 22). The same THIN SPACE leaves 0.010 em of overlap in
+ *   advance terms, and the bracket's top curls away from it: 6 px clear.
+ * - After a vector arrow that ends the text: B⃗ · dl⃗ as a meaning's symbol,
+ *   a fraction's side, a name. The arrow reaches past its letter's advance
+ *   (U+20D7 in STIX Two Italic runs to x = +137 with no advance of its own,
+ *   and over a tall letter it is set higher and so further right along the
+ *   slant: 10 px, 0.20 em, past the l of dl⃗ on the Physics 12 Ch 4 screenshot,
+ *   at 19). Android draws a text clipped to its own width, and that width
+ *   stops at the last advance, so the head went: the arrow over the l of the
+ *   symbol "∮ B⃗ · dl⃗" (card 4) was a flat bar, at any height of headroom. A
+ *   FOUR-PER-EM SPACE (U+2005, 0.25 em) after it widens the text to hold the
+ *   head; trailing, it draws nothing and never starts a line.
+ * - After a vector arrow over a narrow italic letter, before a spaced
+ *   operator: dl⃗ = …, S⃗ = …. The arrow is centred over its letter and is
+ *   0.446 em wide, so it reaches past the advance by about 0.33 − w/2 em for
+ *   a letter w em wide (0.20 em over l, w = 0.273, measured 10 px at 19 on
+ *   the Physics 12 Ch 4 screenshot; 0.04 over B, w = 0.593, 2 to 3 px). "dl⃗ ="
+ *   kept a third of the usual gap before its "=" (Physics 12 Ch 8 cards 4 and
+ *   6). A THIN SPACE where it reaches 0.15 em or more (w ≤ 0.36: f i j l t I),
+ *   a HAIR SPACE where it reaches 0.06 (w ≤ 0.54: a b c e … z J S ε λ …);
+ *   the wider letters keep their gap.
+ * - After an italic f, before a tall letter: fλ, πfC. The f's hook (to 0.711
+ *   em, 0.146 past its advance) met the top of the λ on Physics 12 Ch 8
+ *   cards 15 and 19, and all but met the C of 2πfC (Ch 7 card 9): an italic
+ *   capital's top-left starts only about 0.12 em in. A THIN SPACE; before an
+ *   x-height letter (fx, fω) the hook passes over it and nothing is added.
+ * - After a subscript and superscript pair, before an italic letter with a
+ *   foot: I²ᵣₘₛR. The pair is as wide as its wider half, so when that is the
+ *   subscript ("rms" under "2") it ends where a lone subscript would, and its
+ *   s met R's foot (Physics 12 Ch 7 card 5). The same HAIR SPACE as after a
+ *   lone subscript; not when the superscript is the wider (it stands above
+ *   the foot), nor a pair of STIX's own digits (v₀²), whose ² ends the run.
+ * - Between a closing bracket and √: (1/R)√(L/C). STIX Two Math's √ starts
+ *   0.018 em into its advance with its tick at the baseline, against ")"'s
+ *   lower curl, and the two stood 3 px apart (Physics 12 Ch 7 card 18). A
+ *   HAIR SPACE.
+ * - After an upright differential d, before an italic letter whose foot runs
+ *   left at the baseline: dA⃗, dX. STIX's d ends 0.025 em short of its advance
+ *   and the italic A starts 0.062 em before its own, so A's foot touched the d
+ *   (Physics 12 Ch 8 cards 2 and 6). A HAIR SPACE, before A, X, J and λ only
+ *   (−0.031 em or more): dx, dt, dB keep their own spacing.
  * - Round ⇒ and ⇔. STIX Two Math's ⇒ starts on its own advance (side
  *   bearings 0 and 0.061 em, where = has 0.062 and 0.062) and ⇔'s are 0.020,
  *   so "LI ⇒ L" stood 9 px off the I and 14 px off the L (Physics 12 Ch 6;
@@ -418,6 +462,12 @@ function untypeLetters(html: string): string {
  *   spaces, so a line that breaks there starts on the arrow, not on a sliver
  *   of space. ⟹, ⟺ and → carry 0.056 to 0.072 em of their own, as much as
  *   =, and are left.
+ *
+ * Not before a slash after a subscript (V_s/V_p, I_max/√2): measured again on
+ * Physics 12 Ch 7 card 27, the s stands 5 px off the slash at the foot and 9
+ * at its top, the same as Ch 5's. Not "E(" (Ch 8 card 21): 9 to 10 px clear
+ * at every height on the screenshot, E's arms ending well short of the
+ * bracket's curve.
  *
  * Not after a superscript before an italic capital (B²A): the capitals'
  * outlines at a superscript's height start 0.088 em or more right of their
@@ -439,6 +489,18 @@ const FOOTED = 'ABDEFHIJKLMNPRXZΓΔΛΠΣfgjxyzβλμρχ';
 const SUB_BEFORE_FOOTED_ITALIC = new RegExp(`(<sub>(?:(?!</sub>).)*</sub>|[₀-₉])(?=<i>[${FOOTED}])`, 'g');
 const ITALIC_CAPITAL_BEFORE_SUP = /(<i>[^<]*[A-Z]<\/i>)(?=<sup>(?:(?!<\/sup>).)*<\/sup>(?!<sub>))/g;
 const ITALIC_F_BEFORE_OPERATOR = /(f<\/i>)(?=[ \u00a0][=×+−<>≤≥≈∝])/g;
+const ITALIC_F_BEFORE_CLOSER = /(f<\/i>)(?=[|‖)\]}])/g;
+/** A vector arrow with nothing after it but closing tags and the slack spaces a caller adds. */
+const ARROW_AT_END = /\u20d7((?:<\/[bi]>)*)(?=[\s\u200a\u2060]*$)/;
+export const ARROW_ROOM = '\u2005';
+/** STIX Two Italic letters by how far an arrow over them reaches past their advance (0.33 − width/2 em; see above). */
+const ARROW_FAR = 'fijltI', ARROW_NEAR = 'abcegkopqrsvxyzJSβγδεθλνρστχ';
+const ARROW_BEFORE_OPERATOR = new RegExp(`([${ARROW_FAR}${ARROW_NEAR}])\u20d7(</i>)(?=[ \u00a0][=×+−<>≤≥≈∝])`, 'g');
+const ITALIC_F_BEFORE_TALL = /(<i>[^<]*?f)(?=[bdhklλδθβA-Z]|<\/i><i>[bdhklλδθβA-Z])/g;
+const PAIR_BEFORE_FOOTED_ITALIC = new RegExp(`(<sub>((?:(?!</sub>).)*)</sub><sup>((?:(?!</sup>).)*)</sup>|<sup>((?:(?!</sup>).)*)</sup><sub>((?:(?!</sub>).)*)</sub>)(?=<i>[${FOOTED}])`, 'g');
+const CLOSER_BEFORE_ROOT = /([)\]])(?=√)/g;
+const DIFFERENTIAL_BEFORE_FOOT = /(^|[\s\u00a0(·∮∫=/−+])d(?=<i>[AXJλ])/g;
+const plainOf = (h: string) => h.replace(/<[^>]+>/g, '');
 const SPACE_BEFORE_ARROW = /([ \u00a0])([⇒⇔])/g;
 const SPACE_AFTER_ARROW = /([⇒⇔])([ \u00a0])/g;
 export function hairSpaces(html: string): string {
@@ -447,6 +509,17 @@ export function hairSpaces(html: string): string {
     .replace(SUB_BEFORE_FOOTED_ITALIC, `$1${HAIR}${WJ}`)
     .replace(ITALIC_CAPITAL_BEFORE_SUP, `$1${HAIR}${WJ}`)
     .replace(ITALIC_F_BEFORE_OPERATOR, `$1${THIN}${WJ}`)
+    .replace(ITALIC_F_BEFORE_CLOSER, `$1${THIN}${WJ}`)
+    .replace(ARROW_BEFORE_OPERATOR, (_, l: string, close: string) => `${l}\u20d7${close}${ARROW_FAR.includes(l) ? THIN : HAIR}${WJ}`)
+    .replace(ITALIC_F_BEFORE_TALL, `$1${THIN}${WJ}`)
+    .replace(PAIR_BEFORE_FOOTED_ITALIC, (all: string, _p: string, subA?: string, supA?: string, supB?: string, subB?: string) => {
+      const sub = plainOf(subA ?? subB ?? ''), sup = plainOf(supA ?? supB ?? '');
+      const numeric = (t: string) => /^[0-9+\-−=() ]+$/.test(t);
+      return (numeric(sub) && numeric(sup)) || sub.length < sup.length ? all : `${all}${HAIR}${WJ}`;
+    })
+    .replace(CLOSER_BEFORE_ROOT, `$1${HAIR}${WJ}`)
+    .replace(DIFFERENTIAL_BEFORE_FOOT, `$1d${HAIR}${WJ}`)
+    .replace(ARROW_AT_END, `\u20d7$1${ARROW_ROOM}`)
     .replace(SPACE_BEFORE_ARROW, (_, sp: string, arrow: string) => `${arrow === '⇒' ? THIN : HAIR}${WJ}${sp}${arrow}`)
     .replace(SPACE_AFTER_ARROW, `$1${HAIR}${WJ}$2`);
 }

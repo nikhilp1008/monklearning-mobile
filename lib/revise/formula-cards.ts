@@ -54,11 +54,23 @@ const stripToMaths = (h: string) => h.replace(/<(?!\/?(?:i|sub|sup)>)\/?[a-zA-Z]
  * A name's last line never holds a lone symbol ("… at depth h", "(phase φ)"),
  * and never starts on an em dash ("— exact analogues …"): the space before
  * either is non-breaking. A line may still end on a dash.
+ *
+ * Nor a lone word: a name that wraps takes its last two words down together
+ * ("… of a series LCR | circuit" left "circuit" alone, as did "frequency",
+ * "capacitor", "form)" on eight Physics 12 Ch 7–8 names; Android review,
+ * 2026-10-22). Only when the pair is short enough to sit on a line with room
+ * to spare (LAST_PAIR), and only once: a last line already of two pieces
+ * ("from C_V", "(length L)") is left as it is.
  */
+const LAST_PAIR = 22;
 export function titleBreaks(name: string): string {
-  const t = name.replace(/ — /g, '\u00a0— ');
+  let t = name.replace(/ — /g, '\u00a0— ');
   const at = t.lastIndexOf(' ');
-  return at > 0 && shown(t.slice(at + 1)).length <= 2 ? `${t.slice(0, at)}\u00a0${t.slice(at + 1)}` : t;
+  if (at > 0 && shown(t.slice(at + 1)).length <= 2) return `${t.slice(0, at)}\u00a0${t.slice(at + 1)}`;
+  const last = t.slice(at + 1);
+  const before = t.lastIndexOf(' ', at - 1);
+  if (at > 0 && !last.includes('\u00a0') && shown(t.slice(before + 1)).length <= LAST_PAIR) t = `${t.slice(0, at)}\u00a0${last}`;
+  return t;
 }
 
 /**
@@ -149,10 +161,20 @@ export function isWordBracket(inner: string): boolean {
   return (plain.match(/[A-Za-z]{2,}/g) ?? []).length >= 2;
 }
 
-/** Three words or fewer, or 20 characters or fewer. */
+/** How long a bracket, brackets and all, may be and still fit a formula line on its own. */
+const BRACKET_FITS = 30;
+/**
+ * Three words or fewer, or short enough to fit a line of its own, brackets
+ * and all: 30 characters, a line at 19 on the narrowest card holding about 35
+ * (see SHORT_CLAUSE). Such a bracket is held whole, and the line breaks
+ * before its "(" instead: at 20 "(Gauss's law for electricity)" was opened,
+ * and Android filled the line greedily, leaving "electricity)" alone on the
+ * next (Android review of Physics 12 Ch 8, Maxwell's equations, 2026-10-22).
+ * A longer one wraps between its words, as it must.
+ */
 export const isShortBracket = (inner: string) => {
   const plain = inner.replace(/<[^>]+>/g, '');
-  return plain.length <= 20 || plain.trim().split(/[\s\u00a0]+/).length <= 3;
+  return plain.length + 2 <= BRACKET_FITS || plain.trim().split(/[\s\u00a0]+/).length <= 3;
 };
 
 /** Every space inside a bracket, marked by the innermost bracket around it (inner brackets close first). */

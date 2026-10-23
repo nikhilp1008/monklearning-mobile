@@ -462,6 +462,9 @@ const fig62: Diagram = {
  * its velocity is ω⃗ × r⃗, drawn perpendicular to the rod with a length in
  * proportion to x. The free end's path is the dashed circle of radius l.
  */
+/** How far every × keeps from the dashed circle, centre to line. */
+const CLEAR63 = 15;
+const GRID63 = { x0: 28, y0: 34, step: 36 };
 const G63 = { O: [118, 196] as P, l: 112, ang: 33, xf: 0.62, k: 0.75, dx: 12, xOff: 12, lOff: 40, wR: 30, w0: 198, w1: 252 };
 const g63 = () => {
   const { O, l, ang, xf, k } = G63;
@@ -507,8 +510,16 @@ const fig63: Diagram = {
     ]);
     // Not within 15 px of the dashed circle, centre to line: a mark's arms
     // reach 7 px from its centre, and at the usual 9 px some touched the
-    // circle (Android review, Ch 6). Now every mark keeps 8 px clear.
-    for (let y = 46; y < 318; y += 38) for (let x = 20; x < W - 10; x += 38) if (Math.abs(len([x, y], O) - l) >= 15 && !crowded(s, [x, y], 9)) xMark(s, [x, y]);
+    // circle (Android review, Ch 6). Now every mark keeps 8 px clear. A mark
+    // that falls closer is moved straight out from the circle (or in, on its
+    // own side) to that 15 px, not dropped: dropping them left a ring of
+    // holes and the grid looked irregular (Android re-check, 2026-10-22).
+    for (let y = GRID63.y0; y < 318; y += GRID63.step)
+      for (let x = GRID63.x0; x < W - 10; x += GRID63.step) {
+        const p: P = [x, y], r = len(p, O), d = r - l;
+        const at = Math.abs(d) >= CLEAR63 ? p : add(O, sub(p, O), (l + (d < 0 ? -CLEAR63 : CLEAR63)) / r);
+        if (!crowded(s, at, 9)) xMark(s, at);
+      }
     return s;
   },
   check() {
@@ -525,6 +536,7 @@ const fig63: Diagram = {
       ['The element’s velocity is drawn along ω⃗ × r⃗: perpendicular to the rod, on the side it turns towards', sameWay(vDrawn, v) && close(dot3(vDrawn, r), 0, 1e-9)],
       [`Its length is ${fmt(len(g.el, g.vTip), 1)} px = ${k} × x with x = ${fmt(xf * l, 1)} px: v = ωx grows in proportion to the distance from O`, close(len(g.el, g.vTip), k * xf * l, 1e-9)],
       [`The free end lies on the dashed circle (radius ${l} px = the rod’s length l)`, close(len(O, g.tip), l, 1e-9)],
+      [`The field is a full grid: ${s.points.filter((q) => q.r === 5).length} ×, every one at least ${CLEAR63} px from the dashed circle`, s.points.filter((q) => q.r === 5).length >= 40 && s.points.filter((q) => q.r === 5).every((q) => Math.abs(len([q.x, q.y], O) - l) >= CLEAR63 - 1e-9)],
       [`Summed element by element, ∫₀ˡ Bωx dx = ½Bωl²: Example 4 gives ${fmt(emf(0.3, 50, 0.6), 2)} V (the book's 2.7 V), practice 4 ${fmt(emf(0.2, 40, 0.5), 2)} V (the book's 1.0 V)`, rel(emf(0.3, 50, 0.6), 0.5 * 0.3 * 50 * 0.36, 1e-6) && fmt(emf(0.3, 50, 0.6), 1) === '2.7' && fmt(emf(0.2, 40, 0.5), 1) === '1'],
       ...layout(s),
     ];

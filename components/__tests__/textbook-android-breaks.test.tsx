@@ -11,11 +11,11 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
-import { captionBreaks, DiagramCard } from '@/components/revise/diagram-card';
+import { captionBreaks, DiagramCard, hiddenBelow } from '@/components/revise/diagram-card';
 import { PilotFormula } from '@/components/textbook/formula-pilot';
 import type { Diagram } from '@/lib/diagrams/types';
 import { FormulaCard, symbolHtml } from '@/components/revise/formula-card';
-import { hairSpaces, ITALIC_G, isWordScript, Markup, SIGN_SUB_DROP, STIX, SUB_DROP, WJ } from '@/components/textbook/markup';
+import { ARROW_ROOM, hairSpaces, ITALIC_G, isWordScript, Markup, SIGN_SUB_DROP, STIX, SUB_DROP, WJ } from '@/components/textbook/markup';
 import { tspans } from '@/lib/diagrams/kit';
 import ch4 from '@/content/textbooks/phy-11-04-laws-of-motion';
 import ch5 from '@/content/textbooks/phy-11-05-work-energy-power';
@@ -79,7 +79,7 @@ describe('a subscript and a superscript on one base are one stacked unit', () =>
   });
 
   it('−∫ from A to B, and a <sup> before its <sub> (ᴬ_Z X), stack the same way', () => {
-    expect(flat(draw(<Markup html="−∫<sub><i>A</i></sub><sup><i>B</i></sup> <i>E⃗</i>" size={20} look="stix" />).toJSON() as Json)).toBe(`−∫${WJ}[[B][A]]${WJ} E⃗`);
+    expect(flat(draw(<Markup html="−∫<sub><i>A</i></sub><sup><i>B</i></sup> <i>E⃗</i>" size={20} look="stix" />).toJSON() as Json)).toBe(`−∫${WJ}[[B][A]]${WJ} E⃗${ARROW_ROOM}`);
     expect(flat(draw(<Markup html="<sup><i>A</i></sup><sub><i>Z</i></sub>X" size={20} look="stix" />).toJSON() as Json)).toBe(`${WJ}[[A][Z]]${WJ}X`);
   });
 
@@ -149,7 +149,7 @@ describe('a raised word is upright, a raised letter is italic', () => {
 });
 
 describe('word fractions stack again', () => {
-  const card = (cards: Card[], name: RegExp) => cards.find((c) => name.test(c.name))!;
+  const card = (cards: Card[], name: RegExp) => cards.find((c) => name.test(c.name.replace(/\u00a0/g, ' ')))!;
   const fracs = (expr: string) => parts(expr).filter((s) => s.kind === 'frac');
 
   it('through the word joiner keepTogether puts after every slash', () => {
@@ -433,6 +433,37 @@ describe('Physics 12 Ch 5–6 review (2026-10-22)', () => {
       expect(fades(r)).toBe(0);
     });
 
+    it('the padding under the caption is not "more": a caption fully on the card is never faded (Fig 5.5 (c), 9 px over)', () => {
+      expect(hiddenBelow(500, 509, 0, 24)).toBe(-15);
+      const r = draw(<DiagramCard d={d} />);
+      const sv = scroll(r);
+      act(() => {
+        sv.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 500 } } });
+        sv.props.onContentSizeChange(300, 509);
+      });
+      expect(fades(r)).toBe(0);
+      expect(scroll(r).props.showsVerticalScrollIndicator).toBe(false);
+      // a few points of rounding past that are not ink either
+      act(() => sv.props.onContentSizeChange(300, 527.5));
+      expect(fades(r)).toBe(0);
+    });
+
+    it('a caption hidden by a real margin fades, and the fade is gone once its last line is in view', () => {
+      const r = draw(<DiagramCard d={d} />);
+      const sv = scroll(r);
+      act(() => {
+        sv.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 500 } } });
+        sv.props.onContentSizeChange(300, 540);
+      });
+      expect(fades(r)).toBeGreaterThan(0);
+      // scrolled till the caption's last line is on the card, short of the very end (the padding still below)
+      act(() => sv.props.onScroll({ nativeEvent: { contentOffset: { x: 0, y: 16 } } }));
+      expect(fades(r)).toBe(0);
+      // and at the very end, with Android's fractional offsets
+      act(() => sv.props.onScroll({ nativeEvent: { contentOffset: { x: 0, y: 39.6 } } }));
+      expect(fades(r)).toBe(0);
+    });
+
     it('a diagram that fits shows neither', () => {
       const r = draw(<DiagramCard d={d} />);
       const sv = scroll(r);
@@ -443,5 +474,80 @@ describe('Physics 12 Ch 5–6 review (2026-10-22)', () => {
       expect(fades(r)).toBe(0);
       expect(scroll(r).props.showsVerticalScrollIndicator).toBe(false);
     });
+  });
+});
+
+describe('Physics 12 Ch 4–6 re-check (2026-10-22)', () => {
+  const T = `\u2009${WJ}`;
+
+  it('a vector arrow that ends a text gets room for its head: the meaning symbol ∮ B⃗ · dl⃗', () => {
+    expect(hairSpaces('∮ <i>B⃗</i> · d<i>l⃗</i>')).toBe(`∮ <i>B⃗</i> · d<i>l⃗</i>${ARROW_ROOM}`);
+    // after the slack a caller adds, and inside a SemiBold name
+    expect(hairSpaces(`d<i>l⃗</i>\u200a`)).toBe(`d<i>l⃗</i>${ARROW_ROOM}\u200a`);
+    expect(hairSpaces('<b>Force on <i>l⃗</i></b>')).toBe(`<b>Force on <i>l⃗</i></b>${ARROW_ROOM}`);
+    // not an arrow with more after it on its line
+    expect(hairSpaces('<i>B⃗</i> · d<i>l⃗</i> = μ<sub>0</sub><i>I</i>')).toBe(`<i>B⃗</i> · d<i>l⃗</i>${T} = μ<sub>0</sub>\u200a${WJ}<i>I</i>`);
+    expect(hairSpaces('(<i>E⃗</i>)')).toBe(`(<i>E⃗</i>${T})`);
+  });
+
+  it('and the formula card\'s meaning symbol carries it, inside its own width', () => {
+    const card: Card = { topic: 0, name: 'Ampère', items: [{ label: null, expr: '<i>x</i>', words: false }], meaning: [{ sym: '∮ <i>B⃗</i> · d<i>l⃗</i>', text: 'the line integral' }] };
+    const sym = nodes(draw(<FormulaCard card={card} />).toJSON() as Json).find((n) => n.type === 'View' && (StyleSheet.flatten(n.props.style) as { flexShrink?: number })?.flexShrink === 0)!;
+    expect(JSON.stringify(sym)).toContain(ARROW_ROOM);
+  });
+
+  it('an italic f before a closing bracket gets a thin space: NBA(2πf)', () => {
+    expect(hairSpaces('<i>NBA</i>(2π<i>f</i>)')).toBe(`<i>NBA</i>(2π<i>f</i>${T})`);
+    expect(hairSpaces('|<i>f</i>|')).toBe(`|<i>f</i>${T}|`);
+    expect(hairSpaces('(<i>f</i><sub>0</sub>)')).toBe('(<i>f</i><sub>0</sub>)');
+    expect(hairSpaces('(<i>ω</i>)')).toBe('(<i>ω</i>)');
+  });
+
+  it('a fraction glued to the term before it keeps the space between them, as when that space was already non-breaking', () => {
+    const lead = (expr: string) => (boxes(expr)[2][0] as { html: string }).html;
+    const plain = '<i>B</i><sub>E</sub> = (μ<sub>0</sub>/\u2060(4π)) (<i>M</i> √(1 + 3 sin<sup>2</sup> <i>λ</i>))/\u2060<i>r</i><sup>3</sup>';
+    const joined = '<i>B</i><sub>V</sub> = (μ<sub>0</sub>/\u2060(4π))\u00a0(2<i>M</i> sin <i>λ</i>)/\u2060<i>r</i><sup>3</sup>';
+    expect(lead(plain)).toBe('(μ<sub>0</sub>/\u2060(4π))\u00a0');
+    expect(lead(joined)).toBe('(μ<sub>0</sub>/\u2060(4π))\u00a0');
+    expect(boxes(plain)[2][1]).toEqual(expect.objectContaining({ kind: 'frac' }));
+  });
+
+  const H = `\u200a${WJ}`;
+
+  it('an arrow over a narrow italic letter before a spaced operator gets room in proportion: dl⃗ = (thin), S⃗ = (hair), B⃗ = (none)', () => {
+    expect(hairSpaces('d<i>l⃗</i>\u00a0=\u00a0μ')).toBe(`d<i>l⃗</i>${T}\u00a0=\u00a0μ`);
+    expect(hairSpaces('<i>S⃗</i> = <i>E⃗</i> × <i>B⃗</i>/μ<sub>0</sub>')).toBe(`<i>S⃗</i>${H} = <i>E⃗</i> × <i>B⃗</i>/μ<sub>0</sub>`);
+    expect(hairSpaces('<i>B⃗</i> = 0')).toBe('<i>B⃗</i> = 0');
+    expect(hairSpaces('<i>E⃗</i> · d<i>l⃗</i>')).toBe(`<i>E⃗</i> · d<i>l⃗</i>${ARROW_ROOM}`);
+  });
+
+  it('an italic f before a tall letter gets a thin space (fλ, 2πfC), not before an x-height one (fx)', () => {
+    expect(hairSpaces('<i>c</i> = <i>fλ</i>')).toBe(`<i>c</i> = <i>f${T}λ</i>`);
+    expect(hairSpaces('1/(2π<i>fC</i>)')).toBe(`1/(2π<i>f${T}C</i>)`);
+    expect(hairSpaces('<i>fx</i>')).toBe('<i>fx</i>');
+    expect(hairSpaces('of Bob')).toBe('of Bob');
+  });
+
+  it('a script pair whose subscript is the wider half steps off a footed italic letter: I²ᵣₘₛR; not v₀²A, not x²ᵢA', () => {
+    expect(hairSpaces('<i>I</i><sub>rms</sub><sup>2</sup><i>R</i>')).toBe(`<i>I</i><sub>rms</sub><sup>2</sup>${H}<i>R</i>`);
+    expect(hairSpaces('<i>v</i><sub>0</sub><sup>2</sup><i>A</i>')).toBe('<i>v</i><sub>0</sub><sup>2</sup><i>A</i>');
+    expect(hairSpaces('<i>x</i><sub><i>i</i></sub><sup>max</sup><i>A</i>')).toBe('<i>x</i><sub><i>i</i></sub><sup>max</sup><i>A</i>');
+  });
+
+  it('a hair space between ")" and √, and between a differential d and a footed capital: (1/R)√(L/C), dA⃗', () => {
+    expect(hairSpaces('(1/<i>R</i>)√(<i>L</i>/<i>C</i>)')).toBe(`(1/<i>R</i>)${H}√(<i>L</i>/<i>C</i>)`);
+    expect(hairSpaces('∮ <i>E⃗</i> · d<i>A⃗</i> = 0')).toBe(`∮ <i>E⃗</i> · d${H}<i>A⃗</i> = 0`);
+    expect(hairSpaces('d<i>x</i>/d<i>t</i>')).toBe('d<i>x</i>/d<i>t</i>');
+    expect(hairSpaces('and<i>A</i>')).toBe('and<i>A</i>');
+  });
+
+  it('a fraction after text that ends on a space takes no left margin; after a letter it keeps it', () => {
+    const marginsOf = (expr: string) => {
+      const card: Card = { topic: 0, name: 'T', items: [{ label: null, expr, words: false }], meaning: [] };
+      const frac = nodes(draw(<FormulaCard card={card} />).toJSON() as Json).find((n) => n.type === 'View' && (StyleSheet.flatten(n.props.style) as { alignItems?: string })?.alignItems === 'stretch')!;
+      return StyleSheet.flatten(frac.props.style) as { marginLeft: number; marginRight: number };
+    };
+    expect(marginsOf(keepTogether('<i>Y</i> = 1/<i>Z</i> = (<i>R</i> − <i>jX</i>)/(<i>R</i><sup>2</sup> + <i>X</i><sup>2</sup>) = <i>G</i> + <i>jB</i>'))).toEqual(expect.objectContaining({ marginLeft: 0, marginRight: 4 }));
+    expect(marginsOf(keepTogether('<i>k</i>(<i>m</i><sub>1</sub> + <i>m</i><sub>2</sub>)/(<i>m</i><sub>1</sub> + <i>m</i><sub>3</sub>)'))).toEqual(expect.objectContaining({ marginLeft: 4 }));
   });
 });

@@ -18,6 +18,8 @@ import c12ch3 from '@/content/textbooks/phy-12-03-current-electricity';
 import c12ch4 from '@/content/textbooks/phy-12-04-moving-charges-magnetism';
 import c12ch5 from '@/content/textbooks/phy-12-05-magnetism-matter';
 import c12ch6 from '@/content/textbooks/phy-12-06-electromagnetic-induction';
+import c12ch7 from '@/content/textbooks/phy-12-07-alternating-current';
+import c12ch8 from '@/content/textbooks/phy-12-08-electromagnetic-waves';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -40,7 +42,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`Physics ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.

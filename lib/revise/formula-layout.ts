@@ -198,7 +198,14 @@ export function boxes(expr: string): Box[] {
       // "2π (energy stored)/(energy lost per cycle)": a fraction multiplying
       // what is in front of it stays on its line; only an operator may start one.
       const last = out[out.length - 2], prev = last?.[last.length - 1];
-      if (out.length > 1 && out[out.length - 1].length === 0 && prev?.kind === 'text' && !OP_END.test(shown(prev.html))) out.pop();
+      // The space it was cut at goes back, non-breaking: dropped, the fraction
+      // sat a hair from "(μ₀/(4π))" where the same line with the space
+      // already non-breaking (keepTogether) kept a full space (Android
+      // re-check of Physics 12 Ch 5, card 10, line 3 against lines 1–2).
+      if (out.length > 1 && out[out.length - 1].length === 0 && prev?.kind === 'text' && !OP_END.test(shown(prev.html))) {
+        out.pop();
+        last[last.length - 1] = { kind: 'text', html: `${prev.html}\u00a0` };
+      }
       out[out.length - 1].push(p);
       continue;
     }
