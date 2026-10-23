@@ -1,4 +1,5 @@
 import { LiveAsk, LiveUnavailable } from '@/lib/followup-live';
+import { followUpFailureOf } from '@/lib/doubt-followup';
 
 jest.mock('@/lib/supabase', () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: 't' } } }) } },
@@ -93,4 +94,31 @@ it('an error frame is a real answer failure, not a fallback', async () => {
   ws.close();
   await expect(done).rejects.toThrow('Monk did not catch that');
   await expect(done).rejects.not.toBeInstanceOf(LiveUnavailable);
+});
+
+it('reads the daily limit off the live error frame', async () => {
+  const ask = await LiveAsk.begin(START);
+  const ws = FakeSocket.last;
+  ws.onopen?.();
+  const done = ask.finish(handlers());
+  ws.serverSays('error', { message: 'You have reached today’s limit.', stage: 'quota', status: 429 });
+  ws.close();
+  const err = await done.catch((e) => e);
+  expect(followUpFailureOf(err)).toBe('quota');
+});
+
+it('gives up on a socket that stays open and silent', async () => {
+  jest.useFakeTimers();
+  try {
+    const ask = await LiveAsk.begin(START);
+    const ws = FakeSocket.last;
+    ws.onopen?.();
+    const done = ask.finish(handlers());
+    jest.advanceTimersByTime(91000);
+    const err = await done.catch((e) => e);
+    expect(err).not.toBeInstanceOf(LiveUnavailable);
+    expect(followUpFailureOf(err)).toBe('retry');
+  } finally {
+    jest.useRealTimers();
+  }
 });

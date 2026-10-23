@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
+import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { supabase } from '@/lib/supabase';
 import { teacherNameNow } from '@/lib/preferences';
@@ -79,6 +80,89 @@ export type ResolveEvent =
   | { kind: 'reset' }
   | { kind: 'resolved'; question: Record<string, unknown> }
   | { kind: 'failed'; doubtId: string; message: string };
+
+/**
+ * Why a follow-up got no answer, in the terms the bar can act on.
+ *
+ * `retry`: pressing again may well work. `pass`: the student's pass has ended
+ * — the app root has already been told and is opening Plans, so "Try again"
+ * would only loop. `quota`: the day's follow-ups are used up (the API's
+ * FOLLOWUP_DAILY_LIMIT, app/rate_limit.py), and nothing works until they free
+ * up, so there is nothing to try again either.
+ */
+export type FollowUpFailure = 'retry' | 'pass' | 'quota';
+
+/** Whether an error body or frame is the API's daily-limit refusal. */
+export function isFollowUpQuota(status: number | undefined, payload: unknown): boolean {
+  if (!payload || typeof payload !== 'object') return status === 429;
+  const p = payload as { stage?: unknown; status?: unknown; detail?: unknown };
+  const detail = (p.detail && typeof p.detail === 'object' ? p.detail : p) as { stage?: unknown };
+  return detail.stage === 'quota' || status === 429 || p.status === 429;
+}
+
+export class FollowUpError extends Error {
+  kind: FollowUpFailure;
+  constructor(message: string, kind: FollowUpFailure) {
+    super(message);
+    this.name = 'FollowUpError';
+    this.kind = kind;
+  }
+}
+
+/** The kind of any rejection from the ask routes; anything unknown is `retry`. */
+export function followUpFailureOf(err: unknown): FollowUpFailure {
+  return err instanceof FollowUpError ? err.kind : 'retry';
+}
+
+/**
+ * A refused ask, read the way `apiFetch` reads one.
+ *
+ * These routes go through XHR, not `apiFetch`, so nothing else would notice a
+ * 402: the pass gate never heard about it and the bar said "Try again" to a
+ * student whose every attempt would be refused the same way.
+ */
+export function followUpRefusal(status: number, responseText: string): FollowUpError {
+  let body: unknown = null;
+  try {
+    body = JSON.parse(responseText || 'null');
+  } catch {
+    // An infra page, not the API's JSON: an ordinary failure.
+  }
+  if (status === 402 && isPassRequired(body)) {
+    signalPassRequired();
+    return new FollowUpError('You need a pass to continue.', 'pass');
+  }
+  if (status === 429 && isFollowUpQuota(status, body)) {
+    return new FollowUpError('You have used today’s follow-ups.', 'quota');
+  }
+  return new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry');
+}
+
+/**
+ * How long an ask may go without a byte before it is given up on.
+ *
+ * None of these requests had a ceiling, so a connection that stalled left the
+ * bar on "One moment" for as long as the student was willing to look at it.
+ * An idle limit rather than a total one: a long answer with its voice behind
+ * it can stream for well over a minute, but never goes quiet for this long.
+ */
+export const FOLLOWUP_IDLE_MS = 90000;
+
+/** A restartable idle clock: `touch` on every arrival, `stop` when settled. */
+export function idleClock(ms: number, onIdle: () => void): { touch: () => void; stop: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const stop = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  return {
+    touch: () => {
+      stop();
+      timer = setTimeout(onIdle, ms);
+    },
+    stop,
+  };
+}
 
 /** Everything after the last complete `\n\n`, left for the next chunk. */
 export function parseFrames(chunk: string): { event: string; data: unknown }[] {
@@ -167,7 +251,10 @@ export function askAboutDoubt(
   surface: FollowUpSurface = 'doubts',
   page?: TextbookPageContext
 ): Promise<void> {
-  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history, ...(page ? { page } : {}) }),
+  // `pcm` as the spoken route declares it (FollowUpRequest.pcm on the API), so
+  // a typed question's voice arrives in the dialect this build plays best.
+  return streamAsk(doubtId, 'ask',
+                   JSON.stringify({ question, history, pcm: pcmAvailable, ...(page ? { page } : {}) }),
                    handlers, signal, surface);
 }
 
@@ -252,9 +339,16 @@ export function speakFollowUpStreaming(
       const xhr = new XMLHttpRequest();
       let consumed = 0;
       let done = false;
+      // A voice that stalls ends quietly, like one that fails: the bar would
+      // otherwise sit on "Answering…" with nothing coming.
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        xhr.abort();
+        finish();
+      });
       const finish = () => {
         if (done) return;
         done = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         resolve();
       };
@@ -293,13 +387,17 @@ export function speakFollowUpStreaming(
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', 'text/event-stream');
-      xhr.onprogress = drain;
+      xhr.onprogress = () => {
+        idle.touch();
+        drain();
+      };
       xhr.onerror = finish;
       xhr.ontimeout = finish;
       xhr.onload = () => {
         drain();
         finish();
       };
+      idle.touch();
       xhr.send(JSON.stringify({ text: spoken }));
     })().catch(() => resolve());
   });
@@ -391,10 +489,17 @@ function streamAsk(
       let consumed = 0;
       let settled = false;
       let failure: string | null = null;
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        xhr.abort();
+        finish(() =>
+          reject(new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry'))
+        );
+      });
 
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         fn();
       };
@@ -424,13 +529,12 @@ function streamAsk(
         xhr.setRequestHeader('Content-Type', 'application/json');
       }
       xhr.onreadystatechange = () => {
+        idle.touch();
         if (xhr.readyState >= 3) drain();
         if (xhr.readyState !== 4) return;
         drain();
         if (xhr.status >= 400) {
-          finish(() =>
-            reject(new Error(`${teacherNameNow()} could not answer that just now. Try again in a moment.`))
-          );
+          finish(() => reject(followUpRefusal(xhr.status, xhr.responseText ?? '')));
           return;
         }
         if (failure) {
@@ -441,6 +545,9 @@ function streamAsk(
       };
       xhr.onerror = () =>
         finish(() => reject(new Error('Couldn’t reach the server. Check your connection.')));
+      // A spoken question's upload counts as the request moving.
+      if (xhr.upload) xhr.upload.onprogress = idle.touch;
+      idle.touch();
       xhr.send(body as XMLHttpRequestBodyInit);
     })().catch((err) => reject(err));
   });

@@ -1,4 +1,5 @@
-import { DoubtPhoto, SnapFailure, SnappedQuestion, SnapResponse } from '@/lib/doubts';
+import { DoubtPhoto, SnapFailure, SnappedQuestion, SnapResponse, plainRefusal } from '@/lib/doubts';
+import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -66,6 +67,24 @@ export interface SnapStreamHandlers {
 /** Anything the server can send. Unknown names are ignored, not fatal. */
 type Frame = { event: string; data: unknown };
 
+/**
+ * How far a stream got before it broke, attached to every transport failure
+ * (timeout, dropped connection, a stream that ended without `done`).
+ *
+ * `framesReceived` is the line between "never started" and "started and then
+ * broke". Before the first frame the server may not have the photo at all, so
+ * the plain `POST /doubts` is a fair second try. After it, the server has the
+ * photo and saves and charges each answer as it finishes — a second upload
+ * would solve the same page again, bill it twice and leave two copies in the
+ * Library. `questions` is whatever had already arrived, so the caller can show
+ * those instead of nothing.
+ */
+export type StreamCut = {
+  framesReceived: boolean;
+  meta: Record<string, unknown>;
+  questions: SnappedQuestion[];
+};
+
 function parseFrames(chunk: string): Frame[] {
   const out: Frame[] = [];
   for (const block of chunk.split('\n\n')) {
@@ -131,12 +150,45 @@ export function snapDoubtStreaming(
       let failure: SnapFailure | null = null;
       let consumed = 0;
       let settled = false;
+      let framesReceived = false;
+      let doneSeen = false;
+      let idleTimer: ReturnType<typeof setTimeout> | null = null;
+      let wholeTimer: ReturnType<typeof setTimeout> | null = null;
 
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
+        if (idleTimer) clearTimeout(idleTimer);
+        if (wholeTimer) clearTimeout(wholeTimer);
         signal?.removeEventListener('abort', onAbort);
         fn();
+      };
+      /** A transport failure, carrying how far the stream got. */
+      const cut = (message: string) =>
+        Object.assign(new Error(message), {
+          streamCut: {
+            framesReceived,
+            meta,
+            questions: questions.slice().sort((a, b) => a.question_index - b.question_index),
+          } satisfies StreamCut,
+        });
+      const timedOut = () => {
+        xhr.abort();
+        finish(() => reject(cut('That took longer than expected. Try again.')));
+      };
+      /**
+       * An IDLE limit, reset by anything arriving, rather than one ceiling on
+       * the whole request. A healthy page of three can run past two minutes,
+       * but it is never quiet for long: the server sends a `thinking` tick
+       * every few seconds while a solve runs. What this catches is a stream
+       * that has actually stopped. `xhr.timeout` cannot do it — Android's
+       * OkHttp applies it to the whole call, iOS to the gap between packets —
+       * so the clock is kept here, the same on both.
+       */
+      const touch = () => {
+        if (settled) return;
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(timedOut, SNAP_STREAM_IDLE_MS);
       };
       function onAbort() {
         xhr.abort();
@@ -152,6 +204,7 @@ export function snapDoubtStreaming(
         const chunk = text.slice(consumed, boundary + 2);
         consumed = boundary + 2;
         for (const frame of parseFrames(chunk)) {
+          framesReceived = true;
           const payload = (frame.data ?? {}) as Record<string, unknown>;
           switch (frame.event) {
             case 'meta':
@@ -175,6 +228,7 @@ export function snapDoubtStreaming(
               break;
             case 'done':
               meta = { ...meta, ...payload };
+              doneSeen = true;
               break;
             case 'step':
             case 'step_partial': {
@@ -206,12 +260,16 @@ export function snapDoubtStreaming(
       xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/doubts/stream`);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.setRequestHeader('Accept', 'text/event-stream');
-      xhr.timeout = SNAP_STREAM_TIMEOUT_MS;
-      xhr.onprogress = drain;
-      xhr.ontimeout = () =>
-        finish(() => reject(new Error('That took longer than expected. Try again.')));
+      xhr.onprogress = () => {
+        touch();
+        drain();
+      };
+      // A slow upload is not a stalled stream: a 5 MB photo on weak mobile
+      // data can take a while before the server has anything to say.
+      if (xhr.upload) xhr.upload.onprogress = touch;
+      xhr.ontimeout = timedOut;
       xhr.onerror = () =>
-        finish(() => reject(new Error('Could not reach the solver. Check your connection.')));
+        finish(() => reject(cut('Could not reach the solver. Check your connection.')));
       xhr.onload = () => {
         drain();
         if (xhr.status >= 400) {
@@ -223,16 +281,51 @@ export function snapDoubtStreaming(
           } catch {
             /* falls through to the generic message */
           }
-          const detail = (parsed.detail ?? parsed) as Record<string, unknown>;
-          finish(() => reject(Object.assign(new Error(String(detail.message ?? `HTTP ${xhr.status}`)), {
-            snapFailure: failureFrom(detail),
-            status: xhr.status,
-          })));
+          // The pass has ended. `apiFetch` tells the app root, which opens
+          // Plans; this route is XHR, so it has to say so itself — without it
+          // the student got "That was on our end" and a Try again that could
+          // only be refused again.
+          if (xhr.status === 402 && isPassRequired(parsed)) {
+            signalPassRequired();
+            const passFailure: SnapFailure = {
+              message: 'You need a pass to continue.',
+              stage: 'pass',
+              remedy: 'our_side',
+              retake_helps: false,
+            };
+            finish(() =>
+              reject(Object.assign(new Error(passFailure.message), { snapFailure: passFailure, status: 402 }))
+            );
+            return;
+          }
+          // `detail` is a sentence for the size cap and the file checks
+          // (`HTTPException(413, detail="That photo is larger than…")`) and
+          // an object only for the snap's own refusals. Reading `.message` off
+          // the sentence gave "HTTP 413" and "That was on our end".
+          const raw = parsed.detail ?? parsed;
+          const snapFailure =
+            typeof raw === 'string'
+              ? plainRefusal(xhr.status, raw)
+              : xhr.status === 413
+                ? plainRefusal(413, '')
+                : failureFrom(raw as Record<string, unknown>);
+          finish(() =>
+            reject(Object.assign(new Error(snapFailure.message || `HTTP ${xhr.status}`), {
+              snapFailure,
+              status: xhr.status,
+            }))
+          );
           return;
         }
         if (failure) {
           const err = Object.assign(new Error(failure.message), { snapFailure: failure });
           finish(() => reject(err));
+          return;
+        }
+        // Closed without `done` and without an error: a proxy or the network
+        // ended it mid-page, which is a cut, not a finished solve.
+        if (!doneSeen) {
+          finish(() => reject(cut('The connection dropped before the answer arrived.')));
           return;
         }
         finish(() =>
@@ -244,10 +337,23 @@ export function snapDoubtStreaming(
           } as SnapResponse)
         );
       };
+      touch();
+      wholeTimer = setTimeout(timedOut, SNAP_STREAM_MAX_MS);
       xhr.send(body as unknown as Document);
     })().catch((err) => reject(err));
   });
 }
 
-/** Matches the non-streaming ceiling; a page of five can genuinely take this. */
-const SNAP_STREAM_TIMEOUT_MS = 150000;
+/**
+ * The longest the stream may go without a byte. The quiet stretch is reading
+ * the photo, before `meta`: the server gives that read 45s and one retry
+ * (`TRANSCRIBE_TIMEOUT_S`, `max_retries=1` in app/snap.py), so up to ~90s,
+ * plus the figure read, with the upload in front of it. Once solving starts a
+ * tick lands every few seconds.
+ */
+const SNAP_STREAM_IDLE_MS = 120000;
+/**
+ * A backstop on the whole request, for a stream that keeps ticking and never
+ * finishes. Well past the server's own worst case (~45s read, 150s solve).
+ */
+const SNAP_STREAM_MAX_MS = 300000;

@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StateCard } from '@/components/states';
+import { stageCopy } from '@/components/snap-loading';
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
 import { hapticSoft, hapticTicked, hapticWarning } from '@/lib/haptics';
@@ -48,6 +49,14 @@ export default function SnapSolvedScreen() {
   // screen is the one that waits. See lib/snap-job.ts.
   const job = useSnapJob();
   const response = job.status === 'solved' ? job.response : null;
+
+  /**
+   * The way out of a state card. These screens have no header — the card is
+   * the whole page — so a failed or empty solve had no visible way back but
+   * the system gesture. The quiet link under the card is the one snap-capture's
+   * limit card already offers.
+   */
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   // Dropped on the way out so coming back never shows a stale answer. A solve
   // still running is deliberately left alone — see clearFinishedSnapJob.
@@ -175,16 +184,29 @@ export default function SnapSolvedScreen() {
                 title="You've used today's snaps"
                 line="Snaps open again tomorrow. Everything you've solved is in Doubts."
                 action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
+            ) : job.failure.stage === 'pass' ? (
+              // The app root is already opening Plans; this is what shows if
+              // it has not. "Try another photo" would be refused the same way.
+              <StateCard
+                glyph="clock"
+                title="Your pass has ended"
+                line="Pick a plan to keep snapping. Everything you've solved is still in Doubts."
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Close', onPress: close }}
               />
             ) : (
               <StateCard
                 glyph="retry"
-                title="Couldn't solve this one"
+                title={stageCopy(job.failure.stage, job.failure.message)?.title ?? "Couldn't solve this one"}
                 line={
+                  stageCopy(job.failure.stage, job.failure.message)?.body ??
                   (job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
                   withTeacherName(job.failure.message)
                 }
                 action={{ label: 'Try another photo', onPress: () => router.replace('/snap-capture') }}
+                quiet={{ label: 'Close', onPress: close }}
               />
             )}
           </View>
@@ -204,6 +226,7 @@ export default function SnapSolvedScreen() {
               title="Nothing solved yet"
               line="Snap a question and it'll land here once it's solved."
               action={{ label: 'Snap a question', onPress: () => router.replace('/snap-capture') }}
+              quiet={{ label: 'Close', onPress: close }}
             />
           </View>
         </SafeAreaView>

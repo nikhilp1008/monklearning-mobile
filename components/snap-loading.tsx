@@ -432,12 +432,43 @@ export function SnapFailed({
   );
 }
 
+/**
+ * Failures that are about neither the shot nor the solver, so the remedy's
+ * copy would say the wrong thing: a dropped connection is not "that was on our
+ * end", and a photo over the size cap is not one we "couldn't read".
+ */
+export function stageCopy(
+  stage: string | null | undefined,
+  message: string
+): { title: string; body: string } | null {
+  if (stage === 'network') {
+    return {
+      title: 'We lost the connection',
+      body: 'Nothing wrong with your photo. Check your connection and try again.',
+    };
+  }
+  if (stage === 'too_large') {
+    return {
+      title: 'That photo is too large',
+      body: 'Photos up to 10 MB go through. A closer shot of just the question usually is.',
+    };
+  }
+  // Wrong file type, an empty file: the sentence is ours (lib/doubts.ts
+  // rejectPhoto) or the API's plain one, and says exactly what to change.
+  if (stage === 'rejected' && message) {
+    return { title: 'We can’t send that one', body: message };
+  }
+  return null;
+}
+
 /** The remedy's copy, or the server's sentence if we do not know the remedy. */
 export function failureCopy(
   remedy: string | null | undefined,
-  serverMessage: string
+  serverMessage: string,
+  stage?: string | null
 ): { title: string; body: string } {
   return (
+    stageCopy(stage, serverMessage) ??
     FAILURE_COPY[remedy ?? ''] ?? {
       title: 'We couldn’t read that one',
       // The server says "Monk"; the student knows their teacher by name.
