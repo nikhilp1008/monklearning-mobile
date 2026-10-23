@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScriptText } from '@/components/script-text';
+import { hasDrawnScripts, ScriptText } from '@/components/script-text';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { BoardDiagram } from '@/components/board-diagram';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -48,6 +49,11 @@ const AMBER = '#B8860B';
 const PAPER = '#FFFEFB';
 const RULE = 'rgba(42,53,80,0.05)';
 const QUIET = '#8A8577';
+/** A yellow highlighter, laid over ink: see-through, so the ink stays dark. */
+const HIGHLIGHT = 'rgba(255, 214, 51, 0.42)';
+/** A sticky note, and the pencil written on it. */
+const STICKY = '#FFF4C2';
+const TIP_INK = '#6B5A1E';
 const LH = 26;
 
 /** The pens on the desk, in the order a page picks them up. */
@@ -188,6 +194,134 @@ function Bulb({ color }: { color: string }) {
         fill="none"
       />
       <Path d="M6.4 12.4h3.2M7 14h2" stroke={color} strokeWidth={1.3} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** The warning sign beside an exam trap, drawn in the red pen. */
+function Warn() {
+  return (
+    <Svg width={15} height={LH} viewBox={`0 0 16 ${LH}`}>
+      <Path
+        d={`M8 ${LH / 2 - 6.5} L14.5 ${LH / 2 + 5.5} L1.5 ${LH / 2 + 5.8} Z`}
+        stroke={RED}
+        strokeWidth={1.3}
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Path d={`M8 ${LH / 2 - 2} v4.2`} stroke={RED} strokeWidth={1.4} strokeLinecap="round" />
+      <Circle cx={8} cy={LH / 2 + 3.6} r={0.9} fill={RED} />
+    </Svg>
+  );
+}
+
+/**
+ * A highlighter swipe under each written line, the length of the words on it.
+ *
+ * A background on the text itself ran to the end of the line box, past the
+ * last word to the margin on every wrapped line; a real highlighter stops
+ * where the writing does. The swipes sit a little low and are never quite
+ * level, as a hand draws them.
+ */
+function Highlighted({ text, style }: { text: string; style: object }) {
+  const [lines, setLines] = useState<{ x: number; y: number; width: number; height: number }[]>([]);
+  return (
+    <View>
+      {lines.map((l, i) => (
+        <View
+          key={i}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: l.x - 3,
+            top: l.y + l.height * 0.2,
+            width: l.width + 6,
+            height: l.height * 0.66,
+            backgroundColor: HIGHLIGHT,
+            borderRadius: 4,
+            transform: [{ rotate: `${n(i, 9, 0.35)}deg` }],
+          }}
+        />
+      ))}
+      <Text
+        style={style}
+        onTextLayout={(e) =>
+          setLines(
+            e.nativeEvent.lines
+              .filter((l) => l.text.trim())
+              .map((l) => ({ x: l.x, y: l.y, width: l.width, height: l.height }))
+          )
+        }>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * A FIGURE FROM CLASS, TAPED INTO THE NOTEBOOK. The picture the board drew,
+ * on a white card stuck in at a slight angle with two strips of tape, and the
+ * part it came from written under it in pencil.
+ */
+function TapedFigure({
+  svg,
+  caption,
+  seed,
+  styles: s,
+}: {
+  svg: string;
+  caption: string;
+  seed: number;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const { width } = useWindowDimensions();
+  // The page's gutters (24 each side) and the card's own padding (12 each side).
+  const inner = Math.max(160, width - 48 - 24 - 8);
+  return (
+    <View style={[s.figureCard, { transform: [{ rotate: `${n(seed, 11, 0.9)}deg` }] }]}>
+      <View style={[s.tape, s.tapeLeft]} />
+      <View style={[s.tape, s.tapeRight]} />
+      <BoardDiagram svg={svg} availableWidth={inner} maxHeight={280} />
+      {!!caption && <Text style={s.figureCaption}>{caption}</Text>}
+    </View>
+  );
+}
+
+/** The arrow a student draws before each step of a chain. */
+function Arrow({ color }: { color: string }) {
+  return (
+    <Svg width={16} height={LH} viewBox={`0 0 16 ${LH}`}>
+      <Path
+        d={`M1.5 ${LH / 2 + 0.6} Q 7 ${LH / 2 - 0.8} 13 ${LH / 2}`}
+        stroke={color}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d={`M9.5 ${LH / 2 - 3.4} L13.4 ${LH / 2} L9.6 ${LH / 2 + 3.3}`}
+        stroke={color}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+/** The pencil on a margin note. */
+function Pencil() {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 16 16">
+      <Path
+        d="M3 13l1-3.6 7.2-7.2a1.4 1.4 0 0 1 2 0l.6.6a1.4 1.4 0 0 1 0 2L6.6 12 3 13Z"
+        stroke={TIP_INK}
+        strokeWidth={1.2}
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Path d="M10 3.4l2.6 2.6" stroke={TIP_INK} strokeWidth={1.2} />
     </Svg>
   );
 }
@@ -374,10 +508,57 @@ function Line({
   const nudge = { transform: [{ translateX: n(index, 3, 1.2) }] };
 
   if (line.k === 'formula') {
+    // A formula with drawn parts is laid out as a wrapping row, which a box
+    // that sizes itself to its content measures as one word wide (the fraction
+    // spilled out under it): such a box takes the line's width instead.
+    const drawnParts = hasDrawnScripts(line.r ?? '');
     return (
-      <Boxed color={VIOLET} seed={index + 3} style={[s.formulaBox, nudge]}>
+      <Boxed
+        color={VIOLET}
+        seed={index + 3}
+        style={[s.formulaBox, drawnParts && s.formulaBoxWide, nudge]}>
         <ScriptText raw={line.r} text={line.t} style={s.formulaText} />
       </Boxed>
+    );
+  }
+  if (line.k === 'figure') {
+    return <TapedFigure svg={line.svg} caption={line.t} seed={index} styles={s} />;
+  }
+  if (line.k === 'key') {
+    // The highlighter goes over the words, line by line, as a real one does;
+    // a line with drawn subscripts is one block, so it gets one swipe.
+    return hasDrawnScripts(line.r ?? '') ? (
+      <View style={[s.keyBlock, nudge]}>
+        <ScriptText raw={line.r} text={line.t} style={s.bodyLine} />
+      </View>
+    ) : (
+      <View style={[s.keyLine, nudge]}>
+        <Highlighted text={line.t} style={s.bodyLine} />
+      </View>
+    );
+  }
+  if (line.k === 'trap') {
+    return (
+      <View style={[s.bulletRow, nudge]}>
+        <Warn />
+        <ScriptText raw={line.r} text={line.t} style={[s.bulletText, s.trapText]} />
+      </View>
+    );
+  }
+  if (line.k === 'tip') {
+    return (
+      <View style={[s.sticky, { transform: [{ rotate: `${n(index, 7, 1.1)}deg` }] }]}>
+        <Pencil />
+        <ScriptText raw={line.r} text={line.t} style={s.tipText} />
+      </View>
+    );
+  }
+  if (line.k === 'step') {
+    return (
+      <View style={[s.bulletRow, s.stepRow, nudge]}>
+        <Arrow color={colour} />
+        <ScriptText raw={line.r} text={line.t} style={s.bulletText} />
+      </View>
     );
   }
   if (line.k === 'sub') {
@@ -457,6 +638,73 @@ function createStyles() {
     bulletText: { flex: 1, fontFamily: HAND, fontSize: 15, lineHeight: LH, color: INK },
     tick: { fontFamily: HAND, fontSize: 13, lineHeight: LH, color: GREEN },
 
+    /** ★ — the line to remember, under a highlighter. */
+    keyLine: { marginVertical: 2 },
+    keyBlock: {
+      alignSelf: 'flex-start',
+      backgroundColor: HIGHLIGHT,
+      borderRadius: 3,
+      paddingHorizontal: 3,
+      marginVertical: 2,
+    },
+    /** ⚠ — an exam trap, in the red pen. */
+    trapText: { color: RED },
+    /** ✎ — a margin tip on a sticky note, tilted as it was stuck. */
+    sticky: {
+      alignSelf: 'flex-start',
+      maxWidth: '92%',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 6,
+      marginVertical: 8,
+      marginLeft: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      backgroundColor: STICKY,
+      borderRadius: 2,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
+    },
+    tipText: { flexShrink: 1, fontFamily: HAND, fontSize: 14, lineHeight: 21, color: TIP_INK },
+    /** A class figure on a card taped into the page. */
+    figureCard: {
+      alignSelf: 'center',
+      marginVertical: 18,
+      paddingTop: 14,
+      paddingBottom: 8,
+      paddingHorizontal: 12,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 3,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    tape: {
+      position: 'absolute',
+      top: -9,
+      width: 58,
+      height: 18,
+      backgroundColor: 'rgba(222, 205, 160, 0.62)',
+      zIndex: 1,
+    },
+    tapeLeft: { left: 10, transform: [{ rotate: '-8deg' }] },
+    tapeRight: { right: 10, transform: [{ rotate: '7deg' }] },
+    figureCaption: {
+      fontFamily: HAND,
+      fontSize: 13,
+      lineHeight: 19,
+      color: QUIET,
+      textAlign: 'center',
+      marginTop: 4,
+    },
+    /** → — a step, set in from the bullets. */
+    stepRow: { paddingLeft: 8, gap: 5 },
+
     formulaBox: {
       alignSelf: 'flex-start',
       maxWidth: '100%',
@@ -464,6 +712,7 @@ function createStyles() {
       paddingVertical: 8,
       paddingHorizontal: 16,
     },
+    formulaBoxWide: { alignSelf: 'stretch' },
     formulaText: { fontFamily: HAND, fontSize: 16, lineHeight: 24, color: INK },
 
     keyBox: { marginTop: 22, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },

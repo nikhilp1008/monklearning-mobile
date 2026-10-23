@@ -8,7 +8,7 @@
  * always was.
  */
 import { useMemo } from 'react';
-import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
+import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { MathLine } from '@/components/math-line';
 import { latexToSegments } from '@/lib/latex-text';
@@ -32,12 +32,23 @@ export function ScriptText({
   const drawn = useMemo(() => hasDrawnScripts(raw), [raw]);
   if (!drawn || !raw) return <Text style={style}>{text}</Text>;
   const flat = StyleSheet.flatten(style) ?? {};
+  /**
+   * LAYOUT BELONGS TO THE LINE, NOT TO EACH WORD. MathLine sets the style on
+   * every word it lays out, so a `flex: 1` meant for the line (a bullet's
+   * text beside its dot) went onto each word: in a wrapping row every word
+   * then shrank to nothing, and a note showed an empty bullet over a tall
+   * blank gap. The line's own layout goes on a wrapper; the words get type.
+   */
+  const { flex, flexGrow, flexShrink, flexBasis, alignSelf, transform, ...type } = flat;
+  const box: ViewStyle = { flex, flexGrow, flexShrink, flexBasis, alignSelf, transform } as ViewStyle;
   return (
-    <MathLine
-      text={raw}
-      style={style}
-      fontSize={typeof flat.fontSize === 'number' ? flat.fontSize : 15}
-      color={typeof flat.color === 'string' ? flat.color : '#1d1d1b'}
-    />
+    <View style={box}>
+      <MathLine
+        text={raw}
+        style={type}
+        fontSize={typeof flat.fontSize === 'number' ? flat.fontSize : 15}
+        color={typeof flat.color === 'string' ? flat.color : '#1d1d1b'}
+      />
+    </View>
   );
 }

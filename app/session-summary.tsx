@@ -21,7 +21,7 @@ import { ObButton } from '@/components/onboarding-kit';
 import { ProofMoment } from '@/components/proof-moment';
 import { usePortraitLock } from '@/hooks/use-landscape-lock';
 import { MOMENTS_VISIBLE } from '@/constants/features';
-import { saveNote } from '@/lib/notes';
+import { noteForSession, saveNote } from '@/lib/notes';
 import { endDronaSession, type DronaSessionEnd } from '@/lib/drona-live';
 import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
 import { peekSessionEnd } from '@/lib/session-end';
@@ -97,6 +97,12 @@ const FADE = 22;
 const SHOWN = 2;
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+/** How often the class-end screen asks whether its note is written, and for
+ *  how long before it sends the student to Notes instead (a note takes about
+ *  10-15 s to write). */
+const NOTE_POLL_MS = 3000;
+const NOTE_WAIT_MS = 60000;
 
 export default function SessionSummaryScreen() {
   // Reached straight from the landscape classroom, so it asks for portrait
@@ -245,7 +251,53 @@ export default function SessionSummaryScreen() {
     };
   }, [params.sessionId]);
 
+  /**
+   * NOTES WRITE THEMSELVES. A server that writes the note at class end says
+   * so (`note`), and the key stops being "Save": it waits for the note
+   * ("Writing your notes…"), then opens it. Asked every few seconds; after
+   * NOTE_WAIT_MS it stops asking and sends the student to Notes, where it
+   * will be.
+   */
+  const autoNote = summary?.note;
+  const [autoNoteId, setAutoNoteId] = useState<string | null>(null);
+  const [autoNoteSlow, setAutoNoteSlow] = useState(false);
+  useEffect(() => {
+    if (autoNote !== 'writing' || !params.sessionId) return;
+    let alive = true;
+    const startedAt = Date.now();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const ask = async () => {
+      try {
+        const res = await noteForSession(params.sessionId!);
+        if (!alive) return;
+        if (res.ready && res.id) {
+          setAutoNoteId(res.id);
+          hapticSuccess();
+          return;
+        }
+      } catch {
+        // A failed ask is the same as "not yet".
+      }
+      if (!alive) return;
+      if (Date.now() - startedAt >= NOTE_WAIT_MS) {
+        setAutoNoteSlow(true);
+        return;
+      }
+      timer = setTimeout(ask, NOTE_POLL_MS);
+    };
+    timer = setTimeout(ask, NOTE_POLL_MS);
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [autoNote, params.sessionId]);
+
   const handleSave = async () => {
+    if (autoNote === 'writing') {
+      if (autoNoteId) router.push({ pathname: '/note-detail', params: { id: autoNoteId } });
+      else if (autoNoteSlow) router.push('/(tabs)/notes');
+      return;
+    }
     if (!params.sessionId || saveState === 'saving') return;
     if (saveState === 'saved') {
       if (savedNoteId.current) {
@@ -269,7 +321,13 @@ export default function SessionSummaryScreen() {
 
   /** 4A's own label. "Save to notes" read as a destination; this is an act. */
   const saveLabel =
-    saveState === 'saving'
+    autoNote === 'writing'
+      ? autoNoteId
+        ? 'Open your notes'
+        : autoNoteSlow
+          ? 'Open Notes'
+          : 'Writing your notes\u2026'
+      : saveState === 'saving'
       ? 'Saving\u2026'
       : saveState === 'saved'
         ? 'Saved \u00b7 open your note'
@@ -484,17 +542,23 @@ export default function SessionSummaryScreen() {
             {/* Why the key is worth pressing, in the one place it cannot be
                 scrolled away from. */}
             <Text style={styles.foot}>
-              {params.sessionId
-                ? 'Unsaved classes are kept for seven days, then they go.'
-                : 'This class wasn\u2019t recorded, so there\u2019s nothing to save.'}
+              {!params.sessionId
+                ? 'This class wasn\u2019t recorded, so there\u2019s nothing to save.'
+                : autoNote === 'too_short'
+                  ? `Notes are made once you finish ${summary?.segments_needed_for_summary ?? 2} parts of a lesson.`
+                  : autoNote === 'writing'
+                    ? autoNoteSlow
+                      ? 'Your notes are still being written \u2014 they\u2019ll be in Notes in a moment.'
+                      : 'Your notes are written from what you covered, and kept in Notes.'
+                    : 'Unsaved classes are kept for seven days, then they go.'}
             </Text>
 
             <View style={styles.buttons}>
-              {!!params.sessionId && (
+              {!!params.sessionId && autoNote !== 'too_short' && (
                 <ObButton
                   label={saveLabel}
                   onPress={handleSave}
-                  busy={saveState === 'saving'}
+                  busy={saveState === 'saving' || (autoNote === 'writing' && !autoNoteId && !autoNoteSlow)}
                   // Saved: still a key, no longer the brightest thing here.
                   style={saveState === 'saved' ? styles.keySaved : undefined}
                 />

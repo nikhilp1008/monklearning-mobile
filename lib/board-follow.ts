@@ -58,3 +58,34 @@ export function createFollowTracker(): FollowTracker {
 export function isFling(velocityY: number | undefined): boolean {
   return velocityY === undefined || Math.abs(velocityY) > 0.05;
 }
+
+/** How much of the board the writing fills before the board moves. */
+export const PAGE_FILL = 0.8;
+
+/**
+ * WHERE THE BOARD SITS: IT TURNS A PAGE, IT DOES NOT CREEP.
+ *
+ * The board used to hold the newest line on a reading line 45% down and glide
+ * on every sentence, so it was always moving under the student's eye. Now it
+ * stays still while the writing fills it; once the writing passes PAGE_FILL of
+ * the board's height it moves ONCE, bringing the newest line back up to the
+ * reading line, and stays still again until the next 80%.
+ *
+ * `current` is where the board was last told to sit. A new heading still
+ * turns the page to itself (`headingY`). Writing that has ended up above the
+ * board's top (the board was rebuilt narrower or wider) re-centres too.
+ */
+export function pageTarget(o: {
+  current: number;
+  writingBottom: number;
+  boardHeight: number;
+  readLine: number;
+  headingY: number;
+}): number {
+  const { writingBottom, boardHeight, readLine, headingY } = o;
+  let y = Math.max(0, o.current);
+  if (writingBottom - y > boardHeight * PAGE_FILL || writingBottom < y) {
+    y = writingBottom - Math.round(boardHeight * readLine);
+  }
+  return Math.max(0, headingY, y);
+}

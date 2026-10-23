@@ -62,3 +62,21 @@ it('reveals the next part before the playhead reaches it', () => {
   playTo(1.6); // 0.4s before s2 is heard
   expect(started).toEqual(['s1', 's2']);
 });
+
+it('announces nothing while paused, even a sentence that is already due', () => {
+  const q = new PcmPlaybackQueue();
+  const started: string[] = [];
+  q.onItemStart = (id) => started.push(id);
+  q.enqueue(part('s1', 1));
+  while (mockPlayer.played < 1.0 - 1e-9) {
+    mockPlayer.played = Math.round((mockPlayer.played + 0.1) * 10) / 10;
+    jest.advanceTimersByTime(100);
+  } // s1 heard to the end
+  q.pause();
+  q.enqueue(part('s2', 1)); // arrives mid-pause: due at once on a still playhead
+  jest.advanceTimersByTime(5000);
+  expect(started).toEqual(['s1']);
+  q.resume();
+  jest.advanceTimersByTime(100);
+  expect(started).toEqual(['s1', 's2']);
+});

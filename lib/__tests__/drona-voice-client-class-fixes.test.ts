@@ -290,3 +290,95 @@ describe('the understanding check-in (time-based)', () => {
     expect(c.queue.paused).toBe(false);
   });
 });
+
+describe('pause stops everything', () => {
+  it('a question turn that completes during a pause waits for play, however long', async () => {
+    const c = await joinClass();
+    c.client.sendUtterance('aage');
+    c.send(question('Q'));
+    c.send(say('q_s1'));
+    c.client.pausePlayback();
+    c.send({ type: 'turn_complete' }); // used to re-arm the 20 s watchdog
+    jest.advanceTimersByTime(120_000);
+    expect(c.shown).toEqual([]);
+    c.client.resumePlayback();
+    expect(c.shown).toEqual([]); // the question sentence is still to be heard
+    c.queue.playToEnd();
+    expect(c.shown).toEqual(['Q']);
+  });
+
+  it('a question whose audio was all heard before the pause shows on play, not before', async () => {
+    const c = await joinClass();
+    c.client.sendUtterance('aage');
+    c.send(question('Q'));
+    c.send(say('q_s1'));
+    c.queue.playToEnd();
+    c.client.pausePlayback();
+    c.send({ type: 'turn_complete' }); // queue idle: this used to mount at once
+    jest.advanceTimersByTime(60_000);
+    expect(c.shown).toEqual([]);
+    c.client.resumePlayback();
+    expect(c.shown).toEqual(['Q']);
+  });
+
+  it('the turn-error release waits for play too', async () => {
+    const c = await joinClass();
+    c.client.sendUtterance('aage');
+    c.send(question('Q'));
+    c.client.pausePlayback();
+    c.send({ type: 'turn_error', message: 'x' });
+    jest.advanceTimersByTime(120_000);
+    expect(c.shown).toEqual([]);
+    c.client.resumePlayback();
+    expect(c.shown).toEqual(['Q']);
+  });
+
+  it('never asks the check-in while paused', async () => {
+    let asked = 0;
+    const c = await joinClass({ onCheckin: () => (asked += 1) });
+    for (let i = 1; i <= 40; i += 1) {
+      c.send(say(`t1_s${i}`));
+      c.queue.startNext();
+    }
+    c.client.pausePlayback();
+    c.send(say('t1_s41'));
+    c.queue.startNext(); // even a sentence start the queue reports
+    expect(asked).toBe(0);
+  });
+
+  it('the card\'s auto "carry on" does not restart a class the student paused', async () => {
+    let closed = 0;
+    const c = await joinClass({ onCheckin: () => {}, onCheckinClosed: () => (closed += 1) });
+    for (let i = 1; i <= 41; i += 1) {
+      c.send(say(`t1_s${i}`));
+      c.queue.startNext();
+    }
+    c.client.pausePlayback();
+    c.client.answerCheckin('ok'); // the screen's 10 s timeout
+    expect(c.queue.paused).toBe(true);
+    expect(c.client.isPaused).toBe(true);
+  });
+
+  it('play over the check-in card closes it and carries on', async () => {
+    let closed = 0;
+    const c = await joinClass({ onCheckin: () => {}, onCheckinClosed: () => (closed += 1) });
+    for (let i = 1; i <= 41; i += 1) {
+      c.send(say(`t1_s${i}`));
+      c.queue.startNext();
+    }
+    c.client.pausePlayback();
+    c.client.resumePlayback();
+    expect(closed).toBe(1);
+    expect(c.queue.paused).toBe(false);
+  });
+
+  it('speaking during a pause ends it, so the reply is heard', async () => {
+    let ended = 0;
+    const c = await joinClass({ onPauseEnded: () => (ended += 1) });
+    c.client.pausePlayback();
+    c.client.sendPttStart();
+    expect(ended).toBe(1);
+    expect(c.client.isPaused).toBe(false);
+    expect(c.queue.paused).toBe(false);
+  });
+});
