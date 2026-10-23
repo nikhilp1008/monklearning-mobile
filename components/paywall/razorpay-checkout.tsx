@@ -293,10 +293,18 @@ function CheckoutSheet({
   // The measurement is still not trusted on its own. The header is also never
   // allowed closer to the top than a Dynamic Island needs: on an older phone
   // that makes the header a little taller, on a new one it is exactly the
-  // inset. Android's Modal already starts below its status bar.
+  // inset.
+  //
+  // ANDROID TOO. This used to say "Android's Modal already starts below its
+  // status bar". With edge-to-edge on (app.json, target SDK 36) it does not:
+  // on an Android 15/16 phone the header drew under the status bar, "Secure
+  // payment" ran into the clock and Close could not be tapped (seen on the
+  // emulator, 2026-10-23; only the back key left the sheet). The inset read
+  // out here is right on Android as well, and the bottom one keeps Razorpay's
+  // last line off the gesture bar.
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'ios' ? Math.max(insets.top, IOS_MIN_TOP_CLEARANCE) : 0;
-  const bottom = Platform.OS === 'ios' ? insets.bottom : 0;
+  const top = Platform.OS === 'ios' ? Math.max(insets.top, IOS_MIN_TOP_CLEARANCE) : insets.top;
+  const bottom = insets.bottom;
   // Razorpay lets a declined payment be retried inside its own sheet, so a
   // decline is not the end. It is remembered, and reported only if the student
   // then leaves without paying.
