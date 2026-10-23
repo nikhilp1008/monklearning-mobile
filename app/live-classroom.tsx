@@ -95,7 +95,7 @@ import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudi
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
 import { startSessionEnd } from '@/lib/session-end';
-import { createFollowTracker, isFling } from '@/lib/board-follow';
+import { createFollowTracker, isFling, pageTarget } from '@/lib/board-follow';
 import { claimDronaClient } from '@/lib/drona-prewarm';
 import {
   appendBoardEvent,
@@ -622,6 +622,8 @@ export default function LiveClassroomScreen() {
         checkinTimerRef.current = null;
         setCheckin(null);
       },
+      // The student spoke or answered during a pause: the class runs again.
+      onPauseEnded: () => setPaused(false),
       onTurnStarted: () => {
         // A new turn brings the board back to the live edge. A small drag
         // earlier latched following off, and with the "Jump to live" chip
@@ -1210,10 +1212,11 @@ export default function LiveClassroomScreen() {
    * THE LIVE EDGE IS A READING LINE, NOT THE BOTTOM OF THE SCREEN.
    *
    * `scrollToEnd` put every new line at the very bottom, under the dock's
-   * shadow, where the eye has to chase it. Now the line being written is held
-   * about 45% of the way down — where a reader's eye rests — and the board
-   * glides once per sentence to keep it there. The paper below it is blank
-   * room still to be written on (`boardBottomRoom`).
+   * shadow, where the eye has to chase it. Gliding every sentence to hold the
+   * line 45% down fixed that but kept the board moving under the eye. Now the
+   * board stays still until the writing fills 80% of it, then turns a page:
+   * one glide that brings the newest line back to 45% (`pageTarget`). The
+   * paper below it is blank room still to be written on (`boardBottomRoom`).
    *
    * Two things move the line up from there:
    *  - A NEW HEADING turns the page: it glides to the top of the board, just
@@ -1233,9 +1236,18 @@ export default function LiveClassroomScreen() {
     const room = boardBottomRoom(h, boardTop);
     const writingBottom = contentHRef.current - room;
     const askTop = askTopRef.current;
-    const readY =
-      askTop != null ? Math.max(boardTop + RHYTHM * 2, askTop - 20) : Math.round(h * READ_LINE);
-    const target = Math.max(0, headingYRef.current, writingBottom - readY);
+    // A checkpoint card: what the question is about sits just above it.
+    // Otherwise the board turns a page at 80% full (pageTarget).
+    const target =
+      askTop != null
+        ? Math.max(0, headingYRef.current, writingBottom - Math.max(boardTop + RHYTHM * 2, askTop - 20))
+        : pageTarget({
+            current: followTargetRef.current,
+            writingBottom,
+            boardHeight: h,
+            readLine: READ_LINE,
+            headingY: headingYRef.current,
+          });
     followTargetRef.current = target;
     followTargetShared.value = target;
     return target;
@@ -1266,6 +1278,7 @@ export default function LiveClassroomScreen() {
   useEffect(() => {
     headingYRef.current = 0;
     glidedToRef.current = -1;
+    followTargetRef.current = 0;
     const id = setTimeout(() => glide(true), 50);
     return () => clearTimeout(id);
   }, [isLandscape, glide]);
@@ -1805,8 +1818,13 @@ export default function LiveClassroomScreen() {
   const togglePause = () => {
     setPaused((p) => {
       const next = !p;
-      if (next) clientRef.current?.pausePlayback();
-      else clientRef.current?.resumePlayback();
+      if (next) {
+        // A pause stops the check-in's "carry on" countdown too; pressing play
+        // over the card is the student carrying on (the client closes it).
+        if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+        checkinTimerRef.current = null;
+        clientRef.current?.pausePlayback();
+      } else clientRef.current?.resumePlayback();
       return next;
     });
   };
@@ -2826,12 +2844,13 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-/** Where the line being written is held, as a share of the board's height. */
-/** How long a student who scrolled away is left reading before the board
- *  returns to the live edge by itself. */
 /** A check-in with no tap carries on as "ok" after this long. */
 const CHECKIN_AUTO_OK_MS = 10000;
+/** How long a student who scrolled away is left reading before the board
+ *  returns to the live edge by itself. */
 const RESUME_FOLLOW_MS = 5000;
+/** Where the newest line lands after the board turns a page, as a share of
+ *  the board's height (it then fills down to PAGE_FILL before moving again). */
 const READ_LINE = 0.45;
 /**
  * The blank paper under the writing: enough that the newest line can sit on

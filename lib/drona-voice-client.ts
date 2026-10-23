@@ -329,6 +329,9 @@ export interface DronaVoiceHandlers {
   onCheckin?: () => void;
   /** The check-in ended without a tap: the student spoke (raised a hand). */
   onCheckinClosed?: () => void;
+  /** The student spoke (or tapped an answer) during a pause: the class is
+   *  running again, so the screen's pause button goes back to "pause". */
+  onPauseEnded?: () => void;
   /** Server signalled the lesson itself is finished (not a disconnect). */
   onSessionEnded?: () => void;
   onError?: (message: string) => void;
@@ -970,11 +973,12 @@ export class DronaVoiceClient {
       !this.checkinOpen &&
       !this.pendingState && // a question is on its way: that is the check
       !this.awaitingDrain &&
+      !this.userPaused &&
       this.speechSinceStudentMs >= CHECKIN_AFTER_SPEECH_MS
     ) {
       this.checkinOpen = true;
       this.speechSinceStudentMs = 0;
-      this.pausePlayback();
+      this.holdPlayback();
       this.handlers.onCheckin();
       asked = true;
     }
@@ -989,7 +993,9 @@ export class DronaVoiceClient {
     this.checkinOpen = false;
     this.speechSinceStudentMs = 0;
     if (choice === 'ok' || !said) {
-      this.resumePlayback();
+      // The screen's 10 s "carry on" must not restart a class the student
+      // paused while the card was up.
+      if (!this.userPaused) this.releasePlayback();
       return;
     }
     // A doubt or "explain again" is the student speaking up: Drona stops that
@@ -1038,6 +1044,11 @@ export class DronaVoiceClient {
    */
   private armDrainWatchdog() {
     if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
+    this.drainWatchdog = null;
+    // Paused: nothing is being heard, so there is no silence to measure. A
+    // turn_complete arriving mid-pause used to re-arm this, and 20 s later it
+    // mounted the question over a class the student had stopped.
+    if (this.userPaused) return;
     this.drainWatchdog = setTimeout(() => {
       this.drainWatchdog = null;
       if (this.awaitingDrain) this.flushHeldTurn();
@@ -1053,6 +1064,18 @@ export class DronaVoiceClient {
    * caption written for the turn, which is exactly what gating on drain buys.
    */
   private flushHeldTurn() {
+    // PAUSE STOPS EVERYTHING. Whatever released the turn (drain, watchdog,
+    // turn_error timer, an idle queue at turn_complete), the question and the
+    // turn's last lines wait for the student to press play; releasePlayback
+    // finishes the job.
+    if (this.userPaused) {
+      this.awaitingDrain = true;
+      if (this.drainWatchdog) {
+        clearTimeout(this.drainWatchdog);
+        this.drainWatchdog = null;
+      }
+      return;
+    }
     this.awaitingDrain = false;
     if (this.drainWatchdog) {
       clearTimeout(this.drainWatchdog);
@@ -1364,7 +1387,9 @@ export class DronaVoiceClient {
 
     // Nothing playing: this sentence opens a run of speech. Its lines go up
     // now, while the player buffers, so the board is ahead of the first word.
-    const opensRun = this.playback.idle;
+    // Not while paused: an idle queue there is a stopped class, not a gap, and
+    // the lines wait to be written as their sentence plays.
+    const opensRun = this.playback.idle && !this.userPaused;
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
     if (opensRun && entries.length > 0) {
@@ -1386,12 +1411,14 @@ export class DronaVoiceClient {
   }
 
   sendUtterance(text: string) {
+    this.endUserPause();
     this.dropHeldTurn();
     this.sendJson({ type: 'utterance', text });
   }
 
   /** The student's answer to a checkpoint question, from a chip tap. */
   sendAnswer(text: string) {
+    this.endUserPause();
     this.dropHeldTurn();
     this.sendJson({ type: 'utterance', text });
   }
@@ -1400,6 +1427,7 @@ export class DronaVoiceClient {
     // Barge-in: stop Drona mid-sentence before the mic opens. Without this she
     // keeps talking into a live mic and speech-to-text transcribes her own
     // voice as the student's answer.
+    this.endUserPause();
     this.bargeIn();
     this.sendJson({ type: 'ptt_start' });
   }
@@ -1495,21 +1523,62 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'unmute' });
   }
 
+  /**
+   * The student's pause button. It stops EVERYTHING, not just the sound: no
+   * question or chips mount, no board line is written, no check-in asks, and
+   * nothing times out into carrying on. All of it waits for resumePlayback.
+   */
   pausePlayback() {
+    this.userPaused = true;
+    this.holdPlayback();
+  }
+
+  resumePlayback() {
+    this.userPaused = false;
+    // Play over an open "Samajh aa raha hai?" card is the student carrying on.
+    if (this.checkinOpen) {
+      this.checkinOpen = false;
+      this.speechSinceStudentMs = 0;
+      this.handlers.onCheckinClosed?.();
+    }
+    this.releasePlayback();
+  }
+
+  /** True while the student has the class paused. */
+  get isPaused() {
+    return this.userPaused;
+  }
+
+  private userPaused = false;
+
+  /** Stops the sound (the student's pause, or the check-in's). */
+  private holdPlayback() {
     this.playback.pause();
     // The drain watchdog measures time without progress, and a pause is
     // exactly that — so on a pause of any real length it would fire and mount
     // the checkpoint over a lesson the student had deliberately stopped. Held
-    // down for the duration; `resumePlayback` starts the count again from
-    // zero, which is the right reading: the student has heard nothing new.
+    // down for the duration; it starts again from zero on release, which is
+    // the right reading: the student has heard nothing new.
     if (this.drainWatchdog) {
       clearTimeout(this.drainWatchdog);
       this.drainWatchdog = null;
     }
   }
 
-  resumePlayback() {
+  private releasePlayback() {
     this.playback.resume();
-    if (this.awaitingDrain) this.armDrainWatchdog();
+    if (!this.awaitingDrain) return;
+    // A turn that finished during the pause, all of it already heard: show
+    // its question now. Otherwise wait for the rest of its audio as usual.
+    if (this.playback.idle) this.flushHeldTurn();
+    else this.armDrainWatchdog();
+  }
+
+  /** The student spoke during a pause: the class is running again. */
+  private endUserPause() {
+    if (!this.userPaused) return;
+    this.userPaused = false;
+    this.playback.resume();
+    this.handlers.onPauseEnded?.();
   }
 }

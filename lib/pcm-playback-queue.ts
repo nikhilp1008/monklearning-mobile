@@ -221,7 +221,10 @@ export class PcmPlaybackQueue {
     // counts buffers reported played back, polled every TICK_MS), so firing
     // at `startSec <= played` put a sentence's board lines up after the
     // student had already heard it. The board should lead the voice.
-    while (this.pending.length && this.pending[0].startSec <= played + REVEAL_LEAD_S) {
+    // Never while paused: the playhead stands still, so a sentence that arrives
+    // during a pause is already "due" and would write its lines and caption on
+    // a stopped class.
+    while (!this.paused && this.pending.length && this.pending[0].startSec <= played + REVEAL_LEAD_S) {
       const item = this.pending.shift()!;
       this.onItemStart?.(item.id);
     }
