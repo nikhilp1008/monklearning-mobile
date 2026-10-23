@@ -76,6 +76,17 @@ describe('the Δ labels of a chord_with_deltas sit on a plate', () => {
     });
   }
 
+  test('the plates are painted AFTER the axes, so they can mask an axis the label sits on', () => {
+    const tree = renderWidgetTreeAt(xyPlot, X_T, { tangent_at: 1, secant_to: 3 }, 343, 236) as Node;
+    const nodes = walk(tree);
+    const lastLine = Math.max(...nodes.map((n, i) => (n.type === 'RNSVGLine' ? i : -1)));
+    const plates = nodes
+      .map((n, i) => ({ n, i }))
+      .filter(({ n }) => n.type === 'RNSVGRect');
+    expect(plates).toHaveLength(2);
+    for (const { i } of plates) expect(i).toBeGreaterThan(lastLine);
+  });
+
   test('a chord without deltas has no plates', () => {
     const p = params({ ...X_T, secant: 'chord' });
     const tree = renderWidgetTreeAt(xyPlot, p, { tangent_at: 1, secant_to: 3 }, 343, 236) as Node;

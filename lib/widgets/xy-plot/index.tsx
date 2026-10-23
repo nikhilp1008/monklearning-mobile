@@ -1994,31 +1994,6 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
                 strokeWidth={HAIRLINE_STROKE}
                 strokeDasharray="4 3"
               />
-              {/* A PLATE UNDER EACH Δ LABEL (chrome.ts: "draw a filled Rect
-                  plate behind it ... fill only, no stroke"). Both labels sit
-                  where lines already are: the run label is just under the
-                  chord's foot, which is on the x axis whenever the chord
-                  starts near zero (x = 2t² from t = 1 puts the axis through
-                  "Δt 2"), and the rise label is at the middle of the riser,
-                  where the tangent at A crosses it for EVERY parabola — the
-                  tangent's value at x2 is exactly halfway up the chord's
-                  riser. A plate keeps the text readable wherever a line
-                  passes behind it. Params-derived, like the labels. */}
-              {deltaLabels.map((d) => (
-                <G key={d.key}>
-                  <Rect x={d.plate.x} y={d.plate.y} width={d.plate.w} height={d.plate.h} fill={theme.surface} />
-                  <SvgText
-                    x={d.x}
-                    y={d.y}
-                    fill={theme.inkMuted}
-                    fontSize={DELTA_SIZE}
-                    fontFamily={theme.monoFontFamily}
-                    textAnchor={d.anchor}
-                  >
-                    {d.text}
-                  </SvgText>
-                </G>
-              ))}
             </G>
           )}
         </G>
@@ -2085,6 +2060,32 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
           />
         </>
       )}
+
+      {/* A PLATE UNDER EACH Δ LABEL (chrome.ts: "draw a filled Rect plate
+          behind it ... fill only, no stroke"), drawn AFTER THE AXES so it can
+          mask them. Both labels sit where lines already are: the run label is
+          just under the chord's foot, which is on the x axis whenever the
+          chord starts near zero (x = 2t² from t = 1 puts the axis through
+          "Δt 2"), and the rise label is at the middle of the riser, where the
+          tangent at A crosses it for EVERY parabola — the tangent's value at
+          x2 is exactly halfway up the chord's riser. Axes are painted last on
+          purpose (the baseline must read as the boundary), so the plates are
+          painted after them. Params-derived, like the labels. */}
+      {deltaLabels.map((d) => (
+        <G key={d.key}>
+          <Rect x={d.plate.x} y={d.plate.y} width={d.plate.w} height={d.plate.h} fill={theme.surface} />
+          <SvgText
+            x={d.x}
+            y={d.y}
+            fill={theme.inkMuted}
+            fontSize={DELTA_SIZE}
+            fontFamily={theme.monoFontFamily}
+            textAnchor={d.anchor}
+          >
+            {d.text}
+          </SvgText>
+        </G>
+      ))}
 
       <SvgText
         x={frame.right} y={frame.bottom + TICK_LABEL_SIZE * 3.0}
