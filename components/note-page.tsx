@@ -214,6 +214,49 @@ function Warn() {
   );
 }
 
+/**
+ * A highlighter swipe under each written line, the length of the words on it.
+ *
+ * A background on the text itself ran to the end of the line box, past the
+ * last word to the margin on every wrapped line; a real highlighter stops
+ * where the writing does. The swipes sit a little low and are never quite
+ * level, as a hand draws them.
+ */
+function Highlighted({ text, style }: { text: string; style: object }) {
+  const [lines, setLines] = useState<{ x: number; y: number; width: number; height: number }[]>([]);
+  return (
+    <View>
+      {lines.map((l, i) => (
+        <View
+          key={i}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: l.x - 3,
+            top: l.y + l.height * 0.2,
+            width: l.width + 6,
+            height: l.height * 0.66,
+            backgroundColor: HIGHLIGHT,
+            borderRadius: 4,
+            transform: [{ rotate: `${n(i, 9, 0.35)}deg` }],
+          }}
+        />
+      ))}
+      <Text
+        style={style}
+        onTextLayout={(e) =>
+          setLines(
+            e.nativeEvent.lines
+              .filter((l) => l.text.trim())
+              .map((l) => ({ x: l.x, y: l.y, width: l.width, height: l.height }))
+          )
+        }>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
 /** The arrow a student draws before each step of a chain. */
 function Arrow({ color }: { color: string }) {
   return (
@@ -449,9 +492,9 @@ function Line({
         <ScriptText raw={line.r} text={line.t} style={s.bodyLine} />
       </View>
     ) : (
-      <Text style={[s.bodyLine, s.keyLine, nudge]}>
-        <Text style={s.keyInk}>{line.t}</Text>
-      </Text>
+      <View style={[s.keyLine, nudge]}>
+        <Highlighted text={line.t} style={s.bodyLine} />
+      </View>
     );
   }
   if (line.k === 'trap') {
@@ -557,7 +600,6 @@ function createStyles() {
 
     /** ★ — the line to remember, under a highlighter. */
     keyLine: { marginVertical: 2 },
-    keyInk: { backgroundColor: HIGHLIGHT },
     keyBlock: {
       alignSelf: 'flex-start',
       backgroundColor: HIGHLIGHT,
