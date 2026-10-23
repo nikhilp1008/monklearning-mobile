@@ -223,3 +223,11 @@ describe('placeFigures: the line that IS the example', () => {
     expect(out[1].lines.map((l) => l.k)).toEqual(['sub', 'step', 'step', 'figure']);
   });
 });
+
+describe('headings with symbols', () => {
+  it('reads "THE λ/a REFLEX" as a heading, and a sentence as a sentence', () => {
+    const out = parseNotePage('THE λ/a REFLEX\n• Compute λ/a once.\nA bullet-less line about a slit.');
+    expect(out[0].title).toBe('The λ/a reflex');
+    expect(out[0].lines.map((l) => l.k)).toEqual(['bullet', 'body']);
+  });
+});

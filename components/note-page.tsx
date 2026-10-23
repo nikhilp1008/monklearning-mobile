@@ -508,8 +508,15 @@ function Line({
   const nudge = { transform: [{ translateX: n(index, 3, 1.2) }] };
 
   if (line.k === 'formula') {
+    // A formula with drawn parts is laid out as a wrapping row, which a box
+    // that sizes itself to its content measures as one word wide (the fraction
+    // spilled out under it): such a box takes the line's width instead.
+    const drawnParts = hasDrawnScripts(line.r ?? '');
     return (
-      <Boxed color={VIOLET} seed={index + 3} style={[s.formulaBox, nudge]}>
+      <Boxed
+        color={VIOLET}
+        seed={index + 3}
+        style={[s.formulaBox, drawnParts && s.formulaBoxWide, nudge]}>
         <ScriptText raw={line.r} text={line.t} style={s.formulaText} />
       </Boxed>
     );
@@ -705,6 +712,7 @@ function createStyles() {
       paddingVertical: 8,
       paddingHorizontal: 16,
     },
+    formulaBoxWide: { alignSelf: 'stretch' },
     formulaText: { fontFamily: HAND, fontSize: 16, lineHeight: 24, color: INK },
 
     keyBox: { marginTop: 22, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },

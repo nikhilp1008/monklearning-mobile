@@ -98,7 +98,10 @@ export type NoteSection = {
   lines: NoteLine[];
 };
 
-const ALL_CAPS_LINE = /^[A-Z0-9 &,'’\-—():.]+$/;
+// Symbols belong to headings too ("THE λ/a REFLEX"): Greek letters, a slash,
+// and a lone lowercase letter that is a variable, not part of a word.
+// HAS_LETTER still needs a capital.
+const ALL_CAPS_LINE = /^(?:[A-Z0-9 &,'’\-—():./]|[α-ωΑ-Ω]|(?<![A-Za-z])[a-z](?![A-Za-z]))+$/;
 const HAS_LETTER = /[A-Z]/;
 const STANDALONE_FORMULA = /^\$\$?.+\$\$?$/;
 
