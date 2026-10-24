@@ -1,7 +1,7 @@
 {
   "name": "monk-learning-app",
   "main": "expo-router/entry",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "scripts": {
     "release": "npx eas-cli build --platform all --profile production --auto-submit --non-interactive",
     "release:ios": "npx eas-cli build --platform ios --profile production --auto-submit --non-interactive",
