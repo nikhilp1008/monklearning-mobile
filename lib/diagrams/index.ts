@@ -1,5 +1,8 @@
 import { DIAGRAMS_CHEMISTRY_11_01 } from '@/lib/diagrams/chemistry-11-01';
 import { DIAGRAMS_CHEMISTRY_11_02 } from '@/lib/diagrams/chemistry-11-02';
+import { DIAGRAMS_CHEMISTRY_11_03 } from '@/lib/diagrams/chemistry-11-03';
+import { DIAGRAMS_CHEMISTRY_11_04 } from '@/lib/diagrams/chemistry-11-04';
+import { DIAGRAMS_CHEMISTRY_11_04B } from '@/lib/diagrams/chemistry-11-04b';
 import { DIAGRAMS_PHYSICS_11_01 } from '@/lib/diagrams/physics-11-01';
 import { DIAGRAMS_PHYSICS_11_02 } from '@/lib/diagrams/physics-11-02';
 import { DIAGRAMS_PHYSICS_11_03 } from '@/lib/diagrams/physics-11-03';
@@ -52,6 +55,9 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'physics|12|8': DIAGRAMS_PHYSICS_12_08,
   'chemistry|11|1': DIAGRAMS_CHEMISTRY_11_01,
   'chemistry|11|2': DIAGRAMS_CHEMISTRY_11_02,
+  'chemistry|11|3': DIAGRAMS_CHEMISTRY_11_03,
+  // Drawn by two people at once, in two files, in figure order.
+  'chemistry|11|4': [...DIAGRAMS_CHEMISTRY_11_04, ...DIAGRAMS_CHEMISTRY_11_04B],
 };
 
 const BY_ID = new Map(Object.values(DIAGRAMS).flat().map((d) => [d.id, d]));

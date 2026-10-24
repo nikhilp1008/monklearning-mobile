@@ -15,7 +15,7 @@ import type { Block, Chapter } from '@/lib/textbooks';
  * Physics Class 11 Chapters 1 to 6 open this way, rewritten from the Master
  * Reference books. Every other chapter opens the reader exactly as before.
  */
-const OPENS_ON_CHOICE: Record<string, number[]> = { 'physics|11': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'physics|12': [0, 1, 2, 3, 4, 5, 6, 7], 'chemistry|11': [0, 1] };
+const OPENS_ON_CHOICE: Record<string, number[]> = { 'physics|11': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'physics|12': [0, 1, 2, 3, 4, 5, 6, 7], 'chemistry|11': [0, 1, 2, 3] };
 export function opensOnChoice(subject: string, classLevel: number, index: number): boolean {
   return OPENS_ON_CHOICE[`${subject.toLowerCase()}|${classLevel}`]?.includes(index) ?? false;
 }
