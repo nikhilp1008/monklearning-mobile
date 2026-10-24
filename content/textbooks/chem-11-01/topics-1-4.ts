@@ -45,7 +45,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Matter is also described by its <b>properties</b>. <b>Physical properties</b> can be observed without changing the substance’s identity — colour, melting point, boiling point, density, solubility. <b>Chemical properties</b> describe how a substance transforms into new substances — combustibility, acidity, reactivity with water. This distinction drives the difference between a <b>physical change</b> (no new substance; melting ice, dissolving sugar, tearing paper — usually reversible) and a <b>chemical change</b> (a new substance with new properties forms; burning paper, rusting iron, curdling milk — usually not easily reversed).',
+        html: 'Matter is also described by its <b>properties</b>. <b>Physical properties</b> can be observed without changing the substance’s identity — colour, melting point, boiling point, density, solubility. <b>Chemical properties</b> describe how a substance transforms into new substances — combustibility, acidity, reactivity with water. This distinction drives the difference between a <b>physical change</b> (no new substance; melting ice, dissolving sugar, tearing paper — often, though not always, reversible) and a <b>chemical change</b> (a new substance with new properties forms; burning paper, rusting iron, curdling milk — usually not easily reversed).',
       },
       {
         t: 'p',
@@ -358,8 +358,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Mass vs weight',
         main: '<i>W</i> = <i>mg</i>',
-        legend: [],
-        note: '(weight in newton; <i>m</i> in kg; <i>g</i> ≈ 9.8 m s<sup>−2</sup>). Mass is invariant; weight varies with <i>g</i>.',
+        legend: ['<i>W</i> = weight, in newton', '<i>m</i> = mass, in kg', '<i>g</i> ≈ 9.8 m s<sup>−2</sup>'],
+        note: 'Mass is invariant; weight varies with <i>g</i>.',
       },
       {
         t: 'formula',
@@ -461,7 +461,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[JEE Advanced] A liquid of density 0.80 g cm<sup>−3</sup> fills a cubical tank of edge 0.50 m. Find the mass of the liquid in kilograms.',
-            a: 'Volume = (0.50)<sup>3</sup> = 0.125 m<sup>3</sup> = 1.25 × 10<sup>5</sup> cm<sup>3</sup>; mass = 0.80 × 1.25 × 10<sup>5</sup> = 1.0 × 10<sup>5</sup> g = 100 kg.',
+            a: 'Volume = (0.50)<sup>3</sup> = 0.125 m<sup>3</sup> = 1.25 × 10<sup>5</sup> cm<sup>3</sup>; mass = 0.80 × 1.25 × 10<sup>5</sup> = 1.0 × 10<sup>5</sup> g = 1.0 × 10<sup>2</sup> kg.',
           },
         ],
       },
@@ -485,15 +485,15 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: '100 cm<sup>3</sup>',
-            nudge: '<b>(a)</b>, <b>(b)</b>, <b>(c)</b> forget to cube the linear factor — the single most common unit error in the chapter.',
+            nudge: '<b>(a)</b> uses the linear factor without cubing it — the single most common unit error in the chapter.',
           },
           {
             label: '1000 cm<sup>3</sup>',
-            nudge: '<b>(a)</b>, <b>(b)</b>, <b>(c)</b> forget to cube the linear factor — the single most common unit error in the chapter.',
+            nudge: '<b>(b)</b> confuses the cubic metre with the litre (1 L = 1000 cm<sup>3</sup>).',
           },
           {
             label: '10<sup>4</sup> cm<sup>3</sup>',
-            nudge: '<b>(a)</b>, <b>(b)</b>, <b>(c)</b> forget to cube the linear factor — the single most common unit error in the chapter.',
+            nudge: '<b>(c)</b> squares instead of cubing.',
           },
           { label: '10<sup>6</sup> cm<sup>3</sup>', nudge: null },
         ],
@@ -523,7 +523,7 @@ export const TOPICS: Topic[] = [
         q: '−273.15 °C corresponds to:',
         opts: [
           { label: '0 K', nudge: null },
-          { label: '273.15 K', nudge: '<b>(b)</b> adds with the wrong sign.' },
+          { label: '273.15 K', nudge: '<b>(b)</b> drops the minus sign of −273.15 °C; 273.15 K is the kelvin value of 0 °C.' },
           {
             label: '−273.15 K',
             nudge: '<b>(c)</b> is impossible (kelvin is never negative) and is the giveaway that an error was made.',
@@ -566,7 +566,7 @@ export const TOPICS: Topic[] = [
             f: 'Volume',
             note: '1 L = 1000 mL = 1000 cm<sup>3</sup> = 10<sup>−3</sup> m<sup>3</sup>; 1 m<sup>3</sup> = 10<sup>6</sup> cm<sup>3</sup>.',
           },
-          { f: 'Temperature', note: '<i>K</i> = °C + 273.15; °F = (9/5)°C + 32; coincide at −40.' },
+          { f: 'Temperature', note: '<i>T</i>(K) = <i>t</i>(°C) + 273.15; <i>t</i>(°F) = (9/5)<i>t</i>(°C) + 32; coincide at −40.' },
           { f: 'Mass (kg, invariant) vs weight (<i>W</i> = <i>mg</i>, N, location-dependent).', note: '' },
         ],
         aids: [
@@ -603,7 +603,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'In fact, the <b>last</b> significant digit is always the uncertain one — it is the experimenter’s best estimate. A length recorded as 12.5 cm on a millimetre ruler really means “12.5 ± 0.1 cm”: the 1 and 2 are certain, the 5 is estimated. This is why you can never legitimately add digits a measurement does not contain — and why a single measurement and a count behave so differently. A count of “24 students” is <b>exact</b>: there is no estimated last digit, no ±, so it carries infinite significant figures and never limits a calculation. The same is true of defined relations such as 1 m = 100 cm. Distinguishing measured numbers (uncertain last digit) from exact numbers (no uncertainty) is essential before applying any of the rules below.',
+        html: 'In fact, the <b>last</b> significant digit is always the uncertain one — it is the experimenter’s best estimate. A length recorded as 12.5 cm on a centimetre-graduated ruler really means “12.5 ± 0.1 cm”: the 1 and 2 are certain, the 5 is estimated. This is why you can never legitimately add digits a measurement does not contain — and why a single measurement and a count behave so differently. A count of “24 students” is <b>exact</b>: there is no estimated last digit, no ±, so it carries infinite significant figures and never limits a calculation. The same is true of defined relations such as 1 m = 100 cm. Distinguishing measured numbers (uncertain last digit) from exact numbers (no uncertainty) is essential before applying any of the rules below.',
       },
       {
         t: 'p',
@@ -627,8 +627,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Scientific notation',
         main: '<i>N</i> × 10<sup><i>n</i></sup>',
-        legend: [],
-        note: 'with 1 ≤ <i>N</i> < 10 and <i>n</i> an integer. Only the digits of <i>N</i> are significant.',
+        legend: ['<i>N</i> = a number with 1 ≤ <i>N</i> < 10', '<i>n</i> = an integer'],
+        note: 'Only the digits of <i>N</i> are significant.',
       },
       {
         t: 'proc',
@@ -688,7 +688,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: 'Round each to <b>three</b> significant figures: (i) 2.745, (ii) 2.735, (iii) 0.023456.',
         steps: [
-          '<b>Fast solution.</b><br>(i) Drop the final 5; preceding digit is 4 (even) → unchanged → <b>2.74</b>.<br>(ii) Drop the final 5; preceding digit is 3 (odd) → increase → <b>2.74</b>.<br>(iii) Fourth significant digit is 4 (<5) → round down → <b>0.0235</b>.',
+          '<b>Fast solution.</b><br>(i) Drop the final 5; preceding digit is 4 (even) → unchanged → <b>2.74</b>.<br>(ii) Drop the final 5; preceding digit is 3 (odd) → increase → <b>2.74</b>.<br>(iii) Fourth significant digit is 5, followed by 6 (more than half) → round up → <b>0.0235</b>.',
           '<b>The trap:</b> students reflexively “round 5 up,” and so write 2.75 for (i), which is wrong under the even-digit rule; (ii) gives 2.74 either way. <b>Speed tip:</b> when the dropped digit is exactly 5, look at the digit before it — even stays, odd climbs.',
         ],
         ans: '2.74, 2.74, 0.0235.',
@@ -699,12 +699,12 @@ export const TOPICS: Topic[] = [
         q: 'A rectangular metal sheet measures 2.1 cm by 3.46 cm. Calculate (i) its perimeter and (ii) its area, each to the correct number of significant figures. (Uses both calculation rules.)',
         steps: [
           '<b>(i) Perimeter (addition rule):</b><br><i>P</i> = 2 × (2.1 + 3.46) = 2 × 5.56 cm.',
-          'The sum 2.1 + 3.46 = 5.56, but 2.1 has only <b>1 decimal place</b>, so the sum is reported to 1 decimal place: 5.6 cm. The “2” is exact, so <i>P</i> = 2 × 5.6',
+          'The sum 2.1 + 3.46 = 5.56; keep it unrounded. The “2” is exact, so <i>P</i> = 2 × 5.56 = 11.12 cm, and since 2.1 has only <b>1 decimal place</b> the perimeter is reported to 1 decimal place:',
           '<b>(ii) Area (multiplication rule):</b><br><i>A</i> = 2.1 × 3.46 = 7.266 cm<sup>2</sup>.',
-          'The factor 2.1 has only <b>2 significant figures</b>, so <i>A</i> = 7.3 cm<sup>2</sup>.',
+          'The factor 2.1 has only <b>2 significant figures</b>, so <i>A</i> =',
           'Notice the two rules give different “limiting” terms: decimals govern the sum, significant figures govern the product.',
         ],
-        ans: '(i) <i>P</i> = 11.2 cm; (ii) <i>A</i> = 7.3 cm<sup>2</sup>',
+        ans: '(i) <i>P</i> = 11.1 cm; (ii) <i>A</i> = 7.3 cm<sup>2</sup>',
       },
       {
         t: 'ex',
@@ -750,7 +750,7 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'The number of significant figures in 0.005060 is:',
         opts: [
-          { label: '6', nudge: '<b>(a)</b> counts every digit.' },
+          { label: '6', nudge: '<b>(a)</b> counts every digit after the decimal point.' },
           { label: '3', nudge: '<b>(b)</b> drops the trailing zero.' },
           { label: '4', nudge: null },
           { label: '5', nudge: '<b>(d)</b> miscounts.' },
@@ -858,7 +858,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'There are five of them, and they tell a connected story:<br>1. <b>Conservation of mass</b> — when a reaction happens, the books always balance. Nothing in matter is gained or lost; it is only rearranged.<br>2. <b>Definite (constant) proportions</b> — a given compound always contains the same elements in the same fixed proportion by mass.<br>3. <b>Multiple proportions</b> — when the same two elements form more than one compound, the numbers that show up are small whole numbers, never messy fractions.<br>4. <b>Reciprocal proportions</b> — the way two elements combine with a third one quietly predicts how they will combine with each other.<br>5. <b>Gay-Lussac’s law of combining volumes</b> — for gases, the same whole-number simplicity appears, but now in volumes rather than masses.',
+        html: 'There are five of them, and they tell a connected story:<br>1. <b>Conservation of mass</b> — when a reaction happens, the books always balance. Nothing in matter is gained or lost; it is only rearranged.<br>2. <b>Definite (constant) proportions</b> — a given compound always contains the same elements in the same fixed proportion by mass.<br>3. <b>Multiple proportions</b> — when the same two elements form more than one compound, the numbers that show up are small whole numbers, never messy fractions.<br>4. <b>Reciprocal proportions</b> — the way two elements combine with a third one quietly predicts how they will combine with each other.<br>5. <b>Gay-Lussac’s law of combining volumes</b> — for gases, the same whole-number simplicity appears, but now in volumes rather than masses.<br>(NCERT counts Avogadro’s law as the fifth law; reciprocal proportions is outside the current NCERT syllabus.)',
       },
       {
         t: 'p',
@@ -900,8 +900,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Law of Multiple Proportions (Dalton, 1803)',
         main: '(<i>m</i><sub><i>B</i></sub>)<sub>compound 1</sub>/(<i>m</i><sub><i>B</i></sub>)<sub>compound 2</sub> = a simple whole-number ratio',
-        legend: [],
-        note: 'for two compounds of the same pair of elements, fixing the mass of one element.',
+        legend: ['<i>m</i><sub><i>B</i></sub> = mass of element <i>B</i>, with the mass of the other element fixed'],
+        note: 'for two compounds of the same pair of elements.',
       },
       {
         t: 'def',
@@ -1088,7 +1088,7 @@ export const TOPICS: Topic[] = [
           },
           { label: 'X<sub>2</sub>O', nudge: null },
           { label: 'XO<sub>2</sub>', nudge: '<b>(c)</b> XO<sub>2</sub> uses too much oxygen for the given 1 volume of O<sub>2</sub>.' },
-          { label: 'X<sub>2</sub>O<sub>3</sub>', nudge: '<b>(d)</b> X<sub>2</sub>O<sub>3</sub> cannot balance with whole-number volumes here.' },
+          { label: 'X<sub>2</sub>O<sub>3</sub>', nudge: '<b>(d)</b> X<sub>2</sub>O<sub>3</sub> would need 3 volumes of O<sub>2</sub> per 2 of X<sub>2</sub>, not 1.' },
         ],
         correct: 1,
         solution: 'By Avogadro, volumes = molecules: 2 X<sub>2</sub> + O<sub>2</sub> → 2 (oxide). Atoms: 4 X and 2 O distributed over 2 oxide molecules ⇒ each is X<sub>2</sub>O. The trap is guessing the formula without writing the volume equation.',
@@ -1168,7 +1168,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Avogadro’s law',
-            note: '<i>V</i> ∝ <i>n</i> at constant <i>T</i>, <i>P</i> ⇒ equal volumes = equal molecules; elemental gases are diatomic.',
+            note: '<i>V</i> ∝ <i>n</i> at constant <i>T</i>, <i>P</i> ⇒ equal volumes = equal molecules; common elemental gases (H<sub>2</sub>, O<sub>2</sub>, N<sub>2</sub>, Cl<sub>2</sub>) are diatomic.',
           },
           {
             f: 'Dalton’s atomic theory (1808)',

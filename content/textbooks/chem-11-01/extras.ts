@@ -28,11 +28,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives you the full mole-concept toolkit: classification of matter, units and significant figures, the laws of chemical combination, the mole and average atomic mass, percentage composition and formulae, limiting reagent and percentage yield, and every concentration term from mass percent to normality. Three examinable patterns still sit outside it. Addendum A handles <b>impure samples and reacting mixtures</b> — the chapter always assumes a pure reactant, but JEE Main hands you a 92%-pure carbonate or a two-salt mixture roughly every year. Addendum B builds the <b>gram-equivalent</b> machinery the chapter only gestures at when it defines normality — equivalent mass, the law of equivalence <i>N</i><sub>1</sub><i>V</i><sub>1</sub> = <i>N</i><sub>2</sub><i>V</i><sub>2</sub> for full titration stoichiometry, and the water-hardness convention (ppm as CaCO<sub>3</sub>) that JEE Main 2023–2025 asked repeatedly. Addendum C supplies <b>gas-volume stoichiometry (eudiometry)</b> — the chapter quotes Avogadro’s law and uses molar volume, but never turns “15 mL of hydrocarbon + 75 mL of O<sub>2</sub>” into a molecular formula, which is exactly how the exams use the law. Additional topic D then maps previous-year questions onto this chapter.',
+        html: 'The chapter gives you the full mole-concept toolkit: classification of matter, units and significant figures, the laws of chemical combination, the mole and average atomic mass, percentage composition and formulae, limiting reagent and percentage yield, and every concentration term from mass percent to normality. Three examinable patterns still sit outside it. Addendum A handles <b>impure samples and reacting mixtures</b> — the chapter always assumes a pure reactant, but JEE Main hands you a 92%-pure carbonate or a two-salt mixture roughly every year. Addendum B builds the <b>gram-equivalent</b> machinery the chapter only gestures at when it defines normality — equivalent mass, the law of equivalence <i>N</i><sub>1</sub><i>V</i><sub>1</sub> = <i>N</i><sub>2</sub><i>V</i><sub>2</sub> for full titration stoichiometry, and the water-hardness convention (ppm as CaCO<sub>3</sub>) that JEE Main 2023–2025 asked repeatedly. Addendum C supplies <b>gas-volume stoichiometry (eudiometry)</b> — the chapter quotes Avogadro’s law, uses molar volume, and solves one combining-volume formula (Topic 04, worked example 3); Addendum C turns that into a general method for “15 mL of hydrocarbon + 75 mL of O<sub>2</sub>” problems, which is exactly how the exams use the law. Additional topic D then maps previous-year questions onto this chapter.',
       },
       {
         t: 'p',
-        html: 'Every worked example in the chapter starts from a pure substance. Real exam problems rarely do: the ore is 90% pure, the coal is 60% carbon, the 1 g sample is a mixture of two carbonates. The mole machinery is unchanged; what is new is one extra conversion layer at the front and, for mixtures, a two-equation setup.',
+        html: 'Every worked example in the chapter starts from a pure reactant. Real exam problems rarely do: the ore is 90% pure, the coal is 60% carbon, the 1 g sample is a mixture of two carbonates. The mole machinery is unchanged; what is new is one extra conversion layer at the front and, for mixtures, a two-equation setup.',
       },
 
       { t: 'part', title: 'Method' },
@@ -50,7 +50,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Rule 4 — Volume at STP is a mole count in disguise.</b> A gas volume given “at STP” is just <i>n</i> = <i>V</i>/22.4 L (old STP, 1 atm) or <i>V</i>/22.7 L (current IUPAC STP, 1 bar). Unless the problem says otherwise, exam papers intend 22.4 L.',
+        html: '<b>Rule 4 — Volume at STP is a mole count in disguise.</b> A gas volume given “at STP” is just <i>n</i> = <i>V</i>/22.4 L (old STP, 1 atm) or <i>V</i>/22.7 L (current IUPAC STP, 1 bar). Unless the problem says otherwise, exam papers intend 22.4 L — but read the question; NCERT now uses 22.7 L (1 bar).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -69,7 +69,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'JEE Main — Purity on both sides',
-        q: 'How much iron, 80% pure, can be produced from 120 kg of haematite ore that is 90% pure Fe<sub>2</sub>O<sub>3</sub>? Reaction: Fe<sub>2</sub>O<sub>3</sub> + 3 C → 2 Fe + 3 CO<sub>2</sub>. (Fe = 56, Fe<sub>2</sub>O<sub>3</sub> = 160.)',
+        q: 'How much iron, 80% pure, can be produced from 120 kg of haematite ore that is 90% pure Fe<sub>2</sub>O<sub>3</sub>? Reaction: Fe<sub>2</sub>O<sub>3</sub> + 3 CO → 2 Fe + 3 CO<sub>2</sub>. (Fe = 56, Fe<sub>2</sub>O<sub>3</sub> = 160.)',
         steps: [
           'Walk the chain of Rule 3.<br>pure Fe<sub>2</sub>O<sub>3</sub> = 120 × 0.90 = 108 kg;   <i>n</i> = 108/160 kmol = 0.675 kmol.',
           'Iron: <i>n</i>(Fe) = 2 × 0.675 = 1.35 kmol, i.e. 1.35 × 56 = 75.6 kg of pure iron. The crude product is 80% pure, so<br>crude iron = 75.6/0.80',
@@ -106,7 +106,7 @@ export const TOPICS: Topic[] = [
             a: 'Pure carbon = 500 × 0.60 = 300 g = 25 mol. Every mole of C ends as one mole of gas (CO or CO<sub>2</sub> both carry one C), so total gas = 25 mol — the 60:40 split is a red herring for the count (it would matter for a heat calculation, not a mole count).',
           },
           {
-            q: '[JEE Advanced] An iron ore contains 75% Fe<sub>2</sub>O<sub>3</sub>. The reduction Fe<sub>2</sub>O<sub>3</sub> + 3 C → 2 Fe + 3 CO<sub>2</sub> proceeds with 90% yield. What mass of ore is needed to obtain 56 kg of iron? (Fe<sub>2</sub>O<sub>3</sub> = 160, Fe = 56.)',
+            q: '[JEE Advanced] An iron ore contains 75% Fe<sub>2</sub>O<sub>3</sub>. The reduction Fe<sub>2</sub>O<sub>3</sub> + 3 CO → 2 Fe + 3 CO<sub>2</sub> proceeds with 90% yield. What mass of ore is needed to obtain 56 kg of iron? (Fe<sub>2</sub>O<sub>3</sub> = 160, Fe = 56.)',
             a: 'Actual Fe = 56 kg at 90% yield ⇒ theoretical Fe = 56/0.90 = 62.2 kg = 1.111 kmol. Fe<sub>2</sub>O<sub>3</sub> needed = 1.111/2 = 0.5556 kmol = 88.9 kg; ore = 88.9/0.75 = 118.5 kg.',
           },
         ],
@@ -221,7 +221,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[CBSE] Calculate the equivalent mass of H<sub>3</sub>PO<sub>4</sub> in each reaction: (i) H<sub>3</sub>PO<sub>4</sub> + 3 NaOH → Na<sub>3</sub>PO<sub>4</sub>; (ii) H<sub>3</sub>PO<sub>4</sub> + 2 NaOH → Na<sub>2</sub>HPO<sub>4</sub>; (iii) H<sub>3</sub>PO<sub>4</sub> + NaOH → NaH<sub>2</sub>PO<sub>4</sub>.',
+            q: '[CBSE] Calculate the equivalent mass of H<sub>3</sub>PO<sub>4</sub> in each reaction: (i) H<sub>3</sub>PO<sub>4</sub> + 3 NaOH → Na<sub>3</sub>PO<sub>4</sub> + 3 H<sub>2</sub>O; (ii) H<sub>3</sub>PO<sub>4</sub> + 2 NaOH → Na<sub>2</sub>HPO<sub>4</sub> + 2 H<sub>2</sub>O; (iii) H<sub>3</sub>PO<sub>4</sub> + NaOH → NaH<sub>2</sub>PO<sub>4</sub> + H<sub>2</sub>O.',
             a: '(i) <i>n</i>-factor 3, <i>E</i> = 98/3 = 32.7; (ii) <i>E</i> = 98/2 = 49; (iii) <i>E</i> = 98/1 = 98. Equivalent mass is a property of the reaction, not just the substance — the same acid has three possible values.',
           },
           {
@@ -255,7 +255,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter states Avogadro’s law and uses molar volume for single gases. The exam version goes one step further: when every species is a gas measured at the same temperature and pressure, <b>volume ratios are mole ratios</b>, so a balanced equation can be read in millilitres directly. Problems that exploit this — finding a hydrocarbon’s formula from combustion volumes — are called eudiometry, and they appear in JEE Main papers on this chapter every few sessions.',
+        html: 'The chapter states Avogadro’s law, uses molar volume, and reads one combustion equation in volumes (Topic 04). The exam version goes one step further: when every species is a gas measured at the same temperature and pressure, <b>volume ratios are mole ratios</b>, so a balanced equation can be read in millilitres directly. Problems that exploit this — finding a hydrocarbon’s formula from combustion volumes — are called eudiometry, and they appear in JEE Main papers on this chapter every few sessions.',
       },
 
       { t: 'part', title: 'Method' },
@@ -296,7 +296,7 @@ export const TOPICS: Topic[] = [
           'Write the template equation with unknowns <i>x</i>, <i>y</i>.',
           'Divide every measured volume by the hydrocarbon volume — volumes now read as moles.',
           'Match CO<sub>2</sub> to get <i>x</i>; match O<sub>2</sub> to get <i>y</i> (or use the contraction as a cross-check).',
-          'If CO<sub>2</sub> or CO appear together (incomplete combustion), carbon still balances: <i>x</i> = <i>V</i>(CO<sub>2</sub>) + <i>V</i>(CO) per unit hydrocarbon volume.',
+          'If CO<sub>2</sub> and CO appear together (incomplete combustion), carbon still balances: <i>x</i> = <i>V</i>(CO<sub>2</sub>) + <i>V</i>(CO) per unit hydrocarbon volume.',
         ],
       },
 
@@ -368,7 +368,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'The Distribution' },
       {
         t: 'p',
-        html: 'Previous-year questions on this chapter (JEE Main 2021–2025 and NTA 2022) cluster into eight recognizable piles; the table classifies 50 representative questions:',
+        html: 'Previous-year questions on this chapter (JEE Main 2021–2025 and NTA 2022) cluster into eight recognizable piles; the table classifies 50 of the representative questions:',
       },
       {
         t: 'table',
@@ -423,14 +423,14 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Approach.</b> The chapter’s own Procedure C: <i>m</i><sub>C</sub> = (12/44)<i>m</i><sub>CO₂</sub>, <i>m</i><sub>H</sub> = (2/18)<i>m</i><sub>H₂O</sub>, oxygen by difference.',
+        html: '<b>Approach.</b> Topic 06’s Procedure C: <i>m</i><sub>C</sub> = (12/44)<i>m</i><sub>CO₂</sub>, <i>m</i><sub>H</sub> = (2/18)<i>m</i><sub>H₂O</sub>, oxygen by difference.',
       },
       {
         t: 'ex',
         tag: 'Worked representative',
         q: 'From JEE Main 2025: 500 mg of a compound gives 220 mg of CO<sub>2</sub> on complete combustion.',
         steps: [
-          '<i>m</i><sub>C</sub> = 220 × 12/44 = 60 mg, so %C = 60/500 × 100 = 12%. One line, one mark — and a trap for anyone who reports (220 × 12)/(44 × 500) with the 44 dropped.',
+          '<i>m</i><sub>C</sub> = 220 × 12/44 = 60 mg, so %C = 60/500 × 100 = 12%. One line, one mark — and a trap for anyone who reports (220 × 12)/(44 × 500) = 0.12 with the × 100 dropped.',
         ],
         ans: '',
       },
@@ -494,11 +494,11 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>22.4 vs 22.7 L.</b> Papers that say “at STP” almost always want 22.4 L; a paper quoting the modern 1 bar definition (as NCERT’s own worked example does with 22.7 L of CH<sub>4</sub>) wants 22.7 L. The question’s own numbers will tell you which regime it lives in.',
+          '<b>22.4 vs 22.7 L.</b> Papers that say “at STP” almost always want 22.4 L — but read the question; NCERT now uses 22.7 L (1 bar), and a paper quoting the modern 1 bar definition (as NCERT’s own worked example does with 22.7 L of CH<sub>4</sub>) wants 22.7 L. The question’s own numbers will tell you which regime it lives in.',
           '<b>Molarity vs molality denominators.</b> Solution volume vs solvent mass; density is the only bridge. A standard “molality from 0.2 M CuSO<sub>4</sub>, density 1.25 g mL<sup>−1</sup>” problem exists solely to punish assuming the two are equal.',
           '<b>Water: liquid or vapour?</b> In eudiometry the whole answer flips on this. Room-temperature data: liquid water, zero volume. Above 100 °C: steam, <i>y</i>/2 volumes.',
           '<b>Oxygen is found by difference.</b> In combustion analysis you never “measure” oxygen; anything else is a designed distractor.',
-          '<b>Empirical stop.</b> When a molar mass (or vapour density) is supplied, the question wants the molecular formula; hydrocarbon problems with 85.8% C (C<sub>6</sub>H<sub>12</sub> from <i>M</i> = 84) catch students who submit CH<sub>2</sub>.',
+          '<b>Empirical stop.</b> When a molar mass (or vapour density) is supplied, the question wants the molecular formula; hydrocarbon problems with 85.7% C (C<sub>6</sub>H<sub>12</sub> from <i>M</i> = 84) catch students who submit CH<sub>2</sub>.',
           '<b>Nearest-integer rounding.</b> JEE Main numerical answers are integers; a computed 11.0 or 8.0 must not be second-guessed into a “cleaner” number.',
           '<b>Always recompute.</b> Never trust an answer that fails the data: recheck it against the question’s own numbers (for example, C<sub>2</sub>H<sub>4</sub> as the answer for the data of the first worked example of Additional topic C fails the volume balance).',
         ],
@@ -542,7 +542,7 @@ export const TOPICS: Topic[] = [
             a: '<i>n</i>(NH<sub>3</sub>) = 51/17 = 3 mol ⇒ <i>n</i>(N) = 3 mol = 42 g. %N = 42/140 × 100 = 30%.',
           },
           {
-            q: 'Concentrated sulphuric acid is 49% H<sub>2</sub>SO<sub>4</sub> by mass with density 1.30 g mL<sup>−1</sup>. Find its molarity.',
+            q: 'A sulphuric acid solution is 49% H<sub>2</sub>SO<sub>4</sub> by mass with density 1.30 g mL<sup>−1</sup>. Find its molarity.',
             a: '<i>M</i> = (10 × 1.30 × 49)/98 = 6.5 M.',
           },
           {
@@ -580,7 +580,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the Addenda Add' },
       {
         t: 'p',
-        html: 'The chapter treats every reactant as pure and every titration as an exercise in normality, so two structures JEE Main leans on hardest — <b>purity/mixture stoichiometry</b> and <b>equivalent-based titration chains (including the ppm-of-</b>CaCO<sub>3</sub><b> hardness convention)</b> — are developed here in Addenda A and B. Avogadro’s law, which the chapter uses as a definition, becomes in Addendum C the volume-ratio engine that the exams exploit in hydrocarbon-combustion (eudiometry) problems, together with its liquid-water/vapour fork.',
+        html: 'The chapter treats every reactant as pure and stops at defining normality, so two structures JEE Main leans on hardest — <b>purity/mixture stoichiometry</b> and <b>equivalent-based titration chains (including the ppm-of-</b>CaCO<sub>3</sub><b> hardness convention)</b> — are developed here in Addenda A and B. Avogadro’s law, which the chapter applies to single reactions (Topics 04 and 07), becomes in Addendum C the general volume-ratio engine that the exams exploit in hydrocarbon-combustion (eudiometry) problems, together with its liquid-water/vapour fork.',
       },
     ],
   },

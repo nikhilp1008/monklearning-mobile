@@ -32,7 +32,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Here is the genius of the choice. The mole was deliberately defined so that <b>the mass of one mole of an element, measured in grams, is numerically equal to its relative atomic mass.</b> Carbon has relative atomic mass 12, so one mole of carbon atoms weighs exactly 12 g. Oxygen (16) → 16 g per mole. This is the bridge chemistry desperately needed: it connects the <b>invisible world of single atoms</b> (measured in atomic mass units, u) to the <b>visible world of the laboratory balance</b> (measured in grams). Weigh out 12 g of carbon and you have, without counting, exactly 6.022 × 10<sup>23</sup> atoms.',
+        html: 'Here is the genius of the choice. The mole was deliberately defined so that <b>the mass of one mole of an element, measured in grams, is numerically equal to its relative atomic mass.</b> Carbon-12 has relative atomic mass 12, so one mole of carbon-12 atoms weighs 12 g. Oxygen (16) → 16 g per mole. This is the bridge chemistry desperately needed: it connects the <b>invisible world of single atoms</b> (measured in atomic mass units, u) to the <b>visible world of the laboratory balance</b> (measured in grams). Weigh out 12 g of carbon-12 and you have, without counting, 6.022 × 10<sup>23</sup> atoms. (Since 2019 the mole is defined as exactly 6.02214076 × 10<sup>23</sup> entities.)',
       },
       {
         t: 'p',
@@ -44,7 +44,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions:</b><br>• <b>Molar volume (22.4 L per mole) applies only to a gas, and only at STP</b>, and assumes ideal-gas behaviour. It is meaningless for solids or liquids. <b>Caution:</b> the older STP (0 °C, 1 atm) gives 22.4 L; the current IUPAC STP (0 °C, 1 bar) gives 22.7 L. Exams using “STP” almost always intend 22.4 L — but read the question.<br>• <b>Average atomic mass assumes the standard terrestrial isotopic abundance.</b> A sample artificially enriched in one isotope would have a different effective atomic mass.<br>• The numerical equality “molar mass in g = relative mass in u” is a consequence of the definition, not a coincidence — and it only works because <i>N</i><sub>A</sub> was chosen to make it so.',
+        html: '<b>Limiting conditions & assumptions:</b><br>• <b>Molar volume (22.4 L per mole) applies only to a gas, and only at STP</b>, and assumes ideal-gas behaviour. It is meaningless for solids or liquids. <b>Caution:</b> the older STP (0 °C, 1 atm) gives 22.4 L; the current IUPAC STP (0 °C, 1 bar) gives 22.7 L. Exams using “STP” almost always intend 22.4 L — but read the question; NCERT now uses 22.7 L (1 bar).<br>• <b>Average atomic mass assumes the standard terrestrial isotopic abundance.</b> A sample artificially enriched in one isotope would have a different effective atomic mass.<br>• The numerical equality “molar mass in g = relative mass in u” is a consequence of the definition, not a coincidence — and it only works because <i>N</i><sub>A</sub> was chosen to make it so.',
       },
 
       { t: 'part', title: 'Key definitions and formulas' },
@@ -59,8 +59,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Avogadro’s number',
         main: '<i>N</i><sub>A</sub> = 6.022 × 10<sup>23</sup> mol<sup>−1</sup>',
-        legend: [],
-        note: 'the number of entities in one mole. SI unit: mol<sup>−1</sup>.',
+        legend: ['<i>N</i><sub>A</sub> = the number of entities in one mole'],
+        note: 'SI unit: mol<sup>−1</sup>.',
       },
       {
         t: 'formula',
@@ -177,10 +177,10 @@ export const TOPICS: Topic[] = [
         tag: 'JEE Main Level',
         q: 'An element X has two stable isotopes: <sup>63</sup>X (mass 62.93 u) and <sup>65</sup>X (mass 64.93 u). The average atomic mass of X is 63.55 u. (i) Find the percentage abundance of each isotope. (ii) Hence find the number of <sup>63</sup>X atoms in a 6.355 g sample of X. (Links isotopic averaging with the mole concept.)',
         steps: [
-          '<b>(i)</b> Let the fractional abundance of <sup>63</sup>X be <i>x</i>; then <sup>65</sup>X is (1 − <i>x</i>).<br>62.93<i>x</i> + 64.93(1 − <i>x</i>) = 63.55<br>64.93 − 2.00<i>x</i> = 63.55 ⇒ 2.00<i>x</i> = 1.38 ⇒ <i>x</i> = 0.69.',
+          '<b>(i)</b> Let the fractional abundance of <sup>63</sup>X be <i>x</i>; then <sup>65</sup>X is (1 − <i>x</i>).<br>62.93<i>x</i> + 64.93(1 − <i>x</i>) = 63.55<br>64.93 − 2.00<i>x</i> = 63.55 ⇒ 2.00<i>x</i> = 1.38 ⇒ <i>x</i> = 0.690.',
           'So <sup>63</sup>X = 69% and <sup>65</sup>X = 31%.',
           '<b>(ii)</b> Total moles of atoms in the sample (using the average atomic mass as molar mass):<br><i>n</i> = 6.355/63.55 = 0.100 mol ⇒ <i>N</i><sub>total</sub> = 0.100 × <i>N</i><sub>A</sub> = 6.022 × 10<sup>22</sup> atoms.',
-          'Number that are <sup>63</sup>X:<br><i>N</i>(<sup>63</sup>X) = 0.69 × 6.022 × 10<sup>22</sup> =',
+          'Number that are <sup>63</sup>X:<br><i>N</i>(<sup>63</sup>X) = 0.690 × 6.022 × 10<sup>22</sup> =',
           'The link is essential: part (i) needs the weighted-average idea; part (ii) feeds that average mass into the mole bridge.',
         ],
         ans: '4.16 × 10<sup>22</sup> atoms',
@@ -256,7 +256,7 @@ export const TOPICS: Topic[] = [
             label: '28 g mol<sup>−1</sup>',
             nudge: '<b>(c)</b> 28 g mol<sup>−1</sup> (N<sub>2</sub>, CO) is a familiar value, unrelated to the data.',
           },
-          { label: '11 g mol<sup>−1</sup>', nudge: '<b>(d)</b> divides mass by volume directly, ignoring the mole bridge entirely.' },
+          { label: '11 g mol<sup>−1</sup>', nudge: '<b>(d)</b> takes the sample’s mass (11 g) as the molar mass — as if 5.6 L were a whole mole — ignoring the mole bridge entirely.' },
         ],
         correct: 1,
         solution: '<i>n</i> = 5.6/22.4 = 0.25 mol; <i>M</i> = <i>m</i>/<i>n</i> = 11/0.25 = 44 g mol<sup>−1</sup>.',
@@ -395,8 +395,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Relating the two',
         main: '<i>n</i> = (molecular mass)/(empirical formula mass)<br>Molecular formula = <i>n</i> × (Empirical formula)',
-        legend: [],
-        note: 'where <i>n</i> is a positive whole number.',
+        legend: ['<i>n</i> = a positive whole number'],
+        note: null,
       },
       {
         t: 'formula',
@@ -524,7 +524,7 @@ export const TOPICS: Topic[] = [
             a: 'CH<sub>3</sub> (C:H = 0.03 ∶ 0.09 = 1 ∶ 3; masses 0.36 + 0.09 = 0.45 ✓, no oxygen).',
           },
           {
-            q: '[JEE Advanced] Washing soda, Na<sub>2</sub>CO<sub>3</sub>·<i>x</i>H<sub>2</sub>O, contains 62.9% water by mass. Find <i>x</i>. (Na = 23, C = 12, O = 16.)',
+            q: '[JEE Advanced] Washing soda, Na<sub>2</sub>CO<sub>3</sub>·<i>x</i>H<sub>2</sub>O, contains 62.9% water by mass. Find <i>x</i>. (Na = 23, C = 12, O = 16, H = 1.)',
             a: '<i>x</i> = 10 (water mass 180, total 286, 180/286 = 62.9%).',
           },
         ],
@@ -536,7 +536,7 @@ export const TOPICS: Topic[] = [
         q: 'The percentage of oxygen by mass in sulphuric acid, H<sub>2</sub>SO<sub>4</sub>, is:',
         opts: [
           { label: '65.3%', nudge: null },
-          { label: '32.7%', nudge: '<b>(b)</b> uses only 2 oxygens (32/98) — miscounting the subscript.' },
+          { label: '32.7%', nudge: '<b>(b)</b> is the percentage of sulphur (32/98) — or uses only 2 oxygens.' },
           { label: '16.3%', nudge: '<b>(c)</b> uses one oxygen (16/98) — forgetting there are four.' },
           { label: '2.0%', nudge: '<b>(d)</b> is the percentage of hydrogen (2/98) — answering the wrong element.' },
         ],
@@ -649,7 +649,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> One of the most heavily examined ideas in the entire syllabus. CBSE Boards set a 2–3 mark mass-to-mass numerical. NEET reliably asks a limiting-reagent or mole-ratio MCQ every year. JEE Main combines limiting reagent with excess-reactant and product-mass calculations; JEE Advanced layers sequential reactions and percentage yield. Everything you learned about the mole and concentration now gets used here.',
+        html: '<b>Exam Relevance:</b> One of the most heavily examined ideas in the entire syllabus. CBSE Boards set a 2–3 mark mass-to-mass numerical. NEET reliably asks a limiting-reagent or mole-ratio MCQ every year. JEE Main combines limiting reagent with excess-reactant and product-mass calculations; JEE Advanced layers sequential reactions and percentage yield. Everything you learned about the mole now gets used here (molarity, from Topic 08, enters for reactions in solution).',
       },
       {
         t: 'p',
@@ -706,8 +706,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Reactions in solution',
         main: 'moles of solute = <i>M</i> × <i>V</i><sub>(L)</sub>',
-        legend: [],
-        note: '(molarity × volume, chained from Topic 08).',
+        legend: ['<i>M</i> = molarity of the solution', '<i>V</i><sub>(L)</sub> = volume of solution in litres'],
+        note: '(molarity × volume; molarity is defined in Topic 08).',
       },
       {
         t: 'formula',
@@ -791,8 +791,8 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Moles:</b> N<sub>2</sub> = 50/28 = 1.79 mol; H<sub>2</sub> = 10/2 = 5.0 mol.',
           '<b>(i) Limiting reagent:</b> divide by coefficients — N<sub>2</sub> ∶ 1.79/1 = 1.79; H<sub>2</sub> ∶ 5.0/3 = 1.67. Smallest is H<sub>2</sub> → <b>H<sub>2</sub> is limiting</b>.',
-          '<b>(ii) Theoretical yield:</b> 3 H<sub>2</sub> → 2 NH<sub>3</sub>, so NH<sub>3</sub> = 5.0 × 2/3 = 3.33 mol = 3.33 × 17 = 56.7 g.',
-          '<b>(iii) Percentage yield:</b><br>% yield = 40/56.7 × 100 =',
+          '<b>(ii) Theoretical yield:</b> 3 H<sub>2</sub> → 2 NH<sub>3</sub>, so NH<sub>3</sub> = 5.0 × 2/3 = 3.333 mol = 3.333 × 17 = 56.67 g.',
+          '<b>(iii) Percentage yield:</b><br>% yield = 40/56.67 × 100 =',
           'The rigour: the limiting reagent must be found before the theoretical yield (using the wrong reactant gives the wrong maximum), and only then does the actual/theoretical ratio give a meaningful efficiency.',
         ],
         ans: '70.6%',
@@ -952,7 +952,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions:</b><br>• <b>Molarity is temperature-dependent</b>; molality and mole fraction are not. Never assume molarity = molality except in very dilute aqueous solutions (where 1 L ≈ 1 kg of water).<br>• <b>Molality uses the mass of the solvent, not the solution.</b> Mixing these up is the most common error in the whole topic.<br>• <b>Interconverting molarity and molality requires the density</b> of the solution — you cannot do it from concentration alone.<br>• ppm/mass-% treat the solution as <b>homogeneous and dilute</b>; they assume the solute mass is small enough that approximations like “mass of solution ≈ mass of solvent” hold for very dilute cases (but compute exactly when masses are comparable).',
+        html: '<b>Limiting conditions & assumptions:</b><br>• <b>Molarity is temperature-dependent</b>; molality and mole fraction are not. Never assume molarity = molality except in very dilute aqueous solutions (where 1 L ≈ 1 kg of water).<br>• <b>Molality uses the mass of the solvent, not the solution.</b> Mixing these up is the most common error in the whole topic.<br>• <b>Interconverting molarity and molality requires the density</b> of the solution — you cannot do it from concentration alone.<br>• ppm and mass % are exact for any composition; the shortcut “mass of solution ≈ mass of solvent” is valid only for very dilute solutions (compute exactly when masses are comparable).',
       },
 
       { t: 'part', title: 'Key formulas and definitions' },
@@ -974,35 +974,53 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Mole fraction',
         main: '<i>x</i><sub>B</sub> = <i>n</i><sub>B</sub>/(<i>n</i><sub>A</sub> + <i>n</i><sub>B</sub>), with <i>x</i><sub>A</sub> + <i>x</i><sub>B</sub> = 1',
-        legend: [],
+        legend: [
+          '<i>x</i><sub>A</sub>, <i>x</i><sub>B</sub> = solvent/solute mole fractions',
+          '<i>n</i><sub>A</sub> = moles of solvent',
+          '<i>n</i><sub>B</sub> = moles of solute',
+        ],
         note: 'Dimensionless, temperature-independent.',
       },
       {
         t: 'formula',
         kicker: 'Molarity',
         main: '<i>M</i> = (moles of solute)/(volume of solution (L)) = (<i>w</i><sub>B</sub> × 1000)/(<i>M</i><sub>B</sub> × <i>V</i><sub>mL</sub>)',
-        legend: [],
+        legend: [
+          '<i>w</i><sub>B</sub> = mass of solute (g)',
+          '<i>M</i><sub>B</sub> = molar mass of solute',
+          '<i>V</i><sub>mL</sub> = volume of solution in mL',
+        ],
         note: 'Unit mol L<sup>−1</sup> (mol dm<sup>−3</sup>); dimension [N L<sup>−3</sup>]. Temperature-dependent.',
       },
       {
         t: 'formula',
         kicker: 'Molality',
         main: '<i>m</i> = (moles of solute)/(mass of solvent (kg)) = (<i>w</i><sub>B</sub> × 1000)/(<i>M</i><sub>B</sub> × <i>w</i><sub>A(g)</sub>)',
-        legend: [],
+        legend: [
+          '<i>w</i><sub>B</sub> = mass of solute (g)',
+          '<i>M</i><sub>B</sub> = molar mass of solute',
+          '<i>w</i><sub>A(g)</sub> = mass of solvent (g)',
+        ],
         note: 'Unit mol kg<sup>−1</sup>; dimension [N M<sup>−1</sup>]. Temperature-independent.',
       },
       {
         t: 'formula',
         kicker: 'Normality',
         main: '<i>N</i> = (gram-equivalents of solute)/(volume of solution (L)), and <i>N</i> = (<i>n</i>-factor) × <i>M</i>',
-        legend: [],
-        note: 'where the <i>n</i>-factor is basicity (acids), acidity (bases), or electrons transferred (redox). Unit eq L<sup>−1</sup>; temperature-dependent.',
+        legend: [
+          '<i>n</i>-factor = basicity (acids), acidity (bases), or electrons transferred (redox)',
+          '<i>M</i> = molarity',
+        ],
+        note: 'Unit eq L<sup>−1</sup>; temperature-dependent.',
       },
       {
         t: 'formula',
         kicker: 'Dilution',
         main: '<i>M</i><sub>1</sub><i>V</i><sub>1</sub> = <i>M</i><sub>2</sub><i>V</i><sub>2</sub>',
-        legend: [],
+        legend: [
+          '<i>M</i><sub>1</sub>, <i>V</i><sub>1</sub> = molarity and volume before dilution',
+          '<i>M</i><sub>2</sub>, <i>V</i><sub>2</sub> = molarity and final total volume after dilution',
+        ],
         note: '(moles conserved on adding solvent).',
       },
       {
@@ -1024,6 +1042,8 @@ export const TOPICS: Topic[] = [
         kicker: 'Interconversion relations',
         main: '<i>m</i> = 1000 <i>M</i>/(1000 <i>d</i> − <i>M M</i><sub>B</sub>)<br><i>m</i> = 1000 <i>x</i><sub>B</sub>/(<i>x</i><sub>A</sub> <i>M</i><sub>A</sub>)<br>strength (g L<sup>−1</sup>) = <i>M</i> × <i>M</i><sub>B</sub><br><i>m</i> = 10 <i>s</i>/<i>M</i><sub>B</sub>',
         legend: [
+          '<i>M</i> = molarity',
+          '<i>M</i><sub>B</sub> = solute molar mass',
           '<i>d</i> = density in g/mL',
           '<i>M</i><sub>A</sub> = solvent molar mass',
           '<i>x</i><sub>A</sub>, <i>x</i><sub>B</sub> = solvent/solute mole fractions',
@@ -1128,7 +1148,7 @@ export const TOPICS: Topic[] = [
             a: '1 ppm (0.001/1000 × 10<sup>6</sup>).',
           },
           {
-            q: '[JEE Main] Concentrated sulphuric acid is 49% H<sub>2</sub>SO<sub>4</sub> by mass and has a density of 1.30 g mL<sup>−1</sup>. Calculate its molarity. (H<sub>2</sub>SO<sub>4</sub> = 98.)',
+            q: '[JEE Main] A sulphuric acid solution is 49% H<sub>2</sub>SO<sub>4</sub> by mass and has a density of 1.30 g mL<sup>−1</sup>. Calculate its molarity. (H<sub>2</sub>SO<sub>4</sub> = 98.)',
             a: '<i>M</i> = (10 × 1.30 × 49)/98 = 6.5 M.',
           },
           {

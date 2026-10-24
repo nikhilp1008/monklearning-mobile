@@ -47,7 +47,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'remember',
     q: 'Physical change or chemical change: what is the one test?',
-    a: 'Was a new substance formed? Physical: no new substance, identity unchanged, usually reversible (melting ice, dissolving sugar, tearing paper). Chemical: a new substance with new properties forms, usually not easily reversed (burning paper, rusting iron, curdling milk)',
+    a: 'Was a new substance formed? Physical: no new substance, identity unchanged, usually reversible (melting ice, dissolving sugar). Chemical: a new substance with new properties forms, usually not easily reversed (burning paper, rusting iron, curdling milk)',
     why: 'Sublimation of camphor and dissolving sugar are physical; souring of milk (lactose → lactic acid) and digestion of food are chemical.',
     say: null,
   },
@@ -160,7 +160,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'Round 2.745 to three significant figures. Is it 2.75?',
     a: 'No, 2.74: when the digit dropped is exactly 5 (nothing significant after it), the round-to-even rule leaves an even preceding digit unchanged and raises an odd one',
-    why: 'So 2.735 → 2.74 as well. Otherwise a dropped digit above 5 rounds up and below 5 rounds down: 0.023456 → 0.0235.',
+    why: 'So 2.735 → 2.74 as well. Otherwise a dropped digit above 5 rounds up and below 5 rounds down; a 5 followed by more digits rounds up: 0.023456 → 0.0235.',
     say: null,
   },
   // pp. 23–24
@@ -339,7 +339,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mixup',
     q: 'Theoretical yield, actual yield, percentage yield?',
     a: 'Theoretical: the maximum product predicted by the balanced equation and the limiting reagent. Actual: what is really obtained. % yield = (actual yield/theoretical yield) × 100',
-    why: '50 g of N<sub>2</sub> and 10 g of H<sub>2</sub> giving 40 g of NH<sub>3</sub>: H<sub>2</sub> limits (5.0/3 = 1.67 < 1.79), theoretical 3.33 mol = 56.7 g, yield 70.6%.',
+    why: '50 g of N<sub>2</sub> and 10 g of H<sub>2</sub> giving 40 g of NH<sub>3</sub>: H<sub>2</sub> limits (5.0/3 = 1.67 < 1.79), theoretical 3.333 mol = 56.67 g, yield 70.6%.',
     say: null,
   },
   // pp. 48, 50
@@ -422,7 +422,7 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 8,
     kind: 'remember',
-    q: 'Iron of 80% purity is made from 120 kg of ore that is 90% Fe<sub>2</sub>O<sub>3</sub> (Fe<sub>2</sub>O<sub>3</sub> + 3 C → 2 Fe + 3 CO<sub>2</sub>). At the end, multiply or divide by 0.80?',
+    q: 'Iron of 80% purity is made from 120 kg of ore that is 90% Fe<sub>2</sub>O<sub>3</sub> (Fe<sub>2</sub>O<sub>3</sub> + 3 CO → 2 Fe + 3 CO<sub>2</sub>). At the end, multiply or divide by 0.80?',
     a: 'Divide: 108 kg of Fe<sub>2</sub>O<sub>3</sub> = 0.675 kmol gives 1.35 kmol = 75.6 kg of pure iron, and the crude bar must hold all of it plus impurity: 75.6/0.80 = 94.5 kg',
     why: 'Multiplying gives 60.5 kg, the classic distractor. The chain: impure reactant → pure reactant → theoretical pure product → actual pure product (% yield) → crude product (product purity).',
     say: null,
@@ -484,7 +484,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'A gas volume is asked at 1 atm and 300 K. Use 22.4 L mol<sup>−1</sup>?',
     a: 'No: once the conditions are not standard, <i>V</i> = <i>nRT</i>/<i>P</i> replaces the 22.4 L shortcut. 18.4 kg of 10% pure dolomite (<i>M</i> = 184) gives 20 mol of CO<sub>2</sub>: 20 × 0.082 × 300 = 492 L',
-    why: 'At STP, papers almost always want 22.4 L; one quoting the 1 bar definition wants 22.7 L. The question’s own numbers tell you which.',
+    why: 'At STP, papers almost always want 22.4 L — but read the question; NCERT now uses 22.7 L (1 bar), and one quoting the 1 bar definition wants 22.7 L. The question’s own numbers tell you which.',
     say: null,
   },
 ];
