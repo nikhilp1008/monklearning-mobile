@@ -1,0 +1,5 @@
+# The book and anything made from it never go into this repo (it is the co-founder's; app repo ignores the PDFs on purpose).
+*.pdf
+*.png
+chem11/
+work-*/
