@@ -756,6 +756,13 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // appears the moment an exam scope carries it.
   'mathematics|12|linear programming': () =>
     import('@/content/textbooks/math-12-12-linear-programming'),
+
+  // Chemistry. Keys are the catalogue's titles (the shelf's names), not the
+  // book's: the book's "Structure of Atom" is the catalogue's "Atomic Structure".
+  'chemistry|11|some basic concepts': () =>
+    import('@/content/textbooks/chem-11-01-basic-concepts'),
+  'chemistry|11|atomic structure': () =>
+    import('@/content/textbooks/chem-11-02-structure-of-atom'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

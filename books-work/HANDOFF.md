@@ -74,6 +74,20 @@ General Organic Chemistry, Hydrocarbons).
 5. Chapter 8 has a "Subtopic 00" opening section → app `n: '00'`, shown as "Start here" (see
    `isGuide`/`topicMark` in `lib/textbooks.ts`; Physics 12 Ch 3 and Ch 6 are the models).
 
+### Nikhil's decisions (24 Oct 2026, cloud session)
+
+1. Chapter 10 (p-Block, Groups 13 and 14): **build it as a 10th Class 11 chapter** (it needs a new shelf
+   entry in `constants/onboarding-chapters.ts` and a catalogue key — do it last, after Ch 1–9).
+2. "What JEE and NEET Actually Ask": **keep**, word for word, as the last Additional topic of each chapter
+   (lettered after the real addenda; "Addendum P" references reworded to that letter).
+3. "Answers to Practice": each answer goes with its own practice question. "Summary Checklist" (Ch 7, 8):
+   **keep**, as a short Additional topic just before the exam section.
+4. Chapter 6: **number the parts 1–5 in reading order**; reword and list every cross-reference.
+5. Chapter 8's Subtopic 00: **"Start here"** (`n: '00'`); Topics 1–4 keep the book's numbers.
+
+The Chemistry brief for Ch 1–2 is `books-work/BRIEF-C11-01-02.md` (it builds on the Physics brief);
+`books-work/svg2png.cjs` replaces the Mac's qlmanage for looking at diagrams in the cloud.
+
 ## The process (per chapter pair) — exactly as for Physics
 
 1. **Write a brief** for the pair, adapted from `books-work/reference-briefs/BRIEF-12-07-08.md`
