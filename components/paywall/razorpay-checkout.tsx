@@ -4,14 +4,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { ApiError } from '@/lib/api';
+import { getSessionEmail } from '@/lib/auth';
 import { passStatus, type PassKind, type PassStatus } from '@/lib/pass';
 import {
   PAYMENTS_ON_THIS_DEVICE,
   PriceMismatchError,
-  checkoutHtml,
+  checkoutShellHtml,
   createOrder,
   getOrderState,
   isAppLink,
+  openCheckoutScript,
   parseCheckoutMessage,
   verifyPayment,
   webViewMayLoad,
@@ -150,7 +152,10 @@ async function waitForPass(before: number | null, times = POLL_TIMES, gapMs = PO
 }
 
 export function usePassCheckout() {
-  const [open, setOpen] = useState<{ order: Order; description: string } | null>(null);
+  /** The sheet opens the moment Pay is tapped, with no order yet (null): the order
+   *  is made while Razorpay's script is already downloading, and handed to the page
+   *  when it arrives. */
+  const [open, setOpen] = useState<{ order: Order | null; email: string | null; description: string } | null>(null);
   const resolveSheet = useRef<((e: CheckoutEvent | Closed | Settled) => void) | null>(null);
 
   // If the screen goes away with the sheet open (a deep link, the pass gate
@@ -197,11 +202,41 @@ export function usePassCheckout() {
         // payment sheet opened that much later. The server reads it when the request
         // arrives, which is before the student can possibly have paid.
         const beforeRead = passStatus({ timeoutMs: POLL_TIMEOUT_MS }).then(endOf, () => null);
-        const order = await createOrder(kind, opts.offer, opts.promo);
-        if (opts.expectedPaise != null && order.amount !== opts.expectedPaise) throw new PriceMismatchError();
+        // THE SHEET OPENS AT ONCE. The order took ~2s and Razorpay's script another
+        // 2-5s after it, one after the other, with only a greyed button to look at.
+        // Now the sheet is up on the tap, the script downloads while the order is
+        // made, and the page is handed the order when it exists.
+        let closedEarly: ((e: CheckoutEvent | Closed | Settled) => void) | null = null;
+        const early = new Promise<CheckoutEvent | Closed | Settled>((resolve) => {
+          closedEarly = resolve;
+        });
+        resolveSheet.current = (e) => closedEarly?.(e);
+        setOpen({ order: null, email: null, description: opts.description });
+        const made = Promise.all([createOrder(kind, opts.offer, opts.promo), getSessionEmail().catch(() => null)]);
+        let order: Order;
+        let email: string | null;
+        try {
+          const first = await Promise.race([made.then((m) => ({ made: m })), early.then((event) => ({ event }))]);
+          if ('event' in first) {
+            // Closed before the order came back: nothing was paid. The order, if
+            // it is made, is simply never used.
+            made.catch(() => {});
+            resolveSheet.current = null;
+            setOpen(null);
+            // The page itself failing to load (no network) is not a cancel.
+            if (first.event.type === 'error') return { status: 'failed', message: first.event.message };
+            return { status: 'cancelled' };
+          }
+          [order, email] = first.made;
+          if (opts.expectedPaise != null && order.amount !== opts.expectedPaise) throw new PriceMismatchError();
+        } catch (err) {
+          resolveSheet.current = null;
+          setOpen(null);
+          throw err;
+        }
         const event = await new Promise<CheckoutEvent | Closed | Settled>((resolve) => {
           resolveSheet.current = resolve;
-          setOpen({ order, description: opts.description });
+          setOpen({ order, email, description: opts.description });
           // A UPI payment ends in another app and this page is never told. The
           // server is (Razorpay's webhook), so ask it, and close the sheet by
           // itself when it says paid.
@@ -267,6 +302,7 @@ export function usePassCheckout() {
   const checkout = open ? (
     <CheckoutSheet
       order={open.order}
+      email={open.email}
       description={open.description}
       onEvent={(e) => resolveSheet.current?.(e)}
     />
@@ -277,15 +313,26 @@ export function usePassCheckout() {
 
 function CheckoutSheet({
   order,
+  email,
   description,
   onEvent,
 }: {
-  order: Order;
+  order: Order | null;
+  email: string | null;
   description: string;
   onEvent: (e: CheckoutEvent | Closed | Settled) => void;
 }) {
-  const html = useMemo(() => checkoutHtml(order, { description }), [order, description]);
+  // The same page for the whole life of the sheet: it is loaded before the order
+  // exists and opened by script once the order does.
+  const html = useMemo(() => checkoutShellHtml(), []);
   const [loading, setLoading] = useState(true);
+  const web = useRef<WebView>(null);
+  const opened = useRef<string | null>(null);
+  useEffect(() => {
+    if (!order || loading || opened.current === order.order_id) return;
+    opened.current = order.order_id;
+    web.current?.injectJavaScript(openCheckoutScript(order, { description, email }));
+  }, [order, loading, description, email]);
   // Read HERE, outside the Modal. A Modal is its own native hierarchy and the
   // inset measured inside it reads zero: the header sat under the status bar and
   // the Dynamic Island, and its Close button could not be tapped.
@@ -314,7 +361,7 @@ function CheckoutSheet({
     onEvent(lastFailure.current ? { type: 'failed', description: lastFailure.current } : { type: 'dismiss' });
 
   const onMessage = (e: WebViewMessageEvent) => {
-    const msg = parseCheckoutMessage(e.nativeEvent.data, order.order_id);
+    const msg = parseCheckoutMessage(e.nativeEvent.data, order?.order_id ?? '');
     if (!msg) return;
     if (msg.type === 'failed') {
       // The callback page is the LAST page: Razorpay's sheet, where a decline can
@@ -343,6 +390,7 @@ function CheckoutSheet({
     >
       <SheetBody
         html={html}
+        web={web}
         loading={loading}
         top={top}
         bottom={bottom}
@@ -359,6 +407,7 @@ function CheckoutSheet({
 
 function SheetBody({
   html,
+  web,
   loading,
   top,
   bottom,
@@ -368,6 +417,7 @@ function SheetBody({
   onLeave,
 }: {
   html: string;
+  web: React.RefObject<WebView | null>;
   loading: boolean;
   top: number;
   bottom: number;
@@ -386,6 +436,7 @@ function SheetBody({
       </View>
       <View style={styles.body}>
         <WebView
+          ref={web}
           source={{ html, baseUrl: 'https://monklearning.com' }}
           originWhitelist={['*']}
           javaScriptEnabled

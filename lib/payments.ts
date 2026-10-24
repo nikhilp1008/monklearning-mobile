@@ -155,13 +155,9 @@ export function parseCheckoutMessage(raw: unknown, expectedOrderId: string): Che
 const forScript = (v: unknown) =>
   JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\u2028|\u2029/g, '');
 
-/**
- * The page the WebView shows: Razorpay's Standard Checkout, opened at once.
- * Standard Checkout is a script Razorpay serves, not something this app can
- * bundle, so the page needs a network and says so if it has none.
- */
-export function checkoutHtml(order: Order, opts: { description: string; themeColor?: string }): string {
-  const options = {
+/** What Razorpay's checkout is opened with (the page adds the handlers). */
+export function checkoutOptions(order: Order, opts: { description: string; themeColor?: string; email?: string | null }) {
+  return {
     key: order.key_id,
     amount: order.amount,
     currency: order.currency,
@@ -169,6 +165,8 @@ export function checkoutHtml(order: Order, opts: { description: string; themeCol
     name: 'Monk Learning',
     description: opts.description,
     theme: { color: opts.themeColor ?? '#1C1A16' },
+    // The student's email, so Razorpay does not ask for it again.
+    ...(opts.email ? { prefill: { email: opts.email } } : {}),
     // IN A WEBVIEW THE PAGE DOES NOT SURVIVE THE PAYMENT. A bank's 3-D Secure
     // page replaces it, taking `handler` with it: Razorpay showed PAYMENT
     // SUCCESSFUL and the app never heard. With redirect + a server callback_url,
@@ -184,6 +182,19 @@ export function checkoutHtml(order: Order, opts: { description: string; themeCol
     // retired by NPCI. Android only, which is the only place payments run.
     webview_intent: true,
   };
+}
+
+/**
+ * The page the WebView shows. Standard Checkout is a script Razorpay serves, not
+ * something this app can bundle, so the page needs a network and says so if it has
+ * none.
+ *
+ * With `options` the page opens the checkout at once. Without them it only loads
+ * the script and waits for `window.__openCheckout(options)` (see
+ * `openCheckoutScript`): that is how the sheet opens the moment the student taps
+ * Pay, with the script already downloading while the order is still being made.
+ */
+function pageHtml(options?: Record<string, unknown>): string {
   return `<!doctype html>
 <html><head>
 <meta charset="utf-8">
@@ -196,20 +207,38 @@ export function checkoutHtml(order: Order, opts: { description: string; themeCol
 <script>
 (function () {
   function post(m) { m.source = 'monk-checkout'; window.ReactNativeWebView.postMessage(JSON.stringify(m)); }
-  var options = ${forScript(options)};
-  if (typeof Razorpay === 'undefined') { post({ type: 'error', message: 'The payment page could not load. Check your connection and try again.' }); return; }
-  options.handler = function (r) {
-    post({ type: 'success', razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature });
+  window.__openCheckout = function (options) {
+    if (typeof Razorpay === 'undefined') { post({ type: 'error', message: 'The payment page could not load. Check your connection and try again.' }); return; }
+    options.handler = function (r) {
+      post({ type: 'success', razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature });
+    };
+    options.modal = { ondismiss: function () { post({ type: 'dismiss' }); }, escape: false, confirm_close: true };
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (r) {
+      post({ type: 'failed', description: (r && r.error && r.error.description) || 'The payment did not go through.' });
+    });
+    rzp.open();
   };
-  options.modal = { ondismiss: function () { post({ type: 'dismiss' }); }, escape: false, confirm_close: true };
-  var rzp = new Razorpay(options);
-  rzp.on('payment.failed', function (r) {
-    post({ type: 'failed', description: (r && r.error && r.error.description) || 'The payment did not go through.' });
-  });
-  rzp.open();
+  if (typeof Razorpay === 'undefined') { post({ type: 'error', message: 'The payment page could not load. Check your connection and try again.' }); return; }
+  ${options ? `window.__openCheckout(${forScript(options)});` : ''}
 })();
 </script>
 </body></html>`;
+}
+
+/** The whole page for one order, opened at once. */
+export function checkoutHtml(order: Order, opts: { description: string; themeColor?: string; email?: string | null }): string {
+  return pageHtml(checkoutOptions(order, opts));
+}
+
+/** The page before the order exists: loads Razorpay's script and waits. */
+export function checkoutShellHtml(): string {
+  return pageHtml();
+}
+
+/** Run inside the shell page once the order exists. */
+export function openCheckoutScript(order: Order, opts: { description: string; themeColor?: string; email?: string | null }): string {
+  return `window.__openCheckout(${forScript(checkoutOptions(order, opts))}); true;`;
 }
 
 /** Links that open another app: UPI apps, wallets, Android intents. */

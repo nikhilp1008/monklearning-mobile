@@ -21,7 +21,7 @@ jest.mock('react-native-webview', () => ({ WebView: () => null }));
 
 import { apiFetch } from '@/lib/api';
 import { watchOrder } from '@/components/paywall/razorpay-checkout';
-import { checkoutHtml, getOrderState, type Order } from '@/lib/payments';
+import { checkoutHtml, checkoutShellHtml, getOrderState, openCheckoutScript, type Order } from '@/lib/payments';
 
 const read = (rel: string) => fs.readFileSync(path.join(__dirname, '../..', rel), 'utf8');
 const ORDER: Order = {
@@ -110,7 +110,10 @@ describe('pay()', () => {
 
   test('the pass check no longer holds the sheet back', () => {
     expect(pay).toContain('const beforeRead = passStatus(');
-    expect(pay.indexOf('const beforeRead')).toBeLessThan(pay.indexOf('await createOrder('));
+    expect(pay.indexOf('const beforeRead')).toBeLessThan(pay.indexOf('createOrder('));
+    // The sheet is opened (no order yet) before the order is asked for.
+    expect(pay.indexOf('setOpen({ order: null')).toBeGreaterThan(-1);
+    expect(pay.indexOf('setOpen({ order: null')).toBeLessThan(pay.indexOf('createOrder('));
     expect(pay).not.toMatch(/const before = endOf\(await passStatus/);
     expect(pay.indexOf('createOrder(')).toBeLessThan(pay.indexOf('await beforeRead'));
   });
@@ -138,5 +141,29 @@ describe('the plans screen', () => {
   test('the purchase flag is set on the tap and always cleared', () => {
     expect(src).toContain('payingNow.current = true;');
     expect(src).toMatch(/finally \{\s*payingNow\.current = false;/);
+  });
+});
+
+describe('the sheet opens before the order exists', () => {
+  it('the shell page loads the script and opens nothing by itself', () => {
+    const html = checkoutShellHtml();
+    expect(html).toContain('checkout.razorpay.com/v1/checkout.js');
+    expect(html).toContain('window.__openCheckout = function');
+    // The only call to it is the definition; nothing opens until the app says so.
+    expect(html.match(/__openCheckout\(/g)).toBeNull();
+  });
+
+  it('opening it for an order passes that order, the amount and the email', () => {
+    const js = openCheckoutScript(ORDER, { description: '1 day pass', email: 'a@b.com' });
+    expect(js.startsWith('window.__openCheckout({')).toBe(true);
+    expect(js).toContain(`"order_id":"${ORDER.order_id}"`);
+    expect(js).toContain(`"amount":${ORDER.amount}`);
+    expect(js).toContain('"prefill":{"email":"a@b.com"}');
+    expect(js).toContain('"webview_intent":true');
+  });
+
+  it('no email, no prefill; and a hostile description cannot end the script', () => {
+    expect(openCheckoutScript(ORDER, { description: 'x' })).not.toContain('prefill');
+    expect(openCheckoutScript(ORDER, { description: '</script><script>alert(1)</script>' })).not.toContain('</script>');
   });
 });
