@@ -234,9 +234,12 @@ export function italicMaths(name: string): string {
 }
 
 /** "The conversion master relation" from "FORMULA · THE CONVERSION MASTER RELATION". */
-export function formulaName(kicker: string, asPrinted = false): string {
+export function formulaName(kicker: string, asPrinted = false, guessMaths = true): string {
   // Runs of spaces become one, but a non-breaking space the content set on purpose stays ("N\u00a0turns").
   const raw = stripToMaths(kicker.replace(/^FORMULA\s*·\s*/i, '')).replace(/[^\S\u00a0]+/g, ' ').trim();
+  // Chemistry names are full of element symbols ("for C, H, O compounds"),
+  // which are upright: its kickers mark their maths letters themselves.
+  if (!guessMaths) return titleBreaks(raw);
   // The books print their names with proper capitals ("Relative velocity of A
   // with respect to B"); lowering them made A and B read as maths letters.
   if (asPrinted) return titleBreaks(italicMaths(raw));
@@ -589,7 +592,7 @@ export function buildFormulaCards(chapter: Chapter): FormulaCard[] {
     topic.blocks
       .filter((b): b is FormulaBlock => b.t === 'formula')
       .forEach((f) => {
-        const name = formulaName(f.kicker, book);
+        const name = formulaName(f.kicker, book, chapter.subject !== 'Chemistry');
         // A book's text is kept as printed: no capitals lowered.
         const tidy = (l: string) => marks(book ? l : soften(l));
         const its = items(f.main.split('<br>').map(tidy));
