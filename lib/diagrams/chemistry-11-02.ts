@@ -177,9 +177,34 @@ const FB: Record<2 | 3, Frame> = {
 const RMAX: Record<2 | 3, number> = { 2: 12.2, 3: 32.5 };
 /** The 1s curve is drawn out to 6 a₀, where it has died away. */
 const R1S = 6;
-/** The ring round the 3s orbital's two inner peaks: centre (r, P) and half-widths, in graph units. */
-const RING3 = { u: 2.7, v: 0.2, ru: 2.8, rv: 0.27 };
-const ringPts = (f: Frame): P[] => samples(0, 2 * Math.PI, 160).map((t): P => at(f, RING3.u + RING3.ru * Math.cos(t), RING3.v + RING3.rv * Math.sin(t)));
+/**
+ * The ring round the 3s orbital's two inner peaks, and nothing else. The 3p inner peak (0.39 at 3a₀)
+ * sits between them and barely above the line joining them, so an upright ellipse cannot hold both 3s
+ * peaks without it: the ring is a thin ellipse laid along that line, computed from the peaks
+ * themselves — its long axis runs through both, RING_PAD px beyond each, and it is RING_HALF px wide
+ * either side of the axis (in drawing px).
+ */
+const RING_PAD = 8;
+const RING_HALF = 6;
+function ring3(f: Frame) {
+  const [m0, m1] = maxima(Pn(3, 0), 1e-6, 60);
+  const a = at(f, m0.u, m0.v), b = at(f, m1.u, m1.v), L = len(a, b);
+  const d: P = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+  return { c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as P, d, n: [-d[1], d[0]] as P, ra: L / 2 + RING_PAD, rb: RING_HALF };
+}
+type Ring = ReturnType<typeof ring3>;
+/** Where on the ring the "3s inner peaks" leader ends. */
+const RING_T = 4.3;
+/** The point of the ring at parameter t (0 at the far end along d). */
+const onRing = (g: Ring, t: number): P => [g.c[0] + g.ra * Math.cos(t) * g.d[0] + g.rb * Math.sin(t) * g.n[0], g.c[1] + g.ra * Math.cos(t) * g.d[1] + g.rb * Math.sin(t) * g.n[1]];
+const ringPts = (g: Ring): P[] => samples(0, 2 * Math.PI, 160).map((t) => onRing(g, t));
+/** Inside the ring (< 1) or outside it (> 1): the ellipse's own measure of a drawing point. */
+const ringMeasure = (g: Ring, p: P) => {
+  const x = p[0] - g.c[0], y = p[1] - g.c[1];
+  return ((x * g.d[0] + y * g.d[1]) / g.ra) ** 2 + ((x * g.n[0] + y * g.n[1]) / g.rb) ** 2;
+};
+/** How far a drawing point is from the ring's line, in px (measured on the drawn ring). */
+const ringGap = (g: Ring, p: P) => Math.min(...samples(0, 2 * Math.PI, 2000).map((t) => len(onRing(g, t), p)));
 
 const figB: Diagram = {
   id: 'c11-02-B-d1',
@@ -226,9 +251,11 @@ const figB: Diagram = {
     curve(s, f, P3d, 0, RMAX[3], { color: C.slate, w: 2, dash: 'dash' });
     curve(s, f, P3p, 0, RMAX[3], { w: 2.2 });
     curve(s, f, P3s, 0, RMAX[3], { color: C.mari, w: 2.6 });
-    path(s, ringPts(f), { color: C.slate, w: 1.1, dash: 'dot' });
+    const g = ring3(f);
+    path(s, ringPts(g), { color: C.slate, w: 1.1, dash: 'dot' });
     s.place([
-      { t: '3s inner peaks', p: at(f, RING3.u - RING3.ru * 0.2, RING3.v + RING3.rv * Math.sqrt(1 - 0.04)), bare: true, at: [[50, 86, 'start'], [52, 86, 'start'], [48, 86, 'start']] },
+      // the leader ends on the ring's upper-left side, next to the lower 3s inner peak
+      { t: '3s inner peaks', p: onRing(g, RING_T), bare: true, at: [[50, 86, 'start'], [52, 86, 'start'], [48, 86, 'start']] },
       { t: '3s', hi: true, p: at(f, 16.5, P3s(16.5)), at: [[X(f, 23.5), 178, 'start'], [X(f, 24), 178, 'start'], [X(f, 23), 178, 'start']] },
       { t: '3p', p: at(f, 15.2, P3p(15.2)), at: [[X(f, 23.5), 130, 'start'], [X(f, 24), 130, 'start'], [X(f, 23), 130, 'start']] },
       { t: '3d', p: at(f, 13.6, P3d(13.6)), at: [[X(f, 23.5), 218, 'start'], [X(f, 24), 218, 'start'], [X(f, 23), 218, 'start']] },
@@ -270,9 +297,15 @@ const figB: Diagram = {
       out.push([`3s nodes at (9 ∓ 3√3)/2 = ${fmt((9 - 3 * Math.sqrt(3)) / 2, 3)}, ${fmt((9 + 3 * Math.sqrt(3)) / 2, 3)} a₀ (roots of 27 − 18r + 2r²); 3p node at 6a₀`, close(nd3s[0], (9 - 3 * Math.sqrt(3)) / 2, 1e-9) && close(nd3s[1], (9 + 3 * Math.sqrt(3)) / 2, 1e-9) && close(nd3p[0], 6, 1e-9)]);
       const m3s = maxima(Pn(3, 0), 1e-6, 60), m3p = maxima(Pn(3, 1), 1e-6, 60);
       out.push([`Inner peaks, as the book draws them: 3s ${fmt(m3s[0].v, 2)} at ${fmt(m3s[0].u, 2)} a₀ and ${fmt(m3s[1].v, 2)} at ${fmt(m3s[1].u, 2)} a₀; 3p ${fmt(m3p[0].v, 2)} at ${fmt(m3p[0].u, 2)} a₀`, Math.abs(m3s[0].v - 0.14) < 0.02 && Math.abs(m3s[1].v - 0.38) < 0.02 && Math.abs(m3p[0].v - 0.39) < 0.02]);
-      // the ring holds both 3s inner peaks and nothing of the 3s main peak
-      const inRing = (u: number, v: number) => ((u - RING3.u) / RING3.ru) ** 2 + ((v - RING3.v) / RING3.rv) ** 2 < 1;
-      out.push(['The ring round “3s inner peaks” holds both inner 3s peaks and not its main peak', inRing(m3s[0].u, m3s[0].v) && inRing(m3s[1].u, m3s[1].v) && !inRing(o3s.u, o3s.v)]);
+      // the ring holds both 3s inner peaks and nothing else: not the 3s main peak, no 3p or 3d maximum
+      const g = ring3(f), inRing = (m: { u: number; v: number }) => ringMeasure(g, at(f, m.u, m.v)) < 1;
+      const gap = (m: { u: number; v: number }) => ringGap(g, at(f, m.u, m.v));
+      out.push([`The ring round “3s inner peaks” holds both inner 3s peaks (${fmt(gap(m3s[0]), 1)} and ${fmt(gap(m3s[1]), 1)} px inside its line) and not the 3s main peak`, inRing(m3s[0]) && inRing(m3s[1]) && !inRing(o3s) && gap(m3s[0]) >= 3 && gap(m3s[1]) >= 3]);
+      const others = [...maxima(Pn(3, 1), 1e-6, 60).map((m) => ({ ...m, w: '3p' })), ...maxima(Pn(3, 2), 1e-6, 60).map((m) => ({ ...m, w: '3d' }))];
+      out.push([`No 3p or 3d maximum lies inside the 3s ring: the 3p inner peak (${fmt(m3p[0].u, 2)} a₀, ${fmt(m3p[0].v, 2)}) is outside, ${fmt(gap(m3p[0]), 1)} px clear of its line; ${others.map((m) => `${m.w} at ${fmt(m.u, 2)} a₀`).join(', ')} all outside`, others.every((m) => !inRing(m) && gap(m) >= 3)]);
+      // the leader ends on the ring itself
+      const lead = s.tags.find((t) => t.name === '3s inner peaks');
+      out.push(['The “3s inner peaks” leader ends on the ring', !!lead?.from && close(ringMeasure(g, lead.from), 1, 1e-6)]);
       out.push([`All three have died away by the axis end (${RMAX[3]} a₀): ${orbs.map(([n, l]) => fmt(Pn(n, l)(RMAX[3]), 3)).join(', ')} of their peaks`, orbs.every(([n, l]) => Pn(n, l)(RMAX[3]) < 0.01)]);
     }
     // the curves are drawn as computed: read one back from the drawing

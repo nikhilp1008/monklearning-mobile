@@ -27,7 +27,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'For a long time, the atom was thought to be the final, indivisible full-stop of matter — Dalton’s 1808 idea that an atom is the smallest particle that takes part in a chemical reaction. That picture cracked the moment electricity was passed through gases at very low pressure inside a glass tube. A glowing beam shot from the negative electrode (the cathode) to the positive one. These <b>cathode rays</b> travelled in straight lines, were deflected by electric and magnetic fields toward the positive plate, and — crucially — behaved identically no matter which gas filled the tube or what metal the electrodes were made of. That last fact was the giveaway: whatever these rays were made of, the same thing was present in every kind of matter. The atom was not indivisible after all. It had pieces.',
+        html: 'For a long time, the atom was thought to be the final, indivisible full-stop of matter — Dalton’s 1808 idea that an atom is the smallest particle that takes part in a chemical reaction. That picture cracked the moment electricity was passed through gases at very low pressure inside a glass tube. A glowing beam shot from the negative electrode (the cathode) to the positive one. These <b>cathode rays</b> travelled in straight lines, were deflected by electric and magnetic fields (toward the positive plate in an electric field), and — crucially — behaved identically no matter which gas filled the tube or what metal the electrodes were made of. That last fact was the giveaway: whatever these rays were made of, the same thing was present in every kind of matter. The atom was not indivisible after all. It had pieces.',
       },
       {
         t: 'p',
@@ -87,8 +87,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Distance of closest approach (head-on, projectile of charge <i>z</i><sub>1</sub><i>e</i> at a nucleus of charge <i>Ze</i>)',
         main: '<i>r</i><sub>0</sub> = (1/(4πε<sub>0</sub>))(<i>z</i><sub>1</sub><i>Ze</i><sup>2</sup>/(KE))',
-        legend: [],
-        note: 'For an <i>α</i>-particle, <i>z</i><sub>1</sub> = 2.',
+        legend: ['<i>z</i><sub>1</sub> = 2 for an <i>α</i>-particle'],
+        note: null,
       },
       {
         t: 'formula',
@@ -121,7 +121,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3.3 Why Rutherford abandoned plum-pudding.</b> Rutherford fired <i>α</i>-particles (fast, heavy, positive) at a wafer-thin gold foil and recorded where they landed. Observations and the logic they force:<br>1. Most <i>α</i>-particles passed straight through. → The atom is mostly <b>empty space</b>. (If the positive charge were smeared everywhere as Thomson said, every particle would feel a small push and bend slightly — none would pass cleanly.)<br>2. A small fraction were deflected through large angles. → They came near a concentrated lump of positive charge.<br>3. A very few (~1 in 20000) bounced almost straight back. → They scored a near head-on hit on something tiny, dense, massive, and positively charged: the <b>nucleus</b>.',
+        html: '<b>3.3 Why Rutherford abandoned plum-pudding.</b> Rutherford fired <i>α</i>-particles (fast, heavy, positive) at a wafer-thin gold foil and recorded where they landed. Observations and the logic they force:<br>1. Most <i>α</i>-particles passed straight through. → The atom is mostly <b>empty space</b>. (Thomson’s model also lets most through with tiny deflections; it is observations 2 and 3 that it cannot explain.)<br>2. A small fraction were deflected through large angles. → They came near a concentrated lump of positive charge.<br>3. A very few (~1 in 20000) bounced almost straight back. → They scored a near head-on hit on something tiny, dense, massive, and positively charged: the <b>nucleus</b>.',
       },
       {
         t: 'p',
@@ -133,7 +133,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Physical reading of each step:</b> we ignore the nucleus’s recoil because it is thousands of times heavier (assumption 3 from Concept intuition); we use energy conservation rather than force-and-acceleration because we only care about the turning point, not the full trajectory; and the answer scales inversely with KE — fire the <i>α</i> harder and it punches closer in.',
+        html: '<b>Physical reading of each step:</b> we ignore the nucleus’s recoil because it is about fifty times heavier (assumption 3 from Concept intuition); we use energy conservation rather than force-and-acceleration because we only care about the turning point, not the full trajectory; and the answer scales inversely with KE — fire the <i>α</i> harder and it punches closer in.',
       },
       {
         t: 'p',
@@ -223,11 +223,11 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'dependent on the gas in the tube',
-            nudge: '<b>(a)</b> and <b>(b)</b> describe the behaviour of <b>positive (anode) rays</b>, whose <i>e</i>/<i>m</i> does depend on the gas; a student who mixes up the two ray types falls here.',
+            nudge: '<b>(a)</b> describes <b>positive (anode) rays</b>, whose <i>e</i>/<i>m</i> does depend on the gas; a student who mixes up the two ray types falls here.',
           },
           {
             label: 'dependent on the cathode material',
-            nudge: '<b>(a)</b> and <b>(b)</b> describe the behaviour of <b>positive (anode) rays</b>, whose <i>e</i>/<i>m</i> does depend on the gas; a student who mixes up the two ray types falls here.',
+            nudge: '<b>(b)</b> is true of neither ray: Thomson found the same <i>e</i>/<i>m</i> whatever metal the cathode was made of.',
           },
           { label: 'the same for all gases and electrodes', nudge: null },
           { label: 'zero', nudge: '<b>(d)</b> is the property of the neutron’s <i>e</i>/<i>m</i>, not the electron’s.' },
@@ -262,11 +262,11 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'the atom is electrically neutral',
-            nudge: '<b>(a)</b> and <b>(b)</b> are features of the model Rutherford built afterward, not direct conclusions from the rebound itself.',
+            nudge: '<b>(a)</b> was known before the experiment (atoms are neutral); it is not a conclusion from the rebound.',
           },
           {
             label: 'electrons revolve around the nucleus',
-            nudge: '<b>(a)</b> and <b>(b)</b> are features of the model Rutherford built afterward, not direct conclusions from the rebound itself.',
+            nudge: '<b>(b)</b> is a feature of the model Rutherford built afterward, not a direct conclusion from the rebound itself.',
           },
           { label: 'the positive charge and mass are concentrated in a tiny nucleus', nudge: null },
           {
@@ -474,7 +474,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'Find the incoming photon energy <i>hν</i> (or <i>hc</i>/<i>λ</i>).',
           'If you need it, get the work function from the threshold: <i>W</i><sub>0</sub> = <i>hν</i><sub>0</sub> = <i>hc</i>/<i>λ</i><sub>0</sub>.',
-          'Apply Einstein’s equation: KE<sub>max</sub> = <i>hν</i> − <i>W</i><sub>0</sub>. If this is negative or zero, <b>no emission occurs</b>.',
+          'Apply Einstein’s equation: KE<sub>max</sub> = <i>hν</i> − <i>W</i><sub>0</sub>. If this is negative, <b>no emission occurs</b> (zero means <i>ν</i> = <i>ν</i><sub>0</sub>: electrons are just freed with no kinetic energy).',
           'If asked for stopping potential, use <i>V</i><sub>0</sub> = KE<sub>max</sub>/<i>e</i> (so KE<sub>max</sub> in eV equals <i>V</i><sub>0</sub> in volts numerically).',
         ],
       },
@@ -500,7 +500,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The two graphs to remember:</b> a plot of stopping potential <i>V</i><sub>0</sub> against frequency <i>ν</i> is a <b>straight line</b> of slope <i>h</i>/<i>e</i>, crossing the axis at <i>ν</i><sub>0</sub> (this is how Millikan measured <i>h</i>); and a plot of photocurrent against intensity is a straight line through the origin. Both fall straight out of Einstein’s equation <i>eV</i><sub>0</sub> = <i>hν</i> − <i>W</i><sub>0</sub> — the slope is <i>h</i>/<i>e</i> and the intercept fixes <i>ν</i><sub>0</sub> = <i>W</i><sub>0</sub>/<i>h</i>.',
+        html: '<b>The two graphs to remember:</b> a plot of stopping potential <i>V</i><sub>0</sub> against frequency <i>ν</i> is a <b>straight line</b> of slope <i>h</i>/<i>e</i>, crossing the axis at <i>ν</i><sub>0</sub> (this is how Millikan measured <i>h</i>); and a plot of photocurrent against intensity is a straight line through the origin. The first falls straight out of Einstein’s equation <i>eV</i><sub>0</sub> = <i>hν</i> − <i>W</i><sub>0</sub> — the slope is <i>h</i>/<i>e</i> and the intercept fixes <i>ν</i><sub>0</sub> = <i>W</i><sub>0</sub>/<i>h</i>; the second from photon counting (one photon frees one electron).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -543,7 +543,7 @@ export const TOPICS: Topic[] = [
         q: 'When light of wavelength 300 nm falls on a metal, the stopping potential is 1.85 V; for 400 nm light it is 0.82 V. From these data, (a) verify the value of Planck’s constant, and (b) determine the work function of the metal. (Take <i>hc</i> = 1240 eV nm.)',
         steps: [
           '<b>Set up Einstein’s equation as a stopping-potential pair</b> (<i>eV</i><sub>0</sub> in eV equals <i>V</i><sub>0</sub> in volts):<br><i>eV</i><sub>1</sub> = <i>hc</i>/<i>λ</i><sub>1</sub> − <i>W</i><sub>0</sub>, <i>eV</i><sub>2</sub> = <i>hc</i>/<i>λ</i><sub>2</sub> − <i>W</i><sub>0</sub>',
-          '<b>Step 1 — subtract to eliminate <i>W</i><sub>0</sub>.</b><br><i>e</i>(<i>V</i><sub>1</sub> − <i>V</i><sub>2</sub>) = <i>hc</i>(1/<i>λ</i><sub>1</sub> − 1/<i>λ</i><sub>2</sub>)<br>1.85 − 0.82 = <i>hc</i>(1/300 − 1/400) = 1240 × (400 − 300)/(300 × 400) = 1240 × 100/120000 = 1.03 eV<br>The left side is 1.03 V, the right side 1.03 eV — they match, confirming the data are consistent with <i>h</i> = 6.626 × 10<sup>−34</sup> J s (which is baked into <i>hc</i> = 1240 eV nm).',
+          '<b>Step 1 — subtract to eliminate <i>W</i><sub>0</sub>.</b><br><i>e</i>(<i>V</i><sub>1</sub> − <i>V</i><sub>2</sub>) = <i>hc</i>(1/<i>λ</i><sub>1</sub> − 1/<i>λ</i><sub>2</sub>)<br>1.85 − 0.82 = <i>hc</i>(1/300 − 1/400) = 1240 × (400 − 300)/(300 × 400) = 1240 × 100/120000 = 1.03 eV<br>The left side is 1.03 V, the right side 1.03 eV — they match, confirming the data are consistent with <i>h</i> = 6.626 × 10<sup>−34</sup> J s (which is baked into <i>hc</i> = 1240 eV nm). Equivalently, <i>h</i> = <i>e</i>(<i>V</i><sub>1</sub> − <i>V</i><sub>2</sub>)/[<i>c</i>(1/<i>λ</i><sub>1</sub> − 1/<i>λ</i><sub>2</sub>)] = 6.6 × 10<sup>−34</sup> J s.',
           '<b>Step 2 — work function</b> from the 300 nm equation:<br><i>W</i><sub>0</sub> = <i>hc</i>/<i>λ</i><sub>1</sub> − <i>eV</i><sub>1</sub> = 1240/300 − 1.85 = 4.13 − 1.85',
           '(Quick check via threshold wavelength: <i>λ</i><sub>0</sub> = 1240/2.28 = 544 nm — so only light shorter than 544 nm ejects electrons, consistent with both 300 and 400 nm working.)',
           'The “subtract two stopping-potential equations to kill <i>W</i><sub>0</sub>” trick is the signature JEE Advanced move here.',
@@ -564,7 +564,7 @@ export const TOPICS: Topic[] = [
             a: '<i>E</i> = (1240/300) eV = 4.13 eV per photon ⇒ ≈ 399 kJ mol<sup>−1</sup>.',
           },
           {
-            q: '[JEE Main] A 100 W sodium lamp emits monochromatic light of wavelength 589 nm. How many photons does it emit per second?',
+            q: '[JEE Main] A 100 W sodium lamp emits monochromatic light of wavelength 589 nm (assume all its power is emitted as this light). How many photons does it emit per second?',
             a: '≈ 2.96 × 10<sup>20</sup> photons s<sup>−1</sup>.',
           },
           {
@@ -603,7 +603,7 @@ export const TOPICS: Topic[] = [
         opts: [
           { label: '1.0 eV', nudge: '<b>(a)</b> and <b>(d)</b> from arithmetic slips or using 1240 in the wrong place.' },
           { label: '2.0 eV', nudge: null },
-          { label: '3.1 eV', nudge: '<b>(c)</b> comes from using 400 nm (blue) by mistake.' },
+          { label: '3.1 eV', nudge: '<b>(c)</b> comes from using 400 nm (violet) by mistake.' },
           { label: '0.5 eV', nudge: '<b>(a)</b> and <b>(d)</b> from arithmetic slips or using 1240 in the wrong place.' },
         ],
         correct: 1,
@@ -655,7 +655,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed):</b> Burn <i>E</i>(eV) = 1240/<i>λ</i>(nm) into memory — it converts almost every photon or photoelectric question into a single division, and <i>eV</i><sub>0</sub> (in volts) equals KE<sub>max</sub> (in eV) numerically, so stopping potential needs no extra step.',
+        html: '<b>Pro-Tip (speed):</b> Burn <i>E</i>(eV) = 1240/<i>λ</i>(nm) into memory — it converts almost every photon or photoelectric question into a single division, and <i>V</i><sub>0</sub> (in volts) equals KE<sub>max</sub> (in eV) numerically, so stopping potential needs no extra step.',
       },
 
       { t: 'part', title: 'Cheat sheet' },

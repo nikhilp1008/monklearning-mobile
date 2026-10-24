@@ -28,7 +28,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The chapter’s cheat sheet lists three scaling laws: <i>r</i> ∝ <i>n</i><sup>2</sup>/<i>Z</i>, <i>E</i> ∝ <i>Z</i><sup>2</sup>/<i>n</i><sup>2</sup>, <i>v</i> ∝ <i>Z</i>/<i>n</i>. A fourth quantity — how long one revolution takes — is derivable from the first and third in one line, and it is a recurring JEE Main numerical.',
+        html: 'The chapter’s cheat sheet lists three orbit scaling laws: <i>r</i> ∝ <i>n</i><sup>2</sup>/<i>Z</i>, <i>E</i> ∝ <i>Z</i><sup>2</sup>/<i>n</i><sup>2</sup>, <i>v</i> ∝ <i>Z</i>/<i>n</i>. A fourth quantity — how long one revolution takes — is derivable from the first and third in one line, and it is a recurring JEE Main numerical.',
       },
 
       { t: 'part', title: 'Method' },
@@ -49,7 +49,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Absolute values for hydrogen, <i>n</i> = 1.</b> With <i>r</i><sub>1</sub> = 0.529 Å = 5.29 × 10<sup>−11</sup> m and <i>v</i><sub>1</sub> = 2.18 × 10<sup>6</sup> m s<sup>−1</sup>:<br><i>T</i><sub>1</sub> = 2π(5.29 × 10<sup>−11</sup>)/(2.18 × 10<sup>6</sup>) = 1.52 × 10<sup>−16</sup> s,   <i>f</i><sub>1</sub> = 6.57 × 10<sup>15</sup> s<sup>−1</sup>.<br>Any other orbit of any one-electron ion follows from the scaling: <i>T</i><sub><i>n</i></sub>(<i>Z</i>) = 1.52 × 10<sup>−16</sup> × <i>n</i><sup>3</sup>/<i>Z</i><sup>2</sup> s.',
+        html: '<b>Absolute values for hydrogen, <i>n</i> = 1.</b> With <i>r</i><sub>1</sub> = 0.529 Å = 5.29 × 10<sup>−11</sup> m and <i>v</i><sub>1</sub> = 2.18 × 10<sup>6</sup> m s<sup>−1</sup>:<br><i>T</i><sub>1</sub> = 2π(5.29 × 10<sup>−11</sup>)/(2.18 × 10<sup>6</sup>) = 1.52 × 10<sup>−16</sup> s,   <i>f</i><sub>1</sub> = 6.56 × 10<sup>15</sup> s<sup>−1</sup>.<br>Any other orbit of any one-electron ion follows from the scaling: <i>T</i><sub><i>n</i></sub>(<i>Z</i>) = 1.52 × 10<sup>−16</sup> × <i>n</i><sup>3</sup>/<i>Z</i><sup>2</sup> s.',
       },
       {
         t: 'p',
@@ -72,7 +72,7 @@ export const TOPICS: Topic[] = [
         tag: 'JEE Main — Frequency of revolution',
         q: 'Calculate the frequency of revolution of the electron in the second Bohr orbit of hydrogen.',
         steps: [
-          '<i>f</i><sub><i>n</i></sub> = <i>f</i><sub>1</sub>/<i>n</i><sup>3</sup> for hydrogen (<i>Z</i> = 1):<br><i>f</i><sub>2</sub> = (6.57 × 10<sup>15</sup>)/8',
+          '<i>f</i><sub><i>n</i></sub> = <i>f</i><sub>1</sub>/<i>n</i><sup>3</sup> for hydrogen (<i>Z</i> = 1):<br><i>f</i><sub>2</sub> = (6.56 × 10<sup>15</sup>)/8',
           '<b>Cross-check with absolute numbers:</b> <i>r</i><sub>2</sub> = 4 × 0.529 = 2.12 Å, <i>v</i><sub>2</sub> = (2.18 × 10<sup>6</sup>)/2 = 1.09 × 10<sup>6</sup> m s<sup>−1</sup>, so <i>f</i> = <i>v</i>/(2π<i>r</i>) = (1.09 × 10<sup>6</sup>)/(2π × 2.12 × 10<sup>−10</sup>) ≈ 8.2 × 10<sup>14</sup> s<sup>−1</sup> — consistent.',
         ],
         ans: '8.2 × 10<sup>14</sup> Hz',
@@ -109,7 +109,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'NCERT (and the chapter) show the <b>probability density</b> plots: <i>ψ</i><sup>2</sup> against <i>r</i> for the 1s and 2s orbitals, with <i>ψ</i><sup>2</sup> maximum at the nucleus for 1s, falling to zero at the 2s node, then rising to a small second maximum. JEE and NEET, however, more often ask about a different curve — the <b>radial probability distribution</b> — and the two are systematically confused.',
+        html: 'NCERT shows the <b>probability density</b> plots: <i>ψ</i><sup>2</sup> against <i>r</i> for the 1s and 2s orbitals, with <i>ψ</i><sup>2</sup> maximum at the nucleus for 1s, falling to zero at the 2s node, then rising to a small second maximum. JEE and NEET, however, more often ask about a different curve — the <b>radial probability distribution</b> — and the two are systematically confused.',
       },
 
       { t: 'part', title: 'Method' },
@@ -124,7 +124,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'c11-02-B-d1' },
       {
         t: 'p',
-        html: '<b>Identification drill.</b> Given a printed curve, ask two questions: (i) does it start at zero? — if not, it is a <i>ψ</i><sup>2</sup> density plot, not a radial distribution; (ii) how many peaks does it have? — that number is <i>n</i> − <i>l</i>, and with the node count <i>n</i> − <i>l</i> − 1 it fixes the orbital up to the (<i>n</i>, <i>l</i>) pair. A two-peak radial distribution with one node is 2s; a one-peak curve that starts at zero could be 1s, 2p, 3d or 4f (all have <i>n</i> − <i>l</i> = 1) — the <i>x</i>-axis scale or a stated shell then disambiguates.',
+        html: '<b>Identification drill.</b> Given a printed curve, ask two questions: (i) does it start at zero? — if not, it is a <i>ψ</i><sup>2</sup> density plot, not a radial distribution; (ii) how many peaks does it have? — that number is <i>n</i> − <i>l</i> (and the node count <i>n</i> − <i>l</i> − 1 only confirms it). A two-peak radial distribution with one node could be 2s, 3p, 4d or 5f; a one-peak curve that starts at zero could be 1s, 2p, 3d or 4f (all have <i>n</i> − <i>l</i> = 1) — the <i>x</i>-axis scale or a stated shell then disambiguates.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -193,13 +193,13 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the Rydberg equation, the series names and the total line count <i>n</i>(<i>n</i> − 1)/2. JEE and NEET ask the two follow-ups the chapter leaves to you: how many of those lines land in the UV/visible/IR, and how a wavelength in one series converts to a wavelength in another without recomputing <i>R</i><sub>H</sub>.',
+        html: 'The chapter gives the Rydberg equation, the series names and the total line count <i>n</i>(<i>n</i> − 1)/2. JEE and NEET ask the two follow-ups the chapter only touches on: how many of those lines land in the UV/visible/IR, and how a wavelength in one series converts to a wavelength in another without recomputing <i>R</i><sub>H</sub>.',
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Per-region counting.</b> When atoms de-excite from level <i>n</i>, each series collects the transitions that end on its lower level. From an initial level <i>n</i> (with population spread across all intermediate levels as the cascade proceeds):<br>• Lyman (end at 1, UV): transitions <i>n</i> → 1, (<i>n</i> − 1) → 1, … , 2 → 1 — count <i>n</i> − 1;<br>• Balmer (end at 2, visible): count <i>n</i> − 2; Paschen (end at 3, IR): <i>n</i> − 3; Brackett: <i>n</i> − 4; Pfund: <i>n</i> − 5 (only if <i>n</i> ≥ 6).',
+        html: '<b>Per-region counting.</b> When atoms de-excite from level <i>n</i>, each series collects the transitions that end on its lower level. From an initial level <i>n</i> (with population spread across all intermediate levels as the cascade proceeds):<br>• Lyman (end at 1, UV): transitions <i>n</i> → 1, (<i>n</i> − 1) → 1, … , 2 → 1 — count <i>n</i> − 1;<br>• Balmer (end at 2, visible): count <i>n</i> − 2 (Balmer lines from <i>n</i> ≥ 7 run into the near UV); Paschen (end at 3, IR): <i>n</i> − 3; Brackett: <i>n</i> − 4; Pfund: <i>n</i> − 5 (only if <i>n</i> ≥ 6).',
       },
       {
         t: 'p',
@@ -213,7 +213,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Series-limit and first-line conversions',
         main: 'Lyman limit (∞ → 1): 1/<i>X</i> = <i>R</i><sub>H</sub><i>Z</i><sup>2</sup><br>Balmer first line (3 → 2): 1/<i>λ</i> = <i>R</i><sub>H</sub><i>Z</i><sup>2</sup>(1/4 − 1/9) = (5/36)<i>R</i><sub>H</sub><i>Z</i><sup>2</sup> ⇒ <i>λ</i> = (36/5)<i>X</i>',
-        legend: [],
+        legend: ['<i>X</i> = wavelength of the Lyman series limit'],
         note: null,
       },
       {
@@ -227,11 +227,11 @@ export const TOPICS: Topic[] = [
         tag: 'NEET — Lyman limit to Balmer first line',
         q: 'The shortest wavelength of the Lyman series of hydrogen is <i>X</i>. Find the wavelength of the first line of the Balmer series.',
         steps: [
-          'Shortest Lyman = series limit = ∞ → 1: 1/<i>X</i> = <i>R</i><sub>H</sub>. Balmer first line = 3 → 2:<br>1/<i>λ</i> = <i>R</i><sub>H</sub>(1/4 − 1/9) = 5<i>R</i><sub>H</sub>/36 = 5/(36<i>X</i>) ⇒ <i>λ</i> = (36/5)<i>X</i> = 7.2 <i>X</i>.',
+          'Shortest Lyman = series limit = ∞ → 1: 1/<i>X</i> = <i>R</i><sub>H</sub>. Balmer first line = 3 → 2:<br>1/<i>λ</i> = <i>R</i><sub>H</sub>(1/4 − 1/9) = 5<i>R</i><sub>H</sub>/36 = 5/(36<i>X</i>)',
           'A common wrong answer is 9<i>X</i>/5, which comes from using 5/9 for the bracket instead of 1/4 − 1/9 = 5/36 (the lower level of the Balmer series is <i>n</i> = 2, so the first term is 1/4).',
           '<b>Sanity check:</b> the 3 → 2 gap is only 5/36 of the Lyman-limit gap, so the wavelength must be about 7 times <i>X</i>, not 1.8 times — for <i>X</i> ≈ 91 nm this gives 656 nm, the red Balmer line.',
         ],
-        ans: '<i>λ</i> = 36<i>X</i>/5.',
+        ans: '<i>λ</i> = 36<i>X</i>/5 = 7.2<i>X</i>.',
       },
       {
         t: 'ex',
@@ -289,7 +289,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter defines the four quantum numbers, the (<i>n</i> + <i>l</i>) rule and the three filling principles. What it does not spell out — and what the exams return to repeatedly — is the precise meaning of degenerate in the two regimes, and the counting of unpaired electrons and net spin from a configuration.',
+        html: 'The chapter defines the four quantum numbers, the (<i>n</i> + <i>l</i>) rule and the three filling principles. What it only touches on — and what the exams return to repeatedly — is the precise meaning of degenerate in the two regimes, and the counting of unpaired electrons and net spin from a configuration.',
       },
 
       { t: 'part', title: 'Method' },
@@ -327,7 +327,7 @@ export const TOPICS: Topic[] = [
         q: 'Which configuration is associated with the lowest magnetic moment: d<sup>2</sup>, d<sup>3</sup>, d<sup>4</sup> or d<sup>9</sup>?',
         steps: [
           'Count unpaired electrons with Hund’s rule: d<sup>2</sup> → 2, d<sup>3</sup> → 3, d<sup>4</sup> → 4, d<sup>9</sup> → 1 (four pairs + one single). With <i>μ</i> = √(<i>n</i><sub>u</sub>(<i>n</i><sub>u</sub> + 2)) BM, the ordering of moments follows <i>n</i><sub>u</sub> exactly, so d<sup>9</sup> (<i>n</i><sub>u</sub> = 1, <i>μ</i> = √3 = 1.73 BM) is the lowest.',
-          'The instinct “more electrons means more magnetism” picks d<sup>4</sup>; Hund pairing reverses it after d<sup>5</sup>.',
+          'The instinct “more electrons means more magnetism” picks d<sup>2</sup> as the lowest; Hund pairing reverses the trend after d<sup>5</sup>, so d<sup>9</sup>, with one unpaired electron, is lower still.',
         ],
         ans: 'd<sup>9</sup>.',
       },
@@ -419,7 +419,7 @@ export const TOPICS: Topic[] = [
         t: 'ex',
         tag: 'Worked representative',
         q: 'Bohr radius of hydrogen is 53 pm; the first orbit of He<sup>+</sup> is 53/2 = 26.5 ≈ 27 pm (JEE Main).',
-        steps: ['One division; the distractors (75 pm, 106 pm) are for students who scale by <i>Z</i> the wrong way.'],
+        steps: ['One division; the distractors are 106 pm (multiplying by <i>Z</i> instead of dividing) and 75 pm (scaling by √<i>Z</i>).'],
         ans: '',
       },
       { t: 'p', html: '<b>Archetype 3 — Photoelectric effect: equation and vocabulary</b>' },
@@ -478,7 +478,7 @@ export const TOPICS: Topic[] = [
           '<b>Time period scales as <i>n</i><sup>3</sup>, not <i>n</i><sup>2</sup>.</b> The radius scaling is the misapplied cousin; Addendum A exists because of this trap.',
           '<b>KE quadrupled ⇒ <i>λ</i> halved.</b> <i>λ</i> = <i>h</i>/√(2<i>m</i> KE), so wavelength varies inversely as the square root of kinetic energy; “quartered” and “doubled” are the common slips.',
           '<b>KE<sub>max</sub> cannot exceed the photon energy.</b> Photoelectron KE is <i>hν</i> − <i>W</i><sub>0</sub> < <i>hν</i>; brightness moves only the count, never the per-electron energy.',
-          '<b>Shortest wavelength = biggest gap.</b> The series limit is ∞ → <i>n</i><sub>1</sub>; the “first line” is the longest wavelength. Swapping the two inverts every series conversion (the common wrong answer 9<i>X</i>/5 of the first worked example of Additional topic C).',
+          '<b>Shortest wavelength = biggest gap.</b> The series limit is ∞ → <i>n</i><sub>1</sub>; the “first line” is the longest wavelength. Swapping the two inverts every series conversion (in the first worked example of Additional topic C, taking the Balmer limit instead of its first line gives 4<i>X</i>, not 36<i>X</i>/5).',
           '<b>Cations strip 4s before 3d.</b> Fe<sup>2+</sup> is 3d<sup>6</sup>, never 3d<sup>4</sup>4s<sup>2</sup> — highest <i>n</i> leaves first.',
           '<b>4th excited state is <i>n</i> = 5.</b> Ground state is the zeroth; every “excited state” question tests this off-by-one.',
           '<b>d<sub><i>z</i>²</sub> has no nodal planes.</b> Its two angular nodes are cones — statement items count on you writing “2 planes”.',
@@ -553,7 +553,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'How the Addenda Fit the Chapter' },
       {
         t: 'p',
-        html: 'The chapter derives <i>r</i><sub><i>n</i></sub> and <i>E</i><sub><i>n</i></sub> in full; Addendum A adds the <b>revolution clock</b> (<i>T</i>, <i>f</i> and the equivalent current) on which JEE Main ratio questions are built. The chapter’s <i>ψ</i><sup>2</sup>(<i>r</i>) plots are completed by the <b>radial probability distribution</b> 4π<i>r</i><sup>2</sup><i>ψ</i><sup>2</sup> of Addendum B, whose peak-count rule (<i>n</i> − <i>l</i>) the exams test by picture. Addendum C turns the Rydberg equation into drilled procedures for <b>line counts by region</b> and <b>series-to-series wavelength conversions</b>, and Addendum D separates the two meanings of degenerate (one-electron versus multi-electron) that JEE Main has probed.',
+        html: 'The chapter derives <i>r</i><sub><i>n</i></sub> and <i>E</i><sub><i>n</i></sub> in full; Addendum A adds the <b>revolution clock</b> (<i>T</i>, <i>f</i> and the equivalent current) on which JEE Main ratio questions are built. NCERT’s <i>ψ</i><sup>2</sup>(<i>r</i>) plots are completed by the <b>radial probability distribution</b> 4π<i>r</i><sup>2</sup><i>ψ</i><sup>2</sup> of Addendum B, whose peak-count rule (<i>n</i> − <i>l</i>) the exams test by picture. Addendum C turns the Rydberg equation into drilled procedures for <b>line counts by region</b> and <b>series-to-series wavelength conversions</b>, and Addendum D separates the two meanings of degenerate (one-electron versus multi-electron) that JEE Main has probed.',
       },
     ],
   },

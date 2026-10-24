@@ -16,9 +16,9 @@
  * mistakes: its Common Student Pitfalls. Exam shortcuts: its Pro-Tip. `say`:
  * the cheat sheet's first two memory aids, word for word (quotation marks
  * dropped). Additional topics: the addenda's methods and worked examples;
- * Additional topic E: its observations and traps. The f<sub>1</sub> = 6.57 ×
- * 10<sup>15</sup> s<sup>−1</sup> of Addendum A is not used (its own inputs give
- * 6.56 × 10<sup>15</sup>).
+ * Additional topic E: its observations and traps. Addendum A's f<sub>1</sub>
+ * is not used (the book prints 6.57 × 10<sup>15</sup> s<sup>−1</sup>; the app
+ * now carries 6.56 × 10<sup>15</sup>, as its own inputs give).
  *
  * Markup is the chapter's own: <i> for maths, <sub> and <sup>. Element
  * symbols and ions are upright (He<sup>+</sup>, Fe<sup>2+</sup>); a nuclide is
@@ -30,8 +30,9 @@
  * subscript that is the variable <i>n</i> stays italic
  * (<i>r</i><sub><i>n</i></sub>, <i>E</i><sub><i>n</i></sub>); label subscripts
  * are upright (<i>R</i><sub>H</sub>, <i>W</i><sub>0</sub>, KE<sub>max</sub>,
- * <i>n</i><sub>u</sub>). ε<sub>0</sub> and π are upright; α in “α-particle”
- * is upright (a particle's name). KE is upright, as printed.
+ * <i>n</i><sub>u</sub>). ε<sub>0</sub> and π are upright; α is italic
+ * (<i>α</i>-particle, <i>α</i>-scattering), as the chapter text sets it. KE is
+ * upright, as printed.
  */
 import type { KeyPoint } from '@/lib/revise/keypoints';
 
@@ -50,9 +51,9 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 0,
     kind: 'remember',
-    q: 'Rutherford’s α-scattering: the three observations, and what each one proved?',
-    a: 'Most α-particles passed straight through: the atom is mostly empty space. A small fraction were deflected through large angles: a concentrated lump of positive charge. A very few (~1 in 20000) bounced almost straight back: a tiny, dense, massive, positive nucleus',
-    why: 'The nucleus is ∼ 10<sup>−13</sup> to 10<sup>−12</sup> cm across, the atom ∼ 10<sup>−8</sup> cm. A 5.0 MeV α-particle fired head-on at gold (<i>Z</i> = 79) turns back at <i>r</i><sub>0</sub> = 4.5 × 10<sup>−14</sup> m = 45 fm, far outside the ~7 fm nucleus.',
+    q: 'Rutherford’s <i>α</i>-scattering: the three observations, and what each one proved?',
+    a: 'Most <i>α</i>-particles passed straight through: the atom is mostly empty space. A small fraction were deflected through large angles: a concentrated lump of positive charge. A very few (~1 in 20000) bounced almost straight back: a tiny, dense, massive, positive nucleus',
+    why: 'The nucleus is ∼ 10<sup>−13</sup> to 10<sup>−12</sup> cm across, the atom ∼ 10<sup>−8</sup> cm. A 5.0 MeV <i>α</i>-particle fired head-on at gold (<i>Z</i> = 79) turns back at <i>r</i><sub>0</sub> = 4.5 × 10<sup>−14</sup> m = 45 fm, far outside the ~7 fm nucleus.',
     say: 'Straight through = empty; bounced back = nucleus for Rutherford.',
   },
   // pp. 75, 78, 80
@@ -77,8 +78,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 0,
     kind: 'shortcut',
-    q: 'Which has the highest specific charge <i>e</i>/<i>m</i>: a proton, a deuteron, an α-particle or an electron? The fast way?',
-    a: 'Never compute full values: write each as (charge in units of <i>e</i>) ÷ (mass in u) — proton 1/1 = 1, deuteron 1/2, α-particle 2/4 = 1/2 — and remember the electron, if listed, almost always wins: its mass is ~1837× smaller than a proton’s',
+    q: 'Which has the highest specific charge <i>e</i>/<i>m</i>: a proton, a deuteron, an <i>α</i>-particle or an electron? The fast way?',
+    a: 'Never compute full values: write each as (charge in units of <i>e</i>) ÷ (mass in u) — proton 1/1 = 1, deuteron 1/2, <i>α</i>-particle 2/4 = 1/2 — and remember the electron, if listed, almost always wins: its mass is ~1837× smaller than a proton’s',
     why: 'So in increasing <i>e</i>/<i>m</i>: neutron (0) < <sup>4</sup><sub>2</sub>He<sup>2+</sup> = <sup>12</sup><sub>6</sub>C<sup>6+</sup> (1/2 per u) < <sup>1</sup><sub>1</sub>H<sup>+</sup> (1).',
     say: null,
   },
@@ -137,7 +138,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'The Rydberg equation, and the lower level and region of each named series?',
     a: '<i>ν̄</i> = 1/<i>λ</i> = <i>R</i><sub>H</sub><i>Z</i><sup>2</sup>(1/<i>n</i><sub>1</sub><sup>2</sup> − 1/<i>n</i><sub>2</sub><sup>2</sup>), <i>n</i><sub>2</sub> > <i>n</i><sub>1</sub>, <i>R</i><sub>H</sub> = 1.097 × 10<sup>7</sup> m<sup>−1</sup>. Lyman <i>n</i><sub>1</sub> = 1 (UV), Balmer 2 (visible), Paschen 3, Brackett 4, Pfund 5 (all IR)',
-    why: 'Lines from level <i>n</i> down to the ground state: <i>n</i>(<i>n</i> − 1)/2. From <i>n</i> = 5 that is 10 lines, 3 of them Balmer (5 → 2, 4 → 2, 3 → 2).',
+    why: 'A sample excited to level <i>n</i> gives up to <i>n</i>(<i>n</i> − 1)/2 lines (one atom at most <i>n</i> − 1). From <i>n</i> = 5 that is 10 lines, 3 of them Balmer (5 → 2, 4 → 2, 3 → 2).',
     say: 'Lyman-Balmer-Paschen-Brackett-Pfund with UV → Visible → IR-IR-IR.',
   },
   // pp. 89, 91–92, 95
@@ -201,7 +202,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'mixup',
     q: 'Which fills first in a multi-electron atom, 4s or 3d? And in hydrogen, do 2s and 2p differ in energy?',
-    a: '4s: by the (<i>n</i> + <i>l</i>) rule 4s (4) lies below 3d (5), a tie going to the lower <i>n</i>. In a one-electron species energy depends on <i>n</i> alone, so 2s and 2p are degenerate',
+    a: '4s: by the (<i>n</i> + <i>l</i>) rule 4s (4) lies below 3d (5) (ties go to the lower <i>n</i>, as 3p before 4s). In a one-electron species energy depends on <i>n</i> alone, so 2s and 2p are degenerate',
     why: 'Filling order: 1s 2s 2p 3s 3p 4s 3d 4p 5s 4d 5p 6s …; 3p (4) < 4s (4) < 3d (5) < 4p (5).',
     say: null,
   },

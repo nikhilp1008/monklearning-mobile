@@ -23,7 +23,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'We arrive here holding two crucial pieces. From Rutherford’s <i>α</i>-scattering we have a tiny, dense nucleus — but his planetary model carries a fatal flaw: a revolving electron is an accelerating charge, and classical physics insists it must continuously radiate energy, spiral inward, and crash into the nucleus in about 10<sup>−8</sup> seconds. Atoms plainly do not collapse. From Planck and Einstein we have the second piece: the realisation that the atomic world does not run on the smooth, continuous rules of everyday physics — it runs on quanta, on discrete steps. Bohr’s genius was to weld these two ideas together.',
+        html: 'We arrive here holding two crucial pieces. From Rutherford’s <i>α</i>-scattering we have a tiny, dense nucleus — but his planetary model carries a fatal flaw: a revolving electron is an accelerating charge, and classical physics insists it must continuously radiate energy, spiral inward, and crash into the nucleus in a tiny fraction of a second. Atoms plainly do not collapse. From Planck and Einstein we have the second piece: the realisation that the atomic world does not run on the smooth, continuous rules of everyday physics — it runs on quanta, on discrete steps. Bohr’s genius was to weld these two ideas together.',
       },
       {
         t: 'p',
@@ -79,8 +79,11 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Rydberg (Balmer–Rydberg) equation for line wave number',
         main: '<i>ν̄</i> = 1/<i>λ</i> = <i>R</i><sub>H</sub><i>Z</i><sup>2</sup>(1/<i>n</i><sub>1</sub><sup>2</sup> − 1/<i>n</i><sub>2</sub><sup>2</sup>), <i>n</i><sub>2</sub> > <i>n</i><sub>1</sub>',
-        legend: ['<i>R</i><sub>H</sub> = Rydberg constant, 1.097 × 10<sup>7</sup> m<sup>−1</sup> = 109677 cm<sup>−1</sup>'],
-        note: 'Wave number unit: m<sup>−1</sup>, dimensional formula [L<sup>−1</sup>].',
+        legend: [
+          '<i>R</i><sub>H</sub> = Rydberg constant, 1.097 × 10<sup>7</sup> m<sup>−1</sup> = 109677 cm<sup>−1</sup>',
+          '<i>ν̄</i> = wave number, unit m<sup>−1</sup>, dimensional formula [L<sup>−1</sup>]',
+        ],
+        note: null,
       },
       {
         t: 'p',
@@ -88,7 +91,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'formula',
-        kicker: 'Number of emission lines when an electron de-excites from level <i>n</i> to the ground state',
+        kicker: 'Maximum number of emission lines when a sample of atoms de-excites from level <i>n</i> to the ground state',
         main: 'lines = <i>n</i>(<i>n</i> − 1)/2',
         legend: [],
         note: null,
@@ -97,8 +100,8 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'de Broglie wavelength (the bridge between particle and wave)',
         main: '<i>λ</i> = <i>h</i>/<i>p</i> = <i>h</i>/(<i>mv</i>) = <i>h</i>/√(2<i>m</i>(KE)) = <i>h</i>/√(2<i>mqV</i>) (for a charge accelerated through <i>V</i>)',
-        legend: [],
-        note: 'SI unit: m. Dimensional check: <i>h</i>/(<i>mv</i>) = [M L<sup>2</sup> T<sup>−1</sup>]/([M][L T<sup>−1</sup>]) = [L] ✓ — a reassuring sanity check that the formula really yields a length.',
+        legend: ['<i>λ</i> = de Broglie wavelength, SI unit m'],
+        note: 'Dimensional check: <i>h</i>/(<i>mv</i>) = [M L<sup>2</sup> T<sup>−1</sup>]/([M][L T<sup>−1</sup>]) = [L] ✓ — a reassuring sanity check that the formula really yields a length.',
       },
       {
         t: 'formula',
@@ -228,7 +231,7 @@ export const TOPICS: Topic[] = [
           { label: '1 ∶ 8 ∶ 27', nudge: '<b>(c)</b> uses <i>n</i><sup>3</sup>, confusing radius with something like the period dependence.' },
           {
             label: '9 ∶ 4 ∶ 1',
-            nudge: '<b>(d)</b> reverses the order — that is how energy magnitude would not even scale; it is a pure trap for reversed reasoning.',
+            nudge: '<b>(d)</b> reverses the order — radius grows with <i>n</i>, it does not shrink; (even energy magnitudes go 1 ∶ ¼ ∶ 1/9, not 9 ∶ 4 ∶ 1). It is a pure trap for reversed reasoning.',
           },
         ],
         correct: 1,
@@ -271,7 +274,7 @@ export const TOPICS: Topic[] = [
           { label: 'it is the same for all particles', nudge: '<b>(d)</b> ignores the mass dependence entirely.' },
         ],
         correct: 1,
-        solution: 'Since <i>λ</i> = <i>h</i>/(<i>mv</i>), the wavelength is significant only for very light particles. A light, fast particle such as an electron (~10<sup>6</sup> m s<sup>−1</sup>) has <i>λ</i> ≈ 7 × 10<sup>−10</sup> m, comparable to atomic spacings, so diffraction is observable.',
+        solution: 'Since <i>λ</i> = <i>h</i>/(<i>mv</i>), the wavelength is significant only for very light particles. A light, fast particle such as an electron (~10<sup>6</sup> m s<sup>−1</sup>) has <i>λ</i> ≈ 7 × 10<sup>−10</sup> m, comparable to atomic spacings, so diffraction is observable. (Speed works the other way — <i>λ</i> ∝ 1/<i>v</i> — but the electron’s tiny mass more than compensates.)',
       },
       {
         t: 'mcq',
@@ -291,7 +294,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Pitfall 1 — wrong power in the scaling laws.</b> Students blur the four dependencies. Lock them in: <i>r</i> ∝ <i>n</i><sup>2</sup>/<i>Z</i>, <i>E</i> ∝ <i>Z</i><sup>2</sup>/<i>n</i><sup>2</sup> (negative), <i>v</i> ∝ <i>Z</i>/<i>n</i>, <i>ν̄</i> ∝ <i>Z</i><sup>2</sup>. Most <i>Z</i>-comparison questions are solved purely by these ratios — no full calculation needed.',
-          '<b>Pitfall 2 — miscounting spectral lines.</b> From an excited level <i>n</i> down to the ground state, the count is <i>n</i>(<i>n</i> − 1)/2, not <i>n</i> − 1. For “how many lines in series X,” count only transitions that end on that series’ lower level.',
+          '<b>Pitfall 2 — miscounting spectral lines.</b> From an excited level <i>n</i> down to the ground state, a sample of atoms gives at most <i>n</i>(<i>n</i> − 1)/2 lines (a single atom at most <i>n</i> − 1). For “how many lines in series X,” count only transitions that end on that series’ lower level.',
           '<b>Pitfall 3 — applying Bohr to multi-electron atoms.</b> Bohr’s equations are valid only for H, He<sup>+</sup>, Li<sup>2+</sup>, Be<sup>3+</sup>. Check the number of electrons (must be one), not just whether the symbol looks simple.',
           '<b>Pitfall 4 — dropping the negative sign on energy.</b> Orbit energies are negative (bound electron). Energy absorbed in an upward jump is positive; energy released in a downward jump is positive too — but <i>E</i><sub><i>n</i></sub> itself is always negative. Mixing these up flips entire answers.',
         ],
@@ -317,7 +320,7 @@ export const TOPICS: Topic[] = [
             f: 'Rydberg',
             note: '<i>ν̄</i> = <i>R</i><sub>H</sub><i>Z</i><sup>2</sup>(1/<i>n</i><sub>1</sub><sup>2</sup> − 1/<i>n</i><sub>2</sub><sup>2</sup>), <i>R</i><sub>H</sub> = 1.097 × 10<sup>7</sup> m<sup>−1</sup>. Series: Lyman(1,UV) · Balmer(2,visible) · Paschen(3) · Brackett(4) · Pfund(5,IR).',
           },
-          { f: 'Lines from level <i>n</i> to ground', note: '<i>n</i>(<i>n</i> − 1)/2.' },
+          { f: 'Lines from level <i>n</i> to ground (sample)', note: '<i>n</i>(<i>n</i> − 1)/2.' },
           {
             f: 'de Broglie',
             note: '<i>λ</i> = <i>h</i>/(<i>mv</i>) = <i>h</i>/√(2<i>m</i> KE); standing-wave condition 2π<i>r</i> = <i>nλ</i> gives Bohr’s quantisation.',
@@ -410,7 +413,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Nodes (regions where <i>ψ</i><sup>2</sup> = 0, i.e. zero probability)',
-        main: 'radial (spherical) nodes = <i>n</i> − <i>l</i> − 1<br>angular (nodal planes) = <i>l</i><br>total nodes = <i>n</i> − 1',
+        main: 'radial (spherical) nodes = <i>n</i> − <i>l</i> − 1<br>angular nodes (planes or cones) = <i>l</i><br>total nodes = <i>n</i> − 1',
         legend: [],
         note: null,
       },
@@ -430,12 +433,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key procedures and logical framework' },
       {
         t: 'p',
-        html: 'There is no single derivation here; the skill is applying a small set of rules flawlessly. Master these four procedures.',
+        html: 'There is no single derivation here; the skill is applying a small set of rules flawlessly. Master these five procedures.',
       },
-      { t: 'p', html: 'Work outward from <i>n</i>:' },
       {
         t: 'proc',
-        title: '3.1 Assigning quantum numbers to an electron',
+        title: '3.1 Assigning quantum numbers to an electron — work outward from n',
         steps: [
           'Pick <i>n</i> — the shell number of the electron.',
           'List allowed <i>l</i> values: 0 to (<i>n</i> − 1). Choose the one matching the subshell (s=0, p=1, d=2, f=3).',
@@ -453,7 +455,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3.3 Ordering orbital energies (the (<i>n</i> + <i>l</i>) logic).</b> Compute (<i>n</i> + <i>l</i>) for each subshell. Lower wins; ties broken by lower <i>n</i>. <b>Why this works physically:</b> a higher <i>l</i> means a more “spread-out” shape that is poorly shielded and feels less of the nucleus, raising its energy — so a 4s subshell (<i>n</i> + <i>l</i> = 4) actually sinks below 3d (<i>n</i> + <i>l</i> = 5) and fills first. This is the reason for the famous 4s-before-3d filling.',
+        html: '<b>3.3 Ordering orbital energies (the (<i>n</i> + <i>l</i>) logic).</b> Compute (<i>n</i> + <i>l</i>) for each subshell. Lower wins; ties broken by lower <i>n</i>. <b>Why this works physically:</b> a higher <i>l</i> means a more “spread-out” shape that penetrates poorly, is more strongly shielded by the inner electrons and feels less of the nucleus, raising its energy — so a 4s subshell (<i>n</i> + <i>l</i> = 4) actually sinks below 3d (<i>n</i> + <i>l</i> = 5) and fills first. This is the reason for the famous 4s-before-3d filling.',
       },
       {
         t: 'proc',
@@ -549,7 +551,7 @@ export const TOPICS: Topic[] = [
             a: '5 electrons (Cr = [Ar]3d<sup>5</sup>4s<sup>1</sup>; the five 3d electrons have <i>l</i> = 2).',
           },
           {
-            q: '[JEE Advanced] An element’s atom in its ground state has exactly <b>3</b> unpaired electrons in its 3d subshell and a fully-filled 4s. Identify the element and write its full electronic configuration.',
+            q: '[JEE Advanced] An element’s atom in its ground state has exactly <b>3</b> electrons in its 3d subshell, all unpaired, and a fully-filled 4s. Identify the element and write its full electronic configuration.',
             a: 'Vanadium (<i>Z</i> = 23), [Ar]3d<sup>3</sup>4s<sup>2</sup>.',
           },
         ],
@@ -566,7 +568,7 @@ export const TOPICS: Topic[] = [
           },
           {
             label: '½ · <i>h</i>/(2π)',
-            nudge: '<b>(b)</b> is the spin angular-momentum-style expression with <i>s</i> = ½; students who confuse spin with orbital angular momentum land here.',
+            nudge: '<b>(b)</b> is the <i>z</i>-component of spin angular momentum, <i>m</i><sub><i>s</i></sub><i>h</i>/(2π) with <i>m</i><sub><i>s</i></sub> = ½ (the spin magnitude itself is (√3/2)<i>h</i>/(2π)); students who confuse spin with orbital angular momentum land here.',
           },
           { label: 'zero', nudge: null },
           {
@@ -579,7 +581,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'mcq',
-        q: 'For a multi-electron atom, which orbital has the lowest energy?',
+        q: 'For a multi-electron atom, which orbital fills first (lowest energy by the (<i>n</i> + <i>l</i>) rule)?',
         opts: [
           {
             label: '3d',
@@ -601,8 +603,8 @@ export const TOPICS: Topic[] = [
             nudge: '<b>(a)</b> is the total capacity 2<i>n</i><sup>2</sup> of the shell — chosen by students who ignore the spin restriction.',
           },
           { label: '16', nudge: null },
-          { label: '8', nudge: '<b>(c)</b> and <b>(d)</b> come from wrongly using a single subshell instead of the whole shell.' },
-          { label: '4', nudge: '<b>(c)</b> and <b>(d)</b> come from wrongly using a single subshell instead of the whole shell.' },
+          { label: '8', nudge: '<b>(c)</b> and <b>(d)</b> come from miscounting the orbitals of the shell (8 is <i>n</i><sup>2</sup>/2, 4 is just <i>n</i>) instead of using all <i>n</i><sup>2</sup> = 16.' },
+          { label: '4', nudge: '<b>(c)</b> and <b>(d)</b> come from miscounting the orbitals of the shell (8 is <i>n</i><sup>2</sup>/2, 4 is just <i>n</i>) instead of using all <i>n</i><sup>2</sup> = 16.' },
         ],
         correct: 1,
         solution: 'The <i>n</i> = 4 shell has <i>n</i><sup>2</sup> = 16 orbitals, and only one electron per orbital can have <i>m</i><sub><i>s</i></sub> = +½. So 16.',
