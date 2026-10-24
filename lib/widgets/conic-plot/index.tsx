@@ -26,7 +26,7 @@ import {
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
-  autoView, conicPath, eccentricity, focalDistance, latusRectumLength,
+  autoView, conicPath, eccentricity, focalDistance, latusRectumChords, latusRectumLength,
   regionArea, secondBranch,
   type ConicKind, type ConicMark, type ConicRegion, type ConicShape,
 } from './conic-math';
@@ -200,8 +200,24 @@ function ConicPlotComponent({ params, width, height, theme }: WidgetRenderProps<
   const right = width - PAD_EDGE - 2;
   const top = PAD_EDGE;
   const bottom = height - PAD_EDGE - READOUT_BAND;
-  const sx = (x: number) => left + ((x - p.x_min!) / (p.x_max! - p.x_min!)) * (right - left);
-  const sy = (y: number) => bottom - ((y - p.y_min!) / (p.y_max! - p.y_min!)) * (bottom - top);
+  // ONE scale for both axes. A conic is a shape, not a chart: with separate x
+  // and y scales a circle of radius 4 on a 343x236 board drew as a 1.45:1
+  // ellipse (found reviewing the stored Class 11 maths widgets, 2026-10-23),
+  // and every eccentricity, focus and latus rectum read off it was wrong. The
+  // view box is fitted INSIDE the plot area at that scale and centred.
+  const xr = p.x_max! - p.x_min!;
+  const yr = p.y_max! - p.y_min!;
+  const k = Math.min((right - left) / xr, (bottom - top) / yr);
+  const x0 = left + ((right - left) - k * xr) / 2;
+  const yBase = bottom - ((bottom - top) - k * yr) / 2;
+  const sx = (x: number) => x0 + (x - p.x_min!) * k;
+  const sy = (y: number) => yBase - (y - p.y_min!) * k;
+  // The coordinate axes pass through the ORIGIN when it is in view (the
+  // equation is written against them: "centre (-3, 2)" can only be read off
+  // against axes that are not drawn through the centre); else through the
+  // conic's own centre, as before.
+  const axisY = p.y_min! <= 0 && p.y_max! >= 0 ? 0 : p.cy;
+  const axisX = p.x_min! <= 0 && p.x_max! >= 0 ? 0 : p.cx;
   const d = (pts: Array<[number, number]>) =>
     pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${sx(x).toFixed(2)},${sy(y).toFixed(2)}`).join('');
 
@@ -214,9 +230,9 @@ function ConicPlotComponent({ params, width, height, theme }: WidgetRenderProps<
     <Svg width={width} height={height}>
       {marks.includes('axes') && (
         <G>
-          <Line x1={sx(p.x_min!)} y1={sy(p.cy)} x2={sx(p.x_max!)} y2={sy(p.cy)}
+          <Line x1={sx(p.x_min!)} y1={sy(axisY)} x2={sx(p.x_max!)} y2={sy(axisY)}
                 stroke={theme.rule} strokeWidth={HAIRLINE_STROKE} />
-          <Line x1={sx(p.cx)} y1={sy(p.y_min!)} x2={sx(p.cx)} y2={sy(p.y_max!)}
+          <Line x1={sx(axisX)} y1={sy(p.y_min!)} x2={sx(axisX)} y2={sy(p.y_max!)}
                 stroke={theme.rule} strokeWidth={HAIRLINE_STROKE} />
         </G>
       )}
@@ -250,6 +266,18 @@ function ConicPlotComponent({ params, width, height, theme }: WidgetRenderProps<
           {(s.kind === 'parabola' ? [1] : [1, -1]).map((m) => (
             <Circle key={m} cx={sx(p.cx + m * c)} cy={sy(p.cy)} r={DOT_R}
                     fill={theme.accent} />
+          ))}
+        </G>
+      )}
+      {marks.includes('latus_rectum') && s.kind !== 'circle' && (
+        <G>
+          {latusRectumChords(s).map(([[xa, ya], [xb, yb]], i) => (
+            <G key={i}>
+              <Line x1={sx(xa)} y1={sy(ya)} x2={sx(xb)} y2={sy(yb)}
+                    stroke={theme.accent} strokeWidth={EMPHASIS_STROKE} />
+              <Circle cx={sx(xa)} cy={sy(ya)} r={DOT_R - 1} fill={theme.accent} />
+              <Circle cx={sx(xb)} cy={sy(yb)} r={DOT_R - 1} fill={theme.accent} />
+            </G>
           ))}
         </G>
       )}
