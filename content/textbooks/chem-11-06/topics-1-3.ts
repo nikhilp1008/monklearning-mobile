@@ -25,7 +25,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is the foundation stone of the entire chapter. CBSE Boards lift 1–3 marks here on writing <i>K</i><sub>c</sub>/<i>K</i><sub>p</sub> expressions and the <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup> relation. NEET reliably plants 1 question on units of <i>K</i> or a quick <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> conversion. JEE Main asks numerical <i>K</i><sub>c</sub> from an ICE table, and JEE Advanced loves combining equilibria (reverse/multiply/add rules). Master this topic and half the chapter becomes bookkeeping.',
+        html: '<b>Exam Relevance:</b> This is the foundation stone of the entire chapter. CBSE Boards lift 1–3 marks here on writing <i>K</i><sub>c</sub>/<i>K</i><sub>p</sub> expressions and the <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup> relation. NEET reliably plants 1 question on units of <i>K</i> or a quick <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> conversion. JEE Main asks numerical <i>K</i><sub>c</sub> from an ICE table, and JEE Advanced loves combining equilibria (reverse/multiply/add rules). Master this topic and half the chapter becomes bookkeeping.',
       },
       {
         t: 'p',
@@ -87,13 +87,13 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: '<i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> relationship',
-        main: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup>',
+        main: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup>',
         legend: [
-          'Δ<i>n</i> = (moles of gaseous products) − (moles of gaseous reactants)',
+          'Δ<i>n</i><sub>g</sub> = (moles of gaseous products) − (moles of gaseous reactants)',
           '<i>R</i> = 0.0821 L atm mol<sup>−1</sup> K<sup>−1</sup> (when pressures are in atm)',
           '<i>T</i> = temperature, in kelvin',
         ],
-        note: '<b>Only gaseous species count toward</b> Δ<i>n</i> — solids and liquids are excluded.',
+        note: '<b>Only gaseous species count toward</b> Δ<i>n</i><sub>g</sub> — solids and liquids are excluded.',
       },
       {
         t: 'def',
@@ -102,15 +102,15 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Units and “dimensional formula”</b><br>Unlike a fixed physical constant, the equilibrium constant has <b>no fixed dimension</b> — its units depend on Δ<i>n</i>:<br>[<i>K</i><sub>c</sub>] = (mol L<sup>−1</sup>)<sup>Δ<i>n</i></sup>,   [<i>K</i><sub>p</sub>] = (atm)<sup>Δ<i>n</i></sup><br>So for N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub> (Δ<i>n</i> = −2), <i>K</i><sub>c</sub> carries units of mol<sup>−2</sup> L<sup>2</sup>. When Δ<i>n</i> = 0, <i>K</i> is dimensionless. (Strictly, <i>K</i> defined via activities is always dimensionless; the unit-bearing form above is the working convention in JEE/NEET numerics.)',
+        html: '<b>Units and “dimensional formula”</b><br>Unlike a fixed physical constant, the equilibrium constant has <b>no fixed dimension</b> — its units depend on Δ<i>n</i><sub>g</sub>:<br>[<i>K</i><sub>c</sub>] = (mol L<sup>−1</sup>)<sup>Δ<i>n</i><sub>g</sub></sup>,   [<i>K</i><sub>p</sub>] = (atm)<sup>Δ<i>n</i><sub>g</sub></sup><br>So for N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub> (Δ<i>n</i><sub>g</sub> = −2), <i>K</i><sub>c</sub> carries units of mol<sup>−2</sup> L<sup>2</sup>. When Δ<i>n</i><sub>g</sub> = 0, <i>K</i> is dimensionless. (Strictly, <i>K</i> defined via activities is always dimensionless; the unit-bearing form above is the working convention in JEE/NEET numerics.)',
       },
       {
         t: 'table',
         title: null,
         head: ['Quantity', 'Symbol', 'SI / working unit'],
         rows: [
-          ['Concentration eq. constant', '<i>K</i><sub>c</sub>', '(mol L<sup>−1</sup>)<sup>Δ<i>n</i></sup>'],
-          ['Pressure eq. constant', '<i>K</i><sub>p</sub>', '(atm)<sup>Δ<i>n</i></sup> (or bar/Pa)'],
+          ['Concentration eq. constant', '<i>K</i><sub>c</sub>', '(mol L<sup>−1</sup>)<sup>Δ<i>n</i><sub>g</sub></sup>'],
+          ['Pressure eq. constant', '<i>K</i><sub>p</sub>', '(atm)<sup>Δ<i>n</i><sub>g</sub></sup> (or bar/Pa)'],
           ['Partial pressure', '<i>p</i><sub><i>i</i></sub>', 'atm, bar, Pa'],
           ['Gas constant', '<i>R</i>', '0.0821 L atm mol<sup>−1</sup> K<sup>−1</sup>'],
         ],
@@ -119,11 +119,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key procedures and derivations' },
       {
         t: 'p',
-        html: '<b>3.1 Deriving <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup></b><br>Start from the ideal gas law for any gaseous species <i>i</i> in the mixture:<br><i>p</i><sub><i>i</i></sub><i>V</i> = <i>n</i><sub><i>i</i></sub><i>RT</i>  ⇒  <i>p</i><sub><i>i</i></sub> = (<i>n</i><sub><i>i</i></sub>/<i>V</i>)<i>RT</i> = [<i>i</i>]<i>RT</i><br>since <i>n</i><sub><i>i</i></sub>/<i>V</i> is exactly the molar concentration [<i>i</i>]. Substitute <i>p</i><sub><i>i</i></sub> = [<i>i</i>]<i>RT</i> into the <i>K</i><sub>p</sub> expression for <i>a</i>A + <i>b</i>B ⇌ <i>c</i>C + <i>d</i>D:<br><i>K</i><sub>p</sub> = ([C]<i>RT</i>)<sup><i>c</i></sup>([D]<i>RT</i>)<sup><i>d</i></sup>/(([A]<i>RT</i>)<sup><i>a</i></sup>([B]<i>RT</i>)<sup><i>b</i></sup>) = [C]<sup><i>c</i></sup>[D]<sup><i>d</i></sup>/([A]<sup><i>a</i></sup>[B]<sup><i>b</i></sup>) (= <i>K</i><sub>c</sub>) · (<i>RT</i>)<sup>(<i>c</i>+<i>d</i>)−(<i>a</i>+<i>b</i>)</sup>',
+        html: '<b>3.1 Deriving <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup></b><br>Start from the ideal gas law for any gaseous species <i>i</i> in the mixture:<br><i>p</i><sub><i>i</i></sub><i>V</i> = <i>n</i><sub><i>i</i></sub><i>RT</i>  ⇒  <i>p</i><sub><i>i</i></sub> = (<i>n</i><sub><i>i</i></sub>/<i>V</i>)<i>RT</i> = [<i>i</i>]<i>RT</i><br>since <i>n</i><sub><i>i</i></sub>/<i>V</i> is exactly the molar concentration [<i>i</i>]. Substitute <i>p</i><sub><i>i</i></sub> = [<i>i</i>]<i>RT</i> into the <i>K</i><sub>p</sub> expression for <i>a</i>A + <i>b</i>B ⇌ <i>c</i>C + <i>d</i>D:<br><i>K</i><sub>p</sub> = ([C]<i>RT</i>)<sup><i>c</i></sup>([D]<i>RT</i>)<sup><i>d</i></sup>/(([A]<i>RT</i>)<sup><i>a</i></sup>([B]<i>RT</i>)<sup><i>b</i></sup>) = [C]<sup><i>c</i></sup>[D]<sup><i>d</i></sup>/([A]<sup><i>a</i></sup>[B]<sup><i>b</i></sup>) (= <i>K</i><sub>c</sub>) · (<i>RT</i>)<sup>(<i>c</i>+<i>d</i>)−(<i>a</i>+<i>b</i>)</sup>',
       },
       {
         t: 'p',
-        html: 'The leftover power of <i>RT</i> is precisely Δ<i>n</i>, giving <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup>. <b>Why this matters physically:</b> the (<i>RT</i>)<sup>Δ<i>n</i></sup> factor is just the conversion cost of switching the “currency” from concentration to pressure; if the gas-mole count is unchanged across the arrow (Δ<i>n</i> = 0), there is no conversion cost and <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> outright.',
+        html: 'The leftover power of <i>RT</i> is precisely Δ<i>n</i><sub>g</sub>, giving <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup>. <b>Why this matters physically:</b> the (<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup> factor is just the conversion cost of switching the “currency” from concentration to pressure; if the gas-mole count is unchanged across the arrow (Δ<i>n</i><sub>g</sub> = 0), there is no conversion cost and <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> outright.',
       },
       {
         t: 'p',
@@ -141,7 +141,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The reasoning: <i>K</i> is a ratio of concentration terms with stoichiometric exponents. Reversing swaps numerator and denominator (rule 1). Scaling every coefficient by <i>n</i> scales every exponent by <i>n</i>, i.e. raises the whole ratio to the power <i>n</i> (rules 2–3). Adding mechanisms means the intermediate cancels and the ratios multiply (rule 4).',
+        html: 'The reasoning: <i>K</i> is a ratio of concentration terms with stoichiometric exponents. Reversing swaps numerator and denominator (rule 1). Scaling every coefficient by <i>n</i> scales every exponent by <i>n</i>, i.e. raises the whole ratio to the power <i>n</i> (rules 2–3). Adding reactions multiplies their ratios, and any species common to both sides cancels (rule 4).',
       },
       {
         t: 'p',
@@ -164,7 +164,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'First convert moles to molar concentrations (divide by <i>V</i> = 2 L):<br>[N<sub>2</sub>] = 0.50 M,  [H<sub>2</sub>] = 1.0 M,  [NH<sub>3</sub>] = 0.40 M',
           'Substitute into the expression:<br><i>K</i><sub>c</sub> = [NH<sub>3</sub>]<sup>2</sup>/([N<sub>2</sub>][H<sub>2</sub>]<sup>3</sup>) = (0.40)<sup>2</sup>/((0.50)(1.0)<sup>3</sup>) = 0.16/0.50',
-          'Here Δ<i>n</i> = 2 − (1 + 3) = −2, so the units are (mol L<sup>−1</sup>)<sup>−2</sup>.',
+          'Here Δ<i>n</i><sub>g</sub> = 2 − (1 + 3) = −2, so the units are (mol L<sup>−1</sup>)<sup>−2</sup>.',
         ],
         ans: '<i>K</i><sub>c</sub> = 0.32 mol<sup>−2</sup> L<sup>2</sup>',
       },
@@ -173,8 +173,8 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: 'At 717 K, <i>K</i><sub>c</sub> = 49 for H<sub>2</sub>(g) + I<sub>2</sub>(g) ⇌ 2HI(g). Without a calculator, state <i>K</i><sub>p</sub>.',
         steps: [
-          '<b>The trap.</b> A panicking student reaches for <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup> and starts multiplying 0.0821 × 717. <b>Stop and read Δ<i>n</i> first:</b> moles of gas are 2 on each side, so Δ<i>n</i> = 2 − 2 = 0. Then (<i>RT</i>)<sup>0</sup> = 1 and',
-          '<b>Lesson:</b> every time a <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> question appears, glance at Δ<i>n</i> before touching the calculator. If Δ<i>n</i> = 0, the answer is already in front of you.',
+          '<b>The trap.</b> A panicking student reaches for <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup> and starts multiplying 0.0821 × 717. <b>Stop and read Δ<i>n</i><sub>g</sub> first:</b> moles of gas are 2 on each side, so Δ<i>n</i><sub>g</sub> = 2 − 2 = 0. Then (<i>RT</i>)<sup>0</sup> = 1 and',
+          '<b>Lesson:</b> every time a <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> question appears, glance at Δ<i>n</i><sub>g</sub> before touching the calculator. If Δ<i>n</i><sub>g</sub> = 0, the answer is already in front of you.',
         ],
         ans: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> = 49',
       },
@@ -198,8 +198,8 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Build the target by stacking the toolkit (Key procedures and derivations, 3.2).</b> We want 2COCl<sub>2</sub> as a product, so reaction (2) must be <b>reversed</b> and <b>used twice</b>:<br>• Reverse (2): CO(g) + Cl<sub>2</sub>(g) ⇌ COCl<sub>2</sub>(g), constant = 1/<i>K</i><sub>2</sub>.<br>• Use it twice (multiply coefficients by 2): 2CO(g) + 2Cl<sub>2</sub>(g) ⇌ 2COCl<sub>2</sub>(g), constant = (1/<i>K</i><sub>2</sub>)<sup>2</sup>.',
           'Now <b>add</b> this to reaction (1):<br>C(s) + CO<sub>2</sub> + 2CO + 2Cl<sub>2</sub> ⇌ 2CO + 2COCl<sub>2</sub>',
-          'The 2CO intermediate cancels — exactly why “adding reactions multiplies constants.” Therefore<br><i>K</i> = <i>K</i><sub>1</sub> × (1/<i>K</i><sub>2</sub>)<sup>2</sup> = <i>K</i><sub>1</sub>/<i>K</i><sub>2</sub><sup>2</sup> = 0.50/(0.10)<sup>2</sup> = 0.50/0.01',
-          '<b>Note</b> C(s) is a pure solid and never enters any expression (Key procedures and derivations, 3.3). For the target, Δ<i>n</i> = 2 − (1 + 2) = −1, so if the constants are <i>K</i><sub>p</sub> values the answer carries units of atm<sup>−1</sup>.',
+          'The 2CO cancels, so the sum is exactly the target reaction, and its constant is the product of the two. Therefore<br><i>K</i> = <i>K</i><sub>1</sub> × (1/<i>K</i><sub>2</sub>)<sup>2</sup> = <i>K</i><sub>1</sub>/<i>K</i><sub>2</sub><sup>2</sup> = 0.50/(0.10)<sup>2</sup> = 0.50/0.01',
+          '<b>Note</b> C(s) is a pure solid and never enters any expression (Key procedures and derivations, 3.3). For the target, Δ<i>n</i><sub>g</sub> = 2 − (1 + 2) = −1, so if the constants are <i>K</i><sub>p</sub> values the answer carries units of atm<sup>−1</sup>.',
         ],
         ans: '<i>K</i> = 50',
       },
@@ -213,7 +213,7 @@ export const TOPICS: Topic[] = [
             a: '<i>K</i><sub>c</sub> = [H<sub>2</sub>O][CO<sub>2</sub>], <i>K</i><sub>p</sub> = <i>p</i><sub>H₂O</sub> · <i>p</i><sub>CO₂</sub>, <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>2</sup>.',
           },
           {
-            q: '[NEET] For N<sub>2</sub>O<sub>4</sub>(g) ⇌ 2NO<sub>2</sub>(g), <i>K</i><sub>c</sub> = 4.0 × 10<sup>−3</sup> at 298 K. Find <i>K</i><sub>p</sub>.',
+            q: '[NEET] For N<sub>2</sub>O<sub>4</sub>(g) ⇌ 2NO<sub>2</sub>(g), <i>K</i><sub>c</sub> = 4.0 × 10<sup>−3</sup> mol L<sup>−1</sup> at 298 K. Find <i>K</i><sub>p</sub>.',
             a: '<i>K</i><sub>p</sub> ≈ 9.8 × 10<sup>−2</sup> atm.',
           },
           {
@@ -238,12 +238,12 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'mol L<sup>−1</sup>',
-            nudge: '<b>(a)</b> is what Δ<i>n</i> = +1 would give; it ignores that the gas moles fall from 4 to 2.',
+            nudge: '<b>(a)</b> is what Δ<i>n</i><sub>g</sub> = +1 would give; it ignores that the gas moles fall from 4 to 2.',
           },
           { label: 'mol<sup>−2</sup> L<sup>2</sup>', nudge: null },
           {
             label: 'dimensionless',
-            nudge: '<b>(c)</b> is the reflex “<i>K</i> is always dimensionless” error — true only when Δ<i>n</i> = 0.',
+            nudge: '<b>(c)</b> is the reflex “<i>K</i> is always dimensionless” error — true only when Δ<i>n</i><sub>g</sub> = 0.',
           },
           {
             label: 'mol<sup>2</sup> L<sup>−2</sup>',
@@ -251,7 +251,7 @@ export const TOPICS: Topic[] = [
           },
         ],
         correct: 1,
-        solution: 'Δ<i>n</i> = 2 − 4 = −2, so units = (mol L<sup>−1</sup>)<sup>−2</sup> = mol<sup>−2</sup> L<sup>2</sup>.',
+        solution: 'Δ<i>n</i><sub>g</sub> = 2 − 4 = −2, so units = (mol L<sup>−1</sup>)<sup>−2</sup> = mol<sup>−2</sup> L<sup>2</sup>.',
       },
       {
         t: 'mcq',
@@ -268,7 +268,7 @@ export const TOPICS: Topic[] = [
           { label: 'Raising the temperature', nudge: null },
           {
             label: 'Adding an inert gas at constant volume',
-            nudge: '<b>(b)</b>/<b>(d)</b> Pressure changes or inert-gas addition can shift the position of equilibrium (Le Chatelier), but the constant itself is untouched. Confusing “shift” with “change in <i>K</i>” is the single most common conceptual slip in this chapter.',
+            nudge: '<b>(d)</b> Inert gas at constant volume leaves every partial pressure unchanged — it does not even shift the position, let alone change <i>K</i>. Only temperature changes <i>K</i>.',
           },
         ],
         correct: 2,
@@ -295,20 +295,20 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI',
-            nudge: '<b>(a)</b> and <b>(b)</b> have Δ<i>n</i> = 0 ⇒ <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
+            nudge: '<b>(a)</b> and <b>(b)</b> have Δ<i>n</i><sub>g</sub> = 0 ⇒ <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
           },
           {
             label: 'N<sub>2</sub> + O<sub>2</sub> ⇌ 2NO',
-            nudge: '<b>(a)</b> and <b>(b)</b> have Δ<i>n</i> = 0 ⇒ <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
+            nudge: '<b>(a)</b> and <b>(b)</b> have Δ<i>n</i><sub>g</sub> = 0 ⇒ <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
           },
           { label: '2SO<sub>2</sub> + O<sub>2</sub> ⇌ 2SO<sub>3</sub>', nudge: null },
           {
             label: 'N<sub>2</sub>O<sub>4</sub> ⇌ 2NO<sub>2</sub>',
-            nudge: '<b>(d)</b> has Δ<i>n</i> = +1 ⇒ <i>K</i><sub>p</sub> > <i>K</i><sub>c</sub> — the opposite, a classic sign trap.',
+            nudge: '<b>(d)</b> has Δ<i>n</i><sub>g</sub> = +1 ⇒ <i>K</i><sub>p</sub> > <i>K</i><sub>c</sub> — the opposite, a classic sign trap.',
           },
         ],
         correct: 2,
-        solution: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup>; for <i>K</i><sub>p</sub> < <i>K</i><sub>c</sub> we need Δ<i>n</i> < 0. Reaction (c) has Δ<i>n</i> = 2 − 3 = −1 < 0. ✓',
+        solution: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup>; for <i>K</i><sub>p</sub> < <i>K</i><sub>c</sub> we need Δ<i>n</i><sub>g</sub> < 0. Reaction (c) has Δ<i>n</i><sub>g</sub> = 2 − 3 = −1 < 0. ✓',
       },
 
       { t: 'part', title: 'Common student pitfalls and pro-tips' },
@@ -316,14 +316,14 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Putting pure solids/liquids into the <i>K</i> expression.</b> In CaCO<sub>3</sub>(s) ⇌ CaO(s) + CO<sub>2</sub>(g), both solids drop out; <i>K</i><sub>p</sub> = <i>p</i><sub>CO₂</sub> only. Writing [CaO] or [CaCO<sub>3</sub>] is the most penalised error in Boards.',
-          '<b>Believing pressure, concentration, inert gas, or a catalyst changes <i>K</i>.</b> Only <b>temperature</b> changes <i>K</i>. Everything else can shift the position but leaves the constant alone.',
-          '<b>Counting solids/liquids in Δ<i>n</i>.</b> Δ<i>n</i> uses <b>gaseous</b> moles only. In C(s) + CO<sub>2</sub>(g) ⇌ 2CO(g), Δ<i>n</i> = 2 − 1 = +1, not 2 − 2.',
+          '<b>Believing pressure, concentration, inert gas, or a catalyst changes <i>K</i>.</b> Only <b>temperature</b> changes <i>K</i>. Pressure, concentration and inert gas can shift the position but leave the constant alone; a catalyst does neither.',
+          '<b>Counting solids/liquids in Δ<i>n</i><sub>g</sub>.</b> Δ<i>n</i><sub>g</sub> uses <b>gaseous</b> moles only. In C(s) + CO<sub>2</sub>(g) ⇌ 2CO(g), Δ<i>n</i><sub>g</sub> = 2 − 1 = +1, not 2 − 2.',
           '<b>Flipping the <i>Q</i> vs <i>K</i> logic.</b> Anchor it once: <i>Q</i> too big (excess products) ⇒ go backward; <i>Q</i> too small ⇒ go forward.',
         ],
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip:</b> Before any <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> numeric, compute Δ<i>n</i> in your head. If Δ<i>n</i> = 0, write <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> and move on — no <i>RT</i> arithmetic needed. For dissociation problems, recall the ready-made result <i>K</i><sub>p</sub> = <i>α</i><sup>2</sup><i>P</i>/(1 − <i>α</i><sup>2</sup>) rather than rebuilding the ICE table each time.',
+        html: '<b>Pro-Tip:</b> Before any <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> numeric, compute Δ<i>n</i><sub>g</sub> in your head. If Δ<i>n</i><sub>g</sub> = 0, write <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> and move on — no <i>RT</i> arithmetic needed. For dissociation problems, recall the ready-made result <i>K</i><sub>p</sub> = <i>α</i><sup>2</sup><i>P</i>/(1 − <i>α</i><sup>2</sup>) rather than rebuilding the ICE table each time.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -335,12 +335,12 @@ export const TOPICS: Topic[] = [
             note: 'equilibrium concentrations only; pure solids/liquids omitted.',
           },
           {
-            f: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup>, Δ<i>n</i> = (gaseous product moles) − (gaseous reactant moles). Δ<i>n</i> = 0 ⇒ <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
+            f: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup>, Δ<i>n</i><sub>g</sub> = (gaseous product moles) − (gaseous reactant moles). Δ<i>n</i><sub>g</sub> = 0 ⇒ <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
             note: '',
           },
           {
             f: 'Units',
-            note: '[<i>K</i><sub>c</sub>] = (mol L<sup>−1</sup>)<sup>Δ<i>n</i></sup>, [<i>K</i><sub>p</sub>] = (atm)<sup>Δ<i>n</i></sup>.',
+            note: '[<i>K</i><sub>c</sub>] = (mol L<sup>−1</sup>)<sup>Δ<i>n</i><sub>g</sub></sup>, [<i>K</i><sub>p</sub>] = (atm)<sup>Δ<i>n</i><sub>g</sub></sup>.',
           },
           {
             f: 'Toolkit',
@@ -427,7 +427,11 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Solving for <i>K</i>',
         main: '<i>K</i> = <i>e</i><sup>−Δ<i>G</i>°/(<i>RT</i>)</sup>',
-        legend: ['<i>R</i> = 8.314 J mol<sup>−1</sup> K<sup>−1</sup>', '<i>T</i> = temperature, in kelvin'],
+        legend: [
+          '<i>R</i> = 8.314 J mol<sup>−1</sup> K<sup>−1</sup>',
+          '<i>T</i> = temperature, in kelvin',
+          'Δ<i>G</i>° = the standard Gibbs energy change, in J mol<sup>−1</sup>',
+        ],
         note: null,
       },
       {
@@ -446,7 +450,7 @@ export const TOPICS: Topic[] = [
         main: 'combining with Δ<i>G</i>° = Δ<i>H</i>° − <i>T</i>Δ<i>S</i>°:<br>ln <i>K</i> = −Δ<i>H</i>°/(<i>RT</i>) + Δ<i>S</i>°/<i>R</i>',
         legend: [
           'Δ<i>H</i>° = standard enthalpy change, in J mol<sup>−1</sup>',
-          'Δ<i>S</i>° = standard entropy change',
+          'Δ<i>S</i>° = standard entropy change, in J K<sup>−1</sup> mol<sup>−1</sup>',
           '<i>R</i> = 8.314 J mol<sup>−1</sup> K<sup>−1</sup>',
           '<i>T</i> = temperature, in kelvin',
         ],
@@ -472,7 +476,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Why this is profound:</b> a single thermodynamic quantity measured in a calorimeter (Δ<i>G</i>°) predicts the entire equilibrium composition, with no need to run the reaction. The logarithm is the reason <i>K</i> can span dozens of orders of magnitude while Δ<i>G</i>° stays a modest number of kJ mol<sup>−1</sup>.',
+        html: '<b>Why this is profound:</b> a single thermodynamic quantity (Δ<i>G</i>°), obtainable from tabulated Δ<i>H</i>° and Δ<i>S</i>° data, predicts the entire equilibrium composition, with no need to run the reaction. The logarithm is the reason <i>K</i> can span dozens of orders of magnitude while Δ<i>G</i>° stays a modest number of kJ mol<sup>−1</sup>.',
       },
       {
         t: 'proc',
@@ -548,7 +552,7 @@ export const TOPICS: Topic[] = [
             a: 'log <i>K</i> = 19150/(19.15 × 500) = 2.0, so <i>K</i> = 100.',
           },
           {
-            q: '[JEE Main] Two reactions have Δ<i>G</i>°<sub>1</sub> = −10 kJ mol<sup>−1</sup> and Δ<i>G</i>°<sub>2</sub> = −5 kJ mol<sup>−1</sup>. For the overall reaction (their sum), find Δ<i>G</i>° and state how its <i>K</i> relates to <i>K</i><sub>1</sub> and <i>K</i><sub>2</sub>.',
+            q: '[JEE Main] Two reactions have Δ<i>G</i>°<sub>1</sub> = −10 kJ mol<sup>−1</sup> and Δ<i>G</i>°<sub>2</sub> = −5 kJ mol<sup>−1</sup>. For the overall reaction (their sum, at the same temperature), find Δ<i>G</i>° and state how its <i>K</i> relates to <i>K</i><sub>1</sub> and <i>K</i><sub>2</sub>.',
             a: 'Δ<i>G</i>° = −15 kJ mol<sup>−1</sup>; <i>K</i> = <i>K</i><sub>1</sub> × <i>K</i><sub>2</sub> (Gibbs energies add, constants multiply).',
           },
           {
@@ -673,7 +677,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> Among the most heavily tested ideas in the whole chapter. CBSE Boards ask 3–5 marks on predicting shifts and on the Haber/Contact process conditions. NEET plants the notorious “inert gas at constant volume vs constant pressure” trap almost every year. JEE Main/Advanced combine pressure, temperature, and the Δ<i>n</i> logic into multi-factor yield questions. Conceptual mastery here is nearly free marks.',
+        html: '<b>Exam Relevance:</b> Among the most heavily tested ideas in the whole chapter. CBSE Boards ask 3–5 marks on predicting shifts and on the Haber/Contact process conditions. NEET plants the notorious “inert gas at constant volume vs constant pressure” trap almost every year. JEE Main/Advanced combine pressure, temperature, and the Δ<i>n</i><sub>g</sub> logic into multi-factor yield questions. Conceptual mastery here is nearly free marks.',
       },
       {
         t: 'p',
@@ -689,11 +693,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The five levers (preview)</b><br>Concentration, pressure, volume, inert gas, and temperature shift the position; a catalyst does not shift it at all. The rest of this topic is just applying the “counteract the change” rule, lever by lever, ending with how industry exploits it in the Haber and Contact processes.',
+        html: '<b>The five levers (preview)</b><br>Concentration, pressure, volume, inert gas (at constant pressure), and temperature shift the position; a catalyst does not shift it at all. The rest of this topic is just applying the “counteract the change” rule, lever by lever, ending with how industry exploits it in the Haber and Contact processes.',
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions</b><br>• Pressure and volume effects act <b>only through gaseous species</b>, and only matter when the number of gas moles differs across the arrow (Δ<i>n</i><sub>gas</sub> ≠ 0).<br>• “Adding a reactant shifts forward” assumes the reactant is actually part of the equilibrium expression — adding a pure solid or pure liquid (constant activity, Topic 01) does nothing.<br>• A catalyst speeds the approach to equilibrium equally in both directions; it changes neither the position nor <i>K</i> nor the yield.',
+        html: '<b>Limiting conditions & assumptions</b><br>• Pressure and volume effects act <b>only through gaseous species</b>, and only matter when the number of gas moles differs across the arrow (Δ<i>n</i><sub>g</sub> ≠ 0).<br>• “Adding a reactant shifts forward” assumes the reactant is actually part of the equilibrium expression — adding a pure solid or pure liquid (constant activity, Topic 01) does nothing.<br>• A catalyst speeds the approach to equilibrium equally in both directions; it changes neither the position nor <i>K</i> nor the yield.',
       },
 
       { t: 'part', title: 'Key relationships and summary of effects' },
@@ -707,7 +711,7 @@ export const TOPICS: Topic[] = [
           ['Increase pressure / decrease volume', 'toward the side with <b>fewer</b> gas moles', 'No'],
           ['Decrease pressure / increase volume', 'toward the side with <b>more</b> gas moles', 'No'],
           ['Inert gas at <b>constant volume</b>', 'no shift', 'No'],
-          ['Inert gas at <b>constant pressure</b>', 'toward the side with <b>more</b> gas moles', 'No'],
+          ['Inert gas at <b>constant pressure</b>', 'toward the side with <b>more</b> gas moles (no shift if Δ<i>n</i><sub>g</sub> = 0)', 'No'],
           ['Increase temperature', 'in the <b>endothermic</b> direction', '<b>Yes</b>'],
           ['Decrease temperature', 'in the <b>exothermic</b> direction', '<b>Yes</b>'],
           ['Add catalyst', 'no shift (reaches equilibrium faster)', 'No'],
@@ -715,7 +719,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Pressure rule precisely:</b> for <i>a</i>A(g) ⇌ <i>b</i>B(g) with Δ<i>n</i><sub>gas</sub> = <i>b</i> − <i>a</i>, raising pressure favours the side with the smaller mole count; if Δ<i>n</i><sub>gas</sub> = 0, pressure has <b>no effect</b> on the position.',
+        html: '<b>Pressure rule precisely:</b> for <i>a</i>A(g) ⇌ <i>b</i>B(g) with Δ<i>n</i><sub>g</sub> = <i>b</i> − <i>a</i>, raising pressure favours the side with the smaller mole count; if Δ<i>n</i><sub>g</sub> = 0, pressure has <b>no effect</b> on the position.',
       },
       {
         t: 'p',
@@ -729,7 +733,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3.2 Pressure and volume</b><br>Compressing a gaseous equilibrium (raising pressure) crowds the molecules; the system relieves the crowding by shifting toward whichever side has fewer gas molecules. Expanding does the reverse. For N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub> (4 mol gas → 2 mol gas), high pressure pushes forward toward ammonia. For H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI (Δ<i>n</i> = 0), pressure does nothing.',
+        html: '<b>3.2 Pressure and volume</b><br>Compressing a gaseous equilibrium (raising pressure) crowds the molecules; the system relieves the crowding by shifting toward whichever side has fewer gas molecules. Expanding does the reverse. For N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub> (4 mol gas → 2 mol gas), high pressure pushes forward toward ammonia. For H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI (Δ<i>n</i><sub>g</sub> = 0), pressure does nothing.',
       },
       {
         t: 'p',
@@ -809,7 +813,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] For H<sub>2</sub>(g) + I<sub>2</sub>(g) ⇌ 2HI(g), what is the effect of increasing pressure on the equilibrium position?',
-            a: 'No effect (Δ<i>n</i><sub>gas</sub> = 0).',
+            a: 'No effect (Δ<i>n</i><sub>g</sub> = 0).',
           },
           {
             q: '[JEE Main] For CaCO<sub>3</sub>(s) ⇌ CaO(s) + CO<sub>2</sub>(g) (Δ<i>H</i> > 0), predict the effect of (i) increasing temperature and (ii) removing CO<sub>2</sub>.',
@@ -863,20 +867,20 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub>',
-            nudge: '<b>(a)</b> Δ<i>n</i> = −2, <b>(b)</b> Δ<i>n</i> = −1, <b>(d)</b> Δ<i>n</i> = +1 — all respond to pressure.',
+            nudge: '<b>(a)</b> Δ<i>n</i><sub>g</sub> = −2, <b>(b)</b> Δ<i>n</i><sub>g</sub> = −1, <b>(d)</b> Δ<i>n</i><sub>g</sub> = +1 — all respond to pressure.',
           },
           {
             label: '2SO<sub>2</sub> + O<sub>2</sub> ⇌ 2SO<sub>3</sub>',
-            nudge: '<b>(a)</b> Δ<i>n</i> = −2, <b>(b)</b> Δ<i>n</i> = −1, <b>(d)</b> Δ<i>n</i> = +1 — all respond to pressure.',
+            nudge: '<b>(a)</b> Δ<i>n</i><sub>g</sub> = −2, <b>(b)</b> Δ<i>n</i><sub>g</sub> = −1, <b>(d)</b> Δ<i>n</i><sub>g</sub> = +1 — all respond to pressure.',
           },
           { label: 'H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI', nudge: null },
           {
             label: 'PCl<sub>5</sub> ⇌ PCl<sub>3</sub> + Cl<sub>2</sub>',
-            nudge: '<b>(a)</b> Δ<i>n</i> = −2, <b>(b)</b> Δ<i>n</i> = −1, <b>(d)</b> Δ<i>n</i> = +1 — all respond to pressure.',
+            nudge: '<b>(a)</b> Δ<i>n</i><sub>g</sub> = −2, <b>(b)</b> Δ<i>n</i><sub>g</sub> = −1, <b>(d)</b> Δ<i>n</i><sub>g</sub> = +1 — all respond to pressure.',
           },
         ],
         correct: 2,
-        solution: 'Δ<i>n</i><sub>gas</sub> = 2 − 2 = 0, so pressure cannot shift it.',
+        solution: 'Δ<i>n</i><sub>g</sub> = 2 − 2 = 0, so pressure cannot shift it.',
       },
       {
         t: 'mcq',
@@ -904,15 +908,15 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>The inert-gas trap.</b> Constant volume → no shift (partial pressures unchanged). Constant pressure → shifts toward more gas moles (acts like dilution). Always check which is held fixed.',
+          '<b>The inert-gas trap.</b> Constant volume → no shift (partial pressures unchanged). Constant pressure → shifts toward more gas moles if Δ<i>n</i><sub>g</sub> ≠ 0 (acts like dilution). Always check which is held fixed.',
           '<b>Thinking a catalyst raises yield or <i>K</i>.</b> It changes only the rate of reaching equilibrium, never the position or constant.',
-          '<b>Applying a pressure shift when Δ<i>n</i><sub>gas</sub> = 0.</b> Reactions like H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI are pressure-insensitive in position.',
+          '<b>Applying a pressure shift when Δ<i>n</i><sub>g</sub> = 0.</b> Reactions like H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI are pressure-insensitive in position.',
           '<b>Saying <i>K</i> is unchanged by temperature.</b> Temperature is the one factor that does change <i>K</i> — increasing it raises <i>K</i> for endothermic and lowers <i>K</i> for exothermic reactions.',
         ],
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip:</b> Write heat explicitly as a product (exothermic) or reactant (endothermic), then treat temperature changes like any concentration change. For pressure, glance at Δ<i>n</i><sub>gas</sub> first — if it’s zero, skip the question. For “maximise yield” problems, separate the genuine yield levers (pressure, concentration, temperature) from the rate-only lever (catalyst).',
+        html: '<b>Pro-Tip:</b> Write heat explicitly as a product (exothermic) or reactant (endothermic), then treat temperature changes like any concentration change. For pressure, glance at Δ<i>n</i><sub>g</sub> first — if it’s zero, skip the question. For “maximise yield” problems, separate the genuine yield levers (pressure, concentration, temperature) from the rate-only lever (catalyst).',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -921,8 +925,8 @@ export const TOPICS: Topic[] = [
         rows: [
           { f: 'Le Chatelier', note: 'a disturbed equilibrium shifts to counteract the change.' },
           { f: 'Concentration', note: 'add reactant / remove product → forward; and vice versa.' },
-          { f: 'Pressure ↑ (volume ↓)', note: 'shift toward fewer gas moles; no effect if Δ<i>n</i><sub>gas</sub> = 0.' },
-          { f: 'Inert gas', note: 'constant <i>V</i> → no shift; constant <i>P</i> → toward more gas moles.' },
+          { f: 'Pressure ↑ (volume ↓)', note: 'shift toward fewer gas moles; no effect if Δ<i>n</i><sub>g</sub> = 0.' },
+          { f: 'Inert gas', note: 'constant <i>V</i> → no shift; constant <i>P</i> → toward more gas moles (if Δ<i>n</i><sub>g</sub> ≠ 0).' },
           {
             f: 'Temperature ↑',
             note: 'shift in the endothermic direction; <b>only temperature changes</b> <i>K</i> (up for endo, down for exo).',

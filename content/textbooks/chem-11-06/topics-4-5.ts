@@ -258,7 +258,7 @@ export const TOPICS: Topic[] = [
         q: 'The pH of 1.0 × 10<sup>−8</sup> M HCl at 298 K is closest to:',
         opts: [
           { label: '8.00', nudge: '<b>(a)</b> the naive −log(10<sup>−8</sup>) — physically impossible (acid giving basic pH).' },
-          { label: '7.00', nudge: '<b>(b)</b> the “very dilute, so just neutral” shortcut, which over-corrects.' },
+          { label: '7.00', nudge: '<b>(b)</b> the “very dilute, so just neutral” shortcut — it keeps water’s 10<sup>−7</sup> M but drops the acid’s own 10<sup>−8</sup> M.' },
           { label: '6.98', nudge: null },
           { label: '7.02', nudge: '<b>(d)</b> right idea, wrong side of 7 — an acid can never give pH > 7.' },
         ],
@@ -295,7 +295,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Ignoring water’s H<sup>+</sup> in very dilute acids/bases.</b> Below ∼ 10<sup>−6</sup> M, the naive −log <i>c</i> gives nonsense (e.g. pH 8 for an acid). Always fold in water’s contribution; the answer settles just under (or over) 7.',
-          '<b>Dropping the stoichiometric factor for strong polyprotic acids.</b> 0.005 M H<sub>2</sub>SO<sub>4</sub> gives [H<sup>+</sup>] = 0.010 M, not 0.005.',
+          '<b>Dropping the stoichiometric factor for strong polyprotic acids.</b> 0.005 M H<sub>2</sub>SO<sub>4</sub> (taken as fully dissociated) gives [H<sup>+</sup>] = 0.010 M, not 0.005.',
           '<b>Using <i>α</i> = √(<i>K</i><sub>a</sub>/<i>c</i>) when <i>α</i> is not small.</b> If the approximation returns <i>α</i> > 5%, discard it and solve the quadratic <i>K</i><sub>a</sub> = <i>cα</i><sup>2</sup>/(1 − <i>α</i>).',
           '<b>Swapping conjugate acid and base.</b> Conjugate base = remove one H<sup>+</sup>; conjugate acid = add one. And for the pair, <i>K</i><sub>a</sub> × <i>K</i><sub>b</sub> = <i>K</i><sub>w</sub> — divide, never multiply, when converting.',
         ],
@@ -373,7 +373,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions</b><br>• Henderson–Hasselbalch assumes the buffer ratio isn’t extreme — buffers only work well within about p<i>K</i><sub>a</sub> ± 1. Push the ratio past 10:1 and buffering collapses.<br>• <i>K</i><sub>sp</sub> as a simple concentration product assumes a dilute, ideal solution; high ionic strength needs activities.<br>• The clean hydrolysis-pH formulas assume the degree of hydrolysis is small. They also assume the salt’s parent ions don’t form complexes or precipitates of their own.',
+        html: '<b>Limiting conditions & assumptions</b><br>• Henderson–Hasselbalch assumes the buffer ratio isn’t extreme — buffers only work well within about p<i>K</i><sub>a</sub> ± 1. Push the ratio past 10:1 and buffering becomes poor.<br>• <i>K</i><sub>sp</sub> as a simple concentration product assumes a dilute, ideal solution; high ionic strength needs activities.<br>• The clean hydrolysis-pH formulas assume the degree of hydrolysis is small. They also assume the salt’s parent ions don’t form complexes or precipitates of their own.',
       },
 
       { t: 'part', title: 'Key formulas and definitions' },
@@ -392,7 +392,10 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Solubility product',
         main: 'for A<sub><i>x</i></sub>B<sub><i>y</i></sub>(s) ⇌ <i>x</i> A<sup><i>y</i>+</sup> + <i>y</i> B<sup><i>x</i>−</sup>:<br><i>K</i><sub>sp</sub> = [A<sup><i>y</i>+</sup>]<sup><i>x</i></sup> [B<sup><i>x</i>−</sup>]<sup><i>y</i></sup>',
-        legend: ['<i>K</i><sub>sp</sub> = solubility product'],
+        legend: [
+          '<i>K</i><sub>sp</sub> = solubility product',
+          '<i>x</i>, <i>y</i> = the numbers of cations and anions in the formula A<sub><i>x</i></sub>B<sub><i>y</i></sub>',
+        ],
         note: null,
       },
       {
@@ -433,7 +436,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'with <i>h</i> = √(<i>K</i><sub>h</sub>/<i>c</i>). All constants are temperature-dependent; pH, <i>h</i>, p<i>K</i> values are dimensionless. <i>K</i><sub>sp</sub> carries units (mol L<sup>−1</sup>)<sup>(<i>x</i>+<i>y</i>)</sup>.',
+        html: 'with <i>h</i> = √(<i>K</i><sub>h</sub>/<i>c</i>) (for a weak acid + weak base salt, <i>h</i> ≈ √<i>K</i><sub>h</sub>). All constants are temperature-dependent; pH, <i>h</i>, p<i>K</i> values are dimensionless. <i>K</i><sub>sp</sub> carries units (mol L<sup>−1</sup>)<sup>(<i>x</i>+<i>y</i>)</sup>.',
       },
 
       { t: 'part', title: 'Key procedures and derivations' },
@@ -455,7 +458,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3.4 Deriving the salt-hydrolysis pH (weak acid + strong base)</b><br>The acetate ion is the conjugate base of a weak acid, so it hydrolyses:<br>CH<sub>3</sub>COO<sup>−</sup> + H<sub>2</sub>O ⇌ CH<sub>3</sub>COOH + OH<sup>−</sup>, <i>K</i><sub>h</sub> = <i>K</i><sub>w</sub>/<i>K</i><sub>a</sub><br>The <i>K</i><sub>h</sub> = <i>K</i><sub>w</sub>/<i>K</i><sub>a</sub> relation is just the conjugate <i>K</i><sub>a</sub><i>K</i><sub>b</sub> = <i>K</i><sub>w</sub> rule (Topic 04) applied to acetate. With [OH<sup>−</sup>] = √(<i>K</i><sub>h</sub><i>c</i>) = √(<i>K</i><sub>w</sub><i>c</i>/<i>K</i><sub>a</sub>), taking −log and rearranging gives<br>pH = 7 + ½(p<i>K</i><sub>a</sub> + log <i>c</i>)<br>The +½p<i>K</i><sub>a</sub> term is always positive, so the solution is always basic — confirming “the salt takes the side of its stronger parent.”',
+        html: '<b>3.4 Deriving the salt-hydrolysis pH (weak acid + strong base)</b><br>The acetate ion is the conjugate base of a weak acid, so it hydrolyses:<br>CH<sub>3</sub>COO<sup>−</sup> + H<sub>2</sub>O ⇌ CH<sub>3</sub>COOH + OH<sup>−</sup>, <i>K</i><sub>h</sub> = <i>K</i><sub>w</sub>/<i>K</i><sub>a</sub><br>The <i>K</i><sub>h</sub> = <i>K</i><sub>w</sub>/<i>K</i><sub>a</sub> relation is just the conjugate <i>K</i><sub>a</sub><i>K</i><sub>b</sub> = <i>K</i><sub>w</sub> rule (Topic 04) applied to acetate. With [OH<sup>−</sup>] = √(<i>K</i><sub>h</sub><i>c</i>) = √(<i>K</i><sub>w</sub><i>c</i>/<i>K</i><sub>a</sub>), taking −log and rearranging gives<br>pH = 7 + ½(p<i>K</i><sub>a</sub> + log <i>c</i>)<br>Since <i>c</i> ≫ <i>K</i><sub>a</sub> in practice, p<i>K</i><sub>a</sub> + log <i>c</i> > 0, so the solution is basic — confirming “the salt takes the side of its stronger parent.”',
       },
       {
         t: 'p',
@@ -481,7 +484,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: 'The <i>K</i><sub>sp</sub> of silver chromate Ag<sub>2</sub>CrO<sub>4</sub> is 1.1 × 10<sup>−12</sup>. Find its molar solubility.',
         steps: [
-          '<b>The trap.</b> The reflex move is <i>s</i> = √<i>K</i><sub>sp</sub> = √(1.1 × 10<sup>−12</sup>) ≈ 1.0 × 10<sup>−6</sup> M — <b>wrong</b>, because Ag<sub>2</sub>CrO<sub>4</sub> is a 1:2 salt, not 1:1. The correct expression is <i>K</i><sub>sp</sub> = 4<i>s</i><sup>3</sup>:',
+          '<b>The trap.</b> The reflex move is <i>s</i> = √<i>K</i><sub>sp</sub> = √(1.1 × 10<sup>−12</sup>) ≈ 1.0 × 10<sup>−6</sup> M — <b>wrong</b>, because Ag<sub>2</sub>CrO<sub>4</sub> is a 2:1 (A<sub>2</sub>B) salt, not 1:1. The correct expression is <i>K</i><sub>sp</sub> = 4<i>s</i><sup>3</sup>:',
           '<i>s</i> = (<i>K</i><sub>sp</sub>/4)<sup>1/3</sup> = ((1.1 × 10<sup>−12</sup>)/4)<sup>1/3</sup> = (2.75 × 10<sup>−13</sup>)<sup>1/3</sup>',
           '<b>Speed cue:</b> before reaching for a root, read the formula’s subscripts. √ is only for AB salts; A<sub>2</sub>B/AB<sub>2</sub> salts need the cube root of <i>K</i><sub>sp</sub>/4.',
         ],
@@ -616,10 +619,10 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Assuming every salt solution is neutral.</b> Only strong-acid + strong-base salts are. Always identify each parent’s strength first; the solution leans toward the stronger parent.',
+          '<b>Assuming every salt solution is neutral.</b> Only strong-acid + strong-base salts are neutral by default (a weak–weak salt such as CH<sub>3</sub>COONH<sub>4</sub> is neutral only because its <i>K</i><sub>a</sub> ≈ <i>K</i><sub>b</sub>). Always identify each parent’s strength first; the solution leans toward the stronger parent.',
           '<b>Using <i>s</i> = √<i>K</i><sub>sp</sub> for non-1:1 salts.</b> CaF<sub>2</sub>, Ag<sub>2</sub>CrO<sub>4</sub> need <i>K</i><sub>sp</sub> = 4<i>s</i><sup>3</sup>; Fe(OH)<sub>3</sub> needs 27<i>s</i><sup>4</sup>. The coefficient enters both as a factor and as an exponent.',
           '<b>Forgetting to halve concentrations on mixing.</b> When equal volumes are combined, every concentration drops by half before you compute <i>Q</i> — a step that silently flips many precipitation answers.',
-          '<b>Plugging absolute amounts into Henderson instead of the ratio.</b> Only [salt]/[acid] matters — volume cancels, so moles work just as well as molarities.',
+          '<b>Using a single concentration in Henderson instead of the ratio.</b> Only [salt]/[acid] matters — volume cancels, so moles work just as well as molarities.',
         ],
       },
       {
@@ -649,7 +652,7 @@ export const TOPICS: Topic[] = [
             note: 'WA+SB → basic, pH = 7 + ½(p<i>K</i><sub>a</sub> + log <i>c</i>); SA+WB → acidic, pH = 7 − ½(p<i>K</i><sub>b</sub> + log <i>c</i>); WA+WB → pH = 7 + ½(p<i>K</i><sub>a</sub> − p<i>K</i><sub>b</sub>), independent of <i>c</i>.',
           },
           {
-            f: '<i>K</i><sub>h</sub> = <i>K</i><sub>w</sub>/<i>K</i><sub>a</sub> (or <i>K</i><sub>w</sub>/<i>K</i><sub>b</sub>); <i>h</i> = √(<i>K</i><sub>h</sub>/<i>c</i>).',
+            f: '<i>K</i><sub>h</sub> = <i>K</i><sub>w</sub>/<i>K</i><sub>a</sub> (or <i>K</i><sub>w</sub>/<i>K</i><sub>b</sub>); <i>h</i> = √(<i>K</i><sub>h</sub>/<i>c</i>) (for a weak acid + weak base salt, <i>h</i> ≈ √<i>K</i><sub>h</sub>).',
             note: '',
           },
         ],

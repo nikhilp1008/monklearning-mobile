@@ -12,7 +12,7 @@ import { TOPICS as T_TOPICS_4_5 } from './chem-11-06/topics-4-5';
  * the order 01, 04, 05, 02, 03; the app keeps that page order and numbers
  * them Topics 01 to 05, with the book's cross-references rewritten to match.
  * Then the Additional Topics' addenda (their answers, printed together on
- * p. 290, set with each question) and "What JEE and NEET Actually Ask". The
+ * pp. 290–291, set with each question) and "What JEE and NEET Actually Ask". The
  * figures are redrawn (lib/diagrams/chemistry-11-06.ts).
  */
 export const chem11Equilibrium: Chapter = {

@@ -31,8 +31,8 @@
  * <i>K</i><sub>w</sub>, <i>K</i><sub>sp</sub>, <i>K</i><sub>h</sub>,
  * <i>Q</i><sub>c</sub>, <i>Q</i><sub>p</sub>), and the book's reaction labels
  * <i>K</i><sub>P</sub>, <i>K</i><sub>Q</sub>, <i>K</i><sub>R</sub> upright too;
- * pH, pOH, p<i>K</i><sub>a</sub> with an upright p. Δ<i>n</i> as Topic 01
- * prints it, Δ<i>n</i><sub>gas</sub> as Topic 03 prints it. <i>α</i>, <i>h</i>,
+ * pH, pOH, p<i>K</i><sub>a</sub> with an upright p. Δ<i>n</i><sub>g</sub> throughout
+ * (Nikhil's decision after the review; the book prints Δn and Δn<sub>gas</sub>). <i>α</i>, <i>h</i>,
  * <i>s</i>, <i>c</i>, <i>P</i>, <i>R</i>, <i>T</i> italic.
  */
 import type { KeyPoint } from '@/lib/revise/keypoints';
@@ -44,8 +44,8 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'remember',
     q: '<i>K</i><sub>c</sub>, <i>K</i><sub>p</sub>, the link between them and their units, for <i>a</i>A + <i>b</i>B ⇌ <i>c</i>C + <i>d</i>D?',
-    a: '<i>K</i><sub>c</sub> = [C]<sup><i>c</i></sup>[D]<sup><i>d</i></sup>/[A]<sup><i>a</i></sup>[B]<sup><i>b</i></sup>, equilibrium concentrations only, pure solids and liquids omitted. <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i></sup>, Δ<i>n</i> = gaseous product moles − gaseous reactant moles, <i>R</i> = 0.0821 L atm mol<sup>−1</sup> K<sup>−1</sup>. Units: [<i>K</i><sub>c</sub>] = (mol L<sup>−1</sup>)<sup>Δ<i>n</i></sup>, [<i>K</i><sub>p</sub>] = (atm)<sup>Δ<i>n</i></sup>',
-    why: 'A 2 L vessel holds 1.0 mol N<sub>2</sub>, 2.0 mol H<sub>2</sub>, 0.80 mol NH<sub>3</sub> at equilibrium: <i>K</i><sub>c</sub> = (0.40)<sup>2</sup>/(0.50)(1.0)<sup>3</sup> = 0.32 mol<sup>−2</sup> L<sup>2</sup> (Δ<i>n</i> = −2).',
+    a: '<i>K</i><sub>c</sub> = [C]<sup><i>c</i></sup>[D]<sup><i>d</i></sup>/([A]<sup><i>a</i></sup>[B]<sup><i>b</i></sup>), equilibrium concentrations only, pure solids and liquids omitted. <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup>, Δ<i>n</i><sub>g</sub> = gaseous product moles − gaseous reactant moles, <i>R</i> = 0.0821 L atm mol<sup>−1</sup> K<sup>−1</sup>. Units: [<i>K</i><sub>c</sub>] = (mol L<sup>−1</sup>)<sup>Δ<i>n</i><sub>g</sub></sup>, [<i>K</i><sub>p</sub>] = (atm)<sup>Δ<i>n</i><sub>g</sub></sup>',
+    why: 'A 2 L vessel holds 1.0 mol N<sub>2</sub>, 2.0 mol H<sub>2</sub>, 0.80 mol NH<sub>3</sub> at equilibrium: <i>K</i><sub>c</sub> = (0.40)<sup>2</sup>/((0.50)(1.0)<sup>3</sup>) = 0.32 mol<sup>−2</sup> L<sup>2</sup> (Δ<i>n</i><sub>g</sub> = −2).',
     say: null,
   },
   // pp. 256–258, 259
@@ -72,7 +72,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'Do pressure, concentration, an inert gas or a catalyst change the value of <i>K</i>?',
     a: 'No: only temperature changes <i>K</i>. The others can shift the position of equilibrium but leave the constant alone; a catalyst only changes how fast equilibrium is reached',
-    why: 'Pure solids and liquids stay out of both <i>K</i> and Δ<i>n</i>: CaCO<sub>3</sub>(s) ⇌ CaO(s) + CO<sub>2</sub>(g) has <i>K</i><sub>p</sub> = the pressure of CO<sub>2</sub> only; C(s) + CO<sub>2</sub>(g) ⇌ 2CO(g) has Δ<i>n</i> = 2 − 1 = +1.',
+    why: 'Pure solids and liquids stay out of both <i>K</i> and Δ<i>n</i><sub>g</sub>: CaCO<sub>3</sub>(s) ⇌ CaO(s) + CO<sub>2</sub>(g) has <i>K</i><sub>p</sub> = the pressure of CO<sub>2</sub> only; C(s) + CO<sub>2</sub>(g) ⇌ 2CO(g) has Δ<i>n</i><sub>g</sub> = 2 − 1 = +1.',
     say: null,
   },
   // pp. 257, 259
@@ -80,7 +80,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'shortcut',
     q: 'At 717 K, <i>K</i><sub>c</sub> = 49 for H<sub>2</sub>(g) + I<sub>2</sub>(g) ⇌ 2HI(g). <i>K</i><sub>p</sub>? The fast way?',
-    a: 'Compute Δ<i>n</i> before any arithmetic: 2 − 2 = 0, so (<i>RT</i>)<sup>0</sup> = 1 and <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> = 49. For a single reactant → two gaseous products, recall <i>K</i><sub>p</sub> = <i>α</i><sup>2</sup><i>P</i>/(1 − <i>α</i><sup>2</sup>) instead of rebuilding the ICE table',
+    a: 'Compute Δ<i>n</i><sub>g</sub> before any arithmetic: 2 − 2 = 0, so (<i>RT</i>)<sup>0</sup> = 1 and <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> = 49. For a single reactant → two gaseous products, recall <i>K</i><sub>p</sub> = <i>α</i><sup>2</sup><i>P</i>/(1 − <i>α</i><sup>2</sup>) instead of rebuilding the ICE table',
     why: 'PCl<sub>5</sub> ⇌ PCl<sub>3</sub> + Cl<sub>2</sub> with <i>α</i> = 0.50 at <i>P</i> = 1.5 atm: <i>K</i><sub>p</sub> = (0.25)(1.5)/0.75 = 0.50 atm.',
     say: null,
   },
@@ -91,7 +91,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'remember',
     q: 'How does Δ<i>G</i>° fix <i>K</i>?',
-    a: 'Δ<i>G</i> = Δ<i>G</i>° + <i>RT</i> ln <i>Q</i>; at equilibrium Δ<i>G</i> = 0 and <i>Q</i> = <i>K</i>, so Δ<i>G</i>° = −<i>RT</i> ln <i>K</i> = −2.303 <i>RT</i> log <i>K</i> and <i>K</i> = <i>e</i><sup>−Δ<i>G</i>°/<i>RT</i></sup>. Δ<i>G</i>° < 0 ⇒ <i>K</i> > 1 (products favoured); = 0 ⇒ <i>K</i> = 1; > 0 ⇒ <i>K</i> < 1 (reactants favoured)',
+    a: 'Δ<i>G</i> = Δ<i>G</i>° + <i>RT</i> ln <i>Q</i>; at equilibrium Δ<i>G</i> = 0 and <i>Q</i> = <i>K</i>, so Δ<i>G</i>° = −<i>RT</i> ln <i>K</i> = −2.303 <i>RT</i> log <i>K</i> and <i>K</i> = <i>e</i><sup>−Δ<i>G</i>°/(<i>RT</i>)</sup>. Δ<i>G</i>° < 0 ⇒ <i>K</i> > 1 (products favoured); = 0 ⇒ <i>K</i> = 1; > 0 ⇒ <i>K</i> < 1 (reactants favoured)',
     why: 'Δ<i>G</i>° = −11.4 kJ mol<sup>−1</sup> at 298 K: ln <i>K</i> = 11400/(8.314 × 298) = 11400/2477.6 = 4.60, <i>K</i> = <i>e</i><sup>4.60</sup> ≈ 100.',
     say: '“negative G, big K” (spontaneous → products).',
   },
@@ -100,7 +100,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'remember',
     q: 'How does <i>K</i> change with temperature (van’t Hoff)?',
-    a: 'ln(<i>K</i><sub>2</sub>/<i>K</i><sub>1</sub>) = −(Δ<i>H</i>°/<i>R</i>)(1/<i>T</i><sub>2</sub> − 1/<i>T</i><sub>1</sub>), from ln <i>K</i> = −Δ<i>H</i>°/<i>RT</i> + Δ<i>S</i>°/<i>R</i>. <i>K</i> rising with <i>T</i> means endothermic; <i>K</i> falling with <i>T</i>, exothermic',
+    a: 'ln(<i>K</i><sub>2</sub>/<i>K</i><sub>1</sub>) = −(Δ<i>H</i>°/<i>R</i>)(1/<i>T</i><sub>2</sub> − 1/<i>T</i><sub>1</sub>), from ln <i>K</i> = −Δ<i>H</i>°/(<i>RT</i>) + Δ<i>S</i>°/<i>R</i>. <i>K</i> rising with <i>T</i> means endothermic; <i>K</i> falling with <i>T</i>, exothermic',
     why: '<i>K</i> = 1.0 × 10<sup>−4</sup> at 300 K and 1.0 × 10<sup>−3</sup> at 320 K: 1/300 − 1/320 = 2.08 × 10<sup>−4</sup> K<sup>−1</sup>, Δ<i>H</i>° = 8.314 × 2.303/(2.08 × 10<sup>−4</sup>) ≈ +92 kJ mol<sup>−1</sup>, endothermic.',
     say: '“hotter helps the endo” (<i>K</i> up with <i>T</i> ⟹ endothermic).',
   },
@@ -138,7 +138,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 2,
     kind: 'remember',
     q: 'Le Chatelier’s principle, and which disturbances change <i>K</i>?',
-    a: 'A system at equilibrium, disturbed by a change in concentration, pressure or temperature, shifts in the direction that partially undoes the change. Adding a reactant (or removing a product) shifts it forward; raising pressure shifts it toward fewer gas moles (no effect if Δ<i>n</i><sub>gas</sub> = 0). Only temperature changes <i>K</i>: heating raises <i>K</i> for an endothermic reaction and lowers it for an exothermic one',
+    a: 'A system at equilibrium, disturbed by a change in concentration, pressure or temperature, shifts in the direction that partially undoes the change. Adding a reactant (or removing a product) shifts it forward; raising pressure shifts it toward fewer gas moles (no effect if Δ<i>n</i><sub>g</sub> = 0). Only temperature changes <i>K</i>: heating raises <i>K</i> for an endothermic reaction and lowers it for an exothermic one',
     why: 'N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub>, Δ<i>H</i> < 0: raising pressure (4 → 2 mol) and adding N<sub>2</sub> shift it forward; raising <i>T</i> shifts it backward and lowers <i>K</i>.',
     say: '“system fights the change”',
   },
@@ -166,7 +166,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'Does a catalyst raise the equilibrium yield, or <i>K</i>?',
     a: 'Neither: it lowers the activation energy of the forward and reverse reactions equally, so equilibrium arrives faster but its position and constant are unchanged. A catalyst cannot improve the yield, only the speed of reaching it',
-    why: 'Two more slips: applying a pressure shift when Δ<i>n</i><sub>gas</sub> = 0 (H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI is pressure-insensitive), and saying <i>K</i> is unchanged by temperature.',
+    why: 'Two more slips: applying a pressure shift when Δ<i>n</i><sub>g</sub> = 0 (H<sub>2</sub> + I<sub>2</sub> ⇌ 2HI is pressure-insensitive), and saying <i>K</i> is unchanged by temperature.',
     say: null,
   },
   // pp. 267–269
@@ -174,7 +174,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 2,
     kind: 'shortcut',
     q: 'For 2SO<sub>2</sub>(g) + O<sub>2</sub>(g) ⇌ 2SO<sub>3</sub>(g) (Δ<i>H</i> < 0), which raise the yield: high pressure, high temperature, a catalyst, excess O<sub>2</sub>? The fast way?',
-    a: 'Write heat as a product (exothermic) and treat temperature like a concentration change; glance at Δ<i>n</i><sub>gas</sub> for pressure; separate the yield levers from the rate-only catalyst. Only high pressure (3 → 2) and excess O<sub>2</sub> raise the yield; high temperature lowers it, and the catalyst only speeds things up',
+    a: 'Write heat as a product (exothermic) and treat temperature like a concentration change; glance at Δ<i>n</i><sub>g</sub> for pressure; separate the yield levers from the rate-only catalyst. Only high pressure (3 → 2) and excess O<sub>2</sub> raise the yield; high temperature lowers it, and the catalyst only speeds things up',
     why: 'Quantitatively, for PCl<sub>5</sub> dissociation <i>α</i> = √(<i>K</i><sub>p</sub>/(<i>P</i> + <i>K</i><sub>p</sub>)) falls as <i>P</i> rises, as Le Chatelier predicts.',
     say: null,
   },
@@ -213,7 +213,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'The pH of 1.0 × 10<sup>−8</sup> M HCl: is it 8?',
     a: 'No: an acid cannot give a basic solution. At this dilution water’s own H<sup>+</sup> (∼10<sup>−7</sup> M) dominates: [H<sup>+</sup>]<sup>2</sup> − (10<sup>−8</sup>)[H<sup>+</sup>] − 10<sup>−14</sup> = 0 gives [H<sup>+</sup>] = 1.05 × 10<sup>−7</sup> M, pH ≈ 6.98, just under 7. Below about 10<sup>−6</sup> M, always include water’s contribution',
-    why: 'And keep the stoichiometric factor of a strong polyprotic acid: 0.005 M H<sub>2</sub>SO<sub>4</sub> gives [H<sup>+</sup>] = 0.010 M, pH 2.0.',
+    why: 'And keep the stoichiometric factor of a strong polyprotic acid: 0.005 M H<sub>2</sub>SO<sub>4</sub> (taken as fully dissociated) gives [H<sup>+</sup>] = 0.010 M, pH 2.0.',
     say: null,
   },
   // pp. 275–276
@@ -260,7 +260,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'Equal volumes of 0.020 M BaCl<sub>2</sub> and 0.020 M Na<sub>2</sub>SO<sub>4</sub> are mixed. Is <i>Q</i> = (0.020)<sup>2</sup>?',
     a: 'No: when equal volumes are combined, every concentration halves before you compute <i>Q</i>. [Ba<sup>2+</sup>] = [SO<sub>4</sub><sup>2−</sup>] = 0.010 M, <i>Q</i> = 1.0 × 10<sup>−4</sup> ≫ <i>K</i><sub>sp</sub> = 1.1 × 10<sup>−10</sup>: BaSO<sub>4</sub> precipitates',
-    why: 'Two more slips: assuming every salt solution is neutral (only strong-acid + strong-base salts are), and plugging absolute amounts into Henderson’s equation when only the ratio [salt]/[acid] matters.',
+    why: 'Two more slips: assuming every salt solution is neutral (only strong-acid + strong-base salts are neutral by default; a weak–weak salt such as CH<sub>3</sub>COONH<sub>4</sub> is neutral only because its <i>K</i><sub>a</sub> ≈ <i>K</i><sub>b</sub>), and using a single concentration in Henderson’s equation when only the ratio [salt]/[acid] matters.',
     say: null,
   },
   // pp. 279, 281, 283

@@ -1,4 +1,4 @@
-import { C, LABEL_GAP, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import { C, F, LABEL_GAP, RESULT_SIZE, Rect, Sketch, r1, resultW } from '@/lib/diagrams/kit';
 import type { Check, Diagram } from '@/lib/diagrams/types';
 
 /**
@@ -230,13 +230,22 @@ const CAP62 = '[H<sup>+</sup>] in 0.1 M acetic acid alone (1.34 × 10<sup>−3</
 const ARC: [P, P, P] = [[150, 108], [236, 92], [254, 196]];
 const bez = (t: number): P => { const [a, b, c] = ARC, u = 1 - t; return [u * u * a[0] + 2 * u * t * b[0] + t * t * c[0], u * u * a[1] + 2 * u * t * b[1] + t * t * c[1]]; };
 
+const RESULT62 = '≈ 74-fold';
+const RESULT_GAP = 4;
+/** The kit's result tag (ink edge, Onest Bold), set at a given spot instead of the bottom-right corner: right edge x1, top y. Registered as a tag so the audit sees it. */
+function resultAt(s: Sketch, x1: number, y: number, t: string) {
+  const w = resultW(t), x0 = x1 - w;
+  s.tags.push({ name: t, rect: [x0, y, x1, y + 30], from: null, to: null });
+  s.add(`<rect x="${r1(x0)}" y="${r1(y)}" width="${r1(w)}" height="30" rx="15" fill="#fff" stroke="${C.text}" stroke-width="1.6"/><text x="${r1(x0 + w / 2)}" y="${r1(y + 20)}" text-anchor="middle" font-family="${F.bold}" font-size="${RESULT_SIZE}" fill="${C.text}">${t}</text>`);
+}
+
 const fig62: Diagram = {
   id: 'c11-06-fig-6.2',
   topic: 3,
   name: 'Common-ion suppression of [H⁺]',
   cases: [{ chip: 'Log scale', cap: CAP62 }],
   draw() {
-    const s = new Sketch(W, 396), f = F62;
+    const s = new Sketch(W, 352), f = F62;
     // grid at each decade, minor log ticks, the axes
     for (let d = 0; d <= 5; d++) if (d) s.line(f.ox, Y(f, d), W - 10, Y(f, d), { color: C.grey, w: 0.7 });
     for (let d = 0; d < 5; d++) for (let m = 2; m <= 9; m++) s.line(f.ox - 2.5, Y(f, d + lg(m)), f.ox, Y(f, d + lg(m)), { color: C.grey, w: 0.9 });
@@ -257,8 +266,10 @@ const fig62: Diagram = {
     path(s, arc, { color: C.mari, w: 2.2 });
     s.vec(bez(0.9)[0], bez(0.9)[1], bez(1)[0], bez(1)[1], { color: C.mari, w: 2.2 });
     keep(s, [bez(0.9), bez(1)]);
-    s.result('≈ 74-fold');
     s.place([{ t: 'common-ion suppression', hi: true, p: bez(0.3), at: [[W - 12, 46, 'end'], [W - 16, 46, 'end'], [W - 20, 48, 'end']] }]);
+    // the result sits directly under the arrow's tag (the book sets "common-ion suppression ≈ 74-fold" as one label on the arrow)
+    const arrowTag = s.tags.find((t) => t.name === 'common-ion suppression');
+    if (arrowTag) resultAt(s, arrowTag.rect[2], arrowTag.rect[3] + RESULT_GAP, RESULT62);
     return s;
   },
   check() {
@@ -273,6 +284,8 @@ const fig62: Diagram = {
     // the bars read back on the log axis
     out.push(['Each bar’s top reads back as its [H⁺] on the log axis, and decade lines sit one decade apart', BARS.every((b) => close(10 ** (vOf(f, yLog(b.c)) + V_MIN), b.c, 1e-12 * b.c)) && close(Y(f, 0) - Y(f, 1), f.sy, 1e-9)]);
     out.push([`The two tops are ${fmt(lg(ratio), 3)} decades apart (log 74 = ${fmt(lg(74), 3)})`, close(vOf(f, yLog(H_ALONE)) - vOf(f, yLog(H_BUF)), lg(ratio), 1e-9)]);
+    const tg = s.tags.find((t) => t.name === 'common-ion suppression'), rs = s.tags.find((t) => t.name === RESULT62);
+    out.push(['The result “≈ 74-fold” sits directly under the “common-ion suppression” tag on the arrow (right edges aligned, 4 px apart), not alone in a corner', !!tg && !!rs && close(rs.rect[1] - tg.rect[3], RESULT_GAP) && close(rs.rect[2], tg.rect[2])]);
     out.push(['The result says ≈ 74-fold, and the suppression arrow runs from the first bar down to the second', s.tags.some((t) => t.name === '≈ 74-fold') && ARC[0][0] < BARS[1].x && ARC[2][0] < BARS[1].x + BAR_W / 2 && ARC[2][0] > BARS[1].x - BAR_W / 2 && ARC[2][1] < yLog(H_BUF) - 22]);
     out.push(...layout(s));
     return out;
@@ -306,6 +319,7 @@ const VOLS = [...samples(0, 24.8, 300), ...samples(24.8, 25.2, 400).slice(1), ..
 const FB: Frame = { ox: 40, oy: 300, sx: (W - 14 - 40) / 50, sy: 18.6 };
 const CAPB = 'Titration of 25 mL of 0.1 M acid with 0.1 M NaOH: strong acid (black) versus weak acid (marigold, p<i>K</i><sub>a</sub> = 4.76). Read off the weak acid’s higher start, its buffer region, the half-equivalence point at pH = p<i>K</i><sub>a</sub>, and its equivalence point above 7.';
 /** The book's landmark values (the four-landmark table, p. 286). */
+const V_S = 6;
 const BOOK = { startStrong: 1.0, startWeak: 2.88, half: 4.76, eqWeak: 8.7, eqStrong: 7 };
 
 const figB: Diagram = {
@@ -314,7 +328,7 @@ const figB: Diagram = {
   name: 'Titration curves',
   cases: [{ chip: 'Strong vs weak', cap: CAPB }],
   draw() {
-    const s = new Sketch(W, 352), f = FB;
+    const s = new Sketch(W, 380), f = FB;
     s.line(f.ox, f.oy, f.ox, Y(f, 14), { color: C.grey, w: 1.3 });
     s.line(f.ox, f.oy, X(f, 50), f.oy, { color: C.grey, w: 1.3 });
     vTicks(s, f, [0, 2, 4, 6, 8, 10, 12, 14].map((v): Tick => [v, String(v)]));
@@ -337,9 +351,11 @@ const figB: Diagram = {
     s.sym(half[0], half[1] - 26, 'pH = p<i>K</i><sub>a</sub>', { size: 12.5 });
     s.sym(eqW[0] + 9, eqW[1] + 4.5, 'equivalence: pH = 8.7', { size: 12.5, anchor: 'start' });
     s.sym(eqS[0] + 9, eqS[1] + 4.5, 'equivalence: pH = 7', { size: 12.5, anchor: 'start' });
-    const vW = 2.5, vS = 44;
+    // the strong tag names the ink curve before equivalence (V_S mL), where only the ink curve runs; after 25 mL the two curves coincide.
+    // Its tag sits under the axis title, the only spot wide enough that keeps clear of the dashed 25 mL line.
+    const vW = 2.5;
     s.place([
-      { t: 'strong acid–strong base', p: at(f, vS, pHstrong(vS)), at: [[W - 8, 6, 'end'], [W - 10, 6, 'end'], [W - 14, 8, 'end']] },
+      { t: 'strong acid–strong base', p: at(f, V_S, pHstrong(V_S)), at: [[4, 352, 'start'], [6, 352, 'start'], [4, 354, 'start']] },
       { t: 'weak acid–strong base', hi: true, p: at(f, vW, pHweak(vW)), at: [[f.ox + 6, 36, 'start'], [f.ox + 4, 36, 'start'], [f.ox + 8, 38, 'start']] },
     ]);
     return s;
@@ -367,6 +383,8 @@ const figB: Diagram = {
     // the dots and the drawing
     const dotAt = (v: number, pH: number) => s.points.some((p) => close(uOf(f, p.x), v, 1e-9) && close(vOf(f, p.y), pH, 1e-9));
     out.push(['Dots stand on the half-equivalence point and both equivalence points', dotAt(VEQ / 2, hf) && dotAt(VEQ, ew) && dotAt(VEQ, es)]);
+    const st = s.tags.find((t) => t.name === 'strong acid–strong base');
+    out.push([`The strong-acid tag line ends before equivalence (${V_S} mL, pH ${fmt(pHstrong(V_S), 2)}), where the curves are ${fmt(pHweak(V_S) - pHstrong(V_S), 2)} pH units apart`, !!st && !!st.from && uOf(f, st.from[0]) < VEQ - 5 && pHweak(V_S) - pHstrong(V_S) > 2]);
     out.push(['Each curve’s tag line ends on its own curve', tagOnCurve(s, f, 'weak acid–strong base', pHweak) && tagOnCurve(s, f, 'strong acid–strong base', pHstrong)]);
     const lab = (txt: string) => s.labels.find((l) => l.text === txt);
     out.push(['Each “equivalence” label sits level with its own dot, right of the dashed 25 mL line', [['equivalence: pH = 8.7', ew], ['equivalence: pH = 7', es]].every(([t, pH]) => { const l = lab(t as string); return !!l && Math.abs((l.rect[1] + l.rect[3]) / 2 - Y(f, pH as number)) < 6 && l.rect[0] > X(f, VEQ) + LABEL_GAP; })]);

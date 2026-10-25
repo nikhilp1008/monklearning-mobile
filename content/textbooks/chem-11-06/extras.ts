@@ -29,7 +29,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter covered both halves of equilibrium — the gaseous (<i>K</i><sub>c</sub>, <i>K</i><sub>p</sub>, reaction quotient, Le Chatelier, Gibbs energy) and the ionic (pH, <i>K</i><sub>a</sub>/<i>K</i><sub>b</sub>, buffers, <i>K</i><sub>sp</sub>, hydrolysis) — with solid fundamentals in each. What the exam additionally demands is a set of composite routines that sit at the seams between those fundamentals. Addendum A builds the polyprotic toolkit: why the stepwise constants fall off, the pH of amphiprotic salts like NaHCO<sub>3</sub>, and the H<sub>2</sub>S common-ion pattern that NCERT itself sets as an exercise. Addendum B teaches titration thinking: reading a titration curve point by point, the millimole bookkeeping for mixed solutions, and indicator logic. Addendum C turns <i>K</i><sub>sp</sub> into precipitation decisions, including the dilution-on-mixing trap and “which precipitates first”. Addendum D quantifies Le Chatelier — inert gas at constant pressure recomputed properly, pressure versus degree of dissociation, and combined disturbances. Every fact is verifiable against NCERT Class 11 Chemistry, Unit 7 (Equilibrium).',
+        html: 'The chapter covered both halves of equilibrium — the gaseous (<i>K</i><sub>c</sub>, <i>K</i><sub>p</sub>, reaction quotient, Le Chatelier, Gibbs energy) and the ionic (pH, <i>K</i><sub>a</sub>/<i>K</i><sub>b</sub>, buffers, <i>K</i><sub>sp</sub>, hydrolysis) — with solid fundamentals in each. What the exam additionally demands is a set of composite routines (some first met in the topics) that sit at the seams between those fundamentals. Addendum A builds the polyprotic toolkit: why the stepwise constants fall off, the pH of amphiprotic salts like NaHCO<sub>3</sub>, and the H<sub>2</sub>S common-ion pattern that NCERT itself sets as an exercise. Addendum B teaches titration thinking: reading a titration curve point by point, the millimole bookkeeping for mixed solutions, and indicator logic. Addendum C turns <i>K</i><sub>sp</sub> into precipitation decisions, including the dilution-on-mixing trap and “which precipitates first”. Addendum D quantifies Le Chatelier — inert gas at constant pressure recomputed properly, pressure versus degree of dissociation, and combined disturbances. Every fact is verifiable against NCERT Class 11 Chemistry, Unit 6 (Equilibrium).',
       },
 
       { t: 'part', title: 'A.1 Why the steps fall off, and what each step controls' },
@@ -159,12 +159,12 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Point', 'Strong acid (HCl)', 'Weak acid (CH3COOH, Ka = 1.74 × 10^−5)'],
+        head: ['Point', 'Strong acid (HCl)', 'Weak acid (CH3COOH)'],
         rows: [
           [
             'Start (0% neutralised)',
             'pH = −log 0.1 = 1.0',
-            'pH = ½(p<i>K</i><sub>a</sub> − log <i>c</i>) = ½(4.76 + 1) = 2.88',
+            'pH = ½(p<i>K</i><sub>a</sub> − log <i>c</i>) = ½(4.76 + 1) = 2.88 (<i>K</i><sub>a</sub> = 1.74 × 10<sup>−5</sup>)',
           ],
           ['Half-equivalence', 'no special meaning', 'pH = p<i>K</i><sub>a</sub> = 4.76 (buffer, [salt] = [acid])'],
           [
@@ -208,7 +208,7 @@ export const TOPICS: Topic[] = [
           'Forgetting to divide by the <b>total</b> volume after mixing (every concentration halves when equal volumes mix).',
           'Using pH = −log[acid] for a weak acid — that is the strong-acid formula; weak acids need the <i>K</i><sub>a</sub> route.',
           'Placing the weak-acid equivalence point at pH 7 out of habit; only strong–strong lands at 7.',
-          'Believing a buffer exists whenever weak acid and strong base are mixed — a buffer forms only when the base is insufficient to consume the acid (the half-neutralised region).',
+          'Believing a buffer exists whenever weak acid and strong base are mixed — a buffer forms only when the base is insufficient to consume the acid (anywhere before the equivalence point).',
         ],
       },
 
@@ -270,7 +270,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          'Comparing <i>K</i><sub>sp</sub> values of different salt types directly: a 1:2 salt with a smaller <i>K</i><sub>sp</sub> can be more soluble (compare <i>s</i> values, not <i>K</i><sub>sp</sub> values: AgCl, <i>s</i> = √(1.8 × 10<sup>−10</sup>) = 1.3 × 10<sup>−5</sup>; Ag<sub>2</sub>CrO<sub>4</sub>, <i>s</i> = (1.1 × 10<sup>−12</sup>/4)<sup>1/3</sup> = 6.5 × 10<sup>−5</sup>).',
+          'Comparing <i>K</i><sub>sp</sub> values of different salt types directly: a 2:1 (A<sub>2</sub>B) salt with a smaller <i>K</i><sub>sp</sub> can be more soluble (compare <i>s</i> values, not <i>K</i><sub>sp</sub> values: AgCl, <i>s</i> = √(1.8 × 10<sup>−10</sup>) = 1.3 × 10<sup>−5</sup>; Ag<sub>2</sub>CrO<sub>4</sub>, <i>s</i> = (1.1 × 10<sup>−12</sup>/4)<sup>1/3</sup> = 6.5 × 10<sup>−5</sup>).',
           'Forgetting the mixing dilution (worked example 1’s trap).',
           'Writing <i>K</i><sub>sp</sub> for the wrong stoichiometry: <i>K</i><sub>sp</sub>(Ag<sub>2</sub>CrO<sub>4</sub>) = [Ag<sup>+</sup>]<sup>2</sup>[CrO<sub>4</sub><sup>2−</sup>] = 4<i>s</i><sup>3</sup>, not <i>s</i><sup>2</sup>.',
         ],
@@ -282,7 +282,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: 'Will BaSO<sub>4</sub> precipitate when equal volumes of 2 × 10<sup>−5</sup> M BaCl<sub>2</sub> and 2 × 10<sup>−5</sup> M Na<sub>2</sub>SO<sub>4</sub> are mixed (<i>K</i><sub>sp</sub> = 1.1 × 10<sup>−10</sup>)?',
-            a: 'Mixed concentrations: 1 × 10<sup>−5</sup> M each; <i>Q</i><sub>sp</sub> = 1 × 10<sup>−10</sup> < 1.1 × 10<sup>−10</sup> — barely no precipitate. (This borderline case shows why the dilution step matters.)',
+            a: 'Mixed concentrations: 1 × 10<sup>−5</sup> M each; <i>Q</i><sub>sp</sub> = 1 × 10<sup>−10</sup> < 1.1 × 10<sup>−10</sup> — only just below <i>K</i><sub>sp</sub>, so no precipitate. (This borderline case shows why the dilution step matters.)',
           },
           {
             q: 'For Ca(OH)<sub>2</sub>, <i>K</i><sub>sp</sub> = 5.5 × 10<sup>−6</sup>. Compute its molar solubility and compare it with that of AgBr (<i>K</i><sub>sp</sub> = 5.0 × 10<sup>−13</sup>), explaining why <i>K</i><sub>sp</sub> values of salts with different formulas cannot be compared by inspection alone.',
@@ -303,7 +303,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter taught the directions. The exam increasingly asks how much, or asks you to reason quantitatively about partial pressures. Three quantified situations matter.',
+        html: 'The chapter taught mainly the directions. The exam increasingly asks how much, or asks you to reason quantitatively about partial pressures. Three quantified situations matter.',
       },
 
       { t: 'part', title: 'D.1 Inert gas at constant pressure, done honestly' },
@@ -378,7 +378,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'The distribution' },
       {
         t: 'p',
-        html: 'From an analysis of JEE Main 2000–2025, NTA 2022 and NEET-pattern questions on this chapter:',
+        html: 'From an analysis of AIEEE/JEE Main 2002–2025, NTA 2022 and NEET-pattern questions on this chapter:',
       },
       {
         t: 'table',
@@ -450,7 +450,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Archetype 7 — Polyprotic and amphiprotic pH.</b> H<sub>3</sub>PO<sub>4</sub> plus one equivalent of NaOH gives NaH<sub>2</sub>PO<sub>4</sub>, which is Addendum A.2 verbatim: pH = ½(p<i>K</i><sub>a1</sub> + p<i>K</i><sub>a2</sub>) ≈ 4.7 (about 5 with rounded constants). Another frequent item tests <i>K</i> = <i>K</i><sub>a1</sub><i>K</i><sub>a2</sub> for the summed ionisation. Both reward the toolkit over memorised numbers.',
+        html: '<b>Archetype 7 — Polyprotic and amphiprotic pH.</b> H<sub>3</sub>PO<sub>4</sub> plus one equivalent of NaOH gives NaH<sub>2</sub>PO<sub>4</sub>, which is Addendum A.2 verbatim: pH = ½(p<i>K</i><sub>a1</sub> + p<i>K</i><sub>a2</sub>) ≈ 4.7 (5 to the nearest integer, as numerical-answer items ask). Another frequent item tests <i>K</i> = <i>K</i><sub>a1</sub><i>K</i><sub>a2</sub> for the summed ionisation. Both reward the toolkit over memorised numbers.',
       },
 
       { t: 'part', title: 'The traps' },
@@ -476,7 +476,7 @@ export const TOPICS: Topic[] = [
           },
           {
             k: 'Inert gas always shifts equilibrium',
-            v: 'Only at constant pressure (dilution); at constant volume nothing moves',
+            v: 'Only at constant pressure, and only if Δ<i>n</i><sub>g</sub> ≠ 0 (dilution); at constant volume nothing moves',
           },
           {
             k: '<i>Q</i> > <i>K</i> means more product will form',
@@ -499,14 +499,14 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[recall] For N<sub>2</sub>(g) + 3H<sub>2</sub>(g) ⇌ 2NH<sub>3</sub>(g), the units of <i>K</i><sub>c</sub> are (a) mol L<sup>−1</sup> (b) mol<sup>−2</sup> L<sup>2</sup> (c) dimensionless (d) mol<sup>2</sup> L<sup>−2</sup>.',
-            a: '(b). Δ<i>n</i> = 2 − 4 = −2, so units are (mol L<sup>−1</sup>)<sup>−2</sup>.',
+            a: '(b). Δ<i>n</i><sub>g</sub> = 2 − 4 = −2, so units are (mol L<sup>−1</sup>)<sup>−2</sup>.',
           },
           {
             q: '[recall] A mixture at 298 K has <i>Q</i> < <i>K</i>. The reaction (a) proceeds forward (b) backward (c) is at equilibrium (d) cannot be decided.',
             a: '(a). <i>Q</i> < <i>K</i> means too few products; the forward direction raises <i>Q</i> toward <i>K</i>.',
           },
           {
-            q: '[application] 100 mL of 0.01 M HCl is mixed with 100 mL of 0.01 M NaOH. Find the pH.',
+            q: '[application] 100 mL of 0.01 M HCl is mixed with 100 mL of 0.01 M NaOH at 298 K. Find the pH.',
             a: 'Equal millimoles of strong acid and base → NaCl + water; pH = 7.',
           },
           {
@@ -531,7 +531,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[synthesis] 10 mL of 0.1 M NaOH is added to 10 mL of 0.1 M H<sub>3</sub>PO<sub>4</sub>. Estimate the pH (p<i>K</i><sub>a1</sub> = 2.12, p<i>K</i><sub>a2</sub> = 7.21).',
-            a: 'One equivalent of base converts H<sub>3</sub>PO<sub>4</sub> exactly to NaH<sub>2</sub>PO<sub>4</sub>, an amphiprotic salt: pH = ½(2.12 + 7.21) = 4.7. JEE Main has asked exactly this situation; with slightly different rounded constants the answer comes out near 5 — same method.',
+            a: 'One equivalent of base converts H<sub>3</sub>PO<sub>4</sub> exactly to NaH<sub>2</sub>PO<sub>4</sub>, an amphiprotic salt: pH = ½(2.12 + 7.21) = 4.7. JEE Main has asked exactly this situation, with the answer to the nearest integer, 5 — same method.',
           },
           {
             q: '[synthesis] PCl<sub>5</sub>(g) ⇌ PCl<sub>3</sub>(g) + Cl<sub>2</sub>(g) is at equilibrium. Xenon is added at constant pressure. Predict the shift, then show it with <i>Q</i><sub>p</sub>.',
