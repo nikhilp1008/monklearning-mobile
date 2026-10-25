@@ -29,7 +29,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter built the full machine: first law and sign conventions, Hess’s law and the enthalpy families, entropy and Gibbs energy, calorimetry and the four gas processes. What remains between a well-read chapter and full exam marks is pattern fluency — the half-dozen problem shapes that JEE and NEET return to every year. Addendum A catalogues the Hess-law patterns beyond the chapter’s worked set: formation enthalpy from combustion data, atomisation enthalpies, the weak-acid neutralisation gap, and phase corrections. Addendum B makes entropy computable — phase-transition entropies, the isothermal gas-expansion formula derived from the chapter’s own Δ<i>S</i> = <i>q</i><sub>rev</sub>/<i>T</i>, and total entropy for irreversible processes. Addendum C is the sign-and-temperature playbook: reading Δ<i>S</i> from stoichiometry, the four cases, crossover temperatures, and the Δ<i>G</i>°–<i>K</i> chain compressed into one routine. Addendum D masters calorimetry arithmetic — the coffee-cup, the bomb with its Δ<i>n</i><sub>g</sub><i>RT</i> correction, and heat-exchange bookkeeping. Addendum E settles the P–V work orderings (reversible vs single-step, compression vs expansion, isothermal vs adiabatic) that recent JEE Main papers have asked directly. Everything is checkable against the Thermodynamics chapter of NCERT Class 11 Chemistry.',
+        html: 'The chapter built the full machine: first law and sign conventions, Hess’s law and the enthalpy families, entropy and Gibbs energy, calorimetry and the four gas processes. What remains between a well-read chapter and full exam marks is pattern fluency — the half-dozen problem shapes that JEE and NEET return to every year. Addendum A catalogues the Hess-law patterns beyond the chapter’s worked examples: formation enthalpy from combustion data, atomisation enthalpies, the weak-acid neutralisation gap, and phase corrections. Addendum B makes entropy computable beyond phase transitions — the isothermal gas-expansion formula derived from the chapter’s own Δ<i>S</i> = <i>q</i><sub>rev</sub>/<i>T</i>, and total entropy for irreversible processes. Addendum C is the sign-and-temperature playbook: reading Δ<i>S</i> from stoichiometry, the four cases, crossover temperatures, and the Δ<i>G</i>°–<i>K</i> chain compressed into one routine. Addendum D masters calorimetry arithmetic — the coffee-cup, the bomb with its Δ<i>n</i><sub>g</sub><i>RT</i> correction, and heat-exchange bookkeeping. Addendum E settles the P–V work orderings (reversible vs single-step, compression vs expansion, isothermal vs adiabatic) that recent JEE Main papers have asked directly. Everything is checkable against the Thermodynamics chapter of NCERT Class 11 Chemistry.',
       },
       {
         t: 'p',
@@ -56,17 +56,14 @@ export const TOPICS: Topic[] = [
         t: 'ex',
         tag: '',
         q: 'Given Δ<sub>c</sub><i>H</i>°(C, graphite) = −393.5, Δ<sub>c</sub><i>H</i>°(H<sub>2</sub>) = −285.8 and Δ<sub>c</sub><i>H</i>°(C<sub>2</sub>H<sub>6</sub>) = −1560 kJ mol<sup>−1</sup>, find Δ<sub>f</sub><i>H</i>° of ethane.',
-        steps: [
-          'The formation reaction is 2C + 3H<sub>2</sub> → C<sub>2</sub>H<sub>6</sub>:',
-          '<b>Sanity:</b> ethane’s formation is mildly exothermic, matching the tabulated value. The sign discipline is the whole game — the compound’s combustion is subtracted, because the compound must be un-burnt on the way up.',
-        ],
-        ans: 'Δ<sub>f</sub><i>H</i>° = [2(−393.5) + 3(−285.8)] − (−1560) = −787.0 − 857.4 + 1560 = −84.4 kJ mol<sup>−1</sup>',
+        steps: ['The formation reaction is 2C + 3H<sub>2</sub> → C<sub>2</sub>H<sub>6</sub>:'],
+        ans: 'Δ<sub>f</sub><i>H</i>° = [2(−393.5) + 3(−285.8)] − (−1560) = −787.0 − 857.4 + 1560 = −84.4 kJ mol<sup>−1</sup>. Sanity: ethane’s formation is mildly exothermic, matching the tabulated value. The sign discipline is the whole game — the compound’s combustion is subtracted, because the compound must be un-burnt on the way up.',
       },
 
       { t: 'part', title: 'A.2 Atomisation enthalpy' },
       {
         t: 'p',
-        html: 'NCERT defines Δ<sub>a</sub><i>H</i>° as the enthalpy of breaking one mole of a substance completely into gaseous atoms, and records the methane value: CH<sub>4</sub>(g) → C(g) + 4H(g), Δ<sub>a</sub><i>H</i>° = 1665 kJ mol<sup>−1</sup>. Note what this makes possible: dividing by the number of C–H bonds gives the mean C–H bond enthalpy, 1665/4 ≈ 416 kJ mol<sup>−1</sup> — atomisation enthalpy of a molecule is the sum of its mean bond enthalpies. For diatomics, atomisation enthalpy is the bond-dissociation enthalpy (H<sub>2</sub>: 435.8 kJ mol<sup>−1</sup>). The exam move is to connect these: an “atomisation” question about a polyatomic molecule is a bond-enthalpy sum in disguise, and the elements’ own atomisation data (Δ<sub>sub</sub><i>H</i> for metals, half the X<sub>2</sub> dissociation enthalpy for halogens) feed the same cycle.',
+        html: 'NCERT defines Δ<sub>a</sub><i>H</i>° as the enthalpy of breaking one mole of a substance completely into gaseous atoms, and records the methane value: CH<sub>4</sub>(g) → C(g) + 4H(g), Δ<sub>a</sub><i>H</i>° = 1665 kJ mol<sup>−1</sup>. Note what this makes possible: dividing by the number of C–H bonds gives the mean C–H bond enthalpy, 1665/4 ≈ 416 kJ mol<sup>−1</sup> — atomisation enthalpy of a molecule is the sum of its mean bond enthalpies. For diatomics, atomisation enthalpy is the bond-dissociation enthalpy (H<sub>2</sub>: 435.8 kJ mol<sup>−1</sup>). The exam move is to connect these: an “atomisation” question about a polyatomic molecule is a bond-enthalpy sum in disguise, and the elements’ own atomisation data (Δ<sub>sub</sub><i>H</i> for metals, half the X<sub>2</sub> dissociation enthalpy for gaseous halogens) feed the same cycle.',
       },
 
       { t: 'part', title: 'A.3 The weak-acid neutralisation gap' },
@@ -190,9 +187,8 @@ export const TOPICS: Topic[] = [
         steps: [
           'System: Δ<i>S</i><sub>sys</sub> = <i>nR</i> ln(<i>p</i><sub>1</sub>/<i>p</i><sub>2</sub>) = 10 × 8.314 × 0.693 = 57.6 J K<sup>−1</sup>.',
           'Surroundings: <i>V</i><sub>1</sub> = <i>nRT</i>/<i>p</i><sub>1</sub> = 123.2 L, <i>V</i><sub>2</sub> = 246.3 L, so <i>q</i> = <i>p</i><sub>ext</sub>Δ<i>V</i> = 1 × 123.2 = 123.2 L atm = 1.248 × 10<sup>4</sup> J, and Δ<i>S</i><sub>surr</sub> = −12480/300 = −41.6 J K<sup>−1</sup>.',
-          'The same endpoints reached reversibly would give exactly zero total; that contrast is the second law in arithmetic.',
         ],
-        ans: 'Total: 57.6 − 41.6 = +16.0 J K<sup>−1</sup> > 0 — irreversible, as it must be.',
+        ans: 'Total: 57.6 − 41.6 = +16.0 J K<sup>−1</sup> > 0 — irreversible, as it must be. The same endpoints reached reversibly would give exactly zero total; that contrast is the second law in arithmetic.',
       },
 
       { t: 'part', title: 'B.4 Reaction entropy from absolute entropies' },
@@ -237,10 +233,10 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '1 mol of an ideal gas expands isothermally at 300 K from 2 L to 20 L (a) reversibly, (b) freely. Find Δ<i>S</i><sub>sys</sub>, Δ<i>S</i><sub>surr</sub>, Δ<i>S</i><sub>total</sub> in each case.',
-            a: 'Δ<i>S</i><sub>sys</sub> = 8.314 ln 10 = 19.1 J K<sup>−1</sup> in both cases (state function). (a) Reversible: Δ<i>S</i><sub>surr</sub> = −19.1, total 0. (b) Free: Δ<i>S</i><sub>surr</sub> = 0, total +19.1 J K<sup>−1</sup>.',
+            a: 'Δ<i>S</i><sub>sys</sub> = 8.314 ln 10 = 19.1 J K<sup>−1</sup> in both cases (state function). (a) Reversible: Δ<i>S</i><sub>surr</sub> = −19.1 J K<sup>−1</sup>, total 0. (b) Free: Δ<i>S</i><sub>surr</sub> = 0, total +19.1 J K<sup>−1</sup>.',
           },
           {
-            q: 'Predict the sign of Δ<i>S</i> for: (i) N<sub>2</sub> + 3H<sub>2</sub> → 2NH<sub>3</sub>; (ii) 2H<sub>2</sub>O<sub>2</sub>(l) → 2H<sub>2</sub>O(l) + O<sub>2</sub>(g).',
+            q: 'Predict the sign of Δ<i>S</i> for: (i) N<sub>2</sub>(g) + 3H<sub>2</sub>(g) → 2NH<sub>3</sub>(g); (ii) 2H<sub>2</sub>O<sub>2</sub>(l) → 2H<sub>2</sub>O(l) + O<sub>2</sub>(g).',
             a: '(i) negative (4 gas mol → 2); (ii) positive (gas evolved from liquids).',
           },
         ],
@@ -290,7 +286,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Reading ΔS from the equation' },
       {
         t: 'p',
-        html: 'Before any table look-up, predict the sign of Δ<i>S</i> from stoichiometry: gas moles created ⇒ Δ<i>S</i> > 0; gas moles consumed ⇒ Δ<i>S</i> < 0; solids/liquids barely count. NH<sub>3</sub> synthesis: 4 gas mol → 2 gas mol, Δ<i>S</i> < 0 (measured: −198.3 J K<sup>−1</sup>). CaCO<sub>3</sub> decomposition: +160 J K<sup>−1</sup>. This prediction is the first half of every four-case question.',
+        html: 'Before any table look-up, predict the sign of Δ<i>S</i> from stoichiometry: gas moles created ⇒ Δ<i>S</i> > 0; gas moles consumed ⇒ Δ<i>S</i> < 0; solids/liquids barely count. NH<sub>3</sub> synthesis: 4 gas mol → 2 gas mol, Δ<i>S</i> < 0 (measured: −198.3 J K<sup>−1</sup> mol<sup>−1</sup>). CaCO<sub>3</sub> decomposition: +160 J K<sup>−1</sup> mol<sup>−1</sup>. This prediction is the first half of every four-case question.',
       },
 
       { t: 'part', title: 'The crossover routine' },
@@ -324,10 +320,8 @@ export const TOPICS: Topic[] = [
         t: 'ex',
         tag: 'chaining to K',
         q: 'At 298 K a reaction has Δ<i>G</i>° = −11.4 kJ mol<sup>−1</sup>. Find <i>K</i>.',
-        steps: [
-          '<b>Sanity per the triad:</b> negative Δ<i>G</i>°, <i>K</i> > 1 — consistent. If your <i>K</i> comes out below 1, a sign slipped.',
-        ],
-        ans: 'ln <i>K</i> = 11400/(8.314 × 298) = 4.60 ⇒ <i>K</i> ≈ 10<sup>2</sup>',
+        steps: [],
+        ans: 'ln <i>K</i> = 11400/(8.314 × 298) = 4.60 ⇒ <i>K</i> ≈ 10<sup>2</sup>. Sanity per the triad: negative Δ<i>G</i>°, <i>K</i> > 1 — consistent. If your <i>K</i> comes out below 1, a sign slipped.',
       },
 
       { t: 'part', title: 'Error patterns with Gibbs energy' },
@@ -387,9 +381,8 @@ export const TOPICS: Topic[] = [
         steps: [
           'Moles of water formed: 0.100 × 0.50 = 0.050 mol.',
           'Heat absorbed by the solution: <i>q</i> = 200 × 4.18 × 3.41 = 2851 J.',
-          'The two slips this example is built to punish: using the mass of one solution only (100 g), and forgetting the minus sign (the reaction releases what the solution absorbs).',
         ],
-        ans: 'Per mole: Δ<sub>neut</sub><i>H</i> = −2851/0.050 = −57.0 kJ mol<sup>−1</sup> — the textbook −57.1 kJ mol<sup>−1</sup> within experimental error.',
+        ans: 'Per mole: Δ<sub>neut</sub><i>H</i> = −2851/0.050 = −57.0 kJ mol<sup>−1</sup> — the textbook −57.1 kJ mol<sup>−1</sup> within experimental error. The two slips this example is built to punish: using the mass of one solution only (100 g), and forgetting the minus sign (the reaction releases what the solution absorbs).',
       },
 
       { t: 'part', title: 'D.2 The bomb: from ΔU to ΔH' },
@@ -406,12 +399,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: '',
-        q: 'How much heat is required to raise 60.0 g of aluminium from 35°C to 55°C? (Molar heat capacity of Al = 24 J mol<sup>−1</sup> K<sup>−1</sup> — an NCERT exercise.)',
-        steps: [
-          '<i>n</i> = 60.0/27.0 = 2.22 mol;',
-          'The molar heat capacity route avoids needing the specific heat at all — read the units of the data before choosing <i>mc</i>Δ<i>T</i> or <i>nC</i><sub>m</sub>Δ<i>T</i>.',
-        ],
-        ans: '<i>q</i> = <i>nC</i><sub>m</sub>Δ<i>T</i> = 2.22 × 24 × 20 = 1067 J ≈ 1.07 kJ.',
+        q: 'How much heat is required to raise 60.0 g of aluminium from 35 °C to 55 °C? (Molar heat capacity of Al = 24 J mol<sup>−1</sup> K<sup>−1</sup> — an NCERT exercise.)',
+        steps: ['<i>n</i> = 60.0/27.0 = 2.222 mol;'],
+        ans: '<i>q</i> = <i>nC</i><sub>m</sub>Δ<i>T</i> = 2.222 × 24 × 20 = 1067 J ≈ 1.07 kJ. The molar heat capacity route avoids needing the specific heat at all — read the units of the data before choosing <i>mc</i>Δ<i>T</i> or <i>nC</i><sub>m</sub>Δ<i>T</i>.',
       },
 
       { t: 'part', title: 'Error patterns in calorimetry' },
@@ -435,7 +425,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: 'Burning 0.80 g of a fuel in a bomb (<i>C</i><sub>cal</sub> = 8.2 kJ K<sup>−1</sup>) raises the temperature 1.95 K. Find Δ<i>U</i> per gram.',
-            a: 'Δ<i>U</i> = −8.2 × 1.95 = −16.0 kJ per 0.80 g = −20.0 kJ g<sup>−1</sup>.',
+            a: 'Δ<i>U</i> = −8.2 × 1.95 = −16 kJ per 0.80 g = −20 kJ g<sup>−1</sup> (2 s.f.).',
           },
           {
             q: 'For the bomb combustion of liquid benzene, C<sub>6</sub>H<sub>6</sub>(l) + (15/2)O<sub>2</sub>(g) → 6CO<sub>2</sub>(g) + 3H<sub>2</sub>O(l), state the sign and size of the Δ<i>H</i> − Δ<i>U</i> correction at 298 K.',
@@ -480,7 +470,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: '',
-        q: 'One mole of an ideal gas at 300 K doubles its volume (a) reversibly and isothermally, (b) in one step against the final pressure, (c) freely. Order and compute the works.',
+        q: 'One mole of an ideal gas at 300 K doubles its volume (a) reversibly and isothermally, (b) isothermally, in one step against the final pressure, (c) freely. Order and compute the works.',
         steps: [
           '(a) <i>w</i> = −<i>nRT</i> ln 2 = −8.314 × 300 × 0.693 = −1729 J.',
           '(b) <i>p</i><sub>ext</sub> = <i>p</i><sub>2</sub> = <i>nRT</i>/<i>V</i><sub>2</sub>: with <i>V</i><sub>2</sub> = 2<i>V</i><sub>1</sub> and <i>p</i><sub>1</sub><i>V</i><sub>1</sub> = <i>nRT</i>, <i>p</i><sub>2</sub> = <i>p</i><sub>1</sub>/2, so <i>w</i> = −<i>p</i><sub>2</sub>Δ<i>V</i> = −½<i>nRT</i> = −1247 J.',
@@ -557,11 +547,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'The recurring archetypes' },
       {
         t: 'p',
-        html: '<b>Archetype 1 — The sign-convention first-law plug.</b> “A gas does 50 J of work while absorbing 30 J of heat; find Δ<i>U</i>.” Answer: 30 − 50 = −20 J. The distractors are all four sign combinations; fix “on is plus, by is minus” and the item is a 15-second scoring opportunity.',
+        html: '<b>Archetype 1 — The sign-convention first-law plug.</b> “A gas does 50 J of work while absorbing 30 J of heat; find Δ<i>U</i>.” Answer: 30 − 50 = −20 J. The distractors are the other three sign combinations; fix “on is plus, by is minus” and the item is a 15-second scoring opportunity.',
       },
       {
         t: 'p',
-        html: '<b>Archetype 2 — Combustion-to-formation Hess cycle.</b> Questions of this type all share one template: given Δ<sub>c</sub><i>H</i> of the elements and the compound, extract Δ<sub>f</sub><i>H</i>. The method of Addendum A.1 handles both; the trap answer corresponds to adding instead of subtracting the compound’s combustion.',
+        html: '<b>Archetype 2 — Combustion-to-formation Hess cycle.</b> Questions of this type all share one template: given Δ<sub>c</sub><i>H</i> of the elements and the compound, extract Δ<sub>f</sub><i>H</i>. The method of Addendum A.1 handles them all; the trap answer corresponds to adding instead of subtracting the compound’s combustion.',
       },
       {
         t: 'p',
@@ -624,7 +614,7 @@ export const TOPICS: Topic[] = [
             a: '(b). Only gas moles count: 1 − 1 = 0; the solid carbon is invisible to Δ<i>n</i><sub>g</sub>.',
           },
           {
-            q: '[application] 2 mol of an ideal gas at 300 K expand isothermally from 10 L to 25 L against a constant 60 kPa. Find <i>q</i>.',
+            q: '[application] 2 mol of an ideal gas at 300 K expand isothermally from 10 L to 25 L against a constant 60 kPa (the piston is stopped at 25 L). Find <i>q</i>.',
             a: 'Δ<i>U</i> = 0, so <i>q</i> = −<i>w</i> = <i>p</i><sub>ext</sub>Δ<i>V</i> = 60 × 10<sup>3</sup> × 0.015 = 900 J.',
           },
           {

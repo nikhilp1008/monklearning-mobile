@@ -14,13 +14,13 @@
  * Every fact is from the Master Reference book; the page is above each point.
  * Remember: the topic's Key Definitions and Cheat Sheet Box. Common mistakes:
  * its Common Student Pitfalls. Exam shortcuts: its Pro-Tip. `say`: the cheat
- * sheet's first two memory aids, word for word, with the book's quotation
- * marks and its label after them. Additional topics: the addenda's methods,
+ * sheet's first two memory aids, word for word, in the Ch 1–4 form: no
+ * quotation marks, and a label after " — ". Additional topics: the addenda's methods,
  * worked examples and the "Answers to Practice (Addenda A–E)" (p. 247), each
  * answer with its own addendum (1–3 A, 4–6 B, 7–9 C, 10–12 D, 13–14 E).
  * Additional topic F: its themes, archetypes and traps. Topic 02's Practice 5
- * (p. 224), which prints the NaCl lattice enthalpy as −788 kJ mol⁻¹ against
- * the chapter's own positive (separation) convention, is not used.
+ * (p. 224), whose NaCl lattice enthalpy the book prints as −788 kJ mol⁻¹
+ * (corrected to +788 after the expert review), is not used.
  *
  * Signs are IUPAC/NCERT throughout, as the book prints them: ΔU = q + w, with
  * w the work done ON the system (w = −p_ext ΔV). Lattice enthalpy is the
@@ -31,9 +31,9 @@
  * P, V, T, n, R, C, c, m, K, Q, γ italic; label subscripts upright
  * (Δ<sub>r</sub><i>H</i>°, <i>p</i><sub>ext</sub>, <i>w</i><sub>rev</sub>,
  * Δ<i>S</i><sub>surr</sub>, Δ<i>n</i><sub>g</sub>, <i>C</i><sub>cal</sub>); a
- * subscript that is itself a quantity symbol italic, in the case each topic
- * prints it (Topic 01 <i>q</i><sub><i>V</i></sub>, <i>C</i><sub><i>P</i></sub>;
- * Topic 04 <i>C</i><sub><i>v</i></sub>, <i>C</i><sub><i>p</i></sub>). The
+ * subscript that is itself a quantity symbol italic, as a capital throughout
+ * (<i>q</i><sub><i>V</i></sub>, <i>C</i><sub><i>V</i></sub>, <i>C</i><sub><i>P</i></sub>; the reviewer's
+ * notation decision, though Topic 04's pages print C<sub>v</sub>, C<sub>p</sub>). The
  * standard-state ° follows the symbol (Δ<sub>f</sub><i>H</i>°, Δ<i>G</i>°).
  */
 import type { KeyPoint } from '@/lib/revise/keypoints';
@@ -47,7 +47,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'The first law in the IUPAC/NCERT convention, and the signs of <i>q</i> and <i>w</i>?',
     a: 'Δ<i>U</i> = <i>q</i> + <i>w</i>, with <i>q</i> the heat supplied to the system and <i>w</i> the work done on it. <i>q</i> > 0: heat absorbed; <i>w</i> > 0: work done on the system (compression); <i>w</i> < 0: work done by it (expansion). Work: <i>w</i> = −<i>p</i><sub>ext</sub>Δ<i>V</i> (irreversible), <i>w</i><sub>rev</sub> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>) (isothermal reversible), <i>w</i> = 0 for a free expansion',
     why: 'A gas absorbs 250 J and does 80 J of work on its surroundings: <i>q</i> = +250 J, <i>w</i> = −80 J, so Δ<i>U</i> = +170 J.',
-    say: '“On is plus, by is minus” (sign of <i>w</i>).',
+    say: 'On is plus, by is minus — sign of <i>w</i>.',
   },
   // pp. 216–217, 220
   {
@@ -56,7 +56,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'How are Δ<i>H</i> and Δ<i>U</i> related, and which one does each constraint measure?',
     a: '<i>H</i> = <i>U</i> + <i>PV</i>, so Δ<i>H</i> = Δ<i>U</i> + Δ<i>n</i><sub>g</sub><i>RT</i> (constant <i>T</i>, ideal gases), Δ<i>n</i><sub>g</sub> = gaseous products − gaseous reactants (solids and liquids not counted). <i>q</i><sub><i>V</i></sub> = Δ<i>U</i> (constant volume, <i>w</i> = 0); <i>q</i><sub><i>P</i></sub> = Δ<i>H</i> (constant pressure). Ideal gas, per mole: <i>C</i><sub><i>P</i></sub> − <i>C</i><sub><i>V</i></sub> = <i>R</i>',
     why: '1 mol of gas → 2 mol at 300 K with Δ<i>U</i> = +12.0 kJ: Δ<i>H</i> = 12000 + (1)(8.314)(300) = 12000 + 2494 ≈ 14.5 kJ. Dropping the term gives 12.0; flipping its sign, 9.5.',
-    say: '“Joules want 8.314, litre-atm wants 0.0821.”',
+    say: 'Joules want 8.314, litre-atm wants 0.0821.',
   },
   // pp. 215–218, 220
   {
@@ -64,7 +64,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mixup',
     q: 'Which of <i>U</i>, <i>H</i>, <i>q</i>, <i>w</i>, <i>T</i> are state functions, and what does that mean over a cycle?',
     a: '<i>U</i>, <i>H</i>, <i>T</i>, <i>P</i>, <i>V</i> are state functions: they depend only on the end-points, so Δ<i>U</i><sub>cycle</sub> = 0. Heat and work are path functions, defined only for a process: over a cycle <i>q</i><sub>cycle</sub> = −<i>w</i><sub>cycle</sub>, not zero. “This gas contains 200 J of heat” is meaningless',
-    why: '1 mol, 300 K, 2.0 → 8.0 L isothermally: reversibly <i>w</i> = −3458 J, in one step against <i>p</i><sub>2</sub> = 3.12 × 10<sup>5</sup> Pa only −1871 J; Δ<i>U</i> = 0 by both routes.',
+    why: '1 mol, 300 K, 2.0 → 8.0 L isothermally: reversibly <i>w</i> = −3458 J, in one step against <i>p</i><sub>2</sub> = 3.118 × 10<sup>5</sup> Pa only −1871 J; Δ<i>U</i> = 0 by both routes.',
     say: null,
   },
   // pp. 219–220
@@ -94,7 +94,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'The reaction enthalpy from standard enthalpies of formation?',
     a: 'Δ<sub>r</sub><i>H</i>° = Σ<i>ν</i> Δ<sub>f</sub><i>H</i>°(products) − Σ<i>ν</i> Δ<sub>f</sub><i>H</i>°(reactants), <i>ν</i> the stoichiometric coefficients. By convention Δ<sub>f</sub><i>H</i>° of an element in its reference (most stable) state is 0',
     why: 'C<sub>2</sub>H<sub>4</sub>(g) + H<sub>2</sub>(g) → C<sub>2</sub>H<sub>6</sub>(g): (−84.7) − [(+52.3) + 0] = −137.0 kJ mol<sup>−1</sup>, exothermic.',
-    say: '“Formation: products − reactants. Bonds: reactants − products.”',
+    say: 'Formation: products − reactants. Bonds: reactants − products.',
   },
   // pp. 221–223, 226
   {
@@ -103,7 +103,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'Hess’s law, and the three moves for combining equations?',
     a: 'Δ<i>H</i> is path-independent (<i>H</i> is a state function), so a reaction’s Δ<i>H</i> is the same in one step or several. Reverse an equation → reverse the sign of its Δ<i>H</i>; multiply by a factor → multiply Δ<i>H</i> by it; add equations → add their Δ<i>H</i> values',
     why: 'C(s) + O<sub>2</sub>(g) → CO<sub>2</sub>(g), −393.5 kJ, minus CO(g) + ½O<sub>2</sub>(g) → CO<sub>2</sub>(g), −283.0 kJ: C(s) + ½O<sub>2</sub>(g) → CO(g), Δ<i>H</i> = −393.5 − (−283.0) = −110.5 kJ.',
-    say: '“Reverse the reaction, reverse the sign.”',
+    say: 'Reverse the reaction, reverse the sign.',
   },
   // pp. 222–224, 226
   {
@@ -141,7 +141,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'The second law, and how Gibbs energy turns it into a test on the system alone?',
     a: 'Δ<i>S</i><sub>total</sub> = Δ<i>S</i><sub>system</sub> + Δ<i>S</i><sub>surroundings</sub> > 0 spontaneous, = 0 equilibrium, < 0 non-spontaneous, with Δ<i>S</i><sub>surr</sub> = −Δ<i>H</i><sub>sys</sub>/<i>T</i> at constant pressure. At constant <i>T</i> and <i>P</i>: Δ<i>G</i> = Δ<i>H</i> − <i>T</i>Δ<i>S</i> < 0 spontaneous, = 0 equilibrium, > 0 non-spontaneous; −Δ<i>G</i> is the maximum non-expansion work',
     why: '350 K, Δ<i>H</i> = −150 kJ mol<sup>−1</sup>, Δ<i>S</i><sub>sys</sub> = −90 J K<sup>−1</sup> mol<sup>−1</sup>: Δ<i>S</i><sub>surr</sub> = +428.6, total +338.6 J K<sup>−1</sup> mol<sup>−1</sup> > 0; Δ<i>G</i> = −150 + 31.5 = −118.5 kJ mol<sup>−1</sup> < 0. One verdict.',
-    say: '“Δ<i>G</i> = enthalpy pulls down, entropy pulls up, <i>T</i> is the referee.”',
+    say: 'Δ<i>G</i> = enthalpy pulls down, entropy pulls up, <i>T</i> is the referee.',
   },
   // pp. 228–230, 232
   {
@@ -150,7 +150,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'The four sign cases of Δ<i>G</i> = Δ<i>H</i> − <i>T</i>Δ<i>S</i>, and the link to <i>K</i>?',
     a: '(−, +) spontaneous at all <i>T</i>; (−, −) only at low <i>T</i>; (+, +) only at high <i>T</i>; (+, −) never. Crossover (Δ<i>G</i> = 0): <i>T</i> = Δ<i>H</i>/Δ<i>S</i>. Δ<i>G</i>° = −<i>RT</i> ln <i>K</i> = −2.303 <i>RT</i> log <i>K</i>: negative Δ<i>G</i>° gives <i>K</i> > 1, positive gives <i>K</i> < 1',
     why: 'Δ<i>H</i>° = +55.0 kJ mol<sup>−1</sup>, Δ<i>S</i>° = +175 J K<sup>−1</sup> mol<sup>−1</sup>: at 298 K Δ<i>G</i>° = 55000 − 52150 = +2850 J mol<sup>−1</sup>, ln <i>K</i> = −1.150, <i>K</i> ≈ 0.32; <i>K</i> = 1 at 55000/175 = 314 K.',
-    say: '“Exothermic warms the surroundings → +Δ<i>S</i><sub>surr</sub>.”',
+    say: 'Exothermic warms the surroundings → +Δ<i>S</i><sub>surr</sub>.',
   },
   // pp. 227–228, 232
   {
@@ -187,24 +187,24 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'Bomb calorimeter or coffee-cup calorimeter: which quantity does each measure?',
     a: '<i>q</i> = <i>C</i>Δ<i>T</i> = <i>mc</i>Δ<i>T</i>. The sealed, rigid bomb (constant <i>V</i>, no expansion work) gives <i>q</i><sub><i>V</i></sub> = Δ<i>U</i> = −<i>C</i><sub>cal</sub>Δ<i>T</i><sub>cal</sub>; the open coffee-cup (constant <i>P</i>) gives <i>q</i><sub><i>P</i></sub> = Δ<i>H</i>. Convert with Δ<i>H</i> = Δ<i>U</i> + Δ<i>n</i><sub>g</sub><i>RT</i>',
-    why: '0.50 g of fuel in a bomb of heat capacity 8.2 kJ K<sup>−1</sup> raises it 1.20 K: Δ<i>U</i> = −(8.2)(1.20) = −9.84 kJ, so −19.7 kJ g<sup>−1</sup>.',
-    say: '“Bomb = box = Δ<i>U</i>; open cup = Δ<i>H</i>.”',
+    why: '0.50 g of fuel in a bomb of heat capacity 8.2 kJ K<sup>−1</sup> raises it 1.20 K: Δ<i>U</i> = −(8.2)(1.20) = −9.8 kJ, so −20 kJ g<sup>−1</sup> (2 s.f.).',
+    say: 'Bomb = box = Δ<i>U</i>; open cup = Δ<i>H</i>.',
   },
   // pp. 234, 236, 238
   {
     topic: 3,
     kind: 'remember',
     q: 'The four ideal-gas processes: <i>w</i> (on the system), <i>q</i>, Δ<i>U</i>?',
-    a: 'Isothermal (rev.): <i>w</i> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>), <i>q</i> = −<i>w</i>, Δ<i>U</i> = Δ<i>H</i> = 0. Adiabatic: <i>q</i> = 0, <i>w</i> = Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i>. Isobaric: <i>w</i> = −<i>p</i>Δ<i>V</i> = −<i>nR</i>Δ<i>T</i>, <i>q</i> = <i>nC</i><sub><i>p</i></sub>Δ<i>T</i>. Isochoric: <i>w</i> = 0, <i>q</i> = Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i>. Reversible adiabatic: <i>PV</i><sup><i>γ</i></sup> = const, <i>TV</i><sup><i>γ</i>−1</sup> = const, <i>γ</i> = <i>C</i><sub><i>p</i></sub>/<i>C</i><sub><i>v</i></sub>',
-    why: '2 mol of a monoatomic gas cool adiabatically from 400 to 300 K: <i>w</i> = Δ<i>U</i> = 2(12.47)(−100) = −2494 J, Δ<i>H</i> = 2(20.79)(−100) = −4157 J, <i>q</i> = 0.',
-    say: '“Adiabatic kills <i>q</i>, isothermal kills Δ<i>T</i>.”',
+    a: 'Isothermal (rev.): <i>w</i> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>), <i>q</i> = −<i>w</i>, Δ<i>U</i> = Δ<i>H</i> = 0. Adiabatic: <i>q</i> = 0, <i>w</i> = Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i>. Isobaric: <i>w</i> = −<i>p</i>Δ<i>V</i> = −<i>nR</i>Δ<i>T</i>, <i>q</i> = <i>nC</i><sub><i>P</i></sub>Δ<i>T</i>. Isochoric: <i>w</i> = 0, <i>q</i> = Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i>. Reversible adiabatic: <i>PV</i><sup><i>γ</i></sup> = const, <i>TV</i><sup><i>γ</i>−1</sup> = const, <i>γ</i> = <i>C</i><sub><i>P</i></sub>/<i>C</i><sub><i>V</i></sub>',
+    why: '2 mol of a monoatomic gas cool adiabatically from 400 to 300 K: <i>w</i> = Δ<i>U</i> = 2(12.47)(−100) = −2494 J, Δ<i>H</i> = 2(20.79)(−100) = −4158 J, <i>q</i> = 0.',
+    say: 'Adiabatic kills <i>q</i>, isothermal kills Δ<i>T</i>.',
   },
   // pp. 233, 236–237
   {
     topic: 3,
     kind: 'mixup',
     q: 'Adiabatic, isothermal, free expansion: which quantity is zero in each?',
-    a: 'Adiabatic: <i>q</i> = 0, and the temperature changes. Isothermal: Δ<i>T</i> = 0, and heat flows. Free expansion into vacuum: <i>p</i><sub>ext</sub> = 0, so <i>w</i> = 0 although the volume changes; for an ideal gas Δ<i>U</i> = 0, so Δ<i>T</i> = 0 and <i>q</i> = 0 too. Swapping adiabatic and isothermal inverts every sign in a problem',
+    a: 'Adiabatic: <i>q</i> = 0, and the temperature changes. Isothermal: Δ<i>T</i> = 0, and heat flows. Free expansion into vacuum: <i>p</i><sub>ext</sub> = 0, so <i>w</i> = 0 although the volume changes; for an ideal gas Δ<i>U</i> = 0, so Δ<i>T</i> = 0 and <i>q</i> = 0 too. Swapping adiabatic and isothermal puts the zero on the wrong quantity',
     why: '1 mol (<i>γ</i> = 5/3) at 300 K expands reversibly and adiabatically from 1.00 to 0.25 atm: <i>T</i><sub>2</sub> = 300(0.25)<sup>0.40</sup> = 172.3 K and <i>w</i> = (12.47)(−127.7) ≈ −1.59 kJ.',
     say: null,
   },
@@ -222,7 +222,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'shortcut',
     q: '2 mol of a monoatomic ideal gas go from 400 K to 300 K. Does Δ<i>U</i> depend on the path? The fast way?',
-    a: 'No: for any ideal-gas path jump straight to Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> = −2494 J and Δ<i>H</i> = <i>nC</i><sub><i>p</i></sub>Δ<i>T</i> = −4157 J; only <i>q</i> and <i>w</i> need the path. Memorise each process by what it freezes: isothermal <i>T</i>, adiabatic heat (<i>q</i> = 0), isobaric <i>P</i>, isochoric <i>V</i>',
+    a: 'No: for any ideal-gas path jump straight to Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> = −2494 J and Δ<i>H</i> = <i>nC</i><sub><i>P</i></sub>Δ<i>T</i> = −4158 J; only <i>q</i> and <i>w</i> need the path. Memorise each process by what it freezes: isothermal <i>T</i>, adiabatic heat (<i>q</i> = 0), isobaric <i>P</i>, isochoric <i>V</i>',
     why: '3 mol heated at constant pressure through 40 K: the work done on the gas is −<i>nR</i>Δ<i>T</i> = −3(8.314)(40) ≈ −998 J.',
     say: null,
   },
@@ -303,7 +303,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'A bomb gives Δ<i>U</i> for C<sub>2</sub>H<sub>6</sub>(g) + 7/2 O<sub>2</sub>(g) → 2CO<sub>2</sub>(g) + 3H<sub>2</sub>O(l) at 298 K. How does Δ<i>H</i> differ?',
     a: 'Δ<i>n</i><sub>g</sub> = 2 − 4.5 = −2.5, so Δ<i>H</i> = Δ<i>U</i> − 2.5 × 8.314 × 298 = Δ<i>U</i> − 6.2 kJ mol<sup>−1</sup>: the bomb result is 6.2 kJ mol<sup>−1</sup> less exothermic than Δ<sub>c</sub><i>H</i>. The sign of the correction follows from the gas moles lost; condensed phases never count',
-    why: 'Liquid benzene: Δ<i>n</i><sub>g</sub> = 6 − 7.5 = −1.5, Δ<i>H</i> − Δ<i>U</i> = −3.7 kJ mol<sup>−1</sup>. 60.0 g of Al (24 J mol<sup>−1</sup> K<sup>−1</sup>) through 20 K: <i>n</i> = 2.22 mol, <i>q</i> = <i>nC</i><sub>m</sub>Δ<i>T</i> ≈ 1.07 kJ.',
+    why: 'Liquid benzene: Δ<i>n</i><sub>g</sub> = 6 − 7.5 = −1.5, Δ<i>H</i> − Δ<i>U</i> = −3.7 kJ mol<sup>−1</sup>. 60.0 g of Al (24 J mol<sup>−1</sup> K<sup>−1</sup>) through 20 K: <i>n</i> = 2.222 mol, <i>q</i> = <i>nC</i><sub>m</sub>Δ<i>T</i> ≈ 1.07 kJ.',
     say: null,
   },
 

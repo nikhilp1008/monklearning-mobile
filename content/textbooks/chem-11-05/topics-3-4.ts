@@ -13,9 +13,10 @@ import type { Topic } from '@/lib/textbooks';
  * P, V, T, n, R, K, Q italic. Label subscripts upright (Δ<sub>sol</sub><i>H</i>,
  * Δ<i>S</i><sub>surr</sub>, <i>q</i><sub>rev</sub>, <i>C</i><sub>cal</sub>,
  * Δ<i>n</i><sub>g</sub>, <i>p</i><sub>ext</sub>, <i>T</i><sub>b</sub>); the held-constant
- * variable stays italic, in the book's case (<i>q</i><sub><i>V</i></sub>,
- * <i>q</i><sub><i>P</i></sub>, <i>C</i><sub><i>v</i></sub>, <i>C</i><sub><i>p</i></sub>),
- * as in the Physics thermodynamics chapters. Standard state ° written after
+ * variable stays italic, as a capital (<i>q</i><sub><i>V</i></sub>,
+ * <i>q</i><sub><i>P</i></sub>, <i>C</i><sub><i>V</i></sub>, <i>C</i><sub><i>P</i></sub>), as in
+ * Topic 01 and the Physics thermodynamics chapters: the reviewer's notation
+ * decision, though pp. 233–238 print C<sub>v</sub>, C<sub>p</sub>. Standard state ° written after
  * the symbol (Δ<i>G</i>°). Formulas upright (NH<sub>4</sub>Cl; the book sets
  * some in maths italic).
  */
@@ -75,7 +76,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Entropy change, reversible exchange of heat',
         main: 'Δ<i>S</i> = <i>q</i><sub>rev</sub>/<i>T</i>',
-        legend: ['Δ<i>S</i> = entropy change (SI unit J K<sup>−1</sup> mol<sup>−1</sup>)', '<i>q</i><sub>rev</sub> = heat exchanged reversibly', '<i>T</i> = temperature of the exchange'],
+        legend: ['Δ<i>S</i> = entropy change (SI unit J K<sup>−1</sup>; molar entropy J K<sup>−1</sup> mol<sup>−1</sup>)', '<i>q</i><sub>rev</sub> = heat exchanged reversibly', '<i>T</i> = temperature of the exchange'],
         note: null,
       },
       {
@@ -95,6 +96,9 @@ export const TOPICS: Topic[] = [
         main: 'Δ<i>S</i><sub>total</sub> = Δ<i>S</i><sub>system</sub> + Δ<i>S</i><sub>surroundings</sub><br>Δ<i>S</i><sub>total</sub> > 0 spontaneous<br>Δ<i>S</i><sub>total</sub> = 0 equilibrium / reversible<br>Δ<i>S</i><sub>total</sub> < 0 non-spontaneous<br>with, at constant pressure:<br>Δ<i>S</i><sub>surr</sub> = −Δ<i>H</i><sub>sys</sub>/<i>T</i>',
         legend: [
           'Δ<i>S</i><sub>total</sub> = total entropy change (system + surroundings)',
+          'Δ<i>S</i><sub>system</sub> = entropy change of the system',
+          'Δ<i>S</i><sub>surroundings</sub> = entropy change of the surroundings',
+          'Δ<i>S</i><sub>surr</sub> = entropy change of the surroundings',
           'Δ<i>H</i><sub>sys</sub> = enthalpy change of the system',
           '<i>T</i> = temperature',
         ],
@@ -144,7 +148,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Crossover temperature',
         main: 'The crossover temperature (where Δ<i>G</i> = 0) is:<br><i>T</i> = Δ<i>H</i>/Δ<i>S</i>',
-        legend: ['Δ<i>H</i> = enthalpy change', 'Δ<i>S</i> = entropy change'],
+        legend: ['<i>T</i> = crossover temperature (Δ<i>G</i> = 0)', 'Δ<i>H</i> = enthalpy change', 'Δ<i>S</i> = entropy change'],
         note: null,
       },
 
@@ -168,7 +172,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board Level',
         q: 'For a reaction at 298 K, Δ<i>H</i> = −92.4 kJ mol<sup>−1</sup> and Δ<i>S</i> = −198.3 J K<sup>−1</sup> mol<sup>−1</sup>. Calculate Δ<i>G</i> and state whether the reaction is spontaneous.',
         steps: [
-          '<b>Convert Δ<i>S</i> to kJ:</b> −198.3 J K<sup>−1</sup> = −0.1983 kJ K<sup>−1</sup>.',
+          '<b>Convert Δ<i>S</i> to kJ:</b> −198.3 J K<sup>−1</sup> mol<sup>−1</sup> = −0.1983 kJ K<sup>−1</sup> mol<sup>−1</sup>.',
           'Δ<i>G</i> = Δ<i>H</i> − <i>T</i>Δ<i>S</i> = −92.4 − (298)(−0.1983) = −92.4 + 59.1',
         ],
         ans: 'Δ<i>G</i> = −33.3 kJ mol<sup>−1</sup>. Since Δ<i>G</i> < 0, the reaction is <b>spontaneous</b> at 298 K. (The single most common slip — leaving Δ<i>S</i> in J while Δ<i>H</i> is in kJ — would have given nonsense.)',
@@ -225,7 +229,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[JEE Main] A reaction releases Δ<i>H</i> = −286 kJ mol<sup>−1</sup> at 298 K. Calculate the entropy change of the surroundings.',
-            a: 'Δ<i>S</i><sub>surr</sub> = +286000/298 ≈ +960 J K<sup>−1</sup>',
+            a: 'Δ<i>S</i><sub>surr</sub> = +286000/298 ≈ +960 J K<sup>−1</sup> mol<sup>−1</sup>',
           },
           {
             q: '[JEE Advanced] At 298 K a reaction has Δ<i>G</i>° = −13.8 kJ mol<sup>−1</sup>. Calculate its equilibrium constant <i>K</i>.',
@@ -373,7 +377,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> (1) Calorimetry assumes the vessel is perfectly insulated and that we know its heat capacity (its “water equivalent”). (2) The clean process formulas (<i>w</i> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>), <i>w</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i>, etc.) are for an <b>ideal gas</b>; the adiabatic Poisson relations additionally assume a reversible path. (3) For an ideal gas, Δ<i>U</i> and Δ<i>H</i> depend <b>only on</b> Δ<i>T</i>, never on the path — a fact that turns many process problems into one-line answers.',
+        html: '<b>Limiting conditions & assumptions.</b> (1) Calorimetry assumes the vessel is perfectly insulated and that we know its heat capacity (its “water equivalent”). (2) The clean process formulas (<i>w</i> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>), <i>w</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i>, etc.) are for an <b>ideal gas</b>; the adiabatic Poisson relations additionally assume a reversible path. (3) For an ideal gas, Δ<i>U</i> and Δ<i>H</i> depend <b>only on</b> Δ<i>T</i>, never on the path — a fact that turns many process problems into one-line answers.',
       },
 
       { t: 'part', title: 'Key definitions and properties' },
@@ -436,26 +440,26 @@ export const TOPICS: Topic[] = [
           [
             'Adiabatic',
             '<i>q</i> = 0',
-            '<i>nC</i><sub><i>v</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>V</i></sub>Δ<i>T</i>',
             '0',
-            '<i>nC</i><sub><i>v</i></sub>Δ<i>T</i>',
-            '<i>nC</i><sub><i>p</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>V</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>P</i></sub>Δ<i>T</i>',
           ],
           [
             'Isobaric',
             'Δ<i>P</i> = 0',
             '−<i>p</i> Δ<i>V</i> = −<i>nR</i>Δ<i>T</i>',
-            '<i>nC</i><sub><i>p</i></sub>Δ<i>T</i>',
-            '<i>nC</i><sub><i>v</i></sub>Δ<i>T</i>',
-            '<i>nC</i><sub><i>p</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>P</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>V</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>P</i></sub>Δ<i>T</i>',
           ],
           [
             'Isochoric',
             'Δ<i>V</i> = 0',
             '0',
-            '<i>nC</i><sub><i>v</i></sub>Δ<i>T</i>',
-            '<i>nC</i><sub><i>v</i></sub>Δ<i>T</i>',
-            '<i>nC</i><sub><i>p</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>V</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>V</i></sub>Δ<i>T</i>',
+            '<i>nC</i><sub><i>P</i></sub>Δ<i>T</i>',
           ],
         ],
       },
@@ -463,7 +467,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Reversible adiabatic (Poisson) relations',
         main: '<i>PV</i><sup><i>γ</i></sup> = const<br><i>TV</i><sup><i>γ</i>−1</sup> = const<br><i>P</i><sup>1−<i>γ</i></sup><i>T</i><sup><i>γ</i></sup> = const',
-        legend: ['<i>γ</i> = ratio of heat capacities, <i>C</i><sub><i>p</i></sub>/<i>C</i><sub><i>v</i></sub>'],
+        legend: ['<i>γ</i> = ratio of heat capacities, <i>C</i><sub><i>P</i></sub>/<i>C</i><sub><i>V</i></sub>'],
         note: null,
       },
       {
@@ -482,7 +486,7 @@ export const TOPICS: Topic[] = [
         legend: [
           'Δ<sub>sol</sub><i>H</i> = enthalpy of solution',
           'Δ<sub>lattice</sub><i>H</i> = lattice enthalpy (dissociation, positive)',
-          'Δ<sub>hyd</sub><i>H</i> = enthalpy of hydration (negative)',
+          'Δ<sub>hyd</sub><i>H</i> = enthalpy of hydration of the gaseous ions (negative)',
         ],
         note: null,
       },
@@ -494,7 +498,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Enthalpy of hydration (Δ<sub>hyd</sub><i>H</i>)',
-        html: 'enthalpy change when one mole of anhydrous (or gaseous) ions combines with the required water; generally exothermic, e.g. CuSO<sub>4</sub>(s) + 5H<sub>2</sub>O(l) → CuSO<sub>4</sub>·5H<sub>2</sub>O(s), Δ<sub>hyd</sub><i>H</i> = −78.21 kJ mol<sup>−1</sup>.',
+        html: 'enthalpy change when one mole of an anhydrous salt combines with the required amount of water to form its hydrate, e.g. CuSO<sub>4</sub>(s) + 5H<sub>2</sub>O(l) → CuSO<sub>4</sub>·5H<sub>2</sub>O(s), Δ<sub>hyd</sub><i>H</i> = −78.21 kJ mol<sup>−1</sup>; in the solution cycle below, Δ<sub>hyd</sub><i>H</i> is the enthalpy of hydration of one mole of the gaseous ions. Generally exothermic.',
       },
       {
         t: 'formula',
@@ -510,10 +514,11 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Kirchhoff’s equation (temperature dependence of reaction enthalpy)',
-        main: 'Δ<sub>r</sub><i>H</i>(<i>T</i><sub>2</sub>) = Δ<sub>r</sub><i>H</i>(<i>T</i><sub>1</sub>) + Δ<i>C</i><sub><i>p</i></sub>(<i>T</i><sub>2</sub> − <i>T</i><sub>1</sub>)<br>Δ<i>C</i><sub><i>p</i></sub> = Σ<i>C</i><sub><i>p</i></sub>(products) − Σ<i>C</i><sub><i>p</i></sub>(reactants)',
+        main: 'Δ<sub>r</sub><i>H</i>(<i>T</i><sub>2</sub>) = Δ<sub>r</sub><i>H</i>(<i>T</i><sub>1</sub>) + Δ<i>C</i><sub><i>P</i></sub>(<i>T</i><sub>2</sub> − <i>T</i><sub>1</sub>)<br>Δ<i>C</i><sub><i>P</i></sub> = Σ<i>C</i><sub><i>P</i></sub>(products) − Σ<i>C</i><sub><i>P</i></sub>(reactants)',
         legend: [
           'Δ<sub>r</sub><i>H</i>(<i>T</i>) = reaction enthalpy at temperature <i>T</i>',
-          'Δ<i>C</i><sub><i>p</i></sub> = change in heat capacity at constant pressure',
+          '<i>T</i><sub>1</sub>, <i>T</i><sub>2</sub> = the two temperatures',
+          'Δ<i>C</i><sub><i>P</i></sub> = change in heat capacity at constant pressure',
         ],
         note: null,
       },
@@ -521,7 +526,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key procedures and derivations' },
       {
         t: 'p',
-        html: '<b>3.1 Work in a reversible adiabatic change (<i>w</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i>)</b><br>For an adiabatic process <i>q</i> = 0, so the first law Δ<i>U</i> = <i>q</i> + <i>w</i> collapses to Δ<i>U</i> = <i>w</i>. Since for an ideal gas Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> along any path,<br><i>w</i><sub>(on system)</sub> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i><br><b>Physical reading:</b> with no heat allowed in, the only way the gas can do work on the surroundings (expansion) is to spend its own internal energy, so it <b>cools</b> (Δ<i>T</i> < 0 ⇒ <i>w</i> < 0, i.e. work done by the gas). Compression does the reverse and heats it.',
+        html: '<b>3.1 Work in a reversible adiabatic change (<i>w</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i>)</b><br>For an adiabatic process <i>q</i> = 0, so the first law Δ<i>U</i> = <i>q</i> + <i>w</i> collapses to Δ<i>U</i> = <i>w</i>. Since for an ideal gas Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> along any path,<br><i>w</i><sub>(on system)</sub> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i><br><b>Physical reading:</b> with no heat allowed in, the only way the gas can do work on the surroundings (expansion) is to spend its own internal energy, so it <b>cools</b> (Δ<i>T</i> < 0 ⇒ <i>w</i> < 0, i.e. work done by the gas). Compression does the reverse and heats it.',
       },
       {
         t: 'p',
@@ -539,9 +544,9 @@ export const TOPICS: Topic[] = [
         q: 'Burning 0.50 g of a fuel in a bomb calorimeter (heat capacity 8.2 kJ K<sup>−1</sup>) raises the temperature by 1.20 K. Find the internal energy change of combustion per gram of fuel.',
         steps: [
           '<b>Constant volume</b> ⇒ <i>q</i><sub><i>V</i></sub> = Δ<i>U</i> = −<i>C</i><sub>cal</sub>Δ<i>T</i><sub>cal</sub>:',
-          'Δ<i>U</i> = −(8.2)(1.20) = −9.84 kJ for 0.50 g ⇒ −9.84/0.50',
+          'Δ<i>U</i> = −(8.2)(1.20) = −9.8 kJ for 0.50 g ⇒ −9.8/0.50',
         ],
-        ans: 'Δ<i>U</i> = −19.7 kJ g<sup>−1</sup>. (Negative — combustion is exothermic; the bomb gives Δ<i>U</i>, not Δ<i>H</i>, because <i>V</i> is fixed.)',
+        ans: 'Δ<i>U</i> = −20 kJ g<sup>−1</sup> (2 s.f.). (Negative — combustion is exothermic; the bomb gives Δ<i>U</i>, not Δ<i>H</i>, because <i>V</i> is fixed.)',
       },
       {
         t: 'ex',
@@ -556,13 +561,13 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'JEE Main Level — multi-concept',
-        q: '2 mol of an ideal monoatomic gas (<i>C</i><sub><i>v</i></sub> = (3/2)<i>R</i>) expands reversibly and adiabatically, cooling from 400 K to 300 K. Find <i>w</i>, <i>q</i>, Δ<i>U</i> and Δ<i>H</i>.',
+        q: '2 mol of an ideal monoatomic gas (<i>C</i><sub><i>V</i></sub> = (3/2)<i>R</i>) expands reversibly and adiabatically, cooling from 400 K to 300 K. Find <i>w</i>, <i>q</i>, Δ<i>U</i> and Δ<i>H</i>.',
         steps: [
-          'Adiabatic ⇒ <i>q</i> = 0. With <i>C</i><sub><i>v</i></sub> = (3/2)(8.314) = 12.47 J K<sup>−1</sup> mol<sup>−1</sup> and <i>C</i><sub><i>p</i></sub> = (5/2)<i>R</i> = 20.79:',
-          'Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> = 2(12.47)(300 − 400) = −2494 J = <i>w</i>',
-          'Δ<i>H</i> = <i>nC</i><sub><i>p</i></sub>Δ<i>T</i> = 2(20.79)(−100) = −4157 J, <i>q</i> = 0',
+          'Adiabatic ⇒ <i>q</i> = 0. With <i>C</i><sub><i>V</i></sub> = (3/2)(8.314) = 12.47 J K<sup>−1</sup> mol<sup>−1</sup> and <i>C</i><sub><i>P</i></sub> = (5/2)<i>R</i> = 20.79:',
+          'Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> = 2(12.47)(300 − 400) = −2494 J = <i>w</i>',
+          'Δ<i>H</i> = <i>nC</i><sub><i>P</i></sub>Δ<i>T</i> = 2(20.79)(−100) = −4158 J, <i>q</i> = 0',
         ],
-        ans: '<i>q</i> = 0, <i>w</i> = Δ<i>U</i> = −2.49 kJ, Δ<i>H</i> = −4.16 kJ. The gas does 2.49 kJ of work entirely at the expense of its internal energy. The multi-concept catch: Δ<i>U</i> and Δ<i>H</i> still follow <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> and <i>nC</i><sub><i>p</i></sub>Δ<i>T</i> even though the path is adiabatic.',
+        ans: '<i>q</i> = 0, <i>w</i> = Δ<i>U</i> = −2.49 kJ, Δ<i>H</i> = −4.16 kJ. The gas does 2.49 kJ of work entirely at the expense of its internal energy. The multi-concept catch: Δ<i>U</i> and Δ<i>H</i> still follow <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> and <i>nC</i><sub><i>P</i></sub>Δ<i>T</i> even though the path is adiabatic.',
       },
       {
         t: 'ex',
@@ -571,8 +576,8 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Poisson relation</b> <i>P</i><sup>1−<i>γ</i></sup><i>T</i><sup><i>γ</i></sup> = const, i.e. <i>T</i><sub>2</sub>/<i>T</i><sub>1</sub> = (<i>P</i><sub>2</sub>/<i>P</i><sub>1</sub>)<sup>(<i>γ</i>−1)/<i>γ</i></sup>, with (<i>γ</i> − 1)/<i>γ</i> = (2/3)/(5/3) = 0.40:',
           '<i>T</i><sub>2</sub> = 300 (0.25)<sup>0.40</sup> = 300 × 0.574 = 172.3 K',
-          '<b>Work</b> (adiabatic, <i>C</i><sub><i>v</i></sub> = (3/2)<i>R</i> = 12.47):',
-          '<i>w</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> = (1)(12.47)(172.3 − 300)',
+          '<b>Work</b> (adiabatic, <i>C</i><sub><i>V</i></sub> = (3/2)<i>R</i> = 12.47):',
+          '<i>w</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> = (1)(12.47)(172.3 − 300)',
         ],
         ans: '<i>T</i><sub>2</sub> ≈ 172 K; <i>w</i> ≈ −1.59 kJ (the gas does about 1.59 kJ of work, cooling sharply). The rigor lies in pairing the correct Poisson exponent with the first-law work expression.',
       },
@@ -613,7 +618,7 @@ export const TOPICS: Topic[] = [
           { label: 'volume', nudge: null },
           {
             label: 'temperature',
-            nudge: '<b>(c)</b> no calorimeter holds <i>T</i> constant — the temperature rise is what we measure.',
+            nudge: '<b>(c)</b> neither a bomb nor a coffee-cup calorimeter holds <i>T</i> constant — the temperature rise is what we measure.',
           },
           { label: 'enthalpy', nudge: '<b>(d)</b> enthalpy is a quantity, not a constraint.' },
         ],
@@ -629,7 +634,7 @@ export const TOPICS: Topic[] = [
           { label: '<i>w</i> = 0', nudge: '<b>(c)</b> is isochoric.' },
           {
             label: 'Δ<i>U</i> = 0',
-            nudge: '<b>(d)</b> would require Δ<i>T</i> = 0, which adiabatic expansion/compression violates (the temperature changes precisely because <i>q</i> = 0).',
+            nudge: '<b>(d)</b> is not always true: with <i>q</i> = 0, Δ<i>U</i> = <i>w</i>, which is zero only when no work is done (as in free expansion); in a reversible adiabatic expansion or compression the temperature changes, so Δ<i>U</i> ≠ 0.',
           },
         ],
         correct: 0,
@@ -665,14 +670,14 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Bomb vs coffee-cup.</b> Constant volume (bomb) gives Δ<i>U</i>; constant pressure gives Δ<i>H</i>. Mixing them up — or forgetting the Δ<i>n</i><sub>g</sub><i>RT</i> conversion between them — is the classic calorimetry error.',
-          '<b>“Adiabatic” ≠ “isothermal”.</b> Adiabatic means <i>q</i> = 0 (temperature changes); isothermal means Δ<i>T</i> = 0 (heat flows). Swapping them inverts every sign in the problem.',
+          '<b>“Adiabatic” ≠ “isothermal”.</b> Adiabatic means <i>q</i> = 0 (temperature changes); isothermal means Δ<i>T</i> = 0 (heat flows). Swapping them puts the zero on the wrong quantity and wrecks every later step.',
           '<b>Sign of lattice enthalpy in Δ<sub>sol</sub><i>H</i>.</b> Use the dissociation (endothermic, +) value so the lattice–hydration cycle balances; the hydration term is the negative one.',
           '<b>Free expansion confusion.</b> With <i>p</i><sub>ext</sub> = 0, <i>w</i> = 0 even though the volume changes; and for an ideal gas Δ<i>U</i> = 0, so Δ<i>T</i> = 0 and <i>q</i> = 0 as well.',
         ],
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed + sanity):</b> Memorise the process by what it freezes — iso<b>thermal</b> <i>T</i>, <b>a</b>diabatic heat (<i>q</i> = 0), iso<b>baric</b> <i>P</i>, iso<b>choric</b> <i>V</i>. And for any ideal-gas path, jump straight to Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> and Δ<i>H</i> = <i>nC</i><sub><i>p</i></sub>Δ<i>T</i> — both depend only on Δ<i>T</i>, so you never need the path to get them.',
+        html: '<b>Pro-Tip (speed + sanity):</b> Memorise the process by what it freezes — iso<b>thermal</b> <i>T</i>, <b>a</b>diabatic heat (<i>q</i> = 0), iso<b>baric</b> <i>P</i>, iso<b>choric</b> <i>V</i>. And for any ideal-gas path, jump straight to Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> and Δ<i>H</i> = <i>nC</i><sub><i>P</i></sub>Δ<i>T</i> — both depend only on Δ<i>T</i>, so you never need the path to get them.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -685,11 +690,11 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Four processes (ideal gas)',
-            note: 'isothermal Δ<i>U</i> = Δ<i>H</i> = 0, <i>w</i> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>) · adiabatic <i>q</i> = 0, <i>w</i> = Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i> · isobaric <i>w</i> = −<i>nR</i>Δ<i>T</i>, <i>q</i><sub><i>P</i></sub> = <i>nC</i><sub><i>p</i></sub>Δ<i>T</i> · isochoric <i>w</i> = 0, <i>q</i><sub><i>V</i></sub> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i>.',
+            note: 'isothermal Δ<i>U</i> = Δ<i>H</i> = 0, <i>w</i> = −<i>nRT</i> ln(<i>V</i><sub>2</sub>/<i>V</i><sub>1</sub>) · adiabatic <i>q</i> = 0, <i>w</i> = Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i> · isobaric <i>w</i> = −<i>nR</i>Δ<i>T</i>, <i>q</i><sub><i>P</i></sub> = <i>nC</i><sub><i>P</i></sub>Δ<i>T</i> · isochoric <i>w</i> = 0, <i>q</i><sub><i>V</i></sub> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i>.',
           },
           {
             f: 'Adiabatic (rev.)',
-            note: '<i>PV</i><sup><i>γ</i></sup> = const, <i>TV</i><sup><i>γ</i>−1</sup> = const, <i>γ</i> = <i>C</i><sub><i>p</i></sub>/<i>C</i><sub><i>v</i></sub>.',
+            note: '<i>PV</i><sup><i>γ</i></sup> = const, <i>TV</i><sup><i>γ</i>−1</sup> = const, <i>γ</i> = <i>C</i><sub><i>P</i></sub>/<i>C</i><sub><i>V</i></sub>.',
           },
           {
             f: 'Solution',
@@ -697,11 +702,11 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Trouton',
-            note: 'Δ<sub>vap</sub><i>S</i> ≈ 85–88 J K<sup>−1</sup> mol<sup>−1</sup>. <b>Kirchhoff:</b> Δ<sub>r</sub><i>H</i>(<i>T</i><sub>2</sub>) = Δ<sub>r</sub><i>H</i>(<i>T</i><sub>1</sub>) + Δ<i>C</i><sub><i>p</i></sub>Δ<i>T</i>.',
+            note: 'Δ<sub>vap</sub><i>S</i> ≈ 85–88 J K<sup>−1</sup> mol<sup>−1</sup>. <b>Kirchhoff:</b> Δ<sub>r</sub><i>H</i>(<i>T</i><sub>2</sub>) = Δ<sub>r</sub><i>H</i>(<i>T</i><sub>1</sub>) + Δ<i>C</i><sub><i>P</i></sub>Δ<i>T</i>.',
           },
           {
             f: 'Universal shortcut',
-            note: 'ideal gas ⇒ Δ<i>U</i> = <i>nC</i><sub><i>v</i></sub>Δ<i>T</i>, Δ<i>H</i> = <i>nC</i><sub><i>p</i></sub>Δ<i>T</i> on every path.',
+            note: 'ideal gas ⇒ Δ<i>U</i> = <i>nC</i><sub><i>V</i></sub>Δ<i>T</i>, Δ<i>H</i> = <i>nC</i><sub><i>P</i></sub>Δ<i>T</i> on every path.',
           },
         ],
         aids: [

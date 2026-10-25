@@ -157,8 +157,8 @@ const figE1: Diagram = {
     s.place([
       { t: 'Initial state', p: st, at: [[st[0] + 16, st[1] - 30, 'start'], [st[0] + 18, st[1] - 26, 'start']] },
       { t: 'Isothermal', hi: true, p: at(f, 1.45, iso(1.45)), at: [[X(f, 1.62), Y(f, 0.93), 'start'], [X(f, 1.6), Y(f, 0.9), 'start'], [X(f, 1.7), Y(f, 0.95), 'start']] },
-      { t: 'Adiabatic', p: at(f, 1.85, adi(1.85)), at: [[X(f, 1.78), Y(f, 0.17), 'start'], [X(f, 1.75), Y(f, 0.15), 'start'], [X(f, 1.82), Y(f, 0.2), 'start']] },
-      { t: 'Single step', p: at(f, 1.5, p2), at: [[X(f, 0.92), Y(f, 0.17), 'start'], [X(f, 0.9), Y(f, 0.15), 'start'], [X(f, 0.95), Y(f, 0.2), 'start']] },
+      { t: 'Adiabatic', p: ea, own: ea, bare: true, at: [[X(f, 1.95), Y(f, 0.2), 'end'], [X(f, 1.95), Y(f, 0.17), 'end'], [X(f, 1.9), Y(f, 0.15), 'end']] },
+      { t: 'Single step', p: at(f, 1.52, p2), bare: true, at: [[X(f, 0.85), Y(f, 0.28), 'start'], [X(f, 0.85), Y(f, 0.25), 'start'], [X(f, 0.92), Y(f, 0.17), 'start'], [X(f, 0.9), Y(f, 0.15), 'start'], [X(f, 0.95), Y(f, 0.2), 'start']] },
     ], [res]);
     return s;
   },
