@@ -767,6 +767,9 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/chem-11-03-classification'),
   'chemistry|11|chemical bonding': () =>
     import('@/content/textbooks/chem-11-04-chemical-bonding'),
+  'chemistry|11|thermodynamics': () =>
+    import('@/content/textbooks/chem-11-05-thermodynamics'),
+  'chemistry|11|equilibrium': () => import('@/content/textbooks/chem-11-06-equilibrium'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
