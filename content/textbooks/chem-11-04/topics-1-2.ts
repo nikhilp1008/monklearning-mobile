@@ -32,7 +32,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Lewis gave us a beautifully simple bookkeeping tool: draw the element’s symbol and place its valence electrons as dots around it. Sodium (Na<sup>•</sup>) has one lonely dot; chlorine has seven and is one short of a full set. When sodium hands its single electron to chlorine, sodium becomes Na<sup>+</sup> and chlorine becomes Cl<sup>−</sup> — and now the two oppositely charged ions cling together by simple electrostatic attraction, exactly like two magnets snapping shut. That clinging, scaled up across an entire crystal, is what we feel as the strength of common salt.',
+        html: 'Lewis gave us a beautifully simple bookkeeping tool: draw the element’s symbol and place its valence electrons as dots around it. Sodium (Na•) has one lonely dot; chlorine has seven and is one short of a full set. When sodium hands its single electron to chlorine, sodium becomes Na<sup>+</sup> and chlorine becomes Cl<sup>−</sup> — and now the two oppositely charged ions cling together by simple electrostatic attraction, exactly like two magnets snapping shut. That clinging, scaled up across an entire crystal, is what we feel as the strength of common salt.',
       },
       {
         t: 'p',
@@ -67,8 +67,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Bond length',
-        main: 'equilibrium internuclear distance between two bonded atoms, in picometres (pm) or angstrom (1 Å = 100 pm). For a covalent bond <i>A</i>–<i>B</i>:<br><i>R</i> = <i>r</i><sub><i>A</i></sub> + <i>r</i><sub><i>B</i></sub>',
-        legend: ['<i>R</i> = bond length of <i>A</i>–<i>B</i>', '<i>r</i><sub><i>A</i></sub>, <i>r</i><sub><i>B</i></sub> = the covalent radii of the two atoms'],
+        main: 'equilibrium internuclear distance between two bonded atoms, in picometres (pm) or angstrom (1 Å = 100 pm). For a covalent bond A–B:<br><i>R</i> = <i>r</i><sub>A</sub> + <i>r</i><sub>B</sub>',
+        legend: ['<i>R</i> = bond length of A–B', '<i>r</i><sub>A</sub>, <i>r</i><sub>B</sub> = the covalent radii of the two atoms'],
         note: null,
       },
       {
@@ -86,10 +86,12 @@ export const TOPICS: Topic[] = [
         kicker: 'Dipole moment (<i>μ</i>)',
         main: 'a vector measuring bond/molecular polarity:<br><i>μ</i> = <i>q</i> × <i>d</i><br>1 D = 3.336 × 10<sup>−30</sup> C m',
         legend: [
+          '<i>μ</i> = dipole moment, a vector that points (by convention) from + to −',
           '<i>q</i> = magnitude of charge separation',
           '<i>d</i> = distance between the centres of positive and negative charge',
+          'D = debye, the practical unit (SI unit: coulomb-metre, C m)',
         ],
-        note: 'SI unit: coulomb-metre (C m); the practical unit is the <b>debye (D)</b>. <i>μ</i> is a vector and points (by convention) from + to −. The net molecular dipole is the vector sum of the individual bond dipoles.',
+        note: 'The net molecular dipole is the vector sum of the individual bond dipoles.',
       },
       {
         t: 'formula',
@@ -140,7 +142,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'For a salt <i>MX</i> (e.g. an alkali halide), the formation enthalpy Δ<sub>f</sub><i>H</i> equals the sum of:<br>• sublimation of the metal, Δ<sub>sub</sub><i>H</i> (solid metal → gaseous atoms);<br>• ionisation enthalpy of the metal, Δ<sub>i</sub><i>H</i> (<i>M</i>(g) → <i>M</i><sup>+</sup>(g) + e<sup>−</sup>);<br>• half the bond-dissociation enthalpy of the non-metal, ½Δ<sub>bond</sub><i>H</i> (½<i>X</i><sub>2</sub> → <i>X</i>(g));<br>• electron gain enthalpy of the non-metal, Δ<sub>eg</sub><i>H</i> (<i>X</i>(g) + e<sup>−</sup> → <i>X</i><sup>−</sup>(g));<br>• and finally the energy released (−Δ<sub>lattice</sub><i>H</i>) as gaseous ions form the crystal.',
+        html: 'For a salt MX (e.g. an alkali halide), the formation enthalpy Δ<sub>f</sub><i>H</i> equals the sum of:<br>• sublimation of the metal, Δ<sub>sub</sub><i>H</i> (solid metal → gaseous atoms);<br>• ionisation enthalpy of the metal, Δ<sub>i</sub><i>H</i> (M(g) → M<sup>+</sup>(g) + e<sup>−</sup>);<br>• half the bond-dissociation enthalpy of the non-metal, ½Δ<sub>bond</sub><i>H</i> (½X<sub>2</sub> → X(g));<br>• electron gain enthalpy of the non-metal, Δ<sub>eg</sub><i>H</i> (X(g) + e<sup>−</sup> → X<sup>−</sup>(g));<br>• and finally the energy released (−Δ<sub>lattice</sub><i>H</i>) as gaseous ions form the crystal.',
       },
       { t: 'fig', id: 'c11-04-fig-4.1' },
       {
@@ -176,7 +178,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'JEE Main Level',
-        q: 'A gaseous diatomic molecule <i>X</i>–<i>Y</i> has a bond length of 130 pm and an observed dipole moment of 1.10 D. Estimate its percentage ionic character. (Take <i>e</i> = 1.6 × 10<sup>−19</sup> C, 1 D = 3.336 × 10<sup>−30</sup> C m.)',
+        q: 'A gaseous diatomic molecule X–Y has a bond length of 130 pm and an observed dipole moment of 1.10 D. Estimate its percentage ionic character. (Take <i>e</i> = 1.6 × 10<sup>−19</sup> C, 1 D = 3.336 × 10<sup>−30</sup> C m.)',
         steps: [
           'This links two ideas: the definition of the fully-ionic dipole and the ratio defining ionic character.',
           '<b>Step 1 — fully-ionic dipole:</b><br><i>μ</i><sub>ionic</sub> = <i>e</i> × <i>d</i> = (1.6 × 10<sup>−19</sup>)(130 × 10<sup>−12</sup>) = 2.08 × 10<sup>−29</sup> C m.',
@@ -192,12 +194,13 @@ export const TOPICS: Topic[] = [
         fig: 'c11-04-fig-4.3',
         q: 'The azide ion N<sub>3</sub><sup>−</sup> is linear and symmetric. (a) Draw a Lewis structure that minimises formal charge, (b) assign the formal charges, and (c) use resonance to predict the two N–N bond orders and how the two N–N bond lengths compare.',
         steps: [
-          '<b>(a) Electron count:</b> N<sub>3</sub><sup>−</sup> has 3 × 5 + 1 = 16 valence electrons. The lowest-formal-charge linear structure places <b>two N=N double bonds</b> on the central nitrogen, with two lone pairs on each terminal nitrogen:<br>[ :N̈ = N = N̈: ]<sup>−</sup>',
+          '<b>(a) Electron count:</b> N<sub>3</sub><sup>−</sup> has 3 × 5 + 1 = 16 valence electrons. The lowest-formal-charge linear structure places <b>two N=N double bonds</b> on the central nitrogen, with two lone pairs on each terminal nitrogen:<br>[N=N=N]<sup>−</sup> (Figure 4.3)',
           '<b>(b) Formal charges</b> (<i>V</i> = 5 throughout):<br>• Central N: <i>L</i> = 0, <i>B</i> = 8 (two double bonds). FC = 5 − 0 − 4 = +1.<br>• Each terminal N: <i>L</i> = 4, <i>B</i> = 4. FC = 5 − 4 − 2 = −1.<br>• Sum: (−1) + (+1) + (−1) = −1 ✓.',
-          '<b>(c) Resonance and bond order.</b> This symmetric form has an equivalent partner in which the double bonds are redistributed as a triple/single pair, [N̈ ≡ N–N̤̈:]<sup>−</sup> ↔ [:N̤̈–N ≡ N̈]<sup>−</sup>. Because the two end-on triple-bond forms are equivalent and contribute equally, the <b>real ion is the symmetric hybrid</b>: each N–N linkage has an average bond order of 2, and crucially the <b>two N–N bonds are identical in length</b> — there is no “longer” and “shorter” bond. This is the deep lesson of resonance: the molecule is a single blended species (like a chutney, not a switch flicking between two recipes), so partial bond orders and equal bond lengths emerge naturally — a conclusion no single Lewis structure could deliver.',
+          '<b>(c) Resonance and bond order.</b> This symmetric form has two further resonance forms, equivalent to each other, in which the double bonds are redistributed as a triple/single pair, [N≡N–N]<sup>−</sup> ↔ [N–N≡N]<sup>−</sup>. Because the two end-on triple-bond forms are equivalent and contribute equally, the <b>real ion is the symmetric hybrid</b>: each N–N linkage has an average bond order of 2, and crucially the <b>two N–N bonds are identical in length</b> — there is no “longer” and “shorter” bond. This is the deep lesson of resonance: the molecule is a single blended species (like a chutney, not a switch flicking between two recipes), so partial bond orders and equal bond lengths emerge naturally — a conclusion no single Lewis structure could deliver.',
         ],
         ans: '',
       },
+      { t: 'fig', id: 'c11-04-01-d1' },
 
       { t: 'part', title: 'Practice exercises' },
       {
@@ -229,7 +232,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Crack the MCQ' },
       {
         t: 'mcq',
-        q: 'In the thiocyanate-type linear ion [S = C = N̈]<sup>−</sup> drawn with two double bonds on carbon, the formal charge on carbon is:',
+        q: 'In the thiocyanate-type linear ion [S=C=N]<sup>−</sup> (two lone pairs on S and on N) drawn with two double bonds on carbon, the formal charge on carbon is:',
         opts: [
           { label: '0', nudge: null },
           { label: '+1', nudge: '<b>(b)</b> +1 needs <i>B</i> = 6, i.e. only three shared pairs on carbon.' },
@@ -386,7 +389,7 @@ export const TOPICS: Topic[] = [
         kicker: 'VSEPR repulsion order',
         main: 'the strength of repulsion between electron pairs decreases as:<br>lone pair–lone pair > lone pair–bond pair > bond pair–bond pair',
         legend: [],
-        note: 'This single ordering explains every bond-angle distortion in the chapter.',
+        note: 'This ordering explains most bond-angle distortions in the chapter.',
       },
       {
         t: 'formula',
@@ -401,6 +404,7 @@ export const TOPICS: Topic[] = [
         main: '<i>H</i> = ½[<i>V</i> + <i>M</i> − <i>C</i> + <i>A</i>]<br>The result maps directly to hybridisation: 2 → sp, 3 → sp<sup>2</sup>, 4 → sp<sup>3</sup>, 5 → sp<sup>3</sup>d, 6 → sp<sup>3</sup>d<sup>2</sup>, 7 → sp<sup>3</sup>d<sup>3</sup>',
         legend: [
           'for a central atom with monovalent surrounding atoms',
+          '<i>H</i> = hybridisation number (number of hybrid orbitals)',
           '<i>V</i> = valence electrons of the central atom',
           '<i>M</i> = number of monovalent atoms attached',
           '<i>C</i> = positive (cationic) charge',
@@ -466,7 +470,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Types of orbital overlap</b><br>Not all overlaps are equal. A σ bond can form by s–s overlap (as in H<sub>2</sub>), by s–p overlap (as in each H–C bond of methane), or by p–p overlap along the internuclear axis (head-on). In every case the electron density piles up between the nuclei and is symmetric about the bond axis — that is what makes a σ bond strong and freely rotatable. A π bond, by contrast, forms only by <b>sidewise</b> overlap of two unhybridised p orbitals lying parallel to each other; its electron density sits in two lobes above and below the axis, the overlap is poorer, and the bond resists rotation. The practical consequences are worth memorising: σ stronger than π, σ allows free rotation while a π bond locks the geometry (the origin of cis–trans isomerism), and the first bond between any two atoms is always the σ.',
+        html: '<b>Types of orbital overlap</b><br>Not all overlaps are equal. A σ bond can form by s–s overlap (as in H<sub>2</sub>), by s–p overlap (as in H–Cl), or by p–p overlap along the internuclear axis (head-on). In every case the electron density piles up between the nuclei and is symmetric about the bond axis — that is what makes a σ bond strong and freely rotatable. A π bond, by contrast, forms only by <b>sidewise</b> overlap of two unhybridised p orbitals lying parallel to each other; its electron density sits in two lobes above and below the axis, the overlap is poorer, and the bond resists rotation. The practical consequences are worth memorising: σ stronger than π, σ allows free rotation while a π bond locks the geometry (the origin of cis–trans isomerism), and the first bond between any two atoms is always the σ.',
       },
       {
         t: 'p',
@@ -519,10 +523,10 @@ export const TOPICS: Topic[] = [
         tag: 'JEE Advanced Level',
         q: 'Arrange H<sub>2</sub>O, H<sub>2</sub>S and H<sub>2</sub>Se in decreasing order of their H–X–H bond angle, and justify the trend using at least two distinct arguments.',
         steps: [
-          'All three are sp<sup>3</sup> (SN = 4: two bonds + two lone pairs), so all are bent — yet the experimental angles fall sharply: H<sub>2</sub>O (104.5°) > H<sub>2</sub>S (∼ 92°) > H<sub>2</sub>Se (∼ 91°).',
+          'All three have SN = 4 (two bonds + two lone pairs), so all are bent — yet the experimental angles fall sharply: H<sub>2</sub>O (104.5°) > H<sub>2</sub>S (∼ 92°) > H<sub>2</sub>Se (∼ 91°).',
           '<b>Argument 1 — central-atom electronegativity.</b> Down the group O → S → Se, electronegativity falls. A more electronegative central atom (O) pulls the bonding pairs closer to itself, so the two bond pairs sit nearer together and repel more strongly, propping the angle open. As the central atom becomes less electronegative, the bonding pairs drift outward, repel less, and the angle collapses toward 90°.',
           '<b>Argument 2 — orbital character.</b> In the heavier hydrides the central atom uses orbitals with <b>less s-character</b> in bonding (closer to pure p, which are mutually 90°). Oxygen retains more s-character in its bonds, holding the angle well above 90°, while Se’s near-pure-p bonding pushes it almost to 90°.',
-          '<b>The deep point:</b> identical hybridisation does not mean identical bond angle — central-atom electronegativity and effective s-character fine-tune the value, and the trend is monotonic down the group.',
+          '<b>The deep point:</b> the same steric number does not mean the same bond angle — central-atom electronegativity and effective s-character fine-tune the value, and the trend is monotonic down the group.',
         ],
         ans: '<b>H<sub>2</sub>O > H<sub>2</sub>S > H<sub>2</sub>Se.</b>',
       },
@@ -606,16 +610,16 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'CH<sub>4</sub>',
-            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(d)</b> contain only single (σ) bonds — all atoms are sp<sup>3</sup> with no leftover p orbital to form a π bond.',
+            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(d)</b> contain only single (σ) bonds — every C and N is sp<sup>3</sup> with no leftover p orbital to form a π bond.',
           },
           {
             label: 'C<sub>2</sub>H<sub>6</sub>',
-            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(d)</b> contain only single (σ) bonds — all atoms are sp<sup>3</sup> with no leftover p orbital to form a π bond. A student picking (b) confuses ethane (single C–C) with ethene.',
+            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(d)</b> contain only single (σ) bonds — every C and N is sp<sup>3</sup> with no leftover p orbital to form a π bond. A student picking (b) confuses ethane (single C–C) with ethene.',
           },
           { label: 'C<sub>2</sub>H<sub>4</sub>', nudge: null },
           {
             label: 'NH<sub>3</sub>',
-            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(d)</b> contain only single (σ) bonds — all atoms are sp<sup>3</sup> with no leftover p orbital to form a π bond.',
+            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(d)</b> contain only single (σ) bonds — every C and N is sp<sup>3</sup> with no leftover p orbital to form a π bond.',
           },
         ],
         correct: 2,
@@ -628,7 +632,7 @@ export const TOPICS: Topic[] = [
         items: [
           '<b>Confusing electron-pair geometry with molecular shape.</b> H<sub>2</sub>O is tetrahedral in electron geometry but bent in shape. The named shape counts atoms only; lone pairs distort but are invisible in the shape’s name.',
           '<b>Dropping lone pairs from the steric number.</b> Counting only bonded atoms makes XeF<sub>2</sub> look sp and SF<sub>4</sub> look sp<sup>3</sup>. Lone pairs each occupy a hybrid orbital and must be counted.',
-          '<b>Assuming “same hybridisation ⇒ same bond angle.”</b> H<sub>2</sub>O, H<sub>2</sub>S and H<sub>2</sub>Se are all sp<sup>3</sup> yet span 104.5° to 91°. Hybridisation sets the ideal angle; electronegativity and lone pairs fine-tune the real one.',
+          '<b>Assuming “same steric number ⇒ same bond angle.”</b> H<sub>2</sub>O, H<sub>2</sub>S and H<sub>2</sub>Se all have SN = 4 yet span 104.5° to 91°. The steric number sets the ideal angle; electronegativity and lone pairs fine-tune the real one.',
           '<b>Muddling σ and π overlap.</b> A σ bond is head-on along the axis; a π bond is sidewise. Only unhybridised p orbitals form π bonds, and σ is always the stronger of the two.',
         ],
       },

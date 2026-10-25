@@ -9,7 +9,8 @@ import type { Topic } from '@/lib/textbooks';
  * are redrawn in lib/diagrams/chemistry-11-04b.ts.
  *
  * MO notation: σ and π upright (the book sets both in maths italic), the star
- * of an antibonding orbital raised (σ<sup>*</sup>1s, π<sup>*</sup>2p<sub><i>x</i></sub>),
+ * of an antibonding orbital a plain asterisk, not <sup> (σ*1s, π*2p<sub><i>x</i></sub>:
+ * the reader cannot raise "*", so <sup>*</sup> would fall to the baseline),
  * orbital labels upright with italic axis subscripts (2p<sub><i>z</i></sub>),
  * occupancy as a superscript after the label. Hybrid labels upright (sp<sup>3</sup>),
  * as are pπ–pπ and pπ–dπ. <i>N</i><sub>b</sub> and <i>N</i><sub>a</sub> carry upright
@@ -37,7 +38,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Think about it this way…</b> imagine two musicians each humming a note. Bring them together and the sound waves combine two ways: in phase, where crests reinforce crests and the sound swells (a <b>bonding</b> molecular orbital, lower energy, electron density piled up between the nuclei where it glues them together), and out of phase, where crest meets trough and they partly cancel (an <b>antibonding</b> molecular orbital, higher energy, with a node between the nuclei that pushes the atoms apart). Two atomic orbitals always make exactly two molecular orbitals — one bonding, one antibonding. When the overlap is head-on along the internuclear axis, the result is a σ molecular orbital, cylindrically symmetric about that axis; when two parallel p orbitals overlap sidewise, the result is a π molecular orbital, which carries a nodal plane running through both nuclei. Exactly as with ordinary bonds, a σ molecular orbital from a given shell is stabilised more than the corresponding π one. Fill the bonding ones and the molecule is stable; pour electrons into antibonding ones and you undo the bonding.',
+        html: '<b>Think about it this way…</b> imagine two musicians each humming a note. Bring them together and the sound waves combine two ways: in phase, where crests reinforce crests and the sound swells (a <b>bonding</b> molecular orbital, lower energy, electron density piled up between the nuclei where it glues them together), and out of phase, where crest meets trough and they partly cancel (an <b>antibonding</b> molecular orbital, higher energy, with a node between the nuclei that pushes the atoms apart). Two atomic orbitals always make exactly two molecular orbitals — one bonding, one antibonding. When the overlap is head-on along the internuclear axis, the result is a σ molecular orbital, cylindrically symmetric about that axis; when two parallel p orbitals overlap sidewise, the result is a π molecular orbital, which carries a nodal plane running through both nuclei. For O<sub>2</sub> and F<sub>2</sub>, a σ molecular orbital from a given shell is stabilised more than the corresponding π one; in the lighter diatomics (Li<sub>2</sub> to N<sub>2</sub>) s–p mixing lifts σ2p<sub><i>z</i></sub> above π2p. Fill the bonding ones and the molecule is stable; pour electrons into antibonding ones and you undo the bonding.',
       },
       {
         t: 'p',
@@ -60,13 +61,13 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Bond order (MO definition)',
-        main: 'The single most important quantity:<br>Bond order = ½(<i>N</i><sub>b</sub> − <i>N</i><sub>a</sub>)',
+        main: 'Bond order = ½(<i>N</i><sub>b</sub> − <i>N</i><sub>a</sub>)',
         legend: ['<i>N</i><sub>b</sub> = number of electrons in bonding MOs', '<i>N</i><sub>a</sub> = number in antibonding MOs'],
         note: 'A bond order > 0 means the species exists; = 0 means it does not. <b>Higher bond order ⇒ greater bond dissociation energy, greater stability, and shorter bond length.</b>',
       },
       {
         t: 'p',
-        html: '<b>Energy-level ordering of molecular orbitals.</b> For molecules <b>up to N<sub>2</sub></b> (i.e. Li<sub>2</sub> to N<sub>2</sub>, ≤ 14 electrons), the π orbitals lie below σ2p<sub><i>z</i></sub>:<br>σ1s < σ<sup>*</sup>1s < σ2s < σ<sup>*</sup>2s < (π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>) < σ2p<sub><i>z</i></sub> < (π<sup>*</sup>2p<sub><i>x</i></sub> = π<sup>*</sup>2p<sub><i>y</i></sub>) < σ<sup>*</sup>2p<sub><i>z</i></sub><br>For molecules <b>after N<sub>2</sub></b> (O<sub>2</sub>, F<sub>2</sub>), σ2p<sub><i>z</i></sub> drops below the π orbitals:<br>σ1s < σ<sup>*</sup>1s < σ2s < σ<sup>*</sup>2s < σ2p<sub><i>z</i></sub> < (π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>) < (π<sup>*</sup>2p<sub><i>x</i></sub> = π<sup>*</sup>2p<sub><i>y</i></sub>) < σ<sup>*</sup>2p<sub><i>z</i></sub>',
+        html: '<b>Energy-level ordering of molecular orbitals.</b> For molecules <b>up to N<sub>2</sub></b> (i.e. Li<sub>2</sub> to N<sub>2</sub>, ≤ 14 electrons), the π orbitals lie below σ2p<sub><i>z</i></sub>:<br>σ1s < σ*1s < σ2s < σ*2s < (π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>) < σ2p<sub><i>z</i></sub> < (π*2p<sub><i>x</i></sub> = π*2p<sub><i>y</i></sub>) < σ*2p<sub><i>z</i></sub><br>For molecules <b>after N<sub>2</sub></b> (O<sub>2</sub>, F<sub>2</sub>), σ2p<sub><i>z</i></sub> drops below the π orbitals:<br>σ1s < σ*1s < σ2s < σ*2s < σ2p<sub><i>z</i></sub> < (π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>) < (π*2p<sub><i>x</i></sub> = π*2p<sub><i>y</i></sub>) < σ*2p<sub><i>z</i></sub>',
       },
       {
         t: 'def',
@@ -106,7 +107,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Procedure B — Why ionisation can strengthen a bond</b><br>A counter-intuitive but exam-favourite result: removing an electron does not always weaken a bond. If the electron is pulled from an <b>antibonding</b> orbital, <i>N</i><sub>a</sub> drops, so bond order rises. <b>Reasoning:</b> antibonding electrons work against the bond; evicting one removes a destabilising influence. This is why NO<sup>+</sup> (bond order 3) has a stronger, shorter bond than neutral NO (bond order 2.5) — the lost electron came from a π<sup>*</sup> orbital. Always check which orbital loses the electron before predicting the effect.',
+        html: '<b>Procedure B — Why ionisation can strengthen a bond</b><br>A counter-intuitive but exam-favourite result: removing an electron does not always weaken a bond. If the electron is pulled from an <b>antibonding</b> orbital, <i>N</i><sub>a</sub> drops, so bond order rises. <b>Reasoning:</b> antibonding electrons work against the bond; evicting one removes a destabilising influence. This is why NO<sup>+</sup> (bond order 3) has a stronger, shorter bond than neutral NO (bond order 2.5) — the lost electron came from a π* orbital. Always check which orbital loses the electron before predicting the effect.',
       },
       {
         t: 'proc',
@@ -134,9 +135,9 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Step 1 — electron count:</b> O<sub>2</sub> has 8 + 8 = 16 electrons.',
           '<b>Step 2 — ordering:</b> oxygen is after N<sub>2</sub>, so σ2p<sub><i>z</i></sub> fills before the π orbitals.',
-          '<b>Step 3 — configuration:</b><br>σ1s<sup>2</sup> σ<sup>*</sup>1s<sup>2</sup> σ2s<sup>2</sup> σ<sup>*</sup>2s<sup>2</sup> σ2p<sub><i>z</i></sub><sup>2</sup> π2p<sub><i>x</i></sub><sup>2</sup> π2p<sub><i>y</i></sub><sup>2</sup> π<sup>*</sup>2p<sub><i>x</i></sub><sup>1</sup> π<sup>*</sup>2p<sub><i>y</i></sub><sup>1</sup>',
-          '<b>Step 4 — bond order:</b> <i>N</i><sub>b</sub> = 10 (the σ1s, σ2s, σ2p<sub><i>z</i></sub>, π2p<sub><i>x</i></sub>, π2p<sub><i>y</i></sub> pairs) and <i>N</i><sub>a</sub> = 6 (the two σ<sup>*</sup> pairs plus the two single π<sup>*</sup> electrons): bond order = ½(10 − 6)',
-          '<b>Step 5 — magnetism:</b> the last two electrons singly occupy the degenerate π<sup>*</sup>2p<sub><i>x</i></sub> and π<sup>*</sup>2p<sub><i>y</i></sub> orbitals (Hund’s rule). <b>Two unpaired electrons.</b>',
+          '<b>Step 3 — configuration:</b><br>σ1s<sup>2</sup> σ*1s<sup>2</sup> σ2s<sup>2</sup> σ*2s<sup>2</sup> σ2p<sub><i>z</i></sub><sup>2</sup> π2p<sub><i>x</i></sub><sup>2</sup> π2p<sub><i>y</i></sub><sup>2</sup> π*2p<sub><i>x</i></sub><sup>1</sup> π*2p<sub><i>y</i></sub><sup>1</sup>',
+          '<b>Step 4 — bond order:</b> <i>N</i><sub>b</sub> = 10 (the σ1s, σ2s, σ2p<sub><i>z</i></sub>, π2p<sub><i>x</i></sub>, π2p<sub><i>y</i></sub> pairs) and <i>N</i><sub>a</sub> = 6 (the two σ* pairs plus the two single π* electrons): bond order = ½(10 − 6)',
+          '<b>Step 5 — magnetism:</b> the last two electrons singly occupy the degenerate π*2p<sub><i>x</i></sub> and π*2p<sub><i>y</i></sub> orbitals (Hund’s rule). <b>Two unpaired electrons.</b>',
         ],
         ans: 'Bond order 2, paramagnetic — the very result VBT could not explain.',
       },
@@ -156,8 +157,8 @@ export const TOPICS: Topic[] = [
         q: 'Nitric oxide, NO, loses an electron to form NO<sup>+</sup>. Determine the bond order and magnetic nature of both species, and state how the bond length changes.',
         steps: [
           'This combines odd-electron MO filling, bond-order arithmetic, and the antibonding-removal idea.',
-          'For NO (7 + 8 = 15 electrons): filling gives <i>N</i><sub>b</sub> = 10 and <i>N</i><sub>a</sub> = 5, with the fifteenth (odd) electron in a π<sup>*</sup> orbital. Bond order = ½(10 − 5) = 2.5; one unpaired electron ⇒ <b>paramagnetic</b>.',
-          'Removing one electron to form NO<sup>+</sup> (14 electrons) takes it from the singly-occupied <b>antibonding</b> π<sup>*</sup> orbital. Now <i>N</i><sub>b</sub> = 10, <i>N</i><sub>a</sub> = 4: bond order = ½(10 − 4) = 3; all electrons paired ⇒ <b>diamagnetic</b>.',
+          'For NO (7 + 8 = 15 electrons): filling gives <i>N</i><sub>b</sub> = 10 and <i>N</i><sub>a</sub> = 5, with the fifteenth (odd) electron in a π* orbital. Bond order = ½(10 − 5) = 2.5; one unpaired electron ⇒ <b>paramagnetic</b>.',
+          'Removing one electron to form NO<sup>+</sup> (14 electrons) takes it from the singly-occupied <b>antibonding</b> π* orbital. Now <i>N</i><sub>b</sub> = 10, <i>N</i><sub>a</sub> = 4: bond order = ½(10 − 4) = 3; all electrons paired ⇒ <b>diamagnetic</b>.',
           'Because bond order rises from 2.5 to 3, the bond in NO<sup>+</sup> is <b>stronger and shorter</b> than in NO.',
         ],
         ans: 'NO — bond order 2.5, paramagnetic; NO<sup>+</sup> — bond order 3, diamagnetic, with a shorter bond. Ionisation strengthened the bond because the electron left an antibonding orbital.',
@@ -181,7 +182,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CBSE] Write the MO electronic configuration of N<sub>2</sub>, give its bond order, and state its magnetic behaviour.',
-            a: '<i>N</i><sub>b</sub> = 10, <i>N</i><sub>a</sub> = 4, bond order 3, diamagnetic.',
+            a: 'σ1s<sup>2</sup> σ*1s<sup>2</sup> σ2s<sup>2</sup> σ*2s<sup>2</sup> π2p<sub><i>x</i></sub><sup>2</sup> π2p<sub><i>y</i></sub><sup>2</sup> σ2p<sub><i>z</i></sub><sup>2</sup>; <i>N</i><sub>b</sub> = 10, <i>N</i><sub>a</sub> = 4, bond order 3, diamagnetic.',
           },
           {
             q: '[NEET] Why does He<sub>2</sub> not exist while He<sub>2</sub><sup>+</sup> does? Support your answer with bond orders.',
@@ -197,7 +198,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[JEE Advanced] The species C<sub>2</sub> has a bond order of 2. Show, using its MO configuration, that this double bond is unusual in being composed of two π bonds with no net σ2p contribution.',
-            a: 'C<sub>2</sub> (12 e<sup>−</sup>, “up to N<sub>2</sub>” scheme): σ1s<sup>2</sup> σ<sup>*</sup>1s<sup>2</sup> σ2s<sup>2</sup> σ<sup>*</sup>2s<sup>2</sup> π2p<sub><i>x</i></sub><sup>2</sup> π2p<sub><i>y</i></sub><sup>2</sup> with σ2p<sub><i>z</i></sub> empty; bond order = ½(8 − 4) = 2, arising from two filled π bonds and no occupied σ2p<sub><i>z</i></sub>.',
+            a: 'C<sub>2</sub> (12 e<sup>−</sup>, “up to N<sub>2</sub>” scheme): σ1s<sup>2</sup> σ*1s<sup>2</sup> σ2s<sup>2</sup> σ*2s<sup>2</sup> π2p<sub><i>x</i></sub><sup>2</sup> π2p<sub><i>y</i></sub><sup>2</sup> with σ2p<sub><i>z</i></sub> empty; bond order = ½(8 − 4) = 2, arising from two filled π bonds and no occupied σ2p<sub><i>z</i></sub>.',
           },
         ],
       },
@@ -213,15 +214,15 @@ export const TOPICS: Topic[] = [
           { label: 'CO', nudge: '<b>(a)</b> N<sub>2</sub>, <b>(c)</b> F<sub>2</sub> and <b>(d)</b> CO all have every electron paired (diamagnetic).' },
         ],
         correct: 1,
-        solution: 'Its two highest electrons singly occupy the degenerate π<sup>*</sup> orbitals (Hund’s rule), giving two unpaired electrons. A student who draws the wrong energy ordering for O<sub>2</sub> (placing σ2p<sub><i>z</i></sub> above the π levels) may still get the unpaired π<sup>*</sup> electrons right — but using the N<sub>2</sub> ordering for O<sub>2</sub> is the classic slip.',
+        solution: 'Its two highest electrons singly occupy the degenerate π* orbitals (Hund’s rule), giving two unpaired electrons. Even with the N<sub>2</sub> ordering, O<sub>2</sub>’s last two electrons go singly into π*, so this answer survives the classic ordering slip — but other questions do not.',
       },
       {
         t: 'mcq',
         q: 'The bond order of the species with the configuration giving <i>N</i><sub>b</sub> = 8, <i>N</i><sub>a</sub> = 4 is:',
         opts: [
-          { label: '1', nudge: '<b>(a)</b> 1 and <b>(c)</b> 3 are just near-miss values: forgetting the ½ would give 4, and adding instead of subtracting would give 6.' },
+          { label: '1', nudge: '<b>(a)</b> 1 and <b>(c)</b> 3 match no consistent slip — ½(8 − 4) is 2; the usual slips give 4 (forgetting the ½) or 6 (adding instead of subtracting), neither of which is offered.' },
           { label: '2', nudge: null },
-          { label: '3', nudge: '<b>(a)</b> 1 and <b>(c)</b> 3 are just near-miss values: forgetting the ½ would give 4, and adding instead of subtracting would give 6.' },
+          { label: '3', nudge: '<b>(a)</b> 1 and <b>(c)</b> 3 match no consistent slip — ½(8 − 4) is 2; the usual slips give 4 (forgetting the ½) or 6 (adding instead of subtracting), neither of which is offered.' },
           { label: '0', nudge: '<b>(d)</b> 0 is from wrongly setting <i>N</i><sub>b</sub> = <i>N</i><sub>a</sub>.' },
         ],
         correct: 1,
@@ -248,7 +249,7 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'O<sub>2</sub> > O<sub>2</sub><sup>+</sup> > O<sub>2</sub><sup>−</sup>',
-            nudge: '<b>(a)</b> misreads O<sub>2</sub><sup>+</sup> as weaker (forgetting the electron is removed from antibonding π<sup>*</sup>, which raises bond order).',
+            nudge: '<b>(a)</b> misreads O<sub>2</sub><sup>+</sup> as weaker (forgetting the electron is removed from antibonding π*, which raises bond order).',
           },
           { label: 'O<sub>2</sub><sup>+</sup> > O<sub>2</sub> > O<sub>2</sub><sup>−</sup>', nudge: null },
           { label: 'O<sub>2</sub><sup>−</sup> > O<sub>2</sub> > O<sub>2</sub><sup>+</sup>', nudge: '<b>(c)</b> reverses the trend.' },
@@ -264,13 +265,13 @@ export const TOPICS: Topic[] = [
         items: [
           '<b>Using one MO ordering for everything.</b> The σ2p<sub><i>z</i></sub>/π2p crossover means O<sub>2</sub> and F<sub>2</sub> use a different order from B<sub>2</sub>–N<sub>2</sub>. Memorise both, and pick by electron count (≤ 14 vs above).',
           '<b>Dropping the ½ in bond order.</b> Bond order is half the difference <i>N</i><sub>b</sub> − <i>N</i><sub>a</sub>, not the difference itself. A bond order of “6” for N<sub>2</sub> is the tell-tale sign of this slip.',
-          '<b>Assuming ionisation always weakens a bond.</b> Removing an electron from an antibonding orbital (π<sup>*</sup> in NO or O<sub>2</sub>) raises bond order. Always identify which orbital loses the electron.',
+          '<b>Assuming ionisation always weakens a bond.</b> Removing an electron from an antibonding orbital (π* in NO or O<sub>2</sub>) raises bond order. Always identify which orbital loses the electron.',
           '<b>Getting the intramolecular effect backwards.</b> Intramolecular H-bonding lowers boiling point and solubility (the molecule satisfies itself), whereas intermolecular H-bonding raises them. Students often credit any H-bond with raising boiling point.',
         ],
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed):</b> For any O<sub>2</sub>-family ion, you needn’t rebuild the whole diagram — start from O<sub>2</sub> (bond order 2) and adjust: every electron added goes into π<sup>*</sup> and drops bond order by 0.5; every electron removed comes from π<sup>*</sup> and raises it by 0.5. For H-bonding questions, the first reflex is “is there an N–H, O–H or F–H?” — no donor, no hydrogen bond.',
+        html: '<b>Pro-Tip (speed):</b> For any O<sub>2</sub>-family ion, you needn’t rebuild the whole diagram — start from O<sub>2</sub> (bond order 2) and adjust: every electron added (up to O<sub>2</sub><sup>2−</sup>) goes into π* and drops bond order by 0.5; every electron removed comes from π* and raises it by 0.5. For H-bonding questions, the first reflex is “is there an N–H, O–H or F–H?” — no donor, no hydrogen bond.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -280,11 +281,11 @@ export const TOPICS: Topic[] = [
           { f: '<b>Bond order</b> = ½(<i>N</i><sub>b</sub> − <i>N</i><sub>a</sub>). > 0 ⇒ exists; higher ⇒ shorter, stronger bond.', note: '' },
           {
             f: 'Ordering up to N<sub>2</sub>',
-            note: 'σ1s, σ<sup>*</sup>1s, σ2s, σ<sup>*</sup>2s, (π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>), σ2p<sub><i>z</i></sub>, (π<sup>*</sup>, π<sup>*</sup>), σ<sup>*</sup>2p<sub><i>z</i></sub>. <b>After N<sub>2</sub> (O<sub>2</sub>, F<sub>2</sub>):</b> σ2p<sub><i>z</i></sub> moves before the π pair.',
+            note: 'σ1s, σ*1s, σ2s, σ*2s, (π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>), σ2p<sub><i>z</i></sub>, (π*, π*), σ*2p<sub><i>z</i></sub>. <b>After N<sub>2</sub> (O<sub>2</sub>, F<sub>2</sub>):</b> σ2p<sub><i>z</i></sub> moves before the π pair.',
           },
           {
             f: 'Magnetism',
-            note: 'any unpaired electron ⇒ paramagnetic; all paired ⇒ diamagnetic. O<sub>2</sub> is paramagnetic (two π<sup>*</sup> electrons) — MOT’s signature triumph.',
+            note: 'any unpaired electron ⇒ paramagnetic; all paired ⇒ diamagnetic. O<sub>2</sub> is paramagnetic (two π* electrons) — MOT’s signature triumph.',
           },
           {
             f: 'Key bond orders',
@@ -297,7 +298,7 @@ export const TOPICS: Topic[] = [
         ],
         aids: [
           'H-bond donors are “FON”: only <b>F</b>, <b>O</b>, <b>N</b> bonded to H qualify.',
-          'For the O<sub>2</sub> family: “add to π<sup>*</sup>, drop by half; remove from π<sup>*</sup>, gain a half.”',
+          'For the O<sub>2</sub> family: “add to π*, drop by half; remove from π*, gain a half.”',
         ],
       },
     ],
@@ -328,7 +329,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Now the subtler idea: <b>back bonding</b>. Imagine an atom that has just accepted a bond but still has an empty orbital, sitting next to a neighbour with a spare lone pair. The neighbour can “return the favour” by donating that lone pair sideways into the empty orbital — a secondary π-type bond layered on top of the original σ bond. This back-donation quietly rewrites a molecule’s properties: it shortens bonds, stiffens them with partial double-bond character, and can even flatten a molecule that VSEPR insists should be pyramidal. It is why boron trifluoride is a weaker Lewis acid than boron triiodide (exactly backwards from what electronegativity predicts), and why trisilylamine is flat while trimethylamine is a pyramid.',
+        html: 'Now the subtler idea: <b>back bonding</b>. Imagine an electron-deficient atom that still has an empty orbital, sitting next to a neighbour with a spare lone pair. The neighbour can “return the favour” by donating that lone pair sideways into the empty orbital — a secondary π-type bond layered on top of the original σ bond. This back-donation quietly rewrites a molecule’s properties: it shortens bonds, stiffens them with partial double-bond character, and can even flatten a molecule that VSEPR insists should be pyramidal. It is why boron trifluoride is a weaker Lewis acid than boron triiodide (exactly backwards from what electronegativity predicts), and why trisilylamine is flat while trimethylamine is a pyramid.',
       },
       {
         t: 'p',
@@ -366,7 +367,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Drago’s rule',
-        html: 'For hydrides of heavier p-block elements (period 3 and below) whose central atom has low electronegativity (≲ 1.3) and large size, effective hybridisation does not occur; bonding uses nearly pure p orbitals, giving bond angles close to 90° (e.g. PH<sub>3</sub> ≈ 93.5°, H<sub>2</sub>S ≈ 92°, AsH<sub>3</sub> ≈ 91.8°).',
+        html: 'For hydrides of heavier p-block elements (period 3 and below) whose central atom has low electronegativity (≲ 2.5) and large size, effective hybridisation does not occur; bonding uses nearly pure p orbitals, giving bond angles close to 90° (e.g. PH<sub>3</sub> ≈ 93.5°, H<sub>2</sub>S ≈ 92°, AsH<sub>3</sub> ≈ 91.8°).',
       },
       {
         t: 'def',
@@ -395,7 +396,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>More faces of back bonding</b><br>Back bonding is not a niche curiosity; it quietly governs a whole family of familiar molecules. <b>Boric acid</b>, B(OH)<sub>3</sub>, is a weak monobasic acid that does not donate a proton at all — its electron-deficient boron instead accepts a hydroxide ion from water, and the same pπ–pπ donation from oxygen lone pairs into boron strengthens the B–O bonds. <b>Carbon dioxide</b> owes its short, strong C=O bonds and rigid linear shape to extended π overlap across the molecule. In the <b>oxyacids and oxyanions of third-period elements</b> — H<sub>2</sub>SO<sub>4</sub>, SO<sub>3</sub>, SO<sub>4</sub><sup>2−</sup>, H<sub>3</sub>PO<sub>4</sub>, HClO<sub>4</sub> — the central atom’s vacant 3d orbitals accept oxygen lone pairs (pπ–dπ), which is why their S=O and P=O bonds are so short and these species so stable. The same principle underlies the toughness of the silicon–oxygen framework in silicones and silicates. So when a question shows a lone-pair donor beside an electron-poor or d-orbital-bearing centre, back bonding is very often the intended key.',
+        html: '<b>More faces of back bonding</b><br>Back bonding is not a niche curiosity; it quietly governs a whole family of familiar molecules. <b>Boric acid</b>, B(OH)<sub>3</sub>, is a weak monobasic acid that does not donate a proton at all — its electron-deficient boron instead accepts a hydroxide ion from water, and the same pπ–pπ donation from oxygen lone pairs into boron strengthens the B–O bonds. In the <b>oxyacids and oxyanions of third-period elements</b> — H<sub>2</sub>SO<sub>4</sub>, SO<sub>3</sub>, SO<sub>4</sub><sup>2−</sup>, H<sub>3</sub>PO<sub>4</sub>, HClO<sub>4</sub> — the central atom’s vacant 3d orbitals accept oxygen lone pairs (pπ–dπ), which is why their S=O and P=O bonds are so short and these species so stable. The same principle underlies the toughness of the silicon–oxygen framework in silicones and silicates. So when a question shows a lone-pair donor beside an electron-poor or d-orbital-bearing centre, back bonding is very often the intended key.',
       },
       {
         t: 'p',
@@ -527,7 +528,7 @@ export const TOPICS: Topic[] = [
           },
           {
             label: 'N(CH<sub>3</sub>)<sub>3</sub>',
-            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(c)</b> all keep N sp<sup>3</sup> with a localised lone pair, giving pyramidal shapes. A student who treats all three amines alike picks (c), forgetting carbon offers no empty orbital for back bonding.',
+            nudge: '<b>(a)</b>, <b>(b)</b> and <b>(c)</b> all keep N sp<sup>3</sup> with a localised lone pair, giving pyramidal shapes. A student who credits carbon, like silicon, with an empty orbital for back bonding picks (c); carbon has none.',
           },
           { label: 'N(SiH<sub>3</sub>)<sub>3</sub>', nudge: null },
         ],
@@ -554,11 +555,11 @@ export const TOPICS: Topic[] = [
           { label: '2', nudge: null },
           {
             label: '3',
-            nudge: '<b>(c)</b>/<b>(d)</b> confuse the bridge bonds with the terminal bonds (of which there are four, but those are 2c–2e).',
+            nudge: '<b>(c)</b> 3 adds a bridge that does not exist — diborane has only two B–H–B bridges.',
           },
           {
             label: '4',
-            nudge: '<b>(c)</b>/<b>(d)</b> confuse the bridge bonds with the terminal bonds (of which there are four, but those are 2c–2e).',
+            nudge: '<b>(d)</b> 4 confuses the bridge bonds with the four terminal B–H bonds, which are ordinary 2c–2e.',
           },
         ],
         correct: 1,

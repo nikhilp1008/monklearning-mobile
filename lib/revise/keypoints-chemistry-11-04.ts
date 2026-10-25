@@ -19,11 +19,13 @@
  * labels dropped). Additional topics: the addenda's methods, worked examples
  * and the "Answers to Practice (Addenda A–E)", each with its own addendum.
  * Additional topic F: its distribution, archetypes and traps. Topic 04's
- * Drago's-rule electronegativity cut-off (printed "≲ 1.3") is not used.
+ * Drago's-rule electronegativity cut-off (printed "≲ 1.3", now "≲ 2.5" in the
+ * topic after the expert review) is not used.
  *
  * Markup is the chapter's own: <i> for maths, <sub> and <sup>. Element
  * symbols, formulas and ions are upright (NH<sub>4</sub><sup>+</sup>,
- * O<sub>2</sub><sup>2−</sup>); so are the book's generic X–Y. Maths italic:
+ * O<sub>2</sub><sup>2−</sup>); so are generic stand-in element letters (X–Y),
+ * by Nikhil's decision (upright everywhere in the chapter). Maths italic:
  * <i>V</i>, <i>L</i>, <i>B</i>, <i>μ</i>, <i>q</i>, <i>d</i>, <i>e</i>,
  * <i>θ</i>, <i>H</i>, <i>M</i>, <i>C</i>, <i>A</i>, <i>N</i><sub>b</sub>,
  * <i>N</i><sub>a</sub> (label subscripts upright). Orbital, hybrid and MO
@@ -113,8 +115,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 1,
     kind: 'mistake',
-    q: 'H<sub>2</sub>O, H<sub>2</sub>S and H<sub>2</sub>Se are all sp<sup>3</sup>. Do they share one bond angle?',
-    a: 'No: 104.5° > ~92° > ~91°. Hybridisation sets only the ideal angle. Down the group the central atom is less electronegative, so the bonding pairs drift outward and repel less, and its bonds carry less s-character; the angle collapses toward 90°',
+    q: 'H<sub>2</sub>O, H<sub>2</sub>S and H<sub>2</sub>Se all have SN = 4. Do they share one bond angle?',
+    a: 'No: 104.5° > ~92° > ~91°. The steric number sets only the ideal angle. Down the group the central atom is less electronegative, so the bonding pairs drift outward and repel less, and its bonds carry less s-character; the angle collapses toward 90°',
     why: 'Lone pairs shrink angles too: CH<sub>4</sub> (109.5°) > NH<sub>3</sub> (107°) > H<sub>2</sub>O (104.5°).',
     say: null,
   },

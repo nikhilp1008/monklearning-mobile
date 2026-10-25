@@ -30,7 +30,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter has already taught you the four pillars — Lewis structures and formal charge, VSEPR and hybridisation, molecular orbital theory, and the coordinate/back-bonding refinements. What it could not do, for reasons of space, is drill the problems that examiners actually build on those pillars. Five such problem families recur year after year and deserve their own treatment. Addendum A turns MOT into an electron-counting lens so that any diatomic species — including the heteronuclear ones (CO, CN<sup>−</sup>, NO) the chapter only touched — yields its bond order, length, energy and magnetism in seconds. Addendum B systematises the counting questions JEE Main loves: sigma/pi bond censuses, lone-pair arithmetic, coordinate-bond counts, and covalency. Addendum C makes the dipole moment quantitative — adding bond dipoles as vectors instead of merely deciding “polar or non-polar”. Addendum D uses resonance to rank bond lengths inside one ion, the carbonate/bicarbonate/nitrate family of questions that a single Lewis structure cannot answer. Addendum E closes two small but examinable gaps: which pairs of atomic orbitals may combine into molecular orbitals, and the F–F versus Cl–Cl bond-enthalpy anomaly. Every fact below is verifiable against NCERT Class 11 Chemistry, Chapter 4.',
+        html: 'The chapter has already taught you the four pillars — Lewis structures and formal charge, VSEPR and hybridisation, molecular orbital theory, and the coordinate/back-bonding refinements. What it could not do, for reasons of space, is drill the problems that examiners actually build on those pillars. Five such problem families recur year after year and deserve their own treatment. Addendum A turns MOT into an electron-counting lens so that any diatomic species — including the heteronuclear ones (CO, CN<sup>−</sup>) the chapter only touched — yields its bond order, length, energy and magnetism in seconds. Addendum B systematises the counting questions JEE Main loves: sigma/pi bond censuses, lone-pair arithmetic, coordinate-bond counts, and covalency. Addendum C makes the dipole moment quantitative — adding bond dipoles as vectors instead of merely deciding “polar or non-polar”. Addendum D uses resonance to rank bond lengths inside one ion, the carbonate/bicarbonate/nitrate family of questions that a single Lewis structure cannot answer. Addendum E closes two small but examinable gaps: which pairs of atomic orbitals may combine into molecular orbitals, and the F–F versus Cl–Cl bond-enthalpy anomaly. Every fact below is verifiable against NCERT Class 11 Chemistry, Chapter 4.',
       },
 
       { t: 'part', title: 'The method' },
@@ -87,7 +87,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>4. Adjust for added or removed electrons</b> without rebuilding anything: electrons beyond 14 go into the antibonding π<sup>*</sup> pair, so adding one electron to a 14-, 15-, 16- or 17-electron species drops BO by 0.5 and changes the unpaired count by one; removing one does the opposite. Below 14 electrons the same arithmetic holds with the bonding π2p/σ2p set: removing an electron from N<sub>2</sub> (BO 3) gives N<sub>2</sub><sup>+</sup> (BO 2.5, paramagnetic); adding one gives N<sub>2</sub><sup>−</sup> (BO 2.5, paramagnetic) — both weaken N<sub>2</sub>, but for different orbital reasons.',
+        html: '<b>4. Adjust for added or removed electrons</b> without rebuilding anything: electrons beyond 14 go into the antibonding π* pair, so adding one electron to a 14-, 15-, 16- or 17-electron species drops BO by 0.5 and changes the unpaired count by one; removing one from a 15- to 18-electron species does the opposite. Below 14 electrons the same arithmetic holds with the bonding π2p/σ2p set: removing an electron from N<sub>2</sub> (BO 3) gives N<sub>2</sub><sup>+</sup> (BO 2.5, paramagnetic); adding one gives N<sub>2</sub><sup>−</sup> (BO 2.5, paramagnetic) — both weaken N<sub>2</sub>, but for different orbital reasons.',
       },
       {
         t: 'p',
@@ -96,7 +96,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'c11-04-A-d1' },
       {
         t: 'p',
-        html: '<b>HOMO and LUMO questions.</b> A new JEE Main habit is to ask for the highest occupied (HOMO) or lowest unoccupied (LUMO) molecular orbital rather than a bond order. Read them straight off the filled sequence:<br>• O<sub>2</sub> (16 e<sup>−</sup>): HOMO = the half-filled π<sup>*</sup>2p<sub><i>x</i></sub>, π<sup>*</sup>2p<sub><i>y</i></sub> pair (two electrons total, one in each); LUMO = σ<sup>*</sup>2p<sub><i>z</i></sub>.<br>• N<sub>2</sub> (14 e<sup>−</sup>): HOMO = σ2p<sub><i>z</i></sub>; LUMO = π<sup>*</sup>2p<sub><i>x</i></sub> = π<sup>*</sup>2p<sub><i>y</i></sub>.<br>• NO (15 e<sup>−</sup>): HOMO = π<sup>*</sup>2p (one electron); removing it gives NO<sup>+</sup>.',
+        html: '<b>HOMO and LUMO questions.</b> A new JEE Main habit is to ask for the highest occupied (HOMO) or lowest unoccupied (LUMO) molecular orbital rather than a bond order. Read them straight off the filled sequence:<br>• O<sub>2</sub> (16 e<sup>−</sup>): HOMO = the half-filled π*2p<sub><i>x</i></sub>, π*2p<sub><i>y</i></sub> pair (two electrons total, one in each); LUMO = σ*2p<sub><i>z</i></sub>.<br>• N<sub>2</sub> (14 e<sup>−</sup>): HOMO = σ2p<sub><i>z</i></sub>; LUMO = π*2p<sub><i>x</i></sub> = π*2p<sub><i>y</i></sub>.<br>• NO (15 e<sup>−</sup>): HOMO = π*2p (one electron); removing it gives NO<sup>+</sup>.',
       },
 
       { t: 'part', title: 'Worked micro-examples' },
@@ -125,7 +125,7 @@ export const TOPICS: Topic[] = [
         tag: 'HOMO population',
         q: 'How many electrons occupy the HOMO of O<sub>2</sub>?',
         steps: [
-          'The π<sup>*</sup>2p pair holds the last two electrons, one in each degenerate orbital (Hund’s rule). The HOMO is that degenerate pair, and the total number of electrons in it is 2.',
+          'The π*2p pair holds the last two electrons, one in each degenerate orbital (Hund’s rule). The HOMO is that degenerate pair, and the total number of electrons in it is 2.',
         ],
         ans: '',
       },
@@ -134,9 +134,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Wrong electron count for ions.</b> O<sub>2</sub><sup>2−</sup> has 18 electrons, not 16. Every missed charge shifts BO by 0.5 and flips the magnetism.',
-          '<b>Exporting the O<sub>2</sub> ordering to N<sub>2</sub><sup>+</sup>/C<sub>2</sub>.</b> The crossover only shifts which orbital is labelled HOMO; but for magnetism of the light diatomics it is decisive. Use electron count ≤ 14 as the trigger for the “up to N<sub>2</sub>” scheme.',
-          '<b>Assuming ionisation always weakens.</b> Removing a π<sup>*</sup> electron (O<sub>2</sub> → O<sub>2</sub><sup>+</sup>, NO → NO<sup>+</sup>) raises BO by 0.5 and shortens the bond. Always ask which orbital lost the electron.',
+          '<b>Wrong electron count for ions.</b> O<sub>2</sub><sup>2−</sup> has 18 electrons, not 16. Every missed charge shifts BO by 0.5 and changes the number of unpaired electrons by one, which can flip the magnetism.',
+          '<b>Exporting the O<sub>2</sub> ordering to C<sub>2</sub> (or B<sub>2</sub>).</b> The crossover only shifts which orbital is labelled HOMO; but for magnetism of the light diatomics it is decisive. Use electron count ≤ 14 as the trigger for the “up to N<sub>2</sub>” scheme.',
+          '<b>Assuming ionisation always weakens.</b> Removing a π* electron (O<sub>2</sub> → O<sub>2</sub><sup>+</sup>, NO → NO<sup>+</sup>) raises BO by 0.5 and shortens the bond. Always ask which orbital lost the electron.',
           '<b>Believing “paramagnetic” needs many unpaired electrons.</b> One suffices (NO, O<sub>2</sub><sup>−</sup>); the count of unpaired electrons — 1 vs 2 — is itself an exam discriminator between superoxide and oxygen.',
         ],
       },
@@ -151,7 +151,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: 'State the bond order and magnetic behaviour of CN<sup>−</sup> and of NO.',
-            a: 'CN<sup>−</sup>: 14 e<sup>−</sup>, BO 3, diamagnetic. NO: 15 e<sup>−</sup>, BO 2.5, paramagnetic (one unpaired π<sup>*</sup> electron).',
+            a: 'CN<sup>−</sup>: 14 e<sup>−</sup>, BO 3, diamagnetic. NO: 15 e<sup>−</sup>, BO 2.5, paramagnetic (one unpaired π* electron).',
           },
           {
             q: 'Which is diamagnetic: NO, CO, O<sub>2</sub><sup>−</sup>, O<sub>2</sub>?',
@@ -159,7 +159,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: 'Give the HOMO of N<sub>2</sub> and of O<sub>2</sub>, and the number of electrons in each.',
-            a: 'N<sub>2</sub>: HOMO σ2p<sub><i>z</i></sub> with 2 electrons. O<sub>2</sub>: HOMO the degenerate π<sup>*</sup>2p<sub><i>x</i></sub>, π<sup>*</sup>2p<sub><i>y</i></sub> pair holding 2 electrons (one each).',
+            a: 'N<sub>2</sub>: HOMO σ2p<sub><i>z</i></sub> with 2 electrons. O<sub>2</sub>: HOMO the degenerate π*2p<sub><i>x</i></sub>, π*2p<sub><i>y</i></sub> pair holding 2 electrons (one each).',
           },
         ],
       },
@@ -348,7 +348,7 @@ export const TOPICS: Topic[] = [
         tag: '',
         q: 'Predict, without any numbers, the ordering <i>μ</i>: CHCl<sub>3</sub> vs CCl<sub>4</sub> vs CH<sub>2</sub>Cl<sub>2</sub>.',
         steps: [
-          'CCl<sub>4</sub> is tetrahedral with four identical dipoles: exact cancellation, <i>μ</i> = 0. CHCl<sub>3</sub> has three C–Cl dipoles partly opposed by the small C–H dipole; CH<sub>2</sub>Cl<sub>2</sub> has only two C–Cl dipoles meeting at ∼ 109.5°, whose resultant survives more strongly than in CHCl<sub>3</sub> where three dipoles oppose one another more completely.',
+          'CCl<sub>4</sub> is tetrahedral with four identical dipoles: exact cancellation, <i>μ</i> = 0. CHCl<sub>3</sub> has three C–Cl dipoles whose resultant is only one bond dipole’s worth (the small C–H dipole points the same way and adds a little); CH<sub>2</sub>Cl<sub>2</sub> has only two C–Cl dipoles meeting at ∼ 109.5°, whose resultant survives more strongly than in CHCl<sub>3</sub> where three dipoles oppose one another more completely.',
           'NCERT’s table gives CHCl<sub>3</sub> = 1.04 D and CCl<sub>4</sub> = 0; experimentally CH<sub>2</sub>Cl<sub>2</sub> (1.60 D) exceeds CHCl<sub>3</sub> — a result that surprises students who count “number of polar bonds” instead of summing vectors.',
         ],
         ans: '',
@@ -522,7 +522,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'E.2 The F–F anomaly' },
       {
         t: 'p',
-        html: 'NCERT’s own data set up the puzzle: the F–F bond (144 pm) is shorter than Cl–Cl (199 pm), and “larger bond dissociation enthalpy means a stronger bond” would predict F<sub>2</sub> to be the tougher molecule. The measured order runs the other way — Cl<sub>2</sub> (242 kJ mol<sup>−1</sup>) exceeds F<sub>2</sub> (≈ 159 kJ mol<sup>−1</sup>). The resolution is electronic crowding: fluorine is so small that the three lone pairs on each atom are forced into close contact, and lone-pair–lone-pair repulsion across the short bond weakens it. In chlorine the larger core keeps the lone pairs apart. So the rule “shorter bond ⇒ stronger bond” holds within a bond-order family, not across bonds between different atoms where lone-pair repulsion changes the picture. The same caution applies when comparing O–O against S–S single bonds.',
+        html: 'NCERT’s own data set up the puzzle: the F–F bond (144 pm) is shorter than Cl–Cl (199 pm), and the rule “a shorter bond means a stronger bond” would predict F<sub>2</sub> to be the tougher molecule. The measured order runs the other way — Cl<sub>2</sub> (242 kJ mol<sup>−1</sup>) exceeds F<sub>2</sub> (≈ 159 kJ mol<sup>−1</sup>). The resolution is electronic crowding: fluorine is so small that the three lone pairs on each atom are forced into close contact, and lone-pair–lone-pair repulsion across the short bond weakens it. In chlorine the larger core keeps the lone pairs apart. So the rule “shorter bond ⇒ stronger bond” holds within a bond-order family, not across bonds between different atoms where lone-pair repulsion changes the picture. The same caution applies when comparing O–O against S–S single bonds.',
       },
 
       { t: 'part', title: 'Practice' },
@@ -580,7 +580,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Two observations worth acting on. First, MOT questions are almost never “write the configuration” any more — they compress to an electron count plus one output (order, magnetism, HOMO), which is exactly the lens of Addendum A. Second, hybridisation questions increasingly arrive as match-the-column items mixing main-group molecules with complex ions ([NiCl<sub>4</sub>]<sup>2−</sup>, [Fe(CN)<sub>6</sub>]<sup>4−</sup>); the steric-number method survives, but you must supply the d-orbital cases (dsp<sup>2</sup>, d<sup>2</sup>sp<sup>3</sup>, sp<sup>3</sup>d<sup>2</sup>) as memorised facts for the standard complexes.',
+        html: 'Two observations worth acting on. First, MOT questions are almost never “write the configuration” any more — they compress to an electron count plus one output (order, magnetism, HOMO), which is exactly the lens of Addendum A. Second, hybridisation questions increasingly arrive as match-the-column items mixing main-group molecules with complex ions ([Ni(CN)<sub>4</sub>]<sup>2−</sup>, [Fe(CN)<sub>6</sub>]<sup>4−</sup>); the steric-number method survives, but you must supply the d-orbital cases (dsp<sup>2</sup>, d<sup>2</sup>sp<sup>3</sup>, sp<sup>3</sup>d<sup>2</sup>) as memorised facts for the standard complexes.',
       },
 
       { t: 'part', title: 'The recurring archetypes' },
@@ -602,7 +602,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Archetype 5 — Bond-angle maximum.</b> “Which has the maximum bond angle: NH<sub>3</sub>, PH<sub>3</sub>, H<sub>2</sub>O, CH<sub>4</sub>?” Two-step filter: s-character first (an sp species beats everything sp<sup>3</sup>), then lone pairs, then central-atom electronegativity (Drago). CH<sub>4</sub> beats the lone-pair carriers; CS<sub>2</sub> (linear, 180°) beats BBr<sub>3</sub> (120°), SO<sub>2</sub> (∼ 119°) and SF<sub>4</sub>.',
+        html: '<b>Archetype 5 — Bond-angle maximum.</b> “Which has the maximum bond angle: NH<sub>3</sub>, PH<sub>3</sub>, H<sub>2</sub>O, CH<sub>4</sub>?” Three-step filter: s-character first (an sp species beats everything sp<sup>3</sup>), then lone pairs, then central-atom electronegativity (Drago). CH<sub>4</sub> beats the lone-pair carriers; CS<sub>2</sub> (linear, 180°) beats BBr<sub>3</sub> (120°), SO<sub>2</sub> (∼ 119°) and SF<sub>4</sub>.',
       },
       {
         t: 'p',
@@ -616,10 +616,10 @@ export const TOPICS: Topic[] = [
         rows: [
           {
             k: '“Removing an electron weakens the bond”',
-            v: 'Removing from π<sup>*</sup> raises BO: O<sub>2</sub><sup>+</sup> and NO<sup>+</sup> are stronger than their parents',
+            v: 'Removing from π* raises BO: O<sub>2</sub><sup>+</sup> and NO<sup>+</sup> are stronger than their parents',
           },
           {
-            k: 'Using the O<sub>2</sub> MO ordering for C<sub>2</sub>/N<sub>2</sub><sup>+</sup>',
+            k: 'Using the O<sub>2</sub> MO ordering for C<sub>2</sub>/B<sub>2</sub>',
             v: '≤ 14 electrons ⇒ π2p below σ2p<sub><i>z</i></sub>; C<sub>2</sub> is diamagnetic',
           },
           {

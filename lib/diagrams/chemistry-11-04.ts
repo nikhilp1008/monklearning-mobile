@@ -4,7 +4,8 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
 /**
  * CHEMISTRY CLASS 11, CHAPTER 4 (Chemical Bonding and Molecular Structure),
  * first half: every drawing of the Master Reference book on pp. 163–182
- * (Topic 01, pp. 164–173; Topic 02, pp. 174–181; p. 182 is blank), redrawn.
+ * (Topic 01, pp. 164–173; Topic 02, pp. 174–182; p. 182 carries Topic 02's
+ * Pro-Tip and Cheat sheet, no drawing), redrawn.
  * Figures 4.5–4.8 and everything from Topic 03 on are in chemistry-11-04b.ts.
  *
  * The pages hold four drawings, all numbered, each on a "CHAPTER 4 · FIGURES"
@@ -12,10 +13,14 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
  * ion) on p. 170 — all Topic 01, topic index 0 — and 4.4 (the H₂ potential
  * energy curve) on p. 177, Topic 02, topic index 1. Each caption is printed a
  * first time where the text cites it, with "(see next page)" after it; the
- * captions here are the figure pages' own, which carry no pointer. There are
- * no unnumbered drawings: the inline structures [:N̈=N=N̈:]⁻ (p. 169), the
- * resonance pair (p. 171) and [S=C=N̈]⁻ (p. 171) are typeset formulas inside
- * sentences, and the SN/hybridisation table (p. 175) is a table.
+ * captions here are the figure pages' own, which carry no pointer. One
+ * unnumbered drawing, c11-04-01-d1 (topic index 0): the azide resonance pair
+ * the book typesets inside Example 4(c) on p. 171 with lone-pair dots above
+ * and below the letters, which app text cannot carry (expert review N6,
+ * Nikhil's decision), so it is drawn. The other typeset structures (the
+ * symmetric azide form, p. 169, beside Figure 4.3, and the thiocyanate MCQ
+ * stem, p. 171) are written as plain text without dots, and the
+ * SN/hybridisation table (p. 175) is a table.
  *
  * Every drawing is computed, not placed by eye: the Born–Haber boxes are
  * built from their species (one M, one X, total charge zero in every box)
@@ -107,14 +112,14 @@ function resultBlock(s: Sketch, lines: string[], o: { size?: number } = {}): Rec
  */
 type Token = { html: string; M: number; X: number; q: number; key: string };
 const T = {
-  Ms: { html: '<i>M</i>(s)', M: 1, X: 0, q: 0, key: 'M(s)' },
-  Mg: { html: '<i>M</i>(g)', M: 1, X: 0, q: 0, key: 'M(g)' },
-  Mp: { html: '<i>M</i><sup>+</sup>(g)', M: 1, X: 0, q: 1, key: 'M+(g)' },
-  hX2: { html: '½<i>X</i><sub>2</sub>(g)', M: 0, X: 1, q: 0, key: '½X2(g)' },
-  Xg: { html: '<i>X</i>(g)', M: 0, X: 1, q: 0, key: 'X(g)' },
-  Xm: { html: '<i>X</i><sup>−</sup>(g)', M: 0, X: 1, q: -1, key: 'X−(g)' },
+  Ms: { html: 'M(s)', M: 1, X: 0, q: 0, key: 'M(s)' },
+  Mg: { html: 'M(g)', M: 1, X: 0, q: 0, key: 'M(g)' },
+  Mp: { html: 'M<sup>+</sup>(g)', M: 1, X: 0, q: 1, key: 'M+(g)' },
+  hX2: { html: '½X<sub>2</sub>(g)', M: 0, X: 1, q: 0, key: '½X2(g)' },
+  Xg: { html: 'X(g)', M: 0, X: 1, q: 0, key: 'X(g)' },
+  Xm: { html: 'X<sup>−</sup>(g)', M: 0, X: 1, q: -1, key: 'X−(g)' },
   e: { html: 'e<sup>−</sup>', M: 0, X: 0, q: -1, key: 'e−' },
-  MX: { html: '<i>MX</i>(s)', M: 1, X: 1, q: 0, key: 'MX(s)' },
+  MX: { html: 'MX(s)', M: 1, X: 1, q: 0, key: 'MX(s)' },
 } satisfies Record<string, Token>;
 type BoxId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 /** The six boxes, as the book prints them (p. 168). */
@@ -140,7 +145,14 @@ const STEPS: Step[] = [
 ];
 const DIRECT: Step = { from: 'A', to: 'F', label: 'Δ<sub>f</sub><i>H</i>', kind: 'direct', lost: ['M(s)', '½X2(g)'], got: ['MX(s)'], kcl: KCL.f };
 const HESS = ['Hess’s law:', 'Δ<sub>f</sub><i>H</i> = Δ<sub>sub</sub><i>H</i> + ½Δ<sub>bond</sub><i>H</i>', '+ Δ<sub>i</sub><i>H</i> + Δ<sub>eg</sub><i>H</i> − Δ<sub>latt</sub><i>H</i>'];
-const CAP41 = 'Born–Haber cycle for an alkali halide <i>MX</i>: the direct route from <i>M</i>(s) + ½<i>X</i><sub>2</sub>(g) to <i>MX</i>(s) (the enthalpy of formation) equals the stepwise route through sublimation, ionisation, bond dissociation, electron gain and lattice formation. Energy invested is shown in orange, energy returned in green.';
+/**
+ * The caption as printed (p. 168), with three changes after the expert review (flags 16, 17) and
+ * Nikhil's decisions: the stages named in the drawn order (the book's own drawing runs sublimation →
+ * bond dissociation → ionisation; its caption had ionisation second); the colours named as drawn
+ * ("orange" → "solid marigold", "green" → "dashed grey": the returned steps are dashed slate, and no
+ * green is added); and the generic letters M, X upright, like every stand-in element letter here.
+ */
+const CAP41 = 'Born–Haber cycle for an alkali halide MX: the direct route from M(s) + ½X<sub>2</sub>(g) to MX(s) (the enthalpy of formation) equals the stepwise route through sublimation, bond dissociation, ionisation, electron gain and lattice formation. Energy invested is shown in solid marigold, energy returned in dashed grey.';
 /** Box size (px), the two column centres, the right column's row centres, MX(s)'s centre, the legend row. */
 const G41 = { size: 14, pad: 9, bh: 28, xL: 62, xR: 250, rows: [34, 106, 178, 250], yF: 316, legendY: 350, h: 470 };
 const STYLE: Record<Kind, Stroke> = { invested: { color: C.mari, w: 1.9 }, returned: { color: C.slate, w: 1.7, dash: true }, direct: { color: C.ink, w: 1.9 } };
@@ -231,7 +243,10 @@ const fig41: Diagram = {
     // colour: invested (endothermic, positive) steps marigold; returned (exothermic, negative) dashed slate
     out.push([`Invested steps are endothermic and drawn marigold, solid (${STEPS.filter((x) => x.kind === 'invested').map((x) => `${plain(x.label)} ${fmt(x.kcl, 0)}`).join(', ')}); returned steps exothermic and drawn slate, dashed (${STEPS.filter((x) => x.kind === 'returned').map((x) => `${plain(x.label)} ${fmt(x.kcl, 0)}`).join(', ')})`, STEPS.every((st, i) => (st.kind === 'invested' ? st.kcl > 0 && rec.arrows[i].color === C.mari && !rec.arrows[i].dash : st.kcl < 0 && rec.arrows[i].color === C.slate && rec.arrows[i].dash))]);
     out.push(['The legend names both kinds, each beside its own line', s.tags.some((t) => t.name === 'energy invested') && s.tags.some((t) => t.name === 'energy returned')]);
-    out.push(['The caption, word for word from p. 168, names the five stages in the drawn order', ['sublimation', 'ionisation', 'bond dissociation', 'electron gain', 'lattice formation'].every((w, i, a) => CAP41.indexOf(w) > (i ? CAP41.indexOf(a[i - 1]) : 0))]);
+    const stageOf: Record<string, string> = { sub: 'sublimation', bond: 'bond dissociation', i: 'ionisation', eg: 'electron gain', latt: 'lattice formation' };
+    const drawnStages = STEPS.map((st) => stageOf[/Δ<sub>(\w+)<\/sub>/.exec(st.label)![1]]);
+    out.push([`The caption names the five stages in the drawn order: ${drawnStages.join(', ')}`, drawnStages.every((w, i, a) => CAP41.indexOf(w) > (i ? CAP41.indexOf(a[i - 1]) : 0))]);
+    out.push(['The caption names only the colours and strokes the drawing uses: invested solid marigold, returned dashed grey (slate), no orange or green', CAP41.includes('solid marigold') && CAP41.includes('dashed grey') && !/orange|green/.test(CAP41) && STYLE.invested.color === C.mari && !STYLE.invested.dash && STYLE.returned.color === C.slate && !!STYLE.returned.dash]);
     out.push(...layout(s));
     return out;
   },
@@ -240,7 +255,7 @@ const fig41: Diagram = {
 /* ===================================================================== */
 /* Lewis structures: atoms, bonds, lone pairs, formal charges            */
 /* ===================================================================== */
-type Atom = { el: string; V: number; at: P; /** lone-pair directions, degrees (screen: 0 = right, 90 = down) */ lp: number[]; fc: P; fcColor: string };
+type Atom = { el: string; V: number; at: P; /** lone-pair directions, degrees (screen: 0 = right, 90 = down) */ lp: number[]; /** where its formal charge is printed; none when the book prints none */ fc?: P; fcColor?: string };
 type Mol = { atoms: Atom[]; bonds: [number, number, number][]; charge: number };
 const ATOM_SIZE = 24, BOND_GAP = 16.5, LP_R = 19, LP_HALF = 4.6, DBL = 3.6;
 /** What each drawing recorded: atom centres, each bond line drawn (with its atoms), each lone-pair dot. */
@@ -255,8 +270,9 @@ const lone = (m: Mol, i: number) => 2 * m.atoms[i].lp.length;
 const bonding = (m: Mol, i: number) => 2 * m.bonds.filter(([a, b]) => a === i || b === i).reduce((t, [, , o]) => t + o, 0);
 const fcOf = (m: Mol, i: number) => m.atoms[i].V - lone(m, i) - bonding(m, i) / 2;
 const sgn = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
-function drawMol(s: Sketch, m: Mol) {
-  const rec = { lines: [] as { a: number; b: number }[], dots: [] as P[] };
+type Drawn = { lines: { a: number; b: number }[]; dots: P[] };
+function drawMol(s: Sketch, m: Mol): Drawn {
+  const rec: Drawn = { lines: [], dots: [] };
   m.bonds.forEach(([a, b, o]) => {
     const A = m.atoms[a].at, B = m.atoms[b].at, L = len(A, B), u: P = [(B[0] - A[0]) / L, (B[1] - A[1]) / L], n: P = [-u[1], u[0]];
     for (let k = 0; k < o; k++) {
@@ -277,12 +293,13 @@ function drawMol(s: Sketch, m: Mol) {
       });
     });
   });
-  m.atoms.forEach((at, i) => s.sym(at.fc[0], at.fc[1], sgn(fcOf(m, i)), { size: 17, color: at.fcColor }));
+  m.atoms.forEach((at, i) => { if (at.fc) s.sym(at.fc[0], at.fc[1], sgn(fcOf(m, i)), { size: 17, color: at.fcColor }); });
   DRAWN.set(s, rec);
+  return rec;
 }
 /** The chemistry the structure states, read back from the drawing: electrons, octets, formal charges, their sum. */
-function molChecks(s: Sketch, m: Mol, want: { fc: number[]; electrons: number; angle: number }): Check[] {
-  const rec = DRAWN.get(s)!, out: Check[] = [];
+function molChecks(s: Sketch, m: Mol, want: { fc: number[]; electrons: number; angle: number }, drawn?: Drawn): Check[] {
+  const rec = drawn ?? DRAWN.get(s)!, out: Check[] = [];
   const total = m.atoms.reduce((t, a) => t + a.V, 0) - m.charge;
   const drawnE = 2 * rec.lines.length + rec.dots.length;
   out.push([`Valence electrons: ${m.atoms.map((a) => a.V).join(' + ')}${m.charge < 0 ? ` + ${-m.charge}` : m.charge > 0 ? ` − ${m.charge}` : ''} = ${total} = ${want.electrons} stated; drawn ${rec.lines.length} bond lines × 2 + ${rec.dots.length} dots = ${drawnE}`, total === want.electrons && drawnE === total]);
@@ -294,7 +311,7 @@ function molChecks(s: Sketch, m: Mol, want: { fc: number[]; electrons: number; a
   const fcs = m.atoms.map((_, i) => fcOf(m, i));
   out.push([`Formal charges FC = V − L − ½B: ${m.atoms.map((a, i) => `${a.V} − ${lone(m, i)} − ${bonding(m, i) / 2} = ${sgn(fcs[i])}`).join('; ')} (stated ${want.fc.map(sgn).join(', ')})`, JSON.stringify(fcs) === JSON.stringify(want.fc)]);
   out.push([`Formal charges sum to the species' charge: ${fcs.map((x) => `(${sgn(x)})`).join(' + ')} = ${sgn(fcs.reduce((a, b) => a + b, 0))}`, fcs.reduce((a, b) => a + b, 0) === m.charge]);
-  out.push(['Each atom’s drawn formal charge is its computed one', m.atoms.every((a, i) => s.labels.some((l) => l.text === sgn(fcs[i]) && Math.abs((l.rect[0] + l.rect[2]) / 2 - a.fc[0]) < 0.5))]);
+  if (m.atoms.some((a) => a.fc)) out.push(['Each atom’s drawn formal charge is its computed one', m.atoms.every((a, i) => !a.fc || s.labels.some((l) => l.text === sgn(fcs[i]) && Math.abs((l.rect[0] + l.rect[2]) / 2 - a.fc![0]) < 0.5))]);
   // the bond angle at the central atom, measured on the drawing, against VSEPR
   const c = m.atoms[1], ends = m.bonds.map(([a, b]) => m.atoms[a === 1 ? b : a].at);
   const ang = Math.abs(((Math.atan2(ends[0][1] - c.at[1], ends[0][0] - c.at[0]) - Math.atan2(ends[1][1] - c.at[1], ends[1][0] - c.at[0])) * 180) / Math.PI);
@@ -402,6 +419,76 @@ const fig43: Diagram = {
 };
 
 /* ===================================================================== */
+/* c11-04-01-d1 · the azide triple/single resonance pair (Topic 01,       */
+/* Example 4(c), p. 171)                                                  */
+/* ===================================================================== */
+/**
+ * The book typesets the pair inside the sentence, [N≡N–N]⁻ ↔ [N–N≡N]⁻, with its lone pairs as
+ * dots over, under and beside the letters: one pair above the triple-bonded N; above, below and
+ * beside the single-bonded N. Each form is drawn as the book prints it, on the same three-atom line
+ * as Figure 4.3 (steric number 2 at the centre: 180°). The two forms are stacked, one above the
+ * other with the resonance arrow between them, because side by side they do not fit a phone's width
+ * at the size of Figure 4.3. No formal charges are printed: the book's line prints none; the
+ * check computes them.
+ */
+const CAP01D1 = 'Azide ion N<sub>3</sub><sup>−</sup>: the two triple/single resonance forms, each with one lone pair on the triple-bonded N, none on the central N and three on the single-bonded N.';
+const G01 = { x: [74, 170, 266], y: [52, 180] as [number, number], br: [26, 314] as [number, number], half: 34, gap: 12, h: 232 };
+function azideTS(form: 0 | 1): Mol {
+  const y = G01.y[form], [x0, x1, x2] = G01.x;
+  // form 0: [N≡N–N]⁻, form 1: [N–N≡N]⁻; lone pairs where the book prints them (270 up, 90 down, 0 right, 180 left)
+  return form === 0
+    ? { charge: -1, atoms: [{ el: 'N', V: 5, at: [x0, y], lp: [270] }, { el: 'N', V: 5, at: [x1, y], lp: [] }, { el: 'N', V: 5, at: [x2, y], lp: [270, 90, 0] }], bonds: [[0, 1, 3], [1, 2, 1]] }
+    : { charge: -1, atoms: [{ el: 'N', V: 5, at: [x0, y], lp: [180, 270, 90] }, { el: 'N', V: 5, at: [x1, y], lp: [] }, { el: 'N', V: 5, at: [x2, y], lp: [270] }], bonds: [[0, 1, 1], [1, 2, 3]] };
+}
+const DRAWN01 = new WeakMap<Sketch, Drawn[]>();
+const fig01d1: Diagram = {
+  id: 'c11-04-01-d1',
+  topic: 0,
+  name: 'Azide resonance forms',
+  cases: [{ chip: 'Two forms', cap: CAP01D1 }],
+  draw() {
+    const s = new Sketch(W, G01.h), [l, r] = G01.br, recs: Drawn[] = [];
+    ([0, 1] as const).forEach((f) => {
+      recs.push(drawMol(s, azideTS(f)));
+      const t = G01.y[f] - G01.half, b = G01.y[f] + G01.half;
+      // the square brackets and the ion's charge outside them, as in Figure 4.3
+      path(s, [[l + 10, t], [l, t], [l, b], [l + 10, b]], { color: C.slate, w: 2 });
+      path(s, [[r - 10, t], [r, t], [r, b], [r - 10, b]], { color: C.slate, w: 2 });
+      s.sym(r + 12, t + 6, '−', { size: 20 });
+    });
+    // the double-headed resonance arrow between the two forms
+    const xa = G01.x[1], ya = G01.y[0] + G01.half + G01.gap, yb = G01.y[1] - G01.half - G01.gap;
+    s.vec(xa, (ya + yb) / 2, xa, ya, { color: C.ink, w: 1.7 });
+    s.vec(xa, (ya + yb) / 2, xa, yb, { color: C.ink, w: 1.7 });
+    keep(s, [[xa, ya], [xa, yb]]);
+    DRAWN01.set(s, recs);
+    return s;
+  },
+  check() {
+    const s = fig01d1.draw(fig01d1.cases[0]), recs = DRAWN01.get(s)!, out: Check[] = [];
+    const m = [azideTS(0), azideTS(1)];
+    out.push(...molChecks(s, m[0], { fc: [0, 1, -2], electrons: 16, angle: 180 }, recs[0]).map(([t, ok]): Check => [`[N≡N–N]⁻: ${t}`, ok]));
+    out.push(...molChecks(s, m[1], { fc: [-2, 1, 0], electrons: 16, angle: 180 }, recs[1]).map(([t, ok]): Check => [`[N–N≡N]⁻: ${t}`, ok]));
+    out.push(['As printed: one lone pair on the triple-bonded N (above it), none on the centre, three on the single-bonded N (above, below and beside it)', JSON.stringify(m[0].atoms.map((a) => a.lp)) === JSON.stringify([[270], [], [270, 90, 0]]) && JSON.stringify(m[1].atoms.map((a) => a.lp)) === JSON.stringify([[180, 270, 90], [], [270]])]);
+    // the two forms are mirror images: equivalent to each other
+    const mirror = m[0].atoms.every((a, i) => a.lp.length === m[1].atoms[2 - i].lp.length && fcOf(m[0], i) === fcOf(m[1], 2 - i)) && m[0].bonds[0][2] === m[1].bonds[1][2] && m[0].bonds[1][2] === m[1].bonds[0][2];
+    out.push(['The two forms are mirror images of each other (lone pairs, bond orders and formal charges swapped end for end): equivalent to each other', mirror]);
+    // but not to the symmetric form of Figure 4.3, whose charges are −1, +1, −1
+    const sym = azide(), fSym = sym.atoms.map((_, i) => fcOf(sym, i)), f0 = m[0].atoms.map((_, i) => fcOf(m[0], i));
+    out.push([`Not equivalent to the symmetric form (Figure 4.3): charges ${f0.map(sgn).join(', ')} against ${fSym.map(sgn).join(', ')}, a larger charge separation`, JSON.stringify(f0) !== JSON.stringify(fSym) && Math.max(...f0.map(Math.abs)) > Math.max(...fSym.map(Math.abs))]);
+    // averaged over the two equivalent forms each N–N bond has order (3 + 1)/2 = 2, as the text says
+    const avg = [0, 1].map((k) => (m[0].bonds[k][2] + m[1].bonds[k][2]) / 2);
+    out.push([`Averaged over the two forms each N–N bond has order ${avg.join(' and ')}: the text's average bond order of 2, both bonds alike`, avg.every((x) => x === 2)]);
+    const minus = s.labels.filter((x) => x.text === '−');
+    out.push(['Each form carries the ion’s charge, −, outside its bracket at the top right', minus.length === 2 && minus.every((x) => x.rect[0] > G01.br[1])]);
+    out.push(['Every atom and lone pair lies inside its own bracket', [0, 1].every((f) => [...recs[f].dots, ...m[f].atoms.map((a) => a.at)].every((p) => p[0] > G01.br[0] + 6 && p[0] < G01.br[1] - 6 && Math.abs(p[1] - G01.y[f]) < G01.half - 4))]);
+    out.push(['The resonance arrow stands clear between the two brackets', G01.y[0] + G01.half + G01.gap < G01.y[1] - G01.half - G01.gap]);
+    out.push(...layout(s));
+    return out;
+  },
+};
+
+/* ===================================================================== */
 /* Figure 4.4 · H₂ potential energy curve (Topic 02, p. 177)              */
 /* ===================================================================== */
 const CAP44 = 'Potential energy of two H atoms against internuclear distance: <i>E</i> → 0 for widely separated atoms, a minimum of −435.8 kJ mol<sup>−1</sup> at <i>r</i><sub>0</sub> = 74 pm (this depth is the bond enthalpy), and a steep rise at shorter distances because of nuclear repulsion.';
@@ -489,4 +576,4 @@ const fig44: Diagram = {
   },
 };
 
-export const DIAGRAMS_CHEMISTRY_11_04: Diagram[] = [fig41, fig42, fig43, fig44];
+export const DIAGRAMS_CHEMISTRY_11_04: Diagram[] = [fig41, fig42, fig43, fig01d1, fig44];

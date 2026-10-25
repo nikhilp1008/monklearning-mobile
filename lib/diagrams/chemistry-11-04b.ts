@@ -378,7 +378,7 @@ const fig46: Diagram = {
     if (c.isomer === 'o') {
       const k = chelate(g.mols[0]);
       path(s, samples(0, 2 * Math.PI, 48).map((t): P => [k.c[0] + k.r * Math.cos(t), k.c[1] + k.r * Math.sin(t)]), { color: C.slate, w: 1.1, dash: 'dot', free: true });
-      s.sym(G46.o.at[0] + 40, 268, '(a) <i>o</i>-nitrophenol', { size: 16 });
+      s.sym(G46.o.at[0] + 40, 268, '(a) o-nitrophenol', { size: 16 });
       s.place([
         { t: 'intramolecular O–H···O bond', hi: true, p: mul(add(hb[0][0], hb[0][1]), 0.5), at: [[150, 40, 'middle'], [170, 40, 'middle'], [190, 40, 'middle']] },
         { t: 'six-membered chelate ring', ring: [k.c[0], k.c[1], k.r], bare: true, at: [[W - 4, 196, 'end'], [W - 4, 204, 'end'], [W - 4, 212, 'end'], [W - 4, 222, 'end']] },
@@ -389,7 +389,7 @@ const fig46: Diagram = {
     const a = trim(open[0], open[1], boxes);
     path(s, [a, open[1]], { color: C.mari, w: 3, dash: 'hb' });
     s.sym(open[1][0] + 4, open[1][1] + 1, '···', { size: 16, anchor: 'start', color: C.amber });
-    s.sym(230, 458, '(b) <i>p</i>-nitrophenol', { size: 16 });
+    s.sym(230, 458, '(b) p-nitrophenol', { size: 16 });
     const mid = mul(add(hb[0][0], hb[0][1]), 0.5), mid2 = mul(add(a, open[1]), 0.5);
     s.place([
       { t: 'intermolecular O–H···O bond', hi: true, p: mid, at: [0, 6, 12, 18, 24].map((d): [number, number, 'end'] => [W - 4, mid[1] + d, 'end']) },
@@ -609,14 +609,14 @@ const fig48: Diagram = {
 /* ===================================================================== */
 type Lv = { key: string; html: string; n: 1 | 2; bonding: boolean };
 const LV: Record<string, Lv> = {
-  s1: { key: 's1', html: 'σ<sub>1s</sub>', n: 1, bonding: true },
-  s1x: { key: 's1x', html: 'σ<sup>*</sup><sub>1s</sub>', n: 1, bonding: false },
-  s2: { key: 's2', html: 'σ<sub>2s</sub>', n: 1, bonding: true },
-  s2x: { key: 's2x', html: 'σ<sup>*</sup><sub>2s</sub>', n: 1, bonding: false },
-  pz: { key: 'pz', html: 'σ<sub>2p<i>z</i></sub>', n: 1, bonding: true },
-  pi: { key: 'pi', html: 'π<sub>2p<i>x</i></sub> = π<sub>2p<i>y</i></sub>', n: 2, bonding: true },
-  pix: { key: 'pix', html: 'π<sup>*</sup><sub>2p<i>x</i></sub> = π<sup>*</sup><sub>2p<i>y</i></sub>', n: 2, bonding: false },
-  pzx: { key: 'pzx', html: 'σ<sup>*</sup><sub>2p<i>z</i></sub>', n: 1, bonding: false },
+  s1: { key: 's1', html: 'σ1s', n: 1, bonding: true },
+  s1x: { key: 's1x', html: 'σ<sup>*</sup>1s', n: 1, bonding: false },
+  s2: { key: 's2', html: 'σ2s', n: 1, bonding: true },
+  s2x: { key: 's2x', html: 'σ<sup>*</sup>2s', n: 1, bonding: false },
+  pz: { key: 'pz', html: 'σ2p<sub><i>z</i></sub>', n: 1, bonding: true },
+  pi: { key: 'pi', html: 'π2p<sub><i>x</i></sub> = π2p<sub><i>y</i></sub>', n: 2, bonding: true },
+  pix: { key: 'pix', html: 'π<sup>*</sup>2p<sub><i>x</i></sub> = π<sup>*</sup>2p<sub><i>y</i></sub>', n: 2, bonding: false },
+  pzx: { key: 'pzx', html: 'σ<sup>*</sup>2p<sub><i>z</i></sub>', n: 1, bonding: false },
 };
 /** The two orderings as Topic 03 prints them (p. 184), lowest first. */
 const ORDER = {
@@ -643,7 +643,8 @@ const TABLE_A: [number, string, number, number, number, number][] = [
   [10, 'B₂', 6, 4, 1, 2], [12, 'C₂', 8, 4, 2, 0], [13, 'N₂⁺, CN', 9, 4, 2.5, 1], [14, 'N₂, CO, CN⁻, NO⁺, C₂²⁻', 10, 4, 3, 0],
   [15, 'NO, N₂⁻, O₂⁺', 10, 5, 2.5, 1], [16, 'O₂, NO⁻', 10, 6, 2, 2], [17, 'O₂⁻', 10, 7, 1.5, 1], [18, 'O₂²⁻, F₂', 10, 8, 1, 0],
 ];
-const CAPA = 'The two molecular-orbital energy orderings for second-period diatomics: (a) up to N<sub>2</sub>, with the π<sub>2p</sub> pair below σ<sub>2p<i>z</i></sub>; (b) O<sub>2</sub> and F<sub>2</sub>, with σ<sub>2p<i>z</i></sub> below the π<sub>2p</sub> pair. The highlighted levels are the crossover pair.';
+/** The book's caption (p. 201), its MO labels set in the chapter's inline NCERT form (σ2p<sub><i>z</i></sub>, π2p), as in the text (expert review N2). */
+const CAPA = 'The two molecular-orbital energy orderings for second-period diatomics: (a) up to N<sub>2</sub>, with the π2p pair below σ2p<sub><i>z</i></sub>; (b) O<sub>2</sub> and F<sub>2</sub>, with σ2p<sub><i>z</i></sub> below the π2p pair. The highlighted levels are the crossover pair.';
 const GA = { y0: 300, dy: 29, a: [96, 136] as [number, number], b: [204, 244] as [number, number], size: 12.5 };
 const levelY = (i: number) => GA.y0 - i * GA.dy;
 const crossover = (k: string) => k === 'pz' || k === 'pi';
@@ -737,7 +738,8 @@ const figD: Diagram = {
   id: 'c11-04-D-d1',
   topic: 7,
   name: 'N₂O resonance forms',
-  cases: [{ chip: 'Two forms', cap: 'N<sub>2</sub>O (16 valence electrons, linear) has two serious candidates.' }],
+  // caption: the book's own shorthand from the next paragraph (expert review flag 26), not the sentence printed just above the figure
+  cases: [{ chip: 'Two forms', cap: 'N<sub>2</sub>O: the resonance forms N=N=O and N≡N–O.' }],
   draw() {
     const s = new Sketch(W, 120);
     drawMol(s, molD(0));
@@ -754,7 +756,7 @@ const figD: Diagram = {
     const fc = [0, 1].map((f) => bookkeep(molD(f as 0 | 1)).fc);
     [0, 1].forEach((f) => {
       const m = molD(f as 0 | 1);
-      out.push(...molChecks(f === 0 ? ':N̈⁻=N⁺=Ö:' : ':N≡N⁺–Ö:⁻', m));
+      out.push(...molChecks(f === 0 ? 'N⁻=N⁺=O' : 'N≡N⁺–O⁻', m));
       out.push([`${f === 0 ? 'First' : 'Second'} form: every lone pair the book prints is drawn (${m.atoms.map((x) => `${x.el} ${(x.lpAt ?? []).length}/${x.lp}`).join(', ')})`, m.atoms.every((x) => (x.lpAt ?? []).length === x.lp)]);
     });
     out.push([`Formal charges: N=N=O (terminal N) ${fmt(fc[0].Na, 0)}, (central N) +${fc[0].Nb}, (O) ${fmt(fc[0].O, 0)}; N≡N–O ${fmt(fc[1].Na, 0)}, +${fc[1].Nb}, ${fmt(fc[1].O, 0)} — the book's values`, fc[0].Na === -1 && fc[0].Nb === 1 && fc[0].O === 0 && fc[1].Na === 0 && fc[1].Nb === 1 && fc[1].O === -1]);
