@@ -186,7 +186,7 @@ const HOLDER: Record<string, [string, string]> = { '*': ['57–', '71'], '**': [
 const T1 = { x0: 16, cw: 17.8, y0: 40, rh: 21, fTop: 223, h: 274 };
 const G1: Grid = { x0: T1.x0, cw: T1.cw, rh: T1.rh, rowTop: (p) => T1.y0 + (p - 1) * T1.rh };
 const fTop1 = (i: number) => T1.fTop + i * T1.rh;
-const CAP31 = 'The long form of the periodic table: groups 1–18 across the top, periods 1–7 down the side. The s-, p-, d- and f-blocks are shaded separately and the heavy staircase separates metals from non-metals, with the metalloids along it.';
+const CAP31 = 'The long form of the periodic table: groups 1–18 across the top, periods 1–7 down the side. The s-, p-, d- and f-blocks are outlined separately and the heavy staircase separates metals from non-metals, with the metalloids along it.';
 function blocks31() {
   const g = G1, T = (p: number) => g.rowTop(p), B = (p: number) => g.rowTop(p) + g.rh;
   return {
@@ -279,7 +279,7 @@ const fig31: Diagram = {
     // blocks: which outline holds each symbol, against the differentiating electron
     const drawnBlock = (r: Rect) => { const c = centre(r); return inside(c, b.s) ? 's' : inside(c, b.p) ? 'p' : inside(c, b.d) ? 'd' : inside(c, b.f) || inside(c, b.fHold) ? 'f' : '?'; };
     const odd = els.filter((l) => drawnBlock(l.rect) !== blockOf(Zof(l.text))).map((l) => `${l.text} (Aufbau ${blockOf(Zof(l.text))}, drawn ${drawnBlock(l.rect)})`);
-    out.push([`Each block outline holds the elements whose last electron enters that subshell in simple Aufbau order, except the book's three placements by convention: ${odd.join(', ')} — He (1s²) is shaded with group 18, and the f-rows carry all fifteen La–Lu and Ac–Lr (reported)`, odd.length === 3 && ['He', 'Lu', 'Lr'].every((x) => odd.some((o) => o.startsWith(`${x} `)))]);
+    out.push([`Each block outline holds the elements whose last electron enters that subshell in simple Aufbau order, except the book's three placements by convention: ${odd.join(', ')} — He (1s²) is outlined with group 18, and the f-rows carry all fifteen La–Lu and Ac–Lr (reported)`, odd.length === 3 && ['He', 'Lu', 'Lr'].every((x) => odd.some((o) => o.startsWith(`${x} `)))]);
     const fDrawn = els.filter((l) => drawnBlock(l.rect) === 'f').map((l) => Zof(l.text));
     const fText = [...Array.from({ length: 14 }, (_, i) => 58 + i), ...Array.from({ length: 14 }, (_, i) => 90 + i)];
     const extra = fDrawn.filter((z) => !fText.includes(z)).map((z) => SYMS[z - 1]);
@@ -402,12 +402,16 @@ const OXIDE: Record<string, [string, number, number] | null> = {
 const NATURE: Record<string, 'basic' | 'amphoteric' | 'acidic'> = { Na: 'basic', Mg: 'basic', Al: 'amphoteric', Si: 'acidic', P: 'acidic', S: 'acidic', Cl: 'acidic' };
 /** Pauling electronegativities (Topic 02). */
 const EN: Record<string, number> = { Na: 0.93, Mg: 1.31, Al: 1.61, Si: 1.9, P: 2.19, S: 2.58, Cl: 3.16 };
-/** The book's labels under the row: the cells each one stands under, its lines, and its band (0 or 1, down the page). */
+/**
+ * The book's labels under the row: the cells each one stands under, its lines, and its band (0 or 1, down the page).
+ * The book centres "non-metallic" under S–Cl and leaves P unlabelled; the bracket here runs P–Cl (review flag 14),
+ * since P is a non-metal with an acidic oxide and a bracket stopping at S would say otherwise.
+ */
 const CHAR = [
   { from: 'Na', to: 'Mg', lines: ['metallic', 'basic oxide', 'reducing'], band: 0, nature: 'basic' },
   { from: 'Al', to: 'Al', lines: ['amphoteric', 'oxide'], band: 1, nature: 'amphoteric' },
   { from: 'Si', to: 'Si', lines: ['metalloid,', 'acidic', 'oxide'], band: 0, nature: 'acidic' },
-  { from: 'S', to: 'Cl', lines: ['non-metallic', 'acidic oxide', 'oxidising'], band: 0, nature: 'acidic' },
+  { from: 'P', to: 'Cl', lines: ['non-metallic', 'acidic oxide', 'oxidising'], band: 0, nature: 'acidic' },
 ];
 const T3 = { x0: 10, cw: 40, top: 46, ch: 34, br: 90, band: [106, 154], lh: 13, size: 11.5, arrows: [198, 220], h: 250 };
 const c3L = (i: number) => T3.x0 + i * T3.cw;
@@ -460,7 +464,9 @@ const fig33: Diagram = {
     out.push(['The caption lists the same oxides in the same order as the drawing', CAP33.includes(P3.filter((x) => OXIDE[x]).map((x) => (OXIDE[x] as [string, number, number])[0]).slice(0, -1).join(', ') + ` and ${OXIDE.Cl![0]}`)]);
     // the labels: each under the cells it names, and true of their oxides
     const lab = CHAR.every((c) => { const i0 = P3.indexOf(c.from), i1 = P3.indexOf(c.to), mid = (c3L(i0) + 5 + c3L(i1 + 1) - 5) / 2; return c.lines.every((t) => s.labels.some((l) => l.text === t && Math.abs(centre(l.rect)[0] - mid) < 1e-6)) && P3.slice(i0, i1 + 1).every((x) => NATURE[x] === c.nature); });
-    out.push(['Each label stands centred under the cells its bracket spans (Na–Mg metallic, basic oxide; Al amphoteric oxide; Si metalloid, acidic oxide; S–Cl non-metallic, acidic oxide), and is true of those oxides; P is left unlabelled as in the book (reported)', lab]);
+    out.push(['Each label stands centred under the cells its bracket spans (Na–Mg metallic, basic oxide; Al amphoteric oxide; Si metalloid, acidic oxide; P–Cl non-metallic, acidic oxide), and is true of those oxides', lab]);
+    const under = P3.filter((x) => OXIDE[x]).map((x) => CHAR.filter((c) => P3.indexOf(c.from) <= P3.indexOf(x) && P3.indexOf(x) <= P3.indexOf(c.to)).length);
+    out.push(['Every element with an oxide (Na to Cl) stands under exactly one bracket, and Ar under none', under.every((n) => n === 1) && CHAR.every((c) => c.to !== 'Ar')]);
     const rank = { basic: 0, amphoteric: 1, acidic: 2 };
     const natures = P3.filter((x) => NATURE[x]).map((x) => rank[NATURE[x]]);
     out.push([`Oxide character never moves back toward basic from left to right: ${P3.filter((x) => NATURE[x]).map((x) => NATURE[x]).join(' → ')}`, natures.every((v, i) => i === 0 || v >= natures[i - 1])]);

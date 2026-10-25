@@ -24,7 +24,7 @@ export const TOPICS: Topic[] = [
     n: 'A',
     title: 'The Fourth Kind of Oxide: Neutral Oxides and Counting Questions',
     extra: true,
-    kalam: 'The chapter’s oxide progression runs basic → amphoteric → acidic across a period.',
+    kalam: 'Neutral oxides have no acidic or basic properties.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -124,7 +124,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Rule 2 — Filled and half-filled shells refuse the electron.</b> Atoms with a completed subshell have positive Δ<sub>eg</sub><i>H</i> — the incoming electron must enter a higher-energy orbital, so energy must be supplied:<br>• <b>Noble gases</b> (<i>n</i>s<sup>2</sup><i>n</i>p<sup>6</sup>): the new electron starts a brand-new shell (<i>n</i> + 1). NCERT’s Table 3.7 values are all positive: He +48, Ne +116, Ar +96 kJ mol<sup>−1</sup>.<br>• <b>Be, Mg</b> (<i>n</i>s<sup>2</sup> filled): the electron must enter the higher-energy <i>n</i>p subshell — positive or near zero, endothermic.<br>• <b>N</b> (2s<sup>2</sup>2p<sup>3</sup>, exactly half-filled): the new electron must pair up inside the stable 2p<sup>3</sup> set — positive (endothermic), in contrast to phosphorus (3p<sup>3</sup> → 3p<sup>4</sup>), whose larger shell absorbs the repulsion and stays exothermic.',
+        html: '<b>Rule 2 — Filled and half-filled subshells refuse the electron.</b> Atoms with a completed subshell have positive Δ<sub>eg</sub><i>H</i> — the incoming electron must enter a higher-energy orbital, so energy must be supplied:<br>• <b>Noble gases</b> (<i>n</i>s<sup>2</sup><i>n</i>p<sup>6</sup>): the new electron starts a brand-new shell (<i>n</i> + 1). NCERT’s Table 3.7 values are all positive: He +48, Ne +116, Ar +96 kJ mol<sup>−1</sup>.<br>• <b>Be, Mg</b> (<i>n</i>s<sup>2</sup> filled): the electron must enter the higher-energy <i>n</i>p subshell — positive or near zero, endothermic.<br>• <b>N</b> (2s<sup>2</sup>2p<sup>3</sup>, exactly half-filled): the new electron must pair up inside the stable 2p<sup>3</sup> set — positive (endothermic), in contrast to phosphorus (3p<sup>3</sup> → 3p<sup>4</sup>), whose larger shell absorbs the repulsion and stays exothermic.',
       },
       {
         t: 'p',
@@ -141,14 +141,14 @@ export const TOPICS: Topic[] = [
         tag: 'JEE Main — Count the exothermic additions',
         q: 'How many of the following are exothermic? (A) N + e<sup>−</sup> → N<sup>−</sup>; (B) Li + e<sup>−</sup> → Li<sup>−</sup>; (C) Be + e<sup>−</sup> → Be<sup>−</sup>; (D) Mg + e<sup>−</sup> → Mg<sup>−</sup>; (E) B + e<sup>−</sup> → B<sup>−</sup>; (F) O<sup>−</sup> + e<sup>−</sup> → O<sup>2−</sup>; (G) P + e<sup>−</sup> → P<sup>−</sup> (all species gaseous).',
         steps: [
-          'Apply the flags:<br>• (A) N: half-filled 2p<sup>3</sup> — endothermic.<br>• (B) Li: 2s<sup>1</sup> → 2s<sup>2</sup>, completes a subshell — exothermic (−60 kJ mol<sup>−1</sup>).<br>• (C) Be: 2s<sup>2</sup> filled, electron forced into 2p — endothermic.<br>• (D) Mg: 3s<sup>2</sup> filled — endothermic.<br>• (E) B: 2p<sup>1</sup> → 2p<sup>2</sup>, ordinary period-2 non-metal side — exothermic.<br>• (F) O<sup>−</sup>: second electron onto an anion — endothermic (Rule 3).<br>• (G) P: 3p<sup>3</sup> → 3p<sup>4</sup> in a roomy shell — exothermic.',
+          'Apply the flags:<br>• (A) N: half-filled 2p<sup>3</sup> — endothermic.<br>• (B) Li: 2s<sup>1</sup> → 2s<sup>2</sup>, completes a subshell — exothermic (−60 kJ mol<sup>−1</sup>).<br>• (C) Be: 2s<sup>2</sup> filled, electron forced into 2p — endothermic.<br>• (D) Mg: 3s<sup>2</sup> filled — endothermic.<br>• (E) B: 2p<sup>1</sup> → 2p<sup>2</sup>, ordinary period-2 metalloid side — exothermic.<br>• (F) O<sup>−</sup>: second electron onto an anion — endothermic (Rule 3).<br>• (G) P: 3p<sup>3</sup> → 3p<sup>4</sup> in a roomy shell — exothermic.',
           'The two most-missed flags are N (half-filled, endothermic) and O<sup>−</sup> (Rule 3).',
         ],
         ans: 'Three — (B), (E), (G), giving 3 as the answer.',
       },
       {
         t: 'ex',
-        tag: 'NEET assertion–reason — N versus P',
+        tag: 'JEE Main assertion–reason — N versus P',
         q: 'Assertion: the electron gain enthalpy of N is positive while that of P is negative. Reason: nitrogen’s smaller atomic size concentrates electron–electron repulsion, so the additional electron is not accepted easily.',
         steps: [
           'Both parts hold and the reason is the right one. Nitrogen’s 2p<sup>3</sup> half-filled configuration is compact and stable; forcing a fourth electron into a paired 2p orbital of the tiny <i>n</i> = 2 shell costs energy. Phosphorus offers the larger 3p subshell, where the incoming electron pairs with much milder repulsion, so P releases energy (Δ<sub>eg</sub><i>H</i> < 0).',
@@ -161,7 +161,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE/NCERT exercise — The second electron gain of oxygen',
         q: 'Would you expect the second electron gain enthalpy of oxygen to be positive, more negative, or less negative than the first? Justify.',
         steps: [
-          'Positive. The first gain (O + e<sup>−</sup> → O<sup>−</sup>, −141 kJ mol<sup>−1</sup>) is exothermic because the neutral atom attracts the electron. The second gain starts from an anion: O<sup>−</sup> + e<sup>−</sup> → O<sup>2−</sup> pits the incoming electron against the Coulomb repulsion of an already negative species, so energy must be supplied — Δ<sub>eg</sub><i>H</i><sub>2</sub> > 0.',
+          'The first gain (O + e<sup>−</sup> → O<sup>−</sup>, −141 kJ mol<sup>−1</sup>) is exothermic because the neutral atom attracts the electron. The second gain starts from an anion: O<sup>−</sup> + e<sup>−</sup> → O<sup>2−</sup> pits the incoming electron against the Coulomb repulsion of an already negative species, so energy must be supplied — Δ<sub>eg</sub><i>H</i><sub>2</sub> > 0.',
           '(This is a standard NCERT exercise question, and it is the seed of the lattice-energy story you will meet in ionic bonding.)',
         ],
         ans: 'Positive — always, for every element’s second electron gain.',
@@ -229,9 +229,9 @@ export const TOPICS: Topic[] = [
         tag: 'NCERT data-table pattern — Identify the elements',
         q: 'First and second ionisation enthalpies and electron gain enthalpies (all kJ mol<sup>−1</sup>) are given for six elements:<br>• I: Δ<sub>i</sub><i>H</i><sub>1</sub> = 520, Δ<sub>i</sub><i>H</i><sub>2</sub> = 7300, Δ<sub>eg</sub><i>H</i> = −60<br>• II: Δ<sub>i</sub><i>H</i><sub>1</sub> = 419, Δ<sub>i</sub><i>H</i><sub>2</sub> = 3051, Δ<sub>eg</sub><i>H</i> = −48<br>• III: Δ<sub>i</sub><i>H</i><sub>1</sub> = 1681, Δ<sub>i</sub><i>H</i><sub>2</sub> = 3374, Δ<sub>eg</sub><i>H</i> = −328<br>• IV: Δ<sub>i</sub><i>H</i><sub>1</sub> = 1008, Δ<sub>i</sub><i>H</i><sub>2</sub> = 1846, Δ<sub>eg</sub><i>H</i> = −295<br>• V: Δ<sub>i</sub><i>H</i><sub>1</sub> = 2372, Δ<sub>i</sub><i>H</i><sub>2</sub> = 5251, Δ<sub>eg</sub><i>H</i> = +48<br>• VI: Δ<sub>i</sub><i>H</i><sub>1</sub> = 738, Δ<sub>i</sub><i>H</i><sub>2</sub> = 1451, Δ<sub>eg</sub><i>H</i> = −40<br>Identify (a) the least reactive element, (b) the most reactive metal, (c) the most reactive non-metal, (d) the least reactive non-metal, (e) the metal forming a stable binary halide MX<sub>2</sub>.',
         steps: [
-          'Read the flags:<br>• V: positive Δ<sub>eg</sub><i>H</i> (+48) and the highest Δ<sub>i</sub><i>H</i><sub>1</sub> — a noble gas (Δ<sub>i</sub><i>H</i><sub>2</sub>/Δ<sub>i</sub><i>H</i><sub>1</sub> = 5251/2372 ≈ 2.2, small, because both electrons come from the same filled 1s shell; the highest Δ<sub>i</sub><i>H</i><sub>1</sub> and the positive Δ<sub>eg</sub><i>H</i> identify the noble gas). (a) = V.<br>• II: smallest Δ<sub>i</sub><i>H</i><sub>1</sub> (419) with the huge jump at Δ<sub>i</sub><i>H</i><sub>2</sub> (3051) — one valence electron, the most reactive metal. (b) = II.<br>• III: most negative Δ<sub>eg</sub><i>H</i> (−328) and a high Δ<sub>i</sub><i>H</i><sub>1</sub> — a halogen, the most reactive non-metal. (c) = III.<br>• IV: non-metallic but milder (Δ<sub>eg</sub><i>H</i> = −295, Δ<sub>i</sub><i>H</i><sub>1</sub> = 1008) — a heavier halogen. (d) = IV.<br>• VI: Δ<sub>i</sub><i>H</i><sub>1</sub> and Δ<sub>i</sub><i>H</i><sub>2</sub> both modest (738, 1451; ratio only about 2) — the second electron still leaves easily, so there are at least two valence electrons: an alkaline earth metal (magnesium) forming MX<sub>2</sub>. (e) = VI.',
+          'Read the flags:<br>• V: positive Δ<sub>eg</sub><i>H</i> (+48) and the highest Δ<sub>i</sub><i>H</i><sub>1</sub> — a noble gas (Δ<sub>i</sub><i>H</i><sub>2</sub>/Δ<sub>i</sub><i>H</i><sub>1</sub> = 5251/2372 ≈ 2.2, small, because both electrons come from the same filled 1s shell; the highest Δ<sub>i</sub><i>H</i><sub>1</sub> and the positive Δ<sub>eg</sub><i>H</i> identify the noble gas). (a) = V.<br>• II: smallest Δ<sub>i</sub><i>H</i><sub>1</sub> (419) with the huge jump at Δ<sub>i</sub><i>H</i><sub>2</sub> (3051) — one valence electron, the most reactive metal. (b) = II.<br>• III: most negative Δ<sub>eg</sub><i>H</i> (−328) and a high Δ<sub>i</sub><i>H</i><sub>1</sub> — a halogen, the most reactive non-metal. (c) = III.<br>• IV: non-metallic but milder (Δ<sub>eg</sub><i>H</i> = −295, Δ<sub>i</sub><i>H</i><sub>1</sub> = 1008) — a heavier halogen. (d) = IV.<br>• VI: Δ<sub>i</sub><i>H</i><sub>1</sub> and Δ<sub>i</sub><i>H</i><sub>2</sub> both modest (738, 1451; ratio only about 2) — the second electron still leaves easily, so there are at least two valence electrons: an alkaline earth metal (magnesium) forming MX<sub>2</sub>. (e) = VI. (NCERT’s table prints −40 for magnesium; the measured value is close to zero or slightly positive, as Additional topic B says. Nothing here depends on it.)',
           '(I is the lighter alkali metal; note its Δ<sub>i</sub><i>H</i><sub>2</sub> = 7300 dwarfs VI’s 1451 — the alkali-plus-ion is a noble-gas core, exactly the cross-element rule.)',
-          'One table, five deductions — and every deduction is one of the three flags.',
+          'One table, five deductions — and every deduction is one of the four flags.',
         ],
         ans: '(a) V, (b) II, (c) III, (d) IV, (e) VI.',
       },
@@ -240,7 +240,7 @@ export const TOPICS: Topic[] = [
         tag: 'JEE Main statement analysis — Successive IEs of K and Ca',
         q: 'True or false: “The 2nd ionisation energy of Ca is greater than its 1st ionisation energy but lower than the 2nd ionisation energy of K.”',
         steps: [
-          'Two clauses, both checkable by the rule. Clause 1: Δ<sub>i</sub><i>H</i><sub>2</sub> > Δ<sub>i</sub><i>H</i><sub>1</sub> for Ca — always true, the second electron leaves from a positive ion. Clause 2: K<sup>+</sup> has the argon configuration, so potassium’s second ionisation tears into a noble-gas core (3051 kJ mol<sup>−1</sup> in the table of worked example 1), while Ca<sup>+</sup> still holds a loose 4s<sup>1</sup> electron — so Δ<sub>i</sub><i>H</i><sub>2</sub>(K) > Δ<sub>i</sub><i>H</i><sub>2</sub>(Ca).',
+          'Two clauses, both checkable by the rule. Clause 1: Δ<sub>i</sub><i>H</i><sub>2</sub> > Δ<sub>i</sub><i>H</i><sub>1</sub> for Ca — always true, the second electron leaves from a positive ion. Clause 2: K<sup>+</sup> has the argon configuration, so potassium’s second ionisation tears into a noble-gas core (element II’s 3051 kJ mol<sup>−1</sup>, potassium, in the table of worked example 1), while Ca<sup>+</sup> still holds a loose 4s<sup>1</sup> electron — so Δ<sub>i</sub><i>H</i><sub>2</sub>(K) > Δ<sub>i</sub><i>H</i><sub>2</sub>(Ca).',
           '(The item appears inside a multi-statement JEE Main question; the natural reflex “Ca is to the right, so all its IEs exceed K’s” is exactly what it punishes: that reflex works for Δ<sub>i</sub><i>H</i><sub>1</sub> but fails at Δ<sub>i</sub><i>H</i><sub>2</sub>, where shell structure takes over.)',
         ],
         ans: 'True — both clauses hold.',
@@ -265,7 +265,7 @@ export const TOPICS: Topic[] = [
             a: 'Mg’s first electron leaves a filled 3s<sup>2</sup> (stable, higher <i>Z</i>) so Δ<sub>i</sub><i>H</i><sub>1</sub>(Mg) > Δ<sub>i</sub><i>H</i><sub>1</sub>(Na); but Na<sup>+</sup> is the neon core, so sodium’s second electron comes from a noble-gas shell — Δ<sub>i</sub><i>H</i><sub>2</sub>(Na) ≫ Δ<sub>i</sub><i>H</i><sub>2</sub>(Mg), where Mg<sup>+</sup> still has a loose 3s<sup>1</sup> electron.',
           },
           {
-            q: '[NEET] The first ionisation enthalpies of two elements are I: 1s<sup>2</sup>2s<sup>2</sup>2p<sup>3</sup> and II: 1s<sup>2</sup>2s<sup>2</sup>2p<sup>4</sup>. The correct relation is (a) equal (b) I > II (c) I < II (d) I ≥ 2(II).',
+            q: '[NEET] Two elements have the configurations I: 1s<sup>2</sup>2s<sup>2</sup>2p<sup>3</sup> and II: 1s<sup>2</sup>2s<sup>2</sup>2p<sup>4</sup>. The correct relation between their first ionisation enthalpies is (a) equal (b) I > II (c) I < II (d) I ≥ 2(II).',
             a: '(b): I is N (2p<sup>3</sup> half-filled, extra stable), II is O (2p<sup>4</sup>, pairing repulsion) — the chapter’s N > O reversal.',
           },
           {
@@ -302,6 +302,7 @@ export const TOPICS: Topic[] = [
           ['Chemical trends: oxides, oxidation states, diagonal relationship', 'about 25%', 'oxide acidity orders, neutral/amphoteric counting, diagonal pairs and their property statements, group oxidation states'],
           ['History, laws & nomenclature', 'about 15%', 'anomalous pairs (Te–I), Newlands’ failure, Moseley, IUPAC names for <i>Z</i> > 100, eka-elements'],
           ['Position bookkeeping', 'about 8%', 'group/period from <i>Z</i> (including <i>Z</i> = 70, 87, 119), same-group pairs, representative vs transition'],
+          ['Other', 'about 7%', '—'],
         ],
       },
       {
@@ -324,7 +325,7 @@ export const TOPICS: Topic[] = [
         tag: 'Worked representative',
         q: 'Increasing atomic radii of group 13 (asked in JEE Main more than once):',
         steps: [
-          'gallium is smaller than aluminium (its ten new 3d electrons shield poorly), so the order is Ga < Al < In < Tl — option (B). Every other option assumes smooth growth down the group.',
+          'gallium is smaller than aluminium (its ten new 3d electrons shield poorly), so the order is Ga < Al < In < Tl (option (b) of the Level 2 practice item on group-13 radii). Every other option assumes smooth growth down the group.',
         ],
         ans: '',
       },
@@ -444,7 +445,7 @@ export const TOPICS: Topic[] = [
             a: '(b) — Moseley’s periodic law: properties are a periodic function of atomic number.',
           },
           {
-            q: 'The IUPAC name of the element with <i>Z</i> = 119 is (a) Uun (b) Nne (c) Uue (d) Une.',
+            q: 'The IUPAC symbol of the element with <i>Z</i> = 119 is (a) Uun (b) Nne (c) Uue (d) Une.',
             a: '(c): 1, 1, 9 → un-un-enn → ununennium, symbol Uue.',
           },
         ],
@@ -462,8 +463,8 @@ export const TOPICS: Topic[] = [
             a: '(c). Electronegativity is a relative, dimensionless scale number; the rest are energies in kJ mol<sup>−1</sup>.',
           },
           {
-            q: 'Which set of elements all have electronegativity greater than carbon (2.5): (a) Cl, Br, I, S (b) I, S, P, As (c) Br, I, S, P (d) I, P, As, Si?',
-            a: '(a). Read off the Pauling ladder: Cl 3.0, Br 2.8, I 2.7, S 2.6 — all four sit above carbon’s 2.5. Every other set contains at least one member below carbon (P 2.2, As 2.2, Si 1.9). The ladder to memorise: F 4.0 > O 3.5 > Cl 3.0 ≈ N 3.0 > Br 2.8 > I 2.7 > S 2.6 > C 2.5 > H 2.2 ≈ P 2.2 ≈ As 2.2 > B 2.0 > Si 1.9. The trap is assuming electronegativity falls so fast down group 17 that I must be below C — it does not.',
+            q: 'Which set of elements all have electronegativity greater than carbon (2.55): (a) Cl, Br, I, S (b) I, S, P, As (c) Br, I, S, P (d) I, P, As, Si?',
+            a: '(a). Read off the revised Pauling values: Cl 3.16, Br 2.96, I 2.66, S 2.58 — all four sit above carbon’s 2.55. Every other set contains at least one member below carbon (P 2.19, As 2.18, Si 1.90). The ladder to memorise: F 3.98 > O 3.44 > Cl 3.16 > N 3.04 > Br 2.96 > I 2.66 > S 2.58 > C 2.55 > H 2.20 ≈ P 2.19 ≈ As 2.18 > B 2.04 > Si 1.90. The trap is assuming electronegativity falls so fast down group 17 that I must be below C — it does not (though on the rounded one-decimal table I and C tie at 2.5).',
           },
           {
             q: 'The number of amphoteric oxides among Na<sub>2</sub>O, As<sub>2</sub>O<sub>3</sub>, N<sub>2</sub>O, NO, Cl<sub>2</sub>O<sub>7</sub> is (a) 0 (b) 1 (c) 2 (d) 3.',
@@ -484,7 +485,7 @@ export const TOPICS: Topic[] = [
             a: 'Three — Li, B and P (the first worked example of Additional topic B). N refuses (half-filled), Be and Mg refuse (filled <i>n</i>s<sup>2</sup>), and O<sup>−</sup> repels the second electron.',
           },
           {
-            q: 'An element has Δ<sub>i</sub><i>H</i><sub>1</sub> = 374 kJ mol<sup>−1</sup> and reacts with elements A, B, C, D whose electron gain enthalpies are −328, −349, −325, −295 kJ mol<sup>−1</sup>. Order the products EA, EB, EC, ED by ionic character.',
+            q: 'An element E has Δ<sub>i</sub><i>H</i><sub>1</sub> = 374 kJ mol<sup>−1</sup> and reacts with elements A, B, C, D whose electron gain enthalpies are −328, −349, −325, −295 kJ mol<sup>−1</sup>. Order the products EA, EB, EC, ED by ionic character.',
             a: 'The EGE values identify A, B, C, D as F, Cl, Br, I. The ionic character of an E–X bond follows the electronegativity difference (and the lattice energy), which is largest for the fluoride: EA > EB > EC > ED, as with CsF > CsCl > CsBr > CsI. A shortcut that ranks only by the magnitude of the electron gain enthalpy (B 349 > A 328 > C 325 > D 295) would give EB > EA > EC > ED, but that merely reflects the F-versus-Cl anomaly in EGE and not the strength of ionic bonding. Use it only if the question explicitly asks you to order by the energy released on electron gain.',
           },
           {

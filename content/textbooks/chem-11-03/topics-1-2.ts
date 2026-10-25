@@ -102,7 +102,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Mendeleev’s predictive triumph (landmark data):</b> He left a gap below aluminium (“eka-aluminium”) and below silicon (“eka-silicon”) and predicted their properties. When gallium and germanium were discovered, the match was striking — for example, eka-silicon was predicted to have an oxide of formula <i>E</i>O<sub>2</sub> and a chloride <i>E</i>Cl<sub>4</sub>; germanium delivered exactly GeO<sub>2</sub> and GeCl<sub>4</sub>, with measured density and atomic mass close to prediction.',
+        html: '<b>Mendeleev’s predictive triumph (landmark data):</b> He left a gap below aluminium (“eka-aluminium”) and below silicon (“eka-silicon”) and predicted their properties. When gallium and germanium were discovered, the match was striking — for example, eka-silicon was predicted to have an oxide of formula EO<sub>2</sub> and a chloride ECl<sub>4</sub>; germanium delivered exactly GeO<sub>2</sub> and GeCl<sub>4</sub>, with measured density and atomic mass close to prediction.',
       },
       {
         t: 'table',
@@ -156,7 +156,7 @@ export const TOPICS: Topic[] = [
         t: 'proc',
         title: '3.3 — From atomic weight to atomic number (the reasoning chain)',
         steps: [
-          '<b>Observation of anomalies.</b> Ordering strictly by atomic weight forced a few pairs into the wrong chemical company — argon (≈40) would sit after potassium (≈39), tellurium (≈128) after iodine (≈127), cobalt (≈59) after nickel (≈59). Mendeleev reversed Te/I and Co/Ni on chemical grounds, admitting his law had cracks.',
+          '<b>Observation of anomalies.</b> Ordering strictly by atomic weight forced a few pairs into the wrong chemical company — argon (≈40) would sit after potassium (≈39), tellurium (≈128) after iodine (≈127), cobalt (58.93) after nickel (58.69). Mendeleev reversed Te/I and Co/Ni on chemical grounds, admitting his law had cracks.',
           '<b>A deeper property is needed.</b> Chemistry is governed by <b>electrons</b>, and the electron count is set by the <b>nuclear charge</b> — the number of protons.',
           '<b>Moseley’s evidence.</b> Studying the characteristic X-ray spectra of elements, Moseley found a clean, regular relationship tied to a whole-number quantity — the atomic number <i>Z</i> — and proposed <i>Z</i>, not weight, as the true ordering variable.',
           '<b>The anomalies dissolve.</b> Order by <i>Z</i> and Ar (18) correctly precedes K (19), Te (52) precedes I (53), Co (27) precedes Ni (28). No swaps needed. The law becomes exact.',
@@ -244,7 +244,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[JEE Main] The atomic masses of chlorine and iodine are 35.5 and 127. If Cl, Br, I form a Döbereiner triad, predict bromine’s atomic mass and compare with its accepted value of 79.9.',
-            a: 'Predicted ≈ (35.5 + 127)/2 = 81.25 u; accepted 79.9 u (within ~1.7%, confirming the triad).',
+            a: 'Predicted ≈ (35.5 + 127)/2 = 81.2 u; accepted 79.9 u (within ~1.7%, confirming the triad).',
           },
           {
             q: '[JEE Advanced] Cobalt (<i>Z</i> = 27, mass ≈ 58.93) is placed before nickel (<i>Z</i> = 28, mass ≈ 58.69) in the modern table. Explain why this ordering is consistent with the modern periodic law but would be an “anomaly” under Mendeleev’s law, and identify the family each element belongs to.',
@@ -366,7 +366,7 @@ export const TOPICS: Topic[] = [
           { f: 'Triad rule', note: '<i>A</i><sub>middle</sub> ≈ (<i>A</i><sub>first</sub> + <i>A</i><sub>last</sub>)/2.' },
           {
             f: 'Mendeleev’s strengths',
-            note: 'predicted eka-elements (Ga, Ge) via gaps; corrected wrong atomic masses (e.g., beryllium). <b>Weaknesses:</b> anomalous pairs (<b>Ar/K, Te/I, Co/Ni</b>), uncertain H position, no separate place for isotopes, lanthanides/actinides cramped.',
+            note: 'predicted eka-elements (Ga, Ge) via gaps; corrected wrong atomic masses (e.g., beryllium). <b>Weaknesses:</b> anomalous pairs (<b>Ar/K, Te/I, Co/Ni</b>), uncertain H position, no separate place for isotopes, no proper place for the lanthanoids.',
           },
           {
             f: 'Long form',
@@ -435,10 +435,10 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key definitions, trends and data tables' },
       {
         t: 'p',
-        html: '<b>Atomic radius.</b> An atom has no hard boundary (the electron cloud fades gradually), so we measure it operationally in three ways:<br>• <b>Covalent radius</b> — half the internuclear distance between two like atoms joined by a single covalent bond. For a homonuclear molecule <i>A</i><sub>2</sub>: <i>r</i><sub>cov</sub> = ½<i>d</i><sub><i>A</i>–<i>A</i></sub>.<br>• <b>Van der Waals radius</b> — half the distance between the nuclei of two non-bonded atoms of adjacent molecules (used for noble gases). Always the largest: <i>r</i><sub>vdW</sub> > <i>r</i><sub>metallic</sub> > <i>r</i><sub>cov</sub>.<br>• <b>Metallic radius</b> — half the internuclear distance between adjacent atoms in a metallic crystal.',
+        html: '<b>Atomic radius.</b> An atom has no hard boundary (the electron cloud fades gradually), so we measure it operationally in three ways:<br>• <b>Covalent radius</b> — half the internuclear distance between two like atoms joined by a single covalent bond. For a homonuclear molecule A<sub>2</sub>: <i>r</i><sub>cov</sub> = ½<i>d</i><sub>A–A</sub>.<br>• <b>Van der Waals radius</b> — half the distance between the nuclei of two non-bonded atoms of adjacent molecules (used for noble gases). Always the largest: <i>r</i><sub>vdW</sub> > <i>r</i><sub>metallic</sub> > <i>r</i><sub>cov</sub>.<br>• <b>Metallic radius</b> — half the internuclear distance between adjacent atoms in a metallic crystal.',
       },
       { t: 'p', html: 'Units: picometres (pm) or ångström (1 Å = 100 pm).' },
-      { t: 'p', html: 'Canonical data (atomic radii / pm; metallic for Group 1, else covalent):' },
+      { t: 'p', html: 'Canonical data (atomic radii / pm; metallic for Li, Be and Group 1, else covalent):' },
       {
         t: 'table',
         title: null,
@@ -459,16 +459,22 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Ionisation enthalpy (Δ<sub>i</sub><i>H</i>)',
-        main: 'The energy required to remove the most loosely held electron from one mole of isolated gaseous atoms:<br><i>X</i>(g) → <i>X</i><sup>+</sup>(g) + e<sup>−</sup> Δ<sub>i</sub><i>H</i><sub>1</sub><br><i>X</i><sup>+</sup>(g) → <i>X</i><sup>2+</sup>(g) + e<sup>−</sup> Δ<sub>i</sub><i>H</i><sub>2</sub>',
-        legend: [],
-        note: 'Always <b>positive</b> (endothermic). Successive values rise sharply: Δ<sub>i</sub><i>H</i><sub>1</sub> < Δ<sub>i</sub><i>H</i><sub>2</sub> < Δ<sub>i</sub><i>H</i><sub>3</sub> …, because each electron is pulled from an increasingly positive ion. Units: kJ mol<sup>−1</sup>.',
+        main: 'The energy required to remove the most loosely held electron from one mole of isolated gaseous atoms:<br>X(g) → X<sup>+</sup>(g) + e<sup>−</sup>; Δ<sub>i</sub><i>H</i><sub>1</sub><br>X<sup>+</sup>(g) → X<sup>2+</sup>(g) + e<sup>−</sup>; Δ<sub>i</sub><i>H</i><sub>2</sub>',
+        legend: [
+          'X = an atom of any element (gaseous)',
+          'Δ<sub>i</sub><i>H</i><sub>1</sub>, Δ<sub>i</sub><i>H</i><sub>2</sub> = first and second ionisation enthalpies, kJ mol<sup>−1</sup>, always positive (endothermic)',
+        ],
+        note: 'Successive values rise sharply: Δ<sub>i</sub><i>H</i><sub>1</sub> < Δ<sub>i</sub><i>H</i><sub>2</sub> < Δ<sub>i</sub><i>H</i><sub>3</sub> …, because each electron is pulled from an increasingly positive ion.',
       },
       {
         t: 'formula',
         kicker: 'Electron gain enthalpy (Δ<sub>eg</sub><i>H</i>)',
-        main: 'The enthalpy change when one mole of isolated gaseous atoms each gain an electron:<br><i>X</i>(g) + e<sup>−</sup> → <i>X</i><sup>−</sup>(g) Δ<sub>eg</sub><i>H</i>',
-        legend: [],
-        note: 'Usually <b>negative</b> (energy released); more negative = stronger pull. Units: kJ mol<sup>−1</sup>.',
+        main: 'The enthalpy change when one mole of isolated gaseous atoms each gain an electron:<br>X(g) + e<sup>−</sup> → X<sup>−</sup>(g); Δ<sub>eg</sub><i>H</i>',
+        legend: [
+          'X = an atom of any element (gaseous)',
+          'Δ<sub>eg</sub><i>H</i> = electron gain enthalpy, kJ mol<sup>−1</sup>, usually negative (energy released)',
+        ],
+        note: 'More negative = stronger pull.',
       },
       {
         t: 'p',
@@ -493,7 +499,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Canonical data (Pauling electronegativity): F 4.0, O 3.5, N 3.0, C 2.5 across period 2; down group 1: Li 1.0, Na 0.9, K 0.8, Cs 0.7. Fluorine is highest; caesium lowest (excluding radioactive francium). Noble-gas EN is effectively zero.',
+        html: 'Canonical data (Pauling electronegativity): F 4.0, O 3.5, N 3.0, C 2.5 across period 2; down group 1: Li 1.0, Na 0.9, K 0.8, Cs 0.7. Fluorine is highest; caesium lowest (excluding radioactive francium). Noble gases are usually not assigned electronegativity values (only Kr and Xe, which form compounds, have them).',
       },
       {
         t: 'p',
@@ -519,7 +525,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'A big jump between successive ionisation energies (Δ<sub>i</sub><i>H</i><sub><i>n</i></sub> ≪ Δ<sub>i</sub><i>H</i><sub><i>n</i>+1</sub>) signals that the (<i>n</i>+1)-th electron is being torn from a stable noble-gas-like core — the number of “easy” electrons before the jump equals the number of <b>valence electrons</b>, hence the <b>group</b>.',
+        html: 'A big jump between successive ionisation energies (Δ<sub>i</sub><i>H</i><sub><i>n</i></sub> ≪ Δ<sub>i</sub><i>H</i><sub><i>n</i>+1</sub>) signals that the (<i>n</i>+1)-th electron is being torn from a stable noble-gas-like core — the number of “easy” electrons before the jump equals the number of <b>valence electrons</b>, hence the <b>group</b> (add 10 for the p-block).',
       },
       {
         t: 'p',
@@ -618,11 +624,11 @@ export const TOPICS: Topic[] = [
           },
           {
             label: 'Na<sup>+</sup> < F<sup>−</sup> < Al<sup>3+</sup> < Mg<sup>2+</sup>',
-            nudge: '<b>(c), (d)</b> scramble the order, typically by ranking on ionic charge magnitude rather than nuclear charge.',
+            nudge: '<b>(c), (d)</b> scramble the order and follow no single rule — for an isoelectronic set only nuclear charge decides.',
           },
           {
             label: 'Mg<sup>2+</sup> < Al<sup>3+</sup> < F<sup>−</sup> < Na<sup>+</sup>',
-            nudge: '<b>(c), (d)</b> scramble the order, typically by ranking on ionic charge magnitude rather than nuclear charge.',
+            nudge: '<b>(c), (d)</b> scramble the order and follow no single rule — for an isoelectronic set only nuclear charge decides.',
           },
         ],
         correct: 0,
@@ -634,16 +640,16 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'Ionisation enthalpy',
-            nudge: '<b>(a), (b), (d)</b> are all energies measured in kJ mol<sup>−1</sup> — picked by students who conflate electronegativity (a tendency in a bond) with electron gain enthalpy (a measurable energy).',
+            nudge: '<b>(a), (d)</b> are energies measured in kJ mol<sup>−1</sup>.',
           },
           {
             label: 'Electron gain enthalpy',
-            nudge: '<b>(a), (b), (d)</b> are all energies measured in kJ mol<sup>−1</sup> — picked by students who conflate electronegativity (a tendency in a bond) with electron gain enthalpy (a measurable energy).',
+            nudge: '<b>(b)</b> is an energy in kJ mol<sup>−1</sup> — picked by students who conflate electronegativity (a tendency in a bond) with electron gain enthalpy (a measurable energy).',
           },
           { label: 'Electronegativity', nudge: null },
           {
             label: 'Lattice enthalpy',
-            nudge: '<b>(a), (b), (d)</b> are all energies measured in kJ mol<sup>−1</sup> — picked by students who conflate electronegativity (a tendency in a bond) with electron gain enthalpy (a measurable energy).',
+            nudge: '<b>(a), (d)</b> are energies measured in kJ mol<sup>−1</sup>.',
           },
         ],
         correct: 2,
@@ -664,7 +670,7 @@ export const TOPICS: Topic[] = [
           },
           {
             label: 'nitrogen is more electronegative than oxygen',
-            nudge: '<b>(d)</b> is false — oxygen is more electronegative; this swaps the two anomaly facts.',
+            nudge: '<b>(d)</b> is false — oxygen is more electronegative than nitrogen, and electronegativity is not what reverses the IE order.',
           },
         ],
         correct: 1,
@@ -704,7 +710,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed + accuracy):</b> Reduce the whole topic to one master arrow — <b>across a period, <i>Z</i><sub>eff</sub> ↑ and size ↓</b>; everything else (IE ↑, EGE more −ve, EN ↑) follows the same direction, and down a group it all reverses. Then memorise just the four “exception flags”: <b>Be/Mg, N/P</b> (IE peaks), <b>F vs Cl</b> (EGE), <b>Ga < Al</b> (size/IE). If not flagged, trust the master arrow and move on — no calculation needed. For successive-IE questions, find the <b>biggest ratio jump</b>; the count of electrons before it is the group number.',
+        html: '<b>Pro-Tip (speed + accuracy):</b> Reduce the whole topic to one master arrow — <b>across a period, <i>Z</i><sub>eff</sub> ↑ and size ↓</b>; everything else (IE ↑, EGE more −ve, EN ↑) follows the same direction, and down a group it all reverses. Then memorise just the four “exception flags”: <b>Be/Mg, N/P</b> (IE peaks), <b>F vs Cl</b> (EGE), <b>Ga < Al</b> (size; for IE, Ga ≥ Al). If not flagged, trust the master arrow and move on — no calculation needed. For successive-IE questions, find the <b>biggest ratio jump</b>; the count of electrons before it is the number of valence electrons (add 10 for the p-block to get the group).',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -717,12 +723,12 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Radius order',
-            note: '<i>r</i><sub>vdW</sub> > <i>r</i><sub>metallic</sub> > <i>r</i><sub>cov</sub>; covalent radius = ½<i>d</i><sub><i>A</i>–<i>A</i></sub>.',
+            note: '<i>r</i><sub>vdW</sub> > <i>r</i><sub>metallic</sub> > <i>r</i><sub>cov</sub>; covalent radius = ½<i>d</i><sub>A–A</sub>.',
           },
           { f: 'Ions', note: 'cation < parent; anion > parent. Isoelectronic ⇒ higher <i>Z</i> = smaller.' },
           {
             f: 'IE',
-            note: '<i>X</i>(g) → <i>X</i><sup>+</sup>(g) + e<sup>−</sup>, always +ve, Δ<sub>i</sub><i>H</i><sub>1</sub> < Δ<sub>i</sub><i>H</i><sub>2</sub> < …; reversals at <b>Be>B, N>O</b> (and Mg>Al, P>S).',
+            note: 'X(g) → X<sup>+</sup>(g) + e<sup>−</sup>, always +ve, Δ<sub>i</sub><i>H</i><sub>1</sub> < Δ<sub>i</sub><i>H</i><sub>2</sub> < …; reversals at <b>Be>B, N>O</b> (and Mg>Al, P>S).',
           },
           { f: 'EGE', note: 'more −ve across a period; <b>Cl more −ve than F</b> (small-shell repulsion).' },
           {

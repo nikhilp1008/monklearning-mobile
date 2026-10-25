@@ -100,20 +100,20 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The <b>maximum (group) oxidation state</b> of a p-block element equals its total valence electrons; lower states often differ in steps of two (the <b>inert-pair effect</b> stabilises the lower state down a group, e.g. Tl<sup>+</sup>, Pb<sup>2+</sup>).',
+        html: 'The <b>maximum (group) oxidation state</b> of a p-block element equals its total valence electrons (except O and F); lower states often differ in steps of two (the <b>inert-pair effect</b> stabilises the lower state down a group, e.g. Tl<sup>+</sup>, Pb<sup>2+</sup>).',
       },
       {
         t: 'p',
-        html: '<b>Metallic vs non-metallic character.</b> Across a period: metallic ↓, non-metallic ↑ (Na, Mg metals → Al metalloid-ish → Si … Cl non-metals). Down a group: metallic ↑. Oxide character follows: <b>basic (left) → amphoteric (middle) → acidic (right)</b>.',
+        html: '<b>Metallic vs non-metallic character.</b> Across a period: metallic ↓, non-metallic ↑ (Na, Mg, Al metals → Si metalloid → P, S, Cl non-metals). Down a group: metallic ↑. Oxide character follows: <b>basic (left) → amphoteric (middle) → acidic (right)</b>.',
       },
       {
         t: 'def',
         term: 'Diagonal relationship',
-        html: 'The first member of groups 1 and 2 (Li, Be) resembles the second member of the next group (Mg, Al respectively), owing to similar <b>ionic size</b> and <b>charge/radius ratio</b>. Classic pairs: <b>Li–Mg, Be–Al, B–Si</b>.',
+        html: 'The first member of groups 1, 2 and 13 (Li, Be, B) resembles the second member of the next group (Mg, Al, Si respectively), owing to similar <b>ionic size</b> and <b>charge/radius ratio</b>. Classic pairs: <b>Li–Mg, Be–Al, B–Si</b>.',
       },
       {
         t: 'p',
-        html: '<b>Anomalous second-period factors.</b> Small size, high charge/radius ratio, high electronegativity, and <b>absence of d-orbitals</b> in the valence shell (so the octet cannot be expanded). Consequences: restricted covalency (N maximum covalency 4, never pentavalent; F shows only −1).',
+        html: '<b>Anomalous second-period factors.</b> Small size, high charge/radius ratio, high electronegativity, and <b>absence of d-orbitals</b> in the valence shell (so the octet cannot be expanded). Consequences: restricted covalency (N maximum covalency 4, never five-covalent; F shows only −1).',
       },
 
       { t: 'part', title: 'Trend logic and reasoning framework' },
@@ -295,7 +295,7 @@ export const TOPICS: Topic[] = [
           '<b>Formula crossover slips.</b> When combining ions, cross the valences to balance charge (group-2 + group-15 ⇒ X<sub>3</sub>Y<sub>2</sub>, not XY).',
           '<b>Confusing diagonal pairs with group/period neighbours.</b> Diagonal = first element ↔ lower-right neighbour (Li–Mg, Be–Al, B–Si). Same-row and same-column pairs are not it.',
           '<b>Mis-counting the maximum oxidation state.</b> The group state uses all valence electrons (s + p), not 8 − <i>N</i>.',
-          '<b>Granting octet expansion to period-2 atoms.</b> N, O, F have <b>no d-orbitals</b> — they can never expand the octet. Pentavalent N or hexavalent O simply do not exist.',
+          '<b>Granting octet expansion to period-2 atoms.</b> N, O, F have <b>no d-orbitals</b> — they can never expand the octet. Five-covalent N or six-covalent O simply do not exist.',
         ],
       },
       {
@@ -309,7 +309,7 @@ export const TOPICS: Topic[] = [
         rows: [
           {
             f: 'Valence (representative elements)',
-            note: '<i>N</i> or 8 − <i>N</i> (whichever reaches the octet); group number = valence electrons. O-scale valence climbs 1 → 7; H-scale 1 → 4 → 1.',
+            note: '<i>N</i> or 8 − <i>N</i> (whichever reaches the octet); group number (old A numbering) = valence electrons. O-scale valence climbs 1 → 7; H-scale 1 → 4 → 1.',
           },
           {
             f: 'Oxide progression (period 3)',
@@ -412,7 +412,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>What makes each block behave the way it does.</b><br>• The <b>s-block</b> metals hold one or two loosely bound outer electrons, giving them the lowest ionisation enthalpies in their periods; they are powerful reducing agents, form predominantly ionic compounds, and show a single fixed oxidation state (+1 or +2). Their oxides and hydroxides are strongly basic.<br>• The <b>p-block</b> is the only block that spans metals, metalloids, non-metals and the noble gases, so it shows the widest variety of chemistry of any block. Its elements display multiple oxidation states that differ in steps of two (the group state and group −2, via the inert-pair effect lower down), and their oxide character shifts from basic through amphoteric to acidic across each period.<br>• The <b>d-block</b> (transition) metals draw on both their (<i>n</i> − 1)d and <i>n</i>s electrons for bonding, which is the source of their hallmark traits: <b>variable oxidation states</b>, <b>coloured ions</b> (arising from d–d electronic transitions), <b>paramagnetism</b> (unpaired d electrons), a strong tendency to form <b>coordination complexes</b>, and widespread use as <b>catalysts</b>.<br>• The <b>f-block</b> (inner-transition) metals bury their differentiating electron two shells deep in (<i>n</i> − 2)f, so the outermost shells stay almost unchanged across a series. As a result the lanthanoids behave remarkably alike (predominantly +3), and their steady size decrease — the lanthanoid contraction — quietly shapes the chemistry of the heavier elements that follow them.',
+        html: '<b>What makes each block behave the way it does.</b><br>• The <b>s-block</b> metals hold one or two loosely bound outer electrons, giving them the lowest ionisation enthalpies in their periods; they are powerful reducing agents, form predominantly ionic compounds, and show a single fixed oxidation state (+1 or +2). Their oxides and hydroxides are strongly basic (except amphoteric BeO).<br>• The <b>p-block</b> is the only block that spans metals, metalloids, non-metals and the noble gases, so it shows the widest variety of chemistry of any block. Its elements display multiple oxidation states that differ in steps of two (the group state and group −2, via the inert-pair effect lower down), and their oxide character shifts from basic through amphoteric to acidic across each period.<br>• The <b>d-block</b> (transition) metals draw on both their (<i>n</i> − 1)d and <i>n</i>s electrons for bonding, which is the source of their hallmark traits: <b>variable oxidation states</b>, <b>coloured ions</b> (arising from d–d electronic transitions), <b>paramagnetism</b> (unpaired d electrons), a strong tendency to form <b>coordination complexes</b>, and widespread use as <b>catalysts</b>.<br>• The <b>f-block</b> (inner-transition) metals bury their differentiating electron two shells deep in (<i>n</i> − 2)f, so the outermost shells stay almost unchanged across a series. As a result the lanthanoids behave remarkably alike (predominantly +3), and their steady size decrease — the lanthanoid contraction — quietly shapes the chemistry of the heavier elements that follow them.',
       },
       {
         t: 'p',
@@ -434,7 +434,7 @@ export const TOPICS: Topic[] = [
         title: '3.1 — From atomic number to period, block and group',
         steps: [
           '<b>Write the electronic configuration</b> using the Aufbau order (1s 2s 2p 3s 3p 4s 3d 4p …).',
-          '<b>Period</b> = the largest principal quantum number <i>n</i> that appears in the configuration.',
+          '<b>Period</b> = the largest principal quantum number <i>n</i> that appears in the configuration. (Pd, [Kr]4d<sup>10</sup>, is the one exception: period 5.)',
           '<b>Block</b> = the subshell of the last electron added (s, p, (<i>n</i> − 1)d, or (<i>n</i> − 2)f).',
           '<b>Group</b> — use the block-specific rule:<br>• <b>s-block:</b> group = number of <i>n</i>s electrons (1 or 2).<br>• <b>p-block:</b> group = 10 + (number of valence <i>n</i>s + <i>n</i>p electrons).<br>• <b>d-block:</b> group = (number of (<i>n</i> − 1)d electrons) + (number of <i>n</i>s electrons).',
         ],
@@ -449,7 +449,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3.3 — The anomalous configurations (half-filled / fully filled stability)</b><br>A few d-block elements deviate from naïve Aufbau because <b>exactly half-filled (d<sup>5</sup>) and completely filled (d<sup>10</sup>) subshells are extra stable</b> (symmetry + minimum electron–electron repulsion + exchange energy):<br>• <b>Chromium:</b> expected [Ar] 3d<sup>4</sup> 4s<sup>2</sup>, actual [Ar] 3d<sup>5</sup> 4s<sup>1</sup> — one 4s electron shifts to 3d to reach the stable d<sup>5</sup>.<br>• <b>Copper:</b> expected [Ar] 3d<sup>9</sup> 4s<sup>2</sup>, actual [Ar] 3d<sup>10</sup> 4s<sup>1</sup> — to reach the stable d<sup>10</sup>. These do not change the block (still d-block) but matter when you compute the group or predict ionisation behaviour.',
+        html: '<b>3.3 — The anomalous configurations (half-filled / fully filled stability)</b><br>A few d-block elements deviate from naïve Aufbau because <b>exactly half-filled (d<sup>5</sup>) and completely filled (d<sup>10</sup>) subshells are extra stable</b> (symmetry + minimum electron–electron repulsion + exchange energy):<br>• <b>Chromium:</b> expected [Ar] 3d<sup>4</sup> 4s<sup>2</sup>, actual [Ar] 3d<sup>5</sup> 4s<sup>1</sup> — one 4s electron shifts to 3d to reach the stable d<sup>5</sup>.<br>• <b>Copper:</b> expected [Ar] 3d<sup>9</sup> 4s<sup>2</sup>, actual [Ar] 3d<sup>10</sup> 4s<sup>1</sup> — to reach the stable d<sup>10</sup>. These change neither the block (still d-block) nor the group (the d + s count is unchanged), but matter when you write the configuration or predict ionisation behaviour.',
       },
       {
         t: 'p',
@@ -513,7 +513,7 @@ export const TOPICS: Topic[] = [
             a: 'Region named after the subshell receiving the last electron; s-block <i>n</i>s<sup>1–2</sup>, p-block <i>n</i>s<sup>2</sup><i>n</i>p<sup>1–6</sup>.',
           },
           {
-            q: '[NEET] Which block contains elements that are all metals and show variable oxidation states and coloured ions?',
+            q: '[NEET] Which block contains elements that are all metals and show variable oxidation states using their (<i>n</i> − 1)d electrons and coloured ions?',
             a: 'The <b>d-block</b> (transition metals).',
           },
           {
@@ -615,7 +615,7 @@ export const TOPICS: Topic[] = [
           '<b>Reading the period from the wrong shell.</b> The period is the highest <i>n</i> in the configuration, not the shell of the last-filled d or f electron. For [Ar]3d<sup>6</sup>4s<sup>2</sup> (Fe) the period is <b>4</b> (from 4s), not 3.',
           '<b>Counting the d-block group wrong.</b> Group = (<i>n</i> − 1)d + <i>n</i>s electrons — you must add the <i>n</i>s electrons, not just count the d electrons.',
           '<b>Calling every d-block element a “transition metal.”</b> Strictly, Zn, Cd, Hg (d<sup>10</sup>) are excluded.',
-          '<b>Treating He as s-block by configuration.</b> Its 1s<sup>2</sup> looks s-block, but it is placed in group 18 by property. Don’t let the bare configuration mislead you.',
+          '<b>Placing He in group 2 because of its configuration.</b> Its 1s<sup>2</sup> looks s-block, but it is placed in group 18 by property. Don’t let the bare configuration mislead you.',
         ],
       },
       {

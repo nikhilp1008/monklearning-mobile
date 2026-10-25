@@ -17,11 +17,11 @@
  * Common Student Pitfalls. Exam shortcuts: its Pro-Tip. `say`: the cheat
  * sheet's two mnemonics, word for word (quotation marks and labels dropped).
  * Additional topics: the addenda's methods and worked examples; Additional
- * topic D: its distribution and traps. Topic 02's Pro-Tip flags "Ga < Al
- * (size/IE)" and counts the electrons before an IE jump as "the group
- * number"; only the size half and the valence-electron count are used here
- * (Ga's first ionisation enthalpy is not below Al's, and in the p-block the
- * group is that count + 10).
+ * topic D: its distribution and traps. Where the expert review corrected
+ * the book (REVIEW-ch03: Ga ≥ Al for IE, the count before an IE jump is the
+ * valence-electron count with + 10 for the p-block, no proper place for the
+ * lanthanoids, the group oxidation state except O and F), the points follow
+ * the corrected text.
  *
  * Markup is the chapter's own: <i> for maths, <sub> and <sup>. Element
  * symbols, formulas and ions are upright (Na<sup>+</sup>, O<sup>2−</sup>),
@@ -53,7 +53,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'remember',
     q: 'Mendeleev’s table: its strengths and its weaknesses?',
-    a: 'Strengths: he left gaps and predicted eka-elements (gallium and germanium), and corrected wrong atomic masses (beryllium). Weaknesses: anomalous pairs (Ar/K, Te/I, Co/Ni), an uncertain place for H, no separate place for isotopes, lanthanides and actinides cramped',
+    a: 'Strengths: he left gaps and predicted eka-elements (gallium and germanium), and corrected wrong atomic masses (beryllium). Weaknesses: anomalous pairs (Ar/K, Te/I, Co/Ni), an uncertain place for H, no separate place for isotopes, no proper place for the lanthanoids',
     why: 'Eka-silicon was predicted to form EO<sub>2</sub> and ECl<sub>4</sub>; germanium delivered exactly GeO<sub>2</sub> and GeCl<sub>4</sub>, with density and atomic mass close to prediction.',
     say: 'Argon’s King, Telling India, Cobalt’s Nice → Ar–K, Te–I, Co–Ni.',
   },
@@ -147,7 +147,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 2,
     kind: 'remember',
     q: 'The maximum oxidation state of a p-block element, and how oxide character runs across a period?',
-    a: 'Its total valence electrons (s + p), e.g. S +6; lower states differ by 2, the inert-pair effect stabilising the lower one down a group (Tl<sup>+</sup>, Pb<sup>2+</sup>). Oxides go basic (Na<sub>2</sub>O) → amphoteric (Al<sub>2</sub>O<sub>3</sub>) → acidic (Cl<sub>2</sub>O<sub>7</sub>) as metallic character falls',
+    a: 'Its total valence electrons (s + p), except for O and F, e.g. S +6; lower states differ by 2, the inert-pair effect stabilising the lower one down a group (Tl<sup>+</sup>, Pb<sup>2+</sup>). Oxides go basic (Na<sub>2</sub>O) → amphoteric (Al<sub>2</sub>O<sub>3</sub>) → acidic (Cl<sub>2</sub>O<sub>7</sub>) as metallic character falls',
     why: 'Oxidation state is signed, decided by electronegativity: O is −2 in Na<sub>2</sub>O but +2 in OF<sub>2</sub>. Reactivity is highest at both ends of a period, lowest in the centre.',
     say: null,
   },
