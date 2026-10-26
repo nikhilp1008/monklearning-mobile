@@ -6,6 +6,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { ApiError } from '@/lib/api';
 import { getSessionEmail } from '@/lib/auth';
 import { getProfile } from '@/lib/profile';
+import { payInUpiApp, rememberUpiApp } from '@/lib/upi-apps';
 import { passStatus, type PassKind, type PassStatus } from '@/lib/pass';
 import {
   PAYMENTS_ON_THIS_DEVICE,
@@ -16,6 +17,7 @@ import {
   isAppLink,
   openCheckoutScript,
   parseCheckoutMessage,
+  razorpayContact,
   verifyPayment,
   webViewMayLoad,
   type CheckoutEvent,
@@ -201,6 +203,12 @@ export function usePassCheckout() {
         /** What the page showed, in paise. The sheet does not open if the
          *  server would charge anything else. */
         expectedPaise?: number;
+        /**
+         * A UPI app the student tapped on the page (its package name): the
+         * order opens straight in that app, with no Razorpay screen. Without
+         * it, Razorpay's checkout sheet opens as before.
+         */
+        upiApp?: string;
       }
     ): Promise<PayResult> => {
       if (!PAYMENTS_ON_THIS_DEVICE) throw new Error('Payments are not available on this device.');
@@ -223,7 +231,9 @@ export function usePassCheckout() {
           closedEarly = resolve;
         });
         resolveSheet.current = (e) => closedEarly?.(e);
-        setOpen({ order: null, email: null, phone: null, description: opts.description });
+        // A UPI app opens only once the order exists; until then the page's own
+        // row shows the wait. The sheet is for Razorpay's checkout only.
+        if (!opts.upiApp) setOpen({ order: null, email: null, phone: null, description: opts.description });
         // The student's email and the phone they gave in onboarding, so Razorpay
         // does not ask for either again.
         const made = Promise.all([
@@ -255,9 +265,18 @@ export function usePassCheckout() {
           setOpen(null);
           throw err;
         }
+        const upiApp = opts.upiApp;
         const event = await new Promise<CheckoutEvent | Closed | Settled>((resolve) => {
           resolveSheet.current = resolve;
-          setOpen({ order, email, phone, description: opts.description });
+          if (upiApp) {
+            // Straight into the app. Its answer comes back here; the server is
+            // watched as well, as for the sheet, in case it hears first.
+            void payInUpiApp(order, upiApp, { email, contact: razorpayContact(phone), description: opts.description }).then(
+              (e) => resolveSheet.current?.(e)
+            );
+          } else {
+            setOpen({ order, email, phone, description: opts.description });
+          }
           // A UPI payment ends in another app and this page is never told. The
           // server is (Razorpay's webhook), so ask it, and close the sheet by
           // itself when it says paid.
@@ -273,6 +292,7 @@ export function usePassCheckout() {
         });
         stopWatching();
         resolveSheet.current = null;
+        if (upiApp && event.type === 'success') void rememberUpiApp(upiApp);
         setOpen(null);
         const before = await beforeRead;
 

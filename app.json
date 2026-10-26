@@ -101,7 +101,8 @@
         {
           "faceIDPermission": false
         }
-      ]
+      ],
+      "./plugins/with-upi-queries"
     ],
     "experiments": {
       "typedRoutes": true,

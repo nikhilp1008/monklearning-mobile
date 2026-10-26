@@ -14,6 +14,8 @@ import Svg, { Path } from 'react-native-svg';
 import { ObButton } from '@/components/onboarding-kit';
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PaymentNotice } from '@/components/paywall/payment-notice';
+import { UpiPay, useUpiApps } from '@/components/paywall/upi-pay';
+import type { UpiApp } from '@/lib/upi-apps';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
@@ -74,6 +76,12 @@ export default function PassScreen() {
 
   const { pay, checkout, confirming } = usePassCheckout();
   const [paying, setPaying] = useState(false);
+  /** True from the tap until the purchase is over: the return-to-app check
+   *  below must not open the receipt alongside the purchase's own. */
+  const payingNow = useRef(false);
+  /** The UPI apps on this phone (design B), and which one is starting. */
+  const upi = useUpiApps();
+  const [upiBusy, setUpiBusy] = useState<string | null>(null);
   /** A payment that did not happen: said in the banner at the top. */
   const [notPaid, setNotPaid] = useState(false);
   const hideNotPaid = useCallback(() => setNotPaid(false), []);
@@ -90,7 +98,10 @@ export default function PassScreen() {
     let live = true;
     const check = () =>
       passStatus().then((st) => {
-        if (!live || st.state !== 'active' || leaving.current) return;
+        // TWO RECEIPTS. Back from a UPI app this fired too, and opened the
+        // receipt (with no amount: "Paid ₹0") a second before the purchase
+        // opened its own. While a purchase is on, the purchase decides.
+        if (!live || st.state !== 'active' || leaving.current || payingNow.current) return;
         leaving.current = true;
         const kind = st.record.kind === 'day' || st.record.kind === 'week' ? st.record.kind : 'week';
         router.replace({ pathname: '/pass-active', params: { pass: kind, promo: '', exam: params.exam ?? '', paid: '1' } });
@@ -108,16 +119,19 @@ export default function PassScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const buy = async () => {
+  const buy = async (app?: UpiApp) => {
     if (!active || paying) return;
     setNotPaid(false);
     setPaying(true);
+    payingNow.current = true;
+    setUpiBusy(app?.packageName ?? null);
     try {
       const result = await pay(active.id, {
         description: `${active.name} pass`,
         promo: quote && !quote.free ? quote.code : undefined,
         // The sheet only opens for the amount on the button.
         expectedPaise: Math.round(total * 100),
+        upiApp: app?.packageName,
       });
       if (result.status === 'paid') {
         // The pass already exists on the server; the receipt must not start another.
@@ -143,7 +157,9 @@ export default function PassScreen() {
     } catch (err) {
       Alert.alert("Couldn't start the payment", payErrorMessage(err));
     } finally {
+      payingNow.current = false;
       setPaying(false);
+      setUpiBusy(null);
       // A refused or just-spent code must not stay on the page.
       refresh();
     }
@@ -209,6 +225,17 @@ export default function PassScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
+          {active && !paid && PAYMENTS_ON_THIS_DEVICE && upi.apps && upi.apps.length > 0 ? (
+            <UpiPay
+              amount={rupees(total)}
+              apps={upi.apps}
+              last={upi.last}
+              busy={upiBusy}
+              disabled={paying || checking}
+              onPick={(app) => void buy(app)}
+              onOther={() => void buy()}
+            />
+          ) : (<>
           {/* Says what is owed, not what will happen. */}
           <ObButton
             label={
@@ -238,6 +265,7 @@ export default function PassScreen() {
           {!!active && (
             <Text style={styles.footNote}>One payment. Nothing renews on its own.</Text>
           )}
+          </>)}
         </View>
       </SafeAreaView>
       <PaymentNotice visible={notPaid} onGone={hideNotPaid} />
