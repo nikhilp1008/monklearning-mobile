@@ -21,7 +21,7 @@ jest.mock('react-native-webview', () => ({ WebView: () => null }));
 
 import { apiFetch } from '@/lib/api';
 import { watchOrder } from '@/components/paywall/razorpay-checkout';
-import { checkoutHtml, checkoutShellHtml, getOrderState, openCheckoutScript, type Order } from '@/lib/payments';
+import { checkoutHtml, checkoutShellHtml, getOrderState, openCheckoutScript, razorpayContact, type Order } from '@/lib/payments';
 
 const read = (rel: string) => fs.readFileSync(path.join(__dirname, '../..', rel), 'utf8');
 const ORDER: Order = {
@@ -165,5 +165,31 @@ describe('the sheet opens before the order exists', () => {
   it('no email, no prefill; and a hostile description cannot end the script', () => {
     expect(openCheckoutScript(ORDER, { description: 'x' })).not.toContain('prefill');
     expect(openCheckoutScript(ORDER, { description: '</script><script>alert(1)</script>' })).not.toContain('</script>');
+  });
+
+  it('sends the onboarding phone too, so Razorpay skips its Contact details page', () => {
+    const js = openCheckoutScript(ORDER, { description: '1 day pass', email: 'a@b.com', phone: '+91 98765 43210' });
+    expect(js).toContain('"prefill":{"email":"a@b.com","contact":"+919876543210"}');
+  });
+
+  it('opens in our name, with our logo', () => {
+    const js = openCheckoutScript(ORDER, { description: '1 day pass' });
+    expect(js).toContain('"name":"monklearning"');
+    expect(js).toContain('"image":"https://monklearning.com/apple-touch-icon.png"');
+  });
+});
+
+describe('razorpayContact', () => {
+  it('takes the spaced onboarding number and gives Razorpay +91 and ten digits', () => {
+    expect(razorpayContact('+91 98765 43210')).toBe('+919876543210');
+    expect(razorpayContact('9876543210')).toBe('+919876543210');
+    expect(razorpayContact('919876543210')).toBe('+919876543210');
+  });
+
+  it('gives nothing for a missing, partial or non-mobile number, so Razorpay asks as before', () => {
+    expect(razorpayContact('')).toBeNull();
+    expect(razorpayContact(null)).toBeNull();
+    expect(razorpayContact('+91 98765')).toBeNull();
+    expect(razorpayContact('0123456789')).toBeNull();
   });
 });

@@ -8,15 +8,19 @@ import { saveAnswers } from '@/lib/onboarding-answers';
 import { getProfile, saveProfile } from '@/lib/profile';
 
 /**
- * The first screen after the email code, for a new account: the name, and a
- * phone number if they want class reminders.
+ * The first screen after the email code, for a new account: the name and a
+ * phone number.
  *
  * The account comes first now. Email and code decide whether this is a new
  * student or a returning one (who goes straight to Home), so the name and
  * phone are asked only of the new ones, and every question after this can
  * use the name.
  *
- * The phone is optional and not verified: there is no Indian SMS sender yet.
+ * The phone is REQUIRED (26 Oct 2026, Nikhil). It goes to Razorpay with the
+ * email, so the payment sheet opens straight on the ways to pay instead of a
+ * "Contact details" page asking for both again. It is not verified: there is
+ * no Indian SMS sender yet, so the check is only that it looks like an Indian
+ * mobile number (10 digits, starting 6–9), which is also what Razorpay takes.
  */
 
 // Latin, Latin-Extended and Devanagari, spelled out rather than \p{L}: Hermes
@@ -25,6 +29,7 @@ const HAS_LETTER = /[A-Za-zÀ-ɏऀ-ॿ]/;
 const isUsableName = (v: string) => v.trim().length >= 2 && HAS_LETTER.test(v);
 
 const onlyDigits = (text: string) => text.replace(/[^0-9]/g, '').slice(0, 10);
+const isUsablePhone = (digits: string) => /^[6-9][0-9]{9}$/.test(digits);
 
 // `+91 98211 43307`. Empty in, empty out; a partial keeps what was typed, so a
 // half-entered number is never saved as somebody else's real one.
@@ -96,10 +101,12 @@ export default function NameScreen() {
     };
   }, []);
 
-  const ok = isUsableName(name);
+  const nameOk = isUsableName(name);
+  const phoneOk = isUsablePhone(phone);
+  const ok = nameOk && phoneOk;
   const next = () => {
     if (!ok) return;
-    saveProfile({ name: name.trim(), ...(phone ? { phone: formatPhone(phone), phoneVerified: false } : {}) });
+    saveProfile({ name: name.trim(), phone: formatPhone(phone), phoneVerified: false });
     saveAnswers({ started: true });
     router.push('/exam');
   };
@@ -109,7 +116,7 @@ export default function NameScreen() {
       keyboard
       title="What should we call you?"
       sub="Your full name, the way you’d like to see it."
-      cta={{ label: ok ? 'Continue' : 'Add your name', disabled: !ok, onPress: next }}>
+      cta={{ label: ok ? 'Continue' : !nameOk ? 'Add your name' : 'Add your phone number', disabled: !ok, onPress: next }}>
       <Field
         inputRef={nameInput}
         value={name}
@@ -122,7 +129,7 @@ export default function NameScreen() {
         submitBehavior="submit"
         onSubmitEditing={() => phoneInput.current?.focus()}
       />
-      <OnbLabel>Phone, for class reminders · optional</OnbLabel>
+      <OnbLabel>Phone, for payments and class reminders</OnbLabel>
       <Field
         inputRef={phoneInput}
         prefix="+91"

@@ -5,6 +5,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { ApiError } from '@/lib/api';
 import { getSessionEmail } from '@/lib/auth';
+import { getProfile } from '@/lib/profile';
 import { passStatus, type PassKind, type PassStatus } from '@/lib/pass';
 import {
   PAYMENTS_ON_THIS_DEVICE,
@@ -155,7 +156,7 @@ export function usePassCheckout() {
   /** The sheet opens the moment Pay is tapped, with no order yet (null): the order
    *  is made while Razorpay's script is already downloading, and handed to the page
    *  when it arrives. */
-  const [open, setOpen] = useState<{ order: Order | null; email: string | null; description: string } | null>(null);
+  const [open, setOpen] = useState<{ order: Order | null; email: string | null; phone: string | null; description: string } | null>(null);
   const resolveSheet = useRef<((e: CheckoutEvent | Closed | Settled) => void) | null>(null);
 
   // If the screen goes away with the sheet open (a deep link, the pass gate
@@ -211,10 +212,19 @@ export function usePassCheckout() {
           closedEarly = resolve;
         });
         resolveSheet.current = (e) => closedEarly?.(e);
-        setOpen({ order: null, email: null, description: opts.description });
-        const made = Promise.all([createOrder(kind, opts.offer, opts.promo), getSessionEmail().catch(() => null)]);
+        setOpen({ order: null, email: null, phone: null, description: opts.description });
+        // The student's email and the phone they gave in onboarding, so Razorpay
+        // does not ask for either again.
+        const made = Promise.all([
+          createOrder(kind, opts.offer, opts.promo),
+          getSessionEmail().catch(() => null),
+          getProfile()
+            .then((p) => p.phone || null)
+            .catch(() => null),
+        ]);
         let order: Order;
         let email: string | null;
+        let phone: string | null;
         try {
           const first = await Promise.race([made.then((m) => ({ made: m })), early.then((event) => ({ event }))]);
           if ('event' in first) {
@@ -227,7 +237,7 @@ export function usePassCheckout() {
             if (first.event.type === 'error') return { status: 'failed', message: first.event.message };
             return { status: 'cancelled' };
           }
-          [order, email] = first.made;
+          [order, email, phone] = first.made;
           if (opts.expectedPaise != null && order.amount !== opts.expectedPaise) throw new PriceMismatchError();
         } catch (err) {
           resolveSheet.current = null;
@@ -236,7 +246,7 @@ export function usePassCheckout() {
         }
         const event = await new Promise<CheckoutEvent | Closed | Settled>((resolve) => {
           resolveSheet.current = resolve;
-          setOpen({ order, email, description: opts.description });
+          setOpen({ order, email, phone, description: opts.description });
           // A UPI payment ends in another app and this page is never told. The
           // server is (Razorpay's webhook), so ask it, and close the sheet by
           // itself when it says paid.
@@ -303,6 +313,7 @@ export function usePassCheckout() {
     <CheckoutSheet
       order={open.order}
       email={open.email}
+      phone={open.phone}
       description={open.description}
       onEvent={(e) => resolveSheet.current?.(e)}
     />
@@ -314,11 +325,13 @@ export function usePassCheckout() {
 function CheckoutSheet({
   order,
   email,
+  phone,
   description,
   onEvent,
 }: {
   order: Order | null;
   email: string | null;
+  phone: string | null;
   description: string;
   onEvent: (e: CheckoutEvent | Closed | Settled) => void;
 }) {
@@ -331,8 +344,8 @@ function CheckoutSheet({
   useEffect(() => {
     if (!order || loading || opened.current === order.order_id) return;
     opened.current = order.order_id;
-    web.current?.injectJavaScript(openCheckoutScript(order, { description, email }));
-  }, [order, loading, description, email]);
+    web.current?.injectJavaScript(openCheckoutScript(order, { description, email, phone }));
+  }, [order, loading, description, email, phone]);
   // Read HERE, outside the Modal. A Modal is its own native hierarchy and the
   // inset measured inside it reads zero: the header sat under the status bar and
   // the Dynamic Island, and its Close button could not be tapped.

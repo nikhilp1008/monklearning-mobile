@@ -155,18 +155,57 @@ export function parseCheckoutMessage(raw: unknown, expectedOrderId: string): Che
 const forScript = (v: unknown) =>
   JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\u2028|\u2029/g, '');
 
+/**
+ * RAZORPAY'S CHECKOUT, IN OUR NAME.
+ *
+ * Its header (and the payment-options bar after it) is drawn by Razorpay from
+ * three things we send: the name, a logo and one theme colour, which also
+ * colours its main button. Without a logo it drew a plain "M" box, and
+ * "Monk Learning" was not how the brand is written. The logo is the app icon
+ * monklearning.com already serves, so nothing new has to be hosted.
+ */
+export const CHECKOUT_LOGO = 'https://monklearning.com/apple-touch-icon.png';
+/**
+ * White, picked 26 Oct 2026 from four renders of Razorpay's real checkout (ink,
+ * white, marigold, ember). Razorpay draws its header in this colour, so the
+ * ink app-icon tile stands on white like the app's own pages, and it keeps its
+ * Continue button black on a white theme.
+ */
+export const CHECKOUT_THEME = '#FFFFFF';
+/** What shows behind Razorpay's sheet while it loads: the sheet's own cream. */
+const CHECKOUT_BACKDROP = '#FBF9F2';
+
+/**
+ * The phone from onboarding, as Razorpay takes it ("+919876543210"). Onboarding
+ * stores it spaced ("+91 98765 43210") and it is optional, so anything that is
+ * not a 10-digit Indian number gives null and Razorpay asks as before.
+ */
+export function razorpayContact(phone: string | null | undefined): string | null {
+  const digits = (phone ?? '').replace(/[^0-9]/g, '');
+  const local = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+  return /^[6-9][0-9]{9}$/.test(local) ? `+91${local}` : null;
+}
+
+type CheckoutOpts = { description: string; themeColor?: string; email?: string | null; phone?: string | null };
+
 /** What Razorpay's checkout is opened with (the page adds the handlers). */
-export function checkoutOptions(order: Order, opts: { description: string; themeColor?: string; email?: string | null }) {
+export function checkoutOptions(order: Order, opts: CheckoutOpts) {
+  const contact = razorpayContact(opts.phone);
+  const prefill = {
+    ...(opts.email ? { email: opts.email } : {}),
+    ...(contact ? { contact } : {}),
+  };
   return {
     key: order.key_id,
     amount: order.amount,
     currency: order.currency,
     order_id: order.order_id,
-    name: 'Monk Learning',
+    name: 'monklearning',
     description: opts.description,
-    theme: { color: opts.themeColor ?? '#1C1A16' },
-    // The student's email, so Razorpay does not ask for it again.
-    ...(opts.email ? { prefill: { email: opts.email } } : {}),
+    image: CHECKOUT_LOGO,
+    theme: { color: opts.themeColor ?? CHECKOUT_THEME, backdrop_color: CHECKOUT_BACKDROP },
+    // The student's email and phone, so Razorpay does not ask for them again.
+    ...(Object.keys(prefill).length ? { prefill } : {}),
     // IN A WEBVIEW THE PAGE DOES NOT SURVIVE THE PAYMENT. A bank's 3-D Secure
     // page replaces it, taking `handler` with it: Razorpay showed PAYMENT
     // SUCCESSFUL and the app never heard. With redirect + a server callback_url,
@@ -227,7 +266,7 @@ function pageHtml(options?: Record<string, unknown>): string {
 }
 
 /** The whole page for one order, opened at once. */
-export function checkoutHtml(order: Order, opts: { description: string; themeColor?: string; email?: string | null }): string {
+export function checkoutHtml(order: Order, opts: CheckoutOpts): string {
   return pageHtml(checkoutOptions(order, opts));
 }
 
@@ -237,7 +276,7 @@ export function checkoutShellHtml(): string {
 }
 
 /** Run inside the shell page once the order exists. */
-export function openCheckoutScript(order: Order, opts: { description: string; themeColor?: string; email?: string | null }): string {
+export function openCheckoutScript(order: Order, opts: CheckoutOpts): string {
   return `window.__openCheckout(${forScript(checkoutOptions(order, opts))}); true;`;
 }
 
