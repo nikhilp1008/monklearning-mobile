@@ -128,6 +128,17 @@ describe('buildReport', () => {
     // Marked for review and then never answered — both facts survive.
     expect(skipped.marked).toBe(true);
   });
+
+  it('keeps the figure the paper showed with the question', () => {
+    const s = session();
+    const figure = { url: 'https://cdn.example/fig.png', r2_key: 'fig.png' };
+    s.paper.questions[1] = { ...s.paper.questions[1], diagram: [figure] };
+    const r = buildReport(s, result());
+    expect(r.questions.find((q) => q.id === 'physics-1')!.diagram).toEqual([figure]);
+    // No figure is said as null, not left out: a missing key is how the
+    // review tells a copy saved before figures were kept.
+    expect(r.questions.find((q) => q.id === 'physics-0')!.diagram).toBeNull();
+  });
 });
 
 describe('mockInsights', () => {

@@ -1,11 +1,13 @@
+import { router } from 'expo-router';
 import { ReactNode } from 'react';
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Alert, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
 import { colors } from '@/constants/brand';
 import { useDesignScale } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
+import { clearMockSession } from '@/lib/mock';
 
 /**
  * THE MOCK TESTS' SHARED PARTS: one key, one section heading, one card.
@@ -125,3 +127,26 @@ const k = StyleSheet.create({
   sectionCount: { marginLeft: 'auto', fontFamily: 'Onest_500Medium', color: colors.faint, fontVariant: ['tabular-nums'] },
   card: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(28,26,22,.10)' },
 });
+
+/**
+ * A paper the server will no longer take (`isPaperClosed` in lib/mock.ts),
+ * said once, from whichever screen tried to hand it in. Its saved answers
+ * cannot be marked any more, so the paper is dropped and the student lands
+ * on Mock tests rather than on a Submit that can only fail again.
+ */
+export function alertPaperClosed(): void {
+  Alert.alert(
+    'This paper has closed',
+    'Its time ran out too long ago for it to be marked, so it can no longer be handed in.',
+    [
+      {
+        text: 'OK',
+        onPress: () => {
+          clearMockSession();
+          router.dismissTo('/mocks');
+        },
+      },
+    ],
+    { cancelable: false }
+  );
+}

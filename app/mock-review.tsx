@@ -11,6 +11,7 @@ import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MockSection } from '@/components/mock/mock-kit';
+import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { SolutionSteps } from '@/components/solution-steps';
 import { colors } from '@/constants/brand';
@@ -72,8 +73,16 @@ export default function MockReviewScreen() {
       setMissing(true);
       return;
     }
+    // A copy saved on this phone before figures were kept has no `diagram`
+    // on any question (the server's copy says null where there is none), so
+    // it is read again from the server once; offline, the old copy opens.
     loadReport(run)
-      .then(async (saved) => saved ?? (await fetchReport(run).catch(() => null)))
+      .then(async (saved) => {
+        const stale =
+          !!saved && saved.questions.length > 0 && saved.questions.every((x) => x.diagram === undefined);
+        if (saved && !stale) return saved;
+        return (await fetchReport(run).catch(() => null)) ?? saved;
+      })
       .then((r) => {
         if (cancelled) return;
         setReport(r);
@@ -128,6 +137,7 @@ export default function MockReviewScreen() {
   const total = report.questions.length;
   const verdict = !q.answered ? 'skipped' : q.is_correct ? 'right' : 'wrong';
   const options = q.options ? Object.entries(q.options).sort(([a], [b]) => a.localeCompare(b)) : [];
+  const figures = Array.isArray(q.diagram) ? q.diagram.filter((f) => !!f?.url) : [];
   const go = (to: number) => setIndex(Math.max(0, Math.min(total - 1, to)));
 
   return (
@@ -200,6 +210,18 @@ export default function MockReviewScreen() {
             lineHeight={QUESTION_READ_LINE}
             style={styles.stem}
           />
+          {/* The figure, as the paper showed it under the stem: a circuit or
+              a graph question reviewed without it cannot be understood. The
+              server sends `diagram` as whatever JSON the row holds, so only
+              a list is drawn. */}
+          {figures.map((figure, n) => (
+            <QuestionDiagram
+              key={figure.r2_key ?? figure.url}
+              figure={figure}
+              index={n}
+              total={figures.length}
+            />
+          ))}
           <View style={styles.divider} />
 
           {q.type === 'numerical' ? (
@@ -227,8 +249,11 @@ export default function MockReviewScreen() {
           ) : (
             <View style={styles.options}>
               {options.map(([key, text]) => {
-                const isCorrect = q.correct_option === key;
-                const isYourWrong = q.chosen_option === key && !q.is_correct;
+                // Letters compared as the server grades them, case aside
+                // (Practice does the same): a key stored as "A" against an
+                // option "a" left the right answer unmarked.
+                const isCorrect = sameOption(q.correct_option, key);
+                const isYourWrong = sameOption(q.chosen_option, key) && !q.is_correct;
                 return (
                   <View
                     key={key}
@@ -267,7 +292,7 @@ export default function MockReviewScreen() {
                     {isYourWrong && <Text style={styles.tagWrong}>YOUR PICK</Text>}
                     {isCorrect && (
                       <Text style={styles.tagCorrect}>
-                        {q.chosen_option === key ? 'YOUR PICK' : 'CORRECT'}
+                        {sameOption(q.chosen_option, key) ? 'YOUR PICK' : 'CORRECT'}
                       </Text>
                     )}
                   </View>
@@ -340,6 +365,10 @@ export default function MockReviewScreen() {
       </SafeAreaView>
     </View>
   );
+}
+
+function sameOption(a: string | null | undefined, key: string): boolean {
+  return !!a && a.trim().toLowerCase() === key.trim().toLowerCase();
 }
 
 function BackIcon({ size }: { size: number }) {

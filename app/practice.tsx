@@ -52,6 +52,7 @@ import {
   takeQueuedQuestion,
 } from '@/lib/practice';
 import { ApiError, friendlyError } from '@/lib/api';
+import { isPassRequired } from '@/lib/pass-events';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
@@ -157,6 +158,11 @@ export default function PracticeScreen() {
   /** Why there is no next question: the day's limit, or nothing left in scope.
    *  Two different states, said two different ways (they shared one card). */
   const [poolReason, setPoolReason] = useState<'daily_limit' | 'pool_empty' | null>(null);
+  /** On pool_empty, how many questions the scope holds at all: 0 is a chapter
+   *  (or subject) with nothing added yet; more than 0 means the quality check
+   *  turned down this draw. Null when the server didn't say, which is read as
+   *  0 — an empty pool is the only case an older server reports. */
+  const [poolSize, setPoolSize] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -167,6 +173,14 @@ export default function PracticeScreen() {
   /** Not an error, but not something to do silently either — currently only
    *  the ungradeable-question swap below. */
   const [notice, setNotice] = useState<string | null>(null);
+  /** A submit that didn't reach the server, said under the Submit it came
+   *  from. The question and the answer stay on screen so Submit can be
+   *  pressed again — `loadError` only renders when there is no question, so
+   *  a dropped connection here used to just stop the spinner. */
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  /** The question can't be answered here at all (it is on a mock paper the
+   *  student is still sitting), so the way on is a different question. */
+  const [submitBlocked, setSubmitBlocked] = useState(false);
   /** Set while a question-scoped Drona session is being created. */
 
   /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
@@ -472,6 +486,21 @@ export default function PracticeScreen() {
    * app losing their answer, so it does both: swap, and say so.
    */
   async function handleSubmitError(err: unknown) {
+    // A question on a mock paper the student is still sitting: the server
+    // keeps its answer back until the paper is submitted, and says why in a
+    // sentence written for the student. Also a 409, but not an ungradeable
+    // row, so it is told apart by what it says. /practice/next leaves these
+    // questions out, so this should only reach a question queued before the
+    // paper started. Said as the server says it, with a way to another.
+    const detail =
+      err instanceof ApiError && typeof (err.data as { detail?: unknown } | null)?.detail === 'string'
+        ? (err.data as { detail: string }).detail
+        : null;
+    if (err instanceof ApiError && err.status === 409 && detail && /mock paper/i.test(detail)) {
+      setSubmitError(detail);
+      setSubmitBlocked(true);
+      return;
+    }
     if (err instanceof ApiError && err.status === 409) {
       await loadQuestion();
       setNotice(
@@ -479,17 +508,25 @@ export default function PracticeScreen() {
       );
       return;
     }
-    setLoadError(friendlyError(err, 'submit that answer'));
+    // The pass has ended: apiFetch has already told the app root, which takes
+    // the student to the plans page. A "couldn't submit" under it would only
+    // be a second, vaguer account of the same thing.
+    if (err instanceof ApiError && err.status === 402 && isPassRequired(err.data)) return;
+    hapticWarning();
+    setSubmitError(friendlyError(err, 'submit that answer'));
   }
 
   async function loadQuestion() {
     setLoadError(null);
     setPoolMessage(null);
     setPoolReason(null);
+    setPoolSize(null);
     setSelectedOption(null);
     setNumericInput('');
     setAnswerResult(null);
     setNotice(null);
+    setSubmitError(null);
+    setSubmitBlocked(false);
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
@@ -555,6 +592,7 @@ export default function PracticeScreen() {
         if (result.reason === 'daily_limit') hapticWarning();
         setPoolReason(result.reason === 'daily_limit' ? 'daily_limit' : 'pool_empty');
         setPoolMessage(result.message);
+        setPoolSize(typeof result.pool_size === 'number' ? result.pool_size : null);
         setQuestion(null);
       } else {
         setQuestion(result);
@@ -578,7 +616,11 @@ export default function PracticeScreen() {
   async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
     const gaveUp = key === undefined;
+    // What was picked before "I don't know" cleared it, so a failed give-up
+    // hands the student back the screen they had.
+    const picked = selectedOption;
     setSelectedOption(key ?? null);
+    setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
@@ -588,6 +630,7 @@ export default function PracticeScreen() {
       });
       applyResult(result, { gaveUp, chapter: question.chapter_name });
     } catch (err) {
+      if (gaveUp) setSelectedOption(picked);
       await handleSubmitError(err);
     } finally {
       setSubmitting(false);
@@ -597,6 +640,7 @@ export default function PracticeScreen() {
   async function submitNumeric() {
     const value = parseFloat(numericInput);
     if (!question || submitting || Number.isNaN(value)) return;
+    setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
@@ -764,15 +808,29 @@ export default function PracticeScreen() {
               action={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
               quiet={{ label: 'See your progress', onPress: () => router.push('/progress') }}
             />
+          ) : poolMessage && poolSize !== null && poolSize > 0 ? (
+            // THE SCOPE HAS QUESTIONS, BUT NONE PASSED THE QUALITY CHECK THIS
+            // TIME. Asking again draws different ones, and a pool_empty
+            // serves nothing, so it costs none of the day's questions.
+            <StateCard
+              style={styles.stateCard}
+              glyph="retry"
+              title="Couldn't find a good question right now"
+              line="Try again and another one will be picked."
+              action={{ label: 'Try again', onPress: () => void loadQuestion() }}
+            />
           ) : poolMessage ? (
-            // NOTHING LEFT IN SCOPE: every question done. An achievement, not
-            // an error, and the way on is a wider scope.
+            // NOTHING HERE YET: the scope has no practice questions at all.
+            // `/practice/next` recycles questions already seen, so a
+            // pool_empty never means "you've done them all" — the card that
+            // said so congratulated students on chapters they had never been
+            // served. A server too old to send `pool_size` lands here too.
             focus.mode === 'chapter' && focus.chapterName ? (
               <StateCard
                 style={styles.stateCard}
-                glyph="check"
-                title={`You've done every question in ${focus.chapterName}`}
-                line="Pick another chapter, or practise across the whole subject."
+                glyph="paper"
+                title={`No practice questions for ${focus.chapterName} yet`}
+                line="We're still adding them. Pick another chapter, or practise across the whole subject."
                 action={{
                   label: 'Choose a chapter',
                   onPress: () =>
@@ -789,10 +847,10 @@ export default function PracticeScreen() {
             ) : (
               <StateCard
                 style={styles.stateCard}
-                glyph="check"
-                title={`You've done every ${activeSubject} question for now`}
-                line="New ones are added often. Try another subject, or a mock paper."
-                action={{ label: 'Open Mock tests', onPress: () => router.push('/mocks') }}
+                glyph="paper"
+                title={`No ${activeSubject} practice questions yet`}
+                line="We're still adding them. Try another subject in the meantime."
+                action={{ label: 'Choose a subject', onPress: () => setMenuOpen(true) }}
               />
             )
           ) : loadError && !question ? (
@@ -1046,6 +1104,20 @@ export default function PracticeScreen() {
                     stats and explain and nothing else, and a button that
                     silently does nothing is worse than an absent one. */}
               </View>
+              {submitError ? (
+                <Text style={styles.submitErrorText} accessibilityLiveRegion="polite">
+                  {submitError}
+                </Text>
+              ) : null}
+              {submitBlocked ? (
+                <Pressable
+                  onPress={() => void loadQuestion()}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  style={styles.blockedNext}>
+                  <Text style={styles.giveUpText}>Show another question</Text>
+                </Pressable>
+              ) : null}
             </>
           ) : (
             <>
@@ -1682,6 +1754,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
       marginTop: verticalScale(10),
     },
+    /** The notice's line, in the red the wrong-answer tag uses: this one did
+     *  not go through, and the student has to act on it. */
+    submitErrorText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      lineHeight: scale(17),
+      color: '#C53A2B',
+      marginTop: verticalScale(10),
+    },
     // Kept for the two states that are still a card: an empty pool and a
     // load failure, where a bordered box is the right shape for a message.
     questionCard: {
@@ -1830,6 +1911,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
       paddingHorizontal: scale(4),
     },
+    blockedNext: { alignSelf: 'flex-start', marginTop: verticalScale(10) },
     giveUpText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13.5),

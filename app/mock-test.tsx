@@ -20,7 +20,7 @@ import { KeyboardSpacer, useScrollFocusedFieldAboveKeyboard } from '@/components
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { MathLine } from '@/components/math-line';
-import { MockKey, MockSquareKey } from '@/components/mock/mock-kit';
+import { MockKey, MockSquareKey, alertPaperClosed } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
 import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
@@ -28,6 +28,7 @@ import { hapticSwitched, hapticWarning } from '@/lib/haptics';
 import {
   chargeElapsed,
   getMockSession,
+  isPaperClosed,
   mockSecondsLeft,
   resumeElapsed,
   saveProgress,
@@ -170,8 +171,12 @@ export default function MockTestScreen() {
     try {
       const result = await submitCurrentSession();
       router.replace(`/mock-report?run=${result?.mock_run_id ?? ''}`);
-    } catch {
+    } catch (err) {
       setSubmitting(false);
+      if (isPaperClosed(err)) {
+        alertPaperClosed();
+        return;
+      }
       // Said as what happened: it was titled "Time is up" for every failed
       // submit, including one pressed with time left.
       Alert.alert(

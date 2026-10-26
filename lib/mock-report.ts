@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 
 import type { MockSession, MockSubjectScore, MockSubmitResult } from '@/lib/mock';
+import type { DiagramFigure } from '@/lib/practice';
 
 /**
  * THE REPORT A STUDENT COMES BACK TO.
@@ -62,6 +63,9 @@ export interface MockReportQuestion {
   type: 'single_correct' | 'numerical' | 'assertion_reason' | 'match_the_following';
   stem: string;
   options: Record<string, string> | null;
+  /** The figure the stem refers to, as the paper showed it. The server's
+   *  review has always sent it; absent on reports saved before it was kept. */
+  diagram?: DiagramFigure[] | null;
   chosen_option: string | null;
   chosen_value: number | null;
   correct_option: string | null;
@@ -156,6 +160,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
         type: q.question_type,
         stem: q.question_text ?? '',
         options: q.options,
+        diagram: q.diagram ?? null,
         chosen_option: r?.chosen_option ?? session.answers.get(q.id)?.option ?? null,
         chosen_value: r?.chosen_value ?? null,
         correct_option: r?.correct_option ?? null,
@@ -169,6 +174,41 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
         chapter_name: r?.chapter_name ?? null,
       };
     }),
+  };
+}
+
+/**
+ * A fetched report, back in the shape a submit answers with.
+ *
+ * For the submit whose response was lost (see `isAlreadySubmitted` in
+ * lib/mock.ts): the session then holds a result just as if the response had
+ * arrived, so the report and review screens open it as the fresh paper it is.
+ */
+export function submitResultFromReport(report: MockReport): MockSubmitResult {
+  return {
+    mock_run_id: report.run_id,
+    score: {
+      correct: report.correct,
+      wrong: report.wrong,
+      unanswered: report.unanswered,
+      marks: report.total_marks,
+      total_marks: report.total_marks,
+      max_marks: report.max_marks,
+      per_subject: report.per_subject,
+    },
+    previous: report.previous,
+    questions: report.questions.map((q) => ({
+      question_id: q.id,
+      answered: q.answered,
+      is_correct: q.is_correct,
+      chosen_option: q.chosen_option,
+      chosen_value: q.chosen_value,
+      correct_option: q.correct_option,
+      correct_value: q.correct_value,
+      solution: q.solution,
+      chapter_id: q.chapter_id ?? null,
+      chapter_name: q.chapter_name ?? null,
+    })),
   };
 }
 
