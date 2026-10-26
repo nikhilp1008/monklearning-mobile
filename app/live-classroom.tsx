@@ -157,12 +157,11 @@ const CARD_CEILING_MS = 30000;
 // copy, which is how two surfaces drift into reasons that almost group.
 /** Half the rail's own height, so it can be centred with a transform. */
 /**
- * Half the rail's height, for centring it. 92, because the pill is 184 tall:
- * 8 + 64 (Ask: orb and its word) + 12 + 40 (pause) + 12 + 40 (rotate) + 8. It
- * was 108 when the rail also carried a teacher wave, two dividers and an
- * Interrupt label.
+ * Half the rail's height, for centring it. 105, because the pill is 210 tall:
+ * 8 + 64 (Ask: orb and its word) + 12 + 1 (divider) + 12 + 40 (pause) + 12 +
+ * 1 (divider) + 12 + 40 (rotate) + 8.
  */
-const RAIL_HALF = 92;
+const RAIL_HALF = 105;
 /** Far enough right to clear the rail's own width (64) plus its 12pt inset,
  *  plus the ring's halo, which reaches about 20pt past the pill. */
 const RAIL_TUCK_X = 96;
@@ -178,9 +177,14 @@ const DOCK_SLEEP_MS = 1500;
  */
 const DOCK_ASK_H = 52;
 const ASK_ORB = 40;
-/** The Ask pill's ground on the white dock: a warm cream, so the control to
- *  hold stands apart from Pause and Rotate beside it. */
-const ASK_GROUND = '#FBF3E4';
+/**
+ * NO PILL INSIDE THE PILL (26 Oct 2026, Nikhil picked B of three white
+ * versions). The orb and its words sit straight on the white dock, set apart
+ * from Pause and Rotate by hairline dividers; held or thinking, the whole
+ * dock's edge goes marigold (DockEdge), as it did for the mic. The first
+ * version gave Ask a cream ground, which is a tint fill and off-brand.
+ */
+const DOCK_DIVIDER = 'rgba(28,26,22,.10)';
 const RAIL_MIC = 48;
 /** The follow-up's hint ink: one colour in every state; only the words change. */
 const DOCK_HINT_INK = '#3D3A33';
@@ -2353,6 +2357,7 @@ export default function LiveClassroomScreen() {
               </Animated.View>
               <Text style={styles.railAskWord} maxFontSizeMultiplier={1.2}>Ask</Text>
             </Pressable>
+            <View style={styles.railDivider} />
             <Pressable
               style={styles.railCtrl}
               onPress={togglePause}
@@ -2360,6 +2365,7 @@ export default function LiveClassroomScreen() {
               accessibilityLabel={paused ? `Resume ${teacherNameNow()}` : `Pause ${teacherNameNow()}`}>
               {paused ? <PlayIcon size={16} color={INK} /> : <PauseIcon size={16} color={INK} />}
             </Pressable>
+            <View style={styles.railDivider} />
             {/* Back to upright. The same slot CC used to hold — captions are
                 gone and this is the control that earns it. */}
             <Pressable
@@ -2397,6 +2403,7 @@ export default function LiveClassroomScreen() {
                 accessibilityLabel={paused ? `Resume ${teacherNameNow()}` : `Pause ${teacherNameNow()}`}>
                 {paused ? <PlayIcon size={17} color={INK} /> : <PauseIcon size={17} color={INK} />}
               </Pressable>
+              <View style={styles.dockDivider} />
 
               {/* Ask, as the Ask bar draws it everywhere else: the teacher's
                   orb and the words beside it, which say what is happening
@@ -2414,6 +2421,7 @@ export default function LiveClassroomScreen() {
                   {handRaised ? 'Listening…' : turn === 'thinking' ? 'Thinking…' : `Ask ${teacherName(teacher)}`}
                 </Text>
               </Pressable>
+              <View style={styles.dockDivider} />
 
               <Pressable
                 style={[styles.dockCtrl, !canRotate && styles.ctrlUnavailable]}
@@ -3160,17 +3168,20 @@ function createStyles(
         { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
       ],
     },
-    /** The rail's Ask: the orb with "Ask" under it, on the dock's warm
-     *  ground so it reads as the one control to hold. */
+    /** The rail's Ask: the orb with "Ask" under it, straight on the dock. */
     railMic: {
       width: RAIL_MIC,
       paddingTop: 4,
       paddingBottom: 5,
       gap: 3,
-      borderRadius: 24,
       alignItems: 'center',
-      backgroundColor: ASK_GROUND,
       zIndex: 1,
+    },
+    /** Hairlines between the rail's three controls (B). */
+    railDivider: {
+      width: 24,
+      height: 1,
+      backgroundColor: DOCK_DIVIDER,
     },
     railAskWord: {
       includeFontPadding: false,
@@ -3276,19 +3287,23 @@ function createStyles(
       justifyContent: 'center',
       zIndex: 1,
     },
-    /** The largest target on the dock: the Ask bar's pill, orb left and
-     *  words right, 6 in from the orb's side like the bar. Its width is
-     *  fixed to the widest words so it never breathes as they change. */
+    /** The largest target on the dock: the orb and the words beside it,
+     *  straight on the dock (B). The words' width is fixed to the widest of
+     *  them so the dock never breathes as they change. */
     dockAsk: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
       height: DOCK_ASK_H,
-      paddingLeft: 6,
-      paddingRight: 18,
-      borderRadius: 99,
-      backgroundColor: ASK_GROUND,
+      paddingLeft: 2,
+      paddingRight: 6,
       zIndex: 1,
+    },
+    /** Hairlines that set Ask apart from Pause and Rotate (B). */
+    dockDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: DOCK_DIVIDER,
     },
     dockAskLabel: {
       includeFontPadding: false,
