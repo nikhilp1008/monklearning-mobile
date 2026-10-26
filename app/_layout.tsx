@@ -2,9 +2,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, router, useRootNavigationState, usePathname, useSegments } from 'expo-router';
 import type { ErrorBoundaryProps } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -99,6 +100,8 @@ import { cachedPassStatus, passStatus } from '@/lib/pass';
 import { onPassRequired } from '@/lib/pass-events';
 import { getAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
+import { installForegroundHandler, registerForPush, routeForNotification } from '@/lib/push';
+import type { PushData } from '@/lib/push';
 import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
@@ -133,6 +136,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // board could already have drawn a placeholder, which is the state it exists
 // to make impossible to miss. No-op unless __DEV__ and the value is empty.
 assertAssetsConfigured();
+
+// While the app is open a push is not shown over the screen the student is on.
+installForegroundHandler();
 
 // Absolute last resort, on top of every individual gate already having its
 // own bounded wait (useEnsureAnonymousSession's own 8s timeout, useFonts
@@ -252,6 +258,35 @@ export default function RootLayout() {
     if (!navigatorReady || !pathname) return;
     trackScreen(pathname);
   }, [navigatorReady, pathname]);
+
+  /**
+   * PUSH. A student who has already allowed notifications has their phone's
+   * token refreshed (it can change) every time they are signed in at launch.
+   * This never asks: the prompt belongs to the moments a notification becomes
+   * useful (a snap starting, a class ending), see lib/push.ts.
+   */
+  useEffect(() => {
+    if (authState === 'signed_in') void registerForPush({ ask: false });
+  }, [authState]);
+
+  /**
+   * Tapping a notification opens what it is about. `useLastNotificationResponse`
+   * also reports the tap that launched the app from closed, which a listener
+   * added after launch would miss. Held until the navigator is up and the
+   * student is signed in, and each tap is acted on once.
+   */
+  const lastTap = Notifications.useLastNotificationResponse();
+  const handledTap = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastTap || !navigatorReady || authState !== 'signed_in') return;
+    const id = lastTap.notification.request.identifier;
+    if (handledTap.current === id) return;
+    handledTap.current = id;
+    const target = routeForNotification(
+      lastTap.notification.request.content.data as PushData | undefined
+    );
+    if (target) router.push(target);
+  }, [lastTap, navigatorReady, authState]);
   const needsOnboardingFlow = authState === 'signed_out' || authState === 'needs_onboarding';
   const gateSettled =
     ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding || onDevPreview);

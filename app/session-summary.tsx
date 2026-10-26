@@ -24,6 +24,7 @@ import { MOMENTS_VISIBLE } from '@/constants/features';
 import { noteForSession, saveNote } from '@/lib/notes';
 import { endDronaSession, type DronaSessionEnd } from '@/lib/drona-live';
 import { collectProof, markSeen, noteClassTaken, rankEvents, type ProofEvent } from '@/lib/proof';
+import { registerForPush } from '@/lib/push';
 import { peekSessionEnd } from '@/lib/session-end';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 
@@ -137,6 +138,12 @@ export default function SessionSummaryScreen() {
    */
   const [summary, setSummary] = useState<DronaSessionEnd | null>(null);
   const [summaryFailed, setSummaryFailed] = useState(false);
+  // The note is written in the background after the class ends and the student
+  // may leave before it is done: this is when "we'll tell you when it's ready"
+  // is true. Asks once ever (lib/push.ts).
+  useEffect(() => {
+    void registerForPush({ ask: true });
+  }, []);
   useEffect(() => {
     const sessionId = params.sessionId;
     if (!sessionId) return;

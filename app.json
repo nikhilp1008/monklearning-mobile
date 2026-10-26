@@ -2,7 +2,7 @@
   "expo": {
     "name": "monklearning",
     "slug": "monk-learning-app",
-    "version": "1.4.2",
+    "version": "1.4.3",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "monklearningapp",
@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.monklearning.mobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#181818",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -29,7 +30,8 @@
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "com.google.android.gms.permission.AD_ID"
       ]
     },
     "web": {
@@ -88,6 +90,12 @@
         }
       ],
       "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "color": "#181818"
+        }
+      ],
       [
         "expo-secure-store",
         {
