@@ -85,8 +85,15 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export function watchOrder(
   orderId: string,
   onPaid: () => void,
-  ask: (id: string) => Promise<{ paid: boolean }> = getOrderState,
-  timing: { first: number; every: number; max: number } = { first: WATCH_FIRST_MS, every: WATCH_EVERY_MS, max: WATCH_MAX_MS }
+  ask: (id: string) => Promise<{ paid: boolean; status?: string }> = getOrderState,
+  timing: { first: number; every: number; max: number } = { first: WATCH_FIRST_MS, every: WATCH_EVERY_MS, max: WATCH_MAX_MS },
+  /**
+   * The server has been told the payment FAILED (Razorpay's payment.failed
+   * webhook marks the order). A student who cancels in their UPI app was left
+   * on Razorpay's "Completing payment" while its own page waited on the bank;
+   * the server usually hears first, so the sheet can close on that.
+   */
+  onFailed?: () => void
 ): () => void {
   let stopped = false;
   const startedAt = Date.now();
@@ -97,6 +104,10 @@ export function watchOrder(
         const state = await ask(orderId);
         if (state.paid) {
           if (!stopped) onPaid();
+          return;
+        }
+        if (state.status === 'failed' && onFailed) {
+          if (!stopped) onFailed();
           return;
         }
       } catch {
@@ -250,7 +261,15 @@ export function usePassCheckout() {
           // A UPI payment ends in another app and this page is never told. The
           // server is (Razorpay's webhook), so ask it, and close the sheet by
           // itself when it says paid.
-          stopWatching = watchOrder(order.order_id, () => resolveSheet.current?.({ type: 'settled' }));
+          stopWatching = watchOrder(order.order_id,
+            () => resolveSheet.current?.({ type: 'settled' }),
+            undefined,
+            undefined,
+            // Then the sheet ends as a failure: `pay` still asks whether the
+            // order was paid before it says anything, so a retry that went
+            // through in the same moment is never called a cancel.
+            () => resolveSheet.current?.({ type: 'failed', description: 'Payment cancelled.' })
+          );
         });
         stopWatching();
         resolveSheet.current = null;

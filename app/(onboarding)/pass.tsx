@@ -6,13 +6,14 @@
 // The code itself is never printed here: it is the student's to know.
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
+import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
@@ -73,6 +74,9 @@ export default function PassScreen() {
 
   const { pay, checkout, confirming } = usePassCheckout();
   const [paying, setPaying] = useState(false);
+  /** A payment that did not happen: said in the banner at the top. */
+  const [notPaid, setNotPaid] = useState(false);
+  const hideNotPaid = useCallback(() => setNotPaid(false), []);
   /** The free path pushes the receipt; a second tap must not push it twice. */
   const leaving = useRef(false);
 
@@ -106,6 +110,7 @@ export default function PassScreen() {
 
   const buy = async () => {
     if (!active || paying) return;
+    setNotPaid(false);
     setPaying(true);
     try {
       const result = await pay(active.id, {
@@ -132,8 +137,8 @@ export default function PassScreen() {
           'Payment received',
           "Your bank is still confirming it. Your pass will start on its own in a few minutes — you don't need to pay again."
         );
-      } else if (result.status === 'failed') {
-        Alert.alert('Payment not completed', result.message);
+      } else if (result.status === 'failed' || result.status === 'cancelled') {
+        setNotPaid(true);
       }
     } catch (err) {
       Alert.alert("Couldn't start the payment", payErrorMessage(err));
@@ -235,6 +240,7 @@ export default function PassScreen() {
           )}
         </View>
       </SafeAreaView>
+      <PaymentNotice visible={notPaid} onGone={hideNotPaid} />
       {checkout}
       {confirming ? <PaymentConfirming /> : null}
     </View>

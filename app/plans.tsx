@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, View } from 'react-native';
 
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
+import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { PlansPage, type PlansPick } from '@/components/paywall/plans-page';
 import { isReviewerSession } from '@/lib/reviewer';
 import { PLANS } from '@/components/paywall/plans';
@@ -45,6 +46,9 @@ export default function PlansScreen() {
   const [status, setStatus] = useState<PassStatus | null>(null);
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [paying, setPaying] = useState(false);
+  /** A payment that did not happen: said in the banner at the top. */
+  const [notPaid, setNotPaid] = useState(false);
+  const hideNotPaid = useCallback(() => setNotPaid(false), []);
   /** The receipt: what was bought and what it cost. */
   const [done, setDone] = useState<{ kind: PassKind; paid: number; endsAt?: Date | null } | null>(null);
   /** A payment the bank has not confirmed yet: keep asking. */
@@ -171,6 +175,7 @@ export default function PlansScreen() {
         onPay={async ({ kind, promo, expectedPaise }) => {
           if (paying || payingNow.current) return;
           payingNow.current = true;
+          setNotPaid(false);
           setPaying(true);
           try {
             const result = await pay(kind, {
@@ -194,8 +199,8 @@ export default function PlansScreen() {
                 'Payment received',
                 "Your bank is still confirming it. Your pass will start on its own in a few minutes — you don't need to pay again."
               );
-            } else if (result.status === 'failed') {
-              Alert.alert('Payment not completed', result.message);
+            } else if (result.status === 'failed' || result.status === 'cancelled') {
+              setNotPaid(true);
             }
           } catch (err) {
             // Before any money moved: the order could not be made, or its price
@@ -207,6 +212,7 @@ export default function PlansScreen() {
           }
         }}
       />
+      <PaymentNotice visible={notPaid} onGone={hideNotPaid} />
       {checkout}
       {confirming ? <PaymentConfirming /> : null}
     </>

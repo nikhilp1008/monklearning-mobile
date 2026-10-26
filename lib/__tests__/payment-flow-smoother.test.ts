@@ -91,6 +91,27 @@ describe('watchOrder', () => {
     expect(ask.mock.calls.length).toBe(seen);
   });
 
+  test('a failed order ends the watch through onFailed, once, so a cancel in the UPI app closes the sheet', async () => {
+    const answers = [{ paid: false, status: 'created' }, { paid: false, status: 'failed' }, { paid: false, status: 'failed' }];
+    const ask = jest.fn(async () => answers.shift()!);
+    const onPaid = jest.fn();
+    const onFailed = jest.fn();
+    watchOrder('o1', onPaid, ask, FAST, onFailed);
+    await tick(120);
+    expect(onFailed).toHaveBeenCalledTimes(1);
+    expect(onPaid).not.toHaveBeenCalled();
+    expect(ask).toHaveBeenCalledTimes(2);
+  });
+
+  test('without onFailed, a failed order is just not paid yet (a retry on the same order may still land)', async () => {
+    const answers = [{ paid: false, status: 'failed' }, { paid: true, status: 'paid' }];
+    const ask = jest.fn(async () => answers.shift() ?? { paid: true, status: 'paid' });
+    const onPaid = jest.fn();
+    watchOrder('o1', onPaid, ask, FAST);
+    await tick(120);
+    expect(onPaid).toHaveBeenCalledTimes(1);
+  });
+
   test('a paid answer that arrives after stop is not delivered', async () => {
     let release!: (v: { paid: boolean }) => void;
     const ask = jest.fn(() => new Promise<{ paid: boolean }>((r) => (release = r)));
