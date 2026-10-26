@@ -916,7 +916,12 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       flexDirection: 'row',
       alignItems: 'center',
       height: 52,
-      paddingHorizontal: scale(4),
+      // Spread across the pill, not packed left. The row gives the pill
+      // whatever width Ask leaves, which on a narrower Android screen is
+      // more than its controls need, so packed left it left a wide gap
+      // after the last arrow.
+      justifyContent: 'space-between',
+      paddingHorizontal: scale(8),
       borderRadius: 99,
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
@@ -951,7 +956,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     freezeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.marigold },
     freezeText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(12.5), color: colors.ink },
-    positionText: { fontFamily: 'Onest_700Bold', fontSize: scale(14.5), color: colors.ink },
+    positionText: { fontFamily: 'Onest_700Bold', fontSize: scale(14.5), color: colors.ink, minWidth: scale(28), textAlign: 'center' },
     positionTotal: { fontFamily: 'Onest_600SemiBold', color: colors.faint },
     state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: verticalScale(8), paddingHorizontal: scale(32) },
     stateTitle: { fontFamily: 'Onest_700Bold', fontSize: scale(19), color: colors.ink },

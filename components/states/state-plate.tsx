@@ -5,14 +5,15 @@ import { Glyph, type StateGlyph } from '@/components/states/glyphs';
 import { NightSky } from '@/components/night-sky';
 import { colors } from '@/constants/brand';
 import { SKY_THEMES } from '@/constants/teachers';
-import { getTeacherPreference, subscribeTeacher, type TeacherId } from '@/lib/preferences';
+import { getTeacherPreference, subscribeTeacher, teacherIdNow, type TeacherId } from '@/lib/preferences';
 
 /**
  * The student's teacher, kept current: read once, then told of every change
- * (setTeacherPreference notifies). Drona until the read lands, as everywhere.
+ * (setTeacherPreference notifies). Starts from the cached teacher, so a
+ * screen opened after the first read never shows Drona to a Vedha student.
  */
 export function useTeacherId(): TeacherId {
-  const [teacher, setTeacher] = useState<TeacherId>('drona');
+  const [teacher, setTeacher] = useState<TeacherId>(teacherIdNow);
   useEffect(() => {
     let live = true;
     getTeacherPreference()

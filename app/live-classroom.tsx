@@ -53,6 +53,7 @@ import Animated, {
   useSharedValue,
   withDelay,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
@@ -61,9 +62,9 @@ import { StateBanner, StateCard } from '@/components/states';
 import { useOnline } from '@/lib/connection';
 import { shadow } from '@/lib/shadow';
 import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
-import { DockEdge, MicDisc, ThinkingRing, type DockMood } from '@/components/classroom-dock-face';
+import { DockEdge, ThinkingRing, type DockMood } from '@/components/classroom-dock-face';
 import { DockBars } from '@/components/dock-face';
-import { useDockMotion } from '@/components/dock-motion';
+import { useDockMotion, type DockMotion } from '@/components/dock-motion';
 import { turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
 import { hapticCommitted, hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
@@ -109,7 +110,9 @@ import {
 import { BoardBlockView } from '@/components/board-text';
 import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
-import { teacherNameNow } from '@/lib/preferences';
+import { teacherName, teacherNameNow, type TeacherId } from '@/lib/preferences';
+import { useTeacherId } from '@/components/states/state-plate';
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
 import { ReportSheet } from '@/components/report-sheet';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
@@ -154,19 +157,30 @@ const CARD_CEILING_MS = 30000;
 // copy, which is how two surfaces drift into reasons that almost group.
 /** Half the rail's own height, so it can be centred with a transform. */
 /**
- * Half the rail's height, for centring it. 84, because 8b's pill is 168 tall:
- * 8 + 48 (mic) + 12 + 40 (pause) + 12 + 40 (rotate) + 8. It was 108 when the
- * rail also carried a teacher wave, two dividers and an Interrupt label.
+ * Half the rail's height, for centring it. 92, because the pill is 184 tall:
+ * 8 + 64 (Ask: orb and its word) + 12 + 40 (pause) + 12 + 40 (rotate) + 8. It
+ * was 108 when the rail also carried a teacher wave, two dividers and an
+ * Interrupt label.
  */
-const RAIL_HALF = 84;
+const RAIL_HALF = 92;
 /** Far enough right to clear the rail's own width (64) plus its 12pt inset,
  *  plus the ring's halo, which reaches about 20pt past the pill. */
 const RAIL_TUCK_X = 96;
 /** `sleepC`'s timer: how long the ring lingers after the last touch. */
 const DOCK_SLEEP_MS = 1500;
-/** The marigold mic's size on the upright dock and on the sideways rail —
- *  the black circles' own sizes before them, so neither control moves. */
-const DOCK_MIC = 52;
+/**
+ * THE ASK CONTROL IS THE TEACHER, not a mic: the student's own teacher's orb
+ * and "Ask Drona", the same pill the Ask bar wears in Practice, Doubts and
+ * the textbooks, so the teacher is the one being asked wherever they are.
+ * 52 is the pill's height on the upright dock (the size the mic was, so the
+ * plate keeps its height); the orb inside is the Ask bar's 40. The sideways
+ * rail is too narrow for the name and says "Ask" under the orb.
+ */
+const DOCK_ASK_H = 52;
+const ASK_ORB = 40;
+/** The Ask pill's ground on the white dock: a warm cream, so the control to
+ *  hold stands apart from Pause and Rotate beside it. */
+const ASK_GROUND = '#FBF3E4';
 const RAIL_MIC = 48;
 /** The follow-up's hint ink: one colour in every state; only the words change. */
 const DOCK_HINT_INK = '#3D3A33';
@@ -426,6 +440,7 @@ export default function LiveClassroomScreen() {
   const [board, setBoard] = useState<BoardEvent[]>([]);
   /** The teacher's voice is playing: the dock's "is explaining", and its light. */
   const [teacherSpeaking, setTeacherSpeaking] = useState(false);
+  const teacher = useTeacherId();
   /**
    * How many checkpoint questions the teacher actually put to the student.
    *
@@ -2332,17 +2347,11 @@ export default function LiveClassroomScreen() {
               onPressIn={onMicPressIn}
               onPressOut={onMicPressOut}
               accessibilityLabel="Hold to speak">
-              <Animated.View style={[styles.railDisc, discAnim]}>
-                <MicDisc hot={handRaised} size={RAIL_MIC} />
-                <ThinkingRing on={turn === 'thinking'} size={RAIL_MIC} />
-                {handRaised ? (
-                  <DockBars motion={dockMotion} />
-                ) : voiceOff ? (
-                  <MicOffIcon size={20} color={INK} />
-                ) : (
-                  <MicIcon size={20} color={INK} />
-                )}
+              <Animated.View style={[styles.askDisc, discAnim]}>
+                <AskOrbFace teacher={teacher} handRaised={handRaised} thinking={turn === 'thinking'}
+                  voiceOff={voiceOff} motion={dockMotion} />
               </Animated.View>
+              <Text style={styles.railAskWord} maxFontSizeMultiplier={1.2}>Ask</Text>
             </Pressable>
             <Pressable
               style={styles.railCtrl}
@@ -2389,25 +2398,21 @@ export default function LiveClassroomScreen() {
                 {paused ? <PlayIcon size={17} color={INK} /> : <PauseIcon size={17} color={INK} />}
               </Pressable>
 
-              {/* The mic is a circle now, not a wide labelled pill. The label
-                  is what the handoff dropped, and once it is gone the pill has
-                  nothing to be wide for. */}
+              {/* Ask, as the Ask bar draws it everywhere else: the teacher's
+                  orb and the words beside it, which say what is happening
+                  while the student holds and while the teacher works. */}
               <Pressable
-                style={[styles.dockMic, voiceOff && styles.micOff]}
+                style={[styles.dockAsk, voiceOff && styles.micOff]}
                 onPressIn={onMicPressIn}
                 onPressOut={onMicPressOut}
                 accessibilityLabel="Hold to speak">
-                <Animated.View style={[styles.dockDisc, discAnim]}>
-                  <MicDisc hot={handRaised} size={DOCK_MIC} />
-                  <ThinkingRing on={turn === 'thinking'} size={DOCK_MIC} />
-                  {handRaised ? (
-                    <DockBars motion={dockMotion} />
-                  ) : voiceOff ? (
-                    <MicOffIcon size={20} color={INK} />
-                  ) : (
-                    <MicIcon size={20} color={INK} />
-                  )}
+                <Animated.View style={[styles.askDisc, discAnim]}>
+                  <AskOrbFace teacher={teacher} handRaised={handRaised} thinking={turn === 'thinking'}
+                    voiceOff={voiceOff} motion={dockMotion} />
                 </Animated.View>
+                <Text style={styles.dockAskLabel} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                  {handRaised ? 'Listening…' : turn === 'thinking' ? 'Thinking…' : `Ask ${teacherName(teacher)}`}
+                </Text>
               </Pressable>
 
               <Pressable
@@ -2588,27 +2593,53 @@ function micNoticeFor(status: MicStatus): {
   }
 }
 
-function MicIcon({ size, color }: { size: number; color: string }) {
+/**
+ * The Ask control's face: the teacher's orb, with the voice bars over it while
+ * the student holds, the thinking arc round it while the teacher works, and
+ * the mic-off mark when there is no mic. The Ask bar's own face
+ * (components/ask-follow-up), drawn here at the dock's sizes.
+ */
+function AskOrbFace({
+  teacher,
+  handRaised,
+  thinking,
+  voiceOff,
+  motion,
+}: {
+  teacher: TeacherId;
+  handRaised: boolean;
+  thinking: boolean;
+  voiceOff: boolean;
+  motion: SharedValue<DockMotion>;
+}) {
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"
-        stroke={color}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-      <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-    </Svg>
+    <>
+      <TeacherOrbPoster teacher={teacher} size={ASK_ORB} />
+      <ThinkingRing on={thinking} size={ASK_ORB} />
+      {handRaised ? (
+        <View style={askFaceStyles.overlay} pointerEvents="none">
+          <DockBars motion={motion} />
+        </View>
+      ) : voiceOff ? (
+        <View style={askFaceStyles.overlay} pointerEvents="none">
+          <MicOffIcon size={18} color={INK} />
+        </View>
+      ) : null}
+    </>
   );
 }
 
-/**
- * The same mic, struck through — the off state of the Interrupt button. Drawn
- * rather than swapped for a different glyph so the button reads as the same
- * control in two states, not two controls.
- */
+const askFaceStyles = StyleSheet.create({
+  /** The Ask bar's veil: enough white that bars and marks read on the orb. */
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 99,
+  },
+});
+
 function MicOffIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -3129,20 +3160,29 @@ function createStyles(
         { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
       ],
     },
-    /** 48 here against portrait's 52: the prototype sizes them differently
-     *  because an upright rail has less room to give. */
+    /** The rail's Ask: the orb with "Ask" under it, on the dock's warm
+     *  ground so it reads as the one control to hold. */
     railMic: {
       width: RAIL_MIC,
-      height: RAIL_MIC,
-      borderRadius: 99,
+      paddingTop: 4,
+      paddingBottom: 5,
+      gap: 3,
+      borderRadius: 24,
       alignItems: 'center',
-      justifyContent: 'center',
+      backgroundColor: ASK_GROUND,
       zIndex: 1,
     },
-    /** The follow-up's disc: no flat fill, a hairline and a warm drop. */
-    railDisc: {
-      width: RAIL_MIC,
-      height: RAIL_MIC,
+    railAskWord: {
+      includeFontPadding: false,
+      fontFamily: 'Onest_700Bold',
+      fontSize: 11,
+      lineHeight: 12,
+      color: INK,
+    },
+    /** The Ask bar's disc: the orb, a hairline and a warm drop. */
+    askDisc: {
+      width: ASK_ORB,
+      height: ASK_ORB,
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
@@ -3236,26 +3276,27 @@ function createStyles(
       justifyContent: 'center',
       zIndex: 1,
     },
-    /** 52 — the largest target on the dock, and the marigold one: the
-     *  follow-up's mic, at the size the black circle was. */
-    dockMic: {
-      width: DOCK_MIC,
-      height: DOCK_MIC,
-      borderRadius: 99,
+    /** The largest target on the dock: the Ask bar's pill, orb left and
+     *  words right, 6 in from the orb's side like the bar. Its width is
+     *  fixed to the widest words so it never breathes as they change. */
+    dockAsk: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      gap: 10,
+      height: DOCK_ASK_H,
+      paddingLeft: 6,
+      paddingRight: 18,
+      borderRadius: 99,
+      backgroundColor: ASK_GROUND,
       zIndex: 1,
     },
-    dockDisc: {
-      width: DOCK_MIC,
-      height: DOCK_MIC,
-      borderRadius: 99,
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: [
-        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(176,132,32,.22)', inset: true },
-        { offsetX: 0, offsetY: 4, blurRadius: 10, spreadDistance: -4, color: 'rgba(176,132,32,.45)' },
-      ],
+    dockAskLabel: {
+      includeFontPadding: false,
+      fontFamily: 'Onest_700Bold',
+      fontSize: 14,
+      letterSpacing: -0.14,
+      color: INK,
+      minWidth: 82,
     },
     /** Off, not missing: the same disc in the same place, stepped back. */
     micOff: {

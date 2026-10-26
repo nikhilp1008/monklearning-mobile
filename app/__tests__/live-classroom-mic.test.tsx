@@ -137,6 +137,8 @@ jest.mock('@/components/classroom-dock-face', () => ({
   DockEdge: () => null,
 }));
 jest.mock('@/components/dock-face', () => ({ DockBars: () => null, MarigoldDisc: () => null }));
+// The Ask control wears the teacher's orb, a Skia drawing; Skia is mocked above.
+jest.mock('@/components/teacher-orb-poster', () => ({ TeacherOrbPoster: () => null }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -294,7 +296,7 @@ describe('entering the live classroom without a usable microphone', () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
     expect(text).toContain('Mic off');
-    expect(text).not.toContain('Hold mic to speak');
+    expect(text).not.toContain('Hold to speak');
   });
 });
 
@@ -337,7 +339,7 @@ describe('entering the live classroom with a working microphone', () => {
   });
 
   /**
-   * The resting copy is "Hold mic to speak", not "Interrupt" — the word went
+   * The resting copy is "Hold to speak", not "Interrupt" — the word went
    * with the command dock redesign, along with the label it used to sit in.
    * What this test is actually for is unchanged: a student whose mic works must
    * not be shown the mic-off state.
@@ -345,7 +347,7 @@ describe('entering the live classroom with a working microphone', () => {
   it('leaves the dock in its normal resting state', async () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
-    expect(text).toContain('Hold mic to speak');
+    expect(text).toContain('Hold to speak');
     expect(text).not.toContain('Mic off');
   });
 

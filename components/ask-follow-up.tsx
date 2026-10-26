@@ -33,12 +33,13 @@ import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { useClock } from '@shopify/react-native-skia';
 
-import { DockBars, MarigoldDisc, ThinkingArc } from '@/components/dock-face';
+import { DockBars, ThinkingArc } from '@/components/dock-face';
 import { DockLight, type DockLightGeometry } from '@/components/dock-light';
 import { DOCK_FLAG_SLOT, DOCK_H0, DOCK_W0, useDockMotion } from '@/components/dock-motion';
 import { DockRing, type RingMood } from '@/components/dock-ring';
 import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
-import type { TeacherId } from '@/lib/preferences';
+import { useTeacherId } from '@/components/states/state-plate';
+import { teacherName, type TeacherId } from '@/lib/preferences';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubtAloud,
@@ -59,7 +60,6 @@ import { PCM_RATE, pcmAvailable, pcmFeed, pcmFedSeconds, pcmFinish, pcmStart, pc
 import { parseSolutionStep } from '@/lib/solution-steps';
 import { countChars, revealChars } from '@/lib/word-reveal';
 import { hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
-import { teacherNameNow } from '@/lib/preferences';
 
 /**
  * ASK FOLLOW-UP — hold the bar, ask out loud, and the teacher answers where you
@@ -308,7 +308,7 @@ export function AskFollowUpBar({
   leading,
   page,
   getPage,
-  teacherFace,
+  teacherFace: chosenFace,
   onBusyChange,
   onResolve,
   gutter = 24,
@@ -355,9 +355,10 @@ export function AskFollowUpBar({
    */
   getPage?: () => TextbookPageContext | undefined;
   /**
-   * The student's own teacher's orb in place of the marigold mic, and "Ask
-   * teacher" for the words — the textbook reader's pill, so the student is
-   * asking THEM.
+   * Whose orb the pill wears and whose name it says ("Ask Drona"). Every
+   * surface wears the student's own teacher, so the teacher is the one being
+   * asked wherever they are; without this the bar reads the preference itself
+   * and follows it when it changes.
    */
   teacherFace?: TeacherId;
   /** True from the hold until the answer has finished; the textbook reader
@@ -370,6 +371,8 @@ export function AskFollowUpBar({
    */
   onResolve?: (event: ResolveEvent) => void;
 }) {
+  const ownTeacher = useTeacherId();
+  const teacherFace = chosenFace ?? ownTeacher;
   const recorder = useAudioRecorder(RECORDING);
   const streamRecorder = useStreamRecorder();
   /**
@@ -437,12 +440,17 @@ export function AskFollowUpBar({
    * same face without the stretch, because Next shares its row. Everything
    * below this point that mentions `litDock` exists for it.
    *
-   * GEOMETRY IS MEASURED IN WINDOW COORDINATES, because the light has to be
+   * GEOMETRY IS MEASURED AGAINST THE SCREEN'S ROOT, because the light has to be
    * placed against the SCREEN, not against this block. The block sits inside
    * the page's gutter and above the safe-area padding; a light anchored to it
    * started 24pt in from the left and floated 18pt off the bottom, and its
    * ring — computed as though it started at the screen edge — was drawn 24pt
-   * right of the pill. One `measureInWindow` on the block gives both offsets.
+   * right of the pill. One `measure` on the block gives both offsets, as
+   * page coordinates. Not `measureInWindow`: on Android that counts from
+   * under the status bar, so every y came out 24pt short, the light was
+   * placed 24pt below the screen's bottom edge, and the brightest band of
+   * the glow — the one at the floor — was cut off. iOS looked right because
+   * there the window and the root begin at the same point.
    * The pill's vertical centre never moves: the row is centred and keeps its
    * height while the pill squeezes symmetrically, so the row's middle is it.
    */
@@ -456,7 +464,7 @@ export function AskFollowUpBar({
   const [blockWin, setBlockWin] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [rowBox, setRowBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const measureBlock = useCallback(() => {
-    blockRef.current?.measureInWindow((x, y, w, h) => {
+    blockRef.current?.measure((_x, _y, w, h, x, y) => {
       setBlockWin((prev) =>
         prev && prev.x === x && prev.y === y && prev.w === w && prev.h === h ? prev : { x, y, w, h }
       );
@@ -469,12 +477,12 @@ export function AskFollowUpBar({
    * Practice the pill is left and Next is right, so the row's middle is
    * nowhere near it — the light would bloom between the two buttons. There the
    * pill sits in a fixed slot (so its centre holds still while it squeezes)
-   * and the slot is measured in window coordinates directly.
+   * and the slot is measured against the root directly.
    */
   const slotRef = useRef<View>(null);
   const [slotWin, setSlotWin] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const measureSlot = useCallback(() => {
-    slotRef.current?.measureInWindow((x, y, w, h) => {
+    slotRef.current?.measure((_x, _y, w, h, x, y) => {
       setSlotWin((prev) =>
         prev && prev.x === x && prev.y === y && prev.w === w && prev.h === h ? prev : { x, y, w, h }
       );
@@ -1224,9 +1232,7 @@ export function AskFollowUpBar({
       ? 'Thinking…'
       : speaking
         ? 'Answering…'
-        : teacherFace
-          ? `Ask ${teacherNameNow()}`
-          : 'Ask follow-up';
+        : `Ask ${teacherName(teacherFace)}`;
 
   const hint = failure
     ? failure === 'mic'
@@ -1431,7 +1437,7 @@ export function AskFollowUpBar({
       <Pressable
         style={[styles.face, styles.faceLit, disabled && styles.faceOff]}
         disabled={disabled}
-        accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+        accessibilityLabel={speaking ? 'Stop the answer' : `Hold to ask ${teacherName(teacherFace)}`}
         onPressIn={() => {
           if (speaking || phase === 'thinking') return;
           down.value = true;
@@ -1453,35 +1459,19 @@ export function AskFollowUpBar({
           if (speaking) stopEverything();
         }}>
         <Animated.View style={[styles.thumb, styles.thumbLit, discAnim]}>
-          {teacherFace ? (
-            // The teacher's orb is the face; bars and stop sit over it only
-            // while they mean something, as the mic gives way to them.
-            <>
-              <TeacherOrbPoster teacher={teacherFace} size={40} />
-              <ThinkingArc motion={motion} on={thinking} />
-              {listening ? (
-                <View style={styles.orbOverlay}>
-                  <DockBars motion={motion} />
-                </View>
-              ) : speaking ? (
-                <View style={styles.orbOverlay}>
-                  <StopIcon color={INK} />
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <MarigoldDisc hot={listening} />
-              <ThinkingArc motion={motion} on={thinking} />
-              {listening ? (
-                <DockBars motion={motion} />
-              ) : speaking ? (
-                <StopIcon color={INK} />
-              ) : (
-                <MicIcon color={INK} />
-              )}
-            </>
-          )}
+          {/* The teacher's orb is the face; bars and stop sit over it only
+              while they mean something. */}
+          <TeacherOrbPoster teacher={teacherFace} size={40} />
+          <ThinkingArc motion={motion} on={thinking} />
+          {listening ? (
+            <View style={styles.orbOverlay}>
+              <DockBars motion={motion} />
+            </View>
+          ) : speaking ? (
+            <View style={styles.orbOverlay}>
+              <StopIcon color={INK} />
+            </View>
+          ) : null}
         </Animated.View>
         <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.label} numberOfLines={1}>
           {label}
@@ -1604,7 +1594,7 @@ export function AskFollowUpBar({
         <StateBanner
           style={styles.micBanner}
           bold="Microphone is off."
-          text={teacherFace ? `Turn it on to ask ${teacherNameNow()}.` : 'Turn it on to ask a follow-up.'}
+          text={`Turn it on to ask ${teacherName(teacherFace)}.`}
           link={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
         />
       ) : null}
@@ -1663,7 +1653,7 @@ export function AskFollowUpBar({
               <Pressable
                 style={[styles.face, disabled && styles.faceOff]}
                 disabled={disabled}
-                accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+                accessibilityLabel={speaking ? 'Stop the answer' : `Hold to ask ${teacherName(teacherFace)}`}
                 onPressIn={() => {
                   if (speaking || phase === 'thinking') return;
                   void beginHold();
@@ -1761,7 +1751,7 @@ export function AskFollowUpBar({
             <Pressable
               style={[styles.face, disabled && styles.faceOff]}
               disabled={disabled}
-              accessibilityLabel={speaking ? 'Stop the answer' : 'Hold to ask a follow-up'}
+              accessibilityLabel={speaking ? 'Stop the answer' : `Hold to ask ${teacherName(teacherFace)}`}
               onPressIn={() => {
                 if (speaking || phase === 'thinking') return;
                 void beginHold();

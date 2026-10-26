@@ -6,7 +6,7 @@ import { DEEP_AMBER, GREEN_INK, INK, INK_FAINT } from '@/components/classroom-ch
  * The ring already showed a hold: green and quick while the mic was down. What
  * it could not show was the stretch after letting go, while the server
  * transcribes, decides and synthesises a reply. The ring lingered for 1.5s and
- * faded, the hint still read "Hold mic to speak", and a student who had just
+ * faded, the hint still read "Hold to speak", and a student who had just
  * asked a question watched the screen go quiet at exactly the moment they were
  * wondering whether they had been heard.
  *
@@ -27,14 +27,16 @@ export type VoiceTurn = 'idle' | 'listening' | 'thinking' | 'failed';
 export function turnWords(turn: VoiceTurn, voiceOff: boolean): string {
   if (voiceOff) return 'Mic off';
   switch (turn) {
+    // The pill above already says Listening… and Thinking…; the line under
+    // it says what to do next, the way the Ask bar's hint does elsewhere.
     case 'listening':
-      return 'Listening…';
+      return 'Release to stop';
     case 'thinking':
-      return 'Thinking…';
+      return 'One moment';
     case 'failed':
       return "Didn't catch that — hold a little longer";
     default:
-      return 'Hold mic to speak';
+      return 'Hold to speak';
   }
 }
 

@@ -798,7 +798,12 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       flexDirection: 'row',
       alignItems: 'center',
       height: 52,
-      paddingHorizontal: scale(4),
+      // Spread across the pill, not packed left. The row gives the pill
+      // whatever width Ask leaves, which on a narrower Android screen is
+      // more than its controls need, so packed left it left a wide gap
+      // after the last arrow.
+      justifyContent: 'space-between',
+      paddingHorizontal: scale(8),
       borderRadius: 99,
       backgroundColor: '#FFFFFF',
       borderWidth: 1,

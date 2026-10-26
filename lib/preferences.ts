@@ -62,6 +62,12 @@ let cachedTeacher: TeacherId = 'drona';
  *  standing default. See getTeacherPreference. */
 let teacherLoaded = false;
 
+/** The teacher without waiting for storage — a hook's first frame, before
+ *  its read lands. The same default as teacherNameNow. */
+export function teacherIdNow(): TeacherId {
+  return cachedTeacher;
+}
+
 export function teacherNameNow(): string {
   return teacherName(cachedTeacher);
 }
