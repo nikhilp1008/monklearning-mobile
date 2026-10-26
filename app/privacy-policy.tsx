@@ -5,11 +5,11 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Information we collect',
-    body: 'Account basics like your name, email, phone and password; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up classroom audio and transcripts, which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, crash logs, and the state you’re studying from.',
+    body: 'Account basics like your name, email and phone; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up what you say to Drona or Vedha (used live to answer you; we don’t keep the recording or a transcript), which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, reports when something fails to show, and the state you’re studying from. If you allow notifications, we also keep a token that lets us send them to your phone.',
   },
   {
     title: 'Your device and location',
-    body: 'We work out your state (and a rough city) from your internet connection’s IP address, on our own servers. We keep only the state and city, never the address itself, and we never send it to anyone else to look up. We don’t use GPS and never ask for your location. Your phone’s make, model and OS version come from the phone itself; we don’t collect its serial number, advertising ID or anything else that identifies the handset.',
+    body: 'We work out your state (and a rough city) from your internet connection’s IP address, on our own servers. We keep only the state and city, never the address itself, and we never send it to anyone else to look up. We don’t use GPS and never ask for your location. Your phone’s make, model and OS version come from the phone itself; apart from the notification token, we don’t collect its serial number, advertising ID or anything else that identifies the handset.',
   },
   {
     title: 'How we use it',
@@ -17,15 +17,15 @@ const SECTIONS = [
   },
   {
     title: 'Who we share it with',
-    body: 'Only the service providers that keep monklearning running (cloud hosting, payment processing, messaging, crash reporting) and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
+    body: 'Only the service providers that keep monklearning running (cloud hosting, payment processing, speech-to-text, reading the maths in your photos, the AI that teaches you, email and notifications) and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
   },
   {
     title: 'How long we keep it',
-    body: 'Your learning data sticks around for as long as your account is active. Voice recordings can be deleted anytime from Personal information. Delete your account and we purge your personal data within 30 days. Payment and tax records are kept a little longer, as Indian law requires.',
+    body: 'Your learning data sticks around for as long as your account is active. We don’t keep recordings of your voice. Delete your account and we purge your personal data within 30 days, except photos of questions you snapped in Snap and Solve, which are kept for up to 180 days and then erased. Payment and tax records are kept a little longer, as Indian law requires.',
   },
   {
     title: 'Your rights',
-    body: 'Under India’s Digital Personal Data Protection Act, you can access, correct, export, or delete your data, and withdraw consent, at any time from Personal information. We aim to respond to any request within 7 days.',
+    body: 'Under India’s Digital Personal Data Protection Act, you can access, correct, export, or delete your data, and withdraw consent, at any time. Delete your account from Personal information, or write to support@monklearning.com for anything else. We aim to respond to any request within 7 days.',
   },
   {
     title: 'If you’re under 18',
@@ -42,7 +42,7 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <SettingsPage title="Privacy policy">
-      <Text style={styles.eyebrow}>Last updated · September 2026</Text>
+      <Text style={styles.eyebrow}>Last updated · October 2026</Text>
 
       {SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
