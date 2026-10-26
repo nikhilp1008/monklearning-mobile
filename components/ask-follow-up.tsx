@@ -155,6 +155,12 @@ const FLUSH_CPS = 240;
  */
 const VOICE_DEADLINE_MS = 6000;
 /**
+ * "Type instead" beside "Hold to speak" (a4d9ce3, PR #7). OFF for now — the
+ * owner's call, 2026-10-26: follow-ups are voice only. The whole typing path
+ * is kept; flip this to true to bring it back for doubts.
+ */
+const TYPED_FOLLOWUPS = false;
+/**
  * How quickly the pace may change, per second. The pace is worked out afresh
  * every frame from how much voice is left, and that estimate moves the whole
  * time the audio is arriving; followed directly, the hand sped up and slowed
@@ -334,7 +340,7 @@ export function AskFollowUpBar({
   onBusyChange,
   onResolve,
   gutter = 24,
-  typeable = surface === 'doubts',
+  typeable = TYPED_FOLLOWUPS && surface === 'doubts',
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */

@@ -26,3 +26,9 @@ test('the microphone banner shows whether or not the board is open', () => {
   expect(source).toContain("{failure === 'mic' ? (");
   expect(source).not.toContain("failure === 'mic' && !boardMounted");
 });
+
+test('typing is switched off for now, and one flag brings it back', () => {
+  // Owner's call, 2026-10-26: follow-ups are voice only.
+  expect(source).toMatch(/const TYPED_FOLLOWUPS = false;/);
+  expect(source).toMatch(/typeable = TYPED_FOLLOWUPS && surface === 'doubts'/);
+});
