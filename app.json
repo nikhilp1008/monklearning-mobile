@@ -2,7 +2,7 @@
   "expo": {
     "name": "monklearning",
     "slug": "monk-learning-app",
-    "version": "1.4.4",
+    "version": "1.4.5",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "monklearningapp",
