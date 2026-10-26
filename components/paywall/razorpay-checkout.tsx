@@ -50,8 +50,15 @@ import { ob, obFont } from '@/constants/onboarding';
 export type PayResult =
   | { status: 'paid'; pass: PassStatus; /** Paise charged, as the server priced the order. */ amountPaise: number }
   | { status: 'pending' }
-  | { status: 'cancelled' }
-  | { status: 'failed'; message: string };
+  /**
+   * `unsure`: the student went to their UPI app and came back with no success,
+   * and the server has not said the payment failed either. Money may still be
+   * landing, so the page must not say "nothing was charged".
+   */
+  | { status: 'cancelled'; unsure?: boolean }
+  | { status: 'failed'; message: string; unsure?: boolean }
+  /** A purchase is already running (a second tap): nothing to say about it. */
+  | { status: 'busy' };
 
 type Closed = { type: 'closed' };
 /** The server says this order is paid while the sheet is still open (a UPI app
@@ -76,6 +83,15 @@ const WATCH_MAX_MS = 10 * 60 * 1000;
  *  order check (a UPI payment approved in another app may already have landed). */
 const EXIT_LOOKS = 4;
 const EXIT_GAP_MS = 1000;
+/**
+ * Back from a UPI app with no success: look for about 20 seconds, not 3. A
+ * student who approves in PhonePe and comes back before the bank answers gets
+ * an error from the app, and Razorpay's webhook can take 20s (the 23 Oct Play
+ * Store test). Three seconds then said "Payment not made", the student paid
+ * again on a new order, and both payments went through.
+ */
+const UPI_EXIT_LOOKS = 10;
+const UPI_EXIT_GAP_MS = 2000;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -123,17 +139,28 @@ export function watchOrder(
   };
 }
 
-/** A few quick looks at whether the order was paid, after the sheet closed. */
-async function orderPaidSoon(orderId: string): Promise<boolean> {
-  for (let i = 0; i < EXIT_LOOKS; i++) {
+/**
+ * A few looks at whether the order was paid, after the sheet closed: 'paid',
+ * 'failed' as soon as the server says the payment failed, or 'unknown' when it
+ * said neither. `ask` and the timing are injectable for tests.
+ */
+export async function orderPaidSoon(
+  orderId: string,
+  looks = EXIT_LOOKS,
+  gapMs = EXIT_GAP_MS,
+  ask: (id: string) => Promise<{ paid: boolean; status?: string }> = getOrderState
+): Promise<'paid' | 'failed' | 'unknown'> {
+  for (let i = 0; i < looks; i++) {
     try {
-      if ((await getOrderState(orderId)).paid) return true;
+      const state = await ask(orderId);
+      if (state.paid) return 'paid';
+      if (state.status === 'failed') return 'failed';
     } catch {
       // try again
     }
-    if (i < EXIT_LOOKS - 1) await wait(EXIT_GAP_MS);
+    if (i < looks - 1) await wait(gapMs);
   }
-  return false;
+  return 'unknown';
 }
 
 /** When the student's paid time ends now, or null with no running pass. */
@@ -212,7 +239,7 @@ export function usePassCheckout() {
       }
     ): Promise<PayResult> => {
       if (!PAYMENTS_ON_THIS_DEVICE) throw new Error('Payments are not available on this device.');
-      if (inFlight.current) return { status: 'cancelled' };
+      if (inFlight.current) return { status: 'busy' };
       inFlight.current = true;
       let stopWatching: () => void = () => {};
       try {
@@ -312,15 +339,21 @@ export function usePassCheckout() {
           // approves a UPI request in their UPI app and then closes this sheet
           // has paid; so has one whose bank page finished after the sheet
           // stopped listening. Ask before saying anything.
-          if (await orderPaidSoon(order.order_id)) {
+          const outcome = upiApp
+            ? await orderPaidSoon(order.order_id, UPI_EXIT_LOOKS, UPI_EXIT_GAP_MS)
+            : await orderPaidSoon(order.order_id);
+          if (outcome === 'paid') {
             setConfirming(true);
             const arrived = await waitForPass(before, 4, 700);
             if (arrived) return { status: 'paid', pass: arrived, amountPaise: order.amount };
             return { status: 'pending' };
           }
-          if (event.type === 'failed') return { status: 'failed', message: event.description };
-          if (event.type === 'error') return { status: 'failed', message: event.message };
-          return { status: 'cancelled' };
+          // Back from a UPI app and the server still has no answer: say so, and
+          // never "nothing was charged".
+          const unsure = !!upiApp && outcome === 'unknown';
+          if (event.type === 'failed') return { status: 'failed', message: event.description, unsure };
+          if (event.type === 'error') return { status: 'failed', message: event.message, unsure };
+          return { status: 'cancelled', unsure };
         }
 
         setConfirming(true);

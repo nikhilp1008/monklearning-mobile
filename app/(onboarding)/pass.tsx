@@ -49,6 +49,11 @@ function ArrowGlyph({ size }: { size: number }) {
   );
 }
 
+/** After a UPI payment the server could not confirm: how long, and how often,
+ *  the page keeps asking for the pass. */
+const LATE_WATCH_MS = 2 * 60 * 1000;
+const LATE_WATCH_EVERY_MS = 5000;
+
 export default function PassScreen() {
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
@@ -82,11 +87,16 @@ export default function PassScreen() {
   /** The UPI apps on this phone (design B), and which one is starting. */
   const upi = useUpiApps();
   const [upiBusy, setUpiBusy] = useState<string | null>(null);
-  /** A payment that did not happen: said in the banner at the top. */
-  const [notPaid, setNotPaid] = useState(false);
-  const hideNotPaid = useCallback(() => setNotPaid(false), []);
+  /** A payment that did not happen: said in the banner at the top. 'unsure'
+   *  when the student came back from a UPI app and the server has no answer yet. */
+  const [notPaid, setNotPaid] = useState<null | 'sure' | 'unsure'>(null);
+  const hideNotPaid = useCallback(() => setNotPaid(null), []);
   /** The free path pushes the receipt; a second tap must not push it twice. */
   const leaving = useRef(false);
+  /** The already-paid check below, for the watch after an unsure payment. */
+  const checkPass = useRef<() => void>(() => {});
+  /** After an unsure payment: keep asking for the pass a while longer. */
+  const lateWatch = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /**
    * ALREADY PAID? THEN NOT AGAIN. A student who paid here and had the app close
@@ -106,6 +116,7 @@ export default function PassScreen() {
         const kind = st.record.kind === 'day' || st.record.kind === 'week' ? st.record.kind : 'week';
         router.replace({ pathname: '/pass-active', params: { pass: kind, promo: '', exam: params.exam ?? '', paid: '1' } });
       });
+    checkPass.current = () => void check();
     void check();
     // And again on every return to the app: a payment the bank confirmed late
     // (or one approved in a UPI app) moves the student on by itself.
@@ -115,13 +126,34 @@ export default function PassScreen() {
     return () => {
       live = false;
       sub.remove();
+      if (lateWatch.current) clearInterval(lateWatch.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * A UPI PAYMENT THAT MAY STILL LAND. The purchase looked for 20 seconds; the
+   * webhook can be later than that. For two more minutes the page keeps asking,
+   * and the already-paid check opens the receipt the moment the pass exists.
+   */
+  const watchLate = () => {
+    if (lateWatch.current) clearInterval(lateWatch.current);
+    const until = Date.now() + LATE_WATCH_MS;
+    lateWatch.current = setInterval(() => {
+      if (Date.now() > until || leaving.current) {
+        if (lateWatch.current) clearInterval(lateWatch.current);
+        lateWatch.current = null;
+        return;
+      }
+      checkPass.current();
+    }, LATE_WATCH_EVERY_MS);
+  };
+
   const buy = async (app?: UpiApp) => {
-    if (!active || paying) return;
-    setNotPaid(false);
+    // payingNow, not only `paying`: two taps in one frame both saw `paying`
+    // false, and the second one flashed "Payment not made" over a live payment.
+    if (!active || paying || payingNow.current) return;
+    setNotPaid(null);
     setPaying(true);
     payingNow.current = true;
     setUpiBusy(app?.packageName ?? null);
@@ -152,7 +184,8 @@ export default function PassScreen() {
           "Your bank is still confirming it. Your pass will start on its own in a few minutes — you don't need to pay again."
         );
       } else if (result.status === 'failed' || result.status === 'cancelled') {
-        setNotPaid(true);
+        setNotPaid(result.unsure ? 'unsure' : 'sure');
+        if (result.unsure) watchLate();
       }
     } catch (err) {
       Alert.alert("Couldn't start the payment", payErrorMessage(err));
@@ -268,7 +301,7 @@ export default function PassScreen() {
           </>)}
         </View>
       </SafeAreaView>
-      <PaymentNotice visible={notPaid} onGone={hideNotPaid} />
+      <PaymentNotice visible={notPaid !== null} unsure={notPaid === 'unsure'} onGone={hideNotPaid} />
       {checkout}
       {confirming ? <PaymentConfirming /> : null}
     </View>
