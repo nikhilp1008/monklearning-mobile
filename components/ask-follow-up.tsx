@@ -6,7 +6,16 @@ import {
   useAudioRecorder,
 } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Keyboard,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -42,7 +51,9 @@ import { useTeacherId } from '@/components/states/state-plate';
 import { teacherName, type TeacherId } from '@/lib/preferences';
 import { SolutionSteps } from '@/components/solution-steps';
 import {
+  askAboutDoubt,
   askAboutDoubtAloud,
+  followUpFailureOf,
   speakFollowUpStreaming,
   type FollowUpStep,
   type FollowUpSurface,
@@ -279,6 +290,17 @@ function MicIcon({ color }: { color: string }) {
 /** Shown while the answer is playing, because a bar you can stop should look
  *  stoppable. The prototype has no such state — it never had to answer. */
 
+/** The typed question's send key: an arrow up, as a message is sent. */
+function SendIcon({ color }: { color: string }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke={color}
+      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 19V5" />
+      <Path d="M6 11l6-6 6 6" />
+    </Svg>
+  );
+}
+
 function StopIcon({ color }: { color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={15} height={15} fill={color}>
@@ -312,6 +334,7 @@ export function AskFollowUpBar({
   onBusyChange,
   onResolve,
   gutter = 24,
+  typeable = surface === 'doubts',
 }: {
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */
@@ -370,6 +393,14 @@ export function AskFollowUpBar({
    * note; the bar only speaks the teacher's "got it".
    */
   onResolve?: (event: ResolveEvent) => void;
+  /**
+   * Offer "Type instead" beside "Hold to speak". The bar was voice only, so a
+   * student who had refused the microphone, or was sitting in a library,
+   * could not ask at all. On by default for a doubt, whose bar has its row to
+   * itself; the shared rows (Practice's Next, the reader's pill) have no room
+   * for a field yet.
+   */
+  typeable?: boolean;
 }) {
   const ownTeacher = useTeacherId();
   const teacherFace = chosenFace ?? ownTeacher;
@@ -428,8 +459,12 @@ export function AskFollowUpBar({
    * different things of the student: press it again, or go and turn the
    * microphone on. "Try again" would be a lie for the second — pressing again
    * does nothing at all while permission is refused.
+   *
+   * And a third that is neither: the day's follow-ups are used up. Pressing
+   * again is refused the same way until they free up, so it gets its own words
+   * and a banner, and no "Try again".
    */
-  const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short'>(null);
+  const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short' | 'quota'>(null);
   const [linger, setLinger] = useState(false);
   /** The student's voice, 0–1, for the ring's halo while they hold. */
   const voiceLevel = useSharedValue(0);
@@ -697,7 +732,7 @@ export function AskFollowUpBar({
   /** Every failure ends the same way: said under the bar, and the ring gone
    *  grey for a moment. */
   const fail = useCallback(
-    (kind: 'retry' | 'mic' | 'short') => {
+    (kind: 'retry' | 'mic' | 'short' | 'quota') => {
       setFailure(kind);
       setPhase('idle');
       wake(FAILED_SHOW_MS);
@@ -909,63 +944,24 @@ export function AskFollowUpBar({
     await setup;
   }, [doubtId, recorder, surface, page, toPlayback, wake, fail, voiceLevel, finishWords]);
 
-  const endHold = useCallback(async () => {
+  /**
+   * ONE ANSWER, HOWEVER IT WAS ASKED. Everything from "Thinking…" to the end
+   * of the voice — the board, the reveal, the three voice dialects, the
+   * history — is the same for a held question and a typed one; only how the
+   * question reaches the server differs, and that is `send`. `typedQuestion`
+   * stands in for the transcript a spoken question gets back.
+   */
+  const answer = useCallback(async (
+    send: (handlers: FollowUpHandlers, signal: AbortSignal) => Promise<void>,
+    typedQuestion?: string
+  ) => {
     if (!doubtId) return;
-    wake();
-    pressedRef.current = false;
-    const heldMs = Date.now() - pressedAtRef.current;
-    stopMeter();
-    const pending = setupRef.current;
-    const setup = await (pending ?? Promise.resolve('failed' as const));
-    if (setupRef.current === pending) setupRef.current = null;
-    // The setup already said why, and "Microphone is off" must not be
-    // overwritten by a guess.
-    if (setup === 'failed') return;
-    if (setup === 'released') {
-      hapticFloorReleased();
-      // A quick tap is told to hold longer. A release that was long but still
-      // beat the setup is the permission prompt taking the touch: nothing
-      // went wrong, the student just has to press again.
-      if (heldMs < MIN_HOLD_MS) fail('short');
-      else setPhase('idle');
-      return;
-    }
-    let uri: string | null = null;
-    const live = liveModeRef.current ? liveRef.current : null;
-    try {
-      if (liveModeRef.current) {
-        // The live recorder also kept a WAV of the hold: the upload fallback.
-        const rec = await streamRecorderRef.current.stopRecording();
-        uri = rec?.fileUri ?? null;
-      } else {
-        await recorder.stop();
-        uri = recorder.uri ?? null;
-      }
-    } catch {
-      // A recorder that will not stop still has whatever it captured.
-    }
-    // After the stop, not before — the mic is closed by now, so this one can
-    // be felt too.
-    hapticFloorReleased();
-    // Before the answer is spoken, never after: `.playAndRecord` would put the
-    // teacher's voice in the earpiece, which reads as broken rather than quiet.
-    toPlayback();
-    if (heldMs < MIN_HOLD_MS) {
-      live?.cancel();
-      fail('short');
-      return;
-    }
-    if (!uri && !live) {
-      fail('retry');
-      return;
-    }
-
     setPhase('thinking');
     const controller = new AbortController();
     abortRef.current = controller;
     streamDoneRef.current = false;
     const arrived: FollowUpStep[] = [];
-    let asked = '';
+    let asked = typedQuestion ?? '';
     let spokenText = '';
     let spokeStarted = false;
     /** This hold fixed the question rather than asking about it. */
@@ -1144,20 +1140,7 @@ export function AskFollowUpBar({
             }
           },
         };
-      const upload = (recording: string, format: 'm4a' | 'wav') =>
-        askAboutDoubtAloud(doubtId, recording, turnsRef.current, handlers,
-                           controller.signal, surface, heldPageRef.current ?? page, format);
-      if (live) {
-        try {
-          await live.finish(handlers, controller.signal);
-        } catch (err) {
-          // Nothing of the answer has arrived: send the hold the old way.
-          if (!(err instanceof LiveUnavailable) || !uri) throw err;
-          await upload(uri, 'wav');
-        }
-      } else {
-        await upload(uri!, 'm4a');
-      }
+      await send(handlers, controller.signal);
       if (controller.signal.aborted) return;
       // The stream is done, so the word count is final. If no voice was ever
       // heard, this is the valve that writes the answer out.
@@ -1187,12 +1170,19 @@ export function AskFollowUpBar({
           fail('retry');
         }
       }
-    } catch {
+    } catch (err) {
       if (controller.signal.aborted) return;
+      // The pass has ended: the app root is already opening Plans, and a
+      // "Try again" here would only be refused again.
+      const kind = followUpFailureOf(err);
+      if (kind === 'pass') {
+        setPhase('idle');
+        return;
+      }
       // The server's own message is deliberately not read: it is a sentence,
       // and this is a two-word slot. What the student can DO about it is the
-      // same however it failed.
-      fail('retry');
+      // same however it failed — except at the daily limit, where it is wait.
+      fail(kind);
     }
 
     async function speak(spoken: string, ctl: AbortController) {
@@ -1220,7 +1210,124 @@ export function AskFollowUpBar({
         streamDoneRef.current = true;
       }
     }
-  }, [doubtId, recorder, toPlayback, wake, surface, page, fail, stopMeter, runTick, flushWords]);
+  }, [doubtId, surface, fail, runTick, flushWords]);
+
+  const endHold = useCallback(async () => {
+    if (!doubtId) return;
+    wake();
+    pressedRef.current = false;
+    const heldMs = Date.now() - pressedAtRef.current;
+    stopMeter();
+    const pending = setupRef.current;
+    const setup = await (pending ?? Promise.resolve('failed' as const));
+    if (setupRef.current === pending) setupRef.current = null;
+    // The setup already said why, and "Microphone is off" must not be
+    // overwritten by a guess.
+    if (setup === 'failed') return;
+    if (setup === 'released') {
+      hapticFloorReleased();
+      // A quick tap is told to hold longer. A release that was long but still
+      // beat the setup is the permission prompt taking the touch: nothing
+      // went wrong, the student just has to press again.
+      if (heldMs < MIN_HOLD_MS) fail('short');
+      else setPhase('idle');
+      return;
+    }
+    let uri: string | null = null;
+    const live = liveModeRef.current ? liveRef.current : null;
+    try {
+      if (liveModeRef.current) {
+        // The live recorder also kept a WAV of the hold: the upload fallback.
+        const rec = await streamRecorderRef.current.stopRecording();
+        uri = rec?.fileUri ?? null;
+      } else {
+        await recorder.stop();
+        uri = recorder.uri ?? null;
+      }
+    } catch {
+      // A recorder that will not stop still has whatever it captured.
+    }
+    // After the stop, not before — the mic is closed by now, so this one can
+    // be felt too.
+    hapticFloorReleased();
+    // Before the answer is spoken, never after: `.playAndRecord` would put the
+    // teacher's voice in the earpiece, which reads as broken rather than quiet.
+    toPlayback();
+    if (heldMs < MIN_HOLD_MS) {
+      live?.cancel();
+      fail('short');
+      return;
+    }
+    if (!uri && !live) {
+      fail('retry');
+      return;
+    }
+
+    await answer(async (handlers, signal) => {
+      const upload = (recording: string, format: 'm4a' | 'wav') =>
+        askAboutDoubtAloud(doubtId, recording, turnsRef.current, handlers,
+                           signal, surface, heldPageRef.current ?? page, format);
+      if (live) {
+        try {
+          await live.finish(handlers, signal);
+        } catch (err) {
+          // Nothing of the answer has arrived: send the hold the old way.
+          if (!(err instanceof LiveUnavailable) || !uri) throw err;
+          await upload(uri, 'wav');
+        }
+      } else {
+        await upload(uri!, 'm4a');
+      }
+    });
+  }, [doubtId, recorder, toPlayback, wake, surface, page, fail, stopMeter, answer]);
+
+  /**
+   * TYPE INSTEAD. The same question, written: `POST /doubts/{id}/ask` with the
+   * same history, answered through `answer` exactly as a spoken one is — the
+   * board, the voice, the thread. The field stays open after sending, so the
+   * next question is one tap away; it opens by itself when the microphone has
+   * been refused, because then it is the only way to ask.
+   */
+  const [typing, setTyping] = useState(false);
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    if (typeable && failure === 'mic') setTyping(true);
+  }, [typeable, failure]);
+  // A microphone refused for good (no prompt left to show) is known before
+  // the first press, so the field is simply open from the start.
+  useEffect(() => {
+    if (!typeable) return;
+    let live = true;
+    getRecordingPermissionsAsync()
+      .then((p) => {
+        if (live && !p.granted && p.canAskAgain === false) setTyping(true);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [typeable]);
+  const askTyped = useCallback(() => {
+    const question = typed.trim();
+    if (!doubtId || !question || phase === 'thinking' || phase === 'listening') return;
+    Keyboard.dismiss();
+    wake();
+    setFailure(null);
+    // A new question interrupts the last answer, as a new hold does.
+    audioRef.current?.stop();
+    audioRef.current = null;
+    pcmStop();
+    if (pcmIdleRef.current) clearTimeout(pcmIdleRef.current);
+    abortRef.current?.abort();
+    abortRef.current = null;
+    finishWords();
+    setTyped('');
+    void answer(
+      (handlers, signal) =>
+        askAboutDoubt(doubtId, question, turnsRef.current, handlers, signal, surface, page),
+      question
+    );
+  }, [typed, doubtId, phase, wake, finishWords, answer, surface, page]);
 
   const listening = phase === 'listening';
   const speaking = phase === 'speaking';
@@ -1239,7 +1346,9 @@ export function AskFollowUpBar({
       ? 'Microphone is off'
       : failure === 'short'
         ? 'Hold a little longer'
-        : 'Try again'
+        : failure === 'quota'
+          ? 'Daily limit reached'
+          : 'Try again'
     : listening
       ? 'Release to stop'
       : phase === 'thinking'
@@ -1590,12 +1699,28 @@ export function AskFollowUpBar({
       {/* MIC OFF: the hint under the bar only said "Microphone is off". The
           live class offers Settings for the same problem, so this does too,
           as a banner over the bar (components/states). */}
-      {failure === 'mic' && !boardMounted ? (
+      {/* Shown with the board open too: it used to wait for the board to
+          close, so a student whose mic was off and who had an answer on screen
+          was never told why the bar did nothing. */}
+      {failure === 'mic' ? (
         <StateBanner
           style={styles.micBanner}
           bold="Microphone is off."
-          text={`Turn it on to ask ${teacherName(teacherFace)}.`}
+          text={
+            typeable
+              ? `Turn it on to ask ${teacherName(teacherFace)} out loud, or type your question below.`
+              : `Turn it on to ask ${teacherName(teacherFace)}.`
+          }
           link={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
+        />
+      ) : null}
+      {failure === 'quota' ? (
+        // Rolling, like the snap allowance (app/rate_limit.py): the day's
+        // follow-ups come back on their own. Said in the snap card's words.
+        <StateBanner
+          style={styles.micBanner}
+          bold="You've used today's follow-ups."
+          text="They open again tomorrow."
         />
       ) : null}
       {leading && litDock ? (
@@ -1713,6 +1838,36 @@ export function AskFollowUpBar({
         {litDock && lit && dockGeo ? (
           <DockLight width={windowWidth} motion={motion} geometry={dockGeo} />
         ) : null}
+        {typeable && typing ? (
+          <View style={styles.typeRow}>
+            <TextInput
+              style={styles.typeInput}
+              value={typed}
+              onChangeText={setTyped}
+              placeholder={`Ask ${teacherName(teacherFace)}…`}
+              placeholderTextColor={INK_FAINT}
+              returnKeyType="send"
+              onSubmitEditing={askTyped}
+              submitBehavior="blurAndSubmit"
+              maxLength={500}
+              editable={!disabled}
+              // The board is 46% of the screen and the keyboard most of the
+              // rest: open together they would push the field off the top. The
+              // thread is kept; the answer to this question brings it back.
+              onFocus={() => setBoardOpen(false)}
+              accessibilityLabel="Type a follow-up question"
+            />
+            <Pressable
+              style={[styles.typeSend, (!typed.trim() || thinking || listening) && styles.typeSendOff]}
+              disabled={!typed.trim() || thinking || listening}
+              onPress={askTyped}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Send the question">
+              <SendIcon color={PAPER} />
+            </Pressable>
+          </View>
+        ) : null}
         {litDock ? (
           <View
             style={[styles.row, styles.rowLit]}
@@ -1800,9 +1955,29 @@ export function AskFollowUpBar({
           ) : null}
         </View>
         )}
-        <Text style={[styles.hint, litDock ? styles.hintLit : hintColor]} numberOfLines={1}>
-          {hint}
-        </Text>
+        {typeable ? (
+          <View style={styles.hintRow}>
+            <Text style={[styles.hint, litDock ? styles.hintLit : hintColor]} numberOfLines={1}>
+              {hint}
+            </Text>
+            <Text style={styles.hint}>·</Text>
+            <Pressable
+              hitSlop={10}
+              accessibilityRole="button"
+              onPress={() => {
+                if (typing) Keyboard.dismiss();
+                setTyping((on) => !on);
+              }}>
+              <Text style={[styles.hint, styles.hintLink]} numberOfLines={1}>
+                {typing ? 'Hide typing' : 'Type instead'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Text style={[styles.hint, litDock ? styles.hintLit : hintColor]} numberOfLines={1}>
+            {hint}
+          </Text>
+        )}
         </>
       )}
 
@@ -2027,6 +2202,30 @@ const styles = StyleSheet.create({
     color: INK_FAINT,
   },
   hintLive: { color: GREEN_INK },
+  /** "Hold to speak · Type instead", centred as the hint alone was. */
+  hintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  hintLink: { color: INK, textDecorationLine: 'underline' },
+  /** The typed question: a field in the bar's own plate, and its send key. */
+  typeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  typeInput: {
+    flex: 1,
+    height: 48,
+    borderRadius: 99,
+    paddingHorizontal: 18,
+    fontFamily: 'Onest_500Medium',
+    fontSize: 15,
+    color: INK,
+    ...PLATE,
+  },
+  typeSend: {
+    width: 48,
+    height: 48,
+    borderRadius: 99,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: INK,
+  },
+  typeSendOff: { opacity: 0.35 },
   hintThinking: { color: DEEP_AMBER },
   /**
    * A PAGE LIFTED OFF THE SOLUTION, in the bar's own material.

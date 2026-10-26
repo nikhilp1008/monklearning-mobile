@@ -19,7 +19,11 @@
  */
 import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
 import {
+  FOLLOWUP_IDLE_MS,
+  FollowUpError,
   dispatchFollowUpFrame,
+  idleClock,
+  isFollowUpQuota,
   parseFrames,
   type FollowUpHandlers,
   type FollowUpSurface,
@@ -81,6 +85,9 @@ export class LiveAsk {
   private incoming: string[] = [];
   private onMessage: ((text: string) => void) | null = null;
   private onEnd: ((clean: boolean) => void) | null = null;
+  /** Closed with 4402: the pass has ended, and uploading instead would only
+   *  be refused the same way. */
+  private passEnded = false;
 
   /** Opens the socket and sends the start frame. Never throws: a socket that
    *  cannot open just marks this ask broken, and `finish` falls back. */
@@ -116,7 +123,10 @@ export class LiveAsk {
       };
       ws.onclose = (e) => {
         ask.open = false;
-        if (e.code === PASS_REQUIRED_CLOSE) signalPassRequired();
+        if (e.code === PASS_REQUIRED_CLOSE) {
+          ask.passEnded = true;
+          signalPassRequired();
+        }
         ask.onEnd?.(e.code === 1000);
         if (!ask.onEnd) ask.broken = true;
       };
@@ -159,6 +169,10 @@ export class LiveAsk {
   finish(handlers: FollowUpHandlers, signal?: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const ws = this.ws;
+      if (this.passEnded) {
+        reject(new FollowUpError('You need a pass to continue.', 'pass'));
+        return;
+      }
       if (!ws || this.broken || !this.open) {
         this.cancel();
         reject(new LiveUnavailable('socket not open'));
@@ -166,10 +180,21 @@ export class LiveAsk {
       }
       let answered = false;
       let failure: string | null = null;
+      /** The daily limit arrives as an `error` frame here, not as a 429. */
+      let quota = false;
       let settled = false;
+      // The socket can stay open with nothing coming. Not LiveUnavailable: the
+      // server may already be answering, and uploading too would ask twice.
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        // Settled first: closing the socket ends it, and that ending must not
+        // read as "closed before answering", which would upload it again.
+        done(() => reject(new FollowUpError('No answer arrived.', 'retry')));
+        this.cancel();
+      });
       const done = (fn: () => void) => {
         if (settled) return;
         settled = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         fn();
       };
@@ -180,12 +205,14 @@ export class LiveAsk {
       signal?.addEventListener('abort', onAbort);
 
       const read = (text: string) => {
+        idle.touch();
         for (const frame of parseFrames(text)) {
           if (frame.event === 'live_unavailable') {
             if (!answered) done(() => reject(new LiveUnavailable('server declined')));
             continue;
           }
           if (frame.event !== 'error') answered = true;
+          else if (isFollowUpQuota(undefined, frame.data)) quota = true;
           const err = dispatchFollowUpFrame(frame, handlers);
           if (err !== null) failure = err;
         }
@@ -193,10 +220,12 @@ export class LiveAsk {
       this.onMessage = read;
       for (const text of this.incoming.splice(0)) read(text);
       this.onEnd = () => {
-        if (failure) done(() => reject(new Error(failure as string)));
+        if (this.passEnded) done(() => reject(new FollowUpError('You need a pass to continue.', 'pass')));
+        else if (failure) done(() => reject(new FollowUpError(failure as string, quota ? 'quota' : 'retry')));
         else if (!answered) done(() => reject(new LiveUnavailable('closed before answering')));
         else done(resolve);
       };
+      idle.touch();
       try {
         ws.send(JSON.stringify({ type: 'stop' }));
       } catch {

@@ -182,7 +182,20 @@ export interface SnapResponse {
 /** POST /doubts rejects with this shape, so the UI can name the failing stage. */
 export interface SnapFailure {
   message: string;
-  stage: 'transcribe' | 'solve' | 'config' | 'quota' | string;
+  /** `pass`: the student's pass has ended (HTTP 402). `network`: the
+   *  connection, not the photo or the solver. `too_large`: over the size cap
+   *  (HTTP 413, or caught before upload). `rejected`: refused before reading
+   *  — wrong file type, an empty file — with `message` saying why. */
+  stage:
+    | 'transcribe'
+    | 'solve'
+    | 'config'
+    | 'quota'
+    | 'pass'
+    | 'network'
+    | 'too_large'
+    | 'rejected'
+    | string;
   reason?: string;
   /** retake = their photo | not_photo = needs a figure | our_side = ours */
   remedy?: Remedy;
@@ -214,6 +227,42 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_QUESTIONS = 3;
 export const ACCEPTED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 
+/**
+ * The same check as `rejectPhoto`, as the failure the capture screen shows —
+ * so a photo too large to send reads as exactly that, not as an unreadable
+ * shot.
+ */
+export function rejectPhotoFailure(photo: DoubtPhoto): SnapFailure | null {
+  const reason = rejectPhoto(photo);
+  if (!reason) return null;
+  const tooLarge = !!photo.fileSize && photo.fileSize > MAX_IMAGE_BYTES;
+  return { message: reason, stage: tooLarge ? 'too_large' : 'rejected', remedy: 'retake', retake_helps: true };
+}
+
+/**
+ * A refusal whose `detail` is a plain sentence rather than the snap's own
+ * object: the size cap (413), an unsupported type (415), an empty file (400),
+ * or "not available right now" (503). The 4xx ones are about the file, so a
+ * different photo is the way on; anything else is ours.
+ */
+export function plainRefusal(status: number, detail: string): SnapFailure {
+  if (status === 413) {
+    return { message: detail || 'That photo is too large.', stage: 'too_large', remedy: 'retake', retake_helps: true };
+  }
+  if (status >= 400 && status < 500 && status !== 429) {
+    return { message: detail, stage: 'rejected', remedy: 'retake', retake_helps: true };
+  }
+  return { message: detail, stage: 'unknown', remedy: 'our_side', retake_helps: false };
+}
+
+/** The connection failed: never the photo, never a sentence to print. */
+const CONNECTION_FAILURE: SnapFailure = {
+  message: 'Could not reach the solver. Check your connection.',
+  stage: 'network',
+  remedy: 'our_side',
+  retake_helps: false,
+};
+
 /** Returns a student-facing reason, or null when the photo is acceptable. */
 export function rejectPhoto(photo: DoubtPhoto): string | null {
   const mime = (photo.mimeType || 'image/jpeg').toLowerCase();
@@ -226,19 +275,81 @@ export function rejectPhoto(photo: DoubtPhoto): string | null {
   return null;
 }
 
-export function listDoubts(params: { q?: string } = {}): Promise<DoubtsListResponse> {
+/** One page of the history — the server's own default. */
+export const DOUBTS_PAGE_SIZE = 60;
+
+/**
+ * Where the next page starts: the last row of the page before it. Both fields,
+ * because the questions of one snap share a `created_at` and are ordered by id
+ * within it — a time alone would skip or repeat them at a page boundary.
+ */
+export type DoubtsCursor = { before: string; beforeId: string };
+
+export function listDoubts(
+  params: { q?: string; limit?: number; cursor?: DoubtsCursor | null } = {}
+): Promise<DoubtsListResponse> {
   // Still no `subject` param, but for a different reason than before.
   //
   // It used to be that the API's vocabulary ("Mathematics") did not match the
   // app's labels ("Maths") and the server's matching semantics were unverified.
   // Both are settled now: storage was migrated to one lowercase name per
   // subject, and `?subject=` round-trips "Math", "Maths" and "mathematics"
-  // alike. The reason to keep filtering client-side is simply that the list is
-  // capped and already in hand — switching a chip should not cost a round trip.
+  // alike. The reason to keep filtering client-side is simply that the rows are
+  // already in hand — switching a chip should not cost a round trip.
   const search = new URLSearchParams();
   if (params.q?.trim()) search.set('q', params.q.trim());
-  const qs = search.toString();
-  return apiFetch(`/doubts${qs ? `?${qs}` : ''}`);
+  search.set('limit', String(params.limit ?? DOUBTS_PAGE_SIZE));
+  if (params.cursor) {
+    search.set('before', params.cursor.before);
+    search.set('before_id', params.cursor.beforeId);
+  }
+  return apiFetch(`/doubts?${search.toString()}`);
+}
+
+/**
+ * What one page of the history adds, and whether there is another.
+ *
+ * The history was silently capped at the first 60 — a student with more had no
+ * way to reach the rest. The server pages on `before` / `before_id`, newest
+ * first, and a short page is the last one.
+ *
+ * Deduped by id against everything already `seen`, and a page that adds
+ * nothing ends the paging: a server from before the cursor ignores it and
+ * returns the first page again, and without this the list would fill with
+ * copies of it forever. `seen` is updated in place.
+ */
+export function absorbDoubtsPage(
+  seen: Set<string>,
+  page: DoubtSummary[],
+  limit: number = DOUBTS_PAGE_SIZE
+): { fresh: DoubtSummary[]; cursor: DoubtsCursor | null; done: boolean } {
+  const fresh = page.filter((d) => !seen.has(d.id));
+  for (const d of fresh) seen.add(d.id);
+  const last = page[page.length - 1];
+  const cursor = last ? { before: last.created_at, beforeId: last.id } : null;
+  return { fresh, cursor, done: !cursor || page.length < limit || fresh.length === 0 };
+}
+
+/** Whether `d` sorts after `cursor` in the server's order (older first by
+ *  time, then lower id). */
+export function olderThanCursor(d: Pick<DoubtSummary, 'created_at' | 'id'>, cursor: DoubtsCursor): boolean {
+  const a = Date.parse(d.created_at);
+  const b = Date.parse(cursor.before);
+  if (a !== b) return a < b;
+  return d.id < cursor.beforeId;
+}
+
+/**
+ * Which doubts the history keeps: the solved ones, and the `unsure` ones.
+ *
+ * An `unsure` doubt is the solver's working with the answer withheld — the
+ * student was shown it straight after the snap (lib/solution-view.ts), and the
+ * detail screen shows it the same way. Keeping only `solved` here made it vanish
+ * from Doubts the moment they left the solution. `failed` and `illegible` hold
+ * nothing to read again, and stay out.
+ */
+export function inHistory(d: Pick<DoubtSummary, 'status'>): boolean {
+  return d.status === 'solved' || d.status === 'unsure';
 }
 
 export function getDoubt(doubtId: string): Promise<DoubtDetail> {
@@ -251,14 +362,18 @@ export function getDoubt(doubtId: string): Promise<DoubtDetail> {
  * Timing scales with question count, not a flat ~25s: the web client measured
  * a five-question page at ~75s. Since MAX_QUESTIONS allows three, the default
  * 60s ceiling would abort a healthy solve mid-flight and show the student a
- * "try again" for work the backend was still doing. 150s covers the worst
- * realistic case with headroom.
+ * "try again" for work the backend was still doing.
+ *
+ * 240s, not the 150s it was: that was the server's SOLVE ceiling alone, and the
+ * whole request is the read in front of it (up to ~45s), the solve (150s with
+ * thinking on) and the insert and signing after it. Cutting it at 150s gave up
+ * on a solve the server was still going to save and charge.
  *
  * The web client uses `POST /doubts/stream` (SSE) instead, which streams each
  * step as it lands and shows real progress rather than one long spinner —
  * the better end state, and a follow-up worth doing.
  */
-const SNAP_TIMEOUT_MS = 150000;
+const SNAP_TIMEOUT_MS = 240000;
 
 export async function snapDoubt(photo: DoubtPhoto, signal?: AbortSignal): Promise<SnapResponse> {
   const body = new FormData();
@@ -328,19 +443,22 @@ export function readSnapFailure(error: unknown): SnapFailure {
   const attached = (error as { snapFailure?: SnapFailure } | null)?.snapFailure;
   if (attached) return attached;
 
-  if (!(error instanceof ApiError)) {
-    if (error instanceof Error && error.message) {
-      return { message: error.message, stage: 'unknown' };
-    }
-    return fallback;
+  // Not the API's answer at all — fetch's own "Network request failed", a
+  // stream that dropped. Its message was printed under "We couldn't read that
+  // one", which blamed the photo for the connection.
+  if (!(error instanceof ApiError)) return CONNECTION_FAILURE;
+  // apiFetch's timeout and an unreachable host both arrive as status 0.
+  if (error.status === 0) return CONNECTION_FAILURE;
+
+  // apiFetch has already told the app root, which is opening Plans.
+  if (error.status === 402) {
+    return { message: error.message, stage: 'pass', remedy: 'our_side', retake_helps: false };
   }
 
   const data = error.data;
   if (data && typeof data === 'object' && 'detail' in data) {
     const detail = (data as { detail: unknown }).detail;
-    if (typeof detail === 'string') {
-      return { message: detail, stage: 'unknown' };
-    }
+    if (typeof detail === 'string') return plainRefusal(error.status, detail);
     if (detail && typeof detail === 'object') {
       const d = detail as Partial<SnapFailure>;
       return {
@@ -356,5 +474,5 @@ export function readSnapFailure(error: unknown): SnapFailure {
       };
     }
   }
-  return { message: error.message || fallback.message, stage: 'unknown' };
+  return { ...fallback, message: error.message || fallback.message };
 }
