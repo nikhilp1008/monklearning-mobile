@@ -1,17 +1,13 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
-import { ImageStyle, Modal, Pressable, StyleSheet, Text, ViewStyle, StyleProp } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { ImageStyle, Modal, Pressable, StyleSheet, Text, View, ViewStyle, StyleProp } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ZoomableImage } from '@/components/zoomable-image';
 import { useScale } from '@/constants/scale';
-
-/** expo-image doesn't ship an animated variant, so the zoom transform needs
- *  one made here. Module scope: creating it per render remounts the image. */
-const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 /**
  * A question's photograph, tappable to read properly.
@@ -19,8 +15,9 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
  * Wherever a snapped question shows as an image — the 84pt thumbnail on the
  * doubts list, the pinned stem on a solution screen — the image is too small
  * to actually READ, and reading it is the whole reason it exists. Tapping
- * opens the same full-screen viewer the figures use: dark scrim, pinch and
- * double-tap to zoom, no blur — this is the student's own question, not a
+ * opens a full-screen viewer: dark scrim, pinch to zoom around the fingers,
+ * drag to move the photo, double-tap to zoom in and out (components/
+ * zoomable-image.tsx), no blur — this is the student's own question, not a
  * tease.
  *
  * The chevron badge is the affordance, the WHOLE image is the target: an
@@ -79,42 +76,6 @@ export function QuestionPeek({
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [open, setOpen] = useState(false);
 
-  /**
-   * Zoom is a shared value, so the pinch runs on the UI thread.
-   *
-   * As React state this re-rendered the component and committed a new style on
-   * every frame of the gesture, which is why the zoom felt like it was catching
-   * up with the fingers rather than following them. `.onUpdate` is a worklet
-   * now — nothing crosses to JS while a student is pinching.
-   *
-   * The pinch is relative to where the last gesture left off (`start`), which
-   * also fixes a smaller bug: each new pinch used to jump back to the raw
-   * gesture scale, so zooming in twice reset to roughly 1× on the second try.
-   */
-  const zoom = useSharedValue(1);
-  const zoomStart = useSharedValue(1);
-
-  const pinch = Gesture.Pinch()
-    .onStart(() => {
-      zoomStart.value = zoom.value;
-    })
-    .onUpdate((e) => {
-      zoom.value = Math.min(Math.max(zoomStart.value * e.scale, 1), 5);
-    });
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => {
-      // Eased, not set outright. The setState version snapped, but a jump
-      // from 1x to 2.5x in one frame reads as the photo being swapped rather
-      // than zoomed; 180ms is enough to see where the zoom went.
-      zoom.value = withTiming(zoom.value > 1.5 ? 1 : 2.5, { duration: 180 });
-    });
-  const composed = Gesture.Race(pinch, doubleTap);
-
-  const zoomStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: zoom.value }],
-  }));
-
   return (
     <>
       <Pressable
@@ -125,10 +86,7 @@ export function QuestionPeek({
           setFrame({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
         }
         disabled={disabled}
-        onPress={() => {
-          zoom.value = 1;
-          setOpen(true);
-        }}>
+        onPress={() => setOpen(true)}>
         <Image
           source={{ uri }}
           style={[styles.image, imageStyle]}
@@ -173,31 +131,33 @@ export function QuestionPeek({
         transparent
         animationType="fade"
         onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close enlarged question"
-            // Clear of the status bar and camera: the Modal is drawn edge to
-            // edge, and a fixed 48 sat on the punch-hole on some Androids.
-            style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
-            onPress={() => setOpen(false)}>
-            <Text style={styles.closeText}>Close ✕</Text>
-          </Pressable>
-          <GestureDetector gesture={composed}>
-            {/* The wrapper must own real size: the image's percentage height
-                resolves against its parent, and an auto-sized Pressable gave
-                it 85% of nothing — the viewer opened as scrim and a Close
-                button around an invisible image. */}
-            <Pressable style={styles.fullFrame} onPress={(e) => e.stopPropagation()}>
-              <AnimatedImage
-                source={{ uri }}
-                style={[styles.fullImage, zoomStyle]}
-                contentFit="contain"
-                accessibilityLabel={label}
-              />
+        {/* A Modal is its own native hierarchy: the app's root gesture view does
+            not reach into it, and without one here the pinch and drag never
+            fire. */}
+        <GestureHandlerRootView style={styles.gestureRoot}>
+          <View style={styles.backdrop}>
+            {/* The dark area closes the viewer, and sits BEHIND the picture: a
+                lifted finger anywhere inside a closing Pressable counts as a
+                tap, so a drag or pinch that ended over the photo used to be
+                able to shut it. The picture is a sibling above, not a child. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close enlarged question"
+              style={StyleSheet.absoluteFill}
+              onPress={() => setOpen(false)}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close enlarged question"
+              // Clear of the status bar and camera: the Modal is drawn edge to
+              // edge, and a fixed 48 sat on the punch-hole on some Androids.
+              style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
+              onPress={() => setOpen(false)}>
+              <Text style={styles.closeText}>Close ✕</Text>
             </Pressable>
-          </GestureDetector>
-        </Pressable>
+            <ZoomableImage uri={uri} label={label} />
+          </View>
+        </GestureHandlerRootView>
       </Modal>
     </>
   );
@@ -226,6 +186,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       bottom: scale(5),
       right: scale(5),
     },
+    gestureRoot: { flex: 1 },
     // The viewer, matched to question-diagram's: same scrim, same close
     // button, deliberately NO blur.
     backdrop: {
@@ -249,17 +210,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       fontWeight: '700',
       color: '#1c1a16',
-    },
-    fullFrame: {
-      width: '100%',
-      height: '85%',
-      justifyContent: 'center',
-    },
-    fullImage: {
-      width: '100%',
-      height: '100%',
-      borderRadius: scale(12),
-      backgroundColor: '#fff',
     },
   });
 }
