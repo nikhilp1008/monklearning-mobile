@@ -142,7 +142,8 @@ function head(x1: number, y1: number, x2: number, y2: number): string {
 function sci(v: number): string {
   if (v === 0) return '0';
   const a = Math.abs(v);
-  if (a >= 1e-3 && a < 1e5) return v.toPrecision(3).replace(/\.?0+$/, '');
+  // Number() drops the padding zeros after a decimal point and leaves a whole number alone (100 stays 100, not 1).
+  if (a >= 1e-3 && a < 1e5) return String(Number(v.toPrecision(3)));
   const e = Math.floor(Math.log10(a));
   const m = v / 10 ** e;
   return `${m.toFixed(2)}e${e}`;
