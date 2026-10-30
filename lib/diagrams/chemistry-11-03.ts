@@ -1,4 +1,4 @@
-import { C, LABEL_GAP, Rect, Sketch, r1 } from '@/lib/diagrams/kit';
+import { C, LABEL_GAP, Rect, Sketch, mathW, r1 } from '@/lib/diagrams/kit';
 import type { Check, Diagram } from '@/lib/diagrams/types';
 
 /**
@@ -166,6 +166,42 @@ function stairPts(g: Grid): P[] {
 const SYM_SIZE = 9.5;
 /** A symbol centred in its cell (the baseline sits a quarter-em below the centre line). */
 const symAt = (s: Sketch, x: number, cy: number, t: string, size = SYM_SIZE, color: string = C.text) => s.sym(x, cy + size * 0.25, t, { size, color });
+/** The baseline that centres a line of STIX of this size in a row starting at `top` (its box, cap height to descent, sits mid-row). */
+const rowMid = (top: number, size: number, rh = 28) => top + rh / 2 + size * 0.25;
+/** The inner lines of a cols × rows block of cells, as segments. */
+function gridSegs(g: Grid, x0: number, y0: number, cols: number, rows: number): [P, P][] {
+  const out: [P, P][] = [];
+  for (let i = 1; i < cols; i++) out.push([[x0 + i * g.cw, y0], [x0 + i * g.cw, y0 + rows * g.rh]]);
+  for (let j = 1; j < rows; j++) out.push([[x0, y0 + j * g.rh], [x0 + cols * g.cw, y0 + j * g.rh]]);
+  return out;
+}
+/** The room a line of text takes on the drawing: its STIX width (the wider of the two estimates), cap height to descent, and LABEL_GAP round it. */
+function textHole(t: { x: number; y: number; html: string; size: number; anchor: 'start' | 'middle' | 'end' }): Rect {
+  const w = Math.max(mathW(t.html, t.size), t.html.replace(/<[^>]+>/g, '').length * t.size * 0.5);
+  const x0 = t.anchor === 'middle' ? t.x - w / 2 : t.anchor === 'end' ? t.x - w : t.x;
+  return [x0 - LABEL_GAP, t.y - t.size * 0.72 - LABEL_GAP, x0 + w + LABEL_GAP, t.y + t.size * 0.22 + LABEL_GAP];
+}
+/** Grid lines drawn by sketch, after the knock-outs. */
+const GRID = new WeakMap<Sketch, [P, P][]>();
+/** The texts a grid leaves room for: every one but the element symbols, which sit inside their own cells (measured by their own check). */
+const gridTexts = (s: Sketch) => s.texts.filter((t) => !SYMS.includes(t.html));
+/** Draw axis-parallel grid segments, each left out where it would run through a label's room (labels must already be set). */
+function knockedGrid(s: Sketch, segs: [P, P][]) {
+  const holes = gridTexts(s).map(textHole), drawn: [P, P][] = [];
+  for (const [a, b] of segs) {
+    const vert = a[0] === b[0], k = vert ? 1 : 0, at = vert ? a[0] : a[1];
+    let runs: [number, number][] = [[Math.min(a[k], b[k]), Math.max(a[k], b[k])]];
+    for (const h of holes) {
+      const [lo, hi, c0, c1] = vert ? [h[1], h[3], h[0], h[2]] : [h[0], h[2], h[1], h[3]];
+      if (at <= c0 || at >= c1) continue;
+      runs = runs.flatMap(([u, v]): [number, number][] => (hi <= u || lo >= v ? [[u, v]] : [...(lo > u ? [[u, lo] as [number, number]] : []), ...(hi < v ? [[hi, v] as [number, number]] : [])]));
+    }
+    runs.filter(([u, v]) => v - u > 0.5).forEach(([u, v]) => { const p: [P, P] = vert ? [[at, u], [at, v]] : [[u, at], [v, at]]; drawn.push(p); s.line(p[0][0], p[0][1], p[1][0], p[1][1], { color: C.grey, w: 0.7 }); });
+  }
+  GRID.set(s, drawn);
+}
+/** How close any drawn grid line comes to any label's room (as `textHole` measures it, less the gap): ≥ LABEL_GAP means no line touches a label. */
+const gridClear = (s: Sketch) => Math.min(...(GRID.get(s) ?? []).flatMap(([a, b]) => gridTexts(s).map(textHole).map((h) => { const r: Rect = [h[0] + LABEL_GAP, h[1] + LABEL_GAP, h[2] - LABEL_GAP, h[3] - LABEL_GAP]; const n = Math.max(1, Math.ceil(len(a, b) * 2)); let d = Infinity; for (let i = 0; i <= n; i++) d = Math.min(d, rectDist(r, [a[0] + ((b[0] - a[0]) * i) / n, a[1] + ((b[1] - a[1]) * i) / n])); return d; })));
 
 /* ===================================================================== */
 /* Figure 3.1 · the long form of the periodic table (Topic 01, p. 122)    */
@@ -182,7 +218,13 @@ const MAIN = [
 ].map((r) => r.split(' '));
 /** The two rows printed below, from group 3's column on, labelled 6 and 7. */
 const FROWS = ['La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu', 'Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr'].map((r) => r.split(' '));
-const HOLDER: Record<string, [string, string]> = { '*': ['57–', '71'], '**': ['89–', '103'] };
+/**
+ * Group 3's two places hold the marks * and **; each f-row carries its mark and its range on one line
+ * ("*57–71", "**89–103") beside its period number. A 17.8 px cell cannot hold "89–103" on one line at a
+ * size a phone can read (it was split over two lines at 8), so the range moved to the row it names.
+ */
+const HOLDER: Record<string, string> = { '*': '57–71', '**': '89–103' };
+const HOLD_SIZE = 11, RANGE_SIZE = 8;
 const T1 = { x0: 16, cw: 17.8, y0: 40, rh: 21, fTop: 223, h: 274 };
 const G1: Grid = { x0: T1.x0, cw: T1.cw, rh: T1.rh, rowTop: (p) => T1.y0 + (p - 1) * T1.rh };
 const fTop1 = (i: number) => T1.fTop + i * T1.rh;
@@ -214,15 +256,16 @@ const fig31: Diagram = {
       row.forEach((t, j) => {
         if (t === '·') return;
         cell(cL(g, j + 1), y);
-        if (HOLDER[t]) {
-          s.sym(cMid(g, j + 1), cy - 2.5, HOLDER[t][0], { size: 8, color: C.slate });
-          s.sym(cMid(g, j + 1), cy + 7.5, HOLDER[t][1], { size: 8, color: C.slate });
-        } else symAt(s, cMid(g, j + 1), cy, t);
+        if (HOLDER[t]) s.sym(cMid(g, j + 1), cy + HOLD_SIZE * 0.32, t, { size: HOLD_SIZE, color: C.slate });
+        else symAt(s, cMid(g, j + 1), cy, t);
       });
     });
     FROWS.forEach((row, i) => {
       const y = fTop1(i), cy = y + g.rh / 2;
-      s.sym(cMid(g, 2), cy + 9.5 * 0.25, String(6 + i), { size: 9.5, color: C.slate });
+      // the period number where the main table has its own, then the row's mark and range, one line, ending clear of the row
+      s.sym(8, cy + 9.5 * 0.25, String(6 + i), { size: 9.5, color: C.slate });
+      const mark = Object.keys(HOLDER)[i];
+      s.sym(cL(g, 3) - LABEL_GAP - 1, cy + RANGE_SIZE * 0.25, `${mark}${HOLDER[mark]}`, { size: RANGE_SIZE, anchor: 'end', color: C.slate });
       row.forEach((t, j) => { cell(cL(g, 3 + j), y); symAt(s, cMid(g, 3 + j), cy, t); });
     });
     // the blocks, each named by the line drawn round it
@@ -272,10 +315,13 @@ const fig31: Diagram = {
     const fNums = [6, 7].every((p, i) => nums.some((l) => l.text === String(p) && Math.floor((centre(l.rect)[1] - T1.fTop) / g.rh) === i && centre(l.rect)[0] < cL(g, 3)));
     out.push(['Groups 1–18 are numbered across the top over their columns, periods 1–7 down the side, and the two lower rows are labelled 6 and 7, as the caption and the book say', groupsOk && periodsOk && fNums]);
     // the group-3 places
-    const hold = (p: number) => s.labels.filter((l) => !/^[A-Z]/.test(l.text) && !/^\d+$/.test(l.text) || (l.text === '71' || l.text === '103')).filter((l) => inside(centre(l.rect), b.fHold) && Math.floor((centre(l.rect)[1] - T1.y0) / g.rh) + 1 === p).map((l) => l.text).join('');
+    const hold = (p: number) => s.labels.filter((l) => inside(centre(l.rect), b.fHold) && Math.floor((centre(l.rect)[1] - T1.y0) / g.rh) + 1 === p).map((l) => l.text).join('');
+    const rangeOf = (i: number) => s.labels.find((l) => /^\*+\d/.test(l.text) && l.rect[2] < cL(g, 3) && Math.floor((centre(l.rect)[1] - T1.fTop) / g.rh) === i)?.text ?? '';
     const rowZ = (i: number) => FROWS[i].map(Zof);
     const zRange = (i: number) => `${rowZ(i)[0]}–${rowZ(i)[rowZ(i).length - 1]}`;
-    out.push([`Group 3's place in period 6 reads "${hold(6)}" and in period 7 "${hold(7)}": exactly the Z of the rows below (${zRange(0)}, ${zRange(1)}), each run of consecutive Z`, hold(6) === zRange(0) && hold(7) === zRange(1) && [0, 1].every((i) => rowZ(i).every((z, k) => k === 0 || z === rowZ(i)[k - 1] + 1))]);
+    out.push([`Group 3's place in period 6 holds "${hold(6)}" and in period 7 "${hold(7)}"; the rows below read "${rangeOf(0)}" and "${rangeOf(1)}" on one line each: the same marks, and exactly the Z of each row (${zRange(0)}, ${zRange(1)}), each run of consecutive Z`, hold(6) === '*' && hold(7) === '**' && rangeOf(0) === `*${zRange(0)}` && rangeOf(1) === `**${zRange(1)}` && [0, 1].every((i) => rowZ(i).every((z, k) => k === 0 || z === rowZ(i)[k - 1] + 1))]);
+    const fLabs = s.labels.filter((l) => l.rect[2] < cL(g, 3) && centre(l.rect)[1] > T1.fTop);
+    out.push([`Left of each f-row its period number and its mark and range (one line, ${RANGE_SIZE} px) stand clear of the row by ${LABEL_GAP}+ px`, fLabs.length === 4 && fLabs.every((l) => l.rect[2] <= cL(g, 3) - LABEL_GAP)]);
     // blocks: which outline holds each symbol, against the differentiating electron
     const drawnBlock = (r: Rect) => { const c = centre(r); return inside(c, b.s) ? 's' : inside(c, b.p) ? 'p' : inside(c, b.d) ? 'd' : inside(c, b.f) || inside(c, b.fHold) ? 'f' : '?'; };
     const odd = els.filter((l) => drawnBlock(l.rect) !== blockOf(Zof(l.text))).map((l) => `${l.text} (Aufbau ${blockOf(Zof(l.text))}, drawn ${drawnBlock(l.rect)})`);
@@ -315,12 +361,33 @@ const Y2 = (v: number) => F2.oy - v * F2.sy;
 const ptZ = (z: number): P => [X2(z), Y2(IE1[z - 1])];
 /** Where each element named on the graph has its symbol: [dx, dy] from its point (baseline), as the book places them. */
 const NAMED: [string, number, number, 'start' | 'middle' | 'end'][] = [
-  ['He', 0, -9, 'middle'], ['Li', -9, 13, 'end'], ['Be', 0, -9, 'middle'], ['N', -8, -6, 'end'],
-  ['Ne', 8, 6, 'start'], ['Na', 6, 18, 'start'], ['Ar', 0, -9, 'middle'], ['K', 0, 18, 'middle'],
+  // He ends, and Li and Ne start, clear of the dashed period dividers (Z = 2.5, 10.5); He and Li each on its own period's side
+  ['He', 1.5, -9, 'end'], ['Li', 2, 18, 'start'], ['Be', 0, -9, 'middle'], ['N', -8, -6, 'end'],
+  ['Ne', 12.5, 6, 'start'], ['Na', 6, 18, 'start'], ['Ar', 0, -9, 'middle'], ['K', 0, 18, 'middle'],
 ];
+/** The dashed dividers between periods 1 | 2 and 2 | 3, at Z = 2.5 and 10.5. */
+const DIVIDERS = [2.5, 10.5];
+/**
+ * A line of STIX's width by kind of character, without mathW's half-em floor (which is there so boxes never
+ * shrink, and makes a long lowercase note far wider than it sets): He 1.2 em, “(filled 2s subshell)” 8.2 em,
+ * against 1.25 and 7.8 em measured on the Android screenshot of this figure.
+ */
+function stixW(html: string, size: number) {
+  let em = 0, small = 0;
+  const re = /<(\/?)(i|sub|sup)>|([^<]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    if (m[2]) { if (m[2] !== 'i') small += m[1] ? -1 : 1; continue; }
+    for (const ch of m[3]) {
+      const k = /[ ]/.test(ch) ? 0.33 : /[→]/.test(ch) ? 1 : /[=+−×]/.test(ch) ? 0.68 : /[A-Z]/.test(ch) ? 0.7 : /[ijlrtf]/.test(ch) ? 0.32 : /[a-z0-9]/.test(ch) ? 0.5 : /[()[\],.:;]/.test(ch) ? 0.33 : 0.6;
+      em += k * (small > 0 ? 0.7 : 1);
+    }
+  }
+  return em * size;
+}
 /** The two dips, as the book annotates them: its lines, where they stand, the point each names. */
 const DIPS = [
-  { z: 5, lines: ['Be → B dip', '(filled 2s subshell)'], cx: 140, y0: 62, up: false },
+  { z: 5, lines: ['Be → B dip', '(filled 2s subshell)'], cx: 136, y0: 62, up: false },
   { z: 8, lines: ['N → O dip', '(half-filled', '2p subshell)'], cx: 150, y0: 222, up: true },
 ];
 const DIP_SIZE = 11.5, DIP_LH = 13;
@@ -340,7 +407,7 @@ const fig32: Diagram = {
     s.sym(F2.ox + 8, 26, 'Δ<sub>i</sub><i>H</i><sub>1</sub> (kJ mol<sup>−1</sup>)', { size: 14, anchor: 'start' });
     s.sym(W - 4, F2.oy - 8, '<i>Z</i>', { size: 15, anchor: 'end' });
     // the period 2 and period 3 stretches, as the book divides them
-    [2.5, 10.5].forEach((z) => path(s, [[X2(z), F2.oy], [X2(z), Y2(2500) - 4]], { color: C.grey, w: 1, dash: 'dash', free: true }));
+    DIVIDERS.forEach((z) => path(s, [[X2(z), F2.oy], [X2(z), Y2(2500) - 4]], { color: C.grey, w: 1, dash: 'dash', free: true }));
     s.sym(X2(6.5), 44, 'period 2', { size: 11, color: C.slate });
     s.sym(X2(14.5), 44, 'period 3', { size: 11, color: C.slate });
     // the curve and its points
@@ -383,6 +450,12 @@ const fig32: Diagram = {
     const nearOwn = NAMED.every(([sym]) => { const l = s.labels.find((x) => x.text === sym)!, c = centre(l.rect); const best = s.points.reduce((a, p, i) => (Math.hypot(p.x - c[0], p.y - c[1]) < Math.hypot(s.points[a].x - c[0], s.points[a].y - c[1]) ? i : a), 0); return best === Zof(sym) - 1; });
     out.push(['Each element named on the graph (He, Li, Be, N, Ne, Na, Ar, K) is written beside its own point, nearer it than any other', nearOwn]);
     out.push(['The dashed dividers fall between He and Li (Z = 2.5) and between Ne and Na (Z = 10.5), where periods 2 and 3 begin', placeOf(2).p === 1 && placeOf(3).p === 2 && placeOf(10).p === 2 && placeOf(11).p === 3]);
+    // the dividers are left out of the line clearance (labels on the axis ticks sit on lines), so measure them here, each text at its STIX width
+    const room = (t: (typeof s.texts)[number]): Rect => { const w = stixW(t.html, t.size), x0 = t.anchor === 'middle' ? t.x - w / 2 : t.anchor === 'end' ? t.x - w : t.x; return [x0, t.y - t.size * 0.72, x0 + w, t.y + t.size * 0.22]; };
+    const divGap = Math.min(...DIVIDERS.flatMap((z) => s.texts.map(room).filter((r) => r[3] > Y2(2500) - 4 && r[1] < F2.oy).map((r) => Math.max(r[0] - X2(z), X2(z) - r[2]))));
+    out.push([`Every word and symbol stays at least ${LABEL_GAP} px clear of the dashed dividers (He, Li, Ne and the dip notes measured at their STIX widths): the closest ${fmt(divGap)} px`, divGap >= LABEL_GAP]);
+    const roomOf = (sym: string) => room(s.texts.find((x) => x.html === sym)!);
+    out.push(['He (period 1) stands left of the Z = 2.5 divider and Li (period 2) right of it, under its trough; Ne sits right of the Z = 10.5 line beside its peak, as the book prints it', roomOf('He')[2] < X2(2.5) && roomOf('Li')[0] > X2(2.5) && roomOf('Ne')[0] > X2(10.5)]);
     out.push(['The axes run 0–2500 kJ mol⁻¹ in steps of 500 and Z = 0–20 in steps of 2, as the book’s; every value fits under the top', Math.max(...IE1) < 2500]);
     out.push(...layout(s));
     return out;
@@ -509,11 +582,6 @@ const fig34: Diagram = {
   cases: [{ chip: 'Blocks', cap: CAP34 }],
   draw() {
     const s = new Sketch(W, T4.h), g = G4, b = blocks34();
-    const grid = (x0: number, y0: number, cols: number, rows: number) => {
-      for (let i = 1; i < cols; i++) s.line(x0 + i * g.cw, y0, x0 + i * g.cw, y0 + rows * g.rh, { color: C.grey, w: 0.7 });
-      for (let j = 1; j < rows; j++) s.line(x0, y0 + j * g.rh, x0 + cols * g.cw, y0 + j * g.rh, { color: C.grey, w: 0.7 });
-    };
-    grid(cL(g, 1), g.rowTop(2), 2, 6); grid(cL(g, 3), g.rowTop(4), 10, 4); grid(cL(g, 13), g.rowTop(2), 6, 6); grid(cL(g, 3), T4.fTop, 14, 2);
     const edge = { w: 1.4, edge: true };
     (['s', 'd', 'p', 'f'] as const).forEach((k) => path(s, closed(b[k]), edge));
     // H and He above their groups, with the book's notes
@@ -527,13 +595,16 @@ const fig34: Diagram = {
     s.line(cL(g, 18) - 5, 25, cL(g, 18) - 1, T4.hTop + 4, { color: C.grey, w: 1 });
     // the staircase elements, the configurations, metals / non-metals
     METALLOIDS.forEach((x) => { const pl = placeOf(Zof(x)); symAt(s, cMid(g, pl.g as number), g.rowTop(pl.p) + g.rh / 2, x); });
-    s.sym(cMid(g, 1.5), g.rowTop(4) + 18, CONF.s, { size: 11 });
-    s.sym((cL(g, 3) + cR(g, 12)) / 2, g.rowTop(6) + 4, CONF.d, { size: 13 });
-    s.sym(cMid(g, 17), g.rowTop(3) + 18, CONF.p, { size: 12 });
-    s.sym(cMid(g, 16.5), g.rowTop(2) + 18, 'non-metals', { size: 11, color: C.slate });
-    s.sym(cMid(g, 14), g.rowTop(6) + 18, 'metals', { size: 11, color: C.slate });
-    s.sym((cL(g, 3) + cR(g, 16)) / 2 + 30, T4.fTop + g.rh + 5, CONF.f, { size: 13 });
+    s.sym(cMid(g, 1.5), rowMid(g.rowTop(4), 11), CONF.s, { size: 11 });
+    s.sym((cL(g, 3) + cR(g, 12)) / 2, rowMid(g.rowTop(6), 13), CONF.d, { size: 13 });
+    s.sym(cMid(g, 17), rowMid(g.rowTop(3), 12), CONF.p, { size: 12 });
+    s.sym(cMid(g, 16.5), rowMid(g.rowTop(2), 11), 'non-metals', { size: 11, color: C.slate });
+    s.sym(cMid(g, 14), rowMid(g.rowTop(6), 11), 'metals', { size: 11, color: C.slate });
+    s.sym((cL(g, 3) + cR(g, 16)) / 2 + 30, rowMid(T4.fTop + g.rh, 13), CONF.f, { size: 13 });
     for (let col = 1; col <= 18; col++) s.sym(cMid(g, col), T4.nums, String(col), { size: 9, color: C.slate });
+    // the cell grid, drawn after every label so each grid line can leave out the stretch where a label sits (no fills)
+    const segs = [...gridSegs(g, cL(g, 1), g.rowTop(2), 2, 6), ...gridSegs(g, cL(g, 3), g.rowTop(4), 10, 4), ...gridSegs(g, cL(g, 13), g.rowTop(2), 6, 6), ...gridSegs(g, cL(g, 3), T4.fTop, 14, 2)];
+    knockedGrid(s, segs);
     const st = stairPts(g);
     path(s, st, { color: C.mari, w: 2.8 });
     // the d-block is named by a tag inside its own (empty) outline
@@ -573,6 +644,10 @@ const fig34: Diagram = {
     out.push(['Each block tag’s line ends on its own block’s outline (the d-block’s tag stands inside its own outline), the staircase tag’s on the staircase', on('s-block', closed(b.s)) && on('p-block', closed(b.p)) && on('f-block', closed(b.f)) && on('heavy staircase', st) && ((t) => !!t && !t.from && inside(centre(t.rect), b.d) && t.rect[0] > b.d[0][0] && t.rect[2] < b.d[1][0] && t.rect[1] > b.d[0][1])(s.tags.find((x) => x.name === 'd-block'))]);
     out.push(['Each configuration is written inside its own block', (['s', 'p', 'd', 'f'] as const).every((k) => { const l = s.labels.find((x) => x.text === CONF[k].replace(/<[^>]+>/g, '')); return !!l && inside(centre(l.rect), b[k]); })]);
     out.push(['Only the staircase and its tag are marigold', mariPaths(s) === 1 && mariTags(s) === 1]);
+    const gc = gridClear(s);
+    out.push([`No grid line runs through a configuration, “metals” or “non-metals” (or any other label but the symbols in their cells): each line is left out where a label sits, the closest ${fmt(gc)} px`, gc >= LABEL_GAP - 1e-9]);
+    const rowCentred = (html: string, top: number) => { const t = s.texts.find((x) => x.html === html); if (!t) return false; const h = textHole(t); return Math.abs((h[1] + h[3]) / 2 - (top + g.rh / 2)) < 2 && h[1] + LABEL_GAP >= top + LABEL_GAP && h[3] - LABEL_GAP <= top + g.rh - LABEL_GAP; };
+    out.push(['Each configuration, “metals” and “non-metals” is centred in one row, clear of the row’s own lines', rowCentred(CONF.s, g.rowTop(4)) && rowCentred(CONF.d, g.rowTop(6)) && rowCentred(CONF.p, g.rowTop(3)) && rowCentred(CONF.f, T4.fTop + g.rh) && rowCentred('non-metals', g.rowTop(2)) && rowCentred('metals', g.rowTop(6))]);
     out.push(...layout(s));
     return out;
   },

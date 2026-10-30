@@ -173,7 +173,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: 'At 717 K, <i>K</i><sub>c</sub> = 49 for H<sub>2</sub>(g) + I<sub>2</sub>(g) ⇌ 2HI(g). Without a calculator, state <i>K</i><sub>p</sub>.',
         steps: [
-          '<b>The trap.</b> A panicking student reaches for <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup> and starts multiplying 0.0821 × 717. <b>Stop and read Δ<i>n</i><sub>g</sub> first:</b> moles of gas are 2 on each side, so Δ<i>n</i><sub>g</sub> = 2 − 2 = 0. Then (<i>RT</i>)<sup>0</sup> = 1 and',
+          '<b>The trap.</b> A panicking student reaches for <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>(<i>RT</i>)<sup>Δ<i>n</i><sub>g</sub></sup> and starts multiplying 0.0821 × 717. <b>Stop and read Δ<i>n</i><sub>g</sub> first:</b> moles of gas are 2 on each side, so Δ<i>n</i><sub>g</sub> = 2 − 2 = 0. Then (<i>RT</i>)<sup>0</sup> = 1 and <i>K</i><sub>p</sub> = <i>K</i><sub>c</sub>.',
           '<b>Lesson:</b> every time a <i>K</i><sub>p</sub>–<i>K</i><sub>c</sub> question appears, glance at Δ<i>n</i><sub>g</sub> before touching the calculator. If Δ<i>n</i><sub>g</sub> = 0, the answer is already in front of you.',
         ],
         ans: '<i>K</i><sub>p</sub> = <i>K</i><sub>c</sub> = 49',
@@ -437,7 +437,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: 'Sign-and-magnitude map',
-        head: ['ΔG°', 'ln K', 'K', 'Position of equilibrium'],
+        head: ['Δ<i>G</i>°', 'ln <i>K</i>', '<i>K</i>', 'Position of equilibrium'],
         rows: [
           ['< 0 (negative)', '> 0', '> 1', 'products favoured'],
           ['= 0', '0', '= 1', 'comparable amounts'],

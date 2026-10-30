@@ -201,11 +201,43 @@ const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldI
  * Math instead, the same on every phone. (Raised and lowered letters, ᵃ ₙ,
  * are in neither font; they are drawn, see drawnRun.)
  */
+/**
+ * The reader's maths symbols that neither Onest nor Android's Roboto has: on
+ * Android they fell to a thin symbols font, half-height and pale (⇒ ⇌ ↔ ∝ ≡ ∼
+ * ∥ ⊥ ≪ ⟹ …; Android review of Chemistry 11, 2026-10-30), so they are set in
+ * STIX Two Math. The arrows, operators, letterlike and bracket blocks, minus
+ * what Onest draws itself (→ − ≈ ≤ ≥) and what Roboto draws well (√ ∫ ∂ ∞ ⟨ ⟩
+ * stay as they were, checked in content/textbooks/__tests__/display-fonts).
+ */
+const PILOT_MATH = /[\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF]+/g;
 const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
-function stixRuns(text: string, key: string) {
+/**
+ * The reader's text with its maths symbols in STIX Two Math (see PILOT_MATH),
+ * and an upright letter or digit carrying a vector arrow (the zero vector 0⃗)
+ * in STIX Two Text: Onest has no combining arrow, so Android drew it from
+ * another font, off its letter.
+ */
+const PILOT_RUN = new RegExp(`${PILOT_MATH.source}|\\S\u20d7`, 'g');
+function pilotRuns(text: string, key: string) {
   const out: ReactNode[] = [];
   let at = 0;
-  for (const m of text.matchAll(STIX_MATH_ONLY)) {
+  for (const m of text.matchAll(PILOT_RUN)) {
+    if (m.index! > at) out.push(text.slice(at, m.index));
+    out.push(
+      <Text key={`${key}.${m.index}`} style={{ fontFamily: m[0].endsWith('\u20d7') ? STIX.regular : STIX.math }}>
+        {m[0]}
+      </Text>
+    );
+    at = m.index! + m[0].length;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
+
+function stixRuns(text: string, key: string, only: RegExp = STIX_MATH_ONLY) {
+  const out: ReactNode[] = [];
+  let at = 0;
+  for (const m of text.matchAll(only)) {
     if (m.index! > at) out.push(text.slice(at, m.index));
     out.push(
       <Text key={`${key}.${m.index}`} style={{ fontFamily: STIX.math }}>
@@ -302,10 +334,11 @@ function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: stri
  * box is the line's ascent (an inline View is a placeholder sitting on the
  * baseline), and a taller one would push its line's baseline down.
  */
-function drawnPair(sup: Node[], sub: Node[], size: number, key: string, ink: Ink, italicBase = false) {
+function drawnPair(sup: Node[], sub: Node[], size: number, key: string, ink: Ink, italicBase = false, pre = false) {
   const line = size * DRAWN_SUP * 1.1;
   return (
-    <View key={key} style={{ alignItems: 'flex-start', transform: [{ translateY: -size * SUP_RISE }] }}>
+    // Before a symbol (⁴⁰₁₈Ar) the two numbers stand flush against it, on the right.
+    <View key={key} style={{ alignItems: pre ? 'flex-end' : 'flex-start', transform: [{ translateY: -size * SUP_RISE }] }}>
       {/* After an italic letter the superscript steps right of the letter's
           overhang (see PAIR_KERN); the subscript stays tucked under it. */}
       <View style={{ height: line, marginLeft: italicBase ? size * PAIR_KERN : 0 }}>{scriptText('sup', sup, size, `${key}.p`, ink)}</View>
@@ -358,10 +391,11 @@ function italicLetters(nodes: Node[]): Node[] {
   return nodes.flatMap((n): Node[] => {
     if (n.kind === 'br' || (n.kind === 'tag' && n.name === 'i')) return [n];
     if (n.kind === 'tag') return [{ ...n, children: italicLetters(n.children) }];
+    // Greek capitals (Δ, Σ) are operators, upright like everywhere else: e^(−ΔG°/RT).
     return n.value
-      .split(/([A-Za-z\u00c0-\u024f\u0370-\u03ff]+)/)
+      .split(/([\u0391-\u03a9]+|[A-Za-z\u00c0-\u024f\u0370-\u0390\u03aa-\u03ff]+)/)
       .filter(Boolean)
-      .map((part): Node => (/^[A-Za-z\u00c0-\u024f\u0370-\u03ff]/.test(part) ? { kind: 'tag', name: 'i', children: [{ kind: 'text', value: part }] } : { kind: 'text', value: part }));
+      .map((part): Node => (/^[A-Za-z\u00c0-\u024f\u0370-\u0390\u03aa-\u03ff]/.test(part) ? { kind: 'tag', name: 'i', children: [{ kind: 'text', value: part }] } : { kind: 'text', value: part }));
   });
 }
 
@@ -527,6 +561,47 @@ export function hairSpaces(html: string): string {
     .replace(SPACE_AFTER_ARROW, `$1${HAIR}${WJ}$2`);
 }
 
+/**
+ * WHERE A READING LINE MAY BREAK (the pilot look). Android broke reading text
+ * at any space: "3.336 × / 10⁻³⁰", "0.23 / D", "N_b / = 10", "x / − 4 = −1"
+ * (Android review of Chemistry 11, 2026-10-30). So a short term stays with
+ * the operator beside it, a number with its unit and with "× 10", and a line
+ * never breaks straight after a "/". A glued run is capped so it can still
+ * wrap. And a lowered script or an italic capital gets a hair of room before
+ * the bracket, "/" or prime that ran into it (CrO₄), K_a(HCN), σ2p_z/π, K′), and
+ * an opening bracket room before an italic f, whose tail reaches back under it: (fp₃).
+ */
+const READER_OPS = new Set(['=', '≈', '×', '−', '+', '<', '>', '≤', '≥', '⇒', '→', '⇌', '∝', '≡', '∶']);
+const READER_UNIT = /^(?:D|pm|nm|μm|Å|kJ|J|mol|g|kg|mg|mL|L|K|atm|bar|Pa|kPa|cm|mm|km|m|s|ms|μs|ns|min|h|°C|°|V|kV|mV|eV|keV|MeV|C|μC|nC|M|Hz|kHz|MHz|u|Ω|kΩ|MΩ|H|mH|μH|F|μF|nF|pF|A|mA|μA|W|kW|MW|N|T|mT|G|Wb|rad|dB|cd|lm|lx|Bq|Gy|Sv)(?:[.,;:)]|$)/;
+const READER_GLUE_MAX = 26;
+export function readerBreaks(html: string): string {
+  const plain = (t: string) => t.replace(/<[^>]*>/g, '');
+  const toks = html
+    .replace(/(<\/sub>)(?=[()[\]/])/g, `$1${HAIR}${WJ}`)
+    .replace(/([([{|])(?=<i>f)/g, `$1${HAIR}${WJ}`)
+    .replace(/(<i>[^<]*[A-Z]<\/i>)(?=′)/g, `$1${HAIR}${WJ}`)
+    // Only a maths slash: "1/N_A", "10⁻¹⁰/0.1", "[salt]/[base]"; a list of words ("linear/trigonal-planar/…") may still break.
+    .replace(/([^<\s])\/(?=[\d([]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
+    .split(' ');
+  let out = toks[0];
+  let run = plain(toks[0]).length;
+  for (let k = 1; k < toks.length; k++) {
+    const a = plain(toks[k - 1]), b = plain(toks[k]);
+    const glue =
+      (READER_OPS.has(b) && (a.length <= 3 || (b === '×' && /[0-9]$/.test(a)))) ||
+      (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
+      (/[0-9]$/.test(a) && READER_UNIT.test(b));
+    if (glue && run + 1 + b.length <= READER_GLUE_MAX) {
+      out += ' ' + toks[k];
+      run += 1 + b.length;
+    } else {
+      out += ' ' + toks[k];
+      run = b.length;
+    }
+  }
+  return out;
+}
+
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {
   switch (name) {
     case 'b':
@@ -564,11 +639,16 @@ const isScript = (n: Node | undefined): n is Script => !!n && n.kind === 'tag' &
  * and signs (v₀², ⁴₂He): those stay STIX's own raised and lowered glyphs, the
  * same as everywhere else, which sit at their own heights already.
  */
-function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script } | null {
+function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script; pre: boolean } | null {
   const a = nodes[i], b = nodes[i + 1];
   if (!isScript(a) || !isScript(b) || a.name === b.name) return null;
-  if (NUMERIC_RUN.test(plainText(a.children)) && NUMERIC_RUN.test(plainText(b.children))) return null;
-  return a.name === 'sup' ? { sup: a, sub: b } : { sup: b, sub: a };
+  // Mass and atomic number before an element symbol (⁴⁰₁₈Ar) are stacked
+  // too: side by side, a two-digit pair read as "40 18 Ar" (Android review of
+  // Chemistry 11 Ch 2, 2026-10-30).
+  const next = nodes[i + 2];
+  const pre = next?.kind === 'text' && /^[A-Z]/.test(next.value);
+  if (!pre && NUMERIC_RUN.test(plainText(a.children)) && NUMERIC_RUN.test(plainText(b.children))) return null;
+  return a.name === 'sup' ? { sup: a, sub: b, pre } : { sup: b, sub: a, pre };
 }
 
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
@@ -581,7 +661,7 @@ function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook
       out.push(
         <Fragment key={key}>
           {WJ}
-          {drawnPair(pair.sup.children, pair.sub.children, size, `${key}.d`, ink, italicBefore(nodes, i, ink))}
+          {drawnPair(pair.sup.children, pair.sub.children, size, `${key}.d`, ink, italicBefore(nodes, i, ink), pair.pre)}
           {WJ}
         </Fragment>
       );
@@ -597,7 +677,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   const key = `${keyPrefix}.${i}`;
   if (node.kind === 'text') {
     const value = look === 'stix' && isItalicFamily(ink.family) ? node.value.replace(/g/g, ITALIC_G) : node.value;
-    return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(value), key) : asText(value)}</Fragment>;
+    return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(value), key) : look === 'pilot' ? pilotRuns(asText(value), key) : asText(value)}</Fragment>;
   }
   if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
 
@@ -642,6 +722,10 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
     const raised = mappable ? toUnicode(run, node.name === 'sup' ? SUPERS : SUBS) : null;
     // Raised glyphs need no size change; they are already small and in the
     // right place. Shrinking them again would make them unreadable.
+    // The reader sets raised and lowered digits in STIX, which has all of them:
+    // Onest has only ¹ ² ³, so ⁴–⁹ came from another font, and its ¹ is a bare
+    // stroke, so ¹¹B and 10¹¹ read as a ditto mark (Android review, 2026-10-30).
+    if (raised && look === 'pilot' && NUMERIC_RUN.test(run)) return <Text key={key} style={{ fontFamily: STIX.regular }}>{raised}</Text>;
     if (raised) return <Fragment key={key}>{raised}</Fragment>;
     return (
       <Text key={key} style={styleFor(node.name, size, look)}>
@@ -669,7 +753,7 @@ export interface MarkupProps {
 }
 
 export function Markup({ html, size, style, numberOfLines, look = 'current' }: MarkupProps) {
-  const nodes = useMemo(() => parse(look === 'stix' ? hairSpaces(untypeLetters(html)) : look === 'pilot' ? hairSpaces(html) : html), [html, look]);
+  const nodes = useMemo(() => parse(look === 'stix' ? hairSpaces(untypeLetters(html)) : look === 'pilot' ? hairSpaces(readerBreaks(html)) : html), [html, look]);
   // A drawn raised run sits in a View, which does not inherit from the Text
   // around it, so it is handed the face and colour it is set in.
   const flat = StyleSheet.flatten(style) ?? {};

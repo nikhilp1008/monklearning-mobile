@@ -157,7 +157,7 @@ export const TOPICS: Topic[] = [
           '<b>Given:</b> <i>m</i> = 13.5 g, <i>M</i> = 27 g mol<sup>−1</sup>.',
           'Number of moles:<br><i>n</i> = <i>m</i>/<i>M</i> = 13.5/27 = 0.5 mol.',
           'Aluminium is a metal (monoatomic in this context), so number of atoms:<br><i>N</i> = <i>n</i> × <i>N</i><sub>A</sub> = 0.5 × 6.022 × 10<sup>23</sup> =',
-          'So 13.5 g of aluminium contains 0.5 mol, i.e. 3.011 × 10<sup>23</sup> atoms.',
+          'So 13.5 g of aluminium contains 0.5 mol, i.e.',
         ],
         ans: '3.011 × 10<sup>23</sup> atoms',
       },
@@ -415,7 +415,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Direct method (molar mass known)',
-        main: 'atoms of an element per molecule = (% of element / 100) × (molar mass / atomic mass)',
+        main: 'atoms of an element per molecule = (% of element / 100)<br>× (molar mass / atomic mass)',
         legend: [],
         note: null,
       },

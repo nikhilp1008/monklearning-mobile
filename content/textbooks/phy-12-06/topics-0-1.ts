@@ -208,8 +208,7 @@ export const TOPICS: Topic[] = [
         q: 'A square conducting loop of area 100 cm<sup>2</sup> lies entirely inside a large region of uniform magnetic field 0.50 T perpendicular to the plane of the loop. The loop is pushed across the region at a steady 2.0 m/s, never crossing the boundary. What is the induced emf?',
         steps: [
           '<b>The trap:</b> students see “loop moving in a magnetic field” and instantly write <i>ε</i> = <i>Blv</i> = 0.50 × 0.10 × 2.0 = 0.10 V.',
-          '<b>The fast, correct read:</b> ask one question — does the flux change? The loop is always fully inside a uniform field, so the number of field lines threading it is constant: Φ = <i>BA</i> = constant. Therefore dΦ<sub>B</sub>/d<i>t</i> = 0 and',
-          'Motional emf appears only at a boundary, where the loop’s area inside the field is changing. Inside a uniform field, motion at any speed induces nothing. <b>Speed rule:</b> never compute — first check whether Φ<sub>B</sub> = <i>BA</i> cos <i>θ</i> actually changes.',
+          '<b>The fast, correct read:</b> ask one question — does the flux change? The loop is always fully inside a uniform field, so the number of field lines threading it is constant: Φ = <i>BA</i> = constant. Therefore dΦ<sub>B</sub>/d<i>t</i> = 0 and<br>Motional emf appears only at a boundary, where the loop’s area inside the field is changing. Inside a uniform field, motion at any speed induces nothing. <b>Speed rule:</b> never compute — first check whether Φ<sub>B</sub> = <i>BA</i> cos <i>θ</i> actually changes.',
         ],
         ans: '<i>ε</i> = 0',
       },

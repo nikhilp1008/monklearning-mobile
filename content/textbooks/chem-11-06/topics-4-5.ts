@@ -93,7 +93,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Polyprotic acid (stepwise ionization, e.g. H<sub>3</sub>PO<sub>4</sub>)',
-        main: 'H<sub>3</sub>PO<sub>4</sub> ⇌<sup><i>K</i>a1</sup> H<sup>+</sup> + H<sub>2</sub>PO<sub>4</sub><sup>−</sup> ⇌<sup><i>K</i>a2</sup> H<sup>+</sup> + HPO<sub>4</sub><sup>2−</sup> ⇌<sup><i>K</i>a3</sup> H<sup>+</sup> + PO<sub>4</sub><sup>3−</sup><br>with <i>K</i><sub>a1</sub> ≫ <i>K</i><sub>a2</sub> ≫ <i>K</i><sub>a3</sub> (for H<sub>3</sub>PO<sub>4</sub>, roughly 7.5 × 10<sup>−3</sup>, 6.2 × 10<sup>−8</sup>, 4.2 × 10<sup>−13</sup>)',
+        main: 'H<sub>3</sub>PO<sub>4</sub> ⇌<sup><i>K</i>ₐ₁</sup> H<sup>+</sup> + H<sub>2</sub>PO<sub>4</sub><sup>−</sup> ⇌<sup><i>K</i>ₐ₂</sup> H<sup>+</sup> + HPO<sub>4</sub><sup>2−</sup> ⇌<sup><i>K</i>ₐ₃</sup> H<sup>+</sup> + PO<sub>4</sub><sup>3−</sup><br>with <i>K</i><sub>a1</sub> ≫ <i>K</i><sub>a2</sub> ≫ <i>K</i><sub>a3</sub> (for H<sub>3</sub>PO<sub>4</sub>, roughly 7.5 × 10<sup>−3</sup>, 6.2 × 10<sup>−8</sup>, 4.2 × 10<sup>−13</sup>)',
         legend: ['<i>K</i><sub>a1</sub>, <i>K</i><sub>a2</sub>, <i>K</i><sub>a3</sub> = constants of the first, second and third ionization steps'],
         note: null,
       },
@@ -128,7 +128,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['', 'HA', 'H+', 'A−'],
+        head: ['', 'HA', 'H<sup>+</sup>', 'A<sup>−</sup>'],
         rows: [
           ['Initial', '<i>c</i>', '0', '0'],
           ['Equilibrium', '<i>c</i>(1 − <i>α</i>)', '<i>cα</i>', '<i>cα</i>'],
@@ -178,8 +178,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: 'Find the pH of a 1.0 × 10<sup>−8</sup> M HCl solution.',
         steps: [
-          '<b>The trap.</b> A hurried student writes pH = −log(10<sup>−8</sup>) = 8 — but pH 8 is basic, and you cannot make a solution basic by adding acid! The flag is the absurd answer. At this extreme dilution the H<sup>+</sup> from <b>water itself</b> (∼ 10<sup>−7</sup> M) dominates and cannot be ignored. Balancing charge and <i>K</i><sub>w</sub> leads to',
-          '[H<sup>+</sup>]<sup>2</sup> − (10<sup>−8</sup>)[H<sup>+</sup>] − 10<sup>−14</sup> = 0 ⇒ [H<sup>+</sup>] = 1.05 × 10<sup>−7</sup> M',
+          '<b>The trap.</b> A hurried student writes pH = −log(10<sup>−8</sup>) = 8 — but pH 8 is basic, and you cannot make a solution basic by adding acid! The flag is the absurd answer. At this extreme dilution the H<sup>+</sup> from <b>water itself</b> (∼ 10<sup>−7</sup> M) dominates and cannot be ignored. Balancing charge and <i>K</i><sub>w</sub> leads to<br>[H<sup>+</sup>]<sup>2</sup> − (10<sup>−8</sup>)[H<sup>+</sup>] − 10<sup>−14</sup> = 0 ⇒ [H<sup>+</sup>] = 1.05 × 10<sup>−7</sup> M',
           'pH = −log(1.05 × 10<sup>−7</sup>)',
           'Just below 7 — faintly acidic, exactly as physical sense demands. <b>Speed cue:</b> any acid more dilute than ∼ 10<sup>−6</sup> M must include water’s contribution; the answer always sits just under 7.',
         ],
@@ -192,8 +191,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'Since acetic acid is weak, use Ostwald’s approximation:',
           '<i>α</i> = √(<i>K</i><sub>a</sub>/<i>c</i>) = √((1.8 × 10<sup>−5</sup>)/0.10) = √(1.8 × 10<sup>−4</sup>) = 1.34 × 10<sup>−2</sup>',
-          'So <i>α</i> ≈ 1.34% (comfortably < 5%, approximation valid). Then',
-          '[H<sup>+</sup>] = <i>cα</i> = 0.10 × 1.34 × 10<sup>−2</sup> = 1.34 × 10<sup>−3</sup> M',
+          'So <i>α</i> ≈ 1.34% (comfortably < 5%, approximation valid). Then<br>[H<sup>+</sup>] = <i>cα</i> = 0.10 × 1.34 × 10<sup>−2</sup> = 1.34 × 10<sup>−3</sup> M',
           'pH = −log(1.34 × 10<sup>−3</sup>) = 3 − log 1.34 = 3 − 0.13',
         ],
         ans: 'pH = 2.87',
@@ -405,7 +403,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Salt type', 'Example', 'Ksp in terms of s', 's'],
+        head: ['Salt type', 'Example', '<i>K</i><sub>sp</sub> in terms of <i>s</i>', '<i>s</i>'],
         rows: [
           ['AB (1:1)', 'AgCl, BaSO<sub>4</sub>', '<i>s</i><sup>2</sup>', '√<i>K</i><sub>sp</sub>'],
           ['AB<sub>2</sub> or A<sub>2</sub>B', 'CaF<sub>2</sub>, Ag<sub>2</sub>CrO<sub>4</sub>', '4<i>s</i><sup>3</sup>', '(<i>K</i><sub>sp</sub>/4)<sup>1/3</sup>'],
@@ -426,7 +424,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Salt (acid + base)', 'Nature', 'Kh', 'pH'],
+        head: ['Salt (acid + base)', 'Nature', '<i>K</i><sub>h</sub>', 'pH'],
         rows: [
           ['Strong + Strong', 'neutral', '— (no hydrolysis)', '7'],
           ['Weak acid + Strong base', 'basic', '<i>K</i><sub>w</sub>/<i>K</i><sub>a</sub>', '7 + ½(p<i>K</i><sub>a</sub> + log <i>c</i>)'],
@@ -509,8 +507,7 @@ export const TOPICS: Topic[] = [
         q: '<i>K</i><sub>sp</sub>(AgCl) = 1.8 × 10<sup>−10</sup>. Find the molar solubility of AgCl in (a) pure water and (b) 0.10 M NaCl, and quantify the suppression.',
         steps: [
           '<b>(a) Pure water:</b> <i>K</i><sub>sp</sub> = <i>s</i><sup>2</sup> ⇒ <i>s</i> = √(1.8 × 10<sup>−10</sup>) = 1.34 × 10<sup>−5</sup> M.',
-          '<b>(b) In 0.10 M NaCl:</b> the chloride from NaCl swamps the trace from AgCl, so [Cl<sup>−</sup>] ≈ 0.10 M. Then',
-          '<i>K</i><sub>sp</sub> = [Ag<sup>+</sup>][Cl<sup>−</sup>] = <i>s</i>′ × 0.10 ⇒ <i>s</i>′ = (1.8 × 10<sup>−10</sup>)/0.10 = 1.8 × 10<sup>−9</sup> M',
+          '<b>(b) In 0.10 M NaCl:</b> the chloride from NaCl swamps the trace from AgCl, so [Cl<sup>−</sup>] ≈ 0.10 M. Then<br><i>K</i><sub>sp</sub> = [Ag<sup>+</sup>][Cl<sup>−</sup>] = <i>s</i>′ × 0.10 ⇒ <i>s</i>′ = (1.8 × 10<sup>−10</sup>)/0.10 = 1.8 × 10<sup>−9</sup> M',
           '<b>Suppression factor:</b><br><i>s</i>/<i>s</i>′ = (1.34 × 10<sup>−5</sup>)/(1.8 × 10<sup>−9</sup>) ≈ 7400',
           'The common chloride ion has made AgCl roughly <b>7400 times less soluble</b> — the same Le Chatelier suppression that throttled acetic acid’s ionization in Topic 04, now governing a precipitate. (This is precisely why gravimetric precipitates are washed with a dilute common-ion solution, not pure water.)',
         ],

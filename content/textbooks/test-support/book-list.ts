@@ -1,0 +1,32 @@
+/** Every chapter written word for word from the Master Reference books (keep in step with __tests__/book-chapters.test.ts). */
+import ch1 from '@/content/textbooks/phy-11-01-units-measurements';
+import ch2 from '@/content/textbooks/phy-11-02-motion-straight-line';
+import ch3 from '@/content/textbooks/phy-11-03-motion-plane';
+import ch4 from '@/content/textbooks/phy-11-04-laws-of-motion';
+import ch5 from '@/content/textbooks/phy-11-05-work-energy-power';
+import ch6 from '@/content/textbooks/phy-11-06-rotational-motion';
+import ch7 from '@/content/textbooks/phy-11-07-gravitation';
+import ch8 from '@/content/textbooks/phy-11-08-mech-solids';
+import ch9 from '@/content/textbooks/phy-11-09-mech-fluids';
+import ch10 from '@/content/textbooks/phy-11-10-thermal-properties';
+import ch11 from '@/content/textbooks/phy-11-11-thermodynamics';
+import ch12 from '@/content/textbooks/phy-11-12-kinetic-theory';
+import ch13 from '@/content/textbooks/phy-11-13-oscillations';
+import ch14 from '@/content/textbooks/phy-11-14-waves';
+import c12ch1 from '@/content/textbooks/phy-12-01-electric-charges-fields';
+import c12ch2 from '@/content/textbooks/phy-12-02-potential-capacitance';
+import c12ch3 from '@/content/textbooks/phy-12-03-current-electricity';
+import c12ch4 from '@/content/textbooks/phy-12-04-moving-charges-magnetism';
+import c12ch5 from '@/content/textbooks/phy-12-05-magnetism-matter';
+import c12ch6 from '@/content/textbooks/phy-12-06-electromagnetic-induction';
+import c12ch7 from '@/content/textbooks/phy-12-07-alternating-current';
+import c12ch8 from '@/content/textbooks/phy-12-08-electromagnetic-waves';
+import chem11ch1 from '@/content/textbooks/chem-11-01-basic-concepts';
+import chem11ch2 from '@/content/textbooks/chem-11-02-structure-of-atom';
+import chem11ch3 from '@/content/textbooks/chem-11-03-classification';
+import chem11ch4 from '@/content/textbooks/chem-11-04-chemical-bonding';
+import chem11ch5 from '@/content/textbooks/chem-11-05-thermodynamics';
+import chem11ch6 from '@/content/textbooks/chem-11-06-equilibrium';
+import type { Chapter } from '@/lib/textbooks';
+
+export const BOOK_CHAPTERS = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6] as Chapter[];

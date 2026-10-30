@@ -13,6 +13,10 @@ export function useRouteChapter() {
   const [missing, setMissing] = useState(false);
   useEffect(() => {
     let cancelled = false;
+    // A link into another chapter can reuse this screen: start clean, or a
+    // failed load before it kept the screen on "This chapter didn't open".
+    setChapter(null);
+    setMissing(false);
     loadChapter(subject, classLevel, title)
       .then((c) => { if (cancelled) return; if (c) setChapter(c); else setMissing(true); })
       .catch(() => !cancelled && setMissing(true));

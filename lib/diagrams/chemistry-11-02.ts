@@ -41,7 +41,7 @@ const samples = (a: number, b: number, n = 400) => Array.from({ length: n + 1 },
 type Stroke = { color?: string; w?: number; dash?: 'dash' | 'dot'; free?: boolean };
 const dashOf = (d?: Stroke['dash']) => (d === 'dash' ? ' stroke-dasharray="7 5"' : d === 'dot' ? ' stroke-dasharray="1.5 3.5"' : '');
 
-/** Every line a label must keep clear of (the curves, the ring), by sketch. Axes and ticks are left out: their values sit on them. */
+/** Every line a label must keep clear of (the curves), by sketch. Axes and ticks are left out: their values sit on them. */
 const LINES = new WeakMap<Sketch, P[][]>();
 const keep = (s: Sketch, pts: P[]) => { const l = LINES.get(s) ?? []; l.push(pts); LINES.set(s, l); };
 /** An open line through points: ink, rounded joins. */
@@ -178,33 +178,29 @@ const RMAX: Record<2 | 3, number> = { 2: 12.2, 3: 32.5 };
 /** The 1s curve is drawn out to 6 a₀, where it has died away. */
 const R1S = 6;
 /**
- * The ring round the 3s orbital's two inner peaks, and nothing else. The 3p inner peak (0.39 at 3a₀)
- * sits between them and barely above the line joining them, so an upright ellipse cannot hold both 3s
- * peaks without it: the ring is a thin ellipse laid along that line, computed from the peaks
- * themselves — its long axis runs through both, RING_PAD px beyond each, and it is RING_HALF px wide
- * either side of the axis (in drawing px).
+ * The 3s orbital's two inner peaks are marked where they are: one tag, "3s inner peaks", with a line
+ * and dot to each peak (a dotted ring round them was crossed by the 3p curve, which peaks between
+ * them). The tag stands over the top-left, clear of every curve; one line drops straight to the
+ * second peak, the other slants to the first, clear of the y-axis and of the 3p curve below it.
  */
-const RING_PAD = 8;
-const RING_HALF = 6;
-function ring3(f: Frame) {
-  const [m0, m1] = maxima(Pn(3, 0), 1e-6, 60);
-  const a = at(f, m0.u, m0.v), b = at(f, m1.u, m1.v), L = len(a, b);
-  const d: P = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
-  return { c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as P, d, n: [-d[1], d[0]] as P, ra: L / 2 + RING_PAD, rb: RING_HALF };
-}
-type Ring = ReturnType<typeof ring3>;
-/** Where on the ring the "3s inner peaks" leader ends. */
-const RING_T = 4.3;
-/** The point of the ring at parameter t (0 at the far end along d). */
-const onRing = (g: Ring, t: number): P => [g.c[0] + g.ra * Math.cos(t) * g.d[0] + g.rb * Math.sin(t) * g.n[0], g.c[1] + g.ra * Math.cos(t) * g.d[1] + g.rb * Math.sin(t) * g.n[1]];
-const ringPts = (g: Ring): P[] => samples(0, 2 * Math.PI, 160).map((t) => onRing(g, t));
-/** Inside the ring (< 1) or outside it (> 1): the ellipse's own measure of a drawing point. */
-const ringMeasure = (g: Ring, p: P) => {
-  const x = p[0] - g.c[0], y = p[1] - g.c[1];
-  return ((x * g.d[0] + y * g.d[1]) / g.ra) ** 2 + ((x * g.n[0] + y * g.n[1]) / g.rb) ** 2;
-};
-/** How far a drawing point is from the ring's line, in px (measured on the drawn ring). */
-const ringGap = (g: Ring, p: P) => Math.min(...samples(0, 2 * Math.PI, 2000).map((t) => len(onRing(g, t), p)));
+const INNER_TAG: [number, number] = [60, 86];
+/** Where, along the tag's bottom edge, the line to the first inner peak leaves it. */
+const INNER_FROM = 12;
+/** The two 3s inner peaks, on the drawing. */
+const innerPeaks = (f: Frame): [P, P] => { const [m0, m1] = maxima(Pn(3, 0), 1e-6, 60); return [at(f, m0.u, m0.v), at(f, m1.u, m1.v)]; };
+/**
+ * The 2s node's tag. Above the axis every straight line out of the node dot crosses a curve: the 2s
+ * curve leaves the node along the axis, and the dashed 1s tail runs through the low values out to
+ * 5 a₀, so a tag between 3.6 and 8 a₀ would have its line cross that tail. So the tag stands under
+ * the axis, below-left of the node, and its short line drops from the dot between the "a₀" and "2.5"
+ * labels, crossing nothing. "2s node" is short enough to stand there ("2s radial node" is not).
+ */
+const NODE_NAME = '2s node';
+const NODE_TAG: [number, number] = [22, 314];
+/** Point-to-segment distance. */
+const segDist = (p: P, a: P, b: P) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy || 1, k = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L)); return Math.hypot(p[0] - a[0] - k * dx, p[1] - a[1] - k * dy); };
+/** The closest a segment comes to a drawn curve, leaving out the stretch within `skip` px of the segment's own end at `a` (where it names a point on that curve). */
+const segToCurve = (a: P, b: P, pts: P[], skip = 0) => Math.min(...pts.filter((q) => len(q, a) > skip).map((q) => segDist(q, a, b)));
 
 const figB: Diagram = {
   id: 'c11-02-B-d1',
@@ -238,7 +234,7 @@ const figB: Diagram = {
       const node = nodes(2, 0)[0];
       s.dot(X(f, node), f.oy, 3.2, C.amber);
       s.place([
-        { t: '2s radial node', hi: true, p: [X(f, node), f.oy], own: [X(f, node), f.oy], at: [[W - 6, 86, 'end'], [W - 10, 86, 'end'], [W - 14, 86, 'end']] },
+        { t: NODE_NAME, hi: true, p: [X(f, node), f.oy], own: [X(f, node), f.oy], at: [[NODE_TAG[0], NODE_TAG[1], 'start'], [NODE_TAG[0] + 2, NODE_TAG[1], 'start'], [NODE_TAG[0] - 2, NODE_TAG[1], 'start']] },
         { t: '2s', hi: true, p: at(f, 7.6, P2s(7.6)), at: [[X(f, 8.8), 150, 'start'], [X(f, 9), 160, 'start'], [X(f, 9.2), 140, 'start']] },
         { t: '2p', p: at(f, 3.3, P2p(3.3)), at: [[X(f, 3.0), 86, 'start'], [X(f, 3.2), 86, 'start'], [X(f, 2.8), 86, 'start']] },
         { t: '1s', p: at(f, 1.35, P1(1.35)), at: [[X(f, 1.4), 86, 'start'], [X(f, 1.3), 86, 'start'], [X(f, 1.5), 86, 'start']] },
@@ -251,11 +247,12 @@ const figB: Diagram = {
     curve(s, f, P3d, 0, RMAX[3], { color: C.slate, w: 2, dash: 'dash' });
     curve(s, f, P3p, 0, RMAX[3], { w: 2.2 });
     curve(s, f, P3s, 0, RMAX[3], { color: C.mari, w: 2.6 });
-    const g = ring3(f);
-    path(s, ringPts(g), { color: C.slate, w: 1.1, dash: 'dot' });
+    // the two 3s inner peaks: a dot on each, both joined to one tag (the first by a line drawn here, the second by the tag's own)
+    const [pk0, pk1] = innerPeaks(f), from0: P = [INNER_TAG[0] + INNER_FROM, INNER_TAG[1] + 22];
+    s.add(`<line x1="${r1(pk0[0])}" y1="${r1(pk0[1])}" x2="${r1(from0[0])}" y2="${r1(from0[1])}" stroke="${C.grey}" stroke-width="1.2"/>`);
+    s.dot(pk0[0], pk0[1], 2.6);
     s.place([
-      // the leader ends on the ring's upper-left side, next to the lower 3s inner peak
-      { t: '3s inner peaks', p: onRing(g, RING_T), bare: true, at: [[50, 86, 'start'], [52, 86, 'start'], [48, 86, 'start']] },
+      { t: '3s inner peaks', p: pk1, at: [[INNER_TAG[0], INNER_TAG[1], 'start']] },
       { t: '3s', hi: true, p: at(f, 16.5, P3s(16.5)), at: [[X(f, 23.5), 178, 'start'], [X(f, 24), 178, 'start'], [X(f, 23), 178, 'start']] },
       { t: '3p', p: at(f, 15.2, P3p(15.2)), at: [[X(f, 23.5), 130, 'start'], [X(f, 24), 130, 'start'], [X(f, 23), 130, 'start']] },
       { t: '3d', p: at(f, 13.6, P3d(13.6)), at: [[X(f, 23.5), 218, 'start'], [X(f, 24), 218, 'start'], [X(f, 23), 218, 'start']] },
@@ -288,6 +285,10 @@ const figB: Diagram = {
       out.push([`The 2s node is at r = ${fmt(nd, 6)} a₀ = 2a₀ (where 2 − r = 0), and the dot naming it sits there on the axis`, close(nd, 2, 1e-9) && s.points.some((p) => close(uOf(f, p.x), nd, 1e-6) && close(vOf(f, p.y), 0, 1e-9))]);
       out.push([`2s peaks at r = 3 ∓ √5 = ${fmt(3 - Math.sqrt(5), 3)} and ${fmt(3 + Math.sqrt(5), 3)} a₀ (drawn ${m2s.map((m) => fmt(m.u, 3)).join(', ')}); the inner one is ${fmt(m2s[0].v, 3)} of the outer (the book's ≈ 0.27)`, close(m2s[0].u, 3 - Math.sqrt(5), 1e-6) && close(m2s[1].u, 3 + Math.sqrt(5), 1e-6) && Math.abs(m2s[0].v - 0.27) < 0.01]);
       out.push([`2p peaks at r = ${fmt(pk2p.u, 4)} a₀ = n²a₀ = 4a₀ (l = n − 1), inside the 2s outer peak`, close(pk2p.u, 4, 1e-6) && pk2p.u < m2s[1].u]);
+      const nt = s.tags.find((t) => t.name === NODE_NAME), nodeP: P = [X(f, nd), f.oy];
+      const ax0 = s.labels.find((l) => l.text === 'a0'), t25 = s.labels.find((l) => l.text === '2.5');
+      const gapTo = (r: Rect | undefined) => (r && nt?.to ? Math.min(...samples(0, 1, 400).map((t) => rectDist(r, [nodeP[0] + (nt.to![0] - nodeP[0]) * t, nodeP[1] + (nt.to![1] - nodeP[1]) * t]))) : NaN);
+      out.push([`The “${NODE_NAME}” tag stands just under the axis, below-left of the node; its line (${fmt(nt?.from && nt.to ? len(nt.from, nt.to) : NaN, 0)} px) leaves the dot downward, never above the axis, so it crosses no curve, and passes between “a₀” (${fmt(gapTo(ax0?.rect), 1)} px) and “2.5” (${fmt(gapTo(t25?.rect), 1)} px)`, !!nt?.from && !!nt.to && close(nt.from[0], nodeP[0], 1e-9) && close(nt.from[1], f.oy, 1e-9) && nt.to[1] > f.oy && nt.rect[1] > f.oy && len(nt.from, nt.to) < 40 && gapTo(ax0?.rect) >= LABEL_GAP && gapTo(t25?.rect) >= LABEL_GAP]);
       out.push([`The axis runs 0 to ${RMAX[2]} a₀ with ticks every 2.5 a₀, as the book's; the 1s dashed curve is drawn to ${R1S} a₀, where it is ${fmt(Pn(1, 0)(R1S), 4)} of its peak`, Pn(1, 0)(R1S) < 0.01]);
     } else {
       const outer = (n: number, l: number) => { const m = maxima(Pn(n, l), 1e-6, 60); return m[m.length - 1]; };
@@ -297,15 +298,18 @@ const figB: Diagram = {
       out.push([`3s nodes at (9 ∓ 3√3)/2 = ${fmt((9 - 3 * Math.sqrt(3)) / 2, 3)}, ${fmt((9 + 3 * Math.sqrt(3)) / 2, 3)} a₀ (roots of 27 − 18r + 2r²); 3p node at 6a₀`, close(nd3s[0], (9 - 3 * Math.sqrt(3)) / 2, 1e-9) && close(nd3s[1], (9 + 3 * Math.sqrt(3)) / 2, 1e-9) && close(nd3p[0], 6, 1e-9)]);
       const m3s = maxima(Pn(3, 0), 1e-6, 60), m3p = maxima(Pn(3, 1), 1e-6, 60);
       out.push([`Inner peaks, as the book draws them: 3s ${fmt(m3s[0].v, 2)} at ${fmt(m3s[0].u, 2)} a₀ and ${fmt(m3s[1].v, 2)} at ${fmt(m3s[1].u, 2)} a₀; 3p ${fmt(m3p[0].v, 2)} at ${fmt(m3p[0].u, 2)} a₀`, Math.abs(m3s[0].v - 0.14) < 0.02 && Math.abs(m3s[1].v - 0.38) < 0.02 && Math.abs(m3p[0].v - 0.39) < 0.02]);
-      // the ring holds both 3s inner peaks and nothing else: not the 3s main peak, no 3p or 3d maximum
-      const g = ring3(f), inRing = (m: { u: number; v: number }) => ringMeasure(g, at(f, m.u, m.v)) < 1;
-      const gap = (m: { u: number; v: number }) => ringGap(g, at(f, m.u, m.v));
-      out.push([`The ring round “3s inner peaks” holds both inner 3s peaks (${fmt(gap(m3s[0]), 1)} and ${fmt(gap(m3s[1]), 1)} px inside its line) and not the 3s main peak`, inRing(m3s[0]) && inRing(m3s[1]) && !inRing(o3s) && gap(m3s[0]) >= 3 && gap(m3s[1]) >= 3]);
-      const others = [...maxima(Pn(3, 1), 1e-6, 60).map((m) => ({ ...m, w: '3p' })), ...maxima(Pn(3, 2), 1e-6, 60).map((m) => ({ ...m, w: '3d' }))];
-      out.push([`No 3p or 3d maximum lies inside the 3s ring: the 3p inner peak (${fmt(m3p[0].u, 2)} a₀, ${fmt(m3p[0].v, 2)}) is outside, ${fmt(gap(m3p[0]), 1)} px clear of its line; ${others.map((m) => `${m.w} at ${fmt(m.u, 2)} a₀`).join(', ')} all outside`, others.every((m) => !inRing(m) && gap(m) >= 3)]);
-      // the leader ends on the ring itself
-      const lead = s.tags.find((t) => t.name === '3s inner peaks');
-      out.push(['The “3s inner peaks” leader ends on the ring', !!lead?.from && close(ringMeasure(g, lead.from), 1, 1e-6)]);
+      // the two marks: one on each 3s inner peak, both lines from the one tag, each clean
+      const [pk0, pk1] = innerPeaks(f), lead = s.tags.find((t) => t.name === '3s inner peaks');
+      const from0: P = [INNER_TAG[0] + INNER_FROM, INNER_TAG[1] + 22];
+      const dotOn = (q: P) => s.points.some((p) => close(p.x, q[0], 1e-9) && close(p.y, q[1], 1e-9));
+      out.push([`“3s inner peaks” names both inner 3s peaks (${fmt(m3s[0].u, 2)} and ${fmt(m3s[1].u, 2)} a₀) with a dot on each: its own line ends on the second, a second line from its lower edge on the first`, !!lead?.from && close(lead.from[0], pk1[0], 1e-9) && close(lead.from[1], pk1[1], 1e-9) && dotOn(pk0) && !!lead && close(from0[1], lead.rect[3], 1e-9) && from0[0] > lead.rect[0] && from0[0] < lead.rect[2]]);
+      const lines = LINES.get(s) ?? [], [c3d, c3p, c3s] = lines.slice(0, 3);
+      const clear0 = Math.min(segToCurve(pk0, from0, c3p), segToCurve(pk0, from0, c3d), segToCurve(pk0, from0, c3s, 4));
+      const clear1 = Math.min(segToCurve(pk1, lead!.to!, c3p), segToCurve(pk1, lead!.to!, c3d), segToCurve(pk1, lead!.to!, c3s, 4));
+      out.push([`Neither line crosses a curve (closest ${fmt(clear0, 1)} and ${fmt(clear1, 1)} px, the 3s curve only at its own peak), nor runs along the y-axis (the slanted line keeps ${fmt(Math.min(pk0[0], from0[0]) - f.ox, 1)}+ px off it and leaves it at ${fmt((from0[0] - pk0[0]) / (pk0[1] - from0[1]), 2)} px per px), nor do the two lines meet`, clear0 >= 2 && clear1 >= 2 && Math.min(pk0[0], from0[0]) - f.ox >= 6 && from0[0] - pk0[0] >= 6 && segDist(pk1, pk0, from0) > 10 && from0[0] < lead!.to![0]]);
+      const m3pIn = m3p[0], pkPx = at(f, m3pIn.u, m3pIn.v);
+      out.push([`The 3p inner peak (${fmt(m3pIn.u, 2)} a₀, ${fmt(m3pIn.v, 2)}) carries no mark: it is ${fmt(Math.min(len(pkPx, pk0), len(pkPx, pk1)), 1)} px from the nearer 3s mark, and neither line passes within ${fmt(Math.min(segDist(pkPx, pk0, from0), segDist(pkPx, pk1, lead!.to!)), 1)} px of it`, Math.min(len(pkPx, pk0), len(pkPx, pk1)) > 8 && Math.min(segDist(pkPx, pk0, from0), segDist(pkPx, pk1, lead!.to!)) > 6]);
+      out.push(['The second line runs through no tag or label', !s.labels.some((l) => samples(0, 1, 200).some((t) => rectDist(l.rect, [pk0[0] + (from0[0] - pk0[0]) * t, pk0[1] + (from0[1] - pk0[1]) * t]) < LABEL_GAP)) && !s.tags.some((tg) => tg.name !== '3s inner peaks' && samples(0, 1, 200).some((t) => rectDist(tg.rect, [pk0[0] + (from0[0] - pk0[0]) * t, pk0[1] + (from0[1] - pk0[1]) * t]) < 2))]);
       out.push([`All three have died away by the axis end (${RMAX[3]} a₀): ${orbs.map(([n, l]) => fmt(Pn(n, l)(RMAX[3]), 3)).join(', ')} of their peaks`, orbs.every(([n, l]) => Pn(n, l)(RMAX[3]) < 0.01)]);
     }
     // the curves are drawn as computed: read one back from the drawing

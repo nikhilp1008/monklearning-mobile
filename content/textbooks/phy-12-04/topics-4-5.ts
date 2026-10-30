@@ -524,7 +524,7 @@ export const TOPICS: Topic[] = [
         q: 'A current loop of magnetic moment <i>m</i> and moment of inertia <i>ℐ</i> (about a diameter) sits in a uniform field <i>B</i>, aligned with the field. It is given a tiny angular displacement and released. Show that it executes SHM and find the period. Then evaluate for <i>m</i> = 0.20 A m<sup>2</sup>, <i>ℐ</i> = 2.0 × 10<sup>−4</sup> kg m<sup>2</sup>, <i>B</i> = 0.10 T.',
         steps: [
           '<b>Set up the restoring torque.</b> Displaced by small angle <i>θ</i> from alignment,<br><i>τ</i> = −<i>mB</i> sin <i>θ</i> ≈ −<i>mBθ</i>   (small <i>θ</i>),<br>the minus sign showing it points back toward alignment. Newton’s law for rotation, <i>ℐθ̈</i> = <i>τ</i>:<br><i>ℐθ̈</i> = −<i>mBθ</i>   ⇒   <i>θ̈</i> = −(<i>mB</i>/<i>ℐ</i>)<i>θ</i>.',
-          'This is SHM with <i>ω</i><sup>2</sup> = <i>mB</i>/<i>ℐ</i>, so',
+          'This is SHM with <i>ω</i><sup>2</sup> = <i>mB</i>/<i>ℐ</i>, so<br><i>T</i> = 2π√(<i>ℐ</i>/(<i>mB</i>)).',
           '<b>Evaluate:</b><br><i>T</i> = 2π√((2.0 × 10<sup>−4</sup>)/((0.20)(0.10))) = 2π√((2.0 × 10<sup>−4</sup>)/0.020) = 2π√0.010 = 2π(0.10) = 0.63 s.',
           '(This is exactly the principle of the vibration magnetometer — a magnetic dipole oscillating like a pendulum.)',
         ],

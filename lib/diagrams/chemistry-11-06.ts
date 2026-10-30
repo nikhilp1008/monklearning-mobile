@@ -319,7 +319,11 @@ const VOLS = [...samples(0, 24.8, 300), ...samples(24.8, 25.2, 400).slice(1), ..
 const FB: Frame = { ox: 40, oy: 300, sx: (W - 14 - 40) / 50, sy: 18.6 };
 const CAPB = 'Titration of 25 mL of 0.1 M acid with 0.1 M NaOH: strong acid (black) versus weak acid (marigold, p<i>K</i><sub>a</sub> = 4.76). Read off the weak acid’s higher start, its buffer region, the half-equivalence point at pH = p<i>K</i><sub>a</sub>, and its equivalence point above 7.';
 /** The book's landmark values (the four-landmark table, p. 286). */
-const V_S = 6;
+/** Where the strong tag's line meets the ink curve: on its own jump at pH 5, a hair before 25 mL. */
+const V_S = (() => { let lo = 24, hi = 25; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (pHstrong(m) < 5) lo = m; else hi = m; } return (lo + hi) / 2; })();
+/** From here on the two curves agree within 0.05 pH (checked), so they are drawn as one edged run. */
+const V_MERGE = 26;
+const TAG_S = 'strong acid', TAG_W = 'weak acid';
 const BOOK = { startStrong: 1.0, startWeak: 2.88, half: 4.76, eqWeak: 8.7, eqStrong: 7 };
 
 const figB: Diagram = {
@@ -328,7 +332,7 @@ const figB: Diagram = {
   name: 'Titration curves',
   cases: [{ chip: 'Strong vs weak', cap: CAPB }],
   draw() {
-    const s = new Sketch(W, 380), f = FB;
+    const s = new Sketch(W, 352), f = FB;
     s.line(f.ox, f.oy, f.ox, Y(f, 14), { color: C.grey, w: 1.3 });
     s.line(f.ox, f.oy, X(f, 50), f.oy, { color: C.grey, w: 1.3 });
     vTicks(s, f, [0, 2, 4, 6, 8, 10, 12, 14].map((v): Tick => [v, String(v)]));
@@ -337,26 +341,27 @@ const figB: Diagram = {
     s.sym(X(f, 25), f.oy + 40, 'volume of 0.1 M NaOH added (mL)', { size: 13 });
     // the equivalence volume, dashed
     path(s, [[X(f, VEQ), f.oy], [X(f, VEQ), Y(f, 12.6)]], { color: C.grey, w: 1, dash: 'dash' });
-    // strong acid before equivalence, the weak acid (the highlight), then the shared excess-base run
-    const before = VOLS.filter((v) => v <= VEQ), after = VOLS.filter((v) => v >= VEQ);
-    path(s, before.map((v) => at(f, v, pHstrong(v))), { w: 2.1 });
+    // Draw order: the strong acid (ink) whole, then the weak acid (the highlight) whole over it, so the
+    // marigold curve and its own jump stay in sight; where the two run together after 25 mL the ink is
+    // drawn wider underneath, edging the marigold, so that run reads as both curves.
+    const after = VOLS.filter((v) => v >= V_MERGE);
+    path(s, after.map((v) => at(f, v, pHstrong(v))), { w: 5.2, free: true });
+    path(s, VOLS.map((v) => at(f, v, pHstrong(v))), { w: 2.1 });
     path(s, VOLS.map((v) => at(f, v, pHweak(v))), { color: C.mari, w: 2.4 });
-    path(s, after.map((v) => at(f, v, pHstrong(v))), { w: 2.1 });
-    // the landmarks
+    // the landmarks: each dot in its own curve's colour
     const half = at(f, VEQ / 2, pHweak(VEQ / 2)), eqW = at(f, VEQ, pHweak(VEQ)), eqS = at(f, VEQ, pHstrong(VEQ));
-    s.dot(half[0], half[1], 3.4);
-    s.dot(eqW[0], eqW[1], 3.4);
+    s.dot(half[0], half[1], 3.4, C.mari);
+    s.dot(eqW[0], eqW[1], 3.4, C.mari);
     s.dot(eqS[0], eqS[1], 3.4);
-    s.sym(half[0], half[1] - 42, 'half-equivalence:', { size: 12.5 });
-    s.sym(half[0], half[1] - 26, 'pH = p<i>K</i><sub>a</sub>', { size: 12.5 });
-    s.sym(eqW[0] + 9, eqW[1] + 4.5, 'equivalence: pH = 8.7', { size: 12.5, anchor: 'start' });
+    s.sym(half[0], half[1] - 42, 'half-equivalence:', { size: 12.5, color: C.amber });
+    s.sym(half[0], half[1] - 26, 'pH = p<i>K</i><sub>a</sub>', { size: 12.5, color: C.amber });
+    s.sym(eqW[0] + 9, eqW[1] + 4.5, 'equivalence: pH = 8.7', { size: 12.5, anchor: 'start', color: C.amber });
     s.sym(eqS[0] + 9, eqS[1] + 4.5, 'equivalence: pH = 7', { size: 12.5, anchor: 'start' });
-    // the strong tag names the ink curve before equivalence (V_S mL), where only the ink curve runs; after 25 mL the two curves coincide.
-    // Its tag sits under the axis title, the only spot wide enough that keeps clear of the dashed 25 mL line.
+    // the strong tag sits in the empty lower right of the plot and names the ink jump at pH 5, where only the ink curve runs
     const vW = 2.5;
     s.place([
-      { t: 'strong acid–strong base', p: at(f, V_S, pHstrong(V_S)), at: [[4, 352, 'start'], [6, 352, 'start'], [4, 354, 'start']] },
-      { t: 'weak acid–strong base', hi: true, p: at(f, vW, pHweak(vW)), at: [[f.ox + 6, 36, 'start'], [f.ox + 4, 36, 'start'], [f.ox + 8, 38, 'start']] },
+      { t: TAG_S, p: at(f, V_S, pHstrong(V_S)), at: [[X(f, 28), Y(f, 4.3), 'start'], [X(f, 29), Y(f, 4.3), 'start'], [X(f, 30), Y(f, 4.5), 'start']] },
+      { t: TAG_W, hi: true, p: at(f, vW, pHweak(vW)), at: [[f.ox + 6, 36, 'start'], [f.ox + 4, 36, 'start'], [f.ox + 8, 38, 'start']] },
     ]);
     return s;
   },
@@ -383,9 +388,17 @@ const figB: Diagram = {
     // the dots and the drawing
     const dotAt = (v: number, pH: number) => s.points.some((p) => close(uOf(f, p.x), v, 1e-9) && close(vOf(f, p.y), pH, 1e-9));
     out.push(['Dots stand on the half-equivalence point and both equivalence points', dotAt(VEQ / 2, hf) && dotAt(VEQ, ew) && dotAt(VEQ, es)]);
-    const st = s.tags.find((t) => t.name === 'strong acid–strong base');
-    out.push([`The strong-acid tag line ends before equivalence (${V_S} mL, pH ${fmt(pHstrong(V_S), 2)}), where the curves are ${fmt(pHweak(V_S) - pHstrong(V_S), 2)} pH units apart`, !!st && !!st.from && uOf(f, st.from[0]) < VEQ - 5 && pHweak(V_S) - pHstrong(V_S) > 2]);
-    out.push(['Each curve’s tag line ends on its own curve', tagOnCurve(s, f, 'weak acid–strong base', pHweak) && tagOnCurve(s, f, 'strong acid–strong base', pHstrong)]);
+    const st = s.tags.find((t) => t.name === TAG_S);
+    out.push([`The strong-acid tag line ends on the ink curve's own jump (${fmt(V_S, 4)} mL, pH ${fmt(pHstrong(V_S), 2)}), where the weak acid is ${fmt(pHweak(V_S) - pHstrong(V_S), 2)} pH units higher`, !!st && !!st.from && uOf(f, st.from[0]) < VEQ && Math.abs(pHstrong(V_S) - 5) < 1e-6 && pHweak(V_S) - pHstrong(V_S) > 2]);
+    out.push(['The strong-acid tag sits inside the plot, in the empty part right of the dashed 25 mL line and below the equivalence labels', !!st && st.rect[0] > X(f, VEQ) + LABEL_GAP && st.rect[2] <= s.w && st.rect[3] < f.oy && st.rect[1] > Y(f, 7) + 6]);
+    out.push(['Each curve’s tag line ends on its own curve', tagOnCurve(s, f, TAG_W, pHweak) && tagOnCurve(s, f, TAG_S, pHstrong)]);
+    out.push([`From ${V_MERGE} mL the two curves agree within 0.05 pH, so that run is drawn as one ink-edged marigold line`, samples(V_MERGE, 50, 400).every((v) => Math.abs(pHweak(v) - pHstrong(v)) < 0.05)]);
+    const svg = s.svg(), circ = (p: P, col: string) => svg.indexOf(`<circle cx="${r1(p[0])}" cy="${r1(p[1])}" r="3.4" fill="${col}"/>`);
+    const eW = at(f, VEQ, ew), eS = at(f, VEQ, es), hP = at(f, VEQ / 2, hf);
+    out.push(['The weak acid’s dots (half-equivalence, equivalence at 8.7) are marigold, the strong acid’s equivalence dot ink', circ(eW, C.mari) >= 0 && circ(hP, C.mari) >= 0 && circ(eS, C.ink) >= 0]);
+    const iS = svg.indexOf(`stroke="${C.ink}" stroke-width="2.1"`), iW = svg.indexOf(`stroke="${C.mari}" stroke-width="2.4"`);
+    out.push(['The marigold weak-acid curve is drawn over the ink one, so its jump and equivalence dot stay in sight', iS >= 0 && iW > iS]);
+    out.push(['The weak acid’s labels are in its colour (amber), the strong acid’s in ink', s.texts.filter((t) => /8\.7|half-equivalence|<i>K<\/i>/.test(t.html)).every((t) => t.color === C.amber) && s.texts.some((t) => t.html === 'equivalence: pH = 7' && t.color === C.text)]);
     const lab = (txt: string) => s.labels.find((l) => l.text === txt);
     out.push(['Each “equivalence” label sits level with its own dot, right of the dashed 25 mL line', [['equivalence: pH = 8.7', ew], ['equivalence: pH = 7', es]].every(([t, pH]) => { const l = lab(t as string); return !!l && Math.abs((l.rect[1] + l.rect[3]) / 2 - Y(f, pH as number)) < 6 && l.rect[0] > X(f, VEQ) + LABEL_GAP; })]);
     const hl = [lab('half-equivalence:'), lab('pH = pKa')];

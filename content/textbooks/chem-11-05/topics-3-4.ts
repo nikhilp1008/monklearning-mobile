@@ -136,7 +136,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: 'Temperature dependence — the four cases of ΔG = ΔH − TΔS',
-        head: ['ΔH', 'ΔS', 'Result'],
+        head: ['Δ<i>H</i>', 'Δ<i>S</i>', 'Result'],
         rows: [
           ['−', '+', 'Spontaneous at <b>all</b> temperatures'],
           ['−', '−', 'Spontaneous only at <b>low</b> <i>T</i>'],
@@ -427,7 +427,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Process', 'Constraint', 'w (on system)', 'q', 'ΔU', 'ΔH'],
+        head: ['Process', 'Constraint', '<i>w</i> (on system)', '<i>q</i>', 'Δ<i>U</i>', 'Δ<i>H</i>'],
         rows: [
           [
             'Isothermal (rev.)',

@@ -69,7 +69,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Total e−', 'Anchors / members', 'Nb (bonding)', 'Na (antibonding)', 'BO', 'Magnetism'],
+        head: ['Total e<sup>−</sup>', 'Anchors / members', '<i>N</i><sub>b</sub> (bonding)', '<i>N</i><sub>a</sub> (antibonding)', 'BO', 'Magnetism'],
         rows: [
           ['10', 'B<sub>2</sub>', '6', '4', '1', 'paramagnetic (2 unpaired)'],
           ['12', 'C<sub>2</sub>', '8', '4', '2', 'diamagnetic'],
@@ -366,7 +366,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Shape', 'Example', 'μ = 0?'],
+        head: ['Shape', 'Example', '<i>μ</i> = 0?'],
         rows: [
           ['Linear AB<sub>2</sub>', 'CO<sub>2</sub>, CS<sub>2</sub>, XeF<sub>2</sub> (3 lp equatorial)', 'yes'],
           ['Trigonal planar AB<sub>3</sub>', 'BF<sub>3</sub>, SO<sub>3</sub>', 'yes'],

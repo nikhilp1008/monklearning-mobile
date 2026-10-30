@@ -155,6 +155,8 @@ const loneWords = (t: string) => nameLines(t).filter((l) => !/[\s\u00a0]/.test(l
  */
 export function titleBreaks(name: string): string {
   let t = name
+    // Android breaks after a "/" between words: "(same solute/" | "solvent)".
+    .replace(/([A-Za-z])\/(?=[A-Za-z])/g, '$1/\u2060')
     .replace(/ — /g, '\u00a0— ')
     .replace(NAME_SIGN, '$1\u00a0')
     .replace(OPENING_SYMBOL, '($1\u00a0');
@@ -352,7 +354,9 @@ export function keepTogether(expr: string): string {
     .replace(/([→⇒⇔⟺])(<su[bp]>)/g, '$1\u2060$2')
     // Not in a list of numbers: "n = 1, 2, 3, …" stays one piece.
     .replace(/([,;])\u00a0(?![0-9]+,|…|⋯)/g, '$1 ')
-    .replace(/([^=+−⟹⟺⇔⇌≈→⇒∝])\u00a0\(([^)]*)\)/g, (all, before: string, inner: string) =>
+    // Nor between a degree sign and its bracket: "νS°" | "(reactants)".
+    .replace(/°(?=[(\[])/g, '°\u2060')
+    .replace(/([^=+−⟹⟺⇔⇌≈→⇒∝×·])\u00a0\(([^)]*)\)/g, (all, before: string, inner: string) =>
       /[A-Za-z]{4}/.test(inner.replace(/<su[bp]>.*?<\/su[bp]>/g, '').replace(/<[^>]+>/g, '')) ? `${before} (${inner})` : all,
     )
     // NOR AFTER A FRACTION SLASH. A line may break after "/" by default, which
@@ -609,5 +613,20 @@ export function buildFormulaCards(chapter: Chapter): FormulaCard[] {
         });
       });
   });
-  return cards;
+  // A formula the book prints again in a later topic is one card: Chemistry
+  // 11 Ch 6 gives Henderson–Hasselbalch in Topic 04 and again in Topic 05,
+  // and the sheet showed the same card twice in a row (founder's decision,
+  // 2026-10-30). The reading text keeps both, as printed. Only the same
+  // formulas with the same meanings, in another topic: one equation for two
+  // situations in one topic (a leaning cyclist and a conical pendulum, both
+  // tan θ = v²/rg, Physics 11 Ch 4) stays two cards.
+  const flat = (h: string) => h.replace(/[\s\u00a0\u2060]+/g, ' ');
+  const seen = new Map<string, number>();
+  return cards.filter((c) => {
+    const key = [...c.items.map((it) => flat(it.expr)), '||', ...c.meaning.map((m) => flat(`${m.sym ?? ''}=${m.text}`))].join(' | ');
+    const first = seen.get(key);
+    if (first !== undefined && first !== c.topic) return false;
+    if (first === undefined) seen.set(key, c.topic);
+    return true;
+  });
 }

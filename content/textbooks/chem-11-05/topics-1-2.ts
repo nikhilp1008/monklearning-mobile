@@ -411,7 +411,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Reaction enthalpy from bond enthalpies (gaseous species)',
-        main: 'Δ<sub>r</sub><i>H</i> = ∑ BE(bonds broken in reactants) − ∑ BE(bonds formed in products)',
+        main: 'Δ<sub>r</sub><i>H</i> = ∑ BE(bonds broken in reactants)<br>− ∑ BE(bonds formed in products)',
         legend: ['Δ<sub>r</sub><i>H</i> = reaction enthalpy', 'BE = bond enthalpy'],
         note: 'Note the direction is reactants minus products — the opposite of the formation formula — because we put energy in to break reactant bonds and get it out when product bonds form.',
       },

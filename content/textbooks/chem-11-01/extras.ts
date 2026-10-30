@@ -173,7 +173,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Hardness of water — the exam convention',
-        main: 'hardness (ppm as CaCO<sub>3</sub>) = (moles of hardness salt × 100 g)/(mass of water in kg) × 10<sup>3</sup>   [= (mg of CaCO<sub>3</sub> equivalent)/(kg (or L) of water)]',
+        main: 'hardness (ppm as CaCO<sub>3</sub>) = (moles of hardness salt × 100 g)/(mass of water in kg) × 10<sup>3</sup><br>[= (mg of CaCO<sub>3</sub> equivalent)/(kg (or L) of water)]',
         legend: [],
         note: null,
       },

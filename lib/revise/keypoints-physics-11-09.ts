@@ -366,7 +366,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'remember',
     q: 'Where does that force act: the centre of pressure?',
-    a: '<i>y</i><sub>CP</sub> = <i>ȳ</i> + <i>I</i><sub><i>xx</i>,<i>C</i></sub>/(<i>ȳA</i>), measured along the plane from the free surface: always below the centroid',
+    a: '<i>y</i><sub>CP</sub> = <i>ȳ</i> + <i>I</i><sub><i>xx</i>,<i>C</i></sub>/(<i>ȳA</i>), measured along the plane from the free surface: always below the centroid',
     why: 'For a vertical rectangle with its top edge at the free surface, <i>y</i><sub>CP</sub> = 2<i>H</i>/3.',
     say: null,
   },
