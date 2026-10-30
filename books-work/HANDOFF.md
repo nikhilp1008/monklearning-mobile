@@ -142,3 +142,17 @@ The Chemistry brief for Ch 1–2 is `books-work/BRIEF-C11-01-02.md` (it builds o
 
 - `main` is at `04c68c6` (Physics 11 + 12 Ch 1–8 done; Raasikh's payment changes merged).
 - Physics work folder notes live in Nikhil's Mac session; this file replaces them for the cloud.
+
+## Progress (cloud session, stopped 30 Oct 2026 when the cloud credit ran out)
+
+- **Ch 1–6: done** — written, drawn, key points, expert-reviewed, all fixes Nikhil approved applied. Ready for
+  the Android check on the Mac. Briefs used: `BRIEF-C11-01-02.md` (with Nikhil's decisions at its end),
+  `BRIEF-C11-03-04.md`, `BRIEF-C11-05-06.md`; review brief `REVIEW_BRIEF-C11.md`.
+- **Ch 7–8: built but NOT expert-reviewed** (brief `BRIEF-C11-07-08.md`). Text, 8 figures and key points are
+  committed and pass tsc/jest/eslint. The builders' reports, with every suspected book error they found, are in
+  `books-work/reports-ch7-8/`. Next: expert review of Ch 7 and Ch 8 (one agent each, with
+  `REVIEW_BRIEF-C11.md`), Nikhil approves fixes, fixer, checks, then the Android check.
+- **Still to do after that:** Ch 9 Hydrocarbons; Ch 10 p-Block (needs a shelf entry in
+  `constants/onboarding-chapters.ts` and a catalogue key).
+- To work locally: the book is NOT in git — fetch it into `books-work/chem11/` as described above and make the
+  text dump; `node books-work/svg2png.cjs` renders diagrams (on the Mac, qlmanage works too).
