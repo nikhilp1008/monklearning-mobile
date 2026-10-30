@@ -61,6 +61,7 @@ const LANGUAGES: { id: LanguageId; label: string; speech: string }[] = [
 
 const MORE_LINKS: { label: string; href: Parameters<typeof router.push>[0] }[] = [
   { label: 'Personal information', href: '/account' },
+  { label: 'Help', href: '/help' },
   { label: 'Privacy policy', href: '/privacy-policy' },
   { label: 'Terms & conditions', href: '/terms' },
   { label: 'About us', href: '/about-us' },
