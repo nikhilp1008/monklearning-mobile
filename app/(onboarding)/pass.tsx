@@ -20,6 +20,7 @@ import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
+import { useFreeTier } from '@/lib/free-tier';
 import { passStatus } from '@/lib/pass';
 import { PAYMENTS_ON_THIS_DEVICE, payErrorMessage } from '@/lib/payments';
 import { rupeesOf, usePromo } from '@/lib/promo';
@@ -57,6 +58,7 @@ const LATE_WATCH_EVERY_MS = 5000;
 export default function PassScreen() {
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
+  const freeTier = useFreeTier();
 
   // Both come back from the promo screen, which replaces this route rather
   // than popping to it — so the pass the student had already chosen has to
@@ -298,6 +300,21 @@ export default function PassScreen() {
           {!!active && (
             <Text style={styles.footNote}>One payment. Nothing renews on its own.</Text>
           )}
+          {freeTier.free && (
+            // The free tier: a way past the price list. Not hidden and not
+            // shouted: a plan is what this screen is for, and this is what the
+            // student gets if they are not ready to pay yet.
+            <PressableScale
+              style={styles.freeLink}
+              disabled={paying || checking}
+              onPress={() => {
+                if (leaving.current || payingNow.current) return;
+                leaving.current = true;
+                router.push('/teacher');
+              }}>
+              <Text style={styles.freeLinkText}>Continue with the free plan</Text>
+            </PressableScale>
+          )}
           </>)}
         </View>
       </SafeAreaView>
@@ -332,6 +349,12 @@ function createStyles(
       marginTop: ds(14),
     },
     rows: { marginTop: ds(22), gap: ds(10) },
+    freeLink: { alignSelf: 'center', paddingVertical: ds(12), marginTop: ds(4) },
+    freeLinkText: {
+      fontFamily: obFont.m500,
+      fontSize: fs(15),
+      color: ob.link,
+    },
     promoLink: {
       flexDirection: 'row',
       alignItems: 'center',

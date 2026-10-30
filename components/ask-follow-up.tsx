@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import {
   RecordingPresets,
   getRecordingPermissionsAsync,
@@ -53,6 +54,7 @@ import { SolutionSteps } from '@/components/solution-steps';
 import {
   askAboutDoubt,
   askAboutDoubtAloud,
+  FollowUpError,
   followUpFailureOf,
   speakFollowUpStreaming,
   type FollowUpStep,
@@ -471,6 +473,10 @@ export function AskFollowUpBar({
    * and a banner, and no "Try again".
    */
   const [failure, setFailure] = useState<null | 'retry' | 'mic' | 'short' | 'quota'>(null);
+  /** At the FREE tier's limit: the server's sentence, written to make the case
+   *  for a plan. Shown with a button to Plans, where a paying student's limit
+   *  just says it opens again tomorrow. */
+  const [upgradeNote, setUpgradeNote] = useState<string | null>(null);
   const [linger, setLinger] = useState(false);
   /** The student's voice, 0–1, for the ring's halo while they hold. */
   const voiceLevel = useSharedValue(0);
@@ -1188,6 +1194,7 @@ export function AskFollowUpBar({
       // The server's own message is deliberately not read: it is a sentence,
       // and this is a two-word slot. What the student can DO about it is the
       // same however it failed — except at the daily limit, where it is wait.
+      setUpgradeNote(err instanceof FollowUpError && err.upgrade ? err.message : null);
       fail(kind);
     }
 
@@ -1720,7 +1727,13 @@ export function AskFollowUpBar({
           link={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
         />
       ) : null}
-      {failure === 'quota' ? (
+      {failure === 'quota' && upgradeNote ? (
+        <StateBanner
+          style={styles.micBanner}
+          bold={upgradeNote}
+          link={{ label: 'See plans', onPress: () => router.push('/plans') }}
+        />
+      ) : failure === 'quota' ? (
         // Rolling, like the snap allowance (app/rate_limit.py): the day's
         // follow-ups come back on their own. Said in the snap card's words.
         <StateBanner

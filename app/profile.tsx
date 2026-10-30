@@ -142,20 +142,24 @@ export default function ProfileScreen() {
     : pass?.state === 'active'
       ? // "7 days" is a length; as a name it is a "7-day pass".
         `${PASS_NAME[pass.record.kind].replace(/^(\d+) (day|month)s?$/, '$1-$2')} pass`
-      : pass?.state === 'expired'
-        ? 'Your pass has ended'
-        : pass?.state === 'unknown'
-          ? 'Your pass'
-          : 'No pass yet';
+      : pass && (pass.state === 'none' || pass.state === 'expired') && pass.free
+        ? 'Free plan'
+        : pass?.state === 'expired'
+          ? 'Your pass has ended'
+          : pass?.state === 'unknown'
+            ? 'Your pass'
+            : 'No pass yet';
   const passLine = team
     ? 'No pass needed'
     : pass?.state === 'active'
       ? `Active till ${asShortDate(pass.endsAt)}`
-      : pass?.state === 'expired'
-        ? `Ended ${asShortDate(pass.endsAt)}`
-        : pass?.state === 'unknown'
-          ? "Couldn't check it right now"
-          : 'Take one to start classes, snaps and practice';
+      : pass && (pass.state === 'none' || pass.state === 'expired') && pass.free
+        ? 'A plan adds live classes and unlimited practice'
+        : pass?.state === 'expired'
+          ? `Ended ${asShortDate(pass.endsAt)}`
+          : pass?.state === 'unknown'
+            ? "Couldn't check it right now"
+            : 'Take one to start classes, snaps and practice';
 
   return (
     <SettingsPage title="Profile">

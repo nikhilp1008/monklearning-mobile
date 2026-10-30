@@ -329,7 +329,20 @@ export default function SnapCaptureScreen() {
         </View>
 
         <View style={styles.body}>
-          {phase === 'failed' && failure?.stage === 'quota' ? (
+          {phase === 'failed' && failure?.stage === 'quota' && failure.upgrade ? (
+            // The FREE tier's limit. Not "open again tomorrow": the server's
+            // own sentence, which makes the case for a plan, and a way to one.
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="clock"
+                title="You've used your free snaps"
+                line={failure.message}
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+              />
+            </View>
+          ) : phase === 'failed' && failure?.stage === 'quota' ? (
             <View style={styles.stateBlock}>
               <StateCard
                 tone="dark"

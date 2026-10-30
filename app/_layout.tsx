@@ -366,7 +366,9 @@ export default function RootLayout() {
         // tell" (no signal, a lapsed sign-in on a weak network) leaves them
         // where they are; the next return to the app asks again. This was the
         // plans screen appearing for students who had paid.
-        if (status.state === 'none' || status.state === 'expired') router.replace('/plans');
+        // The FREE tier: the server says this student is not paying but is let
+        // in, with limits. They meet the plans screen at a limit, not at launch.
+        if ((status.state === 'none' || status.state === 'expired') && !status.free) router.replace('/plans');
         setPassKnown(true);
       } finally {
         checking = false;
@@ -566,6 +568,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen name="subscription" options={{ headerShown: false }} />
+          <Stack.Screen name="class-locked" options={{ headerShown: false }} />
           {/* The takeover when a pass has ended: no header, and no gesture
               back to the screen it replaced. */}
           <Stack.Screen

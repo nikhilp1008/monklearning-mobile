@@ -175,7 +175,16 @@ export default function SnapSolvedScreen() {
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.stateBlock}>
-            {job.failure.stage === 'quota' ? (
+            {job.failure.stage === 'quota' && job.failure.upgrade ? (
+              // The FREE tier's limit: the server's sentence, and a way to a plan.
+              <StateCard
+                glyph="clock"
+                title="You've used your free snaps"
+                line={job.failure.message}
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+              />
+            ) : job.failure.stage === 'quota' ? (
               // The day's limit, said as the camera screen says it. It was
               // "Couldn't solve this one" with a "Try another photo" button
               // that could not work until tomorrow.

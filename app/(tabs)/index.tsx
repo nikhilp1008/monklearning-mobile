@@ -42,6 +42,7 @@ import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { pullPersona } from '@/lib/persona-sync';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { getStoredName } from '@/lib/profile';
+import { openClass } from '@/lib/open-class';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { useStartingPointOffer } from '@/lib/starting-point';
 import { useWaitingPaper } from '@/lib/waiting-paper';
@@ -301,7 +302,7 @@ export default function HomeScreen() {
           onSelectTeacher={() =>
             router.push({ pathname: '/select-teacher', params: { teacher } })
           }
-          onStartClass={() => router.push('/drona')}
+          onStartClass={() => openClass('/drona')}
           onProgress={() => router.push('/progress')}
           onProfile={() => router.push('/profile')}
           onMeasure={setHeader}
@@ -606,7 +607,7 @@ function runObservationAction(action: ObservationAction | undefined) {
       router.push('/progress');
       return;
     case 'drona':
-      router.push('/drona');
+      openClass('/drona');
       return;
     case 'textbooks':
       // Deliberately the subject grid, not that subject's chapter list: the
@@ -615,7 +616,7 @@ function runObservationAction(action: ObservationAction | undefined) {
       router.push('/textbooks');
       return;
     case 'class':
-      router.push({
+      openClass({
         pathname: '/entering-classroom',
         params: { chapterId: action.chapterId, chapterTitle: action.chapterTitle },
       });
