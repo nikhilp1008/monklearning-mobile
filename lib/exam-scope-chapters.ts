@@ -12,9 +12,10 @@
  * The load-bearing fact this encodes: after the 2023 NCERT rationalisation,
  * every chapter still printed in the books is examinable. The interesting
  * information is the handful of exceptions — trims inside live chapters, the
- * chapters that left the books entirely, and the two chemistry units the
- * exams examine WITHOUT a book chapter (p-block, and JEE's practical unit),
- * which the research document pre-dates and the catalogue now carries.
+ * chapters that left the books entirely, and the units the exams examine
+ * WITHOUT a book chapter (chemistry's p-block and JEE's practical unit, and
+ * physics's Experimental Skills), which the research document pre-dates and
+ * the catalogue now carries.
  */
 
 import type { ScopeExam } from '@/lib/exam-scope';
@@ -101,6 +102,11 @@ function physicsChapters(exam: ScopeExam): ScopeChapter[] {
       ...(jee ? { trims: ['Radioactive decay laws'] } : { kept: ['Radioactive decay laws'] }),
     },
     { name: 'Semiconductor Electronics', classLevel: 12 },
+    // Unit 20 of both syllabi: sixteen named experiments (Vernier callipers and
+    // screw gauge stay in Units and Measurements). Laboratory-manual content,
+    // so it has no NCERT chapter; taught since the catalogue's migration 0113
+    // (October 2026).
+    { name: 'Experimental Skills', classLevel: 12 },
   ];
 }
 

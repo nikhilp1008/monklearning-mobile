@@ -236,7 +236,7 @@ export const EXAMS: Record<
     label: 'JEE Main',
     upper: 'JEE MAIN',
     subjects: [
-      { name: 'Physics', count: 28 },
+      { name: 'Physics', count: 29 },
       { name: 'Chemistry', count: 19 },
       { name: 'Maths', count: 28 },
     ],
@@ -249,7 +249,7 @@ export const EXAMS: Record<
     label: 'NEET UG',
     upper: 'NEET UG',
     subjects: [
-      { name: 'Physics', count: 28 },
+      { name: 'Physics', count: 29 },
       { name: 'Chemistry', count: 19 },
       { name: 'Biology', count: 32 },
     ],
@@ -262,7 +262,7 @@ export const EXAMS: Record<
     label: 'both exams',
     upper: 'JEE MAIN + NEET UG',
     subjects: [
-      { name: 'Physics', count: 28 },
+      { name: 'Physics', count: 29 },
       { name: 'Chemistry', count: 19 },
       { name: 'Maths', count: 28 },
       { name: 'Biology', count: 32 },
