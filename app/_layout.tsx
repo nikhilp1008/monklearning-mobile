@@ -577,6 +577,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
+          <Stack.Screen name="help" options={{ headerShown: false }} />
         </Stack>
       </PracticeFocusProvider>
       </AuthStateContext.Provider>
