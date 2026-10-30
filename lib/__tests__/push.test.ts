@@ -53,6 +53,10 @@ describe('routeForNotification', () => {
     });
   });
 
+  it('opens Help for the team replying to a help request', () => {
+    expect(routeForNotification({ type: 'help', escalation_id: 'e1' })).toEqual({ pathname: '/help' });
+  });
+
   it('goes nowhere for the admin test, a kind it does not know, or no id', () => {
     expect(routeForNotification({ type: 'test' })).toBeNull();
     expect(routeForNotification({ type: 'future-thing' } as never)).toBeNull();
