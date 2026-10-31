@@ -566,7 +566,8 @@ export function hairSpaces(html: string): string {
  * at any space: "3.336 × / 10⁻³⁰", "0.23 / D", "N_b / = 10", "x / − 4 = −1"
  * (Android review of Chemistry 11, 2026-10-30). So a short term stays with
  * the operator beside it, a number with its unit and with "× 10", and a line
- * never breaks straight after a "/". A glued run is capped so it can still
+ * never breaks straight after a "/", nor between a number and the symbol it
+ * multiplies ("2 PF"). A glued run is capped so it can still
  * wrap. And a lowered script or an italic capital gets a hair of room before
  * the bracket, "/" or prime that ran into it (CrO₄), K_a(HCN), σ2p_z/π, K′), and
  * an opening bracket room before an italic f, whose tail reaches back under it: (fp₃).
@@ -581,7 +582,9 @@ export function readerBreaks(html: string): string {
     .replace(/([([{|])(?=<i>f)/g, `$1${HAIR}${WJ}`)
     .replace(/(<i>[^<]*[A-Z]<\/i>)(?=′)/g, `$1${HAIR}${WJ}`)
     // Only a maths slash: "1/N_A", "10⁻¹⁰/0.1", "[salt]/[base]"; a list of words ("linear/trigonal-planar/…") may still break.
-    .replace(/([^<\s])\/(?=[\d([]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
+    .replace(/([^<\s])\/(?=[\d([√]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
+    // A minus sign stays with the bracket it negates: "= −" | "(−30)/(−15)" (Physics 12 Ch 9).
+    .replace(/−(?=[([])/g, `−${WJ}`)
     .split(' ');
   let out = toks[0];
   let run = plain(toks[0]).length;
@@ -590,7 +593,17 @@ export function readerBreaks(html: string): string {
     const glue =
       (READER_OPS.has(b) && (a.length <= 3 || (b === '×' && /[0-9]$/.test(a)))) ||
       (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
-      (/[0-9]$/.test(a) && READER_UNIT.test(b));
+      // "× 10⁻⁹" stays with its number however much follows it: "(550 ×" | "10⁻⁹)/(4 …".
+      (a === '×' && toks[k].startsWith('10<sup>')) ||
+      (/[0-9]$/.test(a) && READER_UNIT.test(b)) ||
+      // A number's thousands groups: "589.3/10 | 000" read as two numbers (Physics 12 Ch 10).
+      (/(?:^|[^0-9.,])[0-9]{1,3}$/.test(a) && /^[0-9]{3}(?![0-9])/.test(b)) ||
+      // A number with the symbol it multiplies: "PC = 2 | PF" read as "PC = 2" (Android review of Physics 12 Ch 9).
+      (/^[0-9.]{1,4}$/.test(a) && toks[k].startsWith('<i>') && b.length <= 7) ||
+      // A function with its argument, and with a short term it multiplies:
+      // "√3 × sin | 30°", "sin² | r", "AC = 2t | tan r".
+      (/(?:^|[^A-Za-z])(?:sin|cos|tan|cot|sec|cosec|log|ln)\d?$/.test(a) && b.length > 0 && b.length <= 7) ||
+      (/^(?:sin|cos|tan|cot|sec|cosec|log|ln)\d?$/.test(b) && a.length <= 4 && !READER_OPS.has(a));
     if (glue && run + 1 + b.length <= READER_GLUE_MAX) {
       out += ' ' + toks[k];
       run += 1 + b.length;

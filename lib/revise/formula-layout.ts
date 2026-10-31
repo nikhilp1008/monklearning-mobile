@@ -70,6 +70,7 @@ function openCount(s: string): number {
 }
 const hasSpace = (h: string) => /[\s]/.test(h);
 const SYMBOL = /^(?:<i>[^<]+<\/i>|[A-Za-z0-9]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\1>)*/;
+const FUNCTION = /^(?:sin|cos|tan|cot|sec|cosec|log|ln)\d*$/;
 
 type Found = { start: number; end: number; top: string; bottom: string; tall: boolean };
 
@@ -103,6 +104,25 @@ function nextFraction(s: string, from: number): Found | null {
       if (m) {
         bottom = m[0];
         end = r + m[0].length;
+        // A function name takes its argument with it: "…/cos r" and
+        // "…/sin(A/2)" put "cos r" and "sin(A/2)" under the bar, not a bare
+        // "cos" with the r left outside.
+        if (FUNCTION.test(shown(bottom))) {
+          const rest = s.slice(end);
+          if (rest[0] === '(') {
+            const c = closeOf(s, end);
+            if (c !== -1 && shallow(s.slice(end + 1, c))) {
+              bottom = s.slice(r, c + 1);
+              end = c + 1;
+            }
+          } else {
+            const arg = /^[\s⁠]+(?:<i>[^<]+<\/i>|[A-Za-z0-9α-ωΑ-Ω]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\1>)*/.exec(rest);
+            if (arg) {
+              bottom += arg[0];
+              end += arg[0].length;
+            }
+          }
+        }
       }
     }
     if (bottom === null) continue;
@@ -115,6 +135,12 @@ function nextFraction(s: string, from: number): Found | null {
       top = s.slice(o + 1, slash - 1);
       if (!hasSpace(top)) continue;
       start = o;
+      // "sin((A + δm)/2)/…": the bracket is the function's, so the top is the whole "sin(…)".
+      const fn = /(?:^|[^A-Za-z])((?:sin|cos|tan|cot|sec|cosec|log|ln)(?:<sup>[^<]*<\/sup>)?)$/.exec(s.slice(0, o));
+      if (fn) {
+        start = o - fn[1].length;
+        top = s.slice(start, slash);
+      }
     } else {
       const w = /[A-Za-z]+$/.exec(s.slice(0, slash));
       const pre = w ? s[w.index - 1] : undefined;
@@ -136,7 +162,11 @@ function nextFraction(s: string, from: number): Found | null {
 
     const before = s.slice(0, start), after = s.slice(end);
     if (before.endsWith('(') && after.startsWith(')')) {
-      const root = shown(before.slice(0, -1)).endsWith('√');
+      // A function's own bracket is not there for the slash: "sin((A + δm)/2)" stays inline.
+      if (/(?:^|[^A-Za-z])(?:sin|cos|tan|cot|sec|cosec|log|ln)(?:<sup>[^<]*<\/sup>)?$/.test(before.slice(0, -1))) continue;
+      // Kept too when a power follows: "((a₁ + a₂)/(a₁ − a₂))²" without its
+      // brackets left the ² beside the bottom alone (Physics 12 Ch 10, contrast ratio).
+      const root = shown(before.slice(0, -1)).endsWith('√') || after.startsWith(')<sup>');
       return { start: start - 1, end: end + 1, top, bottom, tall: root };
     }
     if (openCount(before) > 0) continue;

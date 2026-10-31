@@ -87,3 +87,29 @@ describe('every piece of every reading page fits its line', () => {
     expect(out).toEqual([]);
   });
 });
+
+describe('a stacked fraction keeps a function with its argument, and its brackets under a power', () => {
+  // "d = (t sin(i − r))/cos r" once stacked "cos" alone under the bar with the r
+  // left outside it (Android review of Physics 12 Ch 9). A top or bottom that
+  // ends on a bare sin, cos, log … has lost its argument.
+  const BARE = /(?:^|[^A-Za-z])(?:sin|cos|tan|cot|sec|cosec|log|ln)\d*\s*$/;
+  const out: string[] = [];
+  beforeAll(() => {
+    for (const chapter of BOOK_CHAPTERS)
+      buildFormulaCards(chapter).forEach((card, k) => {
+        for (const it of card.items)
+          for (const line of it.expr.split('<br>'))
+            for (const box of boxes(line))
+              box.forEach((p, j) => {
+                if (p.kind !== 'frac') return;
+                if (BARE.test(shown(p.top)) || BARE.test(shown(p.bottom))) out.push(`${chapterName(chapter)} card ${k + 1}: (${shown(p.top)})/(${shown(p.bottom)})`);
+                // A power right after a fraction drawn without brackets sits beside its bottom alone.
+                const next = box[j + 1];
+                if (!p.tall && next?.kind === 'text' && next.html.startsWith('<sup>')) out.push(`${chapterName(chapter)} card ${k + 1}: a power after (${shown(p.top)})/(${shown(p.bottom)}) has lost its brackets`);
+              });
+      });
+  });
+  it('has no bare function name at a top or bottom, and no power beside a bare fraction', () => {
+    expect(out).toEqual([]);
+  });
+});

@@ -125,7 +125,23 @@ function Formula({ item, scale }: { item: FormulaItem; scale: (n: number) => num
         if (box.length === 1 && box[0].kind === 'text') return <Fragment key={k}>{text(box[0].html, true)}</Fragment>;
         return (
           <View key={k} style={s.box}>
-            {box.map((p, j) => (p.kind === 'text' ? text(p.html, j === box.length - 1, j) : <Fraction key={j} part={p} scale={scale} spaced={spacedBefore(box, j)} maxWidth={rowWidth ? rowWidth - besideWidth(box, scale(EXPR)) : undefined} />))}
+            {box.map((p, j) => {
+              // A power after a bracketed fraction sits at the bracket's top
+              // corner, not at the row's middle: "( … )²" (Android re-check of
+              // Physics 12 Ch 10, contrast ratio). The rest of the text stays centred.
+              const prev = box[j - 1];
+              const power = p.kind === 'text' && prev?.kind === 'frac' && prev.tall ? /^<sup>[^<]*<\/sup>/.exec(p.html) : null;
+              if (p.kind === 'text' && power) {
+                const rest = p.html.slice(power[0].length);
+                return (
+                  <Fragment key={j}>
+                    <Markup html={power[0] + (rest ? '' : j === box.length - 1 ? (k === bx.length - 1 ? SLACK : ' ') : SLACK)} size={scale(EXPR)} look="stix" style={[exprStyle, s.power]} />
+                    {!!rest && text(rest, j === box.length - 1)}
+                  </Fragment>
+                );
+              }
+              return p.kind === 'text' ? text(p.html, j === box.length - 1, j) : <Fraction key={j} part={p} scale={scale} spaced={spacedBefore(box, j)} maxWidth={rowWidth ? rowWidth - besideWidth(box, scale(EXPR)) : undefined} />;
+            })}
           </View>
         );
       })}
@@ -210,6 +226,7 @@ const s = StyleSheet.create({
   bullet: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.marigold },
   fracRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   box: { flexDirection: 'row', alignItems: 'center' },
+  power: { alignSelf: 'flex-start' },
   frac: { alignItems: 'stretch' },
   middle: { alignItems: 'center' },
   sym: { flexShrink: 0, alignItems: 'flex-start' },
