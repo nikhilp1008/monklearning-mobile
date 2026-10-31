@@ -131,3 +131,18 @@ describe('a factor written against a bracket goes over the bar with it', () => {
     expect(shown(f.bottom)).toBe('sin(A/2)');
   });
 });
+
+describe('a short last term stays with its operator', () => {
+  // "% X = … × m(AgX)/w ×" | "100" left a number alone on the card's last line
+  // (Android check of Chemistry 11 Ch 8, the Carius card).
+  it('never leaves a breakable space between a closing operator and a short last term', () => {
+    const out: string[] = [];
+    for (const chapter of BOOK_CHAPTERS)
+      buildFormulaCards(chapter).forEach((card, k) => {
+        for (const it of card.items)
+          for (const line of it.expr.split('<br>'))
+            if (/[=+−×·→⇒] (?:<[^>]+>)*[^ <]{1,4}(?:<\/[^>]+>)*$/.test(line)) out.push(`${chapterName(chapter)} card ${k + 1}: ${shown(line).slice(-30)}`);
+      });
+    expect(out).toEqual([]);
+  });
+});

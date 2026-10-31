@@ -32,6 +32,8 @@ import chem11ch3 from '@/content/textbooks/chem-11-03-classification';
 import chem11ch4 from '@/content/textbooks/chem-11-04-chemical-bonding';
 import chem11ch5 from '@/content/textbooks/chem-11-05-thermodynamics';
 import chem11ch6 from '@/content/textbooks/chem-11-06-equilibrium';
+import chem11ch7 from '@/content/textbooks/chem-11-07-redox';
+import chem11ch8 from '@/content/textbooks/chem-11-08-organic-basics';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -54,7 +56,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
