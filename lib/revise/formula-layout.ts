@@ -140,6 +140,15 @@ function nextFraction(s: string, from: number): Found | null {
       if (fn) {
         start = o - fn[1].length;
         top = s.slice(start, slash);
+      } else {
+        // "n(n − 1)/2": a factor written against the bracket multiplies it, so
+        // it goes over the bar too, not left beside a stacked (n − 1)/2
+        // (Android check of Physics 12 Ch 12, number of spectral lines).
+        const factor = /(?:^|[\s(=+−±×·,])((?:<i>[^<]+<\/i>|[A-Za-z0-9.]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\2>)*)$/.exec(s.slice(0, o));
+        if (factor && !/^(?:sin|cos|tan|cot|sec|cosec|log|ln|exp)$/.test(shown(factor[1]))) {
+          start = o - factor[1].length;
+          top = s.slice(start, slash);
+        }
       }
     } else {
       const w = /[A-Za-z]+$/.exec(s.slice(0, slash));

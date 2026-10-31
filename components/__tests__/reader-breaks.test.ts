@@ -32,3 +32,26 @@ describe('a number keeps its power of ten', () => {
     expect(plainSpaces('= (550 × 10<sup>−9</sup>)/(4 × (1.658 − 1.486))').some((p) => p.includes('550 × 10−9'))).toBe(true);
   });
 });
+
+describe('a unit stays with the quantity it measures', () => {
+  it('"12.27/√V Å", not "12.27/√V" | "Å" (Android check of Physics 12 Ch 11)', () => {
+    expect(plainSpaces('= (1.227 × 10<sup>−9</sup>)/√<i>V</i> m = 12.27/√<i>V</i> Å.').some((p) => p.includes('√V Å'))).toBe(true);
+  });
+});
+
+describe('compound units and long runs', () => {
+  it('"1240 eV·nm" stays together', () => {
+    expect(plainSpaces('= 1236 eV·nm ≈ 1240 eV·nm.').some((p) => p.includes('1240 eV·nm'))).toBe(true);
+  });
+  it('a run too long to hold whole breaks before "×", not between "×" and "10⁻ⁿ"', () => {
+    const pieces = plainSpaces('Convert to keV: <i>K</i><sub>c</sub> = 1.64 × 10<sup>−13</sup>/(1.60 × 10<sup>−16</sup>) = 1025 keV');
+    expect(pieces.some((p) => p.endsWith('×'))).toBe(false);
+  });
+});
+
+describe('a long run breaks before a pair, not inside it', () => {
+  it('"−13.6 Z²/n² eV": the unit keeps its quantity', () => {
+    const pieces = plainSpaces('<i>E</i><sub><i>n</i></sub> = −<i>me</i><sup>4</sup><i>Z</i><sup>2</sup>/(8ε<sub>0</sub><sup>2</sup><i>h</i><sup>2</sup><i>n</i><sup>2</sup>) = −13.6 <i>Z</i><sup>2</sup>/<i>n</i><sup>2</sup> eV');
+    expect(pieces.some((p) => /^eV/.test(p))).toBe(false);
+  });
+});

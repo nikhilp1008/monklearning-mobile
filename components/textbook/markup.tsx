@@ -573,7 +573,9 @@ export function hairSpaces(html: string): string {
  * an opening bracket room before an italic f, whose tail reaches back under it: (fp₃).
  */
 const READER_OPS = new Set(['=', '≈', '×', '−', '+', '<', '>', '≤', '≥', '⇒', '→', '⇌', '∝', '≡', '∶']);
-const READER_UNIT = /^(?:D|pm|nm|μm|Å|kJ|J|mol|g|kg|mg|mL|L|K|atm|bar|Pa|kPa|cm|mm|km|m|s|ms|μs|ns|min|h|°C|°|V|kV|mV|eV|keV|MeV|C|μC|nC|M|Hz|kHz|MHz|u|Ω|kΩ|MΩ|H|mH|μH|F|μF|nF|pF|A|mA|μA|W|kW|MW|N|T|mT|G|Wb|rad|dB|cd|lm|lx|Bq|Gy|Sv)(?:[.,;:)]|$)/;
+const READER_UNITS = 'D|pm|nm|μm|Å|kJ|J|mol|g|kg|mg|mL|L|K|atm|bar|Pa|kPa|cm|mm|km|m|s|ms|μs|ns|min|h|°C|°|V|kV|mV|eV|keV|MeV|C|μC|nC|M|Hz|kHz|MHz|u|Ω|kΩ|MΩ|H|mH|μH|F|μF|nF|pF|A|mA|μA|W|kW|MW|N|T|mT|G|Wb|rad|dB|cd|lm|lx|Bq|Gy|Sv';
+// A unit or a compound of units (eV·nm, J·s, kg·m/s), with its power and punctuation.
+const READER_UNIT = new RegExp(`^(?:${READER_UNITS})(?:[·/](?:${READER_UNITS}))*[−0-9]*(?:[.,;:)]|$)`);
 const READER_GLUE_MAX = 26;
 export function readerBreaks(html: string): string {
   const plain = (t: string) => t.replace(/<[^>]*>/g, '');
@@ -595,7 +597,7 @@ export function readerBreaks(html: string): string {
       (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
       // "× 10⁻⁹" stays with its number however much follows it: "(550 ×" | "10⁻⁹)/(4 …".
       (a === '×' && toks[k].startsWith('10<sup>')) ||
-      (/[0-9]$/.test(a) && READER_UNIT.test(b)) ||
+      ((/[0-9]$/.test(a) || (/[0-9]/.test(a) && /(?:√[A-Za-z]|\))$/.test(a))) && READER_UNIT.test(b) && !toks[k].startsWith('<i>')) ||
       // A number's thousands groups: "589.3/10 | 000" read as two numbers (Physics 12 Ch 10).
       (/(?:^|[^0-9.,])[0-9]{1,3}$/.test(a) && /^[0-9]{3}(?![0-9])/.test(b)) ||
       // A number with the symbol it multiplies: "PC = 2 | PF" read as "PC = 2" (Android review of Physics 12 Ch 9).
@@ -607,6 +609,11 @@ export function readerBreaks(html: string): string {
     if (glue && run + 1 + b.length <= READER_GLUE_MAX) {
       out += ' ' + toks[k];
       run += 1 + b.length;
+    } else if (glue && out.endsWith(' ' + toks[k - 1]) && a.length + 1 + b.length <= READER_GLUE_MAX) {
+      // A run too long to hold whole breaks one word earlier, never inside a pair
+      // that belongs together: "(1.60" | "× 10⁻¹⁶)", "= −13.6" | "Z²/n² eV".
+      out = out.slice(0, -(toks[k - 1].length + 1)) + ' ' + toks[k - 1] + ' ' + toks[k];
+      run = a.length + 1 + b.length;
     } else {
       out += ' ' + toks[k];
       run = b.length;
