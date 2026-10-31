@@ -66,6 +66,14 @@ const ABBREVIATIONS = [
   'mrs.',
   'dr.',
   'st.',
+  // Reagent strengths and states in chemistry: "3Pb + 8HNO₃(dil.) → …" split
+  // after "dil." and left the arrow opening the next paragraph (Android check
+  // of Chemistry 11 Ch 10, the lead page).
+  'dil.',
+  'conc.',
+  'alc.',
+  'anhyd.',
+  'aq.',
 ];
 
 /**

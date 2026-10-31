@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import ch1 from '@/content/textbooks/phy-11-01-units-measurements';
 import ch2 from '@/content/textbooks/phy-11-02-motion-straight-line';
 import ch3 from '@/content/textbooks/phy-11-03-motion-plane';
@@ -34,6 +36,8 @@ import chem11ch5 from '@/content/textbooks/chem-11-05-thermodynamics';
 import chem11ch6 from '@/content/textbooks/chem-11-06-equilibrium';
 import chem11ch7 from '@/content/textbooks/chem-11-07-redox';
 import chem11ch8 from '@/content/textbooks/chem-11-08-organic-basics';
+import chem11ch9 from '@/content/textbooks/chem-11-09-hydrocarbons';
+import chem11ch10 from '@/content/textbooks/chem-11-10-p-block';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -56,7 +60,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem11ch10] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -136,3 +140,17 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
     });
   });
 }
+
+// The catalogue looks a chapter up by chapterKey(), which turns every run of
+// punctuation into one space ("p-Block" → "p block"). A registry key written
+// any other way can never be found, so the chapter never opens (the Chemistry
+// 11 p-Block key, caught on Android, Oct 31). Read from the source because
+// importing lib/textbooks pulls in the Supabase client.
+describe('the chapter registry', () => {
+  it('writes every key the way chapterKey() builds it', () => {
+    const src = readFileSync(join(__dirname, '../../../lib/textbooks.ts'), 'utf8');
+    const keys = [...src.matchAll(/^\s+'([^']+\|\d+\|[^']+)':\s*\(\)\s*=>/gm)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(50);
+    expect(keys.filter((k) => !/^[a-z]+\|\d+\|[a-z0-9]+(?: [a-z0-9]+)*$/.test(k))).toEqual([]);
+  });
+});
