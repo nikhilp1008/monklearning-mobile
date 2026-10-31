@@ -35,6 +35,9 @@ import { DIAGRAMS_PHYSICS_12_10B } from '@/lib/diagrams/physics-12-10b';
 import { DIAGRAMS_PHYSICS_12_11 } from '@/lib/diagrams/physics-12-11';
 import { DIAGRAMS_PHYSICS_12_12 } from '@/lib/diagrams/physics-12-12';
 import { DIAGRAMS_PHYSICS_12_12B } from '@/lib/diagrams/physics-12-12b';
+import { DIAGRAMS_PHYSICS_12_13 } from '@/lib/diagrams/physics-12-13';
+import { DIAGRAMS_PHYSICS_12_14 } from '@/lib/diagrams/physics-12-14';
+import { DIAGRAMS_PHYSICS_12_14B } from '@/lib/diagrams/physics-12-14b';
 import type { Diagram } from '@/lib/diagrams/types';
 
 /** The redrawn diagrams, by chapter ("physics|11|1", "chemistry|11|1"). Chapters not here have none yet. */
@@ -67,6 +70,8 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'physics|12|10': [...DIAGRAMS_PHYSICS_12_10, ...DIAGRAMS_PHYSICS_12_10B],
   'physics|12|11': DIAGRAMS_PHYSICS_12_11,
   'physics|12|12': [...DIAGRAMS_PHYSICS_12_12, ...DIAGRAMS_PHYSICS_12_12B],
+  'physics|12|13': DIAGRAMS_PHYSICS_12_13,
+  'physics|12|14': [...DIAGRAMS_PHYSICS_12_14, ...DIAGRAMS_PHYSICS_12_14B],
   'chemistry|11|1': DIAGRAMS_CHEMISTRY_11_01,
   'chemistry|11|2': DIAGRAMS_CHEMISTRY_11_02,
   'chemistry|11|3': DIAGRAMS_CHEMISTRY_11_03,

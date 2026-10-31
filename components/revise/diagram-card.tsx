@@ -9,6 +9,7 @@ import { useScale } from '@/constants/scale';
 import type { Diagram } from '@/lib/diagrams/types';
 import { titleBreaks } from '@/lib/revise/formula-cards';
 import { hapticSwitched } from '@/lib/haptics';
+import { hasOverline } from '@/lib/overline';
 import { decodeTextNodes } from '@/lib/widgets/svg-parse';
 
 /**
@@ -59,13 +60,20 @@ export function DiagramImage({ d, caseIndex = 0, square = false, thumb = false }
             // Room above the line: Android clips a glyph at the text's own top, which
             // cut the vector arrow over a tall letter (E⃗, d⃗) down to a small tick.
             const room = size * 0.4;
+            // A NOT bar is an inline View in the text (components/textbook/markup.tsx),
+            // and on Android an inline View in a centred text is placed as if the
+            // text were left-aligned (see the fraction sides, formula-card.tsx). So
+            // such a label is aligned by its box instead, sized to itself, with a
+            // hair space of slack so it never wraps.
+            const boxed = hasOverline(t.html);
+            const align = t.anchor === 'middle' ? 'center' : t.anchor === 'end' ? 'right' : 'left';
             return (
-              <View key={i} pointerEvents="none" style={{ position: 'absolute', left, top: t.y * k - size * 0.76 - room, width: span }}>
+              <View key={i} pointerEvents="none" style={{ position: 'absolute', left, top: t.y * k - size * 0.76 - room, width: span, alignItems: boxed ? (t.anchor === 'middle' ? 'center' : t.anchor === 'end' ? 'flex-end' : 'flex-start') : undefined }}>
                 <Markup
-                  html={t.html}
+                  html={boxed ? `${t.html}\u200a` : t.html}
                   size={size}
                   look="stix"
-                  style={{ fontFamily: t.semibold ? STIX.semibold : STIX.regular, fontSize: size, lineHeight: size, paddingTop: room, color: t.color, textAlign: t.anchor === 'middle' ? 'center' : t.anchor === 'end' ? 'right' : 'left' }}
+                  style={{ fontFamily: t.semibold ? STIX.semibold : STIX.regular, fontSize: size, lineHeight: size, paddingTop: room, color: t.color, textAlign: boxed ? 'left' : align }}
                 />
               </View>
             );

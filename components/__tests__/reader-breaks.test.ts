@@ -17,6 +17,9 @@ describe('a reading line keeps a term whole', () => {
     expect(plainSpaces('(1 − sin<sup>2</sup> <i>r</i>))').some((p) => p.includes('sin2 r'))).toBe(true);
     expect(plainSpaces('and <i>AC</i> = 2<i>t</i> tan <i>r</i>.').some((p) => p.includes('2t tan r'))).toBe(true);
   });
+  it('a short term with ≲ or ≳: "V_Z ≲ 5 V", not "threshold V_Z" | "≲ 5 V" (Physics 12 Ch 14)', () => {
+    expect(plainSpaces('• Zener: threshold <i>V</i><sub>Z</sub> ≲ 5 V').some((p) => p.includes('VZ\u00a0≲\u00a05\u00a0V'))).toBe(true);
+  });
   it('a minus with the bracket it negates, and a slash with the root after it', () => {
     expect(readerBreaks('= −(−30)/(−15)')).toContain('−⁠(');
     expect(readerBreaks('= (1/√2)/(1/2)')).toContain('/⁠√');

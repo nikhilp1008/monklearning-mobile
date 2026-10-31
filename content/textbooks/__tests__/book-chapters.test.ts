@@ -24,6 +24,8 @@ import c12ch9 from '@/content/textbooks/phy-12-09-ray-optics';
 import c12ch10 from '@/content/textbooks/phy-12-10-wave-optics';
 import c12ch11 from '@/content/textbooks/phy-12-11-dual-nature';
 import c12ch12 from '@/content/textbooks/phy-12-12-atoms';
+import c12ch13 from '@/content/textbooks/phy-12-13-nuclei';
+import c12ch14 from '@/content/textbooks/phy-12-14-semiconductors';
 import chem11ch1 from '@/content/textbooks/chem-11-01-basic-concepts';
 import chem11ch2 from '@/content/textbooks/chem-11-02-structure-of-atom';
 import chem11ch3 from '@/content/textbooks/chem-11-03-classification';
@@ -52,7 +54,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -79,7 +81,9 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
         // An additional topic that is only a practice set (Physics 12 Ch 12 G, the book's
         // "Comprehensive Practice", one heading and no text of its own) has one part.
         const practiceOnly = !!t.extra && t.blocks.length === 2 && t.blocks[1].t === 'practice';
-        expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly ? 1 : 2);
+        // So is a chapter's opening that is only one box of the book's (Physics 12 Ch 14's syllabus scope).
+        const oneBoxGuide = t.n === '00' && t.blocks.length === 2;
+        expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide ? 1 : 2);
       }
     });
 

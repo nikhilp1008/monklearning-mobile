@@ -83,6 +83,10 @@ function endsSentence(text: string, end: number): boolean {
   if (ABBREVIATIONS.some((a) => lower.endsWith(a))) return false;
   // A single capital before the stop is an initial — "P. Kumar".
   if (/(?:^|\s)[A-Z]\.$/.test(before)) return false;
+  // A list number at the start of a line — "<br>3. Charge-independent" — opens
+  // an item; split there and the number stood alone on a line above its item
+  // (Android check of Physics 12 Ch 13, the nuclear-force properties).
+  if (/(?:^|<br\s*\/?>\s*|\n\s*)\d{1,2}\.$/i.test(before)) return false;
   return true;
 }
 

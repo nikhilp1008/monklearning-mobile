@@ -70,6 +70,13 @@ describe('splitProse', () => {
     }
   });
 
+  it('never splits a numbered list after an item number', () => {
+    // "<br>3. <b>Charge-independent</b> …" once split after "3.", leaving the
+    // number alone on a line above its item (Android check of Physics 12 Ch 13).
+    const html = [1, 2, 3, 4, 5, 6].map((n) => `${n}. <b>Item ${n}</b> — ${S(12)}`).join('<br>');
+    for (const chunk of splitProse(html)) expect(chunk).not.toMatch(/(?:^|<br>)\d\.\s*$/);
+  });
+
   it('returns the input exactly when its chunks are joined', () => {
     const samples = [
       [S(14), S(9), S(20), S(11), S(16)].join(' '),

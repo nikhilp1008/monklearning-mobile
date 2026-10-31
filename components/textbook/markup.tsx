@@ -1,6 +1,8 @@
 import { Fragment, ReactNode, useMemo } from 'react';
 import { Platform, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 
+import { barFoot, barsOf, hasOverline, inkTop, isOverGlue, OVER, SCRIPT_TOP, spreadOverGlue } from '@/lib/overline';
+
 /**
  * The chapter content's inline markup, rendered as nested `<Text>`.
  *
@@ -28,7 +30,10 @@ export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default
 type Node =
   | { kind: 'text'; value: string }
   | { kind: 'br' }
-  | { kind: 'tag'; name: 'b' | 'i' | 'sup' | 'sub'; children: Node[] };
+  | { kind: 'tag'; name: 'b' | 'i' | 'sup' | 'sub'; children: Node[] }
+  /** A run under one or more NOT bars (see overlines). */
+  | Over;
+type Over = { kind: 'over'; feet: number[]; onest: boolean; lean: [boolean, boolean]; children: Node[] };
 
 const TAG = /<(\/?)(b|i|sup|sub|br)\s*\/?>/gi;
 
@@ -390,7 +395,7 @@ function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: st
 function italicLetters(nodes: Node[]): Node[] {
   return nodes.flatMap((n): Node[] => {
     if (n.kind === 'br' || (n.kind === 'tag' && n.name === 'i')) return [n];
-    if (n.kind === 'tag') return [{ ...n, children: italicLetters(n.children) }];
+    if (n.kind === 'tag' || n.kind === 'over') return [{ ...n, children: italicLetters(n.children) }];
     // Greek capitals (Δ, Σ) are operators, upright like everywhere else: e^(−ΔG°/RT).
     return n.value
       .split(/([\u0391-\u03a9]+|[A-Za-z\u00c0-\u024f\u0370-\u0390\u03aa-\u03ff]+)/)
@@ -572,7 +577,8 @@ export function hairSpaces(html: string): string {
  * the bracket, "/" or prime that ran into it (CrO₄), K_a(HCN), σ2p_z/π, K′), and
  * an opening bracket room before an italic f, whose tail reaches back under it: (fp₃).
  */
-const READER_OPS = new Set(['=', '≈', '×', '−', '+', '<', '>', '≤', '≥', '⇒', '→', '⇌', '∝', '≡', '∶']);
+// ≲ ≳ ≪ ≫ too: "threshold V_Z" | "≲ 5 V" (Android review of Physics 12 Ch 14).
+const READER_OPS = new Set(['=', '≈', '×', '−', '+', '<', '>', '≤', '≥', '≲', '≳', '≪', '≫', '⇒', '→', '⇌', '∝', '≡', '∶']);
 const READER_UNITS = 'D|pm|nm|μm|Å|kJ|J|mol|g|kg|mg|mL|L|K|atm|bar|Pa|kPa|cm|mm|km|m|s|ms|μs|ns|min|h|°C|°|V|kV|mV|eV|keV|MeV|C|μC|nC|M|Hz|kHz|MHz|u|Ω|kΩ|MΩ|H|mH|μH|F|μF|nF|pF|A|mA|μA|W|kW|MW|N|T|mT|G|Wb|rad|dB|cd|lm|lx|Bq|Gy|Sv';
 // A unit or a compound of units (eV·nm, J·s, kg·m/s), with its power and punctuation.
 const READER_UNIT = new RegExp(`^(?:${READER_UNITS})(?:[·/](?:${READER_UNITS}))*[−0-9]*(?:[.,;:)]|$)`);
@@ -665,10 +671,180 @@ function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script; pre: 
   // Mass and atomic number before an element symbol (⁴⁰₁₈Ar) are stacked
   // too: side by side, a two-digit pair read as "40 18 Ar" (Android review of
   // Chemistry 11 Ch 2, 2026-10-30).
-  const next = nodes[i + 2];
-  const pre = next?.kind === 'text' && /^[A-Z]/.test(next.value);
+  // And before a lower-case or italic symbol with nothing it could belong to
+  // in front of it, the neutron ¹₀n: drawn as STIX's own digits it staggered,
+  // "¹₀n" (Android review of Physics 12 Ch 13). Not m_e²c, which has its base.
+  const prev = nodes[i - 1], next = nodes[i + 2];
+  const letter = (n?: Node) => !!n && (n.kind === 'text' ? /^\p{L}/u.test(n.value) : n.kind === 'tag' && n.name === 'i' && /^\p{L}/u.test(plainText(n.children)));
+  const unbased = !prev || prev.kind === 'br' || (prev.kind === 'text' && /(?:^|[\s\u2060(=+−\-→⟶⇌,;:±×·<>≤≥])$/.test(prev.value));
+  const pre = (next?.kind === 'text' && /^[A-Z]/.test(next.value)) || (unbased && letter(next));
   if (!pre && NUMERIC_RUN.test(plainText(a.children)) && NUMERIC_RUN.test(plainText(b.children))) return null;
   return a.name === 'sup' ? { sup: a, sub: b, pre } : { sup: b, sub: a, pre };
+}
+
+/**
+ * NOT BARS (see lib/overline.ts for what the marks mean). The content writes a
+ * combining mark after every character under a bar, so a run of them can
+ * cross tags: <i>A</i>̅·̅<i>B</i>̅, <i>T</i>̅<sub>1̅</sub>. The tree is taken
+ * apart into characters, each with the tags it sits in and the bars it
+ * carries; each run under a bar becomes an `over` node, and the tags inside
+ * it are put back round its characters (a tag a run starts or ends inside is
+ * split in two, the same style either side).
+ */
+type Frame = { name: 'b' | 'i' | 'sup' | 'sub'; id: number };
+type Atom = { ch: string; path: Frame[]; bars: number; br?: boolean };
+
+function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }): Atom[] {
+  for (const n of nodes) {
+    if (n.kind === 'br') out.push({ ch: '\n', path, bars: 0, br: true });
+    else if (n.kind === 'text')
+      for (const ch of n.value) {
+        const bars = barsOf(ch);
+        // A mark adds to the character before it, across any tag between them.
+        const last = out[out.length - 1];
+        if (!bars) out.push({ ch, path, bars: 0 });
+        else if (last && !last.br) last.bars += bars;
+      }
+    else atomsOf(n.children, n.kind === 'tag' ? [...path, { name: n.name, id: ids.n++ }] : path, out, ids);
+  }
+  return out;
+}
+
+/** Characters back into nodes, each tag round the characters it held. */
+function nest(atoms: Atom[], depth = 0): Node[] {
+  const out: Node[] = [];
+  for (let k = 0; k < atoms.length; ) {
+    const frame = atoms[k].path[depth];
+    let j = k + 1;
+    if (atoms[k].br) out.push({ kind: 'br' });
+    else if (!frame) {
+      while (j < atoms.length && !atoms[j].br && !atoms[j].path[depth]) j++;
+      out.push({ kind: 'text', value: atoms.slice(k, j).map((a) => a.ch).join('') });
+    } else {
+      while (j < atoms.length && atoms[j].path[depth]?.id === frame.id) j++;
+      out.push({ kind: 'tag', name: frame.name, children: nest(atoms.slice(k, j), depth + 1) });
+    }
+    k = j;
+  }
+  return out;
+}
+
+/** The reader's maths symbols, one at a time (PILOT_MATH is global, and so keeps its place between tests). */
+const PILOT_MATH_ONE = new RegExp(`^(?:${PILOT_MATH.source})$`);
+const inside = (a: Atom, name: Frame['name']) => a.path.some((f) => f.name === name);
+/** Is the character set in Onest (the reader's words, signs and digits), not STIX? */
+const inOnest = (a: Atom, look: MarkupLook) => look === 'pilot' && !inside(a, 'i') && !inside(a, 'sup') && !inside(a, 'sub') && !PILOT_MATH_ONE.test(a.ch);
+function atomTop(a: Atom, look: MarkupLook): number {
+  if (/\s/.test(a.ch) || isOverGlue(a.ch)) return 0;
+  if (inside(a, 'sup')) return SCRIPT_TOP.sup;
+  if (inside(a, 'sub')) return SCRIPT_TOP.sub;
+  return inkTop(a.ch, inOnest(a, look));
+}
+
+/**
+ * The characters above `level` bars as `over` nodes, the rest as they were.
+ * One node draws every bar its whole run carries (from level + 1 up to the
+ * fewest bars any of its characters has), at one height for the run: above
+ * its tallest glyph, and above the bars of the runs inside it, which are its
+ * children. On the line itself (level 0) a run is held to the characters
+ * either side of it (see WJ): A̅B is A̅ and B, not a place to break.
+ */
+function overGroups(atoms: Atom[], level: number, look: MarkupLook): Node[] {
+  const out: Node[] = [];
+  for (let k = 0; k < atoms.length; ) {
+    const barred = atoms[k].bars > level;
+    let j = k + 1;
+    while (j < atoms.length && (atoms[j].bars > level) === barred) j++;
+    const run = atoms.slice(k, j);
+    if (!barred) out.push(...nest(run));
+    else {
+      const fewest = Math.min(...run.map((a) => a.bars)), most = Math.max(...run.map((a) => a.bars));
+      const top = Math.max(...run.map((a) => atomTop(a, look)));
+      const feet: number[] = [];
+      for (let l = level + 1; l <= fewest; l++) feet.push(barFoot(top, l, most));
+      const italic = (a: Atom) => inside(a, 'i') && !inside(a, 'sub');
+      const node: Over = {
+        kind: 'over',
+        feet,
+        // Only its own characters set its line (see overRun); a run inside it is a box of its own.
+        onest: run.some((a) => a.bars === fewest && inOnest(a, look)),
+        lean: [italic(run[0]), italic(run[run.length - 1])],
+        children: overGroups(run, fewest, look),
+      };
+      const held = (a?: Atom) => level === 0 && !!a && !/\s/.test(a.ch);
+      if (held(atoms[k - 1])) out.push({ kind: 'text', value: WJ });
+      out.push(node);
+      if (held(atoms[j])) out.push({ kind: 'text', value: WJ });
+    }
+    k = j;
+  }
+  return out;
+}
+
+function overlines(nodes: Node[], look: MarkupLook): Node[] {
+  const atoms = atomsOf(nodes, [], [], { n: 0 });
+  const levels = spreadOverGlue(atoms.map((a) => a.bars), atoms.map((a) => isOverGlue(a.ch)));
+  atoms.forEach((a, k) => (a.bars = levels[k]));
+  return overGroups(atoms, 0, look);
+}
+
+/**
+ * A barred run is drawn as one inline View: its characters (without their
+ * marks) on a Text of their own, and each bar a line laid over the whole of
+ * it, so a bar is one stroke however many glyphs it covers and whatever
+ * their heights. A run inside it is a View of its own inside that Text.
+ *
+ * Placed the way drawnPair is (see there): on Android an inline View is a
+ * placeholder whose box rises from the baseline, and a box taller than the
+ * line's ascent (STIX's is 0.762 em) pushes the line's baseline down. So the
+ * View is OVER_BOX high, its bottom on the line's baseline, and its Text is
+ * moved up by a negative margin until the Text's baseline is that bottom; the
+ * glyphs and bars above the box are drawn outside it, as a drawn pair's
+ * subscript is drawn below its own.
+ *
+ * Where that baseline is, inside the run's Text: the Text's line is OVER_LINE
+ * high, more than any font in it needs, so React Native centres the font's
+ * ascent and descent in it (Android's CustomLineHeightSpan): the baseline is
+ * (line + ascent − descent) / 2 from the top. On iOS RCTApplyBaselineOffset
+ * centres the font's own line height, which in STIX Two counts its line gap
+ * (0.25) too. Ascent and descent are STIX Two's (0.762, 0.238) unless one of
+ * the run's own characters is in Onest (0.970, 0.305), which then sets the
+ * line on both platforms. includeFontPadding is off, so Android does not add
+ * the font's taller "top" to the first line.
+ *
+ * A bar that starts or ends over an italic letter leans with it (OVER.lean).
+ */
+const OVER_BOX = 0.7;
+const OVER_LINE = 1.3;
+const OVER_FACE = { stix: { ascent: 0.762, descent: 0.238, gap: 0.25 }, onest: { ascent: 0.97, descent: 0.305, gap: 0 } } as const;
+const overBaseline = (onest: boolean) => {
+  const f = onest ? OVER_FACE.onest : OVER_FACE.stix;
+  return (OVER_LINE + f.ascent - f.descent + (Platform.OS === 'ios' ? f.gap : 0)) / 2;
+};
+
+function overRun(node: Over, size: number, key: string, look: MarkupLook, ink: Ink) {
+  const box = size * OVER_BOX;
+  const thick = Math.max(1, size * OVER.thick);
+  return (
+    <View key={key} style={{ height: box }}>
+      <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: size, lineHeight: size * OVER_LINE, color: ink.color, includeFontPadding: false, marginTop: box - size * overBaseline(node.onest) }}>
+        {render(node.children, size, key, look, ink)}
+      </Text>
+      {node.feet.map((foot, n) => (
+        <View
+          key={n}
+          style={{
+            position: 'absolute',
+            left: node.lean[0] ? size * OVER.lean : 0,
+            right: node.lean[1] ? -size * OVER.lean : 0,
+            top: box - size * foot - thick,
+            height: thick,
+            backgroundColor: ink.color ?? '#000',
+          }}
+        />
+      ))}
+    </View>
+  );
 }
 
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
@@ -700,6 +876,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
     return <Fragment key={key}>{look === 'stix' ? stixRuns(asText(value), key) : look === 'pilot' ? pilotRuns(asText(value), key) : asText(value)}</Fragment>;
   }
   if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
+  if (node.kind === 'over') return overRun(node, size, key, look, ink);
 
   if (node.name === 'sup' || node.name === 'sub') {
     const run = plainText(node.children);
@@ -773,7 +950,11 @@ export interface MarkupProps {
 }
 
 export function Markup({ html, size, style, numberOfLines, look = 'current' }: MarkupProps) {
-  const nodes = useMemo(() => parse(look === 'stix' ? hairSpaces(untypeLetters(html)) : look === 'pilot' ? hairSpaces(readerBreaks(html)) : html), [html, look]);
+  const nodes = useMemo(() => {
+    const tree = parse(look === 'stix' ? hairSpaces(untypeLetters(html)) : look === 'pilot' ? hairSpaces(readerBreaks(html)) : html);
+    // NOT bars are drawn whole in the maths looks; the old reader keeps the marks as text.
+    return look !== 'current' && hasOverline(html) ? overlines(tree, look) : tree;
+  }, [html, look]);
   // A drawn raised run sits in a View, which does not inherit from the Text
   // around it, so it is handed the face and colour it is set in.
   const flat = StyleSheet.flatten(style) ?? {};

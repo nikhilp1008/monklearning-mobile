@@ -4,6 +4,7 @@ import { LayoutChangeEvent, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { Markup, STIX } from '@/components/textbook/markup';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
+import { hasOverline } from '@/lib/overline';
 import type { FormulaCard as Card, FormulaItem } from '@/lib/revise/formula-cards';
 import { boxes, hasFraction, type Box, type Part } from '@/lib/revise/formula-layout';
 
@@ -74,9 +75,10 @@ function Fraction({ part, scale, maxWidth, spaced = false }: { part: Extract<Par
   // A side with a drawn script is centred by a View, not by textAlign: on
   // Android a drawn script in a centred text was placed as if the text were
   // left-aligned (the n of a ∑ landed on the "1", ² on the g of k_g). A side
-  // of plain words may wrap, and centres its own lines.
+  // of plain words may wrap, and centres its own lines. A NOT bar is drawn
+  // the same way, as an inline View (see components/textbook/markup.tsx).
   const side = (html: string) => {
-    const words = !html.includes('<su');
+    const words = !html.includes('<su') && !hasOverline(html);
     const text = <Markup html={html + SLACK} size={scale(TEXT)} look="stix" style={[s.text, words && s.center, { fontSize: scale(TEXT), lineHeight: scale(FRAC_LINE), color: colors.ink }, headroom(scale(TEXT))]} />;
     return words ? text : <View style={s.middle}>{text}</View>;
   };
