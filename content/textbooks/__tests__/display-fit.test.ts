@@ -87,3 +87,62 @@ describe('every piece of every reading page fits its line', () => {
     expect(out).toEqual([]);
   });
 });
+
+describe('a stacked fraction keeps a function with its argument, and its brackets under a power', () => {
+  // "d = (t sin(i − r))/cos r" once stacked "cos" alone under the bar with the r
+  // left outside it (Android review of Physics 12 Ch 9). A top or bottom that
+  // ends on a bare sin, cos, log … has lost its argument.
+  const BARE = /(?:^|[^A-Za-z])(?:sin|cos|tan|cot|sec|cosec|log|ln)\d*\s*$/;
+  const out: string[] = [];
+  beforeAll(() => {
+    for (const chapter of BOOK_CHAPTERS)
+      buildFormulaCards(chapter).forEach((card, k) => {
+        for (const it of card.items)
+          for (const line of it.expr.split('<br>'))
+            for (const box of boxes(line))
+              box.forEach((p, j) => {
+                if (p.kind !== 'frac') return;
+                if (BARE.test(shown(p.top)) || BARE.test(shown(p.bottom))) out.push(`${chapterName(chapter)} card ${k + 1}: (${shown(p.top)})/(${shown(p.bottom)})`);
+                // A power right after a fraction drawn without brackets sits beside its bottom alone.
+                const next = box[j + 1];
+                if (!p.tall && next?.kind === 'text' && next.html.startsWith('<sup>')) out.push(`${chapterName(chapter)} card ${k + 1}: a power after (${shown(p.top)})/(${shown(p.bottom)}) has lost its brackets`);
+              });
+      });
+  });
+  it('has no bare function name at a top or bottom, and no power beside a bare fraction', () => {
+    expect(out).toEqual([]);
+  });
+});
+
+describe('a factor written against a bracket goes over the bar with it', () => {
+  // "n(n − 1)/2" once drew as n beside a stacked (n − 1)/2 (Android check of Physics 12 Ch 12).
+  const fracOf = (expr: string) => boxes(expr).flat().find((p) => p.kind === 'frac');
+  it('n(n − 1)/2, KA(T₁ − T₂)/L: the factor is part of the top', () => {
+    expect(shown((fracOf('<i>N</i> = <i>n</i>(<i>n</i> − 1)/2') as { top: string }).top)).toBe('n(n − 1)');
+    expect(shown((fracOf('= <i>KA</i>(<i>T</i><sub>1</sub> − <i>T</i><sub>2</sub>)/<i>L</i>') as { top: string }).top)).toBe('KA(T1 − T2)');
+  });
+  it('R((E − V)/V): a bracket that only holds the fraction leaves R beside it', () => {
+    const f = fracOf('<i>r</i> = <i>R</i>((<i>E</i> − <i>V</i>)/<i>V</i>)') as { top: string };
+    expect(shown(f.top)).toBe('E − V');
+  });
+  it('sin(A/2) and cos r stay with their functions', () => {
+    const f = fracOf('<i>n</i> = sin((<i>A</i> + <i>δ</i>)/2)/sin(<i>A</i>/2)') as { top: string; bottom: string };
+    expect(shown(f.top)).toBe('sin((A + δ)/2)');
+    expect(shown(f.bottom)).toBe('sin(A/2)');
+  });
+});
+
+describe('a short last term stays with its operator', () => {
+  // "% X = … × m(AgX)/w ×" | "100" left a number alone on the card's last line
+  // (Android check of Chemistry 11 Ch 8, the Carius card).
+  it('never leaves a breakable space between a closing operator and a short last term', () => {
+    const out: string[] = [];
+    for (const chapter of BOOK_CHAPTERS)
+      buildFormulaCards(chapter).forEach((card, k) => {
+        for (const it of card.items)
+          for (const line of it.expr.split('<br>'))
+            if (/[=+−×·→⇒] (?:<[^>]+>)*[^ <]{1,4}(?:<\/[^>]+>)*$/.test(line)) out.push(`${chapterName(chapter)} card ${k + 1}: ${shown(line).slice(-30)}`);
+      });
+    expect(out).toEqual([]);
+  });
+});

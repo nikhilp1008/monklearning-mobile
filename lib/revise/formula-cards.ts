@@ -386,6 +386,11 @@ export function keepTogether(expr: string): string {
     .map((p) => loosen(p))
     .join(' ')
     .replace(new RegExp(`[${STICK}${GLUE}]`, 'g'), NB)
+    // A short last term never starts a line on its own after its operator,
+    // whatever left a break there (a bracket of words beside it): "… ×" |
+    // "100" (Android check of Chemistry 11 Ch 8, the Carius card). The break
+    // before the operator stays; a long term after it may still wrap.
+    .replace(new RegExp(`([${OPS}×·]) ([^ ]+)$`), (all, op: string, end: string) => (shown(end).length <= 4 ? `${op}${NB}${end}` : all))
     // A "|" lets a line break even before a non-breaking space; the joiner holds it.
     .replace(/\|\u00a0/g, '|\u2060\u00a0');
 }

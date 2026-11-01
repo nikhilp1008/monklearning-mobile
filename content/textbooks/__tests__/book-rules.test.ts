@@ -46,13 +46,15 @@ function htmls(b: Block): string[] {
 const clip = (s: string) => (s.length > 90 ? `${s.slice(0, 87)}…` : s);
 
 describe('the text of every book chapter', () => {
-  it('keeps plain-text fields plain: titles, part names, tags and the up-next line take no markup or raised letters', () => {
+  it('keeps plain-text fields plain: titles, part names, tags and the up-next line take no markup, raised letters or overlines', () => {
     expect(
       breaches(({ topic, block }, say) => {
         const check = (field: string, v: string | null | undefined) => {
           if (!v) return;
           if (/<[a-z/][^>]*>/i.test(v)) say(`${field} has markup: ${clip(v)}`);
           if (SCRIPT_LETTERS.test(v)) say(`${field} has a raised/lowered letter: ${clip(v)}`);
+          // A NOT bar is drawn joined only by Markup; in plain text each mark is its own short bar (Physics 12 Ch 14 D.2 tag).
+          if (/[\u0305\u033F]/.test(v)) say(`${field} has an overline: ${clip(v)}`);
         };
         if (!block) {
           check('title', topic.title);

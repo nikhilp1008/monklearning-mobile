@@ -189,9 +189,13 @@ describe('a fraction and its brackets (Android review, pass 2)', () => {
   it('keeps them, tall, under a root: √((restoring constant)/inertia)', () => {
     expect(fracs(keepTogether('<i>ω</i> = √((restoring constant)/inertia)'))).toEqual([expect.objectContaining({ tall: true, top: expect.stringContaining('restoring') })]);
   });
-  it('leaves a fraction inline inside an open bracket: k((T₁ + T₂)/2 − T₀), √(rg(tan θ + μ)/(1 − μ tan θ))', () => {
+  it('leaves a fraction inline inside an open bracket: k((T₁ + T₂)/2 − T₀)', () => {
     expect(fracs(keepTogether('<i>k</i>((<i>T</i><sub>1</sub> + <i>T</i><sub>2</sub>)/2 − <i>T</i><sub>0</sub>)'))).toHaveLength(0);
-    expect(fracs(keepTogether('<i>v</i><sub>max</sub> = √(<i>rg</i>(tan <i>θ</i> + <i>μ</i>)/(1 − <i>μ</i> tan <i>θ</i>))'))).toHaveLength(0);
+  });
+  it('stacks a root\'s whole bracket once its top takes the factor: √(rg(tan θ + μ)/(1 − μ tan θ))', () => {
+    // The top is rg(tan θ + μ), the factor with its bracket (Android check of Physics 12 Ch 12, 2026-10-30);
+    // the fraction fills the root's bracket, so it is drawn tall under the root.
+    expect(fracs(keepTogether('<i>v</i><sub>max</sub> = √(<i>rg</i>(tan <i>θ</i> + <i>μ</i>)/(1 − <i>μ</i> tan <i>θ</i>))'))).toHaveLength(1);
   });
 });
 
