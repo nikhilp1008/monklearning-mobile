@@ -375,7 +375,9 @@ export default function HomeScreen() {
               <Text style={styles.stripBody}>
                 {freeTier.free
                   ? `${freeTier.limits.practice_questions} free a day, across all subjects`
-                  : `${plan.tier && plan.tier !== 'free' ? plan.tiers[plan.tier].practice_questions : 150} a day, across all subjects`}
+                  : plan.tier === 'day' || plan.tier === 'week'
+                    ? 'Every day, across all subjects'
+                    : `${plan.tier && plan.tier !== 'free' ? plan.tiers[plan.tier].practice_questions : 150} a day, across all subjects`}
               </Text>
             </PressableScale>
           </View>

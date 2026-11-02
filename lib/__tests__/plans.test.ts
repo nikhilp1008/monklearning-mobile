@@ -86,19 +86,22 @@ describe('reading the pass the server sends', () => {
   });
 });
 
-describe('Free, Pro and Max side by side', () => {
-  const free = { snap_questions: 5, practice_questions: 15, followups: 3, mocks: 1 };
-  test('every figure is read from the numbers it is given', () => {
-    const rows = compareRows(free, DEFAULT_TIERS.pro, DEFAULT_TIERS.max);
-    expect(rows.find((r) => r.label === 'Live classes')).toMatchObject({ free: '—', pro: '45 a month', max: '60 a month' });
-    expect(rows.find((r) => r.label === 'Snapped questions')).toMatchObject({ free: '5 a day', pro: '25 a day', max: '50 a day' });
-    expect(rows.find((r) => r.label === 'Practice questions')).toMatchObject({ free: '15 a day', pro: '100 a day', max: '200 a day' });
-    expect(rows.find((r) => r.label === 'Follow-ups')).toMatchObject({ free: '3 a day', pro: 'Unlimited', max: 'Unlimited' });
+describe('Pro and Max side by side', () => {
+  test('the unit is in the label and each cell is just the number', () => {
+    const rows = compareRows(DEFAULT_TIERS.pro, DEFAULT_TIERS.max);
+    expect(rows).toEqual([
+      { label: 'Live classes a month', pro: '45', max: '60' },
+      { label: 'Snapped questions a day', pro: '25', max: '50' },
+      { label: 'Practice questions a day', pro: '100', max: '200' },
+      { label: 'Follow-ups', pro: 'Unlimited', max: 'Unlimited' },
+    ]);
+    expect(rows.some((r) => /\ba (day|month)\b/.test(r.pro) || /\ba (day|month)\b/.test(r.max))).toBe(false);
   });
 
-  test('a moved limit moves the table', () => {
-    const rows = compareRows(free, { ...DEFAULT_TIERS.pro, classes: 40 }, DEFAULT_TIERS.max);
-    expect(rows[0].pro).toBe('40 a month');
+  test('a moved limit moves the table, and a weekly window says so', () => {
+    const rows = compareRows({ ...DEFAULT_TIERS.pro, classes: 40 }, DEFAULT_TIERS.max);
+    expect(rows[0].pro).toBe('40');
+    expect(compareRows({ ...DEFAULT_TIERS.pro, window_days: 7 }, DEFAULT_TIERS.max)[0].label).toBe('Live classes a week');
   });
 });
 

@@ -97,6 +97,8 @@ export default function SubscriptionScreen() {
   const planTier = record ? (record.kind === 'day' ? 'day' : record.kind === 'week' ? 'week' : record.kind === 'pro_1m' ? 'pro' : 'max') : 'pro';
   const allowed = tiers[planTier];
   const starterRunning = !!active && (record?.kind === 'day' || record?.kind === 'week');
+  /** Pro and Max print their daily numbers; a starter pass is not told its own (it gets what Pro gets). */
+  const showNumbers = planTier === 'pro' || planTier === 'max';
   const free = (status?.state === 'none' || status?.state === 'expired') && status.free === true;
   /** More than one plan bought back to back: the server reports the running
    *  plan's start and the end of ALL the paid time, so the two do not describe
@@ -183,8 +185,8 @@ export default function SubscriptionScreen() {
               title="Live classes with Drona or Vedha"
               line={`${allowed.classes} ${allowed.window_days >= 30 ? 'a month' : allowed.window_days === 7 ? 'this week' : 'today'}, and unlimited follow-ups.`}
             />
-            <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line={`Solved step by step. Up to ${allowed.snap_questions} a day.`} />
-            <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line={`In the exam's own pattern. Up to ${allowed.practice_questions} a day.`} />
+            <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line={showNumbers ? `Solved step by step. Up to ${allowed.snap_questions} a day.` : 'Solved step by step, whenever you are stuck.'} />
+            <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line={showNumbers ? `In the exam's own pattern. Up to ${allowed.practice_questions} a day.` : "In the exam's own pattern, every day."} />
             <Included scale={scale} icon={<BookGlyph size={scale(20)} />} title="Textbooks made for revision" line="Formulas, diagrams and key points, chapter by chapter." last />
           </View>
 

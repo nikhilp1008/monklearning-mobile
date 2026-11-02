@@ -1,24 +1,26 @@
 import type { TierLimits } from '@/lib/pass';
 
 /**
- * FREE, PRO AND MAX SIDE BY SIDE (the table on the plans page). A number reads
- * against the others: 45 classes means little until the column beside it says
- * none, and the column beside that says 60. Every figure comes from the server's
- * own table (`usePlan`), so the page and the limit a student meets can never
- * disagree.
+ * PRO AND MAX SIDE BY SIDE (the table on the plans page). A number reads
+ * against the other: 45 classes means little until the column beside it says 60.
+ * Every figure comes from the server's own table (`usePlan`), so the page and
+ * the limit a student meets can never disagree.
+ *
+ * THE UNIT IS IN THE ROW'S LABEL, NOT REPEATED IN EVERY CELL. "45 a month, 25 a
+ * day, 100 a day" read like a stutter; "Live classes a month: 45" does not.
  */
-type CompareRow = { label: string; free: string; pro: string; max: string };
+export type CompareRow = { label: string; pro: string; max: string };
 
-export function compareRows(
-  free: { snap_questions: number; practice_questions: number; followups: number; mocks: number },
-  pro: TierLimits,
-  max: TierLimits
-): CompareRow[] {
+export function compareRows(pro: TierLimits, max: TierLimits): CompareRow[] {
   return [
-    { label: 'Live classes', free: '—', pro: `${pro.classes} a month`, max: `${max.classes} a month` },
-    { label: 'Snapped questions', free: `${free.snap_questions} a day`, pro: `${pro.snap_questions} a day`, max: `${max.snap_questions} a day` },
-    { label: 'Practice questions', free: `${free.practice_questions} a day`, pro: `${pro.practice_questions} a day`, max: `${max.practice_questions} a day` },
-    { label: 'Follow-ups', free: `${free.followups} a day`, pro: 'Unlimited', max: 'Unlimited' },
-    { label: 'Mock exams', free: free.mocks === 1 ? '1 only' : `${free.mocks}`, pro: 'All', max: 'All' },
+    { label: classesLabel(pro), pro: `${pro.classes}`, max: `${max.classes}` },
+    { label: 'Snapped questions a day', pro: `${pro.snap_questions}`, max: `${max.snap_questions}` },
+    { label: 'Practice questions a day', pro: `${pro.practice_questions}`, max: `${max.practice_questions}` },
+    { label: 'Follow-ups', pro: 'Unlimited', max: 'Unlimited' },
   ];
+}
+
+/** "Live classes a month": the window both plans share (they are both monthly). */
+function classesLabel(t: TierLimits): string {
+  return t.window_days >= 30 ? 'Live classes a month' : t.window_days === 7 ? 'Live classes a week' : 'Live classes a day';
 }
