@@ -221,7 +221,7 @@ export const DEFAULT_FREE_LIMITS: FreeLimits = {
   snap_questions: 5,
   practice_questions: 15,
   followups: 3,
-  mocks: 1,
+  mocks: 0,
 };
 
 /**

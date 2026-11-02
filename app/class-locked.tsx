@@ -17,7 +17,7 @@ export default function ClassLockedScreen() {
       <StateCard
         glyph="lock"
         title="Live classes come with a plan"
-        line="Sit down with Drona or Vedha on a real board: every step spoken and written out, and you can interrupt with a doubt at any moment. Your free questions, practice and first mock paper stay yours either way."
+        line="Sit down with Drona or Vedha on a real board: every step spoken and written out, and you can interrupt with a doubt at any moment. Your daily snaps and practice stay yours either way."
         action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
         quiet={{ label: 'Not now', onPress: () => (router.canGoBack() ? router.back() : router.replace('/')) }}
       />

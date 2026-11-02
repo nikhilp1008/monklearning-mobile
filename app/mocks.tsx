@@ -215,8 +215,8 @@ export default function MocksScreen() {
   );
 
   const eligible = hasActivePaper || (status?.credits_available ?? 0) > 0;
-  /** The free tier's one full paper is spent: what stands in the way is a plan,
-   *  not more practice, so the lock card and the key say so. */
+  /** On the Free plan (a pass has ended): there is no free full paper, so what
+   *  stands in the way is a plan, not more practice, and the lock card says so. */
   const freeMockUsed = !eligible && status?.free_tier?.mock_used === true;
   // Until the gate has been read, the page does not pretend to know: no key
   // that might be the wrong one, no count that might be a lie.
@@ -441,7 +441,7 @@ export default function MocksScreen() {
                     <LockIcon size={scale(22)} />
                     <Text style={styles.lockOver}>Locked</Text>
                   </View>
-                  <Text style={styles.lockTitle}>{freeMockUsed ? 'Your free mock is used' : 'Your next full paper'}</Text>
+                  <Text style={styles.lockTitle}>{freeMockUsed ? 'Full mocks come with a plan' : 'Your next full paper'}</Text>
                   <Text style={styles.lockBody}>
                     {freeMockUsed
                       ? status.free_tier?.message

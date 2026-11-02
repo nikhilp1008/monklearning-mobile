@@ -133,7 +133,7 @@ export default function SubscriptionScreen() {
                 : active && endsAt
                   ? `Ends ${asDate(endsAt)} · ${active.daysLeft > 1 ? `${active.daysLeft} days left` : `${active.hoursLeft} hours left`}`
                   : free
-                    ? `Each day: ${limits.snap_questions} snapped questions, ${limits.practice_questions} practice questions and ${limits.followups} follow-ups, plus ${limits.mocks} full mock paper.`
+                    ? `Each day: ${limits.snap_questions} snapped questions, ${limits.practice_questions} practice questions and ${limits.followups} follow-ups. A plan adds live classes and full mock tests.`
                     : status.state === 'expired' && endsAt
                     ? `Ended ${asDate(endsAt)}`
                     : unknown
