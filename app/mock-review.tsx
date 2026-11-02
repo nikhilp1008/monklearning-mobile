@@ -13,7 +13,7 @@ import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MockSection } from '@/components/mock/mock-kit';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
-import { SolutionSteps } from '@/components/solution-steps';
+import { SolutionCards } from '@/components/solution-cards';
 import { colors } from '@/constants/brand';
 import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { pageTitle } from '@/constants/page-title';
@@ -304,7 +304,7 @@ export default function MockReviewScreen() {
 
           <MockSection title="How to solve it" />
           {steps.length > 0 ? (
-            <SolutionSteps size="compact" steps={steps} />
+            <SolutionCards steps={steps} />
           ) : (
             // Said, as Practice says it: the section used to vanish, which
             // read as the page not having loaded.

@@ -45,7 +45,7 @@ export function isDisplayWorthy(tex: string): boolean {
     .replace(/\\(?:mathrm|text|textrm|rm|operatorname)\s*\{[^{}]*\}/g, 'U')
     .replace(/\\[,;!: ]|\s+/g, '');
   if (!RELATION.test(t)) return false;
-  if (/\\frac|\\int|\\sum|\\sqrt/.test(t)) return true;
+  if (/\\[dt]?frac|\\int|\\sum|\\sqrt/.test(t)) return true;
   if (ASSIGNMENT.test(t)) return false;
   return WORKING.test(t) && t.length >= 6;
 }

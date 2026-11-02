@@ -28,7 +28,7 @@ import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
 import { FigureLoadFailed } from '@/components/question-diagram';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
-import { DoubtSolution } from '@/components/doubt-solution';
+import { SolutionCards } from '@/components/solution-cards';
 import { DoubtOption } from '@/lib/doubts';
 import type { ResolveEvent } from '@/lib/doubt-followup';
 import { hapticTicked } from '@/lib/haptics';
@@ -64,7 +64,7 @@ const PAPER = '#FFFFFF';
 const GRID = 'rgba(28,26,22,0.04)';
 const HAIR = 'rgba(28,26,22,0.12)';
 const GRID_SIZE = 26;
-// The same greens SolutionSteps closes the rail with, so the option the answer
+// The same greens as the solution's final answer, so the option the answer
 // landed on and the answer itself read as one statement.
 const GREEN = '#1C9B57';
 const GREEN_INK = '#14663A';
@@ -630,11 +630,11 @@ export function SolutionScreen({
                 <Text style={styles.pendingText}>{PENDING_STAGES[stage]}</Text>
               </View>
               {/* The working as it is written, once step 1 has begun; the
-                  placeholder only until then. No answer row — DoubtSolution
+                  placeholder only until then. No answer row — SolutionCards
                   draws one only when given an answer, which a pending
                   question never has. */}
               {question.liveSteps?.length ? (
-                <DoubtSolution steps={question.liveSteps} />
+                <SolutionCards steps={question.liveSteps} />
               ) : (
                 <StepsPlaceholder />
               )}
@@ -652,16 +652,14 @@ export function SolutionScreen({
             </View>
           ) : (
             <View style={styles.stepsBlock}>
-              <DoubtSolution
+              <SolutionCards
                 steps={question.steps}
                 answer={question.answer}
                 answerRaw={question.answerRaw}
                 answerLabels={question.answerLabels}
                 footer={
-                  <Text style={styles.meta}>
-                    {question.steps.length} step{question.steps.length === 1 ? '' : 's'}
-                    {questions.length > 1 ? ' · tap a chip for the next question' : ''}
-                  </Text>
+                  // Each card already counts its step; only the hint is left.
+                  questions.length > 1 ? <Text style={styles.meta}>Tap a chip for the next question</Text> : null
                 }
               />
             </View>
@@ -998,7 +996,6 @@ function createStyles() {
      *  step text, past the rail. */
     keyIdea: {
       marginTop: 26,
-      paddingLeft: 34,
     },
     keyIdeaText: {
       fontFamily: 'Onest_500Medium',
@@ -1145,8 +1142,8 @@ function PendingDot() {
  * and bought a new problem: it states as fact that there will be three steps
  * and invites a student to read numbers that are not answers to anything.
  *
- * This is the third: the rail, a small open mark where each step will begin,
- * and two or three light bars for the words. No numbers before there are any.
+ * This is the third: the cards the solution will sit in, with two or three
+ * light bars for the words. No numbers before there are any.
  * Lighter fill than the app's default skeleton, fewer bars per step, and no
  * slab standing in for an equation — a page that is waiting should weigh less
  * than the page that arrives, not the same.
@@ -1155,14 +1152,12 @@ function StepsPlaceholder() {
   const skeleton = useMemo(() => createSkeletonStyles(), []);
   return (
     <View style={skeleton.steps}>
-      <View style={skeleton.rail} />
       {[0, 1, 2, 3].map((i) => (
         // The fourth is half-lit. A solve is usually five or six steps, so the
         // block has to reach down the page or it reads as "this is all there
         // is" and then jumps — but four steps at full weight is a grey page.
         // It fades out instead, which says "and more" without drawing it.
         <View key={i} style={[skeleton.step, i === 3 && skeleton.stepFading]}>
-          <View style={skeleton.mark} />
           <Skeleton delay={stagger(i, 150)} style={skeleton.stepTitle} />
           {i < 3 && (
             <SkeletonParagraph
@@ -1210,44 +1205,24 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 }
 
 function createSkeletonStyles() {
-  const RAIL = 34;
   /** Lighter than SKELETON_FILL: this placeholder covers most of a page, and
    *  at the app's usual weight that much of it reads as a grey screen. */
   const FILL = 'rgba(28,26,22,.055)';
   return StyleSheet.create({
-    // DoubtSolution's own rail geometry, so the words land where these bars
-    // are and nothing shifts when the answer arrives.
+    // SolutionCards' own stack, so the words land where these bars are and
+    // nothing shifts when the answer arrives.
     steps: {
-      position: 'relative',
       marginTop: 6,
-      paddingLeft: RAIL,
-      gap: 30,
-    },
-    rail: {
-      position: 'absolute',
-      left: 10.5,
-      top: 8,
-      bottom: 16,
-      width: 1,
-      backgroundColor: 'rgba(28,26,22,.07)',
+      gap: 12,
     },
     step: {
-      position: 'relative',
       gap: 10,
       alignItems: 'flex-start',
       alignSelf: 'stretch',
-    },
-    /** Where the numbered marker will be, drawn as an open ring: it holds the
-     *  place without claiming to know what goes in it. */
-    mark: {
-      position: 'absolute',
-      left: -RAIL + 5,
-      top: 4,
-      width: 11,
-      height: 11,
-      borderRadius: 5.5,
+      padding: 16,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
+      borderColor: 'rgba(28,26,22,.10)',
       backgroundColor: '#FFFFFF',
     },
     stepFading: { opacity: 0.45 },

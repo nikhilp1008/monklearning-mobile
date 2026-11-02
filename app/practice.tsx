@@ -25,7 +25,7 @@ import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
-import { SolutionSteps } from '@/components/solution-steps';
+import { SolutionCards } from '@/components/solution-cards';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import {
@@ -1133,8 +1133,7 @@ export default function PracticeScreen() {
                 </Text>
 
                 {solutionSteps.length > 0 ? (
-                  <SolutionSteps
-                    size="compact"
+                  <SolutionCards
                     steps={solutionSteps}
                     // A picked option already carries its own CORRECT tag, so
                     // repeating it here would only be noise. A numerical answer
