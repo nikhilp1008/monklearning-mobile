@@ -8,6 +8,7 @@ import { StateCard } from '@/components/states';
 import { stageCopy } from '@/components/snap-loading';
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
+import { useFreeTier } from '@/lib/free-tier';
 import { hapticSoft, hapticTicked, hapticWarning } from '@/lib/haptics';
 import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
@@ -38,6 +39,7 @@ function quotaNote(response: SnapResponse | null): string | null {
 }
 
 export default function SnapSolvedScreen() {
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [index, setIndex] = useState(0);
@@ -176,10 +178,10 @@ export default function SnapSolvedScreen() {
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.stateBlock}>
             {job.failure.stage === 'quota' && job.failure.upgrade ? (
-              // The FREE tier's limit: the server's sentence, and a way to a plan.
+              // A limit with a way up (the free tier's, or Pro's): the server's sentence, and a way to a plan.
               <StateCard
                 glyph="clock"
-                title="You've used your free snaps"
+                title={free ? "You've used your free snaps" : "You've used today's snaps"}
                 line={job.failure.message}
                 action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
                 quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}

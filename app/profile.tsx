@@ -163,7 +163,7 @@ export default function ProfileScreen() {
         ? `Ends ${asShortDate(runningEnds)}\nPaid till ${asShortDate(pass.endsAt)}`
         : `Active till ${asShortDate(pass.endsAt)}`
       : pass && (pass.state === 'none' || pass.state === 'expired') && pass.free
-        ? 'A plan adds live classes and unlimited practice'
+        ? 'A plan adds live classes and more questions every day'
         : pass?.state === 'expired'
           ? `Ended ${asShortDate(pass.endsAt)}`
           : pass?.state === 'unknown'

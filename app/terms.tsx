@@ -9,7 +9,7 @@ const SECTIONS = [
   },
   {
     title: 'What monklearning is',
-    body: 'An AI teaching platform for JEE Main and NEET UG: live classroom sessions, a lesson library, Snap-a-doubt, unlimited practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
+    body: 'An AI teaching platform for JEE Main and NEET UG: live classroom sessions, a lesson library, Snap-a-doubt, daily practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
   },
   {
     title: 'Your account',
@@ -33,7 +33,7 @@ const SECTIONS = [
   },
   {
     title: 'Changes & availability',
-    body: 'We do routine maintenance and occasionally have outages. If significant downtime affects a short plan or Day Pass, we’ll extend your access to make up for it. Features we describe as “coming soon,” like JEE Advanced, are plans, not something your current purchase guarantees.',
+    body: 'We do routine maintenance and occasionally have outages. If significant downtime affects a day or 7-day pass, we’ll extend your access to make up for it. Features we describe as “coming soon,” like JEE Advanced, are plans, not something your current purchase guarantees.',
   },
   {
     title: 'What we don’t guarantee',

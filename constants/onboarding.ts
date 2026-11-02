@@ -142,15 +142,16 @@ export type PassKey = (typeof PASSES)[number]['id'];
  * failure the copy was meant to prevent. A comment cannot keep two constants
  * equal; one constant can.
  *
- * THE NUMBERS ARE 50 AND 150. monklearning.com still publishes 75 in three
- * places, including the structured FAQ answer to "What exactly does a pass
- * include?" that Google reads, and that file is in another repo. Home has
- * always said 150. Neither figure is enforced on the server yet: /practice/*
- * returns no daily or quota field at all, where Snap has `daily_limit` and
- * `used_today`.
+ * THESE ARE THE STARTER PASSES' NUMBERS (the day and week passes): 25 snaps and
+ * 100 practice questions a day, one live class on the day pass and three on the
+ * week pass. They are the server's `tier_limits` (API migration 0116), and the
+ * plans page reads them from there; this list is the onboarding screen's own
+ * copy of the same figures. monklearning.com is another repo and still says
+ * the old ones.
  */
 export const INCLUDED: [string, string][] = [
   ['Class 11 & 12', 'Every chapter, taught aloud'],
+  ['Live classes', '1 on the day pass · 3 on the week pass'],
   ['Every day', '25 snaps · 100 practice questions'],
   ['Drona & Vedha', 'English / Hinglish'],
 ];

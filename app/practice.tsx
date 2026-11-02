@@ -18,6 +18,7 @@ import { openClass } from '@/lib/open-class';
 import { shadow } from '@/lib/shadow';
 import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { footPadding } from '@/lib/foot-padding';
+import { useFreeTier } from '@/lib/free-tier';
 import { KeyboardSpacer, useScrollFocusedFieldAboveKeyboard } from '@/components/keyboard-spacer';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathLine } from '@/components/math-line';
@@ -89,6 +90,7 @@ const SUBJECT_QUERY: Record<string, string> = {
 
 
 export default function PracticeScreen() {
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   // The numeric answer box sits part-way down the page: scrolled above the
@@ -803,12 +805,17 @@ export default function PracticeScreen() {
           {loading && !question ? (
             <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
           ) : poolMessage && poolReason === 'daily_limit' && poolUpgrade ? (
-            // THE FREE TIER'S LIMIT. Not "opens again tomorrow": the server's
-            // own sentence, which makes the case for a plan, and a way to one.
+            // A LIMIT WITH A WAY UP (the free tier's, or Pro's). Not "opens again
+            // tomorrow": the server's own sentence, which makes the case for a
+            // bigger plan, and a way to one.
             <StateCard
               style={styles.stateCard}
               glyph="clock"
-              title={quota ? `You've done today's ${quota.limit} free questions` : "You've done today's free questions"}
+              title={
+                free
+                  ? quota ? `You've done today's ${quota.limit} free questions` : "You've done today's free questions"
+                  : quota ? `That's today's ${quota.limit}` : "That's today's questions"
+              }
               line={poolMessage}
               action={{ label: 'See plans', onPress: () => router.push('/plans') }}
               quiet={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}

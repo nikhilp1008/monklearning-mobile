@@ -1,3 +1,6 @@
+import { PLANS } from '@/components/paywall/plans';
+import { rupees } from '@/constants/onboarding';
+
 /** How long before the end a day pass starts to say so, and a week pass. */
 const DAY_WARN_H = 6;
 const WEEK_WARN_H = 48;
@@ -12,7 +15,7 @@ export function pendingLine(kind: 'day' | 'week', hoursLeft: number): { title: s
   if (kind === 'day') {
     if (hoursLeft > DAY_WARN_H) return null;
     const left = hoursLeft < 1 ? 'less than an hour' : `${Math.ceil(hoursLeft)} hour${Math.ceil(hoursLeft) === 1 ? '' : 's'}`;
-    return { title: `Your day pass ends in ${left}`, line: 'Keep your classes going with Pro, from ₹499 a month.' };
+    return { title: `Your day pass ends in ${left}`, line: `Keep your classes going with Pro, from ${rupees(PLANS[0].price)} a month.` };
   }
   if (hoursLeft > WEEK_WARN_H) return null;
   const days = Math.ceil(hoursLeft / 24);

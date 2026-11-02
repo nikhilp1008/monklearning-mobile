@@ -367,13 +367,11 @@ export default function HomeScreen() {
                 <ArrowRightIcon color={colors.ink} size={scale(16)} />
               </View>
               <Text style={styles.stripTitle}>Practice</Text>
-              {/* 150 a day, and the app now says so everywhere — the pass
-                  screen and the paywall both read this off `INCLUDED` in
-                  constants/onboarding.ts. monklearning.com is still on 75 in
-                  three places, including the structured FAQ Google reads, and
-                  that file is in another repo. Neither figure is enforced on
-                  the server yet: /practice/* returns no daily or quota field,
-                  unlike Snap, which has daily_limit and used_today. */}
+              {/* The student's own number: the free tier's, or their plan's from the
+                  server's tier_limits (lib/pass.ts). 150 is what a paying student
+                  had before plans, and what the app says until the server has
+                  said which plan this is (the tiers are switched on after the
+                  app that knows them is out). */}
               <Text style={styles.stripBody}>
                 {freeTier.free
                   ? `${freeTier.limits.practice_questions} free a day, across all subjects`

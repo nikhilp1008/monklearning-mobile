@@ -33,7 +33,7 @@ export function useUpiApps(): { apps: UpiApp[] | null; last: string | null } {
 /**
  * PAY WITH A UPI APP, ON OUR PAGE (design B, 26 Oct 2026).
  *
- * "Pay ₹79 with", then one white row per app (icon, name, chevron), the app
+ * "Pay ₹499 with", then one white row per app (icon, name, chevron), the app
  * used last marked "Last used" and first. One tap opens that app with the order.
  * Everything else (cards, netbanking, wallets, other UPI apps and UPI ID) is the
  * link under the rows, which opens Razorpay's own checkout.

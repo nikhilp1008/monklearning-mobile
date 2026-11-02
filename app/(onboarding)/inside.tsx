@@ -73,7 +73,7 @@ const LOOP = [
   {
     key: 'practice',
     title: 'Practice',
-    body: '150 questions a day, picked from what you have proved and what you have not.',
+    body: 'Questions every day, picked from what you have proved and what you have not.',
   },
 ] as const;
 
