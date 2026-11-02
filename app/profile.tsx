@@ -33,7 +33,7 @@ import { useScale } from '@/constants/scale';
 import { SKY_THEMES, START_ARROW, TEACHERS } from '@/constants/teachers';
 import { signOut } from '@/lib/auth';
 import { hapticCommitted, hapticSwitched, hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
-import { PASS_NAME, isTeamAccess, passStatus, type PassStatus } from '@/lib/pass';
+import { PASS_NAME, isTeamAccess, passDays, passStatus, type PassStatus } from '@/lib/pass';
 import { pullPersona, pushPersona } from '@/lib/persona-sync';
 import {
   getLanguagePreference,
@@ -149,10 +149,17 @@ export default function ProfileScreen() {
           : pass?.state === 'unknown'
             ? 'Your pass'
             : 'No pass yet';
+  const runningEnds =
+    pass?.state === 'active' ? new Date(new Date(pass.record.startedAt).getTime() + passDays(pass.record.kind) * 86400000) : null;
   const passLine = team
     ? 'No pass needed'
     : pass?.state === 'active'
-      ? `Active till ${asShortDate(pass.endsAt)}`
+      ? // Several plans bought back to back: the server's end date is for ALL of
+        // them, so say when this one ends as well rather than let it read as
+        // the end of the plan named above.
+        runningEnds && runningEnds.getTime() + 86400000 < pass.endsAt.getTime()
+        ? `Ends ${asShortDate(runningEnds)}\nPaid till ${asShortDate(pass.endsAt)}`
+        : `Active till ${asShortDate(pass.endsAt)}`
       : pass && (pass.state === 'none' || pass.state === 'expired') && pass.free
         ? 'A plan adds live classes and unlimited practice'
         : pass?.state === 'expired'

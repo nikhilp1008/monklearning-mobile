@@ -99,6 +99,12 @@ export default function SubscriptionScreen() {
   const stacked =
     !!active && !!record && !!endsAt &&
     endsAt.getTime() - new Date(record.startedAt).getTime() > (passDays(record.kind) + 1) * 86400000;
+  /** When the plan that is running right now ends, apart from the ones queued
+   *  behind it. The server sends only the end of ALL the paid time, so this is
+   *  the running plan's own start plus its own length. */
+  const runningEnds = stacked && record ? new Date(new Date(record.startedAt).getTime() + passDays(record.kind) * 86400000) : null;
+  const runningMs = runningEnds ? Math.max(runningEnds.getTime() - Date.now(), 0) : 0;
+  const runningLeft = runningMs >= 86400000 ? `${Math.ceil(runningMs / 86400000)} days left` : `${Math.max(1, Math.ceil(runningMs / 3600000))} hours left`;
 
   return (
     <SettingsPage title="Your plan">
@@ -115,6 +121,8 @@ export default function SubscriptionScreen() {
             line={
               team
                 ? 'This account never needs a pass.'
+                : active && endsAt && runningEnds
+                  ? `This plan ends ${asDate(runningEnds)} · ${runningLeft}\nPaid until ${asDate(endsAt)}`
                 : active && endsAt
                   ? `Ends ${asDate(endsAt)} · ${active.daysLeft > 1 ? `${active.daysLeft} days left` : `${active.hoursLeft} hours left`}`
                   : free
@@ -125,7 +133,7 @@ export default function SubscriptionScreen() {
                       ? 'Check your connection and open this page again.'
                       : 'Choose a plan to start classes, snaps and practice.'
             }
-            progress={active && !team ? used : null}
+            progress={active && !team ? (runningEnds && record ? Math.max(0, Math.min(1, 1 - runningMs / (passDays(record.kind) * 86400000))) : used) : null}
           />
 
           {(ended || nearingEnd) && !team ? (
@@ -140,6 +148,7 @@ export default function SubscriptionScreen() {
               <View style={styles.card}>
                 <Row scale={scale} label="Plan" value={PASS_NAME[record.kind]} />
                 <Row scale={scale} label="Started" value={asDate(new Date(record.startedAt))} />
+                {runningEnds ? <Row scale={scale} label="This plan ends" value={asDate(runningEnds)} /> : null}
                 {endsAt ? <Row scale={scale} label={active ? (stacked ? 'All paid time ends' : 'Ends') : 'Ended'} value={asDate(endsAt)} /> : null}
                 <Row scale={scale} label="How you got it" value={howGot(record)} />
                 <Row scale={scale} label="Renews" value="Never on its own" last />
@@ -149,8 +158,8 @@ export default function SubscriptionScreen() {
 
           {stacked && !team ? (
             <Text style={styles.foot}>
-              You added more time while a plan was running, so the next plan starts when the one before it ends. The
-              date above is when all of it ends.
+              You added more time while a plan was running, so each plan starts when the one before it ends. The last
+              date is when all of your paid time ends.
             </Text>
           ) : null}
 
