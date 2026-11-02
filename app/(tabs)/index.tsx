@@ -42,7 +42,8 @@ import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { pullPersona } from '@/lib/persona-sync';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { getStoredName } from '@/lib/profile';
-import { useFreeTier } from '@/lib/free-tier';
+import { PassEndingBanner } from '@/components/pass-ending-banner';
+import { useFreeTier, usePlan } from '@/lib/free-tier';
 import { openClass } from '@/lib/open-class';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { useStartingPointOffer } from '@/lib/starting-point';
@@ -82,6 +83,7 @@ type StatsState =
 
 export default function HomeScreen() {
   const freeTier = useFreeTier();
+  const plan = usePlan();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
@@ -375,7 +377,7 @@ export default function HomeScreen() {
               <Text style={styles.stripBody}>
                 {freeTier.free
                   ? `${freeTier.limits.practice_questions} free a day, across all subjects`
-                  : '150 a day, across all subjects'}
+                  : `${plan.tier && plan.tier !== 'free' ? plan.tiers[plan.tier].practice_questions : 150} a day, across all subjects`}
               </Text>
             </PressableScale>
           </View>
@@ -402,6 +404,8 @@ export default function HomeScreen() {
           ) : (
             startingPoint && <StartingPointCard offer={startingPoint} />
           )}
+
+          <PassEndingBanner />
 
           {stats.kind === 'ready' && (
             <View style={styles.stats}>

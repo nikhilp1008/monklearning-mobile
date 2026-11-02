@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { getTier, subscribeTier } from '@/lib/pass';
+import { getPlan, getTier, subscribePlan, subscribeTier } from '@/lib/pass';
 
 /**
  * Whether the signed-in student is on the free tier, and what it allows each day.
@@ -13,4 +13,14 @@ import { getTier, subscribeTier } from '@/lib/pass';
  */
 export function useFreeTier() {
   return useSyncExternalStore(subscribeTier, getTier, getTier);
+}
+
+/**
+ * Which plan the signed-in student is on, what each plan allows, where they
+ * stand on live classes, and which starter passes they have used. Same rules as
+ * `useFreeTier`: right on the first frame once the app has asked, and the
+ * server enforces every limit regardless.
+ */
+export function usePlan() {
+  return useSyncExternalStore(subscribePlan, getPlan, getPlan);
 }

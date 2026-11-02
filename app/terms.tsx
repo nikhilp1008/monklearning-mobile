@@ -17,7 +17,7 @@ const SECTIONS = [
   },
   {
     title: 'Pricing & payment',
-    body: 'Payments are one-time, not subscriptions, and nothing auto-renews. You choose a duration (1, 3, 6 or 11 months) per exam track, or a ₹79 Day Pass (24 hours of full access from your first class) or a ₹249 7-day pass. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST and are processed through RBI-regulated payment gateways.',
+    body: 'Payments are one-time, not subscriptions, and nothing auto-renews. You choose a Pro (₹499) or Max (₹899) plan for one month, or try the app with a ₹7 day pass or a ₹39 7-day pass (one of each per account). Each plan has its own daily limits, shown on the plans page before you pay. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST and are processed through RBI-regulated payment gateways.',
   },
   {
     title: 'Acceptable use',

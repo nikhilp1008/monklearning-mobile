@@ -140,8 +140,10 @@ export default function ProfileScreen() {
   const passTitle = team
     ? 'Team access'
     : pass?.state === 'active'
-      ? // "7 days" is a length; as a name it is a "7-day pass".
-        `${PASS_NAME[pass.record.kind].replace(/^(\d+) (day|month)s?$/, '$1-$2')} pass`
+      ? // "7 days" is a length; as a name it is a "7-day pass". Pro and Max are plans.
+        pass.record.kind === 'pro_1m' || pass.record.kind === 'max_1m'
+        ? `${PASS_NAME[pass.record.kind]} plan`
+        : `${PASS_NAME[pass.record.kind].replace(/^(\d+) (day|month)s?$/, '$1-$2')} pass`
       : pass && (pass.state === 'none' || pass.state === 'expired') && pass.free
         ? 'Free plan'
         : pass?.state === 'expired'

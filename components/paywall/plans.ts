@@ -1,56 +1,49 @@
 /**
- * THE FOUR PLANS, AND ONE PRICE LIST FOR EVERY EXAM.
+ * THE PLANS: PRO AND MAX, A MONTH AT A TIME.
  *
- * A plan is for one exam — JEE Main or NEET UG, whichever the student chose in
- * onboarding — and the price is the same for either, so there is one list.
- * There is no "both exams" plan; that option was removed from the app.
+ * A plan is for one exam (JEE Main or NEET UG, whichever the student chose in
+ * onboarding) and the price is the same for either. Nothing runs longer than a
+ * month any more (founder, 2026-11-02): the app is too new to ask for more
+ * trust than that. The earlier 1 / 3 / 6 / 11-month plans are no longer sold,
+ * but passes already bought keep working and carry Max limits (lib/pass.ts).
  *
  * THESE FIGURES ARE WHAT THE ROWS SHOW. What is CHARGED is the server's list
- * (`pass_kinds`, migrations/0107 in the API repo): the app never sends a price,
- * so the two must be kept equal by hand.
+ * (`pass_kinds`, migration 0116 in the API repo): the app never sends a price,
+ * so the two must be kept equal by hand. What each plan ALLOWS is the server's
+ * `tier_limits` table, read from `/pass` (lib/pass.ts DEFAULT_TIERS holds the
+ * same numbers for the first frame and for no signal).
  *
- * October 2026: 1 month ₹1,599, 3 months ₹4,999, 6 months ₹9,499,
- * 11 months ₹16,999. Per month that is ₹1,599 / ₹1,666 / ₹1,583 / ₹1,545 — the
- * 3-month plan works out dearer per month than the 1-month one, so its row
- * shows no saving.
- *
- * The day and week passes (₹79 and ₹249, the early-access prices on the
- * website) are a different thing to buy and are priced on their own in
- * `PASSES`. There is no win-back offer any more (founder, 2026-10-23).
+ * The day and week passes (Rs 7 and Rs 39) are starters, one each per account,
+ * and are priced in `PASSES` (constants/onboarding.ts).
  */
 
+import type { PassKind } from '@/lib/pass';
 
 export type Plan = {
-  id: '1m' | '3m' | '6m' | '11m';
+  id: Extract<PassKind, 'pro_1m' | 'max_1m'>;
   /** As it reads on the row. */
   name: string;
+  tier: 'pro' | 'max';
   months: number;
   price: number;
 };
 
 export const PLANS: Plan[] = [
-  { id: '1m', name: '1 month', months: 1, price: 1599 },
-  { id: '3m', name: '3 months', months: 3, price: 4999 },
-  { id: '6m', name: '6 months', months: 6, price: 9499 },
-  { id: '11m', name: '11 months', months: 11, price: 16999 },
+  { id: 'pro_1m', name: 'Pro', tier: 'pro', months: 1, price: 499 },
+  { id: 'max_1m', name: 'Max', tier: 'max', months: 1, price: 899 },
 ];
 
-/** The reference the rest of the ladder is measured against. */
-const MONTHLY = PLANS[0].price;
+/** The reference a month is measured against. */
+export const MONTHLY = PLANS[0].price;
 
+/** What a month costs. Every plan is a month, so it is the price. */
 export const perMonth = (p: Plan) => Math.round(p.price / p.months);
 
-/** Whole percent off the 1-month rate. 0 for the 1-month plan itself. */
-export const savedPercent = (p: Plan) =>
-  Math.round(100 * (1 - p.price / (MONTHLY * p.months)));
-
 /**
- * The longest plan, and the only one carrying a badge.
- *
- * Every step now saves a different amount (10 / 15 / 20), so badging the
- * middle rows would no longer print the same number twice — the reason this
- * was one badge rather than three has gone. It stays one badge anyway: three
- * competing "save X%" flags turn a ladder into a puzzle, and the per-month
- * rate on every row already does the comparing.
+ * Nothing is badged as "best value": Pro and Max differ in what they allow, not
+ * in how long they run, so there is no saving to claim.
  */
+export const savedPercent = (_p: Plan) => 0;
+
+/** What the success page assumes when it is not told which plan was bought. */
 export const BEST = PLANS[PLANS.length - 1].id;

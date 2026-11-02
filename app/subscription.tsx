@@ -10,7 +10,7 @@ import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
-import { useFreeTier } from '@/lib/free-tier';
+import { useFreeTier, usePlan } from '@/lib/free-tier';
 import { PASS_NAME, isTeamAccess, passDays, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 
@@ -92,6 +92,11 @@ export default function SubscriptionScreen() {
   const ended = status?.state === 'expired' || status?.state === 'none';
   /** The free tier: not paying, but in the app with daily limits. */
   const { limits } = useFreeTier();
+  /** The plan's own numbers and where the student stands on live classes. */
+  const { tiers, classes } = usePlan();
+  const planTier = record ? (record.kind === 'day' ? 'day' : record.kind === 'week' ? 'week' : record.kind === 'pro_1m' ? 'pro' : 'max') : 'pro';
+  const allowed = tiers[planTier];
+  const starterRunning = !!active && (record?.kind === 'day' || record?.kind === 'week');
   const free = (status?.state === 'none' || status?.state === 'expired') && status.free === true;
   /** More than one plan bought back to back: the server reports the running
    *  plan's start and the end of ALL the paid time, so the two do not describe
@@ -136,9 +141,9 @@ export default function SubscriptionScreen() {
             progress={active && !team ? (runningEnds && record ? Math.max(0, Math.min(1, 1 - runningMs / (passDays(record.kind) * 86400000))) : used) : null}
           />
 
-          {(ended || nearingEnd) && !team ? (
+          {(ended || nearingEnd || starterRunning) && !team ? (
             <View style={{ marginTop: scale(14) }}>
-              <ObButton label={ended ? 'Choose a plan' : 'Add more time'} withArrow onPress={() => router.push('/plans')} />
+              <ObButton label={ended ? 'Choose a plan' : starterRunning ? 'Move up to Pro or Max' : 'Add more time'} withArrow onPress={() => router.push('/plans')} />
             </View>
           ) : null}
 
@@ -150,6 +155,13 @@ export default function SubscriptionScreen() {
                 <Row scale={scale} label="Started" value={asDate(new Date(record.startedAt))} />
                 {runningEnds ? <Row scale={scale} label="This plan ends" value={asDate(runningEnds)} /> : null}
                 {endsAt ? <Row scale={scale} label={active ? (stacked ? 'All paid time ends' : 'Ends') : 'Ended'} value={asDate(endsAt)} /> : null}
+                {active && classes ? (
+                  <Row
+                    scale={scale}
+                    label={classes.window_days >= 30 ? 'Classes left this month' : 'Classes left'}
+                    value={`${classes.left} of ${classes.limit}`}
+                  />
+                ) : null}
                 <Row scale={scale} label="How you got it" value={howGot(record)} />
                 <Row scale={scale} label="Renews" value="Never on its own" last />
               </View>
@@ -163,11 +175,16 @@ export default function SubscriptionScreen() {
             </Text>
           ) : null}
 
-          <Text style={styles.overline}>EVERY PLAN INCLUDES</Text>
+          <Text style={styles.overline}>{record && !team ? 'YOUR PLAN INCLUDES' : 'EVERY PLAN INCLUDES'}</Text>
           <View style={styles.card}>
-            <Included scale={scale} icon={<LiveGlyph size={scale(20)} />} title="Unlimited access to your AI teachers" line="Live classes, follow-ups, any question." />
-            <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line="Solved step by step. Up to 50 a day." />
-            <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line="In the exam's own pattern. Up to 150 a day." />
+            <Included
+              scale={scale}
+              icon={<LiveGlyph size={scale(20)} />}
+              title="Live classes with Drona or Vedha"
+              line={`${allowed.classes} ${allowed.window_days >= 30 ? 'a month' : allowed.window_days === 7 ? 'this week' : 'today'}, and unlimited follow-ups.`}
+            />
+            <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line={`Solved step by step. Up to ${allowed.snap_questions} a day.`} />
+            <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line={`In the exam's own pattern. Up to ${allowed.practice_questions} a day.`} />
             <Included scale={scale} icon={<BookGlyph size={scale(20)} />} title="Textbooks made for revision" line="Formulas, diagrams and key points, chapter by chapter." last />
           </View>
 

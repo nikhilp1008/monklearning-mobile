@@ -348,9 +348,13 @@ export function PaywallSuccess({
 
   return (
     <PassConfirmation
-      sub={`${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`}
+      sub={
+        kind === 'pro_1m' || kind === 'max_1m'
+          ? `You're on ${PASS_NAME[kind]}. Pick a chapter and the class begins.`
+          : `${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`
+      }
       rows={[
-        ['Pass', PASS_NAME[kind]],
+        ['Pass', kind === 'pro_1m' || kind === 'max_1m' ? `${PASS_NAME[kind]} · 1 month` : PASS_NAME[kind]],
         ['Exam', exam ? EXAMS[exam].name : '—'],
         ['Active till', activeTill(kind, endsAt)],
         ['Paid', rupees(paid)],

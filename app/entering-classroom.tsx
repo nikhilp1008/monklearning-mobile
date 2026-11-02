@@ -25,7 +25,9 @@ import {
   getResumableSession,
   resumeDronaSession,
   scopeDronaSession,
+  classLimitOf,
   startDronaSession,
+  type ClassLimit,
   type ResumableSession,
 } from '@/lib/drona-live';
 import { discardPrewarmedClient, prewarmDronaClient } from '@/lib/drona-prewarm';
@@ -159,6 +161,8 @@ export default function EnteringClassroomScreen() {
    */
   const [pendingOption, setPendingOption] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  /** The plan's class limit, when that is why the classroom would not open. */
+  const [classLimit, setClassLimit] = useState<ClassLimit | null>(null);
   /** An unfinished class on this lesson, offered before a new one starts. */
   const [offer, setOffer] = useState<ResumableSession | null>(null);
   const [resuming, setResuming] = useState(false);
@@ -243,7 +247,9 @@ export default function EnteringClassroomScreen() {
       })
       .catch((err) => {
         if (cancelled || (err instanceof Error && err.message === 'cancelled')) return;
-        setErrorMessage(friendlyScopeError(err) || 'Could not reach Drona right now.');
+        const limit = classLimitOf(err);
+        if (limit) setClassLimit(limit);
+        setErrorMessage(limit?.message ?? (friendlyScopeError(err) || 'Could not reach Drona right now.'));
         setStage('error');
       });
     beginRef.current = begin;
@@ -476,13 +482,28 @@ export default function EnteringClassroomScreen() {
         <StatusBar style="light" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
           <View style={styles.stateBlock}>
-            <StateCard
-              tone="dark"
-              glyph="retry"
-              title="Couldn't enter the classroom"
-              line={errorMessage ?? undefined}
-              action={{ label: 'Go back', onPress: () => router.back() }}
-            />
+            {classLimit ? (
+              <StateCard
+                tone="dark"
+                glyph="lock"
+                title="That's your classes for now"
+                line={classLimit.message}
+                action={
+                  classLimit.upgrade
+                    ? { label: 'See plans', onPress: () => router.replace('/plans') }
+                    : { label: 'Go back', onPress: () => router.back() }
+                }
+                quiet={classLimit.upgrade ? { label: 'Not now', onPress: () => router.back() } : undefined}
+              />
+            ) : (
+              <StateCard
+                tone="dark"
+                glyph="retry"
+                title="Couldn't enter the classroom"
+                line={errorMessage ?? undefined}
+                action={{ label: 'Go back', onPress: () => router.back() }}
+              />
+            )}
           </View>
         </SafeAreaView>
       </View>

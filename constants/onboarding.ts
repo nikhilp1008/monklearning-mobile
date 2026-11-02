@@ -127,8 +127,8 @@ export const ob = {
  * there -- see app/(onboarding)/pass.tsx.
  */
 export const PASSES = [
-  { id: 'day', name: '1 day', price: 79 },
-  { id: 'week', name: '7 days', price: 249 },
+  { id: 'day', name: '1 day', price: 7 },
+  { id: 'week', name: '7 days', price: 39 },
 ] as const;
 
 export type PassKey = (typeof PASSES)[number]['id'];
@@ -151,7 +151,7 @@ export type PassKey = (typeof PASSES)[number]['id'];
  */
 export const INCLUDED: [string, string][] = [
   ['Class 11 & 12', 'Every chapter, taught aloud'],
-  ['Every day', '50 snaps · 150 practice questions'],
+  ['Every day', '25 snaps · 100 practice questions'],
   ['Drona & Vedha', 'English / Hinglish'],
 ];
 

@@ -10,14 +10,16 @@ import { ObButton } from '@/components/onboarding-kit';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
-import { rupees } from '@/constants/onboarding';
+import { PASSES, rupees, type PassKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
-import { endsAtFor, type PassKind } from '@/lib/pass';
+import { useFreeTier, usePlan } from '@/lib/free-tier';
+import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
 import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
 import type { TeacherId } from '@/lib/preferences';
 import { rupeesOf, usePromo } from '@/lib/promo';
 
+import { compareRows } from './compare';
 import { PLANS, type Plan } from './plans';
 
 /**
@@ -25,12 +27,13 @@ import { PLANS, type Plan } from './plans';
  *
  * Home's sky at the top — in the student's teacher's light, no logo, no orb,
  * no teacher's name — with one glass panel that says what a plan is for: the
- * AI teachers without a limit, snapping questions, a 20,000+ question bank,
- * the textbooks. The daily caps are there, honestly, as the quiet second line
- * of their row; a big "50" reads as a ceiling to a student who would never
- * reach it. Then the four plans on white, as onboarding's own answer rows in
- * their plain picked state (an ink edge and the tick, no sky: the sky is
- * already the page's header). One line under them: nothing renews.
+ * AI teachers, snapping questions, a 20,000+ question bank, the textbooks. No
+ * numbers there: they differ by plan and live in the table below. Then the two
+ * plans (Pro, Max) on white, as onboarding's own answer rows in their plain
+ * picked state (an ink edge and the tick, no sky: the sky is already the page's
+ * header), then Free, Pro and Max side by side so a number is read against the
+ * others, then the day and week passes for a student only trying it (one each,
+ * ever: a used one is not shown). One line under them: nothing renews.
  *
  * TWO WAYS IN, ONE PAGE. `gate`: the pass has ended and the app opens here;
  * there is no way out but a pass. `extend`: Profile → Your plan → Extend,
@@ -42,13 +45,21 @@ import { PLANS, type Plan } from './plans';
  * Each plan says only when it would run till.
  */
 
-export type PlansPick = Plan['id'];
+export type PlansPick = Plan['id'] | PassKey;
 
 export type PlansPageProps = {
   context: 'gate' | 'extend';
   teacher: TeacherId;
   /** Extend only: when the running pass ends. New time starts the day after. */
   passEnds?: Date | null;
+  /** Extend only: the kind of the running pass. Pro or Max bought over a day or
+   *  week pass starts at once and ends it (the server does that), so the page
+   *  says so instead of promising a start date after the pass. */
+  runningKind?: PassKind | null;
+  /** Gate only: a student who has never held a pass is not told theirs ended. */
+  neverHadPass?: boolean;
+  /** Starter passes already used on this account: not offered again. */
+  starterUsed?: PassKind[];
   /** The plan picked when the page opens, or the one carried back from the
    *  promo screen. */
   pick?: PlansPick | null;
@@ -122,8 +133,8 @@ function Glass({ children, scale }: { children: ReactNode; scale: Scale }) {
 }
 
 const OFFER_ROWS = [
-  { key: 'snap', title: 'Snap any question', line: 'Solved step by step. Up to 50 a day.' },
-  { key: 'practice', title: 'Practise from 20,000+ questions', line: "In the exam's own pattern. Up to 150 a day." },
+  { key: 'snap', title: 'Snap any question', line: 'Solved step by step, in seconds.' },
+  { key: 'practice', title: 'Practise from 20,000+ questions', line: "In the exam's own pattern." },
   { key: 'book', title: 'Textbooks made for revision', line: 'Formulas, diagrams and key points, chapter by chapter.' },
 ] as const;
 
@@ -137,12 +148,12 @@ function Offer({ scale }: { scale: Scale }) {
   };
   return (
     <Glass scale={scale}>
-      <Text style={{ fontFamily: 'Onest_700Bold', fontSize: scale(10.5), letterSpacing: scale(1.3), color: colors.paleGold }}>UNLIMITED</Text>
+      <Text style={{ fontFamily: 'Onest_700Bold', fontSize: scale(10.5), letterSpacing: scale(1.3), color: colors.paleGold }}>LIVE WITH DRONA AND VEDHA</Text>
       <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(20), lineHeight: scale(25), letterSpacing: scale(-0.3), color: PAPER, marginTop: scale(6) }}>
-        Access to your AI teachers
+        Every chapter, taught aloud
       </Text>
       <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), lineHeight: scale(20), color: PAPER62, marginTop: scale(6) }}>
-        Live classes, follow-ups, any question.
+        Live classes, follow-ups, and a plan for how much you need.
       </Text>
       <View style={{ height: 1, backgroundColor: 'rgba(255,253,248,.12)', marginTop: scale(18) }} />
       {OFFER_ROWS.map((r, i) => (
@@ -157,6 +168,43 @@ function Offer({ scale }: { scale: Scale }) {
         </View>
       ))}
     </Glass>
+  );
+}
+
+/**
+ * FREE, PRO AND MAX SIDE BY SIDE. A number reads against the others: 45 classes
+ * means little until the column beside it says none, and the column beside that
+ * says 60. Every figure comes from the server's own table (`usePlan`), so the
+ * page and the limit a student meets can never disagree.
+ */
+function Compare({ scale, selected }: { scale: Scale; selected: 'pro' | 'max' | null }) {
+  const { tiers } = usePlan();
+  const { limits } = useFreeTier();
+  const rows = compareRows(limits, tiers.pro, tiers.max);
+  const col = (on: boolean): object => ({ flex: 1.15, textAlign: 'center', color: on ? colors.ink : colors.slate });
+  const head = { fontFamily: 'Onest_700Bold', fontSize: scale(12.5), paddingBottom: scale(8) };
+  const cell = { fontFamily: 'Onest_500Medium', fontSize: scale(12.5), lineHeight: scale(17) };
+  return (
+    <View style={{ marginTop: scale(22) }}>
+      <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(10), letterSpacing: scale(1.4), color: colors.slate, marginBottom: scale(10) }}>WHAT EACH ONE GIVES YOU</Text>
+      <View style={{ flexDirection: 'row' }}>
+        <Text style={{ flex: 1.5 }} />
+        <Text style={[head, col(false)]}>Free</Text>
+        <Text style={[head, col(selected === 'pro')]}>Pro</Text>
+        <Text style={[head, col(selected === 'max')]}>Max</Text>
+      </View>
+      {rows.map((r) => (
+        <View key={r.label} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: scale(9), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)' }}>
+          <Text style={[cell, { flex: 1.5, fontFamily: 'Onest_400Regular', color: colors.slate }]}>{r.label}</Text>
+          <Text style={[cell, col(false)]}>{r.free}</Text>
+          <Text style={[cell, col(selected === 'pro')]}>{r.pro}</Text>
+          <Text style={[cell, col(selected === 'max')]}>{r.max}</Text>
+        </View>
+      ))}
+      <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(11.5), lineHeight: scale(16), color: colors.slate, marginTop: scale(6) }}>
+        Follow-ups have a fair-use ceiling no one doing homework will meet.
+      </Text>
+    </View>
   );
 }
 
@@ -197,15 +245,22 @@ export function PlansPage(props: PlansPageProps) {
   const [sky, setSky] = useState({ width: 0, height: 0 });
   const theme = SKY_THEMES[props.teacher];
 
-  const [pick, setPick] = useState<PlansPick | null>(props.pick ?? '6m');
+  const [pick, setPick] = useState<PlansPick | null>(props.pick ?? 'pro_1m');
   // The promo screen goes back to this same page with the pick it carried.
   useEffect(() => {
     if (props.pick) setPick(props.pick);
   }, [props.pick]);
 
   const plan = PLANS.find((p) => p.id === pick) ?? null;
-  const price = plan?.price ?? 0;
-  const name = plan?.name ?? '';
+  const starter = PASSES.find((p) => p.id === pick) ?? null;
+  const price = plan?.price ?? starter?.price ?? 0;
+  const name = plan?.name ?? starter?.name ?? '';
+  const starterUsed = props.starterUsed ?? [];
+  const runningStarter = props.runningKind === 'day' || props.runningKind === 'week';
+  // A starter is for trying the app: not offered to someone already on Pro, Max or a longer pass.
+  const starters = props.runningKind && !runningStarter ? [] : PASSES.filter((p) => !starterUsed.includes(p.id));
+  /** Pro or Max over a running starter pass begins now, not after it. */
+  const startsNow = props.context === 'extend' && runningStarter && !!plan;
 
   // A typed code, or one made for this student; the server prices it.
   const promo = usePromo(props.promo ?? '', pick ? (pick as PassKind) : null);
@@ -221,16 +276,21 @@ export function PlansPage(props: PlansPageProps) {
   // to four days more than a student received ("Till 14 Jan 2028" for a plan that
   // runs to 11 Jan), and a different date from the receipt a minute later.
   const today = midnight(new Date());
-  const from = props.context === 'extend' && props.passEnds ? props.passEnds : new Date();
+  const from = props.context === 'extend' && props.passEnds && !startsNow ? props.passEnds : new Date();
   const till = (p: Plan) => asDay(endsAtFor({ kind: p.id, startedAt: from.toISOString() }), today);
 
-  const title = props.context === 'extend' ? 'Add more time' : 'Your pass has ended';
+  const title =
+    props.context === 'extend' ? (runningStarter ? 'Keep going' : 'Add more time') : props.neverHadPass ? 'Choose a plan' : 'Your pass has ended';
   const sub =
     props.context === 'extend'
-      ? props.passEnds
-        ? `New time starts after your pass ends on ${asDay(props.passEnds, today)}.`
-        : 'New time starts after your current pass ends.'
-      : 'Choose a plan to continue. Your progress is saved.';
+      ? startsNow
+        ? `${plan?.name} starts right away and takes over from the rest of your ${PASS_NAME[props.runningKind as PassKind]} pass.`
+        : props.passEnds
+          ? `New time starts after your pass ends on ${asDay(props.passEnds, today)}.`
+          : 'New time starts after your current pass ends.'
+      : props.neverHadPass
+        ? 'Live classes, more questions and every mock. Your progress is saved.'
+        : 'Choose a plan to continue. Your progress is saved.';
 
   const promoLine = quote
     ? `${quote.code} applied · −${rupees(rupeesOf(quote.discountPaise))}`
@@ -304,7 +364,7 @@ export function PlansPage(props: PlansPageProps) {
                 shape="row"
                 label={p.name}
                 note={`Till ${till(p)}`}
-                trailing={rupees(p.price)}
+                trailing={`${rupees(p.price)} a month`}
                 selected={pick === p.id}
                 tickArrives
                 plain
@@ -312,6 +372,29 @@ export function PlansPage(props: PlansPageProps) {
               />
             ))}
           </View>
+
+          <Compare scale={scale} selected={plan?.tier ?? null} />
+
+          {starters.length > 0 ? (
+            <View style={{ marginTop: scale(26) }}>
+              <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(10), letterSpacing: scale(1.4), color: colors.slate, marginBottom: scale(10) }}>JUST TRYING IT?</Text>
+              <View style={{ gap: scale(10) }}>
+                {starters.map((p) => (
+                  <SkyChoice
+                    key={p.id}
+                    shape="row"
+                    label={p.name}
+                    note={p.id === 'day' ? 'A live class, snaps and practice' : '3 live classes, snaps and practice'}
+                    trailing={rupees(p.price)}
+                    selected={pick === p.id}
+                    tickArrives
+                    plain
+                    onPress={() => setPick(p.id)}
+                  />
+                ))}
+              </View>
+            </View>
+          ) : null}
 
           {/* One line, always: it shrinks a little on a narrow phone rather
               than leaving "choose to." alone on a second line. */}
