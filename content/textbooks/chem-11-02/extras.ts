@@ -398,7 +398,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 1 — Discovery-fact one-liners and assertion–reason pairs</b>' },
       {
         t: 'p',
-        html: '<b>Shape.</b> “Rutherford’s foil was gold”; “<i>e</i>/<i>m</i> of the electron does not depend on the gas in the discharge tube”; “isobars have the same (p + n) sum but different p”; “electrons, protons and neutrons are fundamental particles… except protium has no neutron”.<br><br><b>Approach.</b> Cold recall, but with the reasons attached, because NEET’s assertion–reason format tests the linkage: e/m of cathode rays is constant because the electron is universal; isotopes share chemical behaviour because they share electronic configuration.',
+        html: '<b>Shape.</b> “Rutherford’s foil was gold”; “<i>e</i>/<i>m</i> of the electron does not depend on the gas in the discharge tube”; “isobars have the same (p + n) sum but different p”; “electrons, protons and neutrons are fundamental particles… except protium has no neutron”.<br><br><b>Approach.</b> Cold recall, but with the reasons attached, because NEET’s assertion–reason format tests the linkage: <i>e</i>/<i>m</i> of cathode rays is constant because the electron is universal; isotopes share chemical behaviour because they share electronic configuration.',
       },
       {
         t: 'ex',

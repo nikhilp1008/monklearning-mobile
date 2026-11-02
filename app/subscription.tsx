@@ -10,7 +10,8 @@ import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
-import { PASS_NAME, isTeamAccess, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
+import { useFreeTier } from '@/lib/free-tier';
+import { PASS_NAME, isTeamAccess, passDays, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 
 /**
@@ -89,6 +90,15 @@ export default function SubscriptionScreen() {
   /** The last fortnight, where adding time stops being a sales pitch. */
   const nearingEnd = !!active && daysLeft <= 15;
   const ended = status?.state === 'expired' || status?.state === 'none';
+  /** The free tier: not paying, but in the app with daily limits. */
+  const { limits } = useFreeTier();
+  const free = (status?.state === 'none' || status?.state === 'expired') && status.free === true;
+  /** More than one plan bought back to back: the server reports the running
+   *  plan's start and the end of ALL the paid time, so the two do not describe
+   *  one plan. Said, rather than left to look like a wrong date. */
+  const stacked =
+    !!active && !!record && !!endsAt &&
+    endsAt.getTime() - new Date(record.startedAt).getTime() > (passDays(record.kind) + 1) * 86400000;
 
   return (
     <SettingsPage title="Your plan">
@@ -99,15 +109,17 @@ export default function SubscriptionScreen() {
           <PassCard
             scale={scale}
             teacher={teacher}
-            overline={team ? 'TEAM ACCESS' : active ? 'ACTIVE' : status.state === 'expired' ? 'ENDED' : unknown ? 'OFFLINE' : 'NO PASS'}
+            overline={team ? 'TEAM ACCESS' : active ? 'ACTIVE' : free ? 'FREE' : status.state === 'expired' ? 'ENDED' : unknown ? 'OFFLINE' : 'NO PASS'}
             live={!!active}
-            title={team ? 'Team access' : record ? PASS_NAME[record.kind] : unknown ? "Couldn't load your plan" : 'No pass yet'}
+            title={team ? 'Team access' : free ? 'Free plan' : record ? PASS_NAME[record.kind] : unknown ? "Couldn't load your plan" : 'No pass yet'}
             line={
               team
                 ? 'This account never needs a pass.'
                 : active && endsAt
                   ? `Ends ${asDate(endsAt)} · ${active.daysLeft > 1 ? `${active.daysLeft} days left` : `${active.hoursLeft} hours left`}`
-                  : status.state === 'expired' && endsAt
+                  : free
+                    ? `Each day: ${limits.snap_questions} snapped questions, ${limits.practice_questions} practice questions and ${limits.followups} follow-ups, plus ${limits.mocks} full mock paper.`
+                    : status.state === 'expired' && endsAt
                     ? `Ended ${asDate(endsAt)}`
                     : unknown
                       ? 'Check your connection and open this page again.'
@@ -128,11 +140,18 @@ export default function SubscriptionScreen() {
               <View style={styles.card}>
                 <Row scale={scale} label="Plan" value={PASS_NAME[record.kind]} />
                 <Row scale={scale} label="Started" value={asDate(new Date(record.startedAt))} />
-                {endsAt ? <Row scale={scale} label={active ? 'Ends' : 'Ended'} value={asDate(endsAt)} /> : null}
+                {endsAt ? <Row scale={scale} label={active ? (stacked ? 'All paid time ends' : 'Ends') : 'Ended'} value={asDate(endsAt)} /> : null}
                 <Row scale={scale} label="How you got it" value={howGot(record)} />
                 <Row scale={scale} label="Renews" value="Never on its own" last />
               </View>
             </>
+          ) : null}
+
+          {stacked && !team ? (
+            <Text style={styles.foot}>
+              You added more time while a plan was running, so the next plan starts when the one before it ends. The
+              date above is when all of it ends.
+            </Text>
           ) : null}
 
           <Text style={styles.overline}>EVERY PLAN INCLUDES</Text>

@@ -159,7 +159,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Point', 'Strong acid (HCl)', 'Weak acid (CH3COOH)'],
+        head: ['Point', 'Strong acid (HCl)', 'Weak acid (CH<sub>3</sub>COOH)'],
         rows: [
           [
             'Start (0% neutralised)',
@@ -316,9 +316,7 @@ export const TOPICS: Topic[] = [
         tag: '',
         q: 'PCl<sub>5</sub>(g) ⇌ PCl<sub>3</sub>(g) + Cl<sub>2</sub>(g) is at equilibrium with <i>K</i><sub>p</sub> = 0.50 atm, total pressure 1.5 atm and <i>α</i> = 0.5 (partial pressures <i>p</i><sub>PCl₅</sub> = 0.50, <i>p</i><sub>PCl₃</sub> = <i>p</i><sub>Cl₂</sub> = 0.50 atm). Inert gas is added at constant total pressure until the volume doubles. Which way does the system shift?',
         steps: [
-          'Doubling the volume at constant total pressure halves every reacting mole fraction, so each reactive partial pressure halves: <i>p</i>′<sub>PCl₅</sub> = 0.25, <i>p</i>′<sub>PCl₃</sub> = <i>p</i>′<sub>Cl₂</sub> = 0.25 atm. Then',
-          '<i>Q</i><sub>p</sub> = ((0.25)(0.25))/0.25 = 0.25 atm < <i>K</i><sub>p</sub> = 0.50 atm',
-          'so the reaction runs <b>forward</b> — toward more gas moles, restoring what dilution removed. The rule “inert gas at constant <i>P</i> shifts toward more moles” is just this arithmetic compressed.',
+          'Doubling the volume at constant total pressure halves every reacting mole fraction, so each reactive partial pressure halves: <i>p</i>′<sub>PCl₅</sub> = 0.25, <i>p</i>′<sub>PCl₃</sub> = <i>p</i>′<sub>Cl₂</sub> = 0.25 atm. Then<br><i>Q</i><sub>p</sub> = ((0.25)(0.25))/0.25 = 0.25 atm < <i>K</i><sub>p</sub> = 0.50 atm<br>so the reaction runs <b>forward</b> — toward more gas moles, restoring what dilution removed. The rule “inert gas at constant <i>P</i> shifts toward more moles” is just this arithmetic compressed.',
         ],
         ans: '',
       },
@@ -336,7 +334,7 @@ export const TOPICS: Topic[] = [
           '<i>α</i> = degree of dissociation',
           '<i>K</i><sub>p</sub> = equilibrium constant in partial pressures',
           '<i>P</i> = total pressure',
-          'for a single-reactant dissociation A ⇌ B + C',
+          'for a single-reactant dissociation A\u00a0⇌\u00a0B\u00a0+\u00a0C',
         ],
         note: null,
       },

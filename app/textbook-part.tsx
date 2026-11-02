@@ -109,6 +109,11 @@ export default function TextbookPartScreen() {
     loadChapter(subject, classLevel, title)
       .then((data) => {
         if (cancelled) return;
+        // Opened answers and turned cards are keyed by part and block, which
+        // repeat from chapter to chapter: a link into another chapter reuses
+        // this screen, and its practice card 1 opened with the last chapter's
+        // answer showing (on Android, laid out wrong and stuck on 1/5).
+        setState(EMPTY_BLOCK_STATE);
         if (data) setChapter(data);
         else setMissing(true);
       })

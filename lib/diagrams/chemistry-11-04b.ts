@@ -351,11 +351,54 @@ function hBond(s: Sketch, h: P, o: P, boxes: Rect[]) {
   return [a, b] as [P, P];
 }
 const CAP46 = { o: '(a) o-Nitrophenol: intramolecular O–H···O hydrogen bond closing a six-membered chelate ring.', p: '(b) p-Nitrophenol: intermolecular O–H···O hydrogen bonds link separate molecules into a chain.' };
-/** The chelate ring's six members, and a small ring drawn inside it to name it. */
+/**
+ * The chelate ring's six members, and the dashed line drawn round them to name the ring (a group is
+ * named by a line round it): clear of each symbol by `rs` from its centre, of each bare ring corner
+ * by `rc` (the benzene circle sits just below), and round N's “+”, which belongs to the ring's N.
+ */
 function chelate(m: Mol) {
   const ids = ['O1', 'H1', 'Oa', 'N', 'C2', 'C1'], pts = ids.map((id) => byId(m, id).p);
   const c = mul(pts.reduce<P>((t, p) => add(t, p), [0, 0]), 1 / 6);
-  return { ids, pts, c, r: 9 };
+  const rs = 13.5, rc = 0, n = byId(m, 'N'), plus = beside(n.p, 'N', n.qAt ?? 0, 4.6, 2.6), rp = 11;
+  const round = (q: P, r: number) => samples(0, 360, 72).slice(1).map((a) => add(q, mul(dir(a), r)));
+  const cloud = [...ids.flatMap((id, i) => round(pts[i], byId(m, id).show ? rs : rc)), ...round(plus, rp)];
+  return { ids, pts, c, rs, rc, plus, rp, hull: hull(cloud) };
+}
+/** How far above the hydrogen-bond dots its tag line stops; how wide the line round the ring opens for that tag line. */
+const HB_ABOVE = 4, LASSO_GAP = 4.5;
+const TAG_HB = 'intramolecular O–H···O bond', TAG_RING = 'six-membered chelate ring';
+/** Point-to-segment distance. */
+const segDist = (p: P, a: P, b: P) => { const d = sub(b, a), L = d[0] * d[0] + d[1] * d[1] || 1, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1]) / L)); return len(p, add(a, mul(d, t))); };
+/** A closed line resampled every half pixel, with the stretch within `gap` px of the segment a–b left out: an open line starting just after the gap. */
+function openAt(closed: P[], a: P, b: P, gap: number): P[] {
+  const dense: P[] = [];
+  for (let i = 0; i < closed.length - 1; i++) { const n = Math.max(1, Math.ceil(len(closed[i], closed[i + 1]) * 2)); for (let k = 0; k < n; k++) dense.push(add(closed[i], mul(sub(closed[i + 1], closed[i]), k / n))); }
+  const out = dense.map((q) => segDist(q, a, b) < gap);
+  const start = out.findIndex((o, i) => o && !out[(i + 1) % out.length]);
+  if (start < 0) return [...dense, dense[0]];
+  const rot = [...dense.slice(start + 1), ...dense.slice(0, start + 1)], keepIt = [...out.slice(start + 1), ...out.slice(0, start + 1)];
+  return rot.filter((_, i) => !keepIt[i]);
+}
+/** Where a closed line crosses the vertical x = xm, lowest on the drawing (largest y). */
+function lowestAt(closed: P[], xm: number): P {
+  let best: P = closed[0];
+  for (let i = 0; i < closed.length - 1; i++) {
+    const a = closed[i], b = closed[i + 1];
+    if ((a[0] - xm) * (b[0] - xm) > 0 || a[0] === b[0]) continue;
+    const q: P = [xm, a[1] + ((b[1] - a[1]) * (xm - a[0])) / (b[0] - a[0])];
+    if (q[1] > best[1] || best === closed[0]) best = q;
+  }
+  return best;
+}
+/** Convex hull (monotone chain), closed. */
+function hull(ps: P[]): P[] {
+  const q = [...ps].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o: P, a: P, b: P) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo: P[] = [], up: P[] = [];
+  for (const p of q) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of [...q].reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  const h = [...lo.slice(0, -1), ...up.slice(0, -1)];
+  return [...h, h[0]];
 }
 const fig46: Diagram = {
   id: 'c11-04-fig-4.6',
@@ -377,12 +420,20 @@ const fig46: Diagram = {
     const hb = g.hb.map(([h, o]) => hBond(s, byId(all, h).p, byId(all, o).p, boxes));
     if (c.isomer === 'o') {
       const k = chelate(g.mols[0]);
-      path(s, samples(0, 2 * Math.PI, 48).map((t): P => [k.c[0] + k.r * Math.cos(t), k.c[1] + k.r * Math.sin(t)]), { color: C.slate, w: 1.1, dash: 'dot', free: true });
       s.sym(G46.o.at[0] + 40, 268, '(a) o-nitrophenol', { size: 16 });
+      // the bond's tag line ends just above the hydrogen-bond dots, with no dot of its own among them
+      const hbMid = mul(add(hb[0][0], hb[0][1]), 0.5);
+      // the ring's tag line leaves the line round the ring at its lower right, below the C–N bond, and crosses nothing
+      // (straight down from where the line round the ring crosses midway between C2 and N, on its lower side)
+      const xm = (byId(g.mols[0], 'C2').p[0] + byId(g.mols[0], 'N').p[0]) / 2;
+      const hp = lowestAt(k.hull, xm);
       s.place([
-        { t: 'intramolecular O–H···O bond', hi: true, p: mul(add(hb[0][0], hb[0][1]), 0.5), at: [[150, 40, 'middle'], [170, 40, 'middle'], [190, 40, 'middle']] },
-        { t: 'six-membered chelate ring', ring: [k.c[0], k.c[1], k.r], bare: true, at: [[W - 4, 196, 'end'], [W - 4, 204, 'end'], [W - 4, 212, 'end'], [W - 4, 222, 'end']] },
+        { t: TAG_HB, hi: true, p: [hbMid[0], hbMid[1] - HB_ABOVE], bare: true, at: [[150, 40, 'middle'], [170, 40, 'middle'], [190, 40, 'middle']] },
+        { t: TAG_RING, p: hp, bare: true, at: [[hp[0] - 10, 196, 'start'], [hp[0] - 9, 204, 'start'], [W - 4, 196, 'end'], [W - 4, 212, 'end']] },
       ]);
+      // the line round the ring, left open where the bond's tag line passes through it
+      const tl = s.tags.find((t) => t.name === TAG_HB)!;
+      path(s, openAt(k.hull, tl.from!, tl.to!, LASSO_GAP), { color: C.slate, w: 1.2, dash: 'dash' });
       return s;
     }
     const open = g.open as [P, P];
@@ -421,7 +472,18 @@ const fig46: Diagram = {
       out.push([`The hydrogen bond closes a ring of ${chain.length} atoms, ${chain.join('–')}···H: six-membered, as the caption says`, closed && chain.length === 6]);
       out.push([`The O–H···O line is straight (${fmt(lin, 3)}° at H); H···O ${fmt(len(p('H1'), p('Oa')) / G46.o.b, 2)} bond lengths, longer than O–H ${fmt(len(p('O1'), p('H1')) / G46.o.b, 2)}`, close(lin, 180, 1e-6) && len(p('H1'), p('Oa')) > len(p('O1'), p('H1'))]);
       out.push(['The hydrogen bond goes to the nitro group’s =O, inside the same molecule', g.hb[0][1] === 'Oa' && byId(m, 'Oa').lp === 2]);
-      out.push(['The dotted ring naming the chelate lies inside it, clear of all six members and their bonds', kk.pts.every((q) => len(q, kk.c) > kk.r + 8)]);
+      // the line round the ring: every member inside it, every other atom outside
+      const inside = (q: P) => { const h = kk.hull; let w = false; for (let i = 0, j = h.length - 2; i < h.length - 1; j = i++) { if ((h[i][1] > q[1]) !== (h[j][1] > q[1]) && q[0] < ((h[j][0] - h[i][0]) * (q[1] - h[i][1])) / (h[j][1] - h[i][1]) + h[i][0]) w = !w; } return w; };
+      const others = m.atoms.filter((a) => !kk.ids.includes(a.id));
+      const edgeD = (q: P) => Math.min(...kk.hull.slice(0, -1).map((h0, i) => segDist(q, h0, kk.hull[i + 1])));
+      out.push([`The dashed line round the chelate ring holds all six members (the bare ring corners C1, C2 on it, where it runs along their bond; each symbol ${fmt(Math.min(...kk.ids.filter((id) => byId(m, id).show).map((id) => edgeD(p(id)))), 1)}+ px inside) and no other atom (${others.map((a) => a.el + a.id.slice(1)).join(', ')} outside)`, kk.ids.every((id) => (byId(m, id).show ? inside(p(id)) && edgeD(p(id)) >= kk.rs - 0.5 : inside(p(id)) || edgeD(p(id)) < 1e-6)) && others.every((a) => !inside(a.p))]);
+      const tR = s.tags.find((t) => t.name === TAG_RING), tB = s.tags.find((t) => t.name === TAG_HB);
+      // every bond as drawn (the kept lines other than the line round the ring)
+      const bondsOf = (LINES.get(s) ?? []).filter((l) => l.length < 10);
+      const crossesBond = (a: P, b: P) => bondsOf.some((l) => l.some((q, i) => i < l.length - 1 && samples(0, 1, 40).some((t) => segDist(add(q, mul(sub(l[i + 1], q), t)), a, b) < 1.5)));
+      out.push(['The ring’s tag line starts on the line round the ring and crosses no bond', !!tR && !!tR.from && !!tR.to && Math.min(...kk.hull.slice(0, -1).map((h0, i) => segDist(tR.from!, h0, kk.hull[i + 1]))) < 1e-6 && !crossesBond(tR.from, tR.to)]);
+      const hbm = mul(add(p('H1'), p('Oa')), 0.5);
+      out.push([`The O–H···O tag line ends ${HB_ABOVE} px above the hydrogen bond’s middle, without a dot of its own among the bond’s dots, and passes the line round the ring through a gap (crosses no bond either)`, !!tB && !!tB.from && !!tB.to && close(tB.from[0], hbm[0], 1) && close(hbm[1] - tB.from[1], HB_ABOVE, 1e-6) && !s.svg().includes(`<circle cx="${r1(tB.from[0])}" cy="${r1(tB.from[1])}" r="2.6"`) && !crossesBond(tB.from, tB.to) && (LINES.get(s) ?? []).filter((l) => l.length >= 10).every((l) => l.every((q) => segDist(q, tB.from!, tB.to!) >= LASSO_GAP))]);
     } else {
       const all = merge(...g.mols), p = (id: string) => byId(all, id).p;
       const hb = len(p('H1a'), p('Oab')), lin = angleAt(p('O1a'), p('H1a'), p('Oab'));
@@ -645,7 +707,9 @@ const TABLE_A: [number, string, number, number, number, number][] = [
 ];
 /** The book's caption (p. 201), its MO labels set in the chapter's inline NCERT form (σ2p<sub><i>z</i></sub>, π2p), as in the text (expert review N2). */
 const CAPA = 'The two molecular-orbital energy orderings for second-period diatomics: (a) up to N<sub>2</sub>, with the π2p pair below σ2p<sub><i>z</i></sub>; (b) O<sub>2</sub> and F<sub>2</sub>, with σ2p<sub><i>z</i></sub> below the π2p pair. The highlighted levels are the crossover pair.';
-const GA = { y0: 300, dy: 29, a: [96, 136] as [number, number], b: [204, 244] as [number, number], size: 12.5 };
+const GA = { y0: 300, dy: 29, a: [96, 132] as [number, number], b: [208, 244] as [number, number], size: 12.5 };
+/** The crossover mark between the ladders: the arrow's x and where its word starts, both centred on the gap between the two swapped rows. */
+const XO = { arrow: 140.5, word: 150, size: 12 };
 const levelY = (i: number) => GA.y0 - i * GA.dy;
 const crossover = (k: string) => k === 'pz' || k === 'pi';
 const figA: Diagram = {
@@ -664,11 +728,12 @@ const figA: Diagram = {
       });
       s.sym((x0 + x1) / 2, GA.y0 + 34, `(${col})`, { size: 15, color: C.slate });
     });
-    // the crossover: a double-headed arrow between the two swapped levels, in the gap between the ladders
-    const xm = (GA.a[1] + GA.b[0]) / 2, ya = levelY(5) + 5, yb = levelY(4) - 5;
-    s.vec(xm, (ya + yb) / 2, xm, ya - 2, { color: C.mari, w: 1.8 });
-    s.vec(xm, (ya + yb) / 2, xm, yb + 2, { color: C.mari, w: 1.8 });
-    s.sym(xm, levelY(3) + 4, 'crossover', { size: 12.5, color: C.amber });
+    // the crossover: a double-headed arrow spanning the two swapped levels, in the gap between the ladders,
+    // with its word beside it, level with the middle of the swapped pair (not on any row of its own)
+    const ya = levelY(5) + 5, yb = levelY(4) - 5, ymid = (levelY(4) + levelY(5)) / 2;
+    s.vec(XO.arrow, ymid, XO.arrow, ya - 2, { color: C.mari, w: 1.8 });
+    s.vec(XO.arrow, ymid, XO.arrow, yb + 2, { color: C.mari, w: 1.8 });
+    s.sym(XO.word, ymid + XO.size * 0.36, 'crossover', { size: XO.size, anchor: 'start', color: C.amber });
     s.sym(GA.a[0] - 70, 22, 'up to N<sub>2</sub> (at most 14 e<sup>−</sup>)', { size: 14, anchor: 'start' });
     s.sym(W - 4, 44, 'O<sub>2</sub> and F<sub>2</sub> (more than 14 e<sup>−</sup>)', { size: 14, anchor: 'end' });
     return s;
@@ -706,6 +771,8 @@ const figA: Diagram = {
     out.push([`O₂: HOMO the π* pair with ${o2.homoE} electrons, LUMO σ*2pz; N₂: HOMO σ2pz (${n2.homoE} electrons), LUMO the π* pair; NO: HOMO π* with ${no.homoE} electron`, o2.homo === 'pix' && o2.homoE === 2 && o2.lumo === 'pzx' && n2.homo === 'pz' && n2.homoE === 2 && n2.lumo === 'pix' && no.homo === 'pix' && no.homoE === 1]);
     const bo = (n: number) => fill(n <= 14 ? ORDER.a : ORDER.b, n).BO;
     out.push([`O₂ family: O₂⁺ ${bo(15)} > O₂ ${bo(16)} > O₂⁻ ${bo(17)} > O₂²⁻ ${bo(18)}; NO ${bo(15)} → NO⁺ ${bo(14)} (the electron leaves π*)`, bo(15) === 2.5 && bo(16) === 2 && bo(17) === 1.5 && bo(18) === 1 && bo(14) === 3]);
+    const xo = s.labels.find((l) => l.text === 'crossover'), xoMid = xo ? (xo.rect[1] + xo.rect[3]) / 2 : NaN;
+    out.push(['The word “crossover” sits beside its arrow, between the two swapped rows (σ2pz and π2p), clear of every other row and of both ladders', !!xo && xoMid < levelY(4) && xoMid > levelY(5) && Math.abs(xoMid - (levelY(4) + levelY(5)) / 2) < 3 && xo.rect[3] < levelY(4) - LABEL_GAP && xo.rect[1] > levelY(5) + LABEL_GAP && xo.rect[0] > XO.arrow + 4.5 + LABEL_GAP && xo.rect[2] <= GA.b[0] - LABEL_GAP && XO.arrow - 4.5 >= GA.a[1] + LABEL_GAP]);
     const heads = s.labels.map((l) => l.text);
     out.push(['Headings, as printed: (a) “up to N2 (at most 14 e−)”, (b) “O2 and F2 (more than 14 e−)”, the split the fillings above use', heads.includes('up to N2 (at most 14 e−)') && heads.includes('O2 and F2 (more than 14 e−)')]);
     out.push(...layout(s));

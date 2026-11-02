@@ -215,6 +215,9 @@ export default function MocksScreen() {
   );
 
   const eligible = hasActivePaper || (status?.credits_available ?? 0) > 0;
+  /** The free tier's one full paper is spent: what stands in the way is a plan,
+   *  not more practice, so the lock card and the key say so. */
+  const freeMockUsed = !eligible && status?.free_tier?.mock_used === true;
   // Until the gate has been read, the page does not pretend to know: no key
   // that might be the wrong one, no count that might be a lie.
   const gateKnown = status !== null;
@@ -438,11 +441,14 @@ export default function MocksScreen() {
                     <LockIcon size={scale(22)} />
                     <Text style={styles.lockOver}>Locked</Text>
                   </View>
-                  <Text style={styles.lockTitle}>Your next full paper</Text>
+                  <Text style={styles.lockTitle}>{freeMockUsed ? 'Your free mock is used' : 'Your next full paper'}</Text>
                   <Text style={styles.lockBody}>
-                    Get {status.threshold} Practice questions right to unlock it. Each question counts
-                    once, even one you got wrong the first time.
+                    {freeMockUsed
+                      ? status.free_tier?.message
+                      : `Get ${status.threshold} Practice questions right to unlock it. Each question counts once, even one you got wrong the first time.`}
                   </Text>
+                  {!freeMockUsed && (
+                  <>
                   <View style={styles.countRow}>
                     {/* From `correct_to_next`, not from `unique_correct` modulo
                         the threshold: the server owns how a credit is counted,
@@ -464,6 +470,8 @@ export default function MocksScreen() {
                       ]}
                     />
                   </View>
+                  </>
+                  )}
                 </View>
               </View>
             </>
@@ -576,14 +584,18 @@ export default function MocksScreen() {
                       ? 'Find your starting point'
                       : eligible
                         ? 'Start a full paper'
-                        : 'Practise now'
+                        : freeMockUsed
+                          ? 'See plans'
+                          : 'Practise now'
             }
             onPress={
               diagnostic
                 ? () => start('diagnostic')
                 : eligible
                   ? () => start('full')
-                  : () => router.replace('/practice')
+                  : freeMockUsed
+                    ? () => router.push('/plans')
+                    : () => router.replace('/practice')
             }
           />
           {!!diagnostic && eligible && (

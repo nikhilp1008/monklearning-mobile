@@ -32,7 +32,14 @@ type GridBlock = Extract<Block, { t: 'table' }>;
 /** "<b>Start from the relation.</b> Pressure is…" → ["Start from the relation.", "Pressure is…"]. */
 export function splitLead(html: string): [string | null, string] {
   const m = html.match(/^\s*<b>([\s\S]*?)<\/b>\s*/i);
-  return m ? [m[1], html.slice(m[0].length)] : [null, html];
+  if (!m) return [null, html];
+  const rest = html.slice(m[0].length);
+  // A lead that stops mid-sentence stays in its sentence: "Multiply all
+  // coefficients by" as a heading, with "n → raise to the power n" under it,
+  // read as a broken step.
+  const plain = (h: string) => h.replace(/<[^>]*>/g, '').trim();
+  if (plain(rest) && !/[.:?!)]$/.test(plain(m[1])) && !/^[A-Z“"]/.test(plain(rest))) return [null, html];
+  return [m[1], rest];
 }
 
 function title(text: string, asPrinted = false): string {
@@ -102,12 +109,20 @@ export function PilotGrid({
       <View style={s.rows}>
         {block.rows.map((row, i) => (
           <View key={i} style={[s.stackRow, i > 0 && s.hair]}>
-            {read(row[0] ?? '', s.key)}
+            {/* A row named by a bare number ("14") says what it counts. */}
+            {block.head[0] && !/[A-Za-z]/.test((row[0] ?? '').replace(/<[^>]*>/g, '')) ? (
+              <View style={s.cellRow}>
+                <Markup html={block.head[0]} size={type(READ_SIZE) - 1} style={s.cellHead} look="pilot" />
+                {read(row[0] ?? '', [s.cellValue, s.key])}
+              </View>
+            ) : (
+              read(row[0] ?? '', s.key)
+            )}
             {row.slice(1).map((cell, j) =>
               block.head.length > 2 && block.head[j + 1] ? (
                 // The column's name quiet on the left, the value beside it.
                 <View key={j} style={s.cellRow}>
-                  <Text style={s.cellHead}>{block.head[j + 1]}</Text>
+                  <Markup html={block.head[j + 1]} size={type(READ_SIZE) - 1} style={s.cellHead} look="pilot" />
                   {read(cell, s.cellValue)}
                 </View>
               ) : (

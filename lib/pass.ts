@@ -60,6 +60,9 @@ const DAYS: Record<PassKind, number> = {
   '11m': 330,
 };
 
+/** How many days a plan of this kind runs. */
+export const passDays = (kind: PassKind): number => DAYS[kind] ?? 0;
+
 /** As it reads on a screen. */
 export const PASS_NAME: Record<PassKind, string> = {
   day: '1 day',
@@ -71,10 +74,14 @@ export const PASS_NAME: Record<PassKind, string> = {
 };
 
 export type PassStatus =
-  /** Never bought one — a new account, or a student from before this existed. */
-  | { state: 'none' }
+  /**
+   * Never bought one — a new account, or a student from before this existed.
+   * `free` is the server saying the free tier is on and this student is on it:
+   * they are let into the app (with limits), not sent to the plans screen.
+   */
+  | { state: 'none'; free?: boolean }
   | { state: 'active'; record: PassRecord; endsAt: Date; daysLeft: number; hoursLeft: number }
-  | { state: 'expired'; record: PassRecord; endsAt: Date }
+  | { state: 'expired'; record: PassRecord; endsAt: Date; free?: boolean }
   /**
    * COULD NOT TELL. The server could not be reached (or its answer was not
    * one it would give), and this phone holds no earlier answer for this
@@ -144,7 +151,52 @@ type ServerPass = {
   started_at?: string;
   ends_at?: string;
   exempt?: boolean;
+  /** 'free' when the free tier is on and this student has no running pass. */
+  tier?: 'free' | 'paid';
+  free_tier?: { enabled?: boolean; limits?: Partial<FreeLimits> };
 };
+
+/** What the free tier allows each day (the server owns the numbers). */
+export type FreeLimits = {
+  snap_questions: number;
+  practice_questions: number;
+  followups: number;
+  mocks: number;
+};
+
+export const DEFAULT_FREE_LIMITS: FreeLimits = {
+  snap_questions: 5,
+  practice_questions: 25,
+  followups: 3,
+  mocks: 1,
+};
+
+/**
+ * WHETHER THIS STUDENT IS ON THE FREE TIER, as the server last said. Screens
+ * that draw a locked card (the live class, the progress mock-up) ask this
+ * rather than the server's verdict on each request, so the card is there on
+ * the first frame. The server still decides every limit.
+ */
+let tierNow: { free: boolean; limits: FreeLimits } = { free: false, limits: DEFAULT_FREE_LIMITS };
+const tierListeners = new Set<() => void>();
+
+export function getTier() {
+  return tierNow;
+}
+
+export function subscribeTier(fn: () => void): () => void {
+  tierListeners.add(fn);
+  return () => {
+    tierListeners.delete(fn);
+  };
+}
+
+function setTier(free: boolean, limits?: Partial<FreeLimits>) {
+  const next = { free, limits: { ...DEFAULT_FREE_LIMITS, ...(limits ?? {}) } };
+  if (next.free === tierNow.free && JSON.stringify(next.limits) === JSON.stringify(tierNow.limits)) return;
+  tierNow = next;
+  tierListeners.forEach((fn) => fn());
+}
 
 const TEN_YEARS_MS = 10 * 365 * 86400000;
 
@@ -227,6 +279,7 @@ export async function startPass(kind: PassKind, promo: string): Promise<PassReco
   const record = isServerPass(answer) ? recordFromServer(answer) : null;
   if (!record) throw new Error('The server did not return a pass.');
   await writeCache(userId, record);
+  setTier(false);
   return record;
 }
 
@@ -237,6 +290,7 @@ export async function startPass(kind: PassKind, promo: string): Promise<PassReco
  * were per-student goes too.
  */
 export async function clearPass(): Promise<void> {
+  setTier(false);
   try {
     const id = await currentUserId();
     await AsyncStorage.multiRemove(id ? [KEY, keyFor(id)] : [KEY]);
@@ -284,9 +338,12 @@ export function statusFromServer(answer: ServerPass, record: PassRecord | null, 
   // below, so an exempt account with no real pass (the store-review account) was
   // answered `none` here and the launch gate sent it to the plans screen.
   if (answer.exempt && record) return statusOf(record, now);
-  if (!record || answer.state === 'none') return { state: 'none' };
+  // Free: the tier is on and the server says this student is not paying. A
+  // pass that ran out is still shown as ended, so the plan page can say so.
+  const free = answer.tier === 'free';
+  if (!record || answer.state === 'none') return { state: 'none', free };
   const endsAt = endsAtFor(record);
-  if (answer.state === 'expired') return { state: 'expired', record, endsAt };
+  if (answer.state === 'expired') return { state: 'expired', record, endsAt, free };
   const left = Math.max(endsAt.getTime() - now.getTime(), 3600000);
   return {
     state: 'active',
@@ -318,6 +375,7 @@ export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<Pas
     if (!isServerPass(answer)) throw new Error('Not an answer from the pass server.');
     const record = recordFromServer(answer);
     await writeCache(userId, record);
+    setTier(answer.tier === 'free' && !answer.exempt, answer.free_tier?.limits);
     return statusFromServer(answer, record);
   } catch {
     const cached = await readPass(userId);

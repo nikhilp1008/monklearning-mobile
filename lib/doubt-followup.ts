@@ -102,11 +102,26 @@ export function isFollowUpQuota(status: number | undefined, payload: unknown): b
 
 export class FollowUpError extends Error {
   kind: FollowUpFailure;
-  constructor(message: string, kind: FollowUpFailure) {
+  /**
+   * The limit was the FREE tier's: `message` is then the server's own sentence,
+   * written to make the case for a plan, and the bar shows it with a button to
+   * the plans screen instead of "opens again tomorrow".
+   */
+  upgrade: boolean;
+  constructor(message: string, kind: FollowUpFailure, upgrade = false) {
     super(message);
     this.name = 'FollowUpError';
     this.kind = kind;
+    this.upgrade = upgrade;
   }
+}
+
+/** The server's persuasive sentence when a refusal is the free tier's limit. */
+export function upgradeMessageOf(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as { detail?: unknown; upgrade?: unknown; message?: unknown };
+  const d = (p.detail && typeof p.detail === 'object' ? p.detail : p) as { upgrade?: unknown; message?: unknown };
+  return d.upgrade === true && typeof d.message === 'string' && d.message ? d.message : null;
 }
 
 /** The kind of any rejection from the ask routes; anything unknown is `retry`. */
@@ -133,7 +148,8 @@ export function followUpRefusal(status: number, responseText: string): FollowUpE
     return new FollowUpError('You need a pass to continue.', 'pass');
   }
   if (status === 429 && isFollowUpQuota(status, body)) {
-    return new FollowUpError('You have used today’s follow-ups.', 'quota');
+    const upgrade = upgradeMessageOf(body);
+    return new FollowUpError(upgrade ?? 'You have used today’s follow-ups.', 'quota', upgrade !== null);
   }
   return new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry');
 }

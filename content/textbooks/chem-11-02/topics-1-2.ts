@@ -418,7 +418,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Photoelectric effect (Einstein’s equation)',
-        main: '<i>hν</i> = <i>W</i><sub>0</sub> + KE<sub>max</sub> ⟹ KE<sub>max</sub> = <i>hν</i> − <i>W</i><sub>0</sub> = <i>h</i>(<i>ν</i> − <i>ν</i><sub>0</sub>)',
+        main: '<i>hν</i> = <i>W</i><sub>0</sub> + KE<sub>max</sub><br>⟹ KE<sub>max</sub> = <i>hν</i> − <i>W</i><sub>0</sub> = <i>h</i>(<i>ν</i> − <i>ν</i><sub>0</sub>)',
         legend: [
           '<i>W</i><sub>0</sub> = <b>work function</b> = minimum energy to free an electron from the metal surface = <i>hν</i><sub>0</sub>',
           '<i>ν</i><sub>0</sub> = <b>threshold frequency</b>',

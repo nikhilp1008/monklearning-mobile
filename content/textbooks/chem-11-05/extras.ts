@@ -297,7 +297,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['ΔH', 'ΔS', 'Verdict', 'Crossover meaning'],
+        head: ['Δ<i>H</i>', 'Δ<i>S</i>', 'Verdict', 'Crossover meaning'],
         rows: [
           ['−', '+', 'spontaneous at all <i>T</i>', 'none'],
           ['+', '−', 'never spontaneous', 'none'],

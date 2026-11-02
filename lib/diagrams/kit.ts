@@ -28,6 +28,8 @@
  * diagram-card.tsx). `svg()` still writes it into the SVG for anything else.
  */
 
+import { barFoot, barsOf, inkTop, OVER, OVERLINE_MARK, overRuns, SCRIPT_TOP } from '../overline';
+
 export const C = { ink: '#2E2A24', text: '#1C1A16', grey: '#C0B8A6', slate: '#57534B', faint: '#9C988C', mari: '#EEA31F', amber: '#9A6A12', border: 'rgba(28,26,22,.2)' } as const;
 export const F = { tag: 'Onest_600SemiBold', bold: 'Onest_700Bold', stix: 'STIXTwoText_400Regular', stixI: 'STIXTwoText_400Regular_Italic', stixB: 'STIXTwoText_600SemiBold' } as const;
 
@@ -55,6 +57,8 @@ const EM: [RegExp, number][] = [
   [/[²³¹⁰⁴-⁹₀-₉]/, 0.35],
   [/[\u20d7\u0302\u0304\u2060\u200a\u2009]/, 0],
 ];
+const emOf = (ch: string) => EM.find(([r]) => r.test(ch))?.[1] ?? 0.6;
+
 /**
  * How wide a line of maths (<i>, <sub>, <sup>) runs, in STIX at `size`. A
  * flat half-em a character left boxes too narrow for "ΔQ = ΔU + ΔW" and
@@ -68,8 +72,7 @@ export function mathW(html: string, size: number): number {
   while ((m = re.exec(html))) {
     if (m[2]) { if (m[2] !== 'i') small += m[1] ? -1 : 1; continue; }
     for (const ch of m[3]) {
-      const k = EM.find(([r]) => r.test(ch))?.[1] ?? 0.6;
-      em += k * (small > 0 ? 0.7 : 1);
+      em += emOf(ch) * (small > 0 ? 0.7 : 1);
       n++;
     }
   }
@@ -115,6 +118,52 @@ export function tspans(html: string, size: number): string {
     out += `<tspan font-family="${italic ? F.stixI : F.stix}" font-size="${sz}"${dy ? ` dy="${dy}"` : ''}>${esc(m[3]).replace(/</g, '&lt;')}</tspan>`;
   }
   return out;
+}
+
+/**
+ * A NOT bar over the whole of what it negates, in the SVG's own text (a
+ * thumbnail's): the combining marks come out of the text, and each bar is a
+ * line over its run, placed by the same character widths as mathW (see
+ * lib/overline.ts for what the marks mean). On the card the text is laid over
+ * by the app and draws its own bars (components/textbook/markup.tsx).
+ */
+const MARKS = new RegExp(OVERLINE_MARK.source, 'g');
+function overlineSvg(t: TextRec): string {
+  const chars: { ch: string; w: number; top: number; italic: boolean; bars: number }[] = [];
+  const re = /<(\/?)(i|sub|sup)>|((?:<(?!\/?(?:i|sub|sup)>)|[^<])+)/g;
+  const stack: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(t.html))) {
+    if (m[2]) {
+      if (m[1]) stack.pop();
+      else stack.push(m[2]);
+      continue;
+    }
+    const sub = stack.includes('sub'), sup = stack.includes('sup');
+    for (const ch of m[3]) {
+      const bars = barsOf(ch), last = chars[chars.length - 1];
+      if (bars) {
+        if (last) last.bars += bars;
+        continue;
+      }
+      const top = /\s/.test(ch) ? 0 : sup ? SCRIPT_TOP.sup : sub ? SCRIPT_TOP.sub : inkTop(ch, false);
+      chars.push({ ch, w: emOf(ch) * (sub || sup ? 0.7 : 1) * t.size, top, italic: stack.includes('i') && !sub, bars: 0 });
+    }
+  }
+  const at = [0];
+  chars.forEach((c) => at.push(at[at.length - 1] + c.w));
+  const total = at[at.length - 1];
+  const x0 = t.anchor === 'middle' ? t.x - total / 2 : t.anchor === 'end' ? t.x - total : t.x;
+  const lean = OVER.lean * t.size, thick = OVER.thick * t.size;
+  return overRuns(chars.map((c) => c.bars))
+    .map(({ level, start, end }) => {
+      const run = chars.slice(start, end);
+      const foot = barFoot(Math.max(...run.map((c) => c.top)), level, Math.max(...run.map((c) => c.bars)));
+      const y = t.y - foot * t.size - thick / 2;
+      const a = x0 + at[start] + (run[0].italic ? lean : 0), b = x0 + at[end] + (run[run.length - 1].italic ? lean : 0);
+      return `<line x1="${r1(a)}" y1="${r1(y)}" x2="${r1(b)}" y2="${r1(y)}" stroke="${t.color}" stroke-width="${r1(thick)}"/>`;
+    })
+    .join('');
 }
 
 /** Point-to-segment distance. */
@@ -263,7 +312,10 @@ export class Sketch {
   /** The drawing. `withTexts: false` leaves the maths text out, for laying it over on device. */
   svg(withTexts = true): string {
     const texts = withTexts
-      ? this.texts.map((t) => { const body = tspans(t.html, t.size); return `<text x="${r1(t.x)}" y="${r1(t.y)}" text-anchor="${t.anchor}" fill="${t.color}">${t.semibold ? body.split(`font-family="${F.stix}"`).join(`font-family="${F.stixB}"`) : body}</text>`; }).join('')
+      ? this.texts.map((t) => {
+          const barred = OVERLINE_MARK.test(t.html), body = tspans(barred ? t.html.replace(MARKS, '') : t.html, t.size);
+          return `<text x="${r1(t.x)}" y="${r1(t.y)}" text-anchor="${t.anchor}" fill="${t.color}">${t.semibold ? body.split(`font-family="${F.stix}"`).join(`font-family="${F.stixB}"`) : body}</text>${barred ? overlineSvg(t) : ''}`;
+        }).join('')
       : '';
     return `<svg viewBox="0 0 ${this.w} ${this.height}" xmlns="http://www.w3.org/2000/svg">${this.parts.join('')}${texts}${this.top.join('')}${this.keyStrip()}</svg>`;
   }

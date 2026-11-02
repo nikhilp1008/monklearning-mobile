@@ -4,6 +4,7 @@ import {
   LayoutAnimation,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -11,6 +12,9 @@ import {
 
 import { colors } from '@/constants/brand';
 import { CARD_GAP, CARD_W } from '@/components/textbook/theme';
+
+/** Longer than an animated scrollTo takes on either platform (~300 ms). */
+const SETTLE_MS = 450;
 
 /**
  * The swipeable card rail used by solved examples, MCQs and practice.
@@ -80,7 +84,14 @@ export function Carousel({
     if (page === settled.current || !step) return;
     settled.current = page;
     scrollRef.current?.scrollTo({ x: page * step, animated: true });
-  }, [page, step]);
+    // Once the slide is over, the offset is set to the page exactly. On
+    // Android a slide made by the arrows could end without its last scroll
+    // event, leaving the offset a card behind: the card in view kept its
+    // neighbour's fade, at half opacity, and looked disabled (Android review
+    // of Chemistry 11, 2026-10-30: Ch 2 practice 3/3, Ch 3 example 4/4).
+    const done = setTimeout(() => offset.setValue(page * step), SETTLE_MS);
+    return () => clearTimeout(done);
+  }, [page, step, offset]);
   // The page the student left this rail on, restored. The reader already keeps
   // it per block so it survives a topic switch; without seeding the scroller
   // the number was stored and never used, and coming back to a topic dropped
@@ -96,6 +107,7 @@ export function Carousel({
   const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = Math.round(e.nativeEvent.contentOffset.x / step);
     settled.current = next;
+    offset.setValue(next * step);
     if (next !== page) onPage(next);
   };
 
@@ -114,7 +126,10 @@ export function Carousel({
   // The rail resizes once the swipe lands, and everything under it moves with
   // it, so the change is animated rather than a jump.
   const lastFit = useRef(fitHeight);
-  if (fit && lastFit.current !== undefined && fitHeight !== undefined && lastFit.current !== fitHeight) {
+  // Not on Android: there the layout animation's opacity overrode the cards'
+  // own fade, and a card turned to just after an answer opened stayed at half
+  // opacity, looking disabled (Android review of Chemistry 11, 2026-10-30).
+  if (Platform.OS === 'ios' && fit && lastFit.current !== undefined && fitHeight !== undefined && lastFit.current !== fitHeight) {
     LayoutAnimation.configureNext(LayoutAnimation.create(240, 'easeInEaseOut', 'opacity'));
   }
   lastFit.current = fitHeight;

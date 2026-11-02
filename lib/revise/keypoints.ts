@@ -4,6 +4,10 @@ import { KEY_POINTS as C11_03 } from '@/lib/revise/keypoints-chemistry-11-03';
 import { KEY_POINTS as C11_04 } from '@/lib/revise/keypoints-chemistry-11-04';
 import { KEY_POINTS as C11_05 } from '@/lib/revise/keypoints-chemistry-11-05';
 import { KEY_POINTS as C11_06 } from '@/lib/revise/keypoints-chemistry-11-06';
+import { KEY_POINTS as C11_07 } from '@/lib/revise/keypoints-chemistry-11-07';
+import { KEY_POINTS as C11_08 } from '@/lib/revise/keypoints-chemistry-11-08';
+import { KEY_POINTS as C11_09 } from '@/lib/revise/keypoints-chemistry-11-09';
+import { KEY_POINTS as C11_10 } from '@/lib/revise/keypoints-chemistry-11-10';
 import { KEY_POINTS as P11_01 } from '@/lib/revise/keypoints-physics-11-01';
 import { KEY_POINTS as P11_02 } from '@/lib/revise/keypoints-physics-11-02';
 import { KEY_POINTS as P11_03 } from '@/lib/revise/keypoints-physics-11-03';
@@ -26,6 +30,12 @@ import { KEY_POINTS as P12_05 } from '@/lib/revise/keypoints-physics-12-05';
 import { KEY_POINTS as P12_06 } from '@/lib/revise/keypoints-physics-12-06';
 import { KEY_POINTS as P12_07 } from '@/lib/revise/keypoints-physics-12-07';
 import { KEY_POINTS as P12_08 } from '@/lib/revise/keypoints-physics-12-08';
+import { KEY_POINTS as P12_09 } from '@/lib/revise/keypoints-physics-12-09';
+import { KEY_POINTS as P12_10 } from '@/lib/revise/keypoints-physics-12-10';
+import { KEY_POINTS as P12_11 } from '@/lib/revise/keypoints-physics-12-11';
+import { KEY_POINTS as P12_12 } from '@/lib/revise/keypoints-physics-12-12';
+import { KEY_POINTS as P12_13 } from '@/lib/revise/keypoints-physics-12-13';
+import { KEY_POINTS as P12_14 } from '@/lib/revise/keypoints-physics-12-14';
 
 /**
  * KEY POINTS, by chapter ("physics|11|1").
@@ -70,10 +80,20 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'physics|12|6': P12_06,
   'physics|12|7': P12_07,
   'physics|12|8': P12_08,
+  'physics|12|9': P12_09,
+  'physics|12|10': P12_10,
+  'physics|12|11': P12_11,
+  'physics|12|12': P12_12,
+  'physics|12|13': P12_13,
+  'physics|12|14': P12_14,
   'chemistry|11|1': C11_01,
   'chemistry|11|2': C11_02,
   'chemistry|11|3': C11_03,
   'chemistry|11|4': C11_04,
   'chemistry|11|5': C11_05,
   'chemistry|11|6': C11_06,
+  'chemistry|11|7': C11_07,
+  'chemistry|11|8': C11_08,
+  'chemistry|11|9': C11_09,
+  'chemistry|11|10': C11_10,
 };

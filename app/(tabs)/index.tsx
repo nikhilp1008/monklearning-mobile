@@ -42,6 +42,8 @@ import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { pullPersona } from '@/lib/persona-sync';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { getStoredName } from '@/lib/profile';
+import { useFreeTier } from '@/lib/free-tier';
+import { openClass } from '@/lib/open-class';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { useStartingPointOffer } from '@/lib/starting-point';
 import { useWaitingPaper } from '@/lib/waiting-paper';
@@ -79,6 +81,7 @@ type StatsState =
   | { kind: 'hidden' };
 
 export default function HomeScreen() {
+  const freeTier = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
@@ -301,7 +304,7 @@ export default function HomeScreen() {
           onSelectTeacher={() =>
             router.push({ pathname: '/select-teacher', params: { teacher } })
           }
-          onStartClass={() => router.push('/drona')}
+          onStartClass={() => openClass('/drona')}
           onProgress={() => router.push('/progress')}
           onProfile={() => router.push('/profile')}
           onMeasure={setHeader}
@@ -369,7 +372,11 @@ export default function HomeScreen() {
                   that file is in another repo. Neither figure is enforced on
                   the server yet: /practice/* returns no daily or quota field,
                   unlike Snap, which has daily_limit and used_today. */}
-              <Text style={styles.stripBody}>150 a day, across all subjects</Text>
+              <Text style={styles.stripBody}>
+                {freeTier.free
+                  ? `${freeTier.limits.practice_questions} free a day, across all subjects`
+                  : '150 a day, across all subjects'}
+              </Text>
             </PressableScale>
           </View>
 
@@ -606,7 +613,7 @@ function runObservationAction(action: ObservationAction | undefined) {
       router.push('/progress');
       return;
     case 'drona':
-      router.push('/drona');
+      openClass('/drona');
       return;
     case 'textbooks':
       // Deliberately the subject grid, not that subject's chapter list: the
@@ -615,7 +622,7 @@ function runObservationAction(action: ObservationAction | undefined) {
       router.push('/textbooks');
       return;
     case 'class':
-      router.push({
+      openClass({
         pathname: '/entering-classroom',
         params: { chapterId: action.chapterId, chapterTitle: action.chapterTitle },
       });

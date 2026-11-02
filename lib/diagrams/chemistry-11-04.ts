@@ -401,7 +401,7 @@ const fig43: Diagram = {
     // the square brackets and the ion's charge outside them
     path(s, [[l + 10, t], [l, t], [l, b], [l + 10, b]], { color: C.slate, w: 2 });
     path(s, [[r - 10, t], [r, t], [r, b], [r - 10, b]], { color: C.slate, w: 2 });
-    s.sym(r + 12, t + 6, '−', { size: 20 });
+    s.sym(r + 13, t - 1, '−', { size: 20 }); // raised clear of the bracket's top stroke, a charge not a serif
     return s;
   },
   check() {
@@ -454,7 +454,7 @@ const fig01d1: Diagram = {
       // the square brackets and the ion's charge outside them, as in Figure 4.3
       path(s, [[l + 10, t], [l, t], [l, b], [l + 10, b]], { color: C.slate, w: 2 });
       path(s, [[r - 10, t], [r, t], [r, b], [r - 10, b]], { color: C.slate, w: 2 });
-      s.sym(r + 12, t + 6, '−', { size: 20 });
+      s.sym(r + 13, t - 1, '−', { size: 20 }); // raised clear of the bracket's top stroke, a charge not a serif
     });
     // the double-headed resonance arrow between the two forms
     const xa = G01.x[1], ya = G01.y[0] + G01.half + G01.gap, yb = G01.y[1] - G01.half - G01.gap;

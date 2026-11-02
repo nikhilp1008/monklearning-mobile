@@ -60,7 +60,11 @@ function legendHtml(line: string): string {
   // its = signs throughout; turning only the first into a dash read as two
   // conventions on one line.
   if (line.indexOf(' = ', at + 3) >= 0) return line;
-  return `<b>${line.slice(0, at)}</b> ${'—'} ${line.slice(at + 3)}`;
+  // A value keeps its "=": "pKa — −log Ka" read as minus minus, and
+  // "z₁ — 2 for an α-particle" as z₁ minus 2.
+  const rest = line.slice(at + 3);
+  const sign = /^[0-9−+±.½]/.test(rest.replace(/<[^>]*>/g, '')) ? '=' : '—';
+  return `<b>${line.slice(0, at)}</b> ${sign} ${rest}`;
 }
 
 export function PilotFormula({
